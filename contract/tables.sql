@@ -197,7 +197,25 @@ CREATE TABLE thread_context (
 
   flattened_text_ref  text NOT NULL,     -- pointer into the raw store
 
+  -- SEGMENTS, NOT WHOLE COMMENTS.
+  --
   -- [{"flat": [412, 587], "doc": "gh_8842_c3", "raw": [88, 263]}, ...]
+  --
+  -- Normalisation rewrites text in place: an emoji becomes
+  -- `[upside_down_face]`, one character becoming eighteen. So flattened and
+  -- raw offsets DRIFT APART inside a single comment, and one offset delta per
+  -- comment silently resolves to the wrong text — or past the end of the
+  -- document — the moment a quote spans a substitution.
+  --
+  -- E3 therefore emits:
+  --   * one segment per contiguous run where flat and raw are identical
+  --     (flat length == raw length; offsets shift linearly)
+  --   * one segment per substitution
+  --     (flat length != raw length; the span is taken whole, because there
+  --      is no meaningful position inside a rewrite)
+  --
+  -- Consumer: judge/extract/verify.py, step 2. Covered by
+  -- tests/test_verify.py::TestDisplay.
   offset_map          jsonb NOT NULL,
 
   child_count         int NOT NULL,
