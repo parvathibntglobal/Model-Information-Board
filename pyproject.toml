@@ -1,0 +1,48 @@
+[project]
+name = "modelboard"
+version = "0.1.0"
+description = "What engineers actually say about AI models, and which cheaper one is safe for your task"
+requires-python = ">=3.11"
+
+dependencies = [
+  "httpx>=0.27",           # all fetching. official APIs only, no scraping
+  "psycopg[binary]>=3.2",
+  "pydantic>=2.7",         # strict schema on extraction output
+  "pyyaml>=6.0",           # contract/ config
+  "python-dotenv>=1.0",
+  "fastapi>=0.111",
+  "uvicorn[standard]>=0.30",
+  "jinja2>=3.1",           # server-rendered pages
+  "datasketch>=1.6",       # MinHash + LSH for short-document dedupe
+  "simhash>=2.1",          # long-form dedupe
+  "feedparser>=6.0",       # blog RSS
+  "trafilatura>=1.9",      # blog article text extraction
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2",
+  "pytest-asyncio>=0.23",
+  "ruff>=0.5",
+  "mypy>=1.10",
+]
+
+# Deliberately absent, and not to be added without a conversation:
+#   - any workflow engine (Prefect, Dagster, Airflow) — cron and a jobs table
+#     is enough for eight scheduled jobs
+#   - Kafka, TimescaleDB, ClickHouse — one Postgres until it hurts
+#   - any headless browser — official APIs and public feeds only
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

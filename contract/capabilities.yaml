@@ -1,0 +1,183 @@
+# ============================================================================
+#  Capability vocabulary — v1.0
+#
+#  SHARED. Changes go through a PR: both lanes depend on these keys.
+#
+#  Consensus counting needs a shared key. If one quote is tagged `tool calling`
+#  and another `function calling reliability`, they never group, and the board
+#  cannot say "six engineers discussed this".
+#
+#  `failure_mode` is the field that drives everything downstream:
+#
+#    loud    → you find out in seconds. A validation retry is a real
+#              mitigation, so weaker evidence is acceptable.
+#    silent  → wrong data enters your system looking correct and stays.
+#              POSITIVE CONSENSUS REQUIRED. "Nobody criticised it" is
+#              not good enough.
+#
+#  This matters MORE than how difficult the task is. It is why the advisor
+#  will happily move a strict-JSON role to a cheap model and refuse on an
+#  equally simple summariser. Not difficulty — whether you would find out.
+#
+#  EVERY CAPABILITY MUST HAVE A HARVEST QUERY (FR-7). Harvest is entirely
+#  query-driven: a capability nobody searches for has empty cells forever.
+#  Adding one here without adding its query is a no-op — and the build
+#  check will fail.
+# ============================================================================
+
+version: "1.0"
+
+capabilities:
+
+  - key: instruction.adherence
+    failure_mode: loud
+    description: >
+      Obeys the literal output contract — requested shape, length limit,
+      "no preamble" — across turns and under distraction.
+    sounds_like:
+      - "ignores the format"
+      - "adds preamble"
+      - "won't stick to the schema"
+      - "didn't follow instructions"
+
+  - key: format.structured_output
+    failure_mode: loud
+    description: >
+      Emits parseable structured output against a declared schema.
+      Note: providers ship enforcement modes that guarantee validity at the
+      API layer — record whether it was on, since a model that fails
+      free-form may be fine with it enabled.
+    sounds_like:
+      - "invalid JSON"
+      - "extra keys"
+      - "wraps it in markdown"
+      - "trailing comma"
+
+  - key: tool_calling.schema_accuracy
+    failure_mode: loud
+    description: >
+      Argument conformance to a declared schema — types, enums, required
+      fields — and not inventing tools that were never declared.
+    sounds_like:
+      - "invalid arguments"
+      - "invents tools that don't exist"
+      - "wrong parameter type"
+
+  - key: tool_calling.long_chain_reliability
+    failure_mode: loud
+    description: >
+      Multi-step sequences where step N depends on step N-1, and recovery
+      after a tool returns an error. Strongly sensitive to tool COUNT —
+      always record it in conditions.
+    sounds_like:
+      - "fails at the 7th call"
+      - "loops forever after an error"
+      - "forgets what it already called"
+
+  - key: context.effective_window
+    failure_mode: silent
+    description: >
+      Where accuracy actually collapses, which is routinely a fraction of
+      the advertised window. Reported as a range from practitioner
+      experience, never a fitted curve. Matching uses this, never the
+      advertised figure.
+    sounds_like:
+      - "loses recall past X"
+      - "forgets the middle"
+      - "falls apart above 200k"
+
+  - key: summarization.fidelity
+    failure_mode: silent
+    description: >
+      Faithful compression. Omission of load-bearing facts matters more than
+      fluency — a fluent summary that silently drops a critical clause reads
+      as excellent and is the exact failure we care about.
+    sounds_like:
+      - "dropped a key detail"
+      - "made something up"
+      - "missed the actual point"
+
+  - key: extraction.faithfulness
+    failure_mode: silent
+    description: >
+      Typed fields from messy input, with correct nulls for absent fields.
+      Null discipline — inventing a value when the field genuinely isn't
+      there — is the dominant cheap-model failure.
+    sounds_like:
+      - "invents values for fields that weren't there"
+      - "hallucinated the order ID"
+      - "should have returned null"
+
+  - key: code.editing_diff_fidelity
+    failure_mode: loud
+    description: >
+      Applying a change to existing code and emitting it USABLY — valid
+      diff, correct search/replace block, no truncation. Deliberately
+      separate from generation: cheap models routinely write fine code and
+      cannot produce a clean diff.
+    sounds_like:
+      - "breaks the diff"
+      - "truncates the file"
+      - "// rest unchanged"
+      - "search block didn't match"
+
+  - key: code.generation
+    failure_mode: loud
+    description: Producing new working code from a specification.
+    sounds_like:
+      - "hallucinated the API"
+      - "doesn't compile"
+      - "wrong import"
+      - "made up a function that doesn't exist"
+
+  - key: reasoning.multistep
+    failure_mode: silent
+    description: >
+      Multi-step deduction, decomposition, holding constraints across a
+      chain. Silent because a confidently wrong chain looks like a right one.
+    sounds_like:
+      - "falls apart on anything layered"
+      - "can't follow the chain"
+      - "confidently wrong"
+
+  - key: over_refusal
+    failure_mode: loud
+    description: >
+      Refusing benign requests, or moralising preamble that breaks a strict
+      output contract. An over-cautious cheap model silently corrupts a
+      pipeline expecting a fixed shape.
+    sounds_like:
+      - "refuses ordinary requests"
+      - "as an AI"
+      - "safety filter fired on nothing"
+      - "lectures instead of answering"
+
+  - key: ops.latency_ttft
+    failure_mode: loud
+    description: >
+      Time to first token, throughput, variance under load. Provider- and
+      region-dependent, moves week to week — hence the 30-day half-life.
+      For open weights this is a property of the HOST, not the model.
+    sounds_like:
+      - "TTFT"
+      - "slow in practice"
+      - "fast enough for chat"
+      - "times out under load"
+
+
+# ----------------------------------------------------------------------------
+#  Growing the vocabulary
+#
+#  1. Versioned config, not code. Adding one is a recorded change and shows
+#     in the changelog.
+#  2. DISCOVERED FROM EVIDENCE, not decreed. A quote fitting nothing is
+#     tagged `unclassified` and left to accumulate. A growing unclassified
+#     cluster is the signal that engineers are discussing something we do
+#     not track — and the trigger to add it.
+#  3. Adding one BACKFILLS: re-read from the immutable raw store. Costs
+#     nothing, because collect/ already paid for it.
+#
+#  Capabilities worth tracking now were not worth tracking eighteen months
+#  ago — computer use, thinking-budget control, prompt-cache effectiveness.
+#  In eighteen more this list will look dated again.
+# ----------------------------------------------------------------------------

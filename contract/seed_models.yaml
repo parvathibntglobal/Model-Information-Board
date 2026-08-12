@@ -1,0 +1,363 @@
+# ============================================================================
+#  Seed models — build fixture, NOT production data
+#
+#  Ten hardcoded models so work can start before the registry poller exists.
+#  Replaced in week 5 by OpenRouter polling, which writes into THE SAME
+#  `model_version` table — so the swap is a data-source change, not a rewrite.
+#
+#  ┌──────────────────────────────────────────────────────────────────────┐
+#  │  EVERY ROW LOADS WITH provenance: seed                                │
+#  │  Production refuses to start if any seeded row is present.            │
+#  │  See collect/registry/assertions.py                                   │
+#  └──────────────────────────────────────────────────────────────────────┘
+#
+#  ⚠  VERIFY EVERY NUMBER BEFORE THE FIRST RUN
+#
+#  Canonical ids, families, aliases and feature flags below are reliable.
+#  Every field marked `# VERIFY` is a best-known value that has NOT been
+#  read off a provider page — prices in particular move without notice, and
+#  a stale price silently corrupts every cost estimate and every ranking.
+#
+#  Open each provider's pricing and model-card pages, correct the values,
+#  and fill the `sources` block with the URL and the date you read it.
+#  FR-2 requires that for every registry field, and it applies to seeded
+#  rows too. Doing it here means the poller inherits a working pattern.
+#
+#  Slot 10 is deliberately empty — only you can know what launched in the
+#  last 30 days.
+# ============================================================================
+
+version: "1.0"
+provenance: seed
+
+
+# ----------------------------------------------------------------------------
+#  SLOT ALLOCATION — chosen for VARIETY, not popularity.
+#
+#    2 × frontier      the reference point — "what you'd have picked anyway"
+#    3 × mid-tier      where runners-up come from
+#    3 × budget        where the savings are; the likely recommendations
+#    1 × open-weight   different provider shape, different hosting story
+#    1 × just-launched so the `just-launched` discount has something to act on
+#
+#  ▸ SAME-FAMILY GROUP: claude-opus-5 / claude-sonnet-5 / claude-haiku-4-5
+#    all share family `claude`. This is the case that breaks entity
+#    resolution — a post saying "sonnet" or "haiku" with no version must
+#    resolve to the right tier, or attach to nothing. Three tiers of one
+#    line gives that logic real work from day one.
+#
+#  ▸ CONTEXT-GAP EXAMPLE: gemini-2.5-flash advertises 1M and practitioners
+#    report degradation well below it. Exercises the advertised-vs-reported
+#    logic from week 1 instead of week 7.
+# ----------------------------------------------------------------------------
+
+models:
+
+  # ═══════════════════════════════ FRONTIER ═══════════════════════════════
+
+  - canonical_id: anthropic/claude-opus-5
+    provider: anthropic
+    family: claude
+    display_name: Claude Opus 5
+    slot: frontier
+    lifecycle: ga
+    release_date: TODO              # VERIFY
+    price_in: TODO                  # VERIFY — USD per 1M input tokens
+    price_out: TODO                 # VERIFY
+    price_cached_read: TODO         # VERIFY
+    advertised_context: TODO        # VERIFY
+    max_output_tokens: TODO         # VERIFY
+    knowledge_cutoff: TODO          # VERIFY
+    supports_tools: true
+    supports_structured_output: true
+    supports_vision: true
+    supports_caching: true
+    supports_batch: true
+    aliases:
+      surface: "claude opus 5"
+      variants: ["opus 5", "claude-opus-5", "opus5", "claude opus", "opus"]
+    sources:
+      price_in:           { url: TODO, retrieved_at: TODO }
+      price_out:          { url: TODO, retrieved_at: TODO }
+      advertised_context: { url: TODO, retrieved_at: TODO }
+      release_date:       { url: TODO, retrieved_at: TODO }
+
+  - canonical_id: google/gemini-2.5-pro
+    provider: google
+    family: gemini
+    display_name: Gemini 2.5 Pro
+    slot: frontier
+    lifecycle: ga
+    release_date: TODO              # VERIFY
+    price_in: TODO                  # VERIFY
+    price_out: TODO                 # VERIFY
+    price_cached_read: TODO         # VERIFY
+    advertised_context: TODO        # VERIFY — believed 1M+
+    max_output_tokens: TODO         # VERIFY
+    knowledge_cutoff: TODO          # VERIFY
+    supports_tools: true
+    supports_structured_output: true
+    supports_vision: true
+    supports_caching: true
+    supports_batch: true
+    aliases:
+      surface: "gemini 2.5 pro"
+      variants: ["gemini pro", "gemini-2.5-pro", "pro 2.5", "gemini 2.5pro", "gemini2.5pro"]
+    sources:
+      price_in:           { url: TODO, retrieved_at: TODO }
+      price_out:          { url: TODO, retrieved_at: TODO }
+      advertised_context: { url: TODO, retrieved_at: TODO }
+      release_date:       { url: TODO, retrieved_at: TODO }
+
+  # ═══════════════════════════════ MID-TIER ═══════════════════════════════
+
+  - canonical_id: anthropic/claude-sonnet-5
+    provider: anthropic
+    family: claude                  # ◀ same family — entity resolution test
+    display_name: Claude Sonnet 5
+    slot: mid
+    lifecycle: ga
+    release_date: TODO              # VERIFY
+    price_in: TODO                  # VERIFY
+    price_out: TODO                 # VERIFY
+    price_cached_read: TODO         # VERIFY
+    advertised_context: TODO        # VERIFY
+    max_output_tokens: TODO         # VERIFY
+    knowledge_cutoff: TODO          # VERIFY
+    supports_tools: true
+    supports_structured_output: true
+    supports_vision: true
+    supports_caching: true
+    supports_batch: true
+    aliases:
+      surface: "claude sonnet 5"
+      # NOTE: a bare "sonnet" is deliberately included. It MUST resolve at
+      # specificity: family, never snapshot — this is the ambiguity the
+      # resolver has to handle correctly rather than guess at.
+      variants: ["sonnet 5", "claude-sonnet-5", "sonnet5", "claude sonnet", "sonnet"]
+    sources:
+      price_in:           { url: TODO, retrieved_at: TODO }
+      price_out:          { url: TODO, retrieved_at: TODO }
+      advertised_context: { url: TODO, retrieved_at: TODO }
+      release_date:       { url: TODO, retrieved_at: TODO }
+
+  - canonical_id: deepseek/deepseek-r1
+    provider: deepseek
+    family: deepseek
+    display_name: DeepSeek R1
+    slot: mid
+    lifecycle: ga
+    release_date: TODO              # VERIFY — believed Jan 2025
+    price_in: TODO                  # VERIFY
+    price_out: TODO                 # VERIFY
+    price_cached_read: TODO         # VERIFY
+    advertised_context: TODO        # VERIFY
+    max_output_tokens: TODO         # VERIFY
+    knowledge_cutoff: TODO          # VERIFY
+    supports_tools: true
+    supports_structured_output: true
+    supports_vision: false
+    supports_caching: true
+    supports_batch: false
+    # Reasoning model: expect a high output-token multiplier. The cost model
+    # treats verbosity as an estimate until telemetry exists (BUILD-PLAN §4,
+    # constraints) — this row is the one that will expose that gap first.
+    aliases:
+      surface: "deepseek r1"
+      variants: ["deepseek-r1", "r1", "deepseek reasoner", "deepseekr1"]
+    sources:
+      price_in:           { url: TODO, retrieved_at: TODO }
+      price_out:          { url: TODO, retrieved_at: TODO }
+      advertised_context: { url: TODO, retrieved_at: TODO }
+      release_date:       { url: TODO, retrieved_at: TODO }
+
+  - canonical_id: mistral/mistral-large-2411
+    provider: mistral
+    family: mistral-large
+    display_name: Mistral Large
+    slot: mid
+    lifecycle: ga
+    release_date: TODO              # VERIFY
+    price_in: TODO                  # VERIFY
+    price_out: TODO                 # VERIFY
+    price_cached_read: TODO         # VERIFY
+    advertised_context: TODO        # VERIFY
+    max_output_tokens: TODO         # VERIFY
+    knowledge_cutoff: TODO          # VERIFY
+    supports_tools: true
+    supports_structured_output: true
+    supports_vision: false
+    supports_caching: false
+    supports_batch: true
+    aliases:
+      surface: "mistral large"
+      variants: ["mistral-large", "mistral large 2", "mistrallarge", "mistral-large-2411"]
+    sources:
+      price_in:           { url: TODO, retrieved_at: TODO }
+      price_out:          { url: TODO, retrieved_at: TODO }
+      advertised_context: { url: TODO, retrieved_at: TODO }
+      release_date:       { url: TODO, retrieved_at: TODO }
+
+  # ════════════════════════════════ BUDGET ════════════════════════════════
+
+  - canonical_id: google/gemini-2.5-flash
+    provider: google
+    family: gemini                  # ◀ same family as gemini-2.5-pro
+    display_name: Gemini 2.5 Flash
+    slot: budget
+    lifecycle: ga
+    release_date: TODO              # VERIFY
+    price_in: TODO                  # VERIFY
+    price_out: TODO                 # VERIFY
+    price_cached_read: TODO         # VERIFY
+    advertised_context: TODO        # VERIFY — believed 1,000,000
+    max_output_tokens: TODO         # VERIFY
+    knowledge_cutoff: TODO          # VERIFY
+    supports_tools: true
+    supports_structured_output: true
+    supports_vision: true
+    supports_caching: true
+    supports_batch: true
+    # ◀ THE CONTEXT-GAP EXAMPLE. Advertised context is large; practitioners
+    #   report degradation well below it. Exercises the advertised-vs-reported
+    #   logic from week 1. Do NOT hardcode the reported ceiling — it must come
+    #   from harvested quotes, which is the whole point.
+    aliases:
+      surface: "gemini 2.5 flash"
+      variants: ["gemini flash", "gemini-2.5-flash", "flash 2.5", "gemini flash 2.5", "gemini2.5flash"]
+    sources:
+      price_in:           { url: TODO, retrieved_at: TODO }
+      price_out:          { url: TODO, retrieved_at: TODO }
+      advertised_context: { url: TODO, retrieved_at: TODO }
+      release_date:       { url: TODO, retrieved_at: TODO }
+
+  - canonical_id: anthropic/claude-haiku-4-5-20251001
+    provider: anthropic
+    family: claude                  # ◀ third tier of the same family
+    display_name: Claude Haiku 4.5
+    slot: budget
+    lifecycle: ga
+    release_date: 2025-10-01        # from the snapshot id; VERIFY the rest
+    price_in: TODO                  # VERIFY
+    price_out: TODO                 # VERIFY
+    price_cached_read: TODO         # VERIFY
+    advertised_context: TODO        # VERIFY
+    max_output_tokens: TODO         # VERIFY
+    knowledge_cutoff: TODO          # VERIFY
+    supports_tools: true
+    supports_structured_output: true
+    supports_vision: true
+    supports_caching: true
+    supports_batch: true
+    aliases:
+      surface: "claude haiku 4.5"
+      variants: ["haiku 4.5", "claude-haiku-4-5", "haiku4.5", "claude haiku", "haiku"]
+    sources:
+      price_in:           { url: TODO, retrieved_at: TODO }
+      price_out:          { url: TODO, retrieved_at: TODO }
+      advertised_context: { url: TODO, retrieved_at: TODO }
+      release_date:       { url: TODO, retrieved_at: TODO }
+
+  - canonical_id: openai/gpt-4.1-mini
+    provider: openai
+    family: gpt-4.1
+    display_name: GPT-4.1 mini
+    slot: budget
+    lifecycle: ga
+    release_date: TODO              # VERIFY
+    price_in: TODO                  # VERIFY
+    price_out: TODO                 # VERIFY
+    price_cached_read: TODO         # VERIFY
+    advertised_context: TODO        # VERIFY
+    max_output_tokens: TODO         # VERIFY
+    knowledge_cutoff: TODO          # VERIFY
+    supports_tools: true
+    supports_structured_output: true
+    supports_vision: true
+    supports_caching: true
+    supports_batch: true
+    aliases:
+      surface: "gpt-4.1 mini"
+      variants: ["gpt 4.1 mini", "gpt-4.1-mini", "4.1 mini", "gpt41mini", "gpt-4.1 mini"]
+    sources:
+      price_in:           { url: TODO, retrieved_at: TODO }
+      price_out:          { url: TODO, retrieved_at: TODO }
+      advertised_context: { url: TODO, retrieved_at: TODO }
+      release_date:       { url: TODO, retrieved_at: TODO }
+
+  # ══════════════════════════════ OPEN-WEIGHT ═════════════════════════════
+
+  - canonical_id: deepseek/deepseek-v3
+    provider: deepseek
+    family: deepseek
+    display_name: DeepSeek V3
+    slot: open-weight
+    lifecycle: ga
+    release_date: TODO              # VERIFY — believed Dec 2024
+    price_in: TODO                  # VERIFY — varies by HOST, not just model
+    price_out: TODO                 # VERIFY
+    price_cached_read: TODO         # VERIFY
+    advertised_context: TODO        # VERIFY
+    max_output_tokens: TODO         # VERIFY
+    knowledge_cutoff: TODO          # VERIFY
+    supports_tools: true
+    supports_structured_output: true
+    supports_vision: false
+    supports_caching: true
+    supports_batch: false
+    # ◀ OPEN-WEIGHT: latency and price are properties of the SERVING PROVIDER,
+    #   not the model. Claims about this one must record `hosted_by` in
+    #   conditions, or a complaint about slowness is unattributable.
+    aliases:
+      surface: "deepseek v3"
+      variants: ["deepseek-v3", "deepseek 3", "deepseekv3", "deepseek chat"]
+    sources:
+      price_in:           { url: TODO, retrieved_at: TODO }
+      price_out:          { url: TODO, retrieved_at: TODO }
+      advertised_context: { url: TODO, retrieved_at: TODO }
+      release_date:       { url: TODO, retrieved_at: TODO }
+
+  # ════════════════════════════ JUST-LAUNCHED ═════════════════════════════
+  #
+  #  ⚠  SLOT 10 IS EMPTY — fill it yourself.
+  #
+  #  It must be a model released in the LAST 30 DAYS, and only you can know
+  #  what that is. Its job is to make the launch-window discount fire:
+  #
+  #      f_launch = 0.45 + 0.55 × min(1, days_since_release / 21)
+  #
+  #  Without a genuinely recent model, that logic sits untested until a real
+  #  launch happens mid-build — which is the worst time to discover it is
+  #  wrong. Pick whatever shipped this month, from any provider.
+  #
+  # - canonical_id: <provider>/<model>
+  #   provider: <provider>
+  #   family: <family>
+  #   display_name: <name>
+  #   slot: just-launched
+  #   lifecycle: ga | preview
+  #   release_date: <within 30 days>
+  #   ... same shape as above ...
+
+
+# ----------------------------------------------------------------------------
+#  CHECKLIST — before the first commit
+#
+#    [ ] Slot 10 filled with something released in the last 30 days
+#    [ ] Every `# VERIFY` replaced with a value read off a provider page
+#    [ ] Every `sources` entry has a real URL and a real date
+#    [x] Same-family group present — claude opus/sonnet/haiku, plus gemini
+#        pro/flash. A bare "sonnet" or "haiku" must resolve at
+#        specificity: family, never snapshot
+#    [x] Context-gap example present — gemini-2.5-flash
+#    [x] Open-weight present — deepseek-v3, with hosted_by required in claims
+#    [x] 4–5 alias variants each: enough coverage without blowing the budget
+#        (10 × 5 × 12 = 600 queries per platform, ~20 min on GitHub)
+#    [ ] Loader stamps provenance: seed on every row
+#    [ ] assert_no_fixtures() wired into startup
+#
+#  Widen to 15 seeded models once the loop runs end to end — a real thread
+#  becoming a verified claim becoming a published cell — and before switching
+#  to OpenRouter. Ten produces thin cells, and thin cells make the publication
+#  gate look broken when it is working correctly.
+# ----------------------------------------------------------------------------

@@ -1,0 +1,94 @@
+# ============================================================================
+#  Condition dimensions — v1.0
+#
+#  SHARED. Changes go through a PR.
+#
+#  A cell is (model_version, capability, condition_bucket). These three
+#  dimensions define the bucket.
+#
+#  WHY THIS EXISTS
+#
+#  Most disagreements are not disagreements. They are different situations.
+#
+#      8 engineers say tool calling works fine   — all at ≤5 tools
+#      4 engineers say it breaks                 — all at 6+ tools
+#
+#  Averaged, that publishes "mediocre at tool calling" — true-ish, useless,
+#  and it buries the actual rule. Bucketed, it publishes:
+#
+#      "Praised for tool calling in simple loops; two engineers report
+#       schema failures at 6+ tools."
+#
+#  That second sentence is the answer. Condition buckets are what make it
+#  possible, and they are NOT a deferrable nicety.
+#
+#  BANDS ARE FIXED, not continuous, because buckets must be countable.
+#  A claim with an unknown value for a dimension goes to `unknown` and
+#  is usable only for cells where that dimension does not apply.
+# ============================================================================
+
+version: "1.0"
+
+dimensions:
+
+  - key: tool_count
+    description: How many tools were in scope when the behaviour was observed.
+    why: >
+      Many models degrade sharply past roughly 10–20 tools. A benchmark run
+      at 5 tools predicts nothing about behaviour at 40, so a claim without
+      a tool count cannot be compared to one that has it.
+    bands: ["none", "1-5", "6-15", "16+", "unknown"]
+
+  - key: context_size
+    description: Input size at which the behaviour was observed.
+    why: >
+      The same model is a different model at 4k and at 400k. Long-context
+      claims are meaningless without the length they were observed at.
+    bands: ["<8k", "8k-32k", "32k-128k", "128k+", "unknown"]
+
+  - key: structured_mode
+    description: Whether provider-side structured-output enforcement was on.
+    why: >
+      Enforcement guarantees schema validity at the API layer. A model that
+      fails free-form JSON may be perfectly usable with it enabled — so a
+      complaint about invalid JSON means something completely different
+      depending on this flag.
+    bands: ["on", "off", "unknown"]
+
+
+# ----------------------------------------------------------------------------
+#  Bucket key format:  "<dimension>:<band>"     e.g.  tools:6-15
+#
+#  A claim carries the full `conditions` object; `condition_bucket` is the
+#  single dimension that dominates for that capability:
+#
+#      tool_calling.*            → tool_count
+#      context.effective_window  → context_size
+#      format.structured_output  → structured_mode
+#      everything else           → context_size
+#
+#  Q5 reads the cell AT THE TASK'S BUCKET. A 12-tool task looks up
+#  `tools:6-15`, never the model's flattering overall average.
+# ----------------------------------------------------------------------------
+
+dominant_dimension:
+  "tool_calling.schema_accuracy":         tool_count
+  "tool_calling.long_chain_reliability":  tool_count
+  "context.effective_window":             context_size
+  "format.structured_output":             structured_mode
+  "instruction.adherence":                context_size
+  "summarization.fidelity":               context_size
+  "extraction.faithfulness":              context_size
+  "code.editing_diff_fidelity":           context_size
+  "code.generation":                      context_size
+  "reasoning.multistep":                  context_size
+  "over_refusal":                         context_size
+  "ops.latency_ttft":                     context_size
+
+
+# ----------------------------------------------------------------------------
+#  Later (see BUILD-PLAN.md §8): thinking mode, effort tier, serving provider,
+#  framework/scaffold, temperature, region, quantisation. Each adds real
+#  discrimination and multiplies the cells — three is the minimum that
+#  captures the failures people actually report.
+# ----------------------------------------------------------------------------

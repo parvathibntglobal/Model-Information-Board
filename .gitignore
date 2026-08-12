@@ -1,0 +1,49 @@
+# ── secrets ──────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ── the raw store ────────────────────────────────────────────────────────
+# Immutable, content-hash addressed, and large. Full text is retained
+# privately for verification and reprocessing — it is never republished
+# and it does not belong in git.
+raw_store/
+data/raw/
+*.warc
+*.warc.gz
+
+# ── python ───────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.python-version
+
+# ── tooling ──────────────────────────────────────────────────────────────
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ── local ────────────────────────────────────────────────────────────────
+*.db
+*.sqlite3
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+
+# ── generated output ─────────────────────────────────────────────────────
+site/
+exports/
