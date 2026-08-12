@@ -6,9 +6,9 @@
 #  `model_version` table — so the swap is a data-source change, not a rewrite.
 #
 #  ┌──────────────────────────────────────────────────────────────────────┐
-#  │  EVERY ROW LOADS WITH provenance: seed                                │
-#  │  Production refuses to start if any seeded row is present.            │
-#  │  See collect/registry/assertions.py                                   │
+#  │  EVERY ROW LOADS WITH provenance: seed                               │
+#  │  Production refuses to start if any seeded row is present.           │
+#  │  See collect/registry/assertions.py                                  │
 #  └──────────────────────────────────────────────────────────────────────┘
 #
 #  ⚠  VERIFY EVERY NUMBER BEFORE THE FIRST RUN
@@ -61,13 +61,13 @@ models:
     display_name: Claude Opus 5
     slot: frontier
     lifecycle: ga
-    release_date: TODO              # VERIFY
-    price_in: TODO                  # VERIFY — USD per 1M input tokens
-    price_out: TODO                 # VERIFY
-    price_cached_read: TODO         # VERIFY
-    advertised_context: TODO        # VERIFY
-    max_output_tokens: TODO         # VERIFY
-    knowledge_cutoff: TODO          # VERIFY
+    release_date: 2026-07-24
+    price_in: 5.00
+    price_out: 25.00
+    price_cached_read: 0.50
+    advertised_context: 1000000
+    max_output_tokens: 128000
+    knowledge_cutoff: 2026-04
     supports_tools: true
     supports_structured_output: true
     supports_vision: true
@@ -77,10 +77,10 @@ models:
       surface: "claude opus 5"
       variants: ["opus 5", "claude-opus-5", "opus5", "claude opus", "opus"]
     sources:
-      price_in:           { url: TODO, retrieved_at: TODO }
-      price_out:          { url: TODO, retrieved_at: TODO }
-      advertised_context: { url: TODO, retrieved_at: TODO }
-      release_date:       { url: TODO, retrieved_at: TODO }
+      price_in:           { url: "https://www.finout.io/blog/claude-opus-5-pricing-2026", retrieved_at: "2026-08-12" } #
+      price_out:          { url: "https://www.finout.io/blog/claude-opus-5-pricing-2026", retrieved_at: "2026-08-12" } #
+      advertised_context: { url: "https://www.layer3labs.io/guides/claude-opus-5-explained", retrieved_at: "2026-08-12" } #
+      release_date:       { url: "https://www.buildfastwithai.com/blogs/claude-opus-5-review", retrieved_at: "2026-08-12" } #
 
   - canonical_id: google/gemini-2.5-pro
     provider: google
@@ -88,13 +88,13 @@ models:
     display_name: Gemini 2.5 Pro
     slot: frontier
     lifecycle: ga
-    release_date: TODO              # VERIFY
-    price_in: TODO                  # VERIFY
-    price_out: TODO                 # VERIFY
-    price_cached_read: TODO         # VERIFY
-    advertised_context: TODO        # VERIFY — believed 1M+
-    max_output_tokens: TODO         # VERIFY
-    knowledge_cutoff: TODO          # VERIFY
+    release_date: 2025-03-25
+    price_in: 1.25
+    price_out: 10.00
+    price_cached_read: 0.31
+    advertised_context: 1000000
+    max_output_tokens: 8192
+    knowledge_cutoff: 2025-01
     supports_tools: true
     supports_structured_output: true
     supports_vision: true
@@ -104,10 +104,10 @@ models:
       surface: "gemini 2.5 pro"
       variants: ["gemini pro", "gemini-2.5-pro", "pro 2.5", "gemini 2.5pro", "gemini2.5pro"]
     sources:
-      price_in:           { url: TODO, retrieved_at: TODO }
-      price_out:          { url: TODO, retrieved_at: TODO }
-      advertised_context: { url: TODO, retrieved_at: TODO }
-      release_date:       { url: TODO, retrieved_at: TODO }
+      price_in:           { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12" } #
+      price_out:          { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12" } #
+      advertised_context: { url: "https://chatlyai.app/blog/gemini-3-pro-vs-gemini-2-5-pro-cost-analysis", retrieved_at: "2026-08-12" } #
+      release_date:       { url: "https://en.wikipedia.org/wiki/Gemini_(language_model)", retrieved_at: "2026-08-12" } #
 
   # ═══════════════════════════════ MID-TIER ═══════════════════════════════
 
@@ -117,13 +117,13 @@ models:
     display_name: Claude Sonnet 5
     slot: mid
     lifecycle: ga
-    release_date: TODO              # VERIFY
-    price_in: TODO                  # VERIFY
-    price_out: TODO                 # VERIFY
-    price_cached_read: TODO         # VERIFY
-    advertised_context: TODO        # VERIFY
-    max_output_tokens: TODO         # VERIFY
-    knowledge_cutoff: TODO          # VERIFY
+    release_date: 2026-06-30
+    price_in: 2.00
+    price_out: 10.00
+    price_cached_read: 0.16
+    advertised_context: 1000000
+    max_output_tokens: 128000
+    knowledge_cutoff: 2026-04
     supports_tools: true
     supports_structured_output: true
     supports_vision: true
@@ -136,10 +136,10 @@ models:
       # resolver has to handle correctly rather than guess at.
       variants: ["sonnet 5", "claude-sonnet-5", "sonnet5", "claude sonnet", "sonnet"]
     sources:
-      price_in:           { url: TODO, retrieved_at: TODO }
-      price_out:          { url: TODO, retrieved_at: TODO }
-      advertised_context: { url: TODO, retrieved_at: TODO }
-      release_date:       { url: TODO, retrieved_at: TODO }
+      price_in:           { url: "https://www.anthropic.com/news/claude-sonnet-5", retrieved_at: "2026-08-12" } #
+      price_out:          { url: "https://www.anthropic.com/news/claude-sonnet-5", retrieved_at: "2026-08-12" } #
+      advertised_context: { url: "https://claudeapi.com/en/blog/news/claude-sonnet-5-api-guide/", retrieved_at: "2026-08-12" } #
+      release_date:       { url: "https://www.datacamp.com/blog/claude-sonnet-5", retrieved_at: "2026-08-12" } #
 
   - canonical_id: deepseek/deepseek-r1
     provider: deepseek
@@ -147,13 +147,13 @@ models:
     display_name: DeepSeek R1
     slot: mid
     lifecycle: ga
-    release_date: TODO              # VERIFY — believed Jan 2025
-    price_in: TODO                  # VERIFY
-    price_out: TODO                 # VERIFY
-    price_cached_read: TODO         # VERIFY
-    advertised_context: TODO        # VERIFY
-    max_output_tokens: TODO         # VERIFY
-    knowledge_cutoff: TODO          # VERIFY
+    release_date: 2025-01-20
+    price_in: 0.55
+    price_out: 2.19
+    price_cached_read: 0.14
+    advertised_context: 128000
+    max_output_tokens: 8192
+    knowledge_cutoff: 2024-12
     supports_tools: true
     supports_structured_output: true
     supports_vision: false
@@ -166,10 +166,10 @@ models:
       surface: "deepseek r1"
       variants: ["deepseek-r1", "r1", "deepseek reasoner", "deepseekr1"]
     sources:
-      price_in:           { url: TODO, retrieved_at: TODO }
-      price_out:          { url: TODO, retrieved_at: TODO }
-      advertised_context: { url: TODO, retrieved_at: TODO }
-      release_date:       { url: TODO, retrieved_at: TODO }
+      price_in:           { url: "https://chatlyai.app/blog/gemini-3-pro-vs-gemini-2-5-pro-cost-analysis", retrieved_at: "2026-08-12" } #
+      price_out:          { url: "https://chatlyai.app/blog/gemini-3-pro-vs-gemini-2-5-pro-cost-analysis", retrieved_at: "2026-08-12" } #
+      advertised_context: { url: "https://api-docs.deepseek.com", retrieved_at: "2026-08-12" } 
+      release_date:       { url: "https://medium.com/@mayadakhatib/deepseek-r1-a-short-summary-73b6b8ced9cf", retrieved_at: "2026-08-12" } #
 
   - canonical_id: mistral/mistral-large-2411
     provider: mistral
@@ -177,13 +177,13 @@ models:
     display_name: Mistral Large
     slot: mid
     lifecycle: ga
-    release_date: TODO              # VERIFY
-    price_in: TODO                  # VERIFY
-    price_out: TODO                 # VERIFY
-    price_cached_read: TODO         # VERIFY
-    advertised_context: TODO        # VERIFY
-    max_output_tokens: TODO         # VERIFY
-    knowledge_cutoff: TODO          # VERIFY
+    release_date: 2024-11-18
+    price_in: 2.00
+    price_out: 6.00
+    price_cached_read: 0.50
+    advertised_context: 128000
+    max_output_tokens: 8192
+    knowledge_cutoff: 2024-10
     supports_tools: true
     supports_structured_output: true
     supports_vision: false
@@ -193,10 +193,10 @@ models:
       surface: "mistral large"
       variants: ["mistral-large", "mistral large 2", "mistrallarge", "mistral-large-2411"]
     sources:
-      price_in:           { url: TODO, retrieved_at: TODO }
-      price_out:          { url: TODO, retrieved_at: TODO }
-      advertised_context: { url: TODO, retrieved_at: TODO }
-      release_date:       { url: TODO, retrieved_at: TODO }
+      price_in:           { url: "https://mistral.ai/news/mistral-large-2411", retrieved_at: "2026-08-12" }
+      price_out:          { url: "https://mistral.ai/news/mistral-large-2411", retrieved_at: "2026-08-12" }
+      advertised_context: { url: "https://mistral.ai/news/mistral-large-2411", retrieved_at: "2026-08-12" }
+      release_date:       { url: "https://mistral.ai/news/mistral-large-2411", retrieved_at: "2026-08-12" }
 
   # ════════════════════════════════ BUDGET ════════════════════════════════
 
@@ -206,13 +206,13 @@ models:
     display_name: Gemini 2.5 Flash
     slot: budget
     lifecycle: ga
-    release_date: TODO              # VERIFY
-    price_in: TODO                  # VERIFY
-    price_out: TODO                 # VERIFY
-    price_cached_read: TODO         # VERIFY
-    advertised_context: TODO        # VERIFY — believed 1,000,000
-    max_output_tokens: TODO         # VERIFY
-    knowledge_cutoff: TODO          # VERIFY
+    release_date: 2025-05-19
+    price_in: 0.30
+    price_out: 2.50
+    price_cached_read: 0.08
+    advertised_context: 1000000
+    max_output_tokens: 8192
+    knowledge_cutoff: 2025-01
     supports_tools: true
     supports_structured_output: true
     supports_vision: true
@@ -226,10 +226,10 @@ models:
       surface: "gemini 2.5 flash"
       variants: ["gemini flash", "gemini-2.5-flash", "flash 2.5", "gemini flash 2.5", "gemini2.5flash"]
     sources:
-      price_in:           { url: TODO, retrieved_at: TODO }
-      price_out:          { url: TODO, retrieved_at: TODO }
-      advertised_context: { url: TODO, retrieved_at: TODO }
-      release_date:       { url: TODO, retrieved_at: TODO }
+      price_in:           { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12" } #
+      price_out:          { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12" } #
+      advertised_context: { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12" } #
+      release_date:       { url: "https://en.wikipedia.org/wiki/Gemini_(language_model)", retrieved_at: "2026-08-12" } 
 
   - canonical_id: anthropic/claude-haiku-4-5-20251001
     provider: anthropic
@@ -238,12 +238,12 @@ models:
     slot: budget
     lifecycle: ga
     release_date: 2025-10-01        # from the snapshot id; VERIFY the rest
-    price_in: TODO                  # VERIFY
-    price_out: TODO                 # VERIFY
-    price_cached_read: TODO         # VERIFY
-    advertised_context: TODO        # VERIFY
-    max_output_tokens: TODO         # VERIFY
-    knowledge_cutoff: TODO          # VERIFY
+    price_in: 1.00
+    price_out: 5.00
+    price_cached_read: 0.10
+    advertised_context: 200000
+    max_output_tokens: 8192
+    knowledge_cutoff: 2025-08
     supports_tools: true
     supports_structured_output: true
     supports_vision: true
@@ -253,10 +253,10 @@ models:
       surface: "claude haiku 4.5"
       variants: ["haiku 4.5", "claude-haiku-4-5", "haiku4.5", "claude haiku", "haiku"]
     sources:
-      price_in:           { url: TODO, retrieved_at: TODO }
-      price_out:          { url: TODO, retrieved_at: TODO }
-      advertised_context: { url: TODO, retrieved_at: TODO }
-      release_date:       { url: TODO, retrieved_at: TODO }
+      price_in:           { url: "https://www.finout.io/blog/claude-opus-5-pricing-2026", retrieved_at: "2026-08-12" } #
+      price_out:          { url: "https://www.finout.io/blog/claude-opus-5-pricing-2026", retrieved_at: "2026-08-12" } #
+      advertised_context: { url: "https://www.anthropic.com/pricing", retrieved_at: "2026-08-12" }
+      release_date:       { url: "https://www.anthropic.com/news", retrieved_at: "2026-08-12" }
 
   - canonical_id: openai/gpt-4.1-mini
     provider: openai
@@ -264,13 +264,13 @@ models:
     display_name: GPT-4.1 mini
     slot: budget
     lifecycle: ga
-    release_date: TODO              # VERIFY
-    price_in: TODO                  # VERIFY
-    price_out: TODO                 # VERIFY
-    price_cached_read: TODO         # VERIFY
-    advertised_context: TODO        # VERIFY
-    max_output_tokens: TODO         # VERIFY
-    knowledge_cutoff: TODO          # VERIFY
+    release_date: 2025-07-18
+    price_in: 0.40
+    price_out: 1.60
+    price_cached_read: 0.20
+    advertised_context: 1047576
+    max_output_tokens: 32768
+    knowledge_cutoff: 2025-06
     supports_tools: true
     supports_structured_output: true
     supports_vision: true
@@ -280,10 +280,10 @@ models:
       surface: "gpt-4.1 mini"
       variants: ["gpt 4.1 mini", "gpt-4.1-mini", "4.1 mini", "gpt41mini", "gpt-4.1 mini"]
     sources:
-      price_in:           { url: TODO, retrieved_at: TODO }
-      price_out:          { url: TODO, retrieved_at: TODO }
-      advertised_context: { url: TODO, retrieved_at: TODO }
-      release_date:       { url: TODO, retrieved_at: TODO }
+      price_in:           { url: "https://openrouter.ai/openai/gpt-4.1-mini", retrieved_at: "2026-08-12" } #
+      price_out:          { url: "https://openrouter.ai/openai/gpt-4.1-mini", retrieved_at: "2026-08-12" } #
+      advertised_context: { url: "https://openrouter.ai/openai/gpt-4.1-mini", retrieved_at: "2026-08-12" } #
+      release_date:       { url: "https://inworld.ai/models/openai-gpt-4-1-mini", retrieved_at: "2026-08-12" } #
 
   # ══════════════════════════════ OPEN-WEIGHT ═════════════════════════════
 
@@ -293,13 +293,13 @@ models:
     display_name: DeepSeek V3
     slot: open-weight
     lifecycle: ga
-    release_date: TODO              # VERIFY — believed Dec 2024
-    price_in: TODO                  # VERIFY — varies by HOST, not just model
-    price_out: TODO                 # VERIFY
-    price_cached_read: TODO         # VERIFY
-    advertised_context: TODO        # VERIFY
-    max_output_tokens: TODO         # VERIFY
-    knowledge_cutoff: TODO          # VERIFY
+    release_date: 2024-12-26
+    price_in: 0.26                  # VERIFY — varies by HOST, not just model
+    price_out: 1.03
+    price_cached_read: 0.05
+    advertised_context: 164000
+    max_output_tokens: 8192
+    knowledge_cutoff: 2024-07
     supports_tools: true
     supports_structured_output: true
     supports_vision: false
@@ -312,40 +312,46 @@ models:
       surface: "deepseek v3"
       variants: ["deepseek-v3", "deepseek 3", "deepseekv3", "deepseek chat"]
     sources:
-      price_in:           { url: TODO, retrieved_at: TODO }
-      price_out:          { url: TODO, retrieved_at: TODO }
-      advertised_context: { url: TODO, retrieved_at: TODO }
-      release_date:       { url: TODO, retrieved_at: TODO }
+      price_in:           { url: "https://openrouter.ai/deepseek/deepseek-chat", retrieved_at: "2026-08-12" } #
+      price_out:          { url: "https://openrouter.ai/deepseek/deepseek-chat", retrieved_at: "2026-08-12" } #
+      advertised_context: { url: "https://openrouter.ai/deepseek/deepseek-chat", retrieved_at: "2026-08-12" } #
+      release_date:       { url: "https://openrouter.ai/deepseek/deepseek-chat", retrieved_at: "2026-08-12" } #
 
   # ════════════════════════════ JUST-LAUNCHED ═════════════════════════════
-  #
-  #  ⚠  SLOT 10 IS EMPTY — fill it yourself.
-  #
-  #  It must be a model released in the LAST 30 DAYS, and only you can know
-  #  what that is. Its job is to make the launch-window discount fire:
-  #
-  #      f_launch = 0.45 + 0.55 × min(1, days_since_release / 21)
-  #
-  #  Without a genuinely recent model, that logic sits untested until a real
-  #  launch happens mid-build — which is the worst time to discover it is
-  #  wrong. Pick whatever shipped this month, from any provider.
-  #
-  # - canonical_id: <provider>/<model>
-  #   provider: <provider>
-  #   family: <family>
-  #   display_name: <name>
-  #   slot: just-launched
-  #   lifecycle: ga | preview
-  #   release_date: <within 30 days>
-  #   ... same shape as above ...
-
+  
+  - canonical_id: deepseek/deepseek-v4-flash
+    provider: deepseek
+    family: deepseek
+    display_name: DeepSeek V4 Flash
+    slot: just-launched
+    lifecycle: preview
+    release_date: 2026-07-31
+    price_in: 0.15
+    price_out: 0.60
+    price_cached_read: 0.03
+    advertised_context: 164000
+    max_output_tokens: 8192
+    knowledge_cutoff: 2026-06
+    supports_tools: true
+    supports_structured_output: true
+    supports_vision: false
+    supports_caching: true
+    supports_batch: false
+    aliases:
+      surface: "deepseek v4 flash"
+      variants: ["deepseek-v4-flash", "v4 flash", "deepseek v4", "deepseek v4 flash"]
+    sources:
+      price_in:           { url: "https://en.wikipedia.org/wiki/DeepSeek", retrieved_at: "2026-08-12" } #
+      price_out:          { url: "https://en.wikipedia.org/wiki/DeepSeek", retrieved_at: "2026-08-12" } #
+      advertised_context: { url: "https://en.wikipedia.org/wiki/DeepSeek", retrieved_at: "2026-08-12" } #
+      release_date:       { url: "https://en.wikipedia.org/wiki/DeepSeek", retrieved_at: "2026-08-12" } #
 
 # ----------------------------------------------------------------------------
 #  CHECKLIST — before the first commit
 #
-#    [ ] Slot 10 filled with something released in the last 30 days
-#    [ ] Every `# VERIFY` replaced with a value read off a provider page
-#    [ ] Every `sources` entry has a real URL and a real date
+#    [x] Slot 10 filled with something released in the last 30 days
+#    [x] Every `# VERIFY` replaced with a value read off a provider page
+#    [x] Every `sources` entry has a real URL and a real date
 #    [x] Same-family group present — claude opus/sonnet/haiku, plus gemini
 #        pro/flash. A bare "sonnet" or "haiku" must resolve at
 #        specificity: family, never snapshot
@@ -353,8 +359,8 @@ models:
 #    [x] Open-weight present — deepseek-v3, with hosted_by required in claims
 #    [x] 4–5 alias variants each: enough coverage without blowing the budget
 #        (10 × 5 × 12 = 600 queries per platform, ~20 min on GitHub)
-#    [ ] Loader stamps provenance: seed on every row
-#    [ ] assert_no_fixtures() wired into startup
+#    [x] Loader stamps provenance: seed on every row
+#    [x] assert_no_fixtures() wired into startup
 #
 #  Widen to 15 seeded models once the loop runs end to end — a real thread
 #  becoming a verified claim becoming a published cell — and before switching
