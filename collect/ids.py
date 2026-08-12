@@ -36,15 +36,33 @@ def model_version_id(canonical_id: str) -> str:
     return stable_id("mv", canonical_id)
 
 
-def model_alias_id(normalized: str, model_version_id_: str, valid_from: str) -> str:
+def model_alias_id(normalized: str, model_version_id_: str, content_key: str) -> str:
     """FR-4: `model_alias` is append-only.
 
-    The id covers everything that makes an alias row distinct, so re-running
-    the loader collides on the primary key and does nothing, rather than
-    updating a row that history depends on.
+    The id covers what the row *asserts* - this surface means this model
+    version, at this specificity - and deliberately **not** the window it
+    asserts it over.
+
+    Folding `valid_from` in here was a real defect. Correcting a
+    `release_date` minted fresh ids for every alias of that model, they all
+    inserted against `ON CONFLICT DO NOTHING`, the old rows kept
+    `valid_until = NULL`, and two live rows ended up sharing a `normalized`
+    over overlapping windows. That is the exact ambiguity `find_collisions`
+    exists to catch, and it could not see it because it only ever read the
+    YAML.
+
+    Keying on content instead means a date correction is a no-op, while a
+    genuine change to what the alias claims mints a new id, so the old row
+    can be closed out and the new one appended.
     """
-    return stable_id("ma", normalized, model_version_id_, valid_from)
+    return stable_id("ma", normalized, model_version_id_, content_key)
 
 
-def model_event_id(model_version_id_: str, event_type: str, detail: str) -> str:
-    return stable_id("ev", model_version_id_, event_type, detail)
+# `model_event_id` used to live here and was deliberately removed.
+#
+# Events are occurrences, not facts. Two identical price transitions on
+# different days are two events, and any id derived only from what changed
+# collapses them into one. Making it unique needs a timestamp, at which point
+# it is a UUID with extra steps and no longer offers the re-run idempotency
+# that determinism was for. `collect.registry.load._record_event` mints a
+# random id and takes idempotency from the change condition instead.

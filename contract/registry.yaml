@@ -1,0 +1,81 @@
+# ============================================================================
+#  Registry policy — values collect/ reads at runtime.
+#
+#  SHARED. Changes go through a PR.
+#
+#  Rule 5 (CLAUDE.md): thresholds, weights, half-lives, the capability list,
+#  alias variants and filter rules live in versioned YAML, not in code.
+#  Changing a value here must not require a code deploy, and must produce a
+#  version diff.
+#
+#  `collect/registry/policy.py` carries the same values as built-in defaults
+#  so the lane can be developed before this file exists. That is a hazard,
+#  not a convenience: defaults that silently apply would become a second
+#  source of truth, and editing one instead of this file would ship a
+#  threshold change as a code deploy with no diff. So
+#  `assert_contract_backed()` refuses to start outside development whenever
+#  the policy came from defaults, the same way `assert_no_fixtures()` refuses
+#  on seeded rows.
+# ============================================================================
+
+version: "1.0"
+
+
+# ----------------------------------------------------------------------------
+#  FR-1 — the trailing release window.
+#
+#  A model missing from the board reads as a model that does not exist, so
+#  this decides what the answer path is allowed to see.
+#
+#  `model_version.in_window` is a STORED function of today's date. It is
+#  stale the day after it is written, and cron recomputes it nightly via
+#  `registry recompute-window`. Read by collect/registry/window.py.
+# ----------------------------------------------------------------------------
+
+in_window_months: 18
+
+
+# ----------------------------------------------------------------------------
+#  Which alias rows become harvest queries.
+#
+#  Rule 5: this is a filter rule, so it lives here.
+#
+#  ATTRIBUTION IS UNAFFECTED. Every alias row always resolves a mention,
+#  including every row excluded below. Search eligibility is only about which
+#  strings are worth spending a rate-limited request on. The two are separate
+#  flags precisely so trimming the query budget can never cost a claim.
+#
+#  ⚠  CHANGING ANYTHING IN THIS BLOCK ROTATES EVERY ALIAS ROW.
+#
+#  An alias row records the query strings it was searched under, so those
+#  strings are part of what the row asserts and therefore part of its id.
+#  Flipping a setting here closes all 44 live rows by setting `valid_until`
+#  and appends new ones. That is loud, traceable and append-only, and it is
+#  the intended behaviour: the alternative is an in-place UPDATE on a table
+#  FR-4 says never receives one. Expect the churn, and do not be alarmed
+#  by it in the next load report.
+# ----------------------------------------------------------------------------
+
+alias_search:
+
+  # Only surfaces hand-written in `seed_models.yaml` become queries.
+  #
+  # The canonical id and its local part are added automatically so an exact
+  # mention resolves at snapshot specificity. Nobody types
+  # `anthropic/claude-opus-5` or `claude-haiku-4-5-20251001` into a Reddit
+  # post: those appear in configs and API logs. Searching them cost 516
+  # queries per platform and returned strings no human writes.
+  declared_surfaces_only: true
+
+  # Re-expand each declared surface into spacing and hyphenation forms.
+  #
+  # Off. The variant list in `seed_models.yaml` is already hand-curated
+  # spelling coverage, and expanding it again cost 1752 queries per platform
+  # against a ~600-query budget, for forms nobody types.
+  #
+  # Search APIs have no fuzzy operator, so breadth is still mandatory — it
+  # now comes from the YAML rather than from code. `check_spelling_coverage`
+  # enforces that: every model must declare a spaced, a hyphenated and a
+  # concatenated form, or the seed load fails. Human-supplied is fine;
+  # human-supplied and unverified is not.
+  expand_mechanically: false
