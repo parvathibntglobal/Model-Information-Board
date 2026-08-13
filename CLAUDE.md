@@ -64,6 +64,8 @@ These are the rules a helpful refactor will otherwise quietly violate.
    capability-scoped search into a bare alias match. Both surfaced as an
    absence with nothing on the page to disagree with, which is what makes this
    class of defect expensive - it looks like a considered answer.
+   Both incidents are written up in `docs/contract-signoff-phase1-response.md`,
+   which is where the rule was first stated.
 
 ## Stack decisions already made - do not relitigate
 
