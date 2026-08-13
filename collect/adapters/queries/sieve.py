@@ -95,6 +95,93 @@ def matches(term: str, text: str) -> bool:
     return bool(_pattern_for(term).search(text))
 
 
+# ── whose words are these? ────────────────────────────────────────────────
+#
+# `subject` and `topic` establish ABOUTNESS and may match anywhere: a config line
+# naming a model is real evidence the model was in use, and worth retrieving.
+# `signal` carries the CLAIM, and a claim has an author.
+#
+# The first live run stored two documents that passed because this distinction
+# did not exist:
+#
+#   Aider-AI/aider#4438      `accurate` matched inside a Google marketing
+#                            sentence someone pasted — a blockquote nested inside
+#                            a fenced block. The issue is about diff application.
+#   crewAIInc/crewAI#2685    `accurate` matched inside a prompt string in a
+#                            Python snippet: goal=("answer questions accurately
+#                            using only the provided knowledge tools")
+#
+# Both were filed as `summarization.fidelity: positive` — a positive claim about
+# a silent-failure capability, on the strength of a config line and somebody
+# else's copy. Rule 1 broken at the source rather than at the quote check.
+#
+# THE FULL EXCLUSION SET, and why each member is in it. Named as a set rather
+# than fixed case by case, because both live false positives happened to arrive
+# through fences and the next one will not.
+#
+#   fenced code        ``` and ~~~ — code, config dumps, logs, prompt strings.
+#                      Both live false positives came through here
+#   blockquotes        `>` lines — pasted model output, quoted docs, quoted other
+#                      people. collect/CLAUDE.md already excludes blockquoted
+#                      spans from dedupe signatures so commentary about a post is
+#                      not merged into it; the reasoning applies harder to a
+#                      stance term than to a signature
+#   indented code      four spaces or a tab — markdown's older code form, and how
+#                      a traceback arrives when nobody fenced it
+#   inline code        `like this` — a term in backticks is being NAMED, not
+#                      asserted. A docs list containing `accurate` claims nothing
+#   html pre/code      GitHub renders HTML, and <pre> holds logs
+#   html comments      <!-- --> is issue-template instruction text the author
+#                      never wrote and usually never saw rendered
+#   template residue   `_No response_`, and task-list labels `- [ ]` / `- [x]`.
+#                      Written by whoever wrote the template, present in every
+#                      issue in the repo, identical across all of them
+#   urls               a word inside a slug asserts nothing:
+#                      .../introducing-gemini-2-5-pro
+#
+# WHAT IS NOT EXCLUDED, ANYWHERE ELSE. Nothing is removed from the stored
+# payload, the dedupe signature, subject or topic matching, or what extraction
+# later reads. collect/CLAUDE.md requires code fences, error strings, diffs and
+# numbers-with-units preserved verbatim, because they are the specificity signal
+# triage depends on. This is a VIEW of the text, built for one question: did the
+# author assert the stance?
+#
+# The set errs toward rejecting a signal. Admitting a quoted one produces a false
+# positive that reads as a considered answer; excluding a real one produces a low
+# pass rate somebody can act on. Rule 4's asymmetry applied to the matcher — and
+# `SieveVerdict.signal_in_excluded` keeps the exclusion visible rather than
+# silent.
+
+_EXCLUSIONS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("fenced-code", re.compile(r"(?ms)^[ \t]*(```|~~~).*?(?:^[ \t]*\1|\Z)")),
+    ("html-comment", re.compile(r"(?s)<!--.*?-->")),
+    ("html-pre-code", re.compile(r"(?is)<(pre|code|script|style)\b.*?</\1>")),
+    ("url", re.compile(r"https?://\S+|www\.\S+")),
+    ("inline-code", re.compile(r"`[^`\n]+`")),
+    ("blockquote", re.compile(r"(?m)^[ \t]*>.*$")),
+    ("indented-code", re.compile(r"(?m)^(?: {4,}|\t+)\S.*$")),
+    ("template-residue", re.compile(r"(?mi)^[ \t]*(?:_no response_|- \[[ xX]\].*)$")),
+)
+
+#: The container names, for logs and for anyone auditing a rejection.
+EXCLUDED_CONTAINERS: tuple[str, ...] = tuple(name for name, _ in _EXCLUSIONS)
+
+
+def author_prose(text: str) -> str:
+    """The text with every container of somebody else's words removed.
+
+    Order matters once: fenced blocks go first, so a blockquote or an indented
+    line inside a fence is removed as part of the fence rather than surviving as
+    a fragment. `Aider-AI/aider#4438` is exactly that shape.
+
+    A removed span becomes a single space, never nothing, so two words either
+    side of a code span cannot fuse into a third.
+    """
+    for _, pattern in _EXCLUSIONS:
+        text = pattern.sub(" ", text)
+    return text
+
+
 @dataclass(frozen=True)
 class SieveVerdict:
     """Why a document passed or did not. Auditable, not just a boolean.
@@ -110,6 +197,13 @@ class SieveVerdict:
     topic: tuple[str, ...] = ()
     signal: tuple[str, ...] = ()
     missing: tuple[str, ...] = field(default=())
+
+    #: Signal terms present in the document but only inside quoted or fenced
+    #: material. Not a pass, and not the same state as "no signal anywhere" —
+    #: recording the difference stops the exclusion being invisible, and it is
+    #: the vocabulary feedback Engineer 2 asked for: her term matched, and only
+    #: somebody else said it.
+    signal_in_excluded: tuple[str, ...] = field(default=())
 
     @property
     def matched_terms(self) -> tuple[str, ...]:
@@ -128,10 +222,16 @@ def sieve(terms, text: str) -> SieveVerdict:
     empty group as a failed one rather than trusting that.
     """
     haystack = normalize(text)
+    prose = normalize(author_prose(text))
 
+    # Aboutness may come from anywhere; the claim may not. The exclusion set
+    # above says why, and which two documents paid for the distinction.
     subject_hits = tuple(t for t in terms.subject if matches(t, haystack))
     topic_hits = tuple(t for t in terms.topic if matches(t, haystack))
-    signal_hits = tuple(t for t in terms.signal if matches(t, haystack))
+    signal_hits = tuple(t for t in terms.signal if matches(t, prose))
+    quoted_only = tuple(
+        t for t in terms.signal if t not in signal_hits and matches(t, haystack)
+    )
 
     missing = []
     if len(subject_hits) != len(terms.subject):
@@ -147,6 +247,7 @@ def sieve(terms, text: str) -> SieveVerdict:
         topic=topic_hits,
         signal=signal_hits,
         missing=tuple(missing),
+        signal_in_excluded=quoted_only,
     )
 
 
