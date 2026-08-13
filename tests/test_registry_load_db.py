@@ -1,16 +1,19 @@
 """Registry load against a real Postgres.
 
-Skipped unless TEST_DATABASE_URL is set. It is deliberately *not*
-DATABASE_URL: these tests drop and recreate the public schema, and a helper
-that can wipe a working database on a typo eventually will.
+These tests are the only coverage of the write path, and six defects reached
+a commit because they skipped for want of a database. A missing database is
+now a failure rather than a skip: see `tests/conftest.py`.
 
-    $env:TEST_DATABASE_URL = "postgresql://localhost:5432/modelboard_test"
-    py -3 -m pytest tests/test_registry_load_db.py -q
+TEST_DATABASE_URL is deliberately *not* DATABASE_URL. Every test here runs
+DROP SCHEMA public CASCADE, and a variable that can wipe a working database
+on a typo eventually will. `assert_disposable` enforces that in three layers.
+
+    pwsh scripts/dev-postgres.ps1        # writes .env.test
+    .venv\\Scripts\\python.exe -m pytest tests/test_registry_load_db.py -q
 """
 
 from __future__ import annotations
 
-import os
 from dataclasses import replace
 from datetime import date
 from decimal import Decimal
@@ -24,23 +27,22 @@ from collect.registry.aliases import AliasRow, intervals_overlap
 from collect.registry.assertions import FixtureLeakError, assert_no_fixtures
 from collect.registry.load import ProvenanceDowngradeError, _sync_alias, recompute_window
 from collect.registry.seed import load_seed_file
+from tests.conftest import assert_disposable, assert_safe_target
 
 #: Pinned so window verdicts do not drift with the calendar.
 AS_OF = date(2026, 8, 12)
 
-TEST_DSN = os.getenv("TEST_DATABASE_URL")
-
-pytestmark = pytest.mark.skipif(
-    not TEST_DSN, reason="set TEST_DATABASE_URL to run registry database tests"
-)
-
-
 @pytest.fixture
-def conn():
+def conn(test_dsn):
+    """A schema-fresh connection to a database proven safe to destroy."""
     from collect.db import apply_schema, connect
 
-    connection = connect(TEST_DSN)
+    # Layers 1 and 2 first, so a DSN aimed at a real server is refused before
+    # a connection is ever opened to it.
+    assert_safe_target(test_dsn)
+    connection = connect(test_dsn)
     try:
+        assert_disposable(connection, test_dsn)
         connection.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
         apply_schema(connection)
         connection.commit()

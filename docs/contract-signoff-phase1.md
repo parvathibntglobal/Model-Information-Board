@@ -1,6 +1,6 @@
 # Contract sign-off — Phase 1
 
-**Eleven items for Engineer 2. One PR, not eleven.**
+**Fourteen items for Engineer 2. One PR, not fourteen.**
 
 *Raised from Engineer 1's Phase 1 remediation · branch `phase1-collection-foundation` · commit `4bd322d`*
 
@@ -33,6 +33,47 @@ guessing.
 | 9 | none | resolved, note only |
 | 10 | `contract/seed_models.yaml` | ready to apply |
 | 11 | `contract/tables.sql` | ready to apply |
+| 12 | `.env.example` | ready to apply |
+| 13 | `contract/sources.yaml` (new) | **blocks FR-9**; needs the ToS review first |
+| 14 | `contract/tables.sql` | **blocks FR-10 and FR-11** |
+
+Items 12 to 14 were raised after the first eleven, from the Phase 2 readiness
+assessment in [`phase2-readiness.md`](phase2-readiness.md). Items 13 and 14
+block harvest, so they matter more than their position suggests.
+
+---
+
+## Before you apply anything: running the branch as it stands
+
+**Items 5, 6, 7 and 10 are the ones that clear the two seed-loader gates.**
+Until they land:
+
+```
+python -m collect.cli registry load-seed --allow-unsourced --allow-missing-spellings
+```
+
+**Both flags, not one.** The FR-2 source gate runs before the spelling gate,
+so `--allow-missing-spellings` alone still fails — and it fails with a message
+about *sources*, which reads like the wrong problem and sends you looking in
+the wrong place. Neither is a code defect; both are these unapplied contract
+fixes showing through.
+
+| Command | Exit | Fails on |
+|---|---|---|
+| `registry load-seed` | 1 | `SourceCoverageError` (items 5 to 7) |
+| `registry load-seed --allow-unsourced` | 1 | `SpellingCoverageError` (item 10) |
+| `registry load-seed --allow-missing-spellings` | 1 | `SourceCoverageError` (items 5 to 7) |
+| **both flags** | **0** | — |
+| `registry load-seed --dry-run` | 0 | — |
+| `registry check-sources` | **1** | **by design** — the exit code is the gap signal |
+| `registry aliases` | 0 | — |
+| `registry recompute-window` | 0 | — |
+| `db init` | 0 | — |
+
+`check-sources` exiting 1 is intended and worth knowing before it is wired
+into CI as a pass/fail step, or a working command reads as a broken build
+forever. The test suite is unaffected either way: it waives both gates
+explicitly, with a docstring naming them as contract items.
 
 ---
 
@@ -340,3 +381,190 @@ CREATE INDEX coverage_gap_kind_idx ON coverage_gap (kind);
 
 Items 3 to 8 and 10 shrink that number. Item 11 is what makes the shrinking
 visible to anyone who is not reading the terminal.
+
+---
+
+## Item 12 · `.env.example` is missing two variables
+
+Both were introduced by the dev-database work in this session and are already
+referenced by committed code (`tests/conftest.py`).
+
+**Exact edit** — append to `.env.example`:
+
+```bash
+# ── tests ────────────────────────────────────────────────────────────────
+# The write-path tests DROP SCHEMA public CASCADE, so this is deliberately
+# separate from DATABASE_URL. `scripts/dev-postgres.ps1` writes it into a
+# gitignored .env.test for you. See docs/dev-database.md.
+TEST_DATABASE_URL=
+
+# Set to 1 to downgrade a missing test database from a failure to a skip.
+# The run then prints WRITE PATH NOT COVERED in the summary. Do not put this
+# in a shell profile: a silently skipped write path is how six defects
+# reached a commit.
+ALLOW_MISSING_TEST_DB=
+```
+
+Kept separate from item 1 on purpose. Item 1 edits `pyproject.toml`; mixing
+two root files into one item makes the review harder rather than shorter.
+
+---
+
+## Item 13 · `contract/sources.yaml` · **BLOCKS FR-9**
+
+`watermark.source_id` references `source(id)`. **No `source` row exists, and
+no code path can create one**, so the first `INSERT INTO watermark` fails on
+the foreign key. FR-9's durable cursors cannot store their first row.
+
+This would surface on the first adapter run as a foreign key violation and
+read as an adapter bug rather than a missing seed.
+
+`source.base_trust` and `source.tos_notes` are both `NOT NULL`, deliberately.
+Base trust values are **weights**, so rule 5 puts them in `contract/`.
+
+**Exact edit** — new file `contract/sources.yaml`:
+
+```yaml
+# ============================================================================
+#  Harvest sources — the three platforms, their trust weight, and the terms
+#  review NFR-5 requires.
+#
+#  SHARED. Changes go through a PR.
+#
+#  Rule 5: base_trust is a weight, so it lives here rather than in code.
+#  Loaded into the `source` table by collect/, the same way seed_models.yaml
+#  is loaded into model_version.
+#
+#  `tos_notes` is NOT NULL in the schema on purpose: NFR-5 requires the terms
+#  be reviewed and recorded per source, and a nullable column would let that
+#  be skipped.
+# ============================================================================
+
+version: "1.0"
+
+sources:
+  - id: github
+    platform: github
+    endpoint: https://api.github.com
+    base_trust: 0.95
+    tos_notes: >-
+      REVIEW REQUIRED before first harvest. Record: API terms URL, date read,
+      rate limit observed, and whether quote-plus-attribution republication
+      is permitted.
+
+  - id: blogs
+    platform: blog
+    endpoint: null           # per-feed; discovered feeds become source rows
+    base_trust: 0.90
+    tos_notes: >-
+      REVIEW REQUIRED. RSS and sitemaps only, robots.txt respected, no
+      paywall circumvention. A source whose terms forbid this use is dropped,
+      not worked around.
+
+  - id: reddit
+    platform: reddit
+    endpoint: https://oauth.reddit.com
+    base_trust: 0.85
+    tos_notes: >-
+      REVIEW REQUIRED. Their terms prohibit scraping, so the official API is
+      mandatory. Record the current rate limit and free-tier eligibility
+      rather than trusting BUILD-PLAN's 60/min figure.
+```
+
+> **The ToS review gates this item.** `tos_notes` cannot honestly be filled
+> before someone reads each platform's current terms, and the column is
+> `NOT NULL` precisely so that cannot be deferred. So the review is not a
+> parallel task — it is the thing standing between here and a working
+> `watermark` row.
+
+Whether the ~40 practitioner blog feeds seed from this file or from a separate
+one is an open question worth settling here: the **initial** list is config,
+but feeds discovered from harvested links are data and belong in the `source`
+table. A list that lives in two places diverges.
+
+---
+
+## Item 14 · `harvest_run` table · **BLOCKS FR-10 AND FR-11**
+
+Three requirements have nowhere to write, and one table serves all three.
+
+- **FR-9** *resume with no gap and no refetch*: a cursor alone cannot say
+  whether a query paused mid-pagination or reached the end of its results. On
+  resume the first must be continued and the second must not.
+- **FR-10** *every adapter reports its own yield per run*: `source.last_yield`
+  is a single `int` with no history, so there is nothing to compare against. A
+  drop is only visible relative to what came before. `collect/CLAUDE.md`
+  requires a 14-day burn-in before the related alert arms, for exactly this
+  reason — you cannot compute σ without a baseline.
+- **FR-11** *log and display any harvest truncated by a budget cap, naming the
+  model and query*: nothing in the schema stores it.
+
+**Exact edit** — append to `contract/tables.sql`:
+
+```sql
+-- ============================================================================
+--  HARVEST RUNS — one row per source, per query, per run. collect/ fills it.
+--
+--  Serves three requirements that would otherwise each need their own place:
+--    FR-9   whether a query finished or paused mid-pagination
+--    FR-10  yield history, so a drop is visible as a drop
+--    FR-11  truncation by a budget cap, named rather than silent
+-- ============================================================================
+
+CREATE TABLE harvest_run (
+  id               text PRIMARY KEY,
+  source_id        text NOT NULL REFERENCES source(id),
+  query_key        text NOT NULL,   -- matches watermark.query_key
+
+  started_at       timestamptz NOT NULL DEFAULT now(),
+  finished_at      timestamptz,
+
+  items_fetched    int NOT NULL DEFAULT 0,
+  items_kept       int NOT NULL DEFAULT 0,   -- FR-10: yield
+  http_errors      int NOT NULL DEFAULT 0,
+
+  -- FR-9. NULL while running; false when paused mid-pagination; true when
+  -- the query reached the end of its results and must not be resumed.
+  exhausted        boolean,
+
+  -- FR-11. NULL when the harvest ran to completion. Naming the cap that cut
+  -- it short is what stops silent truncation reading as "we looked
+  -- everywhere".
+  truncated_by     text,
+
+  pipeline_version text NOT NULL,
+
+  CONSTRAINT harvest_run_truncated_ck
+    CHECK (truncated_by IS NULL OR truncated_by IN ('query-budget', 'rate-limit',
+                                                    'time-budget', 'extraction-budget'))
+);
+CREATE INDEX harvest_run_source_query_idx ON harvest_run (source_id, query_key, started_at DESC);
+CREATE INDEX harvest_run_truncated_idx ON harvest_run (truncated_by)
+  WHERE truncated_by IS NOT NULL;
+```
+
+**Also add to `watermark`**, so resumption can read the distinction without
+joining:
+
+```sql
+ALTER TABLE watermark ADD COLUMN exhausted boolean NOT NULL DEFAULT false;
+```
+
+> This overlaps with the "cron plus a jobs table" decision recorded in
+> `CLAUDE.md` and `pyproject.toml`. See the known-gaps note below: the two
+> should be settled together rather than becoming two tables that half
+> overlap.
+
+---
+
+## Known gaps, recorded but not proposed
+
+Not everything found needs a decision now. These are written down so they are
+not rediscovered.
+
+| Gap | Blocking from | Note |
+|---|---|---|
+| **No jobs table** | **Week 7**, the nightly job chain | `CLAUDE.md` and `pyproject.toml` both record *cron plus a jobs table, no workflow engine*. `contract/tables.sql` defines 24 tables and none is that. Nothing needs it until the nightly chain, but it overlaps with `harvest_run` (item 14) and the two should be designed together rather than separately |
+| **Blog feed list has no home** | Week 2, the blog adapter | Initial list is config, discovered feeds are data. Settle alongside item 13 |
+| **No robots.txt handling** | Week 2, the blog adapter | NFR-5 requires it. `urllib.robotparser` is stdlib, so no dependency. Collection lane's own work, not a contract item |
+| **Raw store does not exist** | **Immediately**, before any adapter | `document.text_ref` is `NOT NULL` and points into it. Collection lane's own work, top of Phase 2 |
