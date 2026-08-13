@@ -71,6 +71,20 @@ def _cmd_registry_aliases(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_registry_recompute_window(args: argparse.Namespace) -> int:
+    """Nightly. The sole writer of `model_version.in_window`."""
+    from collect.db import transaction
+    from collect.registry.load import recompute_window
+
+    with transaction() as conn:
+        counts = recompute_window(conn)
+    print(
+        f"window   : {counts['changed']} changed, {counts['in_window']} in window, "
+        f"{counts['out_of_window']} outside"
+    )
+    return 0
+
+
 def _cmd_registry_load_seed(args: argparse.Namespace) -> int:
     from collect.registry.load import model_row
 
@@ -91,7 +105,11 @@ def _cmd_registry_load_seed(args: argparse.Namespace) -> int:
     from collect.registry.load import load_seed
 
     with transaction() as conn:
-        report = load_seed(conn, strict_sources=not args.allow_unsourced)
+        report = load_seed(
+            conn,
+            strict_sources=not args.allow_unsourced,
+            strict_spelling=not args.allow_missing_spellings,
+        )
     print(report.summary())
     return 0
 
@@ -120,12 +138,24 @@ def build_parser() -> argparse.ArgumentParser:
     aliases.add_argument("-v", "--verbose", action="store_true")
     aliases.set_defaults(func=_cmd_registry_aliases)
 
+    recompute = reg_sub.add_parser(
+        "recompute-window",
+        help="refresh model_version.in_window (nightly; sole writer of that column)",
+    )
+    recompute.set_defaults(func=_cmd_registry_recompute_window)
+
     load = reg_sub.add_parser("load-seed", help="load contract/seed_models.yaml")
     load.add_argument("--dry-run", action="store_true", help="build rows, touch nothing")
     load.add_argument(
         "--allow-unsourced",
         action="store_true",
         help="load fields that cite no source. Records the gap in the report.",
+    )
+    load.add_argument(
+        "--allow-missing-spellings",
+        action="store_true",
+        help="load models missing a spaced, hyphenated or concatenated form. "
+        "Records the gap in the report.",
     )
     load.set_defaults(func=_cmd_registry_load_seed)
 

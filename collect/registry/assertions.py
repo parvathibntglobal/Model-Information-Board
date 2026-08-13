@@ -18,9 +18,55 @@ still remember why it is there.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from collect.registry.policy import RegistryPolicy
+
 
 class FixtureLeakError(RuntimeError):
     """Build fixtures reached an environment that must not have them."""
+
+
+class UnversionedConfigError(RuntimeError):
+    """Policy came from built-in defaults rather than versioned config."""
+
+
+def assert_contract_backed(policy: RegistryPolicy, *, environment: str) -> None:
+    """Refuse to start on built-in defaults outside development (NFR-10).
+
+    NFR-10's acceptance is that changing a threshold requires no code deploy
+    and produces a version diff. Defaults in code pass that test today and
+    quietly stop passing it the day somebody edits a default instead of the
+    YAML: the threshold change then ships as a deploy, with no diff, and the
+    two sources disagree with nothing to notice.
+
+    Same reasoning as `assert_no_fixtures`, so the same mechanism. A
+    development convenience needs a hard expiry, or it is just a second
+    source of truth with better manners.
+
+    Args:
+        policy: the loaded policy, carrying where it came from.
+        environment: ``"development"`` skips the check; anything else
+            enforces it.
+
+    Raises:
+        UnversionedConfigError: if the policy did not come from `contract/`.
+    """
+    from collect.registry.policy import CONTRACT, REGISTRY_YAML
+
+    if environment == "development":
+        return
+    if policy.source == CONTRACT:
+        return
+
+    raise UnversionedConfigError(
+        f"Refusing to start in {environment!r}: registry policy came from "
+        f"built-in defaults, not from versioned config. Expected "
+        f"{REGISTRY_YAML}. NFR-10 requires that changing a threshold needs "
+        "no code deploy and produces a version diff, which defaults in code "
+        "cannot provide."
+    )
 
 
 def assert_no_fixtures(conn, *, environment: str) -> None:
