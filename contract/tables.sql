@@ -544,13 +544,37 @@ CREATE TABLE harvest_run (
   -- it short is what stops silent truncation reading as "we looked
   -- everywhere" when we did not. Closed set on purpose: FR-11's acceptance is
   -- a check, and a check over arbitrary strings is not one.
+  --
+  -- TWO KINDS, AND THE COVERAGE PAGE MUST RENDER THEM DIFFERENTLY:
+  --
+  --   CAPS WE CHOSE           query-budget · time-budget · extraction-budget
+  --     "we decided not to look further"
+  --
+  --   THE PLATFORM STOPPING US   rate-limit · result-ceiling
+  --     "we were not allowed to look further"
+  --
+  -- Those are opposite statements about the same missing data. One is a
+  -- decision somebody can revisit by raising a budget; the other is a wall
+  -- that raising a budget will not move, and the only remedies are narrower
+  -- queries or a different access path.
+  --
+  -- `result-ceiling` covers any platform limit on how many results a query
+  -- can ever yield, regardless of pagination: GitHub Search returns at most
+  -- 1,000 results per query (100 per page) and at most 4,000 repositories
+  -- for a repository search. Same class, same consequence.
+  --
+  -- NOT in this set: a query whose syntax the platform silently discarded.
+  -- That query returned everything it matched, so it was not cut short. It
+  -- was the wrong query, which is a different failure and needs a different
+  -- signal.
   truncated_by     text,
 
   pipeline_version text NOT NULL,
 
   CONSTRAINT harvest_run_truncated_ck
     CHECK (truncated_by IS NULL OR truncated_by IN ('query-budget', 'rate-limit',
-                                                    'time-budget', 'extraction-budget'))
+                                                    'time-budget', 'extraction-budget',
+                                                    'result-ceiling'))
 );
 CREATE INDEX harvest_run_source_query_idx
   ON harvest_run (source_id, query_key, started_at DESC);
