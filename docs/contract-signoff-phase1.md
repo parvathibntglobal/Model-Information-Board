@@ -1,6 +1,6 @@
 # Contract sign-off — Phase 1
 
-**Nineteen items for Engineer 2. One PR, not nineteen.**
+**Twenty items for Engineer 2. One PR, not twenty.**
 
 *Raised from Engineer 1's Phase 1 remediation · branch `phase1-collection-foundation` · commit `4bd322d`*
 
@@ -11,9 +11,10 @@ each time on purpose. This is one of those times. Batching these into a single
 PR is deliberate: eleven separate reviews of a shared interface is how two
 people working in parallel start disagreeing about what the interface is.
 
-**Fourteen of the nineteen have been applied on this branch**, each under an
-explicit ruling. The four still open are 4b, 17, 18 and 19; item 3 is
-deliberately excluded until somebody verifies a date.
+**Seventeen of the twenty are applied or resolved on this branch**, each under
+an explicit ruling. **Three remain open: 17, 18 and 20.** All three are
+contract decisions rather than transcription, and none can be closed by
+reading another page.
 
 Each item gives the exact edit and its current state. Where a value cannot be
 supplied without a provider page, the item says so rather than guessing.
@@ -22,13 +23,13 @@ supplied without a provider page, the item says so rather than guessing.
 |---|---|---|
 | 1 | `pyproject.toml`, `.gitignore` | ✅ **applied** — `pip install -e .` verified working |
 | 2 | `.python-version` (new) | ✅ **applied** |
-| 3 | `contract/seed_models.yaml` | ⛔ **awaiting verification — do not apply** |
+| 3 | `contract/seed_models.yaml` | ✅ **applied** — OpenAI's page says 2025-04-14 |
 | 4a | `contract/seed_models.yaml` | ✅ **applied** — the rule is documented |
-| 4b | `contract/seed_models.yaml`, `BUILD-PLAN.md` | ⬜ open — the value needs a provider page |
-| 5 | `contract/seed_models.yaml` | ⬜ open — needs real URLs |
+| 4b | `contract/seed_models.yaml` | ✅ **resolved** — both files now say 2025-06-17 |
+| 5 | `contract/seed_models.yaml` | ✅ **applied** — both models turned out retired |
 | 6 | `contract/seed_models.yaml` + `collect/registry/models.py` | ✅ **applied** — 9 true / 31 false, derived |
 | 7 | `contract/seed_models.yaml` | ✅ **applied** — three boxes unticked |
-| 8 | `contract/seed_models.yaml` | ⬜ open — needs a post-2025-02-12 model |
+| 8 | `contract/seed_models.yaml` | ✅ **applied** — `mistral-large-3`, Apache 2.0 |
 | 9 | none | ✅ resolved, no edit |
 | 10 | `contract/seed_models.yaml` | ✅ **applied** — spelling gate now passes |
 | 11 | `contract/tables.sql` | ✅ **applied** — `coverage_gap` |
@@ -39,18 +40,21 @@ supplied without a provider page, the item says so rather than guessing.
 | 16 | `contract/seed_models.yaml` | ✅ **applied** — FR-2 now 82/82 |
 | 17 | `contract/tables.sql` | ⬜ open — comment only, no DDL |
 | 18 | `contract/tables.sql` | ⬜ open — **schema cannot express tiered pricing** |
-| 19 | `contract/seed_models.yaml` | ⬜ open — **the context-gap fixture is broken** |
+| 19 | none | ✅ **resolved** — advertised half sourced; contradiction is week 5 |
+| 20 | `contract/tables.sql` + `assertions.py` | ⬜ open — **`reported_context` has no `provenance`** |
 
-**Fourteen applied, four open: 17, 18, 19 and 4b.**
+**Seventeen applied or resolved. Three open: 17, 18 and 20.**
 
 The 2026-08-13 sourcing pass closed 3, 4a, 5, 8 and 16 by reading provider
 pages. **FR-2 went from 40/130 to 82/82 and `registry load-seed` now runs
 with no flags at all.** The file got smaller: 48 fields were removed rather
 than sourced, because a claim with no source is worse than an absence.
 
-Items 17, 18 and 19 were raised *by* that pass. None of them is a
-transcription task: 17 and 18 are contract decisions, and 19 is a fixture
-choice of the same kind as item 8.
+Items 17, 18, 19 and 20 were all raised *by* that pass. Reading the pages is
+what revealed that Anthropic publishes two knowledge cutoffs, that Google's
+prices are tiered, that Google publishes no token limits at all, and that
+`reported_context` has no `provenance` column to stop a hand-seeded
+threshold looking like harvested evidence.
 
 ### Items 5, 8 and 16 were one job, and were done as one
 
@@ -149,20 +153,24 @@ third location (a `contract/toolchain.yaml`, say) was considered and rejected:
 three places that can disagree is worse than two, and an interpreter version is
 not something the code reads at runtime, so it does not belong in `contract/`.
 
-## Item 3 · `openai/gpt-4.1-mini` release date · AWAITING VERIFICATION
+## Item 3 · `openai/gpt-4.1-mini` release date · **APPLIED**
 
-**Do not apply. This is not a proposed edit.**
+The file carried `release_date: 2025-07-18`. A recollection of 14 April 2025
+existed but was explicitly held back as recollection rather than a source.
 
-`contract/seed_models.yaml:267` carries `release_date: 2025-07-18`. A
-recollection of 14 April 2025 exists but has not been checked against the
-OpenAI page, and nothing in this repository confirms either value.
+[OpenAI's model page](https://developers.openai.com/api/docs/models/gpt-4.1-mini)
+states the default snapshot is **`2025-04-14`**, three months earlier than the
+file and matching the recollection. The page settled it; the recollection was
+never used as the basis.
 
-`release_date` drives `f_launch` (the 21-day launch discount, frozen at
-extraction) and `in_window`. An unsourced correction is worse than a
-known-suspect value, because it looks settled.
+| Source | Date |
+|---|---|
+| Recollection | 14 April 2025 |
+| **OpenAI's page** | **2025-04-14** |
+| Seed file, before | `2025-07-18` |
 
-**Action:** someone opens the provider page, records the URL and the date read,
-and fills both the field and its `sources` entry together.
+`release_date` drives `f_launch` and `in_window`, which is why an unsourced
+correction would have been worse than a known-suspect value: it looks settled.
 
 ## Item 4 · `release_date` has no documented meaning
 
@@ -801,40 +809,132 @@ of those two it is needs deciding with the cost logic, not against it.
 
 ---
 
-## Item 19 · The context-gap fixture is broken · **A FIXTURE CHOICE, NOT MINE**
+## Item 20 · `reported_context` has no `provenance` column · **PROPOSED, NOT APPLIED**
 
-BUILD-PLAN §3.6 names this as one of two constraints cutting across the whole
-table: *"at least one with a known advertised-vs-real context gap, otherwise
-the inflation logic sits untested until week 7."*
+`cell` carries `provenance text NOT NULL CHECK (provenance IN ('harvested',
+'hand_curated'))` so that hand-written fixtures cannot render identically to
+harvested evidence, and so week 8 can delete them by that column.
+`reported_context` carries no such column, and it should.
 
-`gemini-2.5-flash` was that model. **It no longer has a sourced
-`advertised_context`**, because Google publishes no token-limit table on any
-page reachable on 2026-08-13:
+**Why it is worse here than the case it mirrors.** `reported_context` feeds
+**FR-31, a hard filter**: the answer path matches against `reported_low`,
+never the advertised window. A fabricated `reported_low` silently excludes
+qualified models from every long-context recommendation, and nothing ever
+surfaces why.
 
-- `ai.google.dev/gemini-api/docs/models` and its per-model pages
-- `ai.google.dev/gemini-api/docs/pricing`
-- `docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash`
+> A wrong `cell` shows up as a phrase somebody can read and disagree with.
+> **A wrong `reported_low` shows up as an absence**, and nobody audits a
+> model that was never in the list.
 
-All list the models; none states input or output token limits.
+This is not hypothetical. Item 19 tempts exactly this: the advertised figure
+is sourced, no source gives a threshold, and the shortest path to a working
+context-gap fixture is to hand-seed a `reported_low`. With no `provenance`
+column that hand-seeded integer is permanent and undetectable.
 
-**The consequence:** no model in the fixture now has a sourced advertised
-context that practitioners are known to contradict, so `reported_context` and
-**FR-31 have nothing to work against**. The advertised-versus-reported logic
-sits untested until somebody notices in week 7, which is precisely what §3.6
-wrote this constraint to prevent.
+**Exact edit** — in `contract/tables.sql`:
 
-**Two ways out, and this is your choice, not mine** — picking the fixture is
-the same class of decision as item 8:
+```sql
+CREATE TABLE reported_context (
+  model_version_id text PRIMARY KEY REFERENCES model_version(id),
+  advertised       int,
+  reported_low     int,
+  reported_high    int,
+  quote_ids        text[],
 
-1. **Find a Google page that states the limit.** It may exist somewhere not
-   reached here; a Vertex model-garden page or a PDF model card would do.
-2. **Choose a different model** whose advertised window is both sourced *and*
-   known to be contradicted by practitioners. OpenAI states
-   `1,047,576` for `gpt-4.1-mini` on its model page, which is sourced — but
-   whether practitioners contradict it is an evidence question this repo
-   cannot answer yet.
+  -- FR-31 reads reported_low as a HARD FILTER, so a hand-seeded value
+  -- silently excludes models from every long-context recommendation and
+  -- shows up as an absence rather than as a claim anyone can read.
+  -- Same guard as cell.provenance, for a stronger reason.
+  provenance       text NOT NULL DEFAULT 'harvested',
 
-Recorded in `seed_models.yaml`'s checklist as an unticked box pointing here.
+  computed_at      timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT reported_context_provenance_ck
+    CHECK (provenance IN ('harvested', 'hand_seeded'))
+);
+```
+
+**And the startup assertion has to check it.** `assert_no_fixtures()`
+currently counts seeded `model_version` rows and hand-curated `cell` rows.
+Adding the column without extending the assertion leaves the guard the
+column exists to provide:
+
+```python
+seeded    = "SELECT count(*) FROM model_version WHERE provenance = 'seed'"
+handmade  = "SELECT count(*) FROM cell WHERE provenance = 'hand_curated'"
+reported  = "SELECT count(*) FROM reported_context WHERE provenance = 'hand_seeded'"
+```
+
+Engineer 1 will make that change in `collect/registry/assertions.py` in the
+same commit as the DDL, since the two are only useful together.
+
+---
+
+## Item 19 · The context-gap fixture · **ADVERTISED HALF DONE, CONTRADICTING HALF IS WEEK 5**
+
+**Do not read this as unfinished work.** The half that belongs in the seed
+file is done. The other half is evidence, and evidence arrives in week 5.
+
+BUILD-PLAN §3.6 asks for *"at least one with a known advertised-vs-real
+context gap, otherwise the inflation logic sits untested until week 7."*
+That is **two claims with different sourcing requirements**, and the word
+"known" was doing work nobody costed:
+
+| Claim | Where it comes from | State |
+|---|---|---|
+| the advertised figure | a provider page | ✅ **sourced** |
+| the contradiction | harvested practitioner evidence | ⏳ **week 5** |
+
+**`openai/gpt-4.1-mini` satisfies the heuristic.** It carries
+`advertised_context: 1047576`, sourced to OpenAI's own model page. And
+OpenAI acknowledges the gap in its own words:
+
+> "long context performance can degrade as more items are required to be
+> retrieved, or perform complex reasoning that requires knowledge of the
+> state of the entire context"
+>
+> — [OpenAI, GPT-4.1 prompting guide](https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide)
+
+**A provider stating that long-context performance degrades while naming no
+number is this product's thesis in one sentence.** The number only exists
+where people hit it.
+
+Three independent parties report the same thing without producing a
+threshold: [Zep](https://blog.getzep.com/gpt-4-1-and-o4-mini-is-openai-overselling-long-context/)
+measured 56.72% on LongMemEval_S at ~115k-token conversations, *below*
+GPT-4o-mini; ChromaDB's *Context Rot* report covers 18 models including
+GPT-4.1; and the RULER / NIAH-2 / MRCR families agree effective context is
+far shorter than advertised. None gives a figure to seed.
+
+**Why nothing is being seeded.** `reported_context.reported_low` is an
+`int`. Nothing above yields one, so seeding it would mean inventing an
+integer from qualitative reports, which is the same act as inventing a
+source URL — the thing this file just spent a whole pass undoing.
+
+**And the contradiction was never seed data.** The schema already routes it:
+
+```sql
+CREATE TABLE reported_context (
+  advertised int, reported_low int, reported_high int,
+  quote_ids  text[],   -- it comes from CLAIMS
+  ...);
+```
+
+It arrives through `document` → `claim` → `reported_context.quote_ids` like
+every other piece of evidence, at blogs' `base_trust` of 0.90. A blog
+claiming degradation is **not** a registry fact and does not belong in
+`sources`, which is FR-2 provenance.
+
+**Still open, and only this:** `gemini-2.5-flash` lost its
+`advertised_context` because Google publishes no token-limit table on
+`ai.google.dev/gemini-api/docs/models`, its per-model pages, its pricing
+page, or `docs.cloud.google.com`'s Vertex model pages. Restoring it needs a
+Google page that states the figure. That is a documentation problem, not a
+fixture problem, and the fixture no longer depends on it.
+
+> **Read item 20 before acting on this one.** The shortest path to a
+> "working" context-gap fixture is to hand-seed a `reported_low`, and
+> `reported_context` has no `provenance` column to mark it as fabricated.
 
 ---
 
