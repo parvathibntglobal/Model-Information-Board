@@ -20,20 +20,16 @@
 Nothing here needs deciding today except the credentials, which take longer to
 obtain than to use.
 
-> ### Running the seed loader on this branch
->
-> **`registry load-seed` needs two flags, not one:**
+> ### Running the seed loader
 >
 > ```
-> python -m collect.cli registry load-seed --allow-unsourced --allow-missing-spellings
+> python -m collect.cli registry load-seed --allow-unsourced
 > ```
 >
-> The FR-2 source gate runs **before** the spelling gate, so
-> `--allow-missing-spellings` alone still fails, and it fails with a message
-> about *sources* — which reads like the wrong problem and sends you to the
-> wrong file. Both gates are unapplied contract fixes, not code defects, and
-> both clear when sign-off items 5 to 7 and 10 land. Full exit-code matrix in
-> §7.
+> **One flag.** Sign-off item 10 landed, so the spelling gate passes.
+> `--allow-unsourced` is still needed and will be until **item 16**: 90
+> populated fields carry no source. That is a data task, not a code defect.
+> Full exit-code matrix in §7.
 >
 > Separately: **`registry check-sources` exits 1 by design.** The exit code is
 > the gap signal. Do not wire it into CI as a pass/fail step without knowing
@@ -396,25 +392,22 @@ easy to defer past the point where content has already been fetched.
 
 ## 7 · What Engineer 2 hits on first running this branch
 
-`check_spelling_coverage` fails on the real seed file, because
-`deepseek-v4-flash` declares no concatenated form (sign-off item 10). Measured
-exit codes, so nobody has to guess:
+Measured exit codes, so nobody has to guess:
 
 | Command | Exit | Fails on |
 |---|---|---|
 | `registry load-seed` | 1 | `SourceCoverageError` |
-| `registry load-seed --allow-unsourced` | 1 | `SpellingCoverageError` |
+| **`registry load-seed --allow-unsourced`** | **0** | — |
 | `registry load-seed --allow-missing-spellings` | 1 | `SourceCoverageError` |
-| **`registry load-seed --allow-unsourced --allow-missing-spellings`** | **0** | — |
 | `registry load-seed --dry-run` | 0 | — |
 | `registry check-sources` | 1 | by design; it reports the gap |
 | `registry aliases` | 0 | — |
 | `registry recompute-window` | 0 | — |
 | `db init` | 0 | — |
 
-**Both flags are needed, not just the spelling one.** The FR-2 source gate
-runs first, so `--allow-missing-spellings` alone still fails — and it fails
-with a message about sources, which reads like the wrong problem.
+**One flag, not two.** Item 10 landed, so the spelling gate passes. The
+source gate remains, and `--allow-missing-spellings` does nothing for it —
+that flag now has no effect on the seed file at all.
 
 `check_spelling_coverage` has exactly one caller: `load_seed(strict_spelling=True)`.
 Nothing else in the codebase touches it. The dry-run path builds rows without

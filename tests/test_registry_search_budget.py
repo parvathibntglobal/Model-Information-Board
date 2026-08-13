@@ -34,16 +34,21 @@ def _rows(policy: AliasSearchPolicy | None = None):
 
 
 def test_query_budget_is_pinned_not_capped():
-    """54 strings x 12 capabilities = 648 queries, about 22 minutes on GitHub.
+    """55 strings x 12 capabilities = 660 queries, about 22 minutes on GitHub.
 
     Pinned rather than bounded on purpose. Widening the alias list is a
     legitimate thing to do, and when somebody does it this test fails with
     the new number instead of silently absorbing it. A budget that quietly
     absorbs growth is how a harvest ends up truncated (FR-11).
+
+    It has already earned its keep: sign-off item 10 added `deepseekv4flash`
+    to make that model searchable at all, and this test reported the cost of
+    doing so as 54 -> 55 strings and 648 -> 660 queries rather than letting
+    it pass unnoticed.
     """
     queries = search_queries(_rows())
-    assert len(queries) == 54
-    assert len(queries) * CAPABILITIES == 648
+    assert len(queries) == 55
+    assert len(queries) * CAPABILITIES == 660
     assert round(len(queries) * CAPABILITIES / GITHUB_REQ_PER_MIN) == 22
 
 

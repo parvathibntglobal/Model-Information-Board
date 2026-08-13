@@ -11,20 +11,34 @@
 #  │  See collect/registry/assertions.py                                  │
 #  └──────────────────────────────────────────────────────────────────────┘
 #
-#  ⚠  VERIFY EVERY NUMBER BEFORE THE FIRST RUN
+#  ⚠  MOST NUMBERS HERE ARE STILL UNVERIFIED. Measured, not estimated:
 #
-#  Canonical ids, families, aliases and feature flags below are reliable.
-#  Every field marked `# VERIFY` is a best-known value that has NOT been
-#  read off a provider page — prices in particular move without notice, and
-#  a stale price silently corrupts every cost estimate and every ranking.
+#      FR-2 coverage        40 of 130 populated fields carry a source
+#      of those 40           9 cite a provider page, 31 cite a third party
+#      unsourced            90 fields, nine per model: lifecycle,
+#                           max_output_tokens, knowledge_cutoff,
+#                           price_cached_read and the five supports_* flags
+#
+#  Run `python -m collect.cli registry check-sources` for the current figure.
+#  The loader therefore needs `--allow-unsourced`, and will until sign-off
+#  item 16 lands. That is a recorded gap, not a code defect.
+#
+#  Two source citations point at the WRONG MODEL (sign-off item 5):
+#  deepseek-r1's prices cite a Gemini cost blog, and claude-haiku-4-5's cite
+#  a Claude Opus 5 pricing blog. A citation for a different model passes the
+#  coverage check while asserting nothing, which is worse than no citation.
 #
 #  Open each provider's pricing and model-card pages, correct the values,
 #  and fill the `sources` block with the URL and the date you read it.
 #  FR-2 requires that for every registry field, and it applies to seeded
 #  rows too. Doing it here means the poller inherits a working pattern.
 #
-#  Slot 10 is deliberately empty — only you can know what launched in the
-#  last 30 days.
+#  ▸ Sign-off items 5, 8 and 16 are ONE JOB. All three need somebody with
+#    provider pages open, and they all touch this file. Doing them in one
+#    pass costs one context switch; doing them separately costs three.
+#    See docs/contract-signoff-phase1.md.
+#
+#  Slot 10 is filled: deepseek/deepseek-v4-flash, released 2026-07-31.
 # ============================================================================
 
 version: "1.0"
@@ -49,6 +63,38 @@ provenance: seed
 #  ▸ CONTEXT-GAP EXAMPLE: gemini-2.5-flash advertises 1M and practitioners
 #    report degradation well below it. Exercises the advertised-vs-reported
 #    logic from week 1 instead of week 7.
+# ----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+#  WHAT `release_date` MEANS  (sign-off item 4a)
+#
+#  The date this version became GENERALLY AVAILABLE at its canonical id.
+#  Not the preview date, not the announcement date.
+#
+#  It drives two things, which is why the distinction is not cosmetic:
+#    - f_launch, the 21-day launch-window discount, FROZEN at extraction
+#    - in_window, the trailing-window filter (contract/registry.yaml)
+#
+#  Where a model previewed first, record the GA date here and note the preview
+#  date in a comment beside it.
+#
+#  STILL OPEN (item 4b): gemini-2.5-flash carries 2025-05-19 here and
+#  2025-06-17 in BUILD-PLAN.md. One is preview, one is GA. Choosing between
+#  them needs a provider page, and BUILD-PLAN.md is Engineer 2's file.
+# ----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+#  `sources.*.provider_page`  (sign-off item 6)
+#
+#  false means the value was read off a third party rather than the provider's
+#  own page. Third-party prices go stale silently, so this is worth knowing at
+#  a glance. It replaces a bare `#` at end of line, which carried the same
+#  meaning but which no loader could read.
+#
+#  Derived from each URL's host against the model's own provider, NOT
+#  transcribed from the old markers — transcribing would have preserved the
+#  bug: gemini-2.5-flash.release_date cites en.wikipedia.org and carried no
+#  marker, so it would have been recorded as a provider page.
 # ----------------------------------------------------------------------------
 
 models:
@@ -77,10 +123,10 @@ models:
       surface: "claude opus 5"
       variants: ["opus 5", "claude-opus-5", "opus5", "claude opus", "opus"]
     sources:
-      price_in:           { url: "https://www.finout.io/blog/claude-opus-5-pricing-2026", retrieved_at: "2026-08-12" } #
-      price_out:          { url: "https://www.finout.io/blog/claude-opus-5-pricing-2026", retrieved_at: "2026-08-12" } #
-      advertised_context: { url: "https://www.layer3labs.io/guides/claude-opus-5-explained", retrieved_at: "2026-08-12" } #
-      release_date:       { url: "https://www.buildfastwithai.com/blogs/claude-opus-5-review", retrieved_at: "2026-08-12" } #
+      price_in:           { url: "https://www.finout.io/blog/claude-opus-5-pricing-2026", retrieved_at: "2026-08-12", provider_page: false }
+      price_out:          { url: "https://www.finout.io/blog/claude-opus-5-pricing-2026", retrieved_at: "2026-08-12", provider_page: false }
+      advertised_context: { url: "https://www.layer3labs.io/guides/claude-opus-5-explained", retrieved_at: "2026-08-12", provider_page: false }
+      release_date:       { url: "https://www.buildfastwithai.com/blogs/claude-opus-5-review", retrieved_at: "2026-08-12", provider_page: false }
 
   - canonical_id: google/gemini-2.5-pro
     provider: google
@@ -104,10 +150,10 @@ models:
       surface: "gemini 2.5 pro"
       variants: ["gemini pro", "gemini-2.5-pro", "pro 2.5", "gemini 2.5pro", "gemini2.5pro"]
     sources:
-      price_in:           { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12" } #
-      price_out:          { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12" } #
-      advertised_context: { url: "https://chatlyai.app/blog/gemini-3-pro-vs-gemini-2-5-pro-cost-analysis", retrieved_at: "2026-08-12" } #
-      release_date:       { url: "https://en.wikipedia.org/wiki/Gemini_(language_model)", retrieved_at: "2026-08-12" } #
+      price_in:           { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12", provider_page: false }
+      price_out:          { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12", provider_page: false }
+      advertised_context: { url: "https://chatlyai.app/blog/gemini-3-pro-vs-gemini-2-5-pro-cost-analysis", retrieved_at: "2026-08-12", provider_page: false }
+      release_date:       { url: "https://en.wikipedia.org/wiki/Gemini_(language_model)", retrieved_at: "2026-08-12", provider_page: false }
 
   # ═══════════════════════════════ MID-TIER ═══════════════════════════════
 
@@ -136,10 +182,10 @@ models:
       # resolver has to handle correctly rather than guess at.
       variants: ["sonnet 5", "claude-sonnet-5", "sonnet5", "claude sonnet", "sonnet"]
     sources:
-      price_in:           { url: "https://www.anthropic.com/news/claude-sonnet-5", retrieved_at: "2026-08-12" } #
-      price_out:          { url: "https://www.anthropic.com/news/claude-sonnet-5", retrieved_at: "2026-08-12" } #
-      advertised_context: { url: "https://claudeapi.com/en/blog/news/claude-sonnet-5-api-guide/", retrieved_at: "2026-08-12" } #
-      release_date:       { url: "https://www.datacamp.com/blog/claude-sonnet-5", retrieved_at: "2026-08-12" } #
+      price_in:           { url: "https://www.anthropic.com/news/claude-sonnet-5", retrieved_at: "2026-08-12", provider_page: true }
+      price_out:          { url: "https://www.anthropic.com/news/claude-sonnet-5", retrieved_at: "2026-08-12", provider_page: true }
+      advertised_context: { url: "https://claudeapi.com/en/blog/news/claude-sonnet-5-api-guide/", retrieved_at: "2026-08-12", provider_page: false }
+      release_date:       { url: "https://www.datacamp.com/blog/claude-sonnet-5", retrieved_at: "2026-08-12", provider_page: false }
 
   - canonical_id: deepseek/deepseek-r1
     provider: deepseek
@@ -166,10 +212,10 @@ models:
       surface: "deepseek r1"
       variants: ["deepseek-r1", "r1", "deepseek reasoner", "deepseekr1"]
     sources:
-      price_in:           { url: "https://chatlyai.app/blog/gemini-3-pro-vs-gemini-2-5-pro-cost-analysis", retrieved_at: "2026-08-12" } #
-      price_out:          { url: "https://chatlyai.app/blog/gemini-3-pro-vs-gemini-2-5-pro-cost-analysis", retrieved_at: "2026-08-12" } #
-      advertised_context: { url: "https://api-docs.deepseek.com", retrieved_at: "2026-08-12" } 
-      release_date:       { url: "https://medium.com/@mayadakhatib/deepseek-r1-a-short-summary-73b6b8ced9cf", retrieved_at: "2026-08-12" } #
+      price_in:           { url: "https://chatlyai.app/blog/gemini-3-pro-vs-gemini-2-5-pro-cost-analysis", retrieved_at: "2026-08-12", provider_page: false }
+      price_out:          { url: "https://chatlyai.app/blog/gemini-3-pro-vs-gemini-2-5-pro-cost-analysis", retrieved_at: "2026-08-12", provider_page: false }
+      advertised_context: { url: "https://api-docs.deepseek.com", retrieved_at: "2026-08-12", provider_page: true }
+      release_date:       { url: "https://medium.com/@mayadakhatib/deepseek-r1-a-short-summary-73b6b8ced9cf", retrieved_at: "2026-08-12", provider_page: false }
 
   - canonical_id: mistral/mistral-large-2411
     provider: mistral
@@ -193,10 +239,10 @@ models:
       surface: "mistral large"
       variants: ["mistral-large", "mistral large 2", "mistrallarge", "mistral-large-2411"]
     sources:
-      price_in:           { url: "https://mistral.ai/news/mistral-large-2411", retrieved_at: "2026-08-12" }
-      price_out:          { url: "https://mistral.ai/news/mistral-large-2411", retrieved_at: "2026-08-12" }
-      advertised_context: { url: "https://mistral.ai/news/mistral-large-2411", retrieved_at: "2026-08-12" }
-      release_date:       { url: "https://mistral.ai/news/mistral-large-2411", retrieved_at: "2026-08-12" }
+      price_in:           { url: "https://mistral.ai/news/mistral-large-2411", retrieved_at: "2026-08-12", provider_page: true }
+      price_out:          { url: "https://mistral.ai/news/mistral-large-2411", retrieved_at: "2026-08-12", provider_page: true }
+      advertised_context: { url: "https://mistral.ai/news/mistral-large-2411", retrieved_at: "2026-08-12", provider_page: true }
+      release_date:       { url: "https://mistral.ai/news/mistral-large-2411", retrieved_at: "2026-08-12", provider_page: true }
 
   # ════════════════════════════════ BUDGET ════════════════════════════════
 
@@ -226,10 +272,10 @@ models:
       surface: "gemini 2.5 flash"
       variants: ["gemini flash", "gemini-2.5-flash", "flash 2.5", "gemini flash 2.5", "gemini2.5flash"]
     sources:
-      price_in:           { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12" } #
-      price_out:          { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12" } #
-      advertised_context: { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12" } #
-      release_date:       { url: "https://en.wikipedia.org/wiki/Gemini_(language_model)", retrieved_at: "2026-08-12" } 
+      price_in:           { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12", provider_page: false }
+      price_out:          { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12", provider_page: false }
+      advertised_context: { url: "https://www.opslyft.com/blog/google-gemini-api-pricing-2026", retrieved_at: "2026-08-12", provider_page: false }
+      release_date:       { url: "https://en.wikipedia.org/wiki/Gemini_(language_model)", retrieved_at: "2026-08-12", provider_page: false }
 
   - canonical_id: anthropic/claude-haiku-4-5-20251001
     provider: anthropic
@@ -253,10 +299,10 @@ models:
       surface: "claude haiku 4.5"
       variants: ["haiku 4.5", "claude-haiku-4-5", "haiku4.5", "claude haiku", "haiku"]
     sources:
-      price_in:           { url: "https://www.finout.io/blog/claude-opus-5-pricing-2026", retrieved_at: "2026-08-12" } #
-      price_out:          { url: "https://www.finout.io/blog/claude-opus-5-pricing-2026", retrieved_at: "2026-08-12" } #
-      advertised_context: { url: "https://www.anthropic.com/pricing", retrieved_at: "2026-08-12" }
-      release_date:       { url: "https://www.anthropic.com/news", retrieved_at: "2026-08-12" }
+      price_in:           { url: "https://www.finout.io/blog/claude-opus-5-pricing-2026", retrieved_at: "2026-08-12", provider_page: false }
+      price_out:          { url: "https://www.finout.io/blog/claude-opus-5-pricing-2026", retrieved_at: "2026-08-12", provider_page: false }
+      advertised_context: { url: "https://www.anthropic.com/pricing", retrieved_at: "2026-08-12", provider_page: true }
+      release_date:       { url: "https://www.anthropic.com/news", retrieved_at: "2026-08-12", provider_page: true }
 
   - canonical_id: openai/gpt-4.1-mini
     provider: openai
@@ -280,10 +326,10 @@ models:
       surface: "gpt-4.1 mini"
       variants: ["gpt 4.1 mini", "gpt-4.1-mini", "4.1 mini", "gpt41mini", "gpt-4.1 mini"]
     sources:
-      price_in:           { url: "https://openrouter.ai/openai/gpt-4.1-mini", retrieved_at: "2026-08-12" } #
-      price_out:          { url: "https://openrouter.ai/openai/gpt-4.1-mini", retrieved_at: "2026-08-12" } #
-      advertised_context: { url: "https://openrouter.ai/openai/gpt-4.1-mini", retrieved_at: "2026-08-12" } #
-      release_date:       { url: "https://inworld.ai/models/openai-gpt-4-1-mini", retrieved_at: "2026-08-12" } #
+      price_in:           { url: "https://openrouter.ai/openai/gpt-4.1-mini", retrieved_at: "2026-08-12", provider_page: false }
+      price_out:          { url: "https://openrouter.ai/openai/gpt-4.1-mini", retrieved_at: "2026-08-12", provider_page: false }
+      advertised_context: { url: "https://openrouter.ai/openai/gpt-4.1-mini", retrieved_at: "2026-08-12", provider_page: false }
+      release_date:       { url: "https://inworld.ai/models/openai-gpt-4-1-mini", retrieved_at: "2026-08-12", provider_page: false }
 
   # ══════════════════════════════ OPEN-WEIGHT ═════════════════════════════
 
@@ -312,10 +358,10 @@ models:
       surface: "deepseek v3"
       variants: ["deepseek-v3", "deepseek 3", "deepseekv3", "deepseek chat"]
     sources:
-      price_in:           { url: "https://openrouter.ai/deepseek/deepseek-chat", retrieved_at: "2026-08-12" } #
-      price_out:          { url: "https://openrouter.ai/deepseek/deepseek-chat", retrieved_at: "2026-08-12" } #
-      advertised_context: { url: "https://openrouter.ai/deepseek/deepseek-chat", retrieved_at: "2026-08-12" } #
-      release_date:       { url: "https://openrouter.ai/deepseek/deepseek-chat", retrieved_at: "2026-08-12" } #
+      price_in:           { url: "https://openrouter.ai/deepseek/deepseek-chat", retrieved_at: "2026-08-12", provider_page: false }
+      price_out:          { url: "https://openrouter.ai/deepseek/deepseek-chat", retrieved_at: "2026-08-12", provider_page: false }
+      advertised_context: { url: "https://openrouter.ai/deepseek/deepseek-chat", retrieved_at: "2026-08-12", provider_page: false }
+      release_date:       { url: "https://openrouter.ai/deepseek/deepseek-chat", retrieved_at: "2026-08-12", provider_page: false }
 
   # ════════════════════════════ JUST-LAUNCHED ═════════════════════════════
   
@@ -339,26 +385,42 @@ models:
     supports_batch: false
     aliases:
       surface: "deepseek v4 flash"
-      variants: ["deepseek-v4-flash", "v4 flash", "deepseek v4", "deepseek v4 flash"]
+      # Sign-off item 10. Was ["deepseek-v4-flash", "v4 flash", "deepseek v4",
+      # "deepseek v4 flash"] — no concatenated form, so `deepseekv4flash` was
+      # unsearchable on the one fixture whose purpose is the just-launched
+      # path; and "deepseek v4 flash" repeated the surface, so it declared
+      # four distinct spellings rather than five.
+      variants: ["deepseek-v4-flash", "deepseekv4flash", "v4 flash", "deepseek v4"]
     sources:
-      price_in:           { url: "https://en.wikipedia.org/wiki/DeepSeek", retrieved_at: "2026-08-12" } #
-      price_out:          { url: "https://en.wikipedia.org/wiki/DeepSeek", retrieved_at: "2026-08-12" } #
-      advertised_context: { url: "https://en.wikipedia.org/wiki/DeepSeek", retrieved_at: "2026-08-12" } #
-      release_date:       { url: "https://en.wikipedia.org/wiki/DeepSeek", retrieved_at: "2026-08-12" } #
+      price_in:           { url: "https://en.wikipedia.org/wiki/DeepSeek", retrieved_at: "2026-08-12", provider_page: false }
+      price_out:          { url: "https://en.wikipedia.org/wiki/DeepSeek", retrieved_at: "2026-08-12", provider_page: false }
+      advertised_context: { url: "https://en.wikipedia.org/wiki/DeepSeek", retrieved_at: "2026-08-12", provider_page: false }
+      release_date:       { url: "https://en.wikipedia.org/wiki/DeepSeek", retrieved_at: "2026-08-12", provider_page: false }
 
 # ----------------------------------------------------------------------------
 #  CHECKLIST — before the first commit
 #
 #    [x] Slot 10 filled with something released in the last 30 days
-#    [x] Every `# VERIFY` replaced with a value read off a provider page
-#    [x] Every `sources` entry has a real URL and a real date
+#    [ ] Every `# VERIFY` replaced with a value read off a provider page
+#        UNTICKED: 90 of 130 populated fields carry no source at all, and 31
+#        of the 40 that do cite a third party. Sign-off item 16.
+#    [ ] Every `sources` entry has a real URL and a real date
+#        UNTICKED: two entries cite the wrong model entirely — deepseek-r1's
+#        prices point at a Gemini blog, claude-haiku-4-5's at an Opus 5 blog.
+#        Sign-off item 5.
 #    [x] Same-family group present — claude opus/sonnet/haiku, plus gemini
 #        pro/flash. A bare "sonnet" or "haiku" must resolve at
 #        specificity: family, never snapshot
 #    [x] Context-gap example present — gemini-2.5-flash
-#    [x] Open-weight present — deepseek-v3, with hosted_by required in claims
+#    [ ] Open-weight present — deepseek-v3, with hosted_by required in claims
+#        UNTICKED: deepseek-v3 released 2024-12-26, which is outside the
+#        trailing 18-month window as of 2026-08-12, so the open-weight slot
+#        is present but untested. Needs a post-2025-02-12 replacement.
+#        Sign-off item 8.
 #    [x] 4–5 alias variants each: enough coverage without blowing the budget
-#        (10 × 5 × 12 = 600 queries per platform, ~20 min on GitHub)
+#        (measured: 54 declared spellings × 12 capabilities = 648 queries per
+#        platform, ~22 min on GitHub. The plan's 600 assumed 5 per model;
+#        four models declare 6.)
 #    [x] Loader stamps provenance: seed on every row
 #    [x] assert_no_fixtures() wired into startup
 #

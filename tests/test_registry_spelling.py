@@ -63,44 +63,55 @@ def test_hyphen_and_space_are_detected_independently():
 # ── against the real seed file ────────────────────────────────────────────
 
 
-def test_exactly_one_model_is_missing_a_spelling():
-    """Sign-off item 10, pinned.
+def test_no_model_is_missing_a_spelling():
+    """Sign-off item 10, applied.
 
-    `deepseek/deepseek-v4-flash` declares no concatenated form, so
-    `deepseekv4flash` is unsearchable on the one fixture whose whole purpose
-    is exercising the just-launched path. This is a contract fix, not a code
-    one, and it must not be closed by editing the seed file from this lane.
+    `deepseek/deepseek-v4-flash` used to declare no concatenated form, so
+    `deepseekv4flash` was unsearchable on the one fixture whose whole purpose
+    is exercising the just-launched path. It also repeated its own surface in
+    `variants`, declaring four distinct spellings rather than five.
     """
-    gaps = spelling_gaps(_models())
-    assert [g.canonical_id for g in gaps] == ["deepseek/deepseek-v4-flash"]
-    assert gaps[0].missing == ("concatenated",)
+    assert spelling_gaps(_models()) == []
 
 
-def test_nine_of_ten_models_declare_all_three():
+def test_all_ten_models_declare_all_three():
     complete = [
         m for m in _models() if spelling_styles(declared_surfaces(m)) == set(SPELLING_STYLES)
     ]
-    assert len(complete) == 9
+    assert len(complete) == 10
 
 
-def test_the_seed_file_currently_fails_the_check():
-    with pytest.raises(SpellingCoverageError, match="deepseek-v4-flash"):
-        check_spelling_coverage(_models())
+def test_the_seed_file_passes_the_check():
+    check_spelling_coverage(_models())  # must not raise
 
 
-def test_the_error_says_which_rendering_is_missing():
+def test_the_previously_missing_spelling_is_now_declared():
+    """The specific string that was unfindable."""
+    v4 = next(m for m in _models() if m.canonical_id == "deepseek/deepseek-v4-flash")
+    assert "deepseekv4flash" in declared_surfaces(v4)
+
+
+def test_a_model_missing_a_rendering_still_fails(monkeypatch):
+    """The gate must keep working now that the real file passes it.
+
+    Built from a model with its concatenated form removed, so the check is
+    exercised rather than merely satisfied.
+    """
+    v4 = next(m for m in _models() if m.canonical_id == "deepseek/deepseek-v4-flash")
+    crippled = v4.model_copy(
+        update={
+            "aliases": v4.aliases.model_copy(
+                update={"variants": [s for s in v4.aliases.variants if s != "deepseekv4flash"]}
+            )
+        }
+    )
     with pytest.raises(SpellingCoverageError, match="no concatenated form"):
-        check_spelling_coverage(_models())
-
-
-def test_a_complete_seed_file_passes():
-    models = [m for m in _models() if m.canonical_id != "deepseek/deepseek-v4-flash"]
-    check_spelling_coverage(models)
+        check_spelling_coverage([crippled])
 
 
 def test_declared_surfaces_deduplicates():
-    """`deepseek v4 flash` is declared twice: once as surface, once as variant."""
+    """Five distinct spellings now: the duplicated surface was replaced."""
     v4 = next(m for m in _models() if m.canonical_id == "deepseek/deepseek-v4-flash")
     surfaces = declared_surfaces(v4)
     assert len(surfaces) == len(set(surfaces))
-    assert len(surfaces) == 4  # five declared, one a duplicate of the surface
+    assert len(surfaces) == 5

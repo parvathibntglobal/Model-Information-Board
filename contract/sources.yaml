@@ -1,0 +1,90 @@
+# ============================================================================
+#  Harvest sources — the three platforms, their trust weight, and the terms
+#  review NFR-5 requires.
+#
+#  SHARED. Changes go through a PR.
+#
+#  Rule 5: `base_trust` is a weight, so it lives here rather than in code.
+#  Loaded into the `source` table by collect/, the same way seed_models.yaml
+#  is loaded into model_version.
+#
+#  WHY THIS FILE BLOCKS HARVEST
+#
+#  `watermark.source_id` references `source(id)`. With no source rows, the
+#  first INSERT INTO watermark fails on the foreign key, so FR-9's durable
+#  cursors cannot store their first row. That would have surfaced on the first
+#  adapter run as a foreign key violation and read as an adapter bug rather
+#  than a missing seed.
+#
+#  ┌──────────────────────────────────────────────────────────────────────┐
+#  │  tos_notes BELOW ARE PLACEHOLDERS. THE REVIEW HAS NOT HAPPENED.      │
+#  │                                                                      │
+#  │  They ship so a schema fix is not held hostage to a reading task     │
+#  │  with no owner and no date. They are not a claim that terms were     │
+#  │  reviewed — they say the opposite, in the value itself.              │
+#  │                                                                      │
+#  │  assert_terms_reviewed() refuses to harvest from any source whose    │
+#  │  tos_notes still carries the marker. NFR-5's acceptance is that      │
+#  │  terms are reviewed and recorded PER SOURCE, so a placeholder        │
+#  │  surviving to first harvest is a requirement failure and stops the   │
+#  │  run. See collect/registry/assertions.py.                            │
+#  │                                                                      │
+#  │  Blocking from week 2, when the blog adapter lands.                  │
+#  └──────────────────────────────────────────────────────────────────────┘
+# ============================================================================
+
+version: "1.0"
+
+#: The string that makes an unreviewed source detectable by code rather than
+#: by a human noticing. Do not reword it without changing the assertion.
+review_marker: "REVIEW REQUIRED"
+
+sources:
+
+  - id: github
+    platform: github
+    endpoint: https://api.github.com
+    base_trust: 0.95
+    # The failure channel: repro steps, error strings, real schemas. Highest
+    # trust precisely because it is structurally negative — nobody opens an
+    # issue to report that something worked.
+    tos_notes: >-
+      REVIEW REQUIRED before first harvest. Record: the API terms URL, the
+      date read, the observed rate limit, and whether quote-plus-attribution
+      republication is permitted.
+
+  - id: blogs
+    platform: blog
+    endpoint: null            # per-feed; discovered feeds become source rows
+    base_trust: 0.90
+    # THE ONLY POSITIVE-EVIDENCE CHANNEL. Without it, silent-failure
+    # capabilities like summarisation can never reach positive consensus and
+    # the advisor can never approve a cheaper summariser — the single
+    # recommendation this product exists to make.
+    tos_notes: >-
+      REVIEW REQUIRED before first harvest. RSS and sitemaps only, robots.txt
+      respected, no paywall circumvention. A source whose terms forbid this
+      use is dropped, not worked around. Record per host.
+
+  - id: reddit
+    platform: reddit
+    endpoint: https://oauth.reddit.com
+    base_trust: 0.85
+    # DEFERRED: the company holds the account and access will be requested
+    # later. The adapter is not being built. Blocking from week 3, because
+    # FR-6's acceptance is all three adapters returning content and FR-17's
+    # cross-platform identity clustering cannot be tested with one social
+    # platform. See docs/phase2-readiness.md.
+    tos_notes: >-
+      REVIEW REQUIRED before first harvest. Their terms prohibit scraping, so
+      the official API is mandatory. Record the current rate limit and
+      free-tier eligibility rather than trusting BUILD-PLAN's 60/min figure.
+
+
+# ----------------------------------------------------------------------------
+#  Still open: where the ~40 practitioner blog feeds live.
+#
+#  The INITIAL list is config and could sit here. Feeds DISCOVERED from links
+#  in already-harvested content are data and belong in the `source` table.
+#  Settle it before either is built: a list that lives in two places diverges.
+# ----------------------------------------------------------------------------

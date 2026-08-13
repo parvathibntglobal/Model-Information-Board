@@ -53,16 +53,19 @@ def conn(test_dsn):
 
 
 def _load(connection, **kwargs):
-    """Load the seed with both known contract gaps waived.
+    """Load the seed with the one remaining contract gap waived.
 
-    `strict_sources` and `strict_spelling` are off because the seed file
-    ships with a documented FR-2 gap and a missing concatenated form for
-    `deepseek-v4-flash`, both of which are sign-off items on a contract PR
-    this lane must not write. The gaps are still recorded in the report.
+    `strict_spelling` is now ON: sign-off item 10 landed, so every model
+    declares all three renderings and the gate passes.
+
+    `strict_sources` stays off because 90 populated fields still carry no
+    source. That is sign-off item 16, and it needs somebody with provider
+    pages open rather than a code change. The gap is still recorded in the
+    report.
     """
     from collect.registry.load import load_seed
 
-    report = load_seed(connection, strict_sources=False, strict_spelling=False, **kwargs)
+    report = load_seed(connection, strict_sources=False, strict_spelling=True, **kwargs)
     connection.commit()
     return report
 

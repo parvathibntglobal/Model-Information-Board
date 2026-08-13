@@ -24,7 +24,9 @@ dist/
 .venv/
 venv/
 env/
-.python-version
+# .python-version is deliberately NOT ignored (sign-off item 2). It pins the
+# interpreter where pyenv and uv read it, so the pin enforces itself instead
+# of being documented. Ignoring it would make the item a silent no-op.
 
 # ── tooling ──────────────────────────────────────────────────────────────
 .pytest_cache/

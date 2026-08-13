@@ -22,22 +22,27 @@ guessing.
 
 | # | File | Status |
 |---|---|---|
-| 1 | `pyproject.toml` | ready to apply |
-| 2 | `.python-version` (new) | ready to apply |
-| 3 | `contract/seed_models.yaml` | **awaiting verification — do not apply** |
-| 4 | `contract/seed_models.yaml`, `BUILD-PLAN.md` | rule ready; value needs a source |
-| 5 | `contract/seed_models.yaml` | needs re-sourcing, no URLs supplied |
-| 6 | `contract/seed_models.yaml` + `collect/registry/models.py` | ready, two files must land together |
-| 7 | `contract/seed_models.yaml` | ready to apply |
-| 8 | `contract/seed_models.yaml` | **blocker cleared**, needs a model choice |
-| 9 | none | resolved, note only |
-| 10 | `contract/seed_models.yaml` | ready to apply |
-| 11 | `contract/tables.sql` | ready to apply |
-| 12 | `.env.example` | ready to apply |
-| 13 | `contract/sources.yaml` (new) | **blocks FR-9**; needs the ToS review first |
-| 14 | `contract/tables.sql` | **blocks FR-10 and FR-11** |
-| 15 | `contract/tables.sql` | comment only, no DDL; **lane interface** |
-| 16 | `contract/seed_models.yaml` | **clears the FR-2 source gate**; needs provider pages |
+| 1 | `pyproject.toml`, `.gitignore` | ✅ **applied** — `pip install -e .` verified working |
+| 2 | `.python-version` (new) | ✅ **applied** |
+| 3 | `contract/seed_models.yaml` | ⛔ **awaiting verification — do not apply** |
+| 4a | `contract/seed_models.yaml` | ✅ **applied** — the rule is documented |
+| 4b | `contract/seed_models.yaml`, `BUILD-PLAN.md` | ⬜ open — the value needs a provider page |
+| 5 | `contract/seed_models.yaml` | ⬜ open — needs real URLs |
+| 6 | `contract/seed_models.yaml` + `collect/registry/models.py` | ✅ **applied** — 9 true / 31 false, derived |
+| 7 | `contract/seed_models.yaml` | ✅ **applied** — three boxes unticked |
+| 8 | `contract/seed_models.yaml` | ⬜ open — needs a post-2025-02-12 model |
+| 9 | none | ✅ resolved, no edit |
+| 10 | `contract/seed_models.yaml` | ✅ **applied** — spelling gate now passes |
+| 11 | `contract/tables.sql` | ✅ **applied** — `coverage_gap` |
+| 12 | `.env.example` | ✅ **applied** |
+| 13 | `contract/sources.yaml` (new) | ✅ **applied** with placeholders + a gate |
+| 14 | `contract/tables.sql` | ✅ **applied** — `harvest_run`, `watermark.exhausted` |
+| 15 | `contract/tables.sql` | ✅ **applied** — comment only |
+| 16 | `contract/seed_models.yaml` | ⬜ open — **clears the FR-2 source gate** |
+
+**Eleven applied, four open.** The four are 3, 4b, 5, 8 and 16 — all of which
+need information this repository does not contain. Every one requires
+somebody to open a provider page.
 
 ### Items 5, 8 and 16 are one job, not three
 
@@ -63,14 +68,13 @@ position suggests. Item 15 blocks nothing but is the one item where
 ## Before you apply anything: running the branch as it stands
 
 ```
-python -m collect.cli registry load-seed --allow-unsourced --allow-missing-spellings
+python -m collect.cli registry load-seed --allow-unsourced
 ```
 
-**Both flags, not one.** The FR-2 source gate runs before the spelling gate,
-so `--allow-missing-spellings` alone still fails — and it fails with a message
-about *sources*, which reads like the wrong problem and sends you looking in
-the wrong place. Neither is a code defect; both are unapplied contract fixes
-showing through.
+**One flag now.** Item 10 landed, so the spelling gate passes and
+`--allow-missing-spellings` is no longer needed. `--allow-unsourced` is still
+required and will be until **item 16** lands: 90 populated fields carry no
+source, and that is a data task rather than a code defect.
 
 > ### Correction: which items actually clear these gates
 >
@@ -90,12 +94,13 @@ showing through.
 > report as deliberately deferred but had no item here, which is a hole in
 > this package rather than in the code.
 
+Measured after applying this PR:
+
 | Command | Exit | Fails on |
 |---|---|---|
 | `registry load-seed` | 1 | `SourceCoverageError` (**item 16**) |
-| `registry load-seed --allow-unsourced` | 1 | `SpellingCoverageError` (item 10) |
+| **`registry load-seed --allow-unsourced`** | **0** | — |
 | `registry load-seed --allow-missing-spellings` | 1 | `SourceCoverageError` (**item 16**) |
-| **both flags** | **0** | — |
 | `registry load-seed --dry-run` | 0 | — |
 | `registry check-sources` | **1** | **by design** — the exit code is the gap signal |
 | `registry aliases` | 0 | — |
