@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Malformed but readable</title>
+    <link>https://broken.example.invalid/</link>
+    <item>
+      <title>Retries & backoff</title>
+      <link>https://broken.example.invalid/posts/retries</link>
+      <guid isPermaLink="false">urn:uuid:3a0c9a10-0000-4000-8000-000000000001</guid>
+    </item>
+  </channel>
+</rss>

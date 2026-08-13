@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head><title>Swapping our summariser to a cheaper tier</title></head>
+<body>
+  <nav><a href="/">home</a> <a href="/archive">archive</a></nav>
+  <article>
+    <h1>Swapping our summariser to a cheaper tier</h1>
+    <p>We moved the nightly digest job off the large tier six weeks ago and it held.
+       Median latency dropped from 4.2s to 1.8s per document.</p>
+    <p>The one failure mode we hit was a dropped bullet on documents over roughly
+       8k tokens, which we fixed by chunking:</p>
+    <pre><code>for chunk in chunks(doc, max_tokens=6000):
+    summarise(chunk)</code></pre>
+    <p>Six weeks in, no regressions in the review queue.</p>
+  </article>
+  <footer>Synthetic fixture. Not a real post.</footer>
+</body>
+</html>
