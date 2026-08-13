@@ -557,8 +557,17 @@ substitution:
 #  instruction - it states that a query is meaningless where phrases do not
 #  bind, and leaves each adapter to decide what to do about that.
 #
-#  Reddit and blog matching have not been measured at all. Until they are,
-#  the default for an unmeasured platform is to issue every form - today's
-#  behaviour - so per-platform rendering degrades to a no-op rather than to a
-#  regression.
+#  Reddit and blog matching have not been measured at all. What an adapter
+#  does about that is collect/'s to decide, and this file does not say.
+#
+#  The first draft said "the default for an unmeasured platform is to issue
+#  every form". That was a rendering default - the expensive kind, and the
+#  same cartesian shape that cost 30.9 hours on GitHub, applied by default to
+#  two platforms nobody has measured - sitting in the file that disclaims
+#  rendering. Removed rather than reversed: picking the opposite default
+#  would still be picking one.
+#
+#  On blogs the question does not arise at all. There is no search, so alias
+#  form is a sieve concern there, and the sieve matches every form locally
+#  whatever an adapter would have "issued".
 # ============================================================================

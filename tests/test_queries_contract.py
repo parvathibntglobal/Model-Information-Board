@@ -122,16 +122,42 @@ class TestShape:
             assert e.get("intent", "").strip(), f"{label} has no intent"
             assert e.get("yields_claim_when", "").strip(), f"{label} has no yields_claim_when"
 
-    def test_every_query_requires_the_alias(self, entries, queries):
-        """Without it, a query harvests posts about nothing in particular."""
-        for e in entries + queries["substitution"]:
-            assert "{alias}" in e["terms"]["subject"], e.get("capability", "substitution")
+    def test_some_subject_term_references_the_alias(self, entries, queries):
+        """Without it, a query harvests posts about nothing in particular.
 
-    def test_topic_and_signal_are_non_empty(self, entries):
-        """`subject` alone is the collapsed state issue #4 documents."""
+        The rule is "SOME element references the alias", not "the list is
+        exactly ['{alias}']". `subject` is all-of, so extra required terms are
+        legitimate — `['{alias}', 'production']` is a narrower query, not a
+        malformed one — but at least one of them has to identify the model.
+
+        The first version asserted `"{alias}" in subject`, which on a list is
+        exact membership. It passed only because every subject happens to be
+        `['{alias}']` today, and would have rejected `['{alias} 2.5']` while
+        reading as though it allowed it.
+        """
+        for e in entries + queries["substitution"]:
+            label = e.get("capability", "substitution")
+            subject = e["terms"]["subject"]
+            assert subject, f"{label} has an empty subject"
+            assert any("{alias}" in term for term in subject), (
+                f"{label}: no subject term references {{alias}}, so this query "
+                f"retrieves documents that need not mention any model"
+            )
+
+    def test_topic_and_signal_terms_are_all_non_empty(self, entries):
+        """`subject` alone is the collapsed state issue #4 documents.
+
+        Checks the ELEMENTS, not just the list. `assert e["terms"]["topic"]`
+        passes for `[""]` — a list holding an empty string is truthy — which
+        is the same weakness as the alias assertion above, found by auditing
+        for it rather than by hitting it.
+        """
         for e in entries:
-            assert e["terms"]["topic"], e["capability"]
-            assert e["terms"]["signal"], e["capability"]
+            for group in ("topic", "signal"):
+                terms = e["terms"][group]
+                assert terms, f"{e['capability']} has no {group} terms"
+                blank = [i for i, t in enumerate(terms) if not t or not t.strip()]
+                assert not blank, f"{e['capability']} has empty {group} terms at {blank}"
 
 
 class TestSubstitution:
