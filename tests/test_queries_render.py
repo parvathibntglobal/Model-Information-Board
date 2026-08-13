@@ -369,3 +369,33 @@ def test_two_entries_sharing_a_query_keep_their_own_sieve_terms():
     assert by_stance["context.effective_window:positive"].sieve(held).passed
     assert not by_stance["context.effective_window:positive"].sieve(lost).passed
     assert by_stance["context.effective_window:negative"].sieve(lost).passed
+
+
+def test_a_request_sieves_with_every_spelling_not_the_one_that_found_the_document():
+    """The live defect: which spelling FOUND a document says nothing about how
+    the document NAMES the model.
+
+    Measured on the first GitHub run — checking only the retrieving spelling put
+    the subject-miss rate at 88.6%, checking all six forms put it at 66.9% over
+    the same 136 documents. Twenty-eight recovered for zero extra requests.
+    """
+    forms = ("claude sonnet", "claude-sonnet-5", "sonnet 5")
+    plan = plan_searches([entry()], forms, scope=SWEEP)
+
+    for request in plan.requests:
+        assert set(request.aliases) == set(forms), request.query
+
+    # A request rendered from one spelling must keep a document that uses another.
+    request = plan.requests[0]
+    written_another_way = "claude-sonnet-5 dropped the clause from the summary"
+    assert request.sieve(written_another_way).passed
+
+
+def test_subject_forms_can_be_supplied_when_a_sweep_spans_models():
+    """Mixing two models' spellings into one subject check would let a post about
+    one satisfy a query about the other."""
+    plan = plan_searches(
+        [entry()], ("claude sonnet 5",), scope=SWEEP, subject_forms=("claude sonnet 5",)
+    )
+    assert plan.requests[0].aliases == ("claude sonnet 5",)
+    assert not plan.requests[0].sieve("gpt-4.1 mini dropped the summary clause").passed

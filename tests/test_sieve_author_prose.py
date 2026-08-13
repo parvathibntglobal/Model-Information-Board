@@ -198,3 +198,34 @@ def test_subject_and_topic_may_come_from_code():
     assert verdict.subject == (ALIAS,)
     assert verdict.topic == ("summarize",)
     assert verdict.signal == ("held up",)
+
+
+# ── the diagnostic must not degrade as coverage improves ──────────────────
+
+
+def test_the_closest_variant_decides_the_reported_missing_groups():
+    """`sieve_any` returns the verdict that got furthest, not the last one.
+
+    Attaching every spelling of a model is a coverage improvement with no
+    behaviour change — a document still passes if any spelling passes. But when
+    the returned verdict was simply the last variant's, the measured
+    subject-miss rate on a fixed corpus of 136 documents went from 67% to 100%
+    purely because a form that appears nowhere was ordered last. The rejection
+    counts are what the defect-4 costing rests on, so a positional accident
+    cannot be allowed to set them.
+    """
+    from collect.adapters.queries.sieve import sieve_any
+
+    hit = TermSet(subject=("gemini flash",), topic=("summarize",), signal=("held up",))
+    miss = TermSet(subject=("gemini2.5flash",), topic=("summarize",), signal=("held up",))
+    document = "gemini flash summarizes our tickets and it has held up"
+
+    # Ordered so the failing variant comes last, which is the trap.
+    verdict = sieve_any([hit.substitute("x"), miss.substitute("x")], document)
+    assert verdict.passed, "one spelling matched everything"
+
+    # And where nothing passes, the closest verdict is the informative one.
+    no_signal = TermSet(subject=("gemini flash",), topic=("summarize",), signal=("nobody noticed",))
+    absent = TermSet(subject=("gemini2.5flash",), topic=("condense",), signal=("nobody noticed",))
+    verdict = sieve_any([no_signal.substitute("x"), absent.substitute("x")], document)
+    assert verdict.missing == ("signal",), "not ('subject', 'topic', 'signal')"

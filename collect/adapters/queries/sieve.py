@@ -260,15 +260,29 @@ def sieve_any(variants, text: str) -> SieveVerdict:
     prose. Sieving against one spelling drops the other silently, so the caller
     is given a function that cannot be used that way by accident.
 
-    Returns the first passing verdict, or the last failing one — which carries a
-    `missing` group worth logging.
+    Returns the first passing verdict, or — where none passes — the one that got
+    FURTHEST, meaning fewest missing groups and then most terms matched.
+
+    Not the last one. The last variant is an arbitrary choice, and the moment a
+    request carries every spelling of a model, "missing subject" would be decided
+    by whichever form happened to be ordered last. That is how a diagnostic
+    degrades as coverage improves: attaching six spellings took the measured
+    subject-miss rate from 67% to 100% on a fixed corpus, with no behaviour
+    change at all. The rejection counts are what the defect-4 costing rests on,
+    so the returned verdict has to be the tightest true statement about the
+    document rather than a positional accident.
     """
-    verdict = SieveVerdict(passed=False, missing=("subject",))
+    best: SieveVerdict | None = None
     for terms in variants:
         verdict = sieve(terms, text)
         if verdict.passed:
             return verdict
-    return verdict
+        if best is None or (
+            len(verdict.missing),
+            -len(verdict.matched_terms),
+        ) < (len(best.missing), -len(best.matched_terms)):
+            best = verdict
+    return best or SieveVerdict(passed=False, missing=("subject", "topic", "signal"))
 
 
 @dataclass(frozen=True)

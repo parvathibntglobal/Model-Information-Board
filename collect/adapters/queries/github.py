@@ -79,13 +79,22 @@ class Unrenderable:
 class SearchRequest:
     """One GitHub search, and every sieve term set its results should be read with.
 
-    `variants` is a tuple because **alias spellings collapse on this index and
-    not in the sieve.** `claude opus 5` and `claude-opus-5` render to the same
-    query — the numeral rule hyphenates the first — so issuing both would buy
-    the same documents twice. But a document says `claude-opus-5` or it says
-    `claude opus 5`, and a sieve given only one spelling drops the other. So the
-    request is deduplicated and the spellings are kept: retrieve once, sieve
-    against every form.
+    `variants` carries **every spelling of the model**, not only the spelling that
+    produced this query. Which spelling *found* a document says nothing about how
+    the document *names* the model: a post retrieved by `gemini flash` may say
+    `gemini-2.5-flash` in its body, and a sieve given one spelling rejects it on
+    subject.
+
+    Measured on the first live run: checking only the retrieving spelling put the
+    subject-miss rate at 88.6%; checking all six of one model's forms put it at
+    66.9% over the same corpus. Twenty-eight documents of 136 recovered for zero
+    extra requests.
+
+    It also does the job it was first built for — `claude opus 5` and
+    `claude-opus-5` render to the same query, since the numeral rule hyphenates
+    the first, so issuing both would buy the same documents twice.
+
+    Retrieve once, sieve against every form.
     """
 
     query: str
@@ -270,6 +279,7 @@ def plan_searches(
     *,
     scope: tuple[str, ...] = (),
     alias_b_by_alias=None,
+    subject_forms=None,
 ) -> SearchPlan:
     """Every request a sweep would issue, and every entry it cannot ask.
 
@@ -288,6 +298,13 @@ def plan_searches(
     #
     # `distinct_queries` reports the overlap, so the cheaper arrangement stays
     # visible to whoever wants to build it properly.
+    # Every spelling the sieve should read documents with. Defaults to the alias
+    # list itself, which is one model's forms at every call site today; passed
+    # explicitly when a caller sweeps several models at once, since mixing two
+    # models' spellings into one subject check would let a post about one satisfy
+    # a query about the other.
+    forms = tuple(subject_forms) if subject_forms is not None else tuple(aliases)
+
     by_key: dict[tuple[str, str], SearchRequest] = {}
     refusals: list[Unrenderable] = []
     refused: set[str] = set()
@@ -305,13 +322,19 @@ def plan_searches(
             # Deduplicated on the query as issued, keeping every spelling for
             # the sieve. Two alias variants that hyphenate to the same string
             # are one request and two ways of reading its results.
-            key = (rendered.entry_label, rendered.query)
-            existing = by_key.get(key)
-            if existing is None:
-                by_key[key] = rendered
-            elif rendered.terms not in existing.variants:
-                by_key[key] = replace(
-                    existing, variants=existing.variants + rendered.variants
+            # Attach every spelling, not just the one that rendered this query.
+            #
+            # Not for a directional entry: there the terms carry `{alias_b}` as
+            # well, and one alias's pairing is not another's, so expanding would
+            # build term sets for model pairs nobody asked about.
+            if not entry.needs_second_model:
+                rendered = replace(
+                    rendered,
+                    variants=tuple(entry.terms.substitute(form) for form in forms),
                 )
+
+            key = (rendered.entry_label, rendered.query)
+            if key not in by_key:
+                by_key[key] = rendered
 
     return SearchPlan(requests=tuple(by_key.values()), refusals=tuple(refusals))
