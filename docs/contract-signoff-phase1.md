@@ -1,6 +1,6 @@
 # Contract sign-off — Phase 1
 
-**Fourteen items for Engineer 2. One PR, not fourteen.**
+**Fifteen items for Engineer 2. One PR, not fifteen.**
 
 *Raised from Engineer 1's Phase 1 remediation · branch `phase1-collection-foundation` · commit `4bd322d`*
 
@@ -36,10 +36,13 @@ guessing.
 | 12 | `.env.example` | ready to apply |
 | 13 | `contract/sources.yaml` (new) | **blocks FR-9**; needs the ToS review first |
 | 14 | `contract/tables.sql` | **blocks FR-10 and FR-11** |
+| 15 | `contract/tables.sql` | comment only, no DDL; **lane interface** |
 
-Items 12 to 14 were raised after the first eleven, from the Phase 2 readiness
-assessment in [`phase2-readiness.md`](phase2-readiness.md). Items 13 and 14
-block harvest, so they matter more than their position suggests.
+Items 12 to 15 were raised after the first eleven, from the Phase 2 readiness
+assessment in [`phase2-readiness.md`](phase2-readiness.md) and from building
+the raw store. Items 13 and 14 block harvest, so they matter more than their
+position suggests. Item 15 blocks nothing but is the one item where
+`collect/` and `judge/` must actually agree rather than merely not conflict.
 
 ---
 
@@ -557,6 +560,57 @@ ALTER TABLE watermark ADD COLUMN exhausted boolean NOT NULL DEFAULT false;
 
 ---
 
+## Item 15 · `text_ref` has no documented convention · **LANE INTERFACE**
+
+`contract/tables.sql` gives `document.text_ref text NOT NULL -- pointer into
+the raw store` and, separately, `content_hash text NOT NULL` with no comment.
+Two columns, and the schema never says how they differ. `collect/` writes
+both; `judge/` reads `text_ref` to fetch the text it verifies quotes against.
+That makes the convention a **lane interface**, so it is agreed rather than
+assumed.
+
+Two readings are coherent:
+
+- **A — `text_ref` is the hash.** The store is content-addressed, so a
+  pointer into it *is* the hash. But then the two columns hold the same value
+  and one is dead weight.
+- **B — `text_ref` is a location, `content_hash` is identity.** Storage can
+  move (filesystem now, an object store later) without rewriting what
+  anything *is*.
+
+**B is implemented, and NFR-6 is why it is not a preference.** Its acceptance
+reads *"tombstone a document; its quotes vanish next run, only the content
+hash remains."* That only parses if the hash and the stored bytes are
+separable — under A there is nothing to delete that leaves a hash behind, so
+A cannot satisfy an acceptance criterion the plan has already committed to.
+
+**Exact edit** — comment only, **no DDL**:
+
+```sql
+  -- `text_ref` LOCATES the payload; `content_hash` IDENTIFIES it. They are
+  -- separate columns because NFR-6 requires the hash to outlive the bytes:
+  -- tombstoning deletes the payload and keeps the hash as the audit record.
+  -- Storage can therefore move without rewriting identity.
+  --   text_ref     "raw/sha256/ab/cd/abcd...ef"   (collect/rawstore.py)
+  --   content_hash "abcd...ef"
+  text_ref                text NOT NULL,
+  content_hash            text NOT NULL,
+```
+
+The same convention applies to `thread_context.flattened_text_ref`, which
+uses the `flattened/` namespace of the same store.
+
+> **Disagreeing is cheap.** `collect/rawstore.py` keeps its public surface
+> hash-first: `put()` returns both the ref and the hash, and `parse_ref()`
+> recovers the hash from any ref. If you prefer reading A, the change is
+> **one column write** at the call site, not a redesign of the store. Say so
+> and it will be changed.
+
+This is the only outstanding question on the raw store. Everything else about
+it is `collect/`'s own business and needs no sign-off.
+
+---
+
 ## Known gaps, recorded but not proposed
 
 Not everything found needs a decision now. These are written down so they are
@@ -564,6 +618,7 @@ not rediscovered.
 
 | Gap | Blocking from | Note |
 |---|---|---|
+| **Reddit access deferred** | **Week 3** | The company holds the account; access requested later. Adapter not being built. Week 3 because FR-6's acceptance is all three adapters returning content, and FR-17's cross-platform identity clustering cannot be tested with one social platform. Blogs, not Reddit, carry the structurally-positive channel FR-6 depends on. Detail in [`phase2-readiness.md`](phase2-readiness.md) §6 |
 | **No jobs table** | **Week 7**, the nightly job chain | `CLAUDE.md` and `pyproject.toml` both record *cron plus a jobs table, no workflow engine*. `contract/tables.sql` defines 24 tables and none is that. Nothing needs it until the nightly chain, but it overlaps with `harvest_run` (item 14) and the two should be designed together rather than separately |
 | **Blog feed list has no home** | Week 2, the blog adapter | Initial list is config, discovered feeds are data. Settle alongside item 13 |
 | **No robots.txt handling** | Week 2, the blog adapter | NFR-5 requires it. `urllib.robotparser` is stdlib, so no dependency. Collection lane's own work, not a contract item |

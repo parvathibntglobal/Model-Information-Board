@@ -55,10 +55,15 @@ requests per minute, authenticated is 30. At the current budget of 648 queries
 per platform (see the defect report, defect 6), that is 22 minutes
 authenticated against 65 unauthenticated.
 
-### Reddit — `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`
+### Reddit — `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` · **DEFERRED**
 
-A **script** app registered at `reddit.com/prefs/apps`. Both values appear on
-that page immediately after creation.
+> **Not being obtained now.** The company holds the account; access will be
+> requested later. The adapter is not being built and its absence is not a
+> blocker until **week 3**. See §6 for why week 3 and not week 8.
+
+Recorded for when access arrives. A **script** app registered at
+`reddit.com/prefs/apps`. Both values appear on that page immediately after
+creation.
 
 **No username or password variable is proposed**, and this is a decision worth
 confirming rather than assuming. Reddit's OAuth offers an application-only
@@ -324,6 +329,38 @@ happens, so this is a prerequisite for the first adapter rather than a Phase 3
 concern. `collect/ids.py::content_hash` already provides the addressing.
 
 Small, and needed first.
+
+### Reddit access is deferred · blocking from **week 3**
+
+The company holds the Reddit account, and access will be requested once the
+project is further along. **Do not build the Reddit adapter, and do not treat
+its absence as a blocker before week 3.**
+
+Two things make week 3 the deadline rather than week 8:
+
+- **FR-6's acceptance is all three adapters returning content.** Two out of
+  three does not pass it.
+- **FR-17 needs real cross-platform data to test against.** Cross-platform
+  author identity clustering exists precisely because one engineer posting to
+  GitHub and Reddit would otherwise satisfy the two-platform publication rule
+  alone — the exact condition that rule prevents. That cannot be exercised, or
+  even honestly measured, with a single social platform in the corpus.
+
+> **Blogs, not Reddit, carry the structurally-positive channel.** Nobody opens
+> a GitHub issue to report that summarisation worked, so GitHub is
+> structurally negative. Blogs are what make positive consensus on a
+> silent-failure capability reachable at all, and without them the advisor can
+> never approve a cheaper summariser — the single recommendation this product
+> exists to make. Reddit's role is comparison and nuance, which is real but
+> not load-bearing in the same way. **That is why deferring Reddit costs less
+> than deferring blogs would**, and it should not be read as the three
+> adapters being interchangeable.
+
+Until access arrives, `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` stay
+unset. The `reddit` entry in the proposed `contract/sources.yaml` (sign-off
+item 13) can still be written, since it records trust weight and terms rather
+than credentials, but its ToS review is the thing to do when access is
+requested rather than now.
 
 ### No jobs table
 
