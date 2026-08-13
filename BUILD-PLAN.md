@@ -107,210 +107,73 @@ modelboard/
   tests/
 ```
 
-### 3.2 · `CLAUDE.md` — complete text
+### 3.2 · `CLAUDE.md`
 
-```markdown
-# Model Information Board
+**`CLAUDE.md` is the file. This section is not.**
 
-A board of what engineers publicly report about AI model capabilities, and an
-advisor that uses it to recommend cheaper models for specific sub-agent tasks.
+This section previously carried its full text, so day one could be typed
+without further decisions. That job is done — the file exists, both Claude Code
+sessions load it every time, and it has since grown a sixth rule. A prose copy
+here would drift the way §3.3's schema copy did, and be trusted the same way.
 
-Requirements and the build plan: BUILD-PLAN.md
-How the machinery works: docs/logic-and-workflow.md
+Read `CLAUDE.md` at the repo root, plus `collect/CLAUDE.md` and
+`judge/CLAUDE.md` for lane-specific conventions — Claude Code applies those on
+top of the root file.
 
-## Lane ownership
+What it carries, so you know when to go and read it: **lane ownership** and the
+one-directional interface · the **six non-negotiable rules** a helpful refactor
+would otherwise quietly violate · **stack decisions already made**, listed so
+they are not relitigated · conventions for provenance, pipeline versioning and
+immutable raw payloads · the **build fixtures** currently in place and the week
+each is deleted.
 
-- `collect/` is owned by Engineer 1. `judge/` is owned by Engineer 2.
-- Do not edit outside your lane. Propose the change to the other person instead.
-- `contract/` is shared. Never modify it without flagging it — it is the
-  interface between two people working in parallel.
-
-## Non-negotiable rules
-
-These are the rules a helpful refactor will otherwise quietly violate.
-
-1. **No claim without a verbatim quote**, verified in code by exact substring
-   match against the text the extractor was given. No quote, no claim. The
-   verification is plain Python — never a model checking a model.
-2. **Exactly two stages may call a language model**: `judge/extract/` and
-   `judge/ask/` (task understanding only). No model participates in counting,
-   weighting, gating, ranking, filtering or phrase assembly.
-   The governing rule for anything added later: an LLM may propose, it may
-   never decide.
-3. **No synthesised number reaches a page.** Every figure displayed is either
-   counted (people, quotes, days) or measured (price, tokens). Consensus is a
-   phrase assembled from counts, never a score.
-4. **Silence is not criticism.** "Nobody has discussed this" must render
-   distinctly from "engineers report problems". Absence of evidence must never
-   read as evidence of capability.
-5. **Config in versioned YAML, not code.** Thresholds, weights, half-lives, the
-   capability list, alias variants and filter rules all live in `contract/`.
-
-## Stack decisions already made — do not relitigate
-
-- Python. Postgres plus an object store. `httpx` for fetching.
-- Cron plus a jobs table. No workflow engine, no Kafka, no time-series DB.
-- One adapter class per platform. Official APIs and public feeds only —
-  no scraping, no paywall circumvention, robots.txt respected.
-- The evidence pipeline is a nightly batch. The answer path reads a
-  materialised view and never touches the pipeline.
-
-## Conventions
-
-- Every derived row carries `pipeline_version` so any scoring change is
-  fully re-runnable and diffable.
-- Raw payloads are immutable and content-hash addressed. Reprocess from
-  there rather than re-fetching.
-- Seeded and hand-curated rows carry `provenance`. Production asserts on
-  startup that none are present.
-```
-
-Add a short `CLAUDE.md` in `collect/` and `judge/` for lane-specific conventions — Claude Code applies those on top of the root file.
-
+**The rules are the part that matters most**, because each one is load-bearing
+and none of them is self-evident from the code. Rule 6 in particular was
+written after both lanes independently broke it — see §3.3 on why a
+duplicate-and-drift is worse than a pointer.
 ### 3.3 · `contract/tables.sql`
 
-The interface. Agree these together before either of you writes anything else.
+**`contract/tables.sql` is the schema. This section is not.**
 
-```sql
--- ─── E1 produces these ────────────────────────────────────────────────────
-CREATE TABLE document (
-  id                     text PRIMARY KEY,
-  source                 text NOT NULL,          -- github | blog | reddit
-  external_id            text NOT NULL,
-  url                    text NOT NULL,
-  author_id              text,
-  thread_root_id         text,
-  parent_id              text,
-  created_at             timestamptz,            -- when the human posted it
-  fetched_at             timestamptz NOT NULL,
-  lang                   text,
-  text_ref               text NOT NULL,          -- pointer into the raw store
-  content_hash           text NOT NULL,
-  minhash                bytea,                  -- short docs
-  simhash                bigint,                 -- long-form
-  engagement             jsonb,                  -- score, comments, karma
-  specificity_score      real,                   -- numbers/errors/code/version
-  dedup_cluster_id       text,
-  is_canonical_in_cluster boolean,
-  triage_verdict         text,                   -- kept | dropped
-  filter_reasons         text[],
-  status                 text NOT NULL           -- kept | filtered | tombstoned
-);
+This section previously carried a copy of the DDL. It drifted — it listed
+eight tables while the file had twenty-six — and two review findings in Phase 1
+were wrong because they trusted the copy over the file. A prose duplicate of a
+schema is worse than no duplicate, because it is authoritative-looking and
+unversioned. Read the file.
 
-CREATE TABLE thread_context (
-  id                  text PRIMARY KEY,
-  thread_root_id      text NOT NULL,
-  member_document_ids text[] NOT NULL,
-  flattened_text_ref  text NOT NULL,   -- the exact bytes sent to the extractor
-  offset_map          jsonb NOT NULL,  -- [{flat:[s,e], doc:"id", raw:[s,e]}]
-  child_count         int,
-  assembled_at        timestamptz NOT NULL
-);
+What belongs here instead is the part the DDL cannot say: **which tables are
+the lane interface, and what changing them costs.**
 
-CREATE TABLE author (
-  id                  text PRIMARY KEY,
-  source              text NOT NULL,
-  external_id         text NOT NULL,
-  handle_hash         text,
-  account_created_at  timestamptz,
-  karma               int,
-  identity_cluster_id text            -- cross-platform merge, E3
-);
-
--- ─── E2 produces these ────────────────────────────────────────────────────
-CREATE TABLE claim (
-  id                  text PRIMARY KEY,
-  document_id         text NOT NULL REFERENCES document(id),
-  thread_context_id   text NOT NULL REFERENCES thread_context(id),
-  source_comment_id   text NOT NULL,   -- which comment inside the flattened text
-  author_id           text,
-  model_version_id    text NOT NULL,
-  specificity         text,            -- snapshot | version | family
-  resolution_confidence real,
-  capability_key      text NOT NULL,
-  condition_bucket    text NOT NULL,
-  conditions          jsonb,
-  polarity            text NOT NULL,   -- positive | negative
-  severity            text,            -- mild | clear | severe (phrasing only)
-  comparison_target_id text,
-  pain_points         text[],
-  quote               text NOT NULL,   -- the RAW span, as written, for display
-  quote_flat_offset   int4range NOT NULL,
-  quote_raw_offset    int4range NOT NULL,
-  quote_verified      boolean NOT NULL,
-  relevance           text,            -- central | passing
-  has_repro_steps     boolean,
-  has_numbers         boolean,
-  is_sarcastic        boolean,
-  evidence_tier       text,            -- A…F
-  extractor_model     text,
-  pipeline_version    text NOT NULL,
-  created_at          timestamptz NOT NULL
-);
-
-CREATE TABLE claim_weight (
-  claim_id        text PRIMARY KEY REFERENCES claim(id),
-  w_final         real NOT NULL,
-  f_evidence      real, f_platform real, f_specificity real,
-  f_relevance     real, f_recency  real,
-  f_launch        real,             -- FROZEN at extraction, never recomputed
-  f_fuzziness     real,
-  computed_at     timestamptz, pipeline_version text
-);
-
-CREATE TABLE cell (
-  model_version_id   text NOT NULL,
-  capability_key     text NOT NULL,
-  condition_bucket   text NOT NULL,
-  n_eff              real,
-  independent_voices int,
-  platform_count     int,
-  max_author_share   real,
-  positive           int, negative int,
-  status             text,          -- published | insufficient | contested
-  provenance         text NOT NULL, -- harvested | hand_curated
-  consensus_phrase   text,
-  conditional_note   text,
-  quote_ids          text[],
-  freshest_at        timestamptz, median_age interval,
-  computed_at        timestamptz, pipeline_version text,
-  PRIMARY KEY (model_version_id, capability_key, condition_bucket)
-);
-
--- ─── the registry: seeded now, polled from week 5 ─────────────────────────
-CREATE TABLE model_version (
-  id                  text PRIMARY KEY,
-  canonical_id        text NOT NULL,
-  provider            text NOT NULL,
-  family              text,
-  release_date        date,
-  deprecation_date    date,
-  lifecycle           text,
-  advertised_context  int,
-  max_output_tokens   int,
-  price_in            numeric, price_out numeric, price_cached_read numeric,
-  supports_tools      boolean, supports_structured_output boolean,
-  supports_vision     boolean, supports_caching boolean,
-  sources             jsonb NOT NULL,  -- {field: {url, retrieved_at}}
-  possibly_changed    boolean DEFAULT false,
-  provenance          text NOT NULL,   -- seed | polled
-  in_window           boolean
-);
-
-CREATE TABLE model_alias (
-  id               text PRIMARY KEY,
-  surface          text NOT NULL,
-  normalized       text NOT NULL,
-  variants         text[],
-  model_version_id text REFERENCES model_version(id),
-  specificity      text,
-  valid_from       date, valid_until date,   -- time-aware resolution
-  confidence       real
-);
+```
+collect/  ──►  document + thread_context  ──►  judge/
 ```
 
-**Indexes to add now**, not later: `claim(model_version_id, capability_key, condition_bucket, created_at)` — the aggregation hot path. `document(simhash)` and `document(minhash)` with an LSH sidecar.
+**`document` and `thread_context` are the interface.** `collect/` fills them,
+`judge/` reads them, nothing flows back. They are the only two tables where a
+change breaks the other person's work in progress, so they are the two that get
+agreed before either lane writes against them.
 
+`thread_context.offset_map` is the load-bearing column. It maps spans in the
+flattened text the extractor reads back to spans in the raw text a reader is
+shown, and quote verification is meaningless without it. It is **segment-based,
+not comment-based** — normalisation rewrites text in place and changes lengths,
+so an emoji becoming `[upside_down_face]` is one character becoming eighteen,
+and a constant per-comment offset silently resolves to the wrong span. See the
+comment above the column, and `tests/test_verify.py::TestDisplay`.
+
+**Everything else is lane-local.** `collect/` owns the registry, harvest and
+dedup tables; `judge/` owns claims, weights, cells, labels and the answer path
+tables. Neither lane reads the other's.
+
+**Changing `contract/` goes through a PR** — see §7. It should change perhaps
+five times in eight weeks, each time on purpose. Phase 1 spent one of those
+five, on twenty items batched into a single review, for exactly the reason §7
+gives: eleven separate reviews of a shared interface is how two people working
+in parallel start disagreeing about what the interface is.
+
+**Indexes to add now**, not later: `claim(model_version_id, capability_key,
+condition_bucket, created_at)` — the aggregation hot path. `document(simhash)`
+and `document(minhash)` with an LSH sidecar.
 ### 3.4 · `contract/capabilities.yaml`
 
 `failure_mode` is the field that matters — it decides how much evidence the answer path demands.

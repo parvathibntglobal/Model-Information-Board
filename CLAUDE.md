@@ -50,6 +50,21 @@ These are the rules a helpful refactor will otherwise quietly violate.
 5. **Config in versioned YAML, not code.** Thresholds, weights, half-lives, the
    capability list, alias variants and filter rules all live in `contract/`.
 
+6. **A missing value is never silently converted into a definite one.** Absent
+   data stays absent through every layer that reads it. An unpublished
+   capability flag is not `false`. A NULL price is not free, and not the
+   cheapest tier. An unseeded `reported_low` is not a threshold. Where a value
+   is missing at the point it would have been used, **say so** - a caveat the
+   reader can act on, never a silent exclusion.
+
+   Rule 4 is this rule's display side. This is the data side, and **both lanes
+   have broken it once**: `judge/`'s hard filter read an absent
+   `supports_tools` as "cannot", taking a candidate list from 11 models to 1;
+   GitHub Search silently discards the qualifiers in a query, turning a
+   capability-scoped search into a bare alias match. Both surfaced as an
+   absence with nothing on the page to disagree with, which is what makes this
+   class of defect expensive - it looks like a considered answer.
+
 ## Stack decisions already made - do not relitigate
 
 - Python 3.11+. Postgres plus an object store. `httpx` for fetching.
