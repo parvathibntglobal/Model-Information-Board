@@ -1,6 +1,10 @@
 # Phase 1 defect report — the collection lane
 
-**Six defects in the registry write path, plus one packaging finding.**
+**Eight defects in the registry write path, plus one packaging finding.**
+
+> Defects 1 to 6 came from a code review. **Defect 8 came from changing the
+> data** — it lived in code that had already been reviewed, fixed and
+> approved, and 313 passing tests did not see it.
 
 *Engineer 1 · branch `phase1-collection-foundation` · fixes in commit `4bd322d`*
 
@@ -245,6 +249,70 @@ Exactly one model currently fails: see contract sign-off item 10.
 Sixteen tests, with the budget **pinned rather than bounded**. Widening the
 alias list is legitimate; when someone does it, the test fails with the new
 number instead of silently absorbing it.
+
+---
+
+## 8 · `_sync_alias` reported inserts that never happened
+
+*`collect/registry/load.py`. Found 2026-08-13, in code fixed under defect 1
+and approved.*
+
+**What it was.** `_sync_alias` finds the *live* rows for a surface with
+`WHERE valid_until IS NULL`, closes any it supersedes, then inserts with
+`ON CONFLICT (id) DO NOTHING` — and returned `"inserted"` without checking
+whether the insert did anything.
+
+**Why it stayed invisible.** While every alias row was live, a row that
+already existed was always found by the live query and reported
+`"unchanged"` before reaching the insert. The `rowcount` was never load-bearing.
+
+Retired models changed that. Their alias rows carry a `valid_until`, so they
+are **never** live, so the live query returns nothing, so every reload fell
+through to the insert — which did nothing — and reported a fresh insert
+anyway. `test_reloading_changes_nothing` caught it immediately: `aliases_inserted`
+was **12** on a second load that wrote nothing.
+
+**What it would have caused.** A load report that overstates its own writes,
+permanently, for exactly the rows nobody is watching. FR-10 and the coverage
+page both read counts like this one, and a report that lies about what it did
+is worse than no report: it is a number people trust.
+
+**What now catches it.** `_sync_alias` returns `"unchanged"` on
+`rowcount == 0`, and `test_reloading_changes_nothing` asserts a second load
+inserts zero aliases against a fixture that now contains retired models.
+
+> **This is a defect in code that was reviewed and approved.** It was not
+> caught by the review, by the acceptance test written for it, or by 313
+> passing tests. It was caught by changing the data until the assumption
+> underneath it stopped holding.
+
+---
+
+## Not a defect · the first real exercise of FR-4
+
+Worth recording separately, because it is evidence rather than a fault.
+
+Adding `mistral-large-3` alongside the retired `mistral-large-2411` made both
+models claim the surface `mistral large`, and `find_collisions` **refused the
+entire seed file**. That refusal was correct: two models did claim one surface
+over overlapping windows.
+
+The fix is the mechanism FR-4 was written for. An alias's `valid_until` is now
+its model's **retirement date**, so `mistral large` means `mistral-large-2411`
+until 2025-03-30 and `mistral-large-3` from 2025-12-01. Disjoint windows, one
+unambiguous answer at any instant, and **a March 2025 post still resolves to
+the model that existed in March 2025** — which is FR-4's acceptance criterion
+stated almost word for word.
+
+Two earlier pieces of work were required for this to be possible and neither
+had been exercised by real data until now:
+
+- **Half-open intervals** meant the handover was not read as a collision.
+- **Content-keyed alias ids** meant the retired model's rows survived
+  unchanged rather than being rotated.
+
+Both were built against synthetic tests. This is the first time production
+data demanded them, and they were correct.
 
 ---
 

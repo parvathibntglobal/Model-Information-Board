@@ -34,22 +34,22 @@ def _rows(policy: AliasSearchPolicy | None = None):
 
 
 def test_query_budget_is_pinned_not_capped():
-    """55 strings x 12 capabilities = 660 queries, about 22 minutes on GitHub.
+    """59 strings x 12 capabilities = 708 queries, about 24 minutes on GitHub.
 
     Pinned rather than bounded on purpose. Widening the alias list is a
     legitimate thing to do, and when somebody does it this test fails with
     the new number instead of silently absorbing it. A budget that quietly
     absorbs growth is how a harvest ends up truncated (FR-11).
 
-    It has already earned its keep: sign-off item 10 added `deepseekv4flash`
-    to make that model searchable at all, and this test reported the cost of
-    doing so as 54 -> 55 strings and 648 -> 660 queries rather than letting
-    it pass unnoticed.
+    It has earned its keep twice. Item 10 added `deepseekv4flash` and it
+    reported the cost as 54 -> 55 strings. Item 8 added an eleventh model
+    and it reported 55 -> 59. Neither passed unnoticed, and 708 against the
+    plan's 600 is a measured overrun rather than a discovered one.
     """
     queries = search_queries(_rows())
-    assert len(queries) == 55
-    assert len(queries) * CAPABILITIES == 660
-    assert round(len(queries) * CAPABILITIES / GITHUB_REQ_PER_MIN) == 22
+    assert len(queries) == 59
+    assert len(queries) * CAPABILITIES == 708
+    assert round(len(queries) * CAPABILITIES / GITHUB_REQ_PER_MIN) == 24
 
 
 def test_no_query_string_is_issued_twice():
@@ -94,12 +94,12 @@ def test_dated_snapshot_id_resolves_but_is_never_searched():
     assert row.search_eligible is False
 
 
-def test_exactly_eleven_rows_lose_search():
-    """Ten provider-prefixed forms plus one dated snapshot id."""
+def test_exactly_twelve_rows_lose_search():
+    """Eleven provider-prefixed forms, one per model, plus one dated id."""
     ineligible = [r for r in _rows() if not r.search_eligible]
-    assert len(ineligible) == 11
+    assert len(ineligible) == 12
     prefixed = [r for r in ineligible if "/" in r.surface]
-    assert len(prefixed) == 10
+    assert len(prefixed) == 11
 
 
 def test_every_model_keeps_at_least_four_query_strings():
@@ -125,7 +125,7 @@ def test_permissive_policy_restores_the_old_budget():
     strings, 648 queries and 22 minutes now.
     """
     permissive = AliasSearchPolicy(declared_surfaces_only=False, expand_mechanically=True)
-    assert len(search_queries(_rows(permissive))) == 151
+    assert len(search_queries(_rows(permissive))) == 161
 
 
 def test_mechanical_expansion_only_widens_search():

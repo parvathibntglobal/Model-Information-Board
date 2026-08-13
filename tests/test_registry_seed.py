@@ -11,7 +11,6 @@ from pydantic import ValidationError
 
 from collect.registry.models import SOURCED_FIELDS, SeedFile
 from collect.registry.seed import (
-    SourceCoverageError,
     check_source_coverage,
     gaps_by_model,
     load_seed_file,
@@ -47,7 +46,7 @@ def _parse(text: str) -> SeedFile:
 def test_contract_seed_file_parses():
     seed = load_seed_file()
     assert seed.provenance == "seed"
-    assert len(seed.models) == 10
+    assert len(seed.models) == 11  # ten, plus mistral-large-3 for item 8
 
 
 def test_every_model_has_aliases():
@@ -57,9 +56,9 @@ def test_every_model_has_aliases():
 
 
 def test_month_precision_cutoffs_become_dates():
-    """`knowledge_cutoff: 2026-04` is a month; the column is a date."""
+    """`knowledge_cutoff: 2026-05` is a month; the column is a date."""
     by_id = {m.canonical_id: m for m in load_seed_file().models}
-    assert by_id["anthropic/claude-opus-5"].knowledge_cutoff == date(2026, 4, 1)
+    assert by_id["anthropic/claude-opus-5"].knowledge_cutoff == date(2026, 5, 1)
 
 
 def test_same_family_group_is_present():
@@ -68,26 +67,31 @@ def test_same_family_group_is_present():
     assert len(claude) >= 3
 
 
-def test_source_gaps_are_reported_not_hidden():
-    """FR-2 is checkable without interpretation, and it currently fails.
+def test_fr2_is_satisfied():
+    """Sign-off item 16, applied. Every populated field cites a provider page.
 
-    The seed file sources prices, context and release dates but not feature
-    flags, cutoffs or lifecycle. That is a real gap, and this test pins it so
-    it can only shrink.
+    This test used to assert the opposite: 90 fields were populated with no
+    source at all. The 2026-08-13 sourcing pass either sourced a value or
+    removed it, because a claim with no source is worse than an absence.
     """
     seed = load_seed_file()
-    gaps = source_gaps(seed)
-    assert gaps, "if this passes, FR-2 is satisfied — tighten load_seed to strict"
-    assert set(gaps_by_model(seed)) <= {m.canonical_id for m in seed.models}
+    assert source_gaps(seed) == []
+    assert gaps_by_model(seed) == {}
 
 
-def test_strict_loading_refuses_the_current_seed_file():
-    with pytest.raises(SourceCoverageError):
-        seed_models(strict=True)
+def test_every_source_is_a_provider_page():
+    """Item 6's point. An aggregator citation is not progress over a blog."""
+    for model in load_seed_file().models:
+        for field, ref in model.sources.items():
+            assert ref.provider_page, f"{model.canonical_id}.{field} cites a third party"
 
 
-def test_permissive_loading_still_returns_every_model():
-    assert len(seed_models(strict=False)) == 10
+def test_strict_loading_now_succeeds():
+    assert len(seed_models(strict=True)) == 11
+
+
+def test_permissive_loading_returns_every_model():
+    assert len(seed_models(strict=False)) == 11
 
 
 # ── validation is strict on purpose ───────────────────────────────────────

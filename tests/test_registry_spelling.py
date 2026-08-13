@@ -74,11 +74,12 @@ def test_no_model_is_missing_a_spelling():
     assert spelling_gaps(_models()) == []
 
 
-def test_all_ten_models_declare_all_three():
+def test_every_model_declares_all_three():
+    models = _models()
     complete = [
-        m for m in _models() if spelling_styles(declared_surfaces(m)) == set(SPELLING_STYLES)
+        m for m in models if spelling_styles(declared_surfaces(m)) == set(SPELLING_STYLES)
     ]
-    assert len(complete) == 10
+    assert len(complete) == len(models) == 11
 
 
 def test_the_seed_file_passes_the_check():

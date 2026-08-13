@@ -115,11 +115,28 @@ def test_alias_rows_are_deterministic():
     assert [r.id for r in alias_rows(model)] == [r.id for r in alias_rows(model)]
 
 
-def test_alias_validity_starts_at_release():
+def test_alias_validity_tracks_the_model_lifecycle():
+    """An alias is current for exactly as long as its model is.
+
+    `valid_until` is the model's retirement date, which is what FR-4's
+    time-awareness is for: `mistral large` meant mistral-large-2411 until it
+    retired and means mistral-large-3 after. Without it the two windows
+    overlap and the collision check correctly refuses the whole seed file.
+    """
     for model in _models():
         for row in alias_rows(model):
             assert row.valid_from == model.release_date
-            assert row.valid_until is None  # still current
+            assert row.valid_until == model.retirement_date
+
+
+def test_a_retired_models_aliases_are_closed():
+    retired = next(m for m in _models() if m.lifecycle == "retired")
+    assert all(row.valid_until is not None for row in alias_rows(retired))
+
+
+def test_a_live_models_aliases_stay_open():
+    live = next(m for m in _models() if m.lifecycle == "ga")
+    assert all(row.valid_until is None for row in alias_rows(live))
 
 
 def test_every_seeded_model_carries_a_family_level_alias():

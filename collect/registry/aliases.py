@@ -186,6 +186,17 @@ def alias_rows(model: SeedModel, policy: AliasSearchPolicy | None = None) -> lis
     mv_id = model_version_id(model.canonical_id)
     valid_from = model.release_date
 
+    #: An alias stops being CURRENT when its model retires, which is exactly
+    #: what FR-4's time-awareness is for. `mistral large` meant
+    #: mistral-large-2411 until it retired on 2025-03-30 and means
+    #: mistral-large-3 from 2025-12-01; without this the two windows overlap
+    #: and the collision check correctly refuses the whole seed file.
+    #:
+    #: A March 2025 post saying "mistral large" must still resolve to 2411.
+    #: Closing the window preserves that and stops it resolving to a model
+    #: that did not exist yet.
+    valid_until = model.retirement_date
+
     declared = [model.aliases.surface, *model.aliases.variants]
     #: normalised key -> the hand-written spellings that reduce to it. These
     #: are the query strings: what somebody wrote in `contract/` is what gets
@@ -226,7 +237,7 @@ def alias_rows(model: SeedModel, policy: AliasSearchPolicy | None = None) -> lis
                 family=model.family,
                 specificity=classify_specificity(surface, model),
                 valid_from=valid_from,
-                valid_until=None,
+                valid_until=valid_until,
                 confidence=1.0,
                 search_eligible=eligible,
                 canonical_id=model.canonical_id,

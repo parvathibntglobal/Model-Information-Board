@@ -1,6 +1,6 @@
 # Contract sign-off — Phase 1
 
-**Sixteen items for Engineer 2. One PR, not sixteen.**
+**Nineteen items for Engineer 2. One PR, not nineteen.**
 
 *Raised from Engineer 1's Phase 1 remediation · branch `phase1-collection-foundation` · commit `4bd322d`*
 
@@ -11,14 +11,12 @@ each time on purpose. This is one of those times. Batching these into a single
 PR is deliberate: eleven separate reviews of a shared interface is how two
 people working in parallel start disagreeing about what the interface is.
 
-**Nothing below has been applied.** `contract/tables.sql` and
-`contract/seed_models.yaml` are untouched on the branch. The only contract file
-Engineer 1 has written is `contract/registry.yaml`, which was approved
-separately and is already committed.
+**Fourteen of the nineteen have been applied on this branch**, each under an
+explicit ruling. The four still open are 4b, 17, 18 and 19; item 3 is
+deliberately excluded until somebody verifies a date.
 
-Each item gives the exact edit. Apply them without inferring anything; where a
-value cannot be supplied without a provider page, the item says so rather than
-guessing.
+Each item gives the exact edit and its current state. Where a value cannot be
+supplied without a provider page, the item says so rather than guessing.
 
 | # | File | Status |
 |---|---|---|
@@ -38,24 +36,29 @@ guessing.
 | 13 | `contract/sources.yaml` (new) | ✅ **applied** with placeholders + a gate |
 | 14 | `contract/tables.sql` | ✅ **applied** — `harvest_run`, `watermark.exhausted` |
 | 15 | `contract/tables.sql` | ✅ **applied** — comment only |
-| 16 | `contract/seed_models.yaml` | ⬜ open — **clears the FR-2 source gate** |
+| 16 | `contract/seed_models.yaml` | ✅ **applied** — FR-2 now 82/82 |
+| 17 | `contract/tables.sql` | ⬜ open — comment only, no DDL |
+| 18 | `contract/tables.sql` | ⬜ open — **schema cannot express tiered pricing** |
+| 19 | `contract/seed_models.yaml` | ⬜ open — **the context-gap fixture is broken** |
 
-**Eleven applied, four open.** The four are 3, 4b, 5, 8 and 16 — all of which
-need information this repository does not contain. Every one requires
-somebody to open a provider page.
+**Fourteen applied, four open: 17, 18, 19 and 4b.**
 
-### Items 5, 8 and 16 are one job, not three
+The 2026-08-13 sourcing pass closed 3, 4a, 5, 8 and 16 by reading provider
+pages. **FR-2 went from 40/130 to 82/82 and `registry load-seed` now runs
+with no flags at all.** The file got smaller: 48 fields were removed rather
+than sourced, because a claim with no source is worse than an absence.
 
-All three need somebody sitting with provider pages open, and they touch the
-same file:
+Items 17, 18 and 19 were raised *by* that pass. None of them is a
+transcription task: 17 and 18 are contract decisions, and 19 is a fixture
+choice of the same kind as item 8.
 
-- **5** — re-source two mis-cited prices
-- **8** — choose a post-2025-02-12 open-weight model and source its fields
-- **16** — source the 90 populated-but-unsourced fields
+### Items 5, 8 and 16 were one job, and were done as one
 
-Doing them in one pass costs one context switch. Doing them separately costs
-three, and each one reopens the same tabs. **Whoever picks this up should take
-all three.**
+All three needed somebody with provider pages open and all three touched the
+same file, so they were done in a single pass on 2026-08-13 rather than three.
+That pass is also what raised 17, 18 and 19: reading the pages is what
+revealed that Anthropic publishes two cutoffs, that Google's prices are
+tiered, and that Google publishes no token limits at all.
 
 Items 12 to 15 were raised after the first eleven, from the Phase 2 readiness
 assessment in [`phase2-readiness.md`](phase2-readiness.md) and from building
@@ -65,52 +68,39 @@ position suggests. Item 15 blocks nothing but is the one item where
 
 ---
 
-## Before you apply anything: running the branch as it stands
+## Running the branch
 
 ```
-python -m collect.cli registry load-seed --allow-unsourced
+python -m collect.cli registry load-seed
 ```
 
-**One flag now.** Item 10 landed, so the spelling gate passes and
-`--allow-missing-spellings` is no longer needed. `--allow-unsourced` is still
-required and will be until **item 16** lands: 90 populated fields carry no
-source, and that is a data task rather than a code defect.
+**No flags.** Both gates are clear. Measured on 2026-08-13:
 
-> ### Correction: which items actually clear these gates
+| Command | Exit |
+|---|---|
+| `registry load-seed` | **0** |
+| `registry load-seed --dry-run` | 0 |
+| `registry check-sources` | **0** — 82/82 sourced |
+| `registry aliases` | 0 |
+| `registry recompute-window` | 0 |
+
+`--allow-unsourced` and `--allow-missing-spellings` still exist and now do
+nothing to this file. They stay because the poller will reintroduce both
+kinds of gap from week 5.
+
+> ### Two corrections this document previously carried
 >
-> An earlier version of this document said items 5, 6, 7 and 10 clear both
-> gates. **That was wrong for the source gate**, and it was verified wrong by
-> running the check rather than reading the code:
+> **First:** it said items 5, 6, 7 and 10 clear both seed-loader gates. That
+> was wrong for the source gate, and verified wrong by running the check
+> rather than reading the code. Item 5 replaced four URLs, item 6 added a
+> boolean, item 7 edited comments; none added a source. Only item 16 cleared
+> it, and item 16 did not exist until that correction.
 >
-> - **Item 10 clears the spelling gate.** One line, and `--allow-missing-spellings`
->   is no longer needed.
-> - **Nothing in items 5, 6 or 7 clears the source gate.** Item 5 replaces four
->   wrong URLs, item 6 adds a boolean, item 7 edits comments. **None of them
->   adds a source**, so the 90 unsourced fields stay at 90 and
->   `--allow-unsourced` remains necessary regardless.
->
-> The source gate is cleared by **item 16**, which is the work of sourcing
-> those 90 fields from provider pages. That work was tracked in the defect
-> report as deliberately deferred but had no item here, which is a hole in
-> this package rather than in the code.
-
-Measured after applying this PR:
-
-| Command | Exit | Fails on |
-|---|---|---|
-| `registry load-seed` | 1 | `SourceCoverageError` (**item 16**) |
-| **`registry load-seed --allow-unsourced`** | **0** | — |
-| `registry load-seed --allow-missing-spellings` | 1 | `SourceCoverageError` (**item 16**) |
-| `registry load-seed --dry-run` | 0 | — |
-| `registry check-sources` | **1** | **by design** — the exit code is the gap signal |
-| `registry aliases` | 0 | — |
-| `registry recompute-window` | 0 | — |
-| `db init` | 0 | — |
-
-`check-sources` exiting 1 is intended and worth knowing before it is wired
-into CI as a pass/fail step, or a working command reads as a broken build
-forever. The test suite is unaffected either way: it waives both gates
-explicitly, with a docstring naming them as contract items.
+> **Second:** it said `check-sources` exits 1 by design as a gap signal.
+> That was true while gaps existed. It now exits **0**, so a CI step wired to
+> it will pass and will start failing again the moment the poller introduces
+> an unsourced field. That is the intended behaviour, but it is the opposite
+> of what the earlier text described.
 
 ---
 
@@ -730,6 +720,121 @@ is not more useful than a null one, and a null is honest.
 
 When this lands, `--allow-unsourced` stops being necessary and
 `check-sources` exits 0.
+
+---
+
+## Item 17 · `knowledge_cutoff` means *reliable*, not *training*
+
+Anthropic publishes **two** cutoffs and they are not the same date:
+
+| Model | Reliable knowledge cutoff | Training data cutoff |
+|---|---|---|
+| Claude Haiku 4.5 | **Feb 2025** | Jul 2025 |
+| Claude Opus 5 | May 2026 | May 2026 |
+
+Five months apart for Haiku. `knowledge_cutoff` is one column, and the next
+person will assume it means training data, because most providers publish
+only that.
+
+**It means the reliable cutoff.** The column exists so the answer path can
+reason about what a model actually knows, and the reliable cutoff is the
+honest answer to that question. The training cutoff overstates it, and
+**overstating what a model knows is the error that costs somebody a wrong
+recommendation.**
+
+**Exact edit** — comment only, no DDL:
+
+```sql
+  -- The RELIABLE knowledge cutoff, not the training-data cutoff, where a
+  -- provider publishes both. They differ: Claude Haiku 4.5 is Feb 2025
+  -- reliable and Jul 2025 training. The answer path uses this to reason
+  -- about what a model knows, and overstating that costs a wrong
+  -- recommendation.
+  knowledge_cutoff            date,
+```
+
+---
+
+## Item 18 · The schema cannot express tiered pricing
+
+Gemini 2.5 Pro is priced by input length:
+
+| | ≤ 200k tokens | > 200k tokens |
+|---|---|---|
+| input | $1.25 | **$2.50** |
+| output | $10.00 | **$15.00** |
+| cached read | $0.125 | $0.25 |
+
+`price_in` is a single `numeric(12,6)`. **All three of Gemini 2.5 Pro's
+prices have been removed rather than picking a tier**, and that is the whole
+of the model's pricing gone.
+
+Taking the cheap tier would understate cost by 2x on exactly the
+long-context tasks the board exists to get right — FR-31 already exists
+because advertised context overstates usable context, and a cost model that
+silently halves the price above 200k is a **false qualification**, which §9
+names as the worst possible output.
+
+Tiered pricing is not exotic. Any provider may add it, and the poller will
+meet it from week 5.
+
+**Proposed shape, not built** — this is DDL on a shared table and Engineer
+2's cost logic reads it:
+
+```sql
+CREATE TABLE price_tier (
+  model_version_id  text NOT NULL REFERENCES model_version(id),
+  dimension         text NOT NULL,   -- input_tokens | output_tokens
+  min_tokens        int NOT NULL DEFAULT 0,
+  max_tokens        int,             -- NULL = no upper bound
+  price             numeric(12,6) NOT NULL,
+  price_cached_read numeric(12,6),
+  sources           jsonb NOT NULL,
+  PRIMARY KEY (model_version_id, dimension, min_tokens),
+  CONSTRAINT price_tier_dimension_ck CHECK (dimension IN ('input_tokens','output_tokens'))
+);
+```
+
+`model_version.price_in` then means *the rate at the lowest tier*, or stays
+NULL when tiers exist, and Q6 reads `price_tier` when a row is present. Which
+of those two it is needs deciding with the cost logic, not against it.
+
+---
+
+## Item 19 · The context-gap fixture is broken · **A FIXTURE CHOICE, NOT MINE**
+
+BUILD-PLAN §3.6 names this as one of two constraints cutting across the whole
+table: *"at least one with a known advertised-vs-real context gap, otherwise
+the inflation logic sits untested until week 7."*
+
+`gemini-2.5-flash` was that model. **It no longer has a sourced
+`advertised_context`**, because Google publishes no token-limit table on any
+page reachable on 2026-08-13:
+
+- `ai.google.dev/gemini-api/docs/models` and its per-model pages
+- `ai.google.dev/gemini-api/docs/pricing`
+- `docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash`
+
+All list the models; none states input or output token limits.
+
+**The consequence:** no model in the fixture now has a sourced advertised
+context that practitioners are known to contradict, so `reported_context` and
+**FR-31 have nothing to work against**. The advertised-versus-reported logic
+sits untested until somebody notices in week 7, which is precisely what §3.6
+wrote this constraint to prevent.
+
+**Two ways out, and this is your choice, not mine** — picking the fixture is
+the same class of decision as item 8:
+
+1. **Find a Google page that states the limit.** It may exist somewhere not
+   reached here; a Vertex model-garden page or a PDF model card would do.
+2. **Choose a different model** whose advertised window is both sourced *and*
+   known to be contradicted by practitioners. OpenAI states
+   `1,047,576` for `gpt-4.1-mini` on its model page, which is sourced — but
+   whether practitioners contradict it is an evidence question this repo
+   cannot answer yet.
+
+Recorded in `seed_models.yaml`'s checklist as an unticked box pointing here.
 
 ---
 
