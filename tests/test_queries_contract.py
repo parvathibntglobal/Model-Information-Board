@@ -160,6 +160,100 @@ class TestShape:
                 assert not blank, f"{e['capability']} has empty {group} terms at {blank}"
 
 
+#: Single-word signal terms that are allowed, each with the reason it is safe.
+#: A term qualifies only if its presence in model-related text implies the
+#: claim. `accurate` did not, and produced both false positives of the first
+#: live GitHub run on its own — inside a pasted marketing sentence and inside
+#: a prompt string in a code block. Adding to this list is a decision someone
+#: makes, which is the point of it being a list.
+ALLOWED_SINGLE_WORD_SIGNALS = {
+    "unparseable": "rare, and effectively only ever a complaint about output",
+    "hallucinated": "domain term; in model-related text it is always the claim",
+    "moralis": "sieve prefix — moralising, moralised. Never issue as a search term",
+    "moraliz": "sieve prefix — moralizing, moralized. Never issue as a search term",
+    "truncat": "sieve prefix — truncate, truncates, truncated, truncation",
+}
+
+
+class TestTermQuality:
+    def test_signal_terms_are_multiword_or_justified(self, entries, queries):
+        """A single common word cannot carry a stance.
+
+        It lives in marketing copy, prompt strings, API docs and log lines,
+        which is most of what a broad retrieval returns. Multi-word terms
+        carry a relation — what held, for how long, noticed by whom — and a
+        relation is what makes presence imply the claim.
+        """
+        offenders = []
+        for e in entries + queries["substitution"]:
+            label = f"{e.get('capability', 'substitution')}/{e['stance']}"
+            for term in e["terms"]["signal"]:
+                if len(term.split()) == 1 and term not in ALLOWED_SINGLE_WORD_SIGNALS:
+                    offenders.append(f"{label}: {term!r}")
+        assert not offenders, (
+            "single-word signal terms with no justification — add a relation, "
+            f"or add to ALLOWED_SINGLE_WORD_SIGNALS with a reason: {offenders}"
+        )
+
+    def test_noun_final_terms_are_written_singular(self, entries, queries):
+        """The sieve matches phrases exactly, so the plural is a narrower term.
+
+        `invalid arguments` misses "Request contains an invalid argument",
+        which is a real document from the first live run. Singular is the stem
+        and matches both. Verbs are exempt — "ignores" is not a plural noun —
+        so this checks only terms whose last word is a plural noun by the
+        crude test that catches the cases that actually occurred.
+        """
+        exempt = {
+            # third-person verbs, not plural nouns
+            "ignores", "drifts", "degrades", "truncates", "recovers", "lectures",
+            "follows", "loses", "forgets", "repeats", "breaks", "wraps", "spikes",
+            "fails", "stops", "selects", "times", "was", "is", "has",
+            # not nouns at all, they just end in s
+            "as", "us", "this", "less", "plus", "always",
+        }
+        offenders = []
+        for e in entries + queries["substitution"]:
+            label = f"{e.get('capability', 'substitution')}/{e['stance']}"
+            for term in e["terms"]["signal"] + e["terms"]["topic"]:
+                last = term.split()[-1] if term.split() else ""
+                if (
+                    last.endswith("s")
+                    and not last.endswith("ss")
+                    and last not in exempt
+                    and last not in ALLOWED_SINGLE_WORD_SIGNALS
+                    and "{alias" not in term
+                ):
+                    offenders.append(f"{label}: {term!r}")
+        assert not offenders, (
+            "noun-final terms in plural form — the sieve matches exactly, so "
+            f"the singular stem matches both: {offenders}"
+        )
+
+
+class TestBothStances:
+    def test_every_capability_has_both_stances(self, capabilities, entries):
+        """Wider than FR-8, and FR-8's wording should widen to match.
+
+        The gate only needs positive evidence for silent failures. The MODEL
+        PAGE needs both for everything — it shows every capability with the
+        evidence behind it, and a negative-only corpus renders as engineers
+        disliking the model rather than as a query set that only asked about
+        complaints.
+
+        GitHub compounds it: structurally negative, and the highest base trust
+        at 0.95. The most trusted source is the negative one.
+        """
+        by_stance = {"positive": set(), "negative": set()}
+        for e in entries:
+            by_stance[e["stance"]].add(e["capability"])
+        missing = {
+            stance: sorted(set(capabilities) - covered)
+            for stance, covered in by_stance.items()
+        }
+        assert not any(missing.values()), f"capabilities missing a stance: {missing}"
+
+
 class TestSubstitution:
     def test_directional_templates_declare_phrase_binding(self, queries):
         """"replaced X with Y" and "replaced Y with X" are opposite claims
