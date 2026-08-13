@@ -138,14 +138,23 @@ def assert_no_fixtures(conn, *, environment: str) -> None:
     handmade = _scalar(
         conn, "SELECT count(*) FROM cell WHERE provenance = 'hand_curated'"
     )
+    # Item 20. `reported_context.reported_low` is read by FR-31 as a hard
+    # filter, so a hand-seeded threshold does not render as a claim somebody
+    # can disagree with. It renders as an absence, and nobody audits a model
+    # that was never in the list.
+    thresholds = _scalar(
+        conn, "SELECT count(*) FROM reported_context WHERE provenance = 'hand_seeded'"
+    )
 
-    if seeded or handmade:
+    if seeded or handmade or thresholds:
         raise FixtureLeakError(
             f"Refusing to start in {environment!r}: "
-            f"{seeded} seeded model(s), {handmade} hand-curated cell(s) present. "
+            f"{seeded} seeded model(s), {handmade} hand-curated cell(s), "
+            f"{thresholds} hand-seeded context threshold(s) present. "
             "These are build fixtures. Seeded models are replaced by the "
             "OpenRouter poller in week 5; hand-curated cells are deleted in "
-            "week 8. Neither may ever be served as evidence."
+            "week 8. Hand-seeded thresholds feed FR-31's hard filter and would "
+            "exclude models silently. None may ever be served as evidence."
         )
 
 

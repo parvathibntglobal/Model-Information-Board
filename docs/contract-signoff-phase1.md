@@ -11,10 +11,9 @@ each time on purpose. This is one of those times. Batching these into a single
 PR is deliberate: eleven separate reviews of a shared interface is how two
 people working in parallel start disagreeing about what the interface is.
 
-**Seventeen of the twenty are applied or resolved on this branch**, each under
-an explicit ruling. **Three remain open: 17, 18 and 20.** All three are
-contract decisions rather than transcription, and none can be closed by
-reading another page.
+**All twenty are applied or resolved.** Items 17, 18 and 20 were ruled on in
+[`contract-signoff-phase1-response.md`](contract-signoff-phase1-response.md) and
+built on `phase2-harvest-foundation`.
 
 Each item gives the exact edit and its current state. Where a value cannot be
 supplied without a provider page, the item says so rather than guessing.
@@ -37,18 +36,25 @@ supplied without a provider page, the item says so rather than guessing.
 | 13 | `contract/sources.yaml` (new) | ✅ **applied** with placeholders + a gate |
 | 14 | `contract/tables.sql` | ✅ **applied** — `harvest_run`, `watermark.exhausted` |
 | 15 | `contract/tables.sql` | ✅ **applied** — comment only |
-| 16 | `contract/seed_models.yaml` | ✅ **applied** — FR-2 now 82/82 |
-| 17 | `contract/tables.sql` | ⬜ open — comment only, no DDL |
-| 18 | `contract/tables.sql` | ⬜ open — **schema cannot express tiered pricing** |
+| 16 | `contract/seed_models.yaml` | ✅ **applied** — FR-2 now 88/88 |
+| 17 | `contract/tables.sql` | ✅ **applied** — comment only, no DDL |
+| 18 | `contract/tables.sql` + `collect/` | ✅ **applied** — `price_tier` built, `price_in` NULL when tiers exist |
 | 19 | none | ✅ **resolved** — advertised half sourced; contradiction is week 5 |
-| 20 | `contract/tables.sql` + `assertions.py` | ⬜ open — **`reported_context` has no `provenance`** |
+| 20 | `contract/tables.sql` + `assertions.py` | ✅ **applied** — column + `assert_no_fixtures` extension |
 
-**Seventeen applied or resolved. Three open: 17, 18 and 20.**
+**All twenty applied or resolved.**
 
 The 2026-08-13 sourcing pass closed 3, 4a, 5, 8 and 16 by reading provider
-pages. **FR-2 went from 40/130 to 82/82 and `registry load-seed` now runs
+pages. **FR-2 went from 40/130 to 88/88 and `registry load-seed` now runs
 with no flags at all.** The file got smaller: 48 fields were removed rather
 than sourced, because a claim with no source is worse than an absence.
+
+**The figure is 88, not 82, and it grew for a structural reason rather than a
+sourcing one.** It is **82 `model_version` fields plus 6 `price_tier` fields**.
+Item 18 moved Gemini 2.5 Pro's prices out of `model_version` and into tier
+rows, and `check_source_coverage` now walks those rows: a sourced value the
+provenance check cannot see would be rule 6 in a different costume. No new
+sourcing was done to reach 88.
 
 Items 17, 18, 19 and 20 were all raised *by* that pass. Reading the pages is
 what revealed that Anthropic publishes two knowledge cutoffs, that Google's
@@ -84,7 +90,7 @@ python -m collect.cli registry load-seed
 |---|---|
 | `registry load-seed` | **0** |
 | `registry load-seed --dry-run` | 0 |
-| `registry check-sources` | **0** — 82/82 sourced |
+| `registry check-sources` | **0** — 88/88 sourced (82 model fields + 6 tier fields) |
 | `registry aliases` | 0 |
 | `registry recompute-window` | 0 |
 

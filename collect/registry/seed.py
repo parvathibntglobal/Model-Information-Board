@@ -57,14 +57,42 @@ def load_seed_file(path: Path | None = None) -> SeedFile:
 
 
 def source_gaps(seed: SeedFile) -> list[SourceGap]:
-    """Every populated-but-unsourced field across the file, sorted."""
+    """Every populated-but-unsourced field across the file, sorted.
+
+    Walks `price_tier` rows as well as `model_version` fields. FR-2's wording
+    is "every populated field on any `model_version` row", so tier rows sit
+    outside the requirement as written — a gap in the requirement rather than
+    in the data. Checking them anyway is the only option that leaves
+    provenance one place to live: a sourced tier price the checker cannot see
+    is a value that exists and is invisible to the thing auditing it.
+    """
     gaps = [
         SourceGap(model.canonical_id, field)
         for model in seed.models
         for field in model.populated_sourced_fields()
         if field not in model.sources
     ]
+    gaps += [
+        SourceGap(model.canonical_id, f"{tier.label()}.{field}")
+        for model in seed.models
+        for tier in model.price_tiers
+        for field in tier.populated_sourced_fields()
+        if field not in tier.sources
+    ]
     return sorted(gaps)
+
+
+def sourced_field_total(seed: SeedFile) -> int:
+    """How many populated sourceable fields exist, tiers included.
+
+    The denominator of the FR-2 figure. Exposed so the CLI and the docs quote
+    the same number from the same place.
+    """
+    return sum(
+        len(model.populated_sourced_fields())
+        + sum(len(tier.populated_sourced_fields()) for tier in model.price_tiers)
+        for model in seed.models
+    )
 
 
 def check_source_coverage(seed: SeedFile) -> None:

@@ -106,6 +106,64 @@ class AliasSpec(BaseModel):
         return v
 
 
+class PriceTier(BaseModel):
+    """One band of a tiered price (item 18).
+
+    Providers that charge by input length cannot be expressed by a single
+    numeric. Gemini 2.5 Pro is $1.25/$10.00 at or below 200k input tokens and
+    $2.50/$15.00 above it.
+
+    `model_version.price_in` / `price_out` are NULL when tiers exist. They are
+    not the lowest tier: a lowest-tier fallback prices a frontier model at half
+    its real long-context rate, which is a false qualification that reads as
+    plausible.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    dimension: Literal["input_tokens", "output_tokens"]
+    min_tokens: int = 0
+    max_tokens: int | None = None
+    price: Decimal
+    price_cached_read: Decimal | None = None
+    sources: dict[str, SourceRef] = Field(default_factory=dict)
+
+    @field_validator("price", "price_cached_read")
+    @classmethod
+    def _non_negative(cls, v: Decimal | None) -> Decimal | None:
+        if v is not None and v < 0:
+            raise ValueError("tier prices must not be negative")
+        return v
+
+    @model_validator(mode="after")
+    def _band_is_ordered(self) -> PriceTier:
+        if self.max_tokens is not None and self.max_tokens <= self.min_tokens:
+            raise ValueError(
+                f"tier band is empty: max_tokens {self.max_tokens} "
+                f"must exceed min_tokens {self.min_tokens}"
+            )
+        return self
+
+    def populated_sourced_fields(self) -> list[str]:
+        """Sourceable fields this tier asserts a value for.
+
+        FR-2's wording covers "every populated field on any `model_version`
+        row", so a tier row sits outside the requirement as written. It is
+        checked anyway: the alternative is provenance with a second place to
+        hide, which is rule 6 in a different costume.
+        """
+        return [
+            name
+            for name in ("price", "price_cached_read")
+            if getattr(self, name, None) is not None
+        ]
+
+    def label(self) -> str:
+        """Identifies this tier in a coverage report."""
+        upper = "+" if self.max_tokens is None else f"-{self.max_tokens}"
+        return f"{self.dimension}[{self.min_tokens}{upper}]"
+
+
 class SeedModel(BaseModel):
     """One row of `contract/seed_models.yaml`."""
 
@@ -140,6 +198,10 @@ class SeedModel(BaseModel):
     supports_caching: bool | None = None
     supports_batch: bool | None = None
     regions: list[str] | None = None
+
+    #: Item 18. When present, `price_in` and `price_out` MUST be absent: they
+    #: are not the lowest tier. Enforced below.
+    price_tiers: list[PriceTier] = Field(default_factory=list)
 
     aliases: AliasSpec
     sources: dict[str, SourceRef] = Field(default_factory=dict)
@@ -187,6 +249,38 @@ class SeedModel(BaseModel):
                 f"Sourceable fields are {list(SOURCED_FIELDS)}"
             )
         return v
+
+    @model_validator(mode="after")
+    def _tiers_replace_flat_prices(self) -> SeedModel:
+        """A tiered model must not also carry a flat price.
+
+        Carrying both is how the lowest-tier trap gets in by the back door:
+        one of the two values is wrong, and the flat one is the one every
+        caller reads by default.
+        """
+        if not self.price_tiers:
+            return self
+        clashing = [
+            name
+            for name in ("price_in", "price_out")
+            if getattr(self, name, None) is not None
+        ]
+        if clashing:
+            raise ValueError(
+                f"{self.canonical_id}: {clashing} must be absent when price_tiers "
+                "are declared. They are not the lowest tier, and a caller that "
+                "reads them instead of the tiers prices the model wrongly."
+            )
+        dimensions = [t.dimension for t in self.price_tiers]
+        bands = [(t.dimension, t.min_tokens) for t in self.price_tiers]
+        if len(bands) != len(set(bands)):
+            raise ValueError(f"{self.canonical_id}: duplicate price tier band")
+        if "input_tokens" not in dimensions or "output_tokens" not in dimensions:
+            raise ValueError(
+                f"{self.canonical_id}: price_tiers must cover both input_tokens "
+                "and output_tokens, or a workload can only be half priced"
+            )
+        return self
 
     @model_validator(mode="after")
     def _release_before_deprecation(self) -> SeedModel:

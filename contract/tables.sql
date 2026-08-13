@@ -29,9 +29,16 @@ CREATE TABLE model_version (
 
   advertised_context          int,
   max_output_tokens           int,
+
+  -- The RELIABLE knowledge cutoff, not the training-data cutoff, where a
+  -- provider publishes both. They differ: Claude Haiku 4.5 is Feb 2025
+  -- reliable and Jul 2025 training. The answer path uses this to reason about
+  -- what a model knows, and overstating that costs a wrong recommendation.
   knowledge_cutoff            date,
 
-  price_in                    numeric(12,6),          -- USD per 1M tokens
+  -- USD per 1M tokens. NULL when a `price_tier` row exists for this model:
+  -- see the warning above that table. These are NOT the lowest tier.
+  price_in                    numeric(12,6),
   price_out                   numeric(12,6),
   price_cached_read           numeric(12,6),
   batch_discount              numeric(4,3),
@@ -88,6 +95,40 @@ CREATE TABLE model_event (
   detected_at       timestamptz NOT NULL DEFAULT now(),
   payload           jsonb,
   source_url        text
+);
+
+-- ============================================================================
+--  TIERED PRICING (item 18). Some providers charge by input length: Gemini
+--  2.5 Pro is $1.25/$10.00 at or below 200k input tokens and $2.50/$15.00
+--  above it. A single numeric cannot hold that.
+--
+--  model_version.price_in / price_out are NULL when a row exists here. They are
+--  NOT the lowest tier. A lowest-tier fallback would let any caller that forgets
+--  to read this table price a model at half its real rate on long-context work,
+--  which is a false qualification and reads as plausible on the page.
+--
+--  With NULL, forgetting fails loudly: a candidate with no cost renders as
+--  unpriced rather than as cheap. An unpriced frontier model is a visible gap
+--  somebody fixes; a frontier model at half its real price is a wrong
+--  recommendation nobody catches.
+-- ============================================================================
+
+CREATE TABLE price_tier (
+  model_version_id  text NOT NULL REFERENCES model_version(id),
+  dimension         text NOT NULL,   -- input_tokens | output_tokens
+  min_tokens        int NOT NULL DEFAULT 0,
+  max_tokens        int,             -- NULL = no upper bound
+  price             numeric(12,6) NOT NULL,
+  price_cached_read numeric(12,6),
+
+  -- FR-2 applies here as much as to model_version. Note that FR-2's wording
+  -- says "every populated field on any `model_version` row", so a tier row is
+  -- outside the requirement as written. `check_source_coverage` walks these
+  -- rows anyway: the alternative is provenance with a second place to hide.
+  sources           jsonb NOT NULL,
+
+  PRIMARY KEY (model_version_id, dimension, min_tokens),
+  CONSTRAINT price_tier_dimension_ck CHECK (dimension IN ('input_tokens','output_tokens'))
 );
 
 CREATE TABLE pricing_history (
@@ -374,7 +415,25 @@ CREATE TABLE reported_context (
   reported_low     int,
   reported_high    int,
   quote_ids        text[],
-  computed_at      timestamptz NOT NULL DEFAULT now()
+
+  -- FR-31 reads `reported_low` as a HARD FILTER, so a hand-seeded value
+  -- silently excludes models from every long-context recommendation.
+  --
+  -- Every other number on this board argues its case in front of the reader
+  -- and can be disagreed with. This one removes candidates before the reader
+  -- sees them: a wrong `cell` shows up as a phrase somebody can read, a wrong
+  -- `reported_low` shows up as an absence, and nobody audits a model that was
+  -- never in the list. Same guard as cell.provenance, for a stronger reason.
+  --
+  -- assert_no_fixtures() refuses to start outside development while any row
+  -- here is hand_seeded. In development, where hand-seeded rows legitimately
+  -- exist, judge/ names the exclusion and says the threshold is hand-seeded.
+  provenance       text NOT NULL DEFAULT 'harvested',
+
+  computed_at      timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT reported_context_provenance_ck
+    CHECK (provenance IN ('harvested', 'hand_seeded'))
 );
 
 CREATE TABLE label (
