@@ -1,0 +1,500 @@
+# ============================================================================
+#  Harvest queries — v1.0
+#
+#  SHARED. Changes go through a PR: this file decides what the board can ever
+#  know. Harvest is entirely query-driven, so a capability nobody searches for
+#  has empty cells forever, no matter how much engineers discuss it.
+#
+#  ┌──────────────────────────────────────────────────────────────────────┐
+#  │  DRAFT — SEMANTIC HALF ONLY. Engineer 2 wrote the meaning; the       │
+#  │  rendering is Engineer 1's, per the split agreed on issue #5.        │
+#  └──────────────────────────────────────────────────────────────────────┘
+#
+#  WHY THERE ARE NO QUERY STRINGS IN THIS FILE
+#
+#  Issue #4 measured that GitHub Search silently discards `(a OR b)` grouping
+#  and `wildcard*` terms. It does not error. Every template written in that
+#  syntax collapses to its alias, and nine of ten such queries exceeded the
+#  1,000-result ceiling at a median of 13,038 matches.
+#
+#  Issue #5 measured why, and it is worse: quoting does not bind either.
+#  `"sonnet claude 5"` — the same words reversed — returns 545 against the
+#  correct order's 540, and a trailing numeral is matched against the ISSUE
+#  NUMBER, so `"claude sonnet 5"` collects issue #5 from 89 unrelated repos.
+#
+#  So a rendered query string in a platform-neutral file is a string that is
+#  true for no platform. This file therefore carries TERM SETS as data, and
+#  each adapter renders them for its own index:
+#
+#      github   issues one request per topic × signal pair, unioned, repo-scoped
+#      reddit   renders to its own search syntax
+#      blogs    DOES NOT SEARCH AT ALL — RSS and sitemaps are a fetch of a
+#               known URL, so the same terms serve as the post-fetch relevance
+#               filter instead. A blog query is a sieve, not a search.
+#
+#  That is ruling (b) from issue #5: what was measured is a property of one
+#  index, not of the model's name or of the capability.
+#
+#  WHAT EACH ENTRY CARRIES
+#
+#    capability          a key from capabilities.yaml. FR-7 checks all 12 appear
+#    stance              negative | positive. FR-8 checks every capability has
+#                        at least one negative, mechanically rather than by
+#                        reading the terms
+#    intent              what this query is trying to find, in words
+#    terms.subject       ALL must appear. Always the alias
+#    terms.topic         ANY-OF. Names the capability
+#    terms.signal        ANY-OF. Carries the stance
+#    records_condition   the dimension a result must state to be bucketable
+#    yields_claim_when   what has to be true for extraction to produce a claim
+#                        rather than discard the document
+#
+#  `yields_claim_when` is the half that is genuinely Engineer 2's. A query
+#  that retrieves 500 documents which all fail it is a query that costs rate
+#  limit and produces nothing, and that is invisible from the collect/ side
+#  because the documents look like hits.
+#
+#  THE THREE THINGS EVERY RESULT NEEDS, stated once instead of twelve times:
+#
+#    1. NAMES A MODEL SPECIFICALLY ENOUGH TO RESOLVE. A bare family name
+#       resolves at `specificity: family`, which never counts as independent
+#       corroboration. "the cheap Anthropic one" yields nothing.
+#    2. FIRST-HAND. What the writer observed, not what they expect, predict,
+#       or read elsewhere. A post reporting someone else's benchmark is a
+#       citation, not evidence.
+#    3. DESCRIBES BEHAVIOUR, NOT SENTIMENT. "It's bad at tool calling" has no
+#       verifiable span worth quoting. "It passed a string where the schema
+#       said integer, on the 4th call" does.
+#
+#  Per-entry `yields_claim_when` states only what is ADDITIONAL to those three.
+#
+#  POSITIVE QUERIES ARE MANDATORY FOR SILENT-FAILURE CAPABILITIES.
+#  FR-8 requires a negative query for all twelve. The four silent-failure
+#  capabilities need a positive one as well, because "nobody complained" is
+#  not evidence for them — positive consensus is required, and it cannot be
+#  reached by a query set that only looks for complaints. Positive queries for
+#  loud capabilities are permitted and not required.
+#
+#  Placeholders: `{alias}` is issued once per alias variant, not once per
+#  model. `{alias_b}` is any other model in the registry — substitution only.
+# ============================================================================
+
+version: "1.0"
+
+
+queries:
+
+  # ═══════════════════════════ LOUD FAILURES ═══════════════════════════
+  #  You find out in seconds. A validation retry is a real mitigation, so
+  #  weaker evidence is acceptable and a negative query alone is enough.
+
+  - capability: instruction.adherence
+    stance: negative
+    intent: >
+      Someone who declared an output contract - a shape, a length cap, "no
+      preamble" - and got something else back. The valuable reports are the
+      ones where it held for a while and then drifted, because that is the
+      failure a short test never finds.
+    terms:
+      subject: ["{alias}"]
+      topic: ["instructions", "system prompt", "output format", "the format",
+              "told it to", "asked it to"]
+      signal: ["didn't follow", "does not follow", "ignores", "ignored",
+               "adds preamble", "won't stick to", "drifts", "stopped obeying",
+               "keeps adding"]
+    records_condition: context_size
+    yields_claim_when: >
+      The instruction and the deviation are both stated. "Ignores
+      instructions" is unusable; "asked for JSON only and it prefixed
+      'Here's the JSON:'" is a claim. Reports of drift should record roughly
+      how far in it started, since that is the condition.
+
+  - capability: format.structured_output
+    stance: negative
+    intent: >
+      Malformed or unparseable structured output against a declared schema.
+    terms:
+      subject: ["{alias}"]
+      topic: ["json", "structured output", "response format", "schema",
+              "json mode", "json_schema"]
+      signal: ["invalid json", "failed to parse", "extra keys", "trailing comma",
+               "wraps it in markdown", "code fence", "unparseable",
+               "missing required field"]
+    records_condition: structured_mode
+    yields_claim_when: >
+      IT SAYS WHETHER PROVIDER-SIDE ENFORCEMENT WAS ON. This one matters more
+      than any other condition in the file: enforcement guarantees validity at
+      the API layer, so the same complaint means opposite things depending on
+      the flag. A report that does not say lands in `structured_mode:unknown`
+      and can never corroborate a claim in either band - which makes it
+      near-worthless despite looking like a clean hit.
+
+  - capability: tool_calling.schema_accuracy
+    stance: negative
+    intent: >
+      Arguments that do not conform to the declared schema - wrong types,
+      invented enum values, missing required fields - and tools invented that
+      were never declared.
+    terms:
+      subject: ["{alias}"]
+      topic: ["tool calling", "function calling", "tool use", "tool_choice",
+              "function call", "tool schema"]
+      signal: ["invalid arguments", "wrong type", "wrong parameter",
+               "invented a tool", "made up a tool", "hallucinated a function",
+               "not in the schema", "missing required"]
+    records_condition: tool_count
+    yields_claim_when: >
+      HOW MANY TOOLS WERE IN SCOPE. Without it the claim lands in
+      `tools:unknown` and cannot be compared to anything - and this capability
+      is the one where the condition changes the answer most sharply. A report
+      naming the tool count is worth several that do not.
+
+  - capability: tool_calling.long_chain_reliability
+    stance: negative
+    intent: >
+      Multi-step sequences where step N depends on step N-1, and recovery
+      after a tool returns an error. The characteristic report is positional:
+      it worked for six calls and broke on the seventh.
+    terms:
+      subject: ["{alias}"]
+      topic: ["tool chain", "multi-step", "agent loop", "agentic", "chained",
+              "sequence of calls", "after the error"]
+      signal: ["fails at the", "loops forever", "infinite loop", "gets stuck",
+               "forgets what it called", "never recovers", "repeats the same call",
+               "gives up"]
+    records_condition: tool_count
+    yields_claim_when: >
+      The chain length or tool count is stated, and ideally WHERE it broke.
+      "Fails on long chains" is sentiment. "Held for six calls, looped on the
+      seventh with 12 tools registered" is the claim this capability exists
+      for, and it carries its own condition.
+
+  - capability: code.editing_diff_fidelity
+    stance: negative
+    intent: >
+      Applying a change to existing code and emitting it usably - a valid
+      diff, a matching search/replace block, no truncation. Deliberately
+      separate from generation: models routinely write correct code and
+      cannot produce a clean patch of it.
+    terms:
+      subject: ["{alias}"]
+      topic: ["diff", "patch", "search and replace", "edit block", "apply the edit",
+              "unified diff", "SEARCH/REPLACE"]
+      signal: ["breaks the diff", "didn't match", "failed to apply",
+               "truncates", "rest unchanged", "omitted the rest",
+               "wrong line numbers", "malformed patch"]
+    records_condition: context_size
+    yields_claim_when: >
+      The FILE SIZE or edit context is recoverable, because this failure is
+      overwhelmingly a length effect - the same model patches a 40-line file
+      cleanly and truncates a 2,000-line one. A report with no size is a
+      claim about a model in general, which is the shape averaging produces
+      and buckets exist to avoid.
+
+  - capability: code.generation
+    stance: negative
+    intent: >
+      New code from a specification that does not work - APIs that do not
+      exist, imports that are wrong, code that does not compile.
+    terms:
+      subject: ["{alias}"]
+      topic: ["generated", "wrote the code", "code generation", "asked it to write",
+              "scaffold", "boilerplate"]
+      signal: ["doesn't compile", "does not compile", "hallucinated the api",
+               "no such method", "wrong import", "made up a function",
+               "deprecated api", "wrong signature"]
+    records_condition: context_size
+    yields_claim_when: >
+      The LANGUAGE OR LIBRARY is named. "Bad at code" is unusable; "invented
+      a `pandas.read_parquet` kwarg that does not exist" is a claim, and the
+      library is what makes it checkable by a reader. Note that a wrong API
+      may be a knowledge-cutoff artefact rather than a capability failure -
+      if the post says the API is new, that is a cutoff fact, not a claim.
+
+  - capability: over_refusal
+    stance: negative
+    intent: >
+      Refusing benign requests, or moralising preamble that breaks a strict
+      output contract. The pipeline-relevant harm is the second: an
+      over-cautious model silently corrupts a fixed output shape.
+    terms:
+      subject: ["{alias}"]
+      topic: ["refused", "refusal", "safety filter", "guardrail", "won't answer",
+              "declined"]
+      signal: ["as an ai", "refuses ordinary", "lectures", "moralis", "moraliz",
+               "nothing wrong with the request", "false positive",
+               "unnecessary disclaimer"]
+    records_condition: context_size
+    yields_claim_when: >
+      THE REQUEST IS DESCRIBED WELL ENOUGH TO JUDGE IT BENIGN. This is the
+      capability where the corpus is most polluted by people annoyed at a
+      correct refusal. If the reader cannot tell what was asked, there is no
+      claim - only a complaint. Vetting is not a substitute for this; by then
+      the quote is already attached.
+
+  - capability: ops.latency_ttft
+    stance: negative
+    intent: >
+      Time to first token, throughput, and variance under load. For
+      open-weight models this is a property of the HOST, never the model.
+    terms:
+      subject: ["{alias}"]
+      topic: ["latency", "ttft", "time to first token", "throughput",
+              "tokens per second", "response time", "p95", "p99"]
+      signal: ["slow", "too slow", "times out", "timeout", "spikes",
+               "high variance", "unusable in production", "degraded"]
+    records_condition: context_size
+    yields_claim_when: >
+      THE HOST OR PROVIDER IS NAMED for any open-weight model, and the
+      measurement is a number rather than an adjective. "Slow" is worthless
+      here in a way it is not elsewhere, because this capability's whole
+      content is the number. Claims older than about a month should be
+      expected to have decayed - the 30-day half-life exists for this
+      capability specifically, and a query set that only ever returns
+      year-old posts is producing nothing usable.
+
+
+  # ═══════════════════════════ SILENT FAILURES ══════════════════════════
+  #  Wrong data enters the system looking correct and stays. POSITIVE
+  #  CONSENSUS IS REQUIRED, so each of these carries both stances. A negative
+  #  query alone can never approve a cheaper model for one of them - which is
+  #  the single recommendation this product exists to make.
+
+  - capability: context.effective_window
+    stance: negative
+    intent: >
+      Where accuracy actually collapses, which is routinely a fraction of the
+      advertised window. This feeds FR-31, a HARD FILTER, so a claim here
+      excludes models from recommendations - which means a vague one does
+      damage that never surfaces on a page.
+    terms:
+      subject: ["{alias}"]
+      topic: ["context", "long context", "context window", "recall", "needle",
+              "long document", "large input"]
+      signal: ["loses recall", "forgets the middle", "falls apart", "degrades",
+               "stops using", "ignores the earlier", "lost in the middle",
+               "only reliable up to"]
+    records_condition: context_size
+    yields_claim_when: >
+      A NUMBER, OR A RANGE, FOR WHERE IT DEGRADED. This is the strictest
+      `yields_claim_when` in the file and it should be enforced hardest: a
+      claim without a threshold cannot populate `reported_low`, and a
+      fabricated `reported_low` silently excludes qualified models from every
+      long-context recommendation with nothing on the page to disagree with.
+      "Bad at long context" is not a claim about this capability. "Recall fell
+      off a cliff somewhere past 180k in our RAG eval" is.
+
+  - capability: context.effective_window
+    stance: positive
+    intent: >
+      Reports of the window holding at a stated size. Necessary because
+      FR-31 filters on the reported figure, and with only negative evidence
+      the reported range has a floor and no ceiling.
+    terms:
+      subject: ["{alias}"]
+      topic: ["context", "long context", "recall", "full context", "large input"]
+      signal: ["held up", "no degradation", "still accurate at", "fine at",
+               "recall stayed", "handled the whole"]
+    records_condition: context_size
+    yields_claim_when: >
+      The size it held at is stated. A positive claim with no number cannot
+      raise a ceiling and so cannot do the job this query exists for.
+
+  - capability: summarization.fidelity
+    stance: negative
+    intent: >
+      Omission of load-bearing facts. Fluency is not the axis - a fluent
+      summary that silently drops a critical clause reads as excellent and is
+      the exact failure this capability tracks.
+    terms:
+      subject: ["{alias}"]
+      topic: ["summary", "summarize", "summarise", "summarizing", "condense",
+              "digest", "tldr", "recap"]
+      signal: ["dropped", "left out", "missed", "omitted", "made something up",
+               "hallucinated", "lost the detail", "buried the", "misread the"]
+    records_condition: context_size
+    yields_claim_when: >
+      WHAT WAS DROPPED, not that something was. The distinction is the whole
+      capability: "summaries are bad" is sentiment, "it dropped the
+      cancellation clause from every contract summary" is a claim a reader can
+      check and another engineer can recognise.
+
+  - capability: summarization.fidelity
+    stance: positive
+    intent: >
+      THE HIGHEST-VALUE POSITIVE QUERY IN THE FILE. Summarisation is the
+      canonical silent-failure capability and the canonical cheap-model
+      substitution. Without positive consensus here the advisor can never
+      approve a cheaper summariser, which is the single recommendation this
+      product exists to make - so if this query set returns nothing, the
+      product does not work, however well everything else runs.
+    terms:
+      subject: ["{alias}"]
+      topic: ["summary", "summarize", "summarise", "condense", "digest", "recap"]
+      signal: ["held up", "good enough", "no complaints", "faithful", "accurate",
+               "no regressions", "nobody noticed", "shipped it", "kept it"]
+    records_condition: context_size
+    yields_claim_when: >
+      It reports an OUTCOME OVER TIME, not a first impression. "Tried it and
+      it seems fine" is a first impression; "ran it on 40k tickets a week for
+      three months, no complaints from the team that reads them" is positive
+      evidence of a silent failure NOT occurring, which is the only way that
+      absence can be observed. Prefer these heavily in vetting.
+
+  - capability: extraction.faithfulness
+    stance: negative
+    intent: >
+      Typed fields from messy input. Null discipline - inventing a value for
+      a field that genuinely is not there - is the dominant cheap-model
+      failure and the reason this is separate from structured output: the
+      JSON is perfectly valid and the value is fiction.
+    terms:
+      subject: ["{alias}"]
+      topic: ["extraction", "extract", "parse", "structured fields", "populate",
+              "pull out the", "field extraction"]
+      signal: ["invented", "made up", "hallucinated the", "should have been null",
+               "wasn't in the document", "filled in", "guessed the",
+               "wrong value"]
+    records_condition: context_size
+    yields_claim_when: >
+      THE FIELD WAS ABSENT FROM THE SOURCE and the model supplied a value
+      anyway. That is the specific failure. A wrong-but-present value is a
+      different and much less interesting problem, and conflating them makes
+      the cell mean nothing.
+
+  - capability: extraction.faithfulness
+    stance: positive
+    intent: >
+      Reports of correct null discipline in production. Same reasoning as
+      summarisation: silent failures cannot be cleared by an absence of
+      complaints.
+    terms:
+      subject: ["{alias}"]
+      topic: ["extraction", "extract", "parse", "structured fields", "populate"]
+      signal: ["correctly returned null", "didn't invent", "no hallucinated fields",
+               "matched the source", "held up", "no regressions", "swapped to"]
+    records_condition: context_size
+    yields_claim_when: >
+      Volume or duration is stated. Null discipline holding on ten documents
+      is not evidence; holding across a production run is.
+
+  - capability: reasoning.multistep
+    stance: negative
+    intent: >
+      Multi-step deduction, decomposition, and holding constraints across a
+      chain. Silent because a confidently wrong chain is indistinguishable
+      from a right one without checking the answer.
+    terms:
+      subject: ["{alias}"]
+      topic: ["reasoning", "multi-step", "multistep", "planning", "decompose",
+              "chain of thought", "step by step", "constraints"]
+      signal: ["falls apart", "can't follow", "confidently wrong", "lost the constraint",
+               "skipped a step", "wrong conclusion", "plausible but wrong",
+               "didn't notice"]
+    records_condition: context_size
+    yields_claim_when: >
+      The CHAIN IS DESCRIBED well enough that the reader can see where it
+      broke. This capability attracts the vaguest posts in the corpus - "bad
+      at reasoning" is the single most common unusable sentence about models -
+      so this filter will do more work here than anywhere else.
+
+  - capability: reasoning.multistep
+    stance: positive
+    intent: >
+      Reports of a chain holding under stated conditions. Required for the
+      same reason as the other three silent capabilities.
+    terms:
+      subject: ["{alias}"]
+      topic: ["reasoning", "multi-step", "planning", "decompose", "constraints"]
+      signal: ["held the constraints", "got it right", "followed the chain",
+               "no errors", "matched", "as good as", "held up"]
+    records_condition: context_size
+    yields_claim_when: >
+      The task's difficulty is recoverable. "Reasoned well" about a trivial
+      task is not evidence for a task that is not trivial.
+
+
+# ----------------------------------------------------------------------------
+#  SUBSTITUTION — cross-capability, its own pass, a bonus in vetting.
+#
+#  "We moved our summariser to X and it held" is a direct report of exactly
+#  the decision this board exists to inform, and it is the only pattern that
+#  reports a MIGRATION rather than an impression. It is also the pattern most
+#  damaged by issue #4: it is pure phrase matching, and phrase matching does
+#  not exist on GitHub. It lives predominantly on blogs, which is the second
+#  reason that adapter is not optional.
+# ----------------------------------------------------------------------------
+
+substitution:
+
+  - stance: positive
+    intent: >
+      A migration from one model to another that was kept.
+    terms:
+      subject: ["{alias}"]
+      topic: ["replaced {alias_b}", "switched from {alias_b}", "moved off {alias_b}",
+              "migrated from {alias_b}", "instead of {alias_b}", "swapped {alias_b}"]
+      signal: ["held up", "no regressions", "nobody noticed", "saved", "cheaper",
+               "still running", "kept it", "months"]
+    records_condition: context_size
+    yields_claim_when: >
+      BOTH MODELS RESOLVE, the workload is named, and the migration STUCK.
+      A migration announced is a plan; a migration still in place months
+      later is evidence. If only one model resolves it is an impression about
+      that model, not a substitution - route it to the capability query
+      instead of discarding it.
+
+  - stance: negative
+    intent: >
+      A migration that was reverted. Rarer, and worth more per instance than
+      any other document in the corpus: it is a direct measurement of the
+      recommendation this board would have made, and of it being wrong.
+    terms:
+      subject: ["{alias}"]
+      topic: ["switched back", "reverted to", "went back to", "rolled back",
+              "moved back to {alias_b}"]
+      signal: ["regressions", "quality dropped", "started failing", "complaints",
+               "wasn't worth", "had to revert"]
+    records_condition: context_size
+    yields_claim_when: >
+      The REASON for the revert is stated and attaches to a capability. A
+      revert for cost, contract, or compliance reasons is not evidence about
+      the model. Route the reason to its capability; a revert with no stated
+      reason is a strong signal with nothing to attach it to.
+
+
+# ============================================================================
+#  THE AUTOMATED CHECK — FR-7 and FR-8
+#
+#  A test asserting three things, all mechanical:
+#
+#    1. every `key` in capabilities.yaml appears as a `capability` here   FR-7
+#    2. every capability has at least one entry with stance: negative     FR-8
+#    3. every capability whose failure_mode is `silent` also has at least
+#       one entry with stance: positive
+#
+#  The third is not in FR-8's wording and should be. A silent-failure
+#  capability with only negative queries can never reach positive consensus,
+#  so the gate can never pass, so the cell can never publish - and it fails as
+#  an ABSENCE, with a capability that simply never appears on any page and
+#  nothing to disagree with. That is rule 6, and the check is where it gets
+#  caught cheaply.
+#
+#  Failing this test is the "fails the build" FR-7 asks for. Adding a
+#  capability without its queries then stops being a silent no-op.
+#
+#  CURRENT COVERAGE: 12 capabilities · 12 negative · 4 positive (all four
+#  silent-failure capabilities) · 2 substitution. FR-7 12/12, FR-8 12/12.
+#
+#  WHAT THIS FILE DOES NOT DECIDE
+#
+#  Rendering, syntax, scoping, request budget, and which alias forms each
+#  platform issues. All of that is collect/'s, and issue #5 ruling (b) is why:
+#  what was measured on GitHub is a property of GitHub's index, and encoding
+#  it here would make it true for Reddit and blogs, which it is not.
+#
+#  Reddit and blog matching have not been measured at all. Until they are,
+#  the default for an unmeasured platform is to issue every form - today's
+#  behaviour - so per-platform rendering degrades to a no-op rather than to a
+#  regression.
+# ============================================================================
