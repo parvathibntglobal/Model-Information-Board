@@ -1,6 +1,6 @@
 # Contract sign-off — Phase 1
 
-**Fifteen items for Engineer 2. One PR, not fifteen.**
+**Sixteen items for Engineer 2. One PR, not sixteen.**
 
 *Raised from Engineer 1's Phase 1 remediation · branch `phase1-collection-foundation` · commit `4bd322d`*
 
@@ -37,6 +37,20 @@ guessing.
 | 13 | `contract/sources.yaml` (new) | **blocks FR-9**; needs the ToS review first |
 | 14 | `contract/tables.sql` | **blocks FR-10 and FR-11** |
 | 15 | `contract/tables.sql` | comment only, no DDL; **lane interface** |
+| 16 | `contract/seed_models.yaml` | **clears the FR-2 source gate**; needs provider pages |
+
+### Items 5, 8 and 16 are one job, not three
+
+All three need somebody sitting with provider pages open, and they touch the
+same file:
+
+- **5** — re-source two mis-cited prices
+- **8** — choose a post-2025-02-12 open-weight model and source its fields
+- **16** — source the 90 populated-but-unsourced fields
+
+Doing them in one pass costs one context switch. Doing them separately costs
+three, and each one reopens the same tabs. **Whoever picks this up should take
+all three.**
 
 Items 12 to 15 were raised after the first eleven, from the Phase 2 readiness
 assessment in [`phase2-readiness.md`](phase2-readiness.md) and from building
@@ -48,9 +62,6 @@ position suggests. Item 15 blocks nothing but is the one item where
 
 ## Before you apply anything: running the branch as it stands
 
-**Items 5, 6, 7 and 10 are the ones that clear the two seed-loader gates.**
-Until they land:
-
 ```
 python -m collect.cli registry load-seed --allow-unsourced --allow-missing-spellings
 ```
@@ -58,14 +69,32 @@ python -m collect.cli registry load-seed --allow-unsourced --allow-missing-spell
 **Both flags, not one.** The FR-2 source gate runs before the spelling gate,
 so `--allow-missing-spellings` alone still fails — and it fails with a message
 about *sources*, which reads like the wrong problem and sends you looking in
-the wrong place. Neither is a code defect; both are these unapplied contract
-fixes showing through.
+the wrong place. Neither is a code defect; both are unapplied contract fixes
+showing through.
+
+> ### Correction: which items actually clear these gates
+>
+> An earlier version of this document said items 5, 6, 7 and 10 clear both
+> gates. **That was wrong for the source gate**, and it was verified wrong by
+> running the check rather than reading the code:
+>
+> - **Item 10 clears the spelling gate.** One line, and `--allow-missing-spellings`
+>   is no longer needed.
+> - **Nothing in items 5, 6 or 7 clears the source gate.** Item 5 replaces four
+>   wrong URLs, item 6 adds a boolean, item 7 edits comments. **None of them
+>   adds a source**, so the 90 unsourced fields stay at 90 and
+>   `--allow-unsourced` remains necessary regardless.
+>
+> The source gate is cleared by **item 16**, which is the work of sourcing
+> those 90 fields from provider pages. That work was tracked in the defect
+> report as deliberately deferred but had no item here, which is a hole in
+> this package rather than in the code.
 
 | Command | Exit | Fails on |
 |---|---|---|
-| `registry load-seed` | 1 | `SourceCoverageError` (items 5 to 7) |
+| `registry load-seed` | 1 | `SourceCoverageError` (**item 16**) |
 | `registry load-seed --allow-unsourced` | 1 | `SpellingCoverageError` (item 10) |
-| `registry load-seed --allow-missing-spellings` | 1 | `SourceCoverageError` (items 5 to 7) |
+| `registry load-seed --allow-missing-spellings` | 1 | `SourceCoverageError` (**item 16**) |
 | **both flags** | **0** | — |
 | `registry load-seed --dry-run` | 0 | — |
 | `registry check-sources` | **1** | **by design** — the exit code is the gap signal |
@@ -141,6 +170,15 @@ known-suspect value, because it looks settled.
 and fills both the field and its `sources` entry together.
 
 ## Item 4 · `release_date` has no documented meaning
+
+**This item is in two halves, and only the first has shipped.** Do not read
+the comment landing as the whole item being done.
+
+| | |
+|---|---|
+| **4a — the rule** | **APPLIED.** Naming what `release_date` means needs no source |
+| **4b — the value** | **OPEN.** Choosing between `2025-05-19` and `2025-06-17` needs a provider page, and reconciling `BUILD-PLAN.md` is Engineer 2's file |
+
 
 Two files disagree about the same model:
 
@@ -222,6 +260,26 @@ class SourceRef(BaseModel):
     #: own page. Third-party prices go stale silently.
     provider_page: bool = True
 ```
+
+> ### Derived from the URLs, not transcribed from the hashes
+>
+> Transcribing the bare-hash markers would have preserved the bug this item
+> exists to fix. `provider_page` is computed by comparing each URL's host
+> against the model's own provider:
+>
+> | | count |
+> |---|---|
+> | `provider_page: true` | **9** |
+> | `provider_page: false` | **31** |
+>
+> The hand convention marked **32**, so the two disagree on one entry.
+> **`google/gemini-2.5-flash.release_date` cites `en.wikipedia.org` and
+> carries no marker**, so a transcription would have recorded Wikipedia as a
+> provider page. Recorded here rather than silently corrected.
+>
+> Third-party hosts currently cited: `openrouter.ai` ×7, `en.wikipedia.org`
+> ×6, `opslyft.com` ×5, `finout.io` ×4, `chatlyai.app` ×3, plus six
+> singletons.
 
 **Alternative if you prefer:** delete all 32 markers and accept that source
 quality is untracked. That is a worse answer, but it is a coherent one, and it
@@ -474,11 +532,26 @@ sources:
       rather than trusting BUILD-PLAN's 60/min figure.
 ```
 
-> **The ToS review gates this item.** `tos_notes` cannot honestly be filled
-> before someone reads each platform's current terms, and the column is
-> `NOT NULL` precisely so that cannot be deferred. So the review is not a
-> parallel task — it is the thing standing between here and a working
-> `watermark` row.
+> ### The placeholder ships, and a gate fires on it
+>
+> `tos_notes` is `NOT NULL`, and it cannot honestly be filled before someone
+> reads each platform's current terms. Holding a schema fix hostage to a
+> reading task with no owner and no date is worse, so
+> `"REVIEW REQUIRED before first harvest …"` ships as the value. It states
+> plainly that the review has not happened, and it unblocks FR-9's foreign
+> key.
+>
+> **A placeholder a human has to notice is a lie you will forget.** So it is
+> detectable by code: `assert_terms_reviewed()` in
+> `collect/registry/assertions.py` refuses to harvest from any source whose
+> `tos_notes` still carries the marker. Same shape as `assert_no_fixtures`
+> and `assert_contract_backed`, and for the same reason — NFR-5's acceptance
+> is that terms are *reviewed and recorded per source*, so a placeholder
+> surviving to first harvest is a requirement failure and should stop the
+> run rather than be noticed afterwards.
+>
+> **Blocking from week 2**, when the blog adapter lands. Recorded in the
+> known-gaps table below.
 
 Whether the ~40 practitioner blog feeds seed from this file or from a separate
 one is an open question worth settling here: the **initial** list is config,
@@ -611,6 +684,50 @@ it is `collect/`'s own business and needs no sign-off.
 
 ---
 
+## Item 16 · 90 populated fields carry no source · **CLEARS THE FR-2 SOURCE GATE**
+
+FR-2: *record a source URL and retrieval timestamp for every registry field,
+and it applies to seeded rows too.* Measured:
+
+```
+$ python -m collect.cli registry check-sources
+FR-2      : 40/130 populated fields carry a source
+```
+
+**90 gaps, nine per model**, the same nine every time: `lifecycle`,
+`max_output_tokens`, `knowledge_cutoff`, `price_cached_read` and the five
+`supports_*` flags.
+
+This was recorded in [the defect report](phase1-defect-report.md) as
+deliberately deferred, but no item here closed it, so the package implied the
+FR-2 gate would clear when items 5 to 7 landed. It will not. **This is the
+only item that clears it.**
+
+**Exact edit** — for each of the 90, open the provider's page, record what it
+says, and add a `sources` entry with the URL and the date read:
+
+```yaml
+    sources:
+      max_output_tokens:  { url: "…", retrieved_at: "YYYY-MM-DD", provider_page: true }
+      knowledge_cutoff:   { url: "…", retrieved_at: "YYYY-MM-DD", provider_page: true }
+      lifecycle:          { url: "…", retrieved_at: "YYYY-MM-DD", provider_page: true }
+      price_cached_read:  { url: "…", retrieved_at: "YYYY-MM-DD", provider_page: true }
+      supports_tools:     { url: "…", retrieved_at: "YYYY-MM-DD", provider_page: true }
+      # … and the other four flags
+```
+
+**No URLs are supplied.** Generating them is the one failure this project
+cannot absorb: a fabricated source passes the coverage check while asserting
+nothing, which is strictly worse than a recorded gap.
+
+Alternatively, drop the values you cannot source. An unsourced `supports_batch`
+is not more useful than a null one, and a null is honest.
+
+When this lands, `--allow-unsourced` stops being necessary and
+`check-sources` exits 0.
+
+---
+
 ## Known gaps, recorded but not proposed
 
 Not everything found needs a decision now. These are written down so they are
@@ -618,6 +735,7 @@ not rediscovered.
 
 | Gap | Blocking from | Note |
 |---|---|---|
+| **`tos_notes` placeholders unreviewed** | **Week 2**, the blog adapter | Item 13 ships `REVIEW REQUIRED` as the value so the schema fix is not held hostage to a reading task. `assert_terms_reviewed()` refuses to harvest while the marker survives, so this fails closed rather than quietly. Clearing it means reading GitHub's, Reddit's and each blog host's terms and recording what they say — NFR-5's acceptance |
 | **Reddit access deferred** | **Week 3** | The company holds the account; access requested later. Adapter not being built. Week 3 because FR-6's acceptance is all three adapters returning content, and FR-17's cross-platform identity clustering cannot be tested with one social platform. Blogs, not Reddit, carry the structurally-positive channel FR-6 depends on. Detail in [`phase2-readiness.md`](phase2-readiness.md) §6 |
 | **No jobs table** | **Week 7**, the nightly job chain | `CLAUDE.md` and `pyproject.toml` both record *cron plus a jobs table, no workflow engine*. `contract/tables.sql` defines 24 tables and none is that. Nothing needs it until the nightly chain, but it overlaps with `harvest_run` (item 14) and the two should be designed together rather than separately |
 | **Blog feed list has no home** | Week 2, the blog adapter | Initial list is config, discovered feeds are data. Settle alongside item 13 |
