@@ -1,0 +1,371 @@
+"""The rendering half: loader, sieve, and GitHub retrieval.
+
+Every rule under test came from a measurement in issue #4 or issue #5, and the
+test names say which failure it prevents rather than which function it calls.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from collect.adapters.queries.contract import (
+    MissingPlaceholderError,
+    QueryContractError,
+    QueryEntry,
+    TermSet,
+    load_queries,
+)
+from collect.adapters.queries.github import (
+    FORBIDDEN_SYNTAX,
+    SearchRequest,
+    Unrenderable,
+    UnrenderableError,
+    assert_renderable_syntax,
+    github_alias_form,
+    plan_searches,
+    render_search,
+)
+from collect.adapters.queries.sieve import matches, normalize, sieve, tally
+
+ALIASES = ("claude sonnet 5", "claude-sonnet-5", "sonnet 5")
+SWEEP = ("repo:langchain-ai/langchain", "repo:run-llama/llama_index")
+
+
+def entry(**overrides) -> QueryEntry:
+    base = {
+        "kind": "capability",
+        "capability": "summarization.fidelity",
+        "stance": "negative",
+        "terms": TermSet(
+            subject=("{alias}",),
+            topic=("summary", "summarization", "condense"),
+            signal=("dropped", "left out", "should have been null"),
+        ),
+        "records_condition": "context_size",
+    }
+    base.update(overrides)
+    return QueryEntry(**base)
+
+
+# ── the contract loads, and says what it said before ─────────────────────
+
+
+def test_the_real_contract_loads():
+    queries = load_queries()
+    assert len(queries.capability_queries) == 16
+    assert len(queries.substitution) == 2
+    assert len(queries.capabilities) == 12
+    assert all(e.records_condition for e in queries.all_entries)
+
+
+def test_both_substitution_entries_declare_phrase_binding():
+    """The flag is what keeps a semantic call out of this renderer."""
+    queries = load_queries()
+    assert all(e.needs_phrase_binding for e in queries.substitution)
+    assert not any(e.needs_phrase_binding for e in queries.capability_queries)
+
+
+def test_a_missing_contract_raises_rather_than_defaulting(tmp_path):
+    """A built-in query set renders identically to the real one and diverges."""
+    with pytest.raises(QueryContractError):
+        load_queries(tmp_path / "absent.yaml")
+
+
+def test_alias_b_is_required_where_the_contract_uses_it():
+    """Rendering `{alias_b}` literally would match nothing and read as silence."""
+    directional = TermSet(subject=("{alias}",), topic=("replaced {alias_b}",), signal=("kept it",))
+    with pytest.raises(MissingPlaceholderError):
+        directional.substitute("claude sonnet 5")
+    rendered = directional.substitute("claude sonnet 5", "gpt-4.1 mini")
+    assert rendered.topic == ("replaced gpt-4.1 mini",)
+    assert rendered.unresolved == ()
+
+
+# ── the sieve: what the index cannot do ──────────────────────────────────
+
+
+def test_a_phrase_is_a_phrase_here_even_though_it_is_not_on_github():
+    """`"should have been null"` returns 1,836 unrelated results as a query.
+
+    Four required tokens scattered through a document is what the index reads.
+    The sieve reads the phrase, which is the entire reason the terms are written
+    for it.
+    """
+    scattered = "you should ask what could have been done; the field was left as a null"
+    exact = "the field was absent and it should have been null in the output"
+    assert not matches("should have been null", normalize(scattered))
+    assert matches("should have been null", normalize(exact))
+
+
+def test_a_phrase_matches_across_a_line_break():
+    """Real HTML wraps. A term that fails on a newline fails silently."""
+    assert matches("left out", normalize("it consistently left\n   out the clause"))
+
+
+def test_deliberate_stems_work_here_and_only_here():
+    """`moralis` matches exactly one document on GitHub — issue #4 of this repo.
+
+    It is written as a stem for the sieve, where it does the job intended.
+    """
+    assert matches("moralis", normalize("it kept moralising at me"))
+    assert matches("moraliz", normalize("constant moralizing preamble"))
+    assert matches("hallucinat", normalize("it hallucinated the API"))
+
+
+def test_inflections_match_because_the_index_does_no_stemming():
+    """`truncate` 2,136 · `truncates` 180 · `truncated` 1,334 — three tokens there."""
+    for text in ("it truncated the file", "it truncates output", "it will truncate"):
+        assert matches("truncate", normalize(text)), text
+
+
+def test_short_terms_are_not_extended_into_other_words():
+    """`code` must not reach `codebase`, or the sieve stops narrowing anything."""
+    assert not matches("code", normalize("the codebase is large"))
+    assert matches("code", normalize("the code is wrong"))
+
+
+def test_typographic_apostrophes_do_not_break_a_term():
+    """The contract writes `didn't follow`; people type `didn’t follow`."""
+    assert matches("didn't follow", normalize("it didn’t follow the schema"))
+
+
+def test_subject_is_all_of_and_the_other_groups_are_any_of():
+    terms = entry().terms.substitute("claude sonnet 5")
+    document = "claude sonnet 5 dropped the cancellation clause from every summary"
+    verdict = sieve(terms, document)
+    assert verdict.passed
+    assert verdict.subject == ("claude sonnet 5",)
+    assert set(verdict.topic) == {"summary"}
+    assert verdict.signal == ("dropped",)
+
+
+def test_a_document_missing_the_model_fails_and_says_which_group():
+    terms = entry().terms.substitute("claude sonnet 5")
+    verdict = sieve(terms, "the summary dropped a clause")
+    assert not verdict.passed
+    assert verdict.missing == ("subject",)
+
+
+def test_a_spelling_the_contract_does_not_carry_is_not_invented_here():
+    """`summariser` is not reachable from `summary`, and should not be.
+
+    The stem expansion is bounded on purpose. Covering both spellings is the
+    contract's job — the real file lists `summarize` and `summarise` side by
+    side — and guessing at it here would put vocabulary in code, where rule 5
+    says it does not belong.
+    """
+    assert not matches("summary", normalize("the summariser dropped a clause"))
+    assert matches("summarise", normalize("the summariser dropped a clause"))
+
+
+def test_an_off_topic_document_fails_on_topic_not_on_subject():
+    terms = entry().terms.substitute("claude sonnet 5")
+    verdict = sieve(terms, "claude sonnet 5 dropped a tool call")
+    assert not verdict.passed
+    assert verdict.missing == ("topic",)
+
+
+def test_an_empty_group_fails_rather_than_passing_vacuously():
+    """`subject` alone is the collapsed state issue #4 documents."""
+    hollow = TermSet(subject=("{alias}",), topic=(), signal=("dropped",))
+    verdict = sieve(hollow.substitute("claude sonnet 5"), "claude sonnet 5 dropped it")
+    assert not verdict.passed
+    assert "topic" in verdict.missing
+
+
+def test_tally_counts_and_never_drops():
+    """The yield figure `yields_claim_when` needs, one layer earlier."""
+    terms = entry().terms.substitute("claude sonnet 5")
+    documents = [
+        "claude sonnet 5 dropped the clause from the summary",
+        "claude sonnet 5 is fast",
+        "some other model dropped a summary detail",
+    ]
+    counts = tally("q1", (sieve(terms, d) for d in documents))
+    assert counts.candidates == 3
+    assert counts.kept == 1
+    assert counts.missing_subject == 1
+    assert round(counts.pass_rate, 2) == 0.33
+
+
+# ── GitHub retrieval ─────────────────────────────────────────────────────
+
+
+def test_a_trailing_numeral_is_hyphenated_so_it_cannot_match_an_issue_number():
+    """`"claude sonnet 5"` collected issue #5 from 89 unrelated repositories."""
+    assert github_alias_form("claude sonnet 5") == "claude-sonnet-5"
+    assert github_alias_form("sonnet 5") == "sonnet-5"
+    assert github_alias_form("claude haiku 4.5") == "claude-haiku-4.5"
+
+
+def test_an_alias_whose_numeral_is_not_last_is_left_alone():
+    assert github_alias_form("gpt-4.1 mini") == "gpt-4.1 mini"
+    assert github_alias_form("claude sonnet") == "claude sonnet"
+
+
+def test_no_rendered_query_contains_syntax_the_index_discards():
+    queries = load_queries()
+    plan = plan_searches(queries.capability_queries, ALIASES, scope=SWEEP)
+    assert plan.requests
+    for request in plan.requests:
+        for token in FORBIDDEN_SYNTAX:
+            assert token not in request.query, f"{request.query!r} contains {token!r}"
+
+
+def test_the_syntax_guard_refuses_rather_than_warning():
+    with pytest.raises(UnrenderableError):
+        assert_renderable_syntax('"claude" (summar* OR condense) type:issue')
+
+
+def test_one_request_per_entry_and_alias_not_per_term_pair():
+    """830 topic × signal pairs × 59 aliases is 48,616 requests and 30.9 hours."""
+    queries = load_queries()
+    plan = plan_searches(queries.capability_queries, ALIASES, scope=SWEEP)
+    # ALIASES holds three spellings that render to two distinct queries:
+    # `claude sonnet 5` and `claude-sonnet-5` are one request on this index.
+    distinct = {github_alias_form(a) for a in ALIASES}
+    assert plan.request_count == len(queries.capability_queries) * len(distinct)
+    assert plan.minutes_at(30) < 3
+
+
+def test_scope_qualifiers_are_carried_through_because_they_union():
+    """`org:langchain-ai` 475 + `org:run-llama` 56 = exactly 531 together."""
+    rendered = render_search(entry(), "claude sonnet 5", scope=SWEEP)
+    assert isinstance(rendered, SearchRequest)
+    for qualifier in SWEEP:
+        assert qualifier in rendered.query
+    assert "type:issue" in rendered.query
+
+
+def test_one_narrowing_token_is_chosen_and_multi_word_terms_are_left_to_the_sieve():
+    rendered = render_search(entry(), "claude sonnet 5", scope=SWEEP)
+    assert rendered.narrowing_token == "summarization"
+    assert "left out" not in rendered.query
+    assert "should have been null" not in rendered.query
+
+
+def test_an_entry_with_no_usable_token_still_renders():
+    """Fewer terms is a broader query, not a failed one — the sieve narrows it."""
+    weak = entry(terms=TermSet(subject=("{alias}",), topic=("the", "a"), signal=("dropped",)))
+    rendered = render_search(weak, "claude sonnet 5")
+    assert isinstance(rendered, SearchRequest)
+    assert rendered.narrowing_token is None
+    assert rendered.query.startswith("claude-sonnet-5")
+
+
+def test_substitution_is_refused_with_the_measurement_in_the_reason():
+    """53 against 52. The retrieved set cannot carry direction."""
+    queries = load_queries()
+    plan = plan_searches(queries.substitution, ALIASES, scope=SWEEP)
+    assert plan.request_count == 0
+    assert len(plan.refusals) == 2
+    assert all(isinstance(r, Unrenderable) for r in plan.refusals)
+    assert "direction" in plan.refusals[0].reason
+
+
+def test_a_refusal_is_returned_not_raised():
+    """Coverage the platform cannot provide belongs on a page, not in a traceback."""
+    directional = entry(requires="phrase_binding")
+    assert isinstance(render_search(directional, "claude sonnet 5"), Unrenderable)
+
+
+def test_the_query_key_is_the_query_as_issued():
+    """`watermark.query_key` and `harvest_run.query_key` must name what ran."""
+    rendered = render_search(entry(), "claude sonnet 5", scope=SWEEP)
+    assert rendered.query_key == rendered.query
+
+
+def test_retrieval_is_broad_and_the_sieve_is_what_narrows():
+    """The two halves, end to end, on one document.
+
+    The rendered query is deliberately loose — alias plus one token — and the
+    document that survives is chosen locally.
+    """
+    plan = plan_searches([entry()], ("claude sonnet 5", "claude-sonnet-5"), scope=SWEEP)
+    request = plan.requests[0]
+    assert request.query.startswith("claude-sonnet-5"), "retrieval hyphenates the numeral"
+
+    prose = "claude sonnet 5 dropped the cancellation clause from the summary"
+    identifier = "claude-sonnet-5 dropped the cancellation clause from the summary"
+    junk = "claude-sonnet-5 summarization is great, no complaints"
+
+    assert request.sieve(prose).passed, "the spelling people actually write"
+    assert request.sieve(identifier).passed
+    assert not request.sieve(junk).passed
+
+
+# ── deduplication: the index collapses spellings, the sieve must not ──────
+
+
+def test_spellings_that_collapse_on_the_index_are_one_request(tmp_path):
+    """`claude opus 5` and `claude-opus-5` hyphenate to the same query.
+
+    Issuing both buys the same documents twice — 59 alias strings do not mean 59
+    distinct GitHub queries.
+    """
+    plan = plan_searches([entry()], ("claude sonnet 5", "claude-sonnet-5"), scope=SWEEP)
+    assert plan.request_count == 1
+    assert plan.requests[0].query.startswith("claude-sonnet-5")
+    # One request, both human spellings kept — the sieve needs the prose form.
+    assert plan.requests[0].aliases == ("claude sonnet 5", "claude-sonnet-5")
+
+
+def test_a_deduplicated_request_keeps_every_spelling_for_the_sieve():
+    """Retrieve once, sieve against every form.
+
+    The document says one spelling or the other. A sieve given only the
+    hyphenated form drops every post written in prose, which is most of them.
+    """
+    plan = plan_searches([entry()], ("claude sonnet", "claude-sonnet-5"), scope=SWEEP)
+    forms = {v.alias for request in plan.requests for v in request.variants}
+    assert "claude sonnet" in forms
+    assert "claude-sonnet-5" in forms
+
+    prose = "claude sonnet dropped the clause from the summary"
+    identifier = "claude-sonnet-5 dropped the clause from the summary"
+    for document in (prose, identifier):
+        assert any(
+            sieve(v, document).passed for request in plan.requests for v in request.variants
+        ), document
+
+
+def test_the_real_sweep_is_costed_before_it_runs():
+    """The number issue #4 says nobody computed until an adapter was written."""
+    from collect.registry.aliases import all_alias_rows, search_queries
+    from collect.registry.seed import seed_models
+
+    queries = load_queries()
+    aliases = search_queries(all_alias_rows(seed_models()))
+    plan = plan_searches(queries.capability_queries, aliases, scope=SWEEP)
+
+    cartesian = sum(
+        len(e.terms.topic) * len(e.terms.signal) for e in queries.capability_queries
+    ) * len(aliases)
+
+    assert plan.request_count < 900, "one request per entry per distinct rendered alias"
+    assert plan.request_count < cartesian / 50, "the pair rendering costs 30.9 hours"
+    assert plan.minutes_at(30) < 30
+
+
+def test_two_entries_sharing_a_query_keep_their_own_sieve_terms():
+    """Deduplicating across entries would drop the positive stance silently.
+
+    `context.effective_window` negative and positive narrow on the same token,
+    so their queries are identical. Their signal terms are opposites, and the
+    positive one exists so a silent-failure capability can reach positive
+    consensus at all.
+    """
+    queries = load_queries()
+    window = queries.for_capability("context.effective_window")
+    assert {e.stance for e in window} == {"negative", "positive"}
+
+    plan = plan_searches(window, ("claude sonnet 5",), scope=SWEEP)
+    assert plan.request_count == 2, "one per entry"
+    assert plan.distinct_queries <= 2
+
+    held = "claude sonnet 5 recall held up fine at 200k in our eval"
+    lost = "claude sonnet 5 recall degrades past 180k, loses the middle"
+    by_stance = {r.entry_label: r for r in plan.requests}
+    assert by_stance["context.effective_window:positive"].sieve(held).passed
+    assert not by_stance["context.effective_window:positive"].sieve(lost).passed
+    assert by_stance["context.effective_window:negative"].sieve(lost).passed
