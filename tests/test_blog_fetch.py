@@ -451,3 +451,67 @@ def test_no_client_can_be_built_without_an_identifying_user_agent():
         build_client(user_agent="")
     with pytest.raises(UserAgentError):
         build_client(user_agent="modelboard/0.1 (+https://your-contact-url.example)")
+
+
+# ── Accept, and the 406 that motivated it ────────────────────────────────
+
+
+def test_feed_and_article_requests_declare_what_they_accept(tmp_path):
+    """Sending no `Accept` is not neutral — servers content-negotiate on it."""
+    from collect.adapters.blog.fetch import ARTICLE_ACCEPT, FEED_ACCEPT
+
+    site = rss_site()
+    fetcher, _, _ = build(site, tmp_path)
+    fetcher.harvest_feed(FEED_URL)
+
+    feed_request = next(r for r in site.requests if r.url.path == "/feed.xml")
+    assert feed_request.headers["accept"] == FEED_ACCEPT
+
+    article_request = next(r for r in site.requests if r.url.path.startswith("/posts/"))
+    assert article_request.headers["accept"] == ARTICLE_ACCEPT
+
+
+def test_a_server_that_negotiates_on_accept_is_not_reported_as_broken(tmp_path):
+    """The live failure this fixes, as a regression test.
+
+    A real feed answered **406 Not Acceptable** to a request carrying no
+    `Accept` during the first candidate assessment. A 406 arrives here as an
+    `error` outcome, which is indistinguishable from the feed being dead — so
+    the missing header would have read as a source that had gone away.
+    """
+    body = fixture("feed_rss.xml")
+
+    def picky(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(404)
+        if "xml" not in request.headers.get("accept", ""):
+            return httpx.Response(406)
+        return httpx.Response(200, content=body, headers=XML)
+
+    client = build_client(user_agent=UA, transport=httpx.MockTransport(picky))
+    fetcher = BlogFetcher(
+        client=client,
+        store=RawStore(tmp_path / "raw_store"),
+        robots=RobotsGate(client, user_agent=UA, clock=lambda: 0.0),
+        limiter=HostLimiter(min_interval=0.0, clock=lambda: 0.0, sleeper=lambda _s: None),
+        pipeline_version="collect-test",
+    )
+
+    run = fetcher.harvest_feed(FEED_URL, fetch_articles=False)
+    assert run.outcome == "fetched", "406 would have read as a dead feed"
+    assert run.items_fetched == 2
+
+
+def test_conditional_headers_survive_alongside_accept(tmp_path):
+    """The Accept header must not displace If-None-Match on the second run."""
+    from collect.adapters.blog.fetch import FEED_ACCEPT
+
+    site = rss_site(etag='W/"abc123"')
+    fetcher, _, _ = build(site, tmp_path)
+    fetcher.harvest_feed(FEED_URL)
+    second = fetcher.harvest_feed(FEED_URL)
+
+    assert second.outcome == "not-modified"
+    request = [r for r in site.requests if r.url.path == "/feed.xml"][1]
+    assert request.headers["accept"] == FEED_ACCEPT
+    assert request.headers["if-none-match"] == 'W/"abc123"'

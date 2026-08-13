@@ -201,3 +201,28 @@ def test_each_origin_gets_its_own_ruling():
     assert gate_.allows("https://open.example.invalid/posts/x").allowed
     assert not gate_.allows("https://closed.example.invalid/posts/x").allowed
     assert seen == ["open.example.invalid", "closed.example.invalid"]
+
+
+def test_robots_request_declares_what_it_accepts():
+    """A 406 on robots.txt is `no-answer`, which fails the whole host closed.
+
+    Same defect as the feed 406 measured live: an absent `Accept` is not a
+    neutral request, and here the cost is a host silently dropped from the only
+    positive-evidence channel.
+    """
+    from collect.adapters.blog.robots import ROBOTS_ACCEPT
+
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.headers.get("accept", ""))
+        if "text" not in request.headers.get("accept", ""):
+            return httpx.Response(406)
+        return httpx.Response(
+            200, content=fixture("robots_allow.txt"), headers={"content-type": "text/plain"}
+        )
+
+    decision = gate(handler).allows(ARTICLE)
+    assert seen and seen[0] == ROBOTS_ACCEPT
+    assert decision.ruling.status == "rules", "a 406 here would have blocked the host"
+    assert decision.allowed

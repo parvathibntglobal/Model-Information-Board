@@ -73,6 +73,11 @@ DEFAULT_TTL_SECONDS = 3600.0
 #: `Crawl-delay` may widen it. Nothing narrows it.
 DEFAULT_MIN_INTERVAL = 1.0
 
+#: robots.txt is content-negotiated like anything else, and a 406 here is not a
+#: statement about crawling — it lands in `no-answer` and fails the whole host
+#: closed. Asking for text costs one header and removes that failure mode.
+ROBOTS_ACCEPT = "text/plain, text/*;q=0.9, */*;q=0.8"
+
 
 @dataclass(frozen=True)
 class RobotsRuling:
@@ -157,7 +162,9 @@ class RobotsGate:
     def _fetch_ruling(self, origin: str) -> RobotsRuling:
         robots_url = f"{origin}/robots.txt"
         try:
-            response = self._client.get(robots_url, follow_redirects=True)
+            response = self._client.get(
+                robots_url, headers={"Accept": ROBOTS_ACCEPT}, follow_redirects=True
+            )
         except httpx.HTTPError as error:
             return self._no_answer(
                 origin,

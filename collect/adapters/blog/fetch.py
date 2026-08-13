@@ -87,6 +87,18 @@ ARTICLE_MEDIA_TYPES: frozenset[str] = frozenset(
     {"text/html", "application/xhtml+xml"}
 )
 
+#: What a feed reader asks for. Sending nothing is not neutral: servers
+#: content-negotiate on it, and a real feed answered **406 Not Acceptable** to a
+#: request with no `Accept` during the first live assessment. A 406 arrives here
+#: as an `error` outcome, which is indistinguishable from the feed being broken,
+#: so the absent header would have read as a dead source.
+FEED_ACCEPT = "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8"
+
+#: Same reasoning, different resource. Asking for HTML also makes the
+#: `ARTICLE_MEDIA_TYPES` check a statement about what we requested rather than
+#: about whatever the server felt like sending.
+ARTICLE_ACCEPT = "text/html, application/xhtml+xml;q=0.9, */*;q=0.8"
+
 #: Enough for a canonical-URL or www-to-apex hop. Past that it is a loop or a
 #: tracker, and each hop costs a robots ruling.
 MAX_REDIRECTS = 3
@@ -351,7 +363,9 @@ class BlogFetcher:
     def fetch_feed(self, feed_url: str) -> FeedFetch:
         """Conditional GET on one feed. Stores the payload only when it changed."""
         known = self._validators.load(feed_url) or FeedValidators()
-        fetched = self._get(feed_url, headers=known.request_headers() or None)
+        fetched = self._get(
+            feed_url, headers={"Accept": FEED_ACCEPT, **known.request_headers()}
+        )
 
         if fetched.outcome != "fetched" or fetched.response is None:
             return FeedFetch(
@@ -457,7 +471,7 @@ class BlogFetcher:
                 detail=f"entry {entry.entry_id!r} carries no link to fetch",
             )
 
-        fetched = self._get(url)
+        fetched = self._get(url, headers={"Accept": ARTICLE_ACCEPT})
         if fetched.outcome != "fetched" or fetched.response is None:
             return ArticleFetch(
                 entry=entry,
