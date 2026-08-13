@@ -23,17 +23,40 @@
 #  NUMBER, so `"claude sonnet 5"` collects issue #5 from 89 unrelated repos.
 #
 #  So a rendered query string in a platform-neutral file is a string that is
-#  true for no platform. This file therefore carries TERM SETS as data, and
-#  each adapter renders them for its own index:
+#  true for no platform. This file therefore carries TERM SETS as data.
 #
-#      github   issues one request per topic × signal pair, unioned, repo-scoped
-#      reddit   renders to its own search syntax
-#      blogs    DOES NOT SEARCH AT ALL — RSS and sitemaps are a fetch of a
-#               known URL, so the same terms serve as the post-fetch relevance
-#               filter instead. A blog query is a sieve, not a search.
+#  THE TERMS ARE A SIEVE FIRST AND A SEARCH SECOND.
+#
+#  The first draft treated blogs as the exception, because RSS has no search
+#  and the terms had to be a post-fetch filter there. Engineer 1's review
+#  inverted that, correctly: blogs are the MODEL, not the exception.
+#
+#  82% of the signal terms here are multi-word. No index treats a multi-word
+#  term as a phrase - GitHub reads "should have been null" as four ANDs and
+#  returns 1,836 unrelated results. A local substring match reads it as the
+#  exact phrase, which no index can. So the same terms that are close to
+#  meaningless in a query are precise in a sieve:
+#
+#      RETRIEVAL   broad and cheap, whatever an index honours. Its only job
+#                  is to produce candidate documents. Precision here is not
+#                  worth paying for, because the index cannot deliver it.
+#      SIEVE       local, exact, identical on all three platforms. This is
+#                  where the terms do their actual work.
+#
+#  One sieve component, three platforms. Blogs skip the first step entirely.
+#
+#  That is also why prefix stems are acceptable in `signal` - `moralis` in a
+#  sieve matches moralising and moralised, where as a search term it matches
+#  nothing at all. Terms are written for the sieve. If one is also a usable
+#  search term, that is a bonus for the adapter to exploit, not a constraint
+#  on this file.
 #
 #  That is ruling (b) from issue #5: what was measured is a property of one
-#  index, not of the model's name or of the capability.
+#  index, not of the model's name or of the capability. This file makes NO
+#  claim about request shape, request count, scoping or budget. It said so
+#  and then prescribed a GitHub rendering anyway, which Engineer 1 costed at
+#  30.9 hours - 79x BUILD-PLAN's budget. That line is gone. Rendering is
+#  collect/'s, without a suggestion from here.
 #
 #  WHAT EACH ENTRY CARRIES
 #
@@ -221,9 +244,15 @@ queries:
       subject: ["{alias}"]
       topic: ["refused", "refusal", "safety filter", "guardrail", "won't answer",
               "declined"]
+      # `moralis` / `moraliz` are SIEVE PREFIXES, matching moralising and
+      # moralized without needing both spellings twice. As search terms they
+      # match nothing - there is no prefix matching, and Engineer 1 measured
+      # `"gemini flash" moraliz` returning exactly one result: issue #4 of
+      # this repository, which quotes the template these stems came from.
+      # Kept deliberately, and named so no adapter tries to issue them.
       signal: ["as an ai", "refuses ordinary", "lectures", "moralis", "moraliz",
                "nothing wrong with the request", "false positive",
-               "unnecessary disclaimer"]
+               "unnecessary disclaimer", "declined a perfectly"]
     records_condition: context_size
     yields_claim_when: >
       THE REQUEST IS DESCRIBED WELL ENOUGH TO JUDGE IT BENIGN. This is the
@@ -423,11 +452,31 @@ queries:
 #  damaged by issue #4: it is pure phrase matching, and phrase matching does
 #  not exist on GitHub. It lives predominantly on blogs, which is the second
 #  reason that adapter is not optional.
+#
+#  `requires: phrase_binding` — THE ONLY MACHINE-READABLE CONSTRAINT IN THIS
+#  FILE, and it is here rather than a `platforms:` list on purpose.
+#
+#  Seven of these topic terms embed `{alias_b}` in a DIRECTIONAL phrase:
+#  "replaced X with Y" and "replaced Y with X" are opposite claims built from
+#  identical tokens. An index that does not bind phrases cannot tell them
+#  apart, so retrieval there returns both directions and the sieve decides.
+#
+#  `platforms: [blogs, reddit]` would have been the shorter way to say it and
+#  it is the wrong one: it writes today's measurement of GitHub's index into
+#  a platform-neutral file, which is exactly what ruling (b) removed. This
+#  flag states the semantic PROPERTY — the query only means anything where
+#  the phrase binds — and each adapter decides whether it can honour it. If
+#  GitHub ships phrase matching, nothing in this file changes.
+#
+#  Retrieval MAY be direction-blind where phrases do not bind; the sieve
+#  enforces direction locally. Engineer 1's observation that this collapses
+#  90 ordered model pairs to 45 is a rendering decision and theirs to take.
 # ----------------------------------------------------------------------------
 
 substitution:
 
   - stance: positive
+    requires: phrase_binding
     intent: >
       A migration from one model to another that was kept.
     terms:
@@ -445,6 +494,7 @@ substitution:
       instead of discarding it.
 
   - stance: negative
+    requires: phrase_binding
     intent: >
       A migration that was reverted. Rarer, and worth more per instance than
       any other document in the corpus: it is a direct measurement of the
@@ -466,12 +516,21 @@ substitution:
 # ============================================================================
 #  THE AUTOMATED CHECK — FR-7 and FR-8
 #
-#  A test asserting three things, all mechanical:
+#  IMPLEMENTED in tests/test_queries_contract.py. It was a comment in the
+#  first draft, and the 12/12 was verified by hand in a throwaway script -
+#  which is FR-7's acceptance ("fails the build") not being met by the file
+#  that claims to meet it. Engineer 1 caught it, having shipped the same
+#  defect in collect/http.py the same morning.
+#
+#  The test asserts, all mechanically:
 #
 #    1. every `key` in capabilities.yaml appears as a `capability` here   FR-7
 #    2. every capability has at least one entry with stance: negative     FR-8
 #    3. every capability whose failure_mode is `silent` also has at least
 #       one entry with stance: positive
+#    4. no `capability` here is absent from capabilities.yaml
+#    5. `records_condition` matches conditions.yaml's dominant_dimension
+#    6. every entry carries a non-empty intent and yields_claim_when
 #
 #  The third is not in FR-8's wording and should be. A silent-failure
 #  capability with only negative queries can never reach positive consensus,
@@ -488,10 +547,15 @@ substitution:
 #
 #  WHAT THIS FILE DOES NOT DECIDE
 #
-#  Rendering, syntax, scoping, request budget, and which alias forms each
-#  platform issues. All of that is collect/'s, and issue #5 ruling (b) is why:
-#  what was measured on GitHub is a property of GitHub's index, and encoding
-#  it here would make it true for Reddit and blogs, which it is not.
+#  Rendering, syntax, scoping, request count, request budget, and which alias
+#  forms each platform issues. All of that is collect/'s, and issue #5 ruling
+#  (b) is why: what was measured on GitHub is a property of GitHub's index,
+#  and encoding it here would make it true for Reddit and blogs, which it is
+#  not.
+#
+#  `requires: phrase_binding` is the one exception, and it is not a rendering
+#  instruction - it states that a query is meaningless where phrases do not
+#  bind, and leaves each adapter to decide what to do about that.
 #
 #  Reddit and blog matching have not been measured at all. Until they are,
 #  the default for an unmeasured platform is to issue every form - today's
