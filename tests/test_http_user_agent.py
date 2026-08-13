@@ -84,6 +84,24 @@ def test_extra_headers_cannot_displace_the_user_agent_by_accident():
         assert client.headers["Accept"] == "application/json"
 
 
+def test_the_value_shipped_in_env_example_passes_its_own_gate():
+    """The file that teaches people the value must not teach a rejected one.
+
+    `.env.example` shipped `+https://your-contact-url.example` for months,
+    which this gate now refuses. A template guaranteed to fail on first run
+    is a trap, so the check runs against the real file rather than against a
+    copy of the string.
+    """
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    lines = root.joinpath(".env.example").read_text(encoding="utf-8").splitlines()
+    declared = [line for line in lines if line.startswith("USER_AGENT=")]
+
+    assert len(declared) == 1, ".env.example must declare exactly one USER_AGENT"
+    assert_identifying_user_agent(declared[0].split("=", 1)[1])
+
+
 def test_a_caller_may_override_the_user_agent_but_not_omit_it():
     other = "modelboard-test/0.1 (+https://reachable.invalid/x)"
     with build_client(user_agent=other) as client:
