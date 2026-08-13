@@ -37,6 +37,21 @@ dev = [
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
+# Sign-off item 1. Without this, `pip install -e .` fails outright: setuptools
+# refuses the flat layout because four top-level directories are present
+# (collect, judge, contract, fixtures) and none is declared.
+#
+# The `find` directive, not `packages = ["collect", "judge"]`. The latter looks
+# equivalent and is not: it misses every subpackage, so collect.registry and
+# judge.ask would not be installed.
+#
+# ⚠  Install with the extras. `pip install -e .` WITHOUT [dev] silently drops
+#    ruff, mypy and pytest-asyncio. The failure is quiet: the async adapter
+#    tests would not fail, they would not run. Use `pip install -e ".[dev]"`,
+#    and have CI assert that pytest-asyncio imports.
+[tool.setuptools.packages.find]
+include = ["collect*", "judge*"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

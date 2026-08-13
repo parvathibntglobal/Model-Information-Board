@@ -1,6 +1,6 @@
 # Contract sign-off — Phase 1
 
-**Fourteen items for Engineer 2. One PR, not fourteen.**
+**Twenty items for Engineer 2. One PR, not twenty.**
 
 *Raised from Engineer 1's Phase 1 remediation · branch `phase1-collection-foundation` · commit `4bd322d`*
 
@@ -11,69 +11,100 @@ each time on purpose. This is one of those times. Batching these into a single
 PR is deliberate: eleven separate reviews of a shared interface is how two
 people working in parallel start disagreeing about what the interface is.
 
-**Nothing below has been applied.** `contract/tables.sql` and
-`contract/seed_models.yaml` are untouched on the branch. The only contract file
-Engineer 1 has written is `contract/registry.yaml`, which was approved
-separately and is already committed.
+**Seventeen of the twenty are applied or resolved on this branch**, each under
+an explicit ruling. **Three remain open: 17, 18 and 20.** All three are
+contract decisions rather than transcription, and none can be closed by
+reading another page.
 
-Each item gives the exact edit. Apply them without inferring anything; where a
-value cannot be supplied without a provider page, the item says so rather than
-guessing.
+Each item gives the exact edit and its current state. Where a value cannot be
+supplied without a provider page, the item says so rather than guessing.
 
 | # | File | Status |
 |---|---|---|
-| 1 | `pyproject.toml` | ready to apply |
-| 2 | `.python-version` (new) | ready to apply |
-| 3 | `contract/seed_models.yaml` | **awaiting verification — do not apply** |
-| 4 | `contract/seed_models.yaml`, `BUILD-PLAN.md` | rule ready; value needs a source |
-| 5 | `contract/seed_models.yaml` | needs re-sourcing, no URLs supplied |
-| 6 | `contract/seed_models.yaml` + `collect/registry/models.py` | ready, two files must land together |
-| 7 | `contract/seed_models.yaml` | ready to apply |
-| 8 | `contract/seed_models.yaml` | **blocker cleared**, needs a model choice |
-| 9 | none | resolved, note only |
-| 10 | `contract/seed_models.yaml` | ready to apply |
-| 11 | `contract/tables.sql` | ready to apply |
-| 12 | `.env.example` | ready to apply |
-| 13 | `contract/sources.yaml` (new) | **blocks FR-9**; needs the ToS review first |
-| 14 | `contract/tables.sql` | **blocks FR-10 and FR-11** |
+| 1 | `pyproject.toml`, `.gitignore` | ✅ **applied** — `pip install -e .` verified working |
+| 2 | `.python-version` (new) | ✅ **applied** |
+| 3 | `contract/seed_models.yaml` | ✅ **applied** — OpenAI's page says 2025-04-14 |
+| 4a | `contract/seed_models.yaml` | ✅ **applied** — the rule is documented |
+| 4b | `contract/seed_models.yaml` | ✅ **resolved** — both files now say 2025-06-17 |
+| 5 | `contract/seed_models.yaml` | ✅ **applied** — both models turned out retired |
+| 6 | `contract/seed_models.yaml` + `collect/registry/models.py` | ✅ **applied** — 9 true / 31 false, derived |
+| 7 | `contract/seed_models.yaml` | ✅ **applied** — three boxes unticked |
+| 8 | `contract/seed_models.yaml` | ✅ **applied** — `mistral-large-3`, Apache 2.0 |
+| 9 | none | ✅ resolved, no edit |
+| 10 | `contract/seed_models.yaml` | ✅ **applied** — spelling gate now passes |
+| 11 | `contract/tables.sql` | ✅ **applied** — `coverage_gap` |
+| 12 | `.env.example` | ✅ **applied** |
+| 13 | `contract/sources.yaml` (new) | ✅ **applied** with placeholders + a gate |
+| 14 | `contract/tables.sql` | ✅ **applied** — `harvest_run`, `watermark.exhausted` |
+| 15 | `contract/tables.sql` | ✅ **applied** — comment only |
+| 16 | `contract/seed_models.yaml` | ✅ **applied** — FR-2 now 82/82 |
+| 17 | `contract/tables.sql` | ⬜ open — comment only, no DDL |
+| 18 | `contract/tables.sql` | ⬜ open — **schema cannot express tiered pricing** |
+| 19 | none | ✅ **resolved** — advertised half sourced; contradiction is week 5 |
+| 20 | `contract/tables.sql` + `assertions.py` | ⬜ open — **`reported_context` has no `provenance`** |
 
-Items 12 to 14 were raised after the first eleven, from the Phase 2 readiness
-assessment in [`phase2-readiness.md`](phase2-readiness.md). Items 13 and 14
-block harvest, so they matter more than their position suggests.
+**Seventeen applied or resolved. Three open: 17, 18 and 20.**
+
+The 2026-08-13 sourcing pass closed 3, 4a, 5, 8 and 16 by reading provider
+pages. **FR-2 went from 40/130 to 82/82 and `registry load-seed` now runs
+with no flags at all.** The file got smaller: 48 fields were removed rather
+than sourced, because a claim with no source is worse than an absence.
+
+Items 17, 18, 19 and 20 were all raised *by* that pass. Reading the pages is
+what revealed that Anthropic publishes two knowledge cutoffs, that Google's
+prices are tiered, that Google publishes no token limits at all, and that
+`reported_context` has no `provenance` column to stop a hand-seeded
+threshold looking like harvested evidence.
+
+### Items 5, 8 and 16 were one job, and were done as one
+
+All three needed somebody with provider pages open and all three touched the
+same file, so they were done in a single pass on 2026-08-13 rather than three.
+That pass is also what raised 17, 18 and 19: reading the pages is what
+revealed that Anthropic publishes two cutoffs, that Google's prices are
+tiered, and that Google publishes no token limits at all.
+
+Items 12 to 15 were raised after the first eleven, from the Phase 2 readiness
+assessment in [`phase2-readiness.md`](phase2-readiness.md) and from building
+the raw store. Items 13 and 14 block harvest, so they matter more than their
+position suggests. Item 15 blocks nothing but is the one item where
+`collect/` and `judge/` must actually agree rather than merely not conflict.
 
 ---
 
-## Before you apply anything: running the branch as it stands
-
-**Items 5, 6, 7 and 10 are the ones that clear the two seed-loader gates.**
-Until they land:
+## Running the branch
 
 ```
-python -m collect.cli registry load-seed --allow-unsourced --allow-missing-spellings
+python -m collect.cli registry load-seed
 ```
 
-**Both flags, not one.** The FR-2 source gate runs before the spelling gate,
-so `--allow-missing-spellings` alone still fails — and it fails with a message
-about *sources*, which reads like the wrong problem and sends you looking in
-the wrong place. Neither is a code defect; both are these unapplied contract
-fixes showing through.
+**No flags.** Both gates are clear. Measured on 2026-08-13:
 
-| Command | Exit | Fails on |
-|---|---|---|
-| `registry load-seed` | 1 | `SourceCoverageError` (items 5 to 7) |
-| `registry load-seed --allow-unsourced` | 1 | `SpellingCoverageError` (item 10) |
-| `registry load-seed --allow-missing-spellings` | 1 | `SourceCoverageError` (items 5 to 7) |
-| **both flags** | **0** | — |
-| `registry load-seed --dry-run` | 0 | — |
-| `registry check-sources` | **1** | **by design** — the exit code is the gap signal |
-| `registry aliases` | 0 | — |
-| `registry recompute-window` | 0 | — |
-| `db init` | 0 | — |
+| Command | Exit |
+|---|---|
+| `registry load-seed` | **0** |
+| `registry load-seed --dry-run` | 0 |
+| `registry check-sources` | **0** — 82/82 sourced |
+| `registry aliases` | 0 |
+| `registry recompute-window` | 0 |
 
-`check-sources` exiting 1 is intended and worth knowing before it is wired
-into CI as a pass/fail step, or a working command reads as a broken build
-forever. The test suite is unaffected either way: it waives both gates
-explicitly, with a docstring naming them as contract items.
+`--allow-unsourced` and `--allow-missing-spellings` still exist and now do
+nothing to this file. They stay because the poller will reintroduce both
+kinds of gap from week 5.
+
+> ### Two corrections this document previously carried
+>
+> **First:** it said items 5, 6, 7 and 10 clear both seed-loader gates. That
+> was wrong for the source gate, and verified wrong by running the check
+> rather than reading the code. Item 5 replaced four URLs, item 6 added a
+> boolean, item 7 edited comments; none added a source. Only item 16 cleared
+> it, and item 16 did not exist until that correction.
+>
+> **Second:** it said `check-sources` exits 1 by design as a gap signal.
+> That was true while gaps existed. It now exits **0**, so a CI step wired to
+> it will pass and will start failing again the moment the poller introduces
+> an unsourced field. That is the intended behaviour, but it is the opposite
+> of what the earlier text described.
 
 ---
 
@@ -122,22 +153,35 @@ third location (a `contract/toolchain.yaml`, say) was considered and rejected:
 three places that can disagree is worse than two, and an interpreter version is
 not something the code reads at runtime, so it does not belong in `contract/`.
 
-## Item 3 · `openai/gpt-4.1-mini` release date · AWAITING VERIFICATION
+## Item 3 · `openai/gpt-4.1-mini` release date · **APPLIED**
 
-**Do not apply. This is not a proposed edit.**
+The file carried `release_date: 2025-07-18`. A recollection of 14 April 2025
+existed but was explicitly held back as recollection rather than a source.
 
-`contract/seed_models.yaml:267` carries `release_date: 2025-07-18`. A
-recollection of 14 April 2025 exists but has not been checked against the
-OpenAI page, and nothing in this repository confirms either value.
+[OpenAI's model page](https://developers.openai.com/api/docs/models/gpt-4.1-mini)
+states the default snapshot is **`2025-04-14`**, three months earlier than the
+file and matching the recollection. The page settled it; the recollection was
+never used as the basis.
 
-`release_date` drives `f_launch` (the 21-day launch discount, frozen at
-extraction) and `in_window`. An unsourced correction is worse than a
-known-suspect value, because it looks settled.
+| Source | Date |
+|---|---|
+| Recollection | 14 April 2025 |
+| **OpenAI's page** | **2025-04-14** |
+| Seed file, before | `2025-07-18` |
 
-**Action:** someone opens the provider page, records the URL and the date read,
-and fills both the field and its `sources` entry together.
+`release_date` drives `f_launch` and `in_window`, which is why an unsourced
+correction would have been worse than a known-suspect value: it looks settled.
 
 ## Item 4 · `release_date` has no documented meaning
+
+**This item is in two halves, and only the first has shipped.** Do not read
+the comment landing as the whole item being done.
+
+| | |
+|---|---|
+| **4a — the rule** | **APPLIED.** Naming what `release_date` means needs no source |
+| **4b — the value** | **OPEN.** Choosing between `2025-05-19` and `2025-06-17` needs a provider page, and reconciling `BUILD-PLAN.md` is Engineer 2's file |
+
 
 Two files disagree about the same model:
 
@@ -219,6 +263,26 @@ class SourceRef(BaseModel):
     #: own page. Third-party prices go stale silently.
     provider_page: bool = True
 ```
+
+> ### Derived from the URLs, not transcribed from the hashes
+>
+> Transcribing the bare-hash markers would have preserved the bug this item
+> exists to fix. `provider_page` is computed by comparing each URL's host
+> against the model's own provider:
+>
+> | | count |
+> |---|---|
+> | `provider_page: true` | **9** |
+> | `provider_page: false` | **31** |
+>
+> The hand convention marked **32**, so the two disagree on one entry.
+> **`google/gemini-2.5-flash.release_date` cites `en.wikipedia.org` and
+> carries no marker**, so a transcription would have recorded Wikipedia as a
+> provider page. Recorded here rather than silently corrected.
+>
+> Third-party hosts currently cited: `openrouter.ai` ×7, `en.wikipedia.org`
+> ×6, `opslyft.com` ×5, `finout.io` ×4, `chatlyai.app` ×3, plus six
+> singletons.
 
 **Alternative if you prefer:** delete all 32 markers and accept that source
 quality is untracked. That is a worse answer, but it is a coherent one, and it
@@ -471,11 +535,26 @@ sources:
       rather than trusting BUILD-PLAN's 60/min figure.
 ```
 
-> **The ToS review gates this item.** `tos_notes` cannot honestly be filled
-> before someone reads each platform's current terms, and the column is
-> `NOT NULL` precisely so that cannot be deferred. So the review is not a
-> parallel task — it is the thing standing between here and a working
-> `watermark` row.
+> ### The placeholder ships, and a gate fires on it
+>
+> `tos_notes` is `NOT NULL`, and it cannot honestly be filled before someone
+> reads each platform's current terms. Holding a schema fix hostage to a
+> reading task with no owner and no date is worse, so
+> `"REVIEW REQUIRED before first harvest …"` ships as the value. It states
+> plainly that the review has not happened, and it unblocks FR-9's foreign
+> key.
+>
+> **A placeholder a human has to notice is a lie you will forget.** So it is
+> detectable by code: `assert_terms_reviewed()` in
+> `collect/registry/assertions.py` refuses to harvest from any source whose
+> `tos_notes` still carries the marker. Same shape as `assert_no_fixtures`
+> and `assert_contract_backed`, and for the same reason — NFR-5's acceptance
+> is that terms are *reviewed and recorded per source*, so a placeholder
+> surviving to first harvest is a requirement failure and should stop the
+> run rather than be noticed afterwards.
+>
+> **Blocking from week 2**, when the blog adapter lands. Recorded in the
+> known-gaps table below.
 
 Whether the ~40 practitioner blog feeds seed from this file or from a separate
 one is an open question worth settling here: the **initial** list is config,
@@ -557,6 +636,308 @@ ALTER TABLE watermark ADD COLUMN exhausted boolean NOT NULL DEFAULT false;
 
 ---
 
+## Item 15 · `text_ref` has no documented convention · **LANE INTERFACE**
+
+`contract/tables.sql` gives `document.text_ref text NOT NULL -- pointer into
+the raw store` and, separately, `content_hash text NOT NULL` with no comment.
+Two columns, and the schema never says how they differ. `collect/` writes
+both; `judge/` reads `text_ref` to fetch the text it verifies quotes against.
+That makes the convention a **lane interface**, so it is agreed rather than
+assumed.
+
+Two readings are coherent:
+
+- **A — `text_ref` is the hash.** The store is content-addressed, so a
+  pointer into it *is* the hash. But then the two columns hold the same value
+  and one is dead weight.
+- **B — `text_ref` is a location, `content_hash` is identity.** Storage can
+  move (filesystem now, an object store later) without rewriting what
+  anything *is*.
+
+**B is implemented, and NFR-6 is why it is not a preference.** Its acceptance
+reads *"tombstone a document; its quotes vanish next run, only the content
+hash remains."* That only parses if the hash and the stored bytes are
+separable — under A there is nothing to delete that leaves a hash behind, so
+A cannot satisfy an acceptance criterion the plan has already committed to.
+
+**Exact edit** — comment only, **no DDL**:
+
+```sql
+  -- `text_ref` LOCATES the payload; `content_hash` IDENTIFIES it. They are
+  -- separate columns because NFR-6 requires the hash to outlive the bytes:
+  -- tombstoning deletes the payload and keeps the hash as the audit record.
+  -- Storage can therefore move without rewriting identity.
+  --   text_ref     "raw/sha256/ab/cd/abcd...ef"   (collect/rawstore.py)
+  --   content_hash "abcd...ef"
+  text_ref                text NOT NULL,
+  content_hash            text NOT NULL,
+```
+
+The same convention applies to `thread_context.flattened_text_ref`, which
+uses the `flattened/` namespace of the same store.
+
+> **Disagreeing is cheap.** `collect/rawstore.py` keeps its public surface
+> hash-first: `put()` returns both the ref and the hash, and `parse_ref()`
+> recovers the hash from any ref. If you prefer reading A, the change is
+> **one column write** at the call site, not a redesign of the store. Say so
+> and it will be changed.
+
+This is the only outstanding question on the raw store. Everything else about
+it is `collect/`'s own business and needs no sign-off.
+
+---
+
+## Item 16 · 90 populated fields carry no source · **CLEARS THE FR-2 SOURCE GATE**
+
+FR-2: *record a source URL and retrieval timestamp for every registry field,
+and it applies to seeded rows too.* Measured:
+
+```
+$ python -m collect.cli registry check-sources
+FR-2      : 40/130 populated fields carry a source
+```
+
+**90 gaps, nine per model**, the same nine every time: `lifecycle`,
+`max_output_tokens`, `knowledge_cutoff`, `price_cached_read` and the five
+`supports_*` flags.
+
+This was recorded in [the defect report](phase1-defect-report.md) as
+deliberately deferred, but no item here closed it, so the package implied the
+FR-2 gate would clear when items 5 to 7 landed. It will not. **This is the
+only item that clears it.**
+
+**Exact edit** — for each of the 90, open the provider's page, record what it
+says, and add a `sources` entry with the URL and the date read:
+
+```yaml
+    sources:
+      max_output_tokens:  { url: "…", retrieved_at: "YYYY-MM-DD", provider_page: true }
+      knowledge_cutoff:   { url: "…", retrieved_at: "YYYY-MM-DD", provider_page: true }
+      lifecycle:          { url: "…", retrieved_at: "YYYY-MM-DD", provider_page: true }
+      price_cached_read:  { url: "…", retrieved_at: "YYYY-MM-DD", provider_page: true }
+      supports_tools:     { url: "…", retrieved_at: "YYYY-MM-DD", provider_page: true }
+      # … and the other four flags
+```
+
+**No URLs are supplied.** Generating them is the one failure this project
+cannot absorb: a fabricated source passes the coverage check while asserting
+nothing, which is strictly worse than a recorded gap.
+
+Alternatively, drop the values you cannot source. An unsourced `supports_batch`
+is not more useful than a null one, and a null is honest.
+
+When this lands, `--allow-unsourced` stops being necessary and
+`check-sources` exits 0.
+
+---
+
+## Item 17 · `knowledge_cutoff` means *reliable*, not *training*
+
+Anthropic publishes **two** cutoffs and they are not the same date:
+
+| Model | Reliable knowledge cutoff | Training data cutoff |
+|---|---|---|
+| Claude Haiku 4.5 | **Feb 2025** | Jul 2025 |
+| Claude Opus 5 | May 2026 | May 2026 |
+
+Five months apart for Haiku. `knowledge_cutoff` is one column, and the next
+person will assume it means training data, because most providers publish
+only that.
+
+**It means the reliable cutoff.** The column exists so the answer path can
+reason about what a model actually knows, and the reliable cutoff is the
+honest answer to that question. The training cutoff overstates it, and
+**overstating what a model knows is the error that costs somebody a wrong
+recommendation.**
+
+**Exact edit** — comment only, no DDL:
+
+```sql
+  -- The RELIABLE knowledge cutoff, not the training-data cutoff, where a
+  -- provider publishes both. They differ: Claude Haiku 4.5 is Feb 2025
+  -- reliable and Jul 2025 training. The answer path uses this to reason
+  -- about what a model knows, and overstating that costs a wrong
+  -- recommendation.
+  knowledge_cutoff            date,
+```
+
+---
+
+## Item 18 · The schema cannot express tiered pricing
+
+Gemini 2.5 Pro is priced by input length:
+
+| | ≤ 200k tokens | > 200k tokens |
+|---|---|---|
+| input | $1.25 | **$2.50** |
+| output | $10.00 | **$15.00** |
+| cached read | $0.125 | $0.25 |
+
+`price_in` is a single `numeric(12,6)`. **All three of Gemini 2.5 Pro's
+prices have been removed rather than picking a tier**, and that is the whole
+of the model's pricing gone.
+
+Taking the cheap tier would understate cost by 2x on exactly the
+long-context tasks the board exists to get right — FR-31 already exists
+because advertised context overstates usable context, and a cost model that
+silently halves the price above 200k is a **false qualification**, which §9
+names as the worst possible output.
+
+Tiered pricing is not exotic. Any provider may add it, and the poller will
+meet it from week 5.
+
+**Proposed shape, not built** — this is DDL on a shared table and Engineer
+2's cost logic reads it:
+
+```sql
+CREATE TABLE price_tier (
+  model_version_id  text NOT NULL REFERENCES model_version(id),
+  dimension         text NOT NULL,   -- input_tokens | output_tokens
+  min_tokens        int NOT NULL DEFAULT 0,
+  max_tokens        int,             -- NULL = no upper bound
+  price             numeric(12,6) NOT NULL,
+  price_cached_read numeric(12,6),
+  sources           jsonb NOT NULL,
+  PRIMARY KEY (model_version_id, dimension, min_tokens),
+  CONSTRAINT price_tier_dimension_ck CHECK (dimension IN ('input_tokens','output_tokens'))
+);
+```
+
+`model_version.price_in` then means *the rate at the lowest tier*, or stays
+NULL when tiers exist, and Q6 reads `price_tier` when a row is present. Which
+of those two it is needs deciding with the cost logic, not against it.
+
+---
+
+## Item 20 · `reported_context` has no `provenance` column · **PROPOSED, NOT APPLIED**
+
+`cell` carries `provenance text NOT NULL CHECK (provenance IN ('harvested',
+'hand_curated'))` so that hand-written fixtures cannot render identically to
+harvested evidence, and so week 8 can delete them by that column.
+`reported_context` carries no such column, and it should.
+
+**Why it is worse here than the case it mirrors.** `reported_context` feeds
+**FR-31, a hard filter**: the answer path matches against `reported_low`,
+never the advertised window. A fabricated `reported_low` silently excludes
+qualified models from every long-context recommendation, and nothing ever
+surfaces why.
+
+> A wrong `cell` shows up as a phrase somebody can read and disagree with.
+> **A wrong `reported_low` shows up as an absence**, and nobody audits a
+> model that was never in the list.
+
+This is not hypothetical. Item 19 tempts exactly this: the advertised figure
+is sourced, no source gives a threshold, and the shortest path to a working
+context-gap fixture is to hand-seed a `reported_low`. With no `provenance`
+column that hand-seeded integer is permanent and undetectable.
+
+**Exact edit** — in `contract/tables.sql`:
+
+```sql
+CREATE TABLE reported_context (
+  model_version_id text PRIMARY KEY REFERENCES model_version(id),
+  advertised       int,
+  reported_low     int,
+  reported_high    int,
+  quote_ids        text[],
+
+  -- FR-31 reads reported_low as a HARD FILTER, so a hand-seeded value
+  -- silently excludes models from every long-context recommendation and
+  -- shows up as an absence rather than as a claim anyone can read.
+  -- Same guard as cell.provenance, for a stronger reason.
+  provenance       text NOT NULL DEFAULT 'harvested',
+
+  computed_at      timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT reported_context_provenance_ck
+    CHECK (provenance IN ('harvested', 'hand_seeded'))
+);
+```
+
+**And the startup assertion has to check it.** `assert_no_fixtures()`
+currently counts seeded `model_version` rows and hand-curated `cell` rows.
+Adding the column without extending the assertion leaves the guard the
+column exists to provide:
+
+```python
+seeded    = "SELECT count(*) FROM model_version WHERE provenance = 'seed'"
+handmade  = "SELECT count(*) FROM cell WHERE provenance = 'hand_curated'"
+reported  = "SELECT count(*) FROM reported_context WHERE provenance = 'hand_seeded'"
+```
+
+Engineer 1 will make that change in `collect/registry/assertions.py` in the
+same commit as the DDL, since the two are only useful together.
+
+---
+
+## Item 19 · The context-gap fixture · **ADVERTISED HALF DONE, CONTRADICTING HALF IS WEEK 5**
+
+**Do not read this as unfinished work.** The half that belongs in the seed
+file is done. The other half is evidence, and evidence arrives in week 5.
+
+BUILD-PLAN §3.6 asks for *"at least one with a known advertised-vs-real
+context gap, otherwise the inflation logic sits untested until week 7."*
+That is **two claims with different sourcing requirements**, and the word
+"known" was doing work nobody costed:
+
+| Claim | Where it comes from | State |
+|---|---|---|
+| the advertised figure | a provider page | ✅ **sourced** |
+| the contradiction | harvested practitioner evidence | ⏳ **week 5** |
+
+**`openai/gpt-4.1-mini` satisfies the heuristic.** It carries
+`advertised_context: 1047576`, sourced to OpenAI's own model page. And
+OpenAI acknowledges the gap in its own words:
+
+> "long context performance can degrade as more items are required to be
+> retrieved, or perform complex reasoning that requires knowledge of the
+> state of the entire context"
+>
+> — [OpenAI, GPT-4.1 prompting guide](https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide)
+
+**A provider stating that long-context performance degrades while naming no
+number is this product's thesis in one sentence.** The number only exists
+where people hit it.
+
+Three independent parties report the same thing without producing a
+threshold: [Zep](https://blog.getzep.com/gpt-4-1-and-o4-mini-is-openai-overselling-long-context/)
+measured 56.72% on LongMemEval_S at ~115k-token conversations, *below*
+GPT-4o-mini; ChromaDB's *Context Rot* report covers 18 models including
+GPT-4.1; and the RULER / NIAH-2 / MRCR families agree effective context is
+far shorter than advertised. None gives a figure to seed.
+
+**Why nothing is being seeded.** `reported_context.reported_low` is an
+`int`. Nothing above yields one, so seeding it would mean inventing an
+integer from qualitative reports, which is the same act as inventing a
+source URL — the thing this file just spent a whole pass undoing.
+
+**And the contradiction was never seed data.** The schema already routes it:
+
+```sql
+CREATE TABLE reported_context (
+  advertised int, reported_low int, reported_high int,
+  quote_ids  text[],   -- it comes from CLAIMS
+  ...);
+```
+
+It arrives through `document` → `claim` → `reported_context.quote_ids` like
+every other piece of evidence, at blogs' `base_trust` of 0.90. A blog
+claiming degradation is **not** a registry fact and does not belong in
+`sources`, which is FR-2 provenance.
+
+**Still open, and only this:** `gemini-2.5-flash` lost its
+`advertised_context` because Google publishes no token-limit table on
+`ai.google.dev/gemini-api/docs/models`, its per-model pages, its pricing
+page, or `docs.cloud.google.com`'s Vertex model pages. Restoring it needs a
+Google page that states the figure. That is a documentation problem, not a
+fixture problem, and the fixture no longer depends on it.
+
+> **Read item 20 before acting on this one.** The shortest path to a
+> "working" context-gap fixture is to hand-seed a `reported_low`, and
+> `reported_context` has no `provenance` column to mark it as fabricated.
+
+---
+
 ## Known gaps, recorded but not proposed
 
 Not everything found needs a decision now. These are written down so they are
@@ -564,6 +945,8 @@ not rediscovered.
 
 | Gap | Blocking from | Note |
 |---|---|---|
+| **`tos_notes` placeholders unreviewed** | **Week 2**, the blog adapter | Item 13 ships `REVIEW REQUIRED` as the value so the schema fix is not held hostage to a reading task. `assert_terms_reviewed()` refuses to harvest while the marker survives, so this fails closed rather than quietly. Clearing it means reading GitHub's, Reddit's and each blog host's terms and recording what they say — NFR-5's acceptance |
+| **Reddit access deferred** | **Week 3** | The company holds the account; access requested later. Adapter not being built. Week 3 because FR-6's acceptance is all three adapters returning content, and FR-17's cross-platform identity clustering cannot be tested with one social platform. Blogs, not Reddit, carry the structurally-positive channel FR-6 depends on. Detail in [`phase2-readiness.md`](phase2-readiness.md) §6 |
 | **No jobs table** | **Week 7**, the nightly job chain | `CLAUDE.md` and `pyproject.toml` both record *cron plus a jobs table, no workflow engine*. `contract/tables.sql` defines 24 tables and none is that. Nothing needs it until the nightly chain, but it overlaps with `harvest_run` (item 14) and the two should be designed together rather than separately |
 | **Blog feed list has no home** | Week 2, the blog adapter | Initial list is config, discovered feeds are data. Settle alongside item 13 |
 | **No robots.txt handling** | Week 2, the blog adapter | NFR-5 requires it. `urllib.robotparser` is stdlib, so no dependency. Collection lane's own work, not a contract item |

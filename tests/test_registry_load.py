@@ -26,9 +26,19 @@ def test_row_id_is_derived_from_the_canonical_id():
 
 def test_sources_are_serialised_as_url_and_date():
     by_id = {m.canonical_id: m for m in _models()}
-    sources = model_row(by_id["mistral/mistral-large-2411"])["sources"]
+    sources = model_row(by_id["openai/gpt-4.1-mini"])["sources"]
     assert sources["price_in"]["url"].startswith("https://")
-    assert sources["price_in"]["retrieved_at"] == "2026-08-12"
+    assert sources["price_in"]["retrieved_at"] == "2026-08-13"
+    assert sources["price_in"]["provider_page"] is True
+
+
+def test_a_retired_model_has_no_price_rather_than_an_unknown_one():
+    """mistral-large-2411 retired 2025-03-30, so there is no current price."""
+    by_id = {m.canonical_id: m for m in _models()}
+    row = model_row(by_id["mistral/mistral-large-2411"])
+    assert row["price_in"] is None
+    assert row["lifecycle"] == "retired"
+    assert row["retirement_date"] is not None
 
 
 def test_slot_is_seed_bookkeeping_and_never_written():

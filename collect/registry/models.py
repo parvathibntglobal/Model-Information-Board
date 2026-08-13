@@ -66,6 +66,15 @@ class SourceRef(BaseModel):
     url: str
     retrieved_at: date
 
+    #: False when the value was read off a third party rather than the
+    #: provider's own page. Third-party prices go stale silently, so a cost
+    #: estimate built on one decays without any signal.
+    #:
+    #: Replaces a bare `#` at end of line in the YAML, which carried the same
+    #: meaning but which no loader could read — and which had already drifted
+    #: out of agreement with the URLs it annotated.
+    provider_page: bool = True
+
     @field_validator("url")
     @classmethod
     def _http_url(cls, v: str) -> str:

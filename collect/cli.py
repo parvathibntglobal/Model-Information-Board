@@ -78,9 +78,11 @@ def _cmd_registry_recompute_window(args: argparse.Namespace) -> int:
 
     with transaction() as conn:
         counts = recompute_window(conn)
+    computed = counts["in_window"] - counts["assumed_in_window"]
     print(
-        f"window   : {counts['changed']} changed, {counts['in_window']} in window, "
-        f"{counts['out_of_window']} outside"
+        f"window   : {counts['changed']} changed, {counts['in_window']} in window "
+        f"({computed} computed, {counts['assumed_in_window']} assumed from a missing "
+        f"release date), {counts['out_of_window']} outside"
     )
     return 0
 

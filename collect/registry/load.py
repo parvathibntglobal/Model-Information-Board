@@ -223,9 +223,20 @@ class LoadReport:
         return "\n".join(lines)
 
 
-def _sources_json(model: SeedModel) -> dict[str, dict[str, str]]:
+def _sources_json(model: SeedModel) -> dict[str, dict[str, Any]]:
+    """FR-2's `{field: {url, retrieved_at}}`, plus whether the URL is a
+    provider page.
+
+    `provider_page` reaches the database rather than staying in the YAML,
+    because a cost estimate built on a third-party price decays silently and
+    the answer path has no other way to know.
+    """
     return {
-        field_name: {"url": ref.url, "retrieved_at": ref.retrieved_at.isoformat()}
+        field_name: {
+            "url": ref.url,
+            "retrieved_at": ref.retrieved_at.isoformat(),
+            "provider_page": ref.provider_page,
+        }
         for field_name, ref in model.sources.items()
     }
 
@@ -479,10 +490,21 @@ def recompute_window(
 
     inside = conn.execute("SELECT count(*) FROM model_version WHERE in_window").fetchone()
     outside = conn.execute("SELECT count(*) FROM model_version WHERE NOT in_window").fetchone()
+
+    # `in_window` for a model with no release date is an ASSUMPTION, not a
+    # computation: FR-1 makes a missing model the worse error, so absence
+    # resolves to "in". Reporting it inside the in-window count would let the
+    # roster assert a window it cannot compute, which is exactly the shape of
+    # gap the coverage page exists to show.
+    assumed = conn.execute(
+        "SELECT count(*) FROM model_version WHERE in_window AND release_date IS NULL"
+    ).fetchone()
+
     return {
         "changed": changed,
         "in_window": int(inside[0]) if inside else 0,
         "out_of_window": int(outside[0]) if outside else 0,
+        "assumed_in_window": int(assumed[0]) if assumed else 0,
     }
 
 
@@ -537,7 +559,7 @@ def _sync_alias(conn: psycopg.Connection[Any], alias: AliasRow) -> str:
             (_close_at(row["valid_from"], alias.valid_from), row["id"]),
         )
 
-    conn.execute(
+    cur = conn.execute(
         "INSERT INTO model_alias (id, surface, normalized, variants, provider_hint, "
         "model_version_id, family, specificity, valid_from, valid_until, confidence) "
         "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
@@ -556,6 +578,14 @@ def _sync_alias(conn: psycopg.Connection[Any], alias: AliasRow) -> str:
             alias.confidence,
         ),
     )
+
+    # The rowcount matters. The live-row query above only sees rows with
+    # `valid_until IS NULL`, so an alias belonging to a RETIRED model is
+    # never "live" and this function would otherwise report a fresh insert
+    # on every run while ON CONFLICT quietly did nothing. Reporting writes
+    # that did not happen is how a load report stops being worth reading.
+    if cur.rowcount == 0:
+        return "unchanged"
     return "replaced" if superseded else "inserted"
 
 

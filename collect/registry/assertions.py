@@ -32,6 +32,55 @@ class UnversionedConfigError(RuntimeError):
     """Policy came from built-in defaults rather than versioned config."""
 
 
+class TermsNotReviewedError(RuntimeError):
+    """A source's terms of service were never reviewed (NFR-5)."""
+
+
+def assert_terms_reviewed(sources, *, marker: str = "REVIEW REQUIRED") -> None:
+    """Refuse to harvest from a source whose terms nobody has read (NFR-5).
+
+    `contract/sources.yaml` ships `tos_notes` placeholders so the `source`
+    rows can exist, which unblocks FR-9's foreign key without pretending a
+    reading task has been done. The placeholder says so in the value itself.
+
+    But a placeholder a human has to notice is a lie you will eventually
+    forget. NFR-5's acceptance is that terms are *reviewed and recorded per
+    source*, so one surviving to first harvest is a requirement failure, and
+    it should stop the run rather than be discovered afterwards.
+
+    Same shape and same reasoning as `assert_no_fixtures` and
+    `assert_contract_backed`: a development convenience needs a hard expiry,
+    or it is just a second source of truth with better manners.
+
+    Args:
+        sources: an iterable of objects or mappings carrying `id` and
+            `tos_notes`.
+        marker: the placeholder string, from `sources.yaml:review_marker`.
+
+    Raises:
+        TermsNotReviewedError: naming every source still unreviewed.
+    """
+    unreviewed = []
+    for source in sources:
+        if isinstance(source, dict):
+            source_id = source.get("id", "?")
+            notes = source.get("tos_notes") or ""
+        else:
+            source_id = getattr(source, "id", "?")
+            notes = getattr(source, "tos_notes", "") or ""
+        if marker in notes:
+            unreviewed.append(source_id)
+
+    if unreviewed:
+        raise TermsNotReviewedError(
+            f"Refusing to harvest: {len(unreviewed)} source(s) still carry the "
+            f"{marker!r} placeholder in tos_notes: {', '.join(sorted(unreviewed))}. "
+            "NFR-5 requires the terms be reviewed and recorded per source before "
+            "any request is made. Read them, record what they say in "
+            "contract/sources.yaml, and re-run."
+        )
+
+
 def assert_contract_backed(policy: RegistryPolicy, *, environment: str) -> None:
     """Refuse to start on built-in defaults outside development (NFR-10).
 

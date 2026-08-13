@@ -143,9 +143,18 @@ CREATE TABLE document (
   fetched_at              timestamptz NOT NULL DEFAULT now(),
   lang                    text,
 
-  text_ref                text NOT NULL,          -- pointer into the raw store;
-                                                  -- full text is retained privately,
-                                                  -- never republished
+  -- `text_ref` LOCATES the payload; `content_hash` IDENTIFIES it. They are
+  -- separate columns because NFR-6 requires the hash to outlive the bytes:
+  -- "tombstone a document; its quotes vanish next run, only the content hash
+  -- remains" only parses if the two are separable. Storage can therefore move
+  -- (filesystem now, an object store later) without rewriting identity.
+  --
+  --   text_ref      "raw/sha256/ab/cd/abcd...ef"   see collect/rawstore.py
+  --   content_hash  "abcd...ef"
+  --
+  -- Full text is retained privately for verification and reprocessing. It is
+  -- never republished: published content is quote + attribution + link.
+  text_ref                text NOT NULL,
   content_hash            text NOT NULL,
 
   -- length-aware near-duplicate detection: simhash is unstable below ~200 tokens
@@ -195,7 +204,10 @@ CREATE TABLE thread_context (
   thread_root_id      text NOT NULL,
   member_document_ids text[] NOT NULL,   -- root + the 3–5 selected children
 
-  flattened_text_ref  text NOT NULL,     -- pointer into the raw store
+  -- Same convention as document.text_ref: a location, not a hash. Uses the
+  -- `flattened/` namespace of the same store, which is a regenerable cache —
+  -- raw/ is irreplaceable, flattened/ can be dropped and rebuilt.
+  flattened_text_ref  text NOT NULL,
 
   -- SEGMENTS, NOT WHOLE COMMENTS.
   --
@@ -489,5 +501,95 @@ CREATE TABLE watermark (
   query_key       text NOT NULL,
   last_run_at     timestamptz,
   cursor          text,
+
+  -- FR-9's acceptance is "resumes with no gap and no REFETCH". A cursor alone
+  -- cannot say whether a query paused mid-pagination or reached the end of
+  -- its results, and on resume the first must be continued while the second
+  -- must not.
+  exhausted       boolean NOT NULL DEFAULT false,
+
   PRIMARY KEY (source_id, query_key)
 );
+
+
+-- ============================================================================
+--  HARVEST RUNS — one row per source, per query, per run. collect/ fills it.
+--
+--  Serves three requirements that would otherwise each need their own place:
+--    FR-9   whether a query finished or paused mid-pagination
+--    FR-10  yield HISTORY, so a drop is visible as a drop. `source.last_yield`
+--           holds one number with nothing to compare it against, and
+--           collect/CLAUDE.md requires a 14-day burn-in before the related
+--           alert arms for exactly that reason.
+--    FR-11  truncation by a budget cap, named rather than silent
+-- ============================================================================
+
+CREATE TABLE harvest_run (
+  id               text PRIMARY KEY,
+  source_id        text NOT NULL REFERENCES source(id),
+  query_key        text NOT NULL,   -- matches watermark.query_key
+
+  started_at       timestamptz NOT NULL DEFAULT now(),
+  finished_at      timestamptz,
+
+  items_fetched    int NOT NULL DEFAULT 0,
+  items_kept       int NOT NULL DEFAULT 0,   -- FR-10: the yield figure
+  http_errors      int NOT NULL DEFAULT 0,
+
+  -- NULL while running; false when paused mid-pagination; true when the query
+  -- reached the end of its results and must not be resumed.
+  exhausted        boolean,
+
+  -- FR-11. NULL when the harvest ran to completion. Naming the cap that cut
+  -- it short is what stops silent truncation reading as "we looked
+  -- everywhere" when we did not. Closed set on purpose: FR-11's acceptance is
+  -- a check, and a check over arbitrary strings is not one.
+  truncated_by     text,
+
+  pipeline_version text NOT NULL,
+
+  CONSTRAINT harvest_run_truncated_ck
+    CHECK (truncated_by IS NULL OR truncated_by IN ('query-budget', 'rate-limit',
+                                                    'time-budget', 'extraction-budget'))
+);
+CREATE INDEX harvest_run_source_query_idx
+  ON harvest_run (source_id, query_key, started_at DESC);
+CREATE INDEX harvest_run_truncated_idx ON harvest_run (truncated_by)
+  WHERE truncated_by IS NOT NULL;
+
+
+-- ============================================================================
+--  COVERAGE — what the board does not know.
+--  collect/ fills this. judge/ reads it for the coverage page.
+--
+--  Gaps that live only in CLI output become permanent the first time somebody
+--  scripts the load. FR-11's principle generalises past budget caps: a gap
+--  nobody can see reads as "we looked everywhere" when we did not.
+-- ============================================================================
+
+CREATE TABLE coverage_gap (
+  id               text PRIMARY KEY,
+  kind             text NOT NULL,
+  subject          text NOT NULL,   -- canonical_id. Deliberately NOT a foreign
+                                    -- key: a gap can concern a model that is
+                                    -- not in the registry, which is itself one
+                                    -- of the things worth reporting.
+  detail           text NOT NULL,
+  observed_at      timestamptz NOT NULL DEFAULT now(),
+  pipeline_version text NOT NULL,   -- every derived row carries one, so a
+                                    -- reporting change is re-runnable
+
+  -- An unconstrained `kind` is how a fifth gap type gets added later without
+  -- the coverage page knowing it exists. Adding one is then a deliberate
+  -- contract change with a review attached.
+  CONSTRAINT coverage_gap_kind_ck CHECK (kind IN (
+    'unsourced-field',
+    'missing-spelling',
+    'out-of-window',
+    'unknown-release-date'
+  )),
+
+  -- A nightly re-run must not multiply the same gap.
+  CONSTRAINT coverage_gap_unique UNIQUE (kind, subject, detail, pipeline_version)
+);
+CREATE INDEX coverage_gap_kind_idx ON coverage_gap (kind);

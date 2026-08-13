@@ -53,16 +53,19 @@ def conn(test_dsn):
 
 
 def _load(connection, **kwargs):
-    """Load the seed with both known contract gaps waived.
+    """Load the seed with the one remaining contract gap waived.
 
-    `strict_sources` and `strict_spelling` are off because the seed file
-    ships with a documented FR-2 gap and a missing concatenated form for
-    `deepseek-v4-flash`, both of which are sign-off items on a contract PR
-    this lane must not write. The gaps are still recorded in the report.
+    `strict_spelling` is now ON: sign-off item 10 landed, so every model
+    declares all three renderings and the gate passes.
+
+    `strict_sources` stays off because 90 populated fields still carry no
+    source. That is sign-off item 16, and it needs somebody with provider
+    pages open rather than a code change. The gap is still recorded in the
+    report.
     """
     from collect.registry.load import load_seed
 
-    report = load_seed(connection, strict_sources=False, strict_spelling=False, **kwargs)
+    report = load_seed(connection, strict_sources=False, strict_spelling=True, **kwargs)
     connection.commit()
     return report
 
@@ -74,9 +77,9 @@ def _scalar(connection, sql, params=()):
 
 def test_schema_applies_and_seeds_ten_models(conn):
     report = _load(conn)
-    assert report.models_inserted == 10
-    assert _scalar(conn, "SELECT count(*) FROM model_version") == 10
-    assert _scalar(conn, "SELECT count(*) FROM model_version WHERE provenance='seed'") == 10
+    assert report.models_inserted == 11
+    assert _scalar(conn, "SELECT count(*) FROM model_version") == 11
+    assert _scalar(conn, "SELECT count(*) FROM model_version WHERE provenance='seed'") == 11
 
 
 def test_reloading_changes_nothing(conn):
@@ -84,7 +87,7 @@ def test_reloading_changes_nothing(conn):
     second = _load(conn)
     assert second.models_inserted == 0
     assert second.models_updated == 0
-    assert second.models_unchanged == 10
+    assert second.models_unchanged == 11
     assert second.aliases_inserted == 0
 
 
@@ -278,12 +281,12 @@ def test_a_bare_family_alias_resolves_at_family_specificity(conn):
 
 def test_new_models_raise_an_event(conn):
     _load(conn)
-    assert _scalar(conn, "SELECT count(*) FROM model_event WHERE type='new-model'") == 10
+    assert _scalar(conn, "SELECT count(*) FROM model_event WHERE type='new-model'") == 11
 
 
 def test_first_load_records_a_price_baseline(conn):
     _load(conn)
-    assert _scalar(conn, "SELECT count(*) FROM pricing_history") == 10
+    assert _scalar(conn, "SELECT count(*) FROM pricing_history") == 7
     # a baseline is not a change
     assert _scalar(conn, "SELECT count(*) FROM model_event WHERE type='price-change'") == 0
 
@@ -325,7 +328,7 @@ def test_an_oscillating_price_produces_one_event_per_move(conn, tmp_path):
         _load(conn, path=_seed_priced_at(tmp_path, price, str(index)), as_of=AS_OF)
 
     assert _scalar(conn, "SELECT count(*) FROM model_event WHERE type='price-change'") == 4
-    assert _scalar(conn, "SELECT count(*) FROM pricing_history") == 14  # 10 baseline + 4
+    assert _scalar(conn, "SELECT count(*) FROM pricing_history") == 11  # 10 baseline + 4
 
 
 def test_a_price_that_does_not_move_raises_nothing(conn, tmp_path):
@@ -343,13 +346,36 @@ def test_every_event_has_a_distinct_id(conn, tmp_path):
 
     ids = [r[0] for r in conn.execute("SELECT id FROM model_event").fetchall()]
     assert len(ids) == len(set(ids))
-    assert len(ids) == 14  # 10 new-model + 4 price-change
+    assert len(ids) == 15  # 11 new-model + 4 price-change
 
 
-def test_every_event_carries_an_occurred_at(conn, tmp_path):
+def test_every_price_event_carries_an_occurred_at(conn, tmp_path):
+    """A price change always has one: it is the observation that revealed it."""
     _load(conn, as_of=AS_OF)
     _load(conn, path=_seed_priced_at(tmp_path, "9.99", "x"), as_of=AS_OF)
-    assert _scalar(conn, "SELECT count(*) FROM model_event WHERE occurred_at IS NULL") == 0
+    assert (
+        _scalar(
+            conn,
+            "SELECT count(*) FROM model_event WHERE type='price-change' "
+            "AND occurred_at IS NULL",
+        )
+        == 0
+    )
+
+
+def test_a_new_model_event_has_no_occurred_at_without_a_release_date(conn):
+    """`occurred_at` for a new model is its release date, and five providers
+    publish none, so five events legitimately carry NULL.
+
+    Inventing a timestamp here would be the same error as inventing a source:
+    it would claim we know when something happened when we do not.
+    """
+    _load(conn, as_of=AS_OF)
+    null_events = _scalar(
+        conn, "SELECT count(*) FROM model_event WHERE type='new-model' AND occurred_at IS NULL"
+    )
+    unsourced = sum(1 for m in load_seed_file().models if m.release_date is None)
+    assert null_events == unsourced == 5
 
 
 def test_a_price_events_occurred_at_is_the_observation_that_revealed_it(conn, tmp_path):
@@ -377,7 +403,7 @@ def test_a_new_model_event_occurred_when_the_model_was_released(conn):
         "ON m.id = e.model_version_id WHERE e.type='new-model' AND m.canonical_id=%s",
         (FLASH,),
     )
-    assert occurred == date(2025, 5, 19)
+    assert occurred == date(2025, 6, 17)
 
 
 def test_the_event_payload_carries_the_values(conn, tmp_path):
@@ -411,7 +437,7 @@ def test_a_missing_history_row_is_not_reported_as_a_price_change(conn):
     assert [e for e in report.events if e[0] == "price-change"] == []
     assert _scalar(conn, "SELECT count(*) FROM model_event WHERE type='price-change'") == 0
     # the baseline is still rebuilt, so the audit trail recovers
-    assert _scalar(conn, "SELECT count(*) FROM pricing_history") == 10
+    assert _scalar(conn, "SELECT count(*) FROM pricing_history") == 7
 
 
 def test_a_model_with_no_prices_gets_no_all_null_history_row(conn):
@@ -438,7 +464,7 @@ def test_a_model_with_no_prices_gets_no_all_null_history_row(conn):
         "price_cached_read": None,
     }
     assert _record_prices(conn, row) is None
-    assert _scalar(conn, "SELECT count(*) FROM pricing_history") == 9
+    assert _scalar(conn, "SELECT count(*) FROM pricing_history") == 6
 
 
 def test_a_moved_price_is_detected_and_recorded(conn):
@@ -460,7 +486,8 @@ def test_a_moved_price_is_detected_and_recorded(conn):
     assert report.models_updated == 1
     assert any(event == "price-change" for event, _ in report.events)
     assert _scalar(conn, "SELECT count(*) FROM model_event WHERE type='price-change'") == 1
-    assert _scalar(conn, "SELECT count(*) FROM pricing_history") == 12
+    # 7 baseline rows, plus the one this test inserted by hand, plus the move
+    assert _scalar(conn, "SELECT count(*) FROM pricing_history") == 9
 
 
 # ── provenance: polling is never downgraded back to seed ──────────────────
@@ -583,7 +610,7 @@ def test_the_loader_never_updates_in_window(conn):
 def test_the_loader_still_seeds_in_window_on_insert(conn):
     """The column is NOT NULL, so a fresh row needs a value immediately."""
     _load(conn, as_of=AS_OF)
-    assert _scalar(conn, "SELECT count(*) FROM model_version WHERE NOT in_window") == 3
+    assert _scalar(conn, "SELECT count(*) FROM model_version WHERE NOT in_window") == 2
 
 
 def test_recompute_window_is_the_writer(conn):
@@ -594,9 +621,25 @@ def test_recompute_window_is_the_writer(conn):
     counts = recompute_window(conn, as_of=AS_OF)
     conn.commit()
 
-    assert counts["changed"] == 3
-    assert counts["out_of_window"] == 3
-    assert counts["in_window"] == 7
+    assert counts["changed"] == 2
+    assert counts["out_of_window"] == 2
+    assert counts["in_window"] == 9
+
+
+def test_recompute_window_separates_computed_from_assumed(conn):
+    """Half the in-window roster is an assumption, and it must say so.
+
+    A model with no release date resolves to in-window because FR-1 makes a
+    missing model the worse error. Folding those into one count would let the
+    roster assert a window it cannot compute.
+    """
+    _load(conn, as_of=AS_OF)
+    counts = recompute_window(conn, as_of=AS_OF)
+    conn.commit()
+
+    assert counts["in_window"] == 9
+    assert counts["assumed_in_window"] == 5  # no release date published
+    assert counts["in_window"] - counts["assumed_in_window"] == 4  # actually computed
 
 
 def test_recompute_window_is_idempotent(conn):
@@ -611,11 +654,11 @@ def test_recompute_window_moves_with_the_date(conn):
     _load(conn, as_of=AS_OF)
     recompute_window(conn, as_of=date(2026, 7, 1))
     conn.commit()
-    assert _scalar(conn, "SELECT count(*) FROM model_version WHERE NOT in_window") == 2
+    assert _scalar(conn, "SELECT count(*) FROM model_version WHERE NOT in_window") == 1
 
     recompute_window(conn, as_of=AS_OF)
     conn.commit()
-    assert _scalar(conn, "SELECT count(*) FROM model_version WHERE NOT in_window") == 3
+    assert _scalar(conn, "SELECT count(*) FROM model_version WHERE NOT in_window") == 2
 
 
 def test_production_refuses_to_start_on_seeded_rows(conn):

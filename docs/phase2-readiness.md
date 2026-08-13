@@ -20,20 +20,16 @@
 Nothing here needs deciding today except the credentials, which take longer to
 obtain than to use.
 
-> ### Running the seed loader on this branch
->
-> **`registry load-seed` needs two flags, not one:**
+> ### Running the seed loader
 >
 > ```
-> python -m collect.cli registry load-seed --allow-unsourced --allow-missing-spellings
+> python -m collect.cli registry load-seed --allow-unsourced
 > ```
 >
-> The FR-2 source gate runs **before** the spelling gate, so
-> `--allow-missing-spellings` alone still fails, and it fails with a message
-> about *sources* — which reads like the wrong problem and sends you to the
-> wrong file. Both gates are unapplied contract fixes, not code defects, and
-> both clear when sign-off items 5 to 7 and 10 land. Full exit-code matrix in
-> §7.
+> **One flag.** Sign-off item 10 landed, so the spelling gate passes.
+> `--allow-unsourced` is still needed and will be until **item 16**: 90
+> populated fields carry no source. That is a data task, not a code defect.
+> Full exit-code matrix in §7.
 >
 > Separately: **`registry check-sources` exits 1 by design.** The exit code is
 > the gap signal. Do not wire it into CI as a pass/fail step without knowing
@@ -55,10 +51,15 @@ requests per minute, authenticated is 30. At the current budget of 648 queries
 per platform (see the defect report, defect 6), that is 22 minutes
 authenticated against 65 unauthenticated.
 
-### Reddit — `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`
+### Reddit — `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` · **DEFERRED**
 
-A **script** app registered at `reddit.com/prefs/apps`. Both values appear on
-that page immediately after creation.
+> **Not being obtained now.** The company holds the account; access will be
+> requested later. The adapter is not being built and its absence is not a
+> blocker until **week 3**. See §6 for why week 3 and not week 8.
+
+Recorded for when access arrives. A **script** app registered at
+`reddit.com/prefs/apps`. Both values appear on that page immediately after
+creation.
 
 **No username or password variable is proposed**, and this is a decision worth
 confirming rather than assuming. Reddit's OAuth offers an application-only
@@ -325,6 +326,38 @@ concern. `collect/ids.py::content_hash` already provides the addressing.
 
 Small, and needed first.
 
+### Reddit access is deferred · blocking from **week 3**
+
+The company holds the Reddit account, and access will be requested once the
+project is further along. **Do not build the Reddit adapter, and do not treat
+its absence as a blocker before week 3.**
+
+Two things make week 3 the deadline rather than week 8:
+
+- **FR-6's acceptance is all three adapters returning content.** Two out of
+  three does not pass it.
+- **FR-17 needs real cross-platform data to test against.** Cross-platform
+  author identity clustering exists precisely because one engineer posting to
+  GitHub and Reddit would otherwise satisfy the two-platform publication rule
+  alone — the exact condition that rule prevents. That cannot be exercised, or
+  even honestly measured, with a single social platform in the corpus.
+
+> **Blogs, not Reddit, carry the structurally-positive channel.** Nobody opens
+> a GitHub issue to report that summarisation worked, so GitHub is
+> structurally negative. Blogs are what make positive consensus on a
+> silent-failure capability reachable at all, and without them the advisor can
+> never approve a cheaper summariser — the single recommendation this product
+> exists to make. Reddit's role is comparison and nuance, which is real but
+> not load-bearing in the same way. **That is why deferring Reddit costs less
+> than deferring blogs would**, and it should not be read as the three
+> adapters being interchangeable.
+
+Until access arrives, `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET` stay
+unset. The `reddit` entry in the proposed `contract/sources.yaml` (sign-off
+item 13) can still be written, since it records trust weight and terms rather
+than credentials, but its ToS review is the thing to do when access is
+requested rather than now.
+
 ### No jobs table
 
 `pyproject.toml` and `CLAUDE.md` both record the decision: *cron plus a jobs
@@ -359,25 +392,22 @@ easy to defer past the point where content has already been fetched.
 
 ## 7 · What Engineer 2 hits on first running this branch
 
-`check_spelling_coverage` fails on the real seed file, because
-`deepseek-v4-flash` declares no concatenated form (sign-off item 10). Measured
-exit codes, so nobody has to guess:
+Measured exit codes, so nobody has to guess:
 
 | Command | Exit | Fails on |
 |---|---|---|
 | `registry load-seed` | 1 | `SourceCoverageError` |
-| `registry load-seed --allow-unsourced` | 1 | `SpellingCoverageError` |
+| **`registry load-seed --allow-unsourced`** | **0** | — |
 | `registry load-seed --allow-missing-spellings` | 1 | `SourceCoverageError` |
-| **`registry load-seed --allow-unsourced --allow-missing-spellings`** | **0** | — |
 | `registry load-seed --dry-run` | 0 | — |
 | `registry check-sources` | 1 | by design; it reports the gap |
 | `registry aliases` | 0 | — |
 | `registry recompute-window` | 0 | — |
 | `db init` | 0 | — |
 
-**Both flags are needed, not just the spelling one.** The FR-2 source gate
-runs first, so `--allow-missing-spellings` alone still fails — and it fails
-with a message about sources, which reads like the wrong problem.
+**One flag, not two.** Item 10 landed, so the spelling gate passes. The
+source gate remains, and `--allow-missing-spellings` does nothing for it —
+that flag now has no effect on the seed file at all.
 
 `check_spelling_coverage` has exactly one caller: `load_seed(strict_spelling=True)`.
 Nothing else in the codebase touches it. The dry-run path builds rows without

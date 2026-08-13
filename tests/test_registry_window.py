@@ -21,11 +21,25 @@ from collect.registry.window import in_window, window_report, window_start
 AS_OF = date(2026, 8, 12)
 BOUNDARY = date(2025, 2, 12)
 
-#: Expected at AS_OF with an 18 month window. Three of the ten are outside.
+#: Expected at AS_OF with an 18 month window.
+#:
+#: Two of the eleven are outside. `mistral-large-2411` used to be a third,
+#: but the 2026-08-13 sourcing pass removed its release_date: Mistral does
+#: not publish one, and an unsourced date is a claim with nothing behind it.
+#: It is therefore counted in-window and flagged as unknown, which is the
+#: safe direction under FR-1 and a visible gap rather than a quiet guess.
 EXPECTED_OUT = {
-    "mistral/mistral-large-2411",  # 2024-11-18
     "deepseek/deepseek-v3",  # 2024-12-26
     "deepseek/deepseek-r1",  # 2025-01-20, 23 days the wrong side
+}
+
+#: Providers that publish no release date at all.
+EXPECTED_UNKNOWN = {
+    "anthropic/claude-opus-5",
+    "anthropic/claude-sonnet-5",
+    "anthropic/claude-haiku-4-5-20251001",
+    "mistral/mistral-large-2411",
+    "deepseek/deepseek-v4-flash",
 }
 
 
@@ -89,7 +103,7 @@ def test_window_length_is_honoured():
 # ── against the real seed file ────────────────────────────────────────────
 
 
-def test_exactly_three_seeded_models_fall_outside_the_window():
+def test_exactly_two_seeded_models_fall_outside_the_window():
     outside = {
         m.canonical_id
         for m in _models()
@@ -110,35 +124,38 @@ def test_in_window_moves_with_as_of():
     assert model_row(r1, as_of=AS_OF)["in_window"] is False
 
 
-def test_the_open_weight_slot_leaves_the_window():
-    """The open-weight fixture is outside the window, so that slot is untested.
+def test_the_open_weight_slot_is_now_covered():
+    """Sign-off item 8, applied.
 
-    A fixture problem, not a code one, recorded here so it cannot live only
-    in a conversation. **This test is designed to fail once the fixture is
-    fixed**, and its failure message says so, because the alternative is the
-    next person reading a red test as a regression and reverting the fix.
+    `deepseek-v3` fell outside the window, so the open-weight slot existed
+    but tested nothing. `mistral-large-3` is Apache 2.0, released after the
+    boundary, and the direct successor to the retired `mistral-large-2411`.
     """
     open_weight = [m for m in _models() if m.slot == "open-weight"]
-    assert len(open_weight) == 1, (
-        f"expected exactly one open-weight fixture, found {len(open_weight)}: "
-        f"{[m.canonical_id for m in open_weight]}"
-    )
-    model = open_weight[0]
-    assert model_row(model, as_of=AS_OF)["in_window"] is False, (
-        f"THIS IS NOT A REGRESSION. The open-weight fixture "
-        f"{model.canonical_id} is now inside the trailing window, which means "
-        f"sign-off item 6 has been actioned and contract/seed_models.yaml now "
-        f"carries an open-weight model released after {BOUNDARY}. This test "
-        f"existed only to keep that gap visible. Delete it."
-    )
+    ids = {m.canonical_id for m in open_weight}
+    assert ids == {"mistral/mistral-large-3", "deepseek/deepseek-v3"}
+
+    live = [m for m in open_weight if model_row(m, as_of=AS_OF)["in_window"]]
+    assert [m.canonical_id for m in live] == ["mistral/mistral-large-3"]
 
 
 def test_window_report_keeps_unknown_release_dates_separate():
-    """An unknown release date is a guess, not a fact, so it is counted apart."""
+    """An unknown release date is a guess, not a fact, so it is counted apart.
+
+    Five of the eleven now have none, because Anthropic, Mistral and DeepSeek
+    do not publish release dates for these models and the sourcing pass
+    removed the unsourced values rather than keeping them.
+    """
     report = window_report(_models(), as_of=AS_OF, months=18)
     assert set(report.out_of_window) == EXPECTED_OUT
-    assert report.unknown == []  # every seeded model states a release date
+    assert set(report.unknown) == EXPECTED_UNKNOWN
     assert len(report.in_window) + len(report.out_of_window) == len(_models())
+
+
+def test_unknown_release_dates_are_counted_in_window():
+    """FR-1 makes a missing model the worse error, so absence does not hide it."""
+    report = window_report(_models(), as_of=AS_OF, months=18)
+    assert set(report.in_window) >= EXPECTED_UNKNOWN
 
 
 def test_an_unknown_release_date_is_counted_in_window_and_flagged():
