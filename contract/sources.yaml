@@ -48,10 +48,39 @@ sources:
     # The failure channel: repro steps, error strings, real schemas. Highest
     # trust precisely because it is structurally negative — nobody opens an
     # issue to report that something worked.
+    # NFR-5 review, recorded 2026-08-13. Four things the placeholder asked for,
+    # in order: terms URL, date read, observed rate limit, republication.
+    #
+    # The fourth is the one that does not reduce to a yes. ToS §D.5 grants other
+    # users a licence to "use, display, perform and reproduce (by forking) Your
+    # Content THROUGH THE SERVICE" — scoped to GitHub itself, so it is not a
+    # grant to republish issue text on our own pages. Quote + attribution + link
+    # therefore stands on short-quotation-with-attribution grounds, not on a
+    # licence from GitHub, and full text stays private. That is what NFR-5
+    # already requires; the point of recording it is that the reason is now on
+    # the record instead of being assumed.
     tos_notes: >-
-      REVIEW REQUIRED before first harvest. Record: the API terms URL, the
-      date read, the observed rate limit, and whether quote-plus-attribution
-      republication is permitted.
+      Reviewed 2026-08-13. Terms: GitHub Terms of Service §H "API Terms"
+      (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service)
+      — "Abuse or excessively frequent requests to GitHub via the API may result
+      in temporary or permanent suspension of your Account's access to the API",
+      and "You may not share API tokens to exceed GitHub's rate limitations".
+      Acceptable Use Policies §7 Information Usage Restrictions
+      (https://docs.github.com/en/site-policy/acceptable-use-policies/github-acceptable-use-policies)
+      — "Scraping does not refer to the collection of information through our
+      API", so our access path is the API and the scraping restrictions do not
+      govern it. RATE LIMITS observed 2026-08-13 via GET /rate_limit on the
+      harvest token: core 5,000/hour, search 30/minute, graphql 5,000/hour;
+      documented REST limit is "5,000 requests per hour" and the search
+      endpoints are documented as "more restrictive" without a figure, so the
+      observed 30/minute is the number to budget against.
+      REPUBLICATION: not granted by the terms. §D.5's licence to "use, display,
+      perform and reproduce (by forking) Your Content" is scoped "through the
+      Service", which is GitHub, not us. We publish quote + attribution + link
+      only, on short-quotation grounds; full text is retained privately for
+      verification and reprocessing and is never republished (NFR-5). One
+      identified User-Agent with a contact URL, conservative rate limits, no
+      token sharing.
 
   - id: blogs
     platform: blog

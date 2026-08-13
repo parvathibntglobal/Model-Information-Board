@@ -50,15 +50,39 @@ def test_every_source_has_tos_notes():
 # ── the gate ──────────────────────────────────────────────────────────────
 
 
-def test_the_shipped_placeholders_block_harvest():
-    """The current state: three sources, none reviewed, harvest refused."""
+def test_the_remaining_placeholders_block_harvest():
+    """The current state: github reviewed 2026-08-13, blogs and reddit not.
+
+    This test tracks reality rather than asserting a fixed number, and it should
+    keep failing every time a source is reviewed — that is the point. When the
+    blog source ruling lands, `blogs` leaves this list; reddit leaves it when
+    access is granted and its limits are observed rather than trusted.
+    """
     contract = _contract()
     with pytest.raises(TermsNotReviewedError) as excinfo:
         assert_terms_reviewed(contract["sources"], marker=contract["review_marker"])
 
     message = str(excinfo.value)
-    for source_id in ("github", "blogs", "reddit"):
+    for source_id in ("blogs", "reddit"):
         assert source_id in message
+    assert "github" not in message, "github was reviewed and recorded on 2026-08-13"
+
+
+def test_the_github_review_records_what_the_placeholder_asked_for():
+    """Four things, and the fourth is the one that does not reduce to a yes.
+
+    A note that said "republication permitted" would be wrong: §D.5's licence
+    grant is scoped "through the Service", so it grants GitHub's own product,
+    not us. Recording the reason is what stops the next reader assuming it.
+    """
+    github = next(s for s in _contract()["sources"] if s["id"] == "github")
+    notes = github["tos_notes"]
+
+    assert "Reviewed 2026-08-13" in notes
+    assert "github-terms-of-service" in notes and "acceptable-use-policies" in notes
+    assert "30/minute" in notes and "5,000/hour" in notes
+    assert "not granted by the terms" in notes
+    assert "REVIEW REQUIRED" not in notes
 
 
 def test_the_refusal_cites_the_requirement():
