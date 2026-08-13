@@ -121,10 +121,12 @@ class Role(BaseModel):
     def is_orchestrator(self) -> bool:
         """Never downgrade one without a warning.
 
-        It runs once, so the saving is tiny, and bad decomposition poisons
-        every role beneath it.
+        Two conditions, and both matter. It runs ONCE, so the saving is tiny
+        even at frontier prices. And something DEPENDS on it, so degrading its
+        planning poisons every role beneath — one dependent is enough for that,
+        which is why the threshold is one and not two.
         """
-        return len(self.dependents) >= 2 and self.runs_per_request == 1
+        return bool(self.dependents) and self.runs_per_request == 1
 
 
 class TaskProfile(BaseModel):
