@@ -13,30 +13,44 @@ search. Filtering before fetching is where the cost actually goes away, and it
 turns Engineer 2's `yields_claim_when` argument into a budget saving rather than
 a lament.
 
-A REJECTED DOCUMENT IS STILL STORED, which the ordering hides.
---------------------------------------------------------------
+A REJECTED DOCUMENT IS STILL STORED — FOR THE PAGES THAT WERE STORED.
+---------------------------------------------------------------------
 "Sieve, then fetch" reads as though a rejected hit leaves no trace. It does:
 `search()` writes the search response to `raw/` **before** `harvest()` sieves
 anything, so every rejected hit's title and body are already on disk with the
 rest of its page.
 
 That is what the locality window in `contract/harvest.yaml` rests on. A window
-that turns out too tight is fixed by RE-SIEVING the store, not by re-fetching,
-because the text the sieve rejected is still there. Nobody can see that from
-the call order, and the inference the other way — that rejection discards —
-would make the whole recoverability argument false.
+that turns out too tight is fixed by RE-SIEVING the stored pages, not by
+re-fetching them, because the text the sieve rejected is still there. Nobody
+can see that from the call order, and the inference the other way — that
+rejection discards — would make the whole recoverability argument false.
 
-And the recovery is cheaper than a re-run: re-sieving costs nothing, and a
+Recovery is also cheaper than a re-run: re-sieving costs nothing, and a
 document the new window newly KEEPS costs one targeted REST call for its body.
 It never costs a re-search, which is the rate-limited half — 30/minute against
 core's 5,000/hour.
 
-⚠ ONE LIMIT, and it is real: only **page 1** is stored (`if page == 1` below).
-With `max_pages=1`, the default and what every run so far has used, that is the
-whole result set and the argument holds unqualified. Raise `max_pages` and hits
-from pages 2+ are sieved but never written, so those are recoverable only by
-re-searching. Anyone widening `max_pages` should store every page or knowingly
-accept that the store stops being a complete record of what was considered.
+⚠ THE QUALIFIER IS LOAD-BEARING, so it is in the heading rather than a
+footnote. **Only page 1 is stored** (`if page == 1` below). At `max_pages=1` —
+the default, and every run so far — page 1 IS the result set, so the claim is
+unconditionally true today. Raise `max_pages` and hits from pages 2+ are
+sieved and never written: still filtered, no longer recoverable without a
+re-search.
+
+The unqualified sentence is what a reader infers from this docstring, and the
+inference was made. Writing "recoverable" without "for the pages that were
+stored" is the failure, not raising `max_pages`.
+
+**Storing every page was the other option and was not taken.** It would make
+the limit vanish, but `discovery_ref` is singular and would have to become
+plural, and nothing else wants that. Recording what was stored is the rule 6
+treatment: a re-sieve that can say *"this run stored page 1 of 4"* is a
+re-sieve nobody over-trusts. `pages_fetched` / `pages_stored` on `harvest_run`
+are proposed on issue #5 for exactly that, because documentation reaches
+whoever reads it and not whoever raises `max_pages` at 6pm to clear a
+result-ceiling — which is the obvious move in that moment, and trades
+recoverability away with no signal at all.
 
 TWO ARTIFACTS, SAME SHAPE AS BLOGS
 ----------------------------------

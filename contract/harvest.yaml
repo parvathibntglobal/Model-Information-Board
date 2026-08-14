@@ -151,14 +151,21 @@ cadence_days:
 #                 recoverable; a document never fetched is not. That makes the
 #                 tighter end the cheaper mistake.
 #
-#                 The rejected text really is on disk, which is not visible
-#                 from the adapter's call order: `search()` writes the search
-#                 response to `raw/` BEFORE the sieve runs, so a hit the sieve
-#                 threw away still has its title and body stored. See the
-#                 "A REJECTED DOCUMENT IS STILL STORED" note in
-#                 collect/adapters/github.py, which exists because reading
-#                 "search, sieve, fetch" invites exactly the opposite
-#                 inference and that inference would make this paragraph false.
+#                 The rejected text really is on disk, FOR THE PAGES THAT WERE
+#                 STORED, and that qualifier is part of the claim rather than
+#                 an exception to it. `search()` writes the search response to
+#                 `raw/` BEFORE the sieve runs, so a hit the sieve threw away
+#                 still has its title and body stored — but only page 1 is
+#                 written. At `max_pages=1`, the default and every run so far,
+#                 page 1 IS the result set and this holds unconditionally.
+#                 Raise `max_pages` and pages 2+ are sieved and never stored.
+#
+#                 See the note in collect/adapters/github.py, which exists
+#                 because reading "search, sieve, fetch" invites the opposite
+#                 inference — and it was made. `pages_fetched`/`pages_stored`
+#                 on `harvest_run` are proposed on #5 so a re-sieve can say
+#                 "this run stored page 1 of 4" rather than leaving the reader
+#                 to assume completeness.
 #
 #    reversibility  cheaper than first written here. Moving the window is this
 #                 one line plus a re-sieve, and a re-sieve costs NOTHING: the
@@ -169,12 +176,11 @@ cadence_days:
 #                 recovered document rather than per query, and the tighter
 #                 end is cheaper to be wrong at than this file first claimed.
 #
-#                 Caveat, because the recovery is only as complete as the
-#                 store: only search page 1 is written today. With
-#                 `max_pages=1` — the default, and what every run so far has
-#                 used — that is the whole result set. Raising it without also
-#                 storing later pages would make those hits unrecoverable
-#                 without a re-search.
+#                 The recovery is only ever as complete as the store, so the
+#                 honest form of the claim is "recoverable for the pages that
+#                 were stored" — true unconditionally at today's
+#                 `max_pages=1`, and false the moment that changes without the
+#                 coverage record proposed on #5.
 #
 #  So disagreeing with 1200 is cheap, and nothing measured argues against a
 #  different value in the band.
