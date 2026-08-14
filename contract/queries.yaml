@@ -91,12 +91,48 @@
 #
 #  Per-entry `yields_claim_when` states only what is ADDITIONAL to those three.
 #
-#  POSITIVE QUERIES ARE MANDATORY FOR SILENT-FAILURE CAPABILITIES.
-#  FR-8 requires a negative query for all twelve. The four silent-failure
-#  capabilities need a positive one as well, because "nobody complained" is
-#  not evidence for them — positive consensus is required, and it cannot be
-#  reached by a query set that only looks for complaints. Positive queries for
-#  loud capabilities are permitted and not required.
+#  EVERY CAPABILITY CARRIES BOTH STANCES.
+#
+#  FR-8 requires a negative query for all twelve, and its wording should
+#  widen: what is actually needed is both stances for every capability, with
+#  the silent-failure rule as a strict subset of that.
+#
+#  For the four SILENT-failure capabilities a positive query is what makes the
+#  gate reachable at all - "nobody complained" is not evidence when you would
+#  not find out, so positive consensus is required and cannot be reached by a
+#  query set that only looks for complaints.
+#
+#  For the eight LOUD ones the gate does not need it and the MODEL PAGE does.
+#  The first draft stopped at four for that reason and produced a corpus that
+#  would have been searched for complaints only, across two-thirds of the
+#  board. See the rationale block above those eight entries.
+#
+#  TERM RULES, both learned from the first live GitHub run:
+#
+#    1. A signal term is MULTI-WORD AND CARRIES A RELATION, or it is a single
+#       word rare enough that its presence in model-related text implies the
+#       claim - and that second case needs a per-term justification, not an
+#       assumption. `accurate` produced both false positives of the first run
+#       on its own, matching inside marketing copy and inside a prompt string.
+#       The allowlist is in tests/test_queries_contract.py, with a reason
+#       beside each entry, so a bare adjective is a decision rather than a
+#       slip.
+#
+#    2. NOUN-FINAL TERMS ARE WRITTEN SINGULAR, AND THE SIEVE IS REQUIRED TO
+#       STEM THE FINAL WORD. Stated as a requirement because it is not free:
+#       the sieve stems single words and matches multi-word terms exactly, so
+#       `invalid argument` does not currently reach "invalid arguments" any
+#       more than the plural reached the singular case from the first live run.
+#
+#       Writing singular without the stemming trades one blind spot for
+#       another rather than removing it - measured against the sieve as it
+#       stands, 275 of 275 multi-word terms in this file fail to match their
+#       own plural. The same argument that justifies stemming a single word
+#       applies to the final noun of a phrase, and the existing MIN_STEM_LENGTH
+#       guard already stops the short-word cases (`key` reaching `keyword`).
+#
+#       Until that lands, a term whose plural or singular differs materially
+#       should carry BOTH forms rather than rely on the stem.
 #
 #  Placeholders: `{alias}` is issued once per alias variant, not once per
 #  model. `{alias_b}` is any other model in the registry — substitution only.
@@ -120,11 +156,13 @@ queries:
       failure a short test never finds.
     terms:
       subject: ["{alias}"]
-      topic: ["instructions", "system prompt", "output format", "the format",
+      topic: ["instruction", "system prompt", "output format", "the format",
               "told it to", "asked it to"]
-      signal: ["didn't follow", "does not follow", "ignores", "ignored",
-               "adds preamble", "won't stick to", "drifts", "stopped obeying",
-               "keeps adding"]
+      signal: ["didn't follow", "does not follow", "doesn't follow",
+               "ignores the instruction", "ignored the instruction",
+               "ignores the format", "adds preamble", "added preamble",
+               "won't stick to", "stopped obeying", "stopped following",
+               "keeps adding", "drifted from the format"]
     records_condition: context_size
     yields_claim_when: >
       The instruction and the deviation are both stated. "Ignores
@@ -139,10 +177,11 @@ queries:
     terms:
       subject: ["{alias}"]
       topic: ["json", "structured output", "response format", "schema",
-              "json mode", "json_schema"]
-      signal: ["invalid json", "failed to parse", "extra keys", "trailing comma",
+              "json mode", "json_schema", "json schema", "pydantic"]
+      signal: ["invalid json", "failed to parse", "extra key", "extra keys", "trailing comma",
                "wraps it in markdown", "code fence", "unparseable",
-               "missing required field"]
+               "missing required field", "invalid for json schema",
+               "not valid json"]
     records_condition: structured_mode
     yields_claim_when: >
       IT SAYS WHETHER PROVIDER-SIDE ENFORCEMENT WAS ON. This one matters more
@@ -162,9 +201,14 @@ queries:
       subject: ["{alias}"]
       topic: ["tool calling", "function calling", "tool use", "tool_choice",
               "function call", "tool schema"]
-      signal: ["invalid arguments", "wrong type", "wrong parameter",
+      # `invalid argument` singular, not plural: the sieve matches phrases
+      # exactly, and the live run turned up "Request contains an invalid
+      # argument" which the plural form missed entirely. Every noun-final term
+      # in this file is written singular for that reason.
+      signal: ["invalid argument", "invalid arguments", "wrong type", "wrong parameter",
                "invented a tool", "made up a tool", "hallucinated a function",
-               "not in the schema", "missing required"]
+               "not in the schema", "missing required field",
+               "tool that is not", "not in the list", "no such tool"]
     records_condition: tool_count
     yields_claim_when: >
       HOW MANY TOOLS WERE IN SCOPE. Without it the claim lands in
@@ -181,10 +225,10 @@ queries:
     terms:
       subject: ["{alias}"]
       topic: ["tool chain", "multi-step", "agent loop", "agentic", "chained",
-              "sequence of calls", "after the error"]
-      signal: ["fails at the", "loops forever", "infinite loop", "gets stuck",
-               "forgets what it called", "never recovers", "repeats the same call",
-               "gives up"]
+              "sequence of call", "after the error"]
+      signal: ["fails at the", "failed at the", "loops forever", "infinite loop",
+               "gets stuck", "forgets what it called", "never recovered",
+               "never recovers", "repeats the same call", "gave up after"]
     records_condition: tool_count
     yields_claim_when: >
       The chain length or tool count is stated, and ideally WHERE it broke.
@@ -204,8 +248,8 @@ queries:
       topic: ["diff", "patch", "search and replace", "edit block", "apply the edit",
               "unified diff", "SEARCH/REPLACE"]
       signal: ["breaks the diff", "didn't match", "failed to apply",
-               "truncates", "rest unchanged", "omitted the rest",
-               "wrong line numbers", "malformed patch"]
+               "truncat", "rest unchanged", "omitted the rest",
+               "wrong line number", "wrong line numbers", "malformed patch", "search block"]
     records_condition: context_size
     yields_claim_when: >
       The FILE SIZE or edit context is recoverable, because this failure is
@@ -225,7 +269,7 @@ queries:
               "scaffold", "boilerplate"]
       signal: ["doesn't compile", "does not compile", "hallucinated the api",
                "no such method", "wrong import", "made up a function",
-               "deprecated api", "wrong signature"]
+               "deprecated api", "wrong signature", "does not exist in the"]
     records_condition: context_size
     yields_claim_when: >
       The LANGUAGE OR LIBRARY is named. "Bad at code" is unusable; "invented
@@ -250,9 +294,10 @@ queries:
       # `"gemini flash" moraliz` returning exactly one result: issue #4 of
       # this repository, which quotes the template these stems came from.
       # Kept deliberately, and named so no adapter tries to issue them.
-      signal: ["as an ai", "refuses ordinary", "lectures", "moralis", "moraliz",
-               "nothing wrong with the request", "false positive",
-               "unnecessary disclaimer", "declined a perfectly"]
+      signal: ["as an ai", "refuses ordinary", "lectured me", "moralis", "moraliz",
+               "nothing wrong with the request", "false refusal",
+               "unnecessary disclaimer", "declined a perfectly",
+               "refused a benign", "safety filter fired"]
     records_condition: context_size
     yields_claim_when: >
       THE REQUEST IS DESCRIBED WELL ENOUGH TO JUDGE IT BENIGN. This is the
@@ -270,8 +315,9 @@ queries:
       subject: ["{alias}"]
       topic: ["latency", "ttft", "time to first token", "throughput",
               "tokens per second", "response time", "p95", "p99"]
-      signal: ["slow", "too slow", "times out", "timeout", "spikes",
-               "high variance", "unusable in production", "degraded"]
+      signal: ["too slow", "times out", "timed out", "latency spike",
+               "high variance", "unusable in production", "degraded under load",
+               "slow in practice", "seconds to first token"]
     records_condition: context_size
     yields_claim_when: >
       THE HOST OR PROVIDER IS NAMED for any open-weight model, and the
@@ -300,9 +346,9 @@ queries:
       subject: ["{alias}"]
       topic: ["context", "long context", "context window", "recall", "needle",
               "long document", "large input"]
-      signal: ["loses recall", "forgets the middle", "falls apart", "degrades",
-               "stops using", "ignores the earlier", "lost in the middle",
-               "only reliable up to"]
+      signal: ["loses recall", "forgets the middle", "falls apart", "degrades past",
+               "stops using the", "ignores the earlier", "lost in the middle",
+               "only reliable up to", "fell off past", "recall dropped"]
     records_condition: context_size
     yields_claim_when: >
       A NUMBER, OR A RANGE, FOR WHERE IT DEGRADED. This is the strictest
@@ -322,8 +368,8 @@ queries:
     terms:
       subject: ["{alias}"]
       topic: ["context", "long context", "recall", "full context", "large input"]
-      signal: ["held up", "no degradation", "still accurate at", "fine at",
-               "recall stayed", "handled the whole"]
+      signal: ["held up at", "no degradation at", "still accurate at", "fine at",
+               "recall stayed", "handled the whole", "full window without"]
     records_condition: context_size
     yields_claim_when: >
       The size it held at is stated. A positive claim with no number cannot
@@ -339,8 +385,9 @@ queries:
       subject: ["{alias}"]
       topic: ["summary", "summarize", "summarise", "summarizing", "condense",
               "digest", "tldr", "recap"]
-      signal: ["dropped", "left out", "missed", "omitted", "made something up",
-               "hallucinated", "lost the detail", "buried the", "misread the"]
+      signal: ["dropped the", "left out the", "missed the", "omitted the",
+               "made something up", "hallucinated", "lost the detail",
+               "buried the", "misread the", "never mentioned the"]
     records_condition: context_size
     yields_claim_when: >
       WHAT WAS DROPPED, not that something was. The distinction is the whole
@@ -360,8 +407,17 @@ queries:
     terms:
       subject: ["{alias}"]
       topic: ["summary", "summarize", "summarise", "condense", "digest", "recap"]
-      signal: ["held up", "good enough", "no complaints", "faithful", "accurate",
-               "no regressions", "nobody noticed", "shipped it", "kept it"]
+      # `accurate` and `faithful` were here and are gone. In the first live
+      # GitHub run `accurate` produced both of the run's two false positives
+      # on its own - matching inside a pasted marketing sentence and inside a
+      # prompt string in a code block. A single common adjective cannot carry
+      # a positive claim: it lives in marketing copy, prompt strings and API
+      # docs, which is most of what a naive retrieval returns. Terms here now
+      # carry a RELATION - what held, for how long, noticed by whom.
+      signal: ["held up", "good enough", "no complaint from", "no complaints from",
+               "no regression", "no regressions",
+               "nobody noticed", "still running", "kept it in production",
+               "no quality drop", "faithful to the source", "months without"]
     records_condition: context_size
     yields_claim_when: >
       It reports an OUTCOME OVER TIME, not a first impression. "Tried it and
@@ -379,11 +435,11 @@ queries:
       JSON is perfectly valid and the value is fiction.
     terms:
       subject: ["{alias}"]
-      topic: ["extraction", "extract", "parse", "structured fields", "populate",
+      topic: ["extraction", "extract", "parse", "structured field", "populate",
               "pull out the", "field extraction"]
-      signal: ["invented", "made up", "hallucinated the", "should have been null",
-               "wasn't in the document", "filled in", "guessed the",
-               "wrong value"]
+      signal: ["invented a value", "made up a value", "hallucinated the",
+               "should have been null", "wasn't in the document",
+               "filled in a field", "guessed the", "not in the source"]
     records_condition: context_size
     yields_claim_when: >
       THE FIELD WAS ABSENT FROM THE SOURCE and the model supplied a value
@@ -399,9 +455,10 @@ queries:
       complaints.
     terms:
       subject: ["{alias}"]
-      topic: ["extraction", "extract", "parse", "structured fields", "populate"]
-      signal: ["correctly returned null", "didn't invent", "no hallucinated fields",
-               "matched the source", "held up", "no regressions", "swapped to"]
+      topic: ["extraction", "extract", "parse", "structured field", "populate"]
+      signal: ["correctly returned null", "didn't invent", "no hallucinated field",
+               "matched the source", "held up", "no regression", "no regressions",
+               "nulls were right"]
     records_condition: context_size
     yields_claim_when: >
       Volume or duration is stated. Null discipline holding on ten documents
@@ -416,10 +473,10 @@ queries:
     terms:
       subject: ["{alias}"]
       topic: ["reasoning", "multi-step", "multistep", "planning", "decompose",
-              "chain of thought", "step by step", "constraints"]
-      signal: ["falls apart", "can't follow", "confidently wrong", "lost the constraint",
-               "skipped a step", "wrong conclusion", "plausible but wrong",
-               "didn't notice"]
+              "chain of thought", "step by step", "constraint"]
+      signal: ["falls apart on", "can't follow the", "confidently wrong",
+               "lost the constraint", "skipped a step", "wrong conclusion",
+               "plausible but wrong", "didn't notice the"]
     records_condition: context_size
     yields_claim_when: >
       The CHAIN IS DESCRIBED well enough that the reader can see where it
@@ -434,13 +491,169 @@ queries:
       same reason as the other three silent capabilities.
     terms:
       subject: ["{alias}"]
-      topic: ["reasoning", "multi-step", "planning", "decompose", "constraints"]
-      signal: ["held the constraints", "got it right", "followed the chain",
-               "no errors", "matched", "as good as", "held up"]
+      topic: ["reasoning", "multi-step", "planning", "decompose", "constraint"]
+      signal: ["held the constraint", "got it right", "followed the chain",
+               "no reasoning error", "matched the expected", "as good as",
+               "held up"]
     records_condition: context_size
     yields_claim_when: >
       The task's difficulty is recoverable. "Reasoned well" about a trivial
       task is not evidence for a task that is not trivial.
+
+
+  # ══════════ POSITIVE QUERIES FOR LOUD CAPABILITIES ══════════
+  #
+  #  These exist for the MODEL PAGE, not for the gate.
+  #
+  #  The gate only needs positive consensus for silent failures, so the first
+  #  draft said positive queries for loud capabilities were "permitted and not
+  #  required" and stopped at four. That was right for the advisor and wrong
+  #  for the product.
+  #
+  #  A model page shows every capability with the evidence behind it. With
+  #  negative-only queries on eight of twelve, two-thirds of that page would be
+  #  built from a corpus we only ever searched for complaints in. It compounds:
+  #  GitHub is structurally negative - nobody opens an issue to say something
+  #  worked - and carries the highest base trust at 0.95. So the most trusted
+  #  source is the negative one, and for eight capabilities it was the only one
+  #  queried.
+  #
+  #  The page would read harsher than reality and nothing on it would say so.
+  #  Not a broken page - a page that looks like engineers dislike the model.
+  #  That is rule 6 again: a missing input rendering as a confident answer.
+  #
+  #  WHY THIS COULD NOT WAIT FOR THE VOCABULARY TO SETTLE. Adding a capability
+  #  later is cheap - it backfills by re-reading the immutable raw store.
+  #  Adding a QUERY later is not: documents it would have found were never
+  #  fetched, and there is nothing to re-read. Queries decide what you have;
+  #  capabilities decide how you read it. Only one of those is recoverable.
+
+  - capability: instruction.adherence
+    stance: positive
+    intent: >
+      An output contract that held, especially across a long run rather than
+      a first try.
+    terms:
+      subject: ["{alias}"]
+      topic: ["instruction", "system prompt", "output format", "the format"]
+      signal: ["stuck to the format", "held the format", "never added preamble",
+               "followed the instruction", "no preamble", "exactly what I asked"]
+    records_condition: context_size
+    yields_claim_when: >
+      Adherence is reported over a run, not a try. Instruction-following
+      failures are drift failures - they appear at turn 30, not turn 1 - so a
+      single successful call is not evidence that the contract holds.
+
+  - capability: format.structured_output
+    stance: positive
+    intent: >
+      Structured output that parsed reliably, with the enforcement flag stated.
+    terms:
+      subject: ["{alias}"]
+      topic: ["json", "structured output", "response format", "schema",
+              "json mode", "json_schema"]
+      signal: ["always valid json", "never malformed", "parsed cleanly",
+               "no parse error", "schema held", "zero invalid"]
+    records_condition: structured_mode
+    yields_claim_when: >
+      SAME CONDITION AS THE NEGATIVE, and it matters more here. "Valid JSON
+      every time" with provider enforcement ON is a claim about the API layer,
+      not about the model, and reading it as the latter would recommend a
+      model for free-form structured output it may fail at.
+
+  - capability: tool_calling.schema_accuracy
+    stance: positive
+    intent: >
+      Arguments that conformed, at a stated tool count.
+    terms:
+      subject: ["{alias}"]
+      topic: ["tool calling", "function calling", "tool use", "tool schema"]
+      signal: ["arguments were correct", "never invented a tool", "schema held",
+               "no invalid argument", "stuck to the schema", "always picked the right"]
+    records_condition: tool_count
+    yields_claim_when: >
+      The tool count is stated. A positive report at 3 tools says nothing
+      about 30, and this capability degrades sharply with count - so an
+      unbucketed positive is the most misleading kind of evidence here.
+
+  - capability: tool_calling.long_chain_reliability
+    stance: positive
+    intent: >
+      A chain that completed, or recovered from a tool error, at a stated
+      length.
+    terms:
+      subject: ["{alias}"]
+      topic: ["tool chain", "multi-step", "agent loop", "agentic", "chained"]
+      signal: ["completed the chain", "recovered from the error", "no loop",
+               "finished all", "ran the whole", "held for"]
+    records_condition: tool_count
+    yields_claim_when: >
+      The chain LENGTH is stated. "Handles chains well" is the sentiment this
+      capability exists to replace with a number.
+
+  - capability: code.editing_diff_fidelity
+    stance: positive
+    intent: >
+      Patches that applied, at a stated file size.
+    terms:
+      subject: ["{alias}"]
+      topic: ["diff", "patch", "search and replace", "edit block", "unified diff"]
+      signal: ["applied cleanly", "diff applied", "patch applied",
+               "no truncation", "matched every time", "never had to fix"]
+    records_condition: context_size
+    yields_claim_when: >
+      The file size is recoverable. This failure is overwhelmingly a length
+      effect, so a positive report with no size is a claim about small files
+      presented as a claim about the capability.
+
+  - capability: code.generation
+    stance: positive
+    intent: >
+      Generated code that worked, with the language or library named.
+    terms:
+      subject: ["{alias}"]
+      topic: ["generated", "wrote the code", "code generation", "scaffold"]
+      signal: ["compiled first try", "compiled cleanly", "worked first time",
+               "ran unmodified", "correct import", "no edit needed"]
+    records_condition: context_size
+    yields_claim_when: >
+      The language or library is named, same as the negative. A positive
+      report about a mainstream library says little about a niche one, and
+      the library is what makes the claim checkable.
+
+  - capability: over_refusal
+    stance: positive
+    intent: >
+      Benign requests answered without refusal or disclaimer. Worth querying
+      because over-refusal is the capability where the negative corpus is
+      most polluted by people annoyed at correct refusals - a positive corpus
+      is the only counterweight.
+    terms:
+      subject: ["{alias}"]
+      topic: ["refusal", "refused", "safety filter", "guardrail", "declined"]
+      signal: ["never refused", "no refusal", "no disclaimer", "no lecture",
+               "answered without", "didn't moralis"]
+    records_condition: context_size
+    yields_claim_when: >
+      The domain is described. "Never refuses anything" is not credible and
+      not useful; "ran 40k medical-summary prompts, no refusals" is both.
+
+  - capability: ops.latency_ttft
+    stance: positive
+    intent: >
+      Latency that held, with a number and a host.
+    terms:
+      subject: ["{alias}"]
+      topic: ["latency", "ttft", "time to first token", "throughput",
+              "tokens per second", "response time"]
+      signal: ["fast enough", "consistent latency", "low ttft", "no timeout",
+               "held under load", "p95 was", "ms to first token"]
+    records_condition: context_size
+    yields_claim_when: >
+      A NUMBER AND A HOST, same as the negative. This capability's entire
+      content is the number, and for open weights it is a property of the
+      host. Claims decay on a 30-day half-life, so an old positive is close
+      to worthless.
 
 
 # ----------------------------------------------------------------------------
@@ -483,8 +696,9 @@ substitution:
       subject: ["{alias}"]
       topic: ["replaced {alias_b}", "switched from {alias_b}", "moved off {alias_b}",
               "migrated from {alias_b}", "instead of {alias_b}", "swapped {alias_b}"]
-      signal: ["held up", "no regressions", "nobody noticed", "saved", "cheaper",
-               "still running", "kept it", "months"]
+      signal: ["held up", "no regression", "no regressions", "nobody noticed", "saved us",
+               "cheaper per", "still running", "kept it in production",
+               "months later"]
     records_condition: context_size
     yields_claim_when: >
       BOTH MODELS RESOLVE, the workload is named, and the migration STUCK.
@@ -503,8 +717,8 @@ substitution:
       subject: ["{alias}"]
       topic: ["switched back", "reverted to", "went back to", "rolled back",
               "moved back to {alias_b}"]
-      signal: ["regressions", "quality dropped", "started failing", "complaints",
-               "wasn't worth", "had to revert"]
+      signal: ["regression after", "quality dropped", "started failing",
+               "complaint from", "wasn't worth", "had to revert"]
     records_condition: context_size
     yields_claim_when: >
       The REASON for the revert is stated and attaches to a capability. A
