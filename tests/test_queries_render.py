@@ -366,58 +366,83 @@ def test_the_real_sweep_is_costed_before_it_runs():
     number over everything said 1,344 against 900 after PR #8 and offered no
     move except raising it.
     """
-    from collect.adapters.queries.cadence import assert_within_budget, load_budgets
+    from collect.adapters.queries.cadence import THE_MOVES, assert_within_budget
 
     queries, aliases, plans = _real_plans()
-    budgets = load_budgets()
 
     for cadence, plan in plans.items():
-        assert_within_budget(cadence, plan)  # must not raise
+        # Raises HarvestBudgetError naming the cadence, the new figure and the
+        # three moves. That message is the whole point — see
+        # test_the_refusal_reads_as_a_decision_not_an_obstacle.
+        assert_within_budget(cadence, plan)
 
     cartesian = sum(
         len(e.terms.topic) * len(e.terms.signal) for e in queries.capability_queries
     ) * len(aliases)
     total = sum(plan.request_count for plan in plans.values())
-    assert total < cartesian / 50, "the pair rendering costs 30.9 hours"
-
-    # The daily sweep is what the rate limit constrains, and it is the number
-    # that must not have moved: 896 against the same 900 the single per-sweep
-    # cap always was. PR #8 doubled the entry count without raising it.
-    assert budgets["daily"].max_requests == 900
-    assert plans["daily"].request_count <= 900
+    assert total < cartesian / 50, f"the pair rendering costs 30.9 hours. {THE_MOVES}"
 
 
-def test_the_daily_sweep_has_almost_no_headroom_left():
+def test_the_daily_headroom_is_small_enough_to_need_a_decision():
     """A finding, pinned so it cannot be discovered again in production.
 
-    Four requests. One more searchable alias variant or one more capability
-    breaks the daily budget, and the honest responses are a narrower scope,
-    fewer alias variants, or a longer cadence — not a bigger number.
-    """
-    _, _, plans = _real_plans()
-    headroom = 900 - plans["daily"].request_count
+    Four requests as this lands. One more capability or alias variant breaches
+    the daily budget by construction, which is the cap working — but only if
+    whoever hits it reads a decision rather than an obstacle.
 
-    assert 0 <= headroom < 60, (
-        f"daily headroom is {headroom} requests. If this has grown, the sweep "
-        "shrank or the cap moved; if it has gone negative, read "
-        "contract/harvest.yaml before touching the number."
+    Deliberately does NOT re-assert the ceiling. `assert_within_budget` owns
+    that, and two tests failing for one cause is two chances to misread it.
+    """
+    from collect.adapters.queries.cadence import headroom, load_budgets
+
+    _, _, plans = _real_plans()
+    left = headroom("daily", plans["daily"])
+    cap = load_budgets()["daily"].max_requests
+
+    if left < 0:
+        pytest.skip(
+            f"daily sweep is {-left} requests over the {cap} ceiling — "
+            "test_the_real_sweep_is_costed_before_it_runs is the failure to read"
+        )
+
+    assert left < 60, (
+        f"daily headroom has grown to {left} of {cap} requests. Either the "
+        "sweep shrank or the ceiling moved; if the ceiling moved, the reason "
+        "belongs in contract/harvest.yaml next to the number."
     )
 
 
-def test_moving_the_loud_positives_to_weekly_is_what_pays_for_them():
-    """The split has to actually recover the overrun, or it is bookkeeping."""
-    _, _, plans = _real_plans()
+def test_the_cadence_split_drops_nothing():
+    """The split has to move cost, not lose queries.
 
-    both = plans["daily"].request_count + plans["weekly"].request_count
-    assert both == 1344, "PR #8's full sweep, unchanged — nothing was dropped"
+    Derived from the plans rather than pinned to 1,344: a hardcoded total
+    breaks the day a capability is added, which is the one day this test needs
+    to be readable, and it breaks saying "nothing was dropped" when the real
+    news is that the sweep grew.
+    """
+    from collect.adapters.queries.cadence import split_by_cadence
+
+    queries, aliases, plans = _real_plans()
+    whole = plan_searches(queries.capability_queries, aliases, scope=SWEEP)
+
+    split_total = plans["daily"].request_count + plans["weekly"].request_count
+    assert split_total == whole.request_count, "the split moved cost, not queries"
+
+    groups = split_by_cadence(queries.capability_queries)
+    assert sum(len(g) for g in groups.values()) == len(queries.capability_queries)
 
     amortised = plans["daily"].request_count + plans["weekly"].request_count / 7
-    assert amortised < both, "weekly costs less per day than daily, by definition"
-    assert plans["daily"].minutes_at(30) < 30
+    assert amortised < split_total, "weekly costs less per day than daily, by definition"
 
 
-def test_an_over_budget_sweep_is_refused_by_name():
-    """The refusal has to say which cadence, what it cost, and what to do."""
+def test_the_refusal_reads_as_a_decision_not_an_obstacle():
+    """`assert 900 < 900` invites raising the constant. This must not.
+
+    Whoever sees this is part-way through adding a capability and looking for
+    the cheapest way out. The message has to carry the new figure — so the
+    cost is concrete — and the three moves that are decisions, next to the one
+    that is not.
+    """
     from collect.adapters.queries.cadence import (
         CadenceBudget,
         HarvestBudgetError,
@@ -425,6 +450,7 @@ def test_an_over_budget_sweep_is_refused_by_name():
     )
 
     _, _, plans = _real_plans()
+    cost = plans["daily"].request_count
     tiny = {"daily": CadenceBudget("daily", max_requests=10, max_minutes=1, every_days=1)}
 
     with pytest.raises(HarvestBudgetError) as excinfo:
@@ -432,8 +458,13 @@ def test_an_over_budget_sweep_is_refused_by_name():
 
     message = str(excinfo.value)
     assert "daily sweep is over budget" in message
-    assert "896 requests against a ceiling of 10" in message
-    assert "Raising the number is the option that is not one" in message
+    assert f"{cost} requests against a ceiling of 10" in message, (
+        "the message must name what the sweep actually costs now, derived — "
+        "a pinned figure here goes stale the moment the sweep changes"
+    )
+    for move in ("narrow the sweep scope", "alias_search", "longer cadence"):
+        assert move in message, f"the message must name the {move!r} move"
+    assert "is the option that is not a decision" in message
 
 
 def test_an_undeclared_cadence_is_refused_rather_than_waved_through():

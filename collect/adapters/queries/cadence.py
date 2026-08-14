@@ -59,6 +59,19 @@ LOUD = "loud"
 SILENT = "silent"
 
 
+#: Said the same way everywhere a budget is reported, because whoever reads it
+#: is part-way through adding a capability and is looking for the cheapest way
+#: out. Naming the three moves that ARE decisions, next to the one that is not,
+#: is the difference between a constraint and an obstacle.
+THE_MOVES = (
+    "The options that are decisions: narrow the sweep scope, reduce the "
+    "searchable alias variants (contract/registry.yaml:alias_search), or move "
+    "an entry to a longer cadence (contract/harvest.yaml). Raising the ceiling "
+    "is the option that is not a decision — the cap is the whole reason the "
+    "cost of a capability is visible before it is paid."
+)
+
+
 class HarvestBudgetError(RuntimeError):
     """A sweep would cost more than `contract/harvest.yaml` permits."""
 
@@ -173,9 +186,17 @@ def assert_within_budget(cadence: str, plan, *, budgets=None, per_minute: int = 
     if over:
         raise HarvestBudgetError(
             f"The {cadence} sweep is over budget: {'; and '.join(over)}. "
-            "contract/harvest.yaml is the place to argue about this, and the "
-            "options that are decisions are a narrower sweep scope, fewer "
-            "searchable alias variants (registry.yaml:alias_search), or moving "
-            "an entry to a longer cadence. Raising the number is the option "
-            "that is not one."
+            f"{THE_MOVES}"
         )
+
+
+def headroom(cadence: str, plan, *, budgets=None) -> int:
+    """Requests still available in this cadence's budget. Negative when over.
+
+    Reported rather than only asserted: the number that matters when somebody
+    is deciding whether a capability fits is how much is left, and finding
+    that out by breaching the cap is the expensive way round.
+    """
+    budgets = budgets or load_budgets()
+    budget = budgets[cadence]
+    return budget.max_requests - plan.request_count
