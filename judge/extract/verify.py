@@ -24,14 +24,14 @@ injected instruction cannot produce a verifiable span.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from enum import Enum
-from typing import Iterable
+from enum import StrEnum
 
 from judge.extract.schema import ExtractedClaim
 
 
-class VerificationFailure(str, Enum):
+class VerificationFailure(StrEnum):
     """Why a claim was discarded. Every one of these is logged, never swallowed."""
 
     OFFSET_OUT_OF_RANGE = "offset_out_of_range"

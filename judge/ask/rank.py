@@ -20,21 +20,21 @@ deliberately:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 from judge.ask.cost import CostEstimate
 from judge.ask.profile import CapabilityNeed, RoleRequirement
 from judge.curate.gate import CellStatus
 
 
-class Band(str, Enum):
+class Band(StrEnum):
     RECOMMENDED = "recommended"
     ALSO_WORKS = "also_works"
     NO_EVIDENCE = "no_evidence"
     DOESNT_QUALIFY = "doesnt_qualify"
 
 
-class DisqualifyReason(str, Enum):
+class DisqualifyReason(StrEnum):
     BELOW_BAR = "below_bar"
     MISSING_FEATURE = "missing_feature"
     CONTEXT_TOO_SMALL = "context_too_small"
@@ -166,14 +166,17 @@ def gate(
             reason = cell.consensus_phrase
 
         # A silent-failure capability cannot be cleared by absence of criticism.
-        if passed and need.requires_positive_consensus:
-            if cell is None or cell.positive == 0:
-                passed = False
-                reason = (
-                    f"{need.key} fails silently — you would not find out it was "
-                    "wrong, so it needs positive reports, not merely an absence "
-                    "of complaints"
-                )
+        if (
+            passed
+            and need.requires_positive_consensus
+            and (cell is None or cell.positive == 0)
+        ):
+            passed = False
+            reason = (
+                f"{need.key} fails silently — you would not find out it was "
+                "wrong, so it needs positive reports, not merely an absence "
+                "of complaints"
+            )
 
         verdicts.append(CapabilityVerdict(need, cell, passed, reason))
 
