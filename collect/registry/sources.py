@@ -14,17 +14,15 @@ machinery that does not exist yet.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import Any
 
 import yaml
 
 from collect.config import CONTRACT_DIR
-
-if TYPE_CHECKING:  # pragma: no cover - typing only
-    import psycopg
 
 SOURCES_YAML = CONTRACT_DIR / "sources.yaml"
 

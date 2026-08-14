@@ -10,9 +10,23 @@ The first live GitHub harvest stored two documents as
                            inside a prompt string in a Python snippet
 
 Two config lines and somebody else's copy would have contributed voices toward
-publishing "Flash summarises faithfully". These are the regression tests, and
-the entries come from `contract/queries.yaml` rather than being hand-written
-here, so the test exercises Engineer 2's actual vocabulary.
+publishing "Flash summarises faithfully".
+
+TWO KINDS OF TEST LIVE HERE, AND THEY LOAD THEIR TERMS DIFFERENTLY.
+
+    THE INCIDENT is history. Both documents were matched by `accurate`, a bare
+    adjective that PR #8 then removed from the positive signal set — correctly,
+    and it is the fix the incident argued for. Loading live terms here made the
+    regression tests fail on the fix, and one of them pass VACUOUSLY: "no
+    positive claim" became true because the term no longer exists, not because
+    the exclusion caught it. So the incident tests pin `INCIDENT_TERMS`, the
+    vocabulary as it stood on the day. The term that produced the incident is
+    part of the incident, and a regression test that changes when the
+    vocabulary changes is not testing the regression.
+
+    THE MECHANISM is live. Whether author-prose exclusion works against
+    whatever Engineer 2's vocabulary says today is a different property, and it
+    should break when the contract changes, because that is its job.
 
 The pair pattern from `test_github_harvest.py` applies again: where the bug is
 "two states record identically", the test asserts both in one place and compares
@@ -37,8 +51,32 @@ FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "github"
 ALIAS = "gemini-2.5-flash"
 
 
+#: `summarization.fidelity: positive` as it stood when the two documents were
+#: harvested — before PR #8 replaced the bare adjectives with relation terms.
+#: Test data, pinned on purpose: `accurate` is what matched inside a marketing
+#: blockquote and inside a prompt string, so removing it from this fixture
+#: would delete the incident rather than record it.
+#:
+#: This is NOT a second copy of the contract. Nothing reads it but the three
+#: tests below, and it is dated rather than live for the same reason a raw
+#: payload is immutable: the thing being reasoned about is what happened.
+INCIDENT_TERMS = TermSet(
+    subject=("{alias}",),
+    topic=("summary", "summarize", "summarise", "condense", "digest", "recap"),
+    signal=(
+        "held up", "good enough", "no complaints", "faithful", "accurate",
+        "no regressions", "nobody noticed", "shipped it", "kept it",
+    ),
+)
+
+
+def incident_terms():
+    """The vocabulary that produced the incident, as of 2026-08-13."""
+    return INCIDENT_TERMS.substitute(ALIAS)
+
+
 def positive_terms():
-    """The real `summarization.fidelity: positive` entry, from the contract."""
+    """The live `summarization.fidelity: positive` entry, from the contract."""
     entry = next(
         e
         for e in load_queries().for_capability("summarization.fidelity")
@@ -60,8 +98,13 @@ def fixture(name: str) -> str:
     ids=["aider-4438", "crewai-2685"],
 )
 def test_neither_false_positive_yields_a_positive_summarisation_claim(name):
-    """The failing assertion this fix exists for."""
-    verdict = sieve(positive_terms(), fixture(name))
+    """The failing assertion this fix exists for.
+
+    Pinned terms. Against the live contract this passes for the wrong reason —
+    `accurate` was removed, so there is no signal to find and the exclusion is
+    never exercised at all.
+    """
+    verdict = sieve(incident_terms(), fixture(name))
     assert not verdict.passed
     assert "signal" in verdict.missing
 
@@ -79,7 +122,7 @@ def test_they_are_rejected_for_the_right_reason(name):
     come from the subject group would pass this file's other test while leaving
     the real defect in place.
     """
-    verdict = sieve(positive_terms(), fixture(name))
+    verdict = sieve(incident_terms(), fixture(name))
     assert verdict.subject == (ALIAS,), "the model is named; that much is true"
     assert verdict.topic, "summarisation is mentioned; also true"
     assert verdict.signal == (), "nobody claimed it summarised well"
@@ -92,9 +135,9 @@ def test_a_quoted_signal_and_an_absent_signal_are_distinguishable():
     Without `signal_in_excluded` these two are one state, and the vocabulary
     feedback — "your term is there, and only somebody else said it" — is lost.
     """
-    quoted = sieve(positive_terms(), fixture("crewai-2685-excerpt.md"))
+    quoted = sieve(incident_terms(), fixture("crewai-2685-excerpt.md"))
     absent = sieve(
-        positive_terms(),
+        incident_terms(),
         f"We put {ALIAS} behind the digest job. It summarises tickets nightly.",
     )
 
@@ -102,6 +145,34 @@ def test_a_quoted_signal_and_an_absent_signal_are_distinguishable():
     assert quoted.missing == absent.missing == ("signal",)
     assert quoted.signal_in_excluded == ("accurate",)
     assert absent.signal_in_excluded == ()
+
+
+def test_the_exclusion_still_works_against_the_live_vocabulary():
+    """The mechanism, not the incident. This one SHOULD break on a term change.
+
+    Whatever the positive signal set says today, a term that appears only
+    inside a fence is somebody else's words and must not pass. Built from the
+    live contract so the property is checked against the vocabulary actually
+    in use — the half of the split that has to stay live.
+    """
+    terms = positive_terms()
+    assert terms.signal, "the live positive entry declares no signal terms"
+
+    borrowed = terms.signal[0]
+    document = (
+        f"We are evaluating {ALIAS} for the digest job.\n"
+        "The vendor's page says:\n"
+        f"> it {borrowed} across our benchmark suite\n"
+    )
+    verdict = sieve(terms, document)
+
+    assert not verdict.passed
+    assert verdict.signal == (), "a blockquote is not the author speaking"
+    assert borrowed in verdict.signal_in_excluded, (
+        "the term is present and was found in an excluded container — that "
+        "distinction is the vocabulary feedback, and losing it makes a quoted "
+        "signal identical to an absent one"
+    )
 
 
 def test_a_real_positive_still_passes():

@@ -32,12 +32,17 @@ from pathlib import Path
 import httpx
 import pytest
 
-from collect.adapters.blog.fetch import BlogFetcher
-from collect.adapters.blog.limiter import HostLimiter
-from collect.adapters.blog.parse import extract_article_text, parse_feed
-from collect.adapters.blog.robots import RobotsGate
-from collect.http import build_client
-from collect.rawstore import RawStore
+from tests.conftest import require_feed_libraries
+
+# Above the imports it guards. See tests/conftest.py:require_feed_libraries.
+require_feed_libraries()
+
+from collect.adapters.blog.fetch import BlogFetcher  # noqa: E402
+from collect.adapters.blog.parse import extract_article_text, parse_feed  # noqa: E402
+from collect.adapters.blog.robots import RobotsGate  # noqa: E402
+from collect.http import build_client  # noqa: E402
+from collect.limiter import HostLimiter  # noqa: E402
+from collect.rawstore import RawStore  # noqa: E402
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "blog"
 UA = "modelboard/0.1 (+https://modelboard.invalid/about)"

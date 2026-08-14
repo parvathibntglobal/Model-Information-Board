@@ -8,6 +8,21 @@ and no other.
 The clock and the sleep are injected so the tests measure the arithmetic rather
 than waiting for it. A limiter tested with real sleeps is a limiter that is
 eventually tested with `min_interval=0`, which is not the same code path.
+
+WHY THIS IS NOT IN `adapters/blog/`, WHERE IT WAS WRITTEN
+
+Both adapters use it, and it depends on nothing but the standard library —
+but living inside the blog package meant that importing it executed
+`adapters/blog/__init__.py`, which imports `parse.py`, which imports
+`feedparser` and `trafilatura`. So `adapters/github.py` could not be imported
+at all without the blog adapter's optional dependencies installed, for the
+sake of ninety lines of arithmetic over `time.monotonic`.
+
+Engineer 2 found it the expensive way: a partial install produced five
+collection errors, pytest reported `Interrupted`, and **no tests ran at all** —
+including every GitHub test, which never failed and never got the chance to
+pass. A missing optional dependency should cost you the tests that need it and
+nothing else.
 """
 
 from __future__ import annotations
@@ -25,9 +40,9 @@ DEFAULT_MIN_INTERVAL = 1.0
 class HostLimiter:
     """Spaces requests per host. Not thread-safe, and does not need to be.
 
-    The blog sweep is a single sequential pass by design: concurrency here buys
-    minutes on a weekly job and risks looking like a scraper to forty small
-    sites at once.
+    Every sweep in this lane is a single sequential pass by design: concurrency
+    buys minutes on a nightly job and risks looking like a scraper to forty
+    small sites at once.
     """
 
     def __init__(

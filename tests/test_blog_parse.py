@@ -11,8 +11,16 @@ from pathlib import Path
 
 import pytest
 
-from collect.adapters.blog.options import DEFAULT_EXTRACTION, ExtractionOptions
-from collect.adapters.blog.parse import (
+from tests.conftest import require_feed_libraries
+
+# Above the imports it guards. See tests/conftest.py:require_feed_libraries.
+require_feed_libraries()
+
+from collect.adapters.blog.options import (  # noqa: E402
+    DEFAULT_EXTRACTION,
+    ExtractionOptions,
+)
+from collect.adapters.blog.parse import (  # noqa: E402
     NotBytesError,
     current_extraction_version,
     extract_article_text,

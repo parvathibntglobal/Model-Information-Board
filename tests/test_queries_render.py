@@ -51,10 +51,25 @@ def entry(**overrides) -> QueryEntry:
 
 
 def test_the_real_contract_loads():
+    """Derived from capabilities.yaml, not hardcoded.
+
+    This asserted 16 and then 24 was correct, which is a test that fails every
+    time the contract grows — and growing the contract is what the contract is
+    for. What is actually invariant is the rule PR #8 established: every
+    capability carries both stances. `tests/test_queries_contract.py` enforces
+    that rule from the contract side; this checks the loader sees all of it.
+    """
+    from collect.adapters.queries.cadence import load_failure_modes
+
     queries = load_queries()
-    assert len(queries.capability_queries) == 16
+    capabilities = load_failure_modes()
+
+    assert len(queries.capabilities) == len(capabilities)
+    assert len(queries.capability_queries) == len(capabilities) * 2, (
+        "every capability carries both stances — see queries.yaml, "
+        "'EVERY CAPABILITY CARRIES BOTH STANCES'"
+    )
     assert len(queries.substitution) == 2
-    assert len(queries.capabilities) == 12
     assert all(e.records_condition for e in queries.all_entries)
 
 
@@ -329,22 +344,105 @@ def test_a_deduplicated_request_keeps_every_spelling_for_the_sieve():
         ), document
 
 
-def test_the_real_sweep_is_costed_before_it_runs():
-    """The number issue #4 says nobody computed until an adapter was written."""
+def _real_plans():
+    """The two sweeps as they would actually be issued, split by cadence."""
+    from collect.adapters.queries.cadence import split_by_cadence
     from collect.registry.aliases import all_alias_rows, search_queries
     from collect.registry.seed import seed_models
 
     queries = load_queries()
     aliases = search_queries(all_alias_rows(seed_models()))
-    plan = plan_searches(queries.capability_queries, aliases, scope=SWEEP)
+    groups = split_by_cadence(queries.capability_queries)
+    return queries, aliases, {
+        cadence: plan_searches(entries, aliases, scope=SWEEP)
+        for cadence, entries in groups.items()
+    }
+
+
+def test_the_real_sweep_is_costed_before_it_runs():
+    """The number issue #4 says nobody computed until an adapter was written.
+
+    Costed per cadence, because that is the constraint that is real. One
+    number over everything said 1,344 against 900 after PR #8 and offered no
+    move except raising it.
+    """
+    from collect.adapters.queries.cadence import assert_within_budget, load_budgets
+
+    queries, aliases, plans = _real_plans()
+    budgets = load_budgets()
+
+    for cadence, plan in plans.items():
+        assert_within_budget(cadence, plan)  # must not raise
 
     cartesian = sum(
         len(e.terms.topic) * len(e.terms.signal) for e in queries.capability_queries
     ) * len(aliases)
+    total = sum(plan.request_count for plan in plans.values())
+    assert total < cartesian / 50, "the pair rendering costs 30.9 hours"
 
-    assert plan.request_count < 900, "one request per entry per distinct rendered alias"
-    assert plan.request_count < cartesian / 50, "the pair rendering costs 30.9 hours"
-    assert plan.minutes_at(30) < 30
+    # The daily sweep is what the rate limit constrains, and it is the number
+    # that must not have moved: 896 against the same 900 the single per-sweep
+    # cap always was. PR #8 doubled the entry count without raising it.
+    assert budgets["daily"].max_requests == 900
+    assert plans["daily"].request_count <= 900
+
+
+def test_the_daily_sweep_has_almost_no_headroom_left():
+    """A finding, pinned so it cannot be discovered again in production.
+
+    Four requests. One more searchable alias variant or one more capability
+    breaks the daily budget, and the honest responses are a narrower scope,
+    fewer alias variants, or a longer cadence — not a bigger number.
+    """
+    _, _, plans = _real_plans()
+    headroom = 900 - plans["daily"].request_count
+
+    assert 0 <= headroom < 60, (
+        f"daily headroom is {headroom} requests. If this has grown, the sweep "
+        "shrank or the cap moved; if it has gone negative, read "
+        "contract/harvest.yaml before touching the number."
+    )
+
+
+def test_moving_the_loud_positives_to_weekly_is_what_pays_for_them():
+    """The split has to actually recover the overrun, or it is bookkeeping."""
+    _, _, plans = _real_plans()
+
+    both = plans["daily"].request_count + plans["weekly"].request_count
+    assert both == 1344, "PR #8's full sweep, unchanged — nothing was dropped"
+
+    amortised = plans["daily"].request_count + plans["weekly"].request_count / 7
+    assert amortised < both, "weekly costs less per day than daily, by definition"
+    assert plans["daily"].minutes_at(30) < 30
+
+
+def test_an_over_budget_sweep_is_refused_by_name():
+    """The refusal has to say which cadence, what it cost, and what to do."""
+    from collect.adapters.queries.cadence import (
+        CadenceBudget,
+        HarvestBudgetError,
+        assert_within_budget,
+    )
+
+    _, _, plans = _real_plans()
+    tiny = {"daily": CadenceBudget("daily", max_requests=10, max_minutes=1, every_days=1)}
+
+    with pytest.raises(HarvestBudgetError) as excinfo:
+        assert_within_budget("daily", plans["daily"], budgets=tiny)
+
+    message = str(excinfo.value)
+    assert "daily sweep is over budget" in message
+    assert "896 requests against a ceiling of 10" in message
+    assert "Raising the number is the option that is not one" in message
+
+
+def test_an_undeclared_cadence_is_refused_rather_than_waved_through():
+    """Rule 6: no budget is not an unlimited budget."""
+    from collect.adapters.queries.cadence import HarvestBudgetError, assert_within_budget
+
+    _, _, plans = _real_plans()
+    with pytest.raises(HarvestBudgetError, match="no budget declared"):
+        assert_within_budget("hourly", plans["daily"])
 
 
 def test_two_entries_sharing_a_query_keep_their_own_sieve_terms():

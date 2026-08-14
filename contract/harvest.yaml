@@ -1,0 +1,93 @@
+# ============================================================================
+#  Harvest sweep budget — what collect/ is allowed to spend, per cadence.
+#
+#  SHARED, and additive: this file takes nothing out of `queries.yaml`, which
+#  states plainly that it "makes NO claim about request shape, request count,
+#  scoping or budget". That claim is correct and this is where the budget
+#  went instead. Rule 5 puts it in versioned YAML rather than a constant in a
+#  test, so changing it produces a diff somebody can argue with.
+#
+#  WHY THE CAP IS PER CADENCE AND NOT PER SWEEP
+#
+#  There was one number, 900, applied to everything. PR #8 added a positive
+#  query for each of the eight loud-failure capabilities, taking the sweep
+#  from 16 entries to 24 and from 896 requests to 1,344 — 49% over a cap that
+#  nobody re-costed before the merge.
+#
+#  The instinct is to raise the constant. That is the wrong move, because the
+#  two halves of the sweep are not paying for the same thing:
+#
+#    NEGATIVE queries, and POSITIVE queries for the four silent-failure
+#    capabilities, feed THE GATE. The advisor cannot approve a cheaper model
+#    without them, and for a silent failure "nobody complained" is not
+#    evidence, because you would not find out. These have to be current, so
+#    they run nightly.
+#
+#    POSITIVE queries for the eight loud-failure capabilities feed THE MODEL
+#    PAGE. queries.yaml says so in its own rationale: "These exist for the
+#    MODEL PAGE, not for the gate." A page whose positive evidence is up to
+#    six days old is a page nobody can tell from a current one. The gate does
+#    not read them at all.
+#
+#  So they run weekly, and the daily sweep comes back to 896 — under the cap
+#  that already existed, without that cap being touched.
+#
+#  A cadence is not a priority ranking. The loud positives are not less
+#  important; queries.yaml is emphatic that dropping them produces a page
+#  built from a corpus only ever searched for complaints. They are less
+#  URGENT, which is a different axis, and it is the one a budget can spend.
+#
+#  MEASURED 2026-08-14, against the 10 seeded models and the two-repo sweep
+#  scope, through `plan_searches` rather than by multiplying in a comment:
+#
+#      daily    16 entries -> 896 requests, 29.9 min at 30 req/min
+#      weekly    8 entries -> 448 requests, 14.9 min at 30 req/min
+#      (before)  24 entries -> 1,344 requests, 44.8 min
+#
+#  Amortised, the split costs 960 requests a day against 1,344 — and the
+#  daily number is what the rate limit actually constrains.
+#
+#  ⚠ HEADROOM ON THE DAILY SWEEP IS 4 REQUESTS, which is none. One more alias
+#  variant, or one more capability, breaks it. That is the cap working as
+#  intended — it forces the next person to make the decision on purpose
+#  rather than discover the cost in production — but nobody should add a
+#  capability expecting this to pass untouched. The honest options at that
+#  point are a narrower sweep scope, fewer searchable alias variants
+#  (registry.yaml:alias_search), or moving something to weekly. Raising the
+#  number is the one option that is not a decision.
+#
+#  WHICH CADENCE AN ENTRY GETS IS DERIVED, NOT LISTED HERE.
+#
+#  It is a function of `stance` in queries.yaml and `failure_mode` in
+#  capabilities.yaml, both of which already exist and are Engineer 2's to
+#  set. A list of entry names here would be a second place to change when a
+#  capability is added, and the kind that goes stale silently. See
+#  `collect/adapters/queries/cadence.py`.
+# ============================================================================
+
+version: "1.0"
+
+
+#: Requests per sweep, per cadence. The ceiling, not the target.
+#:
+#: `daily` is unchanged from the single per-sweep cap it replaces. That is
+#: deliberate: the fix for a 49% overrun is not a bigger number.
+sweep_budget:
+
+  daily:
+    max_requests: 900
+    #: At GitHub's observed 30 search requests/minute (contract/sources.yaml).
+    #: The minute figure is the one that survives a rate-limit change, so it
+    #: is checked too rather than left implied by the request count.
+    max_minutes: 35
+
+  weekly:
+    max_requests: 600
+    max_minutes: 25
+
+
+#: Days between sweeps. Read by the scheduler; recorded here so the cost
+#: figures above can be re-derived rather than trusted.
+cadence_days:
+  daily: 1
+  weekly: 7

@@ -75,7 +75,7 @@ def harvester(recorder, tmp_path, **kwargs):
 
 
 def _no_wait():
-    from collect.adapters.blog.limiter import HostLimiter
+    from collect.limiter import HostLimiter
 
     return HostLimiter(min_interval=0.0, clock=lambda: 0.0, sleeper=lambda _s: None)
 

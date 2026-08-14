@@ -13,13 +13,22 @@ from pathlib import Path
 import httpx
 import pytest
 
-from collect.adapters.blog.fetch import BlogFetcher, fetcher_for_source
-from collect.adapters.blog.limiter import HostLimiter
-from collect.adapters.blog.robots import RobotsGate
-from collect.adapters.blog.validators import FeedValidators, InMemoryValidatorStore
-from collect.http import build_client
-from collect.rawstore import RAW, RawStore, parse_ref
-from collect.registry.assertions import TermsNotReviewedError
+from tests.conftest import require_feed_libraries  # noqa: I001
+
+# Above the imports it guards, deliberately: the point is to skip before the
+# ImportError, not to catch one after it has already stopped collection.
+require_feed_libraries()
+
+from collect.adapters.blog.fetch import BlogFetcher, fetcher_for_source  # noqa: E402
+from collect.adapters.blog.robots import RobotsGate  # noqa: E402
+from collect.adapters.blog.validators import (  # noqa: E402
+    FeedValidators,
+    InMemoryValidatorStore,
+)
+from collect.http import build_client  # noqa: E402
+from collect.limiter import HostLimiter  # noqa: E402
+from collect.rawstore import RAW, RawStore, parse_ref  # noqa: E402
+from collect.registry.assertions import TermsNotReviewedError  # noqa: E402
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "blog"
 UA = "modelboard/0.1 (+https://modelboard.invalid/about)"

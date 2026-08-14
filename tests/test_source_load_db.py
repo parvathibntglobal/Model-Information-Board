@@ -236,6 +236,8 @@ def test_gate_two_the_stored_reddit_row_refuses_for_naming_no_ruling(conn):
 
 def test_gate_three_the_stored_umbrella_row_refuses_as_a_fetch_target(conn, tmp_path):
     """It passes the terms check and is still not a thing you can fetch."""
+    pytest.importorskip("feedparser", reason="the blog fetcher imports the parse path")
+
     import httpx
 
     from collect.adapters.blog.fetch import NotAFetchTargetError, fetcher_for_source
@@ -265,6 +267,8 @@ def test_gate_four_a_stored_medium_row_permits_the_feed_and_refuses_articles(
     conn, tmp_path
 ):
     """The class B ruling, carried from Postgres into the fetcher's behaviour."""
+    pytest.importorskip("feedparser", reason="the blog fetcher imports the parse path")
+
     import httpx
 
     from collect.adapters.blog.fetch import FeedOnlyError, fetcher_for_source

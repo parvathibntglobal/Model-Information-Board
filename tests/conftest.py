@@ -180,20 +180,83 @@ def test_dsn() -> str:
     raise AssertionError("unreachable")  # pragma: no cover
 
 
+# ── the blog parse path's optional dependencies ───────────────────────────
+#
+# `feedparser` and `trafilatura` are needed by exactly one module,
+# `collect/adapters/blog/parse.py`. Without them installed, the four test
+# modules that genuinely parse feeds raised at import time, pytest reported
+# `Interrupted: 5 errors during collection`, and NOTHING RAN — six hundred
+# tests with no relationship to feed parsing, silently not executed.
+#
+# So those four skip instead, and say so loudly. Same reasoning as the
+# database banner above and the same danger: a skip reads as success, so an
+# uncovered path that announces itself in the summary is the only acceptable
+# version of one.
+
+FEED_LIBRARIES = ("feedparser", "trafilatura")
+_feed_skip_used = False
+
+
+def missing_feed_libraries() -> list[str]:
+    """Which of the blog parse path's libraries are not installed."""
+    from importlib.util import find_spec
+
+    missing = []
+    for name in FEED_LIBRARIES:
+        try:
+            found = find_spec(name) is not None
+        except (ImportError, ModuleNotFoundError, ValueError):
+            found = False
+        if not found:
+            missing.append(name)
+    return missing
+
+
+def require_feed_libraries() -> None:
+    """Skip the calling module if the blog parse path cannot be imported.
+
+    Called ABOVE the imports it guards, which is why those imports sit below
+    it rather than at the top of the file: the point is to skip before the
+    ImportError, not to catch one afterwards.
+    """
+    missing = missing_feed_libraries()
+    if not missing:
+        return
+
+    global _feed_skip_used
+    _feed_skip_used = True
+    pytest.skip(
+        f"BLOG PARSE PATH NOT COVERED: {', '.join(missing)} not installed. "
+        "These tests were not run.",
+        allow_module_level=True,
+    )
+
+
 def pytest_terminal_summary(terminalreporter, exitstatus, config) -> None:
     """Say it in the summary, not only in a skip reason nobody reads.
 
     Skip reasons need `-rs` to show. An override that hides its own
     consequence is how the next set of defects gets through.
     """
-    if not _override_used:
-        return
-    terminalreporter.write_sep("=", "WRITE PATH NOT COVERED", red=True, bold=True)
-    terminalreporter.write_line(
-        f"  The registry write-path tests did not run: {ALLOW_MISSING} is set "
-        f"and {DSN_VAR} is unset."
-    )
-    terminalreporter.write_line(
-        "  A green result here does NOT mean the database write path works. "
-        "Run scripts/dev-postgres.ps1."
-    )
+    if _override_used:
+        terminalreporter.write_sep("=", "WRITE PATH NOT COVERED", red=True, bold=True)
+        terminalreporter.write_line(
+            f"  The registry write-path tests did not run: {ALLOW_MISSING} is set "
+            f"and {DSN_VAR} is unset."
+        )
+        terminalreporter.write_line(
+            "  A green result here does NOT mean the database write path works. "
+            "Run scripts/dev-postgres.ps1."
+        )
+
+    if _feed_skip_used:
+        terminalreporter.write_sep("=", "BLOG PARSE PATH NOT COVERED", red=True, bold=True)
+        terminalreporter.write_line(
+            f"  Not installed: {', '.join(missing_feed_libraries())}. The blog "
+            "feed parsing and fetch tests did not run."
+        )
+        terminalreporter.write_line(
+            "  A green result here does NOT mean the blog adapter works — and "
+            "blogs are the only positive-evidence channel. Run: "
+            "pip install -e '.[blog]'  (or the project's full dev install)."
+        )

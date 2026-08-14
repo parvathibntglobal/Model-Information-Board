@@ -7,7 +7,7 @@ milliseconds. A limiter tested with real sleeps gets tested with
 
 from __future__ import annotations
 
-from collect.adapters.blog.limiter import HostLimiter
+from collect.limiter import HostLimiter
 
 
 class Clock:

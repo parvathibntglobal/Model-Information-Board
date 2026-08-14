@@ -42,11 +42,11 @@ from typing import Any
 
 import httpx
 
-from collect.adapters.blog.limiter import HostLimiter
 from collect.adapters.queries.github import SearchRequest
 from collect.adapters.queries.sieve import SieveVerdict, SieveYield, tally
 from collect.config import settings
 from collect.ids import stable_id
+from collect.limiter import HostLimiter
 from collect.rawstore import RAW, RawStore
 
 log = logging.getLogger(__name__)
