@@ -26,7 +26,7 @@ from __future__ import annotations
 import pytest
 
 from collect.adapters.queries.contract import TermSet
-from collect.adapters.queries.sieve import default_locality_window, sieve
+from collect.adapters.queries.sieve import default_locality_window, sieve, sieve_any
 
 ALIAS = "gemini-2.5-flash"
 
@@ -171,6 +171,58 @@ def test_signal_still_has_to_be_the_authors_own_words():
     assert not verdict.passed
     assert "signal" in verdict.missing
     assert "held up" in verdict.signal_in_excluded
+
+
+# ── the wrapper must not lose the option ──────────────────────────────────
+#
+# `sieve_any` is now the site of THREE defects the tests were silent about:
+# it returned the last failing verdict rather than the furthest, it did not
+# forward `window` at all, and — found by auditing the first two — no test
+# ever passed `window` to it, so the forwarding fix had no guard either.
+#
+# All three are the same shape: a wrapper that loses something on the way
+# through. Its own docstring says callers are steered towards it "so it cannot
+# be used the wrong way by accident", which makes a dropped option worse here
+# than anywhere else in the module.
+
+
+def test_sieve_any_forwards_the_window():
+    """It did not, and nothing failed. That is the defect this pins."""
+    far = document(subject_at=20_000, topic_at=8_000, signal_at=11_899)
+
+    assert sieve_any([TERMS], far, window=None).passed, "window=None must reach sieve"
+    assert not sieve_any([TERMS], far, window=1200).passed
+    assert not sieve_any([TERMS], far).passed, "the contract default must apply"
+
+
+def test_sieve_any_and_sieve_agree_when_given_the_same_window():
+    """A wrapper that disagrees with what it wraps is worse than no wrapper."""
+    for gap in (100, 3_899):
+        text = planted_gap(gap)
+        for window in (None, 600, 1200, 6000):
+            assert (
+                sieve_any([TERMS], text, window=window).passed
+                == sieve(TERMS, text, window=window).passed
+            ), f"disagreement at gap={gap} window={window}"
+
+
+def test_sieve_any_still_returns_the_furthest_verdict_when_none_passes():
+    """The first defect, re-pinned alongside the others it keeps company with.
+
+    A locality failure is 'furthest' — subject, topic and signal all matched —
+    so it must win over a variant that missed a group outright.
+    """
+    wrong_alias = TermSet(
+        subject=("some-other-model",), topic=("extract",), signal=("held up",)
+    ).substitute("some-other-model")
+    far = document(subject_at=20_000, topic_at=8_000, signal_at=11_899)
+
+    verdict = sieve_any([wrong_alias, TERMS], far, window=1200)
+    assert not verdict.passed
+    assert verdict.missing == ("locality",), (
+        "the furthest verdict is the one that matched all three groups, not "
+        "the one that missed the subject"
+    )
 
 
 # ── the configured number ─────────────────────────────────────────────────
