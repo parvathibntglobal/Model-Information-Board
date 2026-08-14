@@ -18,7 +18,12 @@ from collections.abc import Sequence
 
 from collect.config import settings
 from collect.registry.aliases import all_alias_rows, find_collisions
-from collect.registry.seed import gaps_by_model, load_seed_file, source_gaps
+from collect.registry.seed import (
+    gaps_by_model,
+    load_seed_file,
+    source_gaps,
+    sourced_field_total,
+)
 
 
 def _cmd_db_init(args: argparse.Namespace) -> int:
@@ -38,11 +43,15 @@ def _cmd_registry_check_sources(args: argparse.Namespace) -> int:
     """FR-2, checkable without a database."""
     seed = load_seed_file()
     gaps = source_gaps(seed)
-    total_fields = sum(len(m.populated_sourced_fields()) for m in seed.models)
+    total_fields = sourced_field_total(seed)
     sourced = total_fields - len(gaps)
+
+    flat = sum(len(m.populated_sourced_fields()) for m in seed.models)
+    tiered = total_fields - flat
 
     print(f"seed file : {len(seed.models)} models, version {seed.version}")
     print(f"FR-2      : {sourced}/{total_fields} populated fields carry a source")
+    print(f"            ({flat} model_version fields + {tiered} price_tier fields)")
     if not gaps:
         print("            complete")
         return 0

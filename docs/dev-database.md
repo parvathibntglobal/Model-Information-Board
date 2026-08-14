@@ -113,10 +113,11 @@ The guard is tested in `tests/test_dev_database_guard.py`, without a database.
 
 ---
 
-## Three traps encoded in the script
+## Traps
 
-All three cost real time to diagnose. The script comments explain each at the
-point it matters.
+All of these cost real time to diagnose. The first three are encoded in the
+script, which comments each at the point it matters; the last two bite
+whoever restarts the instance, so they are written down here.
 
 **`Expand-Archive -Force` fails during its own cleanup**, with
 `Cannot find path ... because it does not exist` on files it is midway
@@ -139,6 +140,51 @@ as `﻿TEST_DATABASE_URL` and silently not match. The script now writes
 with an explicit no-BOM encoder, and the reader uses `utf-8-sig` so a
 hand-written file with a BOM also works. Worth knowing generally: the repo's
 `.gitattributes` has the same BOM and currently gets away with it.
+
+---
+
+## Two more, found bringing the instance back up
+
+**A stale `postmaster.pid` blocks the restart, and will recur.** If the
+machine sleeps or the server dies mid-session, `pgdata\postmaster.pid`
+survives naming a PID that no longer exists. The next start says:
+
+```
+pg_ctl: another server might be running; trying to start server anyway
+```
+
+and then does not start. Confirm the process is genuinely gone before
+removing the file — a pid file removed while a live postmaster holds the data
+directory invites two servers onto one directory, which is how the data
+directory gets corrupted:
+
+```powershell
+Get-Process -Id <pid from the file> -ErrorAction SilentlyContinue   # nothing
+Get-Process -Name postgres -ErrorAction SilentlyContinue            # nothing
+Get-NetTCPConnection -LocalPort 5433 -State Listen                  # nothing
+Remove-Item "$env:LOCALAPPDATA\modelboard-pg\pgdata\postmaster.pid"
+```
+
+**Do not test the port with `TcpClient.BeginConnect` + `WaitOne`.** It is the
+obvious check and it is wrong: `WaitOne` returning `$true` means *the wait
+completed*, not that the connection succeeded. It reported port 5433
+"reachable" while nothing was listening at all, which turned an obvious "no
+server" into an ambiguous hang and cost an afternoon. Two checks that do tell
+the truth:
+
+```powershell
+Get-NetTCPConnection -LocalPort 5433 -State Listen    # is anything listening
+```
+
+```python
+psycopg.connect(dsn, connect_timeout=5)    # does it speak Postgres
+```
+
+The second is the one that matters. Something can listen on 5433 without
+being a Postgres that will answer, and only a protocol-level connect
+distinguishes them. `collect.db.connect` sets no `connect_timeout`, so a
+diagnostic connect should always pass one explicitly — otherwise the check
+you are using to diagnose a hang hangs too.
 
 ---
 

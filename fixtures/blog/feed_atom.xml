@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Synthetic Atom Notes</title>
+  <link href="https://atom.example.invalid/"/>
+  <updated>2026-08-06T12:00:00Z</updated>
+  <author><name>Feed Level Author</name></author>
+  <entry>
+    <title>Long context, measured</title>
+    <link rel="alternate" href="/posts/long-context"/>
+    <id>urn:uuid:2a0c9a10-0000-4000-8000-000000000001</id>
+    <published>2026-08-06T11:00:00Z</published>
+    <updated>2026-08-07T08:30:00Z</updated>
+    <summary>Atom summary.</summary>
+  </entry>
+</feed>

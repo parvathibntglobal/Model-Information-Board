@@ -137,6 +137,8 @@ class LoadReport:
     aliases_existing: int = 0
     #: Live rows superseded and closed out by setting `valid_until` (FR-4).
     aliases_closed: int = 0
+    #: Item 18. Tier bands written for models whose price is length-dependent.
+    price_tiers_written: int = 0
     events: list[tuple[str, str]] = field(default_factory=list)
     unsourced_fields: dict[str, list[str]] = field(default_factory=dict)
 
@@ -197,6 +199,7 @@ class LoadReport:
             f"aliases  : {self.aliases_inserted} inserted, "
             f"{self.aliases_existing} already present, "
             f"{self.aliases_closed} superseded and closed (append-only)",
+            f"tiers    : {self.price_tiers_written} price bands written",
             f"events   : {len(self.events)}",
         ]
         for event_type, detail in self.events:
@@ -446,6 +449,52 @@ def _record_event(
     return event_id
 
 
+def _write_price_tiers(conn: psycopg.Connection[Any], model: SeedModel) -> int:
+    """Replace this model's tier bands with what the seed file declares.
+
+    Delete-then-insert rather than upsert, because a provider changing its
+    band boundaries means the old bands no longer exist. Leaving a stale band
+    behind would let a workload price against a boundary the provider has
+    retired, which is the same class of error as a lowest-tier fallback.
+
+    `pricing_history` is untouched: it records observations of
+    `model_version` prices, and a tiered model has none.
+    """
+    from psycopg.types.json import Json
+
+    if not model.price_tiers:
+        return 0
+
+    mv_id = model_version_id(model.canonical_id)
+    conn.execute("DELETE FROM price_tier WHERE model_version_id = %s", (mv_id,))
+
+    for tier in model.price_tiers:
+        conn.execute(
+            "INSERT INTO price_tier (model_version_id, dimension, min_tokens, "
+            "max_tokens, price, price_cached_read, sources) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (
+                mv_id,
+                tier.dimension,
+                tier.min_tokens,
+                tier.max_tokens,
+                tier.price,
+                tier.price_cached_read,
+                Json(
+                    {
+                        field: {
+                            "url": ref.url,
+                            "retrieved_at": ref.retrieved_at.isoformat(),
+                            "provider_page": ref.provider_page,
+                        }
+                        for field, ref in tier.sources.items()
+                    }
+                ),
+            ),
+        )
+    return len(model.price_tiers)
+
+
 def _refuse_provenance_downgrade(
     conn: psycopg.Connection[Any], models: list[SeedModel]
 ) -> None:
@@ -676,6 +725,9 @@ def load_seed(
                 },
             )
             report.events.append(("price-change", detail))
+
+    for model in seed.models:
+        report.price_tiers_written += _write_price_tiers(conn, model)
 
     for alias in aliases:
         verdict = _sync_alias(conn, alias)

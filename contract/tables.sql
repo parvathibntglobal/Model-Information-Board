@@ -29,9 +29,16 @@ CREATE TABLE model_version (
 
   advertised_context          int,
   max_output_tokens           int,
+
+  -- The RELIABLE knowledge cutoff, not the training-data cutoff, where a
+  -- provider publishes both. They differ: Claude Haiku 4.5 is Feb 2025
+  -- reliable and Jul 2025 training. The answer path uses this to reason about
+  -- what a model knows, and overstating that costs a wrong recommendation.
   knowledge_cutoff            date,
 
-  price_in                    numeric(12,6),          -- USD per 1M tokens
+  -- USD per 1M tokens. NULL when a `price_tier` row exists for this model:
+  -- see the warning above that table. These are NOT the lowest tier.
+  price_in                    numeric(12,6),
   price_out                   numeric(12,6),
   price_cached_read           numeric(12,6),
   batch_discount              numeric(4,3),
@@ -88,6 +95,40 @@ CREATE TABLE model_event (
   detected_at       timestamptz NOT NULL DEFAULT now(),
   payload           jsonb,
   source_url        text
+);
+
+-- ============================================================================
+--  TIERED PRICING (item 18). Some providers charge by input length: Gemini
+--  2.5 Pro is $1.25/$10.00 at or below 200k input tokens and $2.50/$15.00
+--  above it. A single numeric cannot hold that.
+--
+--  model_version.price_in / price_out are NULL when a row exists here. They are
+--  NOT the lowest tier. A lowest-tier fallback would let any caller that forgets
+--  to read this table price a model at half its real rate on long-context work,
+--  which is a false qualification and reads as plausible on the page.
+--
+--  With NULL, forgetting fails loudly: a candidate with no cost renders as
+--  unpriced rather than as cheap. An unpriced frontier model is a visible gap
+--  somebody fixes; a frontier model at half its real price is a wrong
+--  recommendation nobody catches.
+-- ============================================================================
+
+CREATE TABLE price_tier (
+  model_version_id  text NOT NULL REFERENCES model_version(id),
+  dimension         text NOT NULL,   -- input_tokens | output_tokens
+  min_tokens        int NOT NULL DEFAULT 0,
+  max_tokens        int,             -- NULL = no upper bound
+  price             numeric(12,6) NOT NULL,
+  price_cached_read numeric(12,6),
+
+  -- FR-2 applies here as much as to model_version. Note that FR-2's wording
+  -- says "every populated field on any `model_version` row", so a tier row is
+  -- outside the requirement as written. `check_source_coverage` walks these
+  -- rows anyway: the alternative is provenance with a second place to hide.
+  sources           jsonb NOT NULL,
+
+  PRIMARY KEY (model_version_id, dimension, min_tokens),
+  CONSTRAINT price_tier_dimension_ck CHECK (dimension IN ('input_tokens','output_tokens'))
 );
 
 CREATE TABLE pricing_history (
@@ -374,7 +415,25 @@ CREATE TABLE reported_context (
   reported_low     int,
   reported_high    int,
   quote_ids        text[],
-  computed_at      timestamptz NOT NULL DEFAULT now()
+
+  -- FR-31 reads `reported_low` as a HARD FILTER, so a hand-seeded value
+  -- silently excludes models from every long-context recommendation.
+  --
+  -- Every other number on this board argues its case in front of the reader
+  -- and can be disagreed with. This one removes candidates before the reader
+  -- sees them: a wrong `cell` shows up as a phrase somebody can read, a wrong
+  -- `reported_low` shows up as an absence, and nobody audits a model that was
+  -- never in the list. Same guard as cell.provenance, for a stronger reason.
+  --
+  -- assert_no_fixtures() refuses to start outside development while any row
+  -- here is hand_seeded. In development, where hand-seeded rows legitimately
+  -- exist, judge/ names the exclusion and says the threshold is hand-seeded.
+  provenance       text NOT NULL DEFAULT 'harvested',
+
+  computed_at      timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT reported_context_provenance_ck
+    CHECK (provenance IN ('harvested', 'hand_seeded'))
 );
 
 CREATE TABLE label (
@@ -484,16 +543,62 @@ CREATE TABLE audit (
   audited_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Every feed is a source row. The initial nine are seeded from
+-- `contract/sources.yaml` so the list is reviewable and diffable; feeds
+-- discovered from links in already-harvested content are inserted here
+-- directly and never written back to the contract file.
 CREATE TABLE source (
   id           text PRIMARY KEY,
   platform     text NOT NULL,
   endpoint     text,
   base_trust   real NOT NULL,   -- github 0.95 · blog 0.90 · reddit 0.85
   tos_notes    text NOT NULL,   -- NFR-5: reviewed and recorded per source
+
+  -- Item 20's shape, applied to sources. Without this, a feed that arrived by
+  -- link is indistinguishable from one somebody vetted, and silently inherits
+  -- a class ruling nobody made about it — a value that reads as reviewed,
+  -- gating whether we are allowed to fetch at all.
+  provenance   text NOT NULL,   -- seed | discovered
+
+  -- NFR-5, the machine-readable half. `tos_notes` is the prose a human reads;
+  -- these are what `assert_terms_reviewed()` gates on. A row with no ruling is
+  -- refused, and a ruling whose evidence has gone stale is refused too — a
+  -- ruling asserted forever against a site that changed in October is the
+  -- unreviewed placeholder again, wearing a date.
+  --
+  -- NULLABLE, and that is rule 6 rather than laxity. `reddit` genuinely has
+  -- no ruling: access is deferred, nobody has read the terms, and the row has
+  -- to exist anyway because `watermark.source_id` references it. NOT NULL
+  -- here would force one of two lies — a sentinel ruling id, which is the
+  -- placeholder this design removed wearing a better name, or a fabricated
+  -- date. NULL says "not reviewed", the reader can act on it, and
+  -- `assert_terms_reviewed()` refuses to fetch it. An unreviewed source is
+  -- visible as unreviewed instead of missing.
+  terms_ruling      text,       -- an id from sources.yaml:terms_rulings
+  terms_checked_on  date,       -- when this row's evidence was measured
+
+  -- The mechanical observations the ruling is applied to: robots status and
+  -- HTTP code, which paths are permitted, paywall, feed type.
+  terms_evidence    jsonb,
+
   health_status text,
-  last_yield   int              -- FR-10: a drop means broken markup,
+  last_yield   int,             -- FR-10: a drop means broken markup,
                                 -- not a quiet internet
+
+  CONSTRAINT source_provenance_ck CHECK (provenance IN ('seed', 'discovered')),
+
+  -- The honest gap above is available to the hand-curated seed only. A feed
+  -- that arrived by a link in harvested content must carry a ruling made
+  -- about *its* host: without this, a discovered row inserts ruling-less and
+  -- is indistinguishable at the gate from one somebody deferred on purpose.
+  -- Item 20 again — the value that cannot be told apart from a considered one.
+  CONSTRAINT source_discovered_needs_ruling_ck
+    CHECK (provenance = 'seed' OR terms_ruling IS NOT NULL)
 );
+
+-- Deliberately NOT swept by assert_no_fixtures(). `source.provenance = 'seed'`
+-- is a curation decision that stays, unlike `model_version.provenance = 'seed'`
+-- which is a build fixture standing in for the week-5 poller.
 
 -- FR-9: resume exactly where consumption paused
 CREATE TABLE watermark (
@@ -544,13 +649,37 @@ CREATE TABLE harvest_run (
   -- it short is what stops silent truncation reading as "we looked
   -- everywhere" when we did not. Closed set on purpose: FR-11's acceptance is
   -- a check, and a check over arbitrary strings is not one.
+  --
+  -- TWO KINDS, AND THE COVERAGE PAGE MUST RENDER THEM DIFFERENTLY:
+  --
+  --   CAPS WE CHOSE           query-budget · time-budget · extraction-budget
+  --     "we decided not to look further"
+  --
+  --   THE PLATFORM STOPPING US   rate-limit · result-ceiling
+  --     "we were not allowed to look further"
+  --
+  -- Those are opposite statements about the same missing data. One is a
+  -- decision somebody can revisit by raising a budget; the other is a wall
+  -- that raising a budget will not move, and the only remedies are narrower
+  -- queries or a different access path.
+  --
+  -- `result-ceiling` covers any platform limit on how many results a query
+  -- can ever yield, regardless of pagination: GitHub Search returns at most
+  -- 1,000 results per query (100 per page) and at most 4,000 repositories
+  -- for a repository search. Same class, same consequence.
+  --
+  -- NOT in this set: a query whose syntax the platform silently discarded.
+  -- That query returned everything it matched, so it was not cut short. It
+  -- was the wrong query, which is a different failure and needs a different
+  -- signal.
   truncated_by     text,
 
   pipeline_version text NOT NULL,
 
   CONSTRAINT harvest_run_truncated_ck
     CHECK (truncated_by IS NULL OR truncated_by IN ('query-budget', 'rate-limit',
-                                                    'time-budget', 'extraction-budget'))
+                                                    'time-budget', 'extraction-budget',
+                                                    'result-ceiling'))
 );
 CREATE INDEX harvest_run_source_query_idx
   ON harvest_run (source_id, query_key, started_at DESC);

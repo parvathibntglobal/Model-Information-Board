@@ -661,6 +661,132 @@ def test_recompute_window_moves_with_the_date(conn):
     assert _scalar(conn, "SELECT count(*) FROM model_version WHERE NOT in_window") == 2
 
 
+# ── item 18: tier bands reach the database ────────────────────────────────
+
+
+def test_tier_bands_are_written(conn):
+    report = _load(conn, as_of=AS_OF)
+    assert report.price_tiers_written == 4
+    assert _scalar(conn, "SELECT count(*) FROM price_tier") == 4
+
+
+def test_the_tiered_model_has_no_flat_price_in_the_database(conn):
+    """The lowest-tier trap, checked where a caller would actually hit it."""
+    _load(conn, as_of=AS_OF)
+    row = conn.execute(
+        "SELECT price_in, price_out FROM model_version WHERE canonical_id = %s",
+        ("google/gemini-2.5-pro",),
+    ).fetchone()
+    assert row == (None, None)
+
+
+def test_reloading_replaces_bands_rather_than_accumulating(conn):
+    """A provider that moves a boundary retires the old band.
+
+    Leaving a stale band would let a workload price against a boundary the
+    provider no longer offers, which is the lowest-tier error in slow motion.
+    """
+    _load(conn, as_of=AS_OF)
+    _load(conn, as_of=AS_OF)
+    assert _scalar(conn, "SELECT count(*) FROM price_tier") == 4
+
+
+def test_tier_sources_reach_the_database(conn):
+    """FR-2 provenance has to survive the write, not just the file."""
+    _load(conn, as_of=AS_OF)
+    sources = _scalar(
+        conn,
+        "SELECT sources FROM price_tier WHERE dimension='input_tokens' AND min_tokens=0",
+    )
+    assert sources["price"]["url"].startswith("https://ai.google.dev")
+    assert sources["price"]["provider_page"] is True
+
+
+def test_the_open_ended_band_has_no_upper_bound(conn):
+    _load(conn, as_of=AS_OF)
+    assert (
+        _scalar(
+            conn,
+            "SELECT max_tokens FROM price_tier "
+            "WHERE dimension='input_tokens' AND min_tokens=200000",
+        )
+        is None
+    )
+
+
+# ── item 20: a hand-seeded threshold cannot reach production ──────────────
+
+
+def test_a_hand_seeded_threshold_blocks_startup(conn):
+    """FR-31 reads reported_low as a hard filter, so a fabricated value
+    excludes models silently rather than making a claim anyone can read."""
+    _load(conn, as_of=AS_OF)
+    mv_id = _scalar(
+        conn, "SELECT id FROM model_version WHERE canonical_id = 'google/gemini-2.5-pro'"
+    )
+    conn.execute(
+        "INSERT INTO reported_context (model_version_id, advertised, reported_low, provenance) "
+        "VALUES (%s, 1000000, 180000, 'hand_seeded')",
+        (mv_id,),
+    )
+    conn.commit()
+
+    with pytest.raises(FixtureLeakError, match="hand-seeded context threshold"):
+        assert_no_fixtures(conn, environment="production")
+
+
+def test_a_harvested_threshold_is_not_counted_as_a_fixture(conn):
+    """Only `hand_seeded` blocks. A harvested threshold is evidence.
+
+    Asserted through the error message rather than by deleting the seeded
+    models, which `model_alias` legitimately references.
+    """
+    _load(conn, as_of=AS_OF)
+    mv_id = _scalar(
+        conn, "SELECT id FROM model_version WHERE canonical_id = 'google/gemini-2.5-pro'"
+    )
+    conn.execute(
+        "INSERT INTO reported_context (model_version_id, advertised, reported_low, provenance) "
+        "VALUES (%s, 1000000, 180000, 'harvested')",
+        (mv_id,),
+    )
+    conn.commit()
+
+    with pytest.raises(FixtureLeakError) as excinfo:
+        assert_no_fixtures(conn, environment="production")
+    assert "0 hand-seeded context threshold(s)" in str(excinfo.value)
+
+
+def test_provenance_defaults_to_harvested(conn):
+    """A row written without stating provenance is not silently a fixture."""
+    _load(conn, as_of=AS_OF)
+    mv_id = _scalar(
+        conn, "SELECT id FROM model_version WHERE canonical_id = 'google/gemini-2.5-pro'"
+    )
+    conn.execute(
+        "INSERT INTO reported_context (model_version_id, reported_low) VALUES (%s, 180000)",
+        (mv_id,),
+    )
+    conn.commit()
+    assert _scalar(conn, "SELECT provenance FROM reported_context") == "harvested"
+
+
+def test_an_undocumented_provenance_is_refused(conn):
+    import psycopg
+
+    _load(conn, as_of=AS_OF)
+    mv_id = _scalar(
+        conn, "SELECT id FROM model_version WHERE canonical_id = 'google/gemini-2.5-pro'"
+    )
+    with pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute(
+            "INSERT INTO reported_context (model_version_id, reported_low, provenance) "
+            "VALUES (%s, 180000, 'guessed')",
+            (mv_id,),
+        )
+    conn.rollback()
+
+
 def test_production_refuses_to_start_on_seeded_rows(conn):
     _load(conn)
     with pytest.raises(FixtureLeakError):

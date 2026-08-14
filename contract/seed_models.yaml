@@ -29,6 +29,19 @@
 #  (wikipedia.org) were removed, not replaced with each other: they were the
 #  reason sign-off item 6 existed.
 #
+#  TIERED PRICING (item 18). gemini-2.5-pro is priced by input length, so it
+#  carries `price_tiers` and NO `price_in` / `price_out`. Those are absent
+#  rather than set to the cheap tier: a lowest-tier fallback prices a
+#  frontier model at half its real long-context rate, which reads as
+#  plausible and wins recommendations it should lose. The loader refuses a
+#  model that declares both.
+#
+#  FR-2 counts tier prices too. `check_source_coverage` walks `price_tiers`
+#  as well as model fields, so a sourced tier price cannot be invisible to
+#  the thing auditing provenance. Note that FR-2's wording says "every
+#  populated field on any `model_version` row", so tier rows sit outside the
+#  requirement as written: a gap in the requirement, not in the data.
+#
 #  Three models here are RETIRED and kept deliberately. The schema carries
 #  `lifecycle`, `deprecation_date` and `retirement_date`, and the answer path
 #  filters on `lifecycle != 'retired'`, but nothing exercised any of it. A
@@ -135,14 +148,40 @@ models:
     slot: frontier
     lifecycle: ga
     release_date: 2025-06-17         # GA. Was 2025-03-25, its original preview.
-    # ◀ TIERED PRICING, AND THE SCHEMA CANNOT HOLD IT (sign-off item 18).
-    #   Google charges $1.25/$10.00 for prompts <= 200k tokens and
-    #   $2.50/$15.00 above that; cached read is $0.125 / $0.25. `price_in` is
-    #   a single numeric. Taking the cheap tier understates cost by 2x on
-    #   exactly the long-context tasks FR-31 exists to catch, which is a
-    #   false qualification. So all three prices are REMOVED until the
-    #   schema can express the tier.
+    # ◀ TIERED PRICING (item 18, now built). price_in and price_out are
+    #   deliberately ABSENT rather than set to the cheap tier: a lowest-tier
+    #   fallback prices this model at half its real long-context rate, which
+    #   is a false qualification and reads as plausible. The real bands are
+    #   in price_tiers below and the loader validates that both cannot
+    #   coexist.
     batch_discount: 0.500
+    price_tiers:
+      - dimension: input_tokens
+        min_tokens: 0
+        max_tokens: 200000
+        price: 1.25
+        price_cached_read: 0.125
+        sources:
+          price:             { url: "https://ai.google.dev/gemini-api/docs/pricing", retrieved_at: "2026-08-13", provider_page: true }
+          price_cached_read: { url: "https://ai.google.dev/gemini-api/docs/pricing", retrieved_at: "2026-08-13", provider_page: true }
+      - dimension: input_tokens
+        min_tokens: 200000
+        price: 2.50
+        price_cached_read: 0.25
+        sources:
+          price:             { url: "https://ai.google.dev/gemini-api/docs/pricing", retrieved_at: "2026-08-13", provider_page: true }
+          price_cached_read: { url: "https://ai.google.dev/gemini-api/docs/pricing", retrieved_at: "2026-08-13", provider_page: true }
+      - dimension: output_tokens
+        min_tokens: 0
+        max_tokens: 200000
+        price: 10.00
+        sources:
+          price:             { url: "https://ai.google.dev/gemini-api/docs/pricing", retrieved_at: "2026-08-13", provider_page: true }
+      - dimension: output_tokens
+        min_tokens: 200000
+        price: 15.00
+        sources:
+          price:             { url: "https://ai.google.dev/gemini-api/docs/pricing", retrieved_at: "2026-08-13", provider_page: true }
     supports_vision: true
     supports_caching: true
     supports_batch: true
