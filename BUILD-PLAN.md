@@ -385,7 +385,7 @@ If an acceptance criterion needs debate to settle, rewrite the criterion rather 
 | **NFR-6** | **Honour upstream deletion and takedown via a tombstone path.** Immutability means not silently rewriting history, not refusing a deletion.<br>*Accept:* tombstone a document; its quotes vanish next run, only the content hash remains. | **both** |
 | **NFR-7** | **Extraction hardened against prompt injection** — isolated untrusted block, forced schema, no tools, no network egress, least-privilege writes.<br>*Accept:* a seeded injection payload produces no claim and no side effect. | E2 |
 | **NFR-8** | **Exactly two stages use a language model.** No model in counting, weighting, gating, ranking, filtering or phrase assembly.<br>*Accept:* code inspection confirms invocation only in `judge/extract/` and `judge/ask/`. | **both** |
-| **NFR-9** | **Two qualified, snapshot-pinned extractors with automatic failover.** The founding premise is that models change silently — and the extractor is exposed to exactly that.<br>*Accept:* force a `ValidationError` spike; the system switches, stamps a new version, flags the batch. | E2 |
+| **NFR-9** | **One extractor, pinned in config, with a halt-and-flag on silent regression.** `google/gemini-2.5-flash` via OpenRouter, decided rather than selected. The founding premise is that models change silently behind stable names and the extractor is one such model — with nothing to fail over to, the mitigation is detection.<br>*Accept:* force a `ValidationError` spike; the batch halts, is flagged for re-run, and the alert names the extractor and its `pipeline_version`. | E2 |
 | **NFR-10** | **All thresholds, weights, half-lives, capability list, alias variants and filter rules in versioned config, not code.**<br>*Accept:* changing a threshold requires no code deploy and produces a version diff. | **both** |
 
 ---
@@ -399,7 +399,7 @@ If an acceptance criterion needs debate to settle, rewrite the criterion rather 
 | **Wk 3** | Raw store · dedupe (MinHash short, simhash long) · **flattening + `offset_map`** · author identity clustering<br><br>**→ hands over the document contract**<br>`FR-14` `FR-15` `FR-16` `FR-17` | ★ **THE GATE: three real model decisions through the box**<br>+ label `fixtures/golden/` — extraction 80, entity resolution 200, filter 200<br>*E1 cross-labels ~50 for an agreement number*<br><br>*Also decide this week:* the publication-gate thresholds |
 | **Wk 4** | Triage gates · query budget caps · **registry poller begins**<br><br>*Gate:* ~10–15% survival to extraction, tracked from day one<br>`FR-7` `FR-8` `FR-11` `NFR-3` | **Quote verification** against a hand-made `thread_context` · model page · capability page<br><br>*Gate:* a fabricated quote never persists<br>`FR-12` `FR-13` `FR-23` `FR-24` |
 | **Wk 5** | Registry: real polling, alias table, variant generation, daily API diffing<br><br>*Gate:* roster completeness 100%; price change caught within 24h<br>`FR-1` `FR-3` `FR-4` | **Extraction** — prompt, Pydantic schema, temperature-0 retry, injection defence<br><br>*Gate:* extraction F1 ≥0.85 on the golden set; seeded injection produces nothing<br>`NFR-7` `NFR-4` |
-| **Wk 6** | Change detection, `possibly-changed` events, backfill from the raw store<br>`FR-3` `NFR-4` `NFR-6` | **Extractor selection on F1-per-dollar, second qualified** · vetting: hard rejects + seven-factor weight<br><br>*Gate:* filter precision ≥0.90, **≤5% false-positive on genuine expert content**<br>`FR-18` `FR-19` `FR-20` `NFR-9` |
+| **Wk 6** | Change detection, `possibly-changed` events, backfill from the raw store<br>`FR-3` `NFR-4` `NFR-6` | **Extractor measured against the golden set** · vetting: hard rejects + seven-factor weight<br><br>*Gate:* filter precision ≥0.90, **≤5% false-positive on genuine expert content**<br>`FR-18` `FR-19` `FR-20` `NFR-9` |
 | **Wk 7** | Ops, the five alerts, coverage-page data, nightly job chain<br>`FR-10` `FR-11` `NFR-3` | **Curation** — voice counting, publication gate, consensus phrases, condition buckets · filtered page · changelog<br><br>*Gate:* every published phrase traceable to its quotes in one click<br>`FR-21` `FR-22` `FR-25` `FR-26` `FR-27` |
 | **Wk 8** | **Both.** Ask box switched to real cells · **seeds and hand-cells deleted, startup assertion live** · abstention · guards · outcome logging · harden<br><br>*Gate:* §9<br>`FR-34` `FR-35` `FR-36` `NFR-8` `NFR-10` | |
 
@@ -425,7 +425,7 @@ It is roughly ten lines while already walking the thread tree, and **impossible 
 
 **E2 labels in week 3. Selection happens week 6.**
 
-You cannot choose an extractor on measured F1-per-dollar without a set to measure against, and choosing by assertion undermines the one component the whole guarantee rests on.
+The extractor is decided rather than selected, so the golden set is no longer a selection instrument. It is the only instrument that can see extraction failing, because a missed claim produces no error and a misfiled one produces a verified quote in the wrong cell.
 
 *E1 cross-labels ~50 items.* If two people who both read the spec disagree on what counts as good evidence, the criteria aren't clear enough to automate — far cheaper to learn in week 3 than week 6.
 
