@@ -80,7 +80,16 @@ jobs:
         # pyproject asks for this by name. `pip install -e .` without [dev]
         # silently drops pytest-asyncio, and the async tests would not fail —
         # they would not run, which is the failure mode this repo keeps finding.
-        run: python -c "import pytest_asyncio, ruff  # noqa: F401"
+        #
+        # A BLOCK SCALAR, not a plain one, and no `#` inside the command. In a
+        # plain YAML scalar a space-hash starts a comment, so the first version
+        # of this — which ended `ruff  # noqa: F401` — was truncated mid-string
+        # and reached bash as an unterminated quote:
+        #     line 1: unexpected EOF while looking for matching `"'
+        # The `# noqa` was pointless anyway: ruff does not lint a command
+        # inside a YAML file.
+        run: |
+          python -c "import pytest_asyncio, ruff; print('pytest-asyncio', pytest_asyncio.__version__)"
 
       - name: Mark the database disposable
         # Layer 3 of the guard. The sentinel lives in its own schema because
