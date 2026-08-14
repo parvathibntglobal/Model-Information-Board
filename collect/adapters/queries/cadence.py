@@ -64,11 +64,15 @@ SILENT = "silent"
 #: out. Naming the three moves that ARE decisions, next to the one that is not,
 #: is the difference between a constraint and an obstacle.
 THE_MOVES = (
-    "The options that are decisions: narrow the sweep scope, reduce the "
-    "searchable alias variants (contract/registry.yaml:alias_search), or move "
-    "an entry to a longer cadence (contract/harvest.yaml). Raising the ceiling "
-    "is the option that is not a decision — the cap is the whole reason the "
-    "cost of a capability is visible before it is paid."
+    "The options that are decisions: reduce the searchable alias variants "
+    "(contract/registry.yaml:alias_search), move an entry to a longer cadence, "
+    "or partition the models across nights. NOT a narrower sweep scope — that "
+    "was listed here and measured to move the budget by exactly zero, because "
+    "scope is a qualifier inside a query rather than a multiplier of queries. "
+    "Rotation is the only one that closes a registry-scale gap, and it trades "
+    "freshness rather than breadth: see contract/harvest.yaml. Raising the "
+    "ceiling is the option that is not a decision — the cap is the whole "
+    "reason the cost of a capability is visible before it is paid."
 )
 
 
