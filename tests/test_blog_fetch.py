@@ -421,26 +421,87 @@ def test_the_304_and_the_broken_parser_differ_only_in_outcome(tmp_path):
 # ── the ToS gate ─────────────────────────────────────────────────────────
 
 
-def test_the_source_entry_point_refuses_an_unreviewed_source(tmp_path):
-    """NFR-5. With `contract/sources.yaml` as it stands, blogs is unreviewed."""
-    import yaml
+def _build_for(source, tmp_path, site=None):
+    site = site or rss_site()
+    transport = httpx.MockTransport(site)
+    return fetcher_for_source(
+        source,
+        client=build_client(user_agent=UA, transport=transport),
+        store=RawStore(tmp_path / "raw_store"),
+        robots=RobotsGate(
+            build_client(user_agent=UA, transport=transport), user_agent=UA
+        ),
+    )
 
-    from collect.config import CONTRACT_DIR
 
-    loaded = yaml.safe_load((CONTRACT_DIR / "sources.yaml").read_text(encoding="utf-8"))
-    blogs = next(source for source in loaded["sources"] if source["id"] == "blogs")
+def _platform(source_id):
+    from collect.registry.sources import load_sources
 
+    return next(s for s in load_sources().platforms if s["id"] == source_id)
+
+
+def test_the_source_entry_point_refuses_a_source_with_no_ruling(tmp_path):
+    """NFR-5. `reddit` names no ruling, which is what blocks it."""
     with pytest.raises(TermsNotReviewedError) as excinfo:
-        fetcher_for_source(
-            blogs,
-            client=build_client(user_agent=UA, transport=httpx.MockTransport(rss_site())),
-            store=RawStore(tmp_path / "raw_store"),
-            robots=RobotsGate(
-                build_client(user_agent=UA, transport=httpx.MockTransport(rss_site())),
-                user_agent=UA,
-            ),
-        )
-    assert "blogs" in str(excinfo.value)
+        _build_for(_platform("reddit"), tmp_path)
+    assert "reddit" in str(excinfo.value)
+    assert "names no terms ruling" in str(excinfo.value)
+
+
+def test_the_source_entry_point_refuses_the_platform_row(tmp_path):
+    """`blogs` passes the terms check and is still not a thing you can fetch.
+
+    Its ruling says exactly that: the row carries the trust weight, the rulings
+    are made per feed. Returning a fetcher pointed at `endpoint: null` would be
+    a no-op that reads as a working driver.
+    """
+    from collect.adapters.blog.fetch import NotAFetchTargetError
+
+    with pytest.raises(NotAFetchTargetError, match="not a fetch target"):
+        _build_for(_platform("blogs"), tmp_path)
+
+
+def test_a_seeded_feed_builds_a_fetcher_that_may_read_articles(tmp_path):
+    """Class A permits the article path, so the fetcher is not feed-only."""
+    from collect.registry.sources import load_sources
+
+    feed = next(
+        f for f in load_sources().feeds if f["id"] == "blog:simonwillison.net"
+    )
+    fetcher = _build_for(feed, tmp_path)
+    assert fetcher._fetch_articles is True
+
+
+def test_a_medium_feed_builds_a_feed_only_fetcher_that_refuses_articles(tmp_path):
+    """The class B ruling is enforced here, not remembered by a driver author."""
+    from collect.adapters.blog.fetch import FeedOnlyError
+    from collect.registry.sources import load_sources
+
+    feed = next(
+        f for f in load_sources().feeds if f["id"] == "blog:netflixtechblog.com"
+    )
+    fetcher = _build_for(feed, tmp_path)
+    assert fetcher._fetch_articles is False
+
+    with pytest.raises(FeedOnlyError, match="Do not work around it"):
+        fetcher.harvest_feed(FEED_URL, fetch_articles=True)
+
+
+def test_a_feed_only_fetcher_harvests_the_feed_and_no_articles(tmp_path):
+    """Refusing articles is not refusing the feed — the feed carries the text."""
+    from collect.registry.sources import load_sources
+
+    feed = next(
+        f for f in load_sources().feeds if f["id"] == "blog:netflixtechblog.com"
+    )
+    site = rss_site()
+    run = _build_for(feed, tmp_path, site=site).harvest_feed(FEED_URL)
+
+    assert run.outcome == "fetched"
+    assert run.articles == []
+    assert not any(
+        request.url.path.startswith("/posts/") for request in site.requests
+    ), "a feed-only ruling means no article URL is requested at all"
 
 
 def test_no_client_can_be_built_without_an_identifying_user_agent():

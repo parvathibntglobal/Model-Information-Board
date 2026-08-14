@@ -1,6 +1,6 @@
 # ============================================================================
-#  Harvest sources — the three platforms, their trust weight, and the terms
-#  review NFR-5 requires.
+#  Harvest sources — the platforms, the blog feeds, their trust weight, and
+#  the terms review NFR-5 requires.
 #
 #  SHARED. Changes go through a PR.
 #
@@ -16,28 +16,255 @@
 #  adapter run as a foreign key violation and read as an adapter bug rather
 #  than a missing seed.
 #
-#  ┌──────────────────────────────────────────────────────────────────────┐
-#  │  tos_notes BELOW ARE PLACEHOLDERS. THE REVIEW HAS NOT HAPPENED.      │
-#  │                                                                      │
-#  │  They ship so a schema fix is not held hostage to a reading task     │
-#  │  with no owner and no date. They are not a claim that terms were     │
-#  │  reviewed — they say the opposite, in the value itself.              │
-#  │                                                                      │
-#  │  assert_terms_reviewed() refuses to harvest from any source whose    │
-#  │  tos_notes still carries the marker. NFR-5's acceptance is that      │
-#  │  terms are reviewed and recorded PER SOURCE, so a placeholder        │
-#  │  surviving to first harvest is a requirement failure and stops the   │
-#  │  run. See collect/registry/assertions.py.                            │
-#  │                                                                      │
-#  │  Blocking from week 2, when the blog adapter lands.                  │
-#  └──────────────────────────────────────────────────────────────────────┘
+#  HOW A TERMS REVIEW IS RECORDED  (NFR-5)
+#
+#  Three parts, and the split is the point:
+#
+#    terms_rulings   the reading of a body of terms, made once, dated, with
+#                    an expiry. A ruling is about a *party* — a self-hosting
+#                    publisher, or a platform.
+#    terms_ruling    each source names the ruling that governs it.
+#    terms_evidence  each source carries its own mechanical observations:
+#                    robots status and HTTP code, which paths are permitted,
+#                    paywall, feed type, and the date checked.
+#
+#  A ruling reads a document. Evidence measures a host. Neither substitutes
+#  for the other, and `assert_terms_reviewed()` demands both: a known,
+#  unexpired ruling id, live preconditions re-verified on the run, and
+#  recorded evidence that has not gone stale. It no longer greps for a
+#  placeholder marker. A class ruling asserted forever against a site that
+#  changed in October is the placeholder failure with extra steps.
+#
+#  Per-host exceptions get their own ruling and override the class.
+#
+#  WHY TWO CLASSES RATHER THAN FORTY READINGS
+#
+#  Class A is self-hosted: the publication and the domain are the same party,
+#  so the publisher's own terms govern and their robots.txt is that party
+#  speaking.
+#
+#  Class B is platform-hosted, one ruling per platform. The reason for the
+#  split is Medium specifically. Airbnb's engineers wrote the post; Medium
+#  wrote the terms, and Airbnb cannot grant what Medium withholds. Reading
+#  airbnb.com's terms to decide whether we may fetch
+#  medium.com/airbnb-engineering reads the wrong document — and a per-host
+#  reading would read the wrong document once per host, forty times over.
+#
+#  Evidence that the platform is the party speaking, not the publisher:
+#  medium.com/robots.txt and netflixtechblog.com/robots.txt were fetched
+#  separately on 2026-08-14 and are the same rule set, down to the shared
+#  `License: https://medium.com/license.xml` line. One host's rules, served
+#  under two publishers' domains.
 # ============================================================================
 
-version: "1.0"
+version: "2.0"
 
-#: The string that makes an unreviewed source detectable by code rather than
-#: by a human noticing. Do not reword it without changing the assertion.
+#: Retained for the prose it appears in and for the loader's own check that a
+#: reviewed row does not still carry it. It is no longer what the assertion
+#: gates on — see `terms_rulings` and collect/registry/assertions.py.
 review_marker: "REVIEW REQUIRED"
+
+
+# ============================================================================
+#  TERMS RULINGS
+#
+#  `live_preconditions` are re-verified on every run, before the first
+#  content request. An observation that is missing is not an observation that
+#  passed (rule 6) — the run is refused.
+#
+#  `recorded_evidence` is measured by hand, dated per source in
+#  `terms_evidence`, and expires. It covers what a run cannot cheaply
+#  re-observe: paywalls, login walls, whether an article path answers at all.
+#
+#  Values are lists of acceptable values. Anything else refuses the run.
+# ============================================================================
+
+terms_rulings:
+
+  # ── Class A ──────────────────────────────────────────────────────────────
+  - id: blog-class-a-self-hosted
+    class: A
+    party: publisher
+    reviewed_on: 2026-08-14
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    summary: >-
+      Self-hosted practitioner or company blog: the publication and the domain
+      are the same party. A public feed served without login or payment, with
+      robots.txt permitting the feed path and the article paths it links.
+      Permitted: fetch the declared feed and the article URLs in it, one
+      request per second or slower, robots re-checked on every redirect hop,
+      conditional GET so an unchanged feed costs a 304. Published content is
+      quote + attribution + link; full text is retained privately for
+      verification and reprocessing and is never republished (NFR-5).
+      A source whose terms forbid this use is dropped, not worked around.
+
+      THE 404 CAVEAT, which belongs in the ruling and not in a footnote.
+      A robots.txt that 404s means "no crawl rules" and nothing whatsoever
+      about terms of service. The server answered, and the answer was that
+      there is no crawl policy; that is a definite value, not a missing one
+      (collect/adapters/blog/robots.py). It is not permission granted by the
+      publisher, because the publisher never spoke. Among the seeded feeds
+      this is engineering.grab.com, whose robots.txt returned 404 on
+      2026-08-14 — and it was also true of dropbox.tech, which is dropped for
+      an unrelated reason. Where robots is silent, the class A reading is
+      doing all of the work, so it is the reading that has to be right: a
+      public feed, no login, no payment, no terms page forbidding automated
+      retrieval. Silence is not consent, it is only the absence of a refusal.
+
+    live_preconditions:
+      robots_status: [rules, no-rules]
+      feed_path_allowed: [true]
+    recorded_evidence:
+      article_path_allowed: [true]
+      paywall_observed: [false]
+      login_required: [false]
+
+  # ── Class B: Medium ──────────────────────────────────────────────────────
+  - id: blog-class-b-medium
+    class: B
+    party: platform
+    platform_host: medium.com
+    reviewed_on: 2026-08-14
+    review_valid_days: 90
+    evidence_valid_days: 90
+
+    #: FEED ONLY. Not a preference — the article path is refused, twice over.
+    fetch_articles: false
+
+    summary: >-
+      Medium-hosted publication, whether served from medium.com or from a
+      publisher's custom domain. Medium's terms and Medium's robots.txt
+      govern; the publisher's do not, and the publisher cannot grant what
+      Medium withholds.
+
+      THAT THE PLATFORM IS THE PARTY SPEAKING IS DEMONSTRATED, NOT ASSERTED.
+      medium.com/robots.txt and netflixtechblog.com/robots.txt were fetched
+      separately on 2026-08-14. Both are 39 lines, and all 37 rule lines —
+      every `User-Agent`, `Disallow` and `Allow` — are identical. Exactly one
+      line differs: `Sitemap`, whose host is substituted per publication
+      (`netflixtechblog.com/sitemap/sitemap.xml`). The `License` line is not
+      substituted; it reads `https://medium.com/license.xml` from both hosts.
+      So the one thing Medium templates for a publisher is the sitemap, and
+      the licensing terms are pointedly not it. A custom domain is a skin over
+      one host's rules, which is precisely why reading the publisher's terms
+      would be reading the wrong document.
+
+      ARTICLE PATHS ARE NOT PERMITTED, on two independent grounds observed
+      2026-08-14. First, robots.txt carries `Disallow: /*/*source=`, and every
+      article link in a Medium feed carries `?source=rss----<id>---N`, so
+      every article URL the feed hands us falls under that rule. Second, a
+      direct GET to those URLs returns 403 behind Cloudflare — 3 of 3 Netflix
+      URLs and 3 of 3 Airbnb URLs, a 5,020 and 5,042 byte error page
+      respectively, with no article body.
+
+      OUR ROBOTS GATE CANNOT SEE THE FIRST GROUND, which is why it is written
+      down here. `urllib.robotparser` implements no path wildcards —
+      `RuleLine.applies_to` is a plain `startswith` — so `/*/*source=` is
+      treated as a literal prefix, matches nothing, and `gate.allows()`
+      returns True for an article URL that Medium has disallowed. Verified
+      against the stdlib on 2026-08-14. The 403 is what actually stops us
+      today, and a refusal we happen to receive is not a rule we chose to
+      obey. This ruling is the rule; the gate is not carrying it.
+      Raised for collect/ as a defect in its own right.
+
+      Consequently articles are never requested from a Medium host, and the
+      403 is never worked around — no browser User-Agent, no cookie, no
+      rendering service. That is NFR-5 and collect/CLAUDE.md, not a
+      workaround we have not thought of yet.
+
+      This costs nothing, because the feed carries the whole post. All ten
+      entries in each publication carry `content:encoded`, median 18,722
+      characters for Netflix and 15,636 for Airbnb, ending in Medium's own
+      "Originally published in … on Medium" footer rather than a truncation.
+
+      THE NAMED-BOT GROUP. Medium's robots.txt has a second group naming
+      ClaudeBot, GPTBot, Bytespider, Amazonbot, Applebot-Extended,
+      FacebookBot, GoogleOther and meta-externalagent, and disallows all of
+      them from everything. Our User-Agent is `modelboard/0.1
+      (+https://github.com/parvathibntglobal/Model-Information-Board)`, which
+      matches none of those tokens, so the `User-Agent: *` group applies. If
+      the harvest User-Agent is ever changed to a string containing one of
+      those tokens, this ruling is void and the feeds are disallowed
+      entirely — including the feed path.
+
+      PAYWALL: recorded as unknown, deliberately, and not conditioned on. A
+      403 error page cannot show a paywall either way, so we have not
+      observed one and will not claim we have (rule 6). It does not need
+      resolving, because we publish quote + attribution + link taken from the
+      feed body Medium served us, and never the article page.
+
+    live_preconditions:
+      robots_status: [rules]
+      feed_path_allowed: [true]
+    recorded_evidence:
+      feed_carries_full_text: [true]
+      article_fetch_refused: [true]
+      login_required: [false]
+
+  # ── The blog platform row, which is not a fetch target ───────────────────
+  - id: blog-umbrella-not-a-fetch-target
+    class: null
+    party: none
+    reviewed_on: 2026-08-14
+    review_valid_days: 3650
+    evidence_valid_days: 3650
+    fetch_articles: false
+    summary: >-
+      The `blogs` row carries the platform trust weight and nothing else. It
+      has no endpoint and is never fetched from, so there is no request for a
+      terms reading to permit or refuse. The rulings that matter for blogs are
+      made per feed, on the feed's own source row, because terms are a
+      property of a host and not of a channel. Handing this row to a fetcher
+      is a bug, and `fetcher_for_source()` refuses it.
+
+    live_preconditions:
+      endpoint_is_null: [true]
+    recorded_evidence: {}
+
+  # ── GitHub ───────────────────────────────────────────────────────────────
+  - id: github-api-terms
+    class: null
+    party: platform
+    platform_host: github.com
+    reviewed_on: 2026-08-13
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    summary: >-
+      Reviewed 2026-08-13. Terms: GitHub Terms of Service §H "API Terms"
+      (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service)
+      — "Abuse or excessively frequent requests to GitHub via the API may
+      result in temporary or permanent suspension of your Account's access to
+      the API", and "You may not share API tokens to exceed GitHub's rate
+      limitations". Acceptable Use Policies §7 Information Usage Restrictions
+      (https://docs.github.com/en/site-policy/acceptable-use-policies/github-acceptable-use-policies)
+      — "Scraping does not refer to the collection of information through our
+      API", so our access path is the API and the scraping restrictions do
+      not govern it. RATE LIMITS observed 2026-08-13 via GET /rate_limit on
+      the harvest token: core 5,000/hour, search 30/minute, graphql
+      5,000/hour; the documented REST limit is "5,000 requests per hour" and
+      the search endpoints are documented as "more restrictive" without a
+      figure, so the observed 30/minute is the number to budget against.
+
+      REPUBLICATION: not granted by the terms. §D.5's licence to "use,
+      display, perform and reproduce (by forking) Your Content" is scoped
+      "through the Service", which is GitHub, not us. We publish quote +
+      attribution + link only, on short-quotation grounds; full text is
+      retained privately for verification and reprocessing and is never
+      republished (NFR-5). One identified User-Agent with a contact URL,
+      conservative rate limits, no token sharing.
+
+    live_preconditions:
+      access_path: [api]
+    recorded_evidence:
+      republication_claimed: [false]
+
+
+# ============================================================================
+#  PLATFORM ROWS — the trust weights, and one row per platform.
+# ============================================================================
 
 sources:
 
@@ -45,75 +272,615 @@ sources:
     platform: github
     endpoint: https://api.github.com
     base_trust: 0.95
+    provenance: seed
     # The failure channel: repro steps, error strings, real schemas. Highest
     # trust precisely because it is structurally negative — nobody opens an
     # issue to report that something worked.
-    # NFR-5 review, recorded 2026-08-13. Four things the placeholder asked for,
-    # in order: terms URL, date read, observed rate limit, republication.
-    #
-    # The fourth is the one that does not reduce to a yes. ToS §D.5 grants other
-    # users a licence to "use, display, perform and reproduce (by forking) Your
-    # Content THROUGH THE SERVICE" — scoped to GitHub itself, so it is not a
-    # grant to republish issue text on our own pages. Quote + attribution + link
-    # therefore stands on short-quotation-with-attribution grounds, not on a
-    # licence from GitHub, and full text stays private. That is what NFR-5
-    # already requires; the point of recording it is that the reason is now on
-    # the record instead of being assumed.
+    terms_ruling: github-api-terms
+    terms_evidence:
+      checked_on: 2026-08-13
+      access_path: api
+      republication_claimed: false
     tos_notes: >-
-      Reviewed 2026-08-13. Terms: GitHub Terms of Service §H "API Terms"
-      (https://docs.github.com/en/site-policy/github-terms/github-terms-of-service)
-      — "Abuse or excessively frequent requests to GitHub via the API may result
-      in temporary or permanent suspension of your Account's access to the API",
-      and "You may not share API tokens to exceed GitHub's rate limitations".
-      Acceptable Use Policies §7 Information Usage Restrictions
-      (https://docs.github.com/en/site-policy/acceptable-use-policies/github-acceptable-use-policies)
-      — "Scraping does not refer to the collection of information through our
-      API", so our access path is the API and the scraping restrictions do not
-      govern it. RATE LIMITS observed 2026-08-13 via GET /rate_limit on the
-      harvest token: core 5,000/hour, search 30/minute, graphql 5,000/hour;
-      documented REST limit is "5,000 requests per hour" and the search
-      endpoints are documented as "more restrictive" without a figure, so the
-      observed 30/minute is the number to budget against.
-      REPUBLICATION: not granted by the terms. §D.5's licence to "use, display,
-      perform and reproduce (by forking) Your Content" is scoped "through the
-      Service", which is GitHub, not us. We publish quote + attribution + link
-      only, on short-quotation grounds; full text is retained privately for
-      verification and reprocessing and is never republished (NFR-5). One
-      identified User-Agent with a contact URL, conservative rate limits, no
-      token sharing.
+      Ruling github-api-terms, reviewed 2026-08-13. Access is the REST and
+      GraphQL API, never the HTML. Observed limits 2026-08-13: core
+      5,000/hour, search 30/minute. Republication is not granted by the
+      terms; we publish quote + attribution + link only.
 
   - id: blogs
     platform: blog
-    endpoint: null            # per-feed; discovered feeds become source rows
+    endpoint: null            # per-feed; see `feeds` below
     base_trust: 0.90
+    provenance: seed
     # THE ONLY POSITIVE-EVIDENCE CHANNEL. Without it, silent-failure
     # capabilities like summarisation can never reach positive consensus and
     # the advisor can never approve a cheaper summariser — the single
     # recommendation this product exists to make.
+    terms_ruling: blog-umbrella-not-a-fetch-target
+    terms_evidence:
+      checked_on: 2026-08-14
+      endpoint_is_null: true
     tos_notes: >-
-      REVIEW REQUIRED before first harvest. RSS and sitemaps only, robots.txt
-      respected, no paywall circumvention. A source whose terms forbid this
-      use is dropped, not worked around. Record per host.
+      Ruling blog-umbrella-not-a-fetch-target. This row carries the blog trust
+      weight and has no endpoint; it is never fetched from. Every blog terms
+      ruling is recorded on the feed's own source row, because terms belong to
+      a host and not to a channel. See `feeds` below and, for feeds found in
+      already-harvested content, `source.provenance = 'discovered'`.
 
   - id: reddit
     platform: reddit
     endpoint: https://oauth.reddit.com
     base_trust: 0.85
+    provenance: seed
     # DEFERRED: the company holds the account and access will be requested
     # later. The adapter is not being built. Blocking from week 3, because
     # FR-6's acceptance is all three adapters returning content and FR-17's
     # cross-platform identity clustering cannot be tested with one social
     # platform. See docs/phase2-readiness.md.
+    #
+    # No `terms_ruling`, deliberately. That is what blocks it, and it is a
+    # stronger block than a marker in prose: there is no ruling to name.
     tos_notes: >-
       REVIEW REQUIRED before first harvest. Their terms prohibit scraping, so
       the official API is mandatory. Record the current rate limit and
       free-tier eligibility rather than trusting BUILD-PLAN's 60/min figure.
+      Names no ruling, so `assert_terms_reviewed()` refuses to harvest it.
+
+
+# ============================================================================
+#  SEEDED BLOG FEEDS
+#
+#  WHY THESE ARE HERE AND NOT ONLY IN THE TABLE
+#
+#  Same pattern as `seed_models.yaml` → `model_version`, and for the same
+#  reason: the initial list is a decision somebody made, so it belongs
+#  somewhere reviewable and diffable, and it becomes ordinary rows at runtime.
+#  Every feed is a `source` row when it runs. Feeds DISCOVERED from links in
+#  already-harvested content are data and are inserted into `source`
+#  directly, never back into this file.
+#
+#  Unlike `seed_models.yaml`, this is NOT a build fixture and has no removal
+#  date. `assert_no_fixtures()` does not look at `source`, and must not be
+#  taught to: a seeded feed is a curation decision, not a stand-in for
+#  machinery that does not exist yet.
+#
+#  WHY `provenance` IS ON EVERY ROW
+#
+#  Without it a discovered feed is indistinguishable from a vetted one, and
+#  inherits a class ruling nobody made about it. That is item 20's shape — a
+#  value that cannot be told apart from a reviewed one, feeding a decision
+#  that gates behaviour. `provenance = 'discovered'` is what makes a feed
+#  that arrived by link visible as such, and its terms ruling is its own.
+#
+#  IDS. `blog:<host>`, plus the publication path where the host carries more
+#  than one publication (medium.com does; netflixtechblog.com does not).
+#
+#  EVERY MEASUREMENT IS DATED. A class ruling resting on a stale robots check
+#  is the same failure as a placeholder nobody re-reads, so both
+#  `terms_evidence.checked_on` and `measured.checked_on` are compared against
+#  the ruling's `evidence_valid_days` at startup.
+#
+#  DROPBOX IS NOT HERE. dropbox.tech passed every terms and retrieval check
+#  on 2026-08-14 and is dropped on data quality: its `dc:creator` is
+#  cumulative, so the ten entries carry ten bylines that grow by accretion —
+#  "Andrew Cheung,Binoy Dash", then that plus two more, then that plus three
+#  more. That is not a coarse identity that resolves to one voice, it is
+#  broken data that would resolve to ten different multi-person strings and
+#  corroborate itself. Over-clustering is worse than under-clustering
+#  (collect/CLAUDE.md), and this is the input that produces it.
+#
+#  BYLINE RESOLUTION, per Engineer 2's ruling.
+#    entry          the entry carries its own byline. It wins, always.
+#    feed_declared  the feed declares a single author and the entries do not
+#                   dissent. The declaration stands until an entry byline
+#                   disagrees with it, at which point the entry wins and the
+#                   feed is flagged.
+#    team           one organisational byline for every post. Collapses to
+#                   one voice, not zero — a team blog is one voice, and
+#                   reading it as no voice loses the evidence entirely.
+#    none           no byline at either level and no organisational identity
+#                   to collapse to. Stays unresolved. It is not silently
+#                   assigned to the domain owner (rule 6).
+# ============================================================================
+
+feeds:
+
+  # ── Class A · self-hosted practitioners ──────────────────────────────────
+
+  - id: blog:simonwillison.net
+    platform: blog
+    endpoint: https://simonwillison.net/atom/everything/
+    site: https://simonwillison.net/
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-08-14
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      article_path_allowed: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      feed_type: atom10
+    measured:
+      checked_on: 2026-08-14
+      entries: 30
+      malformed: false
+      dated_entries: 30
+      oldest: 2026-08-05
+      newest: 2026-08-13
+      span_days: 8
+      days_since_newest: 0
+      truncated: true
+      full_text_entries: 7
+      median_body_chars: 1946
+      version_rate: 0.37
+      byline_source: feed_declared
+      declared_author: Simon Willison
+      entry_bylines_present: 0
+      distinct_entry_bylines: 0
+      resolves_to_voices: 1
+    notes: >-
+      The declared single-author fact is what carries this feed: the Atom
+      `author` element names Simon Willison and no entry carries a byline of
+      its own, so nothing dissents. An entry byline that ever disagrees wins
+      and flags the feed. `truncated` is a property of the "everything" feed
+      mixing links and quotes with full posts, not of a paywall — 7 of 30
+      entries are full length and the rest are genuinely short items.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-08-14.
+      robots.txt 200, rules present, feed path and article path both allowed;
+      sample article https://simonwillison.net/2026/Aug/13/sqlite-utils-2/
+      returned 200 with no paywall and no login. Atom 1.0.
+
+  - id: blog:hamel.dev
+    platform: blog
+    endpoint: https://hamel.dev/index.xml
+    site: https://hamel.dev/
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-08-14
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      article_path_allowed: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-08-14
+      entries: 23
+      malformed: true
+      dated_entries: 23
+      oldest: 2024-03-29
+      newest: 2026-08-12
+      span_days: 866
+      days_since_newest: 1
+      truncated: false
+      full_text_entries: 14
+      median_body_chars: 6482
+      version_rate: 0.09
+      byline_source: entry
+      declared_author: null
+      entry_bylines_present: 14
+      distinct_entry_bylines: 2
+      resolves_to_voices: 2
+    notes: >-
+      Not a single-author feed: 14 of 23 entries carry a byline and they name
+      two people, Hamel Husain and Shreya Shankar. The other 9 carry no byline
+      at all and stay unresolved — they are not assigned to Hamel because the
+      domain is his (rule 6). `malformed` is feedparser's bozo flag; all 23
+      entries parsed, so it is recorded rather than treated as a failure.
+      Generator quarto-1.9.38. Low version_rate: this blog writes about
+      evaluation practice more than about named models.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-08-14.
+      robots.txt 200, rules present, feed path and article path both allowed;
+      sample fetch returned 200 with no paywall and no login. RSS 2.0.
+
+  - id: blog:jxnl.co
+    platform: blog
+    endpoint: https://jxnl.co/feed_rss_created.xml
+    site: https://jxnl.co/
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-08-14
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      article_path_allowed: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-08-14
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2025-09-11
+      newest: 2026-07-05
+      span_days: 297
+      days_since_newest: 40
+      truncated: true
+      full_text_entries: 0
+      median_body_chars: 140
+      version_rate: 0.0
+      byline_source: feed_declared
+      declared_author: Jason Liu
+      entry_bylines_present: 9
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      The declaration and the entries agree: the feed declares Jason Liu, and
+      the 9 entries that carry a byline all carry his. Nothing dissents.
+      Heavily truncated — median 140 characters, no entry over the full-text
+      threshold — so every document from this feed comes from the article
+      fetch, which the class A ruling permits. version_rate 0.0 over 20
+      entries is the number to watch: if it stays there this feed earns its
+      place through conditions and workflow detail, not through model names.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-08-14.
+      robots.txt 200, rules present, feed path and article path both allowed;
+      sample article https://jxnl.co/writing/2026/07/05/taste/ returned 200
+      with no paywall and no login. RSS 2.0, MkDocs RSS plugin.
+
+  - id: blog:vickiboykis.com
+    platform: blog
+    endpoint: https://vickiboykis.com/index.xml
+    site: https://vickiboykis.com/
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-08-14
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      article_path_allowed: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-08-14
+      entries: 20
+      malformed: false
+      dated_entries: 20
+      oldest: 2025-01-03
+      newest: 2026-08-12
+      span_days: 586
+      days_since_newest: 2
+      truncated: false
+      full_text_entries: 14
+      median_body_chars: 13777
+      version_rate: 0.35
+      byline_source: none
+      declared_author: null
+      entry_bylines_present: 0
+      distinct_entry_bylines: 0
+      resolves_to_voices: null
+    notes: >-
+      OPEN, and flagged rather than decided. This is the one seeded feed that
+      resolves to no author: no entry byline, no feed-level `author`, and no
+      organisational identity to collapse to the way Netflix, Spotify and Grab
+      collapse. Simon Willison's feed passes on a declared fact; this one has
+      no declaration, and inferring "Vicki Boykis" from the domain would be
+      manufacturing the byline rather than reading it. It stays `null` — an
+      absent author, carried absent into `document`, not converted into a
+      definite one (rule 6). The feed is otherwise strong: full text, 20
+      entries, version_rate 0.35. Engineer 2's call, since author resolution
+      and corroboration counting are hers.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-08-14.
+      robots.txt 200, rules present, feed path and article path both allowed;
+      sample article https://vickiboykis.com/2026/08/12/write-for-people/
+      returned 200 with no paywall and no login. RSS 2.0, Hugo.
+
+  # ── Class A · self-hosted company engineering blogs ───────────────────────
+
+  - id: blog:slack.engineering
+    platform: blog
+    endpoint: https://slack.engineering/feed/
+    site: https://slack.engineering/
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-08-14
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      article_path_allowed: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-08-14
+      entries: 8
+      malformed: false
+      dated_entries: 8
+      oldest: 2025-12-01
+      newest: 2026-07-14
+      span_days: 225
+      days_since_newest: 30
+      truncated: false
+      full_text_entries: 8
+      median_body_chars: 25258
+      version_rate: 0.12
+      byline_source: entry
+      declared_author: null
+      entry_bylines_present: 8
+      distinct_entry_bylines: 7
+      resolves_to_voices: 7
+    notes: >-
+      Self-hosted WordPress (generator 7.0.4) on Slack's own domain, so class
+      A: Slack is both publisher and host. Seven named engineers across eight
+      posts, full text in `content:encoded`. Low volume — 8 entries over 225
+      days — so a yield alert on this feed will be noisy and should be judged
+      against its own history, not against the fleet.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-08-14.
+      robots.txt 200, rules present, feed path and article path both allowed;
+      sample article
+      https://slack.engineering/shipyard-how-we-built-slacks-next-generation-ec2-platform/
+      returned 200 with no paywall and no login. RSS 2.0.
+
+  - id: blog:engineering.atspotify.com
+    platform: blog
+    endpoint: https://engineering.atspotify.com/feed/
+    site: https://engineering.atspotify.com/
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-08-14
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      article_path_allowed: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-08-14
+      entries: 5
+      malformed: false
+      dated_entries: 5
+      oldest: 2026-06-03
+      newest: 2026-08-13
+      span_days: 71
+      days_since_newest: 0
+      truncated: true
+      full_text_entries: 0
+      median_body_chars: 383
+      version_rate: 0.0
+      byline_source: team
+      declared_author: Spotify Engineering
+      entry_bylines_present: 5
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      Self-hosted WordPress (generator 6.7.2) on Spotify's own subdomain, so
+      class A despite running platform software — the host and the publisher
+      are the same party, which is what the class turns on. Team-bylined:
+      every entry says "Spotify Engineering", which collapses to one voice
+      rather than zero. Heavily truncated at 383 median characters, so the
+      article fetch carries the content; the ruling permits it and the sample
+      article returned 200. Only five entries in the window.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-08-14.
+      robots.txt 200, rules present, feed path and article path both allowed;
+      sample article
+      https://engineering.atspotify.com/2026/8/when-can-llms-replace-humans-in-a-b-tests/
+      returned 200 with no paywall and no login. RSS 2.0.
+
+  - id: blog:engineering.grab.com
+    platform: blog
+    endpoint: https://engineering.grab.com/feed.xml
+    site: https://engineering.grab.com/
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-08-14
+      robots_status: no-rules
+      robots_http: 404
+      feed_path_allowed: true
+      article_path_allowed: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-08-14
+      entries: 10
+      malformed: false
+      dated_entries: 10
+      oldest: 2026-05-29
+      newest: 2026-08-12
+      span_days: 75
+      days_since_newest: 2
+      truncated: false
+      full_text_entries: 10
+      median_body_chars: 17503
+      version_rate: 0.1
+      byline_source: team
+      declared_author: Grab Tech
+      entry_bylines_present: 0
+      distinct_entry_bylines: 0
+      resolves_to_voices: 1
+    notes: >-
+      THE 404 FEED. robots.txt returns 404, which is the caveat written into
+      the class A ruling: the server answered and said there are no crawl
+      rules, which says nothing at all about terms. The class A reading is
+      carrying this host on its own — public feed, no login, no payment — so
+      it is the reading and not the robots file that permits the fetch.
+      Recheck the robots status on every run, since a host that adds rules
+      later must be obeyed the same day.
+
+      Team-bylined by absence rather than by declaration: no entry carries a
+      byline and the feed declares none, but the publication identity is
+      Grab's engineering organisation, which collapses to one voice per
+      Engineer 2's ruling. This differs from vickiboykis.com, which has no
+      organisational identity to collapse to and stays unresolved.
+      Full text in `description`; no `content:encoded` element. Jekyll 4.4.1.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-08-14.
+      robots.txt returned 404 — no crawl rules, and no statement about terms;
+      see the 404 caveat in the ruling. Feed path and article path both
+      permitted by default; sample article
+      https://engineering.grab.com/grab-bench-evaluating-ai returned 200 with
+      no paywall and no login. RSS 2.0.
+
+  # ── Class B · Medium-hosted ──────────────────────────────────────────────
+
+  - id: blog:netflixtechblog.com
+    platform: blog
+    endpoint: https://netflixtechblog.com/feed
+    site: https://netflixtechblog.com/
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-b-medium
+    terms_evidence:
+      checked_on: 2026-08-14
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      article_path_allowed: false
+      article_http: 403
+      article_fetch_refused: true
+      feed_carries_full_text: true
+      paywall_observed: unknown
+      login_required: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-08-14
+      entries: 10
+      malformed: false
+      dated_entries: 10
+      oldest: 2026-06-19
+      newest: 2026-08-07
+      span_days: 48
+      days_since_newest: 6
+      truncated: false
+      full_text_entries: 9
+      median_body_chars: 18722
+      carries_content_element: 10
+      version_rate: 0.1
+      byline_source: team
+      declared_author: Netflix Technology Blog
+      entry_bylines_present: 10
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+    notes: >-
+      Medium-hosted on a custom domain, which is exactly why the class exists:
+      the domain says Netflix, the terms and the robots.txt say Medium, and
+      netflixtechblog.com/robots.txt carries the medium.com rule set with all
+      37 of its rule lines unchanged — only the `Sitemap` host is substituted,
+      and the `License` line still points at medium.com.
+      Feed only — three of three sampled article URLs returned 403 behind
+      Cloudflare. Nothing is lost: all ten entries carry `content:encoded`
+      with a median of 18,722 characters.
+
+      Team-bylined "Netflix Technology Blog" on every entry, collapsing to one
+      voice. That is coarse but it is one identity, and posts here are usually
+      multi-author anyway.
+    tos_notes: >-
+      Class B, ruling blog-class-b-medium, evidence checked 2026-08-14.
+      robots.txt 200 (the medium.com rule set served under this domain), feed
+      path allowed. ARTICLE PATHS NOT PERMITTED: robots `Disallow: /*/*source=`
+      covers every feed link, and a direct GET returns 403 — observed on 3 of
+      3 sampled URLs, 5,020 byte error page. Feed-only harvest; the 403 is not
+      worked around. Paywall unknown, because a 403 page cannot show one, and
+      not relied upon: content comes from the feed body. RSS 2.0, generator
+      Medium.
+
+  - id: blog:medium.com/airbnb-engineering
+    platform: blog
+    endpoint: https://medium.com/feed/airbnb-engineering
+    site: https://medium.com/airbnb-engineering
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-b-medium
+    terms_evidence:
+      checked_on: 2026-08-14
+      robots_status: rules
+      robots_http: 200
+      feed_path_allowed: true
+      article_path_allowed: false
+      article_http: 403
+      article_fetch_refused: true
+      feed_carries_full_text: true
+      paywall_observed: unknown
+      login_required: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-08-14
+      entries: 10
+      malformed: false
+      dated_entries: 10
+      oldest: 2026-05-05
+      newest: 2026-08-12
+      span_days: 99
+      days_since_newest: 1
+      truncated: false
+      full_text_entries: 10
+      median_body_chars: 15636
+      carries_content_element: 10
+      version_rate: 0.0
+      byline_source: entry
+      declared_author: null
+      entry_bylines_present: 10
+      distinct_entry_bylines: 10
+      resolves_to_voices: 10
+    notes: >-
+      The feed this whole class was written for. Airbnb's engineers wrote
+      these ten posts and ten of them are individually bylined — the richest
+      author data of any seeded feed — and none of that gives Airbnb the
+      standing to permit a fetch that Medium's terms govern.
+      Feed only: three of three sampled article URLs returned 403. All ten
+      entries carry `content:encoded`, median 15,636 characters.
+      version_rate 0.0 across ten posts, which is worth watching: Airbnb
+      writes about systems rather than about named models, so this feed may
+      contribute conditions and workflow detail more than model claims.
+    tos_notes: >-
+      Class B, ruling blog-class-b-medium, evidence checked 2026-08-14.
+      medium.com/robots.txt 200, feed path allowed. ARTICLE PATHS NOT
+      PERMITTED: robots `Disallow: /*/*source=` covers every feed link, and a
+      direct GET returns 403 — observed on 3 of 3 sampled URLs, 5,042 byte
+      error page. Feed-only harvest; the 403 is not worked around. Paywall
+      unknown, because a 403 page cannot show one, and not relied upon:
+      content comes from the feed body. RSS 2.0, generator Medium.
 
 
 # ----------------------------------------------------------------------------
-#  Still open: where the ~40 practitioner blog feeds live.
+#  Checked and rejected on 2026-08-14, recorded so the next person does not
+#  spend the afternoon rediscovering it.
 #
-#  The INITIAL list is config and could sit here. Feeds DISCOVERED from links
-#  in already-harvested content are data and belong in the `source` table.
-#  Settle it before either is built: a list that lives in two places diverges.
+#    dropbox.tech               fetches cleanly, robots 404. Dropped: `dc:creator`
+#                               is cumulative, so bylines grow by accretion and
+#                               would over-cluster. See the note above.
+#    careersatdoordash.com      robots.txt 403 — a refusal to be crawled.
+#                               Not fetched.
+#    www.uber.com/blog/rss/     406 on the feed path.
+#    incident.io/blog/rss.xml   404. No feed found at the advertised path.
+#    philschmid.de/rss.xml      404. No feed found at the advertised path.
+#    shopify.engineering        feed returns 200 with zero entries.
+#    canvatechblog.com          200, but 69 median characters and one post in
+#                               180 days.
+#    tech.instacart.com,        Medium-hosted and healthy. Not seeded yet only
+#    medium.com/feed/           because nine feeds is the agreed starting set;
+#      pinterest-engineering,   they are the first candidates to add, and the
+#      expedia-group-tech,      class B Medium ruling already covers them.
+#    eng.lyft.com, craft.faire.com
 # ----------------------------------------------------------------------------

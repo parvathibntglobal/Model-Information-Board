@@ -31,8 +31,12 @@ def conn(test_dsn):
         connection.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
         apply_schema(connection)
         connection.execute(
-            "INSERT INTO source (id, platform, base_trust, tos_notes) "
-            "VALUES ('github', 'github', 0.95, 'REVIEW REQUIRED')"
+            "INSERT INTO source "
+            "  (id, platform, base_trust, tos_notes, provenance, "
+            "   terms_ruling, terms_checked_on, terms_evidence) "
+            "VALUES ('github', 'github', 0.95, 'fixture row: see contract/sources.yaml', "
+            "        'seed', 'github-api-terms', DATE '2026-08-13', "
+            "        '{\"access_path\": \"api\"}'::jsonb)"
         )
         connection.commit()
         yield connection

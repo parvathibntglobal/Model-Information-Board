@@ -58,8 +58,13 @@ def conn(test_dsn):
         connection.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
         apply_schema(connection)
         connection.execute(
-            "INSERT INTO source (id, platform, endpoint, base_trust, tos_notes) "
-            "VALUES ('blogs', 'blog', NULL, 0.90, 'fixture: terms review is a separate ruling')"
+            "INSERT INTO source "
+            "  (id, platform, endpoint, base_trust, tos_notes, provenance, "
+            "   terms_ruling, terms_checked_on, terms_evidence) "
+            "VALUES ('blogs', 'blog', NULL, 0.90, "
+            "        'fixture: the platform row; feed rulings are per feed', "
+            "        'seed', 'blog-umbrella-not-a-fetch-target', DATE '2026-08-14', "
+            "        '{\"endpoint_is_null\": true}'::jsonb)"
         )
         connection.commit()
         yield connection

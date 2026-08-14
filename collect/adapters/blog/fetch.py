@@ -44,8 +44,12 @@ WHERE THE ToS GATE SITS
 `fetcher_for_source` asserts NFR-5's per-source terms review and is the entry a
 driver uses. The constructor is mechanics and does not, so the mechanics can be
 tested against recorded fixtures without a test pretending a reading task was
-done. With `contract/sources.yaml` as it stands, `fetcher_for_source("blogs")`
-refuses — correctly, and until the source ruling lands.
+done.
+
+It also carries the ruling's `fetch_articles` into the fetcher. A ruling that
+permits only the feed — Medium's, because every article URL in a Medium feed
+carries `?source=` and is both disallowed by robots and answered with 403 — is
+then enforced by `harvest_feed` rather than remembered by a driver author.
 """
 
 from __future__ import annotations
@@ -112,6 +116,14 @@ MAX_REDIRECTS = 3
 REDIRECT_STATUSES: frozenset[int] = frozenset({301, 302, 303, 307, 308})
 
 BLOG_SOURCE_ID = "blogs"
+
+
+class FeedOnlyError(RuntimeError):
+    """Articles were requested from a host whose ruling permits the feed only."""
+
+
+class NotAFetchTargetError(RuntimeError):
+    """A source row with no endpoint was handed to a fetcher."""
 
 
 @dataclass(frozen=True)
@@ -265,12 +277,16 @@ class BlogFetcher:
         max_feed_bytes: int = MAX_FEED_BYTES,
         max_article_bytes: int = MAX_ARTICLE_BYTES,
         max_redirects: int = MAX_REDIRECTS,
+        fetch_articles: bool = True,
         pipeline_version: str | None = None,
         clock=lambda: datetime.now(UTC),
     ) -> None:
         self._client = client
         self._store = store
         self._robots = robots
+        #: From the source's terms ruling. False means the feed is the only
+        #: permitted retrieval for this host, and `harvest_feed` enforces it.
+        self._fetch_articles = fetch_articles
         # `is None`, not `or`. An injected collaborator that happens to be
         # empty is still the collaborator the caller chose: `or` swaps a
         # freshly-created validator store for the caller's own the moment the
@@ -535,8 +551,24 @@ class BlogFetcher:
 
     # ── one feed, end to end ─────────────────────────────────────────────
 
-    def harvest_feed(self, feed_url: str, *, fetch_articles: bool = True) -> FeedRun:
-        """Fetch a feed and its entries' articles. One `harvest_run` worth of work."""
+    def harvest_feed(self, feed_url: str, *, fetch_articles: bool | None = None) -> FeedRun:
+        """Fetch a feed and its entries' articles. One `harvest_run` worth of work.
+
+        `fetch_articles` defaults to what the source's terms ruling permits.
+        Asking for articles from a feed-only fetcher raises rather than
+        quietly declining: a caller who wanted articles and got none would
+        read the empty list as "this feed has no entries", which is rule 4 —
+        an absence that reads as a finding.
+        """
+        if fetch_articles is None:
+            fetch_articles = self._fetch_articles
+        elif fetch_articles and not self._fetch_articles:
+            raise FeedOnlyError(
+                f"{feed_url}: this fetcher was built from a feed-only terms "
+                "ruling, so article URLs are not requested from this host. "
+                "The feed body carries the content. Do not work around it."
+            )
+
         started_at = self._clock()
         feed = self.fetch_feed(feed_url)
 
@@ -559,19 +591,72 @@ class BlogFetcher:
         )
 
 
-def fetcher_for_source(source, **kwargs) -> BlogFetcher:
-    """Build a fetcher for a `contract/sources.yaml` source, ToS gate included.
+def observe_source(source, robots: RobotsGate) -> dict[str, object]:
+    """Re-verify, on this run, the facts a blog terms ruling stands on.
 
-    The entry point a driver uses. `assert_terms_reviewed` fires here rather
-    than in the constructor so that the mechanics can be tested against
-    recorded fixtures without a test having to fabricate a reviewed source row —
-    a fixture that fakes a ruling is worse than no gate, because it reads as one.
+    This is the half of NFR-5 that notices October. The ruling was read once
+    and dated; robots.txt is re-read here every run, so a host that adds
+    `Disallow: /` between one nightly batch and the next is obeyed that night
+    rather than at the next terms review.
 
-    With `contract/sources.yaml` as it stands this refuses for `blogs`, and
-    should: NFR-5 wants the terms read and recorded per source, and that ruling
-    is outstanding.
+    It costs one request per host, cached for an hour by the gate, and
+    robots.txt is the one URL nobody needs permission to fetch.
     """
-    from collect.registry.assertions import assert_terms_reviewed
+    from collect.registry.assertions import source_field
 
-    assert_terms_reviewed([source])
-    return BlogFetcher(**kwargs)
+    endpoint = source_field(source, "endpoint")
+    observed: dict[str, object] = {"endpoint_is_null": endpoint is None}
+    if endpoint is None:
+        return observed
+
+    decision = robots.allows(endpoint)
+    observed["robots_status"] = decision.ruling.status
+    observed["robots_http"] = decision.ruling.http_status
+    observed["feed_path_allowed"] = decision.allowed
+    return observed
+
+
+def fetcher_for_source(source, *, robots: RobotsGate, rulings=None, **kwargs) -> BlogFetcher:
+    """Build a fetcher for a source row, ToS gate included.
+
+    The entry point a driver uses, for a seeded feed and a discovered one
+    alike — a discovered feed is a `source` row with `provenance =
+    'discovered'` and a ruling of its own, and it comes through here on the
+    same terms as the nine.
+
+    `assert_terms_reviewed` fires here rather than in the constructor so that
+    the mechanics can be tested against recorded fixtures without a test
+    having to fabricate a reviewed source row — a fixture that fakes a ruling
+    is worse than no gate, because it reads as one.
+
+    Two refusals live here:
+
+      - the terms check, with this run's own robots observations, so an
+        expired ruling or a host that changed its mind stops the run;
+      - the `blogs` platform row, which has no endpoint and is not a fetch
+        target. Its ruling says so and passing it here is a bug, not a
+        no-op — a no-op would return a fetcher pointed at nothing.
+    """
+    from collect.registry.assertions import assert_terms_reviewed, source_field
+    from collect.registry.sources import ruling_for
+
+    source_id = source_field(source, "id", "?")
+    assert_terms_reviewed(
+        [source],
+        rulings=rulings,
+        observations={source_id: observe_source(source, robots)},
+    )
+
+    if source_field(source, "endpoint") is None:
+        raise NotAFetchTargetError(
+            f"{source_id!r} has no endpoint and is not a fetch target. Blog "
+            "terms rulings are made per feed, on the feed's own source row; "
+            "this row carries the platform trust weight only."
+        )
+
+    ruling = ruling_for(source, rulings=rulings)
+    return BlogFetcher(
+        robots=robots,
+        fetch_articles=ruling.fetch_articles if ruling else True,
+        **kwargs,
+    )

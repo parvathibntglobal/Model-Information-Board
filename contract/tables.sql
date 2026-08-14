@@ -543,16 +543,47 @@ CREATE TABLE audit (
   audited_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Every feed is a source row. The initial nine are seeded from
+-- `contract/sources.yaml` so the list is reviewable and diffable; feeds
+-- discovered from links in already-harvested content are inserted here
+-- directly and never written back to the contract file.
 CREATE TABLE source (
   id           text PRIMARY KEY,
   platform     text NOT NULL,
   endpoint     text,
   base_trust   real NOT NULL,   -- github 0.95 · blog 0.90 · reddit 0.85
   tos_notes    text NOT NULL,   -- NFR-5: reviewed and recorded per source
+
+  -- Item 20's shape, applied to sources. Without this, a feed that arrived by
+  -- link is indistinguishable from one somebody vetted, and silently inherits
+  -- a class ruling nobody made about it — a value that reads as reviewed,
+  -- gating whether we are allowed to fetch at all.
+  provenance   text NOT NULL,   -- seed | discovered
+
+  -- NFR-5, the machine-readable half. `tos_notes` is the prose a human reads;
+  -- these are what `assert_terms_reviewed()` gates on. A row with no ruling is
+  -- refused, and a ruling whose evidence has gone stale is refused too — a
+  -- ruling asserted forever against a site that changed in October is the
+  -- unreviewed placeholder again, wearing a date.
+  terms_ruling      text NOT NULL,  -- an id from sources.yaml:terms_rulings
+  terms_checked_on  date NOT NULL,  -- when this row's evidence was measured
+
+  -- The mechanical observations the ruling is applied to: robots status and
+  -- HTTP code, which paths are permitted, paywall, feed type. NOT NULL and no
+  -- default, so a discovered feed cannot be inserted claiming a ruling with
+  -- nothing measured underneath it.
+  terms_evidence    jsonb NOT NULL,
+
   health_status text,
-  last_yield   int              -- FR-10: a drop means broken markup,
+  last_yield   int,             -- FR-10: a drop means broken markup,
                                 -- not a quiet internet
+
+  CONSTRAINT source_provenance_ck CHECK (provenance IN ('seed', 'discovered'))
 );
+
+-- Deliberately NOT swept by assert_no_fixtures(). `source.provenance = 'seed'`
+-- is a curation decision that stays, unlike `model_version.provenance = 'seed'`
+-- which is a build fixture standing in for the week-5 poller.
 
 -- FR-9: resume exactly where consumption paused
 CREATE TABLE watermark (
