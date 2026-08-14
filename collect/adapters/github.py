@@ -13,6 +13,31 @@ search. Filtering before fetching is where the cost actually goes away, and it
 turns Engineer 2's `yields_claim_when` argument into a budget saving rather than
 a lament.
 
+A REJECTED DOCUMENT IS STILL STORED, which the ordering hides.
+--------------------------------------------------------------
+"Sieve, then fetch" reads as though a rejected hit leaves no trace. It does:
+`search()` writes the search response to `raw/` **before** `harvest()` sieves
+anything, so every rejected hit's title and body are already on disk with the
+rest of its page.
+
+That is what the locality window in `contract/harvest.yaml` rests on. A window
+that turns out too tight is fixed by RE-SIEVING the store, not by re-fetching,
+because the text the sieve rejected is still there. Nobody can see that from
+the call order, and the inference the other way — that rejection discards —
+would make the whole recoverability argument false.
+
+And the recovery is cheaper than a re-run: re-sieving costs nothing, and a
+document the new window newly KEEPS costs one targeted REST call for its body.
+It never costs a re-search, which is the rate-limited half — 30/minute against
+core's 5,000/hour.
+
+⚠ ONE LIMIT, and it is real: only **page 1** is stored (`if page == 1` below).
+With `max_pages=1`, the default and what every run so far has used, that is the
+whole result set and the argument holds unqualified. Raise `max_pages` and hits
+from pages 2+ are sieved but never written, so those are recoverable only by
+re-searching. Anyone widening `max_pages` should store every page or knowingly
+accept that the store stops being a complete record of what was considered.
+
 TWO ARTIFACTS, SAME SHAPE AS BLOGS
 ----------------------------------
     search response  -> raw/   the discovery artifact, one per query

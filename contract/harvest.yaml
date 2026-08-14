@@ -91,3 +91,116 @@ sweep_budget:
 cadence_days:
   daily: 1
   weekly: 7
+
+
+# ============================================================================
+#  SIEVE LOCALITY
+#
+#  How far apart `topic` and `signal` may be, in characters, and still count
+#  as one claim. Subject is deliberately not constrained: naming the model
+#  once is how a post establishes what it is about, and a blog post that names
+#  it in the introduction and reports the failure in the conclusion is the
+#  ordinary shape rather than the exception.
+#
+#  WHY THERE IS A NUMBER HERE AT ALL. The first nine-feed blog harvest kept
+#  exactly one document:
+#
+#      vickiboykis.com/2026/04/20/build-yourself-flowers/, 41,956 characters
+#        subject  `flash 2.5`  "ran it through gemini flash 2.5 ... to break
+#                              into paragraphs"
+#        topic    `extract`    "i extracted each entry ... full metadata" —
+#                              a museum API, not the model
+#        signal   `held up`    "you're just going to get held up with your
+#                              product" — meaning DELAYED
+#
+#  Three unrelated passages in one long essay, counted as a claim, because
+#  nothing required them to be near each other. Blog articles have a median of
+#  8,191 characters against GitHub's 2,228, so the same sieve was quietly
+#  stricter on one platform than the other and had no way to know it.
+#
+#  MEASURED 2026-08-14 over 111 blog articles and 174 distinct GitHub
+#  candidates. Every passing document, by the gap between its closest
+#  topic-signal pair:
+#
+#      0      langchain#34371   "Pydantic Invalid For Json Schema ..."
+#      356    aider#3713        diff edit format, `search block`
+#      496    aider#3895        diff edit format, `search block`
+#      3899   vickiboykis       the blog false positive above
+#      4027   langchain#33651   the GitHub false positive
+#
+#  The two known false positives are the two far ones, and nothing sits
+#  between 496 and 3899. That empty band is the whole argument — and it is
+#  evidence for THE BAND, not for a particular number inside it.
+#
+#  WHY 1200 AND NOT 2000. The measurement does not distinguish them: every
+#  value in (496, 3899) keeps and drops exactly the same documents on this
+#  data. The number was chosen inside a band the data identified, and the
+#  choice within the band is judgement, so here is the judgement:
+#
+#    scale        ~1200 characters is two or three paragraphs, plausibly the
+#                 unit "the claim and what it is about" occupies. 2000 is a
+#                 page; 600 is one paragraph.
+#
+#    asymmetry    and it points tighter than it first appears. Too loose
+#                 admits co-occurrence artefacts, which cost extraction budget
+#                 and lean on `yields_claim_when` downstream. Too tight
+#                 silently drops evidence, normally the worse failure here —
+#                 except that raw payloads are immutable and content-hash
+#                 addressed, so a window that is too tight is fixed by
+#                 RE-SIEVING the store. A document the sieve dropped is
+#                 recoverable; a document never fetched is not. That makes the
+#                 tighter end the cheaper mistake.
+#
+#                 The rejected text really is on disk, which is not visible
+#                 from the adapter's call order: `search()` writes the search
+#                 response to `raw/` BEFORE the sieve runs, so a hit the sieve
+#                 threw away still has its title and body stored. See the
+#                 "A REJECTED DOCUMENT IS STILL STORED" note in
+#                 collect/adapters/github.py, which exists because reading
+#                 "search, sieve, fetch" invites exactly the opposite
+#                 inference and that inference would make this paragraph false.
+#
+#    reversibility  cheaper than first written here. Moving the window is this
+#                 one line plus a re-sieve, and a re-sieve costs NOTHING: the
+#                 text is local. A document the new window newly KEEPS costs
+#                 one targeted REST call for its body — never a re-search,
+#                 which is the rate-limited half (30/minute against core's
+#                 5,000/hour, issue #4). So widening later is paid for per
+#                 recovered document rather than per query, and the tighter
+#                 end is cheaper to be wrong at than this file first claimed.
+#
+#                 Caveat, because the recovery is only as complete as the
+#                 store: only search page 1 is written today. With
+#                 `max_pages=1` — the default, and what every run so far has
+#                 used — that is the whole result set. Raising it without also
+#                 storing later pages would make those hits unrecoverable
+#                 without a re-search.
+#
+#  So disagreeing with 1200 is cheap, and nothing measured argues against a
+#  different value in the band.
+#
+#  THE CURVES DID NOT DIVERGE, which is why this is ONE number and not one per
+#  source type. Both channels lose every far document by 3200 and keep every
+#  near one from 600 up. Had they diverged, the number would have belonged per
+#  source type and that would have been a contract question rather than a
+#  rendering one.
+#
+#  ⚠ PROVISIONAL BY CONSTRUCTION. With one known-false positive per channel
+#  and five passing documents in total, this measures how many documents a
+#  window DROPS and cannot measure whether it drops real evidence. There is no
+#  corpus with real positives in it yet. On blogs that is gated on the
+#  registry rather than the sieve: 24.3% of articles name a versioned model
+#  and only 6.6% name one the registry carries, so the corpus is thin for a
+#  reason this number cannot fix.
+#
+#  WHAT WOULD REVISE IT: a re-run against a current registry, once the poller
+#  has replaced contract/seed_models.yaml and the corpus contains documents
+#  that are genuinely evidence. If real positives turn out to sit beyond 1200,
+#  this is too tight and the measurement that says so does not exist yet.
+#
+#  Remove the key to disable locality entirely — absent means no window, which
+#  is the pre-2026-08-14 behaviour.
+# ============================================================================
+
+sieve:
+  locality_window: 1200
