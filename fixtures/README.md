@@ -13,12 +13,22 @@ UX test in week 3 cannot tell the data is fake, and that is the whole point.
 **Loads with `provenance: hand_curated`. Deleted in week 8**, with a startup
 assertion so it can never be served as evidence.
 
-## `golden/` — labelled in week 3, before any extraction runs
+## `golden/` — labelled before any extraction runs
 
 Needs no code, which is exactly why it slips if you leave it inside a build
-week. It gates extractor selection: you cannot choose one on measured
-F1-per-dollar without a set to measure against, and choosing by assertion
-undermines the one component the whole guarantee rests on.
+week.
+
+It no longer gates extractor selection — the extractor is decided
+(`google/gemini-2.5-flash` via OpenRouter) rather than chosen by measurement.
+It exists because **extraction is itself a silent-failure job**. A claim the
+extractor misses produces no error and no wrong-looking output, only a claim
+that never existed. Quote verification catches a fabricated quote; it cannot
+catch a missed one, a real quote filed under the wrong capability, or a
+polarity read backwards through sarcasm — each of which puts a verified quote
+in the wrong cell.
+
+With one extractor and no failover, this is also the only thing that would
+notice the extractor getting quietly worse behind a stable name.
 
 | Set | Size | Protects |
 |---|---|---|
