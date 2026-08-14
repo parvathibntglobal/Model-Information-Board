@@ -22,11 +22,11 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import date
-from enum import Enum
+from enum import StrEnum
 from urllib.parse import parse_qs, urlparse
 
 
-class RejectionTrigger(str, Enum):
+class RejectionTrigger(StrEnum):
     """Named on /filtered, so a reader can disagree with the specific rule."""
 
     AFFILIATE_LINK = "affiliate_link"

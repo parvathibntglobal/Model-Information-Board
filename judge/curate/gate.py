@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from enum import Enum
+from enum import StrEnum
 
 N_EFF_MINIMUM = 3.0
 PLATFORM_MINIMUM = 2
@@ -33,13 +33,13 @@ GENERALLY_PRAISED_VOICES = 3
 GENERALLY_PRAISED_AGREEMENT = 0.70
 
 
-class CellStatus(str, Enum):
+class CellStatus(StrEnum):
     PUBLISHED = "published"
     CONTESTED = "contested"
     INSUFFICIENT = "insufficient"
 
 
-class GateFailure(str, Enum):
+class GateFailure(StrEnum):
     NOT_ENOUGH_WEIGHT = "not_enough_weight"
     ONE_PLATFORM_ONLY = "one_platform_only"
     SINGLE_AUTHOR_DOMINATES = "single_author_dominates"

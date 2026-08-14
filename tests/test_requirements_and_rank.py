@@ -10,7 +10,16 @@ from __future__ import annotations
 from judge.ask import requirements
 from judge.ask.cost import CostEstimate, Pricing, Workload, estimate, monthly_saving
 from judge.ask.profile import Role, TaskProfile
-from judge.ask.rank import Band, Candidate, CellView, DisqualifyReason, band_for, gate, guard_for, rank
+from judge.ask.rank import (
+    Band,
+    Candidate,
+    CellView,
+    DisqualifyReason,
+    band_for,
+    gate,
+    guard_for,
+    rank,
+)
 from judge.curate.gate import CellStatus
 
 SUMMARISE = (
@@ -144,7 +153,10 @@ def cell(cap: str, bucket: str, direction: str, *, voices=6, positive=6, negativ
         condition_bucket=bucket,
         status=status,
         direction=direction,
-        consensus_phrase=f"{'Widely praised' if direction == 'positive' else 'Repeatedly criticised'} for {cap}",
+        consensus_phrase=(
+            f"{'Widely praised' if direction == 'positive' else 'Repeatedly criticised'}"
+            f" for {cap}"
+        ),
         voices=voices,
         positive=positive,
         negative=negative,
