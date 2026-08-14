@@ -65,9 +65,13 @@ jobs:
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/modelboard_test
 
     steps:
-      - uses: actions/checkout@v4
+      # v5/v6 rather than v4/v5: the older majors target Node 20, which the
+      # runners already force onto Node 24 with a deprecation warning. That is
+      # a warning that becomes a failure on GitHub's schedule rather than ours,
+      # so it is bumped while CI is green and a break surfaces immediately.
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
@@ -96,6 +100,10 @@ jobs:
         # The noqa was defending against a linter that never reads this: ruff
         # lints .py files, and this is a string in a YAML file. It was
         # protection against nothing, and it cost the whole job.
+        #
+        # `tests/test_ci_workflow.py` is the check that would have caught it:
+        # the file is valid YAML and the Python is valid Python, and the two
+        # are only wrong together, so neither parser alone can see it.
         run: python -c "import pytest_asyncio, ruff"
 
       - name: Mark the database disposable
