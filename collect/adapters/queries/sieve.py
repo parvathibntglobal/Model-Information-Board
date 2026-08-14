@@ -68,26 +68,72 @@ def normalize(text: str) -> str:
     return " ".join(text.translate(_APOSTROPHES).casefold().split())
 
 
+def _stemmed(word: str) -> str:
+    """One word, allowed to inflect. How far depends on how long it is.
+
+    A word at or past `MIN_STEM_LENGTH` gets the general stem: any suffix up to
+    `MAX_STEM_SUFFIX`, which covers plurals, tense and `moralis` → `moralising`.
+
+    A SHORTER WORD GETS PLURALS ONLY, and that distinction is load-bearing.
+    Measured against `contract/queries.yaml`, 20-odd genuine noun-final terms
+    end in a three- or four-letter noun — `function call`, `agent loop`,
+    `unified diff`, `wrong type`, `response time`, `json mode`, `apply the
+    edit` — and a general stem cannot be used on those: `code` would reach
+    `codebase`, `key` would reach `keyword`, `slow` would reach `slowdown`,
+    and `mode` would reach `model`. That is why `MIN_STEM_LENGTH` exists.
+
+    But "cannot take any suffix" and "cannot take an S" are different claims,
+    and only the first was ever argued for. `call` → `calls` is the plural the
+    contract's noun-final rule is about, and `calls` is not a different word
+    the way `callback` is. So short words get `s` / `es` and nothing else,
+    which reaches every one of those twenty and reaches no new word: none of
+    `codebase`, `keyword`, `slowdown`, `model` or `user` is formed by adding
+    an S.
+    """
+    escaped = re.escape(word)
+    if len(word) >= MIN_STEM_LENGTH:
+        return rf"{escaped}\w{{0,{MAX_STEM_SUFFIX}}}"
+    return rf"{escaped}(?:e?s)?"
+
+
 @lru_cache(maxsize=4096)
 def _pattern_for(term: str) -> re.Pattern[str]:
     """One term to one regex, cached because a sweep reuses the same few hundred.
 
-    Multi-word terms match exactly, word-bounded. Single words match with a
-    bounded stem expansion, because the index has no stemming and the contract
-    writes deliberate stems.
+    Single words match with a bounded stem expansion, because the index does no
+    stemming and the contract writes deliberate stems.
+
+    **Multi-word terms stem their FINAL word and match the rest exactly.**
+    `contract/queries.yaml` requires this in as many words — "NOUN-FINAL TERMS
+    ARE WRITTEN SINGULAR, AND THE SIEVE IS REQUIRED TO STEM THE FINAL WORD" —
+    and states the cost of not doing it: 275 of 275 multi-word terms in that
+    file failed to match their own plural, so `invalid argument` never reached
+    "invalid arguments". 82% of the vocabulary is multi-word, so exact matching
+    was silently discarding most of the sieve's reach.
+
+    Only the final word, because that is where English inflects a noun phrase.
+    Stemming every word would let `extra key` reach `extras keyword` and
+    `no complaint from` reach `nothing complaints fromage` — the interior words
+    of these terms are function words and adjectives whose form is fixed, and
+    widening them buys nothing while costing precision.
+
+    `MIN_STEM_LENGTH` guards the short-word case exactly as it does for a
+    single term: `code fence` does not become `code fencepost`, because
+    `fence` is stemmed but bounded, and `extra key` does not reach `keyword`
+    because `key` is three letters and left alone. That guard is why the
+    contract could ask for this without also asking for a stop-list.
     """
     normalized = normalize(term)
     if not normalized:
         raise ValueError("empty term")
 
-    if " " in normalized:
-        pattern = r"\b" + r"\s+".join(re.escape(word) for word in normalized.split()) + r"\b"
+    words = normalized.split()
+    if len(words) > 1:
+        exact = [re.escape(word) for word in words[:-1]]
+        pattern = r"\b" + r"\s+".join([*exact, _stemmed(words[-1])]) + r"\b"
         return re.compile(pattern)
 
-    escaped = re.escape(normalized)
-    if len(normalized) >= MIN_STEM_LENGTH:
-        return re.compile(rf"\b{escaped}\w{{0,{MAX_STEM_SUFFIX}}}\b")
-    return re.compile(rf"\b{escaped}\b")
+    return re.compile(rf"\b{_stemmed(normalized)}\b")
 
 
 def matches(term: str, text: str) -> bool:
