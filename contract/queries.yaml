@@ -756,8 +756,12 @@ substitution:
 #  Failing this test is the "fails the build" FR-7 asks for. Adding a
 #  capability without its queries then stops being a silent no-op.
 #
-#  CURRENT COVERAGE: 12 capabilities · 12 negative · 4 positive (all four
-#  silent-failure capabilities) · 2 substitution. FR-7 12/12, FR-8 12/12.
+#  CURRENT COVERAGE is not restated here. It was - "12 negative, 4 positive" -
+#  and it went stale the moment PR #8 took the positives to twelve. Nothing
+#  failed, because a comment cannot fail, which is the class that bites later.
+#  The counts live in tests/test_queries_contract.py, which breaks when they
+#  are wrong. Same reason BUILD-PLAN 3.2 and 3.3 stopped carrying copies of
+#  CLAUDE.md and tables.sql.
 #
 #  WHAT THIS FILE DOES NOT DECIDE
 #

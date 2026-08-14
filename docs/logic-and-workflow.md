@@ -356,16 +356,15 @@ The only heavy LLM stage and the dominant cost line.
 
 > **Why a language model is permitted here, and what constrains it.** Turning messy human prose into a structured claim is the one job in this pipeline code genuinely cannot do. It is safe because **the model proposes a quote and code decides whether that quote exists** — exact substring verification, no model in the loop. Everything else about the stage is designed around that check: forced schema, no tools, no network, deterministic retry.
 
-### Choosing the extractor
+### The extractor
 
-The extractor is the cheapest model that reliably emits a verbatim span under a strict schema. **That is decided by measurement, not by consulting a board that is empty on day one:**
+**`google/gemini-2.5-flash`, accessed through OpenRouter. Decided, and not revisited.**
 
-1. **Build the extraction golden set first** — scheduled in week 3 for exactly this reason
-2. Run three candidate extractors against it; **select on measured F1-per-dollar**
-3. **Qualify a second extractor at the same time**
-4. On a `ValidationError` or quote-verification alert, **switch to it automatically**, stamp the new `pipeline_version`, and flag the affected batch for re-run
+There is no selection process and no second extractor. An earlier draft specified running three candidates against the golden set and choosing on measured F1-per-dollar, with a second qualified for automatic failover. That is cut.
 
-Step 3 is not optional. This product's founding premise is that **models change silently behind stable names**, and the extractor is exposed to exactly that risk. A single unqualified extractor is a single point of silent failure in the component the whole guarantee rests on.
+What the decision costs, recorded so nobody has to rediscover it: the extractor is a model behind a stable name, and this product exists because models change silently behind stable names. With one extractor there is nothing to fail over to, so a silent regression is caught rather than absorbed — the `ValidationError` and quote-verification alerts halt the batch and flag it for re-run instead of switching. That is a smaller mitigation than failover and it is a deliberate trade.
+
+The client is written against OpenRouter's OpenAI-compatible interface and takes the model id as configuration, so replacing it later is a config change rather than a rewrite. Nothing downstream of `judge/extract/` knows which model produced a claim beyond the `pipeline_version` stamped on it.
 
 ### The claim record
 
@@ -844,7 +843,11 @@ step 3  DISPLAY      render the RAW span from the source document
 
 ### Layer 2 — Golden sets
 
-**Labelled in week 3, before any extraction runs.** They need no code, they are the only way to choose an extractor on measured F1-per-dollar rather than by assertion, and burying a person-week of labelling inside the weeks that also build three adapters, dedupe, flattening and extraction is how it silently doesn't happen.
+**Labelled before any extraction runs.** They need no code, and burying a person-week of labelling inside the weeks that also build three adapters, dedupe, flattening and extraction is how it silently doesn't happen.
+
+They no longer exist to choose an extractor — that is decided. They exist because **extraction is itself a silent-failure job**: a claim the extractor misses produces no error, no log line and no wrong-looking output, only a claim that never existed. Quote verification catches a fabricated quote; it cannot catch a missed one, a real quote filed under the wrong capability, or a polarity read backwards through sarcasm. Each of those puts a verified quote in the wrong cell, and the page then says something false with a real quote underneath it.
+
+A fixed set with known answers is the only instrument that sees any of that. With one extractor and no failover it is also the only thing that would notice the extractor getting quietly worse.
 
 | Set | Size | Protects |
 |---|---|---|
@@ -904,7 +907,7 @@ Postgres primary, with an object store for raw payloads, content-hash addressed.
 | Harvester | `httpx`, one adapter class per platform | Breakage stays contained; each adapter reports its own yield |
 | Store | Postgres + S3-compatible object store | One DB until it hurts. **No Kafka, no Timescale, no ClickHouse yet** |
 | Queue | A jobs table and cron | **Don't introduce a workflow engine for eight scheduled jobs** |
-| Extraction | Provider-agnostic router · batch APIs · prompt caching · **two qualified extractors, snapshot-pinned** | The dominant cost line, and a single point of silent failure otherwise |
+| Extraction | Batch APIs · prompt caching · a hard daily budget cap | The dominant cost line. One extractor by decision, so cost control is the lever, not routing |
 | API and UI | FastAPI · server-rendered or a static build over exported JSON | Data is small and refreshes nightly |
 | **Config** | Trust weights, thresholds, half-lives, the capability list, alias variants and filter rules in **versioned YAML, not code** | They will be tuned constantly, and every tuning must be a recorded version |
 
@@ -914,7 +917,7 @@ Postgres primary, with an object store for raw payloads, content-hash addressed.
 
 1. **Adapter yield drop** — a site changed its markup
 2. **Triage survival rate shifted more than 2σ** — a platform changed or a filter broke *(armed after a 14-day burn-in)*
-3. **Extraction `ValidationError` rate rising** — the extractor silently regressed; triggers the automatic switch to the second qualified extractor
+3. **Extraction `ValidationError` rate rising** — the extractor silently regressed. With one extractor there is nothing to switch to, so this halts the batch and flags it for re-run rather than failing over
 4. **Quote-verification failure above 1%** — fabrication or an injection attempt
 5. **Any registry field change** — a human correlates it against provider announcements. Detecting the *absence* of an announcement would need changelog parsing not worth building for one alert
 
