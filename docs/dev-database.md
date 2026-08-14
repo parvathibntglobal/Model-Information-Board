@@ -206,6 +206,36 @@ this whole file exists to prevent.
 port and database name, so the recorded DSN and the connecting DSN must agree
 including the port — write the same string in both places.
 
+### Postgres `ERROR` lines in a **green** run are the tests working
+
+At teardown the job prints the container log, and a passing run is full of
+this:
+
+```
+ERROR:  duplicate key value violates unique constraint "document_pkey"
+ERROR:  new row for relation "harvest_run" violates check constraint "harvest_run_truncated_ck"
+ERROR:  new row for relation "reported_context" violates check constraint "reported_context_provenance_ck"
+ERROR:  new row for relation "source" violates check constraint "source_discovered_needs_ruling_ck"
+```
+
+**Every one of those is a test asserting that a constraint rejects a bad
+row.** Postgres logs a rejected statement at ERROR whether or not something
+was expecting it, so the log cannot tell the two apart — and a green run full
+of `ERROR` reads alarming enough that somebody will eventually "fix" it.
+Read the job's conclusion, not the container log.
+
+`source_discovered_needs_ruling_ck` is worth recognising: it is
+`CHECK (provenance = 'seed' OR terms_ruling IS NOT NULL)`, and it is the
+schema correction from the source-writer work — a feed discovered from a link
+must carry a terms ruling made about *its* host, where only the hand-curated
+seed may record an honest "nobody has read these terms yet". That line in the
+log is the first time it was exercised against a real Postgres in CI rather
+than only on a laptop.
+
+If you ever want the log quiet, the change is to the tests, not to the
+constraints: nothing here logs an ERROR that a test did not deliberately
+provoke.
+
 ---
 
 ## Docker Compose — deferred, not rejected
