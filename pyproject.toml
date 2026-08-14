@@ -16,7 +16,22 @@ dependencies = [
   "datasketch>=1.6",       # MinHash + LSH for short-document dedupe
   "simhash>=2.1",          # long-form dedupe
   "feedparser>=6.0",       # blog RSS
-  "trafilatura>=1.9",      # blog article text extraction
+
+  # PINNED TO A MAJOR. Extraction output is load-bearing for quote
+  # verification and offset stability: `thread_context.offset_map` maps
+  # flattened offsets back to raw ones, and a different extractor produces
+  # different flattened text for the same bytes. A quote then verifies
+  # against text nobody has, or fails against text that is still there.
+  #
+  # CI installs from scratch every run and a laptop does not, so an unpinned
+  # major drifts between them silently — the failure surfaces as an offset
+  # that no longer resolves, not as an install error.
+  #
+  # A pin alone is prevention nobody can verify, and holds only until somebody
+  # widens it without knowing why it was narrow. The other half is recording
+  # WHICH version produced a given flattened text, proposed for
+  # `thread_context` on issue #5.
+  "trafilatura>=2.2,<3",   # blog article text extraction
 ]
 
 [project.optional-dependencies]
