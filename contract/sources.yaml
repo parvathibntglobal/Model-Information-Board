@@ -151,23 +151,59 @@ terms_rulings:
       one host's rules, which is precisely why reading the publisher's terms
       would be reading the wrong document.
 
-      ARTICLE PATHS ARE NOT PERMITTED, on two independent grounds observed
-      2026-08-14. First, robots.txt carries `Disallow: /*/*source=`, and every
-      article link in a Medium feed carries `?source=rss----<id>---N`, so
-      every article URL the feed hands us falls under that rule. Second, a
-      direct GET to those URLs returns 403 behind Cloudflare — 3 of 3 Netflix
-      URLs and 3 of 3 Airbnb URLs, a 5,020 and 5,042 byte error page
-      respectively, with no article body.
+      THE REVIEW IS PER DOMAIN, NOT PER PUBLISHER, AND BYTE-IDENTICAL ROBOTS
+      DOES NOT COLLAPSE TWO DOMAINS INTO ONE REVIEW. This is the general form
+      of the netflixtechblog.com finding below, and it is the rule to carry
+      forward rather than the instance.
 
-      OUR ROBOTS GATE CANNOT SEE THE FIRST GROUND, which is why it is written
-      down here. `urllib.robotparser` implements no path wildcards —
-      `RuleLine.applies_to` is a plain `startswith` — so `/*/*source=` is
-      treated as a literal prefix, matches nothing, and `gate.allows()`
-      returns True for an article URL that Medium has disallowed. Verified
-      against the stdlib on 2026-08-14. The 403 is what actually stops us
-      today, and a refusal we happen to receive is not a rule we chose to
-      obey. This ruling is the rule; the gate is not carrying it.
-      Raised for collect/ as a defect in its own right.
+      A robots rule is PATH-SHAPED. `Disallow: /*/*source=` needs two slashes
+      before `source=`, so it reaches `/<publication>/<slug>` on medium.com and
+      does not reach `/<slug>` on a custom domain. The rule text is identical
+      and its effect is not, because the effect depends on the URL shape the
+      domain serves — which is a property of the domain, not of the terms.
+      Two publications under one platform can therefore have genuinely
+      different permitted paths while quoting the same file.
+
+      So a custom-domain mirror is a separate NFR-5 review: it names the class
+      B ruling for the platform's terms, and it measures its own
+      `terms_evidence` against its own URL shapes. Sharing a ruling is not
+      sharing evidence. `assert_terms_reviewed` already enforces the second
+      half — evidence is per source row and dated per source row — and this
+      paragraph is why that is not redundant with the ruling.
+
+      Moot for netflixtechblog.com, which is dropped from article fetching on
+      other grounds anyway. It is written down for the next custom-domain
+      publication with real per-post bylines, where the difference decides
+      whether we may fetch the articles at all.
+
+      ARTICLE PATHS ARE NOT PERMITTED, on two grounds observed 2026-08-14. A
+      direct GET returns 403 behind Cloudflare — 3 of 3 Netflix URLs and 3 of
+      3 Airbnb URLs, a 5,020 and 5,042 byte error page respectively, with no
+      article body. And on medium.com itself, robots.txt disallows them.
+
+      ⚠ THE ROBOTS GROUND HOLDS FOR ONE OF THE TWO HOSTS, NOT BOTH, and the
+      first version of this ruling said otherwise. Corrected 2026-08-14 after
+      measuring rather than reasoning; the correction is recorded rather than
+      quietly applied, because a ruling that states a reason nobody checked is
+      the exact failure this format exists to prevent, and it happened here.
+
+      `Disallow: /*/*source=` requires two slashes before `source=`. A
+      publication on medium.com is `/<publication>/<slug>`, which has two, so
+      Airbnb's article links are disallowed — 5 of 6 sampled URLs. A custom
+      domain is `/<slug>`, which has one, so **netflixtechblog.com's article
+      links are NOT disallowed by robots** even though the host serves the
+      identical 37 rule lines. On that host the 403 is the only thing stopping
+      us, and the class B reading is what makes feed-only the ruling rather
+      than a workaround.
+
+      The gate now evaluates the rule. `urllib.robotparser` implements the
+      1996 draft — no `*`, no `$`, and first-match-in-file-order instead of
+      most-specific-match — so `/*/*source=` was read as a literal prefix,
+      matched nothing, and `gate.allows()` returned True for URLs Medium
+      disallows. Replaced by `collect/adapters/blog/rules.py`, which
+      implements RFC 9309 §2.2.2 and §2.2.3 over the same parsed groups.
+      Until that landed the 403 was what actually stopped us, and a refusal we
+      happen to receive is not a rule we chose to obey.
 
       Consequently articles are never requested from a Medium host, and the
       403 is never worked around — no browser User-Agent, no cookie, no
@@ -788,8 +824,17 @@ feeds:
       netflixtechblog.com/robots.txt carries the medium.com rule set with all
       37 of its rule lines unchanged — only the `Sitemap` host is substituted,
       and the `License` line still points at medium.com.
-      Feed only — three of three sampled article URLs returned 403 behind
-      Cloudflare. Nothing is lost: all ten entries carry `content:encoded`
+
+      AND YET THE SAME RULES DO NOT MEAN THE SAME THING HERE. Identical rule
+      lines, different URL shape: `/*/*source=` needs two slashes before
+      `source=`, medium.com/<publication>/<slug> has two and this host's
+      /<slug> has one, so the wildcard rule reaches Airbnb's article links and
+      not Netflix's. Feed-only on this host rests on the 403 — three of three
+      sampled URLs — and on the class B reading, not on robots. That is a
+      non-obvious property of the platform idiom and it is pinned by
+      `tests/test_blog_robots_rules.py`.
+
+      Nothing is lost either way: all ten entries carry `content:encoded`
       with a median of 18,722 characters.
 
       Team-bylined "Netflix Technology Blog" on every entry, collapsing to one
@@ -798,11 +843,15 @@ feeds:
     tos_notes: >-
       Class B, ruling blog-class-b-medium, evidence checked 2026-08-14.
       robots.txt 200 (the medium.com rule set served under this domain), feed
-      path allowed. ARTICLE PATHS NOT PERMITTED: robots `Disallow: /*/*source=`
-      covers every feed link, and a direct GET returns 403 — observed on 3 of
-      3 sampled URLs, 5,020 byte error page. Feed-only harvest; the 403 is not
-      worked around. Paywall unknown, because a 403 page cannot show one, and
-      not relied upon: content comes from the feed body. RSS 2.0, generator
+      path allowed. ARTICLE PATHS NOT PERMITTED, and on this host robots is
+      NOT the reason: `Disallow: /*/*source=` needs two slashes before
+      `source=`, and a custom domain's article path is `/<slug>?source=` with
+      one, so the rule does not reach them. Corrected 2026-08-14 — this row
+      previously claimed it did, which was asserted rather than measured. What
+      does apply is the 403 on a direct GET (3 of 3 sampled URLs, 5,020 byte
+      error page) and the class B reading itself. Feed-only harvest; the 403 is
+      not worked around. Paywall unknown, because a 403 page cannot show one,
+      and not relied upon: content comes from the feed body. RSS 2.0, generator
       Medium.
 
   - id: blog:medium.com/airbnb-engineering
