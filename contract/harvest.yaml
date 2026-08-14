@@ -91,3 +91,71 @@ sweep_budget:
 cadence_days:
   daily: 1
   weekly: 7
+
+
+# ============================================================================
+#  SIEVE LOCALITY
+#
+#  How far apart `topic` and `signal` may be, in characters, and still count
+#  as one claim. Subject is deliberately not constrained: naming the model
+#  once is how a post establishes what it is about, and a blog post that names
+#  it in the introduction and reports the failure in the conclusion is the
+#  ordinary shape rather than the exception.
+#
+#  WHY THERE IS A NUMBER HERE AT ALL. The first nine-feed blog harvest kept
+#  exactly one document:
+#
+#      vickiboykis.com/2026/04/20/build-yourself-flowers/, 41,956 characters
+#        subject  `flash 2.5`  "ran it through gemini flash 2.5 ... to break
+#                              into paragraphs"
+#        topic    `extract`    "i extracted each entry ... full metadata" —
+#                              a museum API, not the model
+#        signal   `held up`    "you're just going to get held up with your
+#                              product" — meaning DELAYED
+#
+#  Three unrelated passages in one long essay, counted as a claim, because
+#  nothing required them to be near each other. Blog articles have a median of
+#  8,191 characters against GitHub's 2,228, so the same sieve was quietly
+#  stricter on one platform than the other and had no way to know it.
+#
+#  MEASURED 2026-08-14 over 111 blog articles and 174 distinct GitHub
+#  candidates. Every passing document, by the gap between its closest
+#  topic-signal pair:
+#
+#      0      langchain#34371   "Pydantic Invalid For Json Schema ..."
+#      356    aider#3713        diff edit format, `search block`
+#      496    aider#3895        diff edit format, `search block`
+#      3899   vickiboykis       the blog false positive above
+#      4027   langchain#33651   the GitHub false positive
+#
+#  The two known false positives are the two far ones, and nothing sits
+#  between 496 and 3899. 1200 is roughly 2.4x the widest tight gap and 3.2x
+#  inside the nearest false positive, so it is the middle of the only gap the
+#  data actually shows. It is also about two or three paragraphs, which is the
+#  unit "the claim and what it is about" plausibly occupies.
+#
+#  THE CURVES DID NOT DIVERGE, which is why this is ONE number and not one per
+#  source type. Both channels lose every far document by 3200 and keep every
+#  near one from 600 up. Had they diverged, the number would have belonged per
+#  source type and that would have been a contract question rather than a
+#  rendering one.
+#
+#  ⚠ PROVISIONAL BY CONSTRUCTION. With one known-false positive per channel
+#  and five passing documents in total, this measures how many documents a
+#  window DROPS and cannot measure whether it drops real evidence. There is no
+#  corpus with real positives in it yet. On blogs that is gated on the
+#  registry rather than the sieve: 24.3% of articles name a versioned model
+#  and only 6.6% name one the registry carries, so the corpus is thin for a
+#  reason this number cannot fix.
+#
+#  WHAT WOULD REVISE IT: a re-run against a current registry, once the poller
+#  has replaced contract/seed_models.yaml and the corpus contains documents
+#  that are genuinely evidence. If real positives turn out to sit beyond 1200,
+#  this is too tight and the measurement that says so does not exist yet.
+#
+#  Remove the key to disable locality entirely — absent means no window, which
+#  is the pre-2026-08-14 behaviour.
+# ============================================================================
+
+sieve:
+  locality_window: 1200
