@@ -129,10 +129,33 @@ cadence_days:
 #      4027   langchain#33651   the GitHub false positive
 #
 #  The two known false positives are the two far ones, and nothing sits
-#  between 496 and 3899. 1200 is roughly 2.4x the widest tight gap and 3.2x
-#  inside the nearest false positive, so it is the middle of the only gap the
-#  data actually shows. It is also about two or three paragraphs, which is the
-#  unit "the claim and what it is about" plausibly occupies.
+#  between 496 and 3899. That empty band is the whole argument — and it is
+#  evidence for THE BAND, not for a particular number inside it.
+#
+#  WHY 1200 AND NOT 2000. The measurement does not distinguish them: every
+#  value in (496, 3899) keeps and drops exactly the same documents on this
+#  data. The number was chosen inside a band the data identified, and the
+#  choice within the band is judgement, so here is the judgement:
+#
+#    scale        ~1200 characters is two or three paragraphs, plausibly the
+#                 unit "the claim and what it is about" occupies. 2000 is a
+#                 page; 600 is one paragraph.
+#
+#    asymmetry    and it points tighter than it first appears. Too loose
+#                 admits co-occurrence artefacts, which cost extraction budget
+#                 and lean on `yields_claim_when` downstream. Too tight
+#                 silently drops evidence, normally the worse failure here —
+#                 except that raw payloads are immutable and content-hash
+#                 addressed, so a window that is too tight is fixed by
+#                 RE-SIEVING the store. A document the sieve dropped is
+#                 recoverable; a document never fetched is not. That makes the
+#                 tighter end the cheaper mistake.
+#
+#    reversibility  moving it within the band is this one line plus a
+#                 re-sieve. No re-fetch, no rate limit, no lost coverage.
+#
+#  So disagreeing with 1200 is cheap, and nothing measured argues against a
+#  different value in the band.
 #
 #  THE CURVES DID NOT DIVERGE, which is why this is ONE number and not one per
 #  source type. Both channels lose every far document by 3200 and keep every
