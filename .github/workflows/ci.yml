@@ -96,6 +96,10 @@ jobs:
         # The noqa was defending against a linter that never reads this: ruff
         # lints .py files, and this is a string in a YAML file. It was
         # protection against nothing, and it cost the whole job.
+        #
+        # `tests/test_ci_workflow.py` is the check that would have caught it:
+        # the file is valid YAML and the Python is valid Python, and the two
+        # are only wrong together, so neither parser alone can see it.
         run: python -c "import pytest_asyncio, ruff"
 
       - name: Mark the database disposable
