@@ -195,14 +195,21 @@ class TestTermQuality:
             f"or add to ALLOWED_SINGLE_WORD_SIGNALS with a reason: {offenders}"
         )
 
-    def test_noun_final_terms_are_written_singular(self, entries, queries):
-        """The sieve matches phrases exactly, so the plural is a narrower term.
+    def test_plural_terms_are_paired_with_their_singular(self, entries, queries):
+        """A lone plural is a defect. A pair is deliberate.
 
-        `invalid arguments` misses "Request contains an invalid argument",
-        which is a real document from the first live run. Singular is the stem
-        and matches both. Verbs are exempt — "ignores" is not a plural noun —
-        so this checks only terms whose last word is a plural noun by the
-        crude test that catches the cases that actually occurred.
+        The first version of this asserted "written singular", on the belief
+        that the singular is a stem matching both. It is not: the sieve stems
+        single words and matches multi-word terms EXACTLY, so `invalid
+        argument` misses "invalid arguments" exactly as the plural missed the
+        singular case from the first live run. Measured against the sieve as
+        it stands, 275 of 275 multi-word terms fail to match their own plural.
+
+        Writing singular alone traded one blind spot for another. Until the
+        sieve stems the final word of a phrase — proposed, and the same
+        argument that already justifies stemming a single word — a term whose
+        plural differs materially carries both forms, and this asserts the
+        pairing rather than the singular.
         """
         exempt = {
             # third-person verbs, not plural nouns
@@ -215,19 +222,26 @@ class TestTermQuality:
         offenders = []
         for e in entries + queries["substitution"]:
             label = f"{e.get('capability', 'substitution')}/{e['stance']}"
-            for term in e["terms"]["signal"] + e["terms"]["topic"]:
-                last = term.split()[-1] if term.split() else ""
-                if (
-                    last.endswith("s")
-                    and not last.endswith("ss")
-                    and last not in exempt
-                    and last not in ALLOWED_SINGLE_WORD_SIGNALS
-                    and "{alias" not in term
-                ):
-                    offenders.append(f"{label}: {term!r}")
+            for group in ("signal", "topic"):
+                terms = set(e["terms"][group])
+                for term in terms:
+                    words = term.split()
+                    last = words[-1] if words else ""
+                    if (
+                        not last.endswith("s")
+                        or last.endswith("ss")
+                        or last in exempt
+                        or last in ALLOWED_SINGLE_WORD_SIGNALS
+                        or "{alias" in term
+                    ):
+                        continue
+                    singular = " ".join(words[:-1] + [last[:-1]])
+                    if singular not in terms:
+                        offenders.append(f"{label}/{group}: {term!r}")
         assert not offenders, (
-            "noun-final terms in plural form — the sieve matches exactly, so "
-            f"the singular stem matches both: {offenders}"
+            "plural terms with no singular alongside them. The sieve matches "
+            "multi-word terms exactly, so a lone plural misses the singular "
+            f"and a lone singular misses the plural — carry both: {offenders}"
         )
 
 

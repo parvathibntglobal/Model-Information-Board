@@ -118,11 +118,21 @@
 #       beside each entry, so a bare adjective is a decision rather than a
 #       slip.
 #
-#    2. NOUN-FINAL TERMS ARE WRITTEN SINGULAR. The sieve matches phrases
-#       exactly, so `invalid arguments` misses "Request contains an invalid
-#       argument" - a real case from the first run. Singular is the stem and
-#       matches both. This is the same principle as the `moralis` prefix,
-#       which had been applied in exactly one place.
+#    2. NOUN-FINAL TERMS ARE WRITTEN SINGULAR, AND THE SIEVE IS REQUIRED TO
+#       STEM THE FINAL WORD. Stated as a requirement because it is not free:
+#       the sieve stems single words and matches multi-word terms exactly, so
+#       `invalid argument` does not currently reach "invalid arguments" any
+#       more than the plural reached the singular case from the first live run.
+#
+#       Writing singular without the stemming trades one blind spot for
+#       another rather than removing it - measured against the sieve as it
+#       stands, 275 of 275 multi-word terms in this file fail to match their
+#       own plural. The same argument that justifies stemming a single word
+#       applies to the final noun of a phrase, and the existing MIN_STEM_LENGTH
+#       guard already stops the short-word cases (`key` reaching `keyword`).
+#
+#       Until that lands, a term whose plural or singular differs materially
+#       should carry BOTH forms rather than rely on the stem.
 #
 #  Placeholders: `{alias}` is issued once per alias variant, not once per
 #  model. `{alias_b}` is any other model in the registry — substitution only.
@@ -168,7 +178,7 @@ queries:
       subject: ["{alias}"]
       topic: ["json", "structured output", "response format", "schema",
               "json mode", "json_schema", "json schema", "pydantic"]
-      signal: ["invalid json", "failed to parse", "extra key", "trailing comma",
+      signal: ["invalid json", "failed to parse", "extra key", "extra keys", "trailing comma",
                "wraps it in markdown", "code fence", "unparseable",
                "missing required field", "invalid for json schema",
                "not valid json"]
@@ -195,7 +205,7 @@ queries:
       # exactly, and the live run turned up "Request contains an invalid
       # argument" which the plural form missed entirely. Every noun-final term
       # in this file is written singular for that reason.
-      signal: ["invalid argument", "wrong type", "wrong parameter",
+      signal: ["invalid argument", "invalid arguments", "wrong type", "wrong parameter",
                "invented a tool", "made up a tool", "hallucinated a function",
                "not in the schema", "missing required field",
                "tool that is not", "not in the list", "no such tool"]
@@ -239,7 +249,7 @@ queries:
               "unified diff", "SEARCH/REPLACE"]
       signal: ["breaks the diff", "didn't match", "failed to apply",
                "truncat", "rest unchanged", "omitted the rest",
-               "wrong line number", "malformed patch", "search block"]
+               "wrong line number", "wrong line numbers", "malformed patch", "search block"]
     records_condition: context_size
     yields_claim_when: >
       The FILE SIZE or edit context is recoverable, because this failure is
@@ -404,7 +414,8 @@ queries:
       # a positive claim: it lives in marketing copy, prompt strings and API
       # docs, which is most of what a naive retrieval returns. Terms here now
       # carry a RELATION - what held, for how long, noticed by whom.
-      signal: ["held up", "good enough", "no complaint from", "no regression",
+      signal: ["held up", "good enough", "no complaint from", "no complaints from",
+               "no regression", "no regressions",
                "nobody noticed", "still running", "kept it in production",
                "no quality drop", "faithful to the source", "months without"]
     records_condition: context_size
@@ -446,7 +457,7 @@ queries:
       subject: ["{alias}"]
       topic: ["extraction", "extract", "parse", "structured field", "populate"]
       signal: ["correctly returned null", "didn't invent", "no hallucinated field",
-               "matched the source", "held up", "no regression",
+               "matched the source", "held up", "no regression", "no regressions",
                "nulls were right"]
     records_condition: context_size
     yields_claim_when: >
@@ -685,7 +696,7 @@ substitution:
       subject: ["{alias}"]
       topic: ["replaced {alias_b}", "switched from {alias_b}", "moved off {alias_b}",
               "migrated from {alias_b}", "instead of {alias_b}", "swapped {alias_b}"]
-      signal: ["held up", "no regression", "nobody noticed", "saved us",
+      signal: ["held up", "no regression", "no regressions", "nobody noticed", "saved us",
                "cheaper per", "still running", "kept it in production",
                "months later"]
     records_condition: context_size
