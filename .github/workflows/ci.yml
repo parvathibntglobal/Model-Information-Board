@@ -1,0 +1,107 @@
+# ============================================================================
+#  CI — lint, then the suite, against a real Postgres.
+#
+#  WHY THIS EXISTS
+#
+#  `ruff` and `mypy` have been declared in pyproject's [dev] extra since the
+#  scaffold and were never installed on one of the two machines, so `judge/`
+#  went unlinted for the whole build and nobody had a way to find out. The
+#  same gap hid `feedparser` and `trafilatura`, which produced five collection
+#  errors, `Interrupted`, and a run in which NO tests executed at all.
+#
+#  The root cause was never the packaging. Sign-off item 1 landed in 378d3c8
+#  on 2026-08-13 and `pip install -e ".[dev]"` has worked since. What was
+#  missing is anything that installs from a clean checkout and says so — which
+#  is precisely what a CI job is.
+#
+#  IT LANDS GREEN, DELIBERATELY. The eleven pre-existing lint errors were
+#  cleared first (049b695 in judge/, and the tests that go with it). A red
+#  build on day one teaches people to ignore the build.
+#
+#  `mypy` is deliberately absent. It is declared, unconfigured, and has never
+#  been run; turning it on here would be a second, much larger argument
+#  wearing this job's clothes.
+# ============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch makes the first run's answer irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      # The write-path tests are the only coverage of the registry and source
+      # loaders, and six defects once reached a commit because they skipped
+      # for want of a database. `tests/conftest.py` fails rather than skips
+      # when TEST_DATABASE_URL is unset, so this service is not optional.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: modelboard_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Host must be localhost and the database name must end `_test`: layers
+      # 1 and 2 of the guard in tests/conftest.py, checked before a connection
+      # is opened. Deliberately NOT named DATABASE_URL — every test here runs
+      # DROP SCHEMA public CASCADE.
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/modelboard_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Assert the dev extras actually arrived
+        # pyproject asks for this by name. `pip install -e .` without [dev]
+        # silently drops pytest-asyncio, and the async tests would not fail —
+        # they would not run, which is the failure mode this repo keeps finding.
+        run: python -c "import pytest_asyncio, ruff  # noqa: F401"
+
+      - name: Mark the database disposable
+        # Layer 3 of the guard. The sentinel lives in its own schema because
+        # every test drops `public`, and it records the DSN it was created
+        # for, so a sentinel copied elsewhere does not make that database
+        # disposable. `scripts/dev-postgres.ps1` does the same thing locally.
+        run: |
+          psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -c "
+            CREATE SCHEMA IF NOT EXISTS modelboard_meta;
+            CREATE TABLE IF NOT EXISTS modelboard_meta.disposable (
+              dsn        text PRIMARY KEY,
+              created_at timestamptz NOT NULL DEFAULT now()
+            );
+            INSERT INTO modelboard_meta.disposable (dsn) VALUES ('$TEST_DATABASE_URL')
+              ON CONFLICT (dsn) DO NOTHING;
+          "
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        # No ALLOW_MISSING_TEST_DB. If the service is unreachable the run
+        # fails, which is the whole point: a skip reads as success.
+        run: pytest -q

@@ -188,6 +188,26 @@ you are using to diagnose a hang hangs too.
 
 ---
 
+## CI does the same three layers
+
+`.github/workflows/ci.yml` runs the suite against a `postgres:17` service, and
+it has to satisfy the same guard. Three things, matching the three layers:
+
+- the service is reached on `localhost` (layer 1);
+- the database is named `modelboard_test` (layer 2);
+- a step creates `modelboard_meta.disposable` and records the exact
+  `TEST_DATABASE_URL` (layer 3).
+
+`ALLOW_MISSING_TEST_DB` is deliberately unset there. If the service does not
+come up the run fails, because a skip reads as success and that is the failure
+this whole file exists to prevent.
+
+**Do not name the CI variable `DATABASE_URL`.** `_same_target` compares host,
+port and database name, so the recorded DSN and the connecting DSN must agree
+including the port — write the same string in both places.
+
+---
+
 ## Docker Compose — deferred, not rejected
 
 A Compose service was considered and declined **on cost, not on principle**:
