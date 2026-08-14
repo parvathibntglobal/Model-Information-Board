@@ -53,6 +53,8 @@ from urllib.robotparser import RobotFileParser
 
 import httpx
 
+from collect.adapters.blog.rules import allowance_for
+
 log = logging.getLogger(__name__)
 
 #: `rules`     a robots.txt was served and parsed
@@ -304,13 +306,13 @@ class RobotsGate:
         if parser is None:  # pragma: no cover - only reachable via a corrupt ruling
             return RobotsDecision(url, False, "ruling carries no parsed rules", ruling)
 
-        allowed = parser.can_fetch(self._user_agent, url)
-        return RobotsDecision(
-            url,
-            allowed,
-            "allowed by robots.txt" if allowed else "disallowed by robots.txt",
-            ruling,
-        )
+        # NOT `parser.can_fetch`. It implements the 1996 draft: no `*`, no `$`,
+        # and first-match-in-file-order instead of most-specific-match. Both
+        # read a forbidden path as permitted — measured on medium.com, where 5
+        # of 6 sampled article URLs are disallowed by `/*/*source=` and allowed
+        # by the stdlib. See collect/adapters/blog/rules.py.
+        allowance = allowance_for(parser, self._user_agent, url)
+        return RobotsDecision(url, allowance.allowed, allowance.reason, ruling)
 
     def min_interval(self, url: str, *, floor: float = DEFAULT_MIN_INTERVAL) -> float:
         """Seconds to leave between requests to this host.

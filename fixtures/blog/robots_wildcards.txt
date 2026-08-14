@@ -1,0 +1,42 @@
+# Wildcards, one group per case, selected by user-agent.
+#
+# RFC 9309 2.2.3 defines exactly three special characters:
+#   "#"  a line comment
+#   "$"  the end of the match pattern
+#   "*"  0 or more instances of any character
+#
+# urllib.robotparser supports none of them inside a path: RuleLine.applies_to
+# is `self.path == "*" or filename.startswith(self.path)`. Every case below is
+# read as permitted by the stdlib and forbidden by the host.
+
+# medium.com's actual rule, and the live instance. Every article link in a
+# Medium feed carries ?source=rss----<id>---N, so this covers all of them —
+# on medium.com. See robots_medium.txt and the path-shape note there.
+User-agent: case-medium-source
+Disallow: /*/*source=
+
+# A wildcard in the middle of a path.
+User-agent: case-mid-path
+Disallow: /private/*/secret
+
+# An end anchor. `$` means the pattern ends here, so this covers /x.pdf and
+# not /x.pdf.html.
+User-agent: case-end-anchor
+Disallow: /*.pdf$
+
+# The anchor's other half: /page$ must NOT match /page/sub. The stdlib gets
+# this one right by accident — it stores the pattern as `/page%24`, which
+# prefixes nothing — so it is here to stop a fix from breaking it.
+User-agent: case-anchor-excludes
+Disallow: /page$
+
+# Unparsable: `$` before the end of the pattern, which RFC 9309 leaves
+# undefined. Fail closed, bounded by the literal prefix `/reports/` — so
+# /reports/* is refused and nothing else is.
+User-agent: case-unparsable
+Disallow: /reports/$archive
+
+# An empty Disallow means nothing is forbidden (RFC 9309 2.2.2), not that
+# everything is.
+User-agent: case-empty-disallow
+Disallow:

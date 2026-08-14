@@ -180,16 +180,25 @@ def test_only_collect_http_constructs_a_client():
             )
 
 
-def test_the_robots_gate_never_calls_read():
+#: The gate is two modules: `robots.py` fetches and caches the ruling,
+#: `rules.py` decides what the rules mean. Both touch `RobotFileParser` and
+#: neither may fetch with it. Widening this set is a decision — the property
+#: being protected is that there is exactly one path to the network, through
+#: `build_client`.
+ROBOTS_GATE = frozenset({"robots.py", "rules.py"})
+
+
+@pytest.mark.parametrize("name", sorted(ROBOTS_GATE))
+def test_the_robots_gate_never_calls_read(name):
     """`RobotFileParser.read()` fetches with urllib. `parse()` takes lines.
 
-    The robots module has no legitimate `.read()`, so forbidding the attribute
-    outright is exact rather than heuristic.
+    Neither gate module has a legitimate `.read()`, so forbidding the
+    attribute outright is exact rather than heuristic.
     """
-    robots = COLLECT / "adapters" / "blog" / "robots.py"
-    assert robots.exists()
-    assert "read" not in _attribute_names(robots), (
-        "collect/adapters/blog/robots.py references .read — RobotFileParser.read() "
+    module = COLLECT / "adapters" / "blog" / name
+    assert module.exists()
+    assert "read" not in _attribute_names(module), (
+        f"collect/adapters/blog/{name} references .read — RobotFileParser.read() "
         "fetches robots.txt with urllib.request and no identifying User-Agent. "
         "Fetch it with build_client and use RobotFileParser.parse(lines)."
     )
@@ -202,4 +211,9 @@ def test_only_the_robots_gate_imports_robotparser():
             for module in _imported_modules(path)
         )
         if imports_it:
-            assert path.name == "robots.py", f"{path} imports robotparser outside the gate"
+            assert path.name in ROBOTS_GATE, (
+                f"{path} imports robotparser outside the gate. The gate is "
+                f"{sorted(ROBOTS_GATE)}; anything else reaching for it is a "
+                "second interpretation of robots.txt, and two interpretations "
+                "disagree eventually."
+            )

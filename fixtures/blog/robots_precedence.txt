@@ -1,0 +1,45 @@
+# Allow/Disallow precedence, one group per case, selected by user-agent.
+#
+# RFC 9309 2.2.2:
+#   "The most specific match found MUST be used. The most specific match is
+#    the match that has the most octets."
+#   "If an 'allow' rule and a 'disallow' rule are equivalent, then the 'allow'
+#    rule SHOULD be used."
+#
+# urllib.robotparser returns on the FIRST rule whose path prefixes the URL, in
+# file order, which disagrees with all three of these.
+#
+# The last two groups are not synthetic. They were measured on 2026-08-14
+# against the nine seeded feeds and are the only live instances there: both
+# err toward refusal, so today the stdlib costs us two permitted paths rather
+# than leaking a forbidden one. The dangerous ordering — case-leak below —
+# appears in none of the nine, which is why the fix is prospective.
+
+# The leak. Broad allow first, narrow disallow after: first-match answers
+# "allowed" for a path the publisher forbade. This is the shape that matters
+# and the one absent from our current feeds.
+User-agent: case-leak
+Allow: /
+Disallow: /private/
+
+# The mirror. Broad disallow first, narrow allow after: first-match answers
+# "disallowed" for a path the publisher permitted. Costs coverage, not consent.
+User-agent: case-overrestrictive
+Disallow: /
+Allow: /blog/
+
+# Equivalent rules. RFC says allow wins; first-match takes whichever was
+# written first, so the file's line order silently decides.
+User-agent: case-equivalent
+Disallow: /x
+Allow: /x
+
+# Live, slack.engineering, 2026-08-14. The standard WordPress idiom.
+User-agent: case-wp-admin
+Disallow: /wp-admin/
+Allow: /wp-admin/admin-ajax.php
+
+# Live, engineering.atspotify.com, 2026-08-14. The standard static-asset idiom.
+User-agent: case-static-assets
+Disallow: /static/
+Allow: /static/images/
