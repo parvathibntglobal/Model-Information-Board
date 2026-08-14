@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A feed that still lists posts but has stopped carrying any of them.
+
+  This is what a Medium-style feed looks like the day the publisher switches
+  it to titles-only, and it is the failure FR-10 has to catch. Under a
+  feed-only terms ruling the feed body IS the yield, so `items_kept` counts
+  entries that carry a body — not entries that exist. Without that
+  distinction this feed reports a full yield while delivering nothing.
+
+  Whitespace-only content on the second entry on purpose: an empty
+  `content:encoded` is not the same shape as an absent one, and both have to
+  count as nothing.
+-->
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Synthetic Engineering Notes</title>
+    <link>https://notes.example.invalid/</link>
+    <description>Hand-written fixture. Not a real blog.</description>
+    <item>
+      <title>Swapping our summariser to a cheaper tier</title>
+      <link>https://notes.example.invalid/posts/summariser-swap</link>
+      <guid isPermaLink="false">urn:uuid:1f0c9a10-0000-4000-8000-000000000001</guid>
+      <pubDate>Tue, 04 Aug 2026 09:15:00 +0000</pubDate>
+    </item>
+    <item>
+      <title>Tool calling notes</title>
+      <link>https://notes.example.invalid/posts/tool-calling-notes</link>
+      <guid isPermaLink="false">urn:uuid:1f0c9a10-0000-4000-8000-000000000002</guid>
+      <pubDate>Wed, 05 Aug 2026 17:40:00 +0000</pubDate>
+      <content:encoded><![CDATA[   ]]></content:encoded>
+    </item>
+  </channel>
+</rss>

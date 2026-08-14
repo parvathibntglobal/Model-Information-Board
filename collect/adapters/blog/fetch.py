@@ -186,6 +186,16 @@ class FeedRun:
     articles: list[ArticleFetch] = field(default_factory=list)
     pipeline_version: str = ""
 
+    #: The `source` row this run belongs to — one per feed, not the `blogs`
+    #: umbrella. `harvest_run.source_id` is a foreign key, and FR-10's yield
+    #: history is only a detector if it is per feed: nine feeds merged into
+    #: one series cannot show that one of them stopped.
+    source_id: str = BLOG_SOURCE_ID
+
+    #: False when the source's terms ruling permits the feed only. It changes
+    #: what "kept" means, so the run has to know.
+    fetch_articles: bool = True
+
     @property
     def items_fetched(self) -> int:
         """Entries the feed offered. Zero on a 304 — see `harvest_run_fields`."""
@@ -193,7 +203,27 @@ class FeedRun:
 
     @property
     def items_kept(self) -> int:
-        """FR-10's yield figure: entries whose article actually reached `raw/`."""
+        """FR-10's yield figure: entries that yielded a body we can extract from.
+
+        Normally that is entries whose article reached `raw/`.
+
+        **Under a feed-only ruling it is entries carrying their own body**, and
+        getting that wrong is rule 4 with real consequences. Medium permits the
+        feed and refuses the articles, so `articles` is always empty there —
+        counting stored articles would report `items_kept = 0` on a feed that
+        just delivered ten full-length posts, every night, for ever. FR-10
+        would alarm on a healthy source, and the row would read "this source
+        produced nothing" when it produced everything it has.
+
+        Found on the first live harvest, not by reading: Netflix returned ten
+        entries with a 33,806-character lead post and a yield figure of zero.
+        """
+        if not self.fetch_articles:
+            return sum(
+                1
+                for entry in self.feed.entries
+                if (entry.content_html or entry.summary_html or "").strip()
+            )
         return sum(1 for article in self.articles if article.stored)
 
     @property
@@ -230,8 +260,8 @@ class FeedRun:
         that was never paginated.
         """
         return {
-            "id": stable_id("hr", BLOG_SOURCE_ID, self.feed_url, self.started_at.isoformat()),
-            "source_id": BLOG_SOURCE_ID,
+            "id": stable_id("hr", self.source_id, self.feed_url, self.started_at.isoformat()),
+            "source_id": self.source_id,
             "query_key": self.feed_url,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
@@ -278,6 +308,7 @@ class BlogFetcher:
         max_article_bytes: int = MAX_ARTICLE_BYTES,
         max_redirects: int = MAX_REDIRECTS,
         fetch_articles: bool = True,
+        source_id: str = BLOG_SOURCE_ID,
         pipeline_version: str | None = None,
         clock=lambda: datetime.now(UTC),
     ) -> None:
@@ -287,6 +318,8 @@ class BlogFetcher:
         #: From the source's terms ruling. False means the feed is the only
         #: permitted retrieval for this host, and `harvest_feed` enforces it.
         self._fetch_articles = fetch_articles
+        #: The feed's own `source` row, not the `blogs` umbrella.
+        self._source_id = source_id
         # `is None`, not `or`. An injected collaborator that happens to be
         # empty is still the collaborator the caller chose: `or` swaps a
         # freshly-created validator store for the caller's own the moment the
@@ -588,6 +621,8 @@ class BlogFetcher:
             feed=feed,
             articles=articles,
             pipeline_version=self._pipeline_version,
+            source_id=self._source_id,
+            fetch_articles=fetch_articles,
         )
 
 
@@ -658,5 +693,6 @@ def fetcher_for_source(source, *, robots: RobotsGate, rulings=None, **kwargs) ->
     return BlogFetcher(
         robots=robots,
         fetch_articles=ruling.fetch_articles if ruling else True,
+        source_id=source_id,
         **kwargs,
     )

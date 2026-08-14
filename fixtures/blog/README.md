@@ -7,9 +7,11 @@ Three reasons they are not real captures:
 
 1. **The suite must not depend on somebody else's site being up.** A test that
    fetches a live feed fails on their maintenance window and passes on ours.
-2. **Feeds are not picked yet.** The criteria are drafted and the NFR-5 source
-   ruling is outstanding; committing a real feed's payload would pick one by
-   accident and make it look reviewed.
+2. **A fixture must not look like a ruling.** The nine feeds are picked now and
+   the NFR-5 rulings have landed, in `contract/sources.yaml` where they are
+   dated and expire. A real feed's payload sitting in `fixtures/` would be a
+   second, undated place that says which sources we harvest — and the one that
+   nobody re-reads.
 3. **Republication.** Published content is quote + attribution + link. A real
    article's full text checked into the repository is the thing that rule
    forbids, in the one place nobody would think to look for it.
@@ -23,6 +25,7 @@ one fails at DNS instead of reaching a stranger's server.
 | `feed_atom.xml` | Atom, `id`/`updated`/`published` split, relative entry link |
 | `feed_malformed.xml` | unescaped `&` — `bozo` set, entries still parse |
 | `feed_no_ids.xml` | entries with neither guid nor link — unidentifiable, dropped and counted |
+| `feed_rss_no_bodies.xml` | entries that carry no body — a feed-only yield of zero, which is what FR-10 must still catch |
 | `article.html` | an article with a code block and a number-with-units |
 | `article_with_comments.html` | an article whose comment section must **not** reach the extracted body |
 | `robots_allow.txt` | `User-agent: *` with an unrelated `Disallow` |

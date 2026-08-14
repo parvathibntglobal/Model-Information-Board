@@ -487,6 +487,71 @@ def test_a_medium_feed_builds_a_feed_only_fetcher_that_refuses_articles(tmp_path
         fetcher.harvest_feed(FEED_URL, fetch_articles=True)
 
 
+def test_a_feed_only_run_counts_the_feed_bodies_as_its_yield(tmp_path):
+    """FR-10 would otherwise alarm nightly on a perfectly healthy Medium feed.
+
+    Found on the first live harvest: Netflix returned ten entries, the lead one
+    33,806 characters, and `items_kept` was 0 because nothing was counted but
+    stored articles — of which a feed-only ruling has none, by design. A row
+    reading "this source produced nothing" about a source that produced
+    everything it has is rule 4 with a pager attached.
+    """
+    from collect.registry.sources import load_sources
+
+    feed = next(
+        f for f in load_sources().feeds if f["id"] == "blog:netflixtechblog.com"
+    )
+    run = _build_for(feed, tmp_path).harvest_feed(FEED_URL)
+
+    assert run.articles == []
+    assert run.items_fetched == 2
+    assert run.items_kept == 2, "the feed body is the yield when articles are refused"
+    assert run.harvest_run_fields()["items_kept"] == 2
+
+
+def test_a_feed_only_run_does_not_count_entries_with_no_body(tmp_path):
+    """The count is entries that yielded something, not entries that existed.
+
+    Otherwise a Medium feed that started returning bare titles — the failure
+    FR-10 exists to catch — would still report a full yield.
+    """
+    from collect.registry.sources import load_sources
+
+    feed = next(
+        f for f in load_sources().feeds if f["id"] == "blog:netflixtechblog.com"
+    )
+    empty = Recorder(
+        {
+            "/feed.xml": httpx.Response(
+                200, content=fixture("feed_rss_no_bodies.xml"), headers=XML
+            )
+        }
+    )
+    run = _build_for(feed, tmp_path, site=empty).harvest_feed(FEED_URL)
+
+    assert run.items_fetched == 2
+    assert run.items_kept == 0
+
+
+def test_the_run_is_attributed_to_the_feeds_own_source_row(tmp_path):
+    """`harvest_run.source_id` is a foreign key, and FR-10 is per source.
+
+    Attributing every feed's run to the `blogs` umbrella would merge nine
+    yield histories into one series, in which a single feed going dark is
+    invisible — and `blogs` is explicitly not a fetch target, so the row would
+    point at something that never fetched anything.
+    """
+    from collect.registry.sources import load_sources
+
+    feed = next(
+        f for f in load_sources().feeds if f["id"] == "blog:simonwillison.net"
+    )
+    fields = _build_for(feed, tmp_path).harvest_feed(FEED_URL).harvest_run_fields()
+
+    assert fields["source_id"] == "blog:simonwillison.net"
+    assert fields["source_id"] != "blogs"
+
+
 def test_a_feed_only_fetcher_harvests_the_feed_and_no_articles(tmp_path):
     """Refusing articles is not refusing the feed — the feed carries the text."""
     from collect.registry.sources import load_sources
