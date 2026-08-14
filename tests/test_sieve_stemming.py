@@ -104,6 +104,23 @@ def test_every_multi_word_term_reaches_its_simple_plural():
     )
 
 
+def test_the_interior_plural_pairs_are_still_carried():
+    """Final-word stemming cannot reach a plural that is not final.
+
+    `no complaint from` pluralises in the middle, so the contract carries both
+    forms and must keep doing so. Asserted here rather than left to the
+    docstring, because "stemming landed, delete the pairs" is the plausible
+    next edit and it would silently narrow the sieve.
+    """
+    terms = {normalize(t) for t in all_terms()}
+    for singular, plural in [("no complaint from", "no complaints from")]:
+        assert singular in terms and plural in terms, (
+            f"{singular!r} pluralises mid-phrase, so stemming cannot reach "
+            f"{plural!r}. Both forms must stay in contract/queries.yaml."
+        )
+        assert not matches(singular, plural), "confirms the stem cannot do it"
+
+
 def test_the_only_unreachable_plurals_are_the_stem_changing_ones():
     """`y` to `ies` rewrites the stem, so no suffix rule reaches it.
 
@@ -149,6 +166,8 @@ def test_every_term_still_matches_itself():
         ("code fence", "codes fence", False, "leading word not stemmed"),
         ("no complaint from", "no complaints from", False,
          "the plural is interior here, so the contract must carry both forms"),
+        ("no complaints from", "no complaints from", True,
+         "which is why the contract carries the plural as its own term"),
     ],
 )
 def test_stemming_reaches_the_final_word_and_no_further(term, text, should_match, why):

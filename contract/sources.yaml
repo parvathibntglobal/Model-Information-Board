@@ -151,6 +151,31 @@ terms_rulings:
       one host's rules, which is precisely why reading the publisher's terms
       would be reading the wrong document.
 
+      THE REVIEW IS PER DOMAIN, NOT PER PUBLISHER, AND BYTE-IDENTICAL ROBOTS
+      DOES NOT COLLAPSE TWO DOMAINS INTO ONE REVIEW. This is the general form
+      of the netflixtechblog.com finding below, and it is the rule to carry
+      forward rather than the instance.
+
+      A robots rule is PATH-SHAPED. `Disallow: /*/*source=` needs two slashes
+      before `source=`, so it reaches `/<publication>/<slug>` on medium.com and
+      does not reach `/<slug>` on a custom domain. The rule text is identical
+      and its effect is not, because the effect depends on the URL shape the
+      domain serves — which is a property of the domain, not of the terms.
+      Two publications under one platform can therefore have genuinely
+      different permitted paths while quoting the same file.
+
+      So a custom-domain mirror is a separate NFR-5 review: it names the class
+      B ruling for the platform's terms, and it measures its own
+      `terms_evidence` against its own URL shapes. Sharing a ruling is not
+      sharing evidence. `assert_terms_reviewed` already enforces the second
+      half — evidence is per source row and dated per source row — and this
+      paragraph is why that is not redundant with the ruling.
+
+      Moot for netflixtechblog.com, which is dropped from article fetching on
+      other grounds anyway. It is written down for the next custom-domain
+      publication with real per-post bylines, where the difference decides
+      whether we may fetch the articles at all.
+
       ARTICLE PATHS ARE NOT PERMITTED, on two grounds observed 2026-08-14. A
       direct GET returns 403 behind Cloudflare — 3 of 3 Netflix URLs and 3 of
       3 Airbnb URLs, a 5,020 and 5,042 byte error page respectively, with no

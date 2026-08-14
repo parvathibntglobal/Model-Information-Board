@@ -122,6 +122,28 @@ def _pattern_for(term: str) -> re.Pattern[str]:
     `fence` is stemmed but bounded, and `extra key` does not reach `keyword`
     because `key` is three letters and left alone. That guard is why the
     contract could ask for this without also asking for a stop-list.
+
+    WHAT THIS DOES NOT REACH, so nobody deletes the paired forms believing it
+    does. Two classes, both real, both still needing BOTH forms in
+    `contract/queries.yaml`:
+
+      A PLURAL THAT IS NOT FINAL. `no complaint from` pluralises in the
+      middle — "no complaints from" — and only the final word is stemmed, so
+      this term cannot reach its own plural however long `from` is. The
+      contract carries `no complaint from` and `no complaints from` as
+      separate terms and must keep doing so. Stemming every word instead
+      would let it reach "nothing complaints fromage", which is the trade
+      that was rejected.
+
+      A PLURAL THAT REWRITES THE STEM. `y` to `ies` is not a suffix, so no
+      suffix rule reaches it: `consistent latency` cannot match "consistent
+      latencies". Eight terms are in this class as of 2026-08-14 and seven are
+      verbs or adverbs whose "plural" nobody types; that one is a real noun
+      and a real gap.
+
+    `tests/test_sieve_stemming.py` pins both classes against the live
+    contract, so a term landing in either is a vocabulary decision somebody
+    makes rather than a silent narrowing.
     """
     normalized = normalize(term)
     if not normalized:
