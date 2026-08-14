@@ -81,15 +81,26 @@ jobs:
         # silently drops pytest-asyncio, and the async tests would not fail —
         # they would not run, which is the failure mode this repo keeps finding.
         #
-        # A BLOCK SCALAR, not a plain one, and no `#` inside the command. In a
-        # plain YAML scalar a space-hash starts a comment, so the first version
-        # of this — which ended `ruff  # noqa: F401` — was truncated mid-string
-        # and reached bash as an unterminated quote:
-        #     line 1: unexpected EOF while looking for matching `"'
-        # The `# noqa` was pointless anyway: ruff does not lint a command
-        # inside a YAML file.
-        run: |
-          python -c "import pytest_asyncio, ruff; print('pytest-asyncio', pytest_asyncio.__version__)"
+        # NO `# noqa` INSIDE THIS COMMAND. It carried one, and YAML ate it:
+        # `#` preceded by a space in a plain scalar starts a YAML comment, so
+        # the value bash received was
+        #
+        #     python -c "import pytest_asyncio, ruff
+        #
+        # with the quote unterminated. Bash reported `unexpected EOF while
+        # looking for matching `"'` and exited 2, which is a syntax error and
+        # not a missing dependency — so the first two CI runs failed at the
+        # step whose job is to prove the install worked, having never tested
+        # the install at all.
+        #
+        # The noqa was defending against a linter that never reads this: ruff
+        # lints .py files, and this is a string in a YAML file. It was
+        # protection against nothing, and it cost the whole job.
+        #
+        # `tests/test_ci_workflow.py` is the check that would have caught it:
+        # the file is valid YAML and the Python is valid Python, and the two
+        # are only wrong together, so neither parser alone can see it.
+        run: python -c "import pytest_asyncio, ruff"
 
       - name: Mark the database disposable
         # Layer 3 of the guard. The sentinel lives in its own schema because
