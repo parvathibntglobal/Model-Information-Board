@@ -58,6 +58,29 @@ MAX_STEM_SUFFIX = 4
 #: about.
 _APOSTROPHES = str.maketrans({"’": "'", "ʼ": "'", "‘": "'"})
 
+#: Distinguishes "caller did not mention window" from "caller passed None",
+#: which means *disable locality* and is what the measurements used.
+_UNSET: int | None = -1
+
+
+@lru_cache(maxsize=1)
+def default_locality_window() -> int | None:
+    """`contract/harvest.yaml:sieve.locality_window`, or None if absent.
+
+    Rule 5: a threshold lives in versioned YAML. Absent means no window, which
+    is the pre-locality behaviour and is what a contract predating this reads
+    as — an absent setting must not silently become a definite one (rule 6).
+    """
+    import yaml
+
+    from collect.config import CONTRACT_DIR
+
+    path = CONTRACT_DIR / "harvest.yaml"
+    if not path.exists():  # pragma: no cover - contract is always present
+        return None
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return (raw.get("sieve") or {}).get("locality_window")
+
 
 def normalize(text: str) -> str:
     """Casefold, unify apostrophes, collapse whitespace.
@@ -250,6 +273,61 @@ def author_prose(text: str) -> str:
     return text
 
 
+def author_prose_aligned(text: str) -> str:
+    """`author_prose`, but every offset still refers to the original text.
+
+    Same exclusions, each replaced by spaces of ITS OWN LENGTH rather than one
+    space. That is the only difference, and it exists so a topic match found in
+    the whole text and a signal match found in the author's prose can be
+    measured against each other — see `_within_window`. Two strings of
+    different lengths have no shared coordinate system, and a distance computed
+    across them would be a number with no meaning.
+    """
+    for _, pattern in _EXCLUSIONS:
+        text = pattern.sub(lambda m: " " * len(m.group(0)), text)
+    return text
+
+
+def _aligned(text: str) -> str:
+    """Casefold and unify apostrophes without moving a single character.
+
+    `normalize` also collapses whitespace, which is what makes a phrase match
+    across a line break — but it destroys offsets. Nothing is lost by skipping
+    it here: `_pattern_for` already joins the words of a multi-word term with
+    `\\s+`, so those terms match across line breaks either way.
+    """
+    return text.translate(_APOSTROPHES).casefold()
+
+
+def _spans(terms, haystack: str) -> list[tuple[int, int]]:
+    found: list[tuple[int, int]] = []
+    for term in terms:
+        found.extend((m.start(), m.end()) for m in _pattern_for(term).finditer(haystack))
+    return found
+
+
+def _within_window(terms, text: str, window: int) -> bool:
+    """Do a topic match and a signal match come within `window` characters?
+
+    Subject is deliberately not part of this. Naming the model once is how a
+    post establishes what it is about, and a blog post that names it in the
+    introduction and reports the failure in the conclusion is the ordinary
+    shape rather than the exception. Topic and signal together ARE the claim,
+    so those are the two that have to be near each other.
+    """
+    topic_spans = _spans(terms.topic, _aligned(text))
+    signal_spans = _spans(terms.signal, _aligned(author_prose_aligned(text)))
+    if not topic_spans or not signal_spans:
+        return False
+
+    for t_start, t_end in topic_spans:
+        for s_start, s_end in signal_spans:
+            gap = s_start - t_end if t_start <= s_start else t_start - s_end
+            if max(0, gap) <= window:
+                return True
+    return False
+
+
 @dataclass(frozen=True)
 class SieveVerdict:
     """Why a document passed or did not. Auditable, not just a boolean.
@@ -278,7 +356,7 @@ class SieveVerdict:
         return self.subject + self.topic + self.signal
 
 
-def sieve(terms, text: str) -> SieveVerdict:
+def sieve(terms, text: str, *, window: int | None = _UNSET) -> SieveVerdict:
     """Apply one rendered term set to one document.
 
     `subject` is ALL-OF, `topic` and `signal` are ANY-OF — the contract's
@@ -288,7 +366,24 @@ def sieve(terms, text: str) -> SieveVerdict:
     turn the query into its subject alone, which is the collapsed state issue #4
     documents. The contract's own test forbids empty groups; this treats an
     empty group as a failed one rather than trusting that.
+
+    LOCALITY. `window` is the number of characters topic and signal may be
+    apart. Defaults to `contract/harvest.yaml:sieve.locality_window`; pass
+    `None` to disable it, which is what the pre-locality measurements did.
+
+    The first blog harvest kept one document, and it was
+    `vickiboykis.com/2026/04/20/build-yourself-flowers/` — 41,956 characters,
+    filed `extraction.faithfulness:positive`, with `flash 2.5` in a sentence
+    about breaking a transcript into paragraphs, `extract` in a sentence about
+    a museum API, and `held up` meaning *delayed*, 3,899 characters away. Three
+    unrelated passages counted as one claim, because nothing required them to
+    be near each other. Blog articles have a median of 8,191 characters against
+    GitHub's 2,228, so the same sieve was quietly stricter on one platform than
+    the other and had no way to know.
     """
+    if window is _UNSET:
+        window = default_locality_window()
+
     haystack = normalize(text)
     prose = normalize(author_prose(text))
 
@@ -309,6 +404,12 @@ def sieve(terms, text: str) -> SieveVerdict:
     if not terms.signal or not signal_hits:
         missing.append("signal")
 
+    # Checked only when both groups matched: "topic and signal are too far
+    # apart" is a different statement from "one of them is absent", and
+    # collapsing them would lose the distinction `missing` exists to carry.
+    if not missing and window is not None and not _within_window(terms, text, window):
+        missing.append("locality")
+
     return SieveVerdict(
         passed=not missing,
         subject=subject_hits,
@@ -319,7 +420,7 @@ def sieve(terms, text: str) -> SieveVerdict:
     )
 
 
-def sieve_any(variants, text: str) -> SieveVerdict:
+def sieve_any(variants, text: str, *, window: int | None = _UNSET) -> SieveVerdict:
     """Pass if ANY alias spelling's term set passes.
 
     The form a query was ISSUED in and the form a document is WRITTEN in are
@@ -342,7 +443,10 @@ def sieve_any(variants, text: str) -> SieveVerdict:
     """
     best: SieveVerdict | None = None
     for terms in variants:
-        verdict = sieve(terms, text)
+        # `window` is threaded rather than defaulted per call: this is the
+        # entry point callers are steered towards, so an option it silently
+        # dropped would be an option that does not exist.
+        verdict = sieve(terms, text, window=window)
         if verdict.passed:
             return verdict
         if best is None or (
