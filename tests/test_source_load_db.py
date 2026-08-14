@@ -1,0 +1,308 @@
+"""The source-table writer, and the NFR-5 gates against real rows.
+
+`tests/test_source_terms.py` exercises the gates against contract entries and
+hand-built mappings. That proves the logic and not the wiring: a column that
+does not round-trip, an evidence blob that comes back as strings, a NOT NULL
+nobody can satisfy. All three are invisible until rows go through Postgres.
+
+So this file inserts the twelve and then asks the four gates to do their job
+against what came back out.
+
+    pwsh scripts/dev-postgres.ps1
+    .venv\\Scripts\\python.exe -m pytest tests/test_source_load_db.py -q
+"""
+
+from __future__ import annotations
+
+from datetime import date
+
+import psycopg
+import pytest
+
+from collect.registry.assertions import TermsNotReviewedError, assert_terms_reviewed
+from collect.registry.sources import (
+    SourceProvenanceConflictError,
+    load_source_rows,
+    load_sources,
+)
+from tests.conftest import assert_disposable, assert_safe_target
+
+REVIEWED_ON = date(2026, 8, 14)
+
+
+@pytest.fixture
+def conn(test_dsn):
+    """A schema-fresh connection to a database proven safe to destroy."""
+    from collect.db import apply_schema, connect
+
+    assert_safe_target(test_dsn)
+    connection = connect(test_dsn)
+    try:
+        assert_disposable(connection, test_dsn)
+        connection.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+        apply_schema(connection)
+        connection.commit()
+        yield connection
+    finally:
+        connection.rollback()
+        connection.close()
+
+
+def _rows(connection):
+    from psycopg.rows import dict_row
+
+    with connection.cursor(row_factory=dict_row) as cur:
+        cur.execute("SELECT * FROM source ORDER BY id")
+        return {row["id"]: row for row in cur.fetchall()}
+
+
+# ── writing ───────────────────────────────────────────────────────────────
+
+
+def test_the_twelve_rows_land(conn):
+    report = load_source_rows(conn)
+    assert (report.inserted, report.updated, report.unchanged) == (12, 0, 0)
+
+    rows = _rows(conn)
+    assert len(rows) == 12
+    assert {r["platform"] for r in rows.values()} == {"github", "blog", "reddit"}
+    assert sum(1 for r in rows.values() if r["platform"] == "blog") == 10  # 9 + umbrella
+
+
+def test_a_second_load_changes_nothing(conn):
+    """Idempotent, like load_seed. `source` is re-seeded on every ruling change.
+
+    A loader that reported twelve updates every time would make the one row
+    that genuinely moved impossible to see in the report.
+    """
+    load_source_rows(conn)
+    conn.commit()
+
+    again = load_source_rows(conn)
+    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 12)
+    assert again.changed_columns == {}
+
+
+def test_a_changed_ruling_shows_up_as_one_updated_row(conn):
+    load_source_rows(conn)
+    conn.commit()
+    conn.execute(
+        "UPDATE source SET tos_notes = 'stale prose' WHERE id = 'blog:hamel.dev'"
+    )
+    conn.commit()
+
+    report = load_source_rows(conn)
+    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 11)
+    assert report.changed_columns == {"blog:hamel.dev": ["tos_notes"]}
+
+
+def test_the_evidence_blob_round_trips(conn):
+    """jsonb has no date type, so `checked_on` comes back as a string.
+
+    The date that has to stay a date is the column, because that is what the
+    staleness check reads.
+    """
+    load_source_rows(conn)
+    row = _rows(conn)["blog:engineering.grab.com"]
+
+    assert row["terms_checked_on"] == REVIEWED_ON
+    assert row["terms_evidence"]["checked_on"] == "2026-08-14"
+    assert row["terms_evidence"]["robots_status"] == "no-rules"
+    assert row["terms_evidence"]["robots_http"] == 404
+
+
+def test_harvest_state_survives_a_reseed(conn):
+    """FR-10's yield history is the harvest's, not the contract's.
+
+    Resetting it on a re-seed would look exactly like the source going quiet,
+    which is the one thing the yield alert exists to detect.
+    """
+    load_source_rows(conn)
+    conn.execute(
+        "UPDATE source SET health_status = 'ok', last_yield = 7 "
+        "WHERE id = 'blog:slack.engineering'"
+    )
+    conn.commit()
+
+    load_source_rows(conn)
+    row = _rows(conn)["blog:slack.engineering"]
+    assert (row["health_status"], row["last_yield"]) == ("ok", 7)
+
+
+# ── provenance ────────────────────────────────────────────────────────────
+
+
+def test_a_reseed_refuses_to_overwrite_a_discovered_row(conn):
+    """Task 2's shape in a new table, and here it refuses in both directions.
+
+    A discovered feed carries a ruling made about its own host. A re-seed that
+    replaced it with a class ruling made about somebody else is item 20: a
+    value indistinguishable from a vetted one, deciding whether we may fetch.
+    """
+    load_source_rows(conn)
+    conn.commit()
+    conn.execute(
+        "UPDATE source SET provenance = 'discovered' WHERE id = 'blog:jxnl.co'"
+    )
+    conn.commit()
+
+    with pytest.raises(SourceProvenanceConflictError) as excinfo:
+        load_source_rows(conn)
+
+    message = str(excinfo.value)
+    assert "blog:jxnl.co" in message
+    assert "stored 'discovered', incoming 'seed'" in message
+    assert "Reconcile them by hand" in message
+
+
+def test_it_refuses_before_writing_anything(conn):
+    """A partial load is worse than a refused one: half the table is stale."""
+    conn.execute(
+        "INSERT INTO source (id, platform, endpoint, base_trust, tos_notes, "
+        "                    provenance, terms_ruling, terms_checked_on, terms_evidence) "
+        "VALUES ('blog:hamel.dev', 'blog', 'https://hamel.dev/index.xml', 0.90, "
+        "        'found by a link', 'discovered', 'blog-class-a-self-hosted', "
+        "        DATE '2026-08-14', '{}'::jsonb)"
+    )
+    conn.commit()
+
+    with pytest.raises(SourceProvenanceConflictError):
+        load_source_rows(conn)
+    conn.rollback()
+
+    assert set(_rows(conn)) == {"blog:hamel.dev"}, "no other row was written"
+
+
+def test_a_discovered_row_cannot_be_inserted_without_a_ruling(conn):
+    """The schema carries this, because the writer never sees discovered rows.
+
+    A feed that arrived by a link in harvested content has to bring a ruling
+    made about its host. Only the hand-curated seed may record an honest
+    "nobody has read these terms yet" — which is what `reddit` is.
+    """
+    with pytest.raises(psycopg.errors.CheckViolation, match="discovered_needs_ruling"):
+        conn.execute(
+            "INSERT INTO source (id, platform, endpoint, base_trust, tos_notes, provenance) "
+            "VALUES ('blog:found.example', 'blog', 'https://found.example/feed', 0.90, "
+            "        'no ruling', 'discovered')"
+        )
+    conn.rollback()
+
+
+def test_reddit_is_stored_as_honestly_unreviewed(conn):
+    """NULL, not a sentinel ruling. The row exists; the permission does not."""
+    report = load_source_rows(conn)
+    assert report.unreviewed == ["reddit"]
+    assert "cannot be harvested: reddit" in report.summary()
+
+    row = _rows(conn)["reddit"]
+    assert row["terms_ruling"] is None
+    assert row["terms_checked_on"] is None
+
+
+# ── the four gates, against rows rather than fixtures ─────────────────────
+
+
+def test_gate_one_every_stored_feed_is_cleared_to_harvest(conn):
+    """The nine, read back out of Postgres, pass the terms check."""
+    contract = load_sources()
+    load_source_rows(conn)
+    stored = _rows(conn)
+
+    feeds = [stored[feed["id"]] for feed in contract.feeds]
+    observations = {
+        row["id"]: {
+            "endpoint_is_null": False,
+            "robots_status": row["terms_evidence"]["robots_status"],
+            "feed_path_allowed": True,
+        }
+        for row in feeds
+    }
+    assert_terms_reviewed(
+        feeds,
+        rulings=contract.rulings,
+        observations=observations,
+        today=REVIEWED_ON,
+    )
+
+
+def test_gate_two_the_stored_reddit_row_refuses_for_naming_no_ruling(conn):
+    load_source_rows(conn)
+    row = _rows(conn)["reddit"]
+
+    with pytest.raises(TermsNotReviewedError, match="names no terms ruling"):
+        assert_terms_reviewed([row], observations={}, today=REVIEWED_ON)
+
+
+def test_gate_three_the_stored_umbrella_row_refuses_as_a_fetch_target(conn, tmp_path):
+    """It passes the terms check and is still not a thing you can fetch."""
+    import httpx
+
+    from collect.adapters.blog.fetch import NotAFetchTargetError, fetcher_for_source
+    from collect.adapters.blog.robots import RobotsGate
+    from collect.http import build_client
+    from collect.rawstore import RawStore
+
+    load_source_rows(conn)
+    row = _rows(conn)["blogs"]
+
+    ua = "modelboard/0.1 (+https://modelboard.invalid/about)"
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(404, content=b"")
+    )
+    with pytest.raises(NotAFetchTargetError, match="not a fetch target"):
+        fetcher_for_source(
+            row,
+            client=build_client(user_agent=ua, transport=transport),
+            store=RawStore(tmp_path / "raw_store"),
+            robots=RobotsGate(
+                build_client(user_agent=ua, transport=transport), user_agent=ua
+            ),
+        )
+
+
+def test_gate_four_a_stored_medium_row_permits_the_feed_and_refuses_articles(
+    conn, tmp_path
+):
+    """The class B ruling, carried from Postgres into the fetcher's behaviour."""
+    import httpx
+
+    from collect.adapters.blog.fetch import FeedOnlyError, fetcher_for_source
+    from collect.adapters.blog.robots import RobotsGate
+    from collect.http import build_client
+    from collect.rawstore import RawStore
+
+    load_source_rows(conn)
+    row = _rows(conn)["blog:netflixtechblog.com"]
+
+    ua = "modelboard/0.1 (+https://modelboard.invalid/about)"
+    feed = (tmp_path / "feed.xml")
+    feed.write_bytes(b"<rss version='2.0'><channel><title>t</title></channel></rss>")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/robots.txt":
+            return httpx.Response(200, content=b"User-agent: *\nAllow: /\n")
+        return httpx.Response(
+            200,
+            content=feed.read_bytes(),
+            headers={"content-type": "application/rss+xml"},
+        )
+
+    transport = httpx.MockTransport(handler)
+    fetcher = fetcher_for_source(
+        row,
+        client=build_client(user_agent=ua, transport=transport),
+        store=RawStore(tmp_path / "raw_store"),
+        robots=RobotsGate(
+            build_client(user_agent=ua, transport=transport), user_agent=ua
+        ),
+    )
+
+    # The feed is permitted...
+    run = fetcher.harvest_feed("https://netflixtechblog.com/feed")
+    assert run.outcome == "fetched"
+    assert run.articles == []
+
+    # ... and the article path is not, however politely it is asked for.
+    with pytest.raises(FeedOnlyError, match="Do not work around it"):
+        fetcher.harvest_feed("https://netflixtechblog.com/feed", fetch_articles=True)

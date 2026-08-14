@@ -565,20 +565,35 @@ CREATE TABLE source (
   -- refused, and a ruling whose evidence has gone stale is refused too — a
   -- ruling asserted forever against a site that changed in October is the
   -- unreviewed placeholder again, wearing a date.
-  terms_ruling      text NOT NULL,  -- an id from sources.yaml:terms_rulings
-  terms_checked_on  date NOT NULL,  -- when this row's evidence was measured
+  --
+  -- NULLABLE, and that is rule 6 rather than laxity. `reddit` genuinely has
+  -- no ruling: access is deferred, nobody has read the terms, and the row has
+  -- to exist anyway because `watermark.source_id` references it. NOT NULL
+  -- here would force one of two lies — a sentinel ruling id, which is the
+  -- placeholder this design removed wearing a better name, or a fabricated
+  -- date. NULL says "not reviewed", the reader can act on it, and
+  -- `assert_terms_reviewed()` refuses to fetch it. An unreviewed source is
+  -- visible as unreviewed instead of missing.
+  terms_ruling      text,       -- an id from sources.yaml:terms_rulings
+  terms_checked_on  date,       -- when this row's evidence was measured
 
   -- The mechanical observations the ruling is applied to: robots status and
-  -- HTTP code, which paths are permitted, paywall, feed type. NOT NULL and no
-  -- default, so a discovered feed cannot be inserted claiming a ruling with
-  -- nothing measured underneath it.
-  terms_evidence    jsonb NOT NULL,
+  -- HTTP code, which paths are permitted, paywall, feed type.
+  terms_evidence    jsonb,
 
   health_status text,
   last_yield   int,             -- FR-10: a drop means broken markup,
                                 -- not a quiet internet
 
-  CONSTRAINT source_provenance_ck CHECK (provenance IN ('seed', 'discovered'))
+  CONSTRAINT source_provenance_ck CHECK (provenance IN ('seed', 'discovered')),
+
+  -- The honest gap above is available to the hand-curated seed only. A feed
+  -- that arrived by a link in harvested content must carry a ruling made
+  -- about *its* host: without this, a discovered row inserts ruling-less and
+  -- is indistinguishable at the gate from one somebody deferred on purpose.
+  -- Item 20 again — the value that cannot be told apart from a considered one.
+  CONSTRAINT source_discovered_needs_ruling_ck
+    CHECK (provenance = 'seed' OR terms_ruling IS NOT NULL)
 );
 
 -- Deliberately NOT swept by assert_no_fixtures(). `source.provenance = 'seed'`

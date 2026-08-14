@@ -17,11 +17,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from functools import lru_cache
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 import yaml
 
 from collect.config import CONTRACT_DIR
+
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    import psycopg
 
 SOURCES_YAML = CONTRACT_DIR / "sources.yaml"
 
@@ -95,12 +98,36 @@ _SOURCE_COLUMNS = (
 )
 
 
+def _json_safe(value: Any) -> Any:
+    """Dates become ISO strings, because `jsonb` has no date type.
+
+    This is not cosmetic. `terms_evidence` round-trips through Postgres as
+    JSON, so a `date` written today comes back as a string tomorrow. Leaving
+    the contract side as `date` would make every row compare unequal to
+    itself, reporting nine updates on every load and hiding the one row that
+    genuinely changed — which is exactly the idempotency this is for.
+    """
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, Mapping):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    return value
+
+
 def _source_row(entry: Mapping[str, Any]) -> dict[str, Any]:
     row: dict[str, Any] = {
         column: entry.get(column) for column in _SOURCE_COLUMNS
     }
     evidence = entry.get("terms_evidence") or {}
-    row["terms_evidence"] = dict(evidence)
+    # None rather than `{}` when nothing was measured, because that is what
+    # gets written: `jsonb` NULL. Keeping `{}` here made `reddit` — the one
+    # honestly unreviewed row — compare unequal to itself on every load and
+    # report a phantom update forever.
+    row["terms_evidence"] = _json_safe(dict(evidence)) if evidence else None
+    # The column keeps a real `date`: it is queryable, and it is what
+    # `assert_terms_reviewed` reads to decide whether the evidence is stale.
     row["terms_checked_on"] = evidence.get("checked_on")
     return row
 
@@ -165,6 +192,203 @@ def load_sources() -> SourcesContract:
     """Read and parse `contract/sources.yaml`."""
     document = yaml.safe_load(SOURCES_YAML.read_text(encoding="utf-8"))
     return parse_sources(document)
+
+
+# ============================================================================
+#  Writing the rows
+#
+#  Kept here rather than in `collect/registry/load.py`, which is 700 lines of
+#  model_version, pricing history and alias intervals. This is one table and
+#  one upsert; splitting a small concern across two files to mirror the shape
+#  of a large one costs more than it explains.
+# ============================================================================
+
+
+class SourceProvenanceConflictError(RuntimeError):
+    """A seeded row and a discovered row collided on the same id.
+
+    `model_version` refuses one direction: seed must never overwrite polled,
+    because week 5's poller replaces the fixture and reversing that would make
+    `assert_no_fixtures` refuse to boot over models that are perfectly real.
+    Promotion the other way is the point of week 5, so it is allowed.
+
+    `source` refuses **both** directions, because neither is a promotion.
+
+      seed over discovered  a re-seed would replace a feed found by link —
+                            including its terms ruling and the evidence
+                            measured against *its* host — with a class ruling
+                            made about somebody else's. That is the item 20
+                            failure precisely: a value indistinguishable from
+                            a vetted one, deciding whether we may fetch.
+
+      discovered over seed  a link in harvested content would silently rewrite
+                            a hand-reviewed row's ruling. Content we harvested
+                            must never edit the terms under which we harvest.
+
+    So it raises, before anything is written. A silent skip is how the seed
+    file quietly stops matching the database, and nobody finds out until the
+    two disagree about whether a host may be fetched at all.
+    """
+
+    def __init__(self, collisions: list[tuple[str, str, str]]) -> None:
+        self.collisions = collisions
+        listed = ", ".join(
+            f"{source_id} (stored {stored!r}, incoming {incoming!r})"
+            for source_id, stored, incoming in sorted(collisions)
+        )
+        super().__init__(
+            f"Refusing to load: {len(collisions)} source row(s) would change "
+            f"provenance: {listed}. A seeded row and a discovered row are not "
+            "two versions of the same thing — they carry rulings made about "
+            "different parties. Reconcile them by hand: either drop the row, "
+            "or move the feed into contract/sources.yaml and re-run."
+        )
+
+
+@dataclass
+class SourceLoadReport:
+    """What one `load_source_rows` run did."""
+
+    inserted: int = 0
+    updated: int = 0
+    unchanged: int = 0
+    changed_columns: dict[str, list[str]] = field(default_factory=dict)
+
+    #: Rows written with no `terms_ruling`. Not an error — `reddit` is
+    #: honestly unreviewed and its row still has to exist for the foreign key
+    #: — but counted, because an unreviewed source that nobody notices is the
+    #: failure this whole design is arranged against.
+    unreviewed: list[str] = field(default_factory=list)
+
+    @property
+    def total(self) -> int:
+        return self.inserted + self.updated + self.unchanged
+
+    def summary(self) -> str:
+        lines = [
+            f"sources  : {self.inserted} inserted, {self.updated} updated, "
+            f"{self.unchanged} unchanged"
+        ]
+        for source_id, columns in sorted(self.changed_columns.items()):
+            lines.append(f"           {source_id}: {', '.join(columns)}")
+        if self.unreviewed:
+            lines.append(
+                f"NFR-5    : {len(self.unreviewed)} source(s) carry no terms "
+                f"ruling and cannot be harvested: {', '.join(sorted(self.unreviewed))}"
+            )
+        return "\n".join(lines)
+
+
+#: Written on insert and on update alike.
+_WRITTEN_COLUMNS: tuple[str, ...] = (
+    "id",
+    "platform",
+    "endpoint",
+    "base_trust",
+    "tos_notes",
+    "provenance",
+    "terms_ruling",
+    "terms_checked_on",
+    "terms_evidence",
+)
+
+#: Runtime state owned by the harvest, not by the contract. A re-seed that
+#: reset these would erase FR-10's yield history at exactly the moment
+#: somebody re-seeded to fix a terms ruling, and the yield alert would read
+#: the reset as a source going quiet.
+_NEVER_UPDATED: frozenset[str] = frozenset({"health_status", "last_yield"})
+
+
+def _refuse_provenance_conflicts(conn, rows: list[dict[str, Any]]) -> None:
+    """Raise before writing anything if any row would change provenance."""
+    by_id = {row["id"]: row for row in rows}
+    stored = conn.execute(
+        "SELECT id, provenance FROM source WHERE id = ANY(%s)",
+        (list(by_id),),
+    ).fetchall()
+
+    collisions = [
+        (source_id, provenance, by_id[source_id]["provenance"])
+        for source_id, provenance in stored
+        if provenance != by_id[source_id]["provenance"]
+    ]
+    if collisions:
+        raise SourceProvenanceConflictError(collisions)
+
+
+def _changed_columns(existing: Mapping[str, Any], incoming: Mapping[str, Any]) -> list[str]:
+    changed = []
+    for column in _WRITTEN_COLUMNS:
+        if column == "id" or column in _NEVER_UPDATED:
+            continue
+        before, after = existing.get(column), incoming.get(column)
+        if isinstance(before, float) or isinstance(after, float):
+            # `base_trust` is `real`, so Postgres hands back a float that is
+            # not bit-identical to the YAML's 0.9. Comparing raw would report
+            # every row as updated on every load, which makes the idempotency
+            # this exists to provide unobservable.
+            before = None if before is None else round(float(before), 6)
+            after = None if after is None else round(float(after), 6)
+        if before != after:
+            changed.append(column)
+    return changed
+
+
+def load_source_rows(conn, contract: SourcesContract | None = None) -> SourceLoadReport:
+    """Upsert the contract's source rows. Idempotent, and safe to re-run.
+
+    `source` is re-seeded every time a terms ruling changes, so a second run
+    over an unchanged contract must be a no-op that says so — not a stream of
+    updates that makes a real change impossible to spot in the report.
+
+    Discovered feeds are inserted into `source` directly and are not in the
+    contract, so this never sees them; `_refuse_provenance_conflicts` is what
+    stops a re-seed from walking over one that took the same id.
+    """
+    from psycopg.rows import dict_row
+    from psycopg.types.json import Json
+
+    contract = contract or load_sources()
+    rows = contract.source_rows()
+    report = SourceLoadReport()
+
+    _refuse_provenance_conflicts(conn, rows)
+
+    columns = ", ".join(_WRITTEN_COLUMNS)
+    placeholders = ", ".join(f"%({column})s" for column in _WRITTEN_COLUMNS)
+    updatable = [c for c in _WRITTEN_COLUMNS if c != "id" and c not in _NEVER_UPDATED]
+    assignments = ", ".join(f"{c} = EXCLUDED.{c}" for c in updatable)
+
+    for row in rows:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute("SELECT * FROM source WHERE id = %s", (row["id"],))
+            existing = cur.fetchone()
+
+        params = {column: row[column] for column in _WRITTEN_COLUMNS}
+        params["terms_evidence"] = (
+            Json(row["terms_evidence"]) if row["terms_evidence"] else None
+        )
+
+        conn.execute(
+            f"INSERT INTO source ({columns}) VALUES ({placeholders}) "
+            f"ON CONFLICT (id) DO UPDATE SET {assignments}",
+            params,
+        )
+
+        if not row.get("terms_ruling"):
+            report.unreviewed.append(row["id"])
+
+        if existing is None:
+            report.inserted += 1
+            continue
+        changed = _changed_columns(existing, row)
+        if changed:
+            report.updated += 1
+            report.changed_columns[row["id"]] = changed
+        else:
+            report.unchanged += 1
+
+    return report
 
 
 def ruling_for(source, *, rulings: Mapping[str, TermsRuling] | None = None):
