@@ -80,7 +80,23 @@ jobs:
         # pyproject asks for this by name. `pip install -e .` without [dev]
         # silently drops pytest-asyncio, and the async tests would not fail —
         # they would not run, which is the failure mode this repo keeps finding.
-        run: python -c "import pytest_asyncio, ruff  # noqa: F401"
+        #
+        # NO `# noqa` INSIDE THIS COMMAND. It carried one, and YAML ate it:
+        # `#` preceded by a space in a plain scalar starts a YAML comment, so
+        # the value bash received was
+        #
+        #     python -c "import pytest_asyncio, ruff
+        #
+        # with the quote unterminated. Bash reported `unexpected EOF while
+        # looking for matching `"'` and exited 2, which is a syntax error and
+        # not a missing dependency — so the first two CI runs failed at the
+        # step whose job is to prove the install worked, having never tested
+        # the install at all.
+        #
+        # The noqa was defending against a linter that never reads this: ruff
+        # lints .py files, and this is a string in a YAML file. It was
+        # protection against nothing, and it cost the whole job.
+        run: python -c "import pytest_asyncio, ruff"
 
       - name: Mark the database disposable
         # Layer 3 of the guard. The sentinel lives in its own schema because
