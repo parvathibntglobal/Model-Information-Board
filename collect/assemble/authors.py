@@ -59,6 +59,23 @@ accident, or published by a query that forgot to exclude a column — which is w
 *"hashed: we don't need the handle"* in the schema is asking for. If the intent is
 resistance to a determined reversal it needs a keyed hash and a key, and that is a
 contract decision rather than something to slip in here.
+
+PROPOSED TO ENGINEER 2 ON #39, AND NOT MADE HERE. `contract/tables.sql` reads
+
+    handle_hash          text,                   -- hashed: we don't need the handle
+
+which is ambiguous in the direction that matters: it can be read as "the handle
+is protected". Proposed replacement, and the file is shared so it is hers to
+take or refuse:
+
+    handle_hash          text,                   -- digest, for data minimisation:
+                                                 -- the handle is never stored, so it
+                                                 -- cannot be logged or published by a
+                                                 -- query that forgot a column. NOT
+                                                 -- secrecy - a digest of a public
+                                                 -- username is reversible from a
+                                                 -- username list. A keyed hash would
+                                                 -- change that, and is a contract call.
 """
 
 from __future__ import annotations

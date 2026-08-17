@@ -482,36 +482,55 @@ class GitHubHarvester:
 
     # ── the write path ───────────────────────────────────────────────────
 
-    def write_documents(self, conn, run: QueryRun) -> int:
+    def write_documents(self, conn, run: QueryRun, *, batch: int = 500) -> dict[str, int]:
         """Insert one `document` per stored issue. Absent values stay NULL.
 
         `ON CONFLICT DO NOTHING` on `(source, external_id)`: two queries in one
         sweep legitimately return the same issue, and the second is not an error.
+
+        BATCHED, BECAUSE THE ROUND TRIP DOMINATES — the same shape and the same
+        fix as `assemble.authors.write_authors`, which took ten minutes for 4,391
+        rows at roughly 130ms of latency each and 3.8 seconds batched. This path
+        has never run against a remote instance with volume: every run so far has
+        been one query against a local Postgres, where 130ms is 1ms and the shape
+        is invisible. Inside the nightly chain it presents as a chain that appears
+        to hang.
+
+        `seen` and `inserted` are now separate, and that was a second defect
+        rather than a consequence of batching. The old counter incremented once
+        per row and called the total `written`, so a sweep whose queries
+        legitimately returned the same issue twice reported writing it twice. A
+        conflict affects no rows, so `cur.rowcount` over the batch counts the
+        inserts that actually happened.
         """
-        written = 0
-        for issue in run.stored:
-            hit = issue.hit
-            engagement = json.dumps(
-                {"comments": hit.comment_count, "reactions": hit.reactions}
-            )
-            conn.execute(
-                "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
-                "text_ref, content_hash, engagement, status) "
-                "VALUES (%s, %s, %s, %s, %s, now(), %s, %s, %s, 'kept') "
-                "ON CONFLICT (source, external_id) DO NOTHING",
-                (
-                    stable_id("doc", DOCUMENT_SOURCE, issue.external_id),
-                    DOCUMENT_SOURCE,
-                    issue.external_id,
-                    issue.html_url,
-                    hit.created_at,
-                    issue.ref,
-                    issue.content_hash,
-                    engagement,
+        rows = [
+            {
+                "id": stable_id("doc", DOCUMENT_SOURCE, issue.external_id),
+                "source": DOCUMENT_SOURCE,
+                "external_id": issue.external_id,
+                "url": issue.html_url,
+                "created_at": issue.hit.created_at,
+                "text_ref": issue.ref,
+                "content_hash": issue.content_hash,
+                "engagement": json.dumps(
+                    {"comments": issue.hit.comment_count, "reactions": issue.hit.reactions}
                 ),
-            )
-            written += 1
-        return written
+            }
+            for issue in run.stored
+        ]
+        statement = (
+            "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
+            "text_ref, content_hash, engagement, status) "
+            "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
+            "%(text_ref)s, %(content_hash)s, %(engagement)s, 'kept') "
+            "ON CONFLICT (source, external_id) DO NOTHING"
+        )
+        inserted = 0
+        with conn.cursor() as cur:
+            for start in range(0, len(rows), batch):
+                cur.executemany(statement, rows[start:start + batch])
+                inserted += max(0, cur.rowcount)
+        return {"inserted": inserted, "seen": len(rows)}
 
     def harvest_run_fields(self, run: QueryRun) -> dict[str, Any]:
         """The `harvest_run` row, plus the two fields with nowhere to live yet."""
