@@ -710,19 +710,37 @@ substitution:
     intent: >
       A migration from one model to another that was kept.
     terms:
-      subject: ["{alias}"]
-      topic: ["replaced {alias_b}", "switched from {alias_b}", "moved off {alias_b}",
-              "migrated from {alias_b}", "instead of {alias_b}", "swapped {alias_b}"]
+      # BOTH MODELS, in subject, which is all-of. Not `replaced {alias_b}` in
+      # topic: that measured 0% containment on Reddit, because the noun phrase
+      # between the verb and the model is unbounded - "replaced our X
+      # deployment", "replaced the X calls", "replaced X's summariser". No
+      # enumeration of variants reaches an unbounded gap, and no index binds
+      # the adjacency anyway.
+      #
+      # Requiring both aliases is what lets `topic` be loose. A document
+      # naming two specific models AND a switching verb is a substitution
+      # report almost regardless of which verb; a document naming one is not a
+      # substitution at all, whatever it says.
+      subject: ["{alias}", "{alias_b}"]
+      topic: ["replaced", "switched from", "switched to", "moved off",
+              "moved to", "migrated from", "migrated to", "swapped",
+              "instead of", "in place of"]
       signal: ["held up", "no regression", "no regressions", "nobody noticed", "saved us",
                "cheaper per", "still running", "kept it in production",
                "months later"]
     records_condition: context_size
     yields_claim_when: >
-      BOTH MODELS RESOLVE, the workload is named, and the migration STUCK.
-      A migration announced is a plan; a migration still in place months
-      later is evidence. If only one model resolves it is an impression about
-      that model, not a substitution - route it to the capability query
-      instead of discarding it.
+      DIRECTION IS READ FROM THE SENTENCE, not inferred from the match.
+      Retrieval returns both directions and cannot tell them apart -
+      "replaced claude with gpt" returns 53 and "replaced gpt with claude"
+      returns 52, the same query - so the extractor decides which model was
+      moved TO and quote verification checks it read something that exists.
+
+      Beyond that: the workload is named, and the migration STUCK. A migration
+      announced is a plan; a migration still in place months later is
+      evidence. Both models resolving is now enforced by `subject` rather than
+      left to extraction, so a one-model document never reaches here - it is
+      an impression about that model and belongs to the capability query.
 
   - stance: negative
     direction: decided_at_extraction
@@ -731,9 +749,9 @@ substitution:
       any other document in the corpus: it is a direct measurement of the
       recommendation this board would have made, and of it being wrong.
     terms:
-      subject: ["{alias}"]
-      topic: ["switched back", "reverted to", "went back to", "rolled back",
-              "moved back to {alias_b}"]
+      subject: ["{alias}", "{alias_b}"]
+      topic: ["switched back", "reverted to", "reverted back to", "went back to",
+              "rolled back", "moved back to", "returned to"]
       signal: ["regression after", "quality dropped", "started failing",
                "complaint from", "wasn't worth", "had to revert"]
     records_condition: context_size
