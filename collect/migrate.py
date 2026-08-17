@@ -1,0 +1,278 @@
+"""Forward-only schema migrations. Forty lines of intent and no framework.
+
+WHY THIS EXISTS
+---------------
+`apply_schema` fails loudly if objects exist, and `reset_schema` refuses a
+non-localhost host, a non-development `ENVIRONMENT` and any database holding
+rows. Both refusals are right. Between them there was **no operation that changes
+an existing schema**, and the staging instance now holds 340 `model_version` rows,
+so `reset_schema` will refuse it for the rest of the project's life.
+
+Adding `last_swept_at` there took a hand-run `ALTER TABLE`. Once is fine; the
+four `thread_context` coverage columns and `extraction_version` are next, so it
+would not have been once.
+
+WHAT THIS DELIBERATELY IS NOT
+-----------------------------
+Not Alembic. *"No workflow engine, no Kafka, no time-series DB"* is a stack
+decision and a migration framework is adjacent to it — a dependency, a config
+file, autogenerate diffing a live database against ORM models this project does
+not have, and down-migrations nobody will test. The problem is smaller than that:
+apply a few forward-only SQL files, in order, exactly once, and know which ran.
+
+    contract/migrations/baseline.sql                     the starting point
+    contract/migrations/20260817T0930_thing.sql          one delta
+
+FOUR PROPERTIES, AND THE FIRST IS THE REASON FOR THE OTHER THREE
+-----------------------------------------------------------------
+**1. `contract/tables.sql` stays canonical, and a test proves the chain reaches
+it.** `tests/test_migrations.py` builds one schema from the file and another from
+`baseline.sql` plus every migration, then compares columns, constraints, indexes
+and views. A migration chain is otherwise a SECOND DESCRIPTION of the schema, and
+this repo has found that defect in four places already — a refusal naming a
+scorer that existed, `CLAUDE.md` asserting a startup guarantee with no caller, a
+stale HTML render describing a retired design, and a doc crediting a floor that
+removes 7.7%. All four read as authoritative while wrong. That test was written
+before this module.
+
+**2. Forward-only.** No down-migrations. Same reasoning as immutable raw
+payloads: the recovery path is re-derive, not reverse, and an untested rollback
+is false comfort at the moment it is needed.
+
+**3. Content-hashed, and a mismatch refuses the WHOLE RUN.** An edited applied
+migration means two databases already disagree. Applying more compounds it, so
+nothing is applied — not the edited file and not the innocent ones after it.
+Warning and continuing would turn one divergence into several.
+
+**4. Timestamp filenames, not sequence numbers.** `contract/` is shared, and two
+people writing `003_` in the same week is a guaranteed conflict — which the
+content hash would then correctly refuse to resolve, turning a merge conflict
+into a stuck database.
+
+WHAT IS REFUSED
+---------------
+**No automatic application on startup, ever.** A schema that changes because a
+process booted is how a schema changes during an incident. `db migrate` is a
+command somebody types. `collect.db.connect` does not call anything here, and a
+test asserts it.
+
+**And it stays a `collect.cli` command even though the schema is both lanes'.**
+`judge/` opening a connection must not migrate on the way in, for the same reason
+startup application is refused. A test asserts nothing under `judge/` imports
+this module.
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+from collect.config import CONTRACT_DIR
+from collect.ids import content_hash
+
+log = logging.getLogger(__name__)
+
+MIGRATIONS_DIR = CONTRACT_DIR / "migrations"
+BASELINE = "baseline.sql"
+
+#: `<UTC compact timestamp>_<slug>.sql`. Enforced rather than encouraged, because
+#: a sequence number that slipped in would sort correctly right up until two
+#: people picked the same one.
+FILENAME = re.compile(r"^\d{8}T\d{4}_[a-z0-9_]+\.sql$")
+
+LEDGER = "schema_migration"
+
+#: Created on demand. A database with no ledger has had no migrations applied,
+#: which is the same statement — so its absence is not an error. This is the one
+#: piece of DDL this module issues that is not a migration, and it is a ledger
+#: rather than schema.
+LEDGER_DDL = f"""
+CREATE TABLE IF NOT EXISTS {LEDGER} (
+  filename     text PRIMARY KEY,
+  content_hash text NOT NULL,
+  applied_at   timestamptz NOT NULL DEFAULT now()
+)
+"""
+
+
+class MigrationError(RuntimeError):
+    """A migration set that cannot be trusted."""
+
+
+class MigrationLedgerMismatch(MigrationError):
+    """The ledger and the files on disk disagree. Nothing is applied."""
+
+
+@dataclass(frozen=True)
+class Migration:
+    filename: str
+    path: Path
+    sql: str
+
+    @property
+    def content_hash(self) -> str:
+        return content_hash(self.sql)
+
+
+def baseline_sql(directory: Path | None = None) -> str:
+    """The starting point every migration is a delta from.
+
+    A frozen copy of `contract/tables.sql` taken when the ledger was introduced.
+    It is never edited: editing it would change what the chain starts from without
+    changing what any existing database contains, which is the divergence this
+    whole module exists to prevent.
+    """
+    path = (directory or MIGRATIONS_DIR) / BASELINE
+    if not path.exists():
+        raise MigrationError(
+            f"{path} does not exist. The chain has no starting point, so the "
+            "equivalence test cannot prove it reaches contract/tables.sql."
+        )
+    return path.read_text(encoding="utf-8")
+
+
+def discover(directory: Path | None = None) -> tuple[Migration, ...]:
+    """Every migration, in filename order. The baseline is not one of them."""
+    root = directory or MIGRATIONS_DIR
+    if not root.exists():
+        return ()
+    out = []
+    for path in sorted(root.glob("*.sql")):
+        if path.name == BASELINE:
+            continue
+        if not FILENAME.match(path.name):
+            raise MigrationError(
+                f"{path.name} is not named <UTC timestamp>_<slug>.sql — e.g. "
+                "20260817T0930_thread_context_coverage.sql. Sequence numbers are "
+                "refused because contract/ is shared and two people will pick the "
+                "same one."
+            )
+        out.append(Migration(path.name, path, path.read_text(encoding="utf-8")))
+    return tuple(out)
+
+
+def ledger_exists(conn) -> bool:
+    row = conn.execute("SELECT to_regclass(%s) IS NOT NULL", (LEDGER,)).fetchone()
+    return bool(row and row[0])
+
+
+def ensure_ledger(conn) -> None:
+    conn.execute(LEDGER_DDL)
+
+
+def _applied(conn) -> dict[str, str]:
+    if not ledger_exists(conn):
+        return {}
+    rows = conn.execute(f"SELECT filename, content_hash FROM {LEDGER}").fetchall()  # noqa: S608
+    return dict(rows)
+
+
+@dataclass(frozen=True)
+class MigrationStatus:
+    """What `db check` reports. A statement of state, not a refusal.
+
+    `mismatched` carries both kinds of disagreement: a file whose content changed
+    after it was applied, and a ledger row with no file on disk. Both mean two
+    databases already differ, and neither can be resolved by applying more.
+    """
+
+    applied_filenames: list[str]
+    pending_filenames: list[str]
+    mismatched: list[tuple[str, str]]
+    #: Whether this database has the ledger at all. A database created before it
+    #: existed has none, and `schema_migration` is part of `contract/tables.sql`
+    #: — so its absence is a real schema difference, not merely "nothing applied
+    #: yet". Reported rather than inferred: reading no-ledger as zero-applied is
+    #: the same mistake as reading NULL as false, and staging is exactly this
+    #: case.
+    ledger_present: bool = True
+
+    @property
+    def is_current(self) -> bool:
+        return (
+            not self.pending_filenames
+            and not self.mismatched
+            and self.ledger_present
+        )
+
+    def describe(self) -> str:
+        if self.mismatched:
+            detail = ", ".join(f"{name} ({why})" for name, why in self.mismatched)
+            return f"LEDGER MISMATCH — {detail}. Nothing can be applied."
+        if self.pending_filenames:
+            return (
+                f"{len(self.applied_filenames)} applied, "
+                f"{len(self.pending_filenames)} PENDING: "
+                + ", ".join(self.pending_filenames)
+            )
+        if not self.ledger_present:
+            return (
+                "NO LEDGER — this database predates schema_migration, which is "
+                "part of contract/tables.sql. Nothing is pending, but the schema "
+                "differs from the file by that table. `db migrate` creates it."
+            )
+        return f"current — {len(self.applied_filenames)} applied, none pending"
+
+
+def check(conn, directory: Path | None = None) -> MigrationStatus:
+    """Report without applying, and without creating the ledger.
+
+    Read-only on purpose. The equivalence test proves the CHAIN is correct; it
+    cannot prove any given database is CURRENT, and an absent error is not
+    evidence that it is — same reason `phrase_present` is None rather than 0 and
+    `last_swept_at` is NULL rather than now().
+    """
+    migrations = discover(directory)
+    applied = _applied(conn)
+    on_disk = {m.filename: m.content_hash for m in migrations}
+
+    mismatched: list[tuple[str, str]] = []
+    for filename, recorded in sorted(applied.items()):
+        if filename not in on_disk:
+            mismatched.append((filename, "applied but not on disk"))
+        elif on_disk[filename] != recorded:
+            mismatched.append((filename, "content changed since it was applied"))
+
+    return MigrationStatus(
+        applied_filenames=[m.filename for m in migrations if m.filename in applied],
+        pending_filenames=[m.filename for m in migrations if m.filename not in applied],
+        mismatched=mismatched,
+        ledger_present=ledger_exists(conn),
+    )
+
+
+def migrate(conn, directory: Path | None = None) -> list[str]:
+    """Apply pending migrations in order. Returns what was applied.
+
+    EVERY CHECK HAPPENS BEFORE ANY WORK. A mismatch anywhere refuses the whole
+    run, because an edited applied migration means two databases already disagree
+    and applying more compounds it.
+
+    Each file is applied with its ledger row in ONE transaction, so a failure
+    leaves neither the change nor the claim that it was made.
+    """
+    status = check(conn, directory)
+    if status.mismatched:
+        raise MigrationLedgerMismatch(
+            f"refusing to apply anything: {status.describe()} "
+            "An edited or missing applied migration means two databases already "
+            "differ; applying more would compound it. Resolve the divergence "
+            "first — the file's history is the evidence, not this ledger."
+        )
+
+    ensure_ledger(conn)
+    migrations = {m.filename: m for m in discover(directory)}
+    applied: list[str] = []
+    for filename in status.pending_filenames:
+        migration = migrations[filename]
+        with conn.transaction():
+            conn.execute(migration.sql)
+            conn.execute(
+                f"INSERT INTO {LEDGER} (filename, content_hash) VALUES (%s, %s)",  # noqa: S608
+                (migration.filename, migration.content_hash),
+            )
+        log.info("migrate: applied %s", filename)
+        applied.append(filename)
+    return applied

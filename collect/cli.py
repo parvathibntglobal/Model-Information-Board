@@ -39,6 +39,65 @@ def _cmd_db_init(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def _cmd_db_check(args: argparse.Namespace) -> int:
+    """Report pending migrations. Applies nothing, writes nothing.
+
+    Exit 0 when the database is current, 1 when work is pending, 2 on a ledger
+    mismatch — three states rather than two, because "pending" is a normal
+    condition and "the ledger disagrees with the files" is not.
+    """
+    from collect.db import connect
+    from collect.migrate import check
+
+    conn = connect()
+    try:
+        status = check(conn)
+        print(status.describe())
+        if status.mismatched:
+            return 2
+        return 0 if status.is_current else 1
+    finally:
+        conn.close()
+
+
+def _cmd_db_migrate(args: argparse.Namespace) -> int:
+    """Apply pending migrations. Never runs automatically - see collect/migrate.py."""
+    from collect.db import connect
+    from collect.migrate import MigrationError, check, ensure_ledger, migrate
+
+    conn = connect()
+    try:
+        before = check(conn)
+        if before.mismatched:
+            print(before.describe())
+            return 2
+        if not before.pending_filenames:
+            if not before.ledger_present:
+                # A database predating the ledger is not current even with
+                # nothing pending, and this is the sanctioned command for
+                # convergence — so it creates the ledger rather than waiting for
+                # a first migration to do it as a side effect.
+                ensure_ledger(conn)
+                conn.commit()
+                print("created schema_migration; nothing else pending")
+                return 0
+            print("nothing pending")
+            return 0
+        try:
+            applied = migrate(conn)
+        except MigrationError as exc:
+            print(str(exc))
+            return 2
+        conn.commit()
+        for name in applied:
+            print(f"applied {name}")
+        print(check(conn).describe())
+        return 0
+    finally:
+        conn.close()
+
+
 def _cmd_registry_check_sources(args: argparse.Namespace) -> int:
     """FR-2, checkable without a database."""
     seed = load_seed_file()
@@ -138,6 +197,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="drop and recreate the public schema first (development only)",
     )
     db_init.set_defaults(func=_cmd_db_init)
+
+    db_check = db_sub.add_parser(
+        "check", help="report pending migrations without applying them")
+    db_check.set_defaults(func=_cmd_db_check)
+
+    db_migrate = db_sub.add_parser(
+        "migrate", help="apply pending migrations from contract/migrations/")
+    db_migrate.set_defaults(func=_cmd_db_migrate)
 
     registry = sub.add_parser("registry", help="the model registry")
     reg_sub = registry.add_subparsers(dest="command", required=True)
