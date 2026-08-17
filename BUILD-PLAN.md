@@ -421,11 +421,13 @@ It is roughly ten lines while already walking the thread tree, and **impossible 
 
 *Mitigation:* E2 builds verification in week 4 against a **hand-made `thread_context` fixture**, before E1's real one arrives. Then the handover is a swap, not an integration.
 
-### Golden sets before extractor selection
+### Golden sets before the first extraction run
 
-**E2 labels in week 3. Selection happens week 6.**
+**E2 labels before extraction runs against real documents.**
 
-The extractor is decided rather than selected, so the golden set is no longer a selection instrument. It is the only instrument that can see extraction failing, because a missed claim produces no error and a misfiled one produces a verified quote in the wrong cell.
+There is no selection step. The extractor is `google/gemini-2.5-flash` via OpenRouter, decided rather than chosen, so the golden set is not a selection instrument and there is no week-6 bake-off to sequence around.
+
+It is still unrecoverable if missed, for a different reason: it is the only instrument that can see extraction failing. A missed claim produces no error, no log line and no wrong-looking output. A misfiled one produces a verified quote in the wrong cell, and the page then says something false with a real quote underneath it. Neither is visible in the output, so a labelled set is the only way either becomes visible at all.
 
 *E1 cross-labels ~50 items.* If two people who both read the spec disagree on what counts as good evidence, the criteria aren't clear enough to automate — far cheaper to learn in week 3 than week 6.
 
