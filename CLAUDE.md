@@ -67,6 +67,29 @@ These are the rules a helpful refactor will otherwise quietly violate.
    Both incidents are written up in `docs/contract-signoff-phase1-response.md`,
    which is where the rule was first stated.
 
+7. **A figure travels with its denominator and where that came from.** Any
+   number that reaches an argument, a page or a document states what population
+   it was drawn from and how that population was gathered. `52.7%` is not a
+   claim. `52.7% of 636 candidates retrieved for one model using that model's
+   own variants` is a claim, and it is visibly not a naming rate.
+
+   Rule 6's sibling. Rule 6 is a missing value silently becoming a definite
+   one; this is a **real value silently answering a question it was not asked**.
+   Three figures did that in one fortnight - `"context window"` present in 96%
+   of returns and `"went back to"` in 100%, both measuring collocation
+   frequency rather than a phrase operator, and 52.7% subject match, measuring
+   the retrieval that produced the corpus. Each was load-bearing in an argument
+   before anyone checked what it counted.
+
+   This class survives inspection, which is what makes it expensive: a number
+   looks like evidence, and a spot-check confirms it. **The check that catches
+   it needs no suspicion** - ask what the denominator is and where it came
+   from. If the answer is not beside the figure, the figure is not yet
+   evidence. Applies to counts as much as to percentages: what the three shared
+   was an unstated population, not a form.
+
+   Method and worked examples in `docs/measurements/README.md`.
+
 ## Stack decisions already made - do not relitigate
 
 - Python 3.11+. Postgres plus an object store. `httpx` for fetching.
