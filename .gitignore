@@ -14,6 +14,14 @@ data/raw/
 *.warc
 *.warc.gz
 
+# A measurement's local corpus, same rule. `scripts/substitution_slice.py`
+# writes 1,297 Reddit posts here so the sieve can be re-run for free; that is
+# retained full text, so it stays out of git as firmly as the store proper.
+# `git add -A` swept it in once — this is why the pattern is here and not in the
+# script's docstring.
+_substitution_slice/
+_harvest_store/
+
 # ── python ───────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]

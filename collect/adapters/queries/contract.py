@@ -46,6 +46,15 @@ STANCES = ("negative", "positive")
 #: this is a rename and not a redesign.
 DECIDED_AT_EXTRACTION = "decided_at_extraction"
 
+#: Every value `direction:` may take. Checked at load, which the rename left
+#: undone: `stance` and `records_condition` are validated and `direction` was
+#: not, so the file's ONE machine-readable constraint was its only unchecked
+#: field. `direction: decided_at_extration` would have loaded, turned the
+#: constraint silently off, and let GitHub render substitution as though the
+#: direction had survived retrieval — an absence with nothing on the page to
+#: disagree with, which is the class of defect rule 6 is about.
+DIRECTIONS = (DECIDED_AT_EXTRACTION,)
+
 _PLACEHOLDER = re.compile(r"\{(alias|alias_b)\}")
 
 
@@ -74,6 +83,18 @@ class TermSet:
     subject: tuple[str, ...]
     topic: tuple[str, ...]
     signal: tuple[str, ...]
+
+    @property
+    def all_terms(self) -> tuple[str, ...]:
+        """Every term in every group, for questions that are about the entry.
+
+        Stated once so it cannot be partially re-derived. `needs_second_model`
+        read `topic + signal` and missed `subject`, and the cost of that was not a
+        wrong answer — it was `False`, which reads as "this entry does not need a
+        second model" and is indistinguishable from a correct answer. Anything
+        asking "does this entry mention X anywhere" reads this.
+        """
+        return self.subject + self.topic + self.signal
 
     def substitute(self, alias: str, alias_b: str | None = None) -> RenderedTerms:
         def render(terms: tuple[str, ...]) -> tuple[str, ...]:
@@ -152,7 +173,19 @@ class QueryEntry:
 
     @property
     def needs_second_model(self) -> bool:
-        return any("{alias_b}" in term for term in self.terms.topic + self.terms.signal)
+        """Does any group carry `{alias_b}`? All three, not two of them.
+
+        This read `topic + signal`. The substitution entries now carry both
+        aliases in `subject` — which is all-of, so both models must be present,
+        which is what lets `topic` hold bare switching verbs — and a topic-only
+        read returns False there. No `alias_b` is supplied, and `substitute()`
+        raises when it reaches the subject term.
+
+        The failure is loud, which is luck rather than design: the same omission
+        one group over, on a group that had no `{alias_b}` to find, would have
+        rendered a query silently missing half its subject.
+        """
+        return any("{alias_b}" in term for term in self.terms.all_terms)
 
 
 @dataclass(frozen=True)
@@ -204,6 +237,14 @@ def _entry_of(raw: dict, *, kind: str) -> QueryEntry:
     if not records_condition:
         raise QueryContractError(f"{label}: `records_condition` is missing")
 
+    direction = raw.get("direction")
+    if direction is not None and direction not in DIRECTIONS:
+        raise QueryContractError(
+            f"{label}: direction {direction!r} is not one of {DIRECTIONS}. An "
+            "unrecognised value would load, read as absent, and turn the only "
+            "machine-readable constraint in the contract off without saying so."
+        )
+
     return QueryEntry(
         kind=kind,
         capability=capability,
@@ -212,7 +253,7 @@ def _entry_of(raw: dict, *, kind: str) -> QueryEntry:
         terms=_terms_of(raw, label),
         records_condition=str(records_condition),
         yields_claim_when=str(raw.get("yields_claim_when") or "").strip(),
-        direction=raw.get("direction"),
+        direction=direction,
     )
 
 

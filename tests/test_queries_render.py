@@ -86,6 +86,54 @@ def test_a_missing_contract_raises_rather_than_defaulting(tmp_path):
         load_queries(tmp_path / "absent.yaml")
 
 
+def test_every_substitution_entry_is_seen_to_need_a_second_model():
+    """The assertion that would have caught it, against the real contract.
+
+    `needs_second_model` read `topic + signal`. Both aliases now live in
+    `subject` — all-of, so both models must appear — and a topic-only read
+    returns False, no `alias_b` is supplied, and `substitute()` raises. The
+    contract half and this half have to land together for either to work.
+    """
+    queries = load_queries()
+    assert all(e.needs_second_model for e in queries.substitution)
+    assert not any(e.needs_second_model for e in queries.capability_queries)
+
+
+def test_a_second_model_is_found_in_any_group_not_two_of_three():
+    """Group-by-group is how the last one was missed, so the check is all-of-them."""
+    for group in ("subject", "topic", "signal"):
+        terms = {"subject": ("{alias}",), "topic": ("replaced",), "signal": ("held up",)}
+        terms[group] = (*terms[group], "{alias_b}")
+        assert entry(terms=TermSet(**terms)).needs_second_model, group
+
+
+def test_an_unrecognised_direction_is_refused_at_load(tmp_path):
+    """A typo would load, read as absent, and turn the constraint off silently.
+
+    `stance` and `records_condition` were validated and `direction` was not, so
+    the one machine-readable constraint in the contract was the only unchecked
+    field. `decided_at_extration` would have made
+    `direction_from_extraction` False, and GitHub would have rendered
+    substitution as though the direction survived retrieval.
+    """
+    path = tmp_path / "queries.yaml"
+    path.write_text(
+        "version: test\n"
+        "queries:\n"
+        "  - capability: summarization.fidelity\n"
+        "    stance: negative\n"
+        "    direction: decided_at_extration\n"
+        "    records_condition: context_size\n"
+        "    terms:\n"
+        "      subject: ['{alias}']\n"
+        "      topic: ['summary']\n"
+        "      signal: ['dropped']\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(QueryContractError, match="decided_at_extration"):
+        load_queries(path)
+
+
 def test_alias_b_is_required_where_the_contract_uses_it():
     """Rendering `{alias_b}` literally would match nothing and read as silence."""
     directional = TermSet(subject=("{alias}",), topic=("replaced {alias_b}",), signal=("kept it",))
@@ -291,6 +339,32 @@ def test_substitution_is_refused_with_the_measurement_in_the_reason():
     assert "53" in reason and "52" in reason, "the measurement, without which it is an opinion"
     assert "direction" in reason
     assert "superset" in reason, "and what retrieval CAN still do"
+
+
+def test_both_aliases_are_hyphenated_for_retrieval_and_neither_for_the_sieve():
+    """Latent behind the refusal, and it stopped being harmless on this change.
+
+    `parts` is built from the SUBJECT group, so moving `{alias_b}` there puts the
+    second model into the query. Hyphenating one alias and not the other issues
+    `claude-opus-5 "claude sonnet 5"` and collects issue #5 from unrelated
+    repositories through the half that kept its trailing numeral — 89 of 123
+    results at one scope, measured, which is what `github_alias_form` exists to
+    stop.
+
+    Rendered from a capability-shaped entry, since substitution never reaches
+    here: the direction refusal returns first, by design.
+    """
+    both = entry(
+        terms=TermSet(
+            subject=("{alias}", "{alias_b}"), topic=("replaced",), signal=("held up",)
+        )
+    )
+    rendered = render_search(both, "claude opus 5", alias_b="claude sonnet 5")
+    assert isinstance(rendered, SearchRequest)
+    assert "claude-opus-5" in rendered.query and "claude-sonnet-5" in rendered.query
+    assert '"claude opus 5"' not in rendered.query, "the spaced form collects issue #5"
+    # The sieve still reads what a human wrote, both times.
+    assert rendered.terms.subject == ("claude opus 5", "claude sonnet 5")
 
 
 def test_a_refusal_is_returned_not_raised():
