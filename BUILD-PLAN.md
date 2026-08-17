@@ -125,7 +125,7 @@ Read `CLAUDE.md` at the repo root, plus `collect/CLAUDE.md` and
 top of the root file.
 
 What it carries, so you know when to go and read it: **lane ownership** and the
-one-directional interface · the **six non-negotiable rules** a helpful refactor
+one-directional interface · the **non-negotiable rules** a helpful refactor
 would otherwise quietly violate · **stack decisions already made**, listed so
 they are not relitigated · conventions for provenance, pipeline versioning and
 immutable raw payloads · the **build fixtures** currently in place and the week
