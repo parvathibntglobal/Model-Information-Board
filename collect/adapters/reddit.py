@@ -366,6 +366,65 @@ class RedditRun:
         }
 
 
+@dataclass
+class ThreadFetch:
+    """One `getPostComments` call: what was stored, and what was withheld.
+
+    Deliberately NOT a `RedditRun`. A run is one query returning many posts; this
+    is one post returning many comments, and `items_kept` has no meaning here
+    because nothing is sieved. Reusing the run type would have made
+    `sieve_yield` answerable on an object that never sieved anything.
+    """
+
+    thread_url: str
+    started_at: datetime
+    finished_at: datetime | None = None
+
+    #: Written to raw/ BEFORE the tree is parsed, so a parse change is a
+    #: re-parse rather than a re-fetch. Same reason search stores page 1 first.
+    ref: str | None = None
+    content_hash: str | None = None
+
+    comments: tuple = ()
+    coverage: Any = None
+
+    http_errors: int = 0
+    rate_limited: int = 0
+    backoff_seconds: float = 0.0
+    quota_remaining: int | None = None
+    #: Set when the URL was not a thread permalink. Distinct from an HTTP error:
+    #: nothing was wrong with the network, the input named the wrong thing.
+    not_a_thread: bool = False
+
+    @property
+    def stored(self) -> bool:
+        return self.ref is not None
+
+    def document_rows(self) -> list[dict[str, Any]]:
+        """One `document` row per comment. NO thread_context row.
+
+        Assembly is refused, so nothing here selects children, orders them, or
+        writes `flattened_text`. These are documents with a parent and a root,
+        which is what makes the tree reconstructable later from stored data
+        rather than from a second fetch.
+        """
+        rows = []
+        for comment in self.comments:
+            rows.append({
+                "source": SOURCE_ID,
+                "external_id": comment.external_id,
+                "url": comment.url,
+                "parent_id": comment.parent_id,
+                "thread_root_id": comment.thread_root_id,
+                "created_at": comment.created_at,
+                "author_external_id": author_external_id(comment.author_fullname),
+                "engagement": comment.engagement,
+                "text_ref": self.ref,
+                "content_hash": self.content_hash,
+            })
+        return rows
+
+
 class RedditHarvester:
     """Search, store the page, sieve it, and keep what survived.
 
@@ -494,6 +553,52 @@ class RedditHarvester:
                 run.survivors.append(post)
         return run
 
+    # ── comments: fetch and store, never assemble ────────────────────────
+
+    def fetch_comments(self, post) -> ThreadFetch:
+        """Fetch one thread's comments, store the payload, parse the tree.
+
+        STORE THEN PARSE. The response is written to `raw/` before the tree is
+        walked, so changing the parser is a re-parse of local bytes rather than
+        another call against a 1,000,000/month quota. Same order as `search`.
+
+        Takes the POST, not a URL, because the URL to fetch is `permalink` and
+        not `document.url` — for a link post those differ and the second one
+        names an image. See `reddit_comments.permalink_of`.
+
+        Writes no `thread_context`. `assemble_thread` still refuses.
+        """
+        from collect.adapters.reddit_comments import parse_thread, permalink_of
+
+        url = permalink_of(post)
+        fetch = ThreadFetch(thread_url=url or "", started_at=self._clock())
+        if url is None:
+            fetch.not_a_thread = True
+            fetch.finished_at = self._clock()
+            log.warning(
+                "reddit: %r has no thread permalink, so it has no comments to "
+                "fetch. This is not an error - a link post's url is the linked "
+                "content.", getattr(post, "external_id", post),
+            )
+            return fetch
+
+        response = self._get(COMMENTS_PATH, {"post_url": url}, _quota_sink(fetch))
+        fetch.finished_at = self._clock()
+        if response is None:
+            return fetch
+
+        stored = self._store.put(response.content, namespace=RAW)
+        fetch.ref = stored.ref
+        fetch.content_hash = stored.content_hash
+
+        parsed = parse_thread(response.json(), url=url)
+        fetch.comments = parsed.comments
+        fetch.coverage = parsed.coverage
+        log.info(
+            "reddit: %s -> %s", url, parsed.coverage.describe(),
+        )
+        return fetch
+
     # ── assembly, refused ────────────────────────────────────────────────
 
     def assemble_thread(self, post: RedditPost):
@@ -507,9 +612,11 @@ class RedditHarvester:
             "approximated because a partial selection is indistinguishable "
             "from a complete one once it is a row.\n"
             "\n"
-            "  The scorer is no longer the reason. collect/triage/"
-            "specificity.py implements specificity_score, so child ranking "
-            "has a scorer to call. ONE REASON REMAINS AND IT IS SUFFICIENT.\n"
+            "  Two earlier reasons are gone. collect/triage/specificity.py "
+            "implements specificity_score, so child ranking has a scorer to "
+            "call; and fetch_comments fetches and stores the tree, so the "
+            "children exist as documents. ONE REASON REMAINS AND IT IS "
+            "SUFFICIENT.\n"
             "\n"
             "  The selection cannot be bounded. One getPostComments call "
             "returned 200 of 4,833 comments (4%), and Reddit orders SIBLINGS "
@@ -524,12 +631,65 @@ class RedditHarvester:
             "and 126 report none. Any coverage figure is a LOWER BOUND on "
             "what is missing.\n"
             "\n"
-            "  `thread_context.observed_children`, `hidden_children_min` and "
-            "`coverage_ratio` are proposed on issue #5 so the selection can "
-            "state what it saw. Until those exist, this would write 'the top "
-            "5 children' when it means 'the top 5 of the 4% we happened to "
-            "fetch'."
+            "  FOUR columns are proposed on issue #5 so the selection can "
+            "state what it saw: `thread_context.observed_children`, "
+            "`hidden_children_min`, `hidden_branches_unsized` and "
+            "`coverage_ratio`. ThreadCoverage computes all four today and has "
+            "nowhere to write them - hidden_branches_unsized is the fourth, "
+            "kept separate so one number cannot read as a measurement while "
+            "half of it is a floor of one. Until they exist, this would write "
+            "'the top 5 children' when it means 'the top 5 of the 4% we "
+            "happened to fetch'."
         )
+
+
+
+def _quota_sink(fetch: ThreadFetch):
+    """Adapt a ThreadFetch to the counter surface `_get` writes to.
+
+    `_get` increments `search_calls` and sets `truncated_by`, neither of which a
+    thread fetch has. Rather than widen `_get` or duplicate it, this forwards the
+    fields both share and absorbs the two that do not apply — so the 429 handling,
+    the quota read and the error counting stay in ONE place.
+    """
+
+    class _Sink:
+        search_calls = 0
+        truncated_by = None
+
+        @property
+        def quota_remaining(self):
+            return fetch.quota_remaining
+
+        @quota_remaining.setter
+        def quota_remaining(self, value):
+            fetch.quota_remaining = value
+
+        @property
+        def http_errors(self):
+            return fetch.http_errors
+
+        @http_errors.setter
+        def http_errors(self, value):
+            fetch.http_errors = value
+
+        @property
+        def rate_limited(self):
+            return fetch.rate_limited
+
+        @rate_limited.setter
+        def rate_limited(self, value):
+            fetch.rate_limited = value
+
+        @property
+        def backoff_seconds(self):
+            return fetch.backoff_seconds
+
+        @backoff_seconds.setter
+        def backoff_seconds(self, value):
+            fetch.backoff_seconds = value
+
+    return _Sink()
 
 
 def _post_of(item: dict[str, Any]) -> RedditPost:
