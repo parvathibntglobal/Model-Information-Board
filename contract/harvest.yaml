@@ -303,6 +303,38 @@ sieve:
 
 specificity:
 
+  # ⚠ PROVISIONAL · INTRA-CHANNEL ONLY · NEVER CALIBRATED
+  #
+  # A weight in a contract file with no caveat reads as a decision somebody
+  # made. Nobody made these. They are five judgement calls, and #24 closed with
+  # a ruling that bounds what they may be used for.
+  #
+  #   THE COMPOSITE MAY NOT COMPARE ACROSS CHANNELS. EVER.
+  #
+  # Engineer 2's argument, and it goes further than the measurement did:
+  # has_error_strings (0.30) and names_version (0.15) are 0.45 of the weight,
+  # and on this corpus both are largely a proxy for MEDIUM — 42.0% against 3.6%
+  # and 48.3% against 6.3%, GitHub against blogs. So the composite ranks media
+  # while wearing the clothes of ranking documents. A cross-channel sort by
+  # specificity_score is a sort by "is this GitHub" with extra steps.
+  #
+  # Measured means, docs/measurements/specificity-backfill.md: github 0.527,
+  # blogs 0.286. Blogs are the ONLY positive-evidence channel (collect/CLAUDE.md),
+  # so a cross-channel sort demotes exactly the evidence the product exists to
+  # find. Rule 4 arriving somewhere new: absence of an error string scored as
+  # absence of specificity.
+  #
+  # AND THIS IS WHY "DO NOT CALIBRATE YET" IS A SAFE ANSWER RATHER THAN A
+  # DEFERRAL. The floor does not read these weights at all — it is a five-way OR
+  # over the components (see floor_clears_on). Every gate that drops a document
+  # today is weight-independent and stays correct under any weighting. The
+  # weights only order documents that have already been kept, and while that
+  # ordering is intra-channel the bias above cannot express itself.
+  #
+  # What would change that: any corpus-wide "best evidence" list, triage
+  # priority queue, or cross-source ranking. If one is proposed, calibration
+  # stops being optional and this block is where the argument belongs.
+
   weights:
     has_error_strings: 0.30
     has_numbers:       0.25

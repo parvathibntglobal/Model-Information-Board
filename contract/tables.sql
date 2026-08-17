@@ -231,9 +231,25 @@ CREATE TABLE document (
   has_code                boolean,
   has_conditions          boolean,
   names_version           boolean,
-  specificity_score       real,                   -- the weighted composite;
-                                                  -- weights in contract/harvest.yaml
-                                                  -- E3 ranks on this x log(1+engagement)
+  -- ⚠ COMPARABLE WITHIN A SOURCE, NEVER ACROSS SOURCES.
+  --
+  -- The weighted composite. Weights live in contract/harvest.yaml and are
+  -- PROVISIONAL — nothing has calibrated them. E3 ranks on
+  -- specificity_score x log(1 + engagement), which is intra-thread and
+  -- therefore intra-source, which is the only comparison this column supports.
+  --
+  -- #24 closed on the reason: has_error_strings and names_version are 0.45 of
+  -- the weight and on the measured corpus both are largely a proxy for MEDIUM
+  -- (42.0%/3.6% and 48.3%/6.3%, github/blogs). Sorting two sources by this
+  -- column sorts by which source they came from, wearing the clothes of
+  -- sorting by evidence quality. Measured means: github 0.527, blogs 0.286.
+  --
+  -- The five component columns above carry no such restriction: the floor is a
+  -- five-way OR over them and never reads the weights, so component-level
+  -- comparisons and every gate built on them hold across sources and under any
+  -- weighting. If you need to compare documents from different platforms, use
+  -- the components, not this.
+  specificity_score       real,
 
   dedup_cluster_id        text,
   is_canonical_in_cluster boolean,
