@@ -84,11 +84,23 @@ These are the rules a helpful refactor will otherwise quietly violate.
   fully re-runnable and diffable.
 - Raw payloads are immutable and content-hash addressed. Reprocess from there
   rather than re-fetching.
-- Seeded and hand-curated rows carry `provenance`, and `assert_no_fixtures()`
-  in `collect/registry/assertions.py` refuses a load that would serve them.
-  **It is called from the loaders and from tests. There is no server process,
-  so nothing asserts "on startup" - this file said there was, and there was
-  not.** When one exists, wire it there and change this sentence back.
+- Seeded and hand-curated rows carry `provenance`. `collect/registry/assertions.py`
+  provides `assert_no_fixtures()` and `assert_contract_backed()` to refuse them.
+
+  **Neither has a caller outside tests. Nothing currently stops a seeded row
+  reaching a non-development environment.** Wiring is pending a startup path -
+  issue #27. `judge/` opens no database connection at all, `collect/cli.py` runs
+  per command rather than at startup, and the nightly chain that is the natural
+  home does not exist yet.
+
+  The third function in that module, `assert_terms_reviewed()`, **is** wired -
+  `collect/adapters/blog/fetch.py` and `scripts/harvest_github.py` - so the
+  module is not uniformly unwired and these two are not an oversight of style.
+
+  This entry said "Production asserts on startup that none are present" for
+  weeks. The first correction said the check was "called from the loaders and
+  from tests", which was also wrong: the three apparent call sites in `collect/`
+  are a docstring and two comments. Counted, the second time.
 - Estimates are labelled as estimates. Triage survival (~10-15%), output
   verbosity and retry rate are figures to calibrate, not specifications.
 
