@@ -75,6 +75,10 @@ Everything below can be typed without another decision.
 
 ### 3.1 · Repo tree
 
+**This is the day-one scaffold, not a current inventory.** Most of what it lists is still unbuilt — `assemble/`, `triage/`, `ops/`, `pages/` and `extract/prompt.py` are the plan, not the repo. Read it for the lane boundaries, which have held, and run `ls` for what exists.
+
+Two entries below described files that existed and were deleted rather than files not yet written, which is a different kind of wrong: `fixtures/hand_cells.yaml` went when the Ask box was parked, and `ask/pipeline.py` with it. Both are marked. Directories that arrived later — `.github/`, `scripts/`, `docs/measurements/`, `adapters/queries/` — are not listed and deliberately: keeping a hand-written tree current is the drift §3.2 and §3.3 were rewritten to avoid.
+
 ```
 modelboard/
   CLAUDE.md                    shared context for both Claude Code sessions
@@ -98,12 +102,12 @@ modelboard/
     curate/                    voices.py, gate.py, phrases.py
     pages/                     model.py, capability.py, filtered.py,
                                changelog.py, coverage.py
-    ask/                       requirements.py, pipeline.py
+    ask/                       requirements.py, pipeline.py  <- pipeline.py DELETED
     app.py
   fixtures/
-    hand_cells.yaml            E2's week-2 hand-written cells
-    golden/                    week-3 labelled sets
-    threads/                   shared, built together around week 4
+    hand_cells.yaml            DELETED - went when the Ask box was parked
+    golden/                    labelled sets, before extraction runs on real documents
+    threads/                   shared, built together from a real harvested tree
   tests/
 ```
 
