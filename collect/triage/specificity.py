@@ -240,10 +240,21 @@ def names_version(text: str, aliases) -> bool:
     `aliases` is the caller's pre-filtered surface list — family surfaces must
     already be excluded. A bare `sonnet` names a line rather than a tier, and
     counting it would credit a document that never said which model it meant.
-    """
-    from collect.adapters.queries.sieve import matches
 
-    return any(matches(alias, text) for alias in aliases)
+    NORMALISES FIRST, AND THAT IS NOT OPTIONAL. `sieve.matches` documents itself
+    as operating on "already-normalised text" and does not casefold: against raw
+    text, `matches("claude opus 5", "We moved to Claude Opus 5")` is **False**.
+    The first version of this function passed raw text and therefore missed
+    every capitalised model name, which is how people write them — it scored
+    1 of 111 blog articles where the true figure is 7. The four other detectors
+    are case-insensitive regexes over RAW text, because they need the line
+    structure `normalize` collapses, so the normalisation belongs here rather
+    than once at the top of `score_document`.
+    """
+    from collect.adapters.queries.sieve import matches, normalize
+
+    haystack = normalize(text)
+    return any(matches(alias, haystack) for alias in aliases)
 
 
 # ── the row ──────────────────────────────────────────────────────────────

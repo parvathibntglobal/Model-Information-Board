@@ -60,6 +60,23 @@ def test_bare_digits_are_not_numbers(text):
     assert not has_numbers(text), text
 
 
+@pytest.mark.parametrize("text", [
+    "We moved to Claude Opus 5 last month",
+    "CLAUDE OPUS 5 handled it",
+    "we used claude opus\n5 for this",
+    "Gemini 2.5 Flash was fine",
+])
+def test_capitalised_and_wrapped_model_names_are_found(text):
+    """The case the first version of this module got wrong.
+
+    `sieve.matches` operates on "already-normalised text" and does not casefold.
+    Passing raw text missed every capitalised model name — which is how people
+    write them — and scored 1 of 111 blog articles where the true figure is 7.
+    Every original test used lowercase, so all 45 passed against the defect.
+    """
+    assert names_version(text, VERSION_ALIASES), text
+
+
 def test_a_version_token_alone_is_not_a_number():
     """`names_version` already counts it. Counting it twice double-weights it."""
     assert not has_numbers("we tried claude opus 5 on this")
