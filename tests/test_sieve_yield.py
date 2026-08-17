@@ -155,3 +155,62 @@ def test_reddit_run_leaves_containment_unmeasured_for_an_unquoted_query():
     run = RedditRun(query="claude opus 5", sort="RELEVANCE", started_at=None)
     run.verdicts = _verdicts(passed=0, failed=1)
     assert run.sieve_yield.phrase_present is None
+
+
+# ── phrase_rate and usable_rate are not interchangeable ──────────────────
+#
+# Engineer 2's warning on #18, pinned rather than commented. No index we have
+# measured binds a phrase, so containment measures how COMMON the phrase is.
+# The metric therefore improves by making the query vaguer, which is the
+# opposite of what it looks like. Same treatment as the two specificity floors
+# differing at 0.3 and 0.0.
+
+
+def _yield(query, *, retrieved, present, kept):
+    return tally(query, _verdicts(passed=kept, failed=retrieved - kept),
+                 phrase_present=present)
+
+
+#: Both shapes are measured, not invented. `"went back to"` returned 75 posts at
+#: 100% containment; `"replaced gemini 2.5 pro"` returned 6 at 50%.
+COMMON = _yield('"went back to"', retrieved=75, present=75, kept=5)
+SPECIFIC = _yield('"replaced gemini 2.5 pro"', retrieved=6, present=3, kept=2)
+
+
+def test_the_two_rates_rank_the_same_pair_in_opposite_orders():
+    """The property that makes substituting one for the other change conclusions."""
+    assert COMMON.phrase_rate > SPECIFIC.phrase_rate, "containment prefers the common phrase"
+    assert COMMON.usable_rate < SPECIFIC.usable_rate, "usable_rate prefers the specific one"
+
+
+def test_optimising_phrase_rate_makes_the_evidence_worse():
+    """The Goodhart direction, stated as arithmetic.
+
+    Swapping a specific phrase for a common one takes containment from 50% to
+    100% while the share of carrying candidates that survive the sieve falls
+    from 67% to 7%. A dashboard tracking phrase_rate would record that as
+    improvement.
+    """
+    assert SPECIFIC.phrase_rate == 0.5
+    assert COMMON.phrase_rate == 1.0
+    assert SPECIFIC.usable_rate > COMMON.usable_rate * 5
+
+
+def test_usable_rate_cannot_be_moved_by_making_the_query_vaguer():
+    """Its denominator is phrase-carrying candidates, not candidates.
+
+    Retrieval returning more non-carrying documents changes `candidates` and
+    `phrase_rate` and leaves `usable_rate` untouched — which is what makes it
+    the one to watch.
+    """
+    tight = _yield('"replaced opus 5"', retrieved=10, present=4, kept=2)
+    padded = _yield('"replaced opus 5"', retrieved=75, present=4, kept=2)
+    assert padded.phrase_rate < tight.phrase_rate
+    assert padded.usable_rate == tight.usable_rate == 0.5
+
+
+def test_a_perfect_containment_rate_says_nothing_about_yield():
+    """100% containment with nothing kept is the reading the warning is about."""
+    y = _yield('"went back to"', retrieved=75, present=75, kept=0)
+    assert y.phrase_rate == 1.0, "looks like retrieval working perfectly"
+    assert y.usable_rate == 0.0, "and the query produced no evidence at all"
