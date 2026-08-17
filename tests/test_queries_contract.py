@@ -269,10 +269,11 @@ class TestBothStances:
 
 
 class TestSubstitution:
-    def test_directional_templates_declare_phrase_binding(self, queries):
+    def test_directional_templates_declare_direction_from_extraction(self, queries):
         """"replaced X with Y" and "replaced Y with X" are opposite claims
-        built from identical tokens. An index that does not bind phrases
-        cannot tell them apart.
+        built from identical tokens. RETRIEVAL CANNOT TELL THEM APART — no
+        index that has been measured binds a phrase, so the flag names where
+        direction IS decided rather than the capability whose absence stops it.
 
         The flag states the semantic property. It is deliberately not a
         `platforms:` list, which would write today's measurement of one index
@@ -281,10 +282,10 @@ class TestSubstitution:
         for e in queries["substitution"]:
             directional = any("{alias_b}" in t for t in e["terms"]["topic"])
             if directional:
-                assert e.get("requires") == "phrase_binding", (
+                assert e.get("direction") == "decided_at_extraction", (
                     "a directional substitution template must declare "
-                    "phrase_binding, or an adapter has to make that semantic "
-                    "call unilaterally in code"
+                    "direction: decided_at_extraction, or an adapter has to "
+                    "make that semantic call unilaterally in code"
                 )
 
     def test_substitution_references_a_second_model(self, queries):

@@ -73,11 +73,11 @@ def test_the_real_contract_loads():
     assert all(e.records_condition for e in queries.all_entries)
 
 
-def test_both_substitution_entries_declare_phrase_binding():
+def test_both_substitution_entries_declare_direction_from_extraction():
     """The flag is what keeps a semantic call out of this renderer."""
     queries = load_queries()
-    assert all(e.needs_phrase_binding for e in queries.substitution)
-    assert not any(e.needs_phrase_binding for e in queries.capability_queries)
+    assert all(e.direction_from_extraction for e in queries.substitution)
+    assert not any(e.direction_from_extraction for e in queries.capability_queries)
 
 
 def test_a_missing_contract_raises_rather_than_defaulting(tmp_path):
@@ -269,18 +269,33 @@ def test_an_entry_with_no_usable_token_still_renders():
 
 
 def test_substitution_is_refused_with_the_measurement_in_the_reason():
-    """53 against 52. The retrieved set cannot carry direction."""
+    """53 against 52. The retrieved set cannot carry direction.
+
+    THIS TEST ASSERTS THE MEASUREMENT, NOT THE FIELD NAME, and that is the point
+    of it. The failure mode it exists for is a refusal decaying into a bare
+    `NotImplementedError` — it has caught that once already. A refusal that has
+    lost its numbers is indistinguishable from one that never had them, and the
+    numbers are what let a reader disagree.
+
+    So the field rename from `requires: phrase_binding` to
+    `direction: decided_at_extraction` deliberately did not touch these
+    assertions: they were never about the flag.
+    """
     queries = load_queries()
     plan = plan_searches(queries.substitution, ALIASES, scope=SWEEP)
     assert plan.request_count == 0
     assert len(plan.refusals) == 2
     assert all(isinstance(r, Unrenderable) for r in plan.refusals)
-    assert "direction" in plan.refusals[0].reason
+
+    reason = plan.refusals[0].reason
+    assert "53" in reason and "52" in reason, "the measurement, without which it is an opinion"
+    assert "direction" in reason
+    assert "superset" in reason, "and what retrieval CAN still do"
 
 
 def test_a_refusal_is_returned_not_raised():
     """Coverage the platform cannot provide belongs on a page, not in a traceback."""
-    directional = entry(requires="phrase_binding")
+    directional = entry(direction="decided_at_extraction")
     assert isinstance(render_search(directional, "claude sonnet 5"), Unrenderable)
 
 

@@ -34,10 +34,17 @@ QUERIES_YAML = CONTRACT_DIR / "queries.yaml"
 #: The stances FR-8's check reads. A third value would be a contract change.
 STANCES = ("negative", "positive")
 
-#: `requires: phrase_binding` — the one semantic property the contract states
-#: about retrieval. It does not name a platform, deliberately: it says the query
-#: is meaningless where phrases do not bind, and leaves each adapter to decide.
-PHRASE_BINDING = "phrase_binding"
+#: `direction: decided_at_extraction` — the one semantic property the contract
+#: states about retrieval. It does not name a platform, deliberately: it says
+#: WHERE DIRECTION IS DECIDED, which is a fact about the pipeline rather than
+#: about any index, and leaves each adapter to decide what to do about
+#: retrieving a direction-blind superset.
+#:
+#: Renamed from `phrase_binding`. That name asserted a cause the measurements
+#: contradicted — it implied some index binds phrases, and none that has been
+#: measured does. The behaviour here never depended on the cause, which is why
+#: this is a rename and not a redesign.
+DECIDED_AT_EXTRACTION = "decided_at_extraction"
 
 _PLACEHOLDER = re.compile(r"\{(alias|alias_b)\}")
 
@@ -125,7 +132,7 @@ class QueryEntry:
     intent: str = ""
     yields_claim_when: str = ""
     capability: str | None = None
-    requires: str | None = None
+    direction: str | None = None
 
     @property
     def label(self) -> str:
@@ -133,8 +140,15 @@ class QueryEntry:
         return f"{self.capability or 'substitution'}:{self.stance}"
 
     @property
-    def needs_phrase_binding(self) -> bool:
-        return self.requires == PHRASE_BINDING
+    def direction_from_extraction(self) -> bool:
+        """Direction is this entry's content and retrieval cannot carry it.
+
+        True for the substitution entries and nothing else. An adapter reading
+        this must either refuse, or accept a direction-blind superset as a
+        stated coverage decision — never render it as though the direction
+        survived retrieval.
+        """
+        return self.direction == DECIDED_AT_EXTRACTION
 
     @property
     def needs_second_model(self) -> bool:
@@ -198,7 +212,7 @@ def _entry_of(raw: dict, *, kind: str) -> QueryEntry:
         terms=_terms_of(raw, label),
         records_condition=str(records_condition),
         yields_claim_when=str(raw.get("yields_claim_when") or "").strip(),
-        requires=raw.get("requires"),
+        direction=raw.get("direction"),
     )
 
 

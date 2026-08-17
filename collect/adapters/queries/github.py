@@ -214,21 +214,29 @@ def render_search(
 ) -> SearchRequest | Unrenderable:
     """One entry plus one alias to one request, or a refusal with a reason.
 
-    Refuses `requires: phrase_binding` outright. On an index that does not bind
-    phrases, `"replaced X with Y"` and `"replaced Y with X"` are the same query —
-    measured at 53 against 52 — so the retrieved set cannot carry direction, and
-    direction is the whole content of a substitution claim. Retrieval is still
-    possible as a direction-blind superset; deciding to accept that is a
-    coverage decision, not something to make silently inside a renderer.
+    Refuses `direction: decided_at_extraction` outright. `"replaced X with Y"`
+    and `"replaced Y with X"` are the same query here — measured at 53 against
+    52 — so the retrieved set cannot carry direction, and direction is the whole
+    content of a substitution claim. Retrieval is still possible as a
+    direction-blind superset; deciding to accept that is a coverage decision,
+    not something to make silently inside a renderer.
+
+    That reasoning predates the rename and needed no edit, which is the useful
+    part: it never rested on an index being ABLE to bind phrases, only on this
+    one not carrying direction. The old flag name asserted a cause; this text
+    described the consequence, and the consequence is what turned out to be
+    true. Only the name lagged.
     """
-    if entry.needs_phrase_binding:
+    if entry.direction_from_extraction:
         return Unrenderable(
             entry_label=entry.label,
             reason=(
-                "entry requires phrase_binding, which GitHub's index does not provide: "
+                "entry declares direction: decided_at_extraction, and retrieval here "
+                "cannot decide direction: "
                 '"replaced claude with gpt" returns 53 and "replaced gpt with claude" 52, '
-                "so the retrieved set cannot carry direction. Blogs sieve locally and are "
-                "unaffected."
+                "so the retrieved set is a direction-blind superset. Extraction reads "
+                "direction from the quote; a renderer cannot. Accepting the superset is a "
+                "coverage decision and belongs to whoever plans the sweep."
             ),
         )
 
