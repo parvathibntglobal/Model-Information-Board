@@ -227,7 +227,7 @@ Pure code. **Adapters, not agents** — what differs between platforms is auth, 
 
 | Platform | Role in the corpus | Access | Base trust |
 |---|---|---|---|
-| **GitHub issues & discussions** | **Establishes which models are in real production use** — named in configs, `model=` parameters and dependency manifests. Measured at 52.7% subject match, which nothing else approaches. Sweep agent frameworks and SDKs — LangChain, LlamaIndex, Aider, AutoGen, CrewAI, provider SDKs | API | **0.95** |
+| **GitHub issues & discussions** | **Establishes which models are in real production use** — named in configs, `model=` parameters and dependency manifests rather than described in prose. **The shape is measured; the rate is not.** A 52.7% subject match was quoted here, from a corpus retrieved for one model using that model's own variants — circular as a measure of how often models are named. What survives is where the naming happens, not how often. Sweep agent frameworks and SDKs — LangChain, LlamaIndex, Aider, AutoGen, CrewAI, provider SDKs | API | **0.95** |
 | **Engineering blogs** | The positive channel. Engineers blog about what worked and file issues about what didn't — and the substitution writeup lives here | RSS + sitemaps | **0.90** |
 | **Reddit** | Comparison and nuance. r/LocalLLaMA and r/MachineLearning | API | **0.85** |
 
