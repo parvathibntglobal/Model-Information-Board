@@ -58,17 +58,97 @@ def apply_schema(conn: psycopg.Connection[Any]) -> None:
     conn.execute(schema_sql())
 
 
-def reset_schema(conn: psycopg.Connection[Any], *, environment: str) -> None:
-    """Drop and recreate the public schema. Development only.
+#: Hosts `reset_schema` will destroy. An empty host or a path is a unix socket,
+#: which is on this machine by definition.
+LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1")
 
-    Refuses outside development, because a helper that can wipe production
-    on a typo eventually will.
+
+class UnsafeReset(RuntimeError):
+    """`reset_schema` refused. The target is not something to drop."""
+
+
+def _is_local(host: str | None) -> bool:
+    if not host:
+        return True  # unix socket: same machine
+    return host.startswith("/") or host in LOCAL_HOSTS
+
+
+def reset_schema(conn: psycopg.Connection[Any], *, environment: str) -> None:
+    """Drop and recreate the public schema. Local, empty databases only.
+
+    THREE LAYERS, CHEAPEST AND MOST FUNDAMENTAL FIRST. `tests/conftest.py` has
+    had layers like these since the six defects that a green suite hid; this
+    path had none at all, which was the asymmetry: `TEST_DATABASE_URL` was
+    guarded four ways and `DATABASE_URL` not once.
+
+    1. HOST, READ FROM `conn.info` AND NOT FROM A DSN A CALLER PASSED.
+       That is the property that makes it a guard rather than a courtesy: it
+       describes the socket that is actually open, so handing in a different URL
+       than the one connected cannot defeat it. Checked first so the message
+       names the real objection - somebody pointed at a real server should be
+       told "this is not localhost", not "wrong environment", which reads like a
+       config problem rather than the near miss it is.
+
+    2. ENVIRONMENT, unchanged, and deliberately not first. It is a string
+       anyone can set, so it cannot be the outermost guard on the one function
+       here that destroys data.
+
+    3. ROWS. A reset on an empty database is recoverable; on a populated one it
+       is the incident. This also catches the ordinary case the other two miss
+       entirely - a local instance in development that somebody loaded and then
+       reset out of habit.
+
+    Raises:
+        UnsafeReset: on any of the three. Never a bare RuntimeError, so a caller
+            can distinguish "refused" from "the drop failed halfway".
     """
+    host = conn.info.host
+    if not _is_local(host):
+        raise UnsafeReset(
+            f"reset_schema refuses against host {host!r}: this is not localhost. "
+            "It runs DROP SCHEMA public CASCADE. The host is read from the open "
+            "connection, not from any DSN passed in, so this cannot be overridden "
+            f"by argument. ENVIRONMENT was not consulted (it says {environment!r}) "
+            "because a variable anyone can set is not a guard on the destructive "
+            "path."
+        )
+
     if environment != "development":
-        raise RuntimeError(
+        raise UnsafeReset(
             f"reset_schema refuses to run with ENVIRONMENT={environment!r}. "
             "This drops every table."
         )
+
+    populated = conn.execute(
+        """
+        SELECT c.relname, c.reltuples::bigint
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.relkind = 'r'
+        ORDER BY c.relname
+        """
+    ).fetchall()
+    # reltuples is an estimate and is -1 before the first ANALYZE, so it can
+    # only nominate candidates. Absence of an estimate is not absence of rows
+    # (rule 6), so every table is counted exactly rather than trusted.
+    with_rows: list[tuple[str, int]] = []
+    for name, _estimate in populated:
+        count = conn.execute(
+            f'SELECT count(*) FROM "{name}"'  # noqa: S608 - name from pg_class
+        ).fetchone()
+        if count and count[0]:
+            with_rows.append((name, count[0]))
+
+    if with_rows:
+        listed = ", ".join(f"{name} ({n} rows)" for name, n in with_rows[:6])
+        more = "" if len(with_rows) <= 6 else f", and {len(with_rows) - 6} more"
+        raise UnsafeReset(
+            f"reset_schema refuses: {len(with_rows)} table(s) in this database "
+            f"hold rows - {listed}{more}. This drops every table. An empty "
+            "database is recoverable from contract/tables.sql; a populated one "
+            "is not. Empty it deliberately, or use scripts/dev-postgres.ps1 "
+            "-Destroy for a throwaway instance."
+        )
+
     conn.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
     apply_schema(conn)
 
