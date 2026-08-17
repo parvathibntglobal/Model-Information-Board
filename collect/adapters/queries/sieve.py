@@ -495,7 +495,34 @@ class SieveYield:
 
     @property
     def phrase_rate(self) -> float | None:
-        """Containment, or None where it was not measured. Never 0.0 for absent."""
+        """Containment, or None where it was not measured. Never 0.0 for absent.
+
+        ⚠ DIAGNOSES THE TERM, NOT RETRIEVAL. DO NOT OPTIMISE IT.
+
+        Engineer 2's warning, on #18, and it is the sharper reading of the
+        measurement: no index we have measured BINDS a phrase. Reddit degrades
+        to OR over the tokens; GitHub ranks. So containment is not compliance
+        with an operator — it is **how common the phrase is**, because a common
+        collocation is returned by relevance ranking whether or not anything
+        honoured the quotes.
+
+        Which makes this metric Goodhart-shaped. It improves by choosing MORE
+        COMMON phrases, and a more common phrase is a less specific one, so the
+        number rises while the evidence falls. `"context window"` at 96% is
+        exactly that: collocation frequency read as operator behaviour. Wiring
+        it in as a metric to maximise would institutionalise the same mistake
+        one layer down, where it would look like progress.
+
+        Read it as a property of the TERM: a low rate says this phrase is rare
+        and retrieval cannot find it, which is a vocabulary fact worth acting
+        on. **`usable_rate` is the one to watch** — it is the share of
+        phrase-carrying candidates the sieve kept, so it cannot be moved by
+        making the query vaguer.
+
+        They are NOT interchangeable and can rank two queries in opposite
+        orders. `tests/test_sieve_yield.py` pins that, the same way the two
+        specificity floors are pinned at 0.3 and 0.0.
+        """
         if self.phrase_present is None or not self.candidates:
             return None
         return self.phrase_present / self.candidates
