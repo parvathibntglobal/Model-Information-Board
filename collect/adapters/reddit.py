@@ -12,17 +12,18 @@ WHY THIS PLATFORM IS DIFFERENT, AND WHAT THAT CLAIM IS ACTUALLY WORTH
 **RETRIEVAL DOES NOT GUARANTEE THE PHRASE. THE SIEVE CARRIES IT.** That is the
 instruction; everything below is why.
 
-Phrases bind here better than anywhere else, and not reliably. The first
-version of this docstring said "phrases bind" full stop, on the strength of
-ONE common phrase.
+Phrases DO NOT bind here. Two earlier versions of this docstring said they
+did — the first without qualification, the second calling it phrase-dependent
+with the cause left open. Both were wrong in the same direction, and both rested
+on common phrases whose containment relevance ranking supplies for free.
 
 The comparison that stands, measured 2026-08-14: `"context window"` returned
 248 posts with the phrase present in 96%; `"window context"` returned 239 with
 10%; the two result sets shared **2 ids out of 485**. Compare GitHub, where
 `"sonnet claude 5"` returned 545 against the correct order's 540 with
 near-total overlap, which is what proved its index ranks rather than binds.
-Reddit is still the only platform where `requires: phrase_binding` can be
-honoured at all.
+That comparison still separates the two indexes — Reddit's word-order
+sensitivity is real. It is not the same thing as binding a phrase.
 
 The generalisation does not stand. Re-measured 2026-08-17 over the 19 distinct
 quoted phrases of the substitution sweep, containment of the quoted phrase in
@@ -43,13 +44,44 @@ what came back:
 does not return zero — it returns loosely matched posts, which is the shape
 that reads as evidence and is not.
 
-THE DIAGNOSIS IS LEFT OPEN ON PURPOSE. Containment above is measured with
-`sieve.matches`, which is adjacency modulo whitespace and stemming. Reddit's
-phrase operator may simply be looser: "reverted back to" satisfies a reader and
-probably Reddit, and fails `matches`. Separating "the platform ignored the
-phrase" from "our matcher is stricter than the platform's" needs a probe this
-sweep did not carry. Both diagnoses produce the same instruction, which is why
-the instruction is stated first and the cause is not asserted.
+THE DIAGNOSIS IS SETTLED, AND IT IS THE WORSE OF THE TWO. It was left open on
+2026-08-17 between "the platform ignored the phrase" and "our matcher is
+stricter than the platform's". A variant probe the same day decided it.
+
+Enumerating the looser variants of each phrase — `reverted back to`,
+`reverted it to`, `switched it back`, `rolled everything back` and 14 more —
+and checking what the non-containing posts actually carry:
+
+    base phrase        n    exact    all words    >=1 word    neither
+    "reverted to"     75      36%          37%        100%         0%
+    "switched back"   75      25%          29%        100%         0%
+    "rolled back"     75      24%          24%        100%         0%
+    "went back to"    75     100%         100%        100%         0%
+
+Enumerated variants explained almost nothing: 0 hits on three families and 1 on
+the fourth. So it is not looser phrase semantics.
+
+**THERE IS NO PHRASE OPERATOR. IT DEGRADES TO OR OVER THE TOKENS.** Every post
+carries at least one word of the phrase and only a quarter carry all of them —
+`"rolled back"` returns posts containing `back` without `rolled`. And this
+explains the `kubernetes OR terraform` result below by the same mechanism: if
+the API supports no operators and ranks by relevance over tokens, then a literal
+`OR` is just another token and documents containing both real words rank highest,
+which is exactly the 229-of-241 that was recorded as "narrows toward AND".
+
+`"went back to"` at 100% is not the exception that saves the theory. It is a
+very common English collocation, so relevance ranking returns it anyway — and
+that is the same reason `"context window"` scored 96%. **That 96% was never
+evidence of a phrase operator**, which is what made it generalise so badly.
+
+CONSEQUENCE FOR THE CONTRACT, and it is not this file's to decide.
+`requires: phrase_binding` says a query is meaningless where phrases do not
+bind. On this evidence Reddit does not bind them either, so the flag currently
+has no platform that honours it. Raised on issue #18 rather than acted on here.
+
+The instruction is unchanged and now rests on a measurement rather than on a
+choice between two explanations: retrieval does not guarantee the phrase, and
+the sieve carries it.
 
 A BARE TERM AFTER A QUOTED PHRASE IS NOT A FILTER
 -------------------------------------------------
@@ -67,7 +99,11 @@ WHAT DOES NOT WORK, MEASURED THE SAME DAY
 -----------------------------------------
     OR is not boolean       `kubernetes OR terraform` returned 241 posts of
                             which 229 contain BOTH terms and 7 terraform
-                            alone. It narrows toward AND. Do not render it.
+                            alone. Recorded as "narrows toward AND"; better
+                            explained by the no-operator finding above, where
+                            `OR` is simply a third token and both-word
+                            documents rank highest. Either way: do not render
+                            it.
     no result total         nothing reports a count; "how many matched" is
                             answerable only by paging to exhaustion, unlike
                             GitHub's `total_count`
@@ -275,7 +311,31 @@ class RedditRun:
 
     @property
     def sieve_yield(self) -> SieveYield:
-        return tally(self.query, self.verdicts)
+        """Retrieved, phrase-containing, sieve-passing — all three.
+
+        The middle number matters most on this platform, because binding is a
+        property of the phrase rather than of the platform: `"went back to"`
+        came back at 100% containment and `"rolled back"` at 24%, so identical
+        `candidates` figures can mean very different things. Without it a query
+        that retrieved 75 posts carrying nothing looks like a query that
+        retrieved 75 posts carrying the phrase.
+
+        Left as None when the query quoted nothing — there is no phrase to
+        comply with, which is not the same as zero compliance (rule 6).
+        """
+        from collect.adapters.queries.sieve import count_phrase_present, quoted_phrases
+
+        phrases = quoted_phrases(self.query)
+        present: int | None = None
+        if phrases and self.posts:
+            texts = [post.sieve_text for post in self.posts]
+            # Every quoted phrase must be present, matching how the query reads.
+            present = sum(
+                1
+                for text in texts
+                if all(count_phrase_present(p, [text]) for p in phrases)
+            )
+        return tally(self.query, self.verdicts, phrase_present=present)
 
     def harvest_run_fields(self) -> dict[str, Any]:
         """The row this run would write, and the fields with nowhere to go.

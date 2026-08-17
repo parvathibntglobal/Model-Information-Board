@@ -473,13 +473,53 @@ class SieveYield:
     missing_topic: int = 0
     missing_signal: int = 0
 
+    #: THE THIRD NUMBER. How many candidates actually contain the phrase the
+    #: query quoted.
+    #:
+    #: `candidates` and `kept` alone cannot distinguish two very different
+    #: queries. Measured 2026-08-17: `"rolled back"` returned 75 posts with the
+    #: phrase present in 24%, so a `candidates` of 75 reads as healthy retrieval
+    #: while the usable count is 18. Phrase binding is a property of the phrase
+    #: and not of the platform (see collect/adapters/reddit.py), so the gap is
+    #: per query and nothing downstream can reconstruct it.
+    #:
+    #: None means NOT MEASURED — the query quoted nothing, or the caller had no
+    #: texts to check. It is never 0 for that case: 0 asserts "no candidate
+    #: contained the phrase", which is a finding, and "we did not look" is not
+    #: (rule 6).
+    phrase_present: int | None = None
+
     @property
     def pass_rate(self) -> float:
         return self.kept / self.candidates if self.candidates else 0.0
 
+    @property
+    def phrase_rate(self) -> float | None:
+        """Containment, or None where it was not measured. Never 0.0 for absent."""
+        if self.phrase_present is None or not self.candidates:
+            return None
+        return self.phrase_present / self.candidates
 
-def tally(query_key: str, verdicts) -> SieveYield:
-    """Fold verdicts into one row. Counting only — nothing is dropped here."""
+    @property
+    def usable_rate(self) -> float | None:
+        """Kept as a share of candidates that CARRIED the phrase.
+
+        The honest denominator when retrieval did not honour the phrase: a
+        document that never contained it was never a candidate for this query in
+        any meaningful sense. None where containment was not measured.
+        """
+        if self.phrase_present is None or not self.phrase_present:
+            return None
+        return self.kept / self.phrase_present
+
+
+def tally(query_key: str, verdicts, *, phrase_present: int | None = None) -> SieveYield:
+    """Fold verdicts into one row. Counting only — nothing is dropped here.
+
+    `phrase_present` is passed in rather than computed: a verdict knows nothing
+    about the query string that retrieved it, and the caller already holds both.
+    Leaving it None records "not measured" rather than claiming zero.
+    """
     verdicts = list(verdicts)
     return SieveYield(
         query_key=query_key,
@@ -488,4 +528,32 @@ def tally(query_key: str, verdicts) -> SieveYield:
         missing_subject=sum(1 for v in verdicts if "subject" in v.missing),
         missing_topic=sum(1 for v in verdicts if "topic" in v.missing),
         missing_signal=sum(1 for v in verdicts if "signal" in v.missing),
+        phrase_present=phrase_present,
     )
+
+
+def quoted_phrases(query: str) -> tuple[str, ...]:
+    """Every double-quoted phrase in a query string, in order.
+
+    Retrieval syntax, not matching: this is what the query ASKED for, which is
+    the thing `SieveYield.phrase_present` measures compliance with.
+
+    PAIRED IN ORDER, not matched by regex. `re.finditer(r'"([^"]+)"')` looks
+    right and is not: on `"" "real phrase"` it pairs the closing quote of the
+    empty phrase with the opening quote of the real one, captures the space
+    between them, and loses the phrase entirely. Splitting takes the quotes in
+    the order they were typed, which is how a search box reads them too.
+    """
+    segments = query.split('"')
+    return tuple(seg for seg in segments[1::2] if seg.strip())
+
+
+def count_phrase_present(phrase: str, texts) -> int:
+    """How many of `texts` contain `phrase`, by the sieve's own matching rules.
+
+    One definition, shared by every adapter that wants the third number. Uses
+    `matches` over `normalize`d text, so containment is adjacency modulo
+    whitespace and stemming — the same standard the sieve holds a term to, which
+    is what makes the figure comparable to `kept`.
+    """
+    return sum(1 for text in texts if matches(phrase, normalize(text)))
