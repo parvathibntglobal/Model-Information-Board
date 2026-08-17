@@ -283,11 +283,58 @@ def test_assembly_refuses_and_says_what_is_missing(tmp_path):
         h.assemble_thread(_a_post())
 
     message = str(excinfo.value)
-    assert "specificity_score" in message, "the scorer that does not exist"
     assert "4%" in message and "4,833" in message, "the coverage measurement"
     assert "SIBLINGS" in message, "why the selection cannot be bounded"
     assert "126 report none" in message, "coverage is a lower bound"
     assert "issue #5" in message, "where the columns are proposed"
+
+
+def test_the_refusal_does_not_still_blame_the_missing_scorer(tmp_path):
+    """The previous version of this test asserted the MENTION, not the CLAIM.
+
+    It read `assert "specificity_score" in message` with the comment "the
+    scorer that does not exist". That passes whether or not the scorer exists,
+    so when `collect/triage/specificity.py` landed the refusal went on
+    asserting something false and 878 tests stayed green. Same shape as every
+    other defect in this repo: a check that cannot fail for the reason it was
+    written.
+
+    So this asserts the state of the world instead of the text.
+    """
+    import importlib
+
+    scorer = importlib.import_module("collect.triage.specificity")
+    assert callable(scorer.score_document), "the scorer exists"
+
+    h = harvester(responder(page([post()])), tmp_path)
+    with pytest.raises(AssemblyNotBuilt) as excinfo:
+        h.assemble_thread(_a_post())
+    message = str(excinfo.value)
+
+    assert "no implementation" not in message, (
+        "the refusal claims the scorer is unimplemented and it is implemented"
+    )
+    assert "no longer the reason" in message, (
+        "the refusal should say the scorer is no longer what blocks assembly"
+    )
+
+
+def test_the_columns_the_refusal_calls_missing_are_genuinely_missing():
+    """The other half of asserting the claim.
+
+    The refusal rests on three `thread_context` columns being unavailable. If
+    issue #5 lands them and nobody revisits this, the refusal starts citing a
+    gap that has been filled — the failure this file just had. Read from the
+    contract rather than trusted.
+    """
+    from collect.config import CONTRACT_DIR
+
+    schema = (CONTRACT_DIR / "tables.sql").read_text(encoding="utf-8")
+    for column in ("observed_children", "hidden_children_min", "coverage_ratio"):
+        assert column not in schema, (
+            f"{column} is in contract/tables.sql now, so the refusal's remaining "
+            "reason is stale and assemble_thread needs revisiting"
+        )
 
 
 def test_an_unset_host_refuses_rather_than_guessing(tmp_path, monkeypatch):
