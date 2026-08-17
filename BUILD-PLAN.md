@@ -75,6 +75,10 @@ Everything below can be typed without another decision.
 
 ### 3.1 · Repo tree
 
+**This is the day-one scaffold, not a current inventory.** Most of what it lists is still unbuilt — `assemble/`, `triage/`, `ops/`, `pages/` and `extract/prompt.py` are the plan, not the repo. Read it for the lane boundaries, which have held, and run `ls` for what exists.
+
+Two entries below described files that existed and were deleted rather than files not yet written, which is a different kind of wrong: `fixtures/hand_cells.yaml` went when the Ask box was parked, and `ask/pipeline.py` with it. Both are marked. Directories that arrived later — `.github/`, `scripts/`, `docs/measurements/`, `adapters/queries/` — are not listed and deliberately: keeping a hand-written tree current is the drift §3.2 and §3.3 were rewritten to avoid.
+
 ```
 modelboard/
   CLAUDE.md                    shared context for both Claude Code sessions
@@ -98,12 +102,12 @@ modelboard/
     curate/                    voices.py, gate.py, phrases.py
     pages/                     model.py, capability.py, filtered.py,
                                changelog.py, coverage.py
-    ask/                       requirements.py, pipeline.py
+    ask/                       requirements.py, pipeline.py  <- pipeline.py DELETED
     app.py
   fixtures/
-    hand_cells.yaml            E2's week-2 hand-written cells
-    golden/                    week-3 labelled sets
-    threads/                   shared, built together around week 4
+    hand_cells.yaml            DELETED - went when the Ask box was parked
+    golden/                    labelled sets, before extraction runs on real documents
+    threads/                   shared, built together from a real harvested tree
   tests/
 ```
 
@@ -421,11 +425,13 @@ It is roughly ten lines while already walking the thread tree, and **impossible 
 
 *Mitigation:* E2 builds verification in week 4 against a **hand-made `thread_context` fixture**, before E1's real one arrives. Then the handover is a swap, not an integration.
 
-### Golden sets before extractor selection
+### Golden sets before the first extraction run
 
-**E2 labels in week 3. Selection happens week 6.**
+**E2 labels before extraction runs against real documents.**
 
-The extractor is decided rather than selected, so the golden set is no longer a selection instrument. It is the only instrument that can see extraction failing, because a missed claim produces no error and a misfiled one produces a verified quote in the wrong cell.
+There is no selection step. The extractor is `google/gemini-2.5-flash` via OpenRouter, decided rather than chosen, so the golden set is not a selection instrument and there is no week-6 bake-off to sequence around.
+
+It is still unrecoverable if missed, for a different reason: it is the only instrument that can see extraction failing. A missed claim produces no error, no log line and no wrong-looking output. A misfiled one produces a verified quote in the wrong cell, and the page then says something false with a real quote underneath it. Neither is visible in the output, so a labelled set is the only way either becomes visible at all.
 
 *E1 cross-labels ~50 items.* If two people who both read the spec disagree on what counts as good evidence, the criteria aren't clear enough to automate — far cheaper to learn in week 3 than week 6.
 

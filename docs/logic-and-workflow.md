@@ -933,13 +933,13 @@ Full week-by-week detail, with the two-person split and the requirements each we
 | **3** | **Ask box on hand-made evidence** · golden sets labelled · flattening + `offset_map` | **Three real model decisions made through the box** |
 | 4 | Triage · quote verification · pages | ~10–15% survival; a fabricated quote never persists |
 | 5 | Registry polling · extraction | Roster 100%; extraction F1 ≥0.85 |
-| 6 | Change detection · extractor selection · vetting | Filter precision ≥0.90, ≤5% false-positive on expert content |
+| 6 | Change detection · extraction measured against the golden set · vetting | Filter precision ≥0.90, ≤5% false-positive on expert content |
 | 7 | Ops and alerts · curation · publish surfaces | Every published phrase traceable to its quotes in one click |
 | 8 | Real cells, fixtures deleted, harden | §16 |
 
 > **Building six months of ingestion before anyone types a task is how you end up with a beautifully-scored dataset nobody can use.** The riskiest question is whether anyone wants this — week 3 answers it, on hand-written evidence, before the expensive half begins. The UX test cannot tell the data is fake.
 
-**Two sequencing constraints are unrecoverable if missed:** `offset_map` must exist before the first extraction run, and the golden sets must be labelled before extractor selection. Both are detailed in `BUILD-PLAN.md §6`.
+**Two sequencing constraints are unrecoverable if missed:** `offset_map` must exist before the first extraction run, and the golden sets must be labelled before extraction runs against real documents. Not before a selection step — there is no selection step, the extractor is decided — but before the first run, because a missed claim leaves no trace and cannot be found afterwards by reading the output. Both are detailed in `BUILD-PLAN.md §6`.
 
 ---
 
