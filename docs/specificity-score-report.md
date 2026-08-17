@@ -1,6 +1,14 @@
 # `specificity_score` — what it needs, and what it does not unblock
 
-**A design report and three requests for agreement. No code has been written.**
+**A design report and three requests for agreement.**
+
+> **STATUS — resolved.** All three §7 items were agreed by Engineer 2, who added
+> a fourth constraint: the two specificity measurements must never be
+> **compared** either, not merely never merged, because a reader seeing 0.7 in
+> both will want them to mean the same thing. Implemented in
+> `collect/triage/specificity.py`; the weights and floor are in
+> `contract/harvest.yaml`; the components are stored on `document`. E3 remains
+> untouched, for the reason in §3.
 
 > The headline is a correction to something I said myself. I called
 > `specificity_score` the blocker on everything downstream of harvest. **It is
@@ -26,8 +34,9 @@
 | Blocks E3 | **no.** E3 is blocked on comment fetching and issue #5 (§3) |
 | Needs Engineer 2's agreement | three items, §7 |
 
-Nothing here needs deciding today except §7, and §7 is the reason this is a
-document rather than a commit.
+Nothing here needed deciding except §7, and §7 was the reason this was a
+document rather than a commit. It has since been agreed — see the status note
+above, and §7 for what each item became.
 
 ---
 
@@ -223,17 +232,19 @@ That is worth knowing even if the answer is to leave it.
 
 ---
 
-## 7 · What needs your agreement
+## 7 · What needed your agreement — all three agreed
 
-Three items. Nothing in §8 requires permission to *build*; these require
+Three items. Nothing in §8 required permission to *build*; these required
 agreement to *land*.
 
 The flagging rule covers a change made inside one lane that touches the shared
-file. **These are not that.** A contract key and five new columns on `document`
-alter the interface both lanes read, so they want your agreement rather than
-your notice — which is also why none of §8 is written yet. The module depends
-on 7.1 and 7.2, so building it first would present a decision on exactly the
-two things this document exists to ask about.
+file. **These were not that.** A contract key and five new columns on `document`
+alter the interface both lanes read, so they wanted agreement rather than
+notice — which is why §8 was not written at the time. The module depends on 7.1
+and 7.2, so building first would have presented a decision on exactly the two
+things this document existed to ask about.
+
+**All three were agreed.** What each became is recorded under it.
 
 ### 7.1 · New contract keys
 
@@ -250,12 +261,28 @@ in it, and the answer today is nothing. If triage grows enough config to earn
 a file, splitting is easy; creating it now means two files with a boundary
 neither of us could articulate.
 
+> **Agreed.** `specificity.weights` and `specificity.floor_clears_on` are in
+> `contract/harvest.yaml`. The floor is expressed as the components that
+> *clear* it rather than as a cutoff on the composite: the floor is a five-way
+> OR, and a threshold on the weighted sum is a different rule that merely
+> agrees with it today. An absent weight raises rather than defaulting to
+> zero — unlike `locality_window`, whose absence legitimately disables it.
+
 ### 7.2 · Storing the components, not just the composite
 
 Five boolean columns on `document` alongside `specificity_score`, per §5.
 Contract change. The alternative — composite only — means E4's gate cannot be
 reconstructed from the row and the evidence drill-down has nothing countable
 to show.
+
+> **Agreed, and it gained a second consumer.** Engineer 2 is wiring
+> `document.has_numbers` as a **falsifier** against the extractor's
+> self-reported `claim.has_numbers`, so it has to be readable from `judge/` as a
+> stored column rather than only as an input to the composite. Her precision is
+> carried in the module docstring and pinned by a test: **it falsifies, it
+> cannot confirm.** False here makes a claim asserting `true` a fabrication;
+> true here says nothing about whether that particular quote contains a
+> number.
 
 ### 7.3 · The naming collision
 
@@ -269,9 +296,17 @@ Proposal: a comment in both `judge/vet/weight.py` and
 must not be merged, and a note in `contract/tables.sql` beside both columns.
 Cheap, and it is the kind of thing that only works if both lanes wrote it.
 
+> **Agreed, and strengthened: never merged AND never compared.** A reader
+> seeing 0.7 in both will want them to mean the same thing. The note is in
+> `collect/triage/specificity.py` and beside the columns in
+> `contract/tables.sql`, and `tests/test_specificity.py` asserts the two ranges
+> genuinely differ so that anyone unifying them breaks a test. **The matching
+> sentence in `judge/vet/weight.py` is not written** — that file is Engineer
+> 2's lane and the sentence is hers to add. Proposed text is in the PR.
+
 ---
 
-## 8 · The plan, if §7 lands
+## 8 · The plan, as built
 
 | Step | Scope |
 |---|---|
@@ -280,6 +315,12 @@ Cheap, and it is the kind of thing that only works if both lanes wrote it.
 | 3 | Wire **E4's floor only** — root documents, which exist today |
 | 4 | Backfill from the raw store, not by re-fetching — payloads are immutable and content-hash addressed |
 | 5 | **E3 untouched.** It is blocked on comment fetching and issue #5, not on this |
+
+Steps 1 to 3 and 5 are done. **Step 4, the backfill, is not run** — it writes to
+every `document` row in the store, and it is also the calibration measurement,
+so it is worth running once deliberately rather than as a side effect of a
+merge. Until it runs, existing rows stay NULL and the floor reads them as
+UNKNOWN, which is the designed behaviour rather than a gap.
 
 Rough shape: version-named and code are near-free reuse. Numbers is half a day,
 most of it deciding what counts. Error strings is the real work.
