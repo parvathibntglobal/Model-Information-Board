@@ -367,3 +367,70 @@ specificity:
     - has_code
     - has_conditions
     - names_version
+
+
+# ============================================================================
+#  DEDUPE — FR-16. Syndicated copies contribute to REACH, never to WEIGHT.
+#
+#  SHARED. One blog syndicated four times and quoted twice is one person, and
+#  counted naively it looks like six-source consensus — so the publication gate
+#  would pass on a single voice. That is what this block governs.
+#
+#  ⚠ ONE METHOD, NOT TWO, AND THE MEASUREMENT IS WHY.
+#
+#  collect/CLAUDE.md specified MinHash below ~200 tokens and simhash above.
+#  Measured over 79 ground-truth duplicate pairs and 951 stranger pairs from
+#  3,767 Reddit documents, the split is not supported: MinHash separates better
+#  at EVERY length, and simhash's margin at 400-800 tokens is ONE BIT of 64.
+#  Re-run in simhash's conventional word-3-gram tf-weighted form its margins
+#  were 0-12 bits, so that is not an artefact of the feature choice.
+#
+#  document.simhash therefore stays NULL. That is a measured decision, not an
+#  unimplemented column. Full curve: docs/measurements/dedupe-threshold.md.
+#
+#  ⚠ min_tokens_for_signature IS A FLOOR, NOT A SWITCH.
+#
+#  Below it no signature is computed, because neither method separates
+#  duplicates from strangers there. What still applies below the floor is
+#  certainty rather than similarity: platform-declared crossposts, and exact
+#  normalised match with the [deleted]/[removed] sentinels excluded — those
+#  appear 57 and 38 times as identical bodies of DISTINCT comments in one
+#  corpus, and merging them would collapse a thread.
+#
+#  THE BAND THE DATA SUPPORTS IS (50, 200). Failure is demonstrated below 50
+#  tokens; success is demonstrated at 200. The two bands between carry n=2 and
+#  n=4 true pairs, which is too thin to claim either way, so every value in
+#  (50, 200) is consistent with the evidence and the choice inside it is
+#  judgement:
+#
+#    collect/CLAUDE.md — "Over-clustering is worse than under-clustering.
+#    Merging two genuinely independent reports destroys corroboration, which is
+#    the only thing separating 'someone said this' from 'this is probably
+#    true'."
+#
+#  A HIGHER floor merges fewer documents, so conservative means high, and the
+#  lane's own rule says which direction conservative is. 200 is the top of the
+#  band. It is the same number collect/CLAUDE.md already carried and it does
+#  not mean the same thing — that one switched between methods.
+#
+#  PROVISIONAL. 79 true pairs is thin, all of them Reddit self-syndication and
+#  crossposts; the corpus contains no blog syndication at all, so nothing here
+#  is measured on the channel FR-16's own example is about.
+#
+#  WHAT WOULD REVISE IT: true pairs in the 50-200 band, where n is 2 and 4, and
+#  any blog syndication once more feeds are harvested. If pairs at 60 tokens
+#  separate as cleanly as those at 200, the floor should come down and more
+#  documents become deduplicable.
+# ============================================================================
+
+dedupe:
+
+  #: Whitespace tokens of signature text below which no signature is computed.
+  #: A floor, not a method switch. See the band argument above.
+  min_tokens_for_signature: 200
+
+  #: Estimated Jaccard at or above which two signatures are one document.
+  #: The tightest passing band measured true pairs from 0.62 and strangers to
+  #: 0.16, so 0.80 sits inside a wide gap rather than on a boundary — and high
+  #: is the safe end, because over-merging destroys corroboration.
+  similarity_threshold: 0.80
