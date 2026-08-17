@@ -243,24 +243,53 @@ Pure code. **Adapters, not agents** — what differs between platforms is auth, 
 
 **Every capability has a query, and negative framing is essential.** Platforms surface positive content by default; failure reports are the entire basis of the `criticised-for` labels and nothing else surfaces them.
 
-| Capability | Template |
-|---|---|
-| Tool calling | `"{alias}" (tool calling OR function calling) (fails OR broken OR "invalid json" OR schema OR "infinite loop")` |
-| Long context | `"{alias}" context (degrades OR "falls apart" OR forgets OR "loses recall after")` |
-| Summarization | `"{alias}" (summar* OR condense OR digest) (missed OR "left out" OR "made up" OR hallucinat* OR dropped OR "lost detail")` |
-| Extraction | `"{alias}" (extract* OR parse OR "structured output") (wrong OR invent* OR hallucinat* OR "made up a value" OR "empty field")` |
-| Code editing | `"{alias}" (diff OR "search and replace") (fails OR truncat* OR "rest unchanged")` |
-| Code generation | `"{alias}" (code OR wrote OR generated) ("doesn't compile" OR "hallucinated the API" OR "wrong import")` |
-| Instructions | `"{alias}" ("didn't follow" OR ignores) (instructions OR schema OR format)` |
-| Reasoning | `"{alias}" (reasoning OR "multi-step" OR planning OR chain) ("falls apart" OR loses OR confus* OR "can't follow")` |
-| Over-refusal | `"{alias}" (refus* OR "won't do" OR "as an AI" OR moraliz* OR "safety filter" OR lecture)` |
-| Latency | `"{alias}" (slow OR TTFT OR latency OR "time to first token" OR timeout OR "too slow")` |
-| Quality drift | `"{alias}" ("got worse" OR nerfed OR "quality dropped")` |
-| **Substitution** | `("replaced {alias_b} with {alias}" OR "switched from {alias_b} to {alias}")` |
+> **THE TEMPLATES THAT WERE HERE DO NOT WORK, AND ARE NOT REPRODUCED.**
+>
+> Twelve templates sat in this table, every one built on `(a OR b)` grouping and
+> `wildcard*` terms. Issue #4 measured that GitHub silently discards both — no
+> error, no warning — so each template was equivalent to searching for its alias
+> alone. Nine of ten exceeded the 1,000-result ceiling at a median of 13,038, and
+> the capability dimension was inert.
+>
+> Issue #18 measured that quoting does not bind either. `"sonnet claude 5"` — the
+> same words reversed — returns 545 against 540 for the correct order, and of the
+> eight results for `"gemini flash" "dropped a detail"`, seven contain that phrase
+> nowhere. Quotes rank; they do not restrict. So adjacency, word order and
+> therefore **direction** are not expressible in a query on any platform measured.
+>
+> Reproducing corrected templates here would rebuild the defect. A template is a
+> rendering, renderings are per-index, and this document is platform-neutral — which
+> is the whole of ruling (b) on #5.
 
-> **The substitution query is the highest-value pattern in the system.** *"We moved our summariser to X and it held"* is a direct report of exactly the decision this board exists to inform. It gets a dedicated pass and a bonus in vetting — and it lives predominantly on blogs, which is the second reason that adapter ships in version 1.
+### Where the queries actually live
 
-Each template is issued once per **alias variant**, not once per model. **Budget for this** — it multiplies rate-limit consumption by the size of the variant list, and it is the largest driver of harvest cost after extraction.
+**`contract/queries.yaml`**, as term sets rather than query strings:
+
+| group | rule | job |
+|---|---|---|
+| `subject` | all-of | identifies the model |
+| `topic` | any-of | names the capability |
+| `signal` | any-of | carries the stance |
+
+Each adapter renders those for its own index, and **the sieve carries the
+precision**. 82% of signal terms are multi-word; no index binds a multi-word term,
+and a local substring match reads it exactly. So retrieval is broad and cheap, and
+the terms do their real work locally, identically on all three platforms.
+
+Blogs skip retrieval entirely — RSS is a fetch of a known URL, so the same terms
+are a post-fetch sieve there. That is the model rather than the exception.
+
+**Repo scoping is what makes GitHub affordable**, and this document specified it
+from the start — *"sweep agent frameworks and SDKs"* — in a syntax that could not
+carry it. `repo:` and `org:` are supported, unused, and repeated qualifiers union:
+`org:langchain-ai` 475 plus `org:run-llama` 56 returns exactly 531, so a sweep list
+costs one query rather than one per repository.
+
+> **Substitution is the highest-value pattern in the system, and it is currently the least reachable.** *"We moved our summariser to X and it held"* is a direct report of exactly the decision this board exists to inform. It gets a dedicated pass and a bonus in vetting, and it lives predominantly on blogs — the second reason that adapter ships in version 1.
+>
+> **Its entire value is direction, and no index can express direction.** `"replaced claude with gpt"` returns 53; `"replaced gpt with claude"` returns 52. Both directions are the same query under token matching. So the entry carries `direction: decided_at_extraction`: retrieval finds documents naming both models and a switching verb, extraction reads which way the migration went, and quote verification checks it read something that exists. Code retrieves, the model decides direction, code verifies — rule 2 working as designed rather than a constraint on an index.
+
+Each entry is rendered once per **alias variant**, not once per model. **Budget for this** — it multiplies rate-limit consumption by the size of the variant list, and it is the largest driver of harvest cost after extraction. The cadence in `contract/harvest.yaml` is derived from that multiplication rather than chosen, and an assertion refuses a sweep that would exceed the daily cap.
 
 ### Engineering that survives real APIs
 
