@@ -84,16 +84,35 @@ These are the rules a helpful refactor will otherwise quietly violate.
   fully re-runnable and diffable.
 - Raw payloads are immutable and content-hash addressed. Reprocess from there
   rather than re-fetching.
-- Seeded and hand-curated rows carry `provenance`. **Production asserts on
-  startup that none are present** - see `collect/registry/assertions.py`.
+- Seeded and hand-curated rows carry `provenance`. `collect/registry/assertions.py`
+  provides `assert_no_fixtures()` and `assert_contract_backed()` to refuse them.
+
+  **Neither has a caller outside tests. Nothing currently stops a seeded row
+  reaching a non-development environment.** Wiring is pending a startup path -
+  issue #27. `judge/` opens no database connection at all, `collect/cli.py` runs
+  per command rather than at startup, and the nightly chain that is the natural
+  home does not exist yet.
+
+  The third function in that module, `assert_terms_reviewed()`, **is** wired -
+  `collect/adapters/blog/fetch.py` and `scripts/harvest_github.py` - so the
+  module is not uniformly unwired and these two are not an oversight of style.
+
+  This entry said "Production asserts on startup that none are present" for
+  weeks. The first correction said the check was "called from the loaders and
+  from tests", which was also wrong: the three apparent call sites in `collect/`
+  are a docstring and two comments. Counted, the second time.
 - Estimates are labelled as estimates. Triage survival (~10-15%), output
   verbosity and retry rate are figures to calibrate, not specifications.
 
 ## Build fixtures currently in place
 
-Both are load-bearing during the build and poisonous afterwards.
+Load-bearing during the build and poisonous afterwards.
 
 | Fixture | Purpose | Removed |
 |---|---|---|
-| `contract/seed_models.yaml` | 10 hardcoded models so work starts without the registry poller | Week 5, when OpenRouter polling lands |
-| `fixtures/hand_cells.yaml` | Hand-written cells so the Ask box works before any evidence exists | Week 8 |
+| `contract/seed_models.yaml` | 10 hardcoded models so work starts without the registry poller | When OpenRouter polling lands |
+
+`fixtures/hand_cells.yaml` was listed here until the Ask box was parked and the
+file deleted. The section documenting our guard against stale fixtures had gone
+stale itself, which is the joke writing itself and the reason this table lists
+what exists rather than what was planned.
