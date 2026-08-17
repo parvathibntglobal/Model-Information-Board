@@ -280,7 +280,16 @@ class TestSubstitution:
         into a platform-neutral file — the thing ruling (b) removed.
         """
         for e in queries["substitution"]:
-            directional = any("{alias_b}" in t for t in e["terms"]["topic"])
+            # Looks at EVERY group, not just topic. `{alias_b}` moved from topic
+            # into subject when the adjacency phrases were replaced, and a
+            # topic-only check would have silently stopped asserting rather
+            # than failed - the same weakness as `"{alias}" in subject` being
+            # exact membership on a list.
+            directional = any(
+                "{alias_b}" in term
+                for group in ("subject", "topic", "signal")
+                for term in e["terms"][group]
+            )
             if directional:
                 assert e.get("direction") == "decided_at_extraction", (
                     "a directional substitution template must declare "
@@ -288,6 +297,23 @@ class TestSubstitution:
                     "make that semantic call unilaterally in code"
                 )
 
-    def test_substitution_references_a_second_model(self, queries):
+    def test_substitution_requires_both_models_present(self, queries):
+        """`subject` is all-of, so both aliases in it means both must appear.
+
+        This asserted `{alias_b}` in `topic` — any-of — which let a document
+        naming one model satisfy a substitution query. A one-model document is
+        an impression about that model, not a migration between two, and it
+        belongs to the capability queries instead.
+
+        Requiring both in `subject` is also what lets `topic` hold bare verbs
+        like `replaced`. On its own that is the `accurate` class; alongside two
+        specific model names it is not.
+        """
         for e in queries["substitution"]:
-            assert any("{alias_b}" in t for t in e["terms"]["topic"]), e["stance"]
+            subject = e["terms"]["subject"]
+            assert any("{alias}" in s for s in subject), e["stance"]
+            assert any("{alias_b}" in s for s in subject), (
+                f"substitution/{e['stance']}: {{alias_b}} must be in subject "
+                "(all-of) so both models are required, not in topic (any-of) "
+                "where one model satisfies the query"
+            )
