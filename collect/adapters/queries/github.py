@@ -257,8 +257,21 @@ def render_search(
     #
     # This is the search-versus-attribution split from issue #5, one layer down
     # and inside a single function.
+    # `alias_b` gets the same treatment as `alias`, and it did not before.
+    #
+    # Latent while substitution is refused above, and it stopped being harmless
+    # the moment `{alias_b}` moved into `subject`: `parts` is built from the
+    # SUBJECT group, so a second model in that group goes into the query itself.
+    # Hyphenating one alias and not the other would issue
+    # `claude-sonnet-5 "claude opus 5"` and collect issue #5 from unrelated
+    # repositories through the half that kept its trailing numeral — the exact
+    # noise `github_alias_form` exists to remove, reintroduced through the second
+    # argument.
     sieve_terms = entry.terms.substitute(alias, alias_b)
-    query_terms = entry.terms.substitute(github_alias_form(alias), alias_b)
+    query_terms = entry.terms.substitute(
+        github_alias_form(alias),
+        github_alias_form(alias_b) if alias_b is not None else None,
+    )
 
     parts = [f'"{term}"' if _MULTI_WORD.search(term) else term for term in query_terms.subject]
 
