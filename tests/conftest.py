@@ -14,6 +14,50 @@ becomes permanent the first time somebody puts it in a shell profile.
 **The suite destroys the database it points at.** `conn` runs
 DROP SCHEMA public CASCADE before every test. Pointed at anything real, that
 is a very bad afternoon. Three layers stop it, cheapest and clearest first.
+
+A CONVENTION, WRITTEN DOWN BECAUSE A FOURTH INSTANCE IS COMING
+--------------------------------------------------------------
+**Test the world's assumptions, not the code's.** Three defects have now
+survived a green suite in the same way, and the suite was green each time
+because every test shared an assumption with the code under test.
+
+    #21  `test_assembly_refuses_and_says_what_is_missing` asserted
+         `"specificity_score" in message` with the comment "the scorer that
+         does not exist". That asserts the MENTION, not the CLAIM: it passes
+         whether or not the scorer exists. When the scorer landed, the refusal
+         went on asserting something false and 878 tests stayed green.
+
+    #16  `sieve_any` silently dropped its `window` argument. No test had ever
+         passed `window` to `sieve_any`, so the fix had no guard either. Found
+         by AST-walking every keyword-only parameter against every call site,
+         after a regex attempt gave a false negative.
+
+    #22  `names_version` passed raw text to `sieve.matches`, whose own
+         docstring says "already-normalised text" and which does not casefold.
+         Every capitalised model name was missed — 1 of 111 blog articles
+         scored where the figure is 7. All 45 tests passed, because every one
+         used a lowercase model name.
+
+Three shapes of the same mistake: asserting the text of a claim instead of its
+truth; never exercising an option; and never leaving the input shape the author
+had in mind. What each cost was not a wrong answer but a MISSING one, which is
+the class this project keeps paying for — rule 6's expensive case, where the
+defect surfaces as an absence with nothing to disagree with.
+
+Three habits that would have caught all three, cheapest first:
+
+  1. **Where a callee's docstring states a precondition, the precondition is a
+     test case.** `matches` says "already-normalised" — so pass it something
+     unnormalised and assert what happens. Not a comment; a test.
+  2. **Assert the state of the world, not the wording that describes it.** If a
+     message claims something is absent, assert the absence too, from the
+     contract or by import. A message and the fact it asserts drift apart.
+  3. **Break it on purpose and watch the test fail.** Every fix above was
+     confirmed by reverting it. A test that has never failed has not been
+     tested.
+
+Owned by neither lane, like `test_queries_contract.py` — it describes how both
+lanes write tests, and it breaks for both.
 """
 
 from __future__ import annotations
