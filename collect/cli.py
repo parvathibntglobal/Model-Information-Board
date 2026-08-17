@@ -103,10 +103,11 @@ def _cmd_db_migrate(args: argparse.Namespace) -> int:
 def _cmd_registry_propose_aliases(args: argparse.Namespace) -> int:
     """Propose alias surfaces for review. Writes a skeleton, decides nothing.
 
-    Two inputs: mechanical variants derived from the registry, and attested
-    surfaces counted from stored documents when a surface file is supplied.
-    Without one it still runs and every entry reads `mechanical-only`, which is
-    "recall unmeasured" rather than "nobody discusses this model".
+    Three inputs: mechanical variants derived from the registry, vendor-drop
+    variants derived from a rule the corpus measured, and attested surfaces
+    counted from stored documents when a surface file is supplied. Without one it
+    still runs and every entry reads `mechanical-only`, which is "recall
+    unmeasured" rather than "nobody discusses this model".
     """
     import json
 
