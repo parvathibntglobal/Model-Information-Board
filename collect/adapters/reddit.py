@@ -7,19 +7,61 @@ selection and `offset_map` — is refused explicitly by `assemble_thread` rather
 than half-built, because two things it needs do not exist yet. See the refusal
 for what they are.
 
-WHY THIS PLATFORM IS DIFFERENT, AND IT IS THE INTERESTING PART
---------------------------------------------------------------
-**Phrases bind here.** Measured 2026-08-14: `"context window"` returned 248
-posts with the phrase present in 96% of them; `"window context"` returned 239
-with 10%; the two result sets shared **2 ids out of 485**. Compare GitHub,
-where `"sonnet claude 5"` returned 545 against the correct order's 540 with
-near-total overlap, which is what proved its index ranks rather than binds.
+WHY THIS PLATFORM IS DIFFERENT, AND WHAT THAT CLAIM IS ACTUALLY WORTH
+----------------------------------------------------------------------
+**RETRIEVAL DOES NOT GUARANTEE THE PHRASE. THE SIEVE CARRIES IT.** That is the
+instruction; everything below is why.
 
-So Reddit is the only platform where `requires: phrase_binding` can be
-honoured, and therefore the only one where a substitution query — "we replaced
-X with Y and it held" — can be RETRIEVED rather than reconstructed by the
-sieve. `contract/queries.yaml` calls that the highest-value pattern in the
-system and it has been unreachable everywhere until now.
+Phrases bind here better than anywhere else, and not reliably. The first
+version of this docstring said "phrases bind" full stop, on the strength of
+ONE common phrase.
+
+The comparison that stands, measured 2026-08-14: `"context window"` returned
+248 posts with the phrase present in 96%; `"window context"` returned 239 with
+10%; the two result sets shared **2 ids out of 485**. Compare GitHub, where
+`"sonnet claude 5"` returned 545 against the correct order's 540 with
+near-total overlap, which is what proved its index ranks rather than binds.
+Reddit is still the only platform where `requires: phrase_binding` can be
+honoured at all.
+
+The generalisation does not stand. Re-measured 2026-08-17 over the 19 distinct
+quoted phrases of the substitution sweep, containment of the quoted phrase in
+what came back:
+
+    "went back to"                    75 posts        100%
+    "reverted to"                     75               36%
+    "switched back"                   75               25%
+    "rolled back"                     75               24%
+    "instead of opus 5"                9               67%
+    "replaced gemini 2.5 flash"        6                0%
+    "replaced opus 5"                  2                0%
+    "switched from opus 5"             2                0%
+    ------------------------------------------------------
+    all 19 phrases                   357               43%
+
+**Binding is a property of the phrase, not of the platform.** A rare phrase
+does not return zero — it returns loosely matched posts, which is the shape
+that reads as evidence and is not.
+
+THE DIAGNOSIS IS LEFT OPEN ON PURPOSE. Containment above is measured with
+`sieve.matches`, which is adjacency modulo whitespace and stemming. Reddit's
+phrase operator may simply be looser: "reverted back to" satisfies a reader and
+probably Reddit, and fails `matches`. Separating "the platform ignored the
+phrase" from "our matcher is stricter than the platform's" needs a probe this
+sweep did not carry. Both diagnoses produce the same instruction, which is why
+the instruction is stated first and the cause is not asserted.
+
+A BARE TERM AFTER A QUOTED PHRASE IS NOT A FILTER
+-------------------------------------------------
+Measured the same day, over 44 `"phrase" alias` queries:
+
+    contain the appended alias        7% of 2,031 posts
+    overlap with the bare phrase      Jaccard 0.00-0.01 — near-disjoint sets
+    phrase containment                DEGRADES, 43% alone -> 32% appended
+
+It reweights rather than restricts. **Do not append an alias to scope a query
+to a model** — it neither scopes nor preserves the phrase. Whatever scoping a
+query needs has to survive the sieve instead.
 
 WHAT DOES NOT WORK, MEASURED THE SAME DAY
 -----------------------------------------
