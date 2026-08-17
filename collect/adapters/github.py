@@ -134,7 +134,16 @@ class SearchHit:
     title: str
     body: str
     created_at: str | None
+    #: The login. MUTABLE — GitHub allows renames, so this is not an identity.
+    #: Kept because it is the only handle available and `author.handle_hash`
+    #: needs it transiently; nothing retains it past that.
     author: str | None
+    #: The account's STABLE numeric id, which survives a rename. This is
+    #: GitHub's equivalent of Reddit's `t2_` and the adapter was discarding it —
+    #: `user.login` was the only thing kept, which is the exact failure the
+    #: Reddit canonicalisation exists to avoid. None when the API omits `user`,
+    #: which happens for a deleted account (rule 6: absent, not guessed).
+    author_external_id: str | None
     comment_count: int
     reactions: int
 
@@ -404,6 +413,11 @@ class GitHubHarvester:
             body=item.get("body") or "",
             created_at=item.get("created_at"),
             author=(item.get("user") or {}).get("login"),
+            author_external_id=(
+                str((item.get("user") or {}).get("id"))
+                if (item.get("user") or {}).get("id") is not None
+                else None
+            ),
             comment_count=int(item.get("comments") or 0),
             reactions=int((item.get("reactions") or {}).get("total_count") or 0),
         )
