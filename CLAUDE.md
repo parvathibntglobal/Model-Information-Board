@@ -84,16 +84,23 @@ These are the rules a helpful refactor will otherwise quietly violate.
   fully re-runnable and diffable.
 - Raw payloads are immutable and content-hash addressed. Reprocess from there
   rather than re-fetching.
-- Seeded and hand-curated rows carry `provenance`. **Production asserts on
-  startup that none are present** - see `collect/registry/assertions.py`.
+- Seeded and hand-curated rows carry `provenance`, and `assert_no_fixtures()`
+  in `collect/registry/assertions.py` refuses a load that would serve them.
+  **It is called from the loaders and from tests. There is no server process,
+  so nothing asserts "on startup" - this file said there was, and there was
+  not.** When one exists, wire it there and change this sentence back.
 - Estimates are labelled as estimates. Triage survival (~10-15%), output
   verbosity and retry rate are figures to calibrate, not specifications.
 
 ## Build fixtures currently in place
 
-Both are load-bearing during the build and poisonous afterwards.
+Load-bearing during the build and poisonous afterwards.
 
 | Fixture | Purpose | Removed |
 |---|---|---|
-| `contract/seed_models.yaml` | 10 hardcoded models so work starts without the registry poller | Week 5, when OpenRouter polling lands |
-| `fixtures/hand_cells.yaml` | Hand-written cells so the Ask box works before any evidence exists | Week 8 |
+| `contract/seed_models.yaml` | 10 hardcoded models so work starts without the registry poller | When OpenRouter polling lands |
+
+`fixtures/hand_cells.yaml` was listed here until the Ask box was parked and the
+file deleted. The section documenting our guard against stale fixtures had gone
+stale itself, which is the joke writing itself and the reason this table lists
+what exists rather than what was planned.

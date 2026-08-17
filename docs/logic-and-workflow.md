@@ -227,7 +227,7 @@ Pure code. **Adapters, not agents** — what differs between platforms is auth, 
 
 | Platform | Role in the corpus | Access | Base trust |
 |---|---|---|---|
-| **GitHub issues & discussions** | The failure channel. Repro steps, error strings, real schemas. Sweep agent frameworks and SDKs — LangChain, LlamaIndex, Aider, AutoGen, CrewAI, provider SDKs | API | **0.95** |
+| **GitHub issues & discussions** | **Establishes which models are in real production use** — named in configs, `model=` parameters and dependency manifests. Measured at 52.7% subject match, which nothing else approaches. Sweep agent frameworks and SDKs — LangChain, LlamaIndex, Aider, AutoGen, CrewAI, provider SDKs | API | **0.95** |
 | **Engineering blogs** | The positive channel. Engineers blog about what worked and file issues about what didn't — and the substitution writeup lives here | RSS + sitemaps | **0.90** |
 | **Reddit** | Comparison and nuance. r/LocalLLaMA and r/MachineLearning | API | **0.85** |
 
@@ -313,7 +313,7 @@ reconstruct the conversation tree
   → this string, not the isolated comment, is the unit sent to E5
 ```
 
-**Children are ranked by specificity, not popularity.** The highest-scoring replies are agreement and jokes; the two-line correction — *"you had `tool_choice` misconfigured"* — sits at +2 and would be dropped by an engagement-only rank. That correction is the exact case flattening exists to capture. `specificity_score` is already computed in E4 from error strings, numbers, code fences and version names, so reuse it.
+**Children are ranked by specificity, not popularity.** The highest-scoring replies are agreement and jokes; the two-line correction — *"you had `tool_choice` misconfigured"* — sits at +2 and would be dropped by an engagement-only rank. That correction is the exact case flattening exists to capture. `specificity_score` is computed **at ingest** from error strings, numbers, code fences and version names, so reuse it. It is not computed in E4: E3 assembles before E4 triages, so E4 is a second reader of the same column, never its producer.
 
 **What flattening buys:** attribution, since replies inherit the model reference · sarcasm survives, because it is almost always relative to something said earlier · conditions survive, because the parent usually carries the tool count and context size the reply assumes · rebuttals attach to what they rebut, which is what makes disagreement detectable rather than noise.
 
@@ -346,7 +346,7 @@ All deterministic. **No paid call happens before this passes.**
 
 **Expected survival to E5: roughly 10–15% of raw documents — an estimate to calibrate, not a specification.** Track it from day one. A survival rate shifting more than 2σ means a platform changed or a filter broke; **that alert needs a 14-day burn-in before it arms**, since there is no baseline to compute σ against on day one. Log and eyeball until then.
 
-> Heuristics, not a trained classifier. A quantised spam model needs labels you don't have yet, and the hard gates plus the specificity floor already remove the overwhelming majority of junk. The classifier arrives later, **trained on the labels this stage generates for free.**
+> Heuristics, not a trained classifier. A quantised spam model needs labels you don't have yet, and the hard gates already remove the overwhelming majority of junk, with the specificity floor catching a small remainder — measured at 7.7% of rejections, so the gates do nearly all of it. The classifier arrives later, **trained on the labels this stage generates for free.**
 
 ---
 
