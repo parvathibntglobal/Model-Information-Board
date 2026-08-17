@@ -666,30 +666,47 @@ queries:
 #  not exist on GitHub. It lives predominantly on blogs, which is the second
 #  reason that adapter is not optional.
 #
-#  `requires: phrase_binding` — THE ONLY MACHINE-READABLE CONSTRAINT IN THIS
-#  FILE, and it is here rather than a `platforms:` list on purpose.
+#  `direction: decided_at_extraction` — THE ONLY MACHINE-READABLE CONSTRAINT
+#  IN THIS FILE, and it is here rather than a `platforms:` list on purpose.
 #
 #  Seven of these topic terms embed `{alias_b}` in a DIRECTIONAL phrase:
 #  "replaced X with Y" and "replaced Y with X" are opposite claims built from
-#  identical tokens. An index that does not bind phrases cannot tell them
-#  apart, so retrieval there returns both directions and the sieve decides.
+#  identical tokens. RETRIEVAL CANNOT TELL THEM APART, so a retrieved set is a
+#  direction-blind superset and direction is decided downstream.
+#
+#  RENAMED, and the old name is worth recording because it asserted a cause the
+#  measurements have since contradicted. It said the query means nothing where
+#  an index does not BIND a phrase, which implied some index does. None that
+#  has been measured does: GitHub ranks rather than binds ("replaced claude
+#  with gpt" 53 against the reverse order's 52), and Reddit has no phrase
+#  operator at all - it degrades to OR over the tokens, every returned post
+#  carrying at least one word and only 24-37% carrying all of them. "context
+#  window" at 96% was collocation frequency read as operator behaviour. So the
+#  old name described a capability no platform has, and pointed at the wrong
+#  remedy: a better index.
+#
+#  The new name states the REMEDY rather than the obstacle. Direction is not
+#  something retrieval can be made to carry; it is read from the text, by the
+#  one stage allowed to read text. An LLM may propose, it may never decide -
+#  and direction is a proposal about what a sentence says, verified against a
+#  verbatim quote like every other claim.
 #
 #  `platforms: [blogs, reddit]` would have been the shorter way to say it and
-#  it is the wrong one: it writes today's measurement of GitHub's index into
-#  a platform-neutral file, which is exactly what ruling (b) removed. This
-#  flag states the semantic PROPERTY — the query only means anything where
-#  the phrase binds — and each adapter decides whether it can honour it. If
-#  GitHub ships phrase matching, nothing in this file changes.
+#  it is the wrong one: it writes today's measurement of one index into a
+#  platform-neutral file, which is exactly what ruling (b) removed. That
+#  argument survived the rename intact and is better supported now than when
+#  it was written - a platform list naming Reddit as a phrase-binding platform
+#  would today be WRONG rather than merely stale.
 #
-#  Retrieval MAY be direction-blind where phrases do not bind; the sieve
-#  enforces direction locally. Engineer 1's observation that this collapses
-#  90 ordered model pairs to 45 is a rendering decision and theirs to take.
+#  Retrieval MAY be direction-blind; extraction enforces direction from the
+#  quote. Engineer 1's observation that this collapses 90 ordered model pairs
+#  to 45 is a rendering decision and theirs to take.
 # ----------------------------------------------------------------------------
 
 substitution:
 
   - stance: positive
-    requires: phrase_binding
+    direction: decided_at_extraction
     intent: >
       A migration from one model to another that was kept.
     terms:
@@ -708,7 +725,7 @@ substitution:
       instead of discarding it.
 
   - stance: negative
-    requires: phrase_binding
+    direction: decided_at_extraction
     intent: >
       A migration that was reverted. Rarer, and worth more per instance than
       any other document in the corpus: it is a direct measurement of the
@@ -771,9 +788,10 @@ substitution:
 #  and encoding it here would make it true for Reddit and blogs, which it is
 #  not.
 #
-#  `requires: phrase_binding` is the one exception, and it is not a rendering
-#  instruction - it states that a query is meaningless where phrases do not
-#  bind, and leaves each adapter to decide what to do about that.
+#  `direction: decided_at_extraction` is the one exception, and it is not a
+#  rendering instruction - it states WHERE DIRECTION IS DECIDED, which is a
+#  fact about the pipeline rather than about any platform's index, and leaves
+#  each adapter to decide what to do about retrieving a direction-blind set.
 #
 #  Reddit and blog matching have not been measured at all. What an adapter
 #  does about that is collect/'s to decide, and this file does not say.

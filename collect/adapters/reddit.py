@@ -74,10 +74,12 @@ very common English collocation, so relevance ranking returns it anyway — and
 that is the same reason `"context window"` scored 96%. **That 96% was never
 evidence of a phrase operator**, which is what made it generalise so badly.
 
-CONSEQUENCE FOR THE CONTRACT, and it is not this file's to decide.
-`requires: phrase_binding` says a query is meaningless where phrases do not
-bind. On this evidence Reddit does not bind them either, so the flag currently
-has no platform that honours it. Raised on issue #18 rather than acted on here.
+CONSEQUENCE FOR THE CONTRACT, since acted on. The flag used to read
+`requires: phrase_binding` and said a query is meaningless where phrases do not
+bind — which implied some platform binds them, and on this evidence none does.
+It is now `direction: decided_at_extraction`, naming where direction IS decided
+rather than the capability whose absence stops it. Raised on #18, renamed with
+Engineer 2 in the same change as her doc corrections.
 
 The instruction is unchanged and now rests on a measurement rather than on a
 choice between two explanations: retrieval does not guarantee the phrase, and
