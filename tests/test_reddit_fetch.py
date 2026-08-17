@@ -314,9 +314,22 @@ def test_the_refusal_does_not_still_blame_the_missing_scorer(tmp_path):
     assert "no implementation" not in message, (
         "the refusal claims the scorer is unimplemented and it is implemented"
     )
-    assert "no longer the reason" in message, (
-        "the refusal should say the scorer is no longer what blocks assembly"
+    assert "fetch_comments" in message, (
+        "comment fetching landed, so the refusal must stop implying the children "
+        "are unavailable and rest only on the bounding problem"
     )
+    assert "cannot be bounded" in message, (
+        "the ONE remaining reason must be stated, or the refusal has lost its "
+        "grounds while still refusing"
+    )
+
+    # An earlier version of this test also asserted `"no longer the reason" in
+    # message`. That pinned a PHRASE, and it broke the moment the refusal was
+    # legitimately reworded to say two reasons had gone rather than one — a test
+    # failing because prose improved is the same weakness in the other
+    # direction, and the convention in tests/conftest.py says assert the world.
+    # What is asserted above is the world: the scorer imports, the fetcher is
+    # named, the surviving reason is stated, and the retired claim is absent.
 
 
 def test_the_columns_the_refusal_calls_missing_are_genuinely_missing():
@@ -330,7 +343,8 @@ def test_the_columns_the_refusal_calls_missing_are_genuinely_missing():
     from collect.config import CONTRACT_DIR
 
     schema = (CONTRACT_DIR / "tables.sql").read_text(encoding="utf-8")
-    for column in ("observed_children", "hidden_children_min", "coverage_ratio"):
+    for column in ("observed_children", "hidden_children_min",
+                   "hidden_branches_unsized", "coverage_ratio"):
         assert column not in schema, (
             f"{column} is in contract/tables.sql now, so the refusal's remaining "
             "reason is stale and assemble_thread needs revisiting"

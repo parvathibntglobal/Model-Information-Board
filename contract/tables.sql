@@ -60,6 +60,28 @@ CREATE TABLE model_version (
   first_seen_at               timestamptz NOT NULL DEFAULT now(),
   updated_at                  timestamptz NOT NULL DEFAULT now(),
 
+  -- WHEN THIS MODEL WAS LAST SWEPT FOR EVIDENCE. Not when the row was written.
+  --
+  -- `updated_at` says when the FACTS changed; this says when we last went
+  -- looking for what engineers said. They come apart the moment a rotation
+  -- exists, and a rotation is forced: 900 daily requests / 81.45 per model is
+  -- 11 models a night against a feed carrying 340.
+  --
+  -- NULLABLE, AND NULL MEANS NEVER SWEPT. Not "swept long ago" and not
+  -- "swept now" — a model polled into the registry has had its facts read and
+  -- its evidence not looked for, and those are different states (rule 6).
+  --
+  -- IT EXISTS BEFORE THE ROTATION DOES, ON PURPOSE. A rotation without it is
+  -- rule 4 with a date on it: a model whose evidence is five days old renders
+  -- identically to one swept last night, and the gate reads both as current.
+  -- Nothing records the difference unless this column does.
+  --
+  -- It does not make every rotation safe. At 340 models a full pass takes 31
+  -- days against a 30-day half-life on ops.latency_ttft, so the sweep would
+  -- lose to the decay curve and a timestamp only lets you SEE that. Which
+  -- models to track is a scoping decision — issue #33.
+  last_swept_at               timestamptz,
+
   CONSTRAINT model_version_provenance_ck
     CHECK (provenance IN ('seed', 'polled'))
 );
