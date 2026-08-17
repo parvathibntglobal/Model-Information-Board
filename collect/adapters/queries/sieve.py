@@ -258,6 +258,33 @@ _EXCLUSIONS: tuple[tuple[str, re.Pattern[str]], ...] = (
 EXCLUDED_CONTAINERS: tuple[str, ...] = tuple(name for name, _ in _EXCLUSIONS)
 
 
+def strip_container(text: str, name: str) -> str:
+    """Remove ONE named container, leaving every other kind of span intact.
+
+    `author_prose` removes all of `_EXCLUSIONS` because it is answering "did the
+    author assert this". A signature is a different question and wants a
+    different subset: `collect/CLAUDE.md` says to exclude blockquoted spans from
+    the dedupe signature so commentary ABOUT a post is not merged into it, and
+    says nothing about code — because a pasted traceback is content that
+    distinguishes documents rather than borrowed words that conflate them.
+
+    So this exists to give `assemble/signature.py` the blockquote pattern without
+    a second definition of what a blockquote is. Three call sites now read one
+    set of patterns: `author_prose` for the sieve, `triage.specificity.has_code`
+    for their presence, and this for one member.
+
+    Raises:
+        KeyError: on an unknown container, rather than silently stripping nothing
+            and returning text that looks filtered.
+    """
+    for container, pattern in _EXCLUSIONS:
+        if container == name:
+            return pattern.sub(" ", text)
+    raise KeyError(
+        f"{name!r} is not a container. Known: {list(EXCLUDED_CONTAINERS)}"
+    )
+
+
 def author_prose(text: str) -> str:
     """The text with every container of somebody else's words removed.
 
