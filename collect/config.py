@@ -35,8 +35,20 @@ class Settings:
     raw_store_path: Path
     user_agent: str
     github_token: str | None
+    #: Direct Reddit OAuth. Unused while access goes through RapidAPI — kept
+    #: rather than deleted because the terms ruling has not been made, and a
+    #: ruling that lands the other way needs them back.
     reddit_client_id: str | None
     reddit_client_secret: str | None
+
+    #: RapidAPI, which proxies Reddit's official API rather than scraping it:
+    #: the responses carry `kind`/`data` envelopes, `t2_`/`t3_` fullnames,
+    #: `subreddit_id` and `created_utc` as an epoch float, none of which a
+    #: scraper reconstructing from HTML can produce. Measured 2026-08-14.
+    rapidapi_key: str | None
+    #: The BARE HOST, e.g. `reddit34.p.rapidapi.com`. RapidAPI routes on the
+    #: `x-rapidapi-host` header, so a full URL here silently addresses nothing.
+    rapidapi_host: str | None
     pipeline_version: str
 
     @property
@@ -57,6 +69,22 @@ def _load_dotenv() -> None:
     load_dotenv(REPO_ROOT / ".env", override=False)
 
 
+def _bare_host(value: str | None) -> str | None:
+    """`https://h/path?x=1` -> `h`. RapidAPI routes on a host, not a URL.
+
+    Returns None for an empty value so an unset variable stays unset: an
+    absent credential must not become a definite one (rule 6).
+    """
+    if not value:
+        return None
+    from urllib.parse import urlsplit
+
+    trimmed = value.strip()
+    if "//" in trimmed:
+        return urlsplit(trimmed).hostname or None
+    return trimmed.split("/")[0] or None
+
+
 @lru_cache(maxsize=1)
 def settings() -> Settings:
     _load_dotenv()
@@ -71,5 +99,10 @@ def settings() -> Settings:
         github_token=os.getenv("GITHUB_TOKEN") or None,
         reddit_client_id=os.getenv("REDDIT_CLIENT_ID") or None,
         reddit_client_secret=os.getenv("REDDIT_CLIENT_SECRET") or None,
+        rapidapi_key=os.getenv("RAPIDAPI_KEY") or None,
+        # Tolerated rather than trusted: the value in .env today is a full
+        # endpoint URL, and a host header carrying a URL matches no route.
+        # Normalised here so one bad paste does not read as "the API is down".
+        rapidapi_host=_bare_host(os.getenv("RAPIDAPI_HOST")),
         pipeline_version=os.getenv("PIPELINE_VERSION", PIPELINE_VERSION),
     )

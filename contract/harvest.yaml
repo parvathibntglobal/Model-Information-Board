@@ -50,11 +50,56 @@
 #  ⚠ HEADROOM ON THE DAILY SWEEP IS 4 REQUESTS, which is none. One more alias
 #  variant, or one more capability, breaks it. That is the cap working as
 #  intended — it forces the next person to make the decision on purpose
-#  rather than discover the cost in production — but nobody should add a
-#  capability expecting this to pass untouched. The honest options at that
-#  point are a narrower sweep scope, fewer searchable alias variants
-#  (registry.yaml:alias_search), or moving something to weekly. Raising the
-#  number is the one option that is not a decision.
+#  rather than discover the cost in production.
+#
+#  WHICH LEVERS ACTUALLY MOVE IT, MEASURED 2026-08-14 AT REGISTRY SCALE
+#
+#  An earlier version of this file named three: a narrower sweep scope, fewer
+#  alias variants, a longer cadence. **One of those three does nothing**, and
+#  a contract naming an inert lever is worse than naming two, because
+#  somebody reaches for it at the cap and finds it does not move.
+#
+#  The poller takes the registry from 11 models to fifty-odd. Costed through
+#  `plan_searches`:
+#
+#      11 models ->  56 rendered forms ->   896 requests   (headroom 4)
+#      20 models -> 102 rendered forms ->  1,629 requests  OVER by 729
+#      50 models -> 255 rendered forms ->  4,073 requests  OVER by 3,173, 4.5x
+#
+#    NARROWER SCOPE — DOES NOTHING. Measured: one repo in scope and two repos
+#      in scope both cost 896 requests. Scope is a qualifier INSIDE a query,
+#      not a multiplier of queries; it changes what comes back and never how
+#      many requests are issued. It is a precision lever, not a budget one,
+#      and it was wrong to list it here.
+#
+#    FEWER ALIAS VARIANTS — works, at a price paid elsewhere. Fitting 900 at
+#      16 daily entries needs 56 rendered forms TOTAL, which at 50 models is
+#      1.1 per model against 5.1 today. `check_spelling_coverage` in
+#      registry.yaml requires three renderings per model, so this lever
+#      closes the gap only by breaking that rule — and #5 records that the
+#      attribution side must not narrow as a side effect of a harvest saving.
+#
+#    LONGER CADENCE — cannot close it at this scale. At 50 models even ONE
+#      daily entry costs 255 requests, and the gate's irreducible set is the
+#      12 negatives at 3,055. Moving entries to weekly bought the PR #8
+#      overrun back; it does not buy the poller back.
+#
+#  WHAT DOES CLOSE IT: PARTITION THE MODELS ACROSS NIGHTS.
+#
+#      1 night  -> 50.0 models -> 4,073 requests  OVER
+#      2 nights -> 25.0 models -> 2,036 requests  OVER
+#      5 nights -> 10.0 models ->   815 requests  OK
+#      7 nights ->  7.1 models ->   582 requests  OK
+#
+#  ⚠ AND ITS COST IS NOT A BUDGET COST. A rotation changes what "daily" MEANS
+#  for a given model: on a five-night rotation a model's evidence is up to
+#  five days old, and the gate reads it as current because nothing records
+#  when that model was last swept. That is rule 4 with a date on it — an
+#  absence of recent evidence rendering as an absence of problems. A rotation
+#  therefore needs a per-model last-swept timestamp before it is safe, and
+#  that is a contract decision rather than a scheduler setting.
+#
+#  Raising the number remains the one option that is not a decision.
 #
 #  WHICH CADENCE AN ENTRY GETS IS DERIVED, NOT LISTED HERE.
 #
@@ -151,14 +196,21 @@ cadence_days:
 #                 recoverable; a document never fetched is not. That makes the
 #                 tighter end the cheaper mistake.
 #
-#                 The rejected text really is on disk, which is not visible
-#                 from the adapter's call order: `search()` writes the search
-#                 response to `raw/` BEFORE the sieve runs, so a hit the sieve
-#                 threw away still has its title and body stored. See the
-#                 "A REJECTED DOCUMENT IS STILL STORED" note in
-#                 collect/adapters/github.py, which exists because reading
-#                 "search, sieve, fetch" invites exactly the opposite
-#                 inference and that inference would make this paragraph false.
+#                 The rejected text really is on disk, FOR THE PAGES THAT WERE
+#                 STORED, and that qualifier is part of the claim rather than
+#                 an exception to it. `search()` writes the search response to
+#                 `raw/` BEFORE the sieve runs, so a hit the sieve threw away
+#                 still has its title and body stored — but only page 1 is
+#                 written. At `max_pages=1`, the default and every run so far,
+#                 page 1 IS the result set and this holds unconditionally.
+#                 Raise `max_pages` and pages 2+ are sieved and never stored.
+#
+#                 See the note in collect/adapters/github.py, which exists
+#                 because reading "search, sieve, fetch" invites the opposite
+#                 inference — and it was made. `pages_fetched`/`pages_stored`
+#                 on `harvest_run` are proposed on #5 so a re-sieve can say
+#                 "this run stored page 1 of 4" rather than leaving the reader
+#                 to assume completeness.
 #
 #    reversibility  cheaper than first written here. Moving the window is this
 #                 one line plus a re-sieve, and a re-sieve costs NOTHING: the
@@ -169,12 +221,11 @@ cadence_days:
 #                 recovered document rather than per query, and the tighter
 #                 end is cheaper to be wrong at than this file first claimed.
 #
-#                 Caveat, because the recovery is only as complete as the
-#                 store: only search page 1 is written today. With
-#                 `max_pages=1` — the default, and what every run so far has
-#                 used — that is the whole result set. Raising it without also
-#                 storing later pages would make those hits unrecoverable
-#                 without a re-search.
+#                 The recovery is only ever as complete as the store, so the
+#                 honest form of the claim is "recoverable for the pages that
+#                 were stored" — true unconditionally at today's
+#                 `max_pages=1`, and false the moment that changes without the
+#                 coverage record proposed on #5.
 #
 #  So disagreeing with 1200 is cheap, and nothing measured argues against a
 #  different value in the band.

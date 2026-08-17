@@ -462,9 +462,16 @@ def test_the_refusal_reads_as_a_decision_not_an_obstacle():
         "the message must name what the sweep actually costs now, derived — "
         "a pinned figure here goes stale the moment the sweep changes"
     )
-    for move in ("narrow the sweep scope", "alias_search", "longer cadence"):
+    for move in ("alias_search", "longer cadence", "partition the models"):
         assert move in message, f"the message must name the {move!r} move"
     assert "is the option that is not a decision" in message
+
+    # And it must NOT offer the one that was measured to do nothing: scope is
+    # a qualifier inside a query, not a multiplier of queries, so one repo and
+    # two repos cost the same. Naming an inert lever at the cap is worse than
+    # naming one fewer, because somebody reaches for it.
+    assert "narrow the sweep scope" not in message
+    assert "NOT a narrower sweep scope" in message
 
 
 def test_an_undeclared_cadence_is_refused_rather_than_waved_through():
