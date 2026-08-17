@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from collect.config import settings
 from collect.registry.aliases import all_alias_rows, find_collisions
@@ -96,6 +97,44 @@ def _cmd_db_migrate(args: argparse.Namespace) -> int:
         return 0
     finally:
         conn.close()
+
+
+
+def _cmd_registry_propose_aliases(args: argparse.Namespace) -> int:
+    """Propose alias surfaces for review. Writes a skeleton, decides nothing.
+
+    Two inputs: mechanical variants derived from the registry, and attested
+    surfaces counted from stored documents when a surface file is supplied.
+    Without one it still runs and every entry reads `mechanical-only`, which is
+    "recall unmeasured" rather than "nobody discusses this model".
+    """
+    import json
+
+    from collect.db import connect
+    from collect.registry.propose import Attested, propose, summarise, to_yaml
+
+    observed: dict[str, list[Attested]] = {}
+    if args.surfaces:
+        for row in json.loads(Path(args.surfaces).read_text(encoding="utf-8")):
+            if row.get("verdict") in ("resolved", "attested-gap") and len(row["models"]) == 1:
+                observed.setdefault(row["models"][0], []).append(
+                    Attested(row["surface"], row["mentions"], row.get("documents", 0))
+                )
+
+    conn = connect()
+    try:
+        models = conn.execute(
+            "SELECT canonical_id, display_name FROM model_version ORDER BY canonical_id"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    proposals = propose(models, observed)
+    print(summarise(proposals))
+    if args.out:
+        Path(args.out).write_text(to_yaml(proposals), encoding="utf-8")
+        print(f"wrote {args.out} — review required, not loadable as-is")
+    return 0
 
 
 def _cmd_registry_check_sources(args: argparse.Namespace) -> int:
@@ -211,6 +250,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     check = reg_sub.add_parser("check-sources", help="FR-2 source coverage")
     check.set_defaults(func=_cmd_registry_check_sources)
+
+    propose_aliases = reg_sub.add_parser(
+        "propose-aliases",
+        help="propose alias surfaces from the registry and observed documents")
+    propose_aliases.add_argument(
+        "--surfaces", help="surface-extract JSON; omitted means recall unmeasured")
+    propose_aliases.add_argument("--out", help="write the reviewable skeleton here")
+    propose_aliases.set_defaults(func=_cmd_registry_propose_aliases)
 
     aliases = reg_sub.add_parser("aliases", help="alias rows and collisions")
     aliases.add_argument("-v", "--verbose", action="store_true")
