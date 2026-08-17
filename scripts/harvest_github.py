@@ -184,7 +184,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  [{index:2}] global fetch cap reached, stopping")
             break
         run = harvester.harvest(request)
-        written = harvester.write_documents(conn, run)
+        wrote = harvester.write_documents(conn, run)
         conn.commit()
         fetched += run.rest_calls
         runs.append(run)
@@ -193,7 +193,10 @@ def main(argv: list[str] | None = None) -> int:
             f"  [{index:2}/{plan.request_count}] {run.request.entry_label:44} "
             f"total={str(run.total_count):>5} got={run.retrieved:3} "
             f"sieve={y.kept:3}/{y.candidates:3} ({y.pass_rate:5.1%}) "
-            f"wrote={written:3} trunc={run.truncated_by or '-'}"
+            # inserted, not seen: a sweep legitimately returns the same issue
+            # from two queries, and the old counter reported writing it twice.
+            f"wrote={wrote['inserted']:3}/{wrote['seen']:<3} "
+            f"trunc={run.truncated_by or '-'}"
         )
     wall = time.monotonic() - started
 

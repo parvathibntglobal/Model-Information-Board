@@ -364,8 +364,19 @@ def fetch_models(client, *, url: str = MODELS_URL):
     return response
 
 
-def write_model_versions(conn, result: PollResult) -> dict[str, int]:
+def write_model_versions(conn, result: PollResult, *, batch: int = 200) -> dict[str, int]:
     """Upsert polled facts. Sets `last_swept_at` on NOTHING.
+
+    BATCHED, AND THIS ONE RUNS NIGHTLY AT THE LARGEST VOLUME OF ANY WRITER HERE.
+    340 models, one round trip each: about 44 seconds against a remote instance
+    at the 130ms measured on `write_authors`, against roughly a second batched.
+    Same shape as `write_authors` and `github.write_documents`, found by sweeping
+    the other writers rather than by hitting it.
+
+    `executemany(returning=True)` keeps the per-row `RETURNING (xmax = 0)`, so
+    inserts and updates are still counted separately rather than summed into a
+    single "written" that cannot distinguish a new model from a price change.
+    Losing that distinction would cost FR-3 its alert.
 
     THE SEPARATION THIS FUNCTION EXISTS TO KEEP. Polling reads facts about a
     model; sweeping looks for what engineers said about it. `updated_at` moves
@@ -379,12 +390,16 @@ def write_model_versions(conn, result: PollResult) -> dict[str, int]:
     """
     from collect.ids import stable_id
 
-    inserted = updated = 0
+    params = []
     for model in result.models:
         row = model.as_row()
-        row_id = stable_id("mv", row["canonical_id"])
-        outcome = conn.execute(
-            """
+        params.append({
+            **row,
+            "id": stable_id("mv", row["canonical_id"]),
+            "sources": _json(row["sources"]),
+        })
+
+    statement = """
             INSERT INTO model_version (
                 id, canonical_id, provider, display_name,
                 release_date, retirement_date, knowledge_cutoff,
@@ -424,13 +439,22 @@ def write_model_versions(conn, result: PollResult) -> dict[str, int]:
                 updated_at                 = now()
                 -- last_swept_at is NOT touched. See the docstring.
             RETURNING (xmax = 0) AS was_insert
-            """,
-            {**row, "id": row_id, "sources": _json(row["sources"])},
-        ).fetchone()
-        if outcome and outcome[0]:
-            inserted += 1
-        else:
-            updated += 1
+            """
+
+    inserted = updated = 0
+    with conn.cursor() as cur:
+        for start in range(0, len(params), batch):
+            cur.executemany(statement, params[start:start + batch], returning=True)
+            # One result set per row, in order. `nextset()` walks them; the last
+            # one returns None, which ends the loop rather than an off-by-one.
+            while True:
+                outcome = cur.fetchone() if cur.pgresult is not None else None
+                if outcome is not None and outcome[0]:
+                    inserted += 1
+                elif outcome is not None:
+                    updated += 1
+                if not cur.nextset():
+                    break
     return {"inserted": inserted, "updated": updated}
 
 
