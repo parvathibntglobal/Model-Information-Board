@@ -203,9 +203,37 @@ CREATE TABLE document (
   simhash                 bigint,                 -- long-form
 
   engagement              jsonb,                  -- {score, comments, upvote_ratio}
-  specificity_score       real,                   -- numbers · error strings · code
-                                                  -- · version named. Reused by E3
-                                                  -- for child ranking.
+
+  -- SPECIFICITY. Five counted components and the composite they combine into.
+  -- Written per document at ingest by collect/triage/specificity.py, BEFORE E3
+  -- ranks — child selection happens inside E3, so a score computed in E4 would
+  -- arrive a stage too late. E4's floor is the second reader, not the producer.
+  --
+  -- The COMPONENTS are stored, not just the composite, because the floor is a
+  -- five-way OR over them: from the composite alone a row cannot say why it was
+  -- kept or dropped, and the evidence drill-down has nothing countable to show.
+  --
+  -- NULL MEANS NOT SCORED, AND IS NOT false. Every row written before this
+  -- existed carries NULL in all six. The floor returns UNKNOWN for those rather
+  -- than DROPPED, and E3 must not coalesce the composite to 0 — that would sort
+  -- unscored documents last while making them look scored (rule 6).
+  --
+  -- NOT judge/vet/weight.py's f_specificity: that is per CLAIM, over four
+  -- booleans of which two the extractor emits, on a 0.3-1.0 range. These must
+  -- never be merged and never compared.
+  --
+  -- document.has_numbers is readable from judge/ as a FALSIFIER for the
+  -- extractor's self-reported claim.has_numbers. It falsifies and cannot
+  -- confirm: false here makes a claim asserting true a fabrication; true here
+  -- says nothing about whether the quote contains a number.
+  has_numbers             boolean,
+  has_error_strings       boolean,
+  has_code                boolean,
+  has_conditions          boolean,
+  names_version           boolean,
+  specificity_score       real,                   -- the weighted composite;
+                                                  -- weights in contract/harvest.yaml
+                                                  -- E3 ranks on this x log(1+engagement)
 
   dedup_cluster_id        text,
   is_canonical_in_cluster boolean,

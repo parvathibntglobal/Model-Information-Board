@@ -255,3 +255,83 @@ cadence_days:
 
 sieve:
   locality_window: 1200
+
+
+# ============================================================================
+#  SPECIFICITY — E4's floor, and the ranking key E3 will later read
+#
+#  SHARED. Agreed with Engineer 2 on docs/specificity-score-report.md §7.
+#
+#  Five components, each COUNTED from the document text by
+#  collect/triage/specificity.py. No language model participates: this is the
+#  gate that decides whether a document costs an extraction call, and rule 2
+#  forbids a model in counting, weighting, gating or ranking.
+#
+#  THIS IS NOT judge/vet/weight.py's f_specificity. Different granularity
+#  (document vs claim), different inputs (counted vs two extractor-emitted
+#  booleans), different range. They must never be merged AND NEVER COMPARED —
+#  a reader seeing 0.7 in both will want them to mean the same thing.
+#
+#  THE WEIGHTS ARE PROVISIONAL, AND THIS IS THE SAME POSITION locality_window
+#  WAS IN. Nothing measures them. There is no corpus labelled for specificity
+#  to fit them against, so these five numbers are judgement stated as
+#  judgement:
+#
+#    has_error_strings  highest, because a machine-emitted failure is the one
+#                       signal a human cannot produce by having an opinion
+#    has_numbers        a quantity with a unit is the difference between "it
+#                       was slow" and "p95 was 4.2s"
+#    has_code           a repro, a config, or a traceback someone pasted
+#    names_version      necessary for attribution and cheap to satisfy, so it
+#                       is weighted below the three that indicate measurement
+#    has_conditions     LOWEST, and the weakest detector of the five: it reads
+#                       stated values for conditions.yaml's three dimensions
+#                       and a document can state a condition in prose it will
+#                       not see
+#
+#  WHAT WOULD REVISE THEM: a re-score of the 174 GitHub candidates and 111
+#  blog articles already in the raw store, against the ~10-15% triage survival
+#  figure. That is a re-score and not a fetch, because raw payloads are
+#  immutable and content-hash addressed. If the floor drops 90% of documents,
+#  either these weights or the detectors are wrong.
+#
+#  A MISSING KEY HERE IS NOT A DEFAULT. Unlike sieve.locality_window, whose
+#  absence disables locality, an absent weight RAISES. A scorer with no
+#  weights would write zeroes into a real column, and a zero is a definite
+#  value where the truth is "not configured" (rule 6).
+# ============================================================================
+
+specificity:
+
+  weights:
+    has_error_strings: 0.30
+    has_numbers:       0.25
+    has_code:          0.20
+    names_version:     0.15
+    has_conditions:    0.10
+
+  # The floor from docs/logic-and-workflow.md §8: "no numbers, no error
+  # strings, no code, no conditions, no version named -> opinion, not
+  # evidence".
+  #
+  # LISTED AS WHAT CLEARS IT, NOT AS A THRESHOLD ON THE COMPOSITE, and the
+  # difference is not cosmetic. The floor is a five-way OR over the components:
+  # it does not read the weights at all, so its verdicts are as solid as the
+  # detectors. A cutoff on the weighted sum is a DIFFERENT RULE that merely
+  # agrees with it today — `score > 0` and `any(component)` happen to coincide
+  # while every weight is positive.
+  #
+  # They diverge the moment anyone calibrates. The weights above are
+  # provisional and nothing measures them yet; the first re-score that moves
+  # one to zero, or introduces a threshold above zero, separates the two rules
+  # silently. Writing the floor as a component list means a weight change
+  # cannot alter which documents are dropped, only how the survivors rank.
+  #
+  # A document with none of these is retained and not sent to the extractor.
+  # A document that has never been SCORED is neither — see FloorVerdict.UNKNOWN.
+  floor_clears_on:
+    - has_numbers
+    - has_error_strings
+    - has_code
+    - has_conditions
+    - names_version
