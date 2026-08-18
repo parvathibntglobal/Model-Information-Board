@@ -130,6 +130,8 @@ def a_stored(claim: ExtractedClaim | None = None, **overrides) -> StoredClaim:
         condition_bucket="context_size:8k-32k",
         evidence_tier="B",
         claim_date=date(2026, 8, 1),
+        # what actually ran, as the Completion reports it — never an env default
+        extractor_model="google/gemini-2.5-flash",
     )
     defaults.update(overrides)
     return StoredClaim(**defaults)
@@ -220,8 +222,8 @@ class TestWhatTheSchemaEnforces:
                 "source_comment_id, model_version_id, specificity, capability_key, "
                 "taxonomy_version, condition_bucket, polarity, quote, "
                 "quote_flat_offset, quote_raw_offset, quote_verified, relevance, "
-                "evidence_tier, pipeline_version) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,"
-                "%s,%s,%s,%s,%s,false,%s,%s,%s)",
+                "evidence_tier, extractor_model, pipeline_version) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,false,%s,%s,%s,%s)",
                 # quote_raw_offset is NOT NULL and both offsets are int4range.
                 # Omitting one and passing the other as a list made this raise
                 # NotNullViolation and DatatypeMismatch rather than the
@@ -229,7 +231,8 @@ class TestWhatTheSchemaEnforces:
                 # loudly while never testing the CHECK at all.
                 ("clm_x", "d1", "tc1", "d1", "mv1", "family",
                  "summarization.fidelity", "1.0", "context_size:8k-32k", "negative",
-                 "q", Range(0, 1, "[)"), Range(0, 1, "[)"), "central", "B", "e5.1"),
+                 "q", Range(0, 1, "[)"), Range(0, 1, "[)"), "central", "B",
+                 "google/gemini-2.5-flash", "e5.1"),
             )
 
     def test_the_raw_span_is_stored_not_the_flattened_one(self, seeded):

@@ -109,6 +109,12 @@ class StoredClaim:
     condition_bucket: str
     evidence_tier: str
     claim_date: date
+    #: The model that ACTUALLY ran, from the completion, not from the
+    #: environment. It was `os.getenv("EXTRACTOR_MODEL", "...flash")` on a
+    #: NOT NULL provenance column, so an unset variable wrote a confident
+    #: guess into the one field whose job is to say what produced the row.
+    #: Rule 6, on a provenance column, which is the worst place for it.
+    extractor_model: str
     author_id: str | None = None
     family: str | None = None
     taxonomy_version: str = "1.0"
@@ -179,8 +185,16 @@ class ClaimStore:
                 %(evidence_tier)s, %(extractor_model)s, %(extractor_confidence)s,
                 %(pipeline_version)s
             )
+            -- The offsets are updated with the quote. They cannot currently
+            -- diverge, because claim_id_for hashes the offset so a changed span
+            -- gets a different id and never conflicts - but that is the id
+            -- function protecting the upsert, not the upsert protecting itself.
+            -- Change the id inputs and the row silently keeps offsets pointing
+            -- at the previous span. Safe by construction beats safe by accident.
             ON CONFLICT (id) DO UPDATE SET
                 quote = EXCLUDED.quote,
+                quote_flat_offset = EXCLUDED.quote_flat_offset,
+                quote_raw_offset = EXCLUDED.quote_raw_offset,
                 condition_bucket = EXCLUDED.condition_bucket,
                 conditions = EXCLUDED.conditions,
                 polarity = EXCLUDED.polarity,
@@ -220,7 +234,7 @@ class ClaimStore:
                 "has_repro_steps": claim.has_repro_steps,
                 "has_numbers": claim.has_numbers,
                 "evidence_tier": stored.evidence_tier,
-                "extractor_model": os.getenv("EXTRACTOR_MODEL", "google/gemini-2.5-flash"),
+                "extractor_model": stored.extractor_model,
                 "extractor_confidence": claim.model_ref.resolution_confidence,
                 "pipeline_version": stored.pipeline_version,
             },
