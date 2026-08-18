@@ -26,8 +26,27 @@ def schema_sql() -> str:
     return TABLES_SQL.read_text(encoding="utf-8")
 
 
-def connect(url: str | None = None) -> psycopg.Connection[Any]:
-    """Open a connection. Caller owns the transaction."""
+#: Seconds to wait for a connection before giving up. psycopg has NO default
+#: here, and the cost of that is measured rather than assumed: with Postgres
+#: down, one `connect()` against `localhost:5433` took **250 seconds** to fail —
+#: psycopg tries every address the host resolves to (::1 and 127.0.0.1) and waits
+#: out each one. The test suite then looked hung for ten minutes when it was
+#: failing very slowly, which is the same thing from the outside.
+#:
+#: It matters more unattended than in a suite. A nightly stage that cannot reach
+#: the database should say so in seconds and let the chain record a failed stage,
+#: not sit for minutes per attempt while the window it was scheduled in closes.
+CONNECT_TIMEOUT_SECONDS = 10
+
+
+def connect(
+    url: str | None = None, *, connect_timeout: int | None = None
+) -> psycopg.Connection[Any]:
+    """Open a connection. Caller owns the transaction.
+
+    A DSN that already states `connect_timeout` keeps its own value: the caller
+    said what they wanted and this is not the place to overrule it.
+    """
     import psycopg
 
     dsn = url or settings().database_url
@@ -35,7 +54,14 @@ def connect(url: str | None = None) -> psycopg.Connection[Any]:
         raise DatabaseNotConfigured(
             "DATABASE_URL is not set. Copy .env.example to .env and fill it in."
         )
-    return psycopg.connect(dsn)
+    if "connect_timeout" in dsn:
+        return psycopg.connect(dsn)
+    return psycopg.connect(
+        dsn,
+        connect_timeout=(
+            CONNECT_TIMEOUT_SECONDS if connect_timeout is None else connect_timeout
+        ),
+    )
 
 
 @contextmanager
