@@ -1,0 +1,241 @@
+"""Build a `thread_context` fixture from a real harvested Reddit tree.
+
+WHY THIS IS A SCRIPT AND NOT A HAND-WRITTEN FILE
+
+The first offset map in this repo was hand-written and had an off-by-one: the
+space before an emoji belongs to the identity run, not to the substitution.
+Four tests failed and it took computing the spans to see it. A map that looks
+right and resolves one character wrong is exactly the failure `verify.py`
+exists to prevent, so writing one by hand to test it is circular.
+
+So the map is computed here, from the same normalisation that produces the
+flattened text, and the two cannot drift apart because one produces the other.
+
+WHAT THIS IS NOT
+
+**Not E3.** `collect/assemble/` is Engineer 1's and is authoritative. This is
+fixture tooling that produces the same SHAPE so `judge/` can meet it before the
+real assembler exists — the swap-rather-than-integration the plan asks for. If
+the two disagree when E3 lands, E3 is right and this regenerates.
+
+Two things it deliberately does not copy: child selection is by score alone,
+where E3 ranks by `specificity_score x log(1 + engagement)`, because
+`specificity_score` is computed at ingest and not present in a raw API payload.
+And it takes the whole selected comment rather than a window.
+
+SEGMENTS, NOT COMMENTS
+
+`offset_map` carries one segment per contiguous run where flat and raw agree,
+plus one per substitution. An emoji becoming `[loudly_crying_face]` is one
+character becoming twenty, so a constant per-comment delta resolves past the
+end of the document — which is how the bug presented the first time, silently,
+against the wrong text rather than failing.
+
+    python fixtures/threads/build.py
+"""
+
+from __future__ import annotations
+
+import json
+import unicodedata
+from dataclasses import asdict, dataclass
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+SOURCE = ROOT / "fixtures" / "reddit" / "thread-1u1b22l-getPostComments.json"
+OUTPUT = ROOT / "fixtures" / "threads" / "thread-1u1b22l.json"
+
+#: Root plus five children. The plan says three to five; five is taken so the
+#: selection includes at least one deleted body and one emoji rather than
+#: relying on the top three happening to carry them.
+CHILD_COUNT = 5
+
+#: Length-CHANGING substitutions are the only ones that produce a segment
+#: boundary. A no-break space becoming a space is one character for one and
+#: leaves the map identical, so it is normalised and not recorded.
+IDENTITY_LENGTH = {" ": " ", " ": " ", " ": " "}
+
+
+@dataclass(frozen=True)
+class Segment:
+    """One entry in `offset_map`. Half-open on both sides."""
+
+    flat_start: int
+    flat_end: int
+    document_id: str
+    raw_start: int
+    raw_end: int
+
+
+def _is_substituted(ch: str) -> bool:
+    """Emoji and pictographs get a bracketed name; nothing else does.
+
+    Deliberately narrow. Typographic quotes and dashes are left alone: the
+    sieve normalises those at match time, and substituting them here would put
+    a rendering decision in the wrong stage.
+    """
+    return unicodedata.category(ch) == "So" or ord(ch) > 0x1F000
+
+
+def _tag_for(ch: str) -> str:
+    try:
+        name = unicodedata.name(ch)
+    except ValueError:
+        return f"[u{ord(ch):04x}]"
+    return "[" + name.lower().replace(" ", "_").replace("-", "_") + "]"
+
+
+def flatten(document_id: str, raw: str, flat_offset: int) -> tuple[str, list[Segment]]:
+    """One document's contribution to the flattened text, plus its segments.
+
+    Returns the flattened chunk and the segments mapping it back. Identity runs
+    are coalesced, so a document with no substitutions yields exactly one
+    segment rather than one per character.
+    """
+    out: list[str] = []
+    segments: list[Segment] = []
+    run_flat_start = flat_offset
+    run_raw_start = 0
+    flat = flat_offset
+
+    def close_run(raw_pos: int) -> None:
+        nonlocal run_flat_start, run_raw_start
+        if flat > run_flat_start:
+            segments.append(
+                Segment(run_flat_start, flat, document_id, run_raw_start, raw_pos)
+            )
+        run_flat_start = flat
+        run_raw_start = raw_pos
+
+    for raw_pos, ch in enumerate(raw):
+        if ch in IDENTITY_LENGTH:
+            out.append(IDENTITY_LENGTH[ch])
+            flat += 1
+            continue
+        if _is_substituted(ch):
+            close_run(raw_pos)
+            tag = _tag_for(ch)
+            out.append(tag)
+            segments.append(
+                Segment(flat, flat + len(tag), document_id, raw_pos, raw_pos + 1)
+            )
+            flat += len(tag)
+            run_flat_start = flat
+            run_raw_start = raw_pos + 1
+            continue
+        out.append(ch)
+        flat += 1
+
+    close_run(len(raw))
+    return "".join(out), segments
+
+
+def _walk(children: list[dict], out: list[dict]) -> None:
+    for node in children:
+        data = node.get("data", {})
+        if "body" in data:
+            out.append(data)
+            replies = data.get("replies")
+            if isinstance(replies, dict):
+                _walk(replies.get("data", {}).get("children", []), out)
+
+
+def build() -> dict:
+    payload = json.loads(SOURCE.read_text(encoding="utf-8"))
+    post = payload["data"][0]["data"]["children"][0]["data"]
+    comments: list[dict] = []
+    _walk(payload["data"][1]["data"]["children"], comments)
+
+    root_id = f"reddit:{post['id']}"
+    root_text = f"{post['title']}\n\n{post.get('selftext', '')}".strip()
+
+    ranked = sorted(comments, key=lambda c: c.get("score", 0), reverse=True)
+
+    # Cases the assembler will meet on its first real thread, forced in rather
+    # than hoped for. A fixture that happens not to contain them tests less
+    # than it appears to, and the first attempt here selected six documents
+    # with one substitution between them.
+    def first(predicate, exclude: list[dict]) -> dict | None:
+        return next(
+            (c for c in comments if predicate(c) and not any(c is e for e in exclude)),
+            None,
+        )
+
+    def has_emoji(c: dict) -> bool:
+        return any(ord(ch) > 0x1F000 for ch in c["body"])
+
+    forced: list[dict] = []
+    for predicate in (
+        # a body that is not there. A different offset problem from a body
+        # with an emoji in it, and the assembler meets both
+        lambda c: c["body"] in ("[deleted]", "[removed]"),
+        # one raw character becoming twenty flat ones
+        has_emoji,
+        # a SECOND emoji document, so substitutions appear in more than one
+        # comment and a per-document delta cannot accidentally work
+        has_emoji,
+        # U+2588 FULL BLOCK: category So but not an emoji, seven of them in one
+        # comment, so a single document carries a run of substitutions
+        lambda c: "█" in c["body"],
+    ):
+        found = first(predicate, forced)
+        if found is not None:
+            forced.append(found)
+
+    selected = (forced + [c for c in ranked if not any(c is f for f in forced)])[:CHILD_COUNT]
+
+    documents = [(root_id, root_text)] + [
+        (f"reddit:{c['id']}", c["body"]) for c in selected
+    ]
+
+    parts: list[str] = []
+    segments: list[Segment] = []
+    raw_text_of: dict[str, str] = {}
+    flat = 0
+    separator = "\n\n---\n\n"
+
+    for index, (doc_id, raw) in enumerate(documents):
+        if index:
+            parts.append(separator)
+            flat += len(separator)
+        chunk, doc_segments = flatten(doc_id, raw, flat)
+        parts.append(chunk)
+        segments.extend(doc_segments)
+        raw_text_of[doc_id] = raw
+        flat += len(chunk)
+
+    return {
+        "thread_context_id": f"tc:{post['id']}",
+        "thread_root_id": root_id,
+        "member_document_ids": [doc_id for doc_id, _ in documents],
+        "flattened_text": "".join(parts),
+        "offset_map": [asdict(s) for s in segments],
+        "raw_text_of": raw_text_of,
+        "provenance": {
+            "source": str(SOURCE.relative_to(ROOT)).replace("\\", "/"),
+            "built_by": "fixtures/threads/build.py",
+            "note": (
+                "Fixture tooling, not E3. collect/assemble/ is authoritative; "
+                "if the two disagree, regenerate this from that."
+            ),
+        },
+    }
+
+
+def main() -> None:
+    fixture = build()
+    OUTPUT.write_text(json.dumps(fixture, indent=2, ensure_ascii=False), encoding="utf-8")
+    substitutions = sum(
+        1
+        for s in fixture["offset_map"]
+        if (s["flat_end"] - s["flat_start"]) != (s["raw_end"] - s["raw_start"])
+    )
+    print(f"wrote {OUTPUT.relative_to(ROOT)}")
+    print(f"  documents      {len(fixture['member_document_ids'])}")
+    print(f"  flattened      {len(fixture['flattened_text'])} chars")
+    print(f"  segments       {len(fixture['offset_map'])}")
+    print(f"  substitutions  {substitutions}")
+
+
+if __name__ == "__main__":
+    main()

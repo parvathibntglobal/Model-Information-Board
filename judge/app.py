@@ -2,7 +2,7 @@
 
 Free text in, a structured requirement profile out. Ranking against real cells
 arrives once collect/ is producing evidence; until then this runs on
-fixtures/hand_cells.yaml, and the UX test cannot tell the difference — which is
+hand-written cells, and the UX test could not tell the difference - which was
 the point of shipping it first.
 
 Nothing here touches the evidence pipeline. The answer path reads a
