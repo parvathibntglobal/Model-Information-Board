@@ -301,3 +301,230 @@ def revise(req: ReviseRequest) -> ReviseResponse:
         note=note,
         still_guessed=sorted(guessed),
     )
+
+
+# ── the board's read surface ──────────────────────────────────────────────
+#
+# Five page modules existed with no endpoint and no caller, so nothing outside
+# this repository could reach a single one of them. Tenth instance of that
+# pattern here and the first where I built the module and the gap in the same
+# week.
+#
+# EVERY RESPONSE CARRIES ITS CAVEAT IN THE SAME OBJECT. That is not an API
+# style choice. This board's entire claim is that it distinguishes "nobody
+# looked" from "nobody complained", and a client that fetches a page and
+# renders only the findings has silently removed the distinction. Making the
+# caveat a separate call would make dropping it the easy path.
+
+
+def _conn():
+    """A read connection, or a 503 that says the board is not readable.
+
+    503 rather than 500: no database is an operational state, not a fault in
+    the request, and a page that cannot be read is different from a page with
+    nothing on it - which is the same distinction every one of these modules
+    is built around.
+    """
+    import os
+
+    import psycopg
+
+    from judge.store.claims import CONNECT_TIMEOUT_SECONDS
+
+    # Same variable and the same refusal as `judge.store.claims.transaction`.
+    # A default that quietly reaches localhost is how a read surface ends up
+    # serving a database nobody meant to expose.
+    url = os.getenv("DATABASE_URL")
+    if not url:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "no database configured, so the board cannot be read. This is "
+                "not the same as a board with nothing on it."
+            ),
+        )
+    return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
+
+
+@app.get("/models/{model_version_id}")
+def model_page(model_version_id: str) -> dict:
+    """FR-23 to FR-26. The full capability list, not the evidenced part."""
+    from judge.pages.model import ModelPageReader
+
+    with _conn() as conn:
+        page = ModelPageReader(conn).build(model_version_id)
+        quote_ids = tuple(q for c in page.capabilities for s in c.slices for q in s.quote_ids)
+        quotes = ModelPageReader(conn).quotes_for(quote_ids)
+
+    return {
+        "model_version_id": page.model_version_id,
+        "summary": page.summary,
+        "capabilities": [
+            {
+                "key": c.key,
+                "failure_mode": c.failure_mode,
+                "state": (
+                    "unreported"
+                    if c.unreported
+                    else ("insufficient" if c.insufficient else "published")
+                ),
+                "headline": c.headline,
+                "needs_positive_consensus": c.needs_positive_consensus,
+                "conditions": [
+                    {
+                        "bucket": s.condition_bucket,
+                        "status": s.status,
+                        "phrase": s.consensus_phrase,
+                        "note": s.conditional_note,
+                        "voices": s.independent_voices,
+                        "platforms": s.platform_count,
+                        # FR-26: the ids travel WITH the phrase. A phrase
+                        # without them is an unfalsifiable claim.
+                        "quote_ids": list(s.quote_ids),
+                    }
+                    for s in c.slices
+                ],
+            }
+            for c in page.capabilities
+        ],
+        "quotes": {
+            qid: {
+                "text": q.text,
+                "permalink": q.permalink,
+                "platform": q.platform,
+                "claimed_at": q.claimed_at,
+            }
+            for qid, q in quotes.items()
+        },
+        # Surfaced rather than hidden: a published phrase with no evidence
+        # behind it is a rendering the client should refuse.
+        "unbound_phrases": [s.capability_key for s in page.unbound_phrases()],
+    }
+
+
+@app.get("/capabilities/{capability_key}")
+def capability_page(capability_key: str) -> dict:
+    """FR-25. Every model in the registry, not every model with a cell."""
+    from judge.config import capabilities
+    from judge.pages.capability import CapabilityPageReader
+
+    # Checked BEFORE connecting. An unknown key is a fact about the request,
+    # establishable without a database - and answering 503 for it would tell
+    # the caller the board is down when their key is simply wrong.
+    if capability_key not in capabilities():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"{capability_key!r} is not a tracked capability. Refused rather "
+                f"than rendered empty: an unknown key would read 'nobody has "
+                f"reported on this', which is indistinguishable from a real "
+                f"capability nobody has discussed."
+            ),
+        )
+
+    with _conn() as conn:
+        page = CapabilityPageReader(conn).build(capability_key)
+
+    return {
+        "key": page.key,
+        "failure_mode": page.failure_mode,
+        "summary": page.summary,
+        "models": [
+            {
+                "model_version_id": m.model_version_id,
+                "display_name": m.display_name,
+                "state": "unreported" if m.unreported else "reported",
+                "conditional": m.conditional,
+                "buckets": [{"bucket": b, "status": s} for b, s in m.buckets],
+                "phrases": list(m.phrases),
+                "voices": m.voices,
+            }
+            for m in page.models
+        ],
+    }
+
+
+@app.get("/filtered")
+def filtered_page(limit: int = 200) -> dict:
+    """FR-18. What we threw away, and the rule that threw it."""
+    from judge.pages.filtered import FilteredPage
+
+    with _conn() as conn:
+        report = FilteredPage(conn).report(limit=limit)
+
+    return {
+        "summary": report.summary,
+        "truncated": report.truncated,
+        "total_filtered": report.total_filtered,
+        "total_documents": report.total_documents,
+        "documents": [
+            {
+                "document_id": d.document_id,
+                "url": d.url,
+                "source": d.source,
+                "status": d.status,
+                "explained": d.explained,
+                "headline": d.headline,
+                "triggers": [{"rule": r, "explanation": e} for r, e in d.triggers],
+            }
+            for d in report.documents
+        ],
+    }
+
+
+@app.get("/coverage")
+def coverage_page() -> dict:
+    """What the board does not know, and what it has not checked."""
+    from judge.pages.coverage import CoveragePage
+
+    with _conn() as conn:
+        report = CoveragePage(conn).report()
+
+    return {
+        "summary": report.summary,
+        "pipeline_version": report.pipeline_version,
+        "measured_at_all": report.measured_at_all,
+        "kinds": [
+            {
+                "kind": k.kind,
+                "recognised": k.recognised,
+                "measured": k.measured,
+                "headline": k.headline,
+                "rows": k.rows,
+                "subjects": k.subjects,
+                "truncated": k.truncated,
+                "examples": list(k.examples),
+            }
+            for k in report.kinds
+        ],
+    }
+
+
+@app.get("/changelog")
+def changelog_page(days: int = 30) -> dict:
+    """FR-27. What changed, and whether it was us or the world."""
+    from judge.pages.changelog import ChangelogReader
+
+    with _conn() as conn:
+        log = ChangelogReader(conn).recent(days=days)
+
+    return {
+        "summary": log.summary,
+        "window_days": log.window_days,
+        "total_labels": log.total_labels,
+        "by_driver": {
+            driver: [
+                {
+                    "change_id": c.change_id,
+                    "label_id": c.label_id,
+                    "direction": c.direction,
+                    "headline": c.headline,
+                    "is_about_us": c.is_about_us,
+                    "evidenced": c.evidenced,
+                    "quote_ids": list(c.quote_ids),
+                }
+                for c in changes
+            ]
+            for driver, changes in log.by_driver().items()
+        },
+    }
