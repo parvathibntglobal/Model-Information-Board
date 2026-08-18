@@ -90,11 +90,30 @@ because every test shared an assumption with the code under test.
          The habit is 5 below. Where two components must agree about a value,
          the test cannot be the one that supplies it to both.
 
-Seven shapes of the same mistake: asserting the text of a claim instead of its
+    #58b An assertion in the fixture builder read
+         `flat_len == raw_len or raw_len == 1`, which held for every
+         substitution that existed — emoji, one raw character each — and broke
+         the first time it saw a shrinking one, `&gt;` at four raw characters
+         to one flat. It rejected a CORRECT map.
+
+         **The inverse of every shape above.** Those are checks that fail to
+         check: an assertion weaker than its name, an option never exercised,
+         an input that emptied, a value the test supplied. This one checked
+         confidently and checked the wrong thing — an invariant describing the
+         fixture rather than the property — and nothing revealed it until the
+         world widened by one document.
+
+         There is no habit that would have caught it early, and pretending
+         otherwise would be the fifth shape again. What there is: an invariant
+         derived from the data in front of you is a description, and it should
+         be written as one until something independent agrees with it.
+
+Eight shapes of the same mistake: asserting the text of a claim instead of its
 truth; never exercising an option; never leaving the input shape the author had
 in mind; **never checking that the check had anything to check**; comparing a
-thing on every axis except the one that is new; and **checking agreement on
-everything except the value the test itself provided**. What each cost was not a wrong
+thing on every axis except the one that is new; **checking agreement on
+everything except the value the test itself provided**; and **describing the
+data confidently and calling it the property**. What each cost was not a wrong
 answer but a MISSING one, which is the class this project keeps paying for —
 rule 6's expensive case, where the defect surfaces as an absence with nothing to
 disagree with.

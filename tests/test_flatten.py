@@ -43,8 +43,13 @@ def test_byte_equality_with_the_reference_flattening(reference):
     reading hers.
 
     Until they agreed, neither had evidence for being right: hers had only ever
-    been checked against its own output, and mine had never been run. Agreement
-    on 2,481 characters and 20 segments is the first evidence either has.
+    been checked against its own output, and mine had never been run.
+
+    The first agreement was over six documents that agreed everywhere either had
+    looked. **The seventh, added 2026-08-18, is the first thing either
+    implementation met that the other had not already agreed on** — and it is a
+    shrinking substitution, the direction neither had exercised. That run is the
+    real test; the first was a rerun.
     """
     documents = [
         (doc_id, reference["raw_text_of"][doc_id])
@@ -75,9 +80,20 @@ def test_the_reference_actually_exercises_substitutions(reference):
         for doc_id in reference["member_document_ids"]
     ]
     result = flatten(documents)
-    assert len(result.segments) == 20
-    assert result.substitutions == 10
-    assert len(result.member_document_ids) == 6
+    assert len(result.segments) == 22
+    assert result.substitutions == 11
+    assert len(result.member_document_ids) == 7
+
+    # THE SEVENTH DOCUMENT, added 2026-08-18, is the one that makes this
+    # fixture reach an entity at all — and it is a SHRINKING substitution,
+    # 4 raw characters to 1 flat, where the other ten grow.
+    shrinking = [
+        seg for seg in result.segments
+        if not seg.is_identity
+        and (seg.raw_end - seg.raw_start) > (seg.flat_end - seg.flat_start)
+    ]
+    assert len(shrinking) == 1, "the &gt; case"
+    assert shrinking[0].raw_end - shrinking[0].raw_start == 4
 
 
 # ── the entity case, which the reference cannot reach ────────────────────

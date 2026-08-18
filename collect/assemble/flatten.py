@@ -34,6 +34,34 @@ makes `unescape exactly once` a property of the algorithm rather than a check.
 and resumes AFTER it, so `gt;` is never re-examined. Decoding twice would turn
 their text into markup they did not write.
 
+WHAT IS TESTED SYNTHETICALLY, AND WHY IT HAS TO BE
+---------------------------------------------------
+Stated rather than left to inference, because "entities are handled" is not the
+same claim as "double-decoding is prevented" and a reader cannot tell them apart
+from the code.
+
+**No real comment can supply a double-encoded entity.** Counted over the source
+payload: 195 comment bodies, 6 carrying an entity, **0 doubled**. So
+`&amp;gt;` staying `&gt;` is tested synthetically in
+`tests/test_flatten.py::test_unescape_happens_exactly_once` and nowhere else,
+and that is the correct place for it rather than a gap.
+
+The layering is worth knowing, because the three checks catch different things:
+
+    byte equality vs the fixture     catches NOTHING here. `&gt;` decoded once
+                                     or twice both yield `>`, so the string is
+                                     identical either way.
+    segment equality vs the fixture  catches a single entity decoded in the
+                                     wrong place — the substitution collapses
+                                     into the identity run and `raw_end` moves
+                                     from 4 to 167.
+    the synthetic test               catches double-decoding, which no fixture
+                                     built from this payload can reach.
+
+Mutation-checked 2026-08-18: pre-unescaping the text before the walk — the
+realistic form of the bug, reaching for `html.unescape` and then walking — fails
+five tests in that file and passes byte equality. Confirmed by reverting.
+
 REDDIT'S FIVE ENTITIES AND NO OTHERS
 -------------------------------------
 `&amp; &lt; &gt; &quot; &#39;` is what the API emits. A general HTML unescaper
