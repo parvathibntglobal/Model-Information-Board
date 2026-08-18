@@ -309,6 +309,17 @@ Every fetched payload is stored immutably, content-hash addressed. Every quote i
 
 **The storage/display split:** full text is retained privately for verification and reprocessing; only quote + attribution + link is ever published. These are different things, and the distinction is what keeps the legal posture consistent with an immutable store.
 
+> ⚠ **Reddit is an exception to both halves, and it is unresolved.** The `reddit-via-rapidapi` ruling (`contract/sources.yaml`, 2026-08-18) permits **internal development and testing only** — nothing published, no external users, not monetized — and records four conditions it does not clear. Two of them are conflicts with decisions already made here, and both surface the day this publish path renders its first Reddit quote:
+>
+> | condition | conflicts with | where it bites |
+> |---|---|---|
+> | Developer Terms **5.2** — cite the author's username | `author.handle_hash`: the handle is never stored | `collect/assemble/authors.py` |
+> | Data API Terms **3.2** — delete data not required for the approved use case | the immutable raw store (NFR-4) | `collect/rawstore.py` |
+>
+> Also unresolved: Developer Terms 4.1's *"by or on behalf of a business"* limb (no legal review has happened) and Data API Terms 2.8 (credentials issued by Reddit, OAuth identity unmasked — a reseller route does not satisfy this regardless of use). Escalated to the MD 2026-08-18.
+>
+> **Publishing a Reddit quote requires that ruling to be reopened first.** The username is not recoverable from the database, so discovering this at publish time costs a re-fetch of every Reddit document plus a schema change.
+
 **Tombstone path.** Content deleted upstream, or subject to a takedown request, is marked `tombstoned`: its quotes are suppressed on the next nightly run, its claims decay out of every cell, and only the content hash is retained for audit. Immutability is about not silently rewriting history, not about refusing to honour a deletion.
 
 ### Dedupe — before anything counts

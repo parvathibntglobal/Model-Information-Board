@@ -245,17 +245,45 @@ def test_every_feed_becomes_a_source_row():
 # ── the gate ──────────────────────────────────────────────────────────────
 
 
-def test_reddit_still_blocks_and_now_for_a_stronger_reason():
-    """Not a marker in prose. There is no ruling for it to name."""
+def test_a_source_naming_no_ruling_is_refused():
+    """The property `reddit` used to demonstrate, on a row that cannot age out.
+
+    `reddit` named no ruling until 2026-08-18 and was the example here. It now
+    names `reddit-via-rapidapi`, so the example moved to a synthetic row and the
+    Reddit-specific assertions live in `tests/test_reddit_terms_gate.py`.
+    """
     contract = load_sources()
-    reddit = next(s for s in contract.platforms if s["id"] == "reddit")
-    assert "terms_ruling" not in reddit
+    unruled = {"id": "no-ruling-anywhere", "platform": "blog"}
 
     with pytest.raises(TermsNotReviewedError) as excinfo:
         assert_terms_reviewed(
-            [reddit], rulings=contract.rulings, observations={}, today=REVIEWED_ON
+            [unruled], rulings=contract.rulings, observations={}, today=REVIEWED_ON
         )
     assert "names no terms ruling" in str(excinfo.value)
+
+
+def test_reddit_now_names_a_ruling_and_it_constrains_rather_than_clears():
+    """The replacement for the block-forever assertion.
+
+    A ruling that permitted everything would pass this file and be a worse
+    outcome than the refusal it replaced, so what is asserted is the CONSTRAINT:
+    the permission is conditional on a basis, and the basis is live-checked.
+    """
+    contract = load_sources()
+    reddit = next(s for s in contract.platforms if s["id"] == "reddit")
+    assert reddit["terms_ruling"] == "reddit-via-rapidapi"
+
+    ruling = contract.rulings["reddit-via-rapidapi"]
+    assert ruling.basis == "internal-development-only"
+    assert ruling.live_preconditions["use_basis"] == ["internal-development-only"]
+
+    with pytest.raises(TermsNotReviewedError):
+        assert_terms_reviewed(
+            [reddit],
+            rulings=contract.rulings,
+            observations={"reddit": {"use_basis": "not-internal (ENVIRONMENT=production)"}},
+            today=REVIEWED_ON,
+        )
 
 
 def test_every_seeded_feed_passes_when_the_run_observes_what_was_recorded():

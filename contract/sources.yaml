@@ -297,6 +297,86 @@ terms_rulings:
     recorded_evidence:
       republication_claimed: [false]
 
+  # ── Reddit, via a RapidAPI reseller ──────────────────────────────────────
+  #
+  # ⚠  THIS RULING PERMITS ONE THING: INTERNAL DEVELOPMENT AND TESTING.
+  #
+  # It is not a clearance. Four conditions are UNRESOLVED and recorded below
+  # rather than cleared, and two of them are direct conflicts with design
+  # decisions already made in this repository. Both surface on the day
+  # somebody builds the publish path, which is why they are also written
+  # where a publisher would be built and not only here:
+  #
+  #     Developer Terms 5.2  vs  author.handle_hash   -> collect/assemble/authors.py
+  #     Data API Terms 3.2   vs  the immutable store  -> collect/rawstore.py
+  #
+  # A condition recorded only in a ruling is read by whoever writes rulings.
+  # These need to be read by whoever writes the publisher.
+  - id: reddit-via-rapidapi
+    party: platform
+    platform_host: reddit.com
+    reviewed_on: 2026-08-18
+    reviewed_by: anooj
+    basis: internal-development-only
+    review_valid_days: 90
+    evidence_valid_days: 90
+    summary: >-
+      Access via a RapidAPI reseller, verified as a proxy of Reddit's official
+      Data API rather than a scrape: t2_ fullnames, subreddit_id, Reddit's own
+      cursor, 104 fields per post.
+
+      CURRENT USE: internal development and testing. Not published, no
+      external users, not monetized. On that basis Developer Terms 4.1's
+      monetization limb does not apply today.
+
+      UNRESOLVED, DELIBERATELY RECORDED:
+        - 4.1 also restricts access "by or on behalf of a business". Not
+          cleared. No legal review has happened.
+        - Data API Terms 2.8 requires credentials issued by Reddit and
+          prohibits masking the OAuth identity. A reseller route does not
+          satisfy this regardless of use.
+        - Developer Terms 5.2 requires citing the author's username. Our
+          schema stores handle_hash only, by design.
+        - Data API Terms 3.2 requires deleting data not required for the
+          approved use case. Our raw store is immutable by design (NFR-4).
+
+      RE-REVIEW REQUIRED BEFORE: any external publication, any external user,
+      any monetization, or a switch to a direct Reddit key.
+      Escalated to the MD 2026-08-18.
+
+      ONE RULING COVERS BOTH AN EVIDENCE SWEEP AND A MEASUREMENT SWEEP.
+      The alternative was a second, lighter ruling for sampling runs that
+      quote nobody and publish nothing, and it was refused: PURPOSE IS
+      SELF-DECLARED. An exempt category is one everything ends up filed
+      under, and the person writing the justification is the person who wants
+      the data. `assert_terms_reviewed` has no concept of purpose,
+      deliberately — it takes a source row and this run's observations, and a
+      fetch is a fetch. The retention difference is real and cuts the other
+      way: a measurement sweep keeps documents BECAUSE MOST OF THEM ARE ABOUT
+      NOTHING, and "we cited you" and "you were in a denominator" are
+      different answers to the same question. That is a reason to handle the
+      sample more strictly, not to hold it under different terms — Reddit's
+      terms do not vary by our motive. So it is a property of the SAMPLE:
+      stored outside raw/, a deletion date recorded at collection, this
+      ruling and every precondition it carries.
+
+    # THE BASIS IS ENFORCED, NOT REMEMBERED. `use_basis` is re-read on every
+    # run, so the ruling stops applying the moment the deployment stops being
+    # internal — rather than the moment somebody remembers to revisit it.
+    #
+    # It is a PROXY and its limits are stated where it is observed
+    # (`collect/adapters/reddit.py:observe_reddit_use`): it catches a
+    # production deployment and does NOT catch a staging instance that has
+    # acquired external users. That gap is why the four conditions above are
+    # recorded rather than treated as handled.
+    live_preconditions:
+      use_basis: [internal-development-only]
+    recorded_evidence:
+      official_api_proxy: [true]
+      full_text_republished: [false]
+      credentials_issued_by_reddit: [false]   # 2.8 unresolved, recorded as false
+      legal_review_completed: [false]         # 4.1 business limb, not cleared
+
 
 # ============================================================================
 #  PLATFORM ROWS — the trust weights, and one row per platform.
@@ -348,19 +428,45 @@ sources:
     endpoint: https://oauth.reddit.com
     base_trust: 0.85
     provenance: seed
-    # DEFERRED: the company holds the account and access will be requested
-    # later. The adapter is not being built. Blocking from week 3, because
-    # FR-6's acceptance is all three adapters returning content and FR-17's
-    # cross-platform identity clustering cannot be tested with one social
-    # platform. See docs/phase2-readiness.md.
+    # RULED 2026-08-18, INTERNAL DEVELOPMENT ONLY. See
+    # `reddit-via-rapidapi` above for what that permits and, more
+    # importantly, for the four conditions it does NOT clear.
     #
-    # No `terms_ruling`, deliberately. That is what blocks it, and it is a
-    # stronger block than a marker in prose: there is no ruling to name.
+    # The endpoint below is Reddit's official OAuth host, which is what the
+    # ruling is about. Access today is through a RapidAPI reseller
+    # (`RAPIDAPI_HOST`), and Data API Terms 2.8 is one of the unresolved
+    # conditions precisely because of that.
+    terms_ruling: reddit-via-rapidapi
+    terms_evidence:
+      checked_on: 2026-08-18
+      official_api_proxy: true
+      full_text_republished: false
+      credentials_issued_by_reddit: false
+      legal_review_completed: false
     tos_notes: >-
-      REVIEW REQUIRED before first harvest. Their terms prohibit scraping, so
-      the official API is mandatory. Record the current rate limit and
-      free-tier eligibility rather than trusting BUILD-PLAN's 60/min figure.
-      Names no ruling, so `assert_terms_reviewed()` refuses to harvest it.
+      Reviewed 2026-08-18 (User Agreement, Developer Terms, Data API Terms).
+      Their terms prohibit scraping, so the official API is mandatory; access
+      is via a RapidAPI reseller verified as a proxy of that API rather than a
+      scrape.
+
+      PERMITTED TODAY: internal development and testing only. Not published,
+      no external users, not monetized.
+
+      NOT CLEARED, and escalated to the MD on 2026-08-18: Developer Terms
+      4.1's "by or on behalf of a business" limb, Data API Terms 2.8
+      (credentials issued by Reddit, OAuth identity unmasked — a reseller
+      route does not satisfy this regardless of use), Developer Terms 5.2
+      (cite the author's username, against our handle_hash design) and Data
+      API Terms 3.2 (delete data not required for the approved use case,
+      against NFR-4's immutable store). The last two are conflicts with
+      decisions already made and surface when the publish path is built.
+
+      RATE LIMIT: 429 measured at the 32nd rapid call (2026-08-14), working
+      figure 25/min. The plan's actual per-minute allowance has never been
+      read — no header states one — so it stays unknown rather than becoming
+      32 by repetition. The "60/min" this note used to cite to BUILD-PLAN is
+      not in BUILD-PLAN and never was. Quota is 1,000,000/month at exactly one
+      unit per request. See docs/measurements/reddit-rate-and-quota.md.
 
 
 # ============================================================================

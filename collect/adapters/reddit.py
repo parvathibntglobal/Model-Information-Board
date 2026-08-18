@@ -737,3 +737,68 @@ def build_client(**kwargs) -> httpx.Client:
     }
     headers.update(kwargs.pop("headers", {}))
     return _build(headers=headers, **kwargs)
+
+
+#: The basis `reddit-via-rapidapi` rests on, as the ruling names it.
+INTERNAL_DEVELOPMENT_ONLY = "internal-development-only"
+
+
+def observe_reddit_use() -> dict[str, object]:
+    """This run's live observations for the terms gate.
+
+    The ruling permits internal development and testing, and nothing else. That
+    is a fact about the DEPLOYMENT rather than about the request, so it is
+    observed here and re-read on every run — the ruling then stops applying when
+    the deployment changes, rather than when somebody remembers to revisit it.
+
+    IT IS A PROXY, AND THE GAP IS THE POINT OF SAYING SO. `ENVIRONMENT` is the
+    only signal the process actually has. It catches the case that matters most
+    — a production deployment silently inheriting a development-only ruling —
+    and it does NOT catch a staging instance that has acquired external users or
+    started charging for something. Those remain conditions a person has to
+    honour, which is exactly why the ruling records them as unresolved instead of
+    treating them as handled.
+
+    A basis is therefore a shorter fuse than `review_valid_days`, not a
+    substitute for reading the terms again.
+    """
+    environment = settings().environment
+    return {
+        "use_basis": (
+            INTERNAL_DEVELOPMENT_ONLY
+            if environment != "production"
+            else f"not-internal (ENVIRONMENT={environment})"
+        )
+    }
+
+
+def harvester_for_source(source, *, rulings=None, **kwargs) -> RedditHarvester:
+    """Build a harvester for a `source` row, ToS gate included.
+
+    THE ENTRY POINT ANYTHING THAT FETCHES REDDIT MUST USE. Until 2026-08-18 this
+    lane had no such entry point at all: `assert_terms_reviewed` was called from
+    `blog/fetch.py` and `scripts/harvest_github.py` and from nowhere on the
+    Reddit path, so the 1,297-post corpus every measurement here rests on was
+    gathered without the gate ever being asked. The gate was working correctly
+    and refusing Reddit the whole time; nothing consulted it.
+
+    THE GATE FIRES HERE AND NOT IN `RedditHarvester.__init__`, for the reason
+    `blog.fetch.fetcher_for_source` already documents: a constructor check
+    forces every test to fabricate a reviewed source row, and **a fixture that
+    fakes a ruling is worse than no gate, because it reads as one**. Tests
+    construct `RedditHarvester` directly and get no gate, which is honest;
+    anything that reaches the network comes through here.
+
+    Not in `_get` either. That would fire per request and would need the source
+    row threaded through `search` and `fetch_comments`, neither of which carries
+    one — a lot of plumbing to check the same fact several hundred times a run.
+    """
+    from collect.registry.assertions import assert_terms_reviewed, source_field
+
+    source_id = source_field(source, "id", "?")
+    assert_terms_reviewed(
+        [source],
+        rulings=rulings,
+        observations={source_id: observe_reddit_use()},
+    )
+    return RedditHarvester(**kwargs)

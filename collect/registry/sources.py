@@ -49,6 +49,17 @@ class TermsRuling:
     party: str | None = None
     platform_host: str | None = None
 
+    #: Who read the terms. A ruling is a person's reading, and "somebody
+    #: reviewed this" is not a fact anyone can follow up.
+    reviewed_by: str | None = None
+
+    #: The condition the ruling RESTS ON, not a description of it. A ruling
+    #: with `basis: internal-development-only` stops applying when the
+    #: deployment stops being internal — which is a different and much shorter
+    #: fuse than `review_valid_days`. Where a basis is named it should also be
+    #: a `live_precondition`, so the fuse is checked rather than remembered.
+    basis: str | None = None
+
     #: False means the feed is the only permitted retrieval for this party.
     #: `BlogFetcher` refuses to request articles when it is False, so this is
     #: an enforced ruling rather than a note somebody has to remember.
@@ -162,6 +173,8 @@ def _ruling_from(entry: Mapping[str, Any]) -> TermsRuling:
         klass=entry.get("class"),
         party=entry.get("party"),
         platform_host=entry.get("platform_host"),
+        reviewed_by=entry.get("reviewed_by"),
+        basis=entry.get("basis"),
         fetch_articles=bool(entry.get("fetch_articles", True)),
         live_preconditions=dict(entry.get("live_preconditions") or {}),
         recorded_evidence=dict(entry.get("recorded_evidence") or {}),
