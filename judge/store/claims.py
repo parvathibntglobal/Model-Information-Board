@@ -38,6 +38,7 @@ from typing import Any
 
 import psycopg
 from psycopg.types.json import Json
+from psycopg.types.range import Range
 
 from judge.extract.schema import ExtractedClaim
 from judge.extract.verify import VerifiedQuote
@@ -205,8 +206,16 @@ class ClaimStore:
                 # The RAW span, not the flattened one. `[upside_down_face]` is
                 # an internal representation and must never reach a page.
                 "quote": stored.quote.display_text,
-                "quote_flat_offset": [start, end],
-                "quote_raw_offset": list(stored.quote.raw_offset),
+                # int4range, not an array. Passing [start, end] sends a
+                # smallint[] and Postgres refuses the cast - which CI caught and
+                # nothing local could have, because the column type only exists
+                # in the database.
+                #
+                # '[)' is the schema's half-open convention, the same one the
+                # offset map uses. A closed upper bound here would silently
+                # include one character more than the quote.
+                "quote_flat_offset": Range(start, end, "[)"),
+                "quote_raw_offset": Range(*stored.quote.raw_offset, "[)"),
                 "relevance": claim.relevance,
                 "has_repro_steps": claim.has_repro_steps,
                 "has_numbers": claim.has_numbers,

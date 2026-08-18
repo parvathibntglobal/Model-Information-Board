@@ -16,6 +16,7 @@ from datetime import date
 import psycopg
 import pytest
 from psycopg.types.json import Json
+from psycopg.types.range import Range
 
 from judge.extract.schema import ExtractedClaim
 from judge.extract.verify import VerifiedQuote
@@ -72,7 +73,18 @@ def seeded(conn):
     return conn
 
 
-def a_claim(capability="summarization.fidelity", offset=(0, 20)) -> ExtractedClaim:
+QUOTE = "dropped the clause"
+
+
+def a_claim(capability="summarization.fidelity", start=0) -> ExtractedClaim:
+    """The offset is DERIVED from the quote, never written beside it.
+
+    It was written beside it, as (0, 20) against an 18-character quote, and
+    `ExtractedClaim` rejected it — correctly, since an offset that does not
+    delimit exactly the quoted text is the defect verification exists to catch.
+    Deriving it means the two cannot disagree, which is the same reason the
+    thread fixture computes its offset map rather than stating it.
+    """
     return ExtractedClaim.model_validate(
         {
             "source_comment_id": "d1",
@@ -84,8 +96,8 @@ def a_claim(capability="summarization.fidelity", offset=(0, 20)) -> ExtractedCla
             },
             "capability": capability,
             "polarity": "negative",
-            "quote": "dropped the clause",
-            "quote_offset": list(offset),
+            "quote": QUOTE,
+            "quote_offset": [start, start + len(QUOTE)],
             "relevance": "central",
             "has_numbers": True,
         }
@@ -207,12 +219,17 @@ class TestWhatTheSchemaEnforces:
                 "INSERT INTO claim (id, document_id, thread_context_id, "
                 "source_comment_id, model_version_id, specificity, capability_key, "
                 "taxonomy_version, condition_bucket, polarity, quote, "
-                "quote_flat_offset, quote_verified, relevance, evidence_tier, "
-                "pipeline_version) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
-                "false,%s,%s,%s)",
+                "quote_flat_offset, quote_raw_offset, quote_verified, relevance, "
+                "evidence_tier, pipeline_version) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,"
+                "%s,%s,%s,%s,%s,false,%s,%s,%s)",
+                # quote_raw_offset is NOT NULL and both offsets are int4range.
+                # Omitting one and passing the other as a list made this raise
+                # NotNullViolation and DatatypeMismatch rather than the
+                # CheckViolation it claims to assert - so it would have failed
+                # loudly while never testing the CHECK at all.
                 ("clm_x", "d1", "tc1", "d1", "mv1", "family",
                  "summarization.fidelity", "1.0", "context_size:8k-32k", "negative",
-                 "q", [0, 1], "central", "B", "e5.1"),
+                 "q", Range(0, 1, "[)"), Range(0, 1, "[)"), "central", "B", "e5.1"),
             )
 
     def test_the_raw_span_is_stored_not_the_flattened_one(self, seeded):
@@ -233,7 +250,7 @@ class TestTheId:
             thread_context_id="tc1",
             source_comment_id="d1",
             capability_key="summarization.fidelity",
-            quote_flat_offset=(0, 20),
+            quote_flat_offset=(0, 18),
             pipeline_version="e5.1",
         )
         assert claim_id_for(**args) == claim_id_for(**args)
@@ -246,6 +263,6 @@ class TestTheId:
             capability_key="summarization.fidelity",
             pipeline_version="e5.1",
         )
-        assert claim_id_for(**base, quote_flat_offset=(0, 20)) != claim_id_for(
-            **base, quote_flat_offset=(40, 60)
+        assert claim_id_for(**base, quote_flat_offset=(0, 18)) != claim_id_for(
+            **base, quote_flat_offset=(40, 58)
         )
