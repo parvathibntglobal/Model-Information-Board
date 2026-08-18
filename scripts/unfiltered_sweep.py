@@ -85,7 +85,7 @@ SECONDS_PER_CALL = 2.5           # 24/min, under the 429 observed at 32
 RETENTION_DAYS = 90
 
 
-def sweep(out_dir: Path, subreddits, pages: int) -> int:
+def sweep(out_dir: Path, subreddits, pages: int, population: str = "sample") -> int:
     contract = load_sources()
     row = next((s for s in contract.platforms if s["id"] == "reddit"), None)
     if row is None:
@@ -178,6 +178,10 @@ def sweep(out_dir: Path, subreddits, pages: int) -> int:
 
     finished = datetime.now(tz=UTC)
     manifest = {
+        # EXPLICIT, not inferred from the directory name. A control corpus that
+        # later gets read as a sample is the exact defect the separate store
+        # prevents, and a path is a weaker signal than a field.
+        "population": population,
         "purpose": "measurement population for triage survival calibration",
         "not_evidence": (
             "These documents are a denominator, not evidence. Most are about "
@@ -223,8 +227,12 @@ def main(argv=None) -> int:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--pages", type=int, default=PAGES_PER_SUBREDDIT)
     ap.add_argument("--subreddits", nargs="*", default=list(SUBREDDITS))
+    ap.add_argument(
+        "--population", default="sample",
+        help="`sample` or `control`. Recorded in the manifest so a control "
+             "corpus cannot later be read as a sample.")
     args = ap.parse_args(argv)
-    return sweep(args.out, tuple(args.subreddits), args.pages)
+    return sweep(args.out, tuple(args.subreddits), args.pages, args.population)
 
 
 if __name__ == "__main__":

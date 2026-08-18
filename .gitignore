@@ -26,6 +26,8 @@ _harvest_store/
 # reason: it carries a `delete_after` date in its manifest, and a corpus with
 # a deletion date must not be the one thing in the repo that cannot be deleted.
 _unfiltered_sweep/
+_unfiltered_sweep_v2/
+_control_sweep/
 
 # ── python ───────────────────────────────────────────────────────────────
 __pycache__/

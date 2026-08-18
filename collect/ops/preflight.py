@@ -46,10 +46,12 @@ from dataclasses import dataclass, field
 
 from collect.registry.assertions import (
     FixtureLeakError,
+    SweptWithoutASweepError,
     TermsNotReviewedError,
     UnversionedConfigError,
     assert_contract_backed,
     assert_no_fixtures,
+    assert_no_phantom_sweeps,
     assert_terms_reviewed,
 )
 
@@ -116,6 +118,12 @@ def preflight(
             report.passed.append("no-fixtures")
         except FixtureLeakError as error:
             report.failed.append(f"no-fixtures: {error}")
+
+        try:
+            assert_no_phantom_sweeps(conn, environment=environment)
+            report.passed.append("no-phantom-sweeps")
+        except SweptWithoutASweepError as error:
+            report.failed.append(f"no-phantom-sweeps: {error}")
 
     if policy is None:
         report.skipped.append("contract-backed: no policy was supplied")

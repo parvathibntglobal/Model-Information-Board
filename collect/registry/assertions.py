@@ -65,6 +65,55 @@ def source_field(source, name: str, default=None):
     return default if value is None else value
 
 
+class SweptWithoutASweepError(RuntimeError):
+    """`last_swept_at` is set on a model and no sweep has ever run.
+
+    A contradiction the database can state and nothing else can. Its own schema
+    comment says NULL means never swept, so a non-NULL value asserts a sweep
+    happened — and if no harvest has ever written a `harvest_run`, none did.
+    """
+
+
+def assert_no_phantom_sweeps(conn, *, environment: str) -> None:
+    """Refuse a `last_swept_at` that no sweep can account for.
+
+    THE THIRD INSTANCE OF ONE SHAPE. `in_window` carried a schema default on 340
+    rows and read as computed; `author` carried 4,391 rows from a hand-run and
+    read as harvested; `last_swept_at` carried one row set by an ad-hoc
+    `mark_swept` call and read as swept. Every one was a written value
+    indistinguishable from a derived one.
+
+    This checks the one of those three that is cheaply checkable, because it is
+    a contradiction rather than an absence: a swept model with no harvest run
+    behind it. FR-1's coverage surface reads this column, and the rotation will
+    skip whatever it marks - so a phantom sweep hides a model from both.
+
+    Development is exempt, like the other assertions: exercising `mark_swept`
+    against a local database is exactly how it should be tried.
+    """
+    if environment == "development":
+        return
+    row = conn.execute(
+        """
+        SELECT count(*) FILTER (WHERE last_swept_at IS NOT NULL),
+               (SELECT count(*) FROM harvest_run)
+        FROM model_version
+        """
+    ).fetchone()
+    if not row:
+        return
+    swept, harvests = row
+    if swept and not harvests:
+        raise SweptWithoutASweepError(
+            f"{swept} model_version row(s) carry last_swept_at while "
+            "harvest_run is empty. Nothing has ever swept anything, so that "
+            "value was written by hand - and `last_swept_at` NULL means NEVER "
+            "SWEPT, so a non-NULL one claims a sweep that did not happen. The "
+            "rotation will skip these models and the coverage page will show "
+            "them as current. Set them back to NULL, or run a harvest."
+        )
+
+
 def assert_terms_reviewed(
     sources,
     *,
