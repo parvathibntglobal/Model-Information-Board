@@ -12,7 +12,11 @@ from __future__ import annotations
 import pytest
 
 from judge.store.claims import PIPELINE_VERSION
-from judge.store.extractions import ExtractionLedger, ExtractionRecord
+from judge.store.extractions import (
+    ExtractionLedger,
+    ExtractionRecord,
+    fingerprint_of,
+)
 
 
 class Conn:
@@ -26,8 +30,8 @@ class Conn:
         self.sql.append(sql)
         rows = self.rows
         if sql.strip().upper().startswith("INSERT"):
-            tc, version, claims, inp, out, retries = params
-            rows[(tc, version)] = (claims, inp, out, retries)
+            tc, version, claims, inp, out, retries, fingerprint = params
+            rows[(tc, version)] = (claims, inp, out, retries, fingerprint)
 
             class R:
                 @staticmethod
@@ -46,7 +50,7 @@ class Conn:
         class R:
             @staticmethod
             def fetchall():
-                return [(tc,) for tc, _ in matching]
+                return [(tc, v[4]) for tc, v in matching]
 
             @staticmethod
             def fetchone():
@@ -81,7 +85,7 @@ class TestZeroIsAResultNotAnAbsence:
         )
 
     def test_an_unrecorded_thread_is_not_extracted(self):
-        assert ExtractionLedger(Conn()).already_extracted() == frozenset()
+        assert ExtractionLedger(Conn()).already_extracted() == {}
 
     def test_a_negative_count_is_refused(self):
         """0 already means "read it, found nothing", so nothing below it is
@@ -99,8 +103,8 @@ class TestTheVersionIsPartOfTheKey:
         ledger = ExtractionLedger(conn)
         ledger.record(ExtractionRecord("tc1", 3), pipeline_version="e5.1")
 
-        assert ledger.already_extracted(pipeline_version="e5.1") == {"tc1"}
-        assert ledger.already_extracted(pipeline_version="e5.2") == frozenset()
+        assert set(ledger.already_extracted(pipeline_version="e5.1")) == {"tc1"}
+        assert ledger.already_extracted(pipeline_version="e5.2") == {}
 
     def test_the_default_version_is_the_one_claims_are_written_at(self):
         """Two constants disagreeing here would skip threads whose claims were
@@ -177,3 +181,55 @@ class TestThePipelineUsesIt:
         source = inspect.getsource(Pipeline.run_all)
         assert "self._ledger.record(" in source
         assert "commit" not in source, "the batch must not commit; the caller owns that"
+
+
+class TestTheIdDoesNotIdentifyTheText:
+    """E1's finding, and it breaks the skip in the expensive direction.
+
+    `thread_context.id` is stable_id("thread_context", root_id, version) and
+    IGNORES CONTENT, so a thread re-assembled with different children keeps its
+    id. E1 found it through specificity.py changing the child scorer while
+    PIPELINE_VERSION stayed put - the path the "over-identifies, never
+    under-identifies" proviso does not cover, because it is about the scorer
+    rather than the flattener.
+    """
+
+    TEXT = "the flattened text the extractor was given"
+
+    def test_the_same_text_is_skipped(self):
+        seen = {"tc1": fingerprint_of(self.TEXT)}
+        assert ExtractionLedger.should_skip(seen, "tc1", self.TEXT)
+
+    def test_changed_children_under_a_stable_id_are_RE_READ(self):
+        """The case that costs most to get wrong. Skipping it means evidence
+        silently never extracted, which is worse than paying twice."""
+        seen = {"tc1": fingerprint_of(self.TEXT)}
+        assert not ExtractionLedger.should_skip(seen, "tc1", self.TEXT + " plus a reply")
+
+    def test_a_null_fingerprint_is_unknown_rather_than_a_match(self):
+        """Rows written before the column existed were not measured at "no
+        content" (rule 6). Unknown means re-read."""
+        assert not ExtractionLedger.should_skip({"tc1": None}, "tc1", self.TEXT)
+
+    def test_an_absent_thread_is_not_skipped(self):
+        assert not ExtractionLedger.should_skip({}, "tc1", self.TEXT)
+
+    def test_the_fingerprint_is_of_the_exact_bytes_given_to_the_extractor(self):
+        assert fingerprint_of("a") != fingerprint_of("a ")
+        assert fingerprint_of("a") == fingerprint_of("a")
+
+    def test_the_record_carries_it(self):
+        conn = Conn()
+        ExtractionLedger(conn).record(
+            ExtractionRecord("tc1", 1, content_fingerprint=fingerprint_of(self.TEXT))
+        )
+        assert conn.rows[("tc1", PIPELINE_VERSION)][4] == fingerprint_of(self.TEXT)
+
+    def test_the_pipeline_compares_content_not_only_the_id(self):
+        import inspect
+
+        from judge.pipeline import Pipeline
+
+        source = inspect.getsource(Pipeline.run_all)
+        assert "should_skip(" in source
+        assert "thread.flattened_text" in source

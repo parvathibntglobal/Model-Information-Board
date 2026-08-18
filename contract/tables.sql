@@ -587,6 +587,21 @@ CREATE TABLE thread_extraction (
   -- calls cost twice and looks identical afterwards.
   schema_retries    int NOT NULL DEFAULT 0,
 
+  -- ⚠ WHAT WAS READ, because the id does not say.
+  --
+  -- `thread_context.id` is stable_id("thread_context", root_id, version) and
+  -- IGNORES CONTENT, so a thread re-assembled with different children keeps
+  -- the same id. E1 found this: `specificity.py` changed, the scorer picked
+  -- different children, and PIPELINE_VERSION did not move.
+  --
+  -- Without this column the skip is wrong in the expensive direction: the
+  -- ledger says "already extracted at this version", the id and version both
+  -- match, and the thread we would skip is not the thread we read. Evidence
+  -- silently never extracted, which is worse than paying twice.
+  --
+  -- sha256 of `flattened_text` - the exact bytes the extractor was given.
+  content_fingerprint text,
+
   PRIMARY KEY (thread_context_id, pipeline_version)
 );
 
