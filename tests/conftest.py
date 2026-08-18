@@ -69,10 +69,32 @@ because every test shared an assumption with the code under test.
          inputs, so the test would have signed off on precisely the drift the
          column exists to prevent.
 
-Five shapes of the same mistake: asserting the text of a claim instead of its
+    #57  Byte equality between two independent flatteners passed on 2,481
+         characters and 20 segments — and did not notice that their
+         `document_id`s used different conventions. `collect/` stores
+         fullnames (`t1_…`); the reference fixture stripped them.
+
+         **A VARIABLE THE TEST PROVIDES IS A VARIABLE THE TEST CANNOT CHECK.**
+         `document_id` is an INPUT to the flattener, not an output: the test
+         handed it the fixture's ids and compared the text and the offsets, so
+         a disagreement about ids was invisible by construction. Not a weak
+         assertion and not an empty input — the assertion was exactly as strong
+         as it looked, over exactly the data it claimed, and the defect was in
+         the part the test supplied.
+
+         It surfaced by writing a row and reading it back: `raw_text_of` is
+         keyed by `document_id`, so the mismatch returns `RAW_TEXT_MISSING` for
+         every quote in the thread — a naming failure presenting as a storage
+         failure.
+
+         The habit is 5 below. Where two components must agree about a value,
+         the test cannot be the one that supplies it to both.
+
+Seven shapes of the same mistake: asserting the text of a claim instead of its
 truth; never exercising an option; never leaving the input shape the author had
-in mind; **never checking that the check had anything to check**; and comparing
-a thing on every axis except the one that is new. What each cost was not a wrong
+in mind; **never checking that the check had anything to check**; comparing a
+thing on every axis except the one that is new; and **checking agreement on
+everything except the value the test itself provided**. What each cost was not a wrong
 answer but a MISSING one, which is the class this project keeps paying for —
 rule 6's expensive case, where the defect surfaces as an absence with nothing to
 disagree with.
@@ -90,6 +112,11 @@ Three habits that would have caught all three, cheapest first:
      tested. This is the one that found #54: the generated column was reverted
      to a plain one and the suite stayed green, which is how the gap in
      `columns()` became visible rather than theoretical.
+  5. **Where two components must agree about a value, do not let the test
+     supply it to both.** Round-trip through the real carrier instead — write
+     the row, read it back, and let the second component look the value up the
+     way it will in production. #57's ids agreed with nothing and the test
+     could not tell, because the test was the only thing that knew them.
   4. **A check that iterates must count what it iterated over, and something
      must assert the count.** #58's regex silently matched nothing and the
      check reported clean. `parametrize` over a discovered file list has the

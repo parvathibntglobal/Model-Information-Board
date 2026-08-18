@@ -1,9 +1,10 @@
-# The first `thread_context` row
+# The first `thread_context` rows
 
-**Assembly is wired and the lane interface has one row in it. The write path
-worked on its first call against a real database — and comparing the row to
-Engineer 2's fixture found a divergence byte equality could not: her
-`document_id`s strip the `t1_`/`t3_` prefixes that `collect/` stores.**
+**Assembly is wired and the lane interface has two rows in it — one exercising
+the identity path, one carrying four substitutions, both round-tripped through
+`verify.py` on rows read back out of Postgres. Comparing them to Engineer 2's
+fixture found a divergence byte equality could not: her `document_id`s strip the
+`t1_`/`t3_` prefixes that `collect/` stores.**
 
 *Engineer 1 · staging · 2026-08-18*
 
@@ -126,14 +127,50 @@ best comments in the thread.
 **Not the same five Engineer 2 selected.** Her fixture picked six documents to
 carry four hard cases — deep nesting, `[deleted]`, `[removed]`, an emoji in a
 child. Mine picked by rank and got **zero substitutions**, so this row exercises
-the flattener's identity path and nothing else. The substitution path is covered
-by tests and by her fixture, not by this row.
+the flattener's identity path and nothing else. §6 is the row that fixes that.
 
-**Not a licence to read `thread_context`.** One row, from one thread, whose
-document ids disagree with her fixture's. §4 should land before extraction runs
-against it.
+**Not a licence to read `thread_context`.** The document ids disagree with her
+fixture's, and §4 should land before extraction runs against either row.
 
-## 6 · What would revise it
+## 6 · The second row, and the substitution path
+
+The first row exercised the identity path only — my ranking picked five children
+by score and got zero substitutions, so the write path had never carried a
+segment whose flat and raw lengths differ.
+
+**Rather than override the selection, a thread was found whose top five
+naturally include one.** In `t3_1u1b22l` the best substitution-carrying comment
+ranks **8th** and `max_children` is contract-bounded at 5, so no honest
+selection reaches it. Six candidate threads were checked from the unfiltered
+sweep and the second qualified.
+
+| | first row | second row |
+|---|---|---|
+| thread | `t3_1u1b22l` | `t3_1vozb95`, r/accelerate |
+| observed / hidden-min | 195 / 623 | 182 / 265 |
+| coverage_ratio | 0.238 | 0.407 |
+| segments | 6 | **14** |
+| substitutions | 0 | **4** |
+
+All four are `&amp;` → `&`: **shrinking** substitutions, 5 raw characters to 1
+flat. Every substitution in Engineer 2's fixture grows — emoji, 1 character to
+12–47 — so this is the direction neither the fixture nor any row had exercised.
+
+Round trip on the row **read back out of Postgres**:
+
+```
+14 resolved, 0 failed, of which 4 substitutions
+```
+
+**This is the run that tests the segment shape rather than the arithmetic.** The
+identity round trip could only fail on an off-by-one; a substitution segment has
+different flat and raw lengths and is taken whole, so resolving one exercises
+the rule `_resolve_raw_span` exists for.
+
+Selected by rank, not overridden — so `selection_method` remains
+`specificity_x_log_engagement@observed` and means what it says.
+
+## 7 · What would revise it
 
 - **The id convention**, §4. Cheap, and it blocks everything downstream if left.
 - **`extraction_version`**, #5. Until then `pipeline_version` over-identifies
