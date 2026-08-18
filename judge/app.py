@@ -209,3 +209,95 @@ def understand_task(req: UnderstandRequest) -> UnderstandResponse:
         input_tokens=result.input_tokens,
         output_tokens=result.output_tokens,
     )
+
+
+# ── FR-30: editing an assumption re-runs the recommendation ───────────────
+
+
+class ReviseRequest(BaseModel):
+    """The profile as the user has corrected it.
+
+    NO MODEL RUNS HERE, and that is the point of the endpoint existing
+    separately. Q1 guessed; the user has now told us. Re-reading their edits
+    through a language model would let it overrule a correction, which is the
+    exact failure the editable field was introduced to prevent - and it would
+    make the same input produce different requirements on different days.
+
+    So this is Q3 onward, deterministic, over a profile the user owns.
+    """
+
+    profile: dict = Field(description="the profile, with the user's corrections applied")
+    accepted_assumptions: list[str] = Field(
+        default_factory=list,
+        description=(
+            "fields the user looked at and left alone. Distinct from fields "
+            "they never saw - see the response's `still_guessed`."
+        ),
+    )
+
+
+class ReviseResponse(BaseModel):
+    requirement: RoleRequirement
+    guard: str | None = None
+    note: str
+
+    still_guessed: list[str] = Field(
+        default_factory=list,
+        description=(
+            "assumptions the user neither corrected nor explicitly accepted. "
+            "Rule 6 on a review rather than on a value: a field nobody looked "
+            "at is not a field somebody approved, and collapsing the two would "
+            "let an unexamined guess acquire the standing of a confirmed one."
+        ),
+    )
+
+
+@app.post("/ask/revise", response_model=ReviseResponse)
+def revise(req: ReviseRequest) -> ReviseResponse:
+    """Re-run the deterministic half after the user edits an assumption.
+
+    FR-30. The editable field is what makes Q1 safe, and a field you can edit
+    without anything changing is decoration.
+    """
+    task = req.profile.get("raw_text", "")
+    if not str(task).strip():
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "the revised profile carries no task text. Refused rather than "
+                "re-run against an empty task, which would produce a "
+                "recommendation about nobody's work."
+            ),
+        )
+
+    requirement = requirements.infer(
+        task,
+        input_tokens=req.profile.get("input_tokens"),
+        output_tokens=req.profile.get("output_tokens"),
+        tool_count=req.profile.get("tool_count"),
+        regions=req.profile.get("regions"),
+    )
+
+    guessed = [
+        field
+        for field, value in req.profile.items()
+        if field not in req.accepted_assumptions
+        and field != "raw_text"
+        and value not in (None, [], {}, "")
+    ]
+
+    silent = requirement.silent_failure_capabilities
+    note = (
+        f"{len(silent)} of {len(requirement.capabilities)} capabilities fail silently "
+        "and need positive consensus, not merely an absence of complaints."
+        if silent
+        else "All required capabilities fail loudly, so a validation retry is a real "
+        "mitigation and weaker evidence is acceptable."
+    )
+
+    return ReviseResponse(
+        requirement=requirement,
+        guard=guard_for(requirement),
+        note=note,
+        still_guessed=sorted(guessed),
+    )
