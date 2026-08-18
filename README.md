@@ -54,7 +54,7 @@ psql "$DATABASE_URL" -f contract/tables.sql
 | | Setup | Limit |
 |---|---|---|
 | GitHub | Personal access token - five minutes | 30 search req/min |
-| Reddit | Register a script app - client id + secret, ~15 min | 60 req/min |
+| Reddit | Register a script app - client id + secret, ~15 min | 429 at 32 rapid calls; 25/min in use, allowance unread |
 | Blogs | Nothing. RSS and sitemaps | be polite: ~1 req/sec |
 
 **Before writing any other code:** finish `contract/seed_models.yaml`. Nine

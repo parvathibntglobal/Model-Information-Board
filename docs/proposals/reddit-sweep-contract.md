@@ -35,6 +35,8 @@ Two of the three inputs are measured, in
       - identifying_user_agent: true
       - full_text_republished: false
     evidence_valid_days: 180
+    # See 1.3 for the block that goes here: one ruling covers both an evidence
+    # sweep and a measurement sweep, with retention recorded on the sample.
 ```
 
 `requires` names live preconditions, so `assert_terms_reviewed` re-verifies them
@@ -82,36 +84,71 @@ What is *not* measured: what the PRO plan's own terms permit. The quota headers
 name the plan; nobody has read its document. That is reading, not measurement,
 and it belongs with §1.3.
 
-### 1.3 · Yours: is a measurement sweep the same fetch as an evidence sweep?
+### 1.3 · Ruled: one ruling, and retention is a property of the sample
 
-Not measurable — it turns on what we would say if asked. Both arguments, without
-a recommendation.
+**Decided 2026-08-18. One ruling covers both an evidence sweep and a
+measurement sweep.**
 
-**They are the same, and one ruling covers both.**
-The gate's own position is that a fetch is a fetch: it takes a source row and a
-set of live observations, and has no concept of purpose. That is deliberate —
-purpose is self-declared, and a category that exempts a request from review is a
-category everything eventually gets filed under. Mechanically the two are
-identical: same host, same endpoints, same payloads, same retention. And the
-unfiltered sweep is arguably the *more* defensible of the two, because it reads
-a subreddit's public timeline rather than searching for named products. A ruling
-that covered evidence but not measurement would refuse the milder request.
+The deciding argument is the one against a second ruling: **purpose is
+self-declared, and an exempt category is one everything eventually gets filed
+under.** The moment "this is only a measurement" skips a check, every sweep
+acquires a measurement justification — and the person writing that
+justification is the same person who wants the data. The gate is built with no
+concept of purpose on purpose: it takes a source row and this run's live
+observations, and a fetch is a fetch.
 
-**They are different, and the ruling should say which it covers.**
-What we retain differs, and retention is what the terms are mostly about. An
-evidence sweep keeps documents it intends to quote, attribute and link — the
-board's whole published surface. A measurement sweep keeps ~2,000 posts *because
-most of them are about nothing*, quotes none of them, publishes none of them,
-and exists to compute one percentage. If asked "why do you hold this person's
-post", the honest answer differs: one is "we cited you"; the other is "you were
-in a denominator". A ruling silent on that distinction has not been thought
-about, and the sweep's population is stored outside `raw/` precisely because the
-two are not the same kind of object.
+**The retention difference is real, and it argues for stricter handling of the
+sample rather than for a different set of terms.** Reddit's terms do not change
+according to why we asked. What changes is what we keep and for how long, and
+that is a property of the sample — so it is recorded on the sample, not
+negotiated into a second ruling:
 
-**What turns on it:** if one ruling covers both, §1 as drafted is complete. If
-not, the sweep needs its own ruling naming a retention period and a deletion
-date, and `assert_terms_reviewed` needs the sweep to pass a different source id
-— which is a code change as well as a contract one.
+- stored **outside `raw/`**, as `docs/unfiltered-sweep-design.md` §4 already
+  designed it, because a measurement population is not evidence and mixing them
+  contaminates every later denominator;
+- with a **deletion date recorded at collection**, because a sample kept to
+  compute one percentage has no reason to outlive the percentage;
+- under the **same ruling**, so it is subject to every precondition an evidence
+  fetch is subject to and cannot drift out from under them.
+
+**This reasoning is in the ruling and not only in this file**, because Engineer 2
+flagged it as the thing whoever runs the next sweep will assume either way — and
+they will assume it silently. A conclusion without its argument gets re-litigated
+by the next person who finds a reason it should not apply to them.
+
+```yaml
+    # ONE RULING COVERS BOTH AN EVIDENCE SWEEP AND A MEASUREMENT SWEEP.
+    #
+    # Ruled 2026-08-18. The alternative was a second, lighter ruling for
+    # sampling runs that quote nobody and publish nothing, and it was refused:
+    # PURPOSE IS SELF-DECLARED. An exempt category is one everything ends up
+    # filed under, and the person writing the justification is the person who
+    # wants the data. `assert_terms_reviewed` has no concept of purpose,
+    # deliberately — it takes a source row and this run's observations, and a
+    # fetch is a fetch.
+    #
+    # The retention difference is real and cuts the other way. An evidence
+    # sweep keeps documents it intends to quote, attribute and link. A
+    # measurement sweep keeps ~2,000 posts BECAUSE MOST OF THEM ARE ABOUT
+    # NOTHING, quotes none of them, and exists to compute one percentage. If
+    # asked "why do you hold this post", the answers differ: "we cited you"
+    # versus "you were in a denominator". That is a reason to handle the
+    # sample more strictly, not to hold it under different terms — Reddit's
+    # terms do not vary by our motive. So it is a property of the SAMPLE:
+    #
+    #   * stored outside raw/, never mixed with evidence
+    #   * a deletion date recorded when it is collected
+    #   * this ruling, with every precondition it carries
+    measurement_sweeps_covered: true
+    measurement_sample_retention_days: 90
+    measurement_sample_storage: separate    # never raw/
+```
+
+`measurement_sample_retention_days` is the one number here nobody has grounds
+for yet. 90 is proposed as "long enough to re-run the funnel after the two
+missing gates land, and not longer" — if the gates are further out than that,
+the right move is to raise it deliberately rather than to let the sample sit
+undeleted because a date passed unnoticed.
 
 ---
 

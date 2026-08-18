@@ -70,8 +70,13 @@ harvesting. A user-context grant would additionally need `REDDIT_USERNAME` and
 > **To verify before building the adapter**, because it moves and the repo
 > cannot tell us: the current grant types available to a script app, the
 > current rate limit, and whether the intended use falls inside Reddit's free
-> tier. `BUILD-PLAN.md` records 60 requests per minute; that figure should be
-> re-read off Reddit's current API terms rather than trusted. NFR-5 requires
+> tier. **The "60 requests per minute" this document attributed to
+> `BUILD-PLAN.md` is not in `BUILD-PLAN.md` and never was** — no commit in the
+> repository's history adds or removes it there. It is folklore that acquired a
+> citation. What is measured is 429 at 32 rapid calls (2026-08-14), so 60/min
+> would fail in the first minute of every sweep; 25/min is the working figure
+> and the plan's actual allowance has never been read. See
+> `docs/measurements/reddit-rate-and-quota.md`. NFR-5 requires
 > the terms be reviewed and recorded per source anyway, and `source.tos_notes`
 > is `NOT NULL` precisely so that cannot be skipped.
 

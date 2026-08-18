@@ -261,13 +261,25 @@ def retrieve(out_dir: Path) -> int:
             for index, item in enumerate(queries, 1):
                 run = searcher.search(item["query"])
                 calls += run.search_calls
-                quota = run.quota_remaining or quota
+                # `is not None`, not `or`. quota_remaining == 0 means the month
+                # is EXHAUSTED, which is the single most important value this
+                # field ever takes, and `x or quota` discards it in favour of
+                # the last non-zero reading.
+                if run.quota_remaining is not None:
+                    quota = run.quota_remaining
                 runs.write(json.dumps({
                     **item,
                     "posts": len(run.posts),
                     "calls": run.search_calls,
                     "http_errors": run.http_errors,
                     "rate_limited": run.rate_limited,
+                    # Recorded per run, not only totalled at the end. Two runs
+                    # on 2026-08-17 consumed 372 requests and 372 quota units,
+                    # and establishing that took subtracting two numbers out of
+                    # two report headers - with 35 requests between them that
+                    # nothing had recorded. NULL where the header was absent:
+                    # unread is not zero (rule 6).
+                    "quota_remaining": run.quota_remaining,
                     "refs": run.discovery_refs,
                 }) + "\n")
                 for post in run.posts:
@@ -289,8 +301,11 @@ def retrieve(out_dir: Path) -> int:
         sidecar.close()
         runs.close()
 
+    # `quota` stays 0 only if no response ever carried the header, which is a
+    # different fact from a quota of 0 and must not print as one.
+    reading = "not reported by any response" if quota == 0 else f"{quota}"
     print(f"\nretrieved : {len(seen_posts)} distinct posts, {calls} requests, "
-          f"quota remaining {quota}")
+          f"quota remaining {reading}")
     return 0
 
 
