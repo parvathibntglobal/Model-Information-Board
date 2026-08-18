@@ -286,7 +286,7 @@ def test_assembly_refuses_and_says_what_is_missing(tmp_path):
     assert "4%" in message and "4,833" in message, "the coverage measurement"
     assert "SIBLINGS" in message, "why the selection cannot be bounded"
     assert "126 report none" in message, "coverage is a lower bound"
-    assert "issue #5" in message, "where the columns are proposed"
+    assert "issue #54" in message, "where the columns are proposed"
 
 
 def test_the_refusal_does_not_still_blame_the_missing_scorer(tmp_path):
@@ -335,8 +335,9 @@ def test_the_refusal_does_not_still_blame_the_missing_scorer(tmp_path):
 def test_the_columns_the_refusal_calls_missing_are_genuinely_missing():
     """The other half of asserting the claim.
 
-    The refusal rests on three `thread_context` columns being unavailable. If
-    issue #5 lands them and nobody revisits this, the refusal starts citing a
+    The refusal rests on the `thread_context` coverage columns being
+    unavailable. If issue #54 lands them and nobody revisits this, the refusal
+    starts citing a
     gap that has been filled — the failure this file just had. Read from the
     contract rather than trusted.
     """

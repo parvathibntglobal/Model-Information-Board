@@ -185,8 +185,17 @@ no σ to compute against on day one. Today it is worse than un-armed: no gate se
 **"0 of 14 nights recorded"** — a countdown a person can read, not a green tick.
 
 The 10–15% survival expectation is an estimate to calibrate, and the only
-measured component — the specificity floor's 7.7% — is *"only interpretable
-against total triage survival, and nothing else in E4 exists yet"*.
+measured component is the specificity floor's 7.7% — which **carries a
+parameter**: the floor reads the alias list through `names_version`, so the same
+documents drop at 3.8% under the 59 hand-written surfaces and 0.8% under the
+1,337-surface registry union. Stated in `docs/measurements/specificity-backfill.md`.
+
+Three of E4's six gates now exist (`collect/triage/gates.py`); the language gate
+and the bot list do not, and `TriageResult.unavailable` names them on every
+verdict. **A survival rate computed while two gates are missing is an upper
+bound**, and the burn-in must not arm a 2σ alert against a baseline collected in
+that state — the baseline would move when the gates land, not when the world
+changed.
 
 ### 5 — registry field change, and the producer that is not there
 

@@ -631,7 +631,7 @@ class RedditHarvester:
             "and 126 report none. Any coverage figure is a LOWER BOUND on "
             "what is missing.\n"
             "\n"
-            "  FOUR columns are proposed on issue #5 so the selection can "
+            "  FOUR columns are proposed on issue #54 so the selection can "
             "state what it saw: `thread_context.observed_children`, "
             "`hidden_children_min`, `hidden_branches_unsized` and "
             "`coverage_ratio`. ThreadCoverage computes all four today and has "
