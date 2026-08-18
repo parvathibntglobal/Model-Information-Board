@@ -1,13 +1,14 @@
 # Flattening and `offset_map` — settled before any code
 
-**Two questions answered before building, and both premises turned out to need
-correcting. There is no flattener to compare her fixture against — `collect/assemble/`
-has never had one — so her fixture is not a second opinion, it is the
-specification by example. And it contains no HTML entities: the `&gt;` case is in
-the source payload, in six comment bodies, and in none of the six documents she
-selected.**
+**Byte equality on the first run — 2,481 characters and all 20 segments
+identical, from an implementation written without reading hers.**
 
-*Engineer 1 · no code written · 2026-08-18*
+Two premises needed correcting first. There was no flattener in `collect/` to
+compare against, so her fixture was not a second opinion but the specification
+by example. And it contains no HTML entities: the `&gt;` case is in the source
+payload, in six comment bodies, and in none of the six documents she selected.
+
+*Engineer 1 · 2026-08-18*
 
 ---
 
@@ -147,7 +148,52 @@ paragraph** — and it is her file, so this is a request. `oqocfjv` and the
 
 ---
 
-## 3 · What I am not deciding here
+## 3 · Which I would trust if they disagreed — stated before running it
+
+**Hers, on the flattening rules. Mine, on the segmentation.** Not a hedge; they
+are different claims with different evidence behind them.
+
+Her `build.py` was written against the real payload, and the rules it encodes —
+the joiner, the `unicodedata.name()` tags, which characters are substituted at
+all — are **observations of that data**. Mine would be
+reconstructions of her observations. Where they disagree about *what the string
+should look like*, she has looked at the tree and I have looked at her output.
+
+The segmentation is the other way round. `verify.py` and `build.py` are both
+hers, so a segmentation that is wrong in a way both share is invisible to her —
+which is exactly the shape `tests/conftest.py` records three times. Mine is the
+first independent reading of `contract/tables.sql`'s segment rule, and where we
+disagree about *segment boundaries* the contract decides, not either of us.
+
+Her note says `collect/assemble/` is authoritative. That is right as a standing
+rule and it should not be invoked on day one: authority earned by existing is
+not evidence. **The honest position before running was that neither of us had
+any**, and the first agreement is the first evidence either implementation has
+ever had.
+
+### What actually happened
+
+```
+BYTE EQUALITY: True
+SEGMENTS: mine=20 hers=20  identical=True
+```
+
+Byte-for-byte on 2,481 characters, and segment-for-segment on all 20 — first
+run, no adjustment. Written from `contract/tables.sql` plus the fixture's
+observable properties, without reading `build.py`.
+
+**That is worth more than either implementation being declared authoritative.**
+Two independent readings of one specification produced the same map on real data
+with six documents, ten substitutions, seven consecutive `█`, an unmapped joiner
+and a 1,739-character identity run. The disagreement conversation did not need
+to happen, and the reason to have set it up was that it might have.
+
+One thing the agreement does **not** cover: the entity case, which is why §2
+exists and why the tests below it are separate.
+
+---
+
+## 4 · What I am not deciding here
 
 **Whether `body` or `body_html` is the document text.** The adapter stores
 `body`, entities and all, and that is what `raw_text_of` must contain for step 3
