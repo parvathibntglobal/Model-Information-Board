@@ -231,3 +231,74 @@ def test_a_quote_resolves_back_through_verify(reference):
 
     raw = reference["raw_text_of"]["reddit:oqosfnq"]
     assert raw[raw_start:raw_end] == result.text[start:end]
+
+
+# ── the assembler, end to end on the real payload ────────────────────────
+
+
+def test_assembly_over_the_real_thread_selects_and_maps():
+    """The write path's inputs, on the payload the fixture was built from.
+
+    Not a database test — that ran against staging and is reported in
+    `docs/measurements/first-thread-context.md`. This pins the shape so a
+    change to selection or flattening fails here rather than there.
+    """
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+
+    from collect.adapters.reddit_comments import parse_thread
+    from collect.assemble.thread import SELECTION_METHOD, assemble
+    from collect.rawstore import RawStore
+
+    payload = _json.loads(
+        (REPO_ROOT / "fixtures" / "reddit" / "thread-1u1b22l-getPostComments.json")
+        .read_text(encoding="utf-8")
+    )
+    thread = parse_thread(payload, url="https://www.reddit.com/r/ClaudeAI/x/")
+    root = payload["data"][0]["data"]["children"][0]["data"]
+    root_text = (root.get("title", "") + "\n\n" + (root.get("selftext") or "")).strip()
+
+    assembled = assemble(
+        thread,
+        root_text=root_text,
+        root_document_id=f"reddit:{root.get('name')}",
+        store=RawStore(_Path(tempfile.mkdtemp())),
+        version_aliases=(),
+    )
+
+    assert assembled.child_count == 5
+    assert len(assembled.member_document_ids) == 6
+    assert assembled.observed_children == 195
+    assert assembled.hidden_children_min == 623
+
+    # `selection_method` NEVER gets the schema default. The bare value asserts
+    # a global ranking and 195 of 818 known-minimum comments is not one.
+    assert assembled.selection_method == SELECTION_METHOD
+    assert assembled.selection_method != "specificity_x_log_engagement"
+    assert "@observed" in assembled.selection_method
+
+
+def test_the_insert_omits_the_generated_column():
+    """`coverage_ratio` is GENERATED ALWAYS, so Postgres rejects an explicit
+    value — including an explicit NULL. Omitting the key is how it is written,
+    and passing None would be an error rather than a no-op."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    from collect.adapters.reddit_comments import ParsedThread, ThreadCoverage
+    from collect.assemble.thread import assemble
+    from collect.rawstore import RawStore
+
+    thread = ParsedThread(
+        root_post_id="t3_x",
+        comments=(),
+        coverage=ThreadCoverage(0, 0, 0, None, 0, 0),
+    )
+    assembled = assemble(
+        thread, root_text="body", root_document_id="reddit:t3_x",
+        store=RawStore(_Path(tempfile.mkdtemp())), version_aliases=(),
+    )
+    row = assembled.as_row()
+    assert "coverage_ratio" not in row
+    assert "observed_children" in row

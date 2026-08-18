@@ -2,10 +2,11 @@
 
 WHAT THIS IS AND IS NOT
 -----------------------
-This is the FETCH PATH only. Thread assembly — the comment tree, child
-selection and `offset_map` — is refused explicitly by `assemble_thread` rather
-than half-built, because two things it needs do not exist yet. See the refusal
-for what they are.
+Fetch, and — since 2026-08-18 — assembly. `assemble_thread` refused for
+eighteen days because a selection that cannot state what it saw would write
+"the top 5 children" when it means "the top 5 of the 4% we happened to fetch".
+#54 landed the coverage columns, so it can now state it. The rules live in
+`collect/assemble/thread.py`; this module fetches and hands over.
 
 WHY THIS PLATFORM IS DIFFERENT, AND WHAT THAT CLAIM IS ACTUALLY WORTH
 ----------------------------------------------------------------------
@@ -601,38 +602,75 @@ class RedditHarvester:
 
     # ── assembly, refused ────────────────────────────────────────────────
 
-    def assemble_thread(self, post: RedditPost):
-        """Refused. Two things it needs do not exist, and a stub would hide it.
+    def assemble_thread(
+        self,
+        post: RedditPost,
+        *,
+        thread=None,
+        version_aliases=(),
+        max_children: int = 5,
+    ):
+        """Build the `thread_context` row for a fetched thread.
 
-        Raises:
-            AssemblyNotBuilt: always, with what is missing.
+        BUILT 2026-08-18, after eighteen days of refusing. The refusal's last
+        reason went when #54 landed `observed_children`, `hidden_children_min`,
+        `hidden_branches_unsized` and `coverage_ratio` — a selection can now say
+        what it saw instead of writing "the top 5 children" when it means "the
+        top 5 of the 4% we happened to fetch".
+
+        The rules live in `collect/assemble/thread.py`, which is where the
+        reasoning is. Two things worth knowing at the call site:
+
+        **`selection_method` never gets the schema's default.** The bare
+        `specificity_x_log_engagement` asserts a global ranking, and 200 of
+        4,833 comments with 30% sibling inversions is not one. It writes
+        `@observed`.
+
+        **This touches no database.** It returns an `AssembledThread`; writing
+        is `write_thread_context`, so the caller can look at the segments before
+        they become rows.
+
+        Args:
+            post: the root post, already stored as a `document`.
+            thread: a `ParsedThread`. Fetched here when not supplied.
+            version_aliases: surfaces for `names_version`, which feeds the
+                specificity score child ranking uses. Empty is legitimate and
+                narrows the score rather than breaking it.
         """
-        raise AssemblyNotBuilt(
-            "Thread assembly is not built. It is no longer BLOCKED - the "
-            "reasons are gone - so this refusal is now 'nobody has written it "
-            "yet' and says so, rather than citing a gap that has been filled.\n"
-            "\n"
-            "  ALL THREE EARLIER REASONS ARE RESOLVED. specificity_score exists "
-            "in collect/triage/specificity.py; fetch_comments stores the tree, "
-            "so the children exist as documents; and #54 landed "
-            "thread_context.observed_children, hidden_children_min, "
-            "hidden_branches_unsized and coverage_ratio on 2026-08-18, so a "
-            "selection can now state what it saw instead of writing 'the top 5 "
-            "children' when it means 'the top 5 of the 4% we happened to "
-            "fetch'.\n"
-            "\n"
-            "  WHAT IS ACTUALLY MISSING IS THE FLATTENER AND offset_map, and "
-            "offset_map cannot be built later - it is ten lines while you are "
-            "already walking the tree and impossible to reconstruct afterwards. "
-            "Every quote extracted without it has to be re-run.\n"
-            "\n"
-            "  Two things are settled before that code is written: whether this "
-            "flattener and fixtures/threads/thread-1u1b22l.json agree byte for "
-            "byte on the same tree, since offsets that diverge leave both sides "
-            "looking correct; and what the segment rule emits for an HTML "
-            "entity, which the source payload contains in 6 comment bodies and "
-            "that fixture contains in none. See "
-            "docs/proposals/flattening-and-offset-map.md."
+        from collect.adapters.reddit_comments import parse_thread, permalink_of
+        from collect.assemble.thread import assemble
+
+        if thread is None:
+            url = permalink_of(post)
+            if url is None:
+                raise AssemblyNotBuilt(
+                    f"{post.external_id!r} has no thread permalink, so it has no "
+                    "comment tree to assemble. A link post's url is the linked "
+                    "content - this is not an error, and fetch_comments reports "
+                    "it as `not_a_thread` rather than failing."
+                )
+            fetch = self.fetch_comments(post)
+            if fetch.ref is None:
+                raise AssemblyNotBuilt(
+                    f"no stored payload for {post.external_id!r}: nothing to "
+                    "assemble. This is a fetch problem, not an assembly one."
+                )
+            # Re-read from raw/ rather than holding the parse in memory: the
+            # payload is written BEFORE it is parsed precisely so a parse change
+            # is a re-parse and not a re-fetch, and assembly is a parse change.
+            import json as _json
+
+            thread = parse_thread(
+                _json.loads(self._store.get_text(fetch.ref)), url=url
+            )
+
+        return assemble(
+            thread,
+            root_text=post.sieve_text,
+            root_document_id=f"reddit:{post.external_id}",
+            store=self._store,
+            version_aliases=version_aliases,
+            max_children=max_children,
         )
 
 

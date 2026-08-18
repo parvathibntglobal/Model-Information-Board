@@ -64,3 +64,4 @@ Thumbs.db
 # ── generated output ─────────────────────────────────────────────────────
 site/
 exports/
+_flattened_probe/

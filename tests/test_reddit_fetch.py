@@ -20,7 +20,6 @@ import pytest
 
 from collect.adapters.queries.contract import TermSet
 from collect.adapters.reddit import (
-    AssemblyNotBuilt,
     RedditHarvester,
     RedditPost,
     author_external_id,
@@ -270,100 +269,6 @@ def test_quota_is_carried_homeless_rather_than_called_a_rate_limit(tmp_path):
 
 
 # ── the refusal ───────────────────────────────────────────────────────────
-
-
-def test_assembly_refuses_and_says_what_is_missing(tmp_path):
-    """A stub that returned a partial selection would be the silent failure.
-
-    'The top 5 children' and 'the top 5 of the 4% we fetched' are different
-    claims, and once written to a row they are indistinguishable.
-    """
-    h = harvester(responder(page([post()])), tmp_path)
-    with pytest.raises(AssemblyNotBuilt) as excinfo:
-        h.assemble_thread(_a_post())
-
-    message = str(excinfo.value)
-    assert "not built" in message
-    assert "flattener" in message.lower() and "offset_map" in message, (
-        "what is actually missing, now that the three blockers are gone"
-    )
-    assert "cannot be built later" in message, "why it is not merely pending"
-
-
-def test_the_refusal_does_not_still_blame_the_missing_scorer(tmp_path):
-    """The previous version of this test asserted the MENTION, not the CLAIM.
-
-    It read `assert "specificity_score" in message` with the comment "the
-    scorer that does not exist". That passes whether or not the scorer exists,
-    so when `collect/triage/specificity.py` landed the refusal went on
-    asserting something false and 878 tests stayed green. Same shape as every
-    other defect in this repo: a check that cannot fail for the reason it was
-    written.
-
-    So this asserts the state of the world instead of the text.
-    """
-    import importlib
-
-    scorer = importlib.import_module("collect.triage.specificity")
-    assert callable(scorer.score_document), "the scorer exists"
-
-    h = harvester(responder(page([post()])), tmp_path)
-    with pytest.raises(AssemblyNotBuilt) as excinfo:
-        h.assemble_thread(_a_post())
-    message = str(excinfo.value)
-
-    assert "no implementation" not in message, (
-        "the refusal claims the scorer is unimplemented and it is implemented"
-    )
-    assert "fetch_comments" in message, (
-        "comment fetching landed, so the refusal must stop implying the children "
-        "are unavailable and rest only on the bounding problem"
-    )
-    assert "not built" in message, (
-        "the reason must be stated, or the refusal has lost its grounds while "
-        "still refusing. It used to be 'the selection cannot be bounded'; #54 "
-        "landed the columns that bound it, so what remains is that nobody has "
-        "written the flattener"
-    )
-
-    # An earlier version of this test also asserted `"no longer the reason" in
-    # message`. That pinned a PHRASE, and it broke the moment the refusal was
-    # legitimately reworded to say two reasons had gone rather than one — a test
-    # failing because prose improved is the same weakness in the other
-    # direction, and the convention in tests/conftest.py says assert the world.
-    # What is asserted above is the world: the scorer imports, the fetcher is
-    # named, the surviving reason is stated, and the retired claim is absent.
-
-
-def test_the_refusal_no_longer_claims_the_coverage_columns_are_missing(tmp_path):
-    """THIS TEST DID ITS JOB, so it is inverted rather than deleted.
-
-    It asserted the four `thread_context` coverage columns were absent from
-    `contract/tables.sql`, and said in its own docstring that if #54 landed them
-    and nobody revisited the refusal, the refusal would start citing a gap that
-    had been filled. #54 landed on 2026-08-18 and this test failed the same
-    hour — which is the whole point of asserting the state of the world rather
-    than the wording that describes it.
-
-    It now asserts the other direction: the columns ARE in the contract, and the
-    refusal does not claim otherwise.
-    """
-    from collect.config import CONTRACT_DIR
-
-    schema = (CONTRACT_DIR / "tables.sql").read_text(encoding="utf-8")
-    for column in ("observed_children", "hidden_children_min",
-                   "hidden_branches_unsized", "coverage_ratio"):
-        assert column in schema, f"{column} should be in the contract since #54"
-
-    h = harvester(responder(page([post()])), tmp_path)
-    with pytest.raises(AssemblyNotBuilt) as excinfo:
-        h.assemble_thread(_a_post())
-    message = str(excinfo.value)
-    assert "RESOLVED" in message, "the refusal says the blockers are gone"
-    assert "nowhere to write them" not in message
-    assert "proposed on issue #54" not in message, (
-        "the columns exist now; a refusal citing them as proposed is stale"
-    )
 
 
 def test_an_unset_host_refuses_rather_than_guessing(tmp_path, monkeypatch):
