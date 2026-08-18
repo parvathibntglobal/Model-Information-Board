@@ -1,9 +1,13 @@
-"""The alias proposer: two inputs, and empty slots left empty.
+"""The alias proposer: three inputs, and empty slots left empty.
 
 The load-bearing tests are the INCOMPLETE ones. Engineer 2's argument: a
 generated list that looks complete is worse than a short one known to be short —
 the same argument as `phrase_present = None` versus 0. So a slot with no evidence
 must be legibly missing, not plausibly filled.
+
+The by-rule tests are load-bearing for a second reason: the vendor-drop rule is
+derived from an observation, and the tests that matter are the ones pinning where
+it REFUSES to derive. A rule that fired everywhere would be judgement again.
 """
 
 from __future__ import annotations
@@ -13,9 +17,11 @@ import pytest
 from collect.registry.propose import (
     FAMILY_WORDS,
     INCOMPLETE,
+    VENDOR_DROP,
     Attested,
     mechanical_variants,
     propose,
+    rule_variants,
     summarise,
     to_yaml,
 )
@@ -29,8 +35,8 @@ MODELS = [
 #: Real counts from the extract over 5,546 stored documents.
 OBSERVED = {
     "anthropic/claude-opus-5": [Attested("opus 5", 1445, 281), Attested("opus-5", 78, 39)],
-    "openai/gpt-5": [Attested("gpt-5", 311, 103), Attested("gpt 5", 55, 30),
-                     Attested("gpt5", 33, 18)],
+    "openai/gpt-5": [Attested("gpt-5", 311, 103), Attested("gpt5", 50, 10),
+                     Attested("gpt 5", 38, 14)],
 }
 
 
@@ -73,6 +79,142 @@ def test_mechanical_needs_no_corpus():
     assert forms
 
 
+# ── by rule: derived from an observation, and it fires narrowly ───────────
+
+
+def test_the_vendor_word_is_dropped_and_rendered_three_ways():
+    """`claude-opus-5` -> `opus-5` -> `opus 5`, the rule the corpus supplied.
+
+    4,556 mentions sit in `attested-gap`, the largest verdict by mentions, and
+    they are one rule: people drop the vendor word.
+    """
+    assert rule_variants("anthropic/claude-opus-5", "Anthropic: Claude Opus 5") == [
+        "opus 5", "opus-5", "opus5",
+    ]
+
+
+def test_the_rule_generalises_across_the_family():
+    """Every Anthropic tier, including one the corpus has never attested."""
+    assert "sonnet 4.5" in rule_variants("anthropic/claude-sonnet-4.5")
+    assert "haiku 4.5" in rule_variants("anthropic/claude-haiku-4.5")
+    assert "fable 5" in rule_variants("anthropic/claude-fable-5")
+
+
+def test_the_rule_refuses_a_reordering():
+    """`gemini-2.5-flash` would leave `2.5 flash`. People write `flash 2.5`.
+
+    Reordering is judgement, not a rendering, so the rule stops. The attested
+    input is what supplies `flash 2.5` where the corpus has seen it.
+    """
+    assert rule_variants("google/gemini-2.5-flash", "Google: Gemini 2.5 Flash") == []
+
+
+def test_the_rule_refuses_a_tier_word_the_corpus_has_not_supplied():
+    """`mistral-large-3` almost certainly has a vendor-dropped form.
+
+    `large` is not a family word here, and inventing the tier vocabulary is the
+    judgement this module refuses. Returning nothing is a REFUSAL TO DERIVE and
+    not a claim that no such surface exists — the reviewer sees the same
+    INCOMPLETE slots either way.
+    """
+    assert rule_variants("mistralai/mistral-large-3") == []
+
+
+def test_the_rule_stops_at_a_dated_snapshot_id():
+    """`haiku 4 5 20251001` is not a form anyone writes.
+
+    18 of 10,255 attested mentions carry a date-shaped token at all.
+    """
+    assert rule_variants("anthropic/claude-haiku-4-5-20251001") == []
+
+
+def test_the_rule_refuses_a_route_suffix():
+    """`opus 5:batch` is not a form anyone writes, and `opus 5` is not free either.
+
+    Stripping `:batch` would derive the same surface for two canonical ids with
+    overlapping validity windows — the ambiguity `AliasCollisionError` refuses at
+    load. The dry run over the 155 ids the extract names produced four of these
+    before the guard existed.
+    """
+    assert rule_variants("anthropic/claude-opus-5:batch") == []
+    assert rule_variants("anthropic/claude-fable-5:batch") == []
+    assert rule_variants("anthropic/claude-opus-5") == ["opus 5", "opus-5", "opus5"]
+
+
+def test_the_feed_name_cannot_smuggle_a_route_suffix_back_in():
+    """The refusal is per MODEL, not per seed.
+
+    A routed id refuses both seeds, or `Anthropic: Claude Opus 5 (batch)` would
+    derive `opus 5 (batch)` after the id itself had been turned away.
+    """
+    assert rule_variants(
+        "anthropic/claude-opus-5:batch", "Anthropic: Claude Opus 5 (batch)"
+    ) == []
+    # And punctuation on an unrouted id is refused on its own account.
+    assert rule_variants("anthropic/claude-opus-5", "Anthropic: Claude Opus 5 (beta)") == [
+        "opus 5", "opus-5", "opus5",
+    ]
+
+
+def test_the_rule_never_reaches_the_family_surface():
+    """It keeps the version token; a family surface is what dropping it produces."""
+    for canonical_id in ("anthropic/claude-opus-5", "anthropic/claude-sonnet-4.5"):
+        forms = rule_variants(canonical_id)
+        assert forms
+        assert not any(f in FAMILY_WORDS for f in forms)
+        assert all(any(ch.isdigit() for ch in f) for f in forms)
+
+
+def test_two_tokens_leave_nothing_to_propose():
+    """Dropping from `gpt-5` leaves a bare version, and from `deepseek-v3` a bare
+    one-token form. Neither is a surface."""
+    assert rule_variants("openai/gpt-5", "OpenAI: GPT-5") == []
+    assert rule_variants("deepseek/deepseek-v3") == []
+
+
+def test_a_rule_derived_surface_is_not_the_primary_and_does_not_change_the_status():
+    """Two derivations are still no observation.
+
+    A status that improved on a derivation would report the rule's confidence as
+    the model's evidence, which is the `phrase_present = None` versus 0 mistake
+    with an extra step.
+    """
+    proposal = next(p for p in propose([("anthropic/claude-fable-5", "Claude Fable 5")]))
+    assert proposal.by_rule == ["fable 5", "fable-5", "fable5"]
+    assert proposal.surface == INCOMPLETE
+    assert proposal.status == "mechanical-only"
+    assert "attested_surfaces" in proposal.incomplete
+
+
+def test_observed_beats_derived_in_the_variant_order():
+    """Attested first, then by-rule, then merely derivable."""
+    proposal = next(p for p in propose(MODELS, OBSERVED)
+                    if p.canonical_id == "anthropic/claude-opus-5")
+    variants = proposal.variants
+    assert variants.index("opus5") < variants.index("claude opus 5")
+
+
+def test_a_surface_that_is_both_attested_and_derived_is_the_rules_own_evidence():
+    """`opus 5` at 1,445 mentions is what makes the rule more than a guess."""
+    proposal = next(p for p in propose(MODELS, OBSERVED)
+                    if p.canonical_id == "anthropic/claude-opus-5")
+    assert proposal.corroborated_by_rule == ["opus 5", "opus-5"]
+
+
+def test_the_yaml_keeps_the_three_categories_apart():
+    """And it says so on the primary line, where the reviewer starts reading."""
+    text = to_yaml(propose(MODELS, OBSERVED))
+    assert f"# by rule ({VENDOR_DROP}), unattested" in text
+    assert f"# attested 1445 mentions; also derived by {VENDOR_DROP}" in text
+    assert f"# attested 78 mentions; also derived by {VENDOR_DROP}" in text
+    assert "# mechanical, unattested" in text
+
+
+def test_the_summary_counts_the_rule_and_its_corroboration():
+    summary = summarise(propose(MODELS, OBSERVED))
+    assert f"1 carry a {VENDOR_DROP} surface, 1 of those corroborated" in summary
+
+
 # ── attested: measured, and it drives the primary ────────────────────────
 
 
@@ -88,12 +230,17 @@ def test_the_primary_surface_is_the_most_mentioned_attested_one():
     assert proposal.status == "attested"
 
 
-def test_attested_surfaces_come_before_mechanical_ones():
+def test_attested_surfaces_are_ordered_by_how_often_they_were_observed():
+    """`gpt5` at 50 mentions before `gpt 5` at 38.
+
+    All three of this model's surfaces are also mechanically derivable, so the
+    order here is decided by the counts and by nothing else.
+    """
     proposal = next(p for p in propose(MODELS, OBSERVED)
                     if p.canonical_id == "openai/gpt-5")
     variants = proposal.variants
-    assert variants.index("gpt 5") < variants.index("gpt5") or "gpt5" in variants
-    assert "gpt 5" in variants
+    assert proposal.surface == "gpt-5"
+    assert variants.index("gpt5") < variants.index("gpt 5")
 
 
 def test_proposals_are_ranked_by_how_much_the_corpus_discusses_the_model():
@@ -157,6 +304,19 @@ def test_the_summary_states_what_is_unmeasured():
     summary = summarise(propose(MODELS, OBSERVED))
     assert "mechanical-only" in summary
     assert "INCOMPLETE" in summary
+
+
+def test_an_unmeasured_surface_count_is_never_rendered_as_zero():
+    """`median 0, max 0` is the same table cell as a model measured at zero.
+
+    `deepseek r1` is NOT MEASURED — the detector cannot see letter-prefixed
+    versions, so there is no observation to report. It is not measured as zero.
+    Somebody will eventually prune on a zero, and the two are indistinguishable
+    once printed.
+    """
+    summary = summarise(propose(MODELS))
+    assert "not measured" in summary
+    assert "median 0" not in summary and "max 0" not in summary
 
 
 # ── the boundary ─────────────────────────────────────────────────────────
