@@ -450,10 +450,17 @@ def _platform(source_id):
 
 
 def test_the_source_entry_point_refuses_a_source_with_no_ruling(tmp_path):
-    """NFR-5. `reddit` names no ruling, which is what blocks it."""
+    """NFR-5. A source naming no ruling is refused, whatever it is.
+
+    This used `reddit` as the example until 2026-08-18, when `reddit` acquired
+    the `reddit-via-rapidapi` ruling and the test started asserting a fact about
+    one contract row rather than the property. A synthetic row keeps the
+    property and cannot go stale when the contract changes again.
+    """
+    unruled = {"id": "no-ruling-anywhere", "platform": "blog", "endpoint": "https://x.invalid"}
     with pytest.raises(TermsNotReviewedError) as excinfo:
-        _build_for(_platform("reddit"), tmp_path)
-    assert "reddit" in str(excinfo.value)
+        _build_for(unruled, tmp_path)
+    assert "no-ruling-anywhere" in str(excinfo.value)
     assert "names no terms ruling" in str(excinfo.value)
 
 

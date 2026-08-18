@@ -85,15 +85,34 @@ def _strip(text: str | None, schema: str) -> str | None:
 
 
 def columns(connection, schema: str) -> set[tuple]:
+    """Name, type, nullability, default — AND generated-ness.
+
+    THE LAST TWO WERE ADDED AFTER BREAKING THIS ON PURPOSE. `thread_context.
+    coverage_ratio` is the schema's first GENERATED ALWAYS column, and with the
+    query as originally written — name, type, is_nullable, column_default — the
+    migration was edited to create a PLAIN `real` column and **all 21 tests
+    still passed**. A generated column and an ordinary one of the same type are
+    indistinguishable to `column_default`, because a generated column has none.
+
+    That is the defect the generated column itself exists to prevent, one level
+    up: `coverage_ratio` is GENERATED so it cannot drift from its inputs, and
+    the test that proves the chain reaches `tables.sql` could not see it drift
+    into being storable. Confirmed by reverting and watching it pass, which is
+    habit 3 in `tests/conftest.py`.
+    """
     rows = connection.execute(
         """
-        SELECT table_name, column_name, data_type, is_nullable, column_default
+        SELECT table_name, column_name, data_type, is_nullable, column_default,
+               is_generated, generation_expression
         FROM information_schema.columns WHERE table_schema = %s
         """,
         (schema,),
     ).fetchall()
     # An unordered set, deliberately. See the module docstring.
-    return {(t, c, d, n, _strip(default, schema)) for t, c, d, n, default in rows}
+    return {
+        (t, c, d, n, _strip(default, schema), gen, _strip(expr, schema))
+        for t, c, d, n, default, gen, expr in rows
+    }
 
 
 def constraints(connection, schema: str) -> set[tuple]:
@@ -199,7 +218,30 @@ def test_the_equivalence_test_can_fail(both_sides):
     both_sides.execute(f"ALTER TABLE {B}.document ADD COLUMN drifted text")
     both_sides.commit()
     only_chain = columns(both_sides, B) - columns(both_sides, A)
-    assert ("document", "drifted", "text", "YES", None) in only_chain
+    assert ("document", "drifted", "text", "YES", None, "NEVER", None) in only_chain
+
+
+def test_a_generated_column_turning_plain_is_caught(both_sides):
+    """The case that motivated widening `columns()`, kept as a test.
+
+    `thread_context.coverage_ratio` is GENERATED ALWAYS. With the comparison as
+    originally written this transformation was INVISIBLE — a generated column
+    and a plain one of the same type differ in nothing the query selected,
+    because a generated column has no `column_default`. Twenty-one tests passed
+    against a migration that created it plain.
+
+    A plain `coverage_ratio` is precisely the drift the generated column exists
+    to prevent, so the equivalence test would have signed off on the defect it
+    was there to catch.
+    """
+    both_sides.execute(f"ALTER TABLE {B}.thread_context DROP COLUMN coverage_ratio")
+    both_sides.execute(f"ALTER TABLE {B}.thread_context ADD COLUMN coverage_ratio real")
+    both_sides.commit()
+
+    only_file = columns(both_sides, A) - columns(both_sides, B)
+    generated = [row for row in only_file if row[1] == "coverage_ratio"]
+    assert generated, "a generated column becoming plain must be visible"
+    assert generated[0][5] == "ALWAYS"
 
 
 # ── discovery and the ledger ──────────────────────────────────────────────
@@ -404,8 +446,42 @@ def test_a_database_predating_the_ledger_is_not_reported_as_current(conn):
 
 
 def test_a_database_with_the_ledger_and_nothing_pending_is_current(conn):
+    """BASELINE PLUS EVERY MIGRATION, not baseline alone.
+
+    This asserted `is_current` after applying `baseline.sql` by itself, which
+    was true only while `discover()` returned nothing. The first real migration
+    made it fail — correctly, because a database at the baseline with a
+    migration outstanding is *not* current.
+
+    The test was the same shape as the writers it is chasing: an assertion that
+    could not fail because the condition it named could not arise. Now it
+    applies the whole chain, so "nothing pending" means the chain is exhausted
+    rather than empty.
+    """
     _in_schema(conn, "public", M.baseline_sql())
+    for migration in M.discover():
+        conn.execute(migration.sql)
+        conn.execute(
+            f"INSERT INTO {M.LEDGER} (filename, content_hash) VALUES (%s, %s)",
+            (migration.filename, migration.content_hash),
+        )
+    conn.commit()
+
     status = M.check(conn)
     assert status.ledger_present
     assert status.is_current
     assert "current" in status.describe()
+
+
+def test_the_baseline_alone_is_not_current_once_a_migration_exists(conn):
+    """The state the previous test used to assert was fine.
+
+    Worth its own test rather than only a corrected one: a database sitting at
+    the baseline with work outstanding must report as behind, and until
+    2026-08-18 nothing could tell the difference.
+    """
+    _in_schema(conn, "public", M.baseline_sql())
+    status = M.check(conn)
+    assert status.ledger_present
+    assert not status.is_current
+    assert status.pending_filenames == [m.filename for m in M.discover()]

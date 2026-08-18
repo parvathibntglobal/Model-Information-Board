@@ -2,10 +2,11 @@
 
 WHAT THIS IS AND IS NOT
 -----------------------
-This is the FETCH PATH only. Thread assembly — the comment tree, child
-selection and `offset_map` — is refused explicitly by `assemble_thread` rather
-than half-built, because two things it needs do not exist yet. See the refusal
-for what they are.
+Fetch, and — since 2026-08-18 — assembly. `assemble_thread` refused for
+eighteen days because a selection that cannot state what it saw would write
+"the top 5 children" when it means "the top 5 of the 4% we happened to fetch".
+#54 landed the coverage columns, so it can now state it. The rules live in
+`collect/assemble/thread.py`; this module fetches and hands over.
 
 WHY THIS PLATFORM IS DIFFERENT, AND WHAT THAT CLAIM IS ACTUALLY WORTH
 ----------------------------------------------------------------------
@@ -445,7 +446,21 @@ class RedditHarvester:
         max_pages: int = DEFAULT_MAX_PAGES,
         clock=lambda: datetime.now(UTC),
         sleeper=time.sleep,
+        host: str | None = None,
     ) -> None:
+        """`host` defaults to `RAPIDAPI_HOST` and may be supplied explicitly.
+
+        THE DEFAULT IS THE PRODUCTION PATH AND THE ARGUMENT IS THE TESTABLE ONE.
+        Reading the setting here and only here meant a test of the CONSTRUCTOR
+        depended on the machine being configured for RapidAPI — which passed on
+        a laptop with a `.env` and failed in CI, where it was the first thing to
+        notice the difference. The tests in question were about the terms gate
+        and about where that gate fires; neither is about whether RapidAPI is
+        configured, and neither should have been able to fail for that reason.
+
+        Unset and unsupplied still refuses, so nothing reaches the network
+        without a host.
+        """
         self._client = client
         self._store = store
         self._limiter = (
@@ -456,7 +471,7 @@ class RedditHarvester:
         self._max_pages = max_pages
         self._clock = clock
         self._sleep = sleeper
-        self._host = settings().rapidapi_host
+        self._host = host if host is not None else settings().rapidapi_host
         if not self._host:
             raise RedditConfigError(
                 "RAPIDAPI_HOST is not set. It must be a bare host such as "
@@ -601,45 +616,75 @@ class RedditHarvester:
 
     # ── assembly, refused ────────────────────────────────────────────────
 
-    def assemble_thread(self, post: RedditPost):
-        """Refused. Two things it needs do not exist, and a stub would hide it.
+    def assemble_thread(
+        self,
+        post: RedditPost,
+        *,
+        thread=None,
+        version_aliases=(),
+        max_children: int = 5,
+    ):
+        """Build the `thread_context` row for a fetched thread.
 
-        Raises:
-            AssemblyNotBuilt: always, with what is missing.
+        BUILT 2026-08-18, after eighteen days of refusing. The refusal's last
+        reason went when #54 landed `observed_children`, `hidden_children_min`,
+        `hidden_branches_unsized` and `coverage_ratio` — a selection can now say
+        what it saw instead of writing "the top 5 children" when it means "the
+        top 5 of the 4% we happened to fetch".
+
+        The rules live in `collect/assemble/thread.py`, which is where the
+        reasoning is. Two things worth knowing at the call site:
+
+        **`selection_method` never gets the schema's default.** The bare
+        `specificity_x_log_engagement` asserts a global ranking, and 200 of
+        4,833 comments with 30% sibling inversions is not one. It writes
+        `@observed`.
+
+        **This touches no database.** It returns an `AssembledThread`; writing
+        is `write_thread_context`, so the caller can look at the segments before
+        they become rows.
+
+        Args:
+            post: the root post, already stored as a `document`.
+            thread: a `ParsedThread`. Fetched here when not supplied.
+            version_aliases: surfaces for `names_version`, which feeds the
+                specificity score child ranking uses. Empty is legitimate and
+                narrows the score rather than breaking it.
         """
-        raise AssemblyNotBuilt(
-            "Thread assembly is not built, and is refused rather than "
-            "approximated because a partial selection is indistinguishable "
-            "from a complete one once it is a row.\n"
-            "\n"
-            "  Two earlier reasons are gone. collect/triage/specificity.py "
-            "implements specificity_score, so child ranking has a scorer to "
-            "call; and fetch_comments fetches and stores the tree, so the "
-            "children exist as documents. ONE REASON REMAINS AND IT IS "
-            "SUFFICIENT.\n"
-            "\n"
-            "  The selection cannot be bounded. One getPostComments call "
-            "returned 200 of 4,833 comments (4%), and Reddit orders SIBLINGS "
-            "rather than the tree: 30% of adjacent pairs are score "
-            "inversions, and a depth-2 comment scoring 610 sits under "
-            "top-level comments scoring 6. So the last-seen score bounds "
-            "nothing unseen, and 'page until the top five are stable' has no "
-            "cheap stopping rule.\n"
-            "\n"
-            "  Nor is coverage fully knowable: of 252 'more' markers on that "
-            "thread, 126 report a hidden count (4,730 total, largest 3,180) "
-            "and 126 report none. Any coverage figure is a LOWER BOUND on "
-            "what is missing.\n"
-            "\n"
-            "  FOUR columns are proposed on issue #54 so the selection can "
-            "state what it saw: `thread_context.observed_children`, "
-            "`hidden_children_min`, `hidden_branches_unsized` and "
-            "`coverage_ratio`. ThreadCoverage computes all four today and has "
-            "nowhere to write them - hidden_branches_unsized is the fourth, "
-            "kept separate so one number cannot read as a measurement while "
-            "half of it is a floor of one. Until they exist, this would write "
-            "'the top 5 children' when it means 'the top 5 of the 4% we "
-            "happened to fetch'."
+        from collect.adapters.reddit_comments import parse_thread, permalink_of
+        from collect.assemble.thread import assemble
+
+        if thread is None:
+            url = permalink_of(post)
+            if url is None:
+                raise AssemblyNotBuilt(
+                    f"{post.external_id!r} has no thread permalink, so it has no "
+                    "comment tree to assemble. A link post's url is the linked "
+                    "content - this is not an error, and fetch_comments reports "
+                    "it as `not_a_thread` rather than failing."
+                )
+            fetch = self.fetch_comments(post)
+            if fetch.ref is None:
+                raise AssemblyNotBuilt(
+                    f"no stored payload for {post.external_id!r}: nothing to "
+                    "assemble. This is a fetch problem, not an assembly one."
+                )
+            # Re-read from raw/ rather than holding the parse in memory: the
+            # payload is written BEFORE it is parsed precisely so a parse change
+            # is a re-parse and not a re-fetch, and assembly is a parse change.
+            import json as _json
+
+            thread = parse_thread(
+                _json.loads(self._store.get_text(fetch.ref)), url=url
+            )
+
+        return assemble(
+            thread,
+            root_text=post.sieve_text,
+            root_document_id=f"reddit:{post.external_id}",
+            store=self._store,
+            version_aliases=version_aliases,
+            max_children=max_children,
         )
 
 
@@ -737,3 +782,68 @@ def build_client(**kwargs) -> httpx.Client:
     }
     headers.update(kwargs.pop("headers", {}))
     return _build(headers=headers, **kwargs)
+
+
+#: The basis `reddit-via-rapidapi` rests on, as the ruling names it.
+INTERNAL_DEVELOPMENT_ONLY = "internal-development-only"
+
+
+def observe_reddit_use() -> dict[str, object]:
+    """This run's live observations for the terms gate.
+
+    The ruling permits internal development and testing, and nothing else. That
+    is a fact about the DEPLOYMENT rather than about the request, so it is
+    observed here and re-read on every run — the ruling then stops applying when
+    the deployment changes, rather than when somebody remembers to revisit it.
+
+    IT IS A PROXY, AND THE GAP IS THE POINT OF SAYING SO. `ENVIRONMENT` is the
+    only signal the process actually has. It catches the case that matters most
+    — a production deployment silently inheriting a development-only ruling —
+    and it does NOT catch a staging instance that has acquired external users or
+    started charging for something. Those remain conditions a person has to
+    honour, which is exactly why the ruling records them as unresolved instead of
+    treating them as handled.
+
+    A basis is therefore a shorter fuse than `review_valid_days`, not a
+    substitute for reading the terms again.
+    """
+    environment = settings().environment
+    return {
+        "use_basis": (
+            INTERNAL_DEVELOPMENT_ONLY
+            if environment != "production"
+            else f"not-internal (ENVIRONMENT={environment})"
+        )
+    }
+
+
+def harvester_for_source(source, *, rulings=None, **kwargs) -> RedditHarvester:
+    """Build a harvester for a `source` row, ToS gate included.
+
+    THE ENTRY POINT ANYTHING THAT FETCHES REDDIT MUST USE. Until 2026-08-18 this
+    lane had no such entry point at all: `assert_terms_reviewed` was called from
+    `blog/fetch.py` and `scripts/harvest_github.py` and from nowhere on the
+    Reddit path, so the 1,297-post corpus every measurement here rests on was
+    gathered without the gate ever being asked. The gate was working correctly
+    and refusing Reddit the whole time; nothing consulted it.
+
+    THE GATE FIRES HERE AND NOT IN `RedditHarvester.__init__`, for the reason
+    `blog.fetch.fetcher_for_source` already documents: a constructor check
+    forces every test to fabricate a reviewed source row, and **a fixture that
+    fakes a ruling is worse than no gate, because it reads as one**. Tests
+    construct `RedditHarvester` directly and get no gate, which is honest;
+    anything that reaches the network comes through here.
+
+    Not in `_get` either. That would fire per request and would need the source
+    row threaded through `search` and `fetch_comments`, neither of which carries
+    one — a lot of plumbing to check the same fact several hundred times a run.
+    """
+    from collect.registry.assertions import assert_terms_reviewed, source_field
+
+    source_id = source_field(source, "id", "?")
+    assert_terms_reviewed(
+        [source],
+        rulings=rulings,
+        observations={source_id: observe_reddit_use()},
+    )
+    return RedditHarvester(**kwargs)

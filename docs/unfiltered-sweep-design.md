@@ -145,6 +145,15 @@ a design effect of 1.5–3 — plausible for 8–12 subreddits of differing char
 — n=2,000 gives an effective n of 667–1,333 and a real half-width of ±1.8 to
 ±2.5pp at p=0.125.
 
+> ~~**Proposed: n ≈ 2,000**~~ — **this estimate was wrong and the sweep measured
+> it.** The design effect is **14.5**, not 1.5–3: subreddit survival ranges from
+> 15.4% (r/singularity) to 59.4% (r/LocalLLaMA). Effective n is 132, not 667–1,333,
+> and the real half-width is **±7.9pp**. The subreddit is the unit of variation,
+> not the post, so more pages buy almost nothing and only more *subreddits* buy
+> precision. Measured in `docs/measurements/unfiltered-sweep.md` §3; the
+> paragraphs below are left as written because the reasoning is the part that
+> was wrong, not the arithmetic.
+
 **Proposed: n ≈ 2,000, drawn equally across the chosen subreddits.** That
 distinguishes 10% from 15% comfortably even at the worst design effect, which is
 the question actually being asked. n=5,000 buys ±1pp instead of ±2pp and cannot

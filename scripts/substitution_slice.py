@@ -57,6 +57,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from collect.adapters.queries.contract import TermSet, load_queries  # noqa: E402
 from collect.adapters.queries.sieve import sieve_any  # noqa: E402
 from collect.registry.seed import load_seed_file  # noqa: E402
+from collect.registry.sources import load_sources  # noqa: E402
+
+
+def reddit_source_row() -> dict:
+    """The `reddit` row from `contract/sources.yaml`, for the terms gate."""
+    for row in load_sources().platforms:
+        if row.get("id") == "reddit":
+            return row
+    raise SystemExit("contract/sources.yaml has no `reddit` source row")
 
 SURFACES = Path("fixtures/openrouter/observed-surfaces.json")
 
@@ -233,7 +242,7 @@ def plan_queries(seed_pairs, attested_pairs, discussed: dict[str, int]):
 
 
 def retrieve(out_dir: Path) -> int:
-    from collect.adapters.reddit import RedditHarvester, build_client
+    from collect.adapters.reddit import build_client, harvester_for_source
     from collect.rawstore import RawStore
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -257,7 +266,15 @@ def retrieve(out_dir: Path) -> int:
     calls = quota = 0
     try:
         with build_client() as client:
-            searcher = RedditHarvester(client=client, store=store)
+            # Through the factory, so the NFR-5 gate runs. Until 2026-08-18
+            # this script constructed RedditHarvester directly and the Reddit
+            # path never called `assert_terms_reviewed` at all — the corpus
+            # under `_substitution_slice/` was gathered before any ruling
+            # existed. `reddit-via-rapidapi` now permits it, for internal
+            # development only, and the gate re-checks that basis every run.
+            searcher = harvester_for_source(
+                reddit_source_row(), client=client, store=store
+            )
             for index, item in enumerate(queries, 1):
                 run = searcher.search(item["query"])
                 calls += run.search_calls

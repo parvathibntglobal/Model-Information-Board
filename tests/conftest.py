@@ -38,11 +38,112 @@ because every test shared an assumption with the code under test.
          scored where the figure is 7. All 45 tests passed, because every one
          used a lowercase model name.
 
-Three shapes of the same mistake: asserting the text of a claim instead of its
-truth; never exercising an option; and never leaving the input shape the author
-had in mind. What each cost was not a wrong answer but a MISSING one, which is
-the class this project keeps paying for — rule 6's expensive case, where the
-defect surfaces as an absence with nothing to disagree with.
+    #58  A check scoped to the file its author was thinking about reported
+         clean. Widened to the whole tree, the regex silently stopped matching
+         and it printed ONE file where there were two — which looked exactly
+         like a pass. Caught because a line of OUTPUT was missing, not because
+         anything failed.
+
+         **Distinct from the three above, and the distinction is the point.**
+         In #21 the assertion was weaker than its name. Here the assertion was
+         fine and THE INPUT SILENTLY EMPTIED: a check over an empty set passes,
+         and a check over a set that used to have two members and now has one
+         passes just as quietly. Nothing was asserted about how much was
+         checked.
+
+         The habit it adds is 4 below. A check that iterates must say how many
+         things it iterated over, and something must care about that number —
+         otherwise "checked 0 files, all clean" and "checked 200 files, all
+         clean" are the same output.
+
+    #54  `columns()` in the equivalence test compared name, type, nullability
+         and default — enough until `thread_context.coverage_ratio` became the
+         schema's first GENERATED ALWAYS column. A generated column and a plain
+         one of the same type differ in NOTHING that query selected, because a
+         generated column has no default. The migration was edited to create it
+         plain and all 21 tests passed.
+
+         Same family as #16 — an option never exercised — except the option was
+         a *property of the data*, not an argument. And the cost would have been
+         specific: `coverage_ratio` is GENERATED so it cannot drift from its
+         inputs, so the test would have signed off on precisely the drift the
+         column exists to prevent.
+
+    #57  Byte equality between two independent flatteners passed on 2,481
+         characters and 20 segments — and did not notice that their
+         `document_id`s used different conventions. `collect/` stores
+         fullnames (`t1_…`); the reference fixture stripped them.
+
+         **A VARIABLE THE TEST PROVIDES IS A VARIABLE THE TEST CANNOT CHECK.**
+         `document_id` is an INPUT to the flattener, not an output: the test
+         handed it the fixture's ids and compared the text and the offsets, so
+         a disagreement about ids was invisible by construction. Not a weak
+         assertion and not an empty input — the assertion was exactly as strong
+         as it looked, over exactly the data it claimed, and the defect was in
+         the part the test supplied.
+
+         It surfaced by writing a row and reading it back: `raw_text_of` is
+         keyed by `document_id`, so the mismatch returns `RAW_TEXT_MISSING` for
+         every quote in the thread — a naming failure presenting as a storage
+         failure.
+
+         The habit is 5 below. Where two components must agree about a value,
+         the test cannot be the one that supplies it to both.
+
+    #58b An assertion in the fixture builder read
+         `flat_len == raw_len or raw_len == 1`, which held for every
+         substitution that existed — emoji, one raw character each — and broke
+         the first time it saw a shrinking one, `&gt;` at four raw characters
+         to one flat. It rejected a CORRECT map.
+
+         **The inverse of every shape above.** Those are checks that fail to
+         check: an assertion weaker than its name, an option never exercised,
+         an input that emptied, a value the test supplied. This one checked
+         confidently and checked the wrong thing — an invariant describing the
+         fixture rather than the property — and nothing revealed it until the
+         world widened by one document.
+
+         There is no habit that would have caught it early, and pretending
+         otherwise would be the fifth shape again. What there is: an invariant
+         derived from the data in front of you is a description, and it should
+         be written as one until something independent agrees with it.
+
+    #59  Two tests constructed a `RedditHarvester` and asserted things about
+         the TERMS GATE and about where that gate fires. Both passed on a
+         laptop and failed in CI with `RAPIDAPI_HOST is not set`, because the
+         constructor read the setting and the laptop had a `.env`.
+
+         **A variable the test does not provide and does not know it depends
+         on.** The inverse of #57: there, a value the test supplied to both
+         sides was one it could not check; here, a value it supplied to
+         neither was one it did not know was in play. Both are the test's
+         relationship to a variable rather than to an assertion.
+
+         What makes it expensive is what it was asserting. Neither test was
+         about whether RapidAPI is configured, so neither should have been
+         able to fail for that reason — and until CI ran, both had been
+         asserting something about a configured machine rather than about the
+         code.
+
+         The fix is not to configure CI. It is to let the test supply what it
+         depends on: `host` became a constructor argument, defaulting to the
+         setting so the production guard is unchanged.
+
+         `tests/test_reddit_fetch.py` had already solved this with an
+         `autouse` fixture setting the host for every test in the file, which
+         is why that file passed in CI and mine did not. The pattern existed;
+         the new file did not adopt it.
+
+Nine shapes of the same mistake: asserting the text of a claim instead of its
+truth; never exercising an option; never leaving the input shape the author had
+in mind; **never checking that the check had anything to check**; comparing a
+thing on every axis except the one that is new; **checking agreement on
+everything except the value the test itself provided**; **describing the
+data confidently and calling it the property**; and **passing because the
+machine is configured rather than because the code is correct**. What each cost was not a wrong
+answer but a MISSING one, which is the class this project keeps paying for —
+rule 6's expensive case, where the defect surfaces as an absence with nothing to
+disagree with.
 
 Three habits that would have caught all three, cheapest first:
 
@@ -54,7 +155,26 @@ Three habits that would have caught all three, cheapest first:
      contract or by import. A message and the fact it asserts drift apart.
   3. **Break it on purpose and watch the test fail.** Every fix above was
      confirmed by reverting it. A test that has never failed has not been
-     tested.
+     tested. This is the one that found #54: the generated column was reverted
+     to a plain one and the suite stayed green, which is how the gap in
+     `columns()` became visible rather than theoretical.
+  6. **Run the suite without your `.env`.** It is the cheapest audit there is
+     and CI is otherwise the only thing that performs it — by accident, on
+     whatever happens to break first. `env -u` the credentials, or copy the
+     tree somewhere without a dotenv, before the pipeline tells you.
+  5. **Where two components must agree about a value, do not let the test
+     supply it to both.** Round-trip through the real carrier instead — write
+     the row, read it back, and let the second component look the value up the
+     way it will in production. #57's ids agreed with nothing and the test
+     could not tell, because the test was the only thing that knew them.
+  4. **A check that iterates must count what it iterated over, and something
+     must assert the count.** #58's regex silently matched nothing and the
+     check reported clean. `parametrize` over a discovered file list has the
+     same hazard — an empty list is a green run — which is why
+     `test_there_are_python_files_to_check` exists in
+     `tests/test_lane_boundary.py` and why every new sweep of the tree needs
+     its equivalent. **Zero checked and zero failed look identical in a test
+     runner.**
 
 Owned by neither lane, like `test_queries_contract.py` — it describes how both
 lanes write tests, and it breaks for both.

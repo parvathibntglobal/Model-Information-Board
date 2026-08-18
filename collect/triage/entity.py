@@ -71,6 +71,7 @@ from dataclasses import dataclass, field
 from collect.registry.propose import (
     FAMILY_WORDS,
     MIN_SURFACE_CHARS,
+    is_route,
     mechanical_variants,
     rule_variants,
 )
@@ -95,6 +96,49 @@ def normalize(text: str) -> str:
     rule about its own input.
     """
     return _NON_ALNUM.sub("", text.casefold())
+
+
+def normalize_with_boundaries(text: str) -> tuple[str, list[bool], list[bool]]:
+    """`normalize`, plus which normalised positions began and ended a word.
+
+    THE REASON THIS EXISTS IS A DEFECT THE TIER-2 CONTROL FOUND. Matching a
+    surface as a plain substring of the space-stripped text is wrong in a way
+    that is invisible on an AI corpus and obvious on a corpus about cooking:
+
+        `saba`   matched inside "wa[s a ba]d"     -> mistralai/mistral-saba
+        `fusion` matched inside "con[fusion]"     -> openrouter/fusion
+        `free`   matched inside "[free]ze"        -> openrouter/free
+
+    Stripping spaces is LOAD-BEARING and cannot simply be dropped: it is what
+    makes `gpt-4.1 mini`, `gpt 4.1 mini` and `gpt4.1mini` one surface. So the
+    separators are removed for matching and remembered for bounding.
+
+    Returns the key, plus two parallel masks: `starts[i]` is True when
+    normalised character `i` was the first character of a word in the original,
+    and `ends[i]` is True when it was the last. A match from `i` to `j` is
+    admissible only when `starts[i]` and `ends[j - 1]`.
+
+    `claude opus 5` still matches `claudeopus5` because the run begins at a word
+    start and ends at a word end in both spellings. `saba` inside `was a bad`
+    does not, because it begins mid-word.
+    """
+    key: list[str] = []
+    starts: list[bool] = []
+    ends: list[bool] = []
+    at_start = True
+    for char in text.casefold():
+        if _NON_ALNUM.match(char):
+            at_start = True
+            if ends:
+                ends[-1] = True
+            continue
+        key.append(char)
+        starts.append(at_start)
+        ends.append(False)
+        at_start = False
+    if ends:
+        ends[-1] = True
+    return "".join(key), starts, ends
 
 
 @dataclass(frozen=True)
@@ -164,7 +208,16 @@ def build_population(
     mechanical: set[str] = set()
     by_rule: set[str] = set()
     owners: dict[str, set[str]] = {}
+    routes = 0
     for canonical_id, display_name in models:
+        # ROUTES ARE NOT MODELS (ruled 2026-08-18, see `is_route`). A claim
+        # about `free` resolves to a pointer, so the model that served the
+        # request is unknown - unattributable by construction, which is what
+        # FR-4 exists to prevent. They were also the largest source of false
+        # entity matches: `openrouter/free` derives the surface `free`.
+        if is_route(canonical_id):
+            routes += 1
+            continue
         derived = mechanical_variants(canonical_id, display_name)
         ruled = rule_variants(canonical_id, display_name)
         mechanical.update(derived)
@@ -195,7 +248,8 @@ def build_population(
     return SurfacePopulation(
         surfaces=frozenset(union),
         contributions=contributions,
-        model_count=len(models),
+        # Routes are excluded, so the denominator is models and not feed rows.
+        model_count=len(models) - routes,
         declared_model_count=len(hand),
         owners={s: tuple(sorted(o)) for s, o in owners.items() if s in union},
     )
@@ -212,10 +266,24 @@ def resolve(text: str, population: SurfacePopulation) -> tuple[str, ...]:
     on. That empty tuple is a MEASUREMENT - the population was applied and found
     nothing - and it is only meaningful beside `population.fingerprint`.
     """
-    haystack = normalize(text)
+    haystack, starts, ends = normalize_with_boundaries(text)
     if not haystack:
         return ()
-    hits = [s for s in population.surfaces if normalize(s) in haystack]
+
+    hits = []
+    for surface in population.surfaces:
+        needle = normalize(surface)
+        if not needle:
+            continue
+        # Every occurrence, not just the first: `free` may appear inside
+        # `freeze` earlier in the document and standing alone later, and only
+        # the second is a mention.
+        at = haystack.find(needle)
+        while at >= 0:
+            if starts[at] and ends[at + len(needle) - 1]:
+                hits.append(surface)
+                break
+            at = haystack.find(needle, at + 1)
     return tuple(sorted(hits, key=lambda s: (-len(normalize(s)), s)))
 
 

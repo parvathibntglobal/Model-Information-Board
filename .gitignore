@@ -22,6 +22,13 @@ data/raw/
 _substitution_slice/
 _harvest_store/
 
+# The unfiltered sweep's measurement population. Same rule, and one more
+# reason: it carries a `delete_after` date in its manifest, and a corpus with
+# a deletion date must not be the one thing in the repo that cannot be deleted.
+_unfiltered_sweep/
+_unfiltered_sweep_v2/
+_control_sweep/
+
 # ── python ───────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
@@ -57,3 +64,4 @@ Thumbs.db
 # ── generated output ─────────────────────────────────────────────────────
 site/
 exports/
+_flattened_probe/

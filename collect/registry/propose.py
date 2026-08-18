@@ -116,6 +116,38 @@ _DATE_STAMP = re.compile(r"\d{6,}")
 _PLAIN_TOKEN = re.compile(r"[0-9a-z.]+")
 
 
+#: Id namespaces that denote a ROUTE rather than a model.
+#:
+#: `openrouter/auto` picks whatever is cheapest at request time and
+#: `~vendor/model-latest` points at whatever the vendor currently ships. Ruled
+#: 2026-08-18: **routes are not models.**
+#:
+#: The reason is FR-4 rather than tidiness. A claim about `free` resolves to a
+#: pointer, and the model that actually served the request is unknown — so the
+#: mention is unattributable BY CONSTRUCTION, not merely unattributed. FR-4
+#: exists so a mention resolves to what existed when it was written, and a
+#: pointer has no such thing.
+#:
+#: It was also producing false entity matches: `openrouter/free` and
+#: `openrouter/auto` derive the surfaces `free` and `auto`, which are ordinary
+#: English words. Measured on a non-technical control, excluding these 17 ids
+#: takes survival from 1.3% to 0.0%.
+ROUTE_NAMESPACES = ("openrouter/",)
+ROUTE_PREFIX = "~"
+
+
+def is_route(canonical_id: str) -> bool:
+    """Does this id denote a route rather than a model?
+
+    Two shapes, both structural rather than a judgement about the name:
+    the `~` prefix the feed uses for floating pointers, and the `openrouter/`
+    namespace, whose entries are the router's own endpoints rather than models
+    it routes to.
+    """
+    lowered = canonical_id.casefold()
+    return lowered.startswith(ROUTE_PREFIX) or lowered.startswith(ROUTE_NAMESPACES)
+
+
 def _clean(text: str) -> str:
     """Casefold and regularise separators. A DISPLAY form, not a matching key.
 

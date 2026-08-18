@@ -271,6 +271,25 @@ CREATE TABLE document (
   -- extractor's self-reported claim.has_numbers. It falsifies and cannot
   -- confirm: false here makes a claim asserting true a fabrication; true here
   -- says nothing about whether the quote contains a number.
+  -- THE FIVE COMPONENTS. Computed per document at ingest by
+  -- collect/triage/specificity.py, from the text alone. No model participates.
+  --
+  -- ⚠ judge/: `names_version` AND `has_conditions` ARE THE SOURCE FOR
+  --   `weight.compute()`'s `version_named=` and `has_conditions=` ARGUMENTS.
+  --
+  --   Those two are required parameters of `judge/vet/weight.py:compute` and
+  --   `ExtractedClaim` carries neither — it has `has_repro_steps` and
+  --   `has_numbers` only. So whoever calls `compute()` first has to supply them
+  --   from somewhere, and these columns are that somewhere: derived by code
+  --   from the same text, which is what "derive them rather than add extractor
+  --   fields" meant. judge/ reads `document`; nothing needs to change in the
+  --   extractor schema, and nothing needs to change here.
+  --
+  --   `has_numbers` is the pair that already exists on both sides, and
+  --   collect/triage/specificity.py records what that is good for: a document
+  --   whose `has_numbers` is False FALSIFIES a claim asserting `has_numbers:
+  --   true`, because there are no numbers for the quote to contain. It cannot
+  --   confirm — True says nothing about whether THAT quote carried one.
   has_numbers             boolean,
   has_error_strings       boolean,
   has_code                boolean,
@@ -359,6 +378,62 @@ CREATE TABLE thread_context (
   -- Consumer: judge/extract/verify.py, step 2. Covered by
   -- tests/test_verify.py::TestDisplay.
   offset_map          jsonb NOT NULL,
+
+  -- ── COVERAGE (#54, ruled 2026-08-18) ──────────────────────────────────
+  --
+  -- What the selection SAW, so a `thread_context` row cannot claim to
+  -- describe a thread it read 4% of. One getPostComments call returned 200 of
+  -- 4,833 comments, and Reddit orders SIBLINGS rather than the tree, so the
+  -- last-seen score bounds nothing unseen.
+  --
+  -- ALL FOUR NULLABLE. A row written before coverage existed has not been
+  -- measured at 0% — it has not been measured (rule 6).
+
+  -- Comments actually fetched and stored for this thread.
+  observed_children        int,
+
+  -- sum(reported counts) + count(unsized markers). What truncation ADMITTED
+  -- TO, never the remainder: of 252 `more` markers on the measured thread,
+  -- 126 report a hidden count and 126 report none.
+  hidden_children_min      int,
+
+  -- Markers reporting no count at all. KEPT SEPARATE, and the argument for it
+  -- was inverted during review and the inversion was right: it measured 0 on
+  -- fourteen threads and 126 on the fifteenth, which is exactly what makes it
+  -- worth recording. A field that is 0 almost always and large occasionally is
+  -- how you tell which kind of thread you are holding, and the unexplained
+  -- 126/252 split cannot be investigated without it. You cannot investigate
+  -- what you do not record.
+  hidden_branches_unsized  int,
+
+  -- ⚠ AN UPPER BOUND ON COVERAGE, NEVER A MEASUREMENT OF IT.
+  --
+  -- `hidden_children_min` is a FLOOR, so the denominator is understated and
+  -- this ratio is correspondingly overstated. A thread reading 0.04 was seen
+  -- at AT MOST 4%, and the true figure is lower by however much truncation did
+  -- not admit to.
+  --
+  -- That matters to whoever reads this column from a query rather than from
+  -- the coverage page, which is why it is here and not only in the page code:
+  -- a bound presented as a measurement is rule 7's failure with the unsafe
+  -- lean, and this one leans towards flattering our own coverage.
+  --
+  -- GENERATED, NOT STORED BESIDE ITS INPUTS. The fifth instance of one drift:
+  -- a derived value written next to what it derives from means somebody
+  -- corrects `hidden_children_min` in a backfill, does not recompute the
+  -- ratio, and the row disagrees with itself silently — in the direction that
+  -- flatters coverage. The database recomputes it or it does not exist.
+  --
+  -- The CASE has NO ELSE on purpose: an empty tree yields NULL rather than
+  -- 1.0, so 0/0 cannot become full coverage. NULL here is "not measurable",
+  -- which is the truth for a thread with nothing observed and nothing hidden.
+  coverage_ratio           real GENERATED ALWAYS AS (
+                             CASE WHEN COALESCE(observed_children, 0)
+                                     + COALESCE(hidden_children_min, 0) > 0
+                                  THEN observed_children::real
+                                       / (observed_children + hidden_children_min)
+                             END
+                           ) STORED,
 
   child_count         int NOT NULL,
   -- children ranked by specificity_score × log(1 + engagement), NOT engagement
@@ -811,3 +886,81 @@ CREATE TABLE coverage_gap (
   CONSTRAINT coverage_gap_unique UNIQUE (kind, subject, detail, pipeline_version)
 );
 CREATE INDEX coverage_gap_kind_idx ON coverage_gap (kind);
+
+
+-- ============================================================================
+--  THE RUN LEDGER — collect/ops/chain.py
+--
+--  Every stage of every nightly run. WRITTEN BEFORE THE WORK, updated after.
+--
+--  WHY A TABLE AND NOT THE JSONL ARTIFACT IT WAS FIRST PROPOSED AS. Three
+--  defects reduced to one question a file on the machine cannot answer:
+--
+--      in_window at its schema default on 340 rows   has recompute_window run?
+--      one last_swept_at from an ad-hoc mark_swept   has anything ever swept?
+--      three writers greping as wired                has this caller ever run?
+--
+--  Each cost a manual investigation. `assert_no_phantom_sweeps` is cheap only
+--  because it can join `last_swept_at` against `harvest_run` — a CONTRADICTION
+--  is checkable and an ABSENCE is not. This table generalises that from one
+--  column to every stage, in the database the rows are about.
+-- ============================================================================
+
+CREATE TABLE job_run (
+  id            text PRIMARY KEY,
+  stage         text NOT NULL,
+  started_at    timestamptz NOT NULL DEFAULT now(),
+
+  -- ⚠ NULL MEANS DID NOT FINISH. IT DOES NOT MEAN FAILED.
+  --
+  -- A killed process cannot write its own failure, so the absence has to carry
+  -- that meaning: "started 03:00, never finished" is a fact, and a row written
+  -- only on success leaves nothing at all, which reads as a night with no work.
+  --
+  -- Same treatment as `harvest_run.truncated_by` and for the same reason:
+  -- ANYTHING READING THIS MUST NOT COLLAPSE THE TWO. `finished_at IS NULL` with
+  -- `outcome IS NULL` is still-running-or-killed; `outcome = 'failed'` is a
+  -- stage that ran and reported failure. A dashboard showing both as red loses
+  -- the distinction between a crash and a refusal, which are opposite repairs.
+  finished_at   timestamptz,
+
+  -- NULL while running. Closed set, because a check over arbitrary strings is
+  -- not a check.
+  --   ok       the stage did its work
+  --   refused  the stage declined deliberately — a gate, a missing input, a
+  --            precondition. NOT an error, and it must not render as one.
+  --   error    the stage tried and raised
+  --
+  -- These are `collect/ops/chain.py`'s OK / REFUSED / ERROR verbatim. The
+  -- first version of this CHECK said 'failed' instead of 'error' and would
+  -- have needed a writer translating between the two — one concept, two
+  -- vocabularies, drifting from the day it was written. Corrected by
+  -- 20260818T1520.
+  outcome       text,
+
+  -- NULL WHERE UNKNOWN, NEVER 0 (rule 6). A stage that refused counted nothing;
+  -- 0 would assert it counted and found none, which is the distinction this
+  -- project has now had to make four times.
+  items_in      int,
+  items_out     int,
+
+  -- The refusal text, or the stage's own report. Free-form on purpose: the
+  -- closed set above is what gets queried, this is what gets read.
+  detail        jsonb,
+
+  pipeline_version text NOT NULL,
+
+  CONSTRAINT job_run_outcome_ck
+    CHECK (outcome IS NULL OR outcome IN ('ok', 'refused', 'error')),
+
+  -- An outcome without a finish is a row that claims to have concluded and did
+  -- not record when. The reverse is legitimate and common: finished_at set with
+  -- outcome NULL cannot happen either, so both directions are refused.
+  CONSTRAINT job_run_finish_ck
+    CHECK ((finished_at IS NULL) = (outcome IS NULL))
+);
+
+-- The two questions asked of this table: "when did stage X last run" and
+-- "what is still running".
+CREATE INDEX job_run_stage_idx ON job_run (stage, started_at DESC);
+CREATE INDEX job_run_unfinished_idx ON job_run (started_at) WHERE finished_at IS NULL;

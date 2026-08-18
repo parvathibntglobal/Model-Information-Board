@@ -201,18 +201,33 @@ class MigrationStatus:
         if self.mismatched:
             detail = ", ".join(f"{name} ({why})" for name, why in self.mismatched)
             return f"LEDGER MISMATCH — {detail}. Nothing can be applied."
+        # NO LEDGER AND PENDING WORK ARE TWO FACTS AND BOTH GET SAID.
+        #
+        # This returned early on `pending_filenames` and the ledger warning
+        # disappeared the moment anything was outstanding — so a pre-ledger
+        # database with work to do reported only the work, and the schema
+        # difference that `schema_migration` itself represents went unmentioned.
+        #
+        # It could not surface while `discover()` returned nothing, because
+        # `pending` was always empty and the second branch always ran. The first
+        # real migration made the collapse reachable, which is the same shape as
+        # `finished_at IS NULL` versus `outcome = 'failed'` on `job_run`: two
+        # states one reader was flattening into one.
+        parts: list[str] = []
+        if not self.ledger_present:
+            parts.append(
+                "NO LEDGER — this database predates schema_migration, which is "
+                "part of contract/tables.sql, so the schema differs from the "
+                "file by that table. `db migrate` creates it."
+            )
         if self.pending_filenames:
-            return (
+            parts.append(
                 f"{len(self.applied_filenames)} applied, "
                 f"{len(self.pending_filenames)} PENDING: "
                 + ", ".join(self.pending_filenames)
             )
-        if not self.ledger_present:
-            return (
-                "NO LEDGER — this database predates schema_migration, which is "
-                "part of contract/tables.sql. Nothing is pending, but the schema "
-                "differs from the file by that table. `db migrate` creates it."
-            )
+        if parts:
+            return " ".join(parts)
         return f"current — {len(self.applied_filenames)} applied, none pending"
 
 
@@ -243,6 +258,94 @@ def check(conn, directory: Path | None = None) -> MigrationStatus:
     )
 
 
+class SchemaDiverged(MigrationError):
+    """A pending migration's objects already exist, and not as described."""
+
+
+def stamp_at_head(conn, directory: Path | None = None) -> list[str]:
+    """Record every migration as applied WITHOUT running it. For `db init` only.
+
+    A database created from `contract/tables.sql` is **by definition** at the
+    head of the chain: the equivalence test's whole content is that
+    `baseline.sql` plus every migration equals that file. So the migrations have
+    nothing left to do, and the ledger should say so.
+
+    Without this, the first migration breaks `db init`: `tables.sql` creates
+    `job_run`, then `db check` reports the migration pending, then `db migrate`
+    runs `CREATE TABLE job_run` against a table that exists. That is not a
+    corner case, it is every new database from now on.
+
+    THIS IS NOT THE SAME OPERATION AS RECORDING A MIGRATION AS APPLIED BECAUSE
+    ITS OBJECTS HAPPEN TO EXIST. Here the provenance is known — this process
+    just applied `tables.sql` and nothing else has touched the database. Where
+    the provenance is *not* known, `migrate()` refuses instead; see
+    `_refuse_if_objects_exist`.
+    """
+    ensure_ledger(conn)
+    stamped = []
+    for migration in discover(directory):
+        conn.execute(
+            f"INSERT INTO {LEDGER} (filename, content_hash) VALUES (%s, %s) "  # noqa: S608
+            "ON CONFLICT (filename) DO NOTHING",
+            (migration.filename, migration.content_hash),
+        )
+        stamped.append(migration.filename)
+    return stamped
+
+
+#: Objects a migration creates, read from its own SQL. Crude on purpose: it
+#: only has to be good enough to ask "does this already exist", and a name it
+#: misses costs a `DuplicateTable` from Postgres rather than a silent pass.
+_CREATES = re.compile(
+    r"CREATE\s+(?:UNIQUE\s+)?(TABLE|INDEX|VIEW)\s+(?:IF\s+NOT\s+EXISTS\s+)?\"?(\w+)\"?",
+    re.IGNORECASE,
+)
+
+
+def _refuse_if_objects_exist(conn, migration: Migration) -> None:
+    """Refuse a migration whose objects are already there. LOUDLY.
+
+    THE TEMPTING ALTERNATIVE IS TO RECORD IT AS APPLIED AND MOVE ON, and that is
+    exactly how a divergent schema gets papered over. "The table exists" and
+    "the table exists AND matches what the file describes" are different facts,
+    and only the second makes recording-as-applied safe — but verifying it needs
+    the equivalence machinery, which builds both schemas and diffs them. That is
+    a test-time operation, not something to run inside a migration.
+
+    So the legitimate case is removed rather than detected: `db init` stamps the
+    ledger at head (see `stamp_at_head`), which is the only situation where the
+    objects legitimately pre-exist with known provenance. Anything else reaching
+    here has a schema nobody can account for, and the honest response is to stop
+    and say which object.
+    """
+    names = [name for _kind, name in _CREATES.findall(migration.sql)]
+    if not names:
+        return
+    rows = conn.execute(
+        "SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+        "WHERE n.nspname = current_schema() AND c.relname = ANY(%s)",
+        (names,),
+    ).fetchall()
+    existing = sorted(r[0] for r in rows)
+    if existing:
+        raise SchemaDiverged(
+            f"refusing to apply {migration.filename}: it creates "
+            f"{existing}, which already exist in this database and are not "
+            "recorded in the ledger.\n"
+            "\n"
+            "  This is NOT automatically resolved by recording it as applied. "
+            "That the objects exist does not mean they match what "
+            "contract/tables.sql describes, and recording a migration whose "
+            "shape nobody compared is how two databases quietly stop agreeing.\n"
+            "\n"
+            "  A database created by `db init` should never reach this: that "
+            "path stamps the ledger at head, because a schema built from "
+            "tables.sql is by definition current. So this database was built "
+            "some other way, and what it actually contains has to be "
+            "established before anything is written down about it."
+        )
+
+
 def migrate(conn, directory: Path | None = None) -> list[str]:
     """Apply pending migrations in order. Returns what was applied.
 
@@ -267,6 +370,9 @@ def migrate(conn, directory: Path | None = None) -> list[str]:
     applied: list[str] = []
     for filename in status.pending_filenames:
         migration = migrations[filename]
+        # Before any work: does this migration's output already exist? See
+        # `_refuse_if_objects_exist` for why that refuses rather than records.
+        _refuse_if_objects_exist(conn, migration)
         with conn.transaction():
             conn.execute(migration.sql)
             conn.execute(
