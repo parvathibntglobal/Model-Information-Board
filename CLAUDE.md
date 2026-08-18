@@ -124,8 +124,11 @@ These are the rules a helpful refactor will otherwise quietly violate.
   weeks. The first correction said the check was "called from the loaders and
   from tests", which was also wrong: the three apparent call sites in `collect/`
   are a docstring and two comments. Counted, the second time.
-- Estimates are labelled as estimates. Triage survival (~10-15%), output
-  verbosity and retry rate are figures to calibrate, not specifications.
+- Estimates are labelled as estimates, **and an estimate carries its
+  population** (rule 7). Triage survival is ~10-15% *of documents retrieved
+  from the sources we sweep* - never "of Reddit", which we do not sample.
+  Output verbosity and retry rate are figures to calibrate, not
+  specifications.
 
 ## Build fixtures currently in place
 

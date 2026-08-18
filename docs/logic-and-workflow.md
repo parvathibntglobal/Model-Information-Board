@@ -373,7 +373,7 @@ All deterministic. **No paid call happens before this passes.**
 | Amplifications | already collapsed in E3; never re-read |
 | **Specificity floor** | no numbers, no error strings, no code, no conditions, no version named → *opinion, not evidence*. Retained at ~0.15 weight, not sent to the extractor |
 
-**Expected survival to E5: roughly 10–15% of raw documents — an estimate to calibrate, not a specification.** Track it from day one. A survival rate shifting more than 2σ means a platform changed or a filter broke; **that alert needs a 14-day burn-in before it arms**, since there is no baseline to compute σ against on day one. Log and eyeball until then.
+**Expected survival to E5: roughly 10–15% of documents retrieved from the sources we harvest — an estimate to calibrate, not a specification, and one whose population needs stating every time it is quoted.** Not "survival over Reddit": we never sample Reddit. Picking subreddits from a slice re-runs the selection one level up, since those are the subreddits where model-name queries happened to land, and `r/all` measures Reddit rather than measuring us. The honest figure is survival within the sources actually swept, which is a different number from the one this document originally named. Track it from day one. A survival rate shifting more than 2σ means a platform changed or a filter broke; **that alert needs a 14-day burn-in before it arms**, since there is no baseline to compute σ against on day one. **And the burn-in cannot start while the gates are incomplete** — a baseline collected with three of six gates missing moves when the gates land rather than when the world changes, which is an alert firing at its own construction. Log and eyeball until then.
 
 > Heuristics, not a trained classifier. A quantised spam model needs labels you don't have yet, and the hard gates already remove the overwhelming majority of junk, with the specificity floor catching a small remainder — measured at 7.7% of 285 documents re-scored 2026-08-17, **under the 59 hand-written alias surfaces loaded that day**. The floor reads the alias list through `names_version`, so the same documents give 3.8% under those 59 surfaces and 0.8% under the 1,337-surface registry union: the figure is a property of the population as much as of the corpus, and it is not re-derivable because that raw store is gone. It remains the only calibration this stage has. The classifier arrives later, **trained on the labels this stage generates for free.**
 
@@ -940,7 +940,7 @@ Postgres primary, with an object store for raw payloads, content-hash addressed.
 | API and UI | FastAPI · server-rendered or a static build over exported JSON | Data is small and refreshes nightly |
 | **Config** | Trust weights, thresholds, half-lives, the capability list, alias variants and filter rules in **versioned YAML, not code** | They will be tuned constantly, and every tuning must be a recorded version |
 
-**Cost control.** LLM spend dominates everything else. Funnel discipline — only 10–15% of documents reach the extractor · deterministic gates before any paid call · batch APIs · prompt caching · **a hard daily budget ceiling per stage that degrades to triage-only rather than overrunning** · cost per published cell tracked from week 7.
+**Cost control.** LLM spend dominates everything else. Funnel discipline — an estimated 10–15% of retrieved documents reach the extractor · deterministic gates before any paid call · batch APIs · prompt caching · **a hard daily budget ceiling per stage that degrades to triage-only rather than overrunning** · cost per published cell tracked from week 7.
 
 ### The five alerts that matter
 
@@ -960,7 +960,7 @@ Full week-by-week detail, with the two-person split and the requirements each we
 |---|---|---|
 | 1–2 | The spine — registry (seeded), the three adapters | Ten models correct; all adapters reporting yield |
 | **3** | **Ask box on hand-made evidence** · golden sets labelled · flattening + `offset_map` | **Three real model decisions made through the box** |
-| 4 | Triage · quote verification · pages | ~10–15% survival; a fabricated quote never persists |
+| 4 | Triage · quote verification · pages | ~10–15% survival *within the sources swept*; a fabricated quote never persists |
 | 5 | Registry polling · extraction | Roster 100%; extraction F1 ≥0.85 |
 | 6 | Change detection · extraction measured against the golden set · vetting | Filter precision ≥0.90, ≤5% false-positive on expert content |
 | 7 | Ops and alerts · curation · publish surfaces | Every published phrase traceable to its quotes in one click |

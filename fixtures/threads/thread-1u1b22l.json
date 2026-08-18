@@ -163,6 +163,7 @@
   "provenance": {
     "source": "fixtures/reddit/thread-1u1b22l-getPostComments.json",
     "built_by": "fixtures/threads/build.py",
-    "note": "Fixture tooling, not E3. collect/assemble/ is authoritative; if the two disagree, regenerate this from that."
+    "note": "Fixture tooling, not E3. collect/assemble/ is authoritative; if the two disagree, regenerate this from that.",
+    "terms_review": "pending - see the Reddit ruling; payload predates it"
   }
 }

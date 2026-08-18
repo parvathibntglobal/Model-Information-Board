@@ -218,6 +218,13 @@ def build() -> dict:
                 "Fixture tooling, not E3. collect/assemble/ is authoritative; "
                 "if the two disagree, regenerate this from that."
             ),
+            # The Reddit fetch path has never called assert_terms_reviewed, so
+            # the payload this is derived from was gathered before any ruling
+            # existed. Recorded rather than assumed: if the ruling goes against
+            # us, this fixture goes with the payload, and reconstructing which
+            # artefacts depend on it afterwards is far more expensive than one
+            # line now.
+            "terms_review": "pending - see the Reddit ruling; payload predates it",
         },
     }
 
