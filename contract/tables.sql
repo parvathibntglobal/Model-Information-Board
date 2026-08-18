@@ -379,6 +379,62 @@ CREATE TABLE thread_context (
   -- tests/test_verify.py::TestDisplay.
   offset_map          jsonb NOT NULL,
 
+  -- ── COVERAGE (#54, ruled 2026-08-18) ──────────────────────────────────
+  --
+  -- What the selection SAW, so a `thread_context` row cannot claim to
+  -- describe a thread it read 4% of. One getPostComments call returned 200 of
+  -- 4,833 comments, and Reddit orders SIBLINGS rather than the tree, so the
+  -- last-seen score bounds nothing unseen.
+  --
+  -- ALL FOUR NULLABLE. A row written before coverage existed has not been
+  -- measured at 0% — it has not been measured (rule 6).
+
+  -- Comments actually fetched and stored for this thread.
+  observed_children        int,
+
+  -- sum(reported counts) + count(unsized markers). What truncation ADMITTED
+  -- TO, never the remainder: of 252 `more` markers on the measured thread,
+  -- 126 report a hidden count and 126 report none.
+  hidden_children_min      int,
+
+  -- Markers reporting no count at all. KEPT SEPARATE, and the argument for it
+  -- was inverted during review and the inversion was right: it measured 0 on
+  -- fourteen threads and 126 on the fifteenth, which is exactly what makes it
+  -- worth recording. A field that is 0 almost always and large occasionally is
+  -- how you tell which kind of thread you are holding, and the unexplained
+  -- 126/252 split cannot be investigated without it. You cannot investigate
+  -- what you do not record.
+  hidden_branches_unsized  int,
+
+  -- ⚠ AN UPPER BOUND ON COVERAGE, NEVER A MEASUREMENT OF IT.
+  --
+  -- `hidden_children_min` is a FLOOR, so the denominator is understated and
+  -- this ratio is correspondingly overstated. A thread reading 0.04 was seen
+  -- at AT MOST 4%, and the true figure is lower by however much truncation did
+  -- not admit to.
+  --
+  -- That matters to whoever reads this column from a query rather than from
+  -- the coverage page, which is why it is here and not only in the page code:
+  -- a bound presented as a measurement is rule 7's failure with the unsafe
+  -- lean, and this one leans towards flattering our own coverage.
+  --
+  -- GENERATED, NOT STORED BESIDE ITS INPUTS. The fifth instance of one drift:
+  -- a derived value written next to what it derives from means somebody
+  -- corrects `hidden_children_min` in a backfill, does not recompute the
+  -- ratio, and the row disagrees with itself silently — in the direction that
+  -- flatters coverage. The database recomputes it or it does not exist.
+  --
+  -- The CASE has NO ELSE on purpose: an empty tree yields NULL rather than
+  -- 1.0, so 0/0 cannot become full coverage. NULL here is "not measurable",
+  -- which is the truth for a thread with nothing observed and nothing hidden.
+  coverage_ratio           real GENERATED ALWAYS AS (
+                             CASE WHEN COALESCE(observed_children, 0)
+                                     + COALESCE(hidden_children_min, 0) > 0
+                                  THEN observed_children::real
+                                       / (observed_children + hidden_children_min)
+                             END
+                           ) STORED,
+
   child_count         int NOT NULL,
   -- children ranked by specificity_score × log(1 + engagement), NOT engagement
   -- alone: the top-voted replies are jokes; the two-line correction that

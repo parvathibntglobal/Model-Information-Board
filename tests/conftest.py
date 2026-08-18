@@ -38,11 +38,44 @@ because every test shared an assumption with the code under test.
          scored where the figure is 7. All 45 tests passed, because every one
          used a lowercase model name.
 
-Three shapes of the same mistake: asserting the text of a claim instead of its
-truth; never exercising an option; and never leaving the input shape the author
-had in mind. What each cost was not a wrong answer but a MISSING one, which is
-the class this project keeps paying for — rule 6's expensive case, where the
-defect surfaces as an absence with nothing to disagree with.
+    #58  A check scoped to the file its author was thinking about reported
+         clean. Widened to the whole tree, the regex silently stopped matching
+         and it printed ONE file where there were two — which looked exactly
+         like a pass. Caught because a line of OUTPUT was missing, not because
+         anything failed.
+
+         **Distinct from the three above, and the distinction is the point.**
+         In #21 the assertion was weaker than its name. Here the assertion was
+         fine and THE INPUT SILENTLY EMPTIED: a check over an empty set passes,
+         and a check over a set that used to have two members and now has one
+         passes just as quietly. Nothing was asserted about how much was
+         checked.
+
+         The habit it adds is 4 below. A check that iterates must say how many
+         things it iterated over, and something must care about that number —
+         otherwise "checked 0 files, all clean" and "checked 200 files, all
+         clean" are the same output.
+
+    #54  `columns()` in the equivalence test compared name, type, nullability
+         and default — enough until `thread_context.coverage_ratio` became the
+         schema's first GENERATED ALWAYS column. A generated column and a plain
+         one of the same type differ in NOTHING that query selected, because a
+         generated column has no default. The migration was edited to create it
+         plain and all 21 tests passed.
+
+         Same family as #16 — an option never exercised — except the option was
+         a *property of the data*, not an argument. And the cost would have been
+         specific: `coverage_ratio` is GENERATED so it cannot drift from its
+         inputs, so the test would have signed off on precisely the drift the
+         column exists to prevent.
+
+Five shapes of the same mistake: asserting the text of a claim instead of its
+truth; never exercising an option; never leaving the input shape the author had
+in mind; **never checking that the check had anything to check**; and comparing
+a thing on every axis except the one that is new. What each cost was not a wrong
+answer but a MISSING one, which is the class this project keeps paying for —
+rule 6's expensive case, where the defect surfaces as an absence with nothing to
+disagree with.
 
 Three habits that would have caught all three, cheapest first:
 
@@ -54,7 +87,17 @@ Three habits that would have caught all three, cheapest first:
      contract or by import. A message and the fact it asserts drift apart.
   3. **Break it on purpose and watch the test fail.** Every fix above was
      confirmed by reverting it. A test that has never failed has not been
-     tested.
+     tested. This is the one that found #54: the generated column was reverted
+     to a plain one and the suite stayed green, which is how the gap in
+     `columns()` became visible rather than theoretical.
+  4. **A check that iterates must count what it iterated over, and something
+     must assert the count.** #58's regex silently matched nothing and the
+     check reported clean. `parametrize` over a discovered file list has the
+     same hazard — an empty list is a green run — which is why
+     `test_there_are_python_files_to_check` exists in
+     `tests/test_lane_boundary.py` and why every new sweep of the tree needs
+     its equivalent. **Zero checked and zero failed look identical in a test
+     runner.**
 
 Owned by neither lane, like `test_queries_contract.py` — it describes how both
 lanes write tests, and it breaks for both.

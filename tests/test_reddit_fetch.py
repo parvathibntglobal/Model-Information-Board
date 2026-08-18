@@ -283,10 +283,11 @@ def test_assembly_refuses_and_says_what_is_missing(tmp_path):
         h.assemble_thread(_a_post())
 
     message = str(excinfo.value)
-    assert "4%" in message and "4,833" in message, "the coverage measurement"
-    assert "SIBLINGS" in message, "why the selection cannot be bounded"
-    assert "126 report none" in message, "coverage is a lower bound"
-    assert "issue #54" in message, "where the columns are proposed"
+    assert "not built" in message
+    assert "flattener" in message.lower() and "offset_map" in message, (
+        "what is actually missing, now that the three blockers are gone"
+    )
+    assert "cannot be built later" in message, "why it is not merely pending"
 
 
 def test_the_refusal_does_not_still_blame_the_missing_scorer(tmp_path):
@@ -318,9 +319,11 @@ def test_the_refusal_does_not_still_blame_the_missing_scorer(tmp_path):
         "comment fetching landed, so the refusal must stop implying the children "
         "are unavailable and rest only on the bounding problem"
     )
-    assert "cannot be bounded" in message, (
-        "the ONE remaining reason must be stated, or the refusal has lost its "
-        "grounds while still refusing"
+    assert "not built" in message, (
+        "the reason must be stated, or the refusal has lost its grounds while "
+        "still refusing. It used to be 'the selection cannot be bounded'; #54 "
+        "landed the columns that bound it, so what remains is that nobody has "
+        "written the flattener"
     )
 
     # An earlier version of this test also asserted `"no longer the reason" in
@@ -332,24 +335,35 @@ def test_the_refusal_does_not_still_blame_the_missing_scorer(tmp_path):
     # named, the surviving reason is stated, and the retired claim is absent.
 
 
-def test_the_columns_the_refusal_calls_missing_are_genuinely_missing():
-    """The other half of asserting the claim.
+def test_the_refusal_no_longer_claims_the_coverage_columns_are_missing(tmp_path):
+    """THIS TEST DID ITS JOB, so it is inverted rather than deleted.
 
-    The refusal rests on the `thread_context` coverage columns being
-    unavailable. If issue #54 lands them and nobody revisits this, the refusal
-    starts citing a
-    gap that has been filled — the failure this file just had. Read from the
-    contract rather than trusted.
+    It asserted the four `thread_context` coverage columns were absent from
+    `contract/tables.sql`, and said in its own docstring that if #54 landed them
+    and nobody revisited the refusal, the refusal would start citing a gap that
+    had been filled. #54 landed on 2026-08-18 and this test failed the same
+    hour — which is the whole point of asserting the state of the world rather
+    than the wording that describes it.
+
+    It now asserts the other direction: the columns ARE in the contract, and the
+    refusal does not claim otherwise.
     """
     from collect.config import CONTRACT_DIR
 
     schema = (CONTRACT_DIR / "tables.sql").read_text(encoding="utf-8")
     for column in ("observed_children", "hidden_children_min",
                    "hidden_branches_unsized", "coverage_ratio"):
-        assert column not in schema, (
-            f"{column} is in contract/tables.sql now, so the refusal's remaining "
-            "reason is stale and assemble_thread needs revisiting"
-        )
+        assert column in schema, f"{column} should be in the contract since #54"
+
+    h = harvester(responder(page([post()])), tmp_path)
+    with pytest.raises(AssemblyNotBuilt) as excinfo:
+        h.assemble_thread(_a_post())
+    message = str(excinfo.value)
+    assert "RESOLVED" in message, "the refusal says the blockers are gone"
+    assert "nowhere to write them" not in message
+    assert "proposed on issue #54" not in message, (
+        "the columns exist now; a refusal citing them as proposed is stale"
+    )
 
 
 def test_an_unset_host_refuses_rather_than_guessing(tmp_path, monkeypatch):

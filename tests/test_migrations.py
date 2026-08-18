@@ -85,15 +85,34 @@ def _strip(text: str | None, schema: str) -> str | None:
 
 
 def columns(connection, schema: str) -> set[tuple]:
+    """Name, type, nullability, default — AND generated-ness.
+
+    THE LAST TWO WERE ADDED AFTER BREAKING THIS ON PURPOSE. `thread_context.
+    coverage_ratio` is the schema's first GENERATED ALWAYS column, and with the
+    query as originally written — name, type, is_nullable, column_default — the
+    migration was edited to create a PLAIN `real` column and **all 21 tests
+    still passed**. A generated column and an ordinary one of the same type are
+    indistinguishable to `column_default`, because a generated column has none.
+
+    That is the defect the generated column itself exists to prevent, one level
+    up: `coverage_ratio` is GENERATED so it cannot drift from its inputs, and
+    the test that proves the chain reaches `tables.sql` could not see it drift
+    into being storable. Confirmed by reverting and watching it pass, which is
+    habit 3 in `tests/conftest.py`.
+    """
     rows = connection.execute(
         """
-        SELECT table_name, column_name, data_type, is_nullable, column_default
+        SELECT table_name, column_name, data_type, is_nullable, column_default,
+               is_generated, generation_expression
         FROM information_schema.columns WHERE table_schema = %s
         """,
         (schema,),
     ).fetchall()
     # An unordered set, deliberately. See the module docstring.
-    return {(t, c, d, n, _strip(default, schema)) for t, c, d, n, default in rows}
+    return {
+        (t, c, d, n, _strip(default, schema), gen, _strip(expr, schema))
+        for t, c, d, n, default, gen, expr in rows
+    }
 
 
 def constraints(connection, schema: str) -> set[tuple]:
@@ -199,7 +218,30 @@ def test_the_equivalence_test_can_fail(both_sides):
     both_sides.execute(f"ALTER TABLE {B}.document ADD COLUMN drifted text")
     both_sides.commit()
     only_chain = columns(both_sides, B) - columns(both_sides, A)
-    assert ("document", "drifted", "text", "YES", None) in only_chain
+    assert ("document", "drifted", "text", "YES", None, "NEVER", None) in only_chain
+
+
+def test_a_generated_column_turning_plain_is_caught(both_sides):
+    """The case that motivated widening `columns()`, kept as a test.
+
+    `thread_context.coverage_ratio` is GENERATED ALWAYS. With the comparison as
+    originally written this transformation was INVISIBLE — a generated column
+    and a plain one of the same type differ in nothing the query selected,
+    because a generated column has no `column_default`. Twenty-one tests passed
+    against a migration that created it plain.
+
+    A plain `coverage_ratio` is precisely the drift the generated column exists
+    to prevent, so the equivalence test would have signed off on the defect it
+    was there to catch.
+    """
+    both_sides.execute(f"ALTER TABLE {B}.thread_context DROP COLUMN coverage_ratio")
+    both_sides.execute(f"ALTER TABLE {B}.thread_context ADD COLUMN coverage_ratio real")
+    both_sides.commit()
+
+    only_file = columns(both_sides, A) - columns(both_sides, B)
+    generated = [row for row in only_file if row[1] == "coverage_ratio"]
+    assert generated, "a generated column becoming plain must be visible"
+    assert generated[0][5] == "ALWAYS"
 
 
 # ── discovery and the ledger ──────────────────────────────────────────────
