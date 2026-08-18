@@ -21,6 +21,7 @@ from judge.extract.verify import VerifiedQuote
 from judge.store.claims import ClaimStore, StoredClaim, claim_id_for
 from judge.vet.weight import WeightFactors
 
+
 @pytest.fixture
 def conn(test_dsn):
     """A schema-applied database, rolled back after each test."""
