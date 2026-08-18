@@ -12,8 +12,52 @@ a model.
 | E5 extract | `extract/` | Human writing → structured claim with a verbatim quote **← LLM** |
 | E6 vet | `vet/` | Reject promotional content; weight what survives |
 | E7 curate | `curate/` | Count people, apply the gate, state consensus in words |
-| E8 publish | `pages/` | Model pages, filtered, changelog, coverage |
+| E8 publish | `pages/` | Model pages, filtered, changelog, coverage — **read the two Reddit conditions below before writing any of it** |
 | Q1–Q7 | `ask/` | Task description → ranked recommendation **← LLM (Q1 only)** |
+
+## Two Reddit conditions that bite only when you build E8
+
+Recorded here rather than only in `contract/sources.yaml` because a condition
+in a `tos_notes` block is read by whoever writes rulings, and these have to be
+read by whoever writes the publisher. That is this lane, at the moment it
+starts.
+
+Both come from the `reddit-via-rapidapi` ruling: a **permission, not a
+clearance**, on the basis `internal-development-only`, with four conditions
+recorded rather than cleared. Two are ours.
+
+**Developer Terms 5.2 — a Reddit quote must cite the author's username, and
+the username is not in the database.**
+
+Not merely absent from the page. `author` stores `external_id` as the `t2_…`
+fullname, deliberately, because it survives a rename where a username does not.
+The username reaches `handle_hash` and `collect/assemble/authors.py` retains it
+nowhere by design: *"the handle is needed transiently to compute the hash and
+is retained nowhere."*
+
+So the first Reddit quote E8 renders cannot be attributed as the terms require,
+and finding that out at render time costs **a re-fetch of every Reddit document
+plus a schema change**, not an afternoon. There is no cheap version of finding
+this late.
+
+It needs a decision before the publisher is written, not after, and it is not
+mine alone — it reverses a privacy choice `collect/` made on purpose. Worth
+knowing when you take it: we already publish the permalink, and the permalink
+displays the username, so hashing it protects the author from our database and
+not from our page. That is a real distinction and a smaller one than it looks.
+
+**Data API Terms 3.2 — delete data not required for the approved use case,
+against an immutable raw store (NFR-4).**
+
+`collect/rawstore.py:evict` is where that lands, and the tension is genuine:
+NFR-4 requires a full rebuild from the raw store to always be possible, and
+3.2 requires deletion. NFR-6's tombstone path is the shape of the answer —
+honouring a deletion is not the same as silently rewriting history — but
+whether a retention limit satisfies 3.2 is a question for the ruling rather
+than for the publisher.
+
+**Neither is a blocker on anything built today.** Both are blockers on E8, and
+both are cheaper to answer now than to discover in the first rendered page.
 
 ## Where this lane starts
 
