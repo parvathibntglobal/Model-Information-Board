@@ -38,6 +38,38 @@ These are the rules a helpful refactor will otherwise quietly violate.
    The governing rule for anything added later:
    **an LLM may propose, it may never decide.**
 
+   **Code-only extraction was proposed and refused, 2026-08-18.** Dropping the
+   model at E5 and keeping it only in the Ask box would remove an injection
+   surface, a dependency and a source of nondeterminism, and it is not a cost
+   question - the whole corpus extracts for $2.12.
+
+   It was refused for one structural reason. **Rule 1 works because the
+   proposer and the checker are different things.** The model proposes a
+   quote; code checks that quote exists byte for byte in the text the model
+   was shown. If code extracts, code picks the quote and code verifies its own
+   pick - the check passes by construction. We would still have three-step
+   verification, a green suite, and a `quote_verified` column that means
+   nothing: a guarantee that looks like one and is not.
+
+   The supporting evidence is our own. A pure-code matcher hit `free` inside
+   *"freeze"* and `fusion` inside *"confusion"* on the easiest subtask in the
+   pipeline - exact matching against a known list - and was invisible on an AI
+   corpus until it ran on movie posts (`docs/measurements/control-and-reshape.md`).
+   If code needs a boundary map and a control experiment to decide whether a
+   four-character string is a model name, *"is this person complaining or
+   joking, about which capability, under what condition"* is not the smaller
+   problem.
+
+   **The alternative was weighed, not dismissed.** A code-only board is
+   possible as *high precision, low recall*: publish only unambiguously-phrased
+   claims, discard the rest unread, and **say so on every page**. That is a
+   real product and a defensible one. What it costs is most of the evidence,
+   and the saying-so is not optional - silence about ambiguously-phrased
+   failures reads as absence of failures, which is rule 4 at the largest scale
+   it covers. Recorded here rather than left in a message, because a reason
+   that lives in a conversation gets re-litigated by whoever finds the model
+   call expensive in month four.
+
 3. **No synthesised number reaches a page.** Every figure displayed is either
    *counted* (people, quotes, days) or *measured* (price, tokens). Consensus is
    a phrase assembled from counts, never a score. There is no 0-100 capability
