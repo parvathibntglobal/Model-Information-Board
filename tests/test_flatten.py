@@ -239,13 +239,23 @@ def test_a_quote_resolves_back_through_verify(reference):
 
     # A span inside the reply that carries an emoji, chosen so it crosses an
     # identity run and stops before the substitution.
+    #
+    # The document is found by SUFFIX rather than named in full. It was written
+    # `reddit:oqosfnq`, and the id convention moved under it when the fixture
+    # took the `t1_` fullnames `collect/` actually stores - so this test failed
+    # only in the merge, passing on both branches alone. A literal id here is a
+    # second place the convention has to be remembered, and this is the file
+    # that proves conventions do not get remembered.
+    document_id = next(
+        d for d in reference["member_document_ids"] if d.endswith("oqosfnq")
+    )
     target = next(s for s in result.segments if s.is_identity and s.raw_start == 0
-                  and s.document_id == "reddit:oqosfnq")
+                  and s.document_id == document_id)
     start, end = target.flat_start, target.flat_end
     overlapping = [m for m in mappings if m.overlaps(start, end)]
     raw_start, raw_end = _resolve_raw_span(overlapping, start, end)
 
-    raw = reference["raw_text_of"]["reddit:oqosfnq"]
+    raw = reference["raw_text_of"][document_id]
     assert raw[raw_start:raw_end] == result.text[start:end]
 
 
