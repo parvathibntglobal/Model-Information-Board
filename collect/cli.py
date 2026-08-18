@@ -31,6 +31,7 @@ def _cmd_db_init(args: argparse.Namespace) -> int:
     from collect.db import apply_schema, reset_schema, transaction
 
     with transaction() as conn:
+        _gate(conn)
         if args.reset:
             reset_schema(conn, environment=settings().environment)
             print("schema reset and applied from contract/tables.sql")
@@ -69,6 +70,7 @@ def _cmd_db_migrate(args: argparse.Namespace) -> int:
 
     conn = connect()
     try:
+        _gate(conn)
         before = check(conn)
         if before.mismatched:
             print(before.describe())
@@ -98,6 +100,70 @@ def _cmd_db_migrate(args: argparse.Namespace) -> int:
     finally:
         conn.close()
 
+
+
+def _gate(conn=None) -> None:
+    """The startup checks, on WRITE commands only. Issue #27.
+
+    Read-only commands are deliberately not gated: the state these checks refuse
+    is exactly the state somebody needs `registry check-sources` to diagnose.
+    """
+    from collect.ops.preflight import preflight
+    from collect.registry.policy import load_registry_policy
+
+    report = preflight(
+        conn, environment=settings().environment, policy=load_registry_policy()
+    )
+    print(report.summary())
+
+
+def _cmd_ops_preflight(args: argparse.Namespace) -> int:
+    """Run the startup checks and report, without running the chain."""
+    from collect.db import connect
+    from collect.ops.preflight import PreflightRefused
+
+    conn = None
+    try:
+        conn = connect()
+    except Exception as error:  # noqa: BLE001 - a refusal reports, it does not raise
+        print(f"no database connection: {type(error).__name__}: {error}")
+    try:
+        _gate(conn)
+    except PreflightRefused as refusal:
+        print(str(refusal))
+        return 1
+    finally:
+        if conn is not None:
+            conn.close()
+    return 0
+
+
+def _cmd_ops_run(args: argparse.Namespace) -> int:
+    """The nightly chain. Runs what exists and says what does not."""
+    from collect.db import connect
+    from collect.ops.chain import Journal, default_stages, run_chain
+    from collect.registry.policy import load_registry_policy
+
+    conn = None
+    if not args.no_database:
+        try:
+            conn = connect()
+        except Exception as error:  # noqa: BLE001
+            print(f"no database connection: {type(error).__name__}: {error}")
+
+    journal = Journal(Path(args.journal) if args.journal else None)
+    context = {
+        "conn": conn,
+        "environment": settings().environment,
+        "policy": load_registry_policy(),
+    }
+    try:
+        run = run_chain(default_stages(), context, journal)
+    finally:
+        if conn is not None:
+            conn.close()
+    print(run.summary())
+    return 0 if run.ok else 1
 
 
 def _cmd_registry_propose_aliases(args: argparse.Namespace) -> int:
@@ -259,6 +325,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--surfaces", help="surface-extract JSON; omitted means recall unmeasured")
     propose_aliases.add_argument("--out", help="write the reviewable skeleton here")
     propose_aliases.set_defaults(func=_cmd_registry_propose_aliases)
+
+    ops = sub.add_parser("ops", help="the nightly chain and its checks")
+    ops_sub = ops.add_subparsers(dest="ops_command", required=True)
+    ops_pre = ops_sub.add_parser(
+        "preflight", help="the startup checks, without running the chain")
+    ops_pre.set_defaults(func=_cmd_ops_preflight)
+    ops_run = ops_sub.add_parser("run", help="run the nightly chain")
+    ops_run.add_argument("--journal", help="append-only JSONL record of every stage")
+    ops_run.add_argument(
+        "--no-database", action="store_true",
+        help="run without a connection; every stage that needs one refuses and says so")
+    ops_run.set_defaults(func=_cmd_ops_run)
 
     aliases = reg_sub.add_parser("aliases", help="alias rows and collisions")
     aliases.add_argument("-v", "--verbose", action="store_true")

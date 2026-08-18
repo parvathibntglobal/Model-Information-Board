@@ -364,7 +364,9 @@ def fetch_models(client, *, url: str = MODELS_URL):
     return response
 
 
-def write_model_versions(conn, result: PollResult, *, batch: int = 200) -> dict[str, int]:
+def write_model_versions(
+    conn, result: PollResult, *, batch: int = 200, record_changes: bool = True
+) -> dict[str, int]:
     """Upsert polled facts. Sets `last_swept_at` on NOTHING.
 
     BATCHED, AND THIS ONE RUNS NIGHTLY AT THE LARGEST VOLUME OF ANY WRITER HERE.
@@ -373,10 +375,19 @@ def write_model_versions(conn, result: PollResult, *, batch: int = 200) -> dict[
     Same shape as `write_authors` and `github.write_documents`, found by sweeping
     the other writers rather than by hitting it.
 
-    `executemany(returning=True)` keeps the per-row `RETURNING (xmax = 0)`, so
-    inserts and updates are still counted separately rather than summed into a
-    single "written" that cannot distinguish a new model from a price change.
-    Losing that distinction would cost FR-3 its alert.
+    `executemany(returning=True)` keeps the per-row `RETURNING`, so inserts and
+    updates stay separable rather than summed into a single "written". That
+    distinction is now load-bearing rather than merely tidy: `_record_changes`
+    reads it to decide whether tonight's observation of a model is its FIRST,
+    and a first observation is a baseline rather than a price change.
+
+    FR-3'S PRODUCER LIVES HERE NOW. It used to live nowhere: `_record_event` and
+    `_record_prices` were called from `load_seed()` only, so the 11 seeded models
+    produced events and the 340 polled ones produced none — `model_event` held 0
+    rows and a price could move nightly with nothing recording it. Pass
+    `record_changes=False` to upsert without writing history or events; the
+    default is on, because a caller who forgets is exactly how it came to be
+    missing in the first place.
 
     THE SEPARATION THIS FUNCTION EXISTS TO KEEP. Polling reads facts about a
     model; sweeping looks for what engineers said about it. `updated_at` moves
@@ -438,24 +449,117 @@ def write_model_versions(conn, result: PollResult, *, batch: int = 200) -> dict[
                 provenance                 = 'polled',
                 updated_at                 = now()
                 -- last_swept_at is NOT touched. See the docstring.
-            RETURNING (xmax = 0) AS was_insert
+            RETURNING id, (xmax = 0) AS was_insert
             """
 
-    inserted = updated = 0
+    # The id travels back with the verdict rather than the caller re-deriving it
+    # from position. Result sets do arrive in order, but an event attributed to
+    # the wrong model by an off-by-one is a defect nobody would see: it would
+    # read as a real price change on a real model.
+    verdicts: dict[str, bool] = {}
     with conn.cursor() as cur:
         for start in range(0, len(params), batch):
             cur.executemany(statement, params[start:start + batch], returning=True)
-            # One result set per row, in order. `nextset()` walks them; the last
-            # one returns None, which ends the loop rather than an off-by-one.
+            # One result set per row. `nextset()` walks them; the last returns
+            # None, which ends the loop rather than an off-by-one.
             while True:
                 outcome = cur.fetchone() if cur.pgresult is not None else None
-                if outcome is not None and outcome[0]:
-                    inserted += 1
-                elif outcome is not None:
-                    updated += 1
+                if outcome is not None:
+                    verdicts[outcome[0]] = bool(outcome[1])
                 if not cur.nextset():
                     break
-    return {"inserted": inserted, "updated": updated}
+
+    counts = {
+        "inserted": sum(1 for was_insert in verdicts.values() if was_insert),
+        "updated": sum(1 for was_insert in verdicts.values() if not was_insert),
+    }
+    if not record_changes:
+        return counts
+    return {**counts, **_record_changes(conn, params, verdicts, batch=batch)}
+
+
+def _record_changes(conn, params, verdicts, *, batch: int) -> dict[str, int]:
+    """FR-3's producer: what moved tonight, recorded where an alert can read it.
+
+    Runs AFTER the upsert and reads `pricing_history`, which the upsert does not
+    touch — so there is no ordering hazard between the two. The registry row is
+    already the new one; the comparison is against the last thing we OBSERVED,
+    which is what `pricing_history` is for.
+
+    Three writes, each batched: history rows, `new-model` events, `price-change`
+    events. `observe_prices` decides all of it and is shared with the seed
+    loader, so there is one definition of "the price moved" in the lane.
+
+    NOT emitted here, and named rather than silently absent:
+    `deprecation-announced`. A `retirement_date` appearing in the feed is a real
+    event of that type, and it needs the prior value of THAT column to detect —
+    a different comparison from the price one, against `model_version` rather
+    than against an observation table. Worth building; not built here.
+    """
+    from collect.registry.events import (
+        NEW_MODEL,
+        PRICE_CHANGE,
+        PRICE_COLUMNS,
+        append_prices,
+        latest_prices,
+        observe_prices,
+        write_events,
+    )
+
+    previous = latest_prices(conn, [row["id"] for row in params])
+
+    to_append, observations = [], {}
+    for row in params:
+        observation = observe_prices(
+            previous.get(row["id"]), {column: row[column] for column in PRICE_COLUMNS}
+        )
+        observations[row["id"]] = observation
+        if observation.append:
+            to_append.append({
+                "model_version_id": row["id"],
+                **{column: row[column] for column in PRICE_COLUMNS},
+            })
+
+    observed_at = append_prices(conn, to_append, batch=batch)
+
+    events = []
+    for row in params:
+        if verdicts.get(row["id"]):
+            # A NEW MODEL IS NOT A PRICE CHANGE, however different its prices
+            # look from the nothing before them. Its first observation is a
+            # baseline, written above and not announced.
+            events.append({
+                "model_version_id": row["id"],
+                "type": NEW_MODEL,
+                "occurred_at": row.get("release_date"),
+                "payload": {"canonical_id": row["canonical_id"]},
+            })
+            continue
+        observation = observations[row["id"]]
+        if not observation.moved:
+            continue
+        events.append({
+            "model_version_id": row["id"],
+            "type": PRICE_CHANGE,
+            "occurred_at": observed_at.get(row["id"]),
+            "payload": {
+                "canonical_id": row["canonical_id"],
+                "changed": list(observation.changed),
+                "from": {c: str(observation.previous[c]) for c in observation.changed},
+                "to": {c: str(observation.incoming[c]) for c in observation.changed},
+            },
+        })
+
+    write_events(conn, events, batch=batch)
+    return {
+        "prices_recorded": len(to_append),
+        "events": len(events),
+        "price_changes": sum(1 for e in events if e["type"] == PRICE_CHANGE),
+        # A price we used to know and no longer do. Not an event and not a zero
+        # — see `PriceObservation.withdrawn`. Counted here so it reaches the run
+        # report rather than disappearing between two things it is not.
+        "prices_withdrawn": sum(1 for o in observations.values() if o.withdrawn),
+    }
 
 
 def mark_swept(conn, canonical_ids, *, at: datetime) -> int:
