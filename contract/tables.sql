@@ -271,6 +271,25 @@ CREATE TABLE document (
   -- extractor's self-reported claim.has_numbers. It falsifies and cannot
   -- confirm: false here makes a claim asserting true a fabrication; true here
   -- says nothing about whether the quote contains a number.
+  -- THE FIVE COMPONENTS. Computed per document at ingest by
+  -- collect/triage/specificity.py, from the text alone. No model participates.
+  --
+  -- ⚠ judge/: `names_version` AND `has_conditions` ARE THE SOURCE FOR
+  --   `weight.compute()`'s `version_named=` and `has_conditions=` ARGUMENTS.
+  --
+  --   Those two are required parameters of `judge/vet/weight.py:compute` and
+  --   `ExtractedClaim` carries neither — it has `has_repro_steps` and
+  --   `has_numbers` only. So whoever calls `compute()` first has to supply them
+  --   from somewhere, and these columns are that somewhere: derived by code
+  --   from the same text, which is what "derive them rather than add extractor
+  --   fields" meant. judge/ reads `document`; nothing needs to change in the
+  --   extractor schema, and nothing needs to change here.
+  --
+  --   `has_numbers` is the pair that already exists on both sides, and
+  --   collect/triage/specificity.py records what that is good for: a document
+  --   whose `has_numbers` is False FALSIFIES a claim asserting `has_numbers:
+  --   true`, because there are no numbers for the quote to contain. It cannot
+  --   confirm — True says nothing about whether THAT quote carried one.
   has_numbers             boolean,
   has_error_strings       boolean,
   has_code                boolean,

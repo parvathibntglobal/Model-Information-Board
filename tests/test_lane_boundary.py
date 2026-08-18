@@ -8,11 +8,13 @@ invariant nobody checks is a comment.
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 import pytest
 
-COLLECT = Path(__file__).resolve().parents[1] / "collect"
+ROOT = Path(__file__).resolve().parents[1]
+COLLECT = ROOT / "collect"
 
 #: Anything that would mean this lane is calling a language model. collect/
 #: never does — not once. If a task here seems to need one, it belongs in
@@ -217,3 +219,73 @@ def test_only_the_robots_gate_imports_robotparser():
                 "second interpretation of robots.txt, and two interpretations "
                 "disagree eventually."
             )
+
+
+# ── the reverse direction, and the two write bans ─────────────────────────
+#
+# ADDED 2026-08-18, AFTER NOTICING THE ASYMMETRY. `collect/ -> judge/` was
+# enforced from the start and `judge/ -> collect/` never was, so Engineer 2
+# complied for weeks with a rule that did not exist. An audit of the four
+# symmetric statements in the two lane docs found THREE unenforced:
+#
+#     collect never imports judge                 enforced
+#     judge never imports collect                 NOT enforced   <- now is
+#     judge never writes document/thread_context  NOT enforced   <- now is
+#     collect never writes claim/cell/label       NOT enforced   <- now is
+#
+# The class is the finding rather than any one of them: an invariant stated in
+# prose and enforced on one side reads, to anyone checking, as enforced.
+
+#: `INSERT INTO x`, `UPDATE x`, `DELETE FROM x` — the three ways to write a row.
+#: Matched against SQL text rather than the AST, because the SQL is a string
+#: literal and the AST cannot see inside it.
+_WRITE_SQL = re.compile(
+    r"\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+\"?(\w+)\"?", re.IGNORECASE
+)
+
+#: Tables `collect/` fills. `judge/` reads them and never writes them — the
+#: one-directional rule that lets two people work without coordinating.
+INTERFACE_TABLES = {"document", "thread_context"}
+
+#: Tables `judge/` fills. `collect/` never writes them: FR-5's guarantee is that
+#: a post can trigger a re-check and can never write a judgement.
+JUDGEMENT_TABLES = {"claim", "claim_weight", "cell", "label", "label_change"}
+
+
+def _tables_written(path: Path) -> set[str]:
+    return {m.group(1).lower() for m in _WRITE_SQL.finditer(path.read_text(encoding="utf-8"))}
+
+
+@pytest.mark.parametrize("path", sorted((ROOT / "judge").rglob("*.py")), ids=str)
+def test_judge_never_imports_collect(path: Path):
+    """The mirror of `test_collect_never_imports_judge`, absent until 2026-08-18.
+
+    `judge/CLAUDE.md` says *"Never import from `collect/`"* and nothing checked
+    it. `judge/store/claims.py` duplicates connection handling rather than
+    reusing `collect/db.py` and documents why — voluntary compliance with an
+    unenforced rule, which is exactly the state that decays quietly.
+    """
+    assert "collect" not in _imported_roots(path), f"{path} imports collect/"
+
+
+@pytest.mark.parametrize("path", sorted((ROOT / "judge").rglob("*.py")), ids=str)
+def test_judge_never_writes_the_interface_tables(path: Path):
+    """`document` and `thread_context` are the handover. judge/ reads them.
+
+    A write here would make the interface bidirectional, and the whole reason
+    two people can work in parallel is that it is not.
+    """
+    written = _tables_written(path) & INTERFACE_TABLES
+    assert not written, f"{path} writes {sorted(written)}, which collect/ owns"
+
+
+@pytest.mark.parametrize("path", sorted((ROOT / "collect").rglob("*.py")), ids=str)
+def test_collect_never_writes_the_judgement_tables(path: Path):
+    """FR-5's other half. A post may trigger a re-check; it may never write one.
+
+    `test_registry_never_imports_harvest` enforces the structural half — the
+    registry cannot SEE harvest. This is the half about the tables themselves,
+    and it was stated in `collect/CLAUDE.md` and never checked.
+    """
+    written = _tables_written(path) & JUDGEMENT_TABLES
+    assert not written, f"{path} writes {sorted(written)}, which judge/ owns"

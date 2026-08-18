@@ -93,6 +93,43 @@ Excluding them:
 **Tier 2 goes to exactly zero.** The instrument control passes: the gates can
 return a true zero, which nothing had previously demonstrated.
 
+### Ruled 2026-08-18: routes are not models. The 17 are excluded.
+
+The reason is FR-4 rather than tidiness. **A claim about `free` resolves to a
+pointer that routes to whatever is cheapest today, so the model that served the
+request is unknown — unattributable by construction, not merely unattributed.**
+FR-4 exists so a mention resolves to what existed when it was written, and a
+pointer has no such thing. That also settles the `~vendor/…-latest` question
+left open at rank 64 of the tracked set.
+
+Implemented as `is_route()` in `collect/registry/propose.py` — with what a
+canonical id *denotes*, not in triage, because both the tracked set and the
+entity gate need the same answer.
+
+**BOTH READINGS, side by side**, because the boundary fix in §2 was measured
+against the pre-exclusion numbers and they are what make it legible:
+
+| corpus | before either fix | boundary fix only | **+ routes excluded** |
+|---|---|---|---|
+| A · model-name-retrieved slice | 83.1% | 81.5% | **78.0%** |
+| B · unfiltered sample (26 × 75) | 33.7%\* | 29.8% | **19.9%** |
+| C · Tier 1 technical control | 17.8% | 9.1% | **0.4%** |
+| D · Tier 2 non-technical control | 5.0% | 1.3% | **0.0%** |
+| retrieval bias A → B | 49.5pp | 51.7pp | **58.1pp** |
+| topicality bound B → C | — | 20.7pp | **19.5pp** |
+
+\* the 11 × 175 sweep; B is 26 × 75 from §5 onward.
+
+**Tier 2 at exactly 0.0% is the instrument control passing**, and nothing had
+previously demonstrated that the gates can return a true zero.
+
+The topicality bound now says something much stronger: **19.5 of B's 19.9
+points are topicality.** Almost all of what the AI subreddits produce is the
+subject matter, and the pipeline's own discrimination on a technically-literate
+population is 0.4%.
+
+**Original text, kept because it was the state at the time:**
+
 **Not fixed here, and deliberately.** *"Do `~vendor/…-latest` routes count as
 models?"* was raised as an open contract question in the tracked-set report and
 has not been ruled. This is now evidence for that ruling rather than a licence

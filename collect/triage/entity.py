@@ -71,6 +71,7 @@ from dataclasses import dataclass, field
 from collect.registry.propose import (
     FAMILY_WORDS,
     MIN_SURFACE_CHARS,
+    is_route,
     mechanical_variants,
     rule_variants,
 )
@@ -207,7 +208,16 @@ def build_population(
     mechanical: set[str] = set()
     by_rule: set[str] = set()
     owners: dict[str, set[str]] = {}
+    routes = 0
     for canonical_id, display_name in models:
+        # ROUTES ARE NOT MODELS (ruled 2026-08-18, see `is_route`). A claim
+        # about `free` resolves to a pointer, so the model that served the
+        # request is unknown - unattributable by construction, which is what
+        # FR-4 exists to prevent. They were also the largest source of false
+        # entity matches: `openrouter/free` derives the surface `free`.
+        if is_route(canonical_id):
+            routes += 1
+            continue
         derived = mechanical_variants(canonical_id, display_name)
         ruled = rule_variants(canonical_id, display_name)
         mechanical.update(derived)
@@ -238,7 +248,8 @@ def build_population(
     return SurfacePopulation(
         surfaces=frozenset(union),
         contributions=contributions,
-        model_count=len(models),
+        # Routes are excluded, so the denominator is models and not feed rows.
+        model_count=len(models) - routes,
         declared_model_count=len(hand),
         owners={s: tuple(sorted(o)) for s, o in owners.items() if s in union},
     )
