@@ -191,13 +191,52 @@ def _walk(children: list[dict], out: list[dict]) -> None:
                 _walk(replies.get("data", {}).get("children", []), out)
 
 
+def document_id_for(thing: dict, expected_prefix: str) -> str:
+    """The id `collect/` stores, which is the FULLNAME and never the bare id.
+
+    `collect/adapters/reddit.py` documents it on the field itself - `external_id:
+    str  # t3_... - the fullname, never the bare id` - and this builder used
+    `thing["id"]` instead, producing `reddit:oqosfnq` against a document table
+    holding `reddit:t1_oqosfnq`.
+
+    `raw_text_of` is keyed by document_id, so every lookup would have missed and
+    `verify.py` would have returned RAW_TEXT_MISSING for every quote in the
+    thread - a naming failure presenting as a storage failure, on the one
+    artefact that cannot be reconstructed after the fact.
+
+    ENGINEER 1'S INDEPENDENT FLATTENER DID NOT CATCH THIS, and the reason is
+    worth more than the fix. It reproduced this fixture byte for byte, 2,481
+    characters and all 20 segments, first run. But `document_id` is an INPUT to
+    a flattener, not an output: the test handed both implementations the same
+    ids and compared text and offsets. An id-convention difference is invisible
+    to that comparison by construction. It surfaced only by writing a row to
+    Postgres and reading it back with `raw_text_of` rebuilt from `document`.
+
+    So: a variable the test supplies is a variable the test cannot check. Where
+    two components must agree about a value, round-trip it through the real
+    carrier rather than handing it to both.
+
+    Raising rather than falling back to `id` is the point. A silent fallback
+    would restore exactly the defect being fixed, and it would do it on a
+    payload shape nobody was looking at.
+    """
+    fullname = thing.get("name")
+    if not isinstance(fullname, str) or not fullname.startswith(expected_prefix):
+        raise ValueError(
+            f"no {expected_prefix}... fullname on {thing.get('id')!r}: got "
+            f"{fullname!r}. `collect/` keys `document` by the fullname, so a "
+            f"bare id here is a fixture that cannot be read back."
+        )
+    return f"reddit:{fullname}"
+
+
 def build() -> dict:
     payload = json.loads(SOURCE.read_text(encoding="utf-8"))
     post = payload["data"][0]["data"]["children"][0]["data"]
     comments: list[dict] = []
     _walk(payload["data"][1]["data"]["children"], comments)
 
-    root_id = f"reddit:{post['id']}"
+    root_id = document_id_for(post, "t3_")
     root_text = f"{post['title']}\n\n{post.get('selftext', '')}".strip()
 
     ranked = sorted(comments, key=lambda c: c.get("score", 0), reverse=True)
@@ -242,7 +281,7 @@ def build() -> dict:
 
     selected = (forced + [c for c in ranked if not any(c is f for f in forced)])[:CHILD_COUNT]
 
-    documents = [(root_id, root_text)] + [(f"reddit:{c['id']}", c["body"]) for c in selected]
+    documents = [(root_id, root_text)] + [(document_id_for(c, "t1_"), c["body"]) for c in selected]
 
     parts: list[str] = []
     segments: list[Segment] = []
