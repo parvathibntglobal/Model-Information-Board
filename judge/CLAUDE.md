@@ -35,12 +35,32 @@ The username reaches `handle_hash` and `collect/assemble/authors.py` retains it
 nowhere by design: *"the handle is needed transiently to compute the hash and
 is retained nowhere."*
 
-So the first Reddit quote E8 renders cannot be attributed as the terms require,
-and finding that out at render time costs **a re-fetch of every Reddit document
-plus a schema change**, not an afternoon. There is no cheap version of finding
-this late.
+So the first Reddit quote E8 renders cannot be attributed from the database.
 
-It needs a decision before the publisher is written, not after, and it is not
+**This paragraph said that cost "a re-fetch of every Reddit document plus a
+schema change". That was wrong, and Engineer 1 corrected it.** `document.text_ref`
+points at an immutable payload carrying `author` in full, so **every username is
+re-derivable from the raw store** - NFR-4 covering the case it was written for.
+Verified rather than taken: all 195 comments in the harvested thread carry
+`author`; the 3 lacking `author_fullname` are `[deleted]`, so they have neither.
+
+The corrected cost is a read from the raw store at render time. That is the
+difference between a decision that must be made now and one that can be made
+when the publisher is written, and I had it in the expensive column.
+
+**The ruling, 2026-08-18: do not store the handle.** The obligation attaches at
+publication, and a column in `author` does not discharge it - only rendering
+does. Storing now pays the privacy cost in advance of any benefit and cannot be
+undone if publication is refused. Recovery is a raw-store read, so nothing is
+lost by waiting.
+
+Kept beside the ruling so it is not rediscovered as an objection: **we already
+publish the permalink, and the permalink displays the username.** Hashing it
+protects the author from our database and not from our page - a real
+distinction and a smaller one than it looks. It argues for publishing the
+handle *when we publish*, not for storing it now.
+
+It still needs a decision before the publisher is written, and it is not
 mine alone — it reverses a privacy choice `collect/` made on purpose. Worth
 knowing when you take it: we already publish the permalink, and the permalink
 displays the username, so hashing it protects the author from our database and
