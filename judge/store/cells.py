@@ -98,7 +98,7 @@ class CellOutcome:
         says must never read as criticism. The gate decides whether there is
         enough evidence; this decides what has to be said alongside it.
         """
-        return self.coverage.caveat
+        return self.coverage.caveat(n_eff=self.counts.n_eff)
 
 
 class CellStore:

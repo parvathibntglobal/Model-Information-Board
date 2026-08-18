@@ -50,14 +50,39 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-#: Below this, a cell's evidence came from threads we mostly did not read, and
-#: the caveat is stated in the strong form. Not a gate - nothing is withheld at
-#: any value - only the wording changes.
+from judge.curate.gate import N_EFF_MINIMUM
+
+#: Below this, the thread was mostly unread and the caveat is stated. Not a
+#: gate - nothing is withheld at any value - only the wording changes.
 #:
-#: 0.5 because it is the point where "most of the thread" stops being true, not
-#: because anything measured says 0.5 is where quality falls off. Nothing does,
-#: and inventing a threshold that sounds evidence-based would itself be rule 7.
+#: 0.5 because it is where "most of the thread" stops being true, not because
+#: anything measured says quality falls off there. Nothing does.
 MOSTLY_UNREAD = 0.5
+
+#: How much margin over the publication gate counts as comfortable.
+#:
+#: ENGINEER 1'S CORRECTION, ADOPTED. The first version keyed the caveat's
+#: strength to coverage alone, and E1's objection was right: the question is
+#: not "did we read most of the thread", it is "could the unread part overturn
+#: this". Those come apart hard - 24% coverage with eight independent voices is
+#: stronger evidence than 80% with two. So strength keys to margin over
+#: `N_EFF_MINIMUM`, which has a real basis (our own gate) rather than being a
+#: round number.
+#:
+#: AND THE LIMIT OF THAT, WHICH NEITHER OF US HAD RAISED. Margin protects
+#: against SAMPLING NOISE - the risk that a small read sample happened to
+#: over-represent one view. It does NOT protect against SELECTION BIAS, and
+#: our gap is a biased gap by construction: `selection_method` is
+#: `specificity_x_log_engagement@observed`, so the comments we read are the
+#: high-engagement, high-specificity ones and the 623 we did not are
+#: systematically the quieter ones. No amount of `n_eff` cures that, because
+#: every voice in it was drawn from the same ranked top slice.
+#:
+#: So margin softens the wording and never removes the caveat, and every
+#: low-coverage caveat says the unread part is not a random sample. A cell that
+#: said "plenty of evidence, coverage fine" would be claiming a calibration
+#: nobody has done.
+COMFORTABLE_MARGIN = 2.0
 
 
 @dataclass(frozen=True)
@@ -114,13 +139,12 @@ class CellCoverage:
         ratios = [t.ratio for t in self.measured if t.ratio is not None]
         return min(ratios) if ratios else None
 
-    @property
-    def caveat(self) -> str | None:
+    def caveat(self, n_eff: float | None = None) -> str | None:
         """What must be said beside this cell's counts, or None if nothing need be.
 
-        Returns None ONLY when every thread was measured and every one was
-        well covered. Any other state produces a sentence, because every other
-        state is one a reader would want and could not infer from the counts.
+        `n_eff` softens the WORDING and never removes the caveat. Passing None
+        keeps the strong form, because not knowing the margin is not a reason
+        to sound confident.
         """
         if not self.threads:
             return None
@@ -140,10 +164,39 @@ class CellCoverage:
 
         if worst < MOSTLY_UNREAD:
             thinnest = min(self.measured, key=lambda t: t.ratio or 1.0)
+            comfortable = n_eff is not None and n_eff >= N_EFF_MINIMUM * COMFORTABLE_MARGIN
+            if comfortable:
+                parts.append(
+                    f"Drawn from threads we read at most {worst:.0%} of "
+                    f"({thinnest.population}), though on more voices than the "
+                    f"publication bar needs."
+                )
+            else:
+                parts.append(
+                    f"Drawn from threads we read at most {worst:.0%} of "
+                    f"({thinnest.population}), on barely more evidence than the "
+                    f"publication bar needs. The unread part could plausibly "
+                    f"change this."
+                )
+            # Both sentences are said at EVERY margin, because margin touches
+            # neither of them.
+            #
+            # The first is the specific misreading this module exists to
+            # prevent: "four engineers" invites "four of the people who
+            # discussed it", and the true statement is "four of the people we
+            # read". Dropping it while rewording for margin was caught by the
+            # test that asserts it, which is what that test is for.
+            #
+            # The second is the selection bias. The read comments were ranked
+            # by specificity and engagement, so the unread ones are
+            # systematically the quieter ones rather than a random remainder -
+            # and no number of voices drawn from the same top slice corrects
+            # for that.
             parts.append(
-                f"Drawn from threads we read at most {worst:.0%} of "
-                f"({thinnest.population}). The counts below are of people we "
-                f"read, not of everyone who spoke."
+                "The counts are of people we read, not of everyone who spoke, "
+                "and the part we did not read is not a random sample: comments "
+                "were ranked before selection, so the unread ones are the "
+                "quieter ones."
             )
         if self.unmeasured:
             n = len(self.unmeasured)

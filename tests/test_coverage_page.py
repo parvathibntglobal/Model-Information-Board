@@ -73,7 +73,7 @@ class TestTheEmptyTable:
     def test_every_known_kind_reports_unmeasured_rather_than_clear(self):
         report = CoveragePage(FakeConn([])).report()
 
-        assert len(report.kinds) == len(KNOWN_KINDS)
+        assert len(report.kinds) == len(KNOWN_KINDS) == 6
         for kind in report.kinds:
             assert kind.measured is False
             assert "not measured" in kind.headline
@@ -123,32 +123,39 @@ class TestFiguresCarryTheirPopulation:
         )
         summary = CoveragePage(conn).report().summary
 
-        assert "1 of 4 kinds" in summary
-        assert "3 were" in summary and "not measured" in summary
+        assert "1 of 6 kinds" in summary
+        assert "5 were" in summary and "not measured" in summary
         assert "not the same as clear" in summary
 
 
-class TestTheFifthKind:
-    """The schema comment predicted this and Engineer 1's proposal adds two."""
+class TestAnUnknownKind:
+    """The schema comment predicted this, and it has already happened once.
+
+    This class used `mention-resolves-to-route` as its unknown kind. That kind
+    is now KNOWN - E2 signed off the proposal and the page carries it - so the
+    test started failing, correctly: it was asserting about a name rather than
+    about the behaviour. Rewritten with a kind nothing has proposed, which is
+    the only thing that keeps testing the property as the vocabulary grows.
+    """
 
     def test_an_unrecognised_kind_is_surfaced_rather_than_dropped(self):
         conn = FakeConn(
             [("e2.1",)],
             [
                 ("unsourced-field", 1, 1, ["x"]),
-                ("mention-resolves-to-route", 7, 4, ["openrouter/auto"]),
+                ("mention-with-no-timestamp", 7, 4, ["some-surface"]),
             ],
         )
         report = CoveragePage(conn).report()
 
         kinds = {k.kind for k in report.kinds}
-        assert "mention-resolves-to-route" in kinds, (
+        assert "mention-with-no-timestamp" in kinds, (
             "a kind the CHECK permits and this module has not heard of was "
             "filtered out — the exact failure the schema comment predicted"
         )
         unrecognised = report.unrecognised
         assert len(unrecognised) == 1
-        assert unrecognised[0].kind == "mention-resolves-to-route"
+        assert unrecognised[0].kind == "mention-with-no-timestamp"
         assert unrecognised[0].rows == 7
 
     def test_its_rows_count_towards_the_total(self):
@@ -158,7 +165,7 @@ class TestTheFifthKind:
             [("e2.1",)],
             [
                 ("unsourced-field", 1, 1, ["x"]),
-                ("mention-resolves-to-route", 7, 4, ["openrouter/auto"]),
+                ("mention-with-no-timestamp", 7, 4, ["some-surface"]),
             ],
         )
         assert "8 gaps" in CoveragePage(conn).report().summary
@@ -173,3 +180,29 @@ class TestItNeverWrites:
         assert conn.queries
         for sql in conn.queries:
             assert sql.strip().upper().startswith("SELECT"), sql
+
+
+class TestTheCapIsDisclosed:
+    """The proposal's §4 lands here: 255 unknown-model surfaces over 1,523
+    mentions, and a page that shows three of them without saying so reports
+    three gaps."""
+
+    def test_a_truncated_kind_says_how_many_it_is_showing(self):
+        conn = FakeConn(
+            [("e2.1",)],
+            [("mention-unresolvable", 1523, 255, ["gpt 5.6 sol", "claud", "o3-hi"])],
+        )
+        kind = next(
+            k for k in CoveragePage(conn).report().kinds if k.kind == "mention-unresolvable"
+        )
+
+        assert kind.truncated is True
+        assert "showing 3 of 255" in kind.headline
+        assert "255 subjects" in kind.headline
+
+    def test_an_untruncated_kind_does_not_claim_to_be_showing_a_subset(self):
+        conn = FakeConn([("e2.1",)], [("unsourced-field", 2, 2, ["a", "b"])])
+        kind = next(k for k in CoveragePage(conn).report().kinds if k.kind == "unsourced-field")
+
+        assert kind.truncated is False
+        assert "showing" not in kind.headline

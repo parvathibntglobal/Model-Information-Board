@@ -64,7 +64,31 @@ KNOWN_KINDS: dict[str, tuple[str, str]] = {
         "a model whose release date could not be established",
         "either every date is known, or dates were never sought",
     ),
+    # The two from docs/proposals/coverage-gap-unresolvable-mentions.md, signed
+    # off by E2 on 2026-08-18. Carried here BEFORE the CHECK permits them: the
+    # page reports an absent kind as unmeasured, which is exactly true while no
+    # writer exists, and it means the page is ready on the day the rows appear
+    # rather than reporting them as unrecognised.
+    "mention-resolves-to-route": (
+        "somebody named a router, which we decline to resolve to a model",
+        "either nobody names routers, or nothing is counting when they do",
+    ),
+    "mention-unresolvable": (
+        "a name nothing in the surface population matched",
+        "either every name resolves, or nothing is recording the ones that do not",
+    ),
 }
+
+#: At most this many `detail` strings are shown per kind, and THE CAP IS STATED
+#: rather than applied quietly.
+#:
+#: The proposal's §4 warns the list would otherwise be permanent - 255
+#: `unknown-model` surfaces across 1,523 mentions in the substitution corpus
+#: alone. But a floor that silently drops the tail is the worse failure: "3
+#: examples" beside "255 subjects" reads as three gaps unless the page says
+#: which it is. So the cap is disclosed on every kind it binds, and `rows` and
+#: `subjects` always report the full population (rule 7).
+EXAMPLE_CAP = 3
 
 
 @dataclass(frozen=True)
@@ -95,11 +119,21 @@ class KindReport:
         return self.rows > 0
 
     @property
+    def truncated(self) -> bool:
+        """True when there is more than this page is showing."""
+        return self.subjects > len(self.examples)
+
+    @property
     def headline(self) -> str:
         if not self.measured:
             silence_means = KNOWN_KINDS.get(self.kind, ("", "nothing has reported it"))[1]
             return f"not measured - {silence_means}"
-        return f"{self.rows} recorded across {self.subjects} subjects"
+        line = f"{self.rows} recorded across {self.subjects} subjects"
+        if self.truncated:
+            # NEVER a silent cap. Three examples beside 255 subjects reads as
+            # three gaps to anyone who does not already know the page truncates.
+            line += f", showing {len(self.examples)} of {self.subjects}"
+        return line
 
 
 @dataclass(frozen=True)
@@ -185,9 +219,13 @@ class CoveragePage:
                 kinds=tuple(KindReport(kind=k, rows=0, subjects=0) for k in sorted(KNOWN_KINDS)),
             )
 
+        # EXAMPLE_CAP is interpolated rather than bound: it is a module
+        # constant int, never user input, and a slice bound cannot be a
+        # placeholder in this position. `subject` rather than `detail`, because
+        # the proposal makes the surface the unit a reviewer acts on.
         rows = self._conn.execute(
             "SELECT kind, count(*), count(DISTINCT subject), "
-            "(array_agg(detail ORDER BY observed_at DESC))[1:3] "
+            f"(array_agg(DISTINCT subject))[1:{EXAMPLE_CAP}] "
             "FROM coverage_gap WHERE pipeline_version = %s GROUP BY kind",
             (version,),
         ).fetchall()
