@@ -19,6 +19,7 @@ from psycopg.types.range import Range
 
 from judge.curate.gate import CellStatus
 from judge.store.cells import CellKey, CellStore
+from judge.store.claims import CONNECT_TIMEOUT_SECONDS
 
 SCHEMA = Path(__file__).resolve().parent.parent / "contract" / "tables.sql"
 CAPABILITY = "summarization.fidelity"
@@ -27,7 +28,13 @@ BUCKET = "context_size:8k-32k"
 
 @pytest.fixture
 def conn(test_dsn):
-    with psycopg.connect(test_dsn) as connection:
+    # `connect_timeout` explicitly. psycopg has no default, so a dead
+    # instance tries ::1, waits it out, tries 127.0.0.1, waits again -
+    # 250 seconds per attempt, which reads as a hanging suite rather
+    # than a failure naming the host. Engineer 1 lost ten minutes to
+    # exactly this and fixed it in collect/db.py; this lane connects
+    # here rather than through that, so it needed its own.
+    with psycopg.connect(test_dsn, connect_timeout=CONNECT_TIMEOUT_SECONDS) as connection:
         connection.execute("DROP SCHEMA IF EXISTS public CASCADE")
         connection.execute("CREATE SCHEMA public")
         connection.execute(SCHEMA.read_text(encoding="utf-8"))
@@ -41,8 +48,16 @@ def world(conn):
     conn.execute(
         "INSERT INTO model_version (id, canonical_id, provider, family, display_name, "
         "lifecycle, provenance, sources) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
-        ("mv1", "google/gemini-2.5-flash", "google", "gemini", "Gemini 2.5 Flash",
-         "ga", "seed", Json({})),
+        (
+            "mv1",
+            "google/gemini-2.5-flash",
+            "google",
+            "gemini",
+            "Gemini 2.5 Flash",
+            "ga",
+            "seed",
+            Json({}),
+        ),
     )
     conn.execute(
         "INSERT INTO capability (key, failure_mode, version) VALUES (%s,%s,%s)",
@@ -74,8 +89,15 @@ def add_claim(
     conn.execute(
         "INSERT INTO document (id, source, external_id, url, fetched_at, text_ref, "
         "content_hash, status) VALUES (%s,%s,%s,%s,now(),%s,%s,%s)",
-        (document_id, platform, claim_id, f"https://example.test/{claim_id}",
-         f"raw/{claim_id}", f"h_{claim_id}", "kept"),
+        (
+            document_id,
+            platform,
+            claim_id,
+            f"https://example.test/{claim_id}",
+            f"raw/{claim_id}",
+            f"h_{claim_id}",
+            "kept",
+        ),
     )
     if author is not None:
         conn.execute(
@@ -89,10 +111,27 @@ def add_claim(
         "condition_bucket, polarity, quote, quote_flat_offset, quote_raw_offset, "
         "quote_verified, relevance, evidence_tier, extractor_model, pipeline_version, "
         "created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,true,%s,%s,%s,%s,%s)",
-        (claim_id, document_id, "tc1", document_id, author, "mv1", "family",
-         CAPABILITY, "1.0", bucket, polarity, "it held up", Range(0, 10, "[)"),
-         Range(0, 10, "[)"), "central", "B", "google/gemini-2.5-flash", "e5.1",
-         date.today() - timedelta(days=days_ago)),
+        (
+            claim_id,
+            document_id,
+            "tc1",
+            document_id,
+            author,
+            "mv1",
+            "family",
+            CAPABILITY,
+            "1.0",
+            bucket,
+            polarity,
+            "it held up",
+            Range(0, 10, "[)"),
+            Range(0, 10, "[)"),
+            "central",
+            "B",
+            "google/gemini-2.5-flash",
+            "e5.1",
+            date.today() - timedelta(days=days_ago),
+        ),
     )
     conn.execute(
         "INSERT INTO claim_weight (claim_id, w_final, f_evidence, f_platform, "
@@ -268,8 +307,7 @@ class TestWhatIsWritten:
         columns = {
             row[0]
             for row in world.execute(
-                "SELECT column_name FROM information_schema.columns "
-                "WHERE table_name = 'cell'"
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'cell'"
             ).fetchall()
         }
         assert not {"score", "rating", "confidence", "grade"} & columns

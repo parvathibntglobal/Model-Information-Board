@@ -26,6 +26,7 @@ from judge.extract.client import FakeClient
 from judge.extract.runner import ThreadInput
 from judge.extract.verify import OffsetMapping
 from judge.pipeline import DocumentFacts, Pipeline
+from judge.store.claims import CONNECT_TIMEOUT_SECONDS
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = ROOT / "contract" / "tables.sql"
@@ -41,7 +42,13 @@ def fixture() -> dict:
 
 @pytest.fixture
 def conn(test_dsn):
-    with psycopg.connect(test_dsn) as connection:
+    # `connect_timeout` explicitly. psycopg has no default, so a dead
+    # instance tries ::1, waits it out, tries 127.0.0.1, waits again -
+    # 250 seconds per attempt, which reads as a hanging suite rather
+    # than a failure naming the host. Engineer 1 lost ten minutes to
+    # exactly this and fixed it in collect/db.py; this lane connects
+    # here rather than through that, so it needed its own.
+    with psycopg.connect(test_dsn, connect_timeout=CONNECT_TIMEOUT_SECONDS) as connection:
         connection.execute("DROP SCHEMA IF EXISTS public CASCADE")
         connection.execute("CREATE SCHEMA public")
         connection.execute(SCHEMA.read_text(encoding="utf-8"))
@@ -55,8 +62,16 @@ def world(conn, fixture):
     conn.execute(
         "INSERT INTO model_version (id, canonical_id, provider, family, display_name, "
         "lifecycle, provenance, sources) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
-        (MODEL, "google/gemini-2.5-flash", "google", "gemini", "Gemini 2.5 Flash",
-         "ga", "seed", Json({})),
+        (
+            MODEL,
+            "google/gemini-2.5-flash",
+            "google",
+            "gemini",
+            "Gemini 2.5 Flash",
+            "ga",
+            "seed",
+            Json({}),
+        ),
     )
     conn.execute(
         "INSERT INTO capability (key, failure_mode, version) VALUES (%s,%s,%s)",
@@ -67,9 +82,19 @@ def world(conn, fixture):
             "INSERT INTO document (id, source, external_id, url, fetched_at, "
             "created_at, text_ref, content_hash, status, names_version, "
             "has_conditions, has_numbers) VALUES (%s,%s,%s,%s,now(),%s,%s,%s,%s,%s,%s,%s)",
-            (document_id, "reddit", document_id, f"https://reddit.test/{document_id}",
-             date.today() - timedelta(days=20), f"raw/{document_id}",
-             f"h{index}", "kept", True, True, True),
+            (
+                document_id,
+                "reddit",
+                document_id,
+                f"https://reddit.test/{document_id}",
+                date.today() - timedelta(days=20),
+                f"raw/{document_id}",
+                f"h{index}",
+                "kept",
+                True,
+                True,
+                True,
+            ),
         )
         conn.execute(
             "INSERT INTO author (id, source, external_id) VALUES (%s,%s,%s)",
@@ -79,9 +104,15 @@ def world(conn, fixture):
         "INSERT INTO thread_context (id, thread_root_id, member_document_ids, "
         "flattened_text_ref, offset_map, child_count, pipeline_version, assembled_at) "
         "VALUES (%s,%s,%s,%s,%s,%s,%s,now())",
-        (fixture["thread_context_id"], fixture["thread_root_id"],
-         fixture["member_document_ids"], "flattened/x", Json(fixture["offset_map"]),
-         len(fixture["member_document_ids"]) - 1, "e3.1"),
+        (
+            fixture["thread_context_id"],
+            fixture["thread_root_id"],
+            fixture["member_document_ids"],
+            "flattened/x",
+            Json(fixture["offset_map"]),
+            len(fixture["member_document_ids"]) - 1,
+            "e3.1",
+        ),
     )
     conn.commit()
     return conn
@@ -298,9 +329,7 @@ class TestWhatItRefusesToGuess:
         # what it would be had the extractor's `true` been used — asserting the
         # two are equal, as the first draft of this did, compares a value to
         # itself and passes whatever the code does.
-        f_specificity = world.execute(
-            "SELECT f_specificity FROM claim_weight"
-        ).fetchone()[0]
+        f_specificity = world.execute("SELECT f_specificity FROM claim_weight").fetchone()[0]
         assert f_specificity < 1.0
         assert world.execute("SELECT has_numbers FROM claim").fetchone()[0] is True, (
             "the extractor's proposal is still RECORDED on the claim; it is "
@@ -312,9 +341,7 @@ class TestAccumulation:
     def test_a_second_voice_changes_the_cell(self, world, fixture):
         """Consensus is cumulative, which is the reason any of this persists."""
         first, second = fixture["member_document_ids"][:2]
-        pipeline = pipeline_for(
-            world, scripted(fixture, first), scripted(fixture, second)
-        )
+        pipeline = pipeline_for(world, scripted(fixture, first), scripted(fixture, second))
         arguments = dict(
             facts=facts_for(fixture),
             model_version_of={"google/gemini-2.5-flash": MODEL},
@@ -343,13 +370,9 @@ class TestAccumulation:
             model_version_of={"google/gemini-2.5-flash": MODEL},
         )
 
-        pipeline_for(world, scripted(fixture, document_id)).run(
-            thread_input(fixture), **arguments
-        )
+        pipeline_for(world, scripted(fixture, document_id)).run(thread_input(fixture), **arguments)
         world.commit()
-        pipeline_for(world, scripted(fixture, document_id)).run(
-            thread_input(fixture), **arguments
-        )
+        pipeline_for(world, scripted(fixture, document_id)).run(thread_input(fixture), **arguments)
         world.commit()
 
         assert world.execute("SELECT count(*) FROM claim").fetchone()[0] == 1

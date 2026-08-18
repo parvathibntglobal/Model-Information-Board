@@ -20,7 +20,7 @@ from psycopg.types.range import Range
 
 from judge.extract.schema import ExtractedClaim
 from judge.extract.verify import VerifiedQuote
-from judge.store.claims import ClaimStore, StoredClaim, claim_id_for
+from judge.store.claims import CONNECT_TIMEOUT_SECONDS, ClaimStore, StoredClaim, claim_id_for
 from judge.vet.weight import WeightFactors
 
 
@@ -32,7 +32,13 @@ def conn(test_dsn):
     schema = (Path(__file__).resolve().parent.parent / "contract" / "tables.sql").read_text(
         encoding="utf-8"
     )
-    with psycopg.connect(test_dsn) as connection:
+    # `connect_timeout` explicitly. psycopg has no default, so a dead
+    # instance tries ::1, waits it out, tries 127.0.0.1, waits again -
+    # 250 seconds per attempt, which reads as a hanging suite rather
+    # than a failure naming the host. Engineer 1 lost ten minutes to
+    # exactly this and fixed it in collect/db.py; this lane connects
+    # here rather than through that, so it needed its own.
+    with psycopg.connect(test_dsn, connect_timeout=CONNECT_TIMEOUT_SECONDS) as connection:
         connection.execute("DROP SCHEMA IF EXISTS public CASCADE")
         connection.execute("CREATE SCHEMA public")
         connection.execute(schema)
@@ -51,8 +57,16 @@ def seeded(conn):
     conn.execute(
         "INSERT INTO model_version (id, canonical_id, provider, family, display_name, "
         "lifecycle, provenance, sources) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-        ("mv1", "google/gemini-2.5-flash", "google", "gemini", "Gemini 2.5 Flash",
-         "ga", "seed", Json({})),
+        (
+            "mv1",
+            "google/gemini-2.5-flash",
+            "google",
+            "gemini",
+            "Gemini 2.5 Flash",
+            "ga",
+            "seed",
+            Json({}),
+        ),
     )
     conn.execute(
         "INSERT INTO capability (key, failure_mode, version) VALUES (%s, %s, %s)",
@@ -229,10 +243,25 @@ class TestWhatTheSchemaEnforces:
                 # NotNullViolation and DatatypeMismatch rather than the
                 # CheckViolation it claims to assert - so it would have failed
                 # loudly while never testing the CHECK at all.
-                ("clm_x", "d1", "tc1", "d1", "mv1", "family",
-                 "summarization.fidelity", "1.0", "context_size:8k-32k", "negative",
-                 "q", Range(0, 1, "[)"), Range(0, 1, "[)"), "central", "B",
-                 "google/gemini-2.5-flash", "e5.1"),
+                (
+                    "clm_x",
+                    "d1",
+                    "tc1",
+                    "d1",
+                    "mv1",
+                    "family",
+                    "summarization.fidelity",
+                    "1.0",
+                    "context_size:8k-32k",
+                    "negative",
+                    "q",
+                    Range(0, 1, "[)"),
+                    Range(0, 1, "[)"),
+                    "central",
+                    "B",
+                    "google/gemini-2.5-flash",
+                    "e5.1",
+                ),
             )
 
     def test_the_raw_span_is_stored_not_the_flattened_one(self, seeded):

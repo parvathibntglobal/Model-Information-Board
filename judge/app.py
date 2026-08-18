@@ -14,19 +14,25 @@ from __future__ import annotations
 
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from judge.ask import requirements
-from judge.ask.profile import RoleRequirement
+from judge.ask.profile import Assumption, RoleRequirement
 from judge.ask.rank import guard_for
+from judge.ask.understand import (
+    InputShape,
+    UnderstandingRefused,
+    understand,
+)
 from judge.config import capabilities
+from judge.extract.budget import Budget
+from judge.extract.client import OpenRouterClient
 
 app = FastAPI(
     title="Model Information Board",
     description=(
-        "What engineers actually say about AI models, and which cheaper one is "
-        "safe for your task."
+        "What engineers actually say about AI models, and which cheaper one is safe for your task."
     ),
     version="0.1.0",
 )
@@ -124,4 +130,82 @@ def infer_requirements(req: AskRequest) -> AskResponse:
         requirement=requirement,
         guard=guard_for(requirement),
         note=note,
+    )
+
+
+# ── Q1: free text in, editable assumptions out ────────────────────────────
+
+
+class UnderstandRequest(BaseModel):
+    """Free text, and which of FR-28's three shapes it is.
+
+    The shape is asked for rather than sniffed. They disagree about what
+    SILENCE means - a task omitting tools probably needs none, an agent config
+    omitting tools may be a config we were handed part of - and guessing which
+    kind of document this is would be a silent guess about how to read every
+    other silent guess.
+    """
+
+    text: str = Field(
+        description="the task, product brief, or pasted agent config",
+        examples=["summarise incoming support tickets into weekly themes"],
+    )
+    shape: InputShape = InputShape.TASK
+
+
+class UnderstandResponse(BaseModel):
+    """The profile, and every field we had to guess to build it.
+
+    `assumptions` is not a diagnostic. It is the SAFETY MECHANISM: Q1 has
+    nothing to verify its output against, unlike E5, so what makes it safe is
+    that the user sees every guess before anything acts on one. A client that
+    renders `profile` and drops `assumptions` has removed the guarantee, which
+    is why the caveat travels in the same response rather than being available
+    from a second call.
+    """
+
+    profile: dict
+    assumptions: list[Assumption]
+    caveat: str | None = Field(
+        default=None,
+        description="shown above the fields; None when the user stated everything",
+    )
+    input_tokens: int
+    output_tokens: int
+
+
+@app.post("/ask/understand", response_model=UnderstandResponse)
+def understand_task(req: UnderstandRequest) -> UnderstandResponse:
+    """Q1 - the first of the two stages permitted to call a model.
+
+    THE BUDGET IS CHECKED HERE TOO. Q1 is the second place this system spends
+    money and nothing was counting it - the same defect as the unwired cap, one
+    layer over. An uncapped ask box is a bill somebody discovers monthly.
+
+    A refusal is 422 rather than 500: Q1 declining is a decision about the
+    input, not a fault. Same distinction the extraction budget draws between a
+    stop and a failure.
+    """
+    budget = Budget.from_env()
+    if budget is not None:
+        try:
+            budget.check_before_call()
+        except Exception as exc:  # BudgetExhausted
+            raise HTTPException(status_code=429, detail=str(exc)) from exc
+
+    try:
+        result = understand(req.text, client=OpenRouterClient.from_env(), shape=req.shape)
+    except UnderstandingRefused as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except ValueError as exc:
+        # A forged untrusted-block marker. Refused rather than sanitised, as
+        # `wrap_untrusted` does for E5.
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return UnderstandResponse(
+        profile=result.profile.model_dump(),
+        assumptions=result.assumptions,
+        caveat=result.caveat,
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
     )
