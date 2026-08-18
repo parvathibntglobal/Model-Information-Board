@@ -44,6 +44,7 @@ from judge.extract.client import Completion, ExtractionClient
 from judge.extract.runner import ExtractionRefused, ExtractionRun, ThreadInput, extract
 from judge.store.cells import CellOutcome, CellStore
 from judge.store.claims import ClaimStore, StoredClaim
+from judge.store.extractions import ExtractionLedger, ExtractionRecord
 from judge.vet.weight import EvidenceTier, compute
 
 log = logging.getLogger(__name__)
@@ -103,6 +104,7 @@ class Pipeline:
         self._capabilities = capability_keys
         self._extractor_model = extractor_model
         self._claims = ClaimStore(conn)
+        self._ledger = ExtractionLedger(conn)
         self._cells = CellStore(conn)
 
     def run(
@@ -224,7 +226,11 @@ class Pipeline:
         which is today's behaviour and is stated rather than defaulted into.
         """
         results: list[PipelineResult] = []
-        seen = already_extracted or frozenset()
+        # DERIVED, not defaulted. `already_extracted=None` used to mean "extract
+        # everything" because nothing could work the set out; the ledger can, so
+        # the default is now the correct answer rather than the safe one. An
+        # explicit frozenset() still forces a full re-extraction.
+        seen = self._ledger.already_extracted() if already_extracted is None else already_extracted
         for thread in threads:
             if thread.thread_context_id in seen:
                 log.info(
@@ -248,6 +254,19 @@ class Pipeline:
                 log.error("thread %s refused: %s", thread.thread_context_id, exc)
                 continue
             results.append(result)
+            # Same transaction as the claims. A ledger row that survived a
+            # rolled-back extraction would mark a thread read that produced
+            # nothing readable, and the next run would skip it - evidence lost
+            # silently and permanently.
+            self._ledger.record(
+                ExtractionRecord(
+                    thread_context_id=thread.thread_context_id,
+                    claims_written=len(result.stored_claim_ids),
+                    input_tokens=result.extraction.input_tokens or None,
+                    output_tokens=result.extraction.output_tokens or None,
+                    schema_retries=result.extraction.schema_retries,
+                )
+            )
             if budget is not None:
                 # Charged from what the run REPORTED, retries included, rather
                 # than from the estimate the check used.
