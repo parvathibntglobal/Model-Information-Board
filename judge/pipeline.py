@@ -39,7 +39,8 @@ from datetime import date
 from typing import Any
 
 from judge.config import bucket_for
-from judge.extract.client import ExtractionClient
+from judge.extract.budget import Budget
+from judge.extract.client import Completion, ExtractionClient
 from judge.extract.runner import ExtractionRefused, ExtractionRun, ThreadInput, extract
 from judge.store.cells import CellOutcome, CellStore
 from judge.store.claims import ClaimStore, StoredClaim
@@ -122,9 +123,7 @@ class Pipeline:
         """
         as_of = as_of or date.today()
         result = PipelineResult(
-            extraction=extract(
-                thread, client=self._client, capability_keys=self._capabilities
-            )
+            extraction=extract(thread, client=self._client, capability_keys=self._capabilities)
         )
 
         for claim, quote in result.extraction.verified:
@@ -134,8 +133,7 @@ class Pipeline:
                 # be weighted honestly. Skipped and named, never weighted with
                 # defaults: an invented platform silently changes f_platform.
                 log.warning(
-                    "no document facts for %s; claim skipped rather than "
-                    "weighted from defaults",
+                    "no document facts for %s; claim skipped rather than weighted from defaults",
                     quote.document_id,
                 )
                 continue
@@ -212,20 +210,53 @@ class Pipeline:
         model_version_of: dict[str, str],
         release_dates: dict[str, date] | None = None,
         as_of: date | None = None,
+        budget: Budget | None = None,
+        already_extracted: frozenset[str] | None = None,
     ) -> list[PipelineResult]:
-        """A batch. A refused thread is skipped, never fatal."""
+        """A batch. A refused thread is skipped, never fatal.
+
+        `budget` stops the batch rather than the thread. A cap that skipped the
+        expensive thread and carried on would spend the whole night's money on
+        whatever happened to be cheap, and report a full run.
+
+        `already_extracted` is supplied by the CALLER rather than derived here -
+        see the note on the parameter. Passing nothing extracts everything,
+        which is today's behaviour and is stated rather than defaulted into.
+        """
         results: list[PipelineResult] = []
+        seen = already_extracted or frozenset()
         for thread in threads:
+            if thread.thread_context_id in seen:
+                log.info(
+                    "thread %s already extracted at this pipeline_version; skipped",
+                    thread.thread_context_id,
+                )
+                continue
+            if budget is not None:
+                # BEFORE the call. Spend cannot be undone, so a check after it
+                # is a report rather than a cap.
+                budget.check_before_call()
             try:
-                results.append(
-                    self.run(
-                        thread,
-                        facts=facts,
-                        model_version_of=model_version_of,
-                        release_dates=release_dates,
-                        as_of=as_of,
-                    )
+                result = self.run(
+                    thread,
+                    facts=facts,
+                    model_version_of=model_version_of,
+                    release_dates=release_dates,
+                    as_of=as_of,
                 )
             except ExtractionRefused as exc:
                 log.error("thread %s refused: %s", thread.thread_context_id, exc)
+                continue
+            results.append(result)
+            if budget is not None:
+                # Charged from what the run REPORTED, retries included, rather
+                # than from the estimate the check used.
+                budget.charge(
+                    Completion(
+                        raw_arguments="",
+                        input_tokens=result.extraction.input_tokens,
+                        output_tokens=result.extraction.output_tokens,
+                        model=self._extractor_model,
+                    )
+                )
         return results
