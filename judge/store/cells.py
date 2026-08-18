@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from judge.curate.gate import (
@@ -199,7 +199,15 @@ class CellStore:
                 "conditional_note": outcome.consensus.conditional_note,
                 "quote_ids": list(counts.quote_ids),
                 "freshest_at": counts.freshest_at,
-                "median_age": counts.median_age_days,
+                # `interval`, not an integer. `median_age_days` is a count of
+                # days and the column is a duration; psycopg maps timedelta
+                # and refuses a bare int. None stays None - "no claims to
+                # measure an age across" is not an age of zero days.
+                "median_age": (
+                    timedelta(days=counts.median_age_days)
+                    if counts.median_age_days is not None
+                    else None
+                ),
                 "pipeline_version": pipeline_version,
             },
         )
