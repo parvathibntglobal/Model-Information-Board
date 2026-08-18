@@ -117,6 +117,13 @@ price.
 
 ## Build fixture in this lane
 
-`fixtures/hand_cells.yaml` — your week-2 hand-written cells. Load with
-`provenance: hand_curated`. **Deleted in week 8**, with a startup assertion so
-one person's opinions never live on the board rendered identically to evidence.
+**`fixtures/hand_cells.yaml` is gone.** It held hand-written cells so the Ask
+box worked before any evidence existed, and it went when the Ask box was
+parked. Root `CLAUDE.md` records the deletion; this section pointed at it for
+another week.
+
+`fixtures/threads/` replaces it as this lane's fixture. Built from a real
+harvested Reddit tree by `fixtures/threads/build.py`, with the offset map
+computed rather than written, because the first hand-written one was off by
+one and a map that resolves a character wrong is what `verify.py` exists to
+catch.

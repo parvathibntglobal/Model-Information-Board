@@ -1,0 +1,168 @@
+{
+  "thread_context_id": "tc:1u1b22l",
+  "thread_root_id": "reddit:1u1b22l",
+  "member_document_ids": [
+    "reddit:1u1b22l",
+    "reddit:oqr6lad",
+    "reddit:oqosfnq",
+    "reddit:oqocfjv",
+    "reddit:oqop8ge",
+    "reddit:oqoc2vg"
+  ],
+  "flattened_text": "Introducing Claude Fable 5\n\nIntroducing Claude Fable 5: a Mythos-class model that we've made safe for general use. Its capabilities exceed those of any model we've ever made generally available.\n\nFable 5 is state of the art on nearly all tested benchmarks, with exceptional performance in software engineering, knowledge work, scientific research, and vision. It can run for days, and the longer the task, the larger its lead over our other models.\n\nFable 5 launches today alongside Claude Mythos 5. The two share the same underlying model, but Mythos 5, so far deployed only through [Project Glasswing](https://www.anthropic.com/glasswing), has the safeguards lifted in some areas. The safeguards are what distinguish the two, and why we've given them different names.\n\nReleasing a model this capable comes with risks. Without safeguards, Fable 5's capabilities in areas like cybersecurity could be misused to cause serious damage. So when Fable's classifiers detect a request related to cybersecurity, biology and chemistry, or distillation, the response is handled by Claude Opus 4.8, our next-most-capable model. Users are informed whenever this occurs, more than 95% of sessions involve no fallback at all, and performance everywhere else is unaffected. We'll keep refining the safeguards to reduce false positives.\n\nClaude Fable 5 is available today on paid plans, in Claude Code, on the Claude API, and all major cloud platforms.  Through June 22, it's included in paid Claude plans at no additional cost.\n\nClaude Mythos 5 is available to Glasswing partners, with a broader trusted access program to follow.\n\nRead more: [https://www.anthropic.com/news/claude-fable-5-mythos-5](https://www.anthropic.com/news/claude-fable-5-mythos-5)\n\n---\n\n[removed]\n\n---\n\nplease check [smiling_face_with_open_mouth_and_smiling_eyes] [https://www.reddit.com/r/ClaudeAI/comments/1u1b22l/comment/oqorjbe/](https://www.reddit.com/r/ClaudeAI/comments/1u1b22l/comment/oqorjbe/)\n\n---\n\nOur usage isn’t getting reset? So I went ham for nothing earlier today [loudly_crying_face]\n\nEdit: they did it 4-5 hours later goated move [handshake] (Fable uses up more tokens than a old Porsche gas)\n\n---\n\nToo bad they didn't use [full_block][full_block][full_block][full_block][full_block][full_block][full_block]. Which is most powerful model, so powerful its not even in my head yet, because that model traveled in past and deleted all evidence of its existence\n\n---\n\nHi anthropic, what happens after June 22",
+  "offset_map": [
+    {
+      "flat_start": 0,
+      "flat_end": 1739,
+      "document_id": "reddit:1u1b22l",
+      "raw_start": 0,
+      "raw_end": 1739
+    },
+    {
+      "flat_start": 1746,
+      "flat_end": 1755,
+      "document_id": "reddit:oqr6lad",
+      "raw_start": 0,
+      "raw_end": 9
+    },
+    {
+      "flat_start": 1762,
+      "flat_end": 1775,
+      "document_id": "reddit:oqosfnq",
+      "raw_start": 0,
+      "raw_end": 13
+    },
+    {
+      "flat_start": 1775,
+      "flat_end": 1822,
+      "document_id": "reddit:oqosfnq",
+      "raw_start": 13,
+      "raw_end": 14
+    },
+    {
+      "flat_start": 1822,
+      "flat_end": 1961,
+      "document_id": "reddit:oqosfnq",
+      "raw_start": 14,
+      "raw_end": 153
+    },
+    {
+      "flat_start": 1968,
+      "flat_end": 2039,
+      "document_id": "reddit:oqocfjv",
+      "raw_start": 0,
+      "raw_end": 71
+    },
+    {
+      "flat_start": 2039,
+      "flat_end": 2059,
+      "document_id": "reddit:oqocfjv",
+      "raw_start": 71,
+      "raw_end": 72
+    },
+    {
+      "flat_start": 2059,
+      "flat_end": 2107,
+      "document_id": "reddit:oqocfjv",
+      "raw_start": 72,
+      "raw_end": 120
+    },
+    {
+      "flat_start": 2107,
+      "flat_end": 2118,
+      "document_id": "reddit:oqocfjv",
+      "raw_start": 120,
+      "raw_end": 121
+    },
+    {
+      "flat_start": 2118,
+      "flat_end": 2169,
+      "document_id": "reddit:oqocfjv",
+      "raw_start": 121,
+      "raw_end": 172
+    },
+    {
+      "flat_start": 2176,
+      "flat_end": 2200,
+      "document_id": "reddit:oqop8ge",
+      "raw_start": 0,
+      "raw_end": 24
+    },
+    {
+      "flat_start": 2200,
+      "flat_end": 2212,
+      "document_id": "reddit:oqop8ge",
+      "raw_start": 24,
+      "raw_end": 25
+    },
+    {
+      "flat_start": 2212,
+      "flat_end": 2224,
+      "document_id": "reddit:oqop8ge",
+      "raw_start": 25,
+      "raw_end": 26
+    },
+    {
+      "flat_start": 2224,
+      "flat_end": 2236,
+      "document_id": "reddit:oqop8ge",
+      "raw_start": 26,
+      "raw_end": 27
+    },
+    {
+      "flat_start": 2236,
+      "flat_end": 2248,
+      "document_id": "reddit:oqop8ge",
+      "raw_start": 27,
+      "raw_end": 28
+    },
+    {
+      "flat_start": 2248,
+      "flat_end": 2260,
+      "document_id": "reddit:oqop8ge",
+      "raw_start": 28,
+      "raw_end": 29
+    },
+    {
+      "flat_start": 2260,
+      "flat_end": 2272,
+      "document_id": "reddit:oqop8ge",
+      "raw_start": 29,
+      "raw_end": 30
+    },
+    {
+      "flat_start": 2272,
+      "flat_end": 2284,
+      "document_id": "reddit:oqop8ge",
+      "raw_start": 30,
+      "raw_end": 31
+    },
+    {
+      "flat_start": 2284,
+      "flat_end": 2434,
+      "document_id": "reddit:oqop8ge",
+      "raw_start": 31,
+      "raw_end": 181
+    },
+    {
+      "flat_start": 2441,
+      "flat_end": 2481,
+      "document_id": "reddit:oqoc2vg",
+      "raw_start": 0,
+      "raw_end": 40
+    }
+  ],
+  "raw_text_of": {
+    "reddit:1u1b22l": "Introducing Claude Fable 5\n\nIntroducing Claude Fable 5: a Mythos-class model that we've made safe for general use. Its capabilities exceed those of any model we've ever made generally available.\n\nFable 5 is state of the art on nearly all tested benchmarks, with exceptional performance in software engineering, knowledge work, scientific research, and vision. It can run for days, and the longer the task, the larger its lead over our other models.\n\nFable 5 launches today alongside Claude Mythos 5. The two share the same underlying model, but Mythos 5, so far deployed only through [Project Glasswing](https://www.anthropic.com/glasswing), has the safeguards lifted in some areas. The safeguards are what distinguish the two, and why we've given them different names.\n\nReleasing a model this capable comes with risks. Without safeguards, Fable 5's capabilities in areas like cybersecurity could be misused to cause serious damage. So when Fable's classifiers detect a request related to cybersecurity, biology and chemistry, or distillation, the response is handled by Claude Opus 4.8, our next-most-capable model. Users are informed whenever this occurs, more than 95% of sessions involve no fallback at all, and performance everywhere else is unaffected. We'll keep refining the safeguards to reduce false positives.\n\nClaude Fable 5 is available today on paid plans, in Claude Code, on the Claude API, and all major cloud platforms.  Through June 22, it's included in paid Claude plans at no additional cost.\n\nClaude Mythos 5 is available to Glasswing partners, with a broader trusted access program to follow.\n\nRead more: [https://www.anthropic.com/news/claude-fable-5-mythos-5](https://www.anthropic.com/news/claude-fable-5-mythos-5)",
+    "reddit:oqr6lad": "[removed]",
+    "reddit:oqosfnq": "please check 😄 [https://www.reddit.com/r/ClaudeAI/comments/1u1b22l/comment/oqorjbe/](https://www.reddit.com/r/ClaudeAI/comments/1u1b22l/comment/oqorjbe/)",
+    "reddit:oqocfjv": "Our usage isn’t getting reset? So I went ham for nothing earlier today 😭\n\nEdit: they did it 4-5 hours later goated move 🤝 (Fable uses up more tokens than a old Porsche gas)",
+    "reddit:oqop8ge": "Too bad they didn't use ███████. Which is most powerful model, so powerful its not even in my head yet, because that model traveled in past and deleted all evidence of its existence",
+    "reddit:oqoc2vg": "Hi anthropic, what happens after June 22"
+  },
+  "provenance": {
+    "source": "fixtures/reddit/thread-1u1b22l-getPostComments.json",
+    "built_by": "fixtures/threads/build.py",
+    "note": "Fixture tooling, not E3. collect/assemble/ is authoritative; if the two disagree, regenerate this from that."
+  }
+}
