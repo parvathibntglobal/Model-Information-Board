@@ -44,7 +44,11 @@ from judge.extract.client import Completion, ExtractionClient
 from judge.extract.runner import ExtractionRefused, ExtractionRun, ThreadInput, extract
 from judge.store.cells import CellOutcome, CellStore
 from judge.store.claims import ClaimStore, StoredClaim
-from judge.store.extractions import ExtractionLedger, ExtractionRecord
+from judge.store.extractions import (
+    ExtractionLedger,
+    ExtractionRecord,
+    fingerprint_of,
+)
 from judge.vet.weight import EvidenceTier, compute
 
 log = logging.getLogger(__name__)
@@ -213,7 +217,7 @@ class Pipeline:
         release_dates: dict[str, date] | None = None,
         as_of: date | None = None,
         budget: Budget | None = None,
-        already_extracted: frozenset[str] | None = None,
+        already_extracted: dict[str, str | None] | None = None,
     ) -> list[PipelineResult]:
         """A batch. A refused thread is skipped, never fatal.
 
@@ -232,7 +236,7 @@ class Pipeline:
         # explicit frozenset() still forces a full re-extraction.
         seen = self._ledger.already_extracted() if already_extracted is None else already_extracted
         for thread in threads:
-            if thread.thread_context_id in seen:
+            if ExtractionLedger.should_skip(seen, thread.thread_context_id, thread.flattened_text):
                 log.info(
                     "thread %s already extracted at this pipeline_version; skipped",
                     thread.thread_context_id,
@@ -265,6 +269,7 @@ class Pipeline:
                     input_tokens=result.extraction.input_tokens or None,
                     output_tokens=result.extraction.output_tokens or None,
                     schema_retries=result.extraction.schema_retries,
+                    content_fingerprint=fingerprint_of(thread.flattened_text),
                 )
             )
             if budget is not None:
