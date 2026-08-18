@@ -404,8 +404,42 @@ def test_a_database_predating_the_ledger_is_not_reported_as_current(conn):
 
 
 def test_a_database_with_the_ledger_and_nothing_pending_is_current(conn):
+    """BASELINE PLUS EVERY MIGRATION, not baseline alone.
+
+    This asserted `is_current` after applying `baseline.sql` by itself, which
+    was true only while `discover()` returned nothing. The first real migration
+    made it fail — correctly, because a database at the baseline with a
+    migration outstanding is *not* current.
+
+    The test was the same shape as the writers it is chasing: an assertion that
+    could not fail because the condition it named could not arise. Now it
+    applies the whole chain, so "nothing pending" means the chain is exhausted
+    rather than empty.
+    """
     _in_schema(conn, "public", M.baseline_sql())
+    for migration in M.discover():
+        conn.execute(migration.sql)
+        conn.execute(
+            f"INSERT INTO {M.LEDGER} (filename, content_hash) VALUES (%s, %s)",
+            (migration.filename, migration.content_hash),
+        )
+    conn.commit()
+
     status = M.check(conn)
     assert status.ledger_present
     assert status.is_current
     assert "current" in status.describe()
+
+
+def test_the_baseline_alone_is_not_current_once_a_migration_exists(conn):
+    """The state the previous test used to assert was fine.
+
+    Worth its own test rather than only a corrected one: a database sitting at
+    the baseline with work outstanding must report as behind, and until
+    2026-08-18 nothing could tell the difference.
+    """
+    _in_schema(conn, "public", M.baseline_sql())
+    status = M.check(conn)
+    assert status.ledger_present
+    assert not status.is_current
+    assert status.pending_filenames == [m.filename for m in M.discover()]

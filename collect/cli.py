@@ -29,6 +29,7 @@ from collect.registry.seed import (
 
 def _cmd_db_init(args: argparse.Namespace) -> int:
     from collect.db import apply_schema, reset_schema, transaction
+    from collect.migrate import stamp_at_head
 
     with transaction() as conn:
         _gate(conn)
@@ -38,6 +39,17 @@ def _cmd_db_init(args: argparse.Namespace) -> int:
         else:
             apply_schema(conn)
             print("schema applied from contract/tables.sql")
+        # A schema built from tables.sql is BY DEFINITION at the head of the
+        # chain - that is the whole content of the equivalence test. Recording
+        # it is what stops `db migrate` then trying to create objects
+        # tables.sql has already made. Without this, the first migration breaks
+        # every new database rather than a corner case.
+        stamped = stamp_at_head(conn)
+        if stamped:
+            print(
+                f"ledger stamped at head: {len(stamped)} migration(s) recorded "
+                "as applied without running - tables.sql already contains them"
+            )
     return 0
 
 

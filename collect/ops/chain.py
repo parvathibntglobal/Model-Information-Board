@@ -43,11 +43,14 @@ it lands the journal keeps its shape and gains a row.
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+log = logging.getLogger(__name__)
 
 OK = "ok"
 ERROR = "error"
@@ -151,6 +154,59 @@ class ChainRun:
         return "\n".join([head, *lines])
 
 
+
+
+def _record_unrun(context, stage_name: str, result) -> None:
+    """One `job_run` row for a stage that never got to run.
+
+    Opened and closed together, because there was no work between the two. The
+    row still carries `started_at` and `finished_at`, so it is distinguishable
+    from a killed process — which leaves `finished_at` NULL and is the state
+    this whole table is arranged around.
+    """
+    opened = _open_ledger_row(context, stage_name)
+    if opened is not None:
+        _close_ledger_row(context, opened, result)
+
+
+def _open_ledger_row(context, stage_name: str):
+    """Write the `job_run` row, or return None where there is no database.
+
+    A chain run with `--no-database` is legitimate — it is how the refusals are
+    read without a server — and it must not become a failure. The absence is
+    reported by the row simply not existing, which is the honest record: nothing
+    was written because nothing could be.
+    """
+    conn = (context or {}).get("conn")
+    if conn is None:
+        return None
+    from collect.ops.ledger import open_run
+
+    try:
+        return open_run(conn, stage_name)
+    except Exception as error:  # noqa: BLE001
+        log.warning("job_run: could not open a row for %s: %s", stage_name, error)
+        return None
+
+
+def _close_ledger_row(context, opened, result) -> None:
+    """Conclude the row. A ledger failure never fails the stage it describes."""
+    if opened is None:
+        return
+    conn = (context or {}).get("conn")
+    if conn is None:
+        return
+    from collect.ops.ledger import close_run
+
+    try:
+        close_run(
+            conn, opened,
+            outcome=result.outcome, detail=result.detail, counts=result.counts,
+        )
+    except Exception as error:  # noqa: BLE001
+        log.warning("job_run: could not close %s: %s", opened.id, error)
+
+
 def run_chain(stages, context: dict | None = None, journal: Journal | None = None) -> ChainRun:
     """Run every stage in order. A failure stops only what depends on it.
 
@@ -177,6 +233,14 @@ def run_chain(stages, context: dict | None = None, journal: Journal | None = Non
             )
             run.results[stage.name] = result
             journal.write(event="stage-skipped", stage=stage.name, detail=result.detail)
+            # A ROW EVEN THOUGH IT DID NOT RUN. A stage refused by the chain is
+            # a refusal exactly as much as one refused by its own code, and the
+            # first version of this wiring recorded only the second — so
+            # `assemble-flatten` had no row at all while `poll-registry` had one
+            # saying `refused`. Both are "we looked at this stage tonight and it
+            # produced nothing", and the reason differs, which is what `detail`
+            # is for.
+            _record_unrun(context, stage.name, result)
             continue
 
         if stage.run is None:
@@ -184,10 +248,15 @@ def run_chain(stages, context: dict | None = None, journal: Journal | None = Non
             run.results[stage.name] = result
             journal.write(event="stage-refused", stage=stage.name,
                           detail=result.detail, starves=result.starves)
+            _record_unrun(context, stage.name, result)
             continue
 
-        # BEFORE the work, not after it.
+        # BEFORE the work, not after it — in the journal AND in `job_run`.
+        # The row is committed on its own so a stage that rolls back still
+        # leaves evidence that it ran, and a killed process leaves "started
+        # 03:00, never finished" rather than nothing at all.
         journal.write(event="stage-started", stage=stage.name)
+        opened = _open_ledger_row(context, stage.name)
         try:
             result = stage.run(context)
         except Exception as error:  # noqa: BLE001 - the chain records, it does not judge
@@ -195,6 +264,7 @@ def run_chain(stages, context: dict | None = None, journal: Journal | None = Non
         run.results[stage.name] = result
         journal.write(event="stage-finished", stage=stage.name,
                       outcome=result.outcome, counts=result.counts, detail=result.detail)
+        _close_ledger_row(context, opened, result)
 
     run.finished_at = datetime.now(UTC)
     journal.write(event="chain-finished", refused=run.refused, errored=run.errored)

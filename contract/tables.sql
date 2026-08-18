@@ -830,3 +830,81 @@ CREATE TABLE coverage_gap (
   CONSTRAINT coverage_gap_unique UNIQUE (kind, subject, detail, pipeline_version)
 );
 CREATE INDEX coverage_gap_kind_idx ON coverage_gap (kind);
+
+
+-- ============================================================================
+--  THE RUN LEDGER — collect/ops/chain.py
+--
+--  Every stage of every nightly run. WRITTEN BEFORE THE WORK, updated after.
+--
+--  WHY A TABLE AND NOT THE JSONL ARTIFACT IT WAS FIRST PROPOSED AS. Three
+--  defects reduced to one question a file on the machine cannot answer:
+--
+--      in_window at its schema default on 340 rows   has recompute_window run?
+--      one last_swept_at from an ad-hoc mark_swept   has anything ever swept?
+--      three writers greping as wired                has this caller ever run?
+--
+--  Each cost a manual investigation. `assert_no_phantom_sweeps` is cheap only
+--  because it can join `last_swept_at` against `harvest_run` — a CONTRADICTION
+--  is checkable and an ABSENCE is not. This table generalises that from one
+--  column to every stage, in the database the rows are about.
+-- ============================================================================
+
+CREATE TABLE job_run (
+  id            text PRIMARY KEY,
+  stage         text NOT NULL,
+  started_at    timestamptz NOT NULL DEFAULT now(),
+
+  -- ⚠ NULL MEANS DID NOT FINISH. IT DOES NOT MEAN FAILED.
+  --
+  -- A killed process cannot write its own failure, so the absence has to carry
+  -- that meaning: "started 03:00, never finished" is a fact, and a row written
+  -- only on success leaves nothing at all, which reads as a night with no work.
+  --
+  -- Same treatment as `harvest_run.truncated_by` and for the same reason:
+  -- ANYTHING READING THIS MUST NOT COLLAPSE THE TWO. `finished_at IS NULL` with
+  -- `outcome IS NULL` is still-running-or-killed; `outcome = 'failed'` is a
+  -- stage that ran and reported failure. A dashboard showing both as red loses
+  -- the distinction between a crash and a refusal, which are opposite repairs.
+  finished_at   timestamptz,
+
+  -- NULL while running. Closed set, because a check over arbitrary strings is
+  -- not a check.
+  --   ok       the stage did its work
+  --   refused  the stage declined deliberately — a gate, a missing input, a
+  --            precondition. NOT an error, and it must not render as one.
+  --   error    the stage tried and raised
+  --
+  -- These are `collect/ops/chain.py`'s OK / REFUSED / ERROR verbatim. The
+  -- first version of this CHECK said 'failed' instead of 'error' and would
+  -- have needed a writer translating between the two — one concept, two
+  -- vocabularies, drifting from the day it was written. Corrected by
+  -- 20260818T1520.
+  outcome       text,
+
+  -- NULL WHERE UNKNOWN, NEVER 0 (rule 6). A stage that refused counted nothing;
+  -- 0 would assert it counted and found none, which is the distinction this
+  -- project has now had to make four times.
+  items_in      int,
+  items_out     int,
+
+  -- The refusal text, or the stage's own report. Free-form on purpose: the
+  -- closed set above is what gets queried, this is what gets read.
+  detail        jsonb,
+
+  pipeline_version text NOT NULL,
+
+  CONSTRAINT job_run_outcome_ck
+    CHECK (outcome IS NULL OR outcome IN ('ok', 'refused', 'error')),
+
+  -- An outcome without a finish is a row that claims to have concluded and did
+  -- not record when. The reverse is legitimate and common: finished_at set with
+  -- outcome NULL cannot happen either, so both directions are refused.
+  CONSTRAINT job_run_finish_ck
+    CHECK ((finished_at IS NULL) = (outcome IS NULL))
+);
+
+-- The two questions asked of this table: "when did stage X last run" and
+-- "what is still running".
+CREATE INDEX job_run_stage_idx ON job_run (stage, started_at DESC);
+CREATE INDEX job_run_unfinished_idx ON job_run (started_at) WHERE finished_at IS NULL;
