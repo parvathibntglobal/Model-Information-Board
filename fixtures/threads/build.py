@@ -36,7 +36,9 @@ against the wrong text rather than failing.
 
 from __future__ import annotations
 
+import html
 import json
+import re
 import unicodedata
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -45,15 +47,39 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 SOURCE = ROOT / "fixtures" / "reddit" / "thread-1u1b22l-getPostComments.json"
 OUTPUT = ROOT / "fixtures" / "threads" / "thread-1u1b22l.json"
 
-#: Root plus five children. The plan says three to five; five is taken so the
-#: selection includes at least one deleted body and one emoji rather than
-#: relying on the top three happening to carry them.
-CHILD_COUNT = 5
+#: Root plus six children. The plan says three to five; six is taken because
+#: the selection is forced to include specific shapes rather than whatever
+#: ranked highest - a deleted body, two emoji documents, a run of full
+#: blocks, and an HTML entity. A fixture that happens not to contain them
+#: tests less than it appears to.
+CHILD_COUNT = 6
 
 #: Length-CHANGING substitutions are the only ones that produce a segment
 #: boundary. A no-break space becoming a space is one character for one and
 #: leaves the map identical, so it is normalised and not recorded.
 IDENTITY_LENGTH = {" ": " ", " ": " ", " ": " "}
+
+#: HTML entities, and the case this fixture could not reach until now.
+#:
+#: Every symbol substitution above GROWS - one character into twelve or more -
+#: so a sign error in the segment arithmetic is invisible against them. `&gt;`
+#: SHRINKS, four raw characters to one flat, and it is the only direction that
+#: exercises the other sign. Engineer 1 asked for it after writing an
+#: independent flattener that matched this one byte for byte, which agreement
+#: could not have covered a case neither implementation had ever seen.
+#:
+#: They also run the opposite way in MEANING. An emoji becoming
+#: `[loudly_crying_face]` is internal representation replacing what was typed.
+#: An entity becoming `>` is transport encoding removed to REVEAL what was
+#: typed - the reader sees `>` because that is what the author wrote.
+#:
+#: UNESCAPE-EXACTLY-ONCE IS STRUCTURAL RATHER THAN A RULE TO REMEMBER. Both
+#: rewrites happen in one left-to-right walk that advances past whatever it
+#: consumed, so `&amp;gt;` emits `&`, resumes after it, and never re-examines
+#: `gt;` - the text stays `&gt;`. Nothing has to track whether it already
+#: decoded. This payload carries no double-encoded entity, so that property is
+#: argued rather than tested.
+_ENTITY = re.compile(r"&(?:#\d{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]{1,31});")
 
 
 @dataclass(frozen=True)
@@ -101,30 +127,55 @@ def flatten(document_id: str, raw: str, flat_offset: int) -> tuple[str, list[Seg
     def close_run(raw_pos: int) -> None:
         nonlocal run_flat_start, run_raw_start
         if flat > run_flat_start:
-            segments.append(
-                Segment(run_flat_start, flat, document_id, run_raw_start, raw_pos)
-            )
+            segments.append(Segment(run_flat_start, flat, document_id, run_raw_start, raw_pos))
         run_flat_start = flat
         run_raw_start = raw_pos
 
-    for raw_pos, ch in enumerate(raw):
+    raw_pos = 0
+    while raw_pos < len(raw):
+        entity = _ENTITY.match(raw, raw_pos)
+        if entity is not None:
+            decoded = html.unescape(entity.group(0))
+            if decoded != entity.group(0):
+                close_run(raw_pos)
+                out.append(decoded)
+                segments.append(
+                    Segment(
+                        flat,
+                        flat + len(decoded),
+                        document_id,
+                        raw_pos,
+                        entity.end(),
+                    )
+                )
+                flat += len(decoded)
+                # Advance past the WHOLE entity. This is what makes
+                # unescape-exactly-once a property of the walk: the character
+                # just emitted is never looked at again.
+                raw_pos = entity.end()
+                run_flat_start = flat
+                run_raw_start = raw_pos
+                continue
+
+        ch = raw[raw_pos]
         if ch in IDENTITY_LENGTH:
             out.append(IDENTITY_LENGTH[ch])
             flat += 1
+            raw_pos += 1
             continue
         if _is_substituted(ch):
             close_run(raw_pos)
             tag = _tag_for(ch)
             out.append(tag)
-            segments.append(
-                Segment(flat, flat + len(tag), document_id, raw_pos, raw_pos + 1)
-            )
+            segments.append(Segment(flat, flat + len(tag), document_id, raw_pos, raw_pos + 1))
             flat += len(tag)
+            raw_pos += 1
             run_flat_start = flat
-            run_raw_start = raw_pos + 1
+            run_raw_start = raw_pos
             continue
         out.append(ch)
         flat += 1
+        raw_pos += 1
 
     close_run(len(raw))
     return "".join(out), segments
@@ -177,6 +228,13 @@ def build() -> dict:
         # U+2588 FULL BLOCK: category So but not an emoji, seven of them in one
         # comment, so a single document carries a run of substitutions
         lambda c: "█" in c["body"],
+        # AN HTML ENTITY, and the only SHRINKING substitution available. Every
+        # symbol above grows one character into twelve or more; `&gt;` is four
+        # raw characters becoming one flat. A sign error in the segment
+        # arithmetic is invisible against growth alone, which is what this
+        # fixture could not reach before. Engineer 1's request on the
+        # independently-written flattener.
+        lambda c: "&gt;" in c["body"] or "&lt;" in c["body"],
     ):
         found = first(predicate, forced)
         if found is not None:
@@ -184,9 +242,7 @@ def build() -> dict:
 
     selected = (forced + [c for c in ranked if not any(c is f for f in forced)])[:CHILD_COUNT]
 
-    documents = [(root_id, root_text)] + [
-        (f"reddit:{c['id']}", c["body"]) for c in selected
-    ]
+    documents = [(root_id, root_text)] + [(f"reddit:{c['id']}", c["body"]) for c in selected]
 
     parts: list[str] = []
     segments: list[Segment] = []

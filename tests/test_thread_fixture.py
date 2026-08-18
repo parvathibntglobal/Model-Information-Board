@@ -19,6 +19,7 @@ still correct.
 
 from __future__ import annotations
 
+import html
 import json
 from pathlib import Path
 
@@ -88,25 +89,52 @@ class TestTheFixtureItself:
             "substitutions in one document only: a constant per-document delta "
             "would pass, which is the bug this fixture exists to catch"
         )
+        assert any(body in ("[deleted]", "[removed]") for body in thread["raw_text_of"].values()), (
+            "no absent body — a different offset problem from a substituted one"
+        )
         assert any(
-            body in ("[deleted]", "[removed]") for body in thread["raw_text_of"].values()
-        ), "no absent body — a different offset problem from a substituted one"
+            (s["flat_end"] - s["flat_start"]) < (s["raw_end"] - s["raw_start"]) for s in segments
+        ), (
+            "every substitution grows. A sign error in the segment arithmetic is "
+            "invisible against growth alone, which is what this fixture looked "
+            "like for six documents"
+        )
 
-    def test_every_identity_segment_maps_the_same_number_of_characters(self, thread):
+    def test_every_segment_is_identity_length_or_one_substituted_unit(self, thread):
         """The map's own invariant, checked against the map rather than assumed.
 
-        Content is deliberately NOT compared. A no-break space normalising to a
-        space is one character for one, so the segment stays identity-length
-        while the characters differ — positionally correct and content-differing
-        at once, which is the state a length check confirms and an equality
-        check would wrongly reject.
+        This assertion previously read `flat_len == raw_len or raw_len == 1`,
+        and it described the FIXTURE rather than the rule. Every substitution
+        available at the time was one character growing into twelve or more, so
+        "raw side is one character" looked like the invariant. It is not: an
+        HTML entity is four raw characters shrinking to one, and the assertion
+        rejected a correct map the first time it saw one.
+
+        Rewritten as the property that is actually true — a segment either maps
+        the same number of characters, or substitutes exactly one unit — and
+        checked by CONTENT, so a new substitution class does not need this line
+        edited again.
+
+        Content is deliberately not compared for identity segments. A no-break
+        space normalising to a space is one character for one, so the segment
+        stays identity-length while the characters differ — positionally
+        correct and content-differing at once, which a length check confirms
+        and an equality check would wrongly reject.
         """
         for s in thread["offset_map"]:
-            flat_len = s["flat_end"] - s["flat_start"]
-            raw_len = s["raw_end"] - s["raw_start"]
-            assert flat_len == raw_len or raw_len == 1, (
-                f"segment in {s['document_id']} is neither identity-length nor a "
-                f"single-character substitution: {flat_len} flat, {raw_len} raw"
+            flat = thread["flattened_text"][s["flat_start"] : s["flat_end"]]
+            raw = thread["raw_text_of"][s["document_id"]][s["raw_start"] : s["raw_end"]]
+            if len(flat) == len(raw):
+                continue
+            one_unit = (
+                # a symbol grew into its tag
+                (len(raw) == 1 and flat.startswith("[") and flat.endswith("]"))
+                # an entity shrank into what the author typed
+                or (raw.startswith("&") and raw.endswith(";") and html.unescape(raw) == flat)
+            )
+            assert one_unit, (
+                f"segment in {s['document_id']} changes length without being one "
+                f"substituted unit: {raw!r} -> {flat!r}"
             )
 
     def test_segments_are_contiguous_and_ordered_within_a_document(self, thread):
@@ -136,9 +164,7 @@ class TestVerificationAgainstRealText:
         assert isinstance(outcome, VerifiedQuote)
         assert outcome.document_id == root_id
 
-    def test_a_span_after_a_substitution_resolves_to_the_right_document(
-        self, thread, offsets
-    ):
+    def test_a_span_after_a_substitution_resolves_to_the_right_document(self, thread, offsets):
         """The case that broke it the first time.
 
         Under a constant per-document delta this either lands past the end of
@@ -169,6 +195,72 @@ class TestVerificationAgainstRealText:
         )
         assert isinstance(outcome, VerifiedQuote), outcome
         assert outcome.document_id == substitution["document_id"]
+
+    def test_a_span_after_a_SHRINKING_substitution_resolves_to_the_right_span(
+        self, thread, offsets
+    ):
+        """The other sign, and the fixture could not reach it until now.
+
+        Every symbol substitution GROWS — one character into twelve or more —
+        so the raw offset always trails the flat offset, and an arithmetic
+        error that flipped the sign would still land inside the document and
+        might still resolve. `&gt;` is the only substitution here that SHRINKS:
+        four raw characters to one flat, so from this point on the raw offset
+        RUNS AHEAD of the flat one. Nothing else in the thread does that.
+
+        Engineer 1 asked for this document after writing an independent
+        flattener that matched this one byte for byte on all six previous
+        documents. Two implementations agreeing is worth a great deal and says
+        nothing at all about a case neither had ever seen.
+        """
+        shrinking = next(
+            (
+                s
+                for s in thread["offset_map"]
+                if (s["flat_end"] - s["flat_start"]) < (s["raw_end"] - s["raw_start"])
+            ),
+            None,
+        )
+        assert shrinking is not None, (
+            "no shrinking substitution in the fixture — every substitution grows "
+            "again, and this test is the only thing that would notice"
+        )
+        document_id = shrinking["document_id"]
+        following = next(
+            s
+            for s in thread["offset_map"]
+            if s["document_id"] == document_id
+            and s["flat_start"] >= shrinking["flat_end"]
+            and s["flat_end"] - s["flat_start"] > 12
+        )
+        start = following["flat_start"] + 2
+        end = start + 10
+
+        outcome = verify(
+            claim_for(thread, start, end, document_id),
+            flattened_text=thread["flattened_text"],
+            offset_map=offsets,
+            raw_text_of=thread["raw_text_of"],
+        )
+        assert isinstance(outcome, VerifiedQuote), outcome
+        assert outcome.document_id == document_id
+
+        # The span lands in an identity run, so the two texts must agree
+        # exactly — this is what a wrong-signed offset would break.
+        raw = thread["raw_text_of"][document_id]
+        assert (
+            raw[outcome.raw_offset[0] : outcome.raw_offset[1]]
+            == (thread["flattened_text"][start:end])
+        )
+
+        # And the direction itself: raw AHEAD of flat, within this document.
+        document_flat_start = min(
+            s["flat_start"] for s in thread["offset_map"] if s["document_id"] == document_id
+        )
+        assert outcome.raw_offset[0] > start - document_flat_start, (
+            "the raw offset does not run ahead of the flat one after a shrinking "
+            "substitution — the sign this document exists to test"
+        )
 
     def test_every_document_can_be_quoted(self, thread, offsets):
         """Not one span — every document in the thread.
