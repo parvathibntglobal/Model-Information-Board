@@ -100,6 +100,44 @@ class TestTheFixtureItself:
             "like for six documents"
         )
 
+    def test_document_ids_are_the_fullnames_collect_actually_stores(self, thread):
+        """The one thing byte equality could never have caught.
+
+        This fixture keyed `raw_text_of` by `reddit:oqosfnq` while `document`
+        holds `reddit:t1_oqosfnq`. Every lookup would have missed and `verify`
+        would have returned RAW_TEXT_MISSING for every quote in the thread — a
+        naming failure presenting as a storage failure.
+
+        Engineer 1's independently-written flattener reproduced this fixture
+        exactly, 2,481 characters and all 20 segments, and did not catch it.
+        `document_id` is an INPUT to a flattener, not an output: both
+        implementations were handed the same ids and compared on text and
+        offsets, so an id-convention difference is invisible to that comparison
+        by construction. It surfaced only by writing a row to Postgres and
+        reading it back.
+
+        A VARIABLE THE TEST SUPPLIES IS A VARIABLE THE TEST CANNOT CHECK. This
+        assertion is therefore written against the CONVENTION rather than
+        against anything the builder produced — `t3_` for a post, `t1_` for a
+        comment, documented on `collect/adapters/reddit.py`'s `external_id`
+        field as "the fullname, never the bare id". Stated as a literal here
+        because this lane never imports `collect/`; if that convention ever
+        changes, this is one of the places that must be told.
+        """
+        root = thread["thread_root_id"]
+        assert root.startswith("reddit:t3_"), (
+            f"root document id {root!r} is not a t3_ fullname — `collect/` keys "
+            f"`document` by the fullname, so this fixture cannot be read back"
+        )
+        for document_id in thread["member_document_ids"]:
+            assert document_id.startswith(("reddit:t3_", "reddit:t1_")), document_id
+        for document_id in thread["raw_text_of"]:
+            assert document_id in thread["member_document_ids"], (
+                f"{document_id!r} keys raw_text_of but is not a member document"
+            )
+        for segment in thread["offset_map"]:
+            assert segment["document_id"] in thread["member_document_ids"]
+
     def test_every_segment_is_identity_length_or_one_substituted_unit(self, thread):
         """The map's own invariant, checked against the map rather than assumed.
 
