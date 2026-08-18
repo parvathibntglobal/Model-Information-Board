@@ -41,7 +41,7 @@ class TestNotMeasuredIsNotZero:
         coverage = CellCoverage(threads=(thread("tc1"),))
 
         assert coverage.worst_ratio is None
-        caveat = coverage.caveat
+        caveat = coverage.caveat()
         assert caveat is not None
         assert "not recorded" in caveat
         assert not re.search(r"\b0%", caveat), "unmeasured rendered as zero coverage"
@@ -58,7 +58,7 @@ class TestNotMeasuredIsNotZero:
         """Silently dropping it would report the measured coverage as the whole
         story, which is the flattering direction."""
         coverage = CellCoverage(threads=(REAL_ROW, thread("tc2")))
-        caveat = coverage.caveat
+        caveat = coverage.caveat()
         assert caveat is not None
         assert "1 further thread" in caveat
         assert "no coverage recorded" in caveat
@@ -71,14 +71,14 @@ class TestTheFigureCarriesItsDenominator:
         assert REAL_ROW.population == "195 of at least 818 comments"
 
     def test_the_caveat_names_the_population_not_only_the_percentage(self):
-        caveat = CellCoverage(threads=(REAL_ROW,)).caveat
+        caveat = CellCoverage(threads=(REAL_ROW,)).caveat()
         assert caveat is not None
         assert "195 of at least 818 comments" in caveat
 
     def test_it_is_phrased_as_an_upper_bound_never_as_a_measurement(self):
         """`hidden_children_min` is a FLOOR, so the denominator is understated
         and the ratio is overstated. The wording has to lean the other way."""
-        caveat = CellCoverage(threads=(REAL_ROW,)).caveat
+        caveat = CellCoverage(threads=(REAL_ROW,)).caveat()
         assert caveat is not None
         assert "at most" in caveat
         for measured_phrasing in ("we saw 24%", "coverage of 24%", "covered 24%"):
@@ -91,11 +91,11 @@ class TestTheFigureCarriesItsDenominator:
 class TestWhatTheCaveatSays:
     def test_full_coverage_needs_no_caveat(self):
         coverage = CellCoverage(threads=(thread("tc1", ratio=1.0, observed=10, hidden=0),))
-        assert coverage.caveat is None
+        assert coverage.caveat() is None
 
     def test_no_threads_at_all_needs_no_caveat(self):
         """A cell with no claims is the gate's business, not this module's."""
-        assert CellCoverage().caveat is None
+        assert CellCoverage().caveat() is None
 
     def test_the_counts_are_described_as_of_people_we_read(self):
         """The specific misreading this module exists to prevent.
@@ -103,7 +103,7 @@ class TestWhatTheCaveatSays:
         "Four engineers report X" invites "four of the people who discussed
         it". The true statement is "four of the people we read".
         """
-        caveat = CellCoverage(threads=(REAL_ROW,)).caveat
+        caveat = CellCoverage(threads=(REAL_ROW,)).caveat()
         assert caveat is not None
         assert "people we read" in caveat
         assert "not of everyone who spoke" in caveat
@@ -112,7 +112,7 @@ class TestWhatTheCaveatSays:
         """The caveat must mean something. If it appeared on every cell it
         would be furniture and get read as such."""
         coverage = CellCoverage(threads=(thread("tc1", ratio=0.9, observed=90, hidden=10),))
-        assert coverage.caveat is None
+        assert coverage.caveat() is None
 
 
 class TestItIsNotAGate:
@@ -262,3 +262,60 @@ class TestItIsActuallyCalled:
         assert thin.publishes == full.publishes
         assert thin.coverage_caveat is not None
         assert full.coverage_caveat is None
+
+
+class TestMarginSoftensTheWordingAndNeverRemovesIt:
+    """Engineer 1's correction, and the limit of it.
+
+    Their objection was right: "could the unread part overturn this" is the
+    real question, not "did we read most of the thread", and 24% with eight
+    voices beats 80% with two. So strength keys to margin over the gate.
+
+    The limit is selection bias. Margin protects against sampling NOISE; our
+    gap is a biased gap by construction, because `selection_method` is
+    `specificity_x_log_engagement@observed`. Every voice counted came from the
+    same ranked top slice, so more of them does not cure it.
+    """
+
+    def test_a_cell_scraping_the_gate_gets_the_strong_form(self):
+        caveat = CellCoverage(threads=(REAL_ROW,)).caveat(n_eff=3.1)
+        assert caveat is not None
+        assert "barely more evidence" in caveat
+        assert "could plausibly change this" in caveat
+
+    def test_a_cell_with_margin_gets_the_softer_form(self):
+        caveat = CellCoverage(threads=(REAL_ROW,)).caveat(n_eff=12.0)
+        assert caveat is not None
+        assert "more voices than the publication bar needs" in caveat
+        assert "barely more evidence" not in caveat
+
+    def test_margin_never_removes_the_caveat(self):
+        """The whole point of the correction's correction."""
+        caveat = CellCoverage(threads=(REAL_ROW,)).caveat(n_eff=1000.0)
+        assert caveat is not None
+        assert "at most 24%" in caveat
+
+    def test_the_selection_bias_is_stated_at_every_margin(self):
+        """Said in BOTH forms, because n_eff does not touch it."""
+        for n_eff in (3.1, 12.0, 1000.0):
+            caveat = CellCoverage(threads=(REAL_ROW,)).caveat(n_eff=n_eff)
+            assert caveat is not None
+            assert "not a random sample" in caveat, n_eff
+            assert "ranked before selection" in caveat, n_eff
+
+    def test_an_unknown_margin_keeps_the_strong_form(self):
+        """Not knowing the margin is not a reason to sound confident."""
+        caveat = CellCoverage(threads=(REAL_ROW,)).caveat(n_eff=None)
+        assert caveat is not None
+        assert "barely more evidence" in caveat
+
+    def test_the_boundary_is_the_gate_rather_than_a_round_number(self):
+        from judge.curate.gate import N_EFF_MINIMUM
+        from judge.curate.thread_coverage import COMFORTABLE_MARGIN
+
+        boundary = N_EFF_MINIMUM * COMFORTABLE_MARGIN
+        below = CellCoverage(threads=(REAL_ROW,)).caveat(n_eff=boundary - 0.01)
+        at = CellCoverage(threads=(REAL_ROW,)).caveat(n_eff=boundary)
+        assert below is not None and at is not None
+        assert "barely more evidence" in below
+        assert "barely more evidence" not in at
