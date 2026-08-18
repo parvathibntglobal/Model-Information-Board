@@ -375,7 +375,7 @@ All deterministic. **No paid call happens before this passes.**
 
 **Expected survival to E5: roughly 10–15% of raw documents — an estimate to calibrate, not a specification.** Track it from day one. A survival rate shifting more than 2σ means a platform changed or a filter broke; **that alert needs a 14-day burn-in before it arms**, since there is no baseline to compute σ against on day one. Log and eyeball until then.
 
-> Heuristics, not a trained classifier. A quantised spam model needs labels you don't have yet, and the hard gates already remove the overwhelming majority of junk, with the specificity floor catching a small remainder — measured at 7.7% of rejections, so the gates do nearly all of it. The classifier arrives later, **trained on the labels this stage generates for free.**
+> Heuristics, not a trained classifier. A quantised spam model needs labels you don't have yet, and the hard gates already remove the overwhelming majority of junk, with the specificity floor catching a small remainder — measured at 7.7% of 285 documents re-scored 2026-08-17, **under the 59 hand-written alias surfaces loaded that day**. The floor reads the alias list through `names_version`, so the same documents give 3.8% under those 59 surfaces and 0.8% under the 1,337-surface registry union: the figure is a property of the population as much as of the corpus, and it is not re-derivable because that raw store is gone. It remains the only calibration this stage has. The classifier arrives later, **trained on the labels this stage generates for free.**
 
 ---
 

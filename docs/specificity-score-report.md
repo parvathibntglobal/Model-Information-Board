@@ -31,7 +31,7 @@
 | Deterministic | **yes**, all five components are countable (§4) |
 | Inputs that exist today | version-named, code containers — near free |
 | Inputs to build | numbers-with-units, error strings |
-| Blocks E3 | **no.** E3 is blocked on comment fetching and issue #5 (§3) |
+| Blocks E3 | **no.** E3 is blocked on comment fetching and issue #54 (§3) |
 | Needs Engineer 2's agreement | three items, §7 |
 
 Nothing here needed deciding except §7, and §7 was the reason this was a
@@ -113,11 +113,11 @@ scorer is only the first. Reason 2 is that the selection cannot be bounded:
 - coverage is not fully knowable: of 252 `more` markers, 126 report a hidden
   count and 126 report none, so any coverage figure is a **lower bound**
 - it needs `thread_context.observed_children`, `hidden_children_min` and
-  `coverage_ratio`, proposed on issue #5 and not in the contract
+  `coverage_ratio`, proposed on issue #54 and not in the contract
 
 **So: implement the scorer and `assemble_thread` still raises, on reason 2.**
 The real prerequisite list for E3 is comment fetching on at least one platform,
-plus three columns from issue #5. Both are larger than the scorer.
+plus the four coverage columns of issue #54. Both are larger than the scorer.
 
 What the scorer *does* unblock is **E4's floor**, which needs only root
 documents — all of which exist in the store today. That is the consumer to
@@ -314,7 +314,7 @@ Cheap, and it is the kind of thing that only works if both lanes wrote it.
 | 2 | Component weights and the floor to `contract/`, **flagged**, provisional beside the numbers |
 | 3 | Wire **E4's floor only** — root documents, which exist today |
 | 4 | Backfill from the raw store, not by re-fetching — payloads are immutable and content-hash addressed |
-| 5 | **E3 untouched.** It is blocked on comment fetching and issue #5, not on this |
+| 5 | **E3 untouched.** It is blocked on comment fetching and issue #54, not on this |
 
 Steps 1 to 3 and 5 are done. **Step 4, the backfill, is not run** — it writes to
 every `document` row in the store, and it is also the calibration measurement,

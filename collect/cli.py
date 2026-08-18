@@ -138,6 +138,39 @@ def _cmd_registry_propose_aliases(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_triage_population(args: argparse.Namespace) -> int:
+    """Print the surface population the entity gate would resolve against.
+
+    Prints the fingerprint, which is the point: a triage verdict is reproducible
+    from (document, population), and this is where the second half of that pair
+    gets a name somebody can write down.
+    """
+    from collect.db import connect
+    from collect.triage.entity import build_population
+
+    declared: list[str] = []
+    if not args.no_declared:
+        for model in load_seed_file().models:
+            declared.append(model.aliases.surface)
+            declared.extend(model.aliases.variants)
+
+    conn = connect()
+    try:
+        models = conn.execute(
+            "SELECT canonical_id, display_name FROM model_version ORDER BY canonical_id"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    population = build_population(models, declared)
+    print(population.basis)
+    if args.verbose:
+        for surface in sorted(population.surfaces):
+            owners = population.owners.get(surface, ())
+            print(f"  {surface:<40} {','.join(owners) or '(declared; owner not recorded)'}")
+    return 0
+
+
 def _cmd_registry_check_sources(args: argparse.Namespace) -> int:
     """FR-2, checkable without a database."""
     seed = load_seed_file()
@@ -284,6 +317,23 @@ def build_parser() -> argparse.ArgumentParser:
         "Records the gap in the report.",
     )
     load.set_defaults(func=_cmd_registry_load_seed)
+
+    triage = sub.add_parser("triage", help="E4 — the hard gates")
+    triage_sub = triage.add_subparsers(dest="command", required=True)
+
+    pop = triage_sub.add_parser(
+        "population",
+        help="the alias surfaces the entity gate resolves against, and their "
+        "fingerprint",
+    )
+    pop.add_argument(
+        "--no-declared",
+        action="store_true",
+        help="derivations only, without contract/seed_models.yaml. Narrower by "
+        "27 surfaces no derivation reaches, e.g. `deepseek r1`.",
+    )
+    pop.add_argument("-v", "--verbose", action="store_true", help="list every surface")
+    pop.set_defaults(func=_cmd_triage_population)
 
     return parser
 
