@@ -15,6 +15,7 @@ from datetime import date
 
 import psycopg
 import pytest
+from psycopg.types.json import Json
 
 from judge.extract.schema import ExtractedClaim
 from judge.extract.verify import VerifiedQuote
@@ -48,8 +49,9 @@ def seeded(conn):
     """
     conn.execute(
         "INSERT INTO model_version (id, canonical_id, provider, family, display_name, "
-        "lifecycle, provenance) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-        ("mv1", "google/gemini-2.5-flash", "google", "gemini", "Gemini 2.5 Flash", "ga", "seed"),
+        "lifecycle, provenance, sources) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+        ("mv1", "google/gemini-2.5-flash", "google", "gemini", "Gemini 2.5 Flash",
+         "ga", "seed", Json({})),
     )
     conn.execute(
         "INSERT INTO capability (key, failure_mode, version) VALUES (%s, %s, %s)",
@@ -62,9 +64,9 @@ def seeded(conn):
     )
     conn.execute(
         "INSERT INTO thread_context (id, thread_root_id, member_document_ids, "
-        "flattened_text_ref, offset_map, assembled_at) "
-        "VALUES (%s, %s, %s, %s, %s, now())",
-        ("tc1", "d1", ["d1"], "flattened/x", "[]"),
+        "flattened_text_ref, offset_map, child_count, pipeline_version, assembled_at) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, now())",
+        ("tc1", "d1", ["d1"], "flattened/x", Json([]), 0, "e3.1"),
     )
     conn.commit()
     return conn
