@@ -359,13 +359,20 @@ def propose(
     return sorted(out, key=lambda p: (-p.total_mentions, p.canonical_id))
 
 
-def to_yaml(proposals) -> str:
+def to_yaml(proposals, seated_by: dict[str, str] | None = None) -> str:
     """A reviewable skeleton. NOT loadable as a finished alias list.
 
     Deliberately not valid input to `load_seed_file`: every proposal carries an
     `INCOMPLETE` marker for the family surface, so a reviewer has to touch each
     entry rather than piping this into the contract. A generated list that could
     be merged unread is the failure this format exists to prevent.
+
+    `seated_by` maps a canonical id to why the tracked set holds it — `attested`
+    or `launch-window` (`collect/registry/tracked.py`). Recorded per entry
+    because it changes what a reviewer can do with the row: a model seated by
+    the launch window has no attested surface to confirm, so every surface under
+    it is a derivation, and the reviewer is supplying the judgement rather than
+    checking one. Omitted where the proposal was not cut to a tracked set.
     """
     lines = [
         "# PROPOSED alias surfaces — review required, not loadable as-is.",
@@ -391,6 +398,15 @@ def to_yaml(proposals) -> str:
     for p in proposals:
         lines.append(f"  - canonical_id: {p.canonical_id}")
         lines.append(f"    status: {p.status}")
+        if seated_by and p.canonical_id in seated_by:
+            ground = seated_by[p.canonical_id]
+            note = (
+                "# the corpus attests this model"
+                if ground == "attested"
+                else "# released inside the launch window; no attested surface, "
+                "so every form below is derived"
+            )
+            lines.append(f"    seated_by: {ground}".ljust(38) + note)
         if p.attested:
             note = f"# attested {p.attested[0].mentions} mentions"
             if p.surface in p.by_rule:
