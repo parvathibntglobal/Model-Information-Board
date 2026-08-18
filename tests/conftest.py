@@ -108,12 +108,39 @@ because every test shared an assumption with the code under test.
          derived from the data in front of you is a description, and it should
          be written as one until something independent agrees with it.
 
-Eight shapes of the same mistake: asserting the text of a claim instead of its
+    #59  Two tests constructed a `RedditHarvester` and asserted things about
+         the TERMS GATE and about where that gate fires. Both passed on a
+         laptop and failed in CI with `RAPIDAPI_HOST is not set`, because the
+         constructor read the setting and the laptop had a `.env`.
+
+         **A variable the test does not provide and does not know it depends
+         on.** The inverse of #57: there, a value the test supplied to both
+         sides was one it could not check; here, a value it supplied to
+         neither was one it did not know was in play. Both are the test's
+         relationship to a variable rather than to an assertion.
+
+         What makes it expensive is what it was asserting. Neither test was
+         about whether RapidAPI is configured, so neither should have been
+         able to fail for that reason — and until CI ran, both had been
+         asserting something about a configured machine rather than about the
+         code.
+
+         The fix is not to configure CI. It is to let the test supply what it
+         depends on: `host` became a constructor argument, defaulting to the
+         setting so the production guard is unchanged.
+
+         `tests/test_reddit_fetch.py` had already solved this with an
+         `autouse` fixture setting the host for every test in the file, which
+         is why that file passed in CI and mine did not. The pattern existed;
+         the new file did not adopt it.
+
+Nine shapes of the same mistake: asserting the text of a claim instead of its
 truth; never exercising an option; never leaving the input shape the author had
 in mind; **never checking that the check had anything to check**; comparing a
 thing on every axis except the one that is new; **checking agreement on
-everything except the value the test itself provided**; and **describing the
-data confidently and calling it the property**. What each cost was not a wrong
+everything except the value the test itself provided**; **describing the
+data confidently and calling it the property**; and **passing because the
+machine is configured rather than because the code is correct**. What each cost was not a wrong
 answer but a MISSING one, which is the class this project keeps paying for —
 rule 6's expensive case, where the defect surfaces as an absence with nothing to
 disagree with.
@@ -131,6 +158,10 @@ Three habits that would have caught all three, cheapest first:
      tested. This is the one that found #54: the generated column was reverted
      to a plain one and the suite stayed green, which is how the gap in
      `columns()` became visible rather than theoretical.
+  6. **Run the suite without your `.env`.** It is the cheapest audit there is
+     and CI is otherwise the only thing that performs it — by accident, on
+     whatever happens to break first. `env -u` the credentials, or copy the
+     tree somewhere without a dotenv, before the pipeline tells you.
   5. **Where two components must agree about a value, do not let the test
      supply it to both.** Round-trip through the real carrier instead — write
      the row, read it back, and let the second component look the value up the

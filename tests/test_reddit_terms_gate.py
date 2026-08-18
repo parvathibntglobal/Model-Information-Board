@@ -100,9 +100,16 @@ def test_the_two_publish_time_conflicts_are_recorded_where_they_bite():
 # ── the gate passes on the ruling, and only on it ────────────────────────
 
 
+#: Supplied by every test here rather than read from the environment. These
+#: test the terms gate and where it fires; none of them is about whether
+#: RapidAPI is configured, and until 2026-08-18 all of them could fail for that
+#: reason — which is what CI caught and a laptop with a `.env` could not.
+TEST_HOST = "reddit-test.invalid"
+
+
 def test_the_harvester_factory_passes_with_the_ruling_in_place(reddit_row):
     harvester = harvester_for_source(
-        reddit_row, client=None, store=None
+        reddit_row, client=None, store=None, host=TEST_HOST
     )
     assert isinstance(harvester, RedditHarvester)
 
@@ -151,7 +158,7 @@ def test_the_gate_is_not_in_the_constructor(reddit_row):
     one. Tests construct directly and get no gate; anything reaching the network
     comes through the factory.
     """
-    assert RedditHarvester(client=None, store=None) is not None
+    assert RedditHarvester(client=None, store=None, host=TEST_HOST) is not None
 
 
 # ── the observation, and the limits it admits to ─────────────────────────

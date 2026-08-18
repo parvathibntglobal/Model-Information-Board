@@ -446,7 +446,21 @@ class RedditHarvester:
         max_pages: int = DEFAULT_MAX_PAGES,
         clock=lambda: datetime.now(UTC),
         sleeper=time.sleep,
+        host: str | None = None,
     ) -> None:
+        """`host` defaults to `RAPIDAPI_HOST` and may be supplied explicitly.
+
+        THE DEFAULT IS THE PRODUCTION PATH AND THE ARGUMENT IS THE TESTABLE ONE.
+        Reading the setting here and only here meant a test of the CONSTRUCTOR
+        depended on the machine being configured for RapidAPI — which passed on
+        a laptop with a `.env` and failed in CI, where it was the first thing to
+        notice the difference. The tests in question were about the terms gate
+        and about where that gate fires; neither is about whether RapidAPI is
+        configured, and neither should have been able to fail for that reason.
+
+        Unset and unsupplied still refuses, so nothing reaches the network
+        without a host.
+        """
         self._client = client
         self._store = store
         self._limiter = (
@@ -457,7 +471,7 @@ class RedditHarvester:
         self._max_pages = max_pages
         self._clock = clock
         self._sleep = sleeper
-        self._host = settings().rapidapi_host
+        self._host = host if host is not None else settings().rapidapi_host
         if not self._host:
             raise RedditConfigError(
                 "RAPIDAPI_HOST is not set. It must be a bare host such as "
