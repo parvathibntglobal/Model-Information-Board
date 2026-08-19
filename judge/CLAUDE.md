@@ -60,12 +60,6 @@ protects the author from our database and not from our page - a real
 distinction and a smaller one than it looks. It argues for publishing the
 handle *when we publish*, not for storing it now.
 
-It still needs a decision before the publisher is written, and it is not
-mine alone — it reverses a privacy choice `collect/` made on purpose. Worth
-knowing when you take it: we already publish the permalink, and the permalink
-displays the username, so hashing it protects the author from our database and
-not from our page. That is a real distinction and a smaller one than it looks.
-
 **Data API Terms 3.2 — delete data not required for the approved use case,
 against an immutable raw store (NFR-4).**
 

@@ -33,18 +33,30 @@ from judge.store.claims import PIPELINE_VERSION
 
 
 def fingerprint_of(flattened_text: str) -> str:
-    """What was read, because `thread_context.id` does not say.
+    """WHICH READING. `thread_context.id` answers which thread.
+
+    Two questions, two values, and the split is deliberate on both sides -
+    this is NOT a workaround for a defective id, and reading it as one would
+    lead somebody to "fix" `thread_context.id` and break the schema.
 
     `stable_id("thread_context", root_id, version)` ignores content, so a
-    thread re-assembled with different children keeps its id. E1 found it
-    through `specificity.py` changing the child scorer while PIPELINE_VERSION
-    stayed put - the path the "over-identifies, never under-identifies"
-    proviso does not cover, because it is about the scorer rather than the
-    flattener.
+    thread re-assembled with different children keeps its id. That looked like
+    the bug when E1 first reported it. It is not: `claim.thread_context_id`
+    has NO ON DELETE, so a content-addressed id would make re-assembly write a
+    NEW row, leaving old claims pointing at the old one and the table holding
+    two answers to what a claim quotes from. Overwriting in place is what
+    keeps that reference true.
 
-    Hashing the flattened text is the narrowest thing that is actually true:
-    these are the exact bytes the extractor was given, so a match means
-    re-running would send the same prompt.
+    So the id stays stable by design and something else has to change when the
+    reading does. That is this. Hashing the flattened text is the narrowest
+    thing that is actually true - the exact bytes the extractor was given, so
+    a match means re-running would send the same prompt.
+
+    E1 found the divergence through `specificity.py` changing the child scorer
+    while PIPELINE_VERSION stayed put. Worth keeping: the "over-identifies,
+    never under-identifies" proviso was true of the flattener and false of the
+    scorer, and neither of us asked what it ranged over. A proviso naming one
+    path is evidence about that path.
     """
     return hashlib.sha256(flattened_text.encode("utf-8")).hexdigest()
 
