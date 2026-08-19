@@ -114,6 +114,47 @@ Verifying flattened offsets against the raw document either fails on everything
 or **silently passes against the wrong text**. Get this right or nothing else
 in the product means anything.
 
+### The boundary of that guarantee, and it is not where it looks
+
+**Step 3 renders "the raw span". `raw` there means the text `collect/` stored
+for the document, NOT the bytes the author wrote.** Those are the same thing
+for Reddit and they are not for blogs.
+
+Engineer 1 found it while designing the blog path: **trafilatura
+double-decodes entities.** An author who typed `a &amp;gt; b` — meaning the
+reader should see `a &gt; b` — reaches `raw_text_of` as `a > b`. Bare lxml
+gives the correct single decode.
+
+**Rule 1 cannot catch this, and the reason is structural rather than a gap to
+close.** Verification is a substring match between the quote and the text the
+extractor was given, and the attribution check maps between two artefacts that
+are *both downstream of the decode*. Every step passes. The quote is verbatim
+against what we hold, attributed to the right author, at the right offsets —
+and the author did not write it. A guarantee that holds perfectly against a
+baseline that is already wrong.
+
+So the honest statement of what step 1 proves is: **the quote is exactly what
+we were given, not exactly what was published.** Those coincide only where the
+extraction chain is lossless, and `trafilatura` is a chain we chose.
+
+**It is recoverable, and that is the second time in two days.** `collect/`
+stores `response.content` — the original HTTP bytes — in the content-hash
+addressed raw store, and trafilatura runs after. So the source form of any
+quote is re-derivable, exactly as the Reddit username is. NFR-4 covering the
+case it was written for, twice.
+
+That makes a fourth verification step *possible* rather than necessary: a
+quote could be checked against the stored payload rather than against the
+derived text. Expensive, so not on the nightly path — but it is the difference
+between a limit we accept and one we cannot see. **Worth doing once against a
+blog sample before the publisher renders a blog quote**, since a rendered
+`>` where the author wrote `&gt;` is a misquotation with our verification
+badge on it.
+
+`blog/options.py` versions the derivation as `trafilatura-2.2.0+opts-…`, so a
+re-derivation is identifiable rather than a guess — which is what makes the
+check practical at all.
+
 **Build this in week 4 against a hand-made `thread_context` fixture**, before
 `collect/` ships the real one. Then the handover is a swap, not an integration.
 
