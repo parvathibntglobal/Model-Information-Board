@@ -196,11 +196,16 @@ def last_run(conn, stage: str) -> tuple[datetime, str | None] | None:
 # rather than surfacing a foreign-key violation: the fix is upstream of here, and
 # an opaque 23503 sends the reader to the wrong place.
 
-#: Keys `harvest_run_fields()` carries that `contract/tables.sql` has no column
-#: for. Both are PROPOSED — see the adapters' docstrings — and both are dropped
-#: here by name rather than by a permissive filter, so a third one added upstream
-#: fails loudly instead of being silently discarded.
-_PROPOSED_NOT_IN_SCHEMA = frozenset({"outcome", "sieve_pass_rate"})
+#: Empty, and kept rather than deleted. `outcome`, `sieve_pass_rate`,
+#: `pages_fetched` and `pages_stored` were all in here — carried by the adapters
+#: and dropped by name because no column held them — and
+#: `20260819T0915_harvest_run_columns.sql` gave all four a column.
+#:
+#: The set stays so a FIFTH homeless field has somewhere to be declared, with the
+#: reason it has nowhere to live, instead of being filtered out silently. A
+#: permissive `{k: v for k, v in fields.items() if k in COLUMNS}` is how the
+#: first four would have vanished without anyone deciding.
+_PROPOSED_NOT_IN_SCHEMA: frozenset[str] = frozenset()
 
 #: Every column of `harvest_run` this writer sets. Named, so a new column in the
 #: contract that nothing populates is visible here rather than defaulting quietly.
@@ -215,6 +220,10 @@ _HARVEST_RUN_COLUMNS = (
     "http_errors",
     "exhausted",
     "truncated_by",
+    "outcome",
+    "pages_fetched",
+    "pages_stored",
+    "sieve_pass_rate",
     "pipeline_version",
 )
 
@@ -280,12 +289,27 @@ def open_harvest_run(conn, fields: dict[str, Any]) -> OpenHarvest:
     )
 
 
-def close_harvest_run(conn, open_harvest: OpenHarvest, fields: dict[str, Any]) -> str:
+def close_harvest_run(
+    conn, open_harvest: OpenHarvest, fields: dict[str, Any], *, outcome: str
+) -> str:
     """Fill in what the sweep did. Only ever called by a process still alive.
 
-    `finished_at` and the counts move together, the same way `job_run_finish_ck`
-    makes them move together there: a row carrying counts and no finish time would
-    claim a result for a sweep that never reported one.
+    **`outcome` IS REQUIRED AND KEYWORD-ONLY, because the schema now refuses the
+    alternative.** `harvest_run_finish_ck` asserts
+    `(finished_at IS NULL) = (outcome IS NULL)`, so an update setting a finish
+    time without a verdict is REJECTED rather than accepted — and that is the
+    point of it. Engineer 2's argument, and it is better than the one I made:
+
+        without the constraint, a close that forgets the verdict succeeds and
+        leaves "finished, verdict unknown", which is indistinguishable from a
+        schema that never recorded verdicts at all.
+
+        with it, the update fails and the row stays both-NULL, which is
+        job_run's own "did not finish" and is TRUE.
+
+    So a half-written row is accurate rather than missing. Keyword-only and with
+    no default so a caller cannot reach the failure by omission: the refusal
+    happens in Python, at the call site, rather than as a 23514 from the database.
 
     **`items_fetched = 0` IS WRITTEN, NOT LEFT NULL.** Zero is a measurement — the
     sweep ran and the platform returned nothing — and NULL is reserved for the
@@ -293,6 +317,12 @@ def close_harvest_run(conn, open_harvest: OpenHarvest, fields: dict[str, Any]) -
     `not_applicable`, one table over.
     """
     _reject_unknown_keys(fields)
+    if outcome not in (OK, REFUSED, ERROR):
+        raise ValueError(
+            f"outcome must be one of {OK!r}, {REFUSED!r}, {ERROR!r}, not "
+            f"{outcome!r}. `harvest_run_outcome_ck` would refuse it, and this "
+            "refusal names the vocabulary rather than the constraint."
+        )
     row = {
         "id": open_harvest.id,
         "finished_at": fields.get("finished_at") or datetime.now(UTC),
@@ -301,15 +331,35 @@ def close_harvest_run(conn, open_harvest: OpenHarvest, fields: dict[str, Any]) -
         "http_errors": fields.get("http_errors") or 0,
         "exhausted": fields.get("exhausted"),
         "truncated_by": fields.get("truncated_by"),
+        "outcome": outcome,
+        "pages_fetched": fields.get("pages_fetched"),
+        "pages_stored": fields.get("pages_stored"),
+        "sieve_pass_rate": fields.get("sieve_pass_rate"),
     }
     conn.execute(
         "UPDATE harvest_run SET finished_at = %(finished_at)s, "
         "items_fetched = %(items_fetched)s, items_kept = %(items_kept)s, "
         "http_errors = %(http_errors)s, exhausted = %(exhausted)s, "
-        "truncated_by = %(truncated_by)s WHERE id = %(id)s",
+        "truncated_by = %(truncated_by)s, outcome = %(outcome)s, "
+        "pages_fetched = %(pages_fetched)s, pages_stored = %(pages_stored)s, "
+        "sieve_pass_rate = %(sieve_pass_rate)s WHERE id = %(id)s",
         row,
     )
     return open_harvest.id
+
+
+#: ⚠ ANY DURATION FIGURE OVER `harvest_run` MUST CARRY THIS.
+#:
+#: A refused run has `finished_at` ≈ `started_at`, because a gate check is all
+#: that happened between them. Averaging those in with real sweeps is not a small
+#: bias: BOTH harvest commands refuse until their terms rulings land, so **the
+#: first population of this table is entirely refusals** and the mean duration of
+#: a sweep would be the mean duration of a gate check.
+#:
+#: Engineer 2's warning, and it lives here rather than in a document because the
+#: person writing `avg(finished_at - started_at)` is reading this module, not
+#: docs/proposals.
+DURATION_FILTER = "outcome = 'ok'"
 
 
 def _reject_unknown_keys(fields: dict[str, Any]) -> None:

@@ -914,12 +914,68 @@ CREATE TABLE harvest_run (
   -- signal.
   truncated_by     text,
 
+  -- WHAT HAPPENED, and it is NOT a kind of truncation. `truncated_by` says a
+  -- sweep stopped early; a refused sweep never started, so filing it there
+  -- would make that column mean "cut short" and "never begun" at once.
+  --
+  --   ok        it ran
+  --   refused   we declined to try - the terms gate said no
+  --   error     we tried and something broke
+  --
+  -- The last two need different responses: a ruling gap and a network failure
+  -- are not the same fault, and collapsing them files a compliance state as a
+  -- defect.
+  --
+  -- NULL is still-running-or-killed, matching `job_run.outcome` exactly, and
+  -- the vocabulary is job_run's for the same reason: that table spent a whole
+  -- migration replacing `failed` with `error` so one concept has one word.
+  --
+  -- ⚠ ANY DURATION FIGURE OVER THIS TABLE MUST FILTER `outcome = 'ok'`.
+  -- A refused run has finished_at ≈ started_at, because the gate check is all
+  -- that happened between them. Averaging those in with real sweeps is not a
+  -- small bias: BOTH harvest commands refuse until the terms rulings land, so
+  -- the first population of this table is entirely refusals and the mean
+  -- duration of a sweep would be the mean duration of a gate check.
+  outcome          text,
+
+  -- Issue #5. Pages requested against pages written to `raw/`, which differ the
+  -- moment `max_pages` rises above one - and the difference is exactly what
+  -- makes "recoverable by re-sieving" true or false for a run. A re-sieve that
+  -- can say "this run stored page 1 of 4" is a re-sieve nobody over-trusts.
+  --
+  -- NULL means NOT RECORDED, never zero. A run that stored no pages is 0; a row
+  -- written before these columns existed is unknown, and the two must not read
+  -- alike (rule 6).
+  pages_fetched    int,
+  pages_stored     int,
+
+  -- The sieve's own yield for this run, which the GitHub harvester already
+  -- computes and rounds to three places. Carried here so FR-10's figure has a
+  -- denominator that travels with it rather than being recomputed downstream.
+  sieve_pass_rate  real,
+
   pipeline_version text NOT NULL,
 
   CONSTRAINT harvest_run_truncated_ck
     CHECK (truncated_by IS NULL OR truncated_by IN ('query-budget', 'rate-limit',
                                                     'time-budget', 'extraction-budget',
-                                                    'result-ceiling'))
+                                                    'result-ceiling')),
+
+  CONSTRAINT harvest_run_outcome_ck
+    CHECK (outcome IS NULL OR outcome IN ('ok', 'refused', 'error')),
+
+  -- THE FAILED-CLOSE CASE IS WHY THIS EXISTS, and the argument is Engineer 2's.
+  -- Without it, an update that sets `finished_at` and forgets `outcome` succeeds
+  -- and leaves a row reading "finished, verdict unknown" - which is
+  -- indistinguishable from a schema that never recorded verdicts at all. With
+  -- it, that update is REJECTED and the row stays both-NULL, which is job_run's
+  -- own "did not finish" and is TRUE.
+  --
+  -- So the constraint makes a half-written row accurate rather than missing.
+  -- That is the better argument: the cost is not that a refused sweep gets a
+  -- finished_at, it is that a partial write cannot lie.
+  CONSTRAINT harvest_run_finish_ck
+    CHECK ((finished_at IS NULL) = (outcome IS NULL))
 );
 CREATE INDEX harvest_run_source_query_idx
   ON harvest_run (source_id, query_key, started_at DESC);
