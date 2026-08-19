@@ -134,16 +134,53 @@ because every test shared an assumption with the code under test.
          is why that file passed in CI and mine did not. The pattern existed;
          the new file did not adopt it.
 
-Nine shapes of the same mistake: asserting the text of a claim instead of its
+    ci.yml
+         `test_no_run_step_carries_a_hash_that_yaml_would_eat` was written for
+         exactly the defect that killed CI at step 2 - a `#` in a plain `run:`
+         scalar, which YAML reads as a comment and truncates. It ran at step 5,
+         inside `pytest -q`: after Install, after the dev-extras assertion,
+         after the database. **Correct, present, and three steps too late.**
+
+         So the guard existed and the job still failed at `Assert the dev extras
+         actually arrived`, with bash reporting `unexpected EOF while looking
+         for matching` under a step name that says nothing about YAML. Whoever
+         read that log first had to rediscover the cause with the test that
+         names it sitting unrun in the same repository.
+
+         **A GUARD'S POSITION IN A SEQUENCE IS PART OF WHETHER IT WORKS.** A
+         check that needs a database cannot guard the database setup. A check
+         that needs the install cannot guard the install. Ordering is not
+         packaging - it decides which failures a guard is still upstream of,
+         and a guard downstream of the thing it protects reports on a corpse.
+
+         **Distinct from the two failures it resembles, and the distinctions
+         are the point.** `assert_no_fixtures` had NO CALLER for weeks (#27):
+         nothing ran it, so it could not fire. `#58b`'s invariant OUTLIVED ITS
+         PREMISE: it ran, and checked something that had stopped being true.
+         This one has a caller, runs, and is true - it is simply sequenced
+         behind the failure it describes. Every habit below passes on it.
+         Habit 3 in particular: break the YAML and the test does fail. It just
+         never runs in the job that matters, and no property of the test can
+         reveal that, because the property is not in the test.
+
+         Fixed by giving it its own step immediately after checkout, before
+         Install - it needs PyYAML and a file, so it can run first. Mutation-
+         checked 2026-08-19: the `# noqa` was reintroduced and both workflow
+         tests failed, at step 3, on a named assertion about YAML.
+
+         The habit is 7 below. Found by Engineer 2.
+
+Ten shapes of the same mistake: asserting the text of a claim instead of its
 truth; never exercising an option; never leaving the input shape the author had
 in mind; **never checking that the check had anything to check**; comparing a
 thing on every axis except the one that is new; **checking agreement on
 everything except the value the test itself provided**; **describing the
-data confidently and calling it the property**; and **passing because the
-machine is configured rather than because the code is correct**. What each cost was not a wrong
-answer but a MISSING one, which is the class this project keeps paying for —
-rule 6's expensive case, where the defect surfaces as an absence with nothing to
-disagree with.
+data confidently and calling it the property**; **passing because the
+machine is configured rather than because the code is correct**; and **running
+the right check too late in the sequence to guard the thing it guards**. What
+each cost was not a wrong answer but a MISSING one, which is the class this
+project keeps paying for — rule 6's expensive case, where the defect surfaces
+as an absence with nothing to disagree with.
 
 Three habits that would have caught all three, cheapest first:
 
@@ -175,6 +212,16 @@ Three habits that would have caught all three, cheapest first:
      `tests/test_lane_boundary.py` and why every new sweep of the tree needs
      its equivalent. **Zero checked and zero failed look identical in a test
      runner.**
+  7. **Ask where a guard runs, not only whether it passes.** For each check,
+     name the failure it is meant to catch and the step that would produce it -
+     if the check runs after that step, it is documentation, not a guard. The
+     question is cheap and nothing else asks it: a guard three steps too late
+     is green, correct, and mutation-checkable, and every one of the six habits
+     above passes on it. What it cannot do is fail first, which is the only
+     thing that makes a log readable. Cheapest form of the fix is usually to
+     give the check the narrowest possible dependencies and move it earlier -
+     `test_ci_workflow.py` needs a YAML parser and a file, so it now runs
+     before the install rather than inside the suite that depends on it.
 
 Owned by neither lane, like `test_queries_contract.py` — it describes how both
 lanes write tests, and it breaks for both.
