@@ -306,3 +306,46 @@ def test_has_numbers_falsifies_an_extractor_claim_but_cannot_confirm_it():
     assert has_numbers(mixed)
     quote_without_a_number = "it felt slower than before"
     assert not has_numbers(quote_without_a_number)
+
+# ── the placeholder bodies, and what currently happens to them ───────────
+
+
+def test_a_removed_body_scores_zero_on_every_component():
+    """Reddit's placeholders, pinned because the corpus keeps them.
+
+    `[removed]` was the body of 57 distinct comments in one 14-thread corpus
+    (`collect/assemble/dedupe.py`). They enter as text and rule 1 verifies a
+    quote of them PERFECTLY — the nine characters really are verbatim — so the
+    anti-fabrication guarantee holds over text that means nothing.
+
+    All five components are False, the floor DROPS them, and `too_short` drops
+    them too. **Both of those are incidental.** The floor drops them because a
+    placeholder contains no numbers, no code, no error strings, no conditions
+    and no version — not because anything recognises it as a placeholder. The
+    gate drops them because nine characters is under fifteen tokens.
+
+    So this test is not a defence, it is a record of what the defence currently
+    rests on: if Reddit changed the sentinel to a longer string, or if a
+    placeholder is selected into a thread whose OTHER members carry the
+    specificity, the text still reaches the flattened string and stays
+    quotable. That is why the mark belongs at parse time rather than here.
+    """
+    for body in ("[removed]", "[deleted]", "[unavailable]"):
+        scored = score_document(body, version_aliases=())
+        assert scored.score == 0.0, body
+        assert not any(scored.components.values()), (body, scored.components)
+        assert floor_verdict(scored.components) is FloorVerdict.DROPPED, body
+
+
+def test_a_placeholder_inside_a_longer_body_is_not_the_same_case():
+    """The case the length gate cannot reach, stated so it is not confused.
+
+    A comment whose body is exactly `[removed]` is short. A comment that quotes
+    a removed parent and adds a measurement is neither short nor a placeholder,
+    and must keep scoring — so the parse-time mark has to be EXACT-MATCH on the
+    whole body, which is what `RedditComment.is_removed` already does.
+    """
+    quoting = "> [removed]\n\nthis dropped a tool call after 40 turns at 32k"
+    scored = score_document(quoting, version_aliases=())
+    assert scored.components["has_numbers"] is True
+    assert floor_verdict(scored.components) is FloorVerdict.KEPT
