@@ -90,6 +90,7 @@ worse than an absent thread, because it verifies as nothing rather than failing.
 from __future__ import annotations
 
 import json
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -112,6 +113,62 @@ from collect.registry.aliases import all_alias_rows  # noqa: E402
 from collect.registry.seed import seed_models  # noqa: E402
 
 REDDIT_PAYLOAD = Path("fixtures/reddit/thread-1u1b22l-getPostComments.json")
+
+#: How many thread_context rows to export. One is Reddit - there is exactly one
+#: stored API payload - and the rest are blog articles from `raw_store`.
+DEFAULT_THREADS = 12
+
+#: WHERE THE BLOG URL COMES FROM, and why it is no longer withheld.
+#:
+#: It is read from the STORED PAYLOAD's own `rel=canonical` or `og:url` - the
+#: publisher's declaration, in the bytes we already hold. Not from the census
+#: index, so this needs no join and inherits no index of its own.
+#:
+#: **THE RETENTION QUESTION IS NOT SETTLED BY THIS.** `judge/CLAUDE.md` records
+#: it: a document with no URL can be extracted, weighted, counted and gated, and
+#: then cannot be RENDERED, so E2 could exercise every stage but the page. The
+#: objection to carrying the URL was that a `delete_after` date in a file that
+#: cannot enforce it is decorative. That objection stands. What changes here is
+#: narrower: the date and the basis now TRAVEL with the URL in the manifest
+#: instead of being dropped, so a reader of this bundle can see the constraint
+#: rather than having to know it. Whether such a URL may be PUBLISHED is still
+#: the open ruling, and this bundle is not the place it gets answered - it is
+#: gitignored, and `use_basis` is internal-development-only either way.
+_CANONICAL = re.compile(rb'<link[^>]+rel=["\']canonical["\'][^>]*>', re.I)
+_HREF = re.compile(rb'href=["\']([^"\']+)["\']', re.I)
+_OG_URL = (
+    re.compile(rb'<meta[^>]+property=["\']og:url["\'][^>]+content=["\']([^"\']+)["\']', re.I),
+    re.compile(rb'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:url["\']', re.I),
+)
+
+#: Inherited from `_blog_so_sweep/manifest.json`. Stated rather than recomputed:
+#: this bundle does not re-derive a retention date, it carries the one the
+#: corpus it draws from already declared.
+CENSUS_BASIS = {
+    "use_basis": "internal-development-only",
+    "collected_on": "2026-08-18",
+    "delete_after": "2026-11-16",
+    "source_corpus": "_blog_so_sweep/ (docs/measurements/blog-symbol-census.md)",
+    "not_evidence": (
+        "The census corpus declares 'Nothing here is quoted, published, or "
+        "merged as evidence.' These rows exist to exercise the extract and cell "
+        "paths. They must not become published claims."
+    ),
+}
+
+
+def declared_url(data: bytes) -> str | None:
+    """The URL the document declares about itself, or None."""
+    found = _CANONICAL.search(data)
+    if found:
+        href = _HREF.search(found.group(0))
+        if href:
+            return href.group(1).decode("utf-8", "replace")
+    for pattern in _OG_URL:
+        found = pattern.search(data)
+        if found:
+            return found.group(1).decode("utf-8", "replace")
+    return None
 
 
 def version_aliases() -> tuple[str, ...]:
@@ -220,18 +277,33 @@ def build_reddit(store: RawStore) -> tuple[dict, list[dict], str]:
     return export, documents, assembled.id
 
 
-def build_blog(store: RawStore) -> tuple[dict, list[dict], str] | None:
-    """The first stored article that extracts, so the blog row is real text."""
+def build_blogs(store: RawStore, limit: int) -> list[tuple[dict, list[dict], str]]:
+    """Stored articles that extract AND declare their own URL, up to `limit`.
+
+    Was `build_blog`, returning the first match only, which is why the handoff
+    carried two threads. An article with no declared URL is SKIPPED rather than
+    exported with a placeholder: `https://example.invalid/article` in a url
+    column is indistinguishable from a real one to everything downstream, and
+    that is rule 6 - a missing value silently becoming a definite one.
+    """
+    out: list[tuple[dict, list[dict], str]] = []
+    skipped_no_url = 0
     for path in sorted(p for p in Path("raw_store").rglob("*") if p.is_file()):
+        if len(out) >= limit:
+            break
         data = path.read_bytes()
         if b"<html" not in data[:4000].lower() and b"<!doctype" not in data[:200].lower():
             continue
-        text = extract_article_text(data, url="https://example.invalid/article")
+        url = declared_url(data)
+        if url is None:
+            skipped_no_url += 1
+            continue
+        text = extract_article_text(data, url=url)
         if not text or len(text) < 1200:
             continue
 
         entry_id = f"sha256:{content_hash(data)[:16]}"
-        article = ArticleInput(entry_id, text, url="https://example.invalid/article")
+        article = ArticleInput(entry_id, text, url=url)
         assembled = assemble_article(article, store=store)
         document_id = blog_document_id(entry_id)
 
@@ -250,8 +322,9 @@ def build_blog(store: RawStore) -> tuple[dict, list[dict], str] | None:
             "raw_text_of": {document_id: text},
             "provenance": {
                 "platform": "blog",
-                "source": "a harvested article, url withheld: the census corpus "
-                          "carries a delete_after date and this file does not",
+                "source": url,
+                "url_from": "the payload's own rel=canonical or og:url",
+                "retention": CENSUS_BASIS,
                 "built_by": "scripts/export_thread_contexts.py",
                 "rulings": {
                     "selection_method": assembled.selection_method,
@@ -263,8 +336,10 @@ def build_blog(store: RawStore) -> tuple[dict, list[dict], str] | None:
                 "pipeline_version": assembled.pipeline_version,
             },
         }
-        return export, [document], assembled.id
-    return None
+        out.append((export, [document], assembled.id))
+    if skipped_no_url:
+        print(f"  (skipped {skipped_no_url} stored articles with no declared URL)")
+    return out
 
 
 def main(out_dir: Path) -> int:
@@ -276,17 +351,23 @@ def main(out_dir: Path) -> int:
     incomplete: list[dict] = []
 
     reddit_export, reddit_docs, reddit_id = build_reddit(store)
-    blog = build_blog(store)
+    blogs = build_blogs(store, limit=DEFAULT_THREADS - 1)
 
     bundles = [(reddit_export, reddit_docs)]
-    if blog is None:
+    bundles.extend((export, documents) for export, documents, _ in blogs)
+
+    if len(bundles) < DEFAULT_THREADS:
         incomplete.append({
-            "thread": "blog",
-            "why": "no stored article in raw_store extracted to >=1200 chars. "
-                   "Run scripts/blog_so_sweep.py first.",
+            "asked_for": DEFAULT_THREADS,
+            "produced": len(bundles),
+            "why": (
+                f"only {len(blogs)} stored articles both extracted to >=1200 "
+                "chars AND declared their own URL, and there is exactly ONE "
+                "stored Reddit payload (fixtures/reddit/"
+                "thread-1u1b22l-getPostComments.json), so the Reddit side "
+                "cannot contribute a second row. Nothing was padded."
+            ),
         })
-    else:
-        bundles.append((blog[0], blog[1]))
 
     for export, documents in bundles:
         name = export["thread_context_id"] + ".json"
@@ -340,6 +421,53 @@ def main(out_dir: Path) -> int:
         "generated_by": "scripts/export_thread_contexts.py",
         "threads": written,
         "load_order": ["load.sql", "then read threads/*.json from judge/"],
+        "document_id_scheme": {
+            "note": (
+                "ASKED FOR EXPLICITLY, because its absence took a message to "
+                "surface last time. Two schemes, one per platform, and both are "
+                "single-sourced functions rather than f-strings."
+            ),
+            "reddit": (
+                "collect.adapters.reddit.reddit_document_id -> 'reddit:{fullname}'. "
+                "THE FULLNAME IS KEPT WHOLE: 'reddit:t3_1u1b22l', not "
+                "'reddit:1u1b22l'. fixtures/threads/build.py strips the t1_/t3_ "
+                "prefixes and is NOT authoritative - E3 is."
+            ),
+            "blog": (
+                "collect.assemble.article.blog_document_id -> 'blog:{entry_id}', "
+                "where entry_id here is 'sha256:{content_hash[:16]}'. Normally "
+                "entry_id is the publisher's own guid or link and is never "
+                "derived from content; these rows come from raw_store, which is "
+                "content-addressed and carries no guid, so the hash stands in. "
+                "That is a property OF THIS EXPORT, not of the blog adapter."
+            ),
+            "why_it_matters": (
+                "raw_text_of is keyed by document_id, so a scheme mismatch "
+                "returns RAW_TEXT_MISSING for every quote in the thread - a "
+                "naming failure that presents as a storage failure. That is how "
+                "#57 was found."
+            ),
+        },
+        "retention": CENSUS_BASIS,
+        "url_coverage": (
+            "BLOG URLS ARE REAL - every blog document.url is the publisher's own "
+            "rel=canonical or og:url, read from the stored payload, and an article "
+            "declaring neither was skipped rather than given a placeholder. "
+            "REDDIT COMMENT URLS ARE NOT: the 5 t1_ rows carry "
+            "'https://www.reddit.com/r/ClaudeAI/x/', a stand-in, because the "
+            "getPostComments payload does not include per-comment permalinks and "
+            "the root post's URL is the only real one on that side. Named because "
+            "a synthetic URL in a url column is indistinguishable from a real one "
+            "downstream, which is exactly the confusion the blog placeholder "
+            "caused. The root post row IS real."
+        ),
+        "open_ruling": (
+            "judge/CLAUDE.md: whether a URL under a delete_after date may be "
+            "PUBLISHED is unresolved. Blog URLs are populated here so the "
+            "render path can be exercised, and the date and basis travel with "
+            "them - but this bundle does not answer that question and must not "
+            "be treated as having answered it."
+        ),
         "platform_count_note": (
             "document.source is the PLATFORM (reddit | blog | github), which "
             "judge/store/cells.py reads as `platform`. Two rows with different "
