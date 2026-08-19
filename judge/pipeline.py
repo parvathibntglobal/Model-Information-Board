@@ -39,6 +39,8 @@ from datetime import date
 from typing import Any
 
 from judge.config import bucket_for
+from judge.curate.labels import Driver
+from judge.curate.nightly import close_the_night
 from judge.extract.budget import Budget
 from judge.extract.client import Completion, ExtractionClient
 from judge.extract.runner import ExtractionRefused, ExtractionRun, ThreadInput, extract
@@ -218,6 +220,7 @@ class Pipeline:
         as_of: date | None = None,
         budget: Budget | None = None,
         already_extracted: dict[str, str | None] | None = None,
+        driver: Driver | None = None,
     ) -> list[PipelineResult]:
         """A batch. A refused thread is skipped, never fatal.
 
@@ -283,4 +286,17 @@ class Pipeline:
                         model=self._extractor_model,
                     )
                 )
+        if driver is not None:
+            # THE CALLER, and the reason this parameter exists. Labels, the
+            # changelog and reported context all had a writer and none had
+            # anything calling it, so the changelog page would have reported
+            # "no labels changed" forever - honestly, and about nothing.
+            #
+            # `driver=None` skips it rather than defaulting, because attributing
+            # a run to `new-evidence` when the caller did not say so is the one
+            # thing `close_the_night` refuses to do.
+            close_the_night(
+                self._conn, driver=driver, as_of_cells=[cell for r in results for cell in r.cells]
+            )
+
         return results
