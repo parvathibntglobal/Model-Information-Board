@@ -549,7 +549,6 @@ class RedditHarvester:
                 continue
             with suppress(ValueError):
                 setattr(run, attribute, int(value))
-        remaining = response.headers.get("x-ratelimit-requests-remaining")
 
         if response.status_code == 429:
             # No Retry-After is sent, so the wait is assumed. Counted rather

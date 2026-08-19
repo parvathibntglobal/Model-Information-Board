@@ -87,6 +87,7 @@ import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class FlatteningRules:
     """Which rewrites apply, per platform. Ruled 2026-08-18.

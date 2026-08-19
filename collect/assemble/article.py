@@ -48,7 +48,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from collect.assemble.flatten import BLOG_RULES, Flattened, flatten
+from collect.assemble.flatten import BLOG_RULES, flatten
 from collect.assemble.thread import (
     BLOG_COVERAGE_HIDDEN_CHILDREN_MIN,
     WHOLE_DOCUMENT,

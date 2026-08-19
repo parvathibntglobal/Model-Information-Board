@@ -325,8 +325,9 @@ def test_the_quota_sink_forwards_every_field_get_writes(tmp_path):
     the sink covers the whole map, so the next header added to `_QUOTA_HEADERS`
     cannot be captured on searches and lost on comment fetches.
     """
-    from collect.adapters.reddit import _QUOTA_HEADERS, _quota_sink, ThreadFetch
     from datetime import UTC, datetime
+
+    from collect.adapters.reddit import _QUOTA_HEADERS, ThreadFetch, _quota_sink
 
     fetch = ThreadFetch(thread_url="https://x", started_at=datetime.now(tz=UTC))
     sink = _quota_sink(fetch)
