@@ -34,20 +34,25 @@ class TestTheThreeOutcomesCannotCollapse:
     repair for the first is nothing and for the second is urgent, so this is
     rule 6 at the one place both lanes read."""
 
-    def test_there_are_three_and_no_outcome_for_corruption(self):
-        """A fourth outcome was added for corruption and then removed.
+    def test_there_are_four_and_the_fourth_took_two_reversals(self):
+        """CORRUPT was added, removed, and restored, which is worth recording.
 
-        `PayloadCorrupt` is raised inside `RawStore.put()` only, so it cannot
-        reach a reader - checked at rawstore.py:235 rather than assumed. The
-        whole exchange that produced CORRUPT rested on a defect report about
-        code that could not be reached.
+        I removed it after verifying E1's premise: `PayloadCorrupt` is raised
+        inside `RawStore.put()` only, so it cannot reach a reader. THAT
+        VERIFICATION WAS CORRECT AND THE CONCLUSION WAS WRONG - the reachable
+        case is a DECODE FAILURE, and bytes present but not valid UTF-8 are
+        present-and-wrong by definition.
 
-        What can happen on a read is invalid UTF-8, which propagates as
-        `UnicodeDecodeError` - the one exception permitted across this boundary,
-        because stdlib types need no import from either lane.
+        Checking the premise somebody states is not the same as checking the
+        claim. I confirmed the one path they named and never asked what else
+        could produce the state.
         """
-        assert set(Outcome) == {Outcome.FOUND, Outcome.TOMBSTONED, Outcome.MISSING}
-        assert not hasattr(Outcome, "CORRUPT")
+        assert {(o.name, o.value) for o in Outcome} == {
+            ("FOUND", "found"),
+            ("TOMBSTONED", "tombstoned"),
+            ("MISSING", "missing"),
+            ("CORRUPT", "corrupt"),
+        }
 
     def test_tombstoned_and_missing_name_opposite_repairs(self):
         """Nothing to do versus something to chase.
@@ -67,7 +72,7 @@ class TestTheThreeOutcomesCannotCollapse:
         assert "repair is upstream" in str(missing.value)
 
     def test_no_failure_is_falsy_in_a_way_that_reads_as_the_other(self):
-        for outcome in (Outcome.TOMBSTONED, Outcome.MISSING):
+        for outcome in (Outcome.TOMBSTONED, Outcome.MISSING, Outcome.CORRUPT):
             assert ResolvedText("r1", outcome).found is False
         assert ResolvedText("r1", Outcome.FOUND, "x").found is True
 
@@ -75,11 +80,11 @@ class TestTheThreeOutcomesCannotCollapse:
         """Three ways to have no text, three different repairs. A shared
         message would make the enum decorative."""
         messages = set()
-        for outcome in (Outcome.TOMBSTONED, Outcome.MISSING):
+        for outcome in (Outcome.TOMBSTONED, Outcome.MISSING, Outcome.CORRUPT):
             with pytest.raises(LookupError) as caught:
                 ResolvedText("r1", outcome).require()
             messages.add(str(caught.value))
-        assert len(messages) == 2
+        assert len(messages) == 3
 
     def test_a_new_outcome_cannot_be_added_without_a_reason_for_it(self):
         """`_WHY` is a mapping rather than a branch chain, so an outcome added
@@ -94,7 +99,7 @@ class TestTheRefTravelsWithEveryOutcome:
     """A MISSING that does not say which ref sends whoever reads it back to the
     database to find out, and that is the moment they start guessing."""
 
-    @pytest.mark.parametrize("outcome", [Outcome.TOMBSTONED, Outcome.MISSING])
+    @pytest.mark.parametrize("outcome", [Outcome.TOMBSTONED, Outcome.MISSING, Outcome.CORRUPT])
     def test_the_failure_message_names_the_ref(self, outcome):
         with pytest.raises(LookupError, match="raw/sha256/abc"):
             ResolvedText("raw/sha256/abc", outcome).require()
@@ -203,3 +208,28 @@ class TestTheDefaultRefusesRatherThanReturningNothing:
 
     def test_it_satisfies_the_protocol_so_it_can_be_the_default(self):
         assert isinstance(RefusingResolver(), RawTextResolver)
+
+
+class TestCorruptIsPresentAndWrong:
+    """Scoped tightly, per E1: absence CAUSED by corruption is still MISSING.
+    This means present-and-wrong, or the two collapse from the other side."""
+
+    def test_only_corrupt_says_the_store_is_untrustworthy(self):
+        assert ResolvedText("r1", Outcome.CORRUPT).store_is_untrustworthy
+        for other in (Outcome.TOMBSTONED, Outcome.MISSING, Outcome.FOUND):
+            text = "x" if other is Outcome.FOUND else None
+            assert not ResolvedText("r1", other, text).store_is_untrustworthy
+
+    def test_its_message_distinguishes_present_and_wrong_from_absent(self):
+        with pytest.raises(LookupError) as caught:
+            ResolvedText("r1", Outcome.CORRUPT).require()
+
+        message = str(caught.value)
+        assert "present" in message
+        assert "Absence CAUSED by corruption is still MISSING" in message
+
+    def test_it_carries_no_text(self):
+        """Present-but-wrong is still nothing a caller may read: returning the
+        bytes would hand somebody a quote from a payload known to be bad."""
+        with pytest.raises(ValueError, match="with text attached"):
+            ResolvedText("r1", Outcome.CORRUPT, "bad bytes")

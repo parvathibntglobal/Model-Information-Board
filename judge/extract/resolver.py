@@ -53,19 +53,24 @@ class Outcome(StrEnum):
     #: the store lost it or the row was written against a different store.
     MISSING = "missing"
 
-    #: NO FOURTH OUTCOME FOR CORRUPTION, and this was checked rather than
-    #: assumed - by E1 while implementing, after I had already added one.
+    #: Something is there and it does not match what it should be. The repair
+    #: is that WE CANNOT TRUST WHAT WE STORED.
     #:
-    #: `PayloadCorrupt` is raised inside `RawStore.put()` only (rawstore.py:235,
-    #: on a size mismatch against an existing key), so it cannot reach a reader.
-    #: I added a CORRUPT outcome for it and the case does not occur.
+    #: I removed this member once, after verifying E1's premise that
+    #: `PayloadCorrupt` is raised inside `RawStore.put()` only (rawstore.py:235)
+    #: and so cannot reach a reader. That verification was correct and the
+    #: conclusion was wrong: the reachable case is a DECODE FAILURE. Bytes that
+    #: are present and not valid UTF-8 are present-and-wrong by definition.
     #:
-    #: What CAN happen on a read is bytes that are present and not valid UTF-8.
-    #: That surfaces as `UnicodeDecodeError` and PROPAGATES rather than becoming
-    #: an outcome - which is the one exception that may cross this boundary,
-    #: because it is stdlib and neither lane has to import the other to catch
-    #: it. A caller crashing on a corrupt blob is recoverable; a corrupt blob
-    #: reported as MISSING sends somebody looking for a payload that is there.
+    #: Under three outcomes the reader raised `UnicodeDecodeError`, because
+    #: there was nowhere to put it. That was the best available answer while
+    #: three outcomes were all there were, and it retires now: a decode failure
+    #: maps here instead of escaping the signature.
+    #:
+    #: SCOPED TIGHTLY, per E1: absence CAUSED by corruption is still MISSING.
+    #: This means present-and-wrong, or the two collapse from the other
+    #: direction.
+    CORRUPT = "corrupt"
 
 
 @dataclass(frozen=True)
@@ -119,6 +124,17 @@ class ResolvedText:
     def found(self) -> bool:
         return self.outcome is Outcome.FOUND
 
+    @property
+    def store_is_untrustworthy(self) -> bool:
+        """CORRUPT only, and not merged into `found is False`.
+
+        A caller needs three answers rather than two: proceed, skip this
+        thread, or STOP. Missing and tombstoned are both "skip this one" and
+        say nothing about the next payload. Corrupt does - the store returned
+        bytes that are present and wrong.
+        """
+        return self.outcome is Outcome.CORRUPT
+
     def require(self) -> str:
         """The text, or a refusal naming the ref and which failure it was.
 
@@ -139,6 +155,12 @@ _WHY: dict[Outcome, str] = {
     Outcome.TOMBSTONED: (
         "The payload was deleted and its hash retained (NFR-6); nothing is "
         "broken and nothing needs repairing."
+    ),
+    Outcome.CORRUPT: (
+        "The payload is present and is not what it should be - non-UTF-8 bytes "
+        "where text was stored. Something is there and cannot be trusted, and "
+        "neither can anything else the store returns until that is understood. "
+        "Absence CAUSED by corruption is still MISSING; this is present-and-wrong."
     ),
     Outcome.MISSING: (
         "The store has no payload for this ref, which means either the store "
