@@ -391,13 +391,24 @@ def propose(
     return sorted(out, key=lambda p: (-p.total_mentions, p.canonical_id))
 
 
-def to_yaml(proposals) -> str:
+def to_yaml(
+    proposals,
+    seated_by: dict[str, str] | None = None,
+    policy: object | None = None,
+) -> str:
     """A reviewable skeleton. NOT loadable as a finished alias list.
 
     Deliberately not valid input to `load_seed_file`: every proposal carries an
     `INCOMPLETE` marker for the family surface, so a reviewer has to touch each
     entry rather than piping this into the contract. A generated list that could
     be merged unread is the failure this format exists to prevent.
+
+    `seated_by` maps a canonical id to why the tracked set holds it — `attested`
+    or `launch-window` (`collect/registry/tracked.py`). Recorded per entry
+    because it changes what a reviewer can do with the row: a model seated by
+    the launch window has no attested surface to confirm, so every surface under
+    it is a derivation, and the reviewer is supplying the judgement rather than
+    checking one. Omitted where the proposal was not cut to a tracked set.
     """
     lines = [
         "# PROPOSED alias surfaces — review required, not loadable as-is.",
@@ -418,11 +429,53 @@ def to_yaml(proposals) -> str:
         "#",
         "# Accept or reject per model. Nothing here decides anything.",
         "",
+    ]
+    # RULE 7 AT THE TOP OF THE FILE. Without the floor, `seated_by:
+    # launch-window` is unreadable: it could mean "nothing observed" or "observed
+    # below the floor", and those need different actions. A reader could not tell
+    # them apart, and neither could a check — the first version of the seating
+    # check read every launch-window row with any mentions as an error, which is
+    # 5 of 23 rows that are seated exactly as the policy intends.
+    if policy is not None:
+        lines += [
+            "# THE THRESHOLDS THESE SEATS WERE CUT WITH. A seat is not readable"
+            " without them.",
+            "policy:",
+            f"  mention_floor: {getattr(policy, 'mention_floor', 'unrecorded')}"
+            "        # at or above this, a model is seated by count",
+            f"  launch_window_days: {getattr(policy, 'launch_window_days', 'unrecorded')}"
+            "   # inside this, seated regardless of count",
+            "",
+        ]
+    lines += [
         "proposals:",
     ]
     for p in proposals:
         lines.append(f"  - canonical_id: {p.canonical_id}")
         lines.append(f"    status: {p.status}")
+        if seated_by and p.canonical_id in seated_by:
+            ground = seated_by[p.canonical_id]
+            # THREE CASES, NOT TWO. `launch-window` means "did not clear the
+            # mention floor" — `cli.py` sets it whenever `BY_MENTIONS` is absent
+            # — and that is NOT the same as "nothing was observed". A model with
+            # 13 mentions against a floor of 20 is seated by the window and is
+            # attested, so the two-case version asserted "no attested surface"
+            # on a row whose very next line read `attested 13 mentions`. False
+            # on 5 of 23 launch-window entries, and rule 4 exactly: an absence
+            # claimed where evidence exists.
+            if ground == "attested":
+                note = "# the corpus attests this model"
+            elif p.attested:
+                note = (
+                    "# inside the launch window AND below the mention floor: "
+                    "attested, but not by enough to seat it"
+                )
+            else:
+                note = (
+                    "# released inside the launch window; no attested surface, "
+                    "so every form below is derived"
+                )
+            lines.append(f"    seated_by: {ground}".ljust(38) + note)
         if p.attested:
             note = f"# attested {p.attested[0].mentions} mentions"
             if p.surface in p.by_rule:

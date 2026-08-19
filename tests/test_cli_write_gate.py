@@ -32,6 +32,12 @@ READ_ONLY = {
     "_cmd_registry_aliases",
     "_cmd_registry_propose_aliases",
     "_cmd_triage_population",
+    # Reads a surface extract and SELECTs the registry; prints the curve and the
+    # set. Writes nothing at all — not a row, and unlike `propose-aliases`, not
+    # even a file. So it is classified rather than gated, which is the whole
+    # point of this set being explicit: the answer to "does this need `_gate`"
+    # is recorded here rather than left to whoever reads the function next.
+    "_cmd_registry_tracked_set",
     # Runs the checks AS its purpose, and reports instead of raising.
     "_cmd_ops_preflight",
     # Runs the chain, whose first stage is preflight.

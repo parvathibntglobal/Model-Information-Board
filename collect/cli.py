@@ -5,6 +5,8 @@
     py -3 -m collect.cli registry aliases
     py -3 -m collect.cli registry load-seed --dry-run
     py -3 -m collect.cli registry load-seed --allow-unsourced
+    py -3 -m collect.cli registry tracked-set --surfaces F --mention-floor N \
+        --launch-window-days D
 
 Cron calls these. There is no scheduler here and there will not be one — a
 jobs table and cron is enough for eight scheduled jobs.
@@ -15,6 +17,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
+from datetime import date
 from pathlib import Path
 
 from collect.config import settings
@@ -186,33 +189,156 @@ def _cmd_registry_propose_aliases(args: argparse.Namespace) -> int:
     counted from stored documents when a surface file is supplied. Without one it
     still runs and every entry reads `mechanical-only`, which is "recall
     unmeasured" rather than "nobody discusses this model".
+
+    Over the whole registry by default. `--mention-floor` and
+    `--launch-window-days` narrow it to the tracked set (#33) — both required
+    together, because a floor without a window silently drops every model too new
+    to have been discussed, and a window without a floor is a date sort.
     """
     import json
 
     from collect.db import connect
-    from collect.registry.propose import Attested, propose, summarise, to_yaml
+    from collect.registry.propose import propose, summarise, to_yaml
+    from collect.registry.tracked import (
+        BY_MENTIONS,
+        TrackedSetPolicy,
+        attributable,
+        select,
+    )
+    from collect.registry.tracked import summarise as summarise_selection
 
-    observed: dict[str, list[Attested]] = {}
-    if args.surfaces:
-        for row in json.loads(Path(args.surfaces).read_text(encoding="utf-8")):
-            if row.get("verdict") in ("resolved", "attested-gap") and len(row["models"]) == 1:
-                observed.setdefault(row["models"][0], []).append(
-                    Attested(row["surface"], row["mentions"], row.get("documents", 0))
-                )
+    observed = (
+        attributable(json.loads(Path(args.surfaces).read_text(encoding="utf-8")))
+        if args.surfaces
+        else {}
+    )
 
     conn = connect()
     try:
-        models = conn.execute(
-            "SELECT canonical_id, display_name FROM model_version ORDER BY canonical_id"
+        rows = conn.execute(
+            "SELECT canonical_id, display_name, release_date FROM model_version "
+            "ORDER BY canonical_id"
         ).fetchall()
     finally:
         conn.close()
 
+    scoped = args.mention_floor is not None or args.launch_window_days is not None
+    if scoped:
+        if args.mention_floor is None or args.launch_window_days is None:
+            print(
+                "--mention-floor and --launch-window-days must be given together. "
+                "A floor alone drops every model released too recently to have "
+                "been discussed; a window alone is a date sort, and the feed "
+                "carries routing entries whose release_date is when a pointer "
+                "moved rather than when anything launched.",
+                file=sys.stderr,
+            )
+            return 2
+        if not args.surfaces:
+            print(
+                "--mention-floor needs --surfaces. Without an extract every model "
+                "is unmeasured, so a floor would select nothing by count and the "
+                "set would be the launch window alone.",
+                file=sys.stderr,
+            )
+            return 2
+        # Named rather than inlined so the SAME object reaches both the selection
+        # and the artifact. Two constructions from the same args would drift the
+        # moment one gained a default.
+        set_policy = TrackedSetPolicy(
+            mention_floor=args.mention_floor,
+            launch_window_days=args.launch_window_days,
+        )
+        selection = select(
+            rows,
+            observed,
+            policy=set_policy,
+            as_of=date.today(),
+            basis={"surfaces": args.surfaces},
+        )
+        print(summarise_selection(selection))
+        print()
+        models = [(m.canonical_id, m.display_name) for m in selection.tracked]
+        # Grounds travel into the artifact, AND SO DOES THE POLICY. `launch-window`
+        # means "did not clear the mention floor" - which is not "unobserved" - so
+        # a reader who cannot see the floor cannot tell those apart, and neither
+        # can a check. Rule 7 at the top of the generated file.
+        grounds = {
+            m.canonical_id: ("attested" if BY_MENTIONS in m.grounds else "launch-window")
+            for m in selection.tracked
+        }
+    else:
+        models = [(r[0], r[1]) for r in rows]
+        grounds = {}
+        set_policy = None
+
     proposals = propose(models, observed)
     print(summarise(proposals))
     if args.out:
-        Path(args.out).write_text(to_yaml(proposals), encoding="utf-8")
+        Path(args.out).write_text(
+            to_yaml(proposals, seated_by=grounds, policy=set_policy), encoding="utf-8"
+        )
         print(f"wrote {args.out} — review required, not loadable as-is")
+    return 0
+
+
+def _cmd_registry_tracked_set(args: argparse.Namespace) -> int:
+    """Report the tracked set and the mention curve it was cut from (#33).
+
+    Prints rather than writes. The count is a contract decision, so this shows
+    where the curve flattens and leaves the number to a person.
+    """
+    import json
+
+    from collect.db import connect
+    from collect.registry.tracked import (
+        TrackedSetPolicy,
+        attributable,
+        distribution,
+        select,
+        summarise,
+    )
+
+    observed = attributable(
+        json.loads(Path(args.surfaces).read_text(encoding="utf-8"))
+    )
+
+    conn = connect()
+    try:
+        rows = conn.execute(
+            "SELECT canonical_id, display_name, release_date FROM model_version "
+            "ORDER BY canonical_id"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    selection = select(
+        rows,
+        observed,
+        policy=TrackedSetPolicy(
+            mention_floor=args.mention_floor,
+            launch_window_days=args.launch_window_days,
+        ),
+        as_of=date.today(),
+        basis={
+            "platform": args.platform,
+            "documents": args.documents,
+            "surfaces": args.surfaces,
+        },
+    )
+    print(summarise(selection))
+    print()
+    print(distribution(selection))
+    if args.verbose:
+        print()
+        print("  rank  mentions  surfaces  seated by            model")
+        for i, m in enumerate(selection.tracked, 1):
+            mentions = "unmeasured" if m.mentions is None else str(m.mentions)
+            surfaces = "-" if m.surfaces is None else str(m.surfaces)
+            print(
+                f"  {i:>4}  {mentions:>10}  {surfaces:>8}  "
+                f"{'+'.join(m.grounds):<20} {m.canonical_id}"
+            )
     return 0
 
 
@@ -383,6 +509,14 @@ def build_parser() -> argparse.ArgumentParser:
     propose_aliases.add_argument(
         "--surfaces", help="surface-extract JSON; omitted means recall unmeasured")
     propose_aliases.add_argument("--out", help="write the reviewable skeleton here")
+    propose_aliases.add_argument(
+        "--mention-floor", type=int,
+        help="narrow to the tracked set: attested mentions to qualify by count. "
+        "Requires --launch-window-days and --surfaces.")
+    propose_aliases.add_argument(
+        "--launch-window-days", type=int,
+        help="days since release inside which a model qualifies regardless of "
+        "mentions. Requires --mention-floor.")
     propose_aliases.set_defaults(func=_cmd_registry_propose_aliases)
 
     ops = sub.add_parser("ops", help="the nightly chain and its checks")
@@ -396,6 +530,24 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-database", action="store_true",
         help="run without a connection; every stage that needs one refuses and says so")
     ops_run.set_defaults(func=_cmd_ops_run)
+
+    tracked = reg_sub.add_parser(
+        "tracked-set",
+        help="which models get swept, and the mention curve it was cut from (#33)")
+    tracked.add_argument("--surfaces", required=True, help="surface-extract JSON")
+    tracked.add_argument(
+        "--mention-floor", type=int, required=True,
+        help="attested mentions at or above which a model qualifies by count")
+    tracked.add_argument(
+        "--launch-window-days", type=int, required=True,
+        help="days since release inside which a model qualifies regardless")
+    # Rule 7: the extract's denominator is not derivable from the extract, so
+    # the caller states it and it is printed beside every figure.
+    tracked.add_argument(
+        "--documents", type=int, help="documents the extract was drawn from")
+    tracked.add_argument("--platform", help="platform the extract was drawn from")
+    tracked.add_argument("-v", "--verbose", action="store_true", help="list the set")
+    tracked.set_defaults(func=_cmd_registry_tracked_set)
 
     aliases = reg_sub.add_parser("aliases", help="alias rows and collisions")
     aliases.add_argument("-v", "--verbose", action="store_true")
