@@ -38,6 +38,7 @@ from judge.extract.client import (
     ExtractionClient,
     tool_schema_for,
 )
+from judge.extract.placeholder import has_nothing_to_extract
 from judge.extract.prompt import build_system_prompt, wrap_untrusted
 from judge.extract.schema import ExtractedClaim, ExtractionResult
 from judge.extract.verify import OffsetMapping, Rejection, VerifiedQuote, verify
@@ -106,6 +107,19 @@ def extract(
     document is a batch that never finishes.
     """
     run = ExtractionRun(thread_context_id=thread.thread_context_id)
+
+    # BEFORE the model call. A thread of nothing but `[removed]` bodies costs a
+    # call that can only produce a verbatim quote of a platform tombstone -
+    # rule 1 holding perfectly over text that means nothing. Reported as a
+    # no-claim reason rather than raised: it is a fact about the thread, not a
+    # failure, and a batch must not stop on it.
+    if has_nothing_to_extract(thread.raw_text_of):
+        run.no_claim_reason = (
+            "every document in this thread is a platform placeholder "
+            "(`[removed]` or `[deleted]`), so there is nothing to quote. No "
+            "model call was made."
+        )
+        return run
 
     try:
         user_message = wrap_untrusted(thread.flattened_text)

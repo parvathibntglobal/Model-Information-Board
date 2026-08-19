@@ -146,6 +146,28 @@ Verifying flattened offsets against the raw document either fails on everything
 or **silently passes against the wrong text**. Get this right or nothing else
 in the product means anything.
 
+### Rule 1 can hold perfectly over text that means nothing
+
+The guarantee is about FIDELITY. It says nothing about CONTENT, and the two
+come apart at a platform tombstone.
+
+`[removed]` is nine characters of real text. A quote of it passes step 1 as an
+exact substring, resolves through step 2 to the right document and the right
+author, and renders in step 3 as what was written - because it is. Every step
+is correct and the claim is worthless.
+
+Verification cannot see this, and not through any gap: **there is no
+difference to see.** It is the same shape as a verified quote being what we
+were GIVEN rather than what was PUBLISHED, one axis over - that one is fidelity
+to a source, this one is a source that says nothing.
+
+So the skip lives in `judge/extract/placeholder.py`, BEFORE the model call:
+cheaper than verifying afterwards, and a check a later caller cannot bypass.
+`collect/` marks these at parse time - Reddit setting a body to exactly
+`[removed]` is a fact about the platform, a person typing those characters is
+a coincidence - and this lane will read that mark once
+`document_status_ck` permits `'removed'`, which today it does not.
+
 ### The boundary of that guarantee, and it is not where it looks
 
 **Step 3 renders "the raw span". `raw` there means the text `collect/` stored
