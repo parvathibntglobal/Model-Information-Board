@@ -152,6 +152,26 @@ def last_run(conn, stage: str) -> tuple[datetime, str | None] | None:
 # could be computed, no budget stop could be told from an empty sweep, and
 # `assert_no_phantom_sweeps` had a permanently-zero operand.
 #
+# WHAT TWO PHASES STILL CANNOT SAY, AND IT NEEDS A CONTRACT DECISION.
+# `harvest_run` has no `outcome` column - the eleven are id, source_id, query_key,
+# started_at, finished_at, items_fetched, items_kept, http_errors, exhausted,
+# truncated_by, pipeline_version. So three states share one shape once the row is
+# closed:
+#
+#     refused by the terms gate before any request   items_fetched = 0
+#     ran, and the platform returned nothing        items_fetched = 0
+#     ran, and everything was filtered out          items_fetched > 0, kept = 0
+#
+# The third is distinguishable and the first two are not. `truncated_by` cannot
+# carry it: its vocabulary is five caps and a refusal is not a cap. Leaving a
+# refused sweep OPEN would conflate it with a killed process, which is the one
+# thing the two phases exist to keep apart.
+#
+# So FR-10's "attempted and refused" is recordable only as far as the row's
+# EXISTENCE, and `harvest_run_fields()` already carries an `outcome` key with
+# nowhere to live. That is the proposal - a column, not a convention - and it is
+# contract/, so it is flagged rather than taken.
+#
 # IT DEPENDS ON `source`, WHICH IS ITSELF UNWIRED. `harvest_run.source_id`
 # REFERENCES `source(id)`, and `source` holds 0 rows on staging because
 # `load_source_rows` has no caller either. So this writer refuses with a sentence
@@ -185,36 +205,36 @@ class UnknownSource(RuntimeError):
     """`harvest_run.source_id` names a `source` row that does not exist."""
 
 
-def write_harvest_run(conn, fields: dict[str, Any]) -> str:
-    """Insert one `harvest_run` row from any adapter's `harvest_run_fields()`.
+@dataclass(frozen=True)
+class OpenHarvest:
+    """A `harvest_run` row that exists and has not finished. Mirrors `OpenRun`."""
 
-    Takes the dict the adapters already build rather than their run objects, so
-    one writer serves all three platforms and the shape stays their business.
+    id: str
+    source_id: str
+    query_key: str
+    started_at: datetime
 
-    `ON CONFLICT DO NOTHING` on the id, which is derived from
-    `(source_id, query_key, started_at)`: re-running a driver over the same
-    completed sweep is a legitimate no-op, and a second row would double every
-    yield figure computed off this table.
 
-    Refuses rather than letting the foreign key fire, because `source` is
-    currently empty and `23503 insert or update on table "harvest_run" violates
-    foreign key constraint` reads as a bug in this writer rather than as a
-    missing loader upstream.
+def open_harvest_run(conn, fields: dict[str, Any]) -> OpenHarvest:
+    """Insert the row BEFORE the fetch, with `finished_at` NULL.
+
+    TWO PHASES, FOR THE REASON `job_run` HAS TWO. One statement at the end cannot
+    represent the state that matters most: **a process that dies cannot write its
+    own failure.** A killed sweep leaves `finished_at IS NULL`, and that absence is
+    the only carrier of "started and never came back".
+
+    It also settles the terms question. The row exists before the first request,
+    so a sweep the terms gate refuses has a record saying it was ATTEMPTED — which
+    FR-10 needs distinguishable from a sweep that ran and found nothing. A
+    single-statement writer can express neither, because it never runs.
+
+    Refuses when the `source` row is absent, upstream of the foreign key: `source`
+    holds 0 rows because `load_source_rows` has no caller, and `23503` would name
+    this writer instead of that loader.
     """
-    unknown = set(fields) - set(_HARVEST_RUN_COLUMNS) - _PROPOSED_NOT_IN_SCHEMA
-    if unknown:
-        raise ValueError(
-            f"harvest_run_fields() carried {sorted(unknown)}, which is neither a "
-            f"column of harvest_run nor a known proposal. Add the column to "
-            f"contract/tables.sql, or add the key to _PROPOSED_NOT_IN_SCHEMA "
-            f"with the reason it has nowhere to live."
-        )
-
+    _reject_unknown_keys(fields)
     source_id = fields["source_id"]
-    exists = conn.execute(
-        "SELECT 1 FROM source WHERE id = %s", (source_id,)
-    ).fetchone()
-    if not exists:
+    if not conn.execute("SELECT 1 FROM source WHERE id = %s", (source_id,)).fetchone():
         raise UnknownSource(
             f"no source row for {source_id!r}, so this harvest cannot be "
             "recorded. `harvest_run.source_id` references `source(id)`, and "
@@ -223,14 +243,64 @@ def write_harvest_run(conn, fields: dict[str, Any]) -> str:
             "key violation, not a substitute for one."
         )
 
-    row = {k: fields.get(k) for k in _HARVEST_RUN_COLUMNS}
-    row.setdefault("pipeline_version", settings().pipeline_version)
-    columns = ", ".join(_HARVEST_RUN_COLUMNS)
-    placeholders = ", ".join(f"%({c})s" for c in _HARVEST_RUN_COLUMNS)
+    started_at = fields.get("started_at") or datetime.now(UTC)
+    row = {
+        "id": fields["id"],
+        "source_id": source_id,
+        "query_key": fields["query_key"],
+        "started_at": started_at,
+        "pipeline_version": fields.get("pipeline_version") or settings().pipeline_version,
+    }
     conn.execute(
-        f"INSERT INTO harvest_run ({columns}) VALUES ({placeholders}) "  # noqa: S608
+        "INSERT INTO harvest_run (id, source_id, query_key, started_at, pipeline_version) "
+        "VALUES (%(id)s, %(source_id)s, %(query_key)s, %(started_at)s, %(pipeline_version)s) "
         "ON CONFLICT (id) DO NOTHING",
         row,
     )
-    return row["id"]
+    return OpenHarvest(
+        id=row["id"], source_id=source_id, query_key=row["query_key"], started_at=started_at
+    )
 
+
+def close_harvest_run(conn, open_harvest: OpenHarvest, fields: dict[str, Any]) -> str:
+    """Fill in what the sweep did. Only ever called by a process still alive.
+
+    `finished_at` and the counts move together, the same way `job_run_finish_ck`
+    makes them move together there: a row carrying counts and no finish time would
+    claim a result for a sweep that never reported one.
+
+    **`items_fetched = 0` IS WRITTEN, NOT LEFT NULL.** Zero is a measurement — the
+    sweep ran and the platform returned nothing — and NULL is reserved for the
+    sweep that never came back. Same distinction as E4's `unavailable` against
+    `not_applicable`, one table over.
+    """
+    _reject_unknown_keys(fields)
+    row = {
+        "id": open_harvest.id,
+        "finished_at": fields.get("finished_at") or datetime.now(UTC),
+        "items_fetched": fields.get("items_fetched") or 0,
+        "items_kept": fields.get("items_kept") or 0,
+        "http_errors": fields.get("http_errors") or 0,
+        "exhausted": fields.get("exhausted"),
+        "truncated_by": fields.get("truncated_by"),
+    }
+    conn.execute(
+        "UPDATE harvest_run SET finished_at = %(finished_at)s, "
+        "items_fetched = %(items_fetched)s, items_kept = %(items_kept)s, "
+        "http_errors = %(http_errors)s, exhausted = %(exhausted)s, "
+        "truncated_by = %(truncated_by)s WHERE id = %(id)s",
+        row,
+    )
+    return open_harvest.id
+
+
+def _reject_unknown_keys(fields: dict[str, Any]) -> None:
+    """A key that is neither a column nor a known proposal is a decision nobody made."""
+    unknown = set(fields) - set(_HARVEST_RUN_COLUMNS) - _PROPOSED_NOT_IN_SCHEMA
+    if unknown:
+        raise ValueError(
+            f"harvest_run_fields() carried {sorted(unknown)}, which is neither a "
+            "column of harvest_run nor a known proposal. Add the column to "
+            "contract/tables.sql, or add the key to _PROPOSED_NOT_IN_SCHEMA with "
+            "the reason it has nowhere to live."
+        )

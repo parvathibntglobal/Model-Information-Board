@@ -12,7 +12,11 @@ from datetime import UTC, datetime
 
 import pytest
 
-from collect.ops.ledger import UnknownSource, write_harvest_run
+from collect.ops.ledger import (
+    UnknownSource,
+    close_harvest_run,
+    open_harvest_run,
+)
 
 
 class FakeConn:
@@ -59,17 +63,52 @@ def fields(**over):
     return base
 
 
-def test_a_run_is_recorded_and_the_proposed_keys_are_dropped():
-    """The row inserts, and the two homeless fields do not reach the statement."""
+def test_the_row_exists_before_the_fetch_with_no_finish_time():
+    """Phase one. The record of an ATTEMPT, which is what a killed sweep leaves.
+
+    A single statement at the end can only record sweeps that finished, so the
+    two states FR-10 most needs apart — attempted-and-died, attempted-and-refused
+    — would both be absence.
+    """
     conn = FakeConn()
 
-    returned = write_harvest_run(conn, fields())
+    opened = open_harvest_run(conn, fields())
 
-    assert returned == "hr_abc123"
+    assert opened.id == "hr_abc123"
     insert = next(s for s, _ in conn.statements if "INSERT INTO harvest_run" in s)
-    assert "outcome" not in insert
-    assert "sieve_pass_rate" not in insert
+    assert "finished_at" not in insert, "phase one must leave finished_at NULL"
+    assert "items_fetched" not in insert
     assert "ON CONFLICT (id) DO NOTHING" in insert
+    assert "outcome" not in insert and "sieve_pass_rate" not in insert
+
+
+def test_closing_sets_the_counts_and_the_finish_time_together():
+    """Phase two. They move together, as `job_run_finish_ck` makes them there."""
+    conn = FakeConn()
+    opened = open_harvest_run(conn, fields())
+
+    close_harvest_run(conn, opened, fields())
+
+    update = next(s for s, _ in conn.statements if s.startswith("UPDATE harvest_run"))
+    for column in ("finished_at", "items_fetched", "items_kept", "http_errors",
+                   "exhausted", "truncated_by"):
+        assert column in update
+    assert "outcome" not in update and "sieve_pass_rate" not in update
+
+
+def test_a_sweep_that_fetched_nothing_records_zero_rather_than_null():
+    """Zero is a measurement; NULL is reserved for the sweep that never returned."""
+    conn = FakeConn()
+    opened = open_harvest_run(conn, fields())
+
+    close_harvest_run(conn, opened, fields(items_fetched=0, items_kept=0))
+
+    _sql, params = next(
+        (s, p) for s, p in conn.statements if s.startswith("UPDATE harvest_run")
+    )
+    assert params["items_fetched"] == 0
+    assert params["items_kept"] == 0
+    assert params["finished_at"] is not None
 
 
 def test_it_refuses_when_the_source_row_is_absent():
@@ -82,7 +121,7 @@ def test_it_refuses_when_the_source_row_is_absent():
     conn = FakeConn(known=set())
 
     with pytest.raises(UnknownSource) as refusal:
-        write_harvest_run(conn, fields())
+        open_harvest_run(conn, fields())
 
     assert "load_source_rows" in str(refusal.value)
     assert not any("INSERT INTO harvest_run" in s for s, _ in conn.statements)
@@ -96,7 +135,7 @@ def test_a_key_that_is_neither_a_column_nor_a_known_proposal_fails():
     filter.
     """
     with pytest.raises(ValueError, match="neither a column"):
-        write_harvest_run(FakeConn(), fields(surprise_metric=1))
+        open_harvest_run(FakeConn(), fields(surprise_metric=1))
 
 
 def test_every_column_the_contract_declares_is_set_by_this_writer():
