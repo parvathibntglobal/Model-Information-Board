@@ -241,16 +241,17 @@ class TestAMirroredEnumFromTheOtherLaneNormalises:
         with pytest.raises(ValueError, match="not a valid Outcome"):
             ResolvedText("raw/x", "nonsense")
 
-    def test_the_mirrored_enum_is_missing_our_fourth_value(self):
-        """Recorded rather than worked around: `ReadOutcome` has three values
-        and this has four, so the reader cannot yet REPORT corruption even
-        though this lane can represent it.
+    def test_the_drift_guard_belongs_to_the_other_lane_and_already_exists(self):
+        """`tests/test_rawstore_reader.py::test_the_two_outcome_enums_have_the
+        _same_members_and_values` is E1's, and adding CORRUPT here made it fail
+        - which is the guard working, not a problem with it.
 
-        The normalisation above means nothing breaks - a corrupt payload simply
-        arrives as MISSING, which is the defect E1 asked for CORRUPT to fix,
-        surviving in the other half of the pair. Their side to close.
+        The first version of THIS test asserted `not hasattr(ReadOutcome,
+        "CORRUPT")`, recording the drift as a fact. That is a test which breaks
+        on the FIX: it would go red the moment E1 widens their enum, so it
+        pushes back against the change it exists to prompt. Deleted, and only
+        the thing that is durably true is asserted here.
         """
-        from collect.rawstore_reader import ReadOutcome
+        import tests.test_rawstore_reader as guard
 
-        assert not hasattr(ReadOutcome, "CORRUPT")
-        assert hasattr(Outcome, "CORRUPT")
+        assert hasattr(guard, "test_the_two_outcome_enums_have_the_same_members_and_values")
