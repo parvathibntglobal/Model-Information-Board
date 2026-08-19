@@ -139,8 +139,15 @@ These are the rules a helpful refactor will otherwise quietly violate.
   fully re-runnable and diffable.
 - Raw payloads are immutable and content-hash addressed. Reprocess from there
   rather than re-fetching.
-- Seeded and hand-curated rows carry `provenance`. `collect/registry/assertions.py`
-  provides `assert_no_fixtures()` and `assert_contract_backed()` to refuse them.
+- Seeded and hand-curated rows carry `provenance`, and **every write path
+  refuses them outside `development`**. `collect/registry/assertions.py` holds
+  the four checks; `collect/ops/preflight.py` runs them; two callers invoke it.
+
+  ```
+  collect/ops/chain.py    stage 1 of the nightly chain, before anything writes
+  collect/cli.py:_gate    on WRITE commands only - db init, db migrate,
+                          registry load-seed, registry recompute-window
+  ```
 
   **Both are wired, since 2026-08-18.** `collect/ops/preflight.py` calls them
   and `collect/cli.py` runs `preflight()` before a command touches a database.
@@ -162,6 +169,14 @@ These are the rules a helpful refactor will otherwise quietly violate.
 
   `assert_terms_reviewed()` was already wired -
   `collect/adapters/blog/fetch.py` and `scripts/harvest_github.py`.
+
+  `assert_no_fixtures()` reads three tables: `model_version.provenance = 'seed'`,
+  `cell.provenance = 'hand_curated'`, and
+  `reported_context.provenance = 'hand_seeded'`. The third is FR-31's protection
+  and the one worth naming, because `reported_low` is a hard filter: a wrong
+  `cell` renders as a phrase somebody can argue with, a wrong `reported_low`
+  renders as an absence, and nobody audits a model that was never in the list.
+  Verified firing against a real database, not only present in the source.
 
   **This entry has now been wrong three times and each correction was smaller
   than the last.** It said "Production asserts on startup that none are

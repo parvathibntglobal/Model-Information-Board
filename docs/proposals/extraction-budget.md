@@ -191,3 +191,63 @@ first paid call will be made against an extractor measured by nothing.
 - **A tiered extractor.** If `EXTRACTOR_MODEL` ever moves to a model with
   `price_tier` rows, §1's check has to be re-run — `price_in` will read NULL and
   the naive calculation gives zero.
+
+---
+
+## 8 · For Engineer 2, before §4's estimate hardens into a constant
+
+**Not a change to this proposal. A pattern that has now happened twice, and
+§4's `~2k tokens` is positioned to be the third.**
+
+On 2026-08-18 the Reddit quota limit was read off a response for the first time.
+It had been `1,000,000` in six places — an adapter docstring, `.env.example`,
+`contract/sources.yaml`, two design documents and the terms ruling — and every
+one of those traced back to a single docstring line added in the same commit as
+the fetch path, never to an observation. The plan page said 500,000. The
+arithmetic gave it away independently: `733 of 1,140 consumed` produced
+**−499,267** when the denominator was swapped, and a figure that goes negative
+when its denominator changes was a subtraction from a constant rather than a
+count.
+
+**The reading agreed with the constant. It was 1,000,000.** That is the part
+worth carrying over here, because a wrong constant gets caught eventually and a
+*right* one never does — nothing prompts anyone to revisit a number that keeps
+producing plausible answers. The method was unsound for a fortnight and the
+output looked fine the whole time.
+
+### Why this lands on §4 specifically
+
+§0's table already says `tokens/extraction` is **estimated, never observed**,
+sourced to BUILD-PLAN's *"~2k"* plus n=2. That is the honest version and it is
+exactly the state `1,000,000` was in before it acquired citations. The failure
+mode is not the estimate; it is what happens next:
+
+| stage | quota limit | `~2k tokens` |
+|---|---|---|
+| stated once, labelled | docstring, with `-limit` named beside it | §4, labelled "weakest input" |
+| cited elsewhere | five documents | pending — this is the point of intervening now |
+| load-bearing | headroom in two sweep designs | `EXTRACTION_DAILY_BUDGET_USD` |
+| checkable by | one call | one real extraction run (§7) |
+
+Once `30` is in `.env` and a document says "3.8× the worst realistic night", the
+`~2k` stops being visible as the term carrying the uncertainty. It becomes a
+property of the budget rather than an input to it, and the budget will keep
+looking right whether the true figure is 2k or 6k, because a ceiling absorbs
+error silently in the direction that does not alarm anyone.
+
+### The check that catches it, and it needs no suspicion
+
+Rule 7's version: ask what the denominator is and where it came from. The
+quota-limit version: **ask which of these numbers has been read, and off what.**
+For §4 that question has a concrete answer and a cheap price — one real
+extraction run, already §7's first bullet. It is worth doing *before* the figure
+is committed rather than after, on the evidence that the last unsourced constant
+survived five citations and a fortnight and was only caught because somebody
+asked what a percentage was a percentage of.
+
+Not urgent for the same reason the quota was not: the margin is generous, ~3.8×,
+so being 3× wrong on tokens does not breach the ceiling. Cheap now, and the
+expensive version is the one where the constant is right and nobody rechecks.
+
+Full write-up of the quota case, including what one live call could and could not
+settle: `docs/measurements/reddit-rate-and-quota.md` §1.4.

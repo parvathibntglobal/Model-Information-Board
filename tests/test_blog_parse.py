@@ -19,6 +19,7 @@ require_feed_libraries()
 from collect.adapters.blog.options import (  # noqa: E402
     DEFAULT_EXTRACTION,
     ExtractionOptions,
+    UnrosteredOption,
 )
 from collect.adapters.blog.parse import (  # noqa: E402
     NotBytesError,
@@ -201,6 +202,87 @@ def test_extraction_version_moves_with_the_options():
     assert baseline.startswith("trafilatura-")
 
 
+def test_the_pipeline_generation_reaches_the_version_and_the_fingerprint():
+    """The gap this closes: our own steps moving offsets under one identifier.
+
+    `pipeline` is not a trafilatura option, so nothing about trafilatura's
+    version or options moves when it changes. It has to move BOTH halves of the
+    identifier - the legible component and the opts hash - or a reader has two
+    values that can disagree about the same field.
+    """
+    baseline = current_extraction_version()
+    bumped = current_extraction_version(ExtractionOptions(pipeline=2))
+
+    assert "+pipeline-1+" in baseline
+    assert "+pipeline-2+" in bumped
+    assert DEFAULT_EXTRACTION.fingerprint() != ExtractionOptions(pipeline=2).fingerprint()
+
+
+def test_pipeline_is_fingerprinted_and_not_passed():
+    """Both facts about one field, asserted together because they are a pair.
+
+    Fingerprinted and passed is what a trafilatura option is; fingerprinted and
+    not passed is what ours is. A field that is neither is the failure below.
+    """
+    assert "pipeline" not in DEFAULT_EXTRACTION.as_kwargs()
+    assert "pipeline" in {
+        pair.split("=")[0]
+        for pair in _fingerprint_payload(DEFAULT_EXTRACTION)
+    }
+
+
+def _fingerprint_payload(options: ExtractionOptions) -> list[str]:
+    """What `fingerprint()` hashes, rebuilt from the same rostered fields.
+
+    Reaches into a private method on purpose: the alternative is asserting that
+    two hashes differ, which cannot say WHICH field made the difference.
+    """
+    return [f"{key}={value}" for key, value in sorted(options._rostered().items())]
+
+
+def test_an_option_in_neither_roster_refuses_rather_than_being_folded_in():
+    """The difference between a fingerprint and a hash of whatever is in the dict.
+
+    A new field arriving silently is the shape this whole change is about: the
+    identifier keeps its meaning only while what it ranges over is declared.
+    Silently including an unknown field would still change the hash, which is
+    why this is easy to get wrong - the value moves, so it looks like it worked,
+    and nothing states whether the field reaches trafilatura.
+    """
+    from dataclasses import dataclass
+
+    @dataclass(frozen=True)
+    class WithAnUndeclaredStep(ExtractionOptions):
+        strip_footnote_links: bool = True
+
+    with pytest.raises(UnrosteredOption) as refusal:
+        WithAnUndeclaredStep().fingerprint()
+
+    assert "strip_footnote_links" in str(refusal.value)
+    assert "_PIPELINE_KEYS" in str(refusal.value)
+
+
+def test_a_roster_entry_with_no_field_behind_it_refuses(monkeypatch):
+    """The quiet direction: the roster over-claims and the hash still moves.
+
+    Removing a field changes the fingerprint, so nothing looks wrong from
+    outside while the set of inputs it covers has shrunk. This is the check
+    that makes the roster a statement about coverage rather than a comment.
+    """
+    from collect.adapters.blog import options as options_module
+
+    monkeypatch.setattr(
+        options_module,
+        "_PIPELINE_KEYS",
+        frozenset({"pipeline", "strip_footnote_links"}),
+    )
+
+    with pytest.raises(UnrosteredOption) as refusal:
+        DEFAULT_EXTRACTION.fingerprint()
+
+    assert "strip_footnote_links" in str(refusal.value)
+
+
 def test_every_option_reaches_trafilatura(monkeypatch):
     """The call site lists options explicitly, so it can drift from the dataclass.
 
@@ -210,6 +292,7 @@ def test_every_option_reaches_trafilatura(monkeypatch):
     `ExtractionOptions` that nobody wired up fails here rather than being
     silently ignored at extraction time.
     """
+    from collect.adapters.blog import options as options_module
     from collect.adapters.blog import parse as parse_module
 
     captured: dict[str, object] = {}
@@ -223,3 +306,7 @@ def test_every_option_reaches_trafilatura(monkeypatch):
 
     passed = {key: value for key, value in captured.items() if key != "url"}
     assert passed == DEFAULT_EXTRACTION.as_kwargs()
+    # `as_kwargs` is now a filtered view rather than the whole dataclass, so
+    # this asserts the roster too: a trafilatura option dropped from
+    # `_TRAFILATURA_KEYS` would vanish from both sides and pass silently.
+    assert set(passed) == set(options_module._TRAFILATURA_KEYS)

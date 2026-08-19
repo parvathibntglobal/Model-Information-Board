@@ -30,6 +30,7 @@ from collect.triage.gates import (
     PURE_LINK,
     TOO_SHORT,
     Document,
+    NotRun,
     Verdict,
     known_bot,
     out_of_window,
@@ -128,17 +129,40 @@ def test_a_declared_only_surface_carries_no_owner_rather_than_a_guessed_one():
     assert pop.owners.get("deepseek r1") is None
 
 
-# ── gates that cannot run return None, never False ───────────────────────
+# ── gates that produce no verdict say WHICH KIND of nothing ──────────────
+#
+# Never False, and since 2026-08-19 never a bare None either. `UNAVAILABLE` is
+# a build defect that a fix clears for every document at once; `NOT_APPLICABLE`
+# is a property of the document and permanent. Each test below names one.
 
 
 def test_language_is_unavailable_with_no_allow_list():
-    assert wrong_language(doc("hello"), allowed=None) is None
+    """Nothing is configured. Configuring it fixes the whole corpus."""
+    assert wrong_language(doc("hello"), allowed=None) is NotRun.UNAVAILABLE
 
 
-def test_language_is_unavailable_when_the_document_has_no_detected_language():
-    """`document.lang` is nullable and nothing populates it. Treating NULL as
-    English would pass every document while looking like a gate."""
-    assert wrong_language(doc("hello", lang=None), allowed=frozenset({"en"})) is None
+def test_language_is_not_applicable_when_the_document_has_no_detected_language():
+    """`document.lang` is nullable. Treating NULL as English would pass every
+    document while looking like a gate.
+
+    The allow-list is supplied here on purpose: with `allowed=None` the gate
+    reports UNAVAILABLE first, which is the truthful answer while no detector
+    exists. This test is about the OTHER branch, and it is the one that starts
+    firing per-document once a detector lands."""
+    assert (
+        wrong_language(doc("hello", lang=None), allowed=frozenset({"en"}))
+        is NotRun.NOT_APPLICABLE
+    )
+
+
+def test_a_missing_allow_list_outranks_a_missing_language():
+    """Order matters: a build defect must not be reported as permanent.
+
+    Both are absent today. Reporting NOT_APPLICABLE would say "these documents
+    cannot be language-gated", when the truth is "nobody has configured or
+    installed anything yet" - a defect that hides itself by looking permanent.
+    """
+    assert wrong_language(doc("hello", lang=None), allowed=None) is NotRun.UNAVAILABLE
 
 
 def test_language_drops_only_on_a_real_detection():
@@ -148,20 +172,28 @@ def test_language_drops_only_on_a_real_detection():
 
 def test_the_bot_gate_is_unavailable_with_no_list():
     """No list exists in contract/. That is not an empty list."""
-    assert known_bot(doc("x", author="somebot"), bots=None) is None
+    assert known_bot(doc("x", author="somebot"), bots=None) is NotRun.UNAVAILABLE
 
 
 def test_an_empty_bot_list_is_a_different_statement_from_no_list():
     assert known_bot(doc("x", author="somebot"), bots=frozenset()) is False
 
 
-def test_the_bot_gate_is_unavailable_when_the_author_is_unknown():
-    assert known_bot(doc("x", author=None), bots=frozenset({"bot"})) is None
+def test_the_bot_gate_is_not_applicable_when_the_author_is_unknown():
+    """`[deleted]` has no handle to test, and never will. Not a build defect."""
+    assert (
+        known_bot(doc("x", author=None), bots=frozenset({"bot"}))
+        is NotRun.NOT_APPLICABLE
+    )
 
 
-def test_a_link_post_gate_is_unavailable_where_the_platform_has_no_such_notion():
-    """A blog article must not be dropped by a Reddit-shaped rule."""
-    assert pure_link_post(doc("an article", is_self_post=None)) is None
+def test_a_link_post_gate_is_not_applicable_where_the_platform_has_no_such_notion():
+    """A blog article must not be dropped by a Reddit-shaped rule.
+
+    This is the gate that made the single `unavailable` count grow as coverage
+    improved: every blog article added one, and the number read as the gates
+    degrading while the corpus was widening."""
+    assert pure_link_post(doc("an article", is_self_post=None)) is NotRun.NOT_APPLICABLE
 
 
 # ── gates that do run ────────────────────────────────────────────────────
@@ -208,25 +240,32 @@ def test_one_in_window_model_keeps_the_document():
     assert out_of_window(matched, population=pop, in_window=mixed) is False
 
 
-def test_the_window_gate_is_unavailable_when_nothing_matched():
+def test_the_window_gate_is_not_applicable_when_nothing_matched():
     """The entity gate owns that document. This one has no opinion."""
     pop = population()
-    assert out_of_window((), population=pop, in_window={}) is None
+    assert out_of_window((), population=pop, in_window={}) is NotRun.NOT_APPLICABLE
 
 
-def test_the_window_gate_is_unavailable_when_no_match_has_a_known_owner():
-    """A declared-only surface has no owner, so the document cannot be placed."""
+def test_the_window_gate_is_not_applicable_when_no_match_has_a_known_owner():
+    """A declared-only surface has no owner, so the document cannot be placed.
+
+    NOT_APPLICABLE rather than UNAVAILABLE: nothing is missing from the build.
+    The document names a model we cannot attribute, which is about the document.
+    """
     pop = population()
     matched = resolve("deepseek r1 was fine", pop)
     assert matched
-    assert out_of_window(matched, population=pop, in_window={"x/y": False}) is None
+    assert (
+        out_of_window(matched, population=pop, in_window={"x/y": False})
+        is NotRun.NOT_APPLICABLE
+    )
 
 
 def test_a_model_absent_from_the_window_map_is_unknown_not_out():
     """Rule 6: an absent flag is not a False one."""
     pop = population()
     matched = resolve("claude opus 5", pop)
-    assert out_of_window(matched, population=pop, in_window={}) is None
+    assert out_of_window(matched, population=pop, in_window={}) is NotRun.NOT_APPLICABLE
 
 
 # ── the whole stage ──────────────────────────────────────────────────────
@@ -244,7 +283,13 @@ def test_a_good_document_is_kept_and_says_which_gates_did_not_run():
     )
     assert result.verdict is Verdict.KEPT
     assert result.reasons == ()
-    assert set(result.unavailable) == {LANGUAGE, OUT_OF_WINDOW, KNOWN_BOT}
+    # Three gates produce no verdict, and they are no longer one list. Language
+    # and the bot list are unconfigured - a fix clears both for every document.
+    # The window gate has nothing to place: no matched surface has a known
+    # owner, which is about this document.
+    assert set(result.unavailable) == {LANGUAGE, KNOWN_BOT}
+    assert set(result.not_applicable) == {OUT_OF_WINDOW}
+    assert set(result.no_verdict) == {LANGUAGE, OUT_OF_WINDOW, KNOWN_BOT}
     assert result.fully_gated is False
 
 
@@ -312,7 +357,7 @@ def test_a_survival_rate_states_that_gates_did_not_run():
     assert run.kept == 1
     assert run.dropped == 1
     text = run.describe()
-    assert "GATES THAT DID NOT RUN" in text
+    assert "GATES THAT COULD NOT RUN" in text
     assert "UPPER BOUND" in text
 
 
@@ -330,3 +375,82 @@ def test_the_summary_names_its_population():
         population=pop,
     )
     assert pop.fingerprint in run.describe()
+
+
+def test_widening_the_corpus_grows_not_applicable_and_not_never_ran():
+    """The direction check, and the reason the two counts are separate.
+
+    A blog article has no link-post flag, so adding one adds a NOT_APPLICABLE.
+    Under the old single field that arrived as another "gate that did not run",
+    so the number climbed as coverage improved and read as the gates getting
+    worse. `never_ran` must not move: no gate became less buildable because a
+    blog was harvested.
+    """
+    pop = population()
+    reddit_only = [
+        doc("claude opus 5 dropped a tool call after 40 turns", is_self_post=True)
+    ]
+    with_a_blog = reddit_only + [
+        doc("claude opus 5 dropped a tool call after 40 turns", is_self_post=None)
+    ]
+
+    _, before = triage_all(reddit_only, population=pop)
+    _, after = triage_all(with_a_blog, population=pop)
+
+    assert before.not_applicable.get(PURE_LINK, 0) == 0
+    assert after.not_applicable.get(PURE_LINK, 0) == 1
+    # No gate became less buildable because a blog was harvested. Both tallies
+    # are per document, so both grow with the corpus - what must not grow is the
+    # SET of gates the build still owes.
+    assert set(after.never_ran) == set(before.never_ran)
+
+
+def test_the_remedy_asymmetry_is_what_the_two_fields_encode():
+    """Supply what the build owes and `never_ran` empties. The other does not.
+
+    This is the whole argument for the split in one assertion: configuration
+    clears one field entirely and leaves the other exactly where it was, so a
+    reader can tell which part of an upper bound is worth chasing.
+    """
+    pop = population()
+    docs = [
+        doc("claude opus 5 dropped a tool call after 40 turns", is_self_post=True),
+        doc("claude opus 5 dropped a tool call after 40 turns", is_self_post=None),
+    ]
+
+    _, owed = triage_all(docs, population=pop)
+    assert owed.never_ran, "language and the bot list are unconfigured today"
+
+    _, supplied = triage_all(
+        docs,
+        population=pop,
+        allowed_languages=frozenset({"en"}),
+        bots=frozenset(),
+    )
+
+    # The bot gate now runs. Language becomes NOT_APPLICABLE rather than
+    # vanishing, because `document.lang` is still NULL per document - which is
+    # the honest answer and was invisible while both states shared a field.
+    assert KNOWN_BOT not in supplied.never_ran
+    assert supplied.never_ran == {}
+    assert supplied.not_applicable[PURE_LINK] == owed.not_applicable[PURE_LINK]
+    assert supplied.not_applicable[LANGUAGE] == len(docs)
+
+
+def test_the_two_caveats_are_stated_separately_with_different_remedies():
+    """Rule 7: a bound travels with what would change it.
+
+    "Build the detector" and "this is the corpus you have" are different
+    answers, and a reader who sees one line cannot tell which they are owed.
+    """
+    pop = population()
+    _, run = triage_all(
+        [doc("claude opus 5 dropped a tool call after 40 turns", is_self_post=None)],
+        population=pop,
+    )
+    text = run.describe()
+
+    assert "GATES THAT COULD NOT RUN" in text
+    assert "BUILDING THEM RESOLVES IT" in text
+    assert "GATES WITH NOTHING TO RUN ON" in text
+    assert "PERMANENT" in text

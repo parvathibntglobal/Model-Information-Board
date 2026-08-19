@@ -465,8 +465,34 @@ sources:
       figure 25/min. The plan's actual per-minute allowance has never been
       read — no header states one — so it stays unknown rather than becoming
       32 by repetition. The "60/min" this note used to cite to BUILD-PLAN is
-      not in BUILD-PLAN and never was. Quota is 1,000,000/month at exactly one
-      unit per request. See docs/measurements/reddit-rate-and-quota.md.
+      not in BUILD-PLAN and never was.
+
+      QUOTA, READ 2026-08-18 and no longer carried over from a docstring:
+        x-ratelimit-requests-limit       1000000
+        x-ratelimit-requests-remaining    998660
+        x-ratelimit-requests-reset       2064366  = 23.893 days,
+                                                   resets 2026-09-11 09:45 UTC
+      Exactly one unit per request, over 558 requests across six runs and per
+      individual call over the last 186. All three headers are now captured on
+      every call (collect/adapters/reddit.py:_QUOTA_HEADERS), so each is a
+      dated observation rather than a constant somebody wrote.
+
+      THE WINDOW IS 23.9 DAYS, NOT A MONTH. Anything costed as a "share of a
+      month" against this quota is a third too low. The reset is stored as the
+      duration it is; a date without its read_at is stale inside the window.
+
+      THE BILLED TIER IS STILL UNVERIFIED. This note said "1,000,000/month"
+      for weeks on the strength of a docstring, and the reading confirms the
+      number - which is the uncomfortable outcome, because a right answer from
+      an unsourced method is the one nobody revisits. What the reading does NOT
+      establish: the plan page says 500,000, and a gateway header is the
+      gateway's view rather than proof of what RapidAPI bills and serves. If
+      the subscription is a 500,000 tier we are cut off there with the header
+      reading ~500,000 remaining and looking healthy. No request can settle it
+      - the value would come from the party whose figure is in doubt - so it
+      closes on somebody opening the RapidAPI subscription page. A browser, not
+      a call. Same folklore shape as the "60/min" above, caught the same way.
+      See docs/measurements/reddit-rate-and-quota.md §1.4.
 
 
 # ============================================================================

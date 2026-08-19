@@ -193,8 +193,17 @@ has the pattern and the note explaining why.
 
 ## 5 · Wall clock, and quota
 
-Quota is not the constraint: `x-ratelimit-requests-limit: 1000000`, ~999,000
-remaining, and a daily sweep is ~27,000 a month.
+Quota is not the constraint, and as of 2026-08-18 the denominator is read rather
+than assumed: **`x-ratelimit-requests-limit: 1000000`, 998,660 remaining, window
+resets 2026-09-11 09:45 UTC** — all three read off one response by
+`scripts/quota_probe.py`, not carried over from a docstring.
+
+Two corrections that came with the reading. The window is **23.893 days, not a
+month**, so a daily sweep is ~21,500 requests per reset rather than ~27,000 — the
+old figure was a third high. And the plan page still says 500,000: the gateway's
+1,000,000 is not proof of the billed tier, which is why the row below carries
+both. `docs/measurements/reddit-rate-and-quota.md` §1.4 has what closes it
+(a browser, not a call).
 
 Rate is. Measured 2026-08-14: **429 after 32 rapid calls**, message *"exceeded
 the rate limit per minute for your plan, PRO"*, and **no `Retry-After`**, so the
@@ -206,10 +215,13 @@ backoff is ours to choose rather than the server's to state.
 | calls for n=2,000 | 80 |
 | at a self-imposed 30/min | **~2 min 40 s** |
 | at a conservative 20/min | ~4 min |
-| quota consumed | 80 of ~999,000 — **0.008%** |
+| quota consumed | **80 requests** — 0.008% of the read 1,000,000, 0.016% if billed 500,000 |
 
-Under five minutes and eight-thousandths of a percent. Cost is genuinely not the
-objection here; the two blockers are.
+Under five minutes and under two-hundredths of a percent even on the pessimistic
+denominator. **80 requests is the measured figure** and the percentages follow
+from it; the count leads because the denominator moved once already and could
+move again. Cost is genuinely not the objection here at either limit; the two
+blockers are.
 
 ---
 

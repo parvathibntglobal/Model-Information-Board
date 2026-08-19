@@ -111,7 +111,12 @@ platforms, so losing both because one broke is the expensive outcome.
 re-fetching an unchanged page writes nothing and a re-run is safe everywhere.
 What a re-run is not is free: the sweep is the only stage with a metered cost —
 GitHub at 30 searches/minute, Reddit at the 25/minute the limiter was measured
-at, against a ~999k monthly RapidAPI quota. So the sweep resumes from `watermark`
+at, against a RapidAPI quota read on 2026-08-18 as **1,000,000 per window with
+998,660 remaining, resetting 2026-09-11 09:45 UTC**. The window is 23.893 days,
+so this chain costs ~21,500 requests per reset — **2.15%**, or 4.30% if the billed
+tier is the 500,000 the plan page states rather than the 1,000,000 the gateway
+reports (`docs/measurements/reddit-rate-and-quota.md` §1.4). Comfortable either
+way. So the sweep resumes from `watermark`
 rather than restarting, and stages 3, 5, 6 and 7 can be re-run at will from
 stored text. That is the property the workflow doc calls *reprocess from the raw
 store rather than re-fetching*, and it holds for every stage after the sweep.

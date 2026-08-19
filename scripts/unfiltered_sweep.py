@@ -59,12 +59,24 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from collect.adapters.reddit import (  # noqa: E402
+    _QUOTA_HEADERS,
     build_client,
     observe_reddit_use,
 )
 from collect.config import settings  # noqa: E402
 from collect.registry.assertions import assert_terms_reviewed  # noqa: E402
 from collect.registry.sources import load_sources  # noqa: E402
+
+
+def _int_or_none(value):
+    """A header that was not sent stays None. Rule 6, at the one layer that
+    would otherwise write 0 and make an unread limit look like no limit."""
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
 
 LISTING_PATH = "/getPostsBySubreddit"
 
@@ -119,7 +131,16 @@ def sweep(out_dir: Path, subreddits, pages: int, population: str = "sample") -> 
                         params["cursor"] = cursor
                     response = client.get(f"https://{host}{LISTING_PATH}", params=params)
                     calls += 1
-                    remaining = response.headers.get("x-ratelimit-requests-remaining")
+                    # THE WHOLE TRIPLE, per call. This script read `-remaining`
+                    # only, which is half of why a 1,000,000 limit nobody had
+                    # read survived five citations. `_QUOTA_HEADERS` is the
+                    # adapter's map, imported rather than restated so the two
+                    # capture paths cannot drift apart again.
+                    rate_headers = {
+                        name: response.headers.get(name)
+                        for name in _QUOTA_HEADERS
+                    }
+                    remaining = rate_headers["x-ratelimit-requests-remaining"]
                     if remaining is not None:
                         quota = int(remaining)
 
@@ -136,6 +157,15 @@ def sweep(out_dir: Path, subreddits, pages: int, population: str = "sample") -> 
                         "success": ok,
                         # NULL where the header was absent: unread is not zero.
                         "quota_remaining": quota if remaining is not None else None,
+                        # Recorded per call so the limit is a dated observation
+                        # rather than a constant, and so a limit that CHANGES
+                        # mid-month is visible instead of being averaged away.
+                        "quota_limit": _int_or_none(
+                            rate_headers["x-ratelimit-requests-limit"]
+                        ),
+                        "quota_reset_seconds": _int_or_none(
+                            rate_headers["x-ratelimit-requests-reset"]
+                        ),
                         "posts": len(entries),
                         # A `success: false` body is not an error and not an
                         # empty subreddit. Recorded verbatim so the two stay
