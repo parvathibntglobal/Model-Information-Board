@@ -16,6 +16,14 @@
 #
 # Accept or reject per model. Nothing here decides anything.
 
+# THE THRESHOLDS THESE SEATS WERE CUT WITH. A seat is not readable without them:
+# `seated_by: launch-window` means "did not clear the floor", which is NOT the
+# same as "nothing was observed", and without the floor beside it a reader - and
+# a check - cannot tell those apart.
+policy:
+  mention_floor: 20        # at or above this, a model is seated by count
+  launch_window_days: 30   # inside this, seated regardless of count
+
 proposals:
   - canonical_id: anthropic/claude-opus-5
     status: attested
@@ -445,7 +453,7 @@ proposals:
 
   - canonical_id: google/gemini-3.6-flash
     status: attested
-    seated_by: launch-window          # released inside the launch window; no attested surface, so every form below is derived
+    seated_by: launch-window          # inside the launch window AND below the mention floor: attested, but not by enough to seat it
     surface: gemini 3.6 flash        # attested 13 mentions
     variants:
       - gemini 3.6                    # attested 1 mentions
@@ -455,7 +463,7 @@ proposals:
 
   - canonical_id: qwen/qwen3.8-max
     status: attested
-    seated_by: launch-window          # released inside the launch window; no attested surface, so every form below is derived
+    seated_by: launch-window          # inside the launch window AND below the mention floor: attested, but not by enough to seat it
     surface: qwen3.8-max        # attested 7 mentions
     variants:
       - qwen3.8 max                   # attested 1 mentions
@@ -464,7 +472,7 @@ proposals:
 
   - canonical_id: qwen/qwen3.7-flash
     status: attested
-    seated_by: launch-window          # released inside the launch window; no attested surface, so every form below is derived
+    seated_by: launch-window          # inside the launch window AND below the mention floor: attested, but not by enough to seat it
     surface: qwen3.7 flash        # attested 5 mentions
     variants:
       - qwen3.7-flash                 # mechanical, unattested
@@ -473,9 +481,12 @@ proposals:
 
   - canonical_id: deepseek/deepseek-v4-flash-0731
     status: attested
-    seated_by: launch-window          # released inside the launch window; no attested surface, so every form below is derived
-    surface: deepseek flash 0731        # attested 3 mentions
+    seated_by: launch-window          # inside the launch window AND below the mention floor: attested, but not by enough to seat it
+    surface: deepseek v4 flash        # by rule (vendor-drop), unattested — reseated 2026-08-19
     variants:
+      - deepseek flash 0731           # attested 3 mentions; DEMOTED — a bare date matches most loosely
+      - deepseek-v4-flash             # mechanical, unattested
+      - deepseekv4flash               # mechanical, unattested
       - deepseek v4 flash 0731        # mechanical, unattested
       - deepseek-v4-flash-0731        # mechanical, unattested
       - deepseekv4flash0731           # mechanical, unattested
@@ -483,9 +494,12 @@ proposals:
 
   - canonical_id: deepseek/deepseek-v4-pro-0813
     status: attested
-    seated_by: launch-window          # released inside the launch window; no attested surface, so every form below is derived
-    surface: deepseek 0813        # attested 1 mentions
+    seated_by: launch-window          # inside the launch window AND below the mention floor: attested, but not by enough to seat it
+    surface: deepseek v4 pro        # by rule (vendor-drop), unattested — reseated 2026-08-19
     variants:
+      - deepseek 0813                 # attested 1 mentions; DEMOTED — a bare date matches most loosely
+      - deepseek-v4-pro               # mechanical, unattested
+      - deepseekv4pro                 # mechanical, unattested
       - deepseek v4 pro 0813          # mechanical, unattested
       - deepseek-v4-pro-0813          # mechanical, unattested
       - deepseekv4pro0813             # mechanical, unattested
@@ -521,10 +535,7 @@ proposals:
     variants:
       - dots 3 note preview           # mechanical, unattested
       - dots-3-note-preview           # mechanical, unattested
-      - dots3 note preview (free)     # mechanical, unattested
-      - dots3-note-preview-(free)     # mechanical, unattested
       - dots3notepreview              # mechanical, unattested
-      - dots3notepreview(free)        # mechanical, unattested
     incomplete: [family_surface, attested_surfaces]
 
   - canonical_id: google/gemini-3.5-flash-lite
@@ -564,10 +575,7 @@ proposals:
     variants:
       - lfm 2.5 2.6b                  # mechanical, unattested
       - lfm-2.5-2.6b                  # mechanical, unattested
-      - lfm2.5 2.6b (free)            # mechanical, unattested
-      - lfm2.5-2.6b-(free)            # mechanical, unattested
       - lfm2.52.6b                    # mechanical, unattested
-      - lfm2.52.6b(free)              # mechanical, unattested
     incomplete: [family_surface, attested_surfaces]
 
   - canonical_id: meituan/longcat-2.0

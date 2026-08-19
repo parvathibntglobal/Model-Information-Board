@@ -22,7 +22,6 @@ from collect.registry.tracked import (
     TrackedSetPolicy,
     attributable,
     distribution,
-    is_routing_pointer,
     select,
     summarise,
 )
@@ -276,7 +275,7 @@ def test_a_routing_pointer_is_refused_even_when_it_qualifies_on_both_grounds():
     )
     pointer = _pointer(selection)
     assert not pointer.selected
-    assert pointer.refused_as_pointer
+    assert pointer.refused_as_route
     assert BY_MENTIONS not in pointer.grounds
     assert BY_LAUNCH_WINDOW not in pointer.grounds
     assert pointer not in selection.tracked
@@ -291,8 +290,8 @@ def test_the_refusal_is_counted_rather_than_silent():
     selection = select(
         POINTER_MODELS, attributable(POINTER_EXTRACT), policy=_policy(), as_of=AS_OF
     )
-    assert len(selection.refused_pointers) == 1
-    assert "1 routing pointers refused a seat" in summarise(selection)
+    assert len(selection.refused_routes) == 1
+    assert "1 routes refused a seat" in summarise(selection)
 
     #: Still in the denominator: refused is not vanished.
     total = len(selection.tracked) + len(selection.rejected)
@@ -326,12 +325,32 @@ def test_a_model_whose_name_merely_contains_a_tilde_is_not_refused():
         m for m in selection.tracked + selection.rejected
         if m.canonical_id == "vendor/model~preview"
     )
-    assert not row.refused_as_pointer
+    assert not row.refused_as_route
     assert row.grounds == (BY_LAUNCH_WINDOW,)
 
 
-def test_is_routing_pointer_reads_the_feeds_convention():
-    assert is_routing_pointer("~deepseek/deepseek-v4-flash-latest")
-    assert is_routing_pointer("~anthropic/claude-opus-latest")
-    assert not is_routing_pointer("deepseek/deepseek-v4-flash-0731")
-    assert not is_routing_pointer("openrouter/auto")
+def test_the_seating_reuses_the_existing_route_ruling():
+    """One ruling, one implementation — and `openrouter/` comes free.
+
+    The first version of this filter was a second `is_routing_pointer()` in this
+    module, checking only the `~` prefix. `propose.is_route` already existed,
+    already carried the 2026-08-18 ruling and its control measurement, and
+    already had a caller in `collect/triage/entity.py`. What was missing was a
+    call from `select()`, not a rule.
+
+    So this asserts the SHARED function is what seats, which also means the
+    `openrouter/` namespace is refused here without this module naming it.
+    """
+    from collect.registry.propose import is_route
+
+    assert is_route("~deepseek/deepseek-v4-flash-latest")
+    assert is_route("openrouter/auto")
+    assert not is_route("deepseek/deepseek-v4-flash-0731")
+
+    models = [*MODELS, ("openrouter/auto", "OpenRouter: Auto", date(2026, 8, 16))]
+    selection = select(models, attributable(EXTRACT), policy=_policy(), as_of=AS_OF)
+    router = next(
+        m for m in selection.rejected if m.canonical_id == "openrouter/auto"
+    )
+    assert router.refused_as_route
+    assert not router.selected

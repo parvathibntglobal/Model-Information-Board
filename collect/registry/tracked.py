@@ -72,7 +72,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 
-from collect.registry.propose import Attested
+from collect.registry.propose import Attested, is_route
 
 #: Why a model is in the set. Kept as separate grounds rather than collapsed to a
 #: boolean: the artifact says which one seated each model, and a model seated
@@ -84,38 +84,26 @@ BY_LAUNCH_WINDOW = "launch-window"
 #: excluded from attribution - see the module docstring.
 ATTRIBUTABLE_VERDICTS = frozenset({"resolved", "attested-gap"})
 
-#: OpenRouter marks a routing pointer by prefixing the id. `~vendor/x-latest` is
-#: not a model: it is a name for "whatever x resolves to today".
-POINTER_PREFIX = "~"
+#: The ground recorded when a route is refused a seat, so the exclusion is
+#: COUNTED rather than silent. Not a seating ground - `selected` stays False -
+#: but a reason `summarise` can state, because rule 6's display side is that a
+#: thing dropped where it would have been used has to say so.
+REFUSED_ROUTE = "route-not-model"
 
-#: The ground recorded when a pointer is refused, so the exclusion is COUNTED
-#: rather than silent. Not a seating ground - `selected` stays False - but a
-#: reason `summarise` can state, because rule 6's display side is that a thing
-#: dropped at the point it would have been used has to say so.
-REFUSED_POINTER = "routing-pointer"
-
-
-def is_routing_pointer(canonical_id: str) -> bool:
-    """Whether this id names a route rather than a model.
-
-    **THIS FUNCTION EXISTS BECAUSE THE RULE WAS PROSE AND PROSE DOES NOT
-    ENFORCE.** The module docstring below has named the 11 `~vendor/...-latest`
-    pointers since this file was written, and used them as the argument for
-    ranking by mentions rather than by release date. It was never applied as an
-    exclusion, and `~deepseek/deepseek-v4-flash-latest` was seated into the
-    tracked set - by the launch window, which is precisely the one route the
-    docstring says an unobserved model can take. A described rule and an enforced
-    rule are different things, and the difference was one seat.
-
-    Reads the id's shape, which is the only signal the feed gives, and that is
-    worth stating rather than hiding: this is a claim about a STRING, and it is
-    true of pointers because the vendor prefixes them. If OpenRouter ever stops
-    prefixing, this returns False for everything and the refusal count in
-    `summarise` drops to zero - which is why that count is printed rather than
-    kept internal, and why `test_the_refusal_is_counted_rather_than_silent`
-    asserts it. Pinned by `test_is_routing_pointer_reads_the_feeds_convention`.
-    """
-    return canonical_id.startswith(POINTER_PREFIX)
+# THE RULING WAS NEVER PROSE, AND THAT IS A CORRECTION TO MY OWN FIRST FIX.
+# `is_route` has existed in `collect/registry/propose.py` since 2026-08-18, it is
+# ruled - "routes are not models" - and it is MEASURED: excluding the 17 route
+# ids takes control-corpus survival from 1.3% to 0.0%. It also had a caller,
+# `collect/triage/entity.py:218`, so a route has never been able to become an
+# entity match.
+#
+# What it did not have was a call from HERE. `select()` seated
+# `~deepseek/deepseek-v4-flash-latest` because the tracked set never consulted
+# the ruling that the triage stage already enforced. So the defect was one
+# missing call, not a missing rule - and my first attempt at this added a second
+# `is_routing_pointer()` beside the first, which checked only the `~` prefix,
+# missed the `openrouter/` namespace entirely and did not casefold. Two
+# implementations of one ruling is the thing that drifts; there is now one.
 
 
 @dataclass(frozen=True)
@@ -171,7 +159,7 @@ class TrackedModel:
     def selected(self) -> bool:
         """Seated by at least one SEATING ground.
 
-        `REFUSED_POINTER` is in `grounds` and is not one of them, so this is not
+        `REFUSED_ROUTE` is in `grounds` and is not one of them, so this is not
         `bool(self.grounds)` any more. That line would have seated every pointer
         the moment the refusal was recorded — the refusal reading as its own
         justification, which is the shape rule 6 is about.
@@ -179,9 +167,9 @@ class TrackedModel:
         return bool(set(self.grounds) & {BY_MENTIONS, BY_LAUNCH_WINDOW})
 
     @property
-    def refused_as_pointer(self) -> bool:
-        """A route rather than a model. See `is_routing_pointer`."""
-        return REFUSED_POINTER in self.grounds
+    def refused_as_route(self) -> bool:
+        """A route rather than a model. See `propose.is_route`."""
+        return REFUSED_ROUTE in self.grounds
 
     @property
     def measured(self) -> bool:
@@ -218,7 +206,7 @@ class Selection:
         return [m for m in self.tracked if m.grounds == (BY_LAUNCH_WINDOW,)]
 
     @property
-    def refused_pointers(self) -> list[TrackedModel]:
+    def refused_routes(self) -> list[TrackedModel]:
         """Routes refused a seat. **Counted, so the exclusion is not silent.**
 
         Rule 6's display side. A pointer dropped without a number beside it makes
@@ -226,7 +214,7 @@ class Selection:
         one survived - the rule was in prose, nothing counted, and nobody had a
         figure to disagree with.
         """
-        return [m for m in self.rejected if m.refused_as_pointer]
+        return [m for m in self.rejected if m.refused_as_route]
 
     @property
     def unmeasured(self) -> list[TrackedModel]:
@@ -306,13 +294,13 @@ def select(
         count = len(surfaces) if surfaces else None
 
         grounds: list[str] = []
-        if is_routing_pointer(canonical_id):
+        if is_route(canonical_id):
             # Refused before either rule is consulted, and UNCONDITIONALLY.
             # A pointer's mentions are about whatever it resolves to and its
             # release_date is when it last moved, so both seating grounds are
             # measuring something other than a model. Recorded rather than
             # dropped, so `Selection.refused_pointers` can count it.
-            grounds.append(REFUSED_POINTER)
+            grounds.append(REFUSED_ROUTE)
         else:
             if mentions is not None and mentions >= policy.mention_floor:
                 grounds.append(BY_MENTIONS)
@@ -417,7 +405,7 @@ def summarise(selection: Selection) -> str:
         f"{len(selection.launch_window_only)} by launch window alone.\n"
         f"  {len(selection.unmeasured)} tracked models the corpus never observed "
         f"- recall unmeasured, not zero.\n"
-        f"  {len(selection.refused_pointers)} routing pointers refused a seat "
-        f"- routes, not models, excluded before either rule was consulted.\n"
+        f"  {len(selection.refused_routes)} routes refused a seat "
+        f"- routes are not models, excluded before either ground was consulted.\n"
         f"  Attested surfaces per measured tracked model: {spread}."
     )

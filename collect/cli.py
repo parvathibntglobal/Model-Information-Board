@@ -242,22 +242,27 @@ def _cmd_registry_propose_aliases(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
             return 2
+        # Named rather than inlined so the SAME object reaches both the selection
+        # and the artifact. Two constructions from the same args would drift the
+        # moment one gained a default.
+        set_policy = TrackedSetPolicy(
+            mention_floor=args.mention_floor,
+            launch_window_days=args.launch_window_days,
+        )
         selection = select(
             rows,
             observed,
-            policy=TrackedSetPolicy(
-                mention_floor=args.mention_floor,
-                launch_window_days=args.launch_window_days,
-            ),
+            policy=set_policy,
             as_of=date.today(),
             basis={"surfaces": args.surfaces},
         )
         print(summarise_selection(selection))
         print()
         models = [(m.canonical_id, m.display_name) for m in selection.tracked]
-        # Grounds travel into the artifact: a model seated only by the launch
-        # window has no attested surface, and its INCOMPLETE slots are the whole
-        # of what a reviewer can act on.
+        # Grounds travel into the artifact, AND SO DOES THE POLICY. `launch-window`
+        # means "did not clear the mention floor" - which is not "unobserved" - so
+        # a reader who cannot see the floor cannot tell those apart, and neither
+        # can a check. Rule 7 at the top of the generated file.
         grounds = {
             m.canonical_id: ("attested" if BY_MENTIONS in m.grounds else "launch-window")
             for m in selection.tracked
@@ -265,11 +270,14 @@ def _cmd_registry_propose_aliases(args: argparse.Namespace) -> int:
     else:
         models = [(r[0], r[1]) for r in rows]
         grounds = {}
+        set_policy = None
 
     proposals = propose(models, observed)
     print(summarise(proposals))
     if args.out:
-        Path(args.out).write_text(to_yaml(proposals, seated_by=grounds), encoding="utf-8")
+        Path(args.out).write_text(
+            to_yaml(proposals, seated_by=grounds, policy=set_policy), encoding="utf-8"
+        )
         print(f"wrote {args.out} — review required, not loadable as-is")
     return 0
 

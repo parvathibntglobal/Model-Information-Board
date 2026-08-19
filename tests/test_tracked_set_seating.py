@@ -7,11 +7,26 @@ is correctly seated by its release date and there is nothing to do about it. A
 check that fires on a correct state gets muted, and a muted check is worse than no
 check because it looks like coverage.
 
-`seated_by: launch-window` AND `mentions > 0` is a state that is **wrong and
-fixable by looking**. The entry was seated because nothing was observed; something
-has since been observed; so the seat was made on an assumption the corpus has
-disproved, and the surfaces under it are derivations where an attested form now
-exists.
+**THE FIRST VERSION OF THIS CONDITION WAS WRONG, AND IT WAS WRONG IN EXACTLY THE
+WAY THE PARAGRAPH ABOVE WARNS ABOUT.** It read `launch-window AND mentions > 0`,
+on the belief that `launch-window` meant "nothing was observed". It does not.
+`cli.py` sets it whenever `BY_MENTIONS` is absent, and `BY_MENTIONS` requires
+`mentions >= mention_floor` — so a model with 13 mentions against a floor of 20 is
+seated by the window, is attested, and is seated **exactly as the policy
+intends**. The condition fired on 5 of 23 launch-window entries, all correct, and
+a check that fires on a correct state is the one that gets muted.
+
+The condition that names a real error is `launch-window` AND
+`mentions >= mention_floor`: the entry qualifies BY COUNT and was not credited for
+it. That is unambiguous, and today it finds nothing, which is the honest result
+rather than a disappointing one.
+
+What the wrong version did surface was a genuine defect one layer over — the
+generated annotation on those 5 rows read "no attested surface, so every form
+below is derived" while the next line read `attested 13 mentions`. Rule 4: an
+absence claimed where evidence exists. Fixed in `to_yaml`, and the floor now
+travels in the file's `policy:` header, because without it neither a reader nor
+this check can tell "below the floor" from "never observed".
 
 **WHY IT LANDS BEFORE THE SEATS, NOT AFTER.** Engineer 2's argument and it decides
 the order: 18 primaries are about to be guessed for models nobody has discussed.
@@ -25,9 +40,9 @@ needs no database and no network — it reads one file in the tree.
 
 `provisional` DOES NOT EXIST AS A FIELD, and this file is where that is written
 down so nobody has to infer it from reading the YAML. `to_yaml` emits
-`seated_by: attested | launch-window`; `launch-window` IS the provisional state,
-and its own generated comment says so — "no attested surface, so every form below
-is derived". The check keys on `seated_by`.
+`seated_by: attested | launch-window`, and `launch-window` IS the provisional
+state — but it means "did not clear the mention floor", not "unobserved". The
+check keys on `seated_by` and on the floor beside it.
 """
 
 from __future__ import annotations
@@ -72,6 +87,26 @@ def _entries() -> list[tuple[str, str | None, list[tuple[str, int]]]]:
 
 
 @pytest.fixture(scope="module")
+def floor() -> int:
+    """The mention floor, read from the artifact's own `policy:` header.
+
+    **Not a constant in this file.** A threshold copied into the checker is a
+    second place for it to be wrong, and the whole reason the first version of
+    this check misfired is that the floor was nowhere near the seats it explains.
+    So it travels in the file (rule 7) and is read from there; if the header goes
+    missing this fails rather than falling back to a guess (rule 6).
+    """
+    text = ARTIFACT.read_text(encoding="utf-8")
+    match = re.search(r"^\s+mention_floor:\s*(\d+)", text, re.M)
+    assert match, (
+        "no `policy: mention_floor:` in the artifact. `seated_by: launch-window` "
+        "cannot be checked without it — it means 'below the floor', and which "
+        "floor is the whole question."
+    )
+    return int(match.group(1))
+
+
+@pytest.fixture(scope="module")
 def entries():
     if not ARTIFACT.exists():
         pytest.fail(
@@ -105,19 +140,21 @@ def test_the_parse_still_finds_its_inputs(entries):
     )
 
 
-def test_no_provisional_entry_has_been_attested_since(entries):
-    """`seated_by: launch-window` AND mentions > 0 — seated blind, observed since.
+def test_no_provisional_entry_already_qualifies_by_count(entries, floor):
+    """`launch-window` AND mentions >= floor — qualifies by count, not credited.
 
     The message names THE SURFACE AND THE COUNT, not the model. Engineer 2's
-    refinement and the reason is repair: "gemini 3.6 flash is provisional and now
-    has 13 mentions" tells someone what to do. "3 entries are stale" sends them to
-    find out which, and that is a second task rather than a finding.
+    refinement, and the reason is repair: "gemini 3.6 flash is provisional and now
+    has 38 mentions" tells someone what to do; "3 entries are stale" sends them to
+    find out which, which is a second task rather than a finding.
+
+    Totals per entry, not per surface: the floor is compared against a model's
+    attested mentions, and one model's forms are not separate evidence.
     """
     caught = [
-        (canonical_id, surface, count)
+        (canonical_id, max(mentions, key=lambda m: m[1])[0], sum(c for _, c in mentions))
         for canonical_id, seat, mentions in entries
-        if seat == PROVISIONAL
-        for surface, count in mentions
+        if seat == PROVISIONAL and mentions and sum(c for _, c in mentions) >= floor
     ]
     if caught:
         lines = "\n".join(
@@ -128,9 +165,9 @@ def test_no_provisional_entry_has_been_attested_since(entries):
             )
         )
         pytest.fail(
-            f"{len(caught)} provisional surface(s) the corpus now attests. Each was "
-            f"seated by its release date because nothing had been observed, and "
-            f"something has been:\n{lines}\n"
+            f"{len(caught)} provisional entry/entries already clear the floor of "
+            f"{floor}. Each qualifies BY COUNT and was seated by its release date "
+            f"anyway, so `seated_by` understates the evidence:\n{lines}\n"
             "Reseat as attested, or record why the mentions do not attribute."
         )
 
@@ -145,25 +182,48 @@ def test_an_attested_seat_is_never_also_provisional(entries):
         )
 
 
-def test_the_check_would_notice_a_new_mention(entries):
-    """Break-it-on-purpose, in the file, so the condition is known to fire.
-
-    Habit 3. A check that has never been seen to fail is a check nobody has
-    tested, and this one gates 18 guessed primaries.
-    """
-    fabricated = [("vendor/model-x", PROVISIONAL, [("model x", 1)])]
-    caught = [
-        (cid, s, c)
-        for cid, seat, mentions in fabricated
-        if seat == PROVISIONAL
-        for s, c in mentions
+def _fires(rows, floor):
+    """The condition itself, so the test and the check cannot drift apart."""
+    return [
+        cid
+        for cid, seat, mentions in rows
+        if seat == PROVISIONAL and mentions and sum(c for _, c in mentions) >= floor
     ]
-    assert caught == [("vendor/model-x", "model x", 1)]
 
-    unseen = [("vendor/model-y", PROVISIONAL, [])]
-    assert not [
-        (cid, s, c)
-        for cid, seat, mentions in unseen
-        if seat == PROVISIONAL
-        for s, c in mentions
-    ], "a provisional entry with no mentions must NOT fire — that is the muting case"
+
+def test_the_condition_fires_on_a_real_error_and_not_on_a_correct_seat(floor):
+    """Break-it-on-purpose, and pin BOTH sides of the boundary.
+
+    Habit 3, and the second assertion is the one this check earned the hard way.
+    The first version had no case for "correctly seated below the floor", so
+    nothing stopped it firing on 5 rows that were right — which is the muting
+    failure it was written to avoid, reintroduced by the condition itself.
+    """
+    over = [("vendor/model-x", PROVISIONAL, [("model x", floor)])]
+    assert _fires(over, floor) == ["vendor/model-x"], (
+        "an entry at or above the floor and still seated by the window is a real "
+        "error and must fire"
+    )
+
+    under = [("vendor/model-y", PROVISIONAL, [("model y", floor - 1)])]
+    assert not _fires(under, floor), (
+        "BELOW the floor and inside the window is what the policy intends. This "
+        "is the case the first version got wrong on 5 of 23 entries."
+    )
+
+    unseen = [("vendor/model-z", PROVISIONAL, [])]
+    assert not _fires(unseen, floor), (
+        "a provisional entry nobody has discussed must never fire — it stays "
+        "legitimately provisional forever, and that is the mute to avoid"
+    )
+
+    seated = [("vendor/model-w", ATTESTED, [("model w", floor * 10)])]
+    assert not _fires(seated, floor), "an already-attested seat is not an error"
+
+
+def test_the_live_artifact_agrees_with_the_condition(entries, floor):
+    """The same condition over the real file, so the two cannot diverge."""
+    assert _fires(entries, floor) == [], (
+        "the artifact has a provisional entry clearing the floor — "
+        "test_no_provisional_entry_already_qualifies_by_count names it"
+    )
