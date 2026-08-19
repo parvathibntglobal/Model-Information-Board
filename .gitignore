@@ -80,3 +80,16 @@ Thumbs.db
 site/
 exports/
 _flattened_probe/
+
+# E1's thread_context handoff. NOT a convenience entry.
+#
+# The blog half carries a `delete_after` date, and a retention date only some
+# copies obey is not a retention date. Committing it would put a dated deletion
+# obligation into git history, where deleting it later does not delete it.
+#
+# `git check-ignore _handoff/` already exited 0 before this line existed - a
+# trailing-slash match on some other rule - while the files inside exited 1 and
+# `git status` listed the directory as untracked. The directory reading as
+# ignored while its contents were not is exactly the check that looks like a
+# guarantee and is not.
+_handoff/

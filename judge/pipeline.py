@@ -39,10 +39,16 @@ from datetime import date
 from typing import Any
 
 from judge.config import bucket_for
-from judge.extract.client import ExtractionClient
+from judge.extract.budget import Budget
+from judge.extract.client import Completion, ExtractionClient
 from judge.extract.runner import ExtractionRefused, ExtractionRun, ThreadInput, extract
 from judge.store.cells import CellOutcome, CellStore
 from judge.store.claims import ClaimStore, StoredClaim
+from judge.store.extractions import (
+    ExtractionLedger,
+    ExtractionRecord,
+    fingerprint_of,
+)
 from judge.vet.weight import EvidenceTier, compute
 
 log = logging.getLogger(__name__)
@@ -102,6 +108,7 @@ class Pipeline:
         self._capabilities = capability_keys
         self._extractor_model = extractor_model
         self._claims = ClaimStore(conn)
+        self._ledger = ExtractionLedger(conn)
         self._cells = CellStore(conn)
 
     def run(
@@ -122,9 +129,7 @@ class Pipeline:
         """
         as_of = as_of or date.today()
         result = PipelineResult(
-            extraction=extract(
-                thread, client=self._client, capability_keys=self._capabilities
-            )
+            extraction=extract(thread, client=self._client, capability_keys=self._capabilities)
         )
 
         for claim, quote in result.extraction.verified:
@@ -134,8 +139,7 @@ class Pipeline:
                 # be weighted honestly. Skipped and named, never weighted with
                 # defaults: an invented platform silently changes f_platform.
                 log.warning(
-                    "no document facts for %s; claim skipped rather than "
-                    "weighted from defaults",
+                    "no document facts for %s; claim skipped rather than weighted from defaults",
                     quote.document_id,
                 )
                 continue
@@ -212,20 +216,71 @@ class Pipeline:
         model_version_of: dict[str, str],
         release_dates: dict[str, date] | None = None,
         as_of: date | None = None,
+        budget: Budget | None = None,
+        already_extracted: dict[str, str | None] | None = None,
     ) -> list[PipelineResult]:
-        """A batch. A refused thread is skipped, never fatal."""
+        """A batch. A refused thread is skipped, never fatal.
+
+        `budget` stops the batch rather than the thread. A cap that skipped the
+        expensive thread and carried on would spend the whole night's money on
+        whatever happened to be cheap, and report a full run.
+
+        `already_extracted` is supplied by the CALLER rather than derived here -
+        see the note on the parameter. Passing nothing extracts everything,
+        which is today's behaviour and is stated rather than defaulted into.
+        """
         results: list[PipelineResult] = []
+        # DERIVED, not defaulted. `already_extracted=None` used to mean "extract
+        # everything" because nothing could work the set out; the ledger can, so
+        # the default is now the correct answer rather than the safe one. An
+        # explicit frozenset() still forces a full re-extraction.
+        seen = self._ledger.already_extracted() if already_extracted is None else already_extracted
         for thread in threads:
+            if ExtractionLedger.should_skip(seen, thread.thread_context_id, thread.flattened_text):
+                log.info(
+                    "thread %s already extracted at this pipeline_version; skipped",
+                    thread.thread_context_id,
+                )
+                continue
+            if budget is not None:
+                # BEFORE the call. Spend cannot be undone, so a check after it
+                # is a report rather than a cap.
+                budget.check_before_call()
             try:
-                results.append(
-                    self.run(
-                        thread,
-                        facts=facts,
-                        model_version_of=model_version_of,
-                        release_dates=release_dates,
-                        as_of=as_of,
-                    )
+                result = self.run(
+                    thread,
+                    facts=facts,
+                    model_version_of=model_version_of,
+                    release_dates=release_dates,
+                    as_of=as_of,
                 )
             except ExtractionRefused as exc:
                 log.error("thread %s refused: %s", thread.thread_context_id, exc)
+                continue
+            results.append(result)
+            # Same transaction as the claims. A ledger row that survived a
+            # rolled-back extraction would mark a thread read that produced
+            # nothing readable, and the next run would skip it - evidence lost
+            # silently and permanently.
+            self._ledger.record(
+                ExtractionRecord(
+                    thread_context_id=thread.thread_context_id,
+                    claims_written=len(result.stored_claim_ids),
+                    input_tokens=result.extraction.input_tokens or None,
+                    output_tokens=result.extraction.output_tokens or None,
+                    schema_retries=result.extraction.schema_retries,
+                    content_fingerprint=fingerprint_of(thread.flattened_text),
+                )
+            )
+            if budget is not None:
+                # Charged from what the run REPORTED, retries included, rather
+                # than from the estimate the check used.
+                budget.charge(
+                    Completion(
+                        raw_arguments="",
+                        input_tokens=result.extraction.input_tokens,
+                        output_tokens=result.extraction.output_tokens,
+                        model=self._extractor_model,
+                    )
+                )
         return results

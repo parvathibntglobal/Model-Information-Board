@@ -38,6 +38,38 @@ These are the rules a helpful refactor will otherwise quietly violate.
    The governing rule for anything added later:
    **an LLM may propose, it may never decide.**
 
+   **Code-only extraction was proposed and refused, 2026-08-18.** Dropping the
+   model at E5 and keeping it only in the Ask box would remove an injection
+   surface, a dependency and a source of nondeterminism, and it is not a cost
+   question - the whole corpus extracts for $2.12.
+
+   It was refused for one structural reason. **Rule 1 works because the
+   proposer and the checker are different things.** The model proposes a
+   quote; code checks that quote exists byte for byte in the text the model
+   was shown. If code extracts, code picks the quote and code verifies its own
+   pick - the check passes by construction. We would still have three-step
+   verification, a green suite, and a `quote_verified` column that means
+   nothing: a guarantee that looks like one and is not.
+
+   The supporting evidence is our own. A pure-code matcher hit `free` inside
+   *"freeze"* and `fusion` inside *"confusion"* on the easiest subtask in the
+   pipeline - exact matching against a known list - and was invisible on an AI
+   corpus until it ran on movie posts (`docs/measurements/control-and-reshape.md`).
+   If code needs a boundary map and a control experiment to decide whether a
+   four-character string is a model name, *"is this person complaining or
+   joking, about which capability, under what condition"* is not the smaller
+   problem.
+
+   **The alternative was weighed, not dismissed.** A code-only board is
+   possible as *high precision, low recall*: publish only unambiguously-phrased
+   claims, discard the rest unread, and **say so on every page**. That is a
+   real product and a defensible one. What it costs is most of the evidence,
+   and the saying-so is not optional - silence about ambiguously-phrased
+   failures reads as absence of failures, which is rule 4 at the largest scale
+   it covers. Recorded here rather than left in a message, because a reason
+   that lives in a conversation gets re-litigated by whoever finds the model
+   call expensive in month four.
+
 3. **No synthesised number reaches a page.** Every figure displayed is either
    *counted* (people, quotes, days) or *measured* (price, tokens). Consensus is
    a phrase assembled from counts, never a score. There is no 0-100 capability
@@ -117,11 +149,26 @@ These are the rules a helpful refactor will otherwise quietly violate.
                           registry load-seed, registry recompute-window
   ```
 
-  Read-only commands are deliberately ungated: the state these checks refuse is
-  exactly the state somebody needs `registry check-sources` to diagnose.
-  `tests/test_cli_write_gate.py` reads `cli.py`'s AST and fails if a command
-  opens a `transaction()` without calling `_gate`, so a NEW write path cannot
-  arrive unguarded - which is the failure mode, rather than a broken check.
+  **Both are wired, since 2026-08-18.** `collect/ops/preflight.py` calls them
+  and `collect/cli.py` runs `preflight()` before a command touches a database.
+  Issue #27 is closed. A check whose input is absent is **skipped and named**
+  rather than counted as a pass, so "no connection supplied" cannot read as
+  "the fixture check passed".
+
+  E1 found the real defect while wiring it, and it was not a broken check: two
+  commands had never acquired one. `registry load-seed` - the command that
+  *creates* the fixture - opened a transaction without gating, so
+  `assert_no_fixtures` could only ever report seeded rows some other path had
+  already written. `recompute-window`, the sole writer of `in_window`, was
+  gated inside the nightly chain and unguarded when run by hand: guarded by the
+  schedule rather than by the code. The guard is now an **AST test over
+  `cli.py`** - any command opening a `transaction()` without `_gate` fails, and
+  read-only commands must be listed explicitly so an unclassified one fails
+  rather than running unguarded. A behavioural test over existing commands
+  cannot see a path that never had a check.
+
+  `assert_terms_reviewed()` was already wired -
+  `collect/adapters/blog/fetch.py` and `scripts/harvest_github.py`.
 
   `assert_no_fixtures()` reads three tables: `model_version.provenance = 'seed'`,
   `cell.provenance = 'hand_curated'`, and
@@ -131,15 +178,16 @@ These are the rules a helpful refactor will otherwise quietly violate.
   renders as an absence, and nobody audits a model that was never in the list.
   Verified firing against a real database, not only present in the source.
 
-  **Do not weaken this entry into a negative again without counting.** It said
-  "Production asserts on startup that none are present" for weeks while nothing
-  called anything. The first correction said "called from the loaders and from
-  tests", also wrong - the three apparent call sites were a docstring and two
-  comments. The second correction said wiring was blocked because `collect/ops/`
-  did not exist and the CLI runs per command; the first half stopped being true
-  when `collect/ops/` landed, and the second was never a blocker, since a
-  per-command CLI can gate per command. Three wrong statements, in both
-  directions, on one four-line entry. Issue #27 closed 2026-08-18.
+  **This entry has now been wrong three times and each correction was smaller
+  than the last.** It said "Production asserts on startup that none are
+  present" for weeks; the first correction said the check was "called from the
+  loaders and from tests", which was also wrong, because the three apparent
+  call sites in `collect/` were a docstring and two comments; the second
+  correction counted them and said neither had a caller, which was true when
+  written and stopped being true the day #27 closed. The lesson is not to write
+  more carefully - all three were written carefully - it is that a claim about
+  wiring goes stale silently, so this entry is the one to re-check rather than
+  re-read.
 - Estimates are labelled as estimates, **and an estimate carries its
   population** (rule 7). Triage survival is ~10-15% *of documents retrieved
   from the sources we sweep* - never "of Reddit", which we do not sample.

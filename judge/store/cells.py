@@ -26,7 +26,7 @@ So the gate decides the STATUS. It never decides whether to write.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any
 
@@ -40,6 +40,7 @@ from judge.curate.gate import (
     count,
 )
 from judge.curate.phrases import Consensus, describe
+from judge.curate.thread_coverage import CellCoverage, CoverageReader
 from judge.store.claims import PIPELINE_VERSION
 
 log = logging.getLogger(__name__)
@@ -73,9 +74,31 @@ class CellOutcome:
     status: CellStatus
     consensus: Consensus
 
+    #: How much of each source thread this cell's claims were drawn from.
+    #:
+    #: Carried on the OUTCOME rather than written to `cell`. `coverage_ratio`
+    #: is GENERATED on `thread_context` because a derived value stored beside
+    #: its inputs drifts - Engineer 1 counted that as the fifth instance of one
+    #: bug here. A copy on `cell` would be the sixth, and it would drift in the
+    #: direction that flatters coverage, since a backfill correcting
+    #: `hidden_children_min` would leave the copy behind.
+    coverage: CellCoverage = field(default_factory=CellCoverage)
+
     @property
     def publishes(self) -> bool:
         return self.status is CellStatus.PUBLISHED
+
+    @property
+    def coverage_caveat(self) -> str | None:
+        """What must be said beside these counts, or None.
+
+        NOT part of `publishes`. A thread read at 24% is still four people
+        saying a thing, and withholding it would delete real evidence to
+        protect a number - a failure that surfaces as silence, which rule 4
+        says must never read as criticism. The gate decides whether there is
+        enough evidence; this decides what has to be said alongside it.
+        """
+        return self.coverage.caveat(n_eff=self.counts.n_eff)
 
 
 class CellStore:
@@ -148,7 +171,22 @@ class CellStore:
         gate = check_gate(counts)
         status = classify(counts) if gate.passed else CellStatus.INSUFFICIENT
         consensus = describe(counts, capability_key=key.capability_key, status=status)
-        return CellOutcome(key=key, counts=counts, gate=gate, status=status, consensus=consensus)
+        # Read here rather than left for a caller to remember. A caveat that
+        # depends on somebody calling a second method is a caveat that will be
+        # missing from the first page that forgets.
+        coverage = CoverageReader(self._conn).for_cell(
+            model_version_id=key.model_version_id,
+            capability_key=key.capability_key,
+            condition_bucket=key.condition_bucket,
+        )
+        return CellOutcome(
+            key=key,
+            counts=counts,
+            gate=gate,
+            status=status,
+            consensus=consensus,
+            coverage=coverage,
+        )
 
     def write(self, outcome: CellOutcome, *, pipeline_version: str = PIPELINE_VERSION) -> None:
         """Upsert one cell, whether or not the gate passed."""

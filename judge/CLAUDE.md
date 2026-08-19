@@ -15,12 +15,18 @@ a model.
 | E8 publish | `pages/` | Model pages, filtered, changelog, coverage — **read the two Reddit conditions below before writing any of it** |
 | Q1–Q7 | `ask/` | Task description → ranked recommendation **← LLM (Q1 only)** |
 
-## Two Reddit conditions that bite only when you build E8
+## Three conditions that bite only when you build E8
 
 Recorded here rather than only in `contract/sources.yaml` because a condition
 in a `tos_notes` block is read by whoever writes rulings, and these have to be
 read by whoever writes the publisher. That is this lane, at the moment it
 starts.
+
+Two are Reddit's and come from the `reddit-via-rapidapi` ruling. **The third is
+blog retention, and it surfaced from the handoff rather than from a ruling** -
+which is the reason it is here: nothing in `contract/` states it, because it is
+not a condition anyone imposed on us. It is a consequence of a choice we made
+correctly.
 
 Both come from the `reddit-via-rapidapi` ruling: a **permission, not a
 clearance**, on the basis `internal-development-only`, with four conditions
@@ -35,16 +41,30 @@ The username reaches `handle_hash` and `collect/assemble/authors.py` retains it
 nowhere by design: *"the handle is needed transiently to compute the hash and
 is retained nowhere."*
 
-So the first Reddit quote E8 renders cannot be attributed as the terms require,
-and finding that out at render time costs **a re-fetch of every Reddit document
-plus a schema change**, not an afternoon. There is no cheap version of finding
-this late.
+So the first Reddit quote E8 renders cannot be attributed from the database.
 
-It needs a decision before the publisher is written, not after, and it is not
-mine alone — it reverses a privacy choice `collect/` made on purpose. Worth
-knowing when you take it: we already publish the permalink, and the permalink
-displays the username, so hashing it protects the author from our database and
-not from our page. That is a real distinction and a smaller one than it looks.
+**This paragraph said that cost "a re-fetch of every Reddit document plus a
+schema change". That was wrong, and Engineer 1 corrected it.** `document.text_ref`
+points at an immutable payload carrying `author` in full, so **every username is
+re-derivable from the raw store** - NFR-4 covering the case it was written for.
+Verified rather than taken: all 195 comments in the harvested thread carry
+`author`; the 3 lacking `author_fullname` are `[deleted]`, so they have neither.
+
+The corrected cost is a read from the raw store at render time. That is the
+difference between a decision that must be made now and one that can be made
+when the publisher is written, and I had it in the expensive column.
+
+**The ruling, 2026-08-18: do not store the handle.** The obligation attaches at
+publication, and a column in `author` does not discharge it - only rendering
+does. Storing now pays the privacy cost in advance of any benefit and cannot be
+undone if publication is refused. Recovery is a raw-store read, so nothing is
+lost by waiting.
+
+Kept beside the ruling so it is not rediscovered as an objection: **we already
+publish the permalink, and the permalink displays the username.** Hashing it
+protects the author from our database and not from our page - a real
+distinction and a smaller one than it looks. It argues for publishing the
+handle *when we publish*, not for storing it now.
 
 **Data API Terms 3.2 — delete data not required for the approved use case,
 against an immutable raw store (NFR-4).**
@@ -56,8 +76,34 @@ honouring a deletion is not the same as silently rewriting history — but
 whether a retention limit satisfies 3.2 is a question for the ruling rather
 than for the publisher.
 
-**Neither is a blocker on anything built today.** Both are blockers on E8, and
-both are cheaper to answer now than to discover in the first rendered page.
+**Blog retention: the export withholds the URL, and published content needs
+one.**
+
+E1's `_handoff/` blog document carries *"a harvested article, url withheld: the
+census corpus carries a `delete_after` date and this file does not"*. That is
+the right call - carrying a retention date into a file that cannot enforce it
+would make the date decorative, and a retention date only some copies obey is
+not a retention date.
+
+But **published content is quote + attribution + link**, so a document with no
+URL can be extracted from, weighted, counted and gated, and then **cannot be
+rendered**. Every stage before the page works; the page is where it stops.
+
+That is not a defect in the export and not something E1 can fix on their side
+alone. It is a question about the retention design - whether a URL under a
+`delete_after` date may be published, and what the page shows when the date
+passes - and it has to be answered **before there is a publish path rather than
+after**, because a cell built from an unpublishable document looks exactly like
+a cell built from a publishable one until something tries to render it.
+
+Verified rather than assumed: neither exported thread contains a URL, and both
+resolve through `ThreadInput` and `_resolve_raw_span` with 11 spans and 0
+failures. The evidence path is fine. The publish path is not.
+
+**None of the three blocks anything built today.** All three block E8, and all
+three are cheaper to answer now than to discover in the first rendered page.
+That is the shape they share, and it is why they are listed together rather
+than filed under the platform each came from.
 
 ## Where this lane starts
 
@@ -99,6 +145,47 @@ claim.quote = raw.text              # `[upside_down_face]` must never reach a pa
 Verifying flattened offsets against the raw document either fails on everything
 or **silently passes against the wrong text**. Get this right or nothing else
 in the product means anything.
+
+### The boundary of that guarantee, and it is not where it looks
+
+**Step 3 renders "the raw span". `raw` there means the text `collect/` stored
+for the document, NOT the bytes the author wrote.** Those are the same thing
+for Reddit and they are not for blogs.
+
+Engineer 1 found it while designing the blog path: **trafilatura
+double-decodes entities.** An author who typed `a &amp;gt; b` — meaning the
+reader should see `a &gt; b` — reaches `raw_text_of` as `a > b`. Bare lxml
+gives the correct single decode.
+
+**Rule 1 cannot catch this, and the reason is structural rather than a gap to
+close.** Verification is a substring match between the quote and the text the
+extractor was given, and the attribution check maps between two artefacts that
+are *both downstream of the decode*. Every step passes. The quote is verbatim
+against what we hold, attributed to the right author, at the right offsets —
+and the author did not write it. A guarantee that holds perfectly against a
+baseline that is already wrong.
+
+So the honest statement of what step 1 proves is: **the quote is exactly what
+we were given, not exactly what was published.** Those coincide only where the
+extraction chain is lossless, and `trafilatura` is a chain we chose.
+
+**It is recoverable, and that is the second time in two days.** `collect/`
+stores `response.content` — the original HTTP bytes — in the content-hash
+addressed raw store, and trafilatura runs after. So the source form of any
+quote is re-derivable, exactly as the Reddit username is. NFR-4 covering the
+case it was written for, twice.
+
+That makes a fourth verification step *possible* rather than necessary: a
+quote could be checked against the stored payload rather than against the
+derived text. Expensive, so not on the nightly path — but it is the difference
+between a limit we accept and one we cannot see. **Worth doing once against a
+blog sample before the publisher renders a blog quote**, since a rendered
+`>` where the author wrote `&gt;` is a misquotation with our verification
+badge on it.
+
+`blog/options.py` versions the derivation as `trafilatura-2.2.0+opts-…`, so a
+re-derivation is identifiable rather than a guess — which is what makes the
+check practical at all.
 
 **Build this in week 4 against a hand-made `thread_context` fixture**, before
 `collect/` ships the real one. Then the handover is a swap, not an integration.

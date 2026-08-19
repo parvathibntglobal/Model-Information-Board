@@ -534,6 +534,82 @@ CREATE TABLE claim_weight (
 
 
 -- ============================================================================
+--  EXTRACTION LEDGER — that a thread was READ, separately from what it said.
+--  judge/ fills this. Proposed by E2, ruled 2026-08-18.
+-- ============================================================================
+
+-- WHY THIS IS NOT DERIVABLE FROM `claim`.
+--
+-- A nightly batch must not re-extract a thread it has already read: at
+-- $0.00164 a thread, re-paying for the whole corpus every night is 96% of the
+-- monthly bill buying rows that already exist, since claim_id hashes the
+-- pipeline version and the writes come out identical.
+--
+-- The obvious skip is "threads that already have claims at this
+-- pipeline_version", and it is WRONG in the direction that costs most:
+--
+--     A THREAD THAT YIELDED ZERO CLAIMS IS NOT AN UNEXTRACTED THREAD.
+--
+-- It looks unextracted forever and is re-paid for every night — and those are
+-- precisely the threads that cost the most and return the least. Rule 6,
+-- landing on the single signal the whole saving depends on. `claim` cannot
+-- express "read it, found nothing", because that row does not exist.
+CREATE TABLE thread_extraction (
+  thread_context_id text NOT NULL REFERENCES thread_context(id),
+
+  -- Part of the key, not an attribute. A re-extraction under a changed prompt
+  -- is new work on old text and must NOT be skipped — the same reason
+  -- claim_id hashes it.
+  pipeline_version  text NOT NULL,
+
+  extracted_at      timestamptz NOT NULL DEFAULT now(),
+
+  -- ⚠ NOT NULL, AND 0 IS A RESULT RATHER THAN AN ABSENCE.
+  --
+  -- This column is the entire point of the table. `0` says "we read this and
+  -- there was nothing in it", which is a finding; the ABSENCE OF A ROW says
+  -- "nobody has read this", which is a job. Same distinction as
+  -- `phrase_present` NULL versus 0, on a table where it decides what gets
+  -- billed.
+  claims_written    int NOT NULL,
+
+  -- What the call actually reported, NULL where the provider did not say.
+  -- Never 0 for "unknown" (rule 6): a completion reporting no usage silently
+  -- disables the spend cap, and `judge/extract/budget.py` counts those
+  -- separately for exactly that reason. This is also where E1's token
+  -- measurement lands without a second mechanism — the estimate in
+  -- ESTIMATED_INPUT_TOKENS assumes 4 chars per token and is wrong by whatever
+  -- the real tokenizer says.
+  input_tokens      int,
+  output_tokens     int,
+
+  -- Retries are recorded because they are paid for. A thread that needed two
+  -- calls cost twice and looks identical afterwards.
+  schema_retries    int NOT NULL DEFAULT 0,
+
+  -- ⚠ WHAT WAS READ, because the id does not say.
+  --
+  -- `thread_context.id` is stable_id("thread_context", root_id, version) and
+  -- IGNORES CONTENT, so a thread re-assembled with different children keeps
+  -- the same id. E1 found this: `specificity.py` changed, the scorer picked
+  -- different children, and PIPELINE_VERSION did not move.
+  --
+  -- Without this column the skip is wrong in the expensive direction: the
+  -- ledger says "already extracted at this version", the id and version both
+  -- match, and the thread we would skip is not the thread we read. Evidence
+  -- silently never extracted, which is worse than paying twice.
+  --
+  -- sha256 of `flattened_text` - the exact bytes the extractor was given.
+  content_fingerprint text,
+
+  PRIMARY KEY (thread_context_id, pipeline_version)
+);
+
+-- The skip lookup: every thread already read at one pipeline version.
+CREATE INDEX thread_extraction_version_idx
+  ON thread_extraction (pipeline_version);
+
+-- ============================================================================
 --  CELLS — what the board is allowed to say. judge/ fills these.
 -- ============================================================================
 
