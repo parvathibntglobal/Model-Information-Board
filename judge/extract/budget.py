@@ -63,15 +63,38 @@ from judge.extract.client import Completion
 #: to refuse.
 DEFAULT_PRICING = Pricing(price_in=0.30, price_out=2.50)
 
-#: What one call is assumed to cost before it is made, in tokens. MEASURED for
-#: input - 569 system prompt plus 663 for a real thread, and `MAX_CHILDREN = 5`
-#: bounds the second. ESTIMATED for output, because nothing has run yet.
+#: What one call is assumed to cost before it is made, in tokens.
 #:
-#: Deliberately generous. An estimate that is too low lets a run overshoot the
-#: cap; too high only stops slightly early, and stopping early is the failure
-#: we can afford.
-ESTIMATED_INPUT_TOKENS = 1300
-ESTIMATED_OUTPUT_TOKENS = 800
+#: **MEASURED 2026-08-19, on the first live extraction run.** Both figures are
+#: means over **n = 3 calls against ONE thread** (rule 7: that is the whole
+#: population, and it is not a sample of the corpus).
+#:
+#:     input    2,010  against 1,300 estimated   -  55% HIGH
+#:     output     589  against   800 estimated   -  26% LOW
+#:
+#: **THE OLD ESTIMATE WAS RIGHT FOR THE WRONG REASON, AND THAT IS THE POINT OF
+#: THIS COMMENT.** Per-thread cost came out at $0.00208 against $0.00239
+#: estimated - a 13% overshoot that looks like a validated method. It is not.
+#: The two errors ran in opposite directions and partly cancelled: input was
+#: half again as large as assumed, output a quarter smaller, and the product
+#: landed close by arithmetic accident. The `4 characters per token` conversion
+#: the estimate was built on (`docs/proposals/extraction-budget.md` §4, which
+#: flagged it as an approximation and not this tokenizer's) is simply wrong for
+#: this input, and the near-match is evidence about nothing.
+#:
+#: So: do not read the agreement as confirmation that estimating this way works.
+#: The next figure derived by chars/4 has no support from this one.
+#:
+#: **THESE ARE MEANS, SO THE FILE'S OLD "DELIBERATELY GENEROUS" CLAIM NO LONGER
+#: HOLDS.** The guard wants a pre-call figure at or above a typical call, because
+#: too low lets a run overshoot the cap while too high only stops slightly early.
+#: A mean sits at neither: roughly half of calls will exceed it. n=3 on one
+#: thread measures no spread at all, so there is no p95 to use instead. What
+#: would restore the property is a spread over threads of differing length -
+#: until then this is the best point estimate available and knowingly not a
+#: bound.
+ESTIMATED_INPUT_TOKENS = 2010
+ESTIMATED_OUTPUT_TOKENS = 589
 
 
 class BudgetExhausted(Exception):
