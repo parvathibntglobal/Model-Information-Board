@@ -168,6 +168,57 @@ def test_a_string_comparison_works_across_both_enums(store, reader):
     assert reader.resolve(stored.ref).outcome == "found"
 
 
+def test_nothing_computes_a_hash_on_read_so_CORRUPT_is_unreachable():
+    """The state a fourth outcome will describe, and nothing produces it yet.
+
+    Worth asserting rather than asserting the absence of a clause: the reason
+    `CORRUPT` will read zero is not that the adapter mishandles corruption, it is
+    that **no read path hashes anything**. `get` returns `read_bytes()`;
+    `verify` is the method that hashes and it has no production caller.
+
+    This test fails the day either changes, which is the day the mapping starts
+    producing values - so it is a reminder rather than a guard.
+    """
+    import inspect
+
+    from collect import rawstore
+
+    read_path = inspect.getsource(rawstore.RawStore.get) + inspect.getsource(
+        rawstore.RawStore.get_text
+    )
+    assert "content_hash" not in read_path, "a read path now hashes; CORRUPT is reachable"
+    assert "verify" not in read_path
+
+    hashing = inspect.getsource(rawstore.RawStore.verify)
+    assert "content_hash" in hashing, "verify() is where hashing lives"
+
+
+def test_the_marker_reader_swallows_nothing(tmp_path):
+    """A corrupt tombstone marker must not become MISSING, and does not.
+
+    `_read_marker` parses JSON and indexes three keys, so an unreadable marker
+    raises rather than reporting "no marker" — which would fold TOMBSTONED into
+    MISSING one layer below this adapter, where no `except` clause of mine could
+    see it. Asserted because the hazard was looked for deliberately: three of the
+    defects in this file's history were a helper more permissive than the
+    contract it serves.
+    """
+    import json
+
+    from collect.rawstore import RAW, RawStore
+
+    store = RawStore(tmp_path)
+    stored = store.put("body", namespace=RAW)
+    store.tombstone(stored.ref, reason="takedown-request")
+
+    marker = next(tmp_path.rglob("*.tombstone*"))
+    marker.write_text("{not json", encoding="utf-8")
+
+    reader = RawStoreReader(store)
+    with pytest.raises(json.JSONDecodeError):
+        reader.resolve(stored.ref)
+
+
 def test_payload_corrupt_cannot_reach_the_reader():
     """Checked, because the reverse would argue for a fourth outcome.
 

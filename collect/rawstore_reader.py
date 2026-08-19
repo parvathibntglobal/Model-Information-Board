@@ -28,12 +28,42 @@ three-state enum is destroyed by one clause that is shorter to write.
 
 So: one clause per exception, named, and no base class.
 
-WHAT HAPPENS TO CORRUPTION, WHICH HAS NO OUTCOME
-------------------------------------------------
-`PayloadCorrupt` exists in the store and **cannot reach here**: it is raised by
-`put()` on a size mismatch against an existing key, and this class only reads.
-Checked rather than assumed, because the reverse would have been an argument for
-adding a fourth outcome to a contract that does not need one.
+WHAT HAPPENS TO CORRUPTION, AND WHY IT IS UNDETECTED RATHER THAN MISHANDLED
+--------------------------------------------------------------------------
+**A fourth outcome is coming and it is right.** `MISSING` means nothing is there
+and the repair is upstream; `CORRUPT` means something is there and does not match
+its hash, and the repair is that we cannot trust what we stored. Different
+urgency, and only one of them is a reason to stop. Engineer 2's enum, so this
+file waits for her to add it rather than mapping onto a member that does not
+exist.
+
+**And nothing produces the state today.** Verified 2026-08-19:
+
+    RawStore.get      reads the marker, checks existence, returns read_bytes().
+                      NO HASH IS COMPUTED on any read path.
+    RawStore.verify   the method that does hash, and it has NO production
+                      caller - two test call sites and nothing else.
+    PayloadCorrupt    raised only by `put()`, on a SIZE mismatch against an
+                      existing key. A write-path event, and size only.
+
+So corruption is **undetected rather than mishandled**, which is worth stating
+plainly: a fourth value for a state nothing currently produces is still worth
+having - the distinction is real and the mapping should exist before the detector
+does, not after - and it is worth knowing it will read zero until something
+computes a hash on read.
+
+The route to reachability is NOT a check inside `get()`. `put()`'s own docstring
+already made that trade for writes - "re-hashing every blob on every put would
+turn each write into a full read for a case that atomic writes already prevent;
+`verify()` exists for the sweep that genuinely checks" - and the same arithmetic
+applies to reads. It is a sweep that calls `verify()` and tombstones or
+quarantines what fails.
+
+ONE SCOPING NOTE FOR THE ENUM MEMBER, because `get()` invites the mistake: its
+`PayloadMissing` log says "This is corruption or a bug, not a takedown". That
+message is about absence CAUSED by corruption, and absence is still `MISSING`.
+`CORRUPT` should mean present-and-wrong, or the two collapse again from the other
+direction.
 
 What CAN happen on a read is bytes that are present and not valid UTF-8.
 `get_text` decodes, so that surfaces as `UnicodeDecodeError`, and there is no
@@ -43,6 +73,33 @@ is recoverable; a corrupt blob reported as `MISSING` sends somebody to look for
 a payload that is sitting right there. This is the one place where raising
 rather than returning is correct, and it is the case her `Outcome` deliberately
 does not cover.
+
+EVERY WAY THIS CAN RAISE, WHICH IS MORE THAN THE TWO I FIRST WROTE DOWN
+-----------------------------------------------------------------------
+Audited 2026-08-19 after the ruling that **a resolver which sometimes raises and
+sometimes returns is two contracts in one signature.** By that standard this file
+currently is two contracts, and the list is the evidence rather than a defence:
+
+    UnicodeDecodeError        bytes present, not valid UTF-8 (`get_text` decodes)
+    ValueError                a ref `build_ref` never produced (`parse_ref`)
+    JSONDecodeError, KeyError, ValueError
+                              a tombstone marker that is present and unreadable
+                              (`_read_marker` parses JSON and indexes three keys)
+
+The third was not in the original list and is the one worth having found: it
+means a corrupt MARKER cannot silently become `MISSING`, because nothing swallows
+it — good — but it also means this method raises from a path its docstring did
+not mention. `RawStore._read_marker` is not permissive; the omission was mine.
+
+**The decode failure stops being a raise the moment `Outcome.CORRUPT` lands.**
+Non-UTF-8 bytes are the definition of present-and-wrong, so under a fourth
+outcome it maps there rather than escaping the signature. That retires the
+argument the current docstring makes for raising, and it should be retired: it
+was the best available answer while three outcomes were all there were.
+
+The malformed ref is a different case and stays open: it is a claim about the
+CALLER rather than about the store, and no outcome describing a payload can carry
+it. Flagged rather than settled.
 
 `ResolvedText` IS DUPLICATED HERE, AND THAT IS NOT A CHOICE I CAN MAKE ALONE
 ----------------------------------------------------------------------------
