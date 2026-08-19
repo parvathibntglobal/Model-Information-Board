@@ -13,7 +13,7 @@ on the belief that `launch-window` meant "nothing was observed". It does not.
 `cli.py` sets it whenever `BY_MENTIONS` is absent, and `BY_MENTIONS` requires
 `mentions >= mention_floor` — so a model with 13 mentions against a floor of 20 is
 seated by the window, is attested, and is seated **exactly as the policy
-intends**. The condition fired on 5 of 23 launch-window entries, all correct, and
+intends**. The condition fired on 5 of the launch-window entries, all correct, and
 a check that fires on a correct state is the one that gets muted.
 
 The condition that names a real error is `launch-window` AND
@@ -29,9 +29,14 @@ travels in the file's `policy:` header, because without it neither a reader nor
 this check can tell "below the floor" from "never observed".
 
 **WHY IT LANDS BEFORE THE SEATS, NOT AFTER.** Engineer 2's argument and it decides
-the order: 18 primaries are about to be guessed for models nobody has discussed.
-A wrong seat with no flag is invisible. A wrong seat with a flag that fires on the
-first mention is a to-do item.
+the order: **17** primaries are about to be guessed for models nobody has
+discussed. A wrong seat with no flag is invisible — the model never resolves, and
+that reads as nobody discussing it, which is rule 4 at the point where nobody is
+looking. A wrong seat with a flag that fires on the first mention is a to-do item.
+
+(17, not 18: `~deepseek/deepseek-v4-flash-latest` was removed from the artifact on
+2026-08-19. A routing pointer cannot be seated correctly at all - it names
+whatever resolves this week and has no capability to report on.)
 
 **WHY IT IS A TEST AND NOT A NIGHTLY REPORT.** Same reason the CI ordering finding
 established: a report is read when somebody chooses to read it, and the thing that
@@ -67,7 +72,10 @@ ARTIFACT = (
 #:
 #: The durable fix is a `mentions:` key in `to_yaml`. That is a change to the
 #: artifact Engineer 2 is reviewing, so it is proposed rather than taken.
-_MENTIONS = re.compile(r"^\s+(?:surface:|- )\s*(.+?)\s+# attested (\d+) mentions", re.M)
+_MENTIONS = re.compile(
+    r"^\s+(?:surface:|- )\s*(.+?)\s+# attested (\d+) mentions(?: \[([^\]]*)\])?", re.M
+)
+_SPLIT_PART = re.compile(r"([a-z-]+)\s+(\d+)")
 _SEATED_BY = re.compile(r"seated_by:\s*(\S+)")
 
 PROVISIONAL = "launch-window"
@@ -81,7 +89,10 @@ def _entries() -> list[tuple[str, str | None, list[tuple[str, int]]]]:
     for block in re.split(r"\n  - canonical_id: ", text)[1:]:
         canonical_id = block.split("\n")[0].strip()
         seat = _SEATED_BY.search(block)
-        mentions = [(s.strip(), int(n)) for s, n in _MENTIONS.findall(block)]
+        mentions = []
+        for surface, count, split in _MENTIONS.findall(block):
+            by_source = {k: int(v) for k, v in _SPLIT_PART.findall(split or "")}
+            mentions.append((surface.strip(), int(count), by_source))
         out.append((canonical_id, seat.group(1) if seat else None, mentions))
     return out
 
@@ -151,16 +162,18 @@ def test_no_provisional_entry_already_qualifies_by_count(entries, floor):
     Totals per entry, not per surface: the floor is compared against a model's
     attested mentions, and one model's forms are not separate evidence.
     """
-    caught = [
-        (canonical_id, max(mentions, key=lambda m: m[1])[0], sum(c for _, c in mentions))
-        for canonical_id, seat, mentions in entries
-        if seat == PROVISIONAL and mentions and sum(c for _, c in mentions) >= floor
-    ]
+    caught = []
+    for canonical_id, seat, mentions in entries:
+        if seat != PROVISIONAL or not mentions or _total(mentions) < floor:
+            continue
+        top = max(mentions, key=lambda row: row[1])[0]
+        caught.append((canonical_id, top, _total(mentions), _slice_share(mentions)))
+
     if caught:
         lines = "\n".join(
             f"    {surface!r} is provisional and now has {count} mentions "
-            f"({canonical_id})"
-            for canonical_id, surface, count in sorted(
+            f"({canonical_id}) — {_describe_population(share)}"
+            for canonical_id, surface, count, share in sorted(
                 caught, key=lambda row: -row[2]
             )
         )
@@ -182,12 +195,62 @@ def test_an_attested_seat_is_never_also_provisional(entries):
         )
 
 
+def _total(mentions) -> int:
+    return sum(row[1] for row in mentions)
+
+
+def _slice_share(mentions) -> float | None:
+    """Fraction of the total that came from `substitution-slice`, or None.
+
+    None when no surface carried a split - absent, not 0.0, because 0.0 would
+    read as "measured, none from the slice" (rule 6).
+    """
+    agg: dict[str, int] = {}
+    for _surface, _count, by_source in mentions:
+        for name, value in by_source.items():
+            agg[name] = agg.get(name, 0) + value
+    total = sum(agg.values())
+    if not total:
+        return None
+    return agg.get("slice", 0) / total
+
+
+def _describe_population(share: float | None) -> str:
+    """What to DO about a firing, which differs by where the mentions came from.
+
+    Slice-dominated and below-floor are disjoint concerns needing different
+    responses, so the message says which one this is instead of leaving the reader
+    to go and look.
+    """
+    if share is None:
+        return "source split unrecorded — check the population before reseating"
+    if share > 0.5:
+        return (
+            f"{share:.0%} substitution-slice: a TARGETED sweep for migration "
+            "language, so re-measure against the general sweep before crediting it"
+        )
+    return f"{share:.0%} substitution-slice: mostly general sweep, reseat"
+
+
 def _fires(rows, floor):
-    """The condition itself, so the test and the check cannot drift apart."""
+    """The condition itself, so the test and the check cannot drift apart.
+
+    **KEYED ON THE TOTAL, DELIBERATELY, AND THE SPLIT IS REPORTED INSTEAD.**
+    `select()` seats by comparing a model's TOTAL attested mentions to the floor,
+    so a check keyed on anything else is checking a rule the code does not
+    implement. Conditioning on non-slice mentions would find "errors" that are
+    correct under the policy, which is the mistake the first version of this check
+    already made once.
+
+    But slice-contamination and below-floor are DISJOINT concerns needing
+    different responses - reseat versus re-measure against a wider sweep - so the
+    failure message carries the split. The condition does not conflate them
+    because it does not judge them; it names both facts and lets the reader act.
+    """
     return [
         cid
         for cid, seat, mentions in rows
-        if seat == PROVISIONAL and mentions and sum(c for _, c in mentions) >= floor
+        if seat == PROVISIONAL and mentions and _total(mentions) >= floor
     ]
 
 
@@ -199,13 +262,13 @@ def test_the_condition_fires_on_a_real_error_and_not_on_a_correct_seat(floor):
     nothing stopped it firing on 5 rows that were right — which is the muting
     failure it was written to avoid, reintroduced by the condition itself.
     """
-    over = [("vendor/model-x", PROVISIONAL, [("model x", floor)])]
+    over = [("vendor/model-x", PROVISIONAL, [("model x", floor, {"sweep": floor})])]
     assert _fires(over, floor) == ["vendor/model-x"], (
         "an entry at or above the floor and still seated by the window is a real "
         "error and must fire"
     )
 
-    under = [("vendor/model-y", PROVISIONAL, [("model y", floor - 1)])]
+    under = [("vendor/model-y", PROVISIONAL, [("model y", floor - 1, {"sweep": floor - 1})])]
     assert not _fires(under, floor), (
         "BELOW the floor and inside the window is what the policy intends. This "
         "is the case the first version got wrong on 5 of 23 entries."
@@ -217,7 +280,7 @@ def test_the_condition_fires_on_a_real_error_and_not_on_a_correct_seat(floor):
         "legitimately provisional forever, and that is the mute to avoid"
     )
 
-    seated = [("vendor/model-w", ATTESTED, [("model w", floor * 10)])]
+    seated = [("vendor/model-w", ATTESTED, [("model w", floor * 10, {"sweep": floor * 10})])]
     assert not _fires(seated, floor), "an already-attested seat is not an error"
 
 
@@ -227,3 +290,88 @@ def test_the_live_artifact_agrees_with_the_condition(entries, floor):
         "the artifact has a provisional entry clearing the floor — "
         "test_no_provisional_entry_already_qualifies_by_count names it"
     )
+
+
+def test_slice_contamination_and_below_floor_are_kept_apart(floor):
+    """Two disjoint concerns, and a condition keyed on a total would merge them.
+
+    Below-floor and slice-dominated need DIFFERENT responses — reseat versus
+    re-measure against a wider sweep — and today they are disjoint sets: the five
+    below-floor entries are mostly sweep-sourced (`gemini 3.6 flash` is
+    [sweep 10, slice 3], `qwen3.8-max` is [sweep 7]), while the slice-dominated
+    ones are all already `attested`.
+
+    **The condition still keys on the total, deliberately.** `select()` seats by
+    comparing total mentions to the floor, so conditioning on anything else checks
+    a rule the code does not implement — the mistake the first version made. The
+    split is separated in the MESSAGE, not the condition.
+    """
+    sweep_sourced = [("v/sweep", PROVISIONAL, [("s", floor, {"sweep": floor})])]
+    slice_sourced = [("v/slice", PROVISIONAL, [("s", floor, {"slice": floor})])]
+
+    # Both fire: both qualify by count, which is what the policy measures.
+    assert _fires(sweep_sourced, floor) == ["v/sweep"]
+    assert _fires(slice_sourced, floor) == ["v/slice"]
+
+    # And they are distinguishable, which is what makes the responses different.
+    assert _slice_share(sweep_sourced[0][2]) == 0.0
+    assert _slice_share(slice_sourced[0][2]) == 1.0
+
+
+def test_a_missing_split_is_absent_rather_than_zero(floor):
+    """Rule 6. 0.0 would read as "measured, none from the slice"."""
+    assert _slice_share([("s", 5, {})]) is None
+
+
+def test_the_below_floor_population_and_its_slice_share_are_pinned(entries):
+    """The two concerns OVERLAP, by one entry, and the number is the point.
+
+    **CORRECTION.** I told Engineer 2 the five below-floor entries were "mostly
+    sweep-sourced, so slice contamination and below-floor are disjoint sets", on
+    the strength of two of them. Counted, they are not disjoint:
+
+        google/gemini-3.6-flash          14   21% slice
+        qwen/qwen3.8-max                  8    0%
+        qwen/qwen3.7-flash                5    0%
+        deepseek/deepseek-v4-flash-0731   3  100% slice   <- the overlap
+        deepseek/deepseek-v4-pro-0813     1    0%
+
+    4 of 5 sweep-dominated, 1 of 5 slice-only. Generalising from two instances
+    without counting is the risk form of rule 7, and it is the second time this
+    week - so the population is pinned here rather than described.
+
+    **THIS DOES NOT FAIL ON THE OVERLAP, deliberately.** A below-floor entry whose
+    few mentions are all from the migration sweep is seated CORRECTLY: it is under
+    the floor either way. Failing the build on it would be firing on a correct
+    state, which is the exact mistake the first version of this check made. What
+    fails is the distribution CHANGING, because that means a reviewer's assumption
+    about which entries need re-measurement has gone stale.
+    """
+    below = [
+        (cid, _total(m), _slice_share(m))
+        for cid, seat, m in entries
+        if seat == PROVISIONAL and m
+    ]
+    assert below, "no below-floor provisional entries parsed — format changed?"
+
+    slice_dominated = sorted(
+        cid for cid, _total_, share in below if share is not None and share > 0.5
+    )
+    assert len(below) == 5, f"the below-floor population changed: {len(below)} entries"
+    assert slice_dominated == ["deepseek/deepseek-v4-flash-0731"], (
+        f"the slice-dominated below-floor set changed: {slice_dominated}. Re-check "
+        "which entries need re-measuring against the general sweep before "
+        "confirming their seats — the two concerns overlap and the overlap moved."
+    )
+
+
+def test_every_below_floor_entry_is_actually_below_the_floor(entries, floor):
+    """The seating itself, independent of where the mentions came from.
+
+    Guards the claim the docstring above rests on: these entries are correctly
+    seated. If one crosses the floor it is no longer a correct state and
+    `test_no_provisional_entry_already_qualifies_by_count` is the one that fires.
+    """
+    for cid, seat, mentions in entries:
+        if seat == PROVISIONAL and mentions:
+            assert _total(mentions) < floor, f"{cid} clears the floor of {floor}"

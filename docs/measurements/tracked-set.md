@@ -84,8 +84,20 @@ anything launched. Alongside them sit regional variants and fine-tunes nobody
 has written a sentence about.
 
 A date-sorted top 50 would seat several of those and drop
-`anthropic/claude-sonnet-4.5` — 426 mentions, sixteen months old, still
-discussed constantly.
+`anthropic/claude-sonnet-4.5` — sixteen months old and **still discussed: 32
+mentions from the general sweep**.
+
+> **Corrected 2026-08-19. This said "426 mentions, still discussed constantly".**
+> 426 is real, and **394 of it is `substitution-slice`** — 92%. The slice is a
+> targeted sweep for migration language, so a model people are *leaving* is
+> over-represented in it by construction; using its total as evidence of ongoing
+> discussion is a slice measurement doing duty as a corpus measurement.
+>
+> **The conclusion holds on the smaller figure.** 32 non-slice mentions is not
+> zero, it is sixteen months after release, and a date sort still drops it while
+> seating routing pointers. "Discussed at all, long after release" is what the
+> argument needs; "discussed constantly" is what the slice total made it look
+> like. The per-surface split is now printed in the artifact.
 
 So the ranking is by attributable mentions. **What that count is drawn from:**
 

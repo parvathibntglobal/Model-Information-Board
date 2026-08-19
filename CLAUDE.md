@@ -41,7 +41,13 @@ These are the rules a helpful refactor will otherwise quietly violate.
    **Code-only extraction was proposed and refused, 2026-08-18.** Dropping the
    model at E5 and keeping it only in the Ask box would remove an injection
    surface, a dependency and a source of nondeterminism, and it is not a cost
-   question - the whole corpus extracts for $2.12.
+   question - the whole corpus extracts for **$1.84**, which is 887 threads at
+   the measured $0.00208 each. Was `$2.12`, quoted with no denominator and
+   computed from a token estimate that no run had produced; the tokens were
+   measured 2026-08-19 (n=3 calls, one thread) and the figure fell.
+   `docs/measurements/extraction-token-counts.md`. The conclusion is unchanged
+   and was never cost-dependent - that is why this sentence says "not a cost
+   question" and then gives one number rather than an argument.
 
    It was refused for one structural reason. **Rule 1 works because the
    proposer and the checker are different things.** The model proposes a

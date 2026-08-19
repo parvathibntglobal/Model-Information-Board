@@ -14,6 +14,30 @@
 # carry no version, so a bare family word is attested constantly and
 # attributable to no single model.
 #
+# EVERY MENTION COUNT IS A SUM, AND THE SPLIT IS NOW BESIDE IT.
+#   [slice N, sweep N, comments N]  substitution-slice / reddit-sweep /
+#                                   reddit-comments, descending
+# Rule 7 in the file the seats are read from. The extract has always carried
+# this split and this file used to print only the total, so a reviewer could not
+# tell a corpus figure from a slice figure. `sonnet 4.5` reads 416 mentions and
+# 393 of them are substitution-slice; `opus 5` reads 1445 and 1092 are the sweep.
+# Those two seats are supported by different populations and looked identical.
+# `split unrecorded` means the extract row had no by_source key - absent, not
+# zero.
+#
+# ONE ENTRY WAS REMOVED BY HAND, 2026-08-19: ~deepseek/deepseek-v4-flash-latest.
+# A ROUTING POINTER, AND IT CANNOT BE SEATED CORRECTLY - not merely unseated
+# today. A pointer names whatever the vendor currently resolves it to, so it has
+# no capability to report on, and nothing has observed it or will. Its row read
+# INCOMPLETE on every slot, which renders as "nobody has discussed this model" -
+# rule 4, applied to a thing that is not a model.
+#
+# It survived three rulings because the ruling was implemented and not called:
+# `is_route` had callers in triage/entity.py and tracked.select and NOT in
+# propose(), the primary output of the module the ruling lives in. Fixed there,
+# so a regeneration cannot reintroduce it. Removed here by hand because this file
+# predates that fix and `--out` now refuses to overwrite a reviewed artifact.
+#
 # Accept or reject per model. Nothing here decides anything.
 
 # THE THRESHOLDS THESE SEATS WERE CUT WITH. A seat is not readable without them:
@@ -28,9 +52,9 @@ proposals:
   - canonical_id: anthropic/claude-opus-5
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: opus 5        # attested 1445 mentions; also derived by vendor-drop
+    surface: opus 5        # attested 1445 mentions [sweep 1092, slice 348, comments 5]; also derived by vendor-drop
     variants:
-      - opus-5                        # attested 78 mentions; also derived by vendor-drop
+      - opus-5                        # attested 78 mentions [sweep 67, slice 11]; also derived by vendor-drop
       - opus5                         # by rule (vendor-drop), unattested
       - claude opus 5                 # mechanical, unattested
       - claude-opus-5                 # mechanical, unattested
@@ -40,9 +64,9 @@ proposals:
   - canonical_id: anthropic/claude-opus-4.6
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: opus 4.6        # attested 398 mentions; also derived by vendor-drop
+    surface: opus 4.6        # attested 398 mentions [sweep 225, slice 120, comments 53]; also derived by vendor-drop
     variants:
-      - opus-4.6                      # attested 36 mentions; also derived by vendor-drop
+      - opus-4.6                      # attested 36 mentions [sweep 34, comments 1, slice 1]; also derived by vendor-drop
       - opus4.6                       # by rule (vendor-drop), unattested
       - claude opus 4.6               # mechanical, unattested
       - claude-opus-4.6               # mechanical, unattested
@@ -52,18 +76,18 @@ proposals:
   - canonical_id: openai/gpt-5.5
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gpt 5.5        # attested 228 mentions
+    surface: gpt 5.5        # attested 228 mentions [sweep 210, slice 14, comments 4]
     variants:
-      - gpt-5.5                       # attested 204 mentions
+      - gpt-5.5                       # attested 204 mentions [sweep 156, slice 43, comments 5]
       - gpt5.5                        # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: anthropic/claude-sonnet-4.5
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: sonnet 4.5        # attested 416 mentions; also derived by vendor-drop
+    surface: sonnet 4.5        # attested 416 mentions [slice 393, sweep 21, comments 2]; also derived by vendor-drop
     variants:
-      - sonnet-4.5                    # attested 10 mentions; also derived by vendor-drop
+      - sonnet-4.5                    # attested 10 mentions [sweep 9, slice 1]; also derived by vendor-drop
       - sonnet4.5                     # by rule (vendor-drop), unattested
       - claude sonnet 4.5             # mechanical, unattested
       - claude-sonnet-4.5             # mechanical, unattested
@@ -73,28 +97,28 @@ proposals:
   - canonical_id: google/gemini-2.5-flash
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gemini 2.5 flash        # attested 280 mentions
+    surface: gemini 2.5 flash        # attested 280 mentions [sweep 249, slice 31]
     variants:
-      - gemini-2.5-flash              # attested 126 mentions
+      - gemini-2.5-flash              # attested 126 mentions [sweep 92, slice 34]
       - gemini2.5flash                # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: openai/gpt-5
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gpt-5        # attested 311 mentions
+    surface: gpt-5        # attested 311 mentions [slice 160, sweep 147, comments 4]
     variants:
-      - gpt5                          # attested 50 mentions
-      - gpt 5                         # attested 38 mentions
+      - gpt5                          # attested 50 mentions [slice 48, comments 2]
+      - gpt 5                         # attested 38 mentions [sweep 19, slice 19]
     incomplete: [family_surface]
 
   - canonical_id: anthropic/claude-opus-4.8
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: opus 4.8        # attested 370 mentions; also derived by vendor-drop
+    surface: opus 4.8        # attested 370 mentions [sweep 167, slice 162, comments 41]; also derived by vendor-drop
     variants:
-      - opus-4.8                      # attested 12 mentions; also derived by vendor-drop
-      - claude 4.8                    # attested 6 mentions
+      - opus-4.8                      # attested 12 mentions [sweep 11, comments 1]; also derived by vendor-drop
+      - claude 4.8                    # attested 6 mentions [sweep 4, slice 2]
       - opus4.8                       # by rule (vendor-drop), unattested
       - claude opus 4.8               # mechanical, unattested
       - claude-opus-4.8               # mechanical, unattested
@@ -104,10 +128,10 @@ proposals:
   - canonical_id: anthropic/claude-opus-4.7
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: opus 4.7        # attested 325 mentions; also derived by vendor-drop
+    surface: opus 4.7        # attested 325 mentions [sweep 188, comments 79, slice 58]; also derived by vendor-drop
     variants:
-      - opus-4.7                      # attested 6 mentions; also derived by vendor-drop
-      - claude 4.7                    # attested 4 mentions
+      - opus-4.7                      # attested 6 mentions [slice 4, comments 1, sweep 1]; also derived by vendor-drop
+      - claude 4.7                    # attested 4 mentions [comments 2, sweep 1, slice 1]
       - opus4.7                       # by rule (vendor-drop), unattested
       - claude opus 4.7               # mechanical, unattested
       - claude-opus-4.7               # mechanical, unattested
@@ -117,18 +141,18 @@ proposals:
   - canonical_id: google/gemini-2.5-pro
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gemini 2.5 pro        # attested 233 mentions
+    surface: gemini 2.5 pro        # attested 233 mentions [slice 146, sweep 87]
     variants:
-      - gemini-2.5-pro                # attested 52 mentions
+      - gemini-2.5-pro                # attested 52 mentions [slice 35, sweep 16, comments 1]
       - gemini2.5pro                  # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: anthropic/claude-opus-4.5
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: opus 4.5        # attested 206 mentions; also derived by vendor-drop
+    surface: opus 4.5        # attested 206 mentions [slice 132, sweep 67, comments 7]; also derived by vendor-drop
     variants:
-      - opus-4.5                      # attested 6 mentions; also derived by vendor-drop
+      - opus-4.5                      # attested 6 mentions [sweep 4, slice 2]; also derived by vendor-drop
       - opus4.5                       # by rule (vendor-drop), unattested
       - claude opus 4.5               # mechanical, unattested
       - claude-opus-4.5               # mechanical, unattested
@@ -138,9 +162,9 @@ proposals:
   - canonical_id: anthropic/claude-sonnet-5
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: sonnet 5        # attested 166 mentions; also derived by vendor-drop
+    surface: sonnet 5        # attested 166 mentions [slice 111, sweep 55]; also derived by vendor-drop
     variants:
-      - sonnet-5                      # attested 11 mentions; also derived by vendor-drop
+      - sonnet-5                      # attested 11 mentions [sweep 10, slice 1]; also derived by vendor-drop
       - sonnet5                       # by rule (vendor-drop), unattested
       - claude sonnet 5               # mechanical, unattested
       - claude-sonnet-5               # mechanical, unattested
@@ -150,9 +174,9 @@ proposals:
   - canonical_id: openai/gpt-5.3-codex
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gpt-5.3        # attested 161 mentions
+    surface: gpt-5.3        # attested 161 mentions [sweep 149, slice 12]
     variants:
-      - gpt 5.3                       # attested 9 mentions
+      - gpt 5.3                       # attested 9 mentions [sweep 7, slice 2]
       - gpt 5.3 codex                 # mechanical, unattested
       - gpt-5.3-codex                 # mechanical, unattested
       - gpt5.3codex                   # mechanical, unattested
@@ -161,9 +185,9 @@ proposals:
   - canonical_id: anthropic/claude-opus-4
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: opus-4        # attested 107 mentions; also derived by vendor-drop
+    surface: opus-4        # attested 107 mentions [sweep 73, slice 27, comments 7]; also derived by vendor-drop
     variants:
-      - opus 4                        # attested 53 mentions; also derived by vendor-drop
+      - opus 4                        # attested 53 mentions [sweep 26, slice 24, comments 3]; also derived by vendor-drop
       - opus4                         # by rule (vendor-drop), unattested
       - claude opus 4                 # mechanical, unattested
       - claude-opus-4                 # mechanical, unattested
@@ -173,9 +197,9 @@ proposals:
   - canonical_id: anthropic/claude-sonnet-4.6
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: sonnet 4.6        # attested 142 mentions; also derived by vendor-drop
+    surface: sonnet 4.6        # attested 142 mentions [sweep 78, slice 57, comments 7]; also derived by vendor-drop
     variants:
-      - sonnet-4.6                    # attested 6 mentions; also derived by vendor-drop
+      - sonnet-4.6                    # attested 6 mentions [slice 5, comments 1]; also derived by vendor-drop
       - sonnet4.6                     # by rule (vendor-drop), unattested
       - claude sonnet 4.6             # mechanical, unattested
       - claude-sonnet-4.6             # mechanical, unattested
@@ -185,18 +209,18 @@ proposals:
   - canonical_id: openai/gpt-5.4
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gpt-5.4        # attested 101 mentions
+    surface: gpt-5.4        # attested 101 mentions [sweep 81, slice 17, comments 3]
     variants:
-      - gpt 5.4                       # attested 43 mentions
+      - gpt 5.4                       # attested 43 mentions [slice 28, sweep 10, comments 5]
       - gpt5.4                        # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: anthropic/claude-sonnet-4
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: sonnet 4        # attested 95 mentions; also derived by vendor-drop
+    surface: sonnet 4        # attested 95 mentions [slice 76, sweep 19]; also derived by vendor-drop
     variants:
-      - sonnet-4                      # attested 45 mentions; also derived by vendor-drop
+      - sonnet-4                      # attested 45 mentions [slice 25, sweep 20]; also derived by vendor-drop
       - sonnet4                       # by rule (vendor-drop), unattested
       - claude sonnet 4               # mechanical, unattested
       - claude-sonnet-4               # mechanical, unattested
@@ -206,20 +230,20 @@ proposals:
   - canonical_id: openai/gpt-5.2
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gpt-5.2        # attested 108 mentions
+    surface: gpt-5.2        # attested 108 mentions [sweep 89, slice 19]
     variants:
-      - gpt 5.2                       # attested 11 mentions
+      - gpt 5.2                       # attested 11 mentions [sweep 10, slice 1]
       - gpt5.2                        # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: google/gemini-3-flash-preview
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gemini 3 flash        # attested 76 mentions
+    surface: gemini 3 flash        # attested 76 mentions [sweep 38, slice 38]
     variants:
-      - gemini-3-flash                # attested 27 mentions
-      - gemini flash 3                # attested 2 mentions
-      - gemini-flash-3                # attested 1 mentions
+      - gemini-3-flash                # attested 27 mentions [sweep 24, slice 2, comments 1]
+      - gemini flash 3                # attested 2 mentions [sweep 1, slice 1]
+      - gemini-flash-3                # attested 1 mentions [sweep 1]
       - gemini 3 flash preview        # mechanical, unattested
       - gemini-3-flash-preview        # mechanical, unattested
       - gemini3flashpreview           # mechanical, unattested
@@ -228,9 +252,9 @@ proposals:
   - canonical_id: anthropic/claude-haiku-4.5
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: haiku 4.5        # attested 83 mentions; also derived by vendor-drop
+    surface: haiku 4.5        # attested 83 mentions [sweep 49, slice 31, comments 3]; also derived by vendor-drop
     variants:
-      - haiku-4.5                     # attested 4 mentions; also derived by vendor-drop
+      - haiku-4.5                     # attested 4 mentions [sweep 3, comments 1]; also derived by vendor-drop
       - haiku4.5                      # by rule (vendor-drop), unattested
       - claude haiku 4.5              # mechanical, unattested
       - claude-haiku-4.5              # mechanical, unattested
@@ -240,36 +264,36 @@ proposals:
   - canonical_id: openai/gpt-5.1
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gpt-5.1        # attested 74 mentions
+    surface: gpt-5.1        # attested 74 mentions [sweep 51, slice 23]
     variants:
-      - gpt 5.1                       # attested 7 mentions
-      - gpt5.1                        # attested 4 mentions
+      - gpt 5.1                       # attested 7 mentions [sweep 5, slice 2]
+      - gpt5.1                        # attested 4 mentions [slice 3, sweep 1]
     incomplete: [family_surface]
 
   - canonical_id: openai/gpt-4.1
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gpt-4.1        # attested 67 mentions
+    surface: gpt-4.1        # attested 67 mentions [sweep 39, slice 28]
     variants:
-      - gpt 4.1                       # attested 9 mentions
-      - gpt4.1                        # attested 1 mentions
+      - gpt 4.1                       # attested 9 mentions [sweep 6, slice 3]
+      - gpt4.1                        # attested 1 mentions [slice 1]
     incomplete: [family_surface]
 
   - canonical_id: openai/gpt-4
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gpt-4        # attested 70 mentions
+    surface: gpt-4        # attested 70 mentions [slice 46, sweep 24]
     variants:
-      - gpt 4                         # attested 1 mentions
-      - gpt4                          # attested 1 mentions
+      - gpt 4                         # attested 1 mentions [slice 1]
+      - gpt4                          # attested 1 mentions [sweep 1]
     incomplete: [family_surface]
 
   - canonical_id: qwen/qwen3-coder
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: qwen3 coder        # attested 43 mentions
+    surface: qwen3 coder        # attested 43 mentions [sweep 33, slice 10]
     variants:
-      - qwen3-coder                   # attested 29 mentions
+      - qwen3-coder                   # attested 29 mentions [sweep 20, slice 9]
       - qwen3 coder 480b a35b         # mechanical, unattested
       - qwen3-coder-480b-a35b         # mechanical, unattested
       - qwen3coder                    # mechanical, unattested
@@ -279,10 +303,10 @@ proposals:
   - canonical_id: anthropic/claude-opus-4.1
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: opus 4.1        # attested 66 mentions; also derived by vendor-drop
+    surface: opus 4.1        # attested 66 mentions [slice 48, sweep 16, comments 2]; also derived by vendor-drop
     variants:
-      - claude 4.1                    # attested 2 mentions
-      - opus-4.1                      # attested 1 mentions; also derived by vendor-drop
+      - claude 4.1                    # attested 2 mentions [sweep 1, slice 1]
+      - opus-4.1                      # attested 1 mentions [sweep 1]; also derived by vendor-drop
       - opus4.1                       # by rule (vendor-drop), unattested
       - claude opus 4.1               # mechanical, unattested
       - claude-opus-4.1               # mechanical, unattested
@@ -292,18 +316,18 @@ proposals:
   - canonical_id: z-ai/glm-4.6
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: glm-4.6        # attested 42 mentions
+    surface: glm-4.6        # attested 42 mentions [slice 41, sweep 1]
     variants:
-      - glm 4.6                       # attested 22 mentions
-      - glm4.6                        # attested 2 mentions
+      - glm 4.6                       # attested 22 mentions [slice 19, sweep 3]
+      - glm4.6                        # attested 2 mentions [slice 2]
     incomplete: [family_surface]
 
   - canonical_id: meta-llama/llama-3.3-70b-instruct
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: llama 3.3        # attested 42 mentions
+    surface: llama 3.3        # attested 42 mentions [sweep 31, slice 11]
     variants:
-      - llama-3.3                     # attested 9 mentions
+      - llama-3.3                     # attested 9 mentions [sweep 6, slice 3]
       - llama 3.3 70b instruct        # mechanical, unattested
       - llama-3.3-70b-instruct        # mechanical, unattested
       - llama3.370binstruct           # mechanical, unattested
@@ -312,62 +336,62 @@ proposals:
   - canonical_id: z-ai/glm-5.1
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: glm-5.1        # attested 24 mentions
+    surface: glm-5.1        # attested 24 mentions [sweep 24]
     variants:
-      - glm 5.1                       # attested 18 mentions
-      - glm5.1                        # attested 2 mentions
+      - glm 5.1                       # attested 18 mentions [sweep 16, comments 1, slice 1]
+      - glm5.1                        # attested 2 mentions [sweep 2]
     incomplete: [family_surface]
 
   - canonical_id: openai/gpt-5.4-mini
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gpt-5.4-mini        # attested 21 mentions
+    surface: gpt-5.4-mini        # attested 21 mentions [sweep 17, slice 4]
     variants:
-      - gpt-5.4 mini                  # attested 18 mentions
-      - gpt 5.4 mini                  # attested 4 mentions
+      - gpt-5.4 mini                  # attested 18 mentions [sweep 13, slice 5]
+      - gpt 5.4 mini                  # attested 4 mentions [sweep 3, slice 1]
       - gpt5.4mini                    # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: z-ai/glm-5.2
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: glm 5.2        # attested 34 mentions
+    surface: glm 5.2        # attested 34 mentions [sweep 32, slice 2]
     variants:
-      - glm-5.2                       # attested 9 mentions
+      - glm-5.2                       # attested 9 mentions [slice 6, sweep 3]
       - glm5.2                        # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: z-ai/glm-4.7
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: glm 4.7        # attested 26 mentions
+    surface: glm 4.7        # attested 26 mentions [sweep 17, slice 9]
     variants:
-      - glm-4.7                       # attested 8 mentions
+      - glm-4.7                       # attested 8 mentions [sweep 5, slice 3]
       - glm4.7                        # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: google/gemini-3.5-flash
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gemini 3.5 flash        # attested 28 mentions
+    surface: gemini 3.5 flash        # attested 28 mentions [slice 19, sweep 9]
     variants:
-      - gemini-3.5-flash              # attested 3 mentions
+      - gemini-3.5-flash              # attested 3 mentions [sweep 2, slice 1]
       - gemini3.5flash                # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: openai/gpt-5-mini
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gpt-5-mini        # attested 21 mentions
+    surface: gpt-5-mini        # attested 21 mentions [sweep 16, slice 5]
     variants:
-      - gpt 5 mini                    # attested 9 mentions
+      - gpt 5 mini                    # attested 9 mentions [sweep 6, slice 3]
       - gpt5mini                      # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: qwen/qwen2.5-vl-72b-instruct
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: qwen2.5        # attested 29 mentions
+    surface: qwen2.5        # attested 29 mentions [sweep 26, slice 3]
     variants:
       - qwen2.5 vl 72b instruct       # mechanical, unattested
       - qwen2.5-vl-72b-instruct       # mechanical, unattested
@@ -377,7 +401,7 @@ proposals:
   - canonical_id: x-ai/grok-4.5
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: grok 4.5        # attested 29 mentions
+    surface: grok 4.5        # attested 29 mentions [sweep 23, slice 6]
     variants:
       - grok-4.5                      # mechanical, unattested
       - grok4.5                       # mechanical, unattested
@@ -386,20 +410,20 @@ proposals:
   - canonical_id: x-ai/grok-4.6
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: grok 4.6        # attested 28 mentions
+    surface: grok 4.6        # attested 28 mentions [sweep 28]
     variants:
-      - grok-4.6                      # attested 1 mentions
+      - grok-4.6                      # attested 1 mentions [slice 1]
       - grok4.6                       # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: anthropic/claude-3-haiku
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: claude 3        # attested 14 mentions
+    surface: claude 3        # attested 14 mentions [slice 9, sweep 5]
     variants:
-      - claude-3                      # attested 10 mentions
-      - haiku 3                       # attested 1 mentions
-      - haiku-3                       # attested 1 mentions
+      - claude-3                      # attested 10 mentions [slice 8, sweep 2]
+      - haiku 3                       # attested 1 mentions [comments 1]
+      - haiku-3                       # attested 1 mentions [slice 1]
       - claude 3 haiku                # mechanical, unattested
       - claude-3-haiku                # mechanical, unattested
       - claude3haiku                  # mechanical, unattested
@@ -408,18 +432,18 @@ proposals:
   - canonical_id: openai/o4-mini
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: o4-mini        # attested 18 mentions
+    surface: o4-mini        # attested 18 mentions [sweep 13, slice 5]
     variants:
-      - o4 mini                       # attested 8 mentions
+      - o4 mini                       # attested 8 mentions [slice 5, sweep 3]
       - o4mini                        # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: openai/gpt-4.1-mini
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: gpt-4.1-mini        # attested 20 mentions
+    surface: gpt-4.1-mini        # attested 20 mentions [sweep 12, slice 8]
     variants:
-      - gpt-4.1 mini                  # attested 5 mentions
+      - gpt-4.1 mini                  # attested 5 mentions [sweep 4, slice 1]
       - gpt 4.1 mini                  # mechanical, unattested
       - gpt4.1mini                    # mechanical, unattested
     incomplete: [family_surface]
@@ -427,16 +451,16 @@ proposals:
   - canonical_id: z-ai/glm-4.5
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: glm-4.5        # attested 16 mentions
+    surface: glm-4.5        # attested 16 mentions [sweep 12, slice 4]
     variants:
-      - glm 4.5                       # attested 6 mentions
+      - glm 4.5                       # attested 6 mentions [sweep 5, slice 1]
       - glm4.5                        # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: qwen/qwen3-max
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: qwen3-max        # attested 21 mentions
+    surface: qwen3-max        # attested 21 mentions [sweep 21]
     variants:
       - qwen3 max                     # mechanical, unattested
       - qwen3max                      # mechanical, unattested
@@ -445,18 +469,18 @@ proposals:
   - canonical_id: z-ai/glm-5
     status: attested
     seated_by: attested               # the corpus attests this model
-    surface: glm-5        # attested 15 mentions
+    surface: glm-5        # attested 15 mentions [sweep 14, slice 1]
     variants:
-      - glm 5                         # attested 5 mentions
-      - glm5                          # attested 1 mentions
+      - glm 5                         # attested 5 mentions [slice 4, sweep 1]
+      - glm5                          # attested 1 mentions [sweep 1]
     incomplete: [family_surface]
 
   - canonical_id: google/gemini-3.6-flash
     status: attested
     seated_by: launch-window          # inside the launch window AND below the mention floor: attested, but not by enough to seat it
-    surface: gemini 3.6 flash        # attested 13 mentions
+    surface: gemini 3.6 flash        # attested 13 mentions [sweep 10, slice 3]
     variants:
-      - gemini 3.6                    # attested 1 mentions
+      - gemini 3.6                    # attested 1 mentions [sweep 1]
       - gemini-3.6-flash              # mechanical, unattested
       - gemini3.6flash                # mechanical, unattested
     incomplete: [family_surface]
@@ -464,16 +488,16 @@ proposals:
   - canonical_id: qwen/qwen3.8-max
     status: attested
     seated_by: launch-window          # inside the launch window AND below the mention floor: attested, but not by enough to seat it
-    surface: qwen3.8-max        # attested 7 mentions
+    surface: qwen3.8-max        # attested 7 mentions [sweep 7]
     variants:
-      - qwen3.8 max                   # attested 1 mentions
+      - qwen3.8 max                   # attested 1 mentions [sweep 1]
       - qwen3.8max                    # mechanical, unattested
     incomplete: [family_surface]
 
   - canonical_id: qwen/qwen3.7-flash
     status: attested
     seated_by: launch-window          # inside the launch window AND below the mention floor: attested, but not by enough to seat it
-    surface: qwen3.7 flash        # attested 5 mentions
+    surface: qwen3.7 flash        # attested 5 mentions [sweep 5]
     variants:
       - qwen3.7-flash                 # mechanical, unattested
       - qwen3.7flash                  # mechanical, unattested
@@ -484,7 +508,7 @@ proposals:
     seated_by: launch-window          # inside the launch window AND below the mention floor: attested, but not by enough to seat it
     surface: deepseek v4 flash        # by rule (vendor-drop), unattested — reseated 2026-08-19
     variants:
-      - deepseek flash 0731           # attested 3 mentions; DEMOTED — a bare date matches most loosely
+      - deepseek flash 0731           # attested 3 mentions [slice 3]; DEMOTED — a bare date matches most loosely
       - deepseek-v4-flash             # mechanical, unattested
       - deepseekv4flash               # mechanical, unattested
       - deepseek v4 flash 0731        # mechanical, unattested
@@ -497,7 +521,7 @@ proposals:
     seated_by: launch-window          # inside the launch window AND below the mention floor: attested, but not by enough to seat it
     surface: deepseek v4 pro        # by rule (vendor-drop), unattested — reseated 2026-08-19
     variants:
-      - deepseek 0813                 # attested 1 mentions; DEMOTED — a bare date matches most loosely
+      - deepseek 0813                 # attested 1 mentions [sweep 1]; DEMOTED — a bare date matches most loosely
       - deepseek-v4-pro               # mechanical, unattested
       - deepseekv4pro                 # mechanical, unattested
       - deepseek v4 pro 0813          # mechanical, unattested
@@ -678,14 +702,4 @@ proposals:
       - solar-pro-4                   # mechanical, unattested
       - solar-pro4                    # mechanical, unattested
       - solarpro4                     # mechanical, unattested
-    incomplete: [family_surface, attested_surfaces]
-
-  - canonical_id: ~deepseek/deepseek-v4-flash-latest
-    status: mechanical-only
-    seated_by: launch-window          # released inside the launch window; no attested surface, so every form below is derived
-    surface: INCOMPLETE   # no attested surface; recall is unmeasured, not zero
-    variants:
-      - deepseek v4 flash latest      # mechanical, unattested
-      - deepseek-v4-flash-latest      # mechanical, unattested
-      - deepseekv4flashlatest         # mechanical, unattested
     incomplete: [family_surface, attested_surfaces]

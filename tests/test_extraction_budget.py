@@ -11,13 +11,19 @@ import pytest
 from judge.ask.cost import Pricing
 from judge.extract.budget import (
     DEFAULT_PRICING,
+    ESTIMATED_INPUT_TOKENS,
+    ESTIMATED_OUTPUT_TOKENS,
     Budget,
     BudgetExhausted,
 )
 from judge.extract.client import Completion
 
 
-def completion(inp=1292, out=500, model="google/gemini-2.5-flash") -> Completion:
+#: THE MEASURED CALL, 2026-08-19. Was `inp=1292, out=500` — estimate-era figures
+#: that no run ever produced, and which made this file quote ~610 threads per
+#: dollar while the constants it tests imply 481. Two figures for one quantity in
+#: one file is how the wrong one gets cited.
+def completion(inp=2010, out=589, model="google/gemini-2.5-flash") -> Completion:
     return Completion(raw_arguments="{}", input_tokens=inp, output_tokens=out, model=model)
 
 
@@ -44,9 +50,14 @@ class TestItActuallyStops:
         assert budget.calls == 0
         assert budget.spent_usd == 0.0
 
-    def test_a_dollar_buys_roughly_six_hundred_threads(self):
-        """The figure the budget decision was made on, asserted so a pricing
-        or prompt change that moves it fails here rather than on a bill."""
+    def test_a_dollar_buys_the_measured_number_of_threads(self):
+        """MEASURED, 2026-08-19, and the figure moved when it was.
+
+        Was "roughly six hundred", from a fixture nobody had observed. The real
+        per-thread cost is $0.00208 over n=3 calls on one thread, so a dollar
+        buys ~481 — asserted so a pricing or prompt change that moves it fails
+        here rather than on a bill.
+        """
         budget = Budget(limit_usd=1.00)
         n = 0
         with pytest.raises(BudgetExhausted):
@@ -54,7 +65,7 @@ class TestItActuallyStops:
                 budget.check_before_call()
                 budget.charge(completion())
                 n += 1
-        assert 550 <= n <= 700, f"a dollar now buys {n} threads, not ~610"
+        assert 460 <= n <= 500, f"a dollar now buys {n} threads, not ~481"
 
 
 class TestABudgetStopIsNotAFailureAndNotAnEmptyBatch:
@@ -149,3 +160,61 @@ class TestTheEstimateAndTheMeasurementStaySeparate:
         budget.charge(completion(inp=1_000_000, out=0))
         assert budget.spent_usd == pytest.approx(1.0)
         assert DEFAULT_PRICING.price_in == 0.30
+
+
+# ── the measured token figures, and what they buy ─────────────────────────
+
+
+class TestTheMeasuredFigures:
+    """Pins the 2026-08-19 measurement so a documented figure cannot drift.
+
+    `docs/measurements/extraction-token-counts.md` and
+    `docs/proposals/extraction-budget.md` §4 both quote the per-thread cost and
+    the threads-per-dollar figure. Neither is derivable from a constant a reader
+    can see, so without this test they go stale silently — which is the failure
+    the estimate-versus-measurement story here is entirely about.
+    """
+
+    def test_the_constants_are_the_measured_means(self):
+        assert ESTIMATED_INPUT_TOKENS == 2010
+        assert ESTIMATED_OUTPUT_TOKENS == 589
+
+    def test_the_per_thread_cost_is_what_the_docs_quote(self):
+        budget = Budget(limit_usd=1.00)
+        assert round(budget.estimated_next_call_usd, 5) == 0.00208
+
+    def test_one_dollar_buys_the_documented_number_of_threads(self):
+        """~482, and the docs must not say 472 or 418.
+
+        418 was the pre-measurement figure. 472 was quoted from a per-thread
+        cost of $0.00212, which does not follow from 2,010/589 at the seeded
+        price — see the measurement doc's unreconciled note.
+        """
+        budget = Budget(limit_usd=1.00)
+        threads = int(1.00 / budget.estimated_next_call_usd)
+        assert threads == 481, threads
+
+    def test_the_two_errors_ran_in_opposite_directions(self):
+        """The cancellation, as arithmetic rather than as a claim in prose.
+
+        This is the whole reason the old estimate looked validated: 55% high on
+        input and 26% low on output, and the product landed 13% apart. Asserted
+        so that "the estimate was close" can never be read as "the method works"
+        by someone who did not read the comment.
+        """
+        old_in, old_out = 1300, 800
+        assert old_in < ESTIMATED_INPUT_TOKENS, "input was UNDER-estimated"
+        assert old_out > ESTIMATED_OUTPUT_TOKENS, "output was OVER-estimated"
+
+        pricing = DEFAULT_PRICING
+        def cost(i: int, o: int) -> float:
+            return (i * pricing.price_in + o * pricing.price_out) / 1_000_000
+
+        estimated = cost(old_in, old_out)
+        measured = cost(ESTIMATED_INPUT_TOKENS, ESTIMATED_OUTPUT_TOKENS)
+
+        # Each term is badly wrong on its own...
+        assert abs(ESTIMATED_INPUT_TOKENS - old_in) / old_in > 0.5
+        assert abs(ESTIMATED_OUTPUT_TOKENS - old_out) / old_out > 0.25
+        # ...and the totals are close, which is the coincidence.
+        assert abs(measured - estimated) / estimated < 0.15

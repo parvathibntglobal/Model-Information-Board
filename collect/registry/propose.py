@@ -136,6 +136,50 @@ ROUTE_NAMESPACES = ("openrouter/",)
 ROUTE_PREFIX = "~"
 
 
+#: OpenRouter serving/pricing annotations. **How a model is SOLD, never part of
+#: what it is called** - the same class of fact as `is_route`, one level down: a
+#: route is not a model, and a price tier is not a name.
+#:
+#: They arrive two ways for the same model, so both are stripped:
+#:
+#:     canonical_id   dots-studio/dots-3-note-preview:free
+#:     name           Dots Studio: Dots3-Note Preview (free)
+#:
+#: A CLOSED SET, AND NOT "ANY TRAILING PARENTHETICAL", which was the tempting
+#: rule and is wrong on the evidence. Across the 11-model feed slice the trailing
+#: parentheses are `free`, `batch`, `fast` - and `(Gemini 3.1 Flash Lite Image)`,
+#: which is part of the model's own name. A blanket strip would delete it, so the
+#: rule enumerates and a fourth annotation arrives as an unstripped surface a
+#: reviewer can see rather than as a silently deleted name.
+#:
+#: `extended` and `thinking` are deliberately NOT here. They change what the
+#: model DOES, not what it costs, so a surface carrying one may be a real
+#: distinction people write. Excluded on purpose rather than forgotten.
+PRICING_ANNOTATIONS = frozenset({"free", "batch", "fast", "nitro", "floor"})
+
+_TRAILING_PAREN = re.compile(r"\s*\(([^)]+)\)\s*$")
+
+
+def strip_pricing_annotation(text: str) -> str:
+    """Remove a serving/pricing annotation from an id local part or a feed name.
+
+    Six variant lines across `dots-3-note-preview` and `lfm-2.5-2.6b` reached the
+    review artifact as `dots3 note preview (free)` and friends - forms that came
+    from a listing string rather than from anything anybody typed. Engineer 2
+    ruled them out by hand; this is the same ruling in the generator, so a
+    regeneration cannot reintroduce them.
+    """
+    out = text
+    found = _TRAILING_PAREN.search(out)
+    if found and found.group(1).strip().casefold() in PRICING_ANNOTATIONS:
+        out = out[: found.start()]
+    # `...preview:free` - the id's own tier suffix.
+    head, sep, tail = out.rpartition(":")
+    if sep and tail.strip().casefold() in PRICING_ANNOTATIONS:
+        out = head
+    return out.strip()
+
+
 def is_route(canonical_id: str) -> bool:
     """Does this id denote a route rather than a model?
 
@@ -179,9 +223,12 @@ def mechanical_variants(canonical_id: str, display_name: str | None = None) -> l
 
     A bare family word is never returned even if the id is one: see FAMILY_WORDS.
     """
-    seeds = {canonical_id.split("/", 1)[-1]}
+    # Stripped before any rendering, so no derived form can carry a price tier.
+    # See PRICING_ANNOTATIONS — mechanical, and the same class as `is_route`.
+    seeds = {strip_pricing_annotation(canonical_id.split("/", 1)[-1])}
     if display_name:
-        seeds.add(display_name.split(":", 1)[-1])
+        seeds.add(strip_pricing_annotation(display_name.split(":", 1)[-1]))
+    seeds.discard("")
 
     out: set[str] = set()
     for seed in seeds:
@@ -277,6 +324,20 @@ class Attested:
     mentions: int
     documents: int = 0
 
+    #: WHICH SWEEPS THE COUNT CAME FROM, and it is not decoration.
+    #:
+    #: `mentions` is a SUM across `substitution-slice`, `reddit-sweep` and
+    #: `reddit-comments`, and the extract has always carried the split while the
+    #: artifact printed only the total. That is rule 7 in the one file the seats
+    #: are read from: `sonnet 4.5` at 416 is **393 slice, 21 sweep, 2 comments**,
+    #: and a reviewer confirming that seat off `416` cannot see that it is
+    #: overwhelmingly a slice measurement.
+    #:
+    #: Empty when the extract row carried no `by_source` key - absent, not zero
+    #: (rule 6), and `to_yaml` says "split unrecorded" rather than printing a
+    #: fabricated 100%.
+    by_source: dict[str, int] = field(default_factory=dict)
+
 
 @dataclass
 class AliasProposal:
@@ -361,10 +422,32 @@ def propose(
     `observed` maps canonical_id to attested surfaces. Absent means unmeasured,
     which is recorded as such — an empty attested list produces
     `mechanical-only`, never a claim that the model is undiscussed.
+
+    **ROUTES ARE REFUSED HERE, AND THIS MODULE IS WHERE THAT WAS MISSING.**
+    `is_route` is defined twenty lines up and had two callers —
+    `collect/triage/entity.py` and `tracked.select` — and *not this function*, the
+    primary output of the module the ruling lives in. So the narrowed
+    (tracked-set) path was protected and the un-narrowed
+    `registry propose-aliases` path was not: it proposed six mechanical variants
+    for `~deepseek/deepseek-v4-flash-latest` and one for `openrouter/auto`.
+
+    Third instance of one shape this week: the rule was implemented, correct, and
+    not consulted by the code that needed it. Habit 10 is about imports not being
+    call paths; this is the same gap one step further out — **a ruling with a
+    caller is not a ruling with every caller.**
+
+    Refused rather than seated-and-flagged, which is Engineer 2's argument and it
+    is stronger than "unseated today": a pointer names whatever resolves this
+    week, so it has no capability to report on and **can never be seated
+    correctly.** Nothing observed it and nothing will. A row for it is not a
+    thin row, it is a category error, and `INCOMPLETE` on every slot renders as
+    "nobody has discussed this model" — rule 4, on a thing that is not a model.
     """
     observed = observed or {}
     out = []
     for canonical_id, display_name in models:
+        if is_route(canonical_id):
+            continue
         attested = sorted(
             observed.get(canonical_id, []), key=lambda a: (-a.mentions, a.surface)
         )
@@ -389,6 +472,57 @@ def propose(
             incomplete=incomplete,
         ))
     return sorted(out, key=lambda p: (-p.total_mentions, p.canonical_id))
+
+
+#: The header block explaining the split, so a reader of the artifact does not
+#: have to find this module to learn what `[slice 393, sweep 21]` means.
+HEADER_SOURCE_SPLIT = """# EVERY MENTION COUNT IS A SUM, AND THE SPLIT IS NOW BESIDE IT.
+#   [slice N, sweep N, comments N]  substitution-slice / reddit-sweep /
+#                                   reddit-comments, descending
+# Rule 7 in the file the seats are read from. The extract has always carried
+# this split and this file used to print only the total, so a reviewer could not
+# tell a corpus figure from a slice figure. `sonnet 4.5` reads 416 mentions and
+# 393 of them are substitution-slice; `opus 5` reads 1445 and 1092 are the sweep.
+# Those two seats are supported by different populations and looked identical.
+# `split unrecorded` means the extract row had no by_source key - absent, not
+# zero.
+#"""
+
+
+#: Short names for the sweeps, so the split fits on the line it annotates.
+#: Spelled out here rather than abbreviated silently, because a reader who does
+#: not know what `sl` is cannot check the figure.
+_SOURCE_ABBREV = {
+    "substitution-slice": "slice",
+    "reddit-sweep": "sweep",
+    "reddit-comments": "comments",
+}
+
+
+def source_split(attested: Attested) -> str:
+    """`mentions` broken down by sweep, for the annotation on a surface line.
+
+    **THIS IS RULE 7 IN THE FILE THE SEATS ARE READ FROM.** `mentions` is a sum
+    across three sweeps and the artifact printed only the total, so a reviewer
+    confirming a seat could not tell a corpus figure from a slice figure. The
+    case that shows why: `sonnet 4.5` reads `416 mentions`, of which 393 are
+    substitution-slice - 94% of that one surface, and 92% across the model's two
+    attested forms.
+
+    Absent rather than assumed when the extract carried no `by_source`: the
+    string says so instead of implying the total came from one sweep (rule 6).
+    """
+    if not attested.by_source:
+        return "split unrecorded"
+    ordered = sorted(attested.by_source.items(), key=lambda kv: (-kv[1], kv[0]))
+    parts = [f"{_SOURCE_ABBREV.get(name, name)} {count}" for name, count in ordered]
+    rendered = ", ".join(parts)
+    total = sum(attested.by_source.values())
+    if total != attested.mentions:
+        # The split must reconcile with the figure it explains, or it is a second
+        # unverified number rather than a denominator.
+        rendered += f" (!! sums to {total}, not {attested.mentions})"
+    return rendered
 
 
 def to_yaml(
@@ -427,6 +561,7 @@ def to_yaml(
         "# carry no version, so a bare family word is attested constantly and",
         "# attributable to no single model.",
         "#",
+        *HEADER_SOURCE_SPLIT.splitlines(),
         "# Accept or reject per model. Nothing here decides anything.",
         "",
     ]
@@ -477,7 +612,8 @@ def to_yaml(
                 )
             lines.append(f"    seated_by: {ground}".ljust(38) + note)
         if p.attested:
-            note = f"# attested {p.attested[0].mentions} mentions"
+            note = (f"# attested {p.attested[0].mentions} mentions "
+                    f"[{source_split(p.attested[0])}]")
             if p.surface in p.by_rule:
                 note += f"; also derived by {VENDOR_DROP}"
             lines.append(f"    surface: {p.surface}        {note}")
@@ -488,7 +624,7 @@ def to_yaml(
         for variant in p.variants:
             hit = next((a for a in p.attested if a.surface == variant), None)
             if hit:
-                note = f"# attested {hit.mentions} mentions"
+                note = f"# attested {hit.mentions} mentions [{source_split(hit)}]"
                 # An attested surface the rule also derives is the rule's own
                 # evidence. Said on the line rather than in a summary, because
                 # this is where a reviewer decides whether to trust it.
