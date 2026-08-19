@@ -41,12 +41,24 @@ Proposed on #5 (comment 7, item A4) and not ruled. A `thread_context` written
 without it is a flattening nobody can identify later, which is the argument that
 got it proposed.
 
-**In the meantime `pipeline_version` carries it**, which is weaker in one
-specific way worth writing down: it changes for ANY change to `collect/`, so it
-over-identifies — two flattenings under different `pipeline_version`s may be
-byte-identical. It never under-identifies, which is the direction that matters,
-**provided `PIPELINE_VERSION` is bumped when the flattener changes.** That
-proviso is the whole guarantee, and it is a convention rather than a check.
+**In the meantime `pipeline_version` carries it**, and the sentence that stood
+here was wrong in the direction it called safe. It read: `pipeline_version`
+changes for ANY change to `collect/`, so it over-identifies — two flattenings
+under different versions may be byte-identical — but *never* under-identifies,
+**provided `PIPELINE_VERSION` is bumped when the flattener changes.**
+
+It under-identified the same day. `PIPELINE_VERSION` was not bumped, and what
+changed was not the flattener: it was `collect/triage/specificity.py`, the
+scorer that picks WHICH children get flattened. One id, two different
+selections, and `ON CONFLICT DO NOTHING` kept the stale row
+(`docs/measurements/first-thread-context.md` §4).
+
+The proviso named one path and was read as ranging over all of them. **A proviso
+is evidence about the path it names and about nothing else** — the shape is
+recorded in `docs/measurements/README.md`, because two people accepted this one
+without asking what it ranged over. What `pipeline_version` actually offers here
+is over-identification and no lower bound, until an identifier covers what the
+row asserts rather than when it was written.
 
 NO MODEL PARTICIPATES.
 """
@@ -54,20 +66,86 @@ NO MODEL PARTICIPATES.
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
-from collect.adapters.reddit_comments import ParsedThread, RedditComment
 from collect.assemble.flatten import Flattened, flatten
 from collect.config import settings
 from collect.ids import stable_id
 from collect.rawstore import FLATTENED, RawStore
 from collect.triage.specificity import score_document
 
+
+@runtime_checkable
+class ThreadMember(Protocol):
+    """What ranking and flattening actually touch on a child.
+
+    Three attributes, not a platform type. `RedditComment` satisfies this
+    structurally and is no longer imported here — assembly ranked Reddit
+    comments because Reddit was the only platform, which is not the same as
+    assembly being about Reddit.
+
+    Written as a Protocol rather than left implicit because the previous
+    signature said `ParsedThread` and MEANT these three fields; a reader had to
+    open the Reddit module to find out which.
+    """
+
+    external_id: str
+    body: str
+    score: int | None
+
+
+@runtime_checkable
+class ThreadInput(Protocol):
+    """What `assemble` needs of a fetched thread. `ParsedThread` satisfies it."""
+
+    root_post_id: str | None
+    comments: tuple
+    coverage: Any
+
 #: What `selection_method` records. The `@observed` suffix is load-bearing: the
 #: bare value asserts a global ranking, and 200 of 4,833 comments is not one.
 SELECTION_METHOD = "specificity_x_log_engagement@observed"
+
+#: What a ONE-MEMBER thread records. Ruled 2026-08-18.
+#:
+#: A blog article is a thread of one, so nothing is ranked and nothing is
+#: selected: `rank_children(())` returns `[]` and `child_count` is 0. Writing
+#: `specificity_x_log_engagement@observed` there would describe a ranking that
+#: did not happen, which is the exact failure the `@observed` suffix was added
+#: to prevent, one level further out.
+#:
+#: NOT NULL and not the schema default. The column is `NOT NULL`, and NULL
+#: would say "unrecorded" where the truth is "not applicable" (rule 6). The
+#: schema DEFAULT is the bare `specificity_x_log_engagement`, which asserts a
+#: global ranking and is the one value this module must never write.
+WHOLE_DOCUMENT = "whole_document"
+
+#: Blog coverage, ruled 2026-08-18 with `WHOLE_DOCUMENT`. Written here because
+#: the blog assemble path does not exist yet and the reasoning must not be
+#: rediscovered when it does.
+#:
+#:   observed_children       0     A MEASUREMENT. We looked and stored none.
+#:   hidden_children_min     None  NOT 0. `include_comments=False` means WE
+#:                                 withheld the comment section — see
+#:                                 `collect/adapters/blog/options.py`. "Nothing
+#:                                 was withheld" is true of the platform and
+#:                                 false of us, and a post with 400 comments
+#:                                 and one with none would both write 0. Rule 6,
+#:                                 leaning towards flattering our own coverage.
+#:   hidden_branches_unsized 0     A MEASUREMENT. There are no `more` markers.
+#:
+#: `coverage_ratio` is NULL either way — `COALESCE(0,0) + COALESCE(None,0)` is
+#: 0, and the generated CASE has no ELSE — so honesty here costs nothing. What
+#: it buys is that `observed_children = 0` still separates a blog row from a
+#: pre-#54 row, where all three are NULL.
+#:
+#: FLAGGED TO ENGINEER 2, NOT SOLVED HERE: a NULL `coverage_ratio` now means
+#: both "no children exist" and "never measured", separable only by reading the
+#: inputs. That is her display side and rule 4's territory.
+BLOG_COVERAGE_HIDDEN_CHILDREN_MIN = None
 
 #: `thread_context.member_document_ids` is "root + the 3-5 selected children".
 MAX_CHILDREN = 5
@@ -88,7 +166,12 @@ class AssembledThread:
     flattened: Flattened
     flattened_text_ref: str
     observed_children: int
-    hidden_children_min: int
+    #: `int | None`, and the None is a real value rather than a gap. A blog
+    #: article writes NULL here because `include_comments=False` means we
+    #: withheld the comment section — see `BLOG_COVERAGE_HIDDEN_CHILDREN_MIN`.
+    #: All four coverage columns are nullable in the schema for the same class
+    #: of reason: a row that has not been measured must not read as 0.
+    hidden_children_min: int | None
     hidden_branches_unsized: int
     pipeline_version: str
     selection_method: str = SELECTION_METHOD
@@ -121,8 +204,8 @@ class AssembledThread:
 
 
 def rank_children(
-    comments: tuple[RedditComment, ...], *, version_aliases
-) -> list[tuple[float, RedditComment]]:
+    comments: tuple[ThreadMember, ...], *, version_aliases
+) -> list[tuple[float, ThreadMember]]:
     """`specificity_score x log(1 + engagement)`, highest first.
 
     Engagement is `max(score, 0)`: a comment at -3 is not negatively relevant,
@@ -143,10 +226,11 @@ def rank_children(
 
 
 def assemble(
-    thread: ParsedThread,
+    thread: ThreadInput,
     *,
     root_text: str,
     root_document_id: str,
+    child_document_id: Callable[[ThreadMember], str],
     store: RawStore,
     version_aliases,
     max_children: int = MAX_CHILDREN,
@@ -157,6 +241,18 @@ def assemble(
     `root_text` is passed rather than read from the payload because the root is
     a `document` the caller already has — assembly does not re-parse what
     harvest already stored.
+
+    `child_document_id` IS REQUIRED AND HAS NO DEFAULT. This function used to
+    build child ids itself as `f"reddit:{c.external_id}"` while taking
+    `root_document_id` from the caller — so one of the two ids in the same row
+    followed a convention the caller chose and the other followed one assembly
+    chose, and only a cross-lane comparison could notice they disagreed. That
+    is how Engineer 2's fixture came to strip the `t1_`/`t3_` prefixes
+    `collect/` stores. Both ids now come from the same place.
+
+    No default, rather than a Reddit default: a default would let a second
+    platform inherit `reddit:` silently, which is the failure this widening
+    exists to prevent and not a convenience worth keeping.
     """
     version = pipeline_version or settings().pipeline_version
 
@@ -165,7 +261,7 @@ def assemble(
     )[:max_children]]
 
     documents: list[tuple[str, str]] = [(root_document_id, root_text)]
-    documents.extend((f"reddit:{c.external_id}", c.body) for c in selected)
+    documents.extend((child_document_id(c), c.body) for c in selected)
 
     flattened = flatten(documents)
     stored = store.put(flattened.text, namespace=FLATTENED)

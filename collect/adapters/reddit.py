@@ -123,9 +123,27 @@ TWO LIMITS, AND ONLY ONE OF THEM FITS THE SCHEMA
                  minute for your plan, PRO". Clears in ~60s. **No
                  `Retry-After` header**, so the backoff cannot be read off the
                  response and is assumed here.
-    monthly      `x-ratelimit-requests-limit: 1000000`, `-remaining`,
-                 `-reset` (~28 days). Readable on EVERY response, so quota is
-                 knowable before a sweep rather than only after it stops.
+    monthly      ALL THREE are now read by `_get` and recorded per call —
+                 `_QUOTA_HEADERS`. Read 2026-08-18:
+                     -limit      1000000
+                     -remaining   998660
+                     -reset      2064366  = 23.893 days, resets 2026-09-11
+                 This docstring previously asserted the same 1,000,000 and
+                 `-reset (~28 days)` as though both were observations. Neither
+                 was, five documents cited this line as their source, and the
+                 reset was wrong by four days. The limit was right, which is
+                 the outcome that teaches nothing unless it is written down.
+                 1 unit per request exactly, over 558 requests and per
+                 individual call over the last 186.
+
+                 STILL OPEN: the plan page says 500,000. A gateway header is
+                 not proof of the billed tier, and no request can settle that
+                 — the value would come from the party in doubt. See
+                 docs/measurements/reddit-rate-and-quota.md §1.4.
+
+                 NO PER-MINUTE HEADER EXISTS. All 16 response headers were
+                 captured; the monthly triple is the only rate-limit family.
+                 So the `< 32` below cannot be replaced by a reading.
 
 `harvest_run.truncated_by` has no `'quota'` value, so an exhausted month
 currently has nowhere to be recorded. It is proposed on issue #5. Until it
@@ -177,6 +195,16 @@ BACKOFF_SECONDS = 60.0
 #: Defaults to one page for the same reason GitHub's does: a page is stored
 #: whole, and pages beyond the first are not stored at all today.
 PAGE_SIZE = 25
+
+#: Response header -> run attribute. The whole rate-limit triple, captured on
+#: every call. `-limit` and `-reset` were named in this module's docstring and
+#: read by nothing until 2026-08-18; a map rather than three hand-written reads
+#: so adding a fourth header is one line and cannot be half-done.
+_QUOTA_HEADERS = {
+    "x-ratelimit-requests-remaining": "quota_remaining",
+    "x-ratelimit-requests-limit": "quota_limit",
+    "x-ratelimit-requests-reset": "quota_reset_seconds",
+}
 DEFAULT_MAX_PAGES = 1
 
 #: Reddit's own sorts. `BEST` is rejected by the comments endpoint, which
@@ -304,6 +332,20 @@ class RedditRun:
     quota_exhausted: bool = False
     quota_remaining: int | None = None
 
+    #: THE MONTHLY LIMIT AS THE RESPONSE STATED IT, not as anybody wrote it
+    #: down. Added 2026-08-18 because the previous version of this adapter read
+    #: `-remaining` and nothing else, so a docstring constant of 1,000,000 stood
+    #: unchecked against a plan believed to be 500,000 for a fortnight. Read on
+    #: 2026-08-18 as 1,000,000 — the constant was right and the method was not.
+    #: None means the response did not carry it (rule 6: unread is not a value).
+    quota_limit: int | None = None
+
+    #: SECONDS until the window resets, verbatim from the header. Stored as the
+    #: duration and not as a date: a date computed once and left in prose is
+    #: stale within the month, which is what `(~28 days)` in this module's
+    #: docstring turned out to be — the header says 2,064,366s, i.e. 23.9 days.
+    quota_reset_seconds: int | None = None
+
     @property
     def items_fetched(self) -> int:
         return len(self.posts)
@@ -393,6 +435,14 @@ class ThreadFetch:
     rate_limited: int = 0
     backoff_seconds: float = 0.0
     quota_remaining: int | None = None
+    #: Same triple as `RedditRun`. A comment fetch is a metered call and its
+    #: quota reading is as good as a search's — the 10-request gap in
+    #: `docs/measurements/reddit-rate-and-quota.md` §1.1 is most likely a
+    #: comment fetch, and is unattributable precisely because nothing recorded
+    #: this. Present here so `_quota_sink` can forward them instead of setting
+    #: them on a throwaway object.
+    quota_limit: int | None = None
+    quota_reset_seconds: int | None = None
     #: Set when the URL was not a thread permalink. Distinct from an HTTP error:
     #: nothing was wrong with the network, the input named the wrong thing.
     not_a_thread: bool = False
@@ -489,10 +539,17 @@ class RedditHarvester:
         response = self._client.get(url, params=params)
         run.search_calls += 1
 
-        remaining = response.headers.get("x-ratelimit-requests-remaining")
-        if remaining is not None:
+        # ALL THREE, not the one we happen to act on. Reading `-remaining`
+        # alone is how `-limit` stayed a docstring constant with five citations
+        # (docs/measurements/reddit-rate-and-quota.md §1.2). Every value here is
+        # a dated observation from this response; absent stays None.
+        for header, attribute in _QUOTA_HEADERS.items():
+            value = response.headers.get(header)
+            if value is None:
+                continue
             with suppress(ValueError):
-                run.quota_remaining = int(remaining)
+                setattr(run, attribute, int(value))
+        remaining = response.headers.get("x-ratelimit-requests-remaining")
 
         if response.status_code == 429:
             # No Retry-After is sent, so the wait is assumed. Counted rather
@@ -575,7 +632,8 @@ class RedditHarvester:
 
         STORE THEN PARSE. The response is written to `raw/` before the tree is
         walked, so changing the parser is a re-parse of local bytes rather than
-        another call against a 1,000,000/month quota. Same order as `search`.
+        another call against a monthly quota whose limit nobody has read. Same
+        order as `search`.
 
         Takes the POST, not a URL, because the URL to fetch is `permalink` and
         not `document.url` — for a link post those differ and the second one
@@ -681,7 +739,11 @@ class RedditHarvester:
         return assemble(
             thread,
             root_text=post.sieve_text,
-            root_document_id=f"reddit:{post.external_id}",
+            # BOTH ids from one place. `assemble` used to build the child ids
+            # itself, so root and children followed two conventions chosen in
+            # two modules — see `assemble`'s docstring for what that cost.
+            root_document_id=reddit_document_id(post.external_id),
+            child_document_id=lambda c: reddit_document_id(c.external_id),
             store=self._store,
             version_aliases=version_aliases,
             max_children=max_children,
@@ -696,6 +758,13 @@ def _quota_sink(fetch: ThreadFetch):
     thread fetch has. Rather than widen `_get` or duplicate it, this forwards the
     fields both share and absorbs the two that do not apply — so the 429 handling,
     the quota read and the error counting stay in ONE place.
+
+    EVERY FIELD `_get` WRITES NEEDS A FORWARDER HERE. A missing one is not an
+    error: `setattr` succeeds against the throwaway `_Sink` instance and the
+    value is dropped where nobody looks. That is how `quota_limit` and
+    `quota_reset_seconds` would have been lost on comment fetches when they were
+    added on 2026-08-18, so they are forwarded below and
+    `tests/test_reddit_fetch.py` asserts the sink covers the whole map.
     """
 
     class _Sink:
@@ -709,6 +778,22 @@ def _quota_sink(fetch: ThreadFetch):
         @quota_remaining.setter
         def quota_remaining(self, value):
             fetch.quota_remaining = value
+
+        @property
+        def quota_limit(self):
+            return fetch.quota_limit
+
+        @quota_limit.setter
+        def quota_limit(self, value):
+            fetch.quota_limit = value
+
+        @property
+        def quota_reset_seconds(self):
+            return fetch.quota_reset_seconds
+
+        @quota_reset_seconds.setter
+        def quota_reset_seconds(self, value):
+            fetch.quota_reset_seconds = value
 
         @property
         def http_errors(self):
@@ -782,6 +867,18 @@ def build_client(**kwargs) -> httpx.Client:
     }
     headers.update(kwargs.pop("headers", {}))
     return _build(headers=headers, **kwargs)
+
+
+def reddit_document_id(external_id: str) -> str:
+    """`document.id` for a Reddit post or comment. THE convention, one place.
+
+    The fullname is kept whole — `t3_1u1b22l`, not `1u1b22l`. Engineer 2's
+    fixture strips the `t1_`/`t3_` prefixes, which byte equality could not catch
+    because the two lanes never compared ids until they did. Recorded here so
+    the next disagreement is a diff against a named function rather than against
+    an f-string in whichever module happened to need one.
+    """
+    return f"reddit:{external_id}"
 
 
 #: The basis `reddit-via-rapidapi` rests on, as the ruling names it.
