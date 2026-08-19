@@ -422,10 +422,32 @@ def propose(
     `observed` maps canonical_id to attested surfaces. Absent means unmeasured,
     which is recorded as such — an empty attested list produces
     `mechanical-only`, never a claim that the model is undiscussed.
+
+    **ROUTES ARE REFUSED HERE, AND THIS MODULE IS WHERE THAT WAS MISSING.**
+    `is_route` is defined twenty lines up and had two callers —
+    `collect/triage/entity.py` and `tracked.select` — and *not this function*, the
+    primary output of the module the ruling lives in. So the narrowed
+    (tracked-set) path was protected and the un-narrowed
+    `registry propose-aliases` path was not: it proposed six mechanical variants
+    for `~deepseek/deepseek-v4-flash-latest` and one for `openrouter/auto`.
+
+    Third instance of one shape this week: the rule was implemented, correct, and
+    not consulted by the code that needed it. Habit 10 is about imports not being
+    call paths; this is the same gap one step further out — **a ruling with a
+    caller is not a ruling with every caller.**
+
+    Refused rather than seated-and-flagged, which is Engineer 2's argument and it
+    is stronger than "unseated today": a pointer names whatever resolves this
+    week, so it has no capability to report on and **can never be seated
+    correctly.** Nothing observed it and nothing will. A row for it is not a
+    thin row, it is a category error, and `INCOMPLETE` on every slot renders as
+    "nobody has discussed this model" — rule 4, on a thing that is not a model.
     """
     observed = observed or {}
     out = []
     for canonical_id, display_name in models:
+        if is_route(canonical_id):
+            continue
         attested = sorted(
             observed.get(canonical_id, []), key=lambda a: (-a.mentions, a.surface)
         )

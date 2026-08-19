@@ -25,6 +25,19 @@
 # `split unrecorded` means the extract row had no by_source key - absent, not
 # zero.
 #
+# ONE ENTRY WAS REMOVED BY HAND, 2026-08-19: ~deepseek/deepseek-v4-flash-latest.
+# A ROUTING POINTER, AND IT CANNOT BE SEATED CORRECTLY - not merely unseated
+# today. A pointer names whatever the vendor currently resolves it to, so it has
+# no capability to report on, and nothing has observed it or will. Its row read
+# INCOMPLETE on every slot, which renders as "nobody has discussed this model" -
+# rule 4, applied to a thing that is not a model.
+#
+# It survived three rulings because the ruling was implemented and not called:
+# `is_route` had callers in triage/entity.py and tracked.select and NOT in
+# propose(), the primary output of the module the ruling lives in. Fixed there,
+# so a regeneration cannot reintroduce it. Removed here by hand because this file
+# predates that fix and `--out` now refuses to overwrite a reviewed artifact.
+#
 # Accept or reject per model. Nothing here decides anything.
 
 # THE THRESHOLDS THESE SEATS WERE CUT WITH. A seat is not readable without them:
@@ -689,14 +702,4 @@ proposals:
       - solar-pro-4                   # mechanical, unattested
       - solar-pro4                    # mechanical, unattested
       - solarpro4                     # mechanical, unattested
-    incomplete: [family_surface, attested_surfaces]
-
-  - canonical_id: ~deepseek/deepseek-v4-flash-latest
-    status: mechanical-only
-    seated_by: launch-window          # released inside the launch window; no attested surface, so every form below is derived
-    surface: INCOMPLETE   # no attested surface; recall is unmeasured, not zero
-    variants:
-      - deepseek v4 flash latest      # mechanical, unattested
-      - deepseek-v4-flash-latest      # mechanical, unattested
-      - deepseekv4flashlatest         # mechanical, unattested
     incomplete: [family_surface, attested_surfaces]
