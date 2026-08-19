@@ -296,6 +296,11 @@ def _cmd_registry_recompute_window(args: argparse.Namespace) -> int:
     from collect.registry.load import recompute_window
 
     with transaction() as conn:
+        # The chain runs preflight as stage 1, so this was covered THERE and
+        # not here. A stage that is safe inside the chain and unguarded when
+        # somebody runs it by hand is guarded by the schedule rather than by
+        # the code.
+        _gate(conn)
         counts = recompute_window(conn)
     computed = counts["in_window"] - counts["assumed_in_window"]
     print(
@@ -326,6 +331,15 @@ def _cmd_registry_load_seed(args: argparse.Namespace) -> int:
     from collect.registry.load import load_seed
 
     with transaction() as conn:
+        # GATED, AND THIS IS THE COMMAND THAT MOST NEEDED IT. `load_seed`
+        # inserts `model_version.provenance = 'seed'` rows — the exact fixture
+        # `assert_no_fixtures` refuses. Ungated, the guard could only ever catch
+        # rows some *other* path had already written, which is the state it is
+        # supposed to prevent rather than report.
+        #
+        # Inside the transaction and before the write, so a refusal rolls back
+        # and nothing lands. Same order as `db init`.
+        _gate(conn)
         report = load_seed(
             conn,
             strict_sources=not args.allow_unsourced,
@@ -429,8 +443,22 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Dispatch, with a preflight refusal reported rather than raised.
+
+    `_gate` raises `PreflightRefused` on a write command in an unfit
+    environment. That is an expected outcome — the whole point of the check —
+    and a stack trace reads as a bug in the tool rather than as a refusal by
+    it. Caught here rather than in each command so a newly gated command cannot
+    forget to.
+    """
+    from collect.ops.preflight import PreflightRefused
+
     args = build_parser().parse_args(argv)
-    return int(args.func(args))
+    try:
+        return int(args.func(args))
+    except PreflightRefused as refusal:
+        print(str(refusal), file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
