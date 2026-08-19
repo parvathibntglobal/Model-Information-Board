@@ -157,8 +157,60 @@ def both_sides(conn):
     return conn
 
 
+#: Below this, a comparison is not comparing the schema — it is comparing an
+#: accident. The real numbers are 300+ columns, 70+ constraints, 40+ indexes; the
+#: floors are deliberately far under them, because this guards against EMPTY and
+#: not against small.
+MINIMUM = {"columns": 100, "constraints": 40, "indexes": 20, "views": 1}
+
+
+def _sized(name: str, left: set, right: set) -> None:
+    """Assert the comparison had something to compare. Habit 4, on the check itself.
+
+    **"Found no rows to compare" and "found no differences" must not report
+    identically**, and for four rounds they did: a comparison whose query
+    returned nothing agreed with everything, and agreement is what this file
+    exists to report. Every equivalence assertion below goes through here first,
+    so an empty side fails loudly instead of passing quietly.
+
+    The failure mode is not hypothetical and it is not only about a bad query. A
+    fixture that builds one side into the wrong schema, a `search_path` that does
+    not take, a rename that empties a `WHERE` clause — all of them produce two
+    empty sets, and two empty sets are equal.
+    """
+    floor = MINIMUM[name]
+    assert len(left) >= floor, (
+        f"{name}: the tables.sql side has {len(left)} rows, under the floor of "
+        f"{floor}. This comparison found nothing to compare rather than no "
+        f"differences, and those must never report the same thing."
+    )
+    assert len(right) >= floor, (
+        f"{name}: the migration-chain side has {len(right)} rows, under the floor "
+        f"of {floor}. Same reason: an empty comparison agrees with everything."
+    )
+
+
+def test_the_comparisons_have_something_to_compare(both_sides):
+    """The guard, asserted on its own so its own failure is legible.
+
+    If this fails, every other equivalence test in this file is meaningless
+    rather than passing — so it is worth one test that says which side is empty
+    and how empty, before four more report green.
+    """
+    for name, fn in (
+        ("columns", columns),
+        ("constraints", constraints),
+        ("indexes", indexes),
+        ("views", views),
+    ):
+        left, right = fn(both_sides, A), fn(both_sides, B)
+        _sized(name, left, right)
+        print(f"  {name:12} tables.sql={len(left):>4}  chain={len(right):>4}")
+
+
 def test_the_chain_and_the_file_agree_on_columns(both_sides):
     """The one that catches an edit to tables.sql with no migration beside it."""
+    _sized("columns", columns(both_sides, A), columns(both_sides, B))
     only_file = columns(both_sides, A) - columns(both_sides, B)
     only_chain = columns(both_sides, B) - columns(both_sides, A)
     assert not only_file, (
@@ -171,11 +223,30 @@ def test_the_chain_and_the_file_agree_on_columns(both_sides):
 
 
 def test_the_chain_and_the_file_agree_on_constraints(both_sides):
-    assert constraints(both_sides, A) == constraints(both_sides, B)
+    """By `pg_get_constraintdef`, never by a rendered string from information_schema.
+
+    `information_schema.check_constraints.check_clause` is the tempting source
+    and it is the wrong one: Postgres renders it with embedded newlines, so any
+    single-line pattern over it matches nothing — and a comparison that matches
+    nothing AGREES. `pg_get_constraintdef(oid)` returns one canonical value per
+    constraint and is compared whole, so there is no pattern to fail.
+    """
+    left, right = constraints(both_sides, A), constraints(both_sides, B)
+    _sized("constraints", left, right)
+    only_file = left - right
+    only_chain = right - left
+    assert not only_file, (
+        f"in tables.sql and not reachable by migrating: {sorted(only_file)}"
+    )
+    assert not only_chain, (
+        f"a migration creates a constraint tables.sql does not describe: "
+        f"{sorted(only_chain)}"
+    )
 
 
 def test_the_chain_and_the_file_agree_on_indexes(both_sides):
     """By indexdef. A missing index is a performance cliff, not an error."""
+    _sized("indexes", indexes(both_sides, A), indexes(both_sides, B))
     only_file = indexes(both_sides, A) - indexes(both_sides, B)
     only_chain = indexes(both_sides, B) - indexes(both_sides, A)
     assert not only_file, f"tables.sql has indexes the chain does not: {only_file}"
@@ -184,6 +255,7 @@ def test_the_chain_and_the_file_agree_on_indexes(both_sides):
 
 def test_the_chain_and_the_file_agree_on_views(both_sides):
     """`cell_current` drifting means the answer path reads different rows."""
+    _sized("views", views(both_sides, A), views(both_sides, B))
     assert views(both_sides, A) == views(both_sides, B)
 
 
