@@ -95,6 +95,7 @@ def assemble_article(
     *,
     store: RawStore,
     pipeline_version: str | None = None,
+    document_id: str | None = None,
 ) -> AssembledThread:
     """Build the one-member `thread_context` row for a blog article.
 
@@ -119,7 +120,21 @@ def assemble_article(
         )
 
     version = pipeline_version or settings().pipeline_version
-    document_id = blog_document_id(article.entry_id)
+
+    # `document_id` IS PASSED BY THE WRITE PATH, READ BACK OUT OF `document`.
+    #
+    # Deriving it here is correct and unverifiable: the document row is built
+    # from the same `ArticleInput`, so the two agree because one convention ran
+    # twice rather than because anything compared them. `blog/write.py` writes
+    # the row, reads it back by `(source, external_id)`, and hands over the id
+    # THE DATABASE HOLDS — so a disagreement between the two conventions
+    # produces a member list that fails the resolve check rather than a row that
+    # looks right.
+    #
+    # The default keeps the derivation for callers with no database — the export
+    # script and the tests. Those callers cannot check it, which is exactly why
+    # the production path no longer relies on it.
+    document_id = document_id or blog_document_id(article.entry_id)
 
     flattened = flatten([(document_id, article.text)], rules=BLOG_RULES)
     stored = store.put(flattened.text, namespace=FLATTENED)

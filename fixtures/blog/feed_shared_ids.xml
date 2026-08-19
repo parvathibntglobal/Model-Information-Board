@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Reduced from a real defect, not invented. Measured 2026-08-19 on the nine
+  seeded feeds: hamel.dev publishes the site root as BOTH <guid> and <link> for
+  8 of its 20 entries, so eight distinct articles share one identity.
+
+  Kept to two colliding entries and one clean one, because the property is
+  "shared id" and not "eight of them". The real payload lives in the gitignored
+  raw store; this is the shape.
+-->
+<rss version="2.0">
+  <channel>
+    <title>Shared ids</title>
+    <link>https://shared.example/</link>
+    <item>
+      <title>A real article with its own permalink</title>
+      <link>https://shared.example/2026/08/a-real-article/</link>
+      <guid>https://shared.example/2026/08/a-real-article/</guid>
+    </item>
+    <item>
+      <title>A note whose only identity is the site root</title>
+      <link>https://shared.example/</link>
+      <guid>https://shared.example/</guid>
+    </item>
+    <item>
+      <title>A second note, same identity, different article</title>
+      <link>https://shared.example/</link>
+      <guid>https://shared.example/</guid>
+    </item>
+  </channel>
+</rss>

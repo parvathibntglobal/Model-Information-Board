@@ -179,6 +179,36 @@ def test_default_options_are_the_ones_that_matter():
     assert DEFAULT_EXTRACTION.include_formatting is True
 
 
+def test_entries_sharing_an_id_are_dropped_and_counted_apart():
+    """An id shared by two entries is not an id, and it is not `unidentifiable`.
+
+    Live on one of the nine seeded feeds: hamel.dev gives the site root as both
+    guid and link for 8 of 20 entries. Every consequence of keeping them is
+    silent — the fetcher pulls a home page eight times, the document insert
+    counts seven as `already_present`, and `assemble_article` derives one
+    thread_context id from one document id, so seven flattenings vanish under
+    ON CONFLICT DO NOTHING. The surviving row holds the home page and reads as
+    an article.
+
+    Counted separately from `unidentifiable` because the two need different
+    responses: one feed omits identity, the other publishes a placeholder.
+    """
+    parsed = parse_feed(fixture("feed_shared_ids.xml"))
+
+    assert [e.title for e in parsed.entries] == ["A real article with its own permalink"]
+    assert parsed.ambiguous == 2
+    assert parsed.unidentifiable == 0
+
+
+def test_a_missing_id_and_a_shared_id_are_counted_in_different_fields():
+    """Rule 6: two causes that need different fixes must not share a counter."""
+    no_ids = parse_feed(fixture("feed_no_ids.xml"))
+    shared = parse_feed(fixture("feed_shared_ids.xml"))
+
+    assert no_ids.unidentifiable and not no_ids.ambiguous
+    assert shared.ambiguous and not shared.unidentifiable
+
+
 def test_nothing_extractable_returns_none_not_empty_string():
     """None means nothing was extracted. An empty document is a claim of absence.
 

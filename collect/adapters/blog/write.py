@@ -21,6 +21,13 @@ members do not exist as documents gives `raw_text_of` nothing to resolve. There
 is no FK between the two tables — `member_document_ids` is a `text[]` — so
 nothing enforces this order and it is a decision rather than a constraint.
 
+**And the document is READ BACK before assembly runs.** The order alone is not
+the point: assembly used to be handed the same in-memory object the document row
+was built from, so the two ids agreed because one function computed both. The
+database is now the carrier between them, and `member_document_ids` is checked
+against `document` after the write. Both are cheap, and together they are the
+difference between a verification and a restatement.
+
 WHAT IT DOES NOT DO
 -------------------
 It does not triage, score or extract. `document.status` stays `'kept'`, which is
@@ -59,6 +66,20 @@ _DOCUMENT_SQL = (
     "ON CONFLICT (source, external_id) DO NOTHING"
 )
 
+#: Read the row back by the key the INSERT used, not by the id we computed.
+#: See `write_blog_run` — this is the whole point of the two-step.
+_DOCUMENT_READ_SQL = (
+    "SELECT id, text_ref FROM document WHERE source = %(source)s "
+    "AND external_id = %(external_id)s"
+)
+
+#: Every member of a written `thread_context` must be a row in `document`.
+#: `member_document_ids` is a text[] with no FK, so nothing enforces it.
+_MEMBERS_RESOLVE_SQL = (
+    "SELECT m FROM unnest(%(members)s::text[]) AS m "
+    "LEFT JOIN document d ON d.id = m WHERE d.id IS NULL"
+)
+
 _CONTEXT_SQL = (
     "INSERT INTO thread_context (id, thread_root_id, member_document_ids, "
     "flattened_text_ref, offset_map, child_count, selection_method, "
@@ -84,6 +105,14 @@ class BlogAssembleReport:
     contexts_inserted: int = 0
     #: Already present. A re-fetch of an unchanged article, not a failure.
     already_present: int = 0
+    #: The document was written or found, and reading it back returned nothing.
+    #: Should be impossible; counted because "impossible" is how the last two
+    #: defects in this lane described themselves.
+    unreadable_after_write: int = 0
+    #: `thread_context` rows whose `member_document_ids` did not all resolve to
+    #: a `document` row. THE CHECK THE LAST VERIFICATION COULD NOT MAKE, because
+    #: it supplied both sides itself.
+    members_unresolved: int = 0
 
     def summary(self) -> str:
         return (
@@ -91,7 +120,9 @@ class BlogAssembleReport:
             f"{self.documents_inserted} document(s), "
             f"{self.contexts_inserted} thread_context(s), "
             f"{self.already_present} already present, "
-            f"{self.nothing_extracted} with nothing extracted"
+            f"{self.nothing_extracted} with nothing extracted, "
+            f"{self.members_unresolved} with unresolved members, "
+            f"{self.unreadable_after_write} unreadable after write"
         )
 
 
@@ -125,8 +156,23 @@ def write_blog_run(conn, run, *, store: RawStore) -> BlogAssembleReport:
             text=text,
             url=article_fetch.entry.url,
         )
-        assembled = assemble_article(article, store=store, pipeline_version=run.pipeline_version)
 
+        # ── DOCUMENT FIRST, THEN READ IT BACK, THEN ASSEMBLE ──────────────
+        #
+        # This used to assemble from `article` and build the document row from
+        # the same `article`, so `thread_context.member_document_ids` and
+        # `document.id` agreed BECAUSE ONE FUNCTION COMPUTED BOTH. That is
+        # `tests/conftest.py`'s shape #57 exactly: a variable the caller
+        # supplies to both sides is a variable neither side can check, and the
+        # last time it went wrong it surfaced as `RAW_TEXT_MISSING` for every
+        # quote in a thread — a naming failure wearing a storage failure's
+        # clothes.
+        #
+        # Now the database is the carrier. The document is written, read back by
+        # `(source, external_id)` — the key the INSERT used, not the id we
+        # computed — and assembly is handed the id THE DATABASE HOLDS. If the
+        # two conventions ever disagree, the read returns a different id and the
+        # member list is wrong in a way the check below can see.
         document = document_row(
             article,
             text_ref=article_fetch.artifact.ref,
@@ -139,10 +185,37 @@ def write_blog_run(conn, run, *, store: RawStore) -> BlogAssembleReport:
         if not inserted:
             report.already_present += 1
 
+        stored_row = conn.execute(
+            _DOCUMENT_READ_SQL,
+            {"source": document["source"], "external_id": document["external_id"]},
+        ).fetchone()
+        if stored_row is None:
+            # Written or already present, and not readable. Never seen; counted
+            # rather than assumed away, and the article is skipped rather than
+            # assembled against an id nothing holds.
+            report.unreadable_after_write += 1
+            continue
+        stored_document_id = stored_row[0]
+
+        assembled = assemble_article(
+            article,
+            store=store,
+            pipeline_version=run.pipeline_version,
+            document_id=stored_document_id,
+        )
+
         row = assembled.as_row()
         row["offset_map"] = json.dumps(row["offset_map"])
         row["assembled_at"] = datetime.now(UTC)
         cursor = conn.execute(_CONTEXT_SQL, row)
         report.contexts_inserted += max(0, cursor.rowcount)
+
+        # `member_document_ids` is a text[] and carries no FK, so this is the
+        # only thing that makes "the members exist" a fact rather than a hope.
+        missing = conn.execute(
+            _MEMBERS_RESOLVE_SQL, {"members": list(assembled.member_document_ids)}
+        ).fetchall()
+        if missing:
+            report.members_unresolved += 1
 
     return report
