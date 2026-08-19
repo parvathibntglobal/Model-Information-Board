@@ -115,6 +115,34 @@ def columns(connection, schema: str) -> set[tuple]:
     }
 
 
+def tables(connection, schema: str) -> set[str]:
+    """Relation names, compared DIRECTLY rather than inferred from columns.
+
+    A missing table is already caught by `columns` — every one of its columns is
+    missing too, which is how `thread_extraction` surfaced. So this is not
+    closing a hole that has leaked; it is refusing to infer the coarsest object
+    in the schema from a finer one.
+
+    Two reasons that is worth two lines. `CREATE TABLE t ()` is legal Postgres, so
+    a zero-column table is invisible to a column comparison. And when a whole
+    table is missing, a column diff reports N failures naming columns while the
+    fact is one table — the message should say the true shape of the difference.
+
+    `relkind IN ('r','v','m')`: ordinary tables, views and materialised views.
+    Indexes and sequences are excluded because `indexes` compares those by
+    definition and the schema declares no sequences.
+    """
+    rows = connection.execute(
+        """
+        SELECT rel.relname
+        FROM pg_class rel JOIN pg_namespace n ON n.oid = rel.relnamespace
+        WHERE n.nspname = %s AND rel.relkind IN ('r', 'v', 'm')
+        """,
+        (schema,),
+    ).fetchall()
+    return {name for (name,) in rows}
+
+
 def constraints(connection, schema: str) -> set[tuple]:
     rows = connection.execute(
         """
@@ -161,7 +189,7 @@ def both_sides(conn):
 #: accident. The real numbers are 300+ columns, 70+ constraints, 40+ indexes; the
 #: floors are deliberately far under them, because this guards against EMPTY and
 #: not against small.
-MINIMUM = {"columns": 100, "constraints": 40, "indexes": 20, "views": 1}
+MINIMUM = {"columns": 100, "constraints": 40, "indexes": 20, "views": 1, "tables": 25}
 
 
 def _sized(name: str, left: set, right: set) -> None:
@@ -198,6 +226,7 @@ def test_the_comparisons_have_something_to_compare(both_sides):
     and how empty, before four more report green.
     """
     for name, fn in (
+        ("tables", tables),
         ("columns", columns),
         ("constraints", constraints),
         ("indexes", indexes),
@@ -206,6 +235,28 @@ def test_the_comparisons_have_something_to_compare(both_sides):
         left, right = fn(both_sides, A), fn(both_sides, B)
         _sized(name, left, right)
         print(f"  {name:12} tables.sql={len(left):>4}  chain={len(right):>4}")
+
+
+def test_the_chain_and_the_file_agree_on_tables(both_sides):
+    """The coarsest comparison, and the one that was only ever inferred.
+
+    Every object class the schema declares is now compared directly: tables here,
+    columns, constraints, indexes and views below. Counted from the file rather
+    than assumed — 30 CREATE TABLE, 13 CREATE INDEX, 1 CREATE VIEW, and zero
+    types, functions, triggers, sequences, comments and grants, so there is no
+    fifth class going unexamined.
+    """
+    left, right = tables(both_sides, A), tables(both_sides, B)
+    _sized("tables", left, right)
+    assert not left - right, (
+        f"in tables.sql and not created by migrating: {sorted(left - right)} — "
+        "the file declares a table the chain never builds"
+    )
+    assert not right - left, (
+        f"a migration creates a table tables.sql does not declare: "
+        f"{sorted(right - left)} — the contract is stale, or the table was "
+        "migration-only and nothing says so"
+    )
 
 
 def test_the_chain_and_the_file_agree_on_columns(both_sides):
