@@ -49,10 +49,25 @@ class Outcome(StrEnum):
     #: remains. Nothing is broken and nothing needs repairing.
     TOMBSTONED = "tombstoned"
 
-    #: The ref points at nothing. A bug, and an urgent one - a `thread_context`
-    #: naming a payload the store does not have means either the store lost it
-    #: or the row was written against a different store.
+    #: The ref points at nothing. A bug, and the repair is UPSTREAM - either
+    #: the store lost it or the row was written against a different store.
     MISSING = "missing"
+
+    #: Something is there and it does not match its hash. E1's finding: the
+    #: adapter's `except Exception` folded this into MISSING, so a blob that
+    #: had been ALTERED and one that was never written came back identically.
+    #:
+    #: The distinction is not fussiness. MISSING says nothing is there and the
+    #: repair is upstream; CORRUPT says something is there and WE CANNOT TRUST
+    #: WHAT WE STORED. A batch can reasonably skip a missing payload and carry
+    #: on; carrying on past a corrupt one writes claims sourced from a store
+    #: that has just been shown to be unreliable.
+    #:
+    #: Returned rather than raised, like the others. A resolver that sometimes
+    #: raises and sometimes returns is two contracts wearing one signature -
+    #: E1's argument, and it is the same reason exceptions do not cross this
+    #: boundary at all.
+    CORRUPT = "corrupt"
 
 
 @dataclass(frozen=True)
@@ -69,6 +84,27 @@ class ResolvedText:
     text: str | None = None
 
     def __post_init__(self) -> None:
+        # NORMALISE A MIRRORED ENUM MEMBER TO OURS, and this is not defensive
+        # habit - it is the specific hazard of a type duplicated across a lane
+        # boundary that no compiler checks.
+        #
+        # `collect/rawstore_reader.py` defines `ReadOutcome` mirroring this,
+        # deliberately, because neither lane may import the other. StrEnum
+        # members of DIFFERENT classes compare equal by value and are never
+        # identical:
+        #
+        #     ReadOutcome.MISSING == Outcome.MISSING   -> True
+        #     ReadOutcome.MISSING is Outcome.MISSING   -> False
+        #
+        # Every comparison below and in `store_is_untrustworthy` uses `is`, so
+        # a foreign member would make a FOUND payload read as not-found and a
+        # CORRUPT one read as trustworthy - silently, and in the safe-looking
+        # direction. Measured, not supposed.
+        #
+        # `Outcome(...)` resolves by VALUE, so it accepts our own member, the
+        # mirrored one, and the bare string, and rejects anything else loudly.
+        object.__setattr__(self, "outcome", Outcome(self.outcome))
+
         if self.outcome is Outcome.FOUND and self.text is None:
             raise ValueError(
                 f"{self.ref}: FOUND with no text. A found payload that carries "
@@ -85,6 +121,19 @@ class ResolvedText:
     def found(self) -> bool:
         return self.outcome is Outcome.FOUND
 
+    @property
+    def store_is_untrustworthy(self) -> bool:
+        """CORRUPT only, and the reason it is not merged into `found is False`.
+
+        A caller deciding what to do next needs three answers, not two:
+        proceed, skip this thread, or STOP. Missing and tombstoned are both
+        "skip this one" - the first is a bug to chase and the second is not,
+        but neither says anything about the next payload. Corrupt does: the
+        store returned bytes that fail their own hash, so nothing it returns
+        afterwards has been shown to be trustworthy either.
+        """
+        return self.outcome is Outcome.CORRUPT
+
     def require(self) -> str:
         """The text, or a refusal naming the ref and which failure it was.
 
@@ -94,17 +143,30 @@ class ResolvedText:
         and "stop everything" the same code path.
         """
         if self.text is None:
-            raise LookupError(
-                f"{self.ref}: {self.outcome}. "
-                + (
-                    "The payload was deleted and its hash retained (NFR-6); nothing is broken."
-                    if self.outcome is Outcome.TOMBSTONED
-                    else "The store has no payload for this ref, which means "
-                    "either the store lost it or the row was written against a "
-                    "different store. Both need investigating."
-                )
-            )
+            raise LookupError(f"{self.ref}: {self.outcome}. " + _WHY[self.outcome])
         return self.text
+
+
+#: What each failure means for whoever reads it, in the terms that decide what
+#: they do next. Kept as a mapping rather than a chain of branches so a new
+#: outcome cannot be added without a reader being written for it.
+_WHY: dict[Outcome, str] = {
+    Outcome.TOMBSTONED: (
+        "The payload was deleted and its hash retained (NFR-6); nothing is "
+        "broken and nothing needs repairing."
+    ),
+    Outcome.MISSING: (
+        "The store has no payload for this ref, which means either the store "
+        "lost it or the row was written against a different store. The repair "
+        "is upstream."
+    ),
+    Outcome.CORRUPT: (
+        "The payload is present and does not match its hash, so it has been "
+        "altered since it was written. This is not a missing blob: something "
+        "is there and cannot be trusted, and neither can anything else the "
+        "store returns until that is understood."
+    ),
+}
 
 
 @runtime_checkable
