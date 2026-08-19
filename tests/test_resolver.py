@@ -206,3 +206,51 @@ class TestCorruptIsNotMissing:
         wrong."""
         with pytest.raises(ValueError, match="with text attached"):
             ResolvedText("r1", Outcome.CORRUPT, "altered bytes")
+
+
+class TestAMirroredEnumFromTheOtherLaneNormalises:
+    """The specific hazard of a type duplicated across a lane boundary.
+
+    `collect/rawstore_reader.py` defines `ReadOutcome` mirroring `Outcome`,
+    deliberately, because neither lane may import the other. Nothing checks
+    that the two stay in step, and StrEnum members of different classes compare
+    EQUAL by value while never being IDENTICAL - so every `is` comparison in
+    this module would silently take the wrong branch on a foreign member.
+    """
+
+    def test_the_two_enums_are_equal_by_value_and_never_identical(self):
+        from collect.rawstore_reader import ReadOutcome
+
+        assert ReadOutcome.MISSING == Outcome.MISSING
+        assert ReadOutcome.MISSING is not Outcome.MISSING
+
+    def test_a_foreign_member_is_normalised_on_construction(self):
+        """Without this, a FOUND payload reads as not-found and a CORRUPT one
+        reads as trustworthy - silently, in the safe-looking direction."""
+        from collect.rawstore_reader import ReadOutcome
+
+        result = ResolvedText("raw/x", ReadOutcome.MISSING)
+
+        assert result.outcome is Outcome.MISSING
+        assert isinstance(result.outcome, Outcome)
+
+    def test_a_bare_string_normalises_too(self):
+        assert ResolvedText("raw/x", "corrupt").store_is_untrustworthy
+
+    def test_an_unknown_value_is_refused_loudly(self):
+        with pytest.raises(ValueError, match="not a valid Outcome"):
+            ResolvedText("raw/x", "nonsense")
+
+    def test_the_mirrored_enum_is_missing_our_fourth_value(self):
+        """Recorded rather than worked around: `ReadOutcome` has three values
+        and this has four, so the reader cannot yet REPORT corruption even
+        though this lane can represent it.
+
+        The normalisation above means nothing breaks - a corrupt payload simply
+        arrives as MISSING, which is the defect E1 asked for CORRUPT to fix,
+        surviving in the other half of the pair. Their side to close.
+        """
+        from collect.rawstore_reader import ReadOutcome
+
+        assert not hasattr(ReadOutcome, "CORRUPT")
+        assert hasattr(Outcome, "CORRUPT")

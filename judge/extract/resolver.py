@@ -84,6 +84,27 @@ class ResolvedText:
     text: str | None = None
 
     def __post_init__(self) -> None:
+        # NORMALISE A MIRRORED ENUM MEMBER TO OURS, and this is not defensive
+        # habit - it is the specific hazard of a type duplicated across a lane
+        # boundary that no compiler checks.
+        #
+        # `collect/rawstore_reader.py` defines `ReadOutcome` mirroring this,
+        # deliberately, because neither lane may import the other. StrEnum
+        # members of DIFFERENT classes compare equal by value and are never
+        # identical:
+        #
+        #     ReadOutcome.MISSING == Outcome.MISSING   -> True
+        #     ReadOutcome.MISSING is Outcome.MISSING   -> False
+        #
+        # Every comparison below and in `store_is_untrustworthy` uses `is`, so
+        # a foreign member would make a FOUND payload read as not-found and a
+        # CORRUPT one read as trustworthy - silently, and in the safe-looking
+        # direction. Measured, not supposed.
+        #
+        # `Outcome(...)` resolves by VALUE, so it accepts our own member, the
+        # mirrored one, and the bare string, and rejects anything else loudly.
+        object.__setattr__(self, "outcome", Outcome(self.outcome))
+
         if self.outcome is Outcome.FOUND and self.text is None:
             raise ValueError(
                 f"{self.ref}: FOUND with no text. A found payload that carries "
