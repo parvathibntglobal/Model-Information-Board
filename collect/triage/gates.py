@@ -11,7 +11,9 @@ same condition as one kept by five - but it writes the same row, and a survival
 rate computed over the two together is a number about our coverage wearing the
 clothes of a number about the corpus.
 
-So every verdict carries `unavailable`, naming the gates that did not run. A
+So every verdict names the gates that did not run - and since 2026-08-19 it
+names them in TWO fields rather than one, because "could not run" and "nothing
+to run it on" behave in opposite directions as the corpus grows. See `NotRun`. A
 survival figure quoted without it is rule 7's exact failure: a real value
 answering a question it was not asked.
 
@@ -119,6 +121,30 @@ def has_artifact(text: str) -> bool:
     )
 
 
+class NotRun(StrEnum):
+    """Why a gate produced no verdict. TWO states, and they are not the same.
+
+    `unavailable` used to carry both, and from outside they look identical: a
+    gate name in a list. They behave in opposite directions.
+
+        UNAVAILABLE      the gate CANNOT RUN. No allow-list, no bot list, no
+                         detector. A build defect, fixed once for everyone, and
+                         the count falls to zero when it is fixed.
+
+        NOT_APPLICABLE   there is NOTHING TO RUN IT ON. This document has no
+                         author, or its platform has no notion of a link post.
+                         A property of the document, and permanent.
+
+    Collapsing them means the count GROWS as coverage improves - every blog
+    article added is another `pure-link-post` that cannot apply - which reads
+    as the gates getting worse while they are getting better. That is the wrong
+    direction, and it is why this is an enum rather than a bool.
+    """
+
+    UNAVAILABLE = "unavailable"
+    NOT_APPLICABLE = "not-applicable"
+
+
 class Verdict(StrEnum):
     KEPT = "kept"
     DROPPED = "dropped"
@@ -150,7 +176,12 @@ class TriageResult:
 
     verdict: Verdict
     reasons: tuple[str, ...] = ()
+    #: Gates that COULD NOT RUN - a missing detector or an unwritten list.
+    #: Shrinks to empty when the build catches up. See `NotRun`.
     unavailable: tuple[str, ...] = ()
+    #: Gates with NOTHING TO RUN ON for this document. Permanent, and not a
+    #: defect: a blog article has no link-post flag and never will.
+    not_applicable: tuple[str, ...] = ()
     #: Surfaces the entity gate matched, most specific first. Empty when the gate
     #: dropped it, and empty when the gate did not run - `unavailable` separates
     #: those two, never this field.
@@ -163,25 +194,53 @@ class TriageResult:
         return self.verdict is Verdict.KEPT
 
     @property
+    def no_verdict(self) -> tuple[str, ...]:
+        """Every gate that returned no opinion, of either kind.
+
+        For a caller that only needs "which gates said nothing" and does not
+        act on why - `scripts/labelling_pools.py` is the one that exists.
+        """
+        return self.unavailable + self.not_applicable
+
+    @property
     def fully_gated(self) -> bool:
-        """Did every gate actually run?
+        """Did every gate that COULD run, run?
 
         A survival rate over documents where this is False is a statement about
-        our coverage, not about the corpus.
+        our coverage, not about the corpus - and it is a statement that a fix
+        would change, which is what makes it worth acting on.
+
+        **`not_applicable` is deliberately not counted here.** A document with
+        no author has been gated as fully as it ever can be; waiting for that
+        to resolve waits forever. It still makes the survival figure an upper
+        bound, and `TriageRun.describe` says so separately, because the two
+        caveats have different remedies: one is "build the detector", the other
+        is "this is the corpus you have".
         """
         return not self.unavailable
 
 
-def wrong_language(doc: Document, *, allowed: frozenset[str] | None) -> bool | None:
-    """True drops. **None means the gate could not run.**
+def wrong_language(doc: Document, *, allowed: frozenset[str] | None) -> bool | NotRun:
+    """True drops. Two ways to produce no verdict, and they are different.
 
-    Returns None whenever there is no allow-list or the document carries no
-    detected language. `document.lang` is nullable and nothing populates it: no
-    language detector is installed, and none is declared in `pyproject.toml`.
+    No allow-list is `UNAVAILABLE`: nothing is configured, and configuring it
+    fixes every document at once. No detected language is `NOT_APPLICABLE`:
+    this document has no `lang` to test.
+
     Treating NULL as English would pass every document while looking like a gate.
+
+    **THE ORDER MATTERS AND IT IS NOT ARBITRARY.** `allowed is None` is checked
+    first, so while no allow-list exists this reports `UNAVAILABLE` for the whole
+    corpus rather than `NOT_APPLICABLE` for every document. Today that is the
+    truthful answer twice over: `document.lang` is nullable and nothing
+    populates it - no detector is installed, and none is declared in
+    `pyproject.toml` - so the per-document absence is itself systemic. Reporting
+    it as permanent would be wrong in the direction that hides a build defect.
     """
-    if allowed is None or doc.lang is None:
-        return None
+    if allowed is None:
+        return NotRun.UNAVAILABLE
+    if doc.lang is None:
+        return NotRun.NOT_APPLICABLE
     return doc.lang.split("-", 1)[0].casefold() not in allowed
 
 
@@ -196,18 +255,20 @@ def too_short(doc: Document) -> bool:
     return len(_TOKEN.findall(text)) < MIN_TOKENS and not has_artifact(text)
 
 
-def pure_link_post(doc: Document) -> bool | None:
+def pure_link_post(doc: Document) -> bool | NotRun:
     """True drops. A link with no commentary of the poster's own.
 
     **A link post WITH commentary is kept**, and that is not a detail: of 536
     link posts in the substitution corpus, 392 carry `selftext`. Dropping all
     536 would discard the commentary, which is the part an engineer wrote.
 
-    None where the platform has no notion of a link post, so a blog article does
-    not get dropped by a Reddit-shaped rule.
+    `NOT_APPLICABLE` where the platform has no notion of a link post, so a blog
+    article does not get dropped by a Reddit-shaped rule. Permanent by nature:
+    no amount of building gives a blog article a link-post flag, and this is the
+    gate that made the old single `unavailable` count grow as coverage improved.
     """
     if doc.is_self_post is None:
-        return None
+        return NotRun.NOT_APPLICABLE
     if doc.is_self_post:
         return False
     return not (doc.body or "").strip()
@@ -218,15 +279,17 @@ def out_of_window(
     *,
     population: SurfacePopulation,
     in_window: Mapping[str, bool],
-) -> bool | None:
+) -> bool | NotRun:
     """True drops. Every model this document names is outside the release window.
 
     Takes the surfaces the entity gate already matched rather than the document,
     so the population is applied once per document and both gates are guaranteed
     to be reasoning about the same match set.
 
-    **UNAVAILABLE, not False, in three cases**, because each is a place where a
-    definite answer would be invented:
+    **NOT_APPLICABLE, not False, in three cases**, because each is a place where
+    a definite answer would be invented. All three are properties of the
+    document rather than of the build - nothing is missing from `collect/`, the
+    document simply cannot be placed - so none of them is `UNAVAILABLE`:
 
     1. no surface matched - the entity gate owns that document, not this one.
     2. no matched surface has a known owner. A declared-only surface carries no
@@ -240,7 +303,7 @@ def out_of_window(
     drop. Absence of a model from `in_window` is unknown, never out.
     """
     if not matched:
-        return None
+        return NotRun.NOT_APPLICABLE
 
     verdicts: list[bool] = []
     for surface in matched:
@@ -249,22 +312,27 @@ def out_of_window(
             if owner in in_window:
                 verdicts.append(in_window[owner])
     if not verdicts:
-        return None
+        return NotRun.NOT_APPLICABLE
     # Any in-window model keeps the document. `all(out)` is the only drop.
     return not any(verdicts)
 
 
-def known_bot(doc: Document, *, bots: frozenset[str] | None) -> bool | None:
-    """True drops. **None means no list exists**, which is the state today.
+def known_bot(doc: Document, *, bots: frozenset[str] | None) -> bool | NotRun:
+    """True drops. Both kinds of nothing occur here, which is why the split.
 
-    Rule 5 puts a filter rule in `contract/`, and there is no bot list there. An
-    empty frozenset is a different statement - "the list exists and is empty" -
-    so the two are not merged.
+        bots is None        UNAVAILABLE. Rule 5 puts a filter rule in
+                            `contract/` and there is no bot list there. Writing
+                            one fixes every document at once. An empty
+                            frozenset is a different statement - "the list
+                            exists and is empty" - so the two are not merged.
+
+        doc.author is None  NOT_APPLICABLE. `[deleted]` has no handle to test
+                            against any list, and never will.
     """
     if bots is None:
-        return None
+        return NotRun.UNAVAILABLE
     if doc.author is None:
-        return None
+        return NotRun.NOT_APPLICABLE
     return doc.author.casefold() in bots
 
 
@@ -283,12 +351,16 @@ def triage(
     value of the field is that it means only the first. The gates are a regex and
     a set lookup; running all six costs nothing worth having an ambiguity for.
 
+    That argument is why `NotRun` has two members rather than one: it was made
+    about reachability and it applies just as well to the reason a gate declined,
+    which the single `unavailable` tuple went on conflating anyway.
+
     It also gives `/filtered` every trigger a document hit rather than the
     earliest one, which is what "sorted by how close it came to passing" needs.
     """
     matched = resolve(doc.text, population)
 
-    outcomes: list[tuple[str, bool | None]] = [
+    outcomes: list[tuple[str, bool | NotRun]] = [
         (LANGUAGE, wrong_language(doc, allowed=allowed_languages)),
         (PURE_LINK, pure_link_post(doc)),
         (TOO_SHORT, too_short(doc)),
@@ -301,12 +373,16 @@ def triage(
     ]
 
     reasons = tuple(name for name, out in outcomes if out is True)
-    unavailable = tuple(name for name, out in outcomes if out is None)
+    unavailable = tuple(name for name, out in outcomes if out is NotRun.UNAVAILABLE)
+    not_applicable = tuple(
+        name for name, out in outcomes if out is NotRun.NOT_APPLICABLE
+    )
 
     return TriageResult(
         verdict=Verdict.DROPPED if reasons else Verdict.KEPT,
         reasons=reasons,
         unavailable=unavailable,
+        not_applicable=not_applicable,
         matched_surfaces=matched,
         population_fingerprint=population.fingerprint,
     )
@@ -319,7 +395,13 @@ class TriageRun:
     kept: int = 0
     dropped: int = 0
     by_reason: dict[str, int] = field(default_factory=dict)
+    #: Gates that could not run, by name. Falls to empty when the build catches
+    #: up - so a shrinking figure here is progress.
     never_ran: dict[str, int] = field(default_factory=dict)
+    #: Gates with nothing to run on, by name. GROWS with the corpus and that is
+    #: not a regression: every blog article adds one. Kept apart from
+    #: `never_ran` for exactly that reason.
+    not_applicable: dict[str, int] = field(default_factory=dict)
     population_fingerprint: str | None = None
 
     @property
@@ -349,9 +431,19 @@ class TriageRun:
                 f"{g} ({n})" for g, n in sorted(self.never_ran.items(), key=lambda kv: -kv[1])
             )
             lines.append(
-                f"  GATES THAT DID NOT RUN: {missing}. This survival rate is an "
+                f"  GATES THAT COULD NOT RUN: {missing}. This survival rate is an "
                 "UPPER BOUND - documents these gates would have dropped are "
-                "counted as kept."
+                "counted as kept. BUILDING THEM RESOLVES IT."
+            )
+        if self.not_applicable:
+            na = ", ".join(
+                f"{g} ({n})"
+                for g, n in sorted(self.not_applicable.items(), key=lambda kv: -kv[1])
+            )
+            lines.append(
+                f"  GATES WITH NOTHING TO RUN ON: {na}. Also an upper bound, and "
+                "a PERMANENT one - these documents lack the input, so no amount "
+                "of building changes the figure."
             )
         return "\n".join(lines)
 
@@ -369,4 +461,6 @@ def triage_all(documents, **kwargs) -> tuple[list[TriageResult], TriageRun]:
             run.by_reason[reason] = run.by_reason.get(reason, 0) + 1
         for gate in r.unavailable:
             run.never_ran[gate] = run.never_ran.get(gate, 0) + 1
+        for gate in r.not_applicable:
+            run.not_applicable[gate] = run.not_applicable.get(gate, 0) + 1
     return results, run

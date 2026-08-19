@@ -473,7 +473,10 @@ def build_filter_pool(posts, population: SurfacePopulation) -> tuple[list[Filter
                 has_own_commentary=bool(post.body.strip()),
                 gate_verdict=str(result.verdict),
                 gate_reasons=list(result.reasons),
-                gates_that_did_not_run=list(result.unavailable),
+                # BOTH kinds: this field means "said nothing", and the pool
+                # labels documents rather than diagnosing the build. The split
+                # lives on `TriageResult` for the reader who needs it.
+                gates_that_did_not_run=list(result.no_verdict),
                 matched_surfaces=list(result.matched_surfaces[:6]),
             )
         )
