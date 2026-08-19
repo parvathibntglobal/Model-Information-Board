@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 import pytest
 
 from collect.ops.ledger import (
+    DURATION_FILTER,
     UnknownSource,
     close_harvest_run,
     open_harvest_run,
@@ -87,13 +88,17 @@ def test_closing_sets_the_counts_and_the_finish_time_together():
     conn = FakeConn()
     opened = open_harvest_run(conn, fields())
 
-    close_harvest_run(conn, opened, fields())
+    close_harvest_run(conn, opened, fields(), outcome="ok")
 
     update = next(s for s, _ in conn.statements if s.startswith("UPDATE harvest_run"))
     for column in ("finished_at", "items_fetched", "items_kept", "http_errors",
-                   "exhausted", "truncated_by"):
+                   "exhausted", "truncated_by", "outcome", "pages_fetched",
+                   "pages_stored", "sieve_pass_rate"):
         assert column in update
-    assert "outcome" not in update and "sieve_pass_rate" not in update
+    # `outcome` and `finished_at` in ONE statement is what harvest_run_finish_ck
+    # requires: two statements would leave a window where the row reads
+    # "finished, verdict unknown", which is the state the constraint refuses.
+    assert update.count("WHERE id") == 1
 
 
 def test_a_sweep_that_fetched_nothing_records_zero_rather_than_null():
@@ -101,7 +106,7 @@ def test_a_sweep_that_fetched_nothing_records_zero_rather_than_null():
     conn = FakeConn()
     opened = open_harvest_run(conn, fields())
 
-    close_harvest_run(conn, opened, fields(items_fetched=0, items_kept=0))
+    close_harvest_run(conn, opened, fields(items_fetched=0, items_kept=0), outcome="ok")
 
     _sql, params = next(
         (s, p) for s, p in conn.statements if s.startswith("UPDATE harvest_run")
@@ -165,3 +170,91 @@ def test_every_column_the_contract_declares_is_set_by_this_writer():
         f"harvest_run declares {sorted(missing)} and write_harvest_run does not "
         "set them; they would take their schema default silently"
     )
+
+
+def test_closing_without_a_verdict_is_impossible_by_signature():
+    """The failed-close case, refused in Python before the constraint sees it.
+
+    Engineer 2's argument for `harvest_run_finish_ck`: without it, an update that
+    sets `finished_at` and forgets `outcome` SUCCEEDS and leaves "finished,
+    verdict unknown" — indistinguishable from a schema that never recorded
+    verdicts. With it, the update is rejected and the row stays both-NULL, which
+    is job_run's own "did not finish" and is true.
+
+    So the constraint makes a half-written row accurate rather than missing, and
+    the keyword-only parameter with no default means a caller cannot reach that
+    refusal by omission.
+    """
+    import inspect
+
+    sig = inspect.signature(close_harvest_run)
+    outcome = sig.parameters["outcome"]
+    assert outcome.kind is inspect.Parameter.KEYWORD_ONLY
+    assert outcome.default is inspect.Parameter.empty, "a default would let a caller omit it"
+
+    conn = FakeConn()
+    opened = open_harvest_run(conn, fields())
+    with pytest.raises(TypeError):
+        close_harvest_run(conn, opened, fields())
+
+
+def test_an_outcome_outside_the_vocabulary_is_refused_by_name():
+    """Named here rather than surfacing as 23514 from harvest_run_outcome_ck."""
+    conn = FakeConn()
+    opened = open_harvest_run(conn, fields())
+
+    with pytest.raises(ValueError, match="must be one of"):
+        close_harvest_run(conn, opened, fields(), outcome="blocked")
+
+
+def test_a_refused_sweep_records_the_verdict_and_zero_counts():
+    """The state the column exists for: attempted, declined, nothing fetched."""
+    conn = FakeConn()
+    opened = open_harvest_run(conn, fields())
+
+    close_harvest_run(conn, opened, fields(items_fetched=0, items_kept=0), outcome="refused")
+
+    _sql, params = next(
+        (s, p) for s, p in conn.statements if s.startswith("UPDATE harvest_run")
+    )
+    assert params["outcome"] == "refused"
+    assert params["items_fetched"] == 0
+    assert params["finished_at"] is not None
+
+
+def test_the_duration_filter_is_stated_where_a_query_would_be_written():
+    """A refused run has finished_at ~ started_at, and refusals dominate first.
+
+    Both harvest commands refuse until their terms rulings land, so the first
+    population of this table is entirely refusals — the mean duration of a sweep
+    would be the mean duration of a gate check. The constant exists so the filter
+    is copied rather than remembered.
+    """
+    assert DURATION_FILTER == "outcome = 'ok'"
+
+    import inspect
+
+    from collect.ops import ledger
+
+    assert "entirely refusals" in inspect.getsource(ledger), (
+        "the warning must sit beside the column, not only in a proposal"
+    )
+
+
+def test_the_four_formerly_homeless_fields_now_reach_the_statement():
+    """outcome, pages_fetched, pages_stored, sieve_pass_rate all have columns now."""
+    conn = FakeConn()
+    opened = open_harvest_run(conn, fields())
+
+    close_harvest_run(
+        conn, opened, fields(pages_fetched=4, pages_stored=1, sieve_pass_rate=0.12),
+        outcome="ok",
+    )
+
+    _sql, params = next(
+        (s, p) for s, p in conn.statements if s.startswith("UPDATE harvest_run")
+    )
+    assert params["pages_fetched"] == 4
+    assert params["pages_stored"] == 1
+    assert params["sieve_pass_rate"] == 0.12
+    assert params["outcome"] == "ok"
