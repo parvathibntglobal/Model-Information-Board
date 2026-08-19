@@ -170,6 +170,26 @@ because every test shared an assumption with the code under test.
 
          The habit is 7 below. Found by Engineer 2.
 
+    migrations
+         **The five NOT NULL mismatches between the chain and `tables.sql` are
+         all in one direction**, reported by Engineer 2 and recorded here
+         separately from the check that found them, because it is worth knowing
+         on its own: every mismatch is the chain being STRICTER than the
+         declaration, so nothing writes past a constraint the schema does not
+         have. The drift is uniformly conservative.
+
+         That is a different fact from "the check has a gap", and the two get
+         confused because they arrived together. A conservative drift costs a
+         confusing schema and refuses nothing it should accept; the gap in the
+         check (habit 8) is about what the next drift could be. Neither implies
+         the other, and the direction is the part that stops being true first —
+         it holds because nobody has yet loosened the chain relative to the
+         declaration, not because anything enforces it.
+
+         NOT REPRODUCED HERE. The count and the direction are hers; this entry
+         records them rather than confirming them, and the check needs a
+         database to run.
+
 Ten shapes of the same mistake: asserting the text of a claim instead of its
 truth; never exercising an option; never leaving the input shape the author had
 in mind; **never checking that the check had anything to check**; comparing a
@@ -222,6 +242,40 @@ Three habits that would have caught all three, cheapest first:
      give the check the narrowest possible dependencies and move it earlier -
      `test_ci_workflow.py` needs a YAML parser and a file, so it now runs
      before the install rather than inside the suite that depends on it.
+
+  8. **A guard that enumerates attributes covers the attributes somebody
+     thought of, and the list grows by incident.** Habit 7 asks WHERE a guard
+     runs; this asks WHAT it looks at. Both are properties of the guard rather
+     than of the code it guards, which is why the seven habits above pass on
+     them.
+
+     The worked example is `columns()` in `tests/test_migrations.py`, the
+     equivalence check between the migration chain and `contract/tables.sql`.
+     It selects six attributes:
+
+         table_name, column_name, data_type, is_nullable, column_default,
+         is_generated, generation_expression
+
+     The last two were added after #54 — a GENERATED column created plain, 21
+     tests green — so the list has already grown once, by incident. What it
+     still cannot see is **the parameters of a type rather than the type**:
+     `character_maximum_length`, `numeric_precision`, `numeric_scale`,
+     collation, identity. `information_schema` reports `numeric(12,6)` and
+     `numeric(10,2)` both as `data_type = 'numeric'`, so they compare EQUAL.
+
+     **That gap is live rather than latent, and it is on the prices.**
+     `model_version.price_in` is `numeric(12,6)`, `batch_discount` is
+     `numeric(4,3)`; a migration declaring either at a different precision
+     passes this check. Width is the harmless half of the same blindness and is
+     currently unreachable — every column in `contract/` is `text` (checked for
+     `varchar`, `char(`, `character varying`: zero matches), which is also why
+     the id-length guard is a test over `stable_id` and not a column type.
+     `tests/test_ids.py` holds both halves.
+
+     The habit: when a guard compares a list of properties, ask what the thing
+     being compared HAS that the list omits — and write the omission down beside
+     the guard, because the next person to extend it will extend it by incident
+     too.
 
 Owned by neither lane, like `test_queries_contract.py` — it describes how both
 lanes write tests, and it breaks for both.
