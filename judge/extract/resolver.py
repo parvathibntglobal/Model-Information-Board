@@ -53,21 +53,19 @@ class Outcome(StrEnum):
     #: the store lost it or the row was written against a different store.
     MISSING = "missing"
 
-    #: Something is there and it does not match its hash. E1's finding: the
-    #: adapter's `except Exception` folded this into MISSING, so a blob that
-    #: had been ALTERED and one that was never written came back identically.
+    #: NO FOURTH OUTCOME FOR CORRUPTION, and this was checked rather than
+    #: assumed - by E1 while implementing, after I had already added one.
     #:
-    #: The distinction is not fussiness. MISSING says nothing is there and the
-    #: repair is upstream; CORRUPT says something is there and WE CANNOT TRUST
-    #: WHAT WE STORED. A batch can reasonably skip a missing payload and carry
-    #: on; carrying on past a corrupt one writes claims sourced from a store
-    #: that has just been shown to be unreliable.
+    #: `PayloadCorrupt` is raised inside `RawStore.put()` only (rawstore.py:235,
+    #: on a size mismatch against an existing key), so it cannot reach a reader.
+    #: I added a CORRUPT outcome for it and the case does not occur.
     #:
-    #: Returned rather than raised, like the others. A resolver that sometimes
-    #: raises and sometimes returns is two contracts wearing one signature -
-    #: E1's argument, and it is the same reason exceptions do not cross this
-    #: boundary at all.
-    CORRUPT = "corrupt"
+    #: What CAN happen on a read is bytes that are present and not valid UTF-8.
+    #: That surfaces as `UnicodeDecodeError` and PROPAGATES rather than becoming
+    #: an outcome - which is the one exception that may cross this boundary,
+    #: because it is stdlib and neither lane has to import the other to catch
+    #: it. A caller crashing on a corrupt blob is recoverable; a corrupt blob
+    #: reported as MISSING sends somebody looking for a payload that is there.
 
 
 @dataclass(frozen=True)
@@ -121,19 +119,6 @@ class ResolvedText:
     def found(self) -> bool:
         return self.outcome is Outcome.FOUND
 
-    @property
-    def store_is_untrustworthy(self) -> bool:
-        """CORRUPT only, and the reason it is not merged into `found is False`.
-
-        A caller deciding what to do next needs three answers, not two:
-        proceed, skip this thread, or STOP. Missing and tombstoned are both
-        "skip this one" - the first is a bug to chase and the second is not,
-        but neither says anything about the next payload. Corrupt does: the
-        store returned bytes that fail their own hash, so nothing it returns
-        afterwards has been shown to be trustworthy either.
-        """
-        return self.outcome is Outcome.CORRUPT
-
     def require(self) -> str:
         """The text, or a refusal naming the ref and which failure it was.
 
@@ -159,12 +144,6 @@ _WHY: dict[Outcome, str] = {
         "The store has no payload for this ref, which means either the store "
         "lost it or the row was written against a different store. The repair "
         "is upstream."
-    ),
-    Outcome.CORRUPT: (
-        "The payload is present and does not match its hash, so it has been "
-        "altered since it was written. This is not a missing blob: something "
-        "is there and cannot be trusted, and neither can anything else the "
-        "store returns until that is understood."
     ),
 }
 
