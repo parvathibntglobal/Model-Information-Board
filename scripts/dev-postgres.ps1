@@ -1,3 +1,17 @@
+#requires -Version 5.1
+#
+# THE FLOOR IS 5.1 AND IT IS ENFORCED HERE RATHER THAN DESCRIBED IN A DOC.
+# A version error naming the requirement beats a syntax error partway through
+# a download, and a reader who never opens docs/dev-database.md still gets it.
+#
+# 5.1 is genuinely enough, verified by reading rather than by impression: no
+# `&&`, `||`, `??`, `?.`, no ternary, no `-AsHashtable`, no `-Parallel`, no
+# `$PSStyle`, `Get-Error` or `Join-String`. And the script was already WRITTEN
+# for 5.1 - the two comments below reason explicitly about 5.1's native-stderr
+# ErrorRecord wrapping and its UTF-8 BOM, which are 5.1 problems that 7 does
+# not have. The `.EXAMPLE` block used to say `pwsh`, so the only thing
+# claiming 7 was this file's own help, contradicting its own body.
+
 <#
 .SYNOPSIS
   Bring up a disposable local Postgres for the write-path tests.
@@ -9,8 +23,15 @@
   database boring to obtain rather than a per-session chore.
 
   Everything lives under %LOCALAPPDATA%\modelboard-pg, outside the repo and
-  outside any session-scoped temp directory. Nothing here is committed: the
-  binaries are ~134 MB and the data directory grows.
+  outside any session-scoped temp directory. Nothing here is committed.
+
+  MEASURED 2026-08-18 on one machine, after several test runs:
+      pg\      1,562 files    130.5 MB   the extracted binaries
+      pgdata\ 24,487 files    898.8 MB   the data directory
+      total   26,051 files  1,029.6 MB
+  The binaries are the small half. `pgdata` is what actually fills a disk, and
+  it grows with every run because the suite creates and drops schemas rather
+  than vacuuming. Budget a gigabyte, not a hundred megabytes.
 
   THIS DATABASE IS DESTROYED BY THE TEST SUITE. The `conn` fixture runs
   DROP SCHEMA public CASCADE on every test. The script marks the instance as
@@ -25,8 +46,11 @@
   Stop the server and delete the data directory. Binaries are kept.
 
 .EXAMPLE
-  pwsh scripts/dev-postgres.ps1
-  pwsh scripts/dev-postgres.ps1 -Stop
+  .\scripts\dev-postgres.ps1
+  .\scripts\dev-postgres.ps1 -Stop
+
+  Runs under Windows PowerShell 5.1 or PowerShell 7. Invoked by path rather
+  than through `pwsh`, which named a binary the script never needed.
 #>
 [CmdletBinding()]
 param(
@@ -211,4 +235,4 @@ Write-Host "TEST_DATABASE_URL=$DSN"
 Write-Host "written to $envTest (gitignored)"
 Write-Host ""
 Write-Host "run:   .venv\Scripts\python.exe -m pytest tests -q"
-Write-Host "stop:  pwsh scripts/dev-postgres.ps1 -Stop"
+Write-Host "stop:  .\scripts\dev-postgres.ps1 -Stop"

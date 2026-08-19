@@ -58,8 +58,21 @@ For the evidence block:
       per_minute_observed_break: 32     # 429, "for your plan, PRO", clears ~60s
       per_minute_allowance: null        # NOT READ. Observed < 32, never stated
       retry_after_header: false         # backoff is ours to choose
-      monthly_limit: 1000000            # x-ratelimit-requests-limit
-      quota_unit: request               # 1 per request, exact over 372 requests
+      monthly_limit: 1000000            # READ 2026-08-18 off the response,
+                                        #   not the docstring it used to cite
+      monthly_limit_read_on: 2026-08-18
+      monthly_limit_plan_states: 500000 # the plan page. STILL DISAGREES. What
+                                        #   the gateway advertises is not proof
+                                        #   of the billed tier — see below
+      monthly_limit_is_billed_tier: null  # UNVERIFIED. A browser, not a call
+      monthly_reset_seconds: 2064366    # READ. 23.893 days, NOT the ~28 the
+                                        #   docstring claimed. Stored as the
+                                        #   duration; a date needs its read_at
+      monthly_reset_read_on: 2026-08-18
+      per_minute_header_exists: false   # all 16 headers captured; the monthly
+                                        #   triple is the only rate-limit family
+      quota_unit: request               # 1 per request, exact over 558 requests,
+                                        #   and per call over the last 186
 ```
 
 **`per_minute_allowance: null` is the load-bearing line.** 32 is where it broke,
@@ -67,18 +80,50 @@ not what the plan permits, and writing 32 — or the adapter's working 25 — in
 the ruling as *the limit* would convert an inference into a recorded fact. Rule
 6: an unread value stays unread.
 
+**`monthly_limit` is now a reading, and it was right before by luck.** Until
+2026-08-18 that figure came from a docstring in `collect/adapters/reddit.py` and
+from no response — `_get` captured `-remaining` and nothing else. Read live on
+2026-08-18 it is 1,000,000, so the constant was correct and the method was not,
+which is the worst combination for a number five documents cite: nothing prompts
+anyone to go back and check a figure that keeps being right.
+
+**One thing the reading does not settle, recorded as null rather than as
+reassurance.** The plan page says 500,000. A header is the gateway's view —
+internally consistent, 1:1 decrement, stated reset — and internal consistency is
+not proof of the billed tier. If the subscription is a 500,000 tier, collection
+stops there with the header reading ~500,000 remaining and looking healthy. No
+request can distinguish this, because the value would come from the party whose
+figure is in doubt. `monthly_limit_is_billed_tier` closes when somebody opens the
+RapidAPI subscription page — a browser, not a call. What each instrument settles:
+`docs/measurements/reddit-rate-and-quota.md` §1.4.
+
 ### 1.2 · Quota — measured, exact
 
 Confirmed twice, on different days:
 
-| run | requests | quota delta | per request |
-|---|---|---|---|
-| substitution-slice | 204 | 204 | 1.000 |
-| substitution-resieve | 168 | 168 | 1.000 |
+| run | requests | quota delta | per request | granularity |
+|---|---|---|---|---|
+| substitution-slice | 204 | 204 | 1.000 | run ends |
+| substitution-resieve | 168 | 168 | 1.000 | run ends |
+| unfiltered sweep | 78 | 78 | 1.000 | per call |
+| control tier 1 | 18 | 18 | 1.000 | per call |
+| control tier 2 | 12 | 12 | 1.000 | per call |
+| unfiltered sweep v2 | 78 | 78 | 1.000 | per call |
 
-So cost is a function of **calls**, knowable before a sweep, not of yield.
-1,140 of 1,000,000 consumed by 2026-08-17 — 0.114%. Both planned sweeps
-together are 2.94% of a month.
+So cost is a function of **calls**, knowable before a sweep, not of yield. Exact
+over 558 requests, and exact at every individual call over the last 186.
+
+**Consumption, against a denominator that has now been read.** 1,340 of
+1,000,000 in the current window — 0.134%. Of that: 558 attributed to the six runs
+above, 733 predating any ledger, 45 in two gaps that predate per-call logging and
+cannot now be closed, 3 that appeared between the last sweep and the probe and
+belong to no script here, 1 the probe itself.
+
+**Both planned sweeps together are 23,415 requests per reset window** — 2.34% of
+the read 1,000,000, or 4.68% if the billed tier turns out to be 500,000. Per
+*window*, not per month: the reset is 23.893 days, so the previous
+`29,400 a month` overstated the cost by a third by multiplying against a calendar
+month nobody had read.
 
 What is *not* measured: what the PRO plan's own terms permit. The quota headers
 name the plan; nobody has read its document. That is reading, not measurement,
@@ -328,7 +373,11 @@ sieve changes.
 
 After the ruling, one call confirms whether `reddit34.p.rapidapi.com` exposes a
 listing endpoint (posts by subreddit / new posts) rather than only
-`/getSearchPosts` and `/getPostComments`. Cost: 1 of ~999,000.
+`/getSearchPosts` and `/getPostComments`. Cost: 1 request. **The header half is
+done** — `scripts/quota_probe.py` spent one call on 2026-08-18 and captured all 16
+response headers, which is where `monthly_limit` and `monthly_reset_seconds` above
+come from. The endpoint question is separate, and `/getPostsBySubreddit` has since
+answered it by working.
 
 **If none exists**, the options in order of preference:
 

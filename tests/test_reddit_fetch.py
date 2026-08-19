@@ -268,6 +268,77 @@ def test_quota_is_carried_homeless_rather_than_called_a_rate_limit(tmp_path):
     assert run.quota_remaining == 999900, "read from the response header"
 
 
+# ── the whole rate-limit triple ───────────────────────────────────────────
+
+
+def test_every_rate_limit_header_is_captured_not_only_remaining(tmp_path):
+    """`-limit` and `-reset` reach the run, not just `-remaining`.
+
+    The regression this pins: for a fortnight the adapter read `-remaining` and
+    nothing else, so `x-ratelimit-requests-limit: 1000000` sat in the module
+    docstring as an unread constant and collected five citations, against a plan
+    believed to be 500,000. Read live on 2026-08-18 it was in fact 1,000,000 —
+    which is the uncomfortable outcome, because a right answer from a wrong
+    method is the one nobody goes back and checks.
+    """
+    from collect.adapters.reddit import _QUOTA_HEADERS
+
+    headers = {
+        "x-ratelimit-requests-remaining": "998660",
+        "x-ratelimit-requests-limit": "1000000",
+        "x-ratelimit-requests-reset": "2064366",
+    }
+    assert set(headers) == set(_QUOTA_HEADERS), (
+        "a header was added to the map without a case here"
+    )
+
+    def handler(request):
+        return httpx.Response(200, json=page([post()]), headers=headers)
+
+    run = harvester(handler, tmp_path).search("claude")
+    assert run.quota_remaining == 998660
+    assert run.quota_limit == 1000000, "the limit is an observation, not a constant"
+    assert run.quota_reset_seconds == 2064366, "seconds, not a computed date"
+
+
+def test_an_absent_limit_header_stays_none_rather_than_becoming_zero(tmp_path):
+    """Rule 6 at the layer that would make an unread limit look like no limit."""
+
+    def handler(request):
+        return httpx.Response(
+            200,
+            json=page([post()]),
+            headers={"x-ratelimit-requests-remaining": "998660"},
+        )
+
+    run = harvester(handler, tmp_path).search("claude")
+    assert run.quota_remaining == 998660
+    assert run.quota_limit is None, "absent is not 0 and not 1,000,000"
+    assert run.quota_reset_seconds is None
+
+
+def test_the_quota_sink_forwards_every_field_get_writes(tmp_path):
+    """A comment fetch must not silently drop a header a search keeps.
+
+    `_quota_sink` hands `_get` a throwaway `_Sink`, so `setattr` for a field with
+    no forwarder SUCCEEDS and the value vanishes. Nothing raises. This asserts
+    the sink covers the whole map, so the next header added to `_QUOTA_HEADERS`
+    cannot be captured on searches and lost on comment fetches.
+    """
+    from collect.adapters.reddit import _QUOTA_HEADERS, _quota_sink, ThreadFetch
+    from datetime import UTC, datetime
+
+    fetch = ThreadFetch(thread_url="https://x", started_at=datetime.now(tz=UTC))
+    sink = _quota_sink(fetch)
+
+    for index, attribute in enumerate(_QUOTA_HEADERS.values(), start=1):
+        setattr(sink, attribute, index)
+        assert getattr(fetch, attribute) == index, (
+            f"_quota_sink drops {attribute}: it set an attribute on the throwaway "
+            f"_Sink instead of forwarding to ThreadFetch, and nothing raised"
+        )
+
+
 # ── the refusal ───────────────────────────────────────────────────────────
 
 

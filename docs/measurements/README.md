@@ -8,6 +8,11 @@ be measuring the instrument rather than the world**, and each was load-bearing
 in an argument before anyone checked. `CLAUDE.md` rule 7 is the rule; this is
 the method.
 
+The last two sections are not about figures. They are reasoning shapes that
+produced the same class of defect — something true and narrow read as something
+true and general — and they are here because this is where the shapes are
+recorded, not because they are measurements.
+
 ---
 
 ## Vary the query, not the world
@@ -111,6 +116,105 @@ was measured, quotable, and withdrawn before anyone used it: it compared one
 platform's prose against a surface list built partly for another platform's
 configs. Withdrawing a figure that has not yet done any damage is cheaper than
 every entry above.
+
+---
+
+## Two identifiers, and what each can answer
+
+**A configuration identifier and a content identifier answer different
+questions at different times, and neither substitutes for the other.**
+
+|  | configuration | content |
+|---|---|---|
+| examples | `extraction_version`, `pipeline_version` | `document.content_hash`, a raw-store ref, `SurfacePopulation.fingerprint`, and `thread_context.content_fingerprint` (Engineer 2's, not yet in `contract/tables.sql`) |
+| what it names | what was *meant* to happen | what *did* happen |
+| available | **before** the work runs | only **after** |
+| so it can | select work — *which rows does upgrading trafilatura affect?* | describe work — *is this the text those offsets were measured against?* |
+| how it fails | **by omission**, silently: a term nobody added is a term it does not cover | **by being uninformative**: it says the bytes differ, never why, and cannot be planned against |
+
+The failure modes are opposites, which is why holding both is not redundancy.
+
+**Configuration fails by omission and the omission is invisible.**
+`extraction_version` was `trafilatura-{version}+opts-{fingerprint}` and covered
+trafilatura's options alone. Six lines of pre-processing of ours would have
+rewritten the byte string every offset in every `offset_map` is measured
+against, under an unchanged identifier — under-identification, which is the
+direction that matters. Nothing about the string looked wrong, because a
+configuration identifier cannot say what it left out. `pipeline` is now the
+third term (`collect/adapters/blog/options.py`), and the rosters there refuse a
+field that neither claims, which is the same discipline applied one level down:
+what an identifier ranges over has to be declared, or it is whatever somebody
+last added.
+
+**Content cannot fail that way and cannot answer the question either.** A
+fingerprint of the produced text covers every input at once and enumerates
+nothing, so no future step can escape it. It also cannot tell you *why* two
+texts differ, cannot regenerate either, and cannot be queried before the work is
+done. With only a content identifier, deciding whether a re-extraction is needed
+means performing the re-extraction to find out — the decision is undecidable in
+advance, which is the practical cost of collapsing the two.
+
+**Held together, the content one makes the configuration one falsifiable.**
+The bump convention stops being a promise. Written against columns that do not
+both exist yet — `thread_context` has neither — because the pairing is the
+point and the shape of the check is what has to survive the schema:
+
+```sql
+-- a producer that changed without its identifier changing
+SELECT extraction_version, count(DISTINCT content_fingerprint)
+FROM   thread_context
+GROUP  BY 1
+HAVING count(DISTINCT content_fingerprint) > 1;
+```
+
+The reverse — one fingerprint under several identifiers — is benign
+over-identification, and is what `pipeline_version` does today.
+
+**Neither can be added retrospectively.** Text produced before a term existed
+carries the identifier as it then read, and is indistinguishable from text
+produced after it under an unchanged configuration. That is a real cost of
+adding a term late and it is worth stating when it is paid, rather than
+discovering later that a corpus is unclassifiable.
+
+---
+
+## A proviso is evidence about the path it names
+
+**And about nothing else.** Engineer 2's framing, and it belongs here because it
+is rule 7 applied to a guarantee instead of a figure: a real guarantee silently
+answering a question it was not asked.
+
+`collect/assemble/thread.py` said, of `pipeline_version` standing in for
+`extraction_version`:
+
+> it over-identifies … It never under-identifies, which is the direction that
+> matters, **provided `PIPELINE_VERSION` is bumped when the flattener changes.**
+
+The proviso names one path — the flattener. The guarantee was stated over all of
+them. What actually changed was `collect/triage/specificity.py`, the scorer that
+picks which children get flattened, and the result was two different selections
+under one id, kept apart by nothing (`first-thread-context.md` §4). The
+direction that "never happens" happened, by a route the sentence did not
+mention. **Both engineers read the proviso as a caveat on a general claim; it
+was the entire extent of what had been checked.**
+
+The check needs no suspicion, which is what makes it worth writing down:
+
+- **Ask what the proviso ranges over.** If the answer is not beside it, the
+  guarantee is not yet a guarantee — exactly as a figure without its denominator
+  is not yet evidence.
+- **A guarantee travels with the set of inputs it was established over**, and
+  that set is stated as a list, not as a direction. "Never under-identifies" is
+  a direction; "covers the flattener, the scorer, the selection cap and the
+  entity table" is a list somebody can check and find short.
+- **Count the paths before restating it.** `CLAUDE.md`'s `assert_no_fixtures`
+  entry was wrong three times in both directions on four lines, because each
+  correction was reasoned about rather than counted. Three apparent call sites
+  were a docstring and two comments.
+- **Where it can be a check, make it one.** The rosters in
+  `collect/adapters/blog/options.py` are this shape in code: the set of inputs
+  an identifier covers is declared, and a field outside it raises instead of
+  being folded in quietly.
 
 ---
 

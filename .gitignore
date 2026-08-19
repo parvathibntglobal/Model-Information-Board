@@ -29,6 +29,21 @@ _unfiltered_sweep/
 _unfiltered_sweep_v2/
 _control_sweep/
 
+# The blog symbol census. Same two reasons, plus a third: it holds contexts
+# quoted out of real articles, which is retained third-party text and is the
+# one thing `docs/measurements/` must not accumulate.
+_blog_so_sweep/
+
+# The judge/ handoff export. The Reddit half comes from a committed fixture and
+# would be harmless; the blog half is extracted article text drawn from the
+# census corpus above, which carries a delete_after date. A retention date that
+# only some copies of the text obey is not a retention date, so this goes to
+# Engineer 2 out of band rather than through git.
+_handoff/
+# The same export, zipped for that out-of-band handover. A retention date the
+# directory obeys and its zip does not is not a retention date either.
+handoff.zip
+
 # ── python ───────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]

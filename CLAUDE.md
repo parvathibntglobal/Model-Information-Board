@@ -107,23 +107,39 @@ These are the rules a helpful refactor will otherwise quietly violate.
   fully re-runnable and diffable.
 - Raw payloads are immutable and content-hash addressed. Reprocess from there
   rather than re-fetching.
-- Seeded and hand-curated rows carry `provenance`. `collect/registry/assertions.py`
-  provides `assert_no_fixtures()` and `assert_contract_backed()` to refuse them.
+- Seeded and hand-curated rows carry `provenance`, and **every write path
+  refuses them outside `development`**. `collect/registry/assertions.py` holds
+  the four checks; `collect/ops/preflight.py` runs them; two callers invoke it.
 
-  **Neither has a caller outside tests. Nothing currently stops a seeded row
-  reaching a non-development environment.** Wiring is pending a startup path -
-  issue #27. `judge/` opens no database connection at all, `collect/cli.py` runs
-  per command rather than at startup, and the nightly chain that is the natural
-  home does not exist yet.
+  ```
+  collect/ops/chain.py    stage 1 of the nightly chain, before anything writes
+  collect/cli.py:_gate    on WRITE commands only - db init, db migrate,
+                          registry load-seed, registry recompute-window
+  ```
 
-  The third function in that module, `assert_terms_reviewed()`, **is** wired -
-  `collect/adapters/blog/fetch.py` and `scripts/harvest_github.py` - so the
-  module is not uniformly unwired and these two are not an oversight of style.
+  Read-only commands are deliberately ungated: the state these checks refuse is
+  exactly the state somebody needs `registry check-sources` to diagnose.
+  `tests/test_cli_write_gate.py` reads `cli.py`'s AST and fails if a command
+  opens a `transaction()` without calling `_gate`, so a NEW write path cannot
+  arrive unguarded - which is the failure mode, rather than a broken check.
 
-  This entry said "Production asserts on startup that none are present" for
-  weeks. The first correction said the check was "called from the loaders and
-  from tests", which was also wrong: the three apparent call sites in `collect/`
-  are a docstring and two comments. Counted, the second time.
+  `assert_no_fixtures()` reads three tables: `model_version.provenance = 'seed'`,
+  `cell.provenance = 'hand_curated'`, and
+  `reported_context.provenance = 'hand_seeded'`. The third is FR-31's protection
+  and the one worth naming, because `reported_low` is a hard filter: a wrong
+  `cell` renders as a phrase somebody can argue with, a wrong `reported_low`
+  renders as an absence, and nobody audits a model that was never in the list.
+  Verified firing against a real database, not only present in the source.
+
+  **Do not weaken this entry into a negative again without counting.** It said
+  "Production asserts on startup that none are present" for weeks while nothing
+  called anything. The first correction said "called from the loaders and from
+  tests", also wrong - the three apparent call sites were a docstring and two
+  comments. The second correction said wiring was blocked because `collect/ops/`
+  did not exist and the CLI runs per command; the first half stopped being true
+  when `collect/ops/` landed, and the second was never a blocker, since a
+  per-command CLI can gate per command. Three wrong statements, in both
+  directions, on one four-line entry. Issue #27 closed 2026-08-18.
 - Estimates are labelled as estimates, **and an estimate carries its
   population** (rule 7). Triage survival is ~10-15% *of documents retrieved
   from the sources we sweep* - never "of Reddit", which we do not sample.

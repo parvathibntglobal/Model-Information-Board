@@ -38,8 +38,37 @@ reads. A new shell needs no further setup.
 .\scripts\dev-postgres.ps1 -Destroy   # stop, drop the data directory, keep binaries
 ```
 
-Nothing lives in the repository and nothing is committed: binaries are about
-134 MB, the data directory grows.
+Nothing lives in the repository and nothing is committed. Measured 2026-08-18
+on one machine, after several test runs:
+
+| | files | size |
+|---|---|---|
+| `pg\` — extracted binaries | 1,562 | **130.5 MB** |
+| `pgdata\` — the data directory | 24,487 | **898.8 MB** |
+| total under `%LOCALAPPDATA%\modelboard-pg` | 26,051 | **1,029.6 MB** |
+
+**Budget a gigabyte, not a hundred megabytes.** The sentence this replaces said
+"binaries are about 134 MB, the data directory grows", which was roughly right
+about the half that does not matter and silent about the half that does: the
+binaries are fixed and small, and `pgdata` is eight times larger and still
+growing, because the suite drops and recreates schemas rather than vacuuming.
+
+⚠ **Two figures disagree and this is not resolved.** 301 MB was reported for the
+binaries; this machine measures 130.5 MB for `pg\` and nothing under the tree
+near 301 MB. Possible causes not investigated: size-on-disk versus logical size,
+a partially-extracted or unfiltered archive, or a different measurement root.
+Recorded rather than averaged or picked between - the number a reader should act
+on is the total, and that is a gigabyte on either account.
+
+**Windows PowerShell 5.1 is enough**, and the script now enforces it with
+`#requires -Version 5.1` rather than leaving the floor to this page. Verified by
+reading the script rather than by impression - no `&&`, `||`, `??`, `?.`, no
+ternary, no `-AsHashtable`, `-Parallel`, `$PSStyle`, `Get-Error` or
+`Join-String` - and run end to end under 5.1 through download, extraction,
+`initdb` and start. It was always a 5.1 script: two of its comments reason about
+5.1's native-stderr wrapping and its UTF-8 BOM, both of which 7 does not have.
+The `pwsh` invocations were in the script's own `.EXAMPLE` block and final
+`Write-Host`, so the file disagreed with itself rather than with this doc.
 
 **Port 5433, not 5432, on purpose.** It cannot collide with a real local
 server somebody is using for something else.

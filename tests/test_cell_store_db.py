@@ -273,3 +273,89 @@ class TestWhatIsWritten:
             ).fetchall()
         }
         assert not {"score", "rating", "confidence", "grade"} & columns
+
+
+class TestPlatformCountReachesTwoWithABlog:
+    """The whole point of the blog `thread_context` path.
+
+    `cell.status` does not persist the gate's REASON, so an `insufficient` for
+    the wrong cause is invisible in the row. Every cell reading `insufficient`
+    because every `thread_context` was Reddit looks exactly like "the extractor
+    found nothing", which is rule 4's collision one table over. So this asserts
+    the count and the reason, not just the status.
+    """
+
+    def test_a_reddit_claim_and_a_blog_claim_make_two_platforms(self, world):
+        """Confirmed against a real Postgres, not assumed from PLATFORM_MINIMUM.
+
+        The `blog` string is taken from `collect.assemble.article.document_row`
+        rather than written by hand here, so this fails if the writer ever emits
+        a feed id — which would make two blogs count as two platforms.
+        """
+        from collect.assemble.article import ArticleInput, document_row
+        from judge.curate.gate import GateFailure
+
+        row = document_row(
+            ArticleInput("https://simonwillison.net/2026/Aug/13/x/", "body",
+                         url="https://simonwillison.net/2026/Aug/13/x/"),
+            text_ref="raw/sha256/ab/cd/abcd", content_hash="abcd",
+        )
+        assert row["source"] == "blog", "the platform, not the feed"
+
+        for i in range(3):
+            add_claim(world, claim_id=f"r{i}", author=f"a{i}", platform="reddit")
+        for i in range(3):
+            add_claim(world, claim_id=f"b{i}", author=f"c{i}", platform=row["source"])
+        world.commit()
+
+        outcome = CellStore(world).compute(KEY)
+        assert outcome.counts.platform_count == 2, (
+            "a Reddit claim and a blog claim must count as two platforms"
+        )
+        assert GateFailure.ONE_PLATFORM_ONLY not in outcome.gate.failures
+        assert outcome.status is CellStatus.PUBLISHED, outcome.gate.failures
+
+    def test_two_blogs_are_one_platform_not_two(self, world):
+        """`document.source` is the platform. If it ever became the feed id, two
+        self-hosted blogs would satisfy PLATFORM_MINIMUM on their own and the
+        cross-platform gate would be satisfiable from one source class."""
+        for i in range(3):
+            add_claim(world, claim_id=f"b{i}", author=f"a{i}", platform="blog")
+        for i in range(3):
+            add_claim(world, claim_id=f"c{i}", author=f"d{i}", platform="blog")
+        world.commit()
+
+        outcome = CellStore(world).compute(KEY)
+        assert outcome.counts.platform_count == 1
+        assert outcome.status is CellStatus.INSUFFICIENT
+
+    def test_the_gate_reason_is_not_persisted_and_that_is_the_flag(self, world):
+        """Documented as a test because it is a real gap in the other lane.
+
+        `platform_count` IS stored, so the cause is RECOVERABLE from the row —
+        but nothing records that the gate failed FOR that reason, so a reader
+        has to know to look. Flagged to Engineer 2 in
+        `docs/measurements/blog-symbol-census.md` §8.
+        """
+        add_claim(world, claim_id="r1", author="a1", platform="reddit")
+        add_claim(world, claim_id="r2", author="a2", platform="reddit")
+        world.commit()
+
+        store = CellStore(world)
+        outcome = store.compute(KEY)
+        store.write(outcome)
+        world.commit()
+
+        columns = {
+            r[0] for r in world.execute(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'cell'"
+            ).fetchall()
+        }
+        assert "platform_count" in columns, "the cause is recoverable"
+        assert not {"gate_failures", "gate_reason", "failures"} & columns, (
+            "no column records WHY the gate failed; if one is ever added, this "
+            "test should be replaced by an assertion on its contents"
+        )
+        row = world.execute("SELECT status, platform_count FROM cell").fetchone()
+        assert row == ("insufficient", 1)
