@@ -22,33 +22,63 @@ class TestTheThreeOutcomesCannotCollapse:
     repair for the first is nothing and for the second is urgent, so this is
     rule 6 at the one place both lanes read."""
 
-    def test_there_are_three_and_not_two(self):
-        assert set(Outcome) == {Outcome.FOUND, Outcome.TOMBSTONED, Outcome.MISSING}
+    def test_there_are_four_and_not_three(self):
+        """CORRUPT was added after E1 found the adapter's `except Exception`
+        folding it into MISSING - a blob that had been ALTERED and one that was
+        never written coming back identically."""
+        assert set(Outcome) == {
+            Outcome.FOUND,
+            Outcome.TOMBSTONED,
+            Outcome.MISSING,
+            Outcome.CORRUPT,
+        }
 
-    def test_the_two_failures_say_different_things(self):
-        tomb = ResolvedText("r1", Outcome.TOMBSTONED)
-        missing = ResolvedText("r1", Outcome.MISSING)
+    def test_tombstoned_and_missing_name_opposite_repairs(self):
+        """Nothing to do versus something to chase.
 
-        with pytest.raises(LookupError) as t:
-            tomb.require()
-        with pytest.raises(LookupError) as m:
-            missing.require()
+        This asserted `"need investigating"` on MISSING and broke when that
+        message was rewritten to name the repair as upstream - a test pinned to
+        wording rather than to meaning. Now asserts the distinction each
+        message has to carry; `test_every_failure_explains_itself_differently`
+        covers all three generally.
+        """
+        with pytest.raises(LookupError) as tomb:
+            ResolvedText("r1", Outcome.TOMBSTONED).require()
+        with pytest.raises(LookupError) as missing:
+            ResolvedText("r1", Outcome.MISSING).require()
 
-        assert "nothing is broken" in str(t.value)
-        assert "need investigating" in str(m.value)
-        assert str(t.value) != str(m.value)
+        assert "nothing is broken" in str(tomb.value)
+        assert "repair is upstream" in str(missing.value)
 
-    def test_neither_failure_is_falsy_in_a_way_that_reads_as_the_other(self):
-        assert ResolvedText("r1", Outcome.TOMBSTONED).found is False
-        assert ResolvedText("r1", Outcome.MISSING).found is False
+    def test_no_failure_is_falsy_in_a_way_that_reads_as_the_other(self):
+        for outcome in (Outcome.TOMBSTONED, Outcome.MISSING, Outcome.CORRUPT):
+            assert ResolvedText("r1", outcome).found is False
         assert ResolvedText("r1", Outcome.FOUND, "x").found is True
+
+    def test_every_failure_explains_itself_differently(self):
+        """Three ways to have no text, three different repairs. A shared
+        message would make the enum decorative."""
+        messages = set()
+        for outcome in (Outcome.TOMBSTONED, Outcome.MISSING, Outcome.CORRUPT):
+            with pytest.raises(LookupError) as caught:
+                ResolvedText("r1", outcome).require()
+            messages.add(str(caught.value))
+        assert len(messages) == 3
+
+    def test_a_new_outcome_cannot_be_added_without_a_reason_for_it(self):
+        """`_WHY` is a mapping rather than a branch chain, so an outcome added
+        without a reader raises KeyError here rather than falling through to
+        whatever the last `else` happened to say."""
+        from judge.extract.resolver import _WHY
+
+        assert set(_WHY) == set(Outcome) - {Outcome.FOUND}
 
 
 class TestTheRefTravelsWithEveryOutcome:
     """A MISSING that does not say which ref sends whoever reads it back to the
     database to find out, and that is the moment they start guessing."""
 
-    @pytest.mark.parametrize("outcome", [Outcome.TOMBSTONED, Outcome.MISSING])
+    @pytest.mark.parametrize("outcome", [Outcome.TOMBSTONED, Outcome.MISSING, Outcome.CORRUPT])
     def test_the_failure_message_names_the_ref(self, outcome):
         with pytest.raises(LookupError, match="raw/sha256/abc"):
             ResolvedText("raw/sha256/abc", outcome).require()
@@ -147,3 +177,32 @@ class TestTheDefaultRefusesRatherThanReturningNothing:
 
     def test_it_satisfies_the_protocol_so_it_can_be_the_default(self):
         assert isinstance(RefusingResolver(), RawTextResolver)
+
+
+class TestCorruptIsNotMissing:
+    """MISSING says nothing is there and the repair is upstream. CORRUPT says
+    something is there and we cannot trust what we stored."""
+
+    def test_only_corrupt_says_the_store_is_untrustworthy(self):
+        """A caller needs three answers, not two: proceed, skip this thread, or
+        STOP. Missing and tombstoned are both "skip this one"; corrupt is the
+        only one that says anything about the NEXT payload."""
+        assert ResolvedText("r1", Outcome.CORRUPT).store_is_untrustworthy
+        for other in (Outcome.TOMBSTONED, Outcome.MISSING):
+            assert not ResolvedText("r1", other).store_is_untrustworthy
+        assert not ResolvedText("r1", Outcome.FOUND, "x").store_is_untrustworthy
+
+    def test_its_message_says_present_and_altered_rather_than_absent(self):
+        with pytest.raises(LookupError) as caught:
+            ResolvedText("r1", Outcome.CORRUPT).require()
+
+        message = str(caught.value)
+        assert "does not match its hash" in message
+        assert "not a missing blob" in message
+
+    def test_it_carries_no_text_like_the_other_failures(self):
+        """Present-but-altered is still nothing a caller may read: returning
+        the bytes would hand somebody a quote from a payload known to be
+        wrong."""
+        with pytest.raises(ValueError, match="with text attached"):
+            ResolvedText("r1", Outcome.CORRUPT, "altered bytes")
