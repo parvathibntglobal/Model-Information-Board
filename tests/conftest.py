@@ -212,6 +212,22 @@ because every test shared an assumption with the code under test.
          apparent call site was prose, here it is real code that executes
          correctly and simply does not reach the function. The habit is 10 below.
 
+    naming, both directions
+         **A name match is evidence about a string, not about a thing.** Four of
+         the five checks that broke in one week were a name matching in the wrong
+         context — `pending` was an enum member on another table, `outcome` was a
+         different column plus a table of that name, `harvest_run_source` was an
+         index, `AnswerStore` was a docstring. The other direction ran alongside
+         it: a reference the code builds rather than spells is invisible to a
+         search for the name, which is how "nothing uses this column" and "no such
+         column exists" became the same answer.
+
+         Distinct from every shape above in what it is about. Those concern what a
+         check DOES or WHERE it runs; this concerns whether the question the tool
+         answers is the question that was asked. It is also why the four above
+         were findable at all: each was found by asking the catalog or counting
+         rows, and none by searching harder. Habit 11 below.
+
 Ten shapes of the same mistake: asserting the text of a claim instead of its
 truth; never exercising an option; never leaving the input shape the author had
 in mind; **never checking that the check had anything to check**; comparing a
@@ -349,6 +365,59 @@ Three habits that would have caught all three, cheapest first:
      investigation, and `docs/measurements/unwired-tables.md` is that question
      asked table by table. An import graph cannot answer it and a row count
      cannot be argued with.
+
+ 11. **A name match tells you a string exists. It does not tell you the thing
+     exists, and it does not tell you anything reads it.** Three questions, one
+     tool, and grep answers only the first:
+
+         is this string in the tree            grep answers this
+         does the object exist                 the CATALOG answers this
+         does anything read it                 nothing answers this by search
+
+     This is the shape underneath habits 7 to 10 rather than a fifth alongside
+     them, and it ran both directions in one week.
+
+     **False positives — a name matching in the wrong context.** Four of the five
+     checks that broke this week were this, and Engineer 2's point about why they
+     are worse than a shape error is the part worth keeping: *a name matching in
+     the wrong context is the cheapest false positive to produce and the most
+     expensive to distrust, because the result is well-formed.* A shape error
+     produces something visibly malformed — a truncated string, a count that does
+     not add up — and you doubt it on sight. A name collision produces a
+     plausible, correctly-typed, confidently-wrong answer, and everything
+     downstream inherits the confidence.
+
+         "pending"              LabelState.PENDING on label.state, a different
+                                column on a different table
+         "outcome"              job_run.outcome, AND a table named `outcome`
+         harvest_run_source     an index, harvest_run_source_query_idx
+         AnswerStore            a docstring
+
+     **False negatives — the reference the code never spells.** `write_authors`
+     had three apparent callers and all three were prose; `job_run`'s ledger was
+     reachable by import and unreachable by call; a column referenced through a
+     built identifier is invisible to a search for the column's name. In every
+     case the grep was accurate and the question was different.
+
+     **What to ask instead, cheapest first.**
+
+         does the object exist        query information_schema or pg_class BY
+                                     TYPE as well as by name — `data_type =
+                                     'tsvector'` finds a column whatever it is
+                                     called, and `relkind` keeps an index from
+                                     answering a question about tables
+         is it written                count the rows, then read pg_stat or the
+                                     ledger. `job_run` exists so "has this ever
+                                     run HERE" is a query
+         is it read                  this one has no cheap answer. An AST call
+                                     graph is closer than grep and still not
+                                     proof, because a call site can be
+                                     unreachable. The honest move is to say
+                                     which of the three you established.
+
+     The habit is one sentence: **name the question before choosing the tool, and
+     say in the finding which question you answered.** Every wrong claim this
+     week was a true answer to a question nobody had asked.
 
 Owned by neither lane, like `test_queries_contract.py` — it describes how both
 lanes write tests, and it breaks for both.
