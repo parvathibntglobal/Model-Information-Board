@@ -120,6 +120,19 @@ These are the rules a helpful refactor will otherwise quietly violate.
    evidence. Applies to counts as much as to percentages: what the three shared
    was an unstated population, not a form.
 
+   **It applies to claims about RISK, not only to figures**, and that form has
+   no number in it at all - which is why the wording above misses it. *"Any
+   branch older than the fix carries this defect"* is a true statement about
+   what COULD be wrong, and with no population attached it reads as a statement
+   about what IS. The population was 1 of 69 branches, and it was the one
+   already being deleted. Same failure, same fix: name the denominator, and the
+   worry changes even though the conclusion does not.
+
+   Agreed by both engineers 2026-08-19, after E1 generalised from one instance
+   without counting and E2 counted. Recorded because the risk form is the one
+   that survives the rule as originally written - a reader checking "does this
+   figure carry its denominator" finds no figure and moves on.
+
    Method and worked examples in `docs/measurements/README.md`.
 
 ## Stack decisions already made - do not relitigate
