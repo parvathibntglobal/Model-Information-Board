@@ -258,6 +258,24 @@ def build() -> dict:
     for predicate in (
         # a body that is not there. A different offset problem from a body
         # with an emoji in it, and the assembler meets both
+        # A deleted body: no text to quote, and an offset-map case nothing
+        # else here reaches.
+        #
+        # ⚠ THIS DOCUMENT CANNOT CURRENTLY BE STORED. `collect/`'s
+        # `write_documents` requires `author_id`, and `write_authors` correctly
+        # skips authorless comments, so rebuilding this thread from staging
+        # yields FOUR documents where this fixture has seven. E1 read that as
+        # two correct rules producing an impossible state.
+        #
+        # It is one rule stricter than the contract. `document.author_id` is
+        # NULLABLE - `author_id text REFERENCES author(id)` with no NOT NULL -
+        # so the schema permits an authorless document and the writer does not.
+        # Raised with E1 rather than worked around here; either answer is fine
+        # for evidence, because a removed body has nothing to quote.
+        #
+        # Kept in the fixture regardless: this artefact is adversarial by
+        # design, and an absent body is a different offset problem from a
+        # substituted one whether or not a row for it exists.
         lambda c: c["body"] in ("[deleted]", "[removed]"),
         # one raw character becoming twenty flat ones
         has_emoji,
