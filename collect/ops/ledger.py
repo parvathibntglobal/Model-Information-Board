@@ -139,3 +139,98 @@ def last_run(conn, stage: str) -> tuple[datetime, str | None] | None:
         (stage,),
     ).fetchone()
     return (row[0], row[1]) if row else None
+
+# ── harvest_run: the sweep's own ledger ──────────────────────────────────
+#
+# THREE ADAPTERS BUILD THIS ROW AND NOTHING WROTE IT. `harvest_run_fields()`
+# exists on the GitHub, blog and Reddit harvesters, is called only from tests,
+# and `collect/ops/alerts.py` says so in its own docstring: "`harvest_run_fields()`
+# dicts and nothing inserts them".
+#
+# That is why FR-10 read as a design question for weeks. It was not one — the
+# data was prepared, shaped to the columns, and had no writer, so no yield figure
+# could be computed, no budget stop could be told from an empty sweep, and
+# `assert_no_phantom_sweeps` had a permanently-zero operand.
+#
+# IT DEPENDS ON `source`, WHICH IS ITSELF UNWIRED. `harvest_run.source_id`
+# REFERENCES `source(id)`, and `source` holds 0 rows on staging because
+# `load_source_rows` has no caller either. So this writer refuses with a sentence
+# rather than surfacing a foreign-key violation: the fix is upstream of here, and
+# an opaque 23503 sends the reader to the wrong place.
+
+#: Keys `harvest_run_fields()` carries that `contract/tables.sql` has no column
+#: for. Both are PROPOSED — see the adapters' docstrings — and both are dropped
+#: here by name rather than by a permissive filter, so a third one added upstream
+#: fails loudly instead of being silently discarded.
+_PROPOSED_NOT_IN_SCHEMA = frozenset({"outcome", "sieve_pass_rate"})
+
+#: Every column of `harvest_run` this writer sets. Named, so a new column in the
+#: contract that nothing populates is visible here rather than defaulting quietly.
+_HARVEST_RUN_COLUMNS = (
+    "id",
+    "source_id",
+    "query_key",
+    "started_at",
+    "finished_at",
+    "items_fetched",
+    "items_kept",
+    "http_errors",
+    "exhausted",
+    "truncated_by",
+    "pipeline_version",
+)
+
+
+class UnknownSource(RuntimeError):
+    """`harvest_run.source_id` names a `source` row that does not exist."""
+
+
+def write_harvest_run(conn, fields: dict[str, Any]) -> str:
+    """Insert one `harvest_run` row from any adapter's `harvest_run_fields()`.
+
+    Takes the dict the adapters already build rather than their run objects, so
+    one writer serves all three platforms and the shape stays their business.
+
+    `ON CONFLICT DO NOTHING` on the id, which is derived from
+    `(source_id, query_key, started_at)`: re-running a driver over the same
+    completed sweep is a legitimate no-op, and a second row would double every
+    yield figure computed off this table.
+
+    Refuses rather than letting the foreign key fire, because `source` is
+    currently empty and `23503 insert or update on table "harvest_run" violates
+    foreign key constraint` reads as a bug in this writer rather than as a
+    missing loader upstream.
+    """
+    unknown = set(fields) - set(_HARVEST_RUN_COLUMNS) - _PROPOSED_NOT_IN_SCHEMA
+    if unknown:
+        raise ValueError(
+            f"harvest_run_fields() carried {sorted(unknown)}, which is neither a "
+            f"column of harvest_run nor a known proposal. Add the column to "
+            f"contract/tables.sql, or add the key to _PROPOSED_NOT_IN_SCHEMA "
+            f"with the reason it has nowhere to live."
+        )
+
+    source_id = fields["source_id"]
+    exists = conn.execute(
+        "SELECT 1 FROM source WHERE id = %s", (source_id,)
+    ).fetchone()
+    if not exists:
+        raise UnknownSource(
+            f"no source row for {source_id!r}, so this harvest cannot be "
+            "recorded. `harvest_run.source_id` references `source(id)`, and "
+            "`load_source_rows` is the loader that fills it — which has no "
+            "caller yet. Wire that first; this refusal is upstream of a foreign "
+            "key violation, not a substitute for one."
+        )
+
+    row = {k: fields.get(k) for k in _HARVEST_RUN_COLUMNS}
+    row.setdefault("pipeline_version", settings().pipeline_version)
+    columns = ", ".join(_HARVEST_RUN_COLUMNS)
+    placeholders = ", ".join(f"%({c})s" for c in _HARVEST_RUN_COLUMNS)
+    conn.execute(
+        f"INSERT INTO harvest_run ({columns}) VALUES ({placeholders}) "  # noqa: S608
+        "ON CONFLICT (id) DO NOTHING",
+        row,
+    )
+    return row["id"]
+
