@@ -185,6 +185,53 @@ def both_sides(conn):
     return conn
 
 
+# ── WHAT THIS FILE COMPARES, AND WHAT IT DOES NOT ────────────────────────
+#
+# Stated explicitly rather than inferred from whatever has failed so far, which
+# is how the list grew: `is_generated` was added after #54, and `tables` after a
+# question about job_run. Both times the gap was found by someone asking, not by
+# the file saying what it covered.
+#
+# COMPARED, each by a helper below, both sides sized before any diff:
+#
+#     tables        pg_class, relkind in ('r','v','m')  - names
+#     columns       information_schema.columns          - name, type, nullability,
+#                                                         default, generated-ness,
+#                                                         generation expression
+#     constraints   pg_constraint                       - name, type, and
+#                                                         pg_get_constraintdef
+#     indexes       pg_indexes                          - indexdef, so a partial
+#                                                         index differs from a
+#                                                         total one
+#     views         pg_views                            - name and definition
+#
+# NOT COMPARED, and each is a deliberate answer rather than an oversight:
+#
+#     sequences, enum types, functions, triggers
+#                   THE SCHEMA DECLARES NONE. Counted: 0 CREATE SEQUENCE,
+#                   0 CREATE TYPE, 0 CREATE FUNCTION, 0 CREATE TRIGGER in
+#                   tables.sql and in every migration. A comparison over an
+#                   empty class is the inert-guard shape, so these are left out
+#                   until something creates one - and `_sized` means adding one
+#                   later cannot pass silently.
+#     comments, grants, ownership, RLS
+#                   none declared, same reasoning. GRANT and ALTER ... OWNER are
+#                   deployment concerns rather than schema, and the suite runs as
+#                   one role.
+#     column ORDER  deliberately not compared - `test_the_comparison_is_not_
+#                   positional` explains why an appended column must not fail.
+#     type PARAMETERS
+#                   information_schema reports numeric(12,6) and numeric(10,2)
+#                   both as `numeric`, so precision and scale are invisible here.
+#                   LIVE on the prices; `tests/conftest.py` habit 8 records it.
+#     data          nothing about rows. `document_status_ck` agreeing in both
+#                   artifacts says nothing about what any database holds.
+#     a LIVE database
+#                   both sides are built fresh in this file. A running database
+#                   is a third thing, and the only comparison that reads one is
+#                   the ad-hoc script described in
+#                   docs/proposals/document-status-pending.md.
+#
 #: Below this, a comparison is not comparing the schema — it is comparing an
 #: accident. The real numbers are 300+ columns, 70+ constraints, 40+ indexes; the
 #: floors are deliberately far under them, because this guards against EMPTY and
