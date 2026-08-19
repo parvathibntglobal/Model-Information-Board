@@ -53,20 +53,23 @@ class Outcome(StrEnum):
     #: the store lost it or the row was written against a different store.
     MISSING = "missing"
 
-    #: Something is there and it does not match its hash. E1's finding: the
-    #: adapter's `except Exception` folded this into MISSING, so a blob that
-    #: had been ALTERED and one that was never written came back identically.
+    #: Something is there and it does not match what it should be. The repair
+    #: is that WE CANNOT TRUST WHAT WE STORED.
     #:
-    #: The distinction is not fussiness. MISSING says nothing is there and the
-    #: repair is upstream; CORRUPT says something is there and WE CANNOT TRUST
-    #: WHAT WE STORED. A batch can reasonably skip a missing payload and carry
-    #: on; carrying on past a corrupt one writes claims sourced from a store
-    #: that has just been shown to be unreliable.
+    #: I removed this member once, after verifying E1's premise that
+    #: `PayloadCorrupt` is raised inside `RawStore.put()` only (rawstore.py:235)
+    #: and so cannot reach a reader. That verification was correct and the
+    #: conclusion was wrong: the reachable case is a DECODE FAILURE. Bytes that
+    #: are present and not valid UTF-8 are present-and-wrong by definition.
     #:
-    #: Returned rather than raised, like the others. A resolver that sometimes
-    #: raises and sometimes returns is two contracts wearing one signature -
-    #: E1's argument, and it is the same reason exceptions do not cross this
-    #: boundary at all.
+    #: Under three outcomes the reader raised `UnicodeDecodeError`, because
+    #: there was nowhere to put it. That was the best available answer while
+    #: three outcomes were all there were, and it retires now: a decode failure
+    #: maps here instead of escaping the signature.
+    #:
+    #: SCOPED TIGHTLY, per E1: absence CAUSED by corruption is still MISSING.
+    #: This means present-and-wrong, or the two collapse from the other
+    #: direction.
     CORRUPT = "corrupt"
 
 
@@ -123,14 +126,12 @@ class ResolvedText:
 
     @property
     def store_is_untrustworthy(self) -> bool:
-        """CORRUPT only, and the reason it is not merged into `found is False`.
+        """CORRUPT only, and not merged into `found is False`.
 
-        A caller deciding what to do next needs three answers, not two:
-        proceed, skip this thread, or STOP. Missing and tombstoned are both
-        "skip this one" - the first is a bug to chase and the second is not,
-        but neither says anything about the next payload. Corrupt does: the
-        store returned bytes that fail their own hash, so nothing it returns
-        afterwards has been shown to be trustworthy either.
+        A caller needs three answers rather than two: proceed, skip this
+        thread, or STOP. Missing and tombstoned are both "skip this one" and
+        say nothing about the next payload. Corrupt does - the store returned
+        bytes that are present and wrong.
         """
         return self.outcome is Outcome.CORRUPT
 
@@ -155,16 +156,16 @@ _WHY: dict[Outcome, str] = {
         "The payload was deleted and its hash retained (NFR-6); nothing is "
         "broken and nothing needs repairing."
     ),
+    Outcome.CORRUPT: (
+        "The payload is present and is not what it should be - non-UTF-8 bytes "
+        "where text was stored. Something is there and cannot be trusted, and "
+        "neither can anything else the store returns until that is understood. "
+        "Absence CAUSED by corruption is still MISSING; this is present-and-wrong."
+    ),
     Outcome.MISSING: (
         "The store has no payload for this ref, which means either the store "
         "lost it or the row was written against a different store. The repair "
         "is upstream."
-    ),
-    Outcome.CORRUPT: (
-        "The payload is present and does not match its hash, so it has been "
-        "altered since it was written. This is not a missing blob: something "
-        "is there and cannot be trusted, and neither can anything else the "
-        "store returns until that is understood."
     ),
 }
 

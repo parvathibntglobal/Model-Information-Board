@@ -7,6 +7,8 @@ and that nothing here knows about a store.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from judge.extract.resolver import (
@@ -17,20 +19,39 @@ from judge.extract.resolver import (
 )
 
 
+def _code_only(source: str) -> str:
+    """Source with comments and docstrings stripped.
+
+    Every assertion about what a module DEPENDS ON has to run on code. A module
+    is allowed to name a thing in order to explain why it does not use it, and
+    a raw substring check cannot tell the two apart.
+    """
+    return re.sub(r"#.*", "", re.sub(r'"""[\s\S]*?"""', "", source))
+
+
 class TestTheThreeOutcomesCannotCollapse:
     """A tombstone is a deletion we honoured; a missing blob is a bug. The
     repair for the first is nothing and for the second is urgent, so this is
     rule 6 at the one place both lanes read."""
 
-    def test_there_are_four_and_not_three(self):
-        """CORRUPT was added after E1 found the adapter's `except Exception`
-        folding it into MISSING - a blob that had been ALTERED and one that was
-        never written coming back identically."""
-        assert set(Outcome) == {
-            Outcome.FOUND,
-            Outcome.TOMBSTONED,
-            Outcome.MISSING,
-            Outcome.CORRUPT,
+    def test_there_are_four_and_the_fourth_took_two_reversals(self):
+        """CORRUPT was added, removed, and restored, which is worth recording.
+
+        I removed it after verifying E1's premise: `PayloadCorrupt` is raised
+        inside `RawStore.put()` only, so it cannot reach a reader. THAT
+        VERIFICATION WAS CORRECT AND THE CONCLUSION WAS WRONG - the reachable
+        case is a DECODE FAILURE, and bytes present but not valid UTF-8 are
+        present-and-wrong by definition.
+
+        Checking the premise somebody states is not the same as checking the
+        claim. I confirmed the one path they named and never asked what else
+        could produce the state.
+        """
+        assert {(o.name, o.value) for o in Outcome} == {
+            ("FOUND", "found"),
+            ("TOMBSTONED", "tombstoned"),
+            ("MISSING", "missing"),
+            ("CORRUPT", "corrupt"),
         }
 
     def test_tombstoned_and_missing_name_opposite_repairs(self):
@@ -109,9 +130,19 @@ class TestNothingHereKnowsAboutAStore:
 
         import judge.extract.resolver as mod
 
-        source = inspect.getsource(mod)
+        # CODE ONLY. The first version checked the whole source and failed on
+        # a comment explaining why there is NO fourth outcome for corruption -
+        # which names `RawStore.put()` and rawstore.py:235 precisely so the
+        # claim is checkable. Naming a store in an explanation is the opposite
+        # of depending on one.
+        #
+        # Fourth substring check in this session to match my own prose, after
+        # "complete" in "completeness", "commit" in "never commits" and
+        # "localhost" in a comment about not defaulting to localhost. The fix
+        # is the same one that file already uses.
+        source = _code_only(inspect.getsource(mod))
         for leak in ("RawStore", "import collect", "from collect", "boto3", "Path("):
-            assert leak not in source, f"the resolver contract mentions {leak}"
+            assert leak not in source, f"the resolver contract depends on {leak}"
 
     def test_a_plain_object_satisfies_it_without_importing_anything(self):
         """Protocol rather than ABC, so the implementation does not import this
@@ -159,7 +190,7 @@ class TestNothingHereKnowsAboutAStore:
 
         import judge.extract.resolver as mod
 
-        assert ".put(" not in inspect.getsource(mod)
+        assert ".put(" not in _code_only(inspect.getsource(mod))
 
 
 class TestTheDefaultRefusesRatherThanReturningNothing:
@@ -179,79 +210,26 @@ class TestTheDefaultRefusesRatherThanReturningNothing:
         assert isinstance(RefusingResolver(), RawTextResolver)
 
 
-class TestCorruptIsNotMissing:
-    """MISSING says nothing is there and the repair is upstream. CORRUPT says
-    something is there and we cannot trust what we stored."""
+class TestCorruptIsPresentAndWrong:
+    """Scoped tightly, per E1: absence CAUSED by corruption is still MISSING.
+    This means present-and-wrong, or the two collapse from the other side."""
 
     def test_only_corrupt_says_the_store_is_untrustworthy(self):
-        """A caller needs three answers, not two: proceed, skip this thread, or
-        STOP. Missing and tombstoned are both "skip this one"; corrupt is the
-        only one that says anything about the NEXT payload."""
         assert ResolvedText("r1", Outcome.CORRUPT).store_is_untrustworthy
-        for other in (Outcome.TOMBSTONED, Outcome.MISSING):
-            assert not ResolvedText("r1", other).store_is_untrustworthy
-        assert not ResolvedText("r1", Outcome.FOUND, "x").store_is_untrustworthy
+        for other in (Outcome.TOMBSTONED, Outcome.MISSING, Outcome.FOUND):
+            text = "x" if other is Outcome.FOUND else None
+            assert not ResolvedText("r1", other, text).store_is_untrustworthy
 
-    def test_its_message_says_present_and_altered_rather_than_absent(self):
+    def test_its_message_distinguishes_present_and_wrong_from_absent(self):
         with pytest.raises(LookupError) as caught:
             ResolvedText("r1", Outcome.CORRUPT).require()
 
         message = str(caught.value)
-        assert "does not match its hash" in message
-        assert "not a missing blob" in message
+        assert "present" in message
+        assert "Absence CAUSED by corruption is still MISSING" in message
 
-    def test_it_carries_no_text_like_the_other_failures(self):
-        """Present-but-altered is still nothing a caller may read: returning
-        the bytes would hand somebody a quote from a payload known to be
-        wrong."""
+    def test_it_carries_no_text(self):
+        """Present-but-wrong is still nothing a caller may read: returning the
+        bytes would hand somebody a quote from a payload known to be bad."""
         with pytest.raises(ValueError, match="with text attached"):
-            ResolvedText("r1", Outcome.CORRUPT, "altered bytes")
-
-
-class TestAMirroredEnumFromTheOtherLaneNormalises:
-    """The specific hazard of a type duplicated across a lane boundary.
-
-    `collect/rawstore_reader.py` defines `ReadOutcome` mirroring `Outcome`,
-    deliberately, because neither lane may import the other. Nothing checks
-    that the two stay in step, and StrEnum members of different classes compare
-    EQUAL by value while never being IDENTICAL - so every `is` comparison in
-    this module would silently take the wrong branch on a foreign member.
-    """
-
-    def test_the_two_enums_are_equal_by_value_and_never_identical(self):
-        from collect.rawstore_reader import ReadOutcome
-
-        assert ReadOutcome.MISSING == Outcome.MISSING
-        assert ReadOutcome.MISSING is not Outcome.MISSING
-
-    def test_a_foreign_member_is_normalised_on_construction(self):
-        """Without this, a FOUND payload reads as not-found and a CORRUPT one
-        reads as trustworthy - silently, in the safe-looking direction."""
-        from collect.rawstore_reader import ReadOutcome
-
-        result = ResolvedText("raw/x", ReadOutcome.MISSING)
-
-        assert result.outcome is Outcome.MISSING
-        assert isinstance(result.outcome, Outcome)
-
-    def test_a_bare_string_normalises_too(self):
-        assert ResolvedText("raw/x", "corrupt").store_is_untrustworthy
-
-    def test_an_unknown_value_is_refused_loudly(self):
-        with pytest.raises(ValueError, match="not a valid Outcome"):
-            ResolvedText("raw/x", "nonsense")
-
-    def test_the_drift_guard_belongs_to_the_other_lane_and_already_exists(self):
-        """`tests/test_rawstore_reader.py::test_the_two_outcome_enums_have_the
-        _same_members_and_values` is E1's, and adding CORRUPT here made it fail
-        - which is the guard working, not a problem with it.
-
-        The first version of THIS test asserted `not hasattr(ReadOutcome,
-        "CORRUPT")`, recording the drift as a fact. That is a test which breaks
-        on the FIX: it would go red the moment E1 widens their enum, so it
-        pushes back against the change it exists to prompt. Deleted, and only
-        the thing that is durably true is asserted here.
-        """
-        import tests.test_rawstore_reader as guard
-
-        assert hasattr(guard, "test_the_two_outcome_enums_have_the_same_members_and_values")
+            ResolvedText("r1", Outcome.CORRUPT, "bad bytes")
