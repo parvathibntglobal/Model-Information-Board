@@ -22,6 +22,7 @@ from collect.registry.propose import (
     mechanical_variants,
     propose,
     rule_variants,
+    source_split,
     summarise,
     to_yaml,
 )
@@ -33,8 +34,16 @@ MODELS = [
 ]
 
 #: Real counts from the extract over 5,546 stored documents.
+#: `opus 5` carries a by_source split; `gpt-5` deliberately does not, so both
+#: branches of `source_split` are covered by the one fixture — a printed split and
+#: the honest "split unrecorded" for an extract row that never had one.
 OBSERVED = {
-    "anthropic/claude-opus-5": [Attested("opus 5", 1445, 281), Attested("opus-5", 78, 39)],
+    "anthropic/claude-opus-5": [
+        Attested("opus 5", 1445, 281,
+                 by_source={"reddit-sweep": 1092, "substitution-slice": 348,
+                            "reddit-comments": 5}),
+        Attested("opus-5", 78, 39, by_source={"reddit-sweep": 70, "substitution-slice": 8}),
+    ],
     "openai/gpt-5": [Attested("gpt-5", 311, 103), Attested("gpt5", 50, 10),
                      Attested("gpt 5", 38, 14)],
 }
@@ -205,8 +214,10 @@ def test_the_yaml_keeps_the_three_categories_apart():
     """And it says so on the primary line, where the reviewer starts reading."""
     text = to_yaml(propose(MODELS, OBSERVED))
     assert f"# by rule ({VENDOR_DROP}), unattested" in text
-    assert f"# attested 1445 mentions; also derived by {VENDOR_DROP}" in text
-    assert f"# attested 78 mentions; also derived by {VENDOR_DROP}" in text
+    assert (f"# attested 1445 mentions [sweep 1092, slice 348, comments 5]; "
+            f"also derived by {VENDOR_DROP}") in text
+    assert (f"# attested 78 mentions [sweep 70, slice 8]; "
+            f"also derived by {VENDOR_DROP}") in text
     assert "# mechanical, unattested" in text
 
 
@@ -349,3 +360,38 @@ def test_no_observations_is_handled_as_unmeasured(observed):
     proposals = propose(MODELS, observed)
     assert all(p.status == "mechanical-only" for p in proposals)
     assert all(p.surface == INCOMPLETE for p in proposals)
+
+
+# ── the source split: rule 7 in the file the seats are read from ──────────
+
+
+def test_the_split_is_printed_beside_every_attested_count():
+    """A total alone cannot say whether a seat rests on the corpus or one slice.
+
+    `sonnet 4.5` reads 416 mentions of which 393 are substitution-slice, and
+    `opus 5` reads 1445 of which 1092 are the general sweep. Before the split was
+    printed those two seats looked like the same kind of evidence.
+    """
+    text = to_yaml(propose(MODELS, OBSERVED))
+    assert "[sweep 1092, slice 348, comments 5]" in text
+    # Descending by count, so the dominant source is read first.
+    assert "[slice 348, sweep 1092" not in text
+
+
+def test_a_missing_split_says_so_rather_than_implying_one_source():
+    """Rule 6. `gpt-5` has no by_source in the fixture."""
+    text = to_yaml(propose(MODELS, OBSERVED))
+    assert "# attested 311 mentions [split unrecorded]" in text
+
+
+def test_a_split_that_does_not_reconcile_is_flagged_on_the_line():
+    """A denominator that disagrees with its figure is a second unverified number."""
+    rendered = source_split(Attested("x", 100, 10, by_source={"reddit-sweep": 60}))
+    assert "!! sums to 60, not 100" in rendered
+
+
+def test_the_header_explains_the_notation():
+    """The artifact must be readable without opening this module."""
+    text = to_yaml(propose(MODELS, OBSERVED))
+    assert "EVERY MENTION COUNT IS A SUM" in text
+    assert "[slice N, sweep N, comments N]" in text

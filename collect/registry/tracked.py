@@ -26,8 +26,30 @@ variants, fine-tunes and routing entries - 11 of the 340 ids are
 `~vendor/...-latest` routing pointers, whose `release_date` is when the pointer
 moved rather than when anything launched. A date-sorted top 50 would seat
 several of those and drop models from months ago that people still discuss
-constantly: `anthropic/claude-sonnet-4.5` is 426 mentions and outside any
-recent window.
+constantly: `anthropic/claude-sonnet-4.5` is **32 non-slice mentions** and
+outside any recent window.
+
+**THAT FIGURE WAS `426` AND IT WAS THE WRONG ONE TO QUOTE HERE.** 426 is real -
+`sonnet 4.5` 416 plus `sonnet-4.5` 10 - but **394 of it is
+`substitution-slice`**, 92%. The substitution slice is a *targeted* sweep for
+migration language, so a model people are leaving gets counted there heavily by
+construction. Quoting its total as evidence that "people still discuss this
+model" made a slice measurement do duty as a corpus measurement, **inside the
+argument for the ranking method itself** - which is the one place a
+population error propagates into every seat.
+
+**The conclusion survives, and on a smaller number.** 32 mentions from
+`reddit-sweep` and `reddit-comments` is not zero, it is sixteen months after
+release, and a date sort still drops it while seating routing pointers. So the
+ranking stays by mentions. What changes is what this docstring claims: the
+argument rests on `sonnet-4.5` being discussed *at all* long after release, not
+on it being the second-most-discussed model in the corpus.
+
+Rule 7, and the reason it took a fortnight to see: the extract has always
+carried a `by_source` split and `to_yaml` printed only the total, so every seat
+was reviewed against a figure whose population was invisible. The split is now
+printed per surface in the artifact - `Attested.by_source` and
+`propose.source_split`.
 
 `mentions` IS `None` WHERE NOTHING WAS OBSERVED, NEVER 0
 ---------------------------------------------------------
@@ -266,6 +288,12 @@ def attributable(
                 surface=str(row["surface"]),
                 mentions=int(row["mentions"]),  # type: ignore[call-overload]
                 documents=int(row.get("documents", 0)),  # type: ignore[call-overload]
+                # Carried, not dropped. The extract has always had this and the
+                # artifact never showed it - see `Attested.by_source`.
+                by_source={
+                    str(k): int(v)
+                    for k, v in (row.get("by_source") or {}).items()  # type: ignore[union-attr]
+                },
             )
         )
     for surfaces in out.values():
