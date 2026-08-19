@@ -9,6 +9,28 @@ The text is real. `fixtures/threads/thread-1u1b22l.json` is a harvested Reddit
 thread with a computed offset map, six documents and ten substitutions. Only
 the model's reply is scripted, and it has to be: a test that depends on what
 Gemini says today is not a test.
+
+WHAT THIS DOES NOT PROVE, stated because a green database test invites the
+opposite reading.
+
+`ThreadInput` is constructed HERE, from a fixture dict, and handed to the
+pipeline. The pipeline cannot tell it from a database read - which means this
+test says nothing about whether the pipeline works against STORED
+`thread_context` and `document` rows. Claims and cells are written to a real
+database and read back; the input never came from one.
+
+That is the seventh shape - a variable the test supplies is a variable the test
+cannot check - and Engineer 1 hit the same thing verifying the blog path
+against in-memory fixtures on a database with zero document rows. Recorded here
+rather than only in that conversation, because this file is where somebody
+would otherwise conclude the read path is covered.
+
+It is not a gap that can be closed today: `thread_context.flattened_text_ref`
+is a location in an object store and this lane has no reader for one (see
+`judge/cli.py`). E1 is building a shared read-only reader. WHEN IT LANDS, THE
+TEST TO ADD IS THIS ONE WITH ITS INPUT READ FROM THE DATABASE - and it is the
+first thing that would prove the lane interface works rather than that the
+types line up.
 """
 
 from __future__ import annotations
