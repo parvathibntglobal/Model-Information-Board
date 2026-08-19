@@ -275,11 +275,67 @@ def _cmd_registry_propose_aliases(args: argparse.Namespace) -> int:
     proposals = propose(models, observed)
     print(summarise(proposals))
     if args.out:
+        refusal = _refuse_to_discard_review(Path(args.out), force=args.force)
+        if refusal is not None:
+            print(refusal, file=sys.stderr)
+            return 2
         Path(args.out).write_text(
             to_yaml(proposals, seated_by=grounds, policy=set_policy), encoding="utf-8"
         )
         print(f"wrote {args.out} — review required, not loadable as-is")
     return 0
+
+
+#: Words a REVIEWER writes into the artifact and the generator cannot produce.
+#: Used only to make a refusal specific, never to decide whether to refuse — the
+#: refusal is on the file EXISTING, because an absence of these words is not
+#: evidence that nobody edited it (rule 6, and habit 11: a name match tells you a
+#: string exists, not that a thing does).
+REVIEW_MARKERS = ("reseated", "DEMOTED", "accepted", "rejected", "reviewed")
+
+
+def _refuse_to_discard_review(out: Path, *, force: bool) -> str | None:
+    """Refuse to overwrite an artifact a human may have ruled on. None to proceed.
+
+    **THE PROPERTY: running the generator cannot SILENTLY discard a decision.**
+    Before this, `--out` overwrote whatever was there. Two deepseek reseats and
+    six dropped `(free)` forms lived only in the written file, and the only thing
+    preventing their loss was that nobody had re-run the command.
+
+    REFUSE-TO-OVERWRITE RATHER THAN AN OVERRIDES FILE, and it is the smaller of
+    the two by a wide margin. An overrides file needs a location (`contract/` is
+    shared, so it needs flagging), a schema, apply-order semantics, a rule for an
+    override naming a model no longer in the tracked set, and tests for each. This
+    needs a flag and a stat. It also composes: if overrides are wanted later, this
+    refusal is still the correct behaviour for an un-overridden hand edit.
+
+    What it costs is that regenerating counts now takes a deliberate `--force` and
+    a re-application of the rulings by hand. That is the honest price of the
+    artifact being the authority, and it is paid loudly instead of quietly.
+    """
+    if force or not out.exists():
+        return None
+    try:
+        existing = out.read_text(encoding="utf-8")
+    except OSError:
+        existing = ""
+    found = sorted({m for m in REVIEW_MARKERS if m in existing})
+    detail = (
+        f"It contains review markers ({', '.join(found)}), so at least some of it "
+        "is a human decision."
+        if found
+        else "No review markers were found, which is NOT evidence that nobody "
+             "edited it — a reviewer accepting an entry leaves no word behind."
+    )
+    return (
+        f"refusing to overwrite {out}: it already exists and this generator "
+        f"cannot reproduce a review.\n  {detail}\n"
+        "  Regenerating discards every hand-applied ruling in it — reseats, "
+        "dropped surfaces, accepted entries.\n"
+        "  Diff the two before choosing: write elsewhere with --out <newpath>, "
+        "compare, then re-apply.\n"
+        "  Pass --force to overwrite anyway."
+    )
 
 
 def _cmd_registry_tracked_set(args: argparse.Namespace) -> int:
@@ -509,6 +565,10 @@ def build_parser() -> argparse.ArgumentParser:
     propose_aliases.add_argument(
         "--surfaces", help="surface-extract JSON; omitted means recall unmeasured")
     propose_aliases.add_argument("--out", help="write the reviewable skeleton here")
+    propose_aliases.add_argument(
+        "--force", action="store_true",
+        help="overwrite an existing --out. Refused by default: the artifact is the "
+             "authority and this generator cannot reproduce a review")
     propose_aliases.add_argument(
         "--mention-floor", type=int,
         help="narrow to the tracked set: attested mentions to qualify by count. "

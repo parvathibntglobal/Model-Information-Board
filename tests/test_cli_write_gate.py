@@ -21,6 +21,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from collect.cli import _refuse_to_discard_review
+
 CLI = Path(__file__).resolve().parents[1] / "collect" / "cli.py"
 
 #: Read-only commands, deliberately ungated. The state these checks refuse is
@@ -135,3 +137,62 @@ def test_a_refusal_is_reported_rather_than_raised():
         if isinstance(handler.type, ast.Name)
     }
     assert "PreflightRefused" in handled
+
+
+# ── the generator cannot silently discard a review ────────────────────────
+
+
+class TestRegeneratingCannotSilentlyDiscardAReview:
+    """`registry propose-aliases --out` used to overwrite whatever was there.
+
+    Two deepseek reseats and six dropped `(free)` forms lived only in the written
+    artifact, and the only thing preventing their loss was that nobody had re-run
+    the command. That is not a guard.
+
+    Refuse-to-overwrite rather than an overrides file, and it is the smaller of
+    the two: an overrides file needs a location (`contract/` is shared), a schema,
+    apply-order semantics, a rule for an override naming a model no longer in the
+    tracked set, and tests for each. This needs a flag and a stat.
+    """
+
+    def test_an_existing_artifact_is_not_overwritten(self, tmp_path):
+        target = tmp_path / "alias-surfaces.yaml"
+        target.write_text("proposals: []\n", encoding="utf-8")
+
+        refusal = _refuse_to_discard_review(target, force=False)
+
+        assert refusal is not None
+        assert "refusing to overwrite" in refusal
+        assert "--force" in refusal
+
+    def test_a_missing_target_proceeds(self, tmp_path):
+        assert _refuse_to_discard_review(tmp_path / "new.yaml", force=False) is None
+
+    def test_force_proceeds(self, tmp_path):
+        target = tmp_path / "alias-surfaces.yaml"
+        target.write_text("proposals: []\n", encoding="utf-8")
+        assert _refuse_to_discard_review(target, force=True) is None
+
+    def test_the_refusal_names_the_review_markers_it_found(self, tmp_path):
+        """A bare "file exists" is obstructive; naming what is at stake is not."""
+        target = tmp_path / "a.yaml"
+        target.write_text(
+            "    surface: deepseek v4 pro   # reseated 2026-08-19\n"
+            "      - deepseek 0813          # DEMOTED\n",
+            encoding="utf-8",
+        )
+        refusal = _refuse_to_discard_review(target, force=False)
+        assert "DEMOTED" in refusal
+        assert "reseated" in refusal
+
+    def test_it_refuses_on_EXISTENCE_and_not_on_finding_a_marker(self, tmp_path):
+        """Rule 6, and habit 11. A reviewer who ACCEPTS an entry leaves no word
+        behind, so absence of a marker is not evidence that nobody edited it.
+        The refusal must not be conditional on the grep succeeding."""
+        target = tmp_path / "pristine.yaml"
+        target.write_text("proposals: []\n", encoding="utf-8")
+
+        refusal = _refuse_to_discard_review(target, force=False)
+
+        assert refusal is not None, "existence alone must refuse"
+        assert "NOT evidence that nobody edited it" in refusal

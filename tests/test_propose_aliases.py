@@ -17,12 +17,14 @@ import pytest
 from collect.registry.propose import (
     FAMILY_WORDS,
     INCOMPLETE,
+    PRICING_ANNOTATIONS,
     VENDOR_DROP,
     Attested,
     mechanical_variants,
     propose,
     rule_variants,
     source_split,
+    strip_pricing_annotation,
     summarise,
     to_yaml,
 )
@@ -395,3 +397,56 @@ def test_the_header_explains_the_notation():
     text = to_yaml(propose(MODELS, OBSERVED))
     assert "EVERY MENTION COUNT IS A SUM" in text
     assert "[slice N, sweep N, comments N]" in text
+
+
+# ── the two halves of the regeneration hazard ─────────────────────────────
+
+
+class TestAPricingAnnotationIsNotPartOfAName:
+    """The mechanical half, now in the generator so a rerun cannot undo it.
+
+    Six `(free)` variant lines reached the review artifact and Engineer 2 ruled
+    them out by hand. A hand ruling the generator does not know is a ruling one
+    `--out` away from being lost, and an OpenRouter price tier is mechanical —
+    same class as `is_route`, one level down: a route is not a model, and a tier
+    is not a name.
+    """
+
+    def test_the_id_tier_suffix_is_stripped(self):
+        assert strip_pricing_annotation("dots-3-note-preview:free") == "dots-3-note-preview"
+        assert strip_pricing_annotation("some-model:batch") == "some-model"
+
+    def test_the_name_annotation_is_stripped(self):
+        assert strip_pricing_annotation("Dots3-Note Preview (free)") == "Dots3-Note Preview"
+        assert strip_pricing_annotation("Kimi K2 (fast)") == "Kimi K2"
+
+    def test_a_real_parenthetical_in_a_NAME_survives(self):
+        """The reason this is a closed set and not 'any trailing parenthetical'.
+
+        Across the 11-model feed slice the trailing parentheses are `free`,
+        `batch`, `fast` — and `(Gemini 3.1 Flash Lite Image)`, which is the
+        model's own name. A blanket strip deletes it.
+        """
+        name = "Gemini 3.1 Flash Lite (Gemini 3.1 Flash Lite Image)"
+        assert strip_pricing_annotation(name) == name
+
+    def test_behaviour_changing_suffixes_are_deliberately_kept(self):
+        """`thinking` and `extended` change what the model DOES, not its price,
+        so a surface carrying one may be a real distinction people write."""
+        assert strip_pricing_annotation("some-model:thinking") == "some-model:thinking"
+        assert strip_pricing_annotation("some-model:extended") == "some-model:extended"
+
+    def test_no_derived_variant_can_carry_a_tier(self):
+        """End to end: the case that actually reached the artifact."""
+        variants = mechanical_variants(
+            "dots-studio/dots-3-note-preview:free",
+            "Dots Studio: Dots3-Note Preview (free)",
+        )
+        assert variants, "the model must still derive surfaces"
+        assert not [v for v in variants if "free" in v]
+
+    def test_the_annotation_set_is_a_set_and_not_a_regex(self):
+        """A fourth annotation arrives as an unstripped surface a reviewer can
+        SEE, rather than as a silently deleted name."""
+        assert "free" in PRICING_ANNOTATIONS
+        assert "image" not in PRICING_ANNOTATIONS

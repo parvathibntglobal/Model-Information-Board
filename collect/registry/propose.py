@@ -136,6 +136,50 @@ ROUTE_NAMESPACES = ("openrouter/",)
 ROUTE_PREFIX = "~"
 
 
+#: OpenRouter serving/pricing annotations. **How a model is SOLD, never part of
+#: what it is called** - the same class of fact as `is_route`, one level down: a
+#: route is not a model, and a price tier is not a name.
+#:
+#: They arrive two ways for the same model, so both are stripped:
+#:
+#:     canonical_id   dots-studio/dots-3-note-preview:free
+#:     name           Dots Studio: Dots3-Note Preview (free)
+#:
+#: A CLOSED SET, AND NOT "ANY TRAILING PARENTHETICAL", which was the tempting
+#: rule and is wrong on the evidence. Across the 11-model feed slice the trailing
+#: parentheses are `free`, `batch`, `fast` - and `(Gemini 3.1 Flash Lite Image)`,
+#: which is part of the model's own name. A blanket strip would delete it, so the
+#: rule enumerates and a fourth annotation arrives as an unstripped surface a
+#: reviewer can see rather than as a silently deleted name.
+#:
+#: `extended` and `thinking` are deliberately NOT here. They change what the
+#: model DOES, not what it costs, so a surface carrying one may be a real
+#: distinction people write. Excluded on purpose rather than forgotten.
+PRICING_ANNOTATIONS = frozenset({"free", "batch", "fast", "nitro", "floor"})
+
+_TRAILING_PAREN = re.compile(r"\s*\(([^)]+)\)\s*$")
+
+
+def strip_pricing_annotation(text: str) -> str:
+    """Remove a serving/pricing annotation from an id local part or a feed name.
+
+    Six variant lines across `dots-3-note-preview` and `lfm-2.5-2.6b` reached the
+    review artifact as `dots3 note preview (free)` and friends - forms that came
+    from a listing string rather than from anything anybody typed. Engineer 2
+    ruled them out by hand; this is the same ruling in the generator, so a
+    regeneration cannot reintroduce them.
+    """
+    out = text
+    found = _TRAILING_PAREN.search(out)
+    if found and found.group(1).strip().casefold() in PRICING_ANNOTATIONS:
+        out = out[: found.start()]
+    # `...preview:free` - the id's own tier suffix.
+    head, sep, tail = out.rpartition(":")
+    if sep and tail.strip().casefold() in PRICING_ANNOTATIONS:
+        out = head
+    return out.strip()
+
+
 def is_route(canonical_id: str) -> bool:
     """Does this id denote a route rather than a model?
 
@@ -179,9 +223,12 @@ def mechanical_variants(canonical_id: str, display_name: str | None = None) -> l
 
     A bare family word is never returned even if the id is one: see FAMILY_WORDS.
     """
-    seeds = {canonical_id.split("/", 1)[-1]}
+    # Stripped before any rendering, so no derived form can carry a price tier.
+    # See PRICING_ANNOTATIONS — mechanical, and the same class as `is_route`.
+    seeds = {strip_pricing_annotation(canonical_id.split("/", 1)[-1])}
     if display_name:
-        seeds.add(display_name.split(":", 1)[-1])
+        seeds.add(strip_pricing_annotation(display_name.split(":", 1)[-1]))
+    seeds.discard("")
 
     out: set[str] = set()
     for seed in seeds:
