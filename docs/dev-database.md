@@ -172,7 +172,16 @@ hand-written file with a BOM also works. Worth knowing generally: the repo's
 
 ---
 
-## Two more, found bringing the instance back up
+## Three more, found bringing the instance back up
+
+**Four of the five have now fired for somebody**, which is the argument for
+this section existing rather than the individual entries. Trap 4 fired for
+Engineer 2 exactly as written — and it did not save her time, it saved her a
+WRONG DIAGNOSIS, which is the more valuable of the two and the harder to
+notice. Without the note, `accepting connections: no response` beside a
+`postmaster.pid` naming a live-looking PID reads as *a running server that is
+busy or wedged*. That reading sends you to the server. The truth was that
+nothing was listening, and the check itself was lying.
 
 **A stale `postmaster.pid` blocks the restart, and will recur.** If the
 machine sleeps or the server dies mid-session, `pgdata\postmaster.pid`
@@ -214,6 +223,33 @@ being a Postgres that will answer, and only a protocol-level connect
 distinguishes them. `collect.db.connect` sets no `connect_timeout`, so a
 diagnostic connect should always pass one explicitly — otherwise the check
 you are using to diagnose a hang hangs too.
+
+**`pg_isready` without `-U postgres` writes FATAL lines into `pg.log`.** The
+server runs as the `postgres` role; `pg_isready` defaults the user to the
+current OS account, so on Windows it asks for a role named after your Windows
+username and the server logs:
+
+```
+FATAL:  role "<your Windows username>" does not exist
+```
+
+The readiness answer is still correct — `pg_isready` reports the server is
+accepting connections, because it got a protocol-level response, which is all
+it claims to measure. But the FATAL sits in `pg.log` **beside real failures**,
+newest-last, in the file you are reading precisely because something is wrong.
+It is harmless, self-inflicted, and it will cost somebody twenty minutes of
+chasing a permissions problem that does not exist.
+
+```powershell
+& "$bin\pg_isready.exe" -p 5433 -U postgres      # no FATAL in the log
+```
+
+Worth generalising, because this is the third entry in this file with the same
+shape: **a diagnostic that writes to the evidence it is diagnosing.** The
+`BeginConnect` check reported a reachable port that was not; this one adds
+noise to the log; both were reached for while something else was broken. A
+diagnostic gets read at the worst possible moment, so its own side effects are
+part of its cost.
 
 ---
 

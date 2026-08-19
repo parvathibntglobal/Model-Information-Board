@@ -198,6 +198,43 @@ direction that "never happens" happened, by a route the sentence did not
 mention. **Both engineers read the proviso as a caveat on a general claim; it
 was the entire extent of what had been checked.**
 
+### Its mirror image: a description naming one cause
+
+**A proviso naming one path understates what a guarantee covers. A description
+naming one cause overstates what a diagnosis explains.** Engineer 2 named the
+first; the second is mine, from the same fortnight, and the pair is worth
+holding together because they fail at opposite moments.
+
+|  | the proviso | the description |
+|---|---|---|
+| what it names | one path a guarantee was checked on | one cause a symptom was traced to |
+| what it costs | coverage — the guarantee is narrower than it reads | repair — the fix is confident and aimed at the wrong thing |
+| when it fails | later, when an unnamed path breaks the guarantee | immediately, in the work done next |
+| why review misses it | it is locally true | it is locally true |
+
+Both survive review for the same reason: neither is false. The proviso really
+was checked on the flattener; `PIPELINE_VERSION` really does change for any
+change to `collect/`. And a description that says *"`assemble_article` had no
+production caller"* really is true — it just is not the whole of why no blog
+row existed, and acting on it alone produces a caller that still cannot run.
+When the blog path was finally exercised end to end, the writer was fine and
+three other things were not: a script that failed its own terms gate by passing
+`observations={}`, a feed publishing one id for eight articles, and an id the
+caller supplied to both sides of the comparison. A description that named the
+first would have licensed a fix, and the fix would have been correct and
+insufficient.
+
+So the check has two halves, and they ask opposite questions:
+
+- of a guarantee: **what does the proviso range over?** If the answer is not
+  beside it, the guarantee is narrower than it reads.
+- of a diagnosis: **what else would produce this symptom?** If the answer is
+  "nothing I looked for", the cause is a candidate rather than a finding — and
+  the confident repair is the expensive part, not the wrong diagnosis.
+
+The asymmetry is worth stating plainly: an understated guarantee waits to hurt
+you, and a misdirected repair hurts you on the next commit.
+
 The check needs no suspicion, which is what makes it worth writing down:
 
 - **Ask what the proviso ranges over.** If the answer is not beside it, the
