@@ -87,6 +87,73 @@ import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+@dataclass(frozen=True)
+class FlatteningRules:
+    """Which rewrites apply, per platform. Ruled 2026-08-18.
+
+    The rules in this module were global, which was true while there was one
+    platform and stopped being true the moment blog text arrived.
+
+    WHY `decode_entities` IS FALSE FOR BLOGS
+    ----------------------------------------
+    **trafilatura has already decoded, and it decodes TWICE.** Measured
+    2026-08-18 by isolating it against bare lxml:
+
+        html          'type &amp;gt; here'
+        lxml alone    'type &gt; here'      <- one decode, correct
+        trafilatura   'type > here'        <- a second decode
+
+    An unknown entity (`&amp;unknown;`) survives as `&unknown;` through both, so
+    the second pass is an entity unescape and not generic cleanup.
+
+    So on blog text this module's entity pass is a no-op in the ordinary case —
+    0 of the five entities survived into the flattener across 53 real articles,
+    519,997 characters (`docs/measurements/blog-symbol-census.md`). Where it is
+    NOT a no-op it is a THIRD decode: triple-encoded input reaches it as
+    `&gt;` and leaves as `>`.
+
+    **RULE 1 CANNOT CATCH THIS, WHICH IS WHY THE RULE IS OFF RATHER THAN
+    MERELY UNUSED.** Verification is an exact substring match against the text
+    the extractor was given, and `verify.py`'s display step resolves against
+    the same trafilatura output. Both sides of the check sit downstream of the
+    decode. An author who wrote `&gt;` for display gets quoted saying `>` —
+    verified, attributed to the right person, and wrong. There is no counting,
+    weighting or gating error to find; the corpus is simply not what they typed.
+
+    `unescape exactly once` remains true of THE WALK and was never true of the
+    PIPELINE for blog text. Leaving the pass on would encode the belief that
+    blog text arrives encoded, and it does not.
+
+    WHY `So` IS NOT PER-PLATFORM YET
+    --------------------------------
+    Deliberately absent. The `So` rule was read off one Reddit fixture and does
+    not generalise, and the blog corpus refused BOTH candidate replacements —
+    see the census. Narrowing it now would repeat the mistake in the other
+    direction, from a corpus of 2 documents. It stays global and wrong-in-a-
+    known-way until there is enough evidence to be right.
+    """
+
+    #: Reddit's API emits `&amp; &lt; &gt; &quot; &#39;` and the walk decodes
+    #: them exactly once. trafilatura emits none of them; see above.
+    decode_entities: bool
+
+    #: Unicode `So`. True everywhere for now, and that is a known defect
+    #: rather than a decision — see above.
+    substitute_symbols: bool = True
+
+
+#: Reddit: the API hands us encoded text, so the walk decodes it.
+REDDIT_RULES = FlatteningRules(decode_entities=True)
+
+#: Blogs: trafilatura already decoded, twice. A third pass is not a no-op.
+BLOG_RULES = FlatteningRules(decode_entities=False)
+
+#: What `flatten` uses when a caller says nothing. Reddit's, because Reddit is
+#: what every existing caller and fixture is, and because a wrong default that
+#: matches the tested path is easier to find than one that quietly differs.
+DEFAULT_RULES = REDDIT_RULES
+
+
 #: Between documents. Belongs to NO segment, deliberately: a quote spanning it
 #: overlaps two documents, so `verify.py` returns SPAN_CROSSES_COMMENTS and
 #: rejects it. An unattributable quote cannot be displayed or counted as a
@@ -181,7 +248,10 @@ def _entity_at(text: str, i: int) -> tuple[str, str] | None:
 
 
 def flatten_document(
-    text: str, document_id: str, flat_offset: int = 0
+    text: str,
+    document_id: str,
+    flat_offset: int = 0,
+    rules: FlatteningRules = DEFAULT_RULES,
 ) -> tuple[str, list[Segment]]:
     """Flatten one document. Returns its text and its segments.
 
@@ -209,7 +279,7 @@ def flatten_document(
             run_flat_start = run_raw_start = None
 
     while raw < len(text):
-        entity = _entity_at(text, raw)
+        entity = _entity_at(text, raw) if rules.decode_entities else None
         if entity is not None:
             # A SHRINKING substitution: 4-6 raw characters, one flat. Every
             # substitution in the reference fixture grows; this is the other
@@ -224,7 +294,7 @@ def flatten_document(
             raw += len(source)
             continue
 
-        tag = substitute(text[raw])
+        tag = substitute(text[raw]) if rules.substitute_symbols else None
         if tag is not None:
             close_run()
             out.append(tag)
@@ -243,12 +313,20 @@ def flatten_document(
     return "".join(out), segments
 
 
-def flatten(documents: Sequence[tuple[str, str]]) -> Flattened:
+def flatten(
+    documents: Sequence[tuple[str, str]],
+    rules: FlatteningRules = DEFAULT_RULES,
+) -> Flattened:
     """Flatten an ORDERED list of `(document_id, raw_text)` into one string.
 
     Selection and ranking are not this function's job — it takes the documents
     it is given, in the order it is given them, so the flattening rules can be
     tested against a known map without a selection policy in the way.
+
+    `rules` is per PLATFORM and applies to every document in the call, which is
+    correct because a thread's members all come from one platform. If a mixed
+    thread ever exists, this signature is the thing that has to change, and it
+    will fail to compile rather than silently apply Reddit's rules to a blog.
     """
     parts: list[str] = []
     segments: list[Segment] = []
@@ -259,7 +337,9 @@ def flatten(documents: Sequence[tuple[str, str]]) -> Flattened:
         if index:
             parts.append(JOINER)
             flat += len(JOINER)
-        text, produced = flatten_document(raw_text, document_id, flat_offset=flat)
+        text, produced = flatten_document(
+            raw_text, document_id, flat_offset=flat, rules=rules
+        )
         parts.append(text)
         segments.extend(produced)
         ids.append(document_id)

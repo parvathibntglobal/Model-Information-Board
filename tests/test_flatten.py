@@ -273,6 +273,7 @@ def test_assembly_over_the_real_thread_selects_and_maps():
     import tempfile
     from pathlib import Path as _Path
 
+    from collect.adapters.reddit import reddit_document_id
     from collect.adapters.reddit_comments import parse_thread
     from collect.assemble.thread import SELECTION_METHOD, assemble
     from collect.rawstore import RawStore
@@ -288,7 +289,8 @@ def test_assembly_over_the_real_thread_selects_and_maps():
     assembled = assemble(
         thread,
         root_text=root_text,
-        root_document_id=f"reddit:{root.get('name')}",
+        root_document_id=reddit_document_id(root.get("name")),
+        child_document_id=lambda c: reddit_document_id(c.external_id),
         store=RawStore(_Path(tempfile.mkdtemp())),
         version_aliases=(),
     )
@@ -298,6 +300,14 @@ def test_assembly_over_the_real_thread_selects_and_maps():
     assert assembled.observed_children == 195
     assert assembled.hidden_children_min == 623
 
+    # A REDDIT-SHAPED INVARIANT, AND IT IS STATED GLOBALLY. Scoped to this
+    # test's Reddit thread on 2026-08-18: a one-member blog thread writes
+    # `whole_document`, which has no `@observed` suffix and correctly has none,
+    # because nothing was ranked. Same class as the three lane assertions
+    # enforced on one side only — an invariant that was true of the only
+    # platform there was, written as though it were true of the schema.
+    # `test_a_one_member_thread_records_that_nothing_was_selected` is the
+    # other half.
     # `selection_method` NEVER gets the schema default. The bare value asserts
     # a global ranking and 195 of 818 known-minimum comments is not one.
     assert assembled.selection_method == SELECTION_METHOD
@@ -312,6 +322,7 @@ def test_the_insert_omits_the_generated_column():
     import tempfile
     from pathlib import Path as _Path
 
+    from collect.adapters.reddit import reddit_document_id
     from collect.adapters.reddit_comments import ParsedThread, ThreadCoverage
     from collect.assemble.thread import assemble
     from collect.rawstore import RawStore
@@ -323,8 +334,187 @@ def test_the_insert_omits_the_generated_column():
     )
     assembled = assemble(
         thread, root_text="body", root_document_id="reddit:t3_x",
+        child_document_id=lambda c: reddit_document_id(c.external_id),
         store=RawStore(_Path(tempfile.mkdtemp())), version_aliases=(),
     )
     row = assembled.as_row()
     assert "coverage_ratio" not in row
     assert "observed_children" in row
+
+
+# ── the platform-neutral surface ──────────────────────────────────────────
+
+
+def test_assemble_refuses_to_invent_a_child_document_id():
+    """`child_document_id` is required, so no platform can inherit `reddit:`.
+
+    `assemble` built child ids itself as `f"reddit:{c.external_id}"` while
+    taking `root_document_id` from its caller — two conventions chosen in two
+    modules for the two ids in one row. A default here, even a Reddit one, is
+    what would let a blog row acquire `reddit:` silently, and a silent wrong id
+    is only visible from the other lane.
+    """
+    import tempfile
+    from pathlib import Path as _Path
+
+    from collect.adapters.reddit_comments import ParsedThread, ThreadCoverage
+    from collect.assemble.thread import assemble
+    from collect.rawstore import RawStore
+
+    thread = ParsedThread(
+        root_post_id="t3_x", comments=(), coverage=ThreadCoverage(0, 0, 0, None, 0, 0)
+    )
+    with pytest.raises(TypeError, match="child_document_id"):
+        assemble(
+            thread,
+            root_text="body",
+            root_document_id="blog:example",
+            store=RawStore(_Path(tempfile.mkdtemp())),
+            version_aliases=(),
+        )
+
+
+def test_assemble_ranks_a_non_reddit_member_type():
+    """`ThreadMember` is structural, so assembly is not about Reddit.
+
+    Three attributes — `external_id`, `body`, `score`. This passes a type that
+    is not `RedditComment` and never was, which is the whole content of the
+    widening: ranking Reddit comments was what assembly DID, not what it is.
+    """
+    import tempfile
+    from dataclasses import dataclass
+    from pathlib import Path as _Path
+
+    from collect.assemble.thread import assemble
+    from collect.rawstore import RawStore
+
+    @dataclass(frozen=True)
+    class Note:
+        external_id: str
+        body: str
+        score: int | None
+
+    @dataclass(frozen=True)
+    class Feed:
+        root_post_id: str | None
+        comments: tuple
+        coverage: object
+
+    @dataclass(frozen=True)
+    class Coverage:
+        observed_children: int
+        hidden_children_min: int | None
+        hidden_branches_unsized: int
+
+    feed = Feed(
+        root_post_id="hn:1",
+        comments=(
+            Note("a", "the context window degrades past 200k tokens", 40),
+            Note("b", "same", 2),
+        ),
+        coverage=Coverage(2, 0, 0),
+    )
+    assembled = assemble(
+        feed,
+        root_text="root text",
+        root_document_id="hn:1",
+        child_document_id=lambda c: f"hn:{c.external_id}",
+        store=RawStore(_Path(tempfile.mkdtemp())),
+        version_aliases=(),
+    )
+    assert assembled.member_document_ids[0] == "hn:1"
+    assert all(i.startswith("hn:") for i in assembled.member_document_ids), (
+        "a non-Reddit thread must not acquire reddit: ids"
+    )
+    assert not any("reddit:" in i for i in assembled.member_document_ids)
+    assert assembled.child_count == 2
+
+
+# ── per-platform flattening rules (ruled 2026-08-18) ──────────────────────
+
+
+def test_blog_rules_do_not_decode_entities_because_trafilatura_already_did():
+    """A third decode is not a no-op, and rule 1 cannot catch it.
+
+    trafilatura decodes twice — measured against bare lxml — so text reaching
+    the flattener has already been unescaped. Triple-encoded input arrives here
+    as `&gt;`, and Reddit's rules would turn it into `>`: text the author never
+    wrote, which then verifies by exact substring match against our own stored
+    copy and is attributed to them correctly. Verified and wrong.
+    """
+    from collect.assemble.flatten import BLOG_RULES, REDDIT_RULES, flatten_document
+
+    arrived_from_trafilatura = "type &gt; here"
+
+    reddit_text, _ = flatten_document(arrived_from_trafilatura, "d", rules=REDDIT_RULES)
+    assert reddit_text == "type > here", "Reddit's rules decode, which is correct there"
+
+    blog_text, blog_segments = flatten_document(
+        arrived_from_trafilatura, "d", rules=BLOG_RULES
+    )
+    assert blog_text == arrived_from_trafilatura, (
+        "blog text must survive byte-identical; trafilatura already decoded it"
+    )
+    assert all(s.is_identity for s in blog_segments), (
+        "no substitution segment, so no offset drift to resolve"
+    )
+
+
+def test_blog_rules_still_substitute_symbols():
+    """`So` is NOT per-platform yet, and that is deliberate.
+
+    The rule was measured off one Reddit fixture and does not generalise, but
+    the blog corpus refused both candidate replacements too — 0 occurrences of
+    `°`, `©`, `®`, `™` in 519,997 characters, and the dominant class was
+    box-drawing characters inside code fences, from 2 documents. Narrowing from
+    that would repeat the original mistake in the other direction. It stays
+    global and known-wrong until the evidence supports a rule.
+    """
+    from collect.assemble.flatten import BLOG_RULES, flatten_document
+
+    text, segments = flatten_document("ship it \U0001f604", "d", rules=BLOG_RULES)
+    assert "[smiling_face_with_open_mouth_and_smiling_eyes]" in text
+    assert any(not s.is_identity for s in segments)
+
+
+def test_flatten_defaults_to_reddit_rules_so_existing_callers_are_unchanged():
+    """The default matches the tested path, which is where a wrong one shows up."""
+    from collect.assemble.flatten import DEFAULT_RULES, REDDIT_RULES, flatten
+
+    assert DEFAULT_RULES is REDDIT_RULES
+    assert flatten([("d", "a &gt; b")]).text == "a > b"
+
+
+def test_a_one_member_thread_records_that_nothing_was_selected():
+    """`whole_document`, not a ranking that did not happen.
+
+    The other half of the `@observed` assertion above, which is a Reddit-shaped
+    invariant stated globally. A blog article is a thread of one: nothing is
+    ranked, so the value must not name a ranking.
+    """
+    from collect.assemble.thread import (
+        BLOG_COVERAGE_HIDDEN_CHILDREN_MIN,
+        SELECTION_METHOD,
+        WHOLE_DOCUMENT,
+    )
+
+    assert WHOLE_DOCUMENT == "whole_document"
+    assert "@observed" not in WHOLE_DOCUMENT, "nothing was observed being ranked"
+    assert WHOLE_DOCUMENT != "specificity_x_log_engagement", "the schema default"
+    assert WHOLE_DOCUMENT != SELECTION_METHOD
+
+    # Rule 6: include_comments=False means WE withheld, so this is not 0.
+    assert BLOG_COVERAGE_HIDDEN_CHILDREN_MIN is None
+
+
+def test_blog_coverage_ratio_is_null_either_way_so_honesty_is_free():
+    """The generated CASE yields NULL for 0 observed and NULL hidden alike."""
+
+    def generated(observed, hidden_min):
+        total = (observed or 0) + (hidden_min or 0)
+        return None if total <= 0 else observed / total
+
+    assert generated(0, 0) is None, "the value we rejected"
+    assert generated(0, None) is None, "the value we chose — same ratio"
+    assert generated(None, None) is None, "a pre-#54 row, indistinguishable HERE"
+    assert generated(200, 4633) is not None, "a measured Reddit thread still computes"
