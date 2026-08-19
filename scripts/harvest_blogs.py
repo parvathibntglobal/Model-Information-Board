@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from collect.adapters.blog.fetch import (  # noqa: E402
     NotAFetchTargetError,
     fetcher_for_source,
+    observe_source,
 )
 from collect.adapters.blog.robots import RobotsGate  # noqa: E402
 from collect.adapters.blog.write import write_blog_run  # noqa: E402
@@ -56,30 +57,58 @@ def main(argv: list[str] | None = None) -> int:
     store = RawStore(Path(settings().raw_store_path))
     feeds = contract.feeds[: args.limit] if args.limit else contract.feeds
 
+    # ── OBSERVE BEFORE PREFLIGHT, BECAUSE PREFLIGHT ASKS WHAT WAS OBSERVED ──
+    #
+    # This script could not run. It called `preflight(..., sources=feeds,
+    # rulings=..., observations={})` — literally "nothing was observed" — and
+    # the class-A ruling requires `robots_status` and `feed_path_allowed` to be
+    # re-verified ON THIS RUN. So the check refused every time, correctly:
+    #
+    #     ruling blog-class-a-self-hosted requires robots_status to be
+    #     re-verified on this run, and the run observed nothing. An observation
+    #     that was not made is not an observation that passed (rule 6).
+    #
+    # The gate was right and the caller was wrong, which is why nothing caught
+    # it: the refusal reads exactly like a source that failed its terms. It is
+    # the reason `write_blog_run` had never run against a database — not the
+    # writer, not the schema, the argument on the line above it.
+    #
+    # `observe_source` is what `fetcher_for_source` already calls per source.
+    # Running it here first costs nothing extra — `RobotsGate` caches robots.txt
+    # for an hour, so the per-source gate reuses this read — and it moves the
+    # refusal to BEFORE the first article is fetched rather than midway through.
     conn = None
-    if not args.dry_run:
-        from collect.db import connect
-        from collect.ops.preflight import PreflightRefused, preflight
-        from collect.registry.policy import load_registry_policy
+    with build_client() as probe_client:
+        robots = RobotsGate(probe_client, user_agent=settings().user_agent)
+        observations = {feed["id"]: observe_source(feed, robots) for feed in feeds}
+        for feed_id, observed in observations.items():
+            print(f"  {feed_id:38s} robots={observed.get('robots_status')} "
+                  f"feed_allowed={observed.get('feed_path_allowed')}")
 
-        conn = connect()
-        try:
-            report = preflight(
-                conn,
-                environment=settings().environment,
-                policy=load_registry_policy(),
-                sources=list(feeds),
-                rulings=contract.rulings,
-                observations={},
-            )
-            print(report.summary())
-        except PreflightRefused as refusal:
-            print(str(refusal), file=sys.stderr)
-            conn.close()
-            return 1
+        if not args.dry_run:
+            from collect.db import connect
+            from collect.ops.preflight import PreflightRefused, preflight
+            from collect.registry.policy import load_registry_policy
+
+            conn = connect()
+            try:
+                report = preflight(
+                    conn,
+                    environment=settings().environment,
+                    policy=load_registry_policy(),
+                    sources=list(feeds),
+                    rulings=contract.rulings,
+                    observations=observations,
+                )
+                print(report.summary())
+            except PreflightRefused as refusal:
+                print(str(refusal), file=sys.stderr)
+                conn.close()
+                return 1
 
     totals = {"feeds": 0, "refused": 0, "articles": 0, "documents": 0,
-              "contexts": 0, "nothing_extracted": 0, "already_present": 0}
+              "contexts": 0, "nothing_extracted": 0, "already_present": 0,
+              "members_unresolved": 0, "unreadable_after_write": 0}
 
     try:
         with build_client() as client:

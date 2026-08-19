@@ -39,6 +39,14 @@ stores the response bytes in `raw/` before anything here runs: the artifact is
 immutable and re-parseable, and these dataclasses are a convenience derived
 from it.
 
+AN ID SHARED BY TWO ENTRIES IS NOT AN ID
+----------------------------------------
+`parse_feed` drops entries whose `entry_id` is not unique within the feed and
+counts them as `ambiguous`. One of the nine seeded feeds does this today, on 8
+of 20 entries, with the site root as both guid and link — so it is a live
+defect rather than a prospective one, and every consequence of keeping them is
+silent. The reasoning is at the check.
+
 RULE 6, IN THE SMALL
 --------------------
 Every absent field stays absent. No `published_at` defaulting to now, no
@@ -116,6 +124,12 @@ class ParsedFeed:
     #: identified, so they cannot become documents; counting them is what stops
     #: the drop being silent (rule 6).
     unidentifiable: int = 0
+
+    #: Entries dropped because two or more SHARED an id. Distinct from
+    #: `unidentifiable`, which is identity absent; this is identity present and
+    #: not unique, which is the worse of the two because it looks like an answer.
+    #: 8 of hamel.dev's 20 entries, measured 2026-08-19. See `parse_feed`.
+    ambiguous: int = 0
 
     #: Version of the code that parsed it, for the same reason every derived
     #: row carries `pipeline_version`.
@@ -211,7 +225,7 @@ def parse_feed(
         response_headers["content-type"] = content_type
     parsed = feedparser.parse(data, response_headers=response_headers or None)
 
-    entries: list[FeedEntry] = []
+    candidates: list[FeedEntry] = []
     unidentifiable = 0
     for raw in parsed.entries:
         url = _text_or_none(raw.get("link"))
@@ -219,7 +233,7 @@ def parse_feed(
         if not entry_id:
             unidentifiable += 1
             continue
-        entries.append(
+        candidates.append(
             FeedEntry(
                 entry_id=entry_id,
                 url=url,
@@ -232,6 +246,36 @@ def parse_feed(
                 content_html=_entry_content_html(raw),
             )
         )
+
+    # AN ID SHARED BY TWO ENTRIES IS NOT AN ID. Measured on the nine seeded
+    # feeds 2026-08-19: `hamel.dev` publishes `https://hamel.dev/` as BOTH the
+    # guid and the link of 8 of its 20 entries — eight distinct articles whose
+    # only identity is the site root.
+    #
+    # This is the same defect as an entry with no guid and no link, wearing a
+    # value. It is separated from `unidentifiable` because the causes differ and
+    # a reader needs to tell them apart: one feed omits identity, the other
+    # publishes a placeholder.
+    #
+    # WHAT IT WOULD HAVE COST, HAD THEY BEEN KEPT. All three failures are silent:
+    #
+    #   the fetch     `fetchable_url` is the site root, so the harvester fetches
+    #                 a HOME PAGE eight times and stores it as an article.
+    #   the document  `ON CONFLICT (source, external_id) DO NOTHING` keeps the
+    #                 first and counts seven as `already_present` — "a re-fetch
+    #                 of an unchanged article, not a failure".
+    #   the context   `assemble_article` derives the thread_context id from the
+    #                 document id, so all eight mint the SAME id and seven
+    #                 flattenings are discarded under `DO NOTHING`.
+    #
+    # The surviving row would then carry the home page's text, attributed to the
+    # author of whichever entry happened to be first, and read as an article.
+    seen: dict[str, int] = {}
+    for entry in candidates:
+        seen[entry.entry_id] = seen.get(entry.entry_id, 0) + 1
+    shared = {key for key, n in seen.items() if n > 1}
+    entries = [e for e in candidates if e.entry_id not in shared]
+    ambiguous = len(candidates) - len(entries)
 
     exception = parsed.get("bozo_exception")
     malformed = bool(parsed.get("bozo"))
@@ -246,6 +290,7 @@ def parse_feed(
         malformed=malformed,
         malformed_detail=f"{type(exception).__name__}: {exception}" if exception else None,
         unidentifiable=unidentifiable,
+        ambiguous=ambiguous,
     )
 
 
