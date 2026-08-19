@@ -32,14 +32,27 @@ from collect.registry.seed import (
 
 def _cmd_db_init(args: argparse.Namespace) -> int:
     from collect.db import apply_schema, reset_schema, transaction
+    from collect.migrate import stamp_at_head
 
     with transaction() as conn:
+        _gate(conn)
         if args.reset:
             reset_schema(conn, environment=settings().environment)
             print("schema reset and applied from contract/tables.sql")
         else:
             apply_schema(conn)
             print("schema applied from contract/tables.sql")
+        # A schema built from tables.sql is BY DEFINITION at the head of the
+        # chain - that is the whole content of the equivalence test. Recording
+        # it is what stops `db migrate` then trying to create objects
+        # tables.sql has already made. Without this, the first migration breaks
+        # every new database rather than a corner case.
+        stamped = stamp_at_head(conn)
+        if stamped:
+            print(
+                f"ledger stamped at head: {len(stamped)} migration(s) recorded "
+                "as applied without running - tables.sql already contains them"
+            )
     return 0
 
 
@@ -72,6 +85,7 @@ def _cmd_db_migrate(args: argparse.Namespace) -> int:
 
     conn = connect()
     try:
+        _gate(conn)
         before = check(conn)
         if before.mismatched:
             print(before.describe())
@@ -101,6 +115,70 @@ def _cmd_db_migrate(args: argparse.Namespace) -> int:
     finally:
         conn.close()
 
+
+
+def _gate(conn=None) -> None:
+    """The startup checks, on WRITE commands only. Issue #27.
+
+    Read-only commands are deliberately not gated: the state these checks refuse
+    is exactly the state somebody needs `registry check-sources` to diagnose.
+    """
+    from collect.ops.preflight import preflight
+    from collect.registry.policy import load_registry_policy
+
+    report = preflight(
+        conn, environment=settings().environment, policy=load_registry_policy()
+    )
+    print(report.summary())
+
+
+def _cmd_ops_preflight(args: argparse.Namespace) -> int:
+    """Run the startup checks and report, without running the chain."""
+    from collect.db import connect
+    from collect.ops.preflight import PreflightRefused
+
+    conn = None
+    try:
+        conn = connect()
+    except Exception as error:  # noqa: BLE001 - a refusal reports, it does not raise
+        print(f"no database connection: {type(error).__name__}: {error}")
+    try:
+        _gate(conn)
+    except PreflightRefused as refusal:
+        print(str(refusal))
+        return 1
+    finally:
+        if conn is not None:
+            conn.close()
+    return 0
+
+
+def _cmd_ops_run(args: argparse.Namespace) -> int:
+    """The nightly chain. Runs what exists and says what does not."""
+    from collect.db import connect
+    from collect.ops.chain import Journal, default_stages, run_chain
+    from collect.registry.policy import load_registry_policy
+
+    conn = None
+    if not args.no_database:
+        try:
+            conn = connect()
+        except Exception as error:  # noqa: BLE001
+            print(f"no database connection: {type(error).__name__}: {error}")
+
+    journal = Journal(Path(args.journal) if args.journal else None)
+    context = {
+        "conn": conn,
+        "environment": settings().environment,
+        "policy": load_registry_policy(),
+    }
+    try:
+        run = run_chain(default_stages(), context, journal)
+    finally:
+        if conn is not None:
+            conn.close()
+    print(run.summary())
+    return 0 if run.ok else 1
 
 
 def _cmd_registry_propose_aliases(args: argparse.Namespace) -> int:
@@ -256,6 +334,39 @@ def _cmd_registry_tracked_set(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_triage_population(args: argparse.Namespace) -> int:
+    """Print the surface population the entity gate would resolve against.
+
+    Prints the fingerprint, which is the point: a triage verdict is reproducible
+    from (document, population), and this is where the second half of that pair
+    gets a name somebody can write down.
+    """
+    from collect.db import connect
+    from collect.triage.entity import build_population
+
+    declared: list[str] = []
+    if not args.no_declared:
+        for model in load_seed_file().models:
+            declared.append(model.aliases.surface)
+            declared.extend(model.aliases.variants)
+
+    conn = connect()
+    try:
+        models = conn.execute(
+            "SELECT canonical_id, display_name FROM model_version ORDER BY canonical_id"
+        ).fetchall()
+    finally:
+        conn.close()
+
+    population = build_population(models, declared)
+    print(population.basis)
+    if args.verbose:
+        for surface in sorted(population.surfaces):
+            owners = population.owners.get(surface, ())
+            print(f"  {surface:<40} {','.join(owners) or '(declared; owner not recorded)'}")
+    return 0
+
+
 def _cmd_registry_check_sources(args: argparse.Namespace) -> int:
     """FR-2, checkable without a database."""
     seed = load_seed_file()
@@ -303,6 +414,11 @@ def _cmd_registry_recompute_window(args: argparse.Namespace) -> int:
     from collect.registry.load import recompute_window
 
     with transaction() as conn:
+        # The chain runs preflight as stage 1, so this was covered THERE and
+        # not here. A stage that is safe inside the chain and unguarded when
+        # somebody runs it by hand is guarded by the schedule rather than by
+        # the code.
+        _gate(conn)
         counts = recompute_window(conn)
     computed = counts["in_window"] - counts["assumed_in_window"]
     print(
@@ -333,6 +449,15 @@ def _cmd_registry_load_seed(args: argparse.Namespace) -> int:
     from collect.registry.load import load_seed
 
     with transaction() as conn:
+        # GATED, AND THIS IS THE COMMAND THAT MOST NEEDED IT. `load_seed`
+        # inserts `model_version.provenance = 'seed'` rows — the exact fixture
+        # `assert_no_fixtures` refuses. Ungated, the guard could only ever catch
+        # rows some *other* path had already written, which is the state it is
+        # supposed to prevent rather than report.
+        #
+        # Inside the transaction and before the write, so a refusal rolls back
+        # and nothing lands. Same order as `db init`.
+        _gate(conn)
         report = load_seed(
             conn,
             strict_sources=not args.allow_unsourced,
@@ -386,6 +511,18 @@ def build_parser() -> argparse.ArgumentParser:
         "mentions. Requires --mention-floor.")
     propose_aliases.set_defaults(func=_cmd_registry_propose_aliases)
 
+    ops = sub.add_parser("ops", help="the nightly chain and its checks")
+    ops_sub = ops.add_subparsers(dest="ops_command", required=True)
+    ops_pre = ops_sub.add_parser(
+        "preflight", help="the startup checks, without running the chain")
+    ops_pre.set_defaults(func=_cmd_ops_preflight)
+    ops_run = ops_sub.add_parser("run", help="run the nightly chain")
+    ops_run.add_argument("--journal", help="append-only JSONL record of every stage")
+    ops_run.add_argument(
+        "--no-database", action="store_true",
+        help="run without a connection; every stage that needs one refuses and says so")
+    ops_run.set_defaults(func=_cmd_ops_run)
+
     tracked = reg_sub.add_parser(
         "tracked-set",
         help="which models get swept, and the mention curve it was cut from (#33)")
@@ -429,12 +566,43 @@ def build_parser() -> argparse.ArgumentParser:
     )
     load.set_defaults(func=_cmd_registry_load_seed)
 
+    triage = sub.add_parser("triage", help="E4 — the hard gates")
+    triage_sub = triage.add_subparsers(dest="command", required=True)
+
+    pop = triage_sub.add_parser(
+        "population",
+        help="the alias surfaces the entity gate resolves against, and their "
+        "fingerprint",
+    )
+    pop.add_argument(
+        "--no-declared",
+        action="store_true",
+        help="derivations only, without contract/seed_models.yaml. Narrower by "
+        "27 surfaces no derivation reaches, e.g. `deepseek r1`.",
+    )
+    pop.add_argument("-v", "--verbose", action="store_true", help="list every surface")
+    pop.set_defaults(func=_cmd_triage_population)
+
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Dispatch, with a preflight refusal reported rather than raised.
+
+    `_gate` raises `PreflightRefused` on a write command in an unfit
+    environment. That is an expected outcome — the whole point of the check —
+    and a stack trace reads as a bug in the tool rather than as a refusal by
+    it. Caught here rather than in each command so a newly gated command cannot
+    forget to.
+    """
+    from collect.ops.preflight import PreflightRefused
+
     args = build_parser().parse_args(argv)
-    return int(args.func(args))
+    try:
+        return int(args.func(args))
+    except PreflightRefused as refusal:
+        print(str(refusal), file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

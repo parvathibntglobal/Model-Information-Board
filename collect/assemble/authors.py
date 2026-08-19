@@ -60,6 +60,32 @@ accident, or published by a query that forgot to exclude a column — which is w
 resistance to a determined reversal it needs a keyed hash and a key, and that is a
 contract decision rather than something to slip in here.
 
+⚠  REDDIT DEVELOPER TERMS 5.2 IS UNRESOLVED AGAINST THIS DESIGN, and this is
+the file where a publisher would come looking for a username.
+
+5.2 requires citing the author's username when content is displayed. This module
+stores `handle_hash` and nothing else, on purpose, and the handle goes out of
+scope at construction — so **the username is not merely absent from the page, it
+is absent from the database and unrecoverable without re-fetching**.
+
+The conflict does not bite today: the `reddit-via-rapidapi` ruling permits
+internal development only, and nothing is displayed to anyone. It bites in full
+on the day the publish path renders its first Reddit quote, and the cost of
+discovering it then is a re-fetch of every Reddit document plus a schema change,
+not an afternoon.
+
+Recorded on the ruling in `contract/sources.yaml` and escalated to the MD on
+2026-08-18. Repeated here because a condition recorded only in a ruling is read
+by whoever writes rulings, and this is where whoever writes the publisher will
+be standing when they ask "where is the author's name".
+
+**Three options, none of them free, all of them needing the ruling reopened:**
+store the handle for Reddit rows specifically (against the data-minimisation
+reasoning below, and it is the only option that makes 5.2 satisfiable); do not
+publish Reddit quotes at all (FR-6 wants three platforms, so this costs a
+platform); or narrow what "display" means and argue it — which is a legal
+reading, not an engineering one.
+
 PROPOSED TO ENGINEER 2 ON #39, AND NOT MADE HERE. `contract/tables.sql` reads
 
     handle_hash          text,                   -- hashed: we don't need the handle

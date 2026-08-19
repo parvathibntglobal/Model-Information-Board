@@ -390,6 +390,30 @@ class RawStore:
         Enforced here rather than documented, because a cleanup script that
         walks the store and deletes old files is a thing somebody writes
         eventually, and `raw/` is the one place that cannot survive it.
+
+        ⚠  REDDIT DATA API TERMS 3.2 IS UNRESOLVED AGAINST THIS REFUSAL, and
+        this is the file where somebody would try to resolve it.
+
+        3.2 requires deleting data not required for the approved use case.
+        `tombstone()` does not satisfy it: that honours a REQUEST — a takedown,
+        or an upstream deletion we observed — and 3.2 asks for PROACTIVE
+        retention limits on data nobody has asked about. This store has no
+        retention policy at all, deliberately, because NFR-4 makes "reprocess
+        from raw/ rather than re-fetch" the recovery path for the whole
+        pipeline.
+
+        So the conflict is narrow and real: not "we cannot delete", but "we
+        never delete unprompted, by design". It is recorded on the
+        `reddit-via-rapidapi` ruling in `contract/sources.yaml` and escalated
+        to the MD on 2026-08-18. It is repeated here because a condition
+        recorded only in a ruling is read by whoever writes rulings, and this
+        is where whoever writes a retention sweep will be standing.
+
+        **Do not add a Reddit retention path here without reopening that
+        ruling.** Either it permits an exception to NFR-4 for one platform's
+        payloads — which needs a story for how a rebuild works with a hole in
+        it — or the approved use case is narrowed until 3.2 is satisfied by
+        what we already keep.
         """
         namespace, _ = parse_ref(ref)
         if not namespace.evictable:

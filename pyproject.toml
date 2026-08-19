@@ -38,6 +38,12 @@ dependencies = [
 dev = [
   "pytest>=8.2",
   "pytest-asyncio>=0.23",
+  # A suite that CAN hang WILL hang in CI, where nobody is watching and the job
+  # burns its whole allowance before failing with nothing useful in the log.
+  # Diagnosed 2026-08-18: with Postgres down, one psycopg.connect against
+  # localhost:5433 took 250 seconds to give up, so `pytest -q` looked hung for
+  # ten minutes while it was failing very slowly. See `timeout` below.
+  "pytest-timeout>=2.3",
   "ruff>=0.5",
   "mypy>=1.10",
 ]
@@ -76,3 +82,9 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# 60s per test. The whole suite runs in about 45 seconds, so nothing legitimate
+# comes near this: it exists to turn a stall into a NAMED failure. A test that
+# genuinely needs longer says so with @pytest.mark.timeout rather than raising
+# this ceiling for everything.
+timeout = 60

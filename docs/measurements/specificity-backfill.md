@@ -50,6 +50,39 @@ floor.
 Whether that is the right design is a real question and this measurement does
 not answer it. It only says the floor is currently cheap.
 
+### 7.7% carries a parameter, added 2026-08-18
+
+**The floor is not a pure function of the document.** `score_document(text, *,
+version_aliases=...)` takes the alias list, and `names_version` is one of the
+five components the floor ORs over. So the same document clears or fails the
+floor depending on which surfaces were loaded when it ran.
+
+Measured on the 1,074 documents of `_substitution_slice/` that survive the built
+hard gates, changing only the alias population:
+
+| alias population | floor drops | of survivors |
+|---|---|---|
+| hand-written, 11 seeded models, 59 surfaces | 41 | **3.8%** |
+| registry-derived union, 340 models, 1,337 surfaces | 9 | **0.8%** |
+
+Identical documents. A factor of four.
+
+So the figure above is properly stated as:
+
+```
+the specificity floor drops 7.7%
+  of 285 documents — 174 GitHub candidates, 111 blog articles
+  re-scored from the raw store, 2026-08-17, no fetch
+  under the alias surfaces loaded that day: contract/seed_models.yaml,
+  11 models, 59 surfaces
+  NOT RE-DERIVABLE. That raw store no longer exists on any machine, and
+  the alias list has since grown.
+```
+
+Not wrong, and not reproducible. It remains the only calibration this stage has,
+which is the reason to state its parameter rather than quietly retire it — and
+the reason a re-run belongs on the list in §6.
+
 ---
 
 ## 2 · Per-component hit rates — also weight-independent
@@ -182,6 +215,11 @@ not a comment.
 - **The poller.** `names_version` at 6.3% on blogs is measuring the registry, not
   the channel. Re-run once `contract/seed_models.yaml` is replaced.
 - **The other E4 gates.** The floor's 7.7% is only interpretable against total
-  triage survival, and nothing else in E4 exists yet.
+  triage survival. Three of the six now exist (`collect/triage/gates.py`); the
+  language gate and the bot list still do not.
+- **A re-run under a stated alias population.** The 7.7% was taken under the
+  hand-written 59, which is the narrowest population this project will ever use
+  again. `SurfacePopulation.fingerprint` exists so the next run records which
+  one it used.
 - **A labelled corpus.** Nothing here calibrates the weights; it only shows what
   the current ones do. §4 is a description, not a validation.

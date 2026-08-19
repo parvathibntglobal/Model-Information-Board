@@ -128,52 +128,107 @@ def test_an_empty_run_issues_nothing():
 # ── openrouter.write_model_versions ───────────────────────────────────────
 
 
+class _ReturningCursor(_Cursor):
+    """Yields one result set per row, the way `returning=True` does."""
+
+    def execute(self, statement, params=None):
+        self._log.append(("execute", 1))
+        self._rows = []
+        return self
+
+    def executemany(self, statement, params_seq, *, returning=False):
+        rows = list(params_seq)
+        self._log.append(("executemany", len(rows)))
+        # `id` first, then the insert verdict, matching the real RETURNING.
+        self._pending = [(row.get("id") or row.get("model_version_id"), True)
+                         for row in rows]
+        self.pgresult = object() if returning else None
+        return None
+
+    def fetchall(self):
+        return []
+
+    def fetchone(self):
+        return self._pending[0] if getattr(self, "_pending", None) else None
+
+    def nextset(self):
+        if getattr(self, "_pending", None):
+            self._pending.pop(0)
+        return True if getattr(self, "_pending", None) else None
+
+
+class _ReturningConn(FakeConn):
+    def cursor(self, **kwargs):
+        return _ReturningCursor(self.log)
+
+    def execute(self, statement, params=None):
+        cur = _ReturningCursor(self.log)
+        return cur.execute(statement, params)
+
+
+@dataclass
+class _Model:
+    canonical_id: str
+    price_in: float | None = None
+
+    def as_row(self):
+        return {
+            "canonical_id": self.canonical_id,
+            "sources": {},
+            "price_in": self.price_in,
+            "price_out": None,
+            "price_cached_read": None,
+            "release_date": None,
+        }
+
+
+@dataclass
+class _Result:
+    models: list
+
+
 def test_the_poller_batches_and_keeps_counting_inserts_apart_from_updates():
     """340 models, one round trip each, is about 44 seconds of pure latency.
 
-    The per-row `RETURNING (xmax = 0)` has to survive the batching, or the poller
-    stops being able to tell a new model from a price change — and FR-3's alert
-    reads exactly that distinction.
+    The per-row `RETURNING` has to survive the batching, or the poller stops
+    being able to tell a new model from a price change — and FR-3's alert reads
+    exactly that distinction. It now returns `id, (xmax = 0)`: the verdict
+    travels with the row it belongs to rather than by position, because an event
+    attributed by an off-by-one reads as a real price change on a real model.
+
+    `record_changes=False` keeps this a test of the upsert. The producer's own
+    round trips are counted below.
     """
     from collect.registry.openrouter import write_model_versions
 
-    source_calls: list[tuple[str, int]] = []
+    conn = _ReturningConn()
+    counts = write_model_versions(
+        conn,
+        _Result([_Model(f"v/m{n}") for n in range(450)]),
+        batch=200,
+        record_changes=False,
+    )
+    assert [n for _, n in conn.log] == [200, 200, 50], "three round trips, not 450"
+    assert counts == {"inserted": 450, "updated": 0}
 
-    class _ReturningCursor(_Cursor):
-        """Yields one result set per row, the way `returning=True` does."""
 
-        def executemany(self, statement, params_seq, *, returning=False):
-            rows = list(params_seq)
-            assert returning, "the per-row RETURNING must be requested"
-            source_calls.append(("executemany", len(rows)))
-            self._pending = [(True,)] * len(rows)
-            self.pgresult = object()
-            return None
+def test_the_change_producer_is_batched_too():
+    """It reads every prior observation in ONE query and writes in batches.
 
-        def fetchone(self):
-            return self._pending[0] if self._pending else None
-
-        def nextset(self):
-            self._pending.pop(0)
-            return True if self._pending else None
-
-    class _ReturningConn(FakeConn):
-        def cursor(self, **kwargs):
-            return _ReturningCursor(self.log)
-
-    @dataclass
-    class _Model:
-        canonical_id: str
-
-        def as_row(self):
-            return {"canonical_id": self.canonical_id, "sources": {}}
-
-    @dataclass
-    class _Result:
-        models: list
+    `pricing_history` is the table #45's audit named as the next one to bite:
+    two round trips per model, harmless at the seed path's eleven and 88 seconds
+    of latency at the polled path's 340. A producer built per-model would have
+    reintroduced the defect the audit was written about.
+    """
+    from collect.registry.openrouter import write_model_versions
 
     conn = _ReturningConn()
-    counts = write_model_versions(conn, _Result([_Model(f"v/m{n}") for n in range(450)]),
-                                 batch=200)
-    assert [n for _, n in source_calls] == [200, 200, 50], "three round trips, not 450"
-    assert counts == {"inserted": 450, "updated": 0}
+    write_model_versions(
+        conn, _Result([_Model(f"v/m{n}", price_in=1.0) for n in range(450)]), batch=200
+    )
+
+    kinds = [kind for kind, _ in conn.log]
+    assert kinds.count("execute") == 1, "one query for every prior observation"
+    # 3 upsert batches + 3 history batches + 3 event batches.
+    assert kinds.count("executemany") == 9
+    assert [n for k, n in conn.log if k == "executemany"] == [200, 200, 50] * 3

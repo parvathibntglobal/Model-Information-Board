@@ -17,9 +17,9 @@ rather than the producer.
                   numbers, no error strings, no code, no conditions, no
                   version named -> opinion, not evidence.  ← wired here
     E3 ranking    wants the SCALAR, as specificity_score x log(1 + engagement).
-                  Not wired. E3 is blocked on comment fetching and on three
-                  columns proposed in issue #5, neither of which this unblocks.
-                  See docs/specificity-score-report.md §3.
+                  Not wired. E3 is blocked on comment fetching and on the four
+                  thread_context coverage columns of issue #54, neither of which
+                  this unblocks. See docs/specificity-score-report.md §3.
 
 Both are stored, which is why `document` carries five component columns beside
 the composite: a composite alone makes the floor's verdict unreconstructible

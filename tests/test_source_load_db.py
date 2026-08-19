@@ -189,13 +189,53 @@ def test_a_discovered_row_cannot_be_inserted_without_a_ruling(conn):
     conn.rollback()
 
 
-def test_reddit_is_stored_as_honestly_unreviewed(conn):
-    """NULL, not a sentinel ruling. The row exists; the permission does not."""
+def test_every_platform_row_is_stored_with_its_ruling(conn):
+    """Nothing is stored as unreviewed any more, and that is a change of state.
+
+    `reddit` was the one honestly-unreviewed row — NULL ruling, NULL
+    checked_on — until it was ruled on 2026-08-18. The mechanism that recorded
+    it as unreviewed is unchanged and still asserted, in
+    `test_an_unruled_row_is_stored_with_nulls_and_reported`; what moved is
+    which rows are in that state.
+    """
     report = load_source_rows(conn)
-    assert report.unreviewed == ["reddit"]
-    assert "cannot be harvested: reddit" in report.summary()
+    assert report.unreviewed == []
 
     row = _rows(conn)["reddit"]
+    assert row["terms_ruling"] == "reddit-via-rapidapi"
+    assert row["terms_checked_on"] == date(2026, 8, 18)
+
+
+def test_an_unruled_row_is_stored_with_nulls_and_reported(conn):
+    """NULL, not a sentinel ruling. The row exists; the permission does not.
+
+    The half of the previous test that was about the WRITER rather than about
+    Reddit, kept on a synthetic row so it cannot go stale when a ruling lands.
+    """
+    from collect.registry.sources import SourcesContract
+
+    synthetic = SourcesContract(
+        version="test",
+        review_marker="REVIEW REQUIRED",
+        rulings={},
+        platforms=[
+            {
+                "id": "unruled-x",
+                "platform": "blog",
+                "provenance": "seed",
+                "base_trust": 0.5,
+                # NOT NULL in the schema, which is NFR-5 enforcement: a source
+                # cannot exist without somebody having written down its terms.
+                "tos_notes": "REVIEW REQUIRED - synthetic row for this test",
+            }
+        ],
+        feeds=[],
+    )
+    report = load_source_rows(conn, synthetic)
+    assert report.unreviewed == ["unruled-x"]
+    assert "cannot be harvested: unruled-x" in report.summary()
+
+    row = _rows(conn)["unruled-x"]
     assert row["terms_ruling"] is None
     assert row["terms_checked_on"] is None
 
@@ -226,12 +266,18 @@ def test_gate_one_every_stored_feed_is_cleared_to_harvest(conn):
     )
 
 
-def test_gate_two_the_stored_reddit_row_refuses_for_naming_no_ruling(conn):
+def test_gate_two_the_stored_reddit_row_refuses_without_its_live_observation(conn):
+    """It named no ruling until 2026-08-18 and refused for that.
+
+    It now names one, and still refuses when the run supplies no observation
+    for the basis that ruling rests on — which is the stronger check, because
+    it is the one that keeps refusing after a permission exists.
+    """
     load_source_rows(conn)
     row = _rows(conn)["reddit"]
 
-    with pytest.raises(TermsNotReviewedError, match="names no terms ruling"):
-        assert_terms_reviewed([row], observations={}, today=REVIEWED_ON)
+    with pytest.raises(TermsNotReviewedError):
+        assert_terms_reviewed([row], observations={}, today=date(2026, 8, 18))
 
 
 def test_gate_three_the_stored_umbrella_row_refuses_as_a_fetch_target(conn, tmp_path):

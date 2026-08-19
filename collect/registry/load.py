@@ -351,23 +351,27 @@ def _upsert_model(conn: psycopg.Connection[Any], row: dict[str, Any]) -> tuple[s
     return ("updated" if changed else "unchanged"), changed
 
 
-def _record_prices(conn: psycopg.Connection[Any], row: dict[str, Any]) -> datetime | None:
+def _record_prices(conn: psycopg.Connection[Any], row: dict[str, Any]):
     """Append to `pricing_history` when prices are new or have moved.
 
-    Returns the `observed_at` of the row it wrote, or None when it wrote
-    nothing. That timestamp becomes the event's `occurred_at`, which ties an
-    event to the observation that revealed it.
+    Returns the `PriceObservation` that decided it, whose `observed_at` is the
+    timestamp written — or None when nothing was. That timestamp becomes the
+    event's `occurred_at`, which ties an event to the observation that revealed
+    it.
 
-    This no longer decides whether a *change* happened. It used to, and it
-    got it wrong: with no history row but an existing model, it reported a
-    price-change for a price that had never moved. Whether prices moved is a
-    question about `model_version`, and `_changed_fields` already answers it.
+    THE DECISION IS NOT MADE HERE ANY MORE. `registry.events.observe_prices` is
+    the one definition of "the price moved" and the poller shares it, so the
+    seed path and the 340-model path cannot drift. This function is the
+    per-model I/O around it: one read, one conditional write.
+
+    It also no longer needs `_changed_fields` to double-check it. The old
+    arrangement ANDed a `model_version` diff with this one, to avoid reporting a
+    change when a history row was merely missing; `observe_prices` handles that
+    case itself by refusing to call a first observation a movement.
     """
-    if all(row[column] is None for column in _PRICE_COLUMNS):
-        # A row of three NULLs asserts nothing. Open-weight models priced by
-        # the host rather than the provider would otherwise accumulate one
-        # empty history row per run.
-        return None
+    from collect.registry.events import PRICE_COLUMNS, observe_prices
+
+    incoming = {c: row[c] for c in PRICE_COLUMNS}
 
     from psycopg.rows import dict_row
 
@@ -379,9 +383,10 @@ def _record_prices(conn: psycopg.Connection[Any], row: dict[str, Any]) -> dateti
         )
         latest = cur.fetchone()
 
-    incoming = {c: row[c] for c in _PRICE_COLUMNS}
-    if latest is not None and _prices_equal({c: latest[c] for c in _PRICE_COLUMNS}, incoming):
-        return None
+    previous = None if latest is None else {c: latest[c] for c in PRICE_COLUMNS}
+    observation = observe_prices(previous, incoming)
+    if not observation.append:
+        return observation, None
 
     cur = conn.execute(
         "INSERT INTO pricing_history (model_version_id, price_in, price_out, "
@@ -389,17 +394,19 @@ def _record_prices(conn: psycopg.Connection[Any], row: dict[str, Any]) -> dateti
         (row["id"], row["price_in"], row["price_out"], row["price_cached_read"]),
     )
     written = cur.fetchone()
-    return written[0] if written else None
+    return observation, (written[0] if written else None)
 
 
 def _prices_equal(before: dict[str, Any], after: dict[str, Any]) -> bool:
-    for column in _PRICE_COLUMNS:
-        left, right = before.get(column), after.get(column)
-        left = None if left is None else Decimal(str(left))
-        right = None if right is None else Decimal(str(right))
-        if left != right:
-            return False
-    return True
+    """Kept as a name, delegated as an implementation.
+
+    Its tests are worth keeping and its comparison is not worth having twice:
+    a second copy would pass its own tests while the live path used the other
+    one. `observe_prices` is the live path.
+    """
+    from collect.registry.events import observe_prices
+
+    return not observe_prices(before, after).changed
 
 
 def _record_event(
@@ -705,13 +712,15 @@ def load_seed(
         else:
             report.models_unchanged += 1
 
-        # Whether prices moved is a question about `model_version`, and
-        # `_changed_fields` has already answered it. Asking `pricing_history`
-        # instead reported a change whenever a history row was missing.
-        moved = [c for c in changed if c in _PRICE_COLUMNS]
-        observed_at = _record_prices(conn, row)
+        # ONE DEFINITION OF THE MOVE, shared with the poller. This used to AND a
+        # `model_version` diff with a `pricing_history` diff, because on its own
+        # the second one reported a change whenever a history row was missing.
+        # `observe_prices` refuses to call a first observation a movement, so
+        # the second opinion is no longer needed to correct the first.
+        observation, observed_at = _record_prices(conn, row)
 
-        if moved and observed_at is not None:
+        if observation.moved:
+            moved = list(observation.changed)
             detail = f"{model.canonical_id}: {moved}"
             _record_event(
                 conn,

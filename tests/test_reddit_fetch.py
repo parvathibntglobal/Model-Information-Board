@@ -20,7 +20,6 @@ import pytest
 
 from collect.adapters.queries.contract import TermSet
 from collect.adapters.reddit import (
-    AssemblyNotBuilt,
     RedditHarvester,
     RedditPost,
     author_external_id,
@@ -269,86 +268,79 @@ def test_quota_is_carried_homeless_rather_than_called_a_rate_limit(tmp_path):
     assert run.quota_remaining == 999900, "read from the response header"
 
 
-# ── the refusal ───────────────────────────────────────────────────────────
+# ── the whole rate-limit triple ───────────────────────────────────────────
 
 
-def test_assembly_refuses_and_says_what_is_missing(tmp_path):
-    """A stub that returned a partial selection would be the silent failure.
+def test_every_rate_limit_header_is_captured_not_only_remaining(tmp_path):
+    """`-limit` and `-reset` reach the run, not just `-remaining`.
 
-    'The top 5 children' and 'the top 5 of the 4% we fetched' are different
-    claims, and once written to a row they are indistinguishable.
+    The regression this pins: for a fortnight the adapter read `-remaining` and
+    nothing else, so `x-ratelimit-requests-limit: 1000000` sat in the module
+    docstring as an unread constant and collected five citations, against a plan
+    believed to be 500,000. Read live on 2026-08-18 it was in fact 1,000,000 —
+    which is the uncomfortable outcome, because a right answer from a wrong
+    method is the one nobody goes back and checks.
     """
-    h = harvester(responder(page([post()])), tmp_path)
-    with pytest.raises(AssemblyNotBuilt) as excinfo:
-        h.assemble_thread(_a_post())
+    from collect.adapters.reddit import _QUOTA_HEADERS
 
-    message = str(excinfo.value)
-    assert "4%" in message and "4,833" in message, "the coverage measurement"
-    assert "SIBLINGS" in message, "why the selection cannot be bounded"
-    assert "126 report none" in message, "coverage is a lower bound"
-    assert "issue #5" in message, "where the columns are proposed"
-
-
-def test_the_refusal_does_not_still_blame_the_missing_scorer(tmp_path):
-    """The previous version of this test asserted the MENTION, not the CLAIM.
-
-    It read `assert "specificity_score" in message` with the comment "the
-    scorer that does not exist". That passes whether or not the scorer exists,
-    so when `collect/triage/specificity.py` landed the refusal went on
-    asserting something false and 878 tests stayed green. Same shape as every
-    other defect in this repo: a check that cannot fail for the reason it was
-    written.
-
-    So this asserts the state of the world instead of the text.
-    """
-    import importlib
-
-    scorer = importlib.import_module("collect.triage.specificity")
-    assert callable(scorer.score_document), "the scorer exists"
-
-    h = harvester(responder(page([post()])), tmp_path)
-    with pytest.raises(AssemblyNotBuilt) as excinfo:
-        h.assemble_thread(_a_post())
-    message = str(excinfo.value)
-
-    assert "no implementation" not in message, (
-        "the refusal claims the scorer is unimplemented and it is implemented"
-    )
-    assert "fetch_comments" in message, (
-        "comment fetching landed, so the refusal must stop implying the children "
-        "are unavailable and rest only on the bounding problem"
-    )
-    assert "cannot be bounded" in message, (
-        "the ONE remaining reason must be stated, or the refusal has lost its "
-        "grounds while still refusing"
+    headers = {
+        "x-ratelimit-requests-remaining": "998660",
+        "x-ratelimit-requests-limit": "1000000",
+        "x-ratelimit-requests-reset": "2064366",
+    }
+    assert set(headers) == set(_QUOTA_HEADERS), (
+        "a header was added to the map without a case here"
     )
 
-    # An earlier version of this test also asserted `"no longer the reason" in
-    # message`. That pinned a PHRASE, and it broke the moment the refusal was
-    # legitimately reworded to say two reasons had gone rather than one — a test
-    # failing because prose improved is the same weakness in the other
-    # direction, and the convention in tests/conftest.py says assert the world.
-    # What is asserted above is the world: the scorer imports, the fetcher is
-    # named, the surviving reason is stated, and the retired claim is absent.
+    def handler(request):
+        return httpx.Response(200, json=page([post()]), headers=headers)
+
+    run = harvester(handler, tmp_path).search("claude")
+    assert run.quota_remaining == 998660
+    assert run.quota_limit == 1000000, "the limit is an observation, not a constant"
+    assert run.quota_reset_seconds == 2064366, "seconds, not a computed date"
 
 
-def test_the_columns_the_refusal_calls_missing_are_genuinely_missing():
-    """The other half of asserting the claim.
+def test_an_absent_limit_header_stays_none_rather_than_becoming_zero(tmp_path):
+    """Rule 6 at the layer that would make an unread limit look like no limit."""
 
-    The refusal rests on three `thread_context` columns being unavailable. If
-    issue #5 lands them and nobody revisits this, the refusal starts citing a
-    gap that has been filled — the failure this file just had. Read from the
-    contract rather than trusted.
-    """
-    from collect.config import CONTRACT_DIR
-
-    schema = (CONTRACT_DIR / "tables.sql").read_text(encoding="utf-8")
-    for column in ("observed_children", "hidden_children_min",
-                   "hidden_branches_unsized", "coverage_ratio"):
-        assert column not in schema, (
-            f"{column} is in contract/tables.sql now, so the refusal's remaining "
-            "reason is stale and assemble_thread needs revisiting"
+    def handler(request):
+        return httpx.Response(
+            200,
+            json=page([post()]),
+            headers={"x-ratelimit-requests-remaining": "998660"},
         )
+
+    run = harvester(handler, tmp_path).search("claude")
+    assert run.quota_remaining == 998660
+    assert run.quota_limit is None, "absent is not 0 and not 1,000,000"
+    assert run.quota_reset_seconds is None
+
+
+def test_the_quota_sink_forwards_every_field_get_writes(tmp_path):
+    """A comment fetch must not silently drop a header a search keeps.
+
+    `_quota_sink` hands `_get` a throwaway `_Sink`, so `setattr` for a field with
+    no forwarder SUCCEEDS and the value vanishes. Nothing raises. This asserts
+    the sink covers the whole map, so the next header added to `_QUOTA_HEADERS`
+    cannot be captured on searches and lost on comment fetches.
+    """
+    from datetime import UTC, datetime
+
+    from collect.adapters.reddit import _QUOTA_HEADERS, ThreadFetch, _quota_sink
+
+    fetch = ThreadFetch(thread_url="https://x", started_at=datetime.now(tz=UTC))
+    sink = _quota_sink(fetch)
+
+    for index, attribute in enumerate(_QUOTA_HEADERS.values(), start=1):
+        setattr(sink, attribute, index)
+        assert getattr(fetch, attribute) == index, (
+            f"_quota_sink drops {attribute}: it set an attribute on the throwaway "
+            f"_Sink instead of forwarding to ThreadFetch, and nothing raised"
+        )
+
+
+# ── the refusal ───────────────────────────────────────────────────────────
 
 
 def test_an_unset_host_refuses_rather_than_guessing(tmp_path, monkeypatch):

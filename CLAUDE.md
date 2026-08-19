@@ -38,6 +38,38 @@ These are the rules a helpful refactor will otherwise quietly violate.
    The governing rule for anything added later:
    **an LLM may propose, it may never decide.**
 
+   **Code-only extraction was proposed and refused, 2026-08-18.** Dropping the
+   model at E5 and keeping it only in the Ask box would remove an injection
+   surface, a dependency and a source of nondeterminism, and it is not a cost
+   question - the whole corpus extracts for $2.12.
+
+   It was refused for one structural reason. **Rule 1 works because the
+   proposer and the checker are different things.** The model proposes a
+   quote; code checks that quote exists byte for byte in the text the model
+   was shown. If code extracts, code picks the quote and code verifies its own
+   pick - the check passes by construction. We would still have three-step
+   verification, a green suite, and a `quote_verified` column that means
+   nothing: a guarantee that looks like one and is not.
+
+   The supporting evidence is our own. A pure-code matcher hit `free` inside
+   *"freeze"* and `fusion` inside *"confusion"* on the easiest subtask in the
+   pipeline - exact matching against a known list - and was invisible on an AI
+   corpus until it ran on movie posts (`docs/measurements/control-and-reshape.md`).
+   If code needs a boundary map and a control experiment to decide whether a
+   four-character string is a model name, *"is this person complaining or
+   joking, about which capability, under what condition"* is not the smaller
+   problem.
+
+   **The alternative was weighed, not dismissed.** A code-only board is
+   possible as *high precision, low recall*: publish only unambiguously-phrased
+   claims, discard the rest unread, and **say so on every page**. That is a
+   real product and a defensible one. What it costs is most of the evidence,
+   and the saying-so is not optional - silence about ambiguously-phrased
+   failures reads as absence of failures, which is rule 4 at the largest scale
+   it covers. Recorded here rather than left in a message, because a reason
+   that lives in a conversation gets re-litigated by whoever finds the model
+   call expensive in month four.
+
 3. **No synthesised number reaches a page.** Every figure displayed is either
    *counted* (people, quotes, days) or *measured* (price, tokens). Consensus is
    a phrase assembled from counts, never a score. There is no 0-100 capability
@@ -88,6 +120,19 @@ These are the rules a helpful refactor will otherwise quietly violate.
    evidence. Applies to counts as much as to percentages: what the three shared
    was an unstated population, not a form.
 
+   **It applies to claims about RISK, not only to figures**, and that form has
+   no number in it at all - which is why the wording above misses it. *"Any
+   branch older than the fix carries this defect"* is a true statement about
+   what COULD be wrong, and with no population attached it reads as a statement
+   about what IS. The population was 1 of 69 branches, and it was the one
+   already being deleted. Same failure, same fix: name the denominator, and the
+   worry changes even though the conclusion does not.
+
+   Agreed by both engineers 2026-08-19, after E1 generalised from one instance
+   without counting and E2 counted. Recorded because the risk form is the one
+   that survives the rule as originally written - a reader checking "does this
+   figure carry its denominator" finds no figure and moves on.
+
    Method and worked examples in `docs/measurements/README.md`.
 
 ## Stack decisions already made - do not relitigate
@@ -107,25 +152,60 @@ These are the rules a helpful refactor will otherwise quietly violate.
   fully re-runnable and diffable.
 - Raw payloads are immutable and content-hash addressed. Reprocess from there
   rather than re-fetching.
-- Seeded and hand-curated rows carry `provenance`. `collect/registry/assertions.py`
-  provides `assert_no_fixtures()` and `assert_contract_backed()` to refuse them.
+- Seeded and hand-curated rows carry `provenance`, and **every write path
+  refuses them outside `development`**. `collect/registry/assertions.py` holds
+  the four checks; `collect/ops/preflight.py` runs them; two callers invoke it.
 
-  **Neither has a caller outside tests. Nothing currently stops a seeded row
-  reaching a non-development environment.** Wiring is pending a startup path -
-  issue #27. `judge/` opens no database connection at all, `collect/cli.py` runs
-  per command rather than at startup, and the nightly chain that is the natural
-  home does not exist yet.
+  ```
+  collect/ops/chain.py    stage 1 of the nightly chain, before anything writes
+  collect/cli.py:_gate    on WRITE commands only - db init, db migrate,
+                          registry load-seed, registry recompute-window
+  ```
 
-  The third function in that module, `assert_terms_reviewed()`, **is** wired -
-  `collect/adapters/blog/fetch.py` and `scripts/harvest_github.py` - so the
-  module is not uniformly unwired and these two are not an oversight of style.
+  **Both are wired, since 2026-08-18.** `collect/ops/preflight.py` calls them
+  and `collect/cli.py` runs `preflight()` before a command touches a database.
+  Issue #27 is closed. A check whose input is absent is **skipped and named**
+  rather than counted as a pass, so "no connection supplied" cannot read as
+  "the fixture check passed".
 
-  This entry said "Production asserts on startup that none are present" for
-  weeks. The first correction said the check was "called from the loaders and
-  from tests", which was also wrong: the three apparent call sites in `collect/`
-  are a docstring and two comments. Counted, the second time.
-- Estimates are labelled as estimates. Triage survival (~10-15%), output
-  verbosity and retry rate are figures to calibrate, not specifications.
+  E1 found the real defect while wiring it, and it was not a broken check: two
+  commands had never acquired one. `registry load-seed` - the command that
+  *creates* the fixture - opened a transaction without gating, so
+  `assert_no_fixtures` could only ever report seeded rows some other path had
+  already written. `recompute-window`, the sole writer of `in_window`, was
+  gated inside the nightly chain and unguarded when run by hand: guarded by the
+  schedule rather than by the code. The guard is now an **AST test over
+  `cli.py`** - any command opening a `transaction()` without `_gate` fails, and
+  read-only commands must be listed explicitly so an unclassified one fails
+  rather than running unguarded. A behavioural test over existing commands
+  cannot see a path that never had a check.
+
+  `assert_terms_reviewed()` was already wired -
+  `collect/adapters/blog/fetch.py` and `scripts/harvest_github.py`.
+
+  `assert_no_fixtures()` reads three tables: `model_version.provenance = 'seed'`,
+  `cell.provenance = 'hand_curated'`, and
+  `reported_context.provenance = 'hand_seeded'`. The third is FR-31's protection
+  and the one worth naming, because `reported_low` is a hard filter: a wrong
+  `cell` renders as a phrase somebody can argue with, a wrong `reported_low`
+  renders as an absence, and nobody audits a model that was never in the list.
+  Verified firing against a real database, not only present in the source.
+
+  **This entry has now been wrong three times and each correction was smaller
+  than the last.** It said "Production asserts on startup that none are
+  present" for weeks; the first correction said the check was "called from the
+  loaders and from tests", which was also wrong, because the three apparent
+  call sites in `collect/` were a docstring and two comments; the second
+  correction counted them and said neither had a caller, which was true when
+  written and stopped being true the day #27 closed. The lesson is not to write
+  more carefully - all three were written carefully - it is that a claim about
+  wiring goes stale silently, so this entry is the one to re-check rather than
+  re-read.
+- Estimates are labelled as estimates, **and an estimate carries its
+  population** (rule 7). Triage survival is ~10-15% *of documents retrieved
+  from the sources we sweep* - never "of Reddit", which we do not sample.
+  Output verbosity and retry rate are figures to calibrate, not
+  specifications.
 
 ## Build fixtures currently in place
 

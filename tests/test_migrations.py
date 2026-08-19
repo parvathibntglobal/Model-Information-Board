@@ -85,15 +85,62 @@ def _strip(text: str | None, schema: str) -> str | None:
 
 
 def columns(connection, schema: str) -> set[tuple]:
+    """Name, type, nullability, default — AND generated-ness.
+
+    THE LAST TWO WERE ADDED AFTER BREAKING THIS ON PURPOSE. `thread_context.
+    coverage_ratio` is the schema's first GENERATED ALWAYS column, and with the
+    query as originally written — name, type, is_nullable, column_default — the
+    migration was edited to create a PLAIN `real` column and **all 21 tests
+    still passed**. A generated column and an ordinary one of the same type are
+    indistinguishable to `column_default`, because a generated column has none.
+
+    That is the defect the generated column itself exists to prevent, one level
+    up: `coverage_ratio` is GENERATED so it cannot drift from its inputs, and
+    the test that proves the chain reaches `tables.sql` could not see it drift
+    into being storable. Confirmed by reverting and watching it pass, which is
+    habit 3 in `tests/conftest.py`.
+    """
     rows = connection.execute(
         """
-        SELECT table_name, column_name, data_type, is_nullable, column_default
+        SELECT table_name, column_name, data_type, is_nullable, column_default,
+               is_generated, generation_expression
         FROM information_schema.columns WHERE table_schema = %s
         """,
         (schema,),
     ).fetchall()
     # An unordered set, deliberately. See the module docstring.
-    return {(t, c, d, n, _strip(default, schema)) for t, c, d, n, default in rows}
+    return {
+        (t, c, d, n, _strip(default, schema), gen, _strip(expr, schema))
+        for t, c, d, n, default, gen, expr in rows
+    }
+
+
+def tables(connection, schema: str) -> set[str]:
+    """Relation names, compared DIRECTLY rather than inferred from columns.
+
+    A missing table is already caught by `columns` — every one of its columns is
+    missing too, which is how `thread_extraction` surfaced. So this is not
+    closing a hole that has leaked; it is refusing to infer the coarsest object
+    in the schema from a finer one.
+
+    Two reasons that is worth two lines. `CREATE TABLE t ()` is legal Postgres, so
+    a zero-column table is invisible to a column comparison. And when a whole
+    table is missing, a column diff reports N failures naming columns while the
+    fact is one table — the message should say the true shape of the difference.
+
+    `relkind IN ('r','v','m')`: ordinary tables, views and materialised views.
+    Indexes and sequences are excluded because `indexes` compares those by
+    definition and the schema declares no sequences.
+    """
+    rows = connection.execute(
+        """
+        SELECT rel.relname
+        FROM pg_class rel JOIN pg_namespace n ON n.oid = rel.relnamespace
+        WHERE n.nspname = %s AND rel.relkind IN ('r', 'v', 'm')
+        """,
+        (schema,),
+    ).fetchall()
+    return {name for (name,) in rows}
 
 
 def constraints(connection, schema: str) -> set[tuple]:
@@ -138,8 +185,130 @@ def both_sides(conn):
     return conn
 
 
+# ── WHAT THIS FILE COMPARES, AND WHAT IT DOES NOT ────────────────────────
+#
+# Stated explicitly rather than inferred from whatever has failed so far, which
+# is how the list grew: `is_generated` was added after #54, and `tables` after a
+# question about job_run. Both times the gap was found by someone asking, not by
+# the file saying what it covered.
+#
+# COMPARED, each by a helper below, both sides sized before any diff:
+#
+#     tables        pg_class, relkind in ('r','v','m')  - names
+#     columns       information_schema.columns          - name, type, nullability,
+#                                                         default, generated-ness,
+#                                                         generation expression
+#     constraints   pg_constraint                       - name, type, and
+#                                                         pg_get_constraintdef
+#     indexes       pg_indexes                          - indexdef, so a partial
+#                                                         index differs from a
+#                                                         total one
+#     views         pg_views                            - name and definition
+#
+# NOT COMPARED, and each is a deliberate answer rather than an oversight:
+#
+#     sequences, enum types, functions, triggers
+#                   THE SCHEMA DECLARES NONE. Counted: 0 CREATE SEQUENCE,
+#                   0 CREATE TYPE, 0 CREATE FUNCTION, 0 CREATE TRIGGER in
+#                   tables.sql and in every migration. A comparison over an
+#                   empty class is the inert-guard shape, so these are left out
+#                   until something creates one - and `_sized` means adding one
+#                   later cannot pass silently.
+#     comments, grants, ownership, RLS
+#                   none declared, same reasoning. GRANT and ALTER ... OWNER are
+#                   deployment concerns rather than schema, and the suite runs as
+#                   one role.
+#     column ORDER  deliberately not compared - `test_the_comparison_is_not_
+#                   positional` explains why an appended column must not fail.
+#     type PARAMETERS
+#                   information_schema reports numeric(12,6) and numeric(10,2)
+#                   both as `numeric`, so precision and scale are invisible here.
+#                   LIVE on the prices; `tests/conftest.py` habit 8 records it.
+#     data          nothing about rows. `document_status_ck` agreeing in both
+#                   artifacts says nothing about what any database holds.
+#     a LIVE database
+#                   both sides are built fresh in this file. A running database
+#                   is a third thing, and the only comparison that reads one is
+#                   the ad-hoc script described in
+#                   docs/proposals/document-status-pending.md.
+#
+#: Below this, a comparison is not comparing the schema — it is comparing an
+#: accident. The real numbers are 300+ columns, 70+ constraints, 40+ indexes; the
+#: floors are deliberately far under them, because this guards against EMPTY and
+#: not against small.
+MINIMUM = {"columns": 100, "constraints": 40, "indexes": 20, "views": 1, "tables": 25}
+
+
+def _sized(name: str, left: set, right: set) -> None:
+    """Assert the comparison had something to compare. Habit 4, on the check itself.
+
+    **"Found no rows to compare" and "found no differences" must not report
+    identically**, and for four rounds they did: a comparison whose query
+    returned nothing agreed with everything, and agreement is what this file
+    exists to report. Every equivalence assertion below goes through here first,
+    so an empty side fails loudly instead of passing quietly.
+
+    The failure mode is not hypothetical and it is not only about a bad query. A
+    fixture that builds one side into the wrong schema, a `search_path` that does
+    not take, a rename that empties a `WHERE` clause — all of them produce two
+    empty sets, and two empty sets are equal.
+    """
+    floor = MINIMUM[name]
+    assert len(left) >= floor, (
+        f"{name}: the tables.sql side has {len(left)} rows, under the floor of "
+        f"{floor}. This comparison found nothing to compare rather than no "
+        f"differences, and those must never report the same thing."
+    )
+    assert len(right) >= floor, (
+        f"{name}: the migration-chain side has {len(right)} rows, under the floor "
+        f"of {floor}. Same reason: an empty comparison agrees with everything."
+    )
+
+
+def test_the_comparisons_have_something_to_compare(both_sides):
+    """The guard, asserted on its own so its own failure is legible.
+
+    If this fails, every other equivalence test in this file is meaningless
+    rather than passing — so it is worth one test that says which side is empty
+    and how empty, before four more report green.
+    """
+    for name, fn in (
+        ("tables", tables),
+        ("columns", columns),
+        ("constraints", constraints),
+        ("indexes", indexes),
+        ("views", views),
+    ):
+        left, right = fn(both_sides, A), fn(both_sides, B)
+        _sized(name, left, right)
+        print(f"  {name:12} tables.sql={len(left):>4}  chain={len(right):>4}")
+
+
+def test_the_chain_and_the_file_agree_on_tables(both_sides):
+    """The coarsest comparison, and the one that was only ever inferred.
+
+    Every object class the schema declares is now compared directly: tables here,
+    columns, constraints, indexes and views below. Counted from the file rather
+    than assumed — 30 CREATE TABLE, 13 CREATE INDEX, 1 CREATE VIEW, and zero
+    types, functions, triggers, sequences, comments and grants, so there is no
+    fifth class going unexamined.
+    """
+    left, right = tables(both_sides, A), tables(both_sides, B)
+    _sized("tables", left, right)
+    assert not left - right, (
+        f"in tables.sql and not created by migrating: {sorted(left - right)} — "
+        "the file declares a table the chain never builds"
+    )
+    assert not right - left, (
+        f"a migration creates a table tables.sql does not declare: "
+        f"{sorted(right - left)} — the contract is stale, or the table was "
+        "migration-only and nothing says so"
+    )
+
+
 def test_the_chain_and_the_file_agree_on_columns(both_sides):
     """The one that catches an edit to tables.sql with no migration beside it."""
+    _sized("columns", columns(both_sides, A), columns(both_sides, B))
     only_file = columns(both_sides, A) - columns(both_sides, B)
     only_chain = columns(both_sides, B) - columns(both_sides, A)
     assert not only_file, (
@@ -152,11 +321,30 @@ def test_the_chain_and_the_file_agree_on_columns(both_sides):
 
 
 def test_the_chain_and_the_file_agree_on_constraints(both_sides):
-    assert constraints(both_sides, A) == constraints(both_sides, B)
+    """By `pg_get_constraintdef`, never by a rendered string from information_schema.
+
+    `information_schema.check_constraints.check_clause` is the tempting source
+    and it is the wrong one: Postgres renders it with embedded newlines, so any
+    single-line pattern over it matches nothing — and a comparison that matches
+    nothing AGREES. `pg_get_constraintdef(oid)` returns one canonical value per
+    constraint and is compared whole, so there is no pattern to fail.
+    """
+    left, right = constraints(both_sides, A), constraints(both_sides, B)
+    _sized("constraints", left, right)
+    only_file = left - right
+    only_chain = right - left
+    assert not only_file, (
+        f"in tables.sql and not reachable by migrating: {sorted(only_file)}"
+    )
+    assert not only_chain, (
+        f"a migration creates a constraint tables.sql does not describe: "
+        f"{sorted(only_chain)}"
+    )
 
 
 def test_the_chain_and_the_file_agree_on_indexes(both_sides):
     """By indexdef. A missing index is a performance cliff, not an error."""
+    _sized("indexes", indexes(both_sides, A), indexes(both_sides, B))
     only_file = indexes(both_sides, A) - indexes(both_sides, B)
     only_chain = indexes(both_sides, B) - indexes(both_sides, A)
     assert not only_file, f"tables.sql has indexes the chain does not: {only_file}"
@@ -165,6 +353,7 @@ def test_the_chain_and_the_file_agree_on_indexes(both_sides):
 
 def test_the_chain_and_the_file_agree_on_views(both_sides):
     """`cell_current` drifting means the answer path reads different rows."""
+    _sized("views", views(both_sides, A), views(both_sides, B))
     assert views(both_sides, A) == views(both_sides, B)
 
 
@@ -199,7 +388,30 @@ def test_the_equivalence_test_can_fail(both_sides):
     both_sides.execute(f"ALTER TABLE {B}.document ADD COLUMN drifted text")
     both_sides.commit()
     only_chain = columns(both_sides, B) - columns(both_sides, A)
-    assert ("document", "drifted", "text", "YES", None) in only_chain
+    assert ("document", "drifted", "text", "YES", None, "NEVER", None) in only_chain
+
+
+def test_a_generated_column_turning_plain_is_caught(both_sides):
+    """The case that motivated widening `columns()`, kept as a test.
+
+    `thread_context.coverage_ratio` is GENERATED ALWAYS. With the comparison as
+    originally written this transformation was INVISIBLE — a generated column
+    and a plain one of the same type differ in nothing the query selected,
+    because a generated column has no `column_default`. Twenty-one tests passed
+    against a migration that created it plain.
+
+    A plain `coverage_ratio` is precisely the drift the generated column exists
+    to prevent, so the equivalence test would have signed off on the defect it
+    was there to catch.
+    """
+    both_sides.execute(f"ALTER TABLE {B}.thread_context DROP COLUMN coverage_ratio")
+    both_sides.execute(f"ALTER TABLE {B}.thread_context ADD COLUMN coverage_ratio real")
+    both_sides.commit()
+
+    only_file = columns(both_sides, A) - columns(both_sides, B)
+    generated = [row for row in only_file if row[1] == "coverage_ratio"]
+    assert generated, "a generated column becoming plain must be visible"
+    assert generated[0][5] == "ALWAYS"
 
 
 # ── discovery and the ledger ──────────────────────────────────────────────
@@ -404,8 +616,42 @@ def test_a_database_predating_the_ledger_is_not_reported_as_current(conn):
 
 
 def test_a_database_with_the_ledger_and_nothing_pending_is_current(conn):
+    """BASELINE PLUS EVERY MIGRATION, not baseline alone.
+
+    This asserted `is_current` after applying `baseline.sql` by itself, which
+    was true only while `discover()` returned nothing. The first real migration
+    made it fail — correctly, because a database at the baseline with a
+    migration outstanding is *not* current.
+
+    The test was the same shape as the writers it is chasing: an assertion that
+    could not fail because the condition it named could not arise. Now it
+    applies the whole chain, so "nothing pending" means the chain is exhausted
+    rather than empty.
+    """
     _in_schema(conn, "public", M.baseline_sql())
+    for migration in M.discover():
+        conn.execute(migration.sql)
+        conn.execute(
+            f"INSERT INTO {M.LEDGER} (filename, content_hash) VALUES (%s, %s)",
+            (migration.filename, migration.content_hash),
+        )
+    conn.commit()
+
     status = M.check(conn)
     assert status.ledger_present
     assert status.is_current
     assert "current" in status.describe()
+
+
+def test_the_baseline_alone_is_not_current_once_a_migration_exists(conn):
+    """The state the previous test used to assert was fine.
+
+    Worth its own test rather than only a corrected one: a database sitting at
+    the baseline with work outstanding must report as behind, and until
+    2026-08-18 nothing could tell the difference.
+    """
+    _in_schema(conn, "public", M.baseline_sql())
+    status = M.check(conn)
+    assert status.ledger_present
+    assert not status.is_current
+    assert status.pending_filenames == [m.filename for m in M.discover()]

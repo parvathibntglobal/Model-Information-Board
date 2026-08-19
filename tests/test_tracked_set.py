@@ -22,6 +22,7 @@ from collect.registry.tracked import (
     TrackedSetPolicy,
     attributable,
     distribution,
+    is_routing_pointer,
     select,
     summarise,
 )
@@ -232,3 +233,105 @@ def test_the_distribution_says_so_when_nothing_was_measured():
     """No extract means the floor cannot be derived — not that it is zero."""
     selection = select(MODELS, {}, policy=_policy(), as_of=AS_OF)
     assert "cannot be derived" in distribution(selection)
+
+
+# ── routing pointers: the rule that was prose and is now enforced ────────
+
+
+#: A pointer that would qualify on BOTH grounds if it were a model: recent
+#: `release_date` (the day the pointer moved) and mentions above the floor.
+#: Constructed to qualify, because a filter tested only against rows that would
+#: have been rejected anyway proves nothing.
+POINTER_MODELS = [
+    *MODELS,
+    ("~deepseek/deepseek-v4-flash-latest", "DeepSeek: V4 Flash (latest)", date(2026, 8, 16)),
+]
+
+POINTER_EXTRACT = [
+    *EXTRACT,
+    {"surface": "deepseek v4 flash", "mentions": 900, "documents": 300,
+     "verdict": "resolved", "models": ["~deepseek/deepseek-v4-flash-latest"]},
+]
+
+
+def _pointer(selection):
+    return next(
+        m for m in selection.rejected + selection.tracked
+        if m.canonical_id == "~deepseek/deepseek-v4-flash-latest"
+    )
+
+
+def test_a_routing_pointer_is_refused_even_when_it_qualifies_on_both_grounds():
+    """The seat that was actually taken, as a failing-first test.
+
+    `~deepseek/deepseek-v4-flash-latest` was in the tracked set. The module
+    docstring had named the 11 pointers since the file was written and used them
+    to argue for mention-ranking; nothing enforced it. This row is built to
+    qualify twice over — 900 mentions against a floor of 20, and a
+    `release_date` two days before `as_of` — so the refusal cannot be an artifact
+    of it failing the thresholds anyway.
+    """
+    selection = select(
+        POINTER_MODELS, attributable(POINTER_EXTRACT), policy=_policy(), as_of=AS_OF
+    )
+    pointer = _pointer(selection)
+    assert not pointer.selected
+    assert pointer.refused_as_pointer
+    assert BY_MENTIONS not in pointer.grounds
+    assert BY_LAUNCH_WINDOW not in pointer.grounds
+    assert pointer not in selection.tracked
+
+
+def test_the_refusal_is_counted_rather_than_silent():
+    """Rule 6's display side, and the reason the last one survived.
+
+    A pointer dropped with no number beside it makes the set look like it never
+    held one, and nobody has a figure to disagree with.
+    """
+    selection = select(
+        POINTER_MODELS, attributable(POINTER_EXTRACT), policy=_policy(), as_of=AS_OF
+    )
+    assert len(selection.refused_pointers) == 1
+    assert "1 routing pointers refused a seat" in summarise(selection)
+
+    #: Still in the denominator: refused is not vanished.
+    total = len(selection.tracked) + len(selection.rejected)
+    assert total == len(POINTER_MODELS)
+
+
+def test_the_refusal_ground_does_not_seat_the_row_it_refuses():
+    """`selected` was `bool(grounds)`, and the refusal lives in `grounds`.
+
+    So the line that records the refusal would have seated every pointer — the
+    refusal reading as its own justification. Pinned, because it is a one-word
+    change away from being true again.
+    """
+    selection = select(
+        POINTER_MODELS, attributable(POINTER_EXTRACT), policy=_policy(), as_of=AS_OF
+    )
+    pointer = _pointer(selection)
+    assert pointer.grounds, "the reason must be recorded, not dropped"
+    assert not pointer.selected, "but recording it must not seat the row"
+
+
+def test_a_model_whose_name_merely_contains_a_tilde_is_not_refused():
+    """The check is on the PREFIX, not on the character appearing anywhere.
+
+    Habit 11: a name match tells you a string exists. `startswith` is the claim
+    being made and this is the test that it is the claim being made.
+    """
+    models = [*MODELS, ("vendor/model~preview", "Vendor: Model Preview", date(2026, 8, 16))]
+    selection = select(models, attributable(EXTRACT), policy=_policy(), as_of=AS_OF)
+    row = next(
+        m for m in selection.tracked + selection.rejected
+        if m.canonical_id == "vendor/model~preview"
+    )
+    assert not row.refused_as_pointer
+    assert row.grounds == (BY_LAUNCH_WINDOW,)
+
+
+def test_is_routing_pointer_reads_the_feeds_convention():
+    assert is_routing_pointer("~deepseek/deepseek-v4-flash-latest")
+    assert is_routing_pointer("~anthropic/claude-opus-latest")
+    assert not is_routing_pointer("deepseek/deepseek-v4-flash-0731")
+    assert not is_routing_pointer("openrouter/auto")
