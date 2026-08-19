@@ -202,6 +202,16 @@ because every test shared an assumption with the code under test.
          because the name is accurate — there is nothing to correct, only
          something missing beside it. The habit is 9 below.
 
+    imports
+         **Reachable by import, unreachable by call.** `job_run`'s ledger is
+         imported by `collect/ops/chain.py`, so every wiring check found it, and
+         the chain's stages never call the writer — three of them run and write
+         nothing, so a green nightly reports success for producing no rows.
+
+         The inverse of the docstring case rather than a repeat of it: there the
+         apparent call site was prose, here it is real code that executes
+         correctly and simply does not reach the function. The habit is 10 below.
+
 Ten shapes of the same mistake: asserting the text of a claim instead of its
 truth; never exercising an option; never leaving the input shape the author had
 in mind; **never checking that the check had anything to check**; comparing a
@@ -317,6 +327,28 @@ Three habits that would have caught all three, cheapest first:
      for their returns describes a shape, never a boundary.** If the boundary
      matters — and for anything called a guard it always does — something has to
      say where it is, in prose, next to the code.
+
+ 10. **An import chain is no evidence of a call path.** Reachable-by-import and
+     reachable-by-call are different graphs, and every tool this repo has —
+     grep, the AST sweeps, the lane-boundary test — walks the first while the
+     question is always about the second.
+
+     `job_run`'s ledger was imported by `collect/ops/chain.py`, so every check
+     that asked "is this wired" found it. What nothing asked is whether the
+     chain's stages CALL the writer, and three of them run without writing
+     anything, so a green nightly reported success for producing no rows.
+
+     Same distinction as a grep matching a docstring — `write_authors` had three
+     apparent callers and all three were prose — but one layer up: there the
+     match was in a comment, here the match is in real, executed, correct code
+     that merely does not reach the function. An import is a fact about the
+     module graph; a call is a fact about a run.
+
+     What to do instead, cheapest first: **count the rows.** `job_run` exists so
+     that "has this stage ever run HERE" is a query rather than an
+     investigation, and `docs/measurements/unwired-tables.md` is that question
+     asked table by table. An import graph cannot answer it and a row count
+     cannot be argued with.
 
 Owned by neither lane, like `test_queries_contract.py` — it describes how both
 lanes write tests, and it breaks for both.
