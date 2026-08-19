@@ -17,6 +17,7 @@ client = TestClient(app, raise_server_exceptions=False)
 
 PAGES = (
     "/models/mv1",
+    "/models/google/gemini-2.5-flash",  # every real id contains a slash
     "/capabilities/summarization.fidelity",
     "/filtered",
     "/coverage",
@@ -28,7 +29,7 @@ class TestEveryPageIsReachable:
     def test_all_five_have_a_route(self):
         paths = {getattr(r, "path", "") for r in app.routes}
         for expected in (
-            "/models/{model_version_id}",
+            "/models/{model_version_id:path}",
             "/capabilities/{capability_key}",
             "/filtered",
             "/coverage",
@@ -160,3 +161,27 @@ class TestAnUnknownCapabilityIs404:
 
         assert response.status_code == 404
         assert "not a tracked capability" in response.json()["detail"]
+
+
+class TestAModelIdContainsASlash:
+    """Found by the first check against a real database, not by any test.
+
+    Every model id is `vendor/name` - google/gemini-2.5-flash,
+    anthropic/claude-opus-5. The route was `{model_version_id}`, which matches
+    only up to the first separator, so EVERY REAL MODEL PAGE 404ed while the
+    suite passed on `mv1`.
+
+    The tests used a fixture id with no slash, so the whole endpoint was
+    verified against the one shape production never produces. A variable the
+    test supplies, again, and this time it was the URL.
+    """
+
+    def test_a_vendor_prefixed_id_routes(self, monkeypatch):
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+        # 503 rather than 404: it reached the handler and failed on the
+        # database, which is the proof that routing worked.
+        assert client.get("/models/google/gemini-2.5-flash").status_code == 503
+
+    def test_the_route_declares_a_path_parameter(self):
+        paths = {getattr(r, "path", "") for r in app.routes}
+        assert "/models/{model_version_id:path}" in paths

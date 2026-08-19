@@ -346,7 +346,12 @@ def _conn():
     return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
 
 
-@app.get("/models/{model_version_id}")
+# `:path` because EVERY model id contains a slash - `google/gemini-2.5-flash`,
+# `anthropic/claude-opus-5`. Without it FastAPI matches only up to the first
+# separator and every real model page 404s, which is what the first live check
+# against a database found. A URL-encoded %2F does not help: the ASGI server
+# decodes before routing, so the slash is back by the time the path is matched.
+@app.get("/models/{model_version_id:path}")
 def model_page(model_version_id: str) -> dict:
     """FR-23 to FR-26. The full capability list, not the evidenced part."""
     from judge.pages.model import ModelPageReader
