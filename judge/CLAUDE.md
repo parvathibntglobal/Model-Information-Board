@@ -15,12 +15,18 @@ a model.
 | E8 publish | `pages/` | Model pages, filtered, changelog, coverage — **read the two Reddit conditions below before writing any of it** |
 | Q1–Q7 | `ask/` | Task description → ranked recommendation **← LLM (Q1 only)** |
 
-## Two Reddit conditions that bite only when you build E8
+## Three conditions that bite only when you build E8
 
 Recorded here rather than only in `contract/sources.yaml` because a condition
 in a `tos_notes` block is read by whoever writes rulings, and these have to be
 read by whoever writes the publisher. That is this lane, at the moment it
 starts.
+
+Two are Reddit's and come from the `reddit-via-rapidapi` ruling. **The third is
+blog retention, and it surfaced from the handoff rather than from a ruling** -
+which is the reason it is here: nothing in `contract/` states it, because it is
+not a condition anyone imposed on us. It is a consequence of a choice we made
+correctly.
 
 Both come from the `reddit-via-rapidapi` ruling: a **permission, not a
 clearance**, on the basis `internal-development-only`, with four conditions
@@ -70,8 +76,34 @@ honouring a deletion is not the same as silently rewriting history — but
 whether a retention limit satisfies 3.2 is a question for the ruling rather
 than for the publisher.
 
-**Neither is a blocker on anything built today.** Both are blockers on E8, and
-both are cheaper to answer now than to discover in the first rendered page.
+**Blog retention: the export withholds the URL, and published content needs
+one.**
+
+E1's `_handoff/` blog document carries *"a harvested article, url withheld: the
+census corpus carries a `delete_after` date and this file does not"*. That is
+the right call - carrying a retention date into a file that cannot enforce it
+would make the date decorative, and a retention date only some copies obey is
+not a retention date.
+
+But **published content is quote + attribution + link**, so a document with no
+URL can be extracted from, weighted, counted and gated, and then **cannot be
+rendered**. Every stage before the page works; the page is where it stops.
+
+That is not a defect in the export and not something E1 can fix on their side
+alone. It is a question about the retention design - whether a URL under a
+`delete_after` date may be published, and what the page shows when the date
+passes - and it has to be answered **before there is a publish path rather than
+after**, because a cell built from an unpublishable document looks exactly like
+a cell built from a publishable one until something tries to render it.
+
+Verified rather than assumed: neither exported thread contains a URL, and both
+resolve through `ThreadInput` and `_resolve_raw_span` with 11 spans and 0
+failures. The evidence path is fine. The publish path is not.
+
+**None of the three blocks anything built today.** All three block E8, and all
+three are cheaper to answer now than to discover in the first rendered page.
+That is the shape they share, and it is why they are listed together rather
+than filed under the platform each came from.
 
 ## Where this lane starts
 
