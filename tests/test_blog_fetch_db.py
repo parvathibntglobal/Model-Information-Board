@@ -6,11 +6,14 @@ Two things only a database can check:
      `content_hash`, which are both NOT NULL, without anything being invented
      along the way;
 
-  2. **the FR-10 collision is real.** A 304 and a feed that yielded nothing are
-     written as identical rows by the columns that exist today. That is asserted
-     here against Postgres rather than argued in a docstring, so the day the
-     `outcome` column lands, this file is where the proof of why it was needed
-     lives.
+  2. **the FR-10 collision is real, and `harvest_run.outcome` did not close it.**
+     A 304 and a feed that yielded nothing are written as identical rows. That
+     was true of the columns that existed before `outcome` landed in dab9d41,
+     and it is still true after, because the vocabulary that landed
+     (`ok | refused | error`) has no word for "unchanged" — see
+     `docs/proposals/harvest-run-outcome-vocabulary.md`. Asserted here against
+     Postgres rather than argued in a docstring, so the surviving gap has a
+     failing-when-fixed test instead of a comment.
 
 Requires a database. See docs/dev-database.md.
 """
@@ -19,6 +22,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import get_args
 
 import httpx
 import pytest
@@ -32,11 +36,12 @@ from tests.conftest import (
 # Above the imports it guards. See tests/conftest.py:require_feed_libraries.
 require_feed_libraries()
 
-from collect.adapters.blog.fetch import BlogFetcher, FeedRun  # noqa: E402
+from collect.adapters.blog.fetch import BlogFetcher, FeedRun, Outcome  # noqa: E402
 from collect.adapters.blog.robots import RobotsGate  # noqa: E402
 from collect.adapters.blog.validators import InMemoryValidatorStore  # noqa: E402
 from collect.http import build_client  # noqa: E402
 from collect.limiter import HostLimiter  # noqa: E402
+from collect.ops.ledger import ERROR, OK, REFUSED  # noqa: E402
 from collect.rawstore import RawStore  # noqa: E402
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "blog"
@@ -158,17 +163,68 @@ def insert_documents(connection, run: FeedRun) -> int:
     return written
 
 
+#: The adapter's fetch DISPOSITION mapped onto the schema's job VERDICT.
+#:
+#: Two vocabularies for two different concepts that share a column name, and the
+#: collision is not settled — `docs/proposals/harvest-run-outcome-vocabulary.md`.
+#: `collect/adapters/blog/fetch.py:82` is what the fetch DID
+#: (`fetched | not-modified | robots-blocked | error`); `harvest_run.outcome` is
+#: how the run CONCLUDED (`ok | refused | error`, `job_run`'s words, chosen
+#: deliberately in dab9d41). `error` is the only word in both, and it is the only
+#: one that means the same thing in both.
+#:
+#: This mapping is THIS TEST'S READING, and it lives here rather than in
+#: `collect/` because picking it is a `contract/` decision and rule "flag it,
+#: don't take it" applies:
+#:
+#:   fetched, not-modified  -> ok       the sweep ran and concluded normally. An
+#:                                     unchanged feed is a successful sweep.
+#:   robots-blocked         -> refused  we chose not to fetch, which is what
+#:                                      `refused` means at `ledger.py:161` for
+#:                                      the terms gate. robots is the same no.
+#:   error                  -> error
+#:
+#: **IT LOSES THE 304, AND THAT LOSS IS THE POINT OF THIS FILE.** `not-modified`
+#: and a `fetched` run that yielded nothing both become `ok, items_fetched = 0`,
+#: so the FR-10 collision survives the column that was proposed partly to close
+#: it. Asserted below rather than left implicit, because an unclosed gap that
+#: nobody re-checks reads as closed (rule 4).
+DISPOSITION_TO_VERDICT: dict[str, str] = {
+    "fetched": OK,
+    "not-modified": OK,
+    "robots-blocked": REFUSED,
+    "error": ERROR,
+}
+
+
 def insert_harvest_run(connection, run: FeedRun) -> dict[str, object]:
-    """Write the run with the columns that exist. Returns the fields it dropped."""
+    """Write the run. Returns the disposition the verdict could not carry.
+
+    `outcome` is no longer popped — the column exists. It is TRANSLATED, because
+    the adapter's value is not in the set `harvest_run_outcome_ck` accepts:
+    writing `'fetched'` straight through trades `harvest_run_finish_ck` for
+    `harvest_run_outcome_ck` and fixes nothing.
+
+    The return value keeps its shape and changes its meaning: it was "the field
+    with no column", it is now "the distinction the column cannot hold".
+    """
     fields = run.harvest_run_fields()
-    homeless = {"outcome": fields.pop("outcome")}
+    disposition = fields["outcome"]
+    if disposition not in DISPOSITION_TO_VERDICT:
+        raise AssertionError(
+            f"no verdict mapped for disposition {disposition!r}. A fifth value was "
+            "added to collect/adapters/blog/fetch.py:Outcome without deciding how "
+            "harvest_run.outcome should record it — see "
+            "docs/proposals/harvest-run-outcome-vocabulary.md"
+        )
+    fields["outcome"] = DISPOSITION_TO_VERDICT[disposition]
     columns = ", ".join(fields)
     placeholders = ", ".join(["%s"] * len(fields))
     connection.execute(
         f"INSERT INTO harvest_run ({columns}) VALUES ({placeholders})",  # noqa: S608
         tuple(fields.values()),
     )
-    return homeless
+    return {"disposition": disposition}
 
 
 # ── what the fetch path fills ────────────────────────────────────────────
@@ -280,10 +336,10 @@ def test_harvest_run_row_writes_with_the_columns_that_exist(conn, tmp_path):
 
     row = conn.execute(
         "SELECT source_id, query_key, items_fetched, items_kept, http_errors, exhausted, "
-        "truncated_by, pipeline_version FROM harvest_run"
+        "truncated_by, outcome, finished_at IS NOT NULL, pipeline_version FROM harvest_run"
     ).fetchone()
-    assert row == ("blogs", FEED_URL, 2, 2, 0, None, None, "collect-test")
-    assert homeless == {"outcome": "fetched"}
+    assert row == ("blogs", FEED_URL, 2, 2, 0, None, None, OK, True, "collect-test")
+    assert homeless == {"disposition": "fetched"}
 
 
 def test_a_304_and_a_dead_parser_are_the_same_row(conn, tmp_path):
@@ -317,23 +373,33 @@ def test_a_304_and_a_dead_parser_are_the_same_row(conn, tmp_path):
     conn.commit()
 
     rows = conn.execute(
-        "SELECT items_fetched, items_kept, http_errors, exhausted, truncated_by "
+        "SELECT items_fetched, items_kept, http_errors, exhausted, truncated_by, outcome "
         "FROM harvest_run ORDER BY query_key"
     ).fetchall()
     assert len(rows) == 2
     assert rows[0] == rows[1], (
-        "the two runs are indistinguishable in the schema as it stands — this is the "
-        "gap the proposed harvest_run.outcome column closes"
+        "the two runs are indistinguishable in the schema — and `outcome` is now IN "
+        "this SELECT, so the column landing did not close the gap. Both are "
+        f"{OK!r} with items_fetched = 0. If this assertion has started failing, the "
+        "vocabulary gained a word for 'unchanged' and "
+        "docs/proposals/harvest-run-outcome-vocabulary.md has been resolved — invert "
+        "this test and say so there."
     )
-    # And distinguishable the moment the column exists.
+    # The distinction exists upstream and is dropped at the boundary: the adapter
+    # knows which run was which, and nothing it writes can say so.
+    assert homeless_304 == {"disposition": "not-modified"}
+    assert homeless_broken == {"disposition": "fetched"}
     assert homeless_304 != homeless_broken
 
 
-def test_outcome_has_no_column_yet(conn):
-    """Executable form of the pending contract change.
+def test_outcome_landed_and_cannot_say_unchanged(conn):
+    """Executable form of the contract change that is STILL pending.
 
-    When `harvest_run.outcome` lands, this fails and points at the one line that
-    binds it. Better than a comment nobody greps for.
+    Replaces `test_outcome_has_no_column_yet`, which fired as designed when
+    dab9d41 added the column. Its instruction — "stop popping it and write it" —
+    was half right: popping had to stop, but writing the adapter's value through
+    would have violated `harvest_run_outcome_ck` instead. So the canary is
+    re-aimed at the part that did not land, rather than deleted.
     """
     columns = {
         row[0]
@@ -341,8 +407,46 @@ def test_outcome_has_no_column_yet(conn):
             "SELECT column_name FROM information_schema.columns WHERE table_name = 'harvest_run'"
         ).fetchall()
     }
-    assert "outcome" not in columns, (
-        "harvest_run.outcome exists now — stop popping it in insert_harvest_run and "
-        "write it, then delete this test"
+    assert "outcome" in columns, "harvest_run.outcome was removed — this file assumes it"
+
+    definition = conn.execute(
+        "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
+        "WHERE conname = 'harvest_run_outcome_ck'"
+    ).fetchone()[0]
+    for verdict in (OK, REFUSED, ERROR):
+        assert f"'{verdict}'" in definition, (
+            f"{verdict!r} is no longer accepted — collect/ops/ledger.py validates "
+            "against these three before the database sees them, so the two would "
+            "disagree about which verdicts exist"
+        )
+
+    # The gap. Read off the live constraint rather than a copy of it, so this
+    # cannot pass against a schema that has moved on.
+    assert "not-modified" not in definition, (
+        "harvest_run_outcome_ck accepts 'not-modified' now — the 304 is expressible, "
+        "so DISPOSITION_TO_VERDICT should stop folding it into 'ok' and "
+        "test_a_304_and_a_dead_parser_are_the_same_row should be inverted"
     )
-    assert "not_modified" not in columns
+    assert "not_modified" not in columns, (
+        "a dedicated column appeared — the proposal asked for a vocabulary value, not "
+        "a second boolean; check docs/proposals/harvest-run-outcome-vocabulary.md"
+    )
+
+
+def test_every_disposition_has_a_verdict():
+    """The mapping's domain is the adapter's closed set, exactly.
+
+    A fifth `Outcome` value added upstream fails here rather than at an INSERT,
+    and a stale entry left behind after one is removed fails here too.
+
+    **No `conn`, deliberately.** This is a statement about two Python vocabularies
+    and it needs no database, so it does not ask for one — it is the only test in
+    this file that still runs where Postgres is absent, and the mapping is the
+    thing most likely to be edited by someone who has not brought one up.
+    """
+    assert set(DISPOSITION_TO_VERDICT) == set(get_args(Outcome)), (
+        "DISPOSITION_TO_VERDICT and blog/fetch.py:Outcome have drifted apart"
+    )
+    assert set(DISPOSITION_TO_VERDICT.values()) <= {OK, REFUSED, ERROR}, (
+        "a verdict was mapped that harvest_run_outcome_ck would refuse"
+    )
