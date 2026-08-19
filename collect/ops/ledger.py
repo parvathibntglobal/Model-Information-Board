@@ -162,10 +162,28 @@ def last_run(conn, stage: str) -> tuple[datetime, str | None] | None:
 #     ran, and the platform returned nothing        items_fetched = 0
 #     ran, and everything was filtered out          items_fetched > 0, kept = 0
 #
-# The third is distinguishable and the first two are not. `truncated_by` cannot
-# carry it: its vocabulary is five caps and a refusal is not a cap. Leaving a
-# refused sweep OPEN would conflate it with a killed process, which is the one
-# thing the two phases exist to keep apart.
+# The third is distinguishable and the first two are not.
+#
+# DO NOT ADD A FIFTH `truncated_by` VALUE TO CLOSE THIS. It will look like the
+# gap this column exists for, and it is a different gap:
+#
+#     truncated_by says A SWEEP STOPPED EARLY. Every value names something that
+#     cut short a fetch that was happening - a budget we set, or a wall the
+#     platform put up. The column's own comment splits them on exactly that
+#     axis: "caps we chose" against "the platform stopping us".
+#
+#     A REFUSED SWEEP NEVER STARTED. Nothing was truncated, because nothing was
+#     fetched. Filing it here would make the column mean two things - "cut short"
+#     and "never begun" - and the coverage page renders it as the first.
+#
+# Nor may a refused sweep be left OPEN. `finished_at IS NULL` is how a killed
+# process is recognised, and that is the one distinction the two phases exist to
+# preserve.
+#
+# So until `harvest_run` gains a verdict column, A REFUSED RUN RECORDS ONLY THAT
+# IT WAS ATTEMPTED, and that is the honest shape rather than a gap: the row
+# exists, the counts are zero, and nothing claims to know why. The proposal is
+# docs/proposals/harvest-run-outcome.md.
 #
 # So FR-10's "attempted and refused" is recordable only as far as the row's
 # EXISTENCE, and `harvest_run_fields()` already carries an `outcome` key with
