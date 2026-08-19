@@ -134,7 +134,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from collect.rawstore import PayloadMissing, PayloadTombstoned, RawStore
+from collect.rawstore import (
+    PayloadCorrupt,
+    PayloadMissing,
+    PayloadTombstoned,
+    RawStore,
+)
 
 
 class ReadOutcome(StrEnum):
@@ -157,6 +162,16 @@ class ReadOutcome(StrEnum):
     #: store. Both need investigating.
     MISSING = "missing"
 
+    #: Something IS there and does not match what we recorded, so we cannot
+    #: trust what we stored. Distinct from MISSING in urgency and in repair: a
+    #: batch can reasonably skip an absent payload and carry on, and carrying on
+    #: past a corrupt one writes claims sourced from a store just shown to be
+    #: unreliable.
+    #:
+    #: Value matches `judge.extract.resolver.Outcome.CORRUPT` exactly, which is
+    #: the whole of the contract between the two enums. See the drift tests.
+    CORRUPT = "corrupt"
+
 
 @dataclass(frozen=True)
 class StoreText:
@@ -169,6 +184,22 @@ class StoreText:
     ref: str
     outcome: ReadOutcome
     text: str | None = None
+
+    def __post_init__(self) -> None:
+        """Coerce the outcome BY VALUE, so identity is safe everywhere below.
+
+        `ReadOutcome.MISSING == Outcome.MISSING` is True and `is` is False, so a
+        member that crossed the boundary compares equal and fails every identity
+        check. Engineer 2 found it, and both directions of the failure lean the
+        wrong way silently: a FOUND payload reads as not-found, and a CORRUPT one
+        reads as trustworthy.
+
+        `ReadOutcome(...)` resolves by VALUE, so it accepts our own member, hers,
+        or the bare string, and returns ours. Every `is` comparison in this file
+        is downstream of this line, which is what makes them safe rather than
+        lucky. Mirrors her `__post_init__` on `ResolvedText`.
+        """
+        object.__setattr__(self, "outcome", ReadOutcome(self.outcome))
 
     @property
     def found(self) -> bool:
@@ -220,6 +251,18 @@ class RawStoreReader:
         """
         try:
             text = self._store.get_text(ref)
+        except UnicodeDecodeError:
+            # PRESENT AND WRONG, which is the definition of CORRUPT. This used to
+            # escape as an exception because three outcomes had nowhere to put it
+            # — the argument for raising was never good, it was the best answer
+            # available while the vocabulary was short. It is retired now.
+            return StoreText(ref=ref, outcome=ReadOutcome.CORRUPT)
+        except PayloadCorrupt:
+            # Unreachable from a read today: the store raises this from `put()`
+            # on a size mismatch, and nothing hashes on read. Mapped anyway, so
+            # the day a verify sweep exists this needs no change — and so the
+            # mapping is complete rather than complete-for-now.
+            return StoreText(ref=ref, outcome=ReadOutcome.CORRUPT)
         except PayloadTombstoned:
             # Deliberate removal. Not a failure, and reporting it as one would
             # send somebody looking for a payload we deleted on purpose.
