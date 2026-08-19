@@ -190,6 +190,18 @@ because every test shared an assumption with the code under test.
          records them rather than confirming them, and the check needs a
          database to run.
 
+    naming
+         **A comparison helper named for its return value was read as a
+         statement about its scope**, by several readers including this author,
+         across four turns. `columns()` returns columns and compares columns;
+         the inference that it therefore covered tables was never in the code,
+         and the name is what made the inference feel checked.
+
+         Distinct from every shape above, which are properties of what a check
+         DOES. This one is a property of what a check is CALLED, and it survives
+         because the name is accurate — there is nothing to correct, only
+         something missing beside it. The habit is 9 below.
+
 Ten shapes of the same mistake: asserting the text of a claim instead of its
 truth; never exercising an option; never leaving the input shape the author had
 in mind; **never checking that the check had anything to check**; comparing a
@@ -276,6 +288,35 @@ Three habits that would have caught all three, cheapest first:
      being compared HAS that the list omits — and write the omission down beside
      the guard, because the next person to extend it will extend it by incident
      too.
+
+  9. **A helper named for what it RETURNS is read as a statement about what it
+     COVERS.** Habit 7 asks where a guard runs, habit 8 asks what it looks at,
+     and this asks what its name promises — because the name is what every later
+     reader checks instead of the body.
+
+     `columns()` in `tests/test_migrations.py` is named for its return value, and
+     it returns exactly what it says: column tuples. Nobody misread it. What
+     happened is subtler and worse — readers, including this author across four
+     separate turns, treated "the comparison compares columns" as an answer to
+     "does the comparison cover tables", and it is not an answer, it is a
+     different question that the name silently invites you to stop asking.
+
+     The tell is that the file's coverage grew twice by incident and never by
+     audit: `is_generated` after #54, `tables` after somebody asked about
+     `job_run`. Both times a person asked a question the module could have
+     answered about itself and did not.
+
+     **The fix is not a rename.** `columns()` is well named. The fix is that a
+     module of comparison helpers states its own scope — what it compares AND
+     what it does not, with the reason each omission is a decision rather than an
+     oversight. `test_migrations.py` now opens with that list. A reader who wants
+     to know whether sequences are compared should find the answer in the file,
+     not in the failure that eventually reveals it.
+
+     Generalised, because this is not only about schemas: **a set of helpers named
+     for their returns describes a shape, never a boundary.** If the boundary
+     matters — and for anything called a guard it always does — something has to
+     say where it is, in prose, next to the code.
 
 Owned by neither lane, like `test_queries_contract.py` — it describes how both
 lanes write tests, and it breaks for both.
