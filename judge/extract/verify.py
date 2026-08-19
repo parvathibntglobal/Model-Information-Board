@@ -34,6 +34,12 @@ from judge.extract.schema import ExtractedClaim
 class VerificationFailure(StrEnum):
     """Why a claim was discarded. Every one of these is logged, never swallowed."""
 
+    #: The quote appears nowhere in the text the extractor was given. This is
+    #: what a fabricated quote produces, and it is the failure rule 1 exists
+    #: for - distinct from TEXT_MISMATCH, which meant a position disagreed.
+    #: Since code now LOCATES the quote rather than trusting a supplied offset,
+    #: a mismatch can only mean absence.
+    NOT_FOUND = "not_found"
     OFFSET_OUT_OF_RANGE = "offset_out_of_range"
     TEXT_MISMATCH = "text_mismatch"
     UNMAPPED_SPAN = "unmapped_span"
@@ -81,9 +87,7 @@ class OffsetMapping:
         return self.flat_start <= start and end <= self.flat_end
 
 
-def _resolve_raw_span(
-    segments: list[OffsetMapping], start: int, end: int
-) -> tuple[int, int]:
+def _resolve_raw_span(segments: list[OffsetMapping], start: int, end: int) -> tuple[int, int]:
     """Translate a flattened span into source coordinates, piecewise.
 
     `segments` must be the overlapping segments, in flattened order, all from
@@ -93,13 +97,9 @@ def _resolve_raw_span(
     first, last = segments[0], segments[-1]
 
     raw_start = (
-        first.raw_start + (start - first.flat_start)
-        if first.is_identity
-        else first.raw_start
+        first.raw_start + (start - first.flat_start) if first.is_identity else first.raw_start
     )
-    raw_end = (
-        last.raw_start + (end - last.flat_start) if last.is_identity else last.raw_end
-    )
+    raw_end = last.raw_start + (end - last.flat_start) if last.is_identity else last.raw_end
     return raw_start, raw_end
 
 
@@ -126,6 +126,25 @@ class Rejection:
     detail: str
 
 
+def _locate(quote: str, flattened_text: str, *, hint: int) -> tuple[int, int] | None:
+    """Every occurrence of the quote, and the one nearest the hint.
+
+    Returns None when the quote is absent, which is the case rule 1 exists to
+    catch and the one a fabricated quote produces.
+    """
+    if not quote:
+        return None
+    positions: list[int] = []
+    at = flattened_text.find(quote)
+    while at != -1:
+        positions.append(at)
+        at = flattened_text.find(quote, at + 1)
+    if not positions:
+        return None
+    best = min(positions, key=lambda p: abs(p - hint))
+    return best, best + len(quote)
+
+
 def verify(
     claim: ExtractedClaim,
     *,
@@ -149,7 +168,29 @@ def verify(
             "extractor flagged the quote as sarcastic; claim discarded rather than inverted",
         )
 
-    start, end = claim.quote_offset
+    # ── step 0: LOCATE. Code finds the quote; the model only named it. ───
+    #
+    # The offset the model supplies is a HINT. The first live run had five of
+    # six claims off by one to three characters, because a language model
+    # cannot count characters - and the quotes themselves were correct every
+    # time. Trusting its arithmetic threw away good evidence.
+    #
+    # Searching for the quote is strictly stronger than checking a position it
+    # gave us: the span is now something code computed, and step 1 still
+    # confirms it. The model cannot supply a position anything trusts.
+    #
+    # The hint earns its place when a quote appears more than once: the
+    # occurrence NEAREST the hint is taken, so a repeated sentence is
+    # attributed to the comment the extractor was actually reading rather than
+    # to the first one in the thread.
+    located = _locate(claim.quote, flattened_text, hint=claim.quote_offset[0])
+    if located is None:
+        return Rejection(
+            claim,
+            VerificationFailure.NOT_FOUND,
+            f"quote does not appear in the flattened text at all: {claim.quote[:60]!r}",
+        )
+    start, end = located
 
     # ── step 1: INTEGRITY ────────────────────────────────────────────────
     if end > len(flattened_text):

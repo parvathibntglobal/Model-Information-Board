@@ -6,8 +6,6 @@ be displaying text the engineer never wrote.
 
 from __future__ import annotations
 
-import pytest
-
 from judge.extract.schema import ExtractedClaim, ModelRef
 from judge.extract.verify import (
     OffsetMapping,
@@ -84,9 +82,7 @@ def make_claim(quote: str, offset: tuple[int, int], **kw) -> ExtractedClaim:
 
 
 def run(claim: ExtractedClaim):
-    return verify(
-        claim, flattened_text=FLAT, offset_map=OFFSET_MAP, raw_text_of=RAW
-    )
+    return verify(claim, flattened_text=FLAT, offset_map=OFFSET_MAP, raw_text_of=RAW)
 
 
 class TestIntegrity:
@@ -103,17 +99,32 @@ class TestIntegrity:
         start = FLAT.index("Fine under ~50k.")
         result = run(make_claim(quote, (start, start + len(quote))))
         assert isinstance(result, Rejection)
-        assert result.reason is VerificationFailure.TEXT_MISMATCH
+        assert result.reason is VerificationFailure.NOT_FOUND  # see _locate
 
     def test_offset_past_end_is_rejected(self):
         result = run(make_claim("x" * 10, (len(FLAT) - 2, len(FLAT) + 8)))
         assert isinstance(result, Rejection)
-        assert result.reason is VerificationFailure.OFFSET_OUT_OF_RANGE
+        assert result.reason is VerificationFailure.NOT_FOUND  # the offset is a hint now
 
-    def test_schema_rejects_offset_length_mismatch(self):
-        """Caught before verification even runs."""
-        with pytest.raises(ValueError, match="spans"):
-            make_claim("Fine under", (0, 99))
+    def test_the_schema_accepts_a_hint_that_does_not_match_the_length(self):
+        """This asserted the schema REJECTED a length mismatch, and it did.
+
+        The first live run failed on five of six claims that way, off by one to
+        three characters each, because a language model cannot count characters.
+        The quotes were correct every time; only the arithmetic was wrong, and
+        rejecting the batch threw away good evidence over it.
+
+        The offset is a hint now and `_locate` derives the true span, so a
+        mismatched length is expected input rather than a violation.
+        """
+        quote = "silently missing things"
+        claim = make_claim(quote, (0, len(quote) + 3))
+
+        assert claim.quote_offset == (0, len(quote) + 3)
+
+        # And it still verifies, because _locate finds the real span.
+        result = verify(claim, flattened_text=FLAT, offset_map=OFFSET_MAP, raw_text_of=RAW)
+        assert isinstance(result, VerifiedQuote), result
 
 
 class TestAttribution:

@@ -26,7 +26,6 @@ schema violation, and it is bounded at one.
 
 from __future__ import annotations
 
-import json
 import os
 from dataclasses import dataclass, field
 from typing import Protocol
@@ -68,9 +67,7 @@ class Completion:
 class ExtractionClient(Protocol):
     """Forced tool call against one schema. No free-text channel exists."""
 
-    def complete(
-        self, *, system: str, user: str, tool_schema: dict[str, object]
-    ) -> Completion: ...
+    def complete(self, *, system: str, user: str, tool_schema: dict[str, object]) -> Completion: ...
 
 
 @dataclass
@@ -85,9 +82,7 @@ class FakeClient:
     responses: list[str] = field(default_factory=list)
     calls: list[dict[str, str]] = field(default_factory=list)
 
-    def complete(
-        self, *, system: str, user: str, tool_schema: dict[str, object]
-    ) -> Completion:
+    def complete(self, *, system: str, user: str, tool_schema: dict[str, object]) -> Completion:
         self.calls.append({"system": system, "user": user})
         if not self.responses:
             raise AssertionError(
@@ -125,9 +120,7 @@ class OpenRouterClient:
             api_key=key,
         )
 
-    def complete(
-        self, *, system: str, user: str, tool_schema: dict[str, object]
-    ) -> Completion:
+    def complete(self, *, system: str, user: str, tool_schema: dict[str, object]) -> Completion:
         import httpx
 
         response = httpx.post(
@@ -171,10 +164,46 @@ class OpenRouterClient:
 
 
 def tool_schema_for(model_cls: type) -> dict[str, object]:
-    """A pydantic model's JSON schema, flattened for a tool parameter."""
+    """A pydantic model's JSON schema with every `$ref` INLINED.
+
+    This renamed `$defs` to `definitions` and rewrote the refs to match, which
+    is valid JSON Schema and internally consistent - the target resolved.
+
+    IT STILL FAILED ON THE FIRST LIVE RUN. The model returned
+    `claims: [null, null, null, null]`: four claims it had found and could not
+    construct, because `claims.items` was `{"$ref": ...}` and it does not
+    follow refs. A correct schema the reader cannot dereference is opaque, and
+    the failure looks like a schema violation rather than a lookup it could not
+    perform.
+
+    So the definitions are inlined rather than referenced. The schema gets
+    larger and every consumer can read it without resolving anything, which is
+    the only property that matters at a boundary where the reader is a language
+    model.
+    """
     schema = model_cls.model_json_schema()
-    definitions = schema.pop("$defs", None)
-    if definitions:
-        schema["definitions"] = definitions
-        return json.loads(json.dumps(schema).replace("#/$defs/", "#/definitions/"))
-    return schema
+    definitions = schema.pop("$defs", {})
+
+    def inline(node: object, expansions: int = 0) -> object:
+        # COUNTS REF EXPANSIONS, NOT STRUCTURAL NESTING. The first version
+        # incremented on every nested dict and fired immediately - an ordinary
+        # schema is more than eight levels deep without recursing at all. The
+        # thing being guarded against is a model that refers to itself, and the
+        # only step that can loop is following a `$ref`.
+        if expansions > 8:
+            raise ValueError(
+                "more than 8 nested $ref expansions - a self-referential model "
+                "cannot be flattened for a tool call."
+            )
+        if isinstance(node, dict):
+            ref = node.get("$ref")
+            if isinstance(ref, str) and ref.startswith("#/$defs/"):
+                target = definitions[ref.split("/")[-1]]
+                merged = {k: v for k, v in node.items() if k != "$ref"}
+                return {**inline(target, expansions + 1), **merged}
+            return {k: inline(v, expansions) for k, v in node.items()}
+        if isinstance(node, list):
+            return [inline(v, expansions) for v in node]
+        return node
+
+    return inline(schema)
