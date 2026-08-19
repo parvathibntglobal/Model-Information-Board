@@ -142,20 +142,37 @@ These are the rules a helpful refactor will otherwise quietly violate.
 - Seeded and hand-curated rows carry `provenance`. `collect/registry/assertions.py`
   provides `assert_no_fixtures()` and `assert_contract_backed()` to refuse them.
 
-  **Neither has a caller outside tests. Nothing currently stops a seeded row
-  reaching a non-development environment.** Wiring is pending a startup path -
-  issue #27. `judge/` opens no database connection at all, `collect/cli.py` runs
-  per command rather than at startup, and the nightly chain that is the natural
-  home does not exist yet.
+  **Both are wired, since 2026-08-18.** `collect/ops/preflight.py` calls them
+  and `collect/cli.py` runs `preflight()` before a command touches a database.
+  Issue #27 is closed. A check whose input is absent is **skipped and named**
+  rather than counted as a pass, so "no connection supplied" cannot read as
+  "the fixture check passed".
 
-  The third function in that module, `assert_terms_reviewed()`, **is** wired -
-  `collect/adapters/blog/fetch.py` and `scripts/harvest_github.py` - so the
-  module is not uniformly unwired and these two are not an oversight of style.
+  E1 found the real defect while wiring it, and it was not a broken check: two
+  commands had never acquired one. `registry load-seed` - the command that
+  *creates* the fixture - opened a transaction without gating, so
+  `assert_no_fixtures` could only ever report seeded rows some other path had
+  already written. `recompute-window`, the sole writer of `in_window`, was
+  gated inside the nightly chain and unguarded when run by hand: guarded by the
+  schedule rather than by the code. The guard is now an **AST test over
+  `cli.py`** - any command opening a `transaction()` without `_gate` fails, and
+  read-only commands must be listed explicitly so an unclassified one fails
+  rather than running unguarded. A behavioural test over existing commands
+  cannot see a path that never had a check.
 
-  This entry said "Production asserts on startup that none are present" for
-  weeks. The first correction said the check was "called from the loaders and
-  from tests", which was also wrong: the three apparent call sites in `collect/`
-  are a docstring and two comments. Counted, the second time.
+  `assert_terms_reviewed()` was already wired -
+  `collect/adapters/blog/fetch.py` and `scripts/harvest_github.py`.
+
+  **This entry has now been wrong three times and each correction was smaller
+  than the last.** It said "Production asserts on startup that none are
+  present" for weeks; the first correction said the check was "called from the
+  loaders and from tests", which was also wrong, because the three apparent
+  call sites in `collect/` were a docstring and two comments; the second
+  correction counted them and said neither had a caller, which was true when
+  written and stopped being true the day #27 closed. The lesson is not to write
+  more carefully - all three were written carefully - it is that a claim about
+  wiring goes stale silently, so this entry is the one to re-check rather than
+  re-read.
 - Estimates are labelled as estimates, **and an estimate carries its
   population** (rule 7). Triage survival is ~10-15% *of documents retrieved
   from the sources we sweep* - never "of Reddit", which we do not sample.
