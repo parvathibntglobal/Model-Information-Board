@@ -353,16 +353,75 @@ def _conn():
 # decodes before routing, so the slash is back by the time the path is matched.
 @app.get("/models/{model_version_id:path}")
 def model_page(model_version_id: str) -> dict:
-    """FR-23 to FR-26. The full capability list, not the evidenced part."""
+    """FR-23 to FR-26. The full capability list, not the evidenced part.
+
+    ⚠ CROSS-LANE EDIT. `judge/` is Engineer 2's and `CLAUDE.md` says to propose
+    rather than edit. This was proposed in
+    `docs/proposals/model-page-id-resolution.md` and then directed twice, so it
+    is made HERE and flagged LOUDLY rather than quietly: revert it freely, the
+    reasoning is in the proposal, and nothing in `collect/` depends on it.
+
+    THE ID IS RESOLVED AND VALIDATED, WHICH IT WAS NOT.
+
+    `cell.model_version_id` is the internal `mv_…` id, so a canonical id matched
+    no row — and nothing checked, so it did not 404. It rendered. Called four
+    ways against a live registry, every one returned 200 with an identical page:
+
+        /models/mv_568e0eb3a95b5113          the real key
+        /models/anthropic/claude-opus-5      what every caller actually holds
+        /models/total-nonsense-not-a-model   not a model
+        /models/                             the empty string
+
+    All four: *"0 of 12 tracked capabilities have any reports at all."* **A typo
+    and a real model were the same page.**
+
+    That is FR-24 inverted. The rule that makes an empty page correct for a real
+    model with no evidence makes it a fabrication for one that does not exist,
+    and it is the one place this API breaks rule 4 — the rule the board is built
+    on. `/capabilities/{capability_key}` already gets this right thirty lines
+    down, and its refusal message is the argument for this one.
+
+    BOTH SHAPES RESOLVE. The `mv_` id is a stable internal key existing links
+    use; the canonical id is what the registry publishes and what `modelPath()`
+    builds. Accepting only one of them would move the defect rather than close
+    it.
+    """
     from judge.pages.model import ModelPageReader
 
     with _conn() as conn:
-        page = ModelPageReader(conn).build(model_version_id)
+        # One lookup, against the table `judge/pages/capability.py` already
+        # reads. No `collect/` import: `stable_id` is not needed because the
+        # database holds both columns.
+        found = conn.execute(
+            "SELECT id, canonical_id, display_name FROM model_version "
+            "WHERE id = %s OR canonical_id = %s",
+            (model_version_id, model_version_id),
+        ).fetchone()
+        if found is None:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"{model_version_id!r} is not a model in the registry. "
+                    f"Refused rather than rendered empty: an unknown id would "
+                    f"read 'nobody has reported on this model', which is "
+                    f"indistinguishable from a model in the registry that "
+                    f"nobody has discussed. Accepts the canonical id "
+                    f"(anthropic/claude-opus-5) or the internal id (mv_…)."
+                ),
+            )
+        mv_id, canonical_id, display_name = found
+
+        page = ModelPageReader(conn).build(mv_id, display_name=display_name or "")
         quote_ids = tuple(q for c in page.capabilities for s in c.slices for q in s.quote_ids)
         quotes = ModelPageReader(conn).quotes_for(quote_ids)
 
     return {
+        # BOTH, because the caller asked by one and the cells are keyed by the
+        # other, and a client that cannot tell which it received cannot build a
+        # link back.
         "model_version_id": page.model_version_id,
+        "canonical_id": canonical_id,
+        "display_name": display_name,
         "summary": page.summary,
         "capabilities": [
             {
