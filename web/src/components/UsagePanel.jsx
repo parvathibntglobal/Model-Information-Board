@@ -270,46 +270,37 @@ function Chart({ title, points, stages, cap }) {
 
 
 /**
- * RapidAPI — requests, not dollars, and not live.
+ * RapidAPI — reported, not analysed.
  *
- * The quota arrives in `x-ratelimit-requests-*` response headers read in
- * `collect/adapters/reddit.py`, which is the other lane, and nothing persists
- * them. So there is no row for this page to read.
+ * Requests rather than dollars, so it cannot share an axis with the LLM cap.
+ * And Engineer 1 owns the quota, its window and any budget on it, so this tab
+ * states the status and no figure of its own.
  *
- * The last dated reading is deliberately NOT copied here. It lives in
- * `contract/sources.yaml` beside the date it was read on; on a live dashboard
- * the same number would read as current, which is the one thing this product
- * exists not to do. An empty tab that says why beats a stale number that
- * looks fine.
+ * An earlier version restated a costing conclusion from `contract/sources.yaml`
+ * and suggested how the headers should be persisted. Both were out of lane. A
+ * number we recompute here is a second source of truth for a quantity we do not
+ * own, and a dated reading on a live dashboard reads as current — so the
+ * readings stay in `contract/sources.yaml` beside the date they were read on.
  */
 function RapidApiTab({ rapid }) {
   return (
     <div className="stack stack-3">
       <Notice icon={<IconAlert />}>
-        <strong style={{ color: 'var(--text)' }}>Not instrumented here.</strong>{' '}
+        <strong style={{ color: 'var(--text)' }}>Not tracked here.</strong>{' '}
         {rapid.headline}
       </Notice>
 
       <div className="stack stack-1">
-        <span className="label">Billing window</span>
-        <p className="muted" style={{ margin: 0 }}>{rapid.window}</p>
-      </div>
-
-      {/* THE OPEN QUESTIONS ARE THE CONTENT. Both change what a usage bar would
-          mean, so they are the tab rather than a footnote under one. */}
-      <div className="stack stack-2">
-        <span className="label">Open questions — both change what a usage bar would mean</span>
-        {(rapid.open_questions || []).map((q) => (
-          <div key={q.question} className="stack stack-1">
-            <strong style={{ color: 'var(--text)' }}>{q.question}</strong>
-            <span className="muted">{q.detail}</span>
-          </div>
-        ))}
+        <span className="label">Who sets the limits</span>
+        <p className="muted" style={{ margin: 0 }}>{rapid.limits_status}</p>
       </div>
 
       <div className="stack stack-1">
-        <span className="label">What would make this live</span>
-        <p className="muted" style={{ margin: 0 }}>{rapid.what_would_make_it_live}</p>
+        <span className="label">Billed in</span>
+        <p className="muted" style={{ margin: 0 }}>
+          {rapid.unit} — not dollars, which is why this is a separate tab rather
+          than another line on the chart.
+        </p>
       </div>
 
       <span className="label" style={{ opacity: 0.7 }}>

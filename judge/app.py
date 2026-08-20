@@ -678,70 +678,44 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
 
 
 def _rapidapi_quota() -> dict:
-    """The OTHER paid API, and it is not measured in dollars.
+    """The other paid API. Reported, not analysed - the limits are E1's call.
 
-    RapidAPI serves the Reddit path and is billed as a REQUEST QUOTA, not spend.
-    Putting it on the same axis as the LLM cap would be rule 7 with a unit
-    change: one is dollars per day against a limit we set, the other is requests
-    per 23.9 days against a limit somebody sells us. Same page, separate tab,
-    separate units.
+    RapidAPI serves the Reddit path and is billed as a REQUEST QUOTA, not spend,
+    so it cannot share an axis with the LLM cap: one is dollars per day against a
+    limit we set, the other is requests against a limit somebody sells us. Same
+    page, separate tab.
 
-    NOT LIVE, AND THE REASON IS THE LANE BOUNDARY. RapidAPI's quota arrives in
-    response headers, captured at `collect/adapters/reddit.py:_QUOTA_HEADERS` -
-    which is `collect/`, and `judge/` never imports it. Nothing persists those
-    headers, so there is no row for this lane to read. Reporting a figure here
-    would mean copying a dated observation out of `contract/sources.yaml` onto a
-    live dashboard, where it would read as current. That is the failure this
-    whole board exists to avoid, so the numbers stay where their read date is
-    and this endpoint reports the instrumentation gap instead.
+    **THIS LANE SETS NO NUMBER AND DERIVES NONE.** Engineer 1 owns the RapidAPI
+    quota, its window and whatever budget is placed on it - the calls are made in
+    `collect/adapters/reddit.py` and the readings are recorded in
+    `contract/sources.yaml` with their read dates. An earlier version of this
+    function restated a costing conclusion from that file and proposed how the
+    headers should be persisted. Both were out of lane: a figure we recompute is a
+    second source of truth for a quantity we do not own, and it is the copy that
+    goes stale without anyone noticing.
 
-    THE TWO OPEN QUESTIONS ARE RETURNED, not hidden, because both change what a
-    usage bar would MEAN:
-
-      * The billed tier is unverified. The gateway header says 1,000,000 and the
-        plan page says 500,000. If it is a 500,000 tier we are cut off there with
-        the header reading ~500,000 remaining and looking healthy. No request can
-        settle it - the answer would come from the party whose figure is in doubt.
-      * The per-minute allowance has never been read. A 429 arrived at the 32nd
-        rapid call and 25/min is a WORKING FIGURE, not a limit anyone published.
+    So this returns the STATUS only. Nothing here is live, because the quota
+    arrives in response headers read in `collect/` and nothing persists them, so
+    `judge/` has no row to read. The reason that matters is the same reason we
+    show no numbers: a dated reading placed on a live dashboard reads as current.
     """
     return {
         "unit": "requests",
         "instrumented": False,
+        "owner": "Engineer 1",
         "headline": (
-            "Not instrumented. RapidAPI quota arrives in response headers read in "
-            "collect/, and nothing persists them, so this lane has nothing to "
-            "read. The last dated observation lives in contract/sources.yaml with "
-            "its read date - deliberately not copied here, where it would read as "
-            "live."
+            "Not tracked here. RapidAPI is billed as a request quota rather than "
+            "spend, the calls are made in the other lane, and nothing persists the "
+            "quota headers - so this lane has nothing live to read."
         ),
-        "window": "23.9 days, not a month - anything costed as a monthly share is a third too low",
-        "open_questions": [
-            {
-                "question": "Which tier are we actually billed on?",
-                "detail": (
-                    "The gateway header reports 1,000,000 and the plan page says "
-                    "500,000. On a 500,000 tier we are cut off at 500,000 while the "
-                    "header still reads ~500,000 remaining and looks healthy. Closes "
-                    "on somebody opening the RapidAPI subscription page - a browser, "
-                    "not a call."
-                ),
-            },
-            {
-                "question": "What is the per-minute allowance?",
-                "detail": (
-                    "Unknown. No header states one. A 429 arrived at the 32nd rapid "
-                    "call, so 25/min is a working figure we chose, not a limit "
-                    "RapidAPI published."
-                ),
-            },
-        ],
-        "what_would_make_it_live": (
-            "collect/ persisting the three x-ratelimit-requests-* headers it already "
-            "captures, with the timestamp of the read. One row per harvest run is "
-            "enough for a usage line; per call is enough for a rate line."
+        "limits_status": (
+            "Engineer 1 decides the quota, the window and any budget on it. This "
+            "page reports that status and sets no figure of its own."
         ),
-        "source_of_record": "contract/sources.yaml - the reddit-via-rapidapi entry",
+        "source_of_record": (
+            "contract/sources.yaml, the reddit-via-rapidapi entry - readings live "
+            "there beside the date they were read on, which is where they stay"
+        ),
     }
 
 

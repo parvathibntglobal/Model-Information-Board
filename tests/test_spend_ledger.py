@@ -235,12 +235,12 @@ class TestTheEndpoint:
         assert body["ledger"]["unwired_stages"] == [spend_ledger.STAGE_ASK]
 
 
-class TestTheOtherPaidApiIsNotMeasuredInDollars:
-    """RapidAPI bills requests per 23.9 days; the LLM bills dollars per day.
+class TestTheOtherPaidApiIsReportedNotAnalysed:
+    """RapidAPI is billed in requests, and Engineer 1 owns its limits.
 
-    Same page, separate tab, separate units. The assertions here are mostly
-    about what the endpoint must NOT do - putting a dated observation on a live
-    dashboard is the failure, not the absence of a number.
+    These assertions are mostly about what this lane must NOT do. Restating a
+    costing conclusion, or deriving a window, creates a second source of truth
+    for a quantity we do not own - and it is the copy that goes stale silently.
     """
 
     def _rapid(self):
@@ -251,36 +251,31 @@ class TestTheOtherPaidApiIsNotMeasuredInDollars:
         return TestClient(app).get("/admin/usage").json()["rapidapi"]
 
     def test_it_reports_requests_rather_than_dollars(self, ledger):
+        """Different unit, hence a separate tab rather than another chart line."""
         assert self._rapid()["unit"] == "requests"
 
     def test_it_says_it_is_not_instrumented_rather_than_showing_zero(self, ledger):
-        """Zero requests used would be a lie; not-instrumented is the fact."""
+        """Zero requests used would be a lie; not-tracked is the fact."""
         rapid = self._rapid()
         assert rapid["instrumented"] is False
-        assert "Not instrumented" in rapid["headline"]
+        assert "Not tracked here" in rapid["headline"]
 
-    def test_no_dated_observation_is_copied_onto_the_live_view(self, ledger):
-        """The quota reading lives in `contract/sources.yaml` beside its read
-        date. The same figure here would read as current, which is precisely the
-        confusion this product exists to prevent."""
+    def test_the_limits_are_attributed_to_engineer_1(self, ledger):
+        rapid = self._rapid()
+        assert rapid["owner"] == "Engineer 1"
+        assert "decides" in rapid["limits_status"]
+
+    def test_no_figure_or_window_is_asserted_here(self, ledger):
+        """THE POINT OF THIS CLASS.
+
+        No dated reading, no derived window, no budget. `contract/sources.yaml`
+        holds those beside their read dates; a copy on a live dashboard reads as
+        current, and a recomputed one competes with the file that owns it.
+        """
         body = json.dumps(self._rapid())
-        for stale in ("998660", "1000000", "500000"):
-            assert stale not in body, f"{stale} is a dated reading and must not appear live"
+        for figure in ("998660", "1000000", "500000", "23.9", "25/min", "32nd"):
+            assert figure not in body, f"{figure} is not this lane's to state"
 
-    def test_the_window_is_not_described_as_a_month(self, ledger):
-        """23.9 days. Costing it as a monthly share is a third too low."""
-        window = self._rapid()["window"]
-        assert "23.9" in window
-        assert "not a month" in window
-
-    def test_both_open_questions_travel_with_it(self, ledger):
-        """Each changes what a usage bar would mean, so neither is a footnote."""
-        questions = " ".join(q["question"] + q["detail"] for q in self._rapid()["open_questions"])
-        assert "tier" in questions
-        assert "per-minute" in questions
-        # The tier question's whole point: a healthy-looking bar may be a cliff.
-        assert "looks healthy" in questions
-
-    def test_it_names_what_would_make_it_live(self, ledger):
-        """A gap with no repair attached is a complaint."""
-        assert "x-ratelimit-requests-" in self._rapid()["what_would_make_it_live"]
+    def test_it_names_where_the_readings_live(self, ledger):
+        """A status with no pointer is a dead end."""
+        assert "contract/sources.yaml" in self._rapid()["source_of_record"]
