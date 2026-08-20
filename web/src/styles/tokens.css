@@ -1,0 +1,63 @@
+/* ------------------------------------------------------------------
+   Design tokens — Unified Architecture system
+   Single source of truth. Nothing below this file hard-codes a colour.
+------------------------------------------------------------------- */
+:root{
+  /* surface + ink */
+  --bg:            #0C0C0E;
+  --bg-elev:       #0F0F12;
+  --surface:       #18181B;
+  --surface-2:     #1D1D21;
+  --surface-3:     #232327;
+  --border:        #27272A;
+  --border-soft:   #1F1F23;
+  --border-strong: #34343A;
+
+  --text:          #FFFFFF;
+  --text-2:        #A1A1AA;
+  --text-3:        #71717A;
+  --accent:        #FFFFFF;
+
+  /* semantic — state, kept deliberately separate from the accent */
+  --pass:          #6EE7A8;
+  --pass-dim:      #16352A;
+  --warn:          #E3C46A;
+  --warn-dim:      #332D14;
+  --fail:          #F08A6E;
+  --fail-dim:      #37201A;
+  --info:          #8AB4E8;
+  --info-dim:      #16232F;
+
+  /* type */
+  --font-sans: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --fs-display-lg: clamp(2.6rem, 6.4vw, 4rem);
+  --fs-display:    clamp(2rem, 4vw, 2.75rem);
+  --fs-h2:         1.5rem;
+  --fs-h3:         1.0625rem;
+  --fs-body:       1rem;
+  --fs-sm:         0.875rem;
+  --fs-xs:         0.8125rem;
+  --fs-label:      0.75rem;
+
+  /* space — 8px base */
+  --s1: 8px;  --s2: 16px; --s3: 24px; --s4: 32px;
+  --s5: 40px; --s6: 56px; --s7: 80px; --s8: 120px;
+  --gap: 16px;
+  --card-pad: 24px;
+  --section-pad: 80px;
+
+  /* shape */
+  --r-card: 11px;
+  --r-control: 11px;
+  --r-sm: 7px;
+  --r-sharp: 2px;      /* Aerith-style technical elements — bars, stage rows */
+  --r-pill: 9999px;
+
+  --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px -12px rgba(0,0,0,.6);
+  --shadow-lift: 0 2px 4px rgba(0,0,0,.4), 0 20px 44px -16px rgba(0,0,0,.75);
+
+  --maxw: 1240px;
+  --ease: cubic-bezier(.22,.61,.36,1);
+}
