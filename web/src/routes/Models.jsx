@@ -1,23 +1,41 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listCapabilities, capabilityPage, capLabel, BoardUnreadable } from '../api'
+import { listModels, listCapabilities, capabilityPage, capLabel, fmtPrice, fmtTokens, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 
 /**
- * The registry, and what evidence exists per model.
+ * The registry: what each provider advertises, and what engineers have found.
  *
- * There is no `GET /models` endpoint — only `GET /models/{id}` — so the roster
- * is taken from a capability page, which is explicit that it lists *every*
- * model in the registry and not only the ones people post about:
+ * TWO KINDS OF FACT ON ONE PAGE, and they are not interchangeable.
  *
- *   "The other 340 are listed unreported rather than omitted: a comparison
- *    over only the models people post about ranks popularity, not capability."
+ *   advertised  price, context, feature flags — the vendor's claim about
+ *               itself, from GET /models. True, and evidence of nothing.
+ *   reported    voices and phrases — from the capability pages, gated.
  *
- * The first capability gives the roster immediately. The remaining eleven load
- * in the background and fold in per-model evidence, so the page is useful at
- * once and gets more complete rather than blocking on twelve round trips.
+ * The roster arrives in one call. The twelve capability pages then load in the
+ * background and fold in evidence, so the page is useful immediately and gets
+ * more complete rather than blocking on twelve round trips.
+ *
+ * Sorting defaults to name. Cost is offered as a sort, never as the default —
+ * ordering 342 unevidenced models by price and putting the cheapest on top is
+ * a recommendation, and this board does not make one without evidence.
  */
+const SORTS = {
+  name:     { label: 'Name',            fn: (a, b) => (a.display_name || '').localeCompare(b.display_name || '') },
+  cheapest: { label: 'Cheapest input',  fn: (a, b) => nullsLast(a.price_in, b.price_in) },
+  dearest:  { label: 'Dearest input',   fn: (a, b) => nullsLast(b.price_in, a.price_in) },
+  context:  { label: 'Largest context', fn: (a, b) => (b.advertised_context || 0) - (a.advertised_context || 0) },
+}
+
+/** A model with no published rate sorts to the end rather than to £0. */
+function nullsLast(x, y) {
+  if (x == null && y == null) return 0
+  if (x == null) return 1
+  if (y == null) return -1
+  return x - y
+}
+
 export default function Models() {
   const [roster, setRoster] = useState(null)
   const [evidence, setEvidence] = useState({})   // model id -> [{capability, voices, phrases}]
@@ -26,27 +44,20 @@ export default function Models() {
   const [err, setErr] = useState(null)
   const [unreadable, setUnreadable] = useState(null)
   const [query, setQuery] = useState('')
+  const [sort, setSort] = useState('name')
+  const [freeOnly, setFreeOnly] = useState(false)
+  const [meta, setMeta] = useState(null)      // summary + priced_at, straight from the API
 
   useEffect(() => {
     let alive = true
 
     ;(async () => {
-      let caps
+      // the roster, in one call, with everything the provider advertises
       try {
-        caps = await listCapabilities()
-      } catch (e) { if (alive) setErr(e.message); return }
-      if (!alive) return
-      setTotal(caps.length)
-
-      const keys = caps.map((c) => c.key)
-
-      // roster first, from one call
-      try {
-        const first = await capabilityPage(keys[0])
+        const list = await listModels()
         if (!alive) return
-        setRoster(first.models)
-        setChecked(1)
-        fold(first)
+        setRoster(list.models)
+        setMeta({ summary: list.summary, priced_at: list.priced_at })
       } catch (e) {
         if (!alive) return
         if (e instanceof BoardUnreadable) setUnreadable(e.message)
@@ -54,9 +65,16 @@ export default function Models() {
         return
       }
 
-      // then enrich, one capability at a time so a slow database does not
-      // open twelve connections at once
-      for (const key of keys.slice(1)) {
+      // then the evidence, which is a separate kind of fact and a separate
+      // set of calls. A capability page failing must not blank the roster.
+      let caps
+      try {
+        caps = await listCapabilities()
+      } catch { return }
+      if (!alive) return
+      setTotal(caps.length)
+
+      for (const key of caps.map((c) => c.key)) {
         if (!alive) return
         try {
           const page = await capabilityPage(key)
@@ -86,15 +104,22 @@ export default function Models() {
   const shown = useMemo(() => {
     if (!roster) return []
     const q = query.trim().toLowerCase()
-    if (!q) return roster
-    return roster.filter(
-      (m) =>
-        (m.display_name || '').toLowerCase().includes(q) ||
-        (m.model_version_id || '').toLowerCase().includes(q)
-    )
-  }, [roster, query])
+    let out = roster
+    if (q) {
+      out = out.filter(
+        (m) =>
+          (m.display_name || '').toLowerCase().includes(q) ||
+          (m.provider || '').toLowerCase().includes(q) ||
+          (m.canonical_id || '').toLowerCase().includes(q)
+      )
+    }
+    // `=== 0` and not falsy: null is "no published rate", not free.
+    if (freeOnly) out = out.filter((m) => m.price_in === 0 && m.price_out === 0)
+    return [...out].sort(SORTS[sort].fn)
+  }, [roster, query, sort, freeOnly])
 
   const withEvidence = Object.keys(evidence).length
+  const priced = roster ? roster.filter((m) => m.price_in != null).length : 0
 
   return (
     <div className="shell section-tight stack stack-4">
@@ -115,11 +140,18 @@ export default function Models() {
         <>
           <Reveal>
             <div className="card">
-              <div className="grid g3">
+              <div className="grid g4">
                 <Stat n={roster.length} l="models in the registry" />
+                <Stat n={priced} l="with a published price" />
                 <Stat n={withEvidence} l="with any evidence" />
                 <Stat n={`${checked}/${total}`} l="capabilities checked" />
               </div>
+              {meta?.summary && (
+                <p className="dim" style={{ fontSize: 'var(--fs-xs)', marginTop: 'var(--s3)' }}>
+                  {meta.summary}
+                  {meta.priced_at && ` Prices as advertised on ${new Date(meta.priced_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.`}
+                </p>
+              )}
               {checked < total && (
                 <p className="dim" style={{ fontSize: 'var(--fs-xs)', marginTop: 'var(--s3)' }}>
                   Still reading capability pages — the evidence column fills in as they land.
@@ -140,17 +172,39 @@ export default function Models() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Filter ${roster.length} models by name or id`}
+              placeholder={`Filter ${roster.length} models by name or provider`}
               aria-label="Filter models"
             />
             {query && <button className="x" onClick={() => setQuery('')}>clear</button>}
           </label>
 
-          <span className="label">
-            {shown.length === roster.length
-              ? `${roster.length} models`
-              : `${shown.length} of ${roster.length} models`}
-          </span>
+          <div className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+              {Object.entries(SORTS).map(([k, s]) => (
+                <button
+                  key={k}
+                  className={`chip${sort === k ? ' chip-on' : ''}`}
+                  aria-pressed={sort === k}
+                  onClick={() => setSort(k)}
+                >
+                  {s.label}
+                </button>
+              ))}
+              <button
+                className={`chip${freeOnly ? ' chip-on' : ''}`}
+                aria-pressed={freeOnly}
+                onClick={() => setFreeOnly((v) => !v)}
+              >
+                Free only
+              </button>
+            </div>
+
+            <span className="label">
+              {shown.length === roster.length
+                ? `${roster.length} models`
+                : `${shown.length} of ${roster.length} models`}
+            </span>
+          </div>
 
           <div className="stack stack-1">
             {shown.slice(0, 200).map((m) => (
@@ -173,16 +227,19 @@ export default function Models() {
 }
 
 function ModelRow({ m, rows }) {
-  const vendor = (m.model_version_id || '').includes('/')
-    ? m.model_version_id.split('/')[0]
-    : null
+  const unpriced = m.price_in == null
 
   return (
-    <Link to={`/models/${m.model_version_id}`} className="mrow">
+    <Link
+      to={`/models/${m.model_version_id}`}
+      state={{ from: '/models', name: m.display_name }}
+      className="mrow"
+    >
       <span className="stack" style={{ gap: 3, minWidth: 0 }}>
         <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.display_name || m.model_version_id}</strong>
-        <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>
-          {m.model_version_id}
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+          {m.provider}
+          {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
         </span>
         {rows && (
           <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
@@ -191,8 +248,23 @@ function ModelRow({ m, rows }) {
         )}
       </span>
 
-      <span className="row" style={{ gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-        {vendor && <Badge tone="mute">{vendor}</Badge>}
+      <span className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        {/* Advertised, not measured — the price block is deliberately quiet
+            next to the evidence badge, which is the figure that decides
+            anything. A router shows "no rate", never a zero. */}
+        <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
+          <span
+            className="mono"
+            style={{ fontSize: 'var(--fs-sm)', color: unpriced ? 'var(--text-3)' : 'var(--text-1)' }}
+            title={unpriced ? 'This model routes to others and publishes no rate of its own' : 'USD per million tokens, in / out'}
+          >
+            {unpriced ? 'no rate' : `${fmtPrice(m.price_in)} / ${fmtPrice(m.price_out)}`}
+          </span>
+          {!unpriced && (
+            <span className="dim" style={{ fontSize: 10, letterSpacing: '.04em' }}>PER MTOK · IN / OUT</span>
+          )}
+        </span>
+
         {rows
           ? <Badge tone="pass">{rows.length} {rows.length === 1 ? 'report' : 'reports'}</Badge>
           : <Badge tone="mute">no reports</Badge>}

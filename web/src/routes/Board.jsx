@@ -142,7 +142,10 @@ function CapabilityDetail({ capKey }) {
           {page.models.map((m) => (
             <div key={m.model_version_id} className="modelrow">
               <div className="stack" style={{ gap: 3 }}>
-                <Link to={`/models/${encodeURIComponent(m.model_version_id)}`}>
+                <Link
+                  to={`/models/${encodeURIComponent(m.model_version_id)}`}
+                  state={{ from: '/board', name: m.display_name }}
+                >
                   <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.display_name || m.model_version_id}</strong>
                 </Link>
                 <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>

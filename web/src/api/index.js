@@ -76,13 +76,24 @@ export const capabilityPage = (key) => request(`/capabilities/${encodeURICompone
  * explicit that the slash must NOT be percent-encoded, so each segment is
  * encoded and the separators are kept.
  *
- * Note: as of 2026-08-19 the backend route is `/models/{model_version_id}`,
- * a single path param, which does not match a slash — so the documented
- * `/models/google/gemini-2.5-flash` 404s and only the internal `mv_…` id
- * resolves. Reported. This helper is already correct for when it is fixed.
+ * The backend route is `{model_version_id:path}` as of ae280be, so a
+ * vendor-prefixed id resolves. Every id the registry actually holds today is
+ * an `mv_…` hash with no slash in it, but the helper handles both.
  */
 export const modelPath = (id) => String(id).split('/').map(encodeURIComponent).join('/')
 export const modelPage = (id) => request(`/models/${modelPath(id)}`)
+
+/**
+ * The registry with what each provider advertises — price, context window,
+ * feature flags. One call; the roster used to be reconstructed from twelve
+ * capability pages.
+ *
+ * None of this is evidence. It is what a vendor says about itself, and the UI
+ * has to keep saying so: no amount of cheapness makes a model recommendable
+ * here, and a page that puts price beside consensus without marking the
+ * difference is the one mistake this board exists to avoid.
+ */
+export const listModels = () => request('/models')
 export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
 export const coveragePage = () => request('/coverage')
 export const changelogPage = (days = 30) => request(`/changelog?days=${days}`)
@@ -126,6 +137,25 @@ export const fmtTokens = (n) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)}M`
   if (n >= 1000) return `${Math.round(n / 1000)}k`
   return String(n)
+}
+
+/**
+ * Price, in USD per million tokens.
+ *
+ * Three states that must not collapse into each other, which is rule 6 at the
+ * last layer before a human reads it:
+ *
+ *   null → "no rate"   the five routers, which dispatch to other models
+ *   0    → "Free"      ten models that genuinely cost nothing
+ *   n    → "$0.075"    everything else
+ *
+ * Returning "$0.00" for null would put the word free on models that bill.
+ */
+export const fmtPrice = (n) => {
+  if (n == null) return 'no rate'
+  if (n === 0) return 'Free'
+  if (n < 1) return `$${n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')}`
+  return `$${n % 1 === 0 ? n : n.toFixed(2)}`
 }
 
 /** Backend capability keys are dotted; this is the human label. */

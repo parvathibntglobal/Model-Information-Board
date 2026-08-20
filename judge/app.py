@@ -375,6 +375,40 @@ def _conn():
     return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
 
 
+@app.get("/models")
+def model_roster() -> dict:
+    """The registry as a list, with what the provider advertises.
+
+    ADDITIVE. Every other read surface in this file answers "what did people
+    find out"; this one answers "what is on the tin" - price, context window,
+    feature flags. Those are a vendor's claims about itself, they pass no gate
+    and no voices stand behind them, so they are returned in their own shape
+    and never merged into a capability row where a reader could mistake one
+    kind of claim for the other.
+
+    Rule 3 permits these figures: price and tokens are MEASURED, not
+    synthesised. Rule 6 governs how they travel - a NULL price stays NULL all
+    the way to the page, because five of these models are routers with no rate
+    of their own and calling them free would be a definite value invented from
+    a missing one.
+
+    Ordered by name, never by price. A default sort by cost would be this
+    endpoint making the recommendation the rest of the system refuses to make
+    without evidence.
+    """
+    from judge.pages.roster import RosterReader
+
+    with _conn() as conn:
+        roster = RosterReader(conn).all()
+
+    return {
+        "count": len(roster.models),
+        "priced_at": roster.priced_at,
+        "summary": roster.summary,
+        "models": roster.models,
+    }
+
+
 # `:path` because EVERY model id contains a slash - `google/gemini-2.5-flash`,
 # `anthropic/claude-opus-5`. Without it FastAPI matches only up to the first
 # separator and every real model page 404s, which is what the first live check
