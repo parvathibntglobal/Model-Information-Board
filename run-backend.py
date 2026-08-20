@@ -37,7 +37,8 @@ if "--staging" in sys.argv:
     sep = "&" if "?" in staging else "?"
     ro = urllib.parse.quote("-c default_transaction_read_only=on")
     os.environ["DATABASE_URL"] = f"{staging}{sep}options={ro}"
-    print(f"  reading STAGING at {urllib.parse.urlparse(staging).hostname} — sessions forced READ ONLY")
+    host = urllib.parse.urlparse(staging).hostname
+    print(f"  reading STAGING at {host} — sessions forced READ ONLY")
 else:
     print("  reading the database in DATABASE_URL")
 
