@@ -10,43 +10,39 @@ nothing is not read as a failure.**
 
 ---
 
-## 1 · Guaranteed outcome one: every cell will be `insufficient` — and the reason changed
+## 1 · Nothing publishes, and it is the corpus rather than a gap
 
-**CORRECTED 2026-08-20, before the run. The first version of this said `n_eff` has
-no input because `author` holds 0 rows. That was a bug being fixed rather than a
-property of the corpus, and stating it as a guaranteed outcome would have been
-right about the result and wrong about why.**
-
-`author_id` was NULL on all 57 documents because the blog write path deliberately
-wrote no author row — recorded reason, and it was about per-*article* rows. The
-unit is the feed, `contract/sources.yaml` already carries `byline_source` and
-`resolves_to_voices` per feed, and `assemble.authors.from_blog` now reads them.
-`blog:simonwillison.net` is `byline_source: feed_declared`,
-`declared_author: "Simon Willison"`, `resolves_to_voices: 1`.
-
-**So the honest statement is stronger, not weaker: 30 documents, one author, one
-voice.**
+**The `dc:creator` fix landed, so this is now arithmetic over real rows rather
+than a statement about a missing writer.** On staging: `author` holds **1 row**,
+**30 of 30** blog documents carry an `author_id`, and there is **1 distinct
+author** across all thirty.
 
 ```
-n_eff needs           ~3.0, about four independent voices
-this corpus provides  1     — thirty documents from one byline
-platform_count needs  >= 2 INSIDE one cell (one model, one capability, one bucket)
-this corpus provides  1     — every one of the thirty is `blog`
+n_eff             sums claim weights over representatives, one per voice_id
+                  -> 1 voice, so n_eff <= 1.0 whatever the claims say
+N_EFF_MINIMUM     3.0                       (gate.py:24)
+
+max_author_share  max(per_author) / n_eff = 1.0
+AUTHOR_CAP        0.50 below five voices    (gate.py:26)
+                  -> 1.0 > 0.50, so the diversity rule trips INDEPENDENTLY
+
+platform_count    1 — every one of the thirty is `blog`
+PLATFORM_MINIMUM  2                         (gate.py:25)
 ```
 
-**No cell can publish from this corpus, and no amount of extraction changes it.**
-`insufficient` is correct output. What changed is that it is now correct for a
-reason about the corpus rather than for a missing writer — and the contract
-measured that reason before anything was harvested.
+**Three gates, each failed on its own, and none of them is about extraction
+quality.** Thirty perfect first-hand capability observations from one byline would
+fail all three identically. `insufficient` is the correct output for this corpus.
 
-**Why this is stated in advance:** a run producing good claims and publishing
-nothing reads as an extraction failure. That is a true result carrying a false
-meaning — the mirror of the over-read, where a true quote carries a false claim.
+**Why this is written down in advance:** a run producing good claims and
+publishing nothing reads as an extraction failure. It is not one. It is a true
+result carrying a false meaning — the mirror of the over-read, where a true quote
+carries a false claim.
 
-**And it is now falsifiable in a way it was not.** If a cell from these 30 ever
-shows `independent_voices > 1`, something has invented a voice: either an
-`entry`-byline path attributed articles to the wrong author, or an anonymous row
-was shared. The count is a check, not just an outcome.
+**And it is falsifiable.** If a cell from these thirty ever reports
+`independent_voices > 1`, a voice has been invented: an `entry`-byline path
+attributing articles to the wrong author, or an anonymous row shared between
+documents. The count is a check now, not only an outcome.
 
 ## 2 · Guaranteed outcome two: over-extraction from our own template
 
