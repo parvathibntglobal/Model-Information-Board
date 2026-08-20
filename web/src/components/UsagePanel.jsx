@@ -84,32 +84,6 @@ export default function UsagePanel() {
       </div>
 
       <div className="card-body stack stack-3">
-        {/* ABOVE THE TABS on purpose. Everything in the OpenRouter tab is THIS
-            MACHINE's ledger, and this is the only figure that sees the whole
-            key — so it has to be read before the numbers it reframes, not after. */}
-        <div className="stack stack-1">
-          <span className="label">Total spent by everyone on this key</span>
-          {everyone.available ? (
-            <>
-              <span className="stat-n tnum" style={{ fontSize: 'var(--fs-xl, 1.5rem)' }}>
-                {usd(everyone.total_usd)}
-              </span>
-              <span className="muted" style={{ fontSize: 'var(--fs-sm)' }}>
-                Reported by OpenRouter, so it includes calls from every machine using
-                this key — {usd(data.today?.spent_usd)} of it recorded here. Everything
-                below is this machine only, which is why the two differ.
-              </span>
-            </>
-          ) : (
-            <Notice icon={<IconAlert />}>
-              <strong style={{ color: 'var(--text)' }}>
-                Spend across all machines is unknown.
-              </strong>{' '}
-              {everyone.why} Unknown is not zero — everything below is this machine only.
-            </Notice>
-          )}
-        </div>
-
         <div className="row" style={{ gap: 6 }}>
           {[
             ['openrouter', 'OpenRouter — Gemini 2.5 Flash'],
@@ -128,6 +102,33 @@ export default function UsagePanel() {
 
         {tab === 'rapidapi' ? <RapidApiTab rapid={rapid} /> : (
         <>
+        {/* INSIDE THE OPENROUTER TAB, not above both. It is this key's total,
+            and RapidAPI is a different key entirely - above the tabs it read as
+            a figure covering both, which is a bigger claim than the number
+            supports. First thing in the tab, though, because everything below
+            it is one machine's share of the same key. */}
+        <div className="stack stack-1">
+          <span className="label">Total spent by everyone on this key</span>
+          {everyone.available ? (
+            <>
+              <span className="stat-n tnum" style={{ fontSize: 'var(--fs-xl, 1.5rem)' }}>
+                {usd(everyone.total_usd)}
+              </span>
+              <span className="muted" style={{ fontSize: 'var(--fs-sm)' }}>
+                Reported by OpenRouter, so it counts calls from every machine using
+                this key — {usd(data.today?.spent_usd)} of it recorded here. Everything
+                below is this machine only, which is why the two differ.
+              </span>
+            </>
+          ) : (
+            <Notice icon={<IconAlert />}>
+              <strong style={{ color: 'var(--text)' }}>
+                Spend across all machines is unknown.
+              </strong>{' '}
+              {everyone.why} Unknown is not zero — everything below is this machine only.
+            </Notice>
+          )}
+        </div>
         {/* THE CAVEATS COME FIRST. Both of these change what every number below
             MEANS, so putting them after the figures would let a reader finish
             with the reassuring half. */}
@@ -141,7 +142,13 @@ export default function UsagePanel() {
             cannot see it rather than that it is free.
           </Notice>
         )}
-        {today.is_a_floor_not_a_total && (
+        {/* `counting_since` is null on an EMPTY ledger, and the floor flag is
+            true there because no rows cannot mean full coverage - so both were
+            true at once and this printed "the ledger began at  UTC" with a hole
+            where the time goes. The empty case is already stated by the summary
+            below; this notice is for the real one, a ledger that started partway
+            through today. */}
+        {today.is_a_floor_not_a_total && ledger.counting_since && (
           <Notice icon={<IconAlert />}>
             <strong style={{ color: 'var(--text)' }}>Today’s figure is a floor.</strong>{' '}
             The ledger began at {ledger.counting_since?.slice(11, 16)} UTC, after today
