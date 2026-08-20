@@ -649,6 +649,44 @@ def _cmd_registry_load_capabilities(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_registry_seat_alias(args: argparse.Namespace) -> int:
+    """Seat one reviewed model's surfaces from the tracked-set artifact.
+
+    The consumer that artifact never had. One model at a time, named by a
+    person, because a bulk loader would defeat the `INCOMPLETE` markers the
+    format exists for.
+    """
+    from collect.db import transaction
+    from collect.registry.seat import SeatRefused, read_entry, seat
+
+    if args.dry_run:
+        try:
+            entry = read_entry(args.canonical_id)
+        except SeatRefused as refusal:
+            print(str(refusal))
+            return 1
+        print(f"dry run   : {entry.canonical_id}")
+        print(f"  surface : {entry.surface}")
+        for v in entry.variants:
+            print(f"  variant : {v}")
+        print(f"  incomplete: {list(entry.incomplete) or 'none'}"
+              f"   blocking: {list(entry.blocking_incomplete) or 'none'}")
+        return 0
+
+    with transaction() as conn:
+        _gate(conn)
+        try:
+            report = seat(conn, args.canonical_id)
+        except SeatRefused as refusal:
+            print(str(refusal))
+            return 1
+    print(
+        f"seated {report['canonical_id']}: {report['rows']} alias row(s), "
+        f"{report['searchable']} search-eligible, primary {report['surface']!r}"
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="collect", description=__doc__)
     sub = parser.add_subparsers(dest="group", required=True)
@@ -777,6 +815,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="parse and report, touch nothing"
     )
     load_caps.set_defaults(func=_cmd_registry_load_capabilities)
+
+    seat_alias = reg_sub.add_parser(
+        "seat-alias",
+        help="seat one reviewed model's surfaces from the tracked-set artifact",
+    )
+    seat_alias.add_argument("canonical_id", help="e.g. anthropic/claude-opus-4.8")
+    seat_alias.add_argument(
+        "--dry-run", action="store_true", help="show the reviewed entry, write nothing"
+    )
+    seat_alias.set_defaults(func=_cmd_registry_seat_alias)
 
     triage = sub.add_parser("triage", help="E4 — the hard gates")
     triage_sub = triage.add_subparsers(dest="command", required=True)
