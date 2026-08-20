@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { health, coveragePage, filteredPage, changelogPage, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
+import UsagePanel from '../components/UsagePanel'
 import { IconAlert, IconGauge, IconLayers, IconFilter } from '../components/Icons'
 
 /**
@@ -61,6 +62,13 @@ export default function Admin() {
           )}
         </section>
       </Reveal>
+
+        {/* API usage — placed below Service deliberately. Service answers
+            "is the board up"; this answers "what are we spending", and the
+            two are read at different moments. Two paid APIs, different units. */}
+        <Reveal>
+          <UsagePanel />
+        </Reveal>
 
       {/* coverage */}
       <Reveal>

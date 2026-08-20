@@ -67,6 +67,15 @@ def _cmd_extract(args: argparse.Namespace) -> int:
     from judge.store.extractions import ExtractionLedger
 
     budget = Budget.from_env()
+    if budget is not None:
+        # SEEDED FROM THE SHARED LEDGER. The $1/day cap is one pot split with
+        # the ask box, so a batch starting at zero would spend the whole cap
+        # again on top of whatever Q1 already spent today. Starting from what
+        # has actually been spent is what makes the dollar shared rather than
+        # per-stage.
+        from judge import spend_ledger
+
+        budget.spent_usd = spend_ledger.spent_today()
     if budget is None and not args.dry_run:
         raise SystemExit(
             "EXTRACTION_DAILY_BUDGET_USD is unset. Refusing to run: an unset "

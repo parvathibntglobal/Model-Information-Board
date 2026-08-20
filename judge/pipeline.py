@@ -38,6 +38,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
+from judge import spend_ledger
 from judge.config import bucket_for
 from judge.curate.labels import Driver
 from judge.curate.nightly import close_the_night
@@ -286,6 +287,17 @@ class Pipeline:
                         model=self._extractor_model,
                     )
                 )
+            # AND to the shared ledger, unconditionally - not inside the
+            # `budget is not None` branch above. The $1/day cap is shared with
+            # the ask box, so a run without a Budget object still spends from
+            # the same pot, and a call this file declined to record is a call
+            # the ask box is then allowed to make on top of it.
+            spend_ledger.record(
+                stage=spend_ledger.STAGE_EXTRACT,
+                model=self._extractor_model,
+                input_tokens=result.extraction.input_tokens or 0,
+                output_tokens=result.extraction.output_tokens or 0,
+            )
         if driver is not None:
             # THE CALLER, and the reason this parameter exists. Labels, the
             # changelog and reported context all had a writer and none had

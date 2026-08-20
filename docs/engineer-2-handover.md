@@ -174,7 +174,33 @@ work around that guard.
 **The test suite wipes the local database.** If you seed it and then run the
 suite, your seed is gone. That looked like two bugs once and was neither.
 
+**And you cannot run the DB suite while the dev backend is pointed at that same
+database.** Found 2026-08-20: with `uvicorn` connected to `modelboard_test`, a
+full run produced 7 failures and 15 errors across migrations, cell writes, blog
+fetch and harvest schema - every one of which passes in isolation and passes
+again with the server stopped (1,969 passed). `DROP SCHEMA public CASCADE`
+against a database another process holds open does not fail cleanly; it fails as
+a scattering of unrelated-looking assertion errors. **Stop the backend before a
+full run**, or the suite will send you hunting a defect that is not there.
+
 ### 5.3 The spend cap must be wired, not documented
+
+**And "wired" means one durable total, not one per caller.** Corrected
+2026-08-20: `EXTRACTION_DAILY_BUDGET_USD` was read by extraction and by the ask
+box into two separate in-memory counters, so the configured dollar was a dollar
+PER STAGE, PER PROCESS - roughly $2 before counting `--workers`, and zero again
+after a restart. The check also ran against a `Budget` rebuilt per HTTP request,
+so `spent_usd` was always 0.0 and the 429 branch was unreachable. `charge()` had
+exactly one caller, in `pipeline.py`.
+
+`judge/spend_ledger.py` is the fix: an append-only record of every paid call,
+read by both stages, so one cap means one cap and survives a restart. The
+durable home is a table and `contract/` is shared, so it is proposed rather than
+assumed.
+
+**The test that catches this class needs more than one request.** Every existing
+test made a single call, which is exactly the population where a per-request
+counter looks correct.
 
 `EXTRACTION_DAILY_BUDGET_USD` sat in two comments and nowhere in code for
 weeks. It now binds in `budget.py`: the check runs **before** the call, because

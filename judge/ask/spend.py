@@ -105,16 +105,44 @@ def is_configured() -> bool:
     return bool(_CONFIGURED)
 
 
+def shared_spent_today_usd() -> float:
+    """Today's spend across BOTH stages, from the durable ledger.
+
+    `max` of the ledger total and this process's own, and the reason is not
+    belt-and-braces: `spend_ledger.record` swallows a write failure so telemetry
+    cannot take the service down, which means the ledger can UNDERSTATE. When it
+    does, this process's own count is the higher figure and the safer one to
+    enforce on. Overshooting a cap is the failure that costs money; stopping
+    slightly early is the one that costs a request.
+    """
+    from judge import spend_ledger
+
+    local = 0.0 if _BUDGET is None or _BUDGET is _Unset else _BUDGET.spent_usd
+    return max(spend_ledger.spent_today(), local)
+
+
 def check_before_call() -> None:
     """Raise `BudgetExhausted` rather than overshoot. Spend cannot be undone.
 
-    A no-op when no cap is configured - the refusal for that case belongs to
-    the caller, which knows whether a person chose it.
+    CHECKED AGAINST THE SHARED TOTAL, not this process's. The $1/day cap is one
+    pot split with extraction, so a nightly batch that spent 80c today must
+    leave the ask box 20c - and an in-memory total cannot see that. This is what
+    makes the configured dollar mean a dollar rather than a dollar per stage per
+    process.
+
+    A no-op when no cap is configured; that refusal belongs to the caller, which
+    knows whether a person chose it.
     """
     _ensure()
-    if _BUDGET is None:
+    if _BUDGET is None or _BUDGET.limit_usd is None:
         return
-    _BUDGET.check_before_call()
+    spent = shared_spent_today_usd()
+    if spent + _BUDGET.estimated_next_call_usd > _BUDGET.limit_usd:
+        raise BudgetExhausted(
+            spent_usd=spent,
+            limit_usd=_BUDGET.limit_usd,
+            completed=_BUDGET.calls,
+        )
 
 
 def charge(*, input_tokens: int, output_tokens: int, model: str) -> float:
@@ -124,6 +152,18 @@ def charge(*, input_tokens: int, output_tokens: int, model: str) -> float:
     total of zero forever.
     """
     _ensure()
+    from judge import spend_ledger
+
+    # THE SHARED LEDGER FIRST, and unconditionally. Recorded even when no cap is
+    # configured: what we spent is a fact either way, and a page that can only
+    # show spend once a cap exists cannot show you why you should set one.
+    spend_ledger.record(
+        stage=spend_ledger.STAGE_ASK,
+        model=model,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+    )
+
     if _BUDGET is None:
         return 0.0
     from judge.extract.client import Completion
@@ -154,7 +194,7 @@ def summary() -> str:
 def spent_usd() -> float | None:
     """`None` when uncapped - not `0.0`, which would read as "nothing spent"."""
     _ensure()
-    return None if _BUDGET is None else _BUDGET.spent_usd
+    return None if _BUDGET is None else shared_spent_today_usd()
 
 
 def reset_for_test(*, limit_usd: float | None, configured: bool = True) -> None:

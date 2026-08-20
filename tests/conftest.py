@@ -698,3 +698,18 @@ def _isolate_ask_spend():
     spend.reset_for_test(limit_usd=1000.0)
     yield
     spend.reset_for_test(limit_usd=1000.0)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_spend_ledger(tmp_path, monkeypatch):
+    """Point the spend ledger at a per-test file.
+
+    The real ledger at `var/spend-ledger.jsonl` is a record of money actually
+    spent. A test that appended to it would corrupt the admin page's figures
+    with fabricated spend, and a test that READ it would pass or fail depending
+    on what the machine had really been used for - a suite whose result depends
+    on yesterday's OpenRouter bill.
+    """
+    from judge import spend_ledger
+
+    monkeypatch.setenv(spend_ledger.LEDGER_PATH_ENV, str(tmp_path / "spend-ledger.jsonl"))

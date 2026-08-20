@@ -621,3 +621,207 @@ def changelog_page(days: int = 30) -> dict:
             for driver, changes in log.by_driver().items()
         },
     }
+
+
+# ── the admin usage page: OUR cap, OUR spend, both stages ─────────────────
+
+
+@app.get("/admin/usage")
+def admin_usage(hours: int = 24, days: int = 14) -> dict:
+    """What we have spent today against the one shared daily cap.
+
+    OURS, NOT THE PROVIDER'S. OpenRouter has its own ceilings - account credit
+    and a per-key cap - and they are different numbers on a different schedule.
+    This endpoint reports the limit WE set and the spend WE recorded, because
+    that is the one a person can act on by changing a config value.
+
+    ONE CAP, TWO STAGES. `EXTRACTION_DAILY_BUDGET_USD` is the total across
+    extraction and the ask box together, not each. The limit is one figure and
+    every usage figure is split by stage, so a reader can see which of the two
+    consumed the day without the split implying two budgets.
+
+    EVERY FIGURE CARRIES WHAT IT IS DRAWN FROM (rule 7). `covers_whole_window`
+    is false when the ledger began after today did, in which case today's total
+    is a floor rather than a total; `unwired_stages` names any stage that has
+    never recorded at all, which is a wiring failure and not a quiet day. A page
+    rendering either of those as a plain zero would be stating the most
+    reassuring of two readings.
+    """
+    from judge import spend_ledger
+    from judge.extract.budget import Budget
+
+    configured = Budget.from_env()
+    estimated = (
+        configured.estimated_next_call_usd
+        if configured is not None
+        else Budget(limit_usd=None).estimated_next_call_usd
+    )
+    report = spend_ledger.report(
+        daily_cap_usd=configured.limit_usd if configured is not None else None,
+        estimated_call_usd=estimated,
+        hours=max(1, min(hours, 168)),
+        days=max(1, min(days, 90)),
+    )
+
+    def series(buckets):
+        return [
+            {
+                "label": b.label,
+                "starts_at": b.starts_at.isoformat(),
+                "usd": round(b.usd, 6),
+                "calls": b.calls,
+                "by_stage": {k: round(v, 6) for k, v in b.by_stage.items()},
+            }
+            for b in buckets
+        ]
+
+    return {
+        "summary": _usage_summary(report),
+        "cap": {
+            "daily_usd": report.daily_cap_usd,
+            "shared_by": list(spend_ledger.STAGES),
+            "note": (
+                "one cap for both stages together, not one each. Set by "
+                "EXTRACTION_DAILY_BUDGET_USD; enforced against the shared ledger "
+                "so it survives a restart and is seen by every worker."
+            ),
+            "resets_at": (report.day_starts_at.isoformat()),
+            "timezone": "UTC - stated because a reader elsewhere reads midnight as their own",
+        },
+        "today": {
+            "spent_usd": round(report.spent_today_usd, 6),
+            "remaining_usd": None
+            if report.remaining_usd is None
+            else round(report.remaining_usd, 6),
+            "fraction_used": None
+            if report.fraction_used is None
+            else round(report.fraction_used, 4),
+            "calls": report.calls_today,
+            "calls_remaining": report.calls_remaining,
+            "unmetered_calls": report.unmetered_today,
+            "is_a_floor_not_a_total": not report.covers_whole_window,
+        },
+        "by_stage": [
+            {
+                "stage": stage,
+                "label": spend_ledger.STAGE_LABELS[stage],
+                "spent_usd": round(report.by_stage_usd.get(stage, 0.0), 6),
+                "calls": report.by_stage_calls.get(stage, 0),
+                "ever_recorded": stage in report.stages_ever_recorded,
+            }
+            for stage in spend_ledger.STAGES
+        ],
+        "by_model": {k: round(v, 6) for k, v in report.by_model_usd.items()},
+        "rates": {
+            "usd_last_hour": None
+            if report.usd_per_hour_recent is None
+            else round(report.usd_per_hour_recent, 6),
+            "hours_to_cap": None
+            if report.hours_to_cap is None
+            else round(report.hours_to_cap, 2),
+            "price_in_per_million_usd": report.pricing_in_per_million,
+            "price_out_per_million_usd": report.pricing_out_per_million,
+            "measured_cost_per_call_usd": round(report.estimated_call_usd, 6),
+        },
+        "hourly": series(report.hourly),
+        "daily": series(report.daily),
+        "ledger": {
+            "counting_since": None
+            if report.first_seen_at is None
+            else report.first_seen_at.isoformat(),
+            "rows": report.total_rows,
+            "unwired_stages": list(report.unwired_stages),
+        },
+        "rapidapi": _rapidapi_quota(),
+    }
+
+
+def _rapidapi_quota() -> dict:
+    """The other paid API. Reported, not analysed - the limits are E1's call.
+
+    RapidAPI serves the Reddit path and is billed as a REQUEST QUOTA, not spend,
+    so it cannot share an axis with the LLM cap: one is dollars per day against a
+    limit we set, the other is requests against a limit somebody sells us. Same
+    page, separate tab.
+
+    **THIS LANE SETS NO NUMBER AND DERIVES NONE.** Engineer 1 owns the RapidAPI
+    quota, its window and whatever budget is placed on it - the calls are made in
+    `collect/adapters/reddit.py` and the readings are recorded in
+    `contract/sources.yaml` with their read dates. An earlier version of this
+    function restated a costing conclusion from that file and proposed how the
+    headers should be persisted. Both were out of lane: a figure we recompute is a
+    second source of truth for a quantity we do not own, and it is the copy that
+    goes stale without anyone noticing.
+
+    So this returns the STATUS only. Nothing here is live, because the quota
+    arrives in response headers read in `collect/` and nothing persists them, so
+    `judge/` has no row to read. The reason that matters is the same reason we
+    show no numbers: a dated reading placed on a live dashboard reads as current.
+    """
+    return {
+        "unit": "requests",
+        "instrumented": False,
+        "owner": "Engineer 1",
+        "headline": (
+            "Not tracked here. RapidAPI is billed as a request quota rather than "
+            "spend, the calls are made in the other lane, and nothing persists the "
+            "quota headers - so this lane has nothing live to read."
+        ),
+        "limits_status": (
+            "Engineer 1 decides the quota, the window and any budget on it. This "
+            "page reports that status and sets no figure of its own."
+        ),
+        "source_of_record": (
+            "contract/sources.yaml, the reddit-via-rapidapi entry - readings live "
+            "there beside the date they were read on, which is where they stay"
+        ),
+    }
+
+
+def _usage_summary(report) -> str:
+    """One sentence a person can act on, and it must not overstate.
+
+    The ordering is deliberate: an unwired stage or a partial window changes
+    what every other number on the page MEANS, so it is said first rather than
+    appended after the reassuring part.
+    """
+    from judge import spend_ledger
+
+    # AN EMPTY LEDGER IS NOT A WIRING GAP, and reporting it as one is the same
+    # mistake pointed the other way. With zero rows every stage is "missing", so
+    # the unwired check cannot tell a broken writer from a ledger that started
+    # five minutes ago and has correctly recorded nothing yet. Both readings are
+    # available and only one is alarming, so the empty case is answered first.
+    if report.total_rows == 0:
+        return (
+            "No model call has been recorded since the ledger began. Nothing has "
+            "been spent that this page can see - which is the expected state "
+            "before the first extraction run or Ask-box submission, and is not a "
+            "guarantee about spend that happened before the ledger existed."
+        )
+    if report.unwired_stages:
+        missing = ", ".join(
+            spend_ledger.STAGE_LABELS[s].split(" —")[0] for s in report.unwired_stages
+        )
+        verb = "have" if len(report.unwired_stages) > 1 else "has"
+        return (
+            f"{missing} {verb} never recorded a call while the other stage has, so "
+            f"everything below is spend from one stage only. That is a wiring gap "
+            f"rather than a quiet day, and the total is a floor."
+        )
+    if report.daily_cap_usd is None:
+        return (
+            f"No daily cap is configured, so nothing is limiting spend. "
+            f"${report.spent_today_usd:.4f} recorded today over "
+            f"{report.calls_today} calls across both stages."
+        )
+    floor = "" if report.covers_whole_window else (
+        " The ledger started after today did, so this is a floor rather than a total."
+    )
+    return (
+        f"${report.spent_today_usd:.4f} of the shared ${report.daily_cap_usd:.2f} "
+        f"daily cap used across both LLM stages, over {report.calls_today} calls. "
+        f"${(report.remaining_usd or 0.0):.4f} left, about "
+        f"{report.calls_remaining} more calls at the measured "
+        f"${report.estimated_call_usd:.5f} each.{floor}"
+    )
