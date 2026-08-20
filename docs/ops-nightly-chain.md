@@ -335,3 +335,42 @@ so it is a contract conversation rather than a writer detail.
 
 Not in this piece: flattening and `offset_map`, the triage gate, and the two
 missing document writers. Each is a stage the chain will name and refuse.
+
+---
+
+## 6 · The 121 open `harvest_run` rows, and why they stay open
+
+**Recorded 2026-08-20. They are not a backlog and they are not a crash.**
+
+The first real GitHub sweep opened 121 `harvest_run` rows and closed none.
+`GitHubHarvester.outcome_of` returned `fetched`, from the closed set proposed on
+issue #5 which never landed, and `harvest_run_outcome_ck` permits
+`ok | refused | error` — so `close_harvest_run` raised `ValueError` on every one,
+by design, and the caller logged it and carried on. Both halves are fixed: the
+adapter returns the schema's vocabulary, and the sweep report now carries
+`ledger_failures` so a failed close cannot be a log line again.
+
+**Three options were weighed and the third was taken.**
+
+| | what it costs |
+|---|---|
+| close them with `outcome = 'error'` | asserts the queries failed. They did not — 21 documents were stored from them |
+| close them with `outcome = 'ok'` and a synthetic `finished_at` | **invents a timestamp nothing recorded.** The row would claim to know when it concluded |
+| **leave them open, and write down what they mean** | the rows stay honest; the risk moves to a reader inferring a crash |
+
+**The risk the third option carries is the one worth naming.** Everywhere else in
+this project a NULL finish means *started and never came back* — that is why the
+writer has two phases at all. On these 121 it means **the close was attempted and
+refused by a CHECK**. The query ran, the documents landed, and only the verdict
+never did.
+
+**So the note lives in the code rather than here.** `collect/ops/ledger.py` now
+carries `UNCLOSED_BY_VOCABULARY` beside `DURATION_FILTER`, because the person who
+will misread these rows is writing a query and reading that module, not opening a
+document. Identified by time — `pipeline_version` is `collect-0.1.0` on both
+populations and does not separate them — with a clean boundary: the open rows span
+10:01:36–10:13:51 UTC and the 32 correctly-closed ones 10:23:59–10:27:08.
+
+One reader exists and is unaffected: `assert_no_phantom_sweeps` asks only whether
+`harvest_run` is empty, before calling a `last_swept_at` a phantom. The 121 make
+it non-empty, which is true — those sweeps happened.

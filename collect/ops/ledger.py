@@ -370,6 +370,41 @@ def close_harvest_run(
 #: docs/proposals.
 DURATION_FILTER = "outcome = 'ok'"
 
+#: ⚠ 121 ROWS ON STAGING ARE OPEN AND WERE NOT KILLED. READ THIS BEFORE TREATING
+#: `finished_at IS NULL` ON `harvest_run` THE WAY `unfinished()` TREATS IT ON
+#: `job_run`.
+#:
+#: The first real GitHub sweep, 2026-08-20, opened 121 rows and closed none. The
+#: adapter's `outcome_of` returned `fetched` — from the closed set proposed on #5,
+#: which never landed — and `harvest_run_outcome_ck` permits `ok | refused |
+#: error`, so `close_harvest_run` raised `ValueError` on every one and the caller
+#: logged it and carried on. Fixed in the same day's commits; the rows predate the
+#: fix and are left as they are.
+#:
+#: **WHAT THEY MEAN IS NOT WHAT THE COLUMN USUALLY MEANS.** Elsewhere in this
+#: module a NULL finish is "started and never came back" — a killed process,
+#: which is the whole reason the writer has two phases. On these 121 it means
+#: **the close was attempted and REFUSED by the CHECK**. The query ran, the
+#: documents were written, and only the verdict never landed.
+#:
+#: Left open deliberately rather than closed by hand. Writing a `finished_at`
+#: now would invent a timestamp nothing recorded, and the rows are honest as they
+#: stand; what would be dishonest is a reader inferring a crash from them. So the
+#: predicate is here rather than in a document, beside the other constant a person
+#: querying this table has to read.
+#:
+#: Identified by time, because `pipeline_version` is `collect-0.1.0` on both
+#: populations and does not separate them. The boundary is clean — the open rows
+#: span 10:01:36–10:13:51 UTC and the 32 closed ones 10:23:59–10:27:08, with no
+#: interleaving.
+UNCLOSED_BY_VOCABULARY = "started_at < '2026-08-20T10:23:00+00:00'"
+
+#: The count is used as an EXISTENCE test and nothing more — see
+#: `assertions.py:assert_no_phantom_sweeps`, which asks whether `harvest_run` is
+#: empty at all before calling a `last_swept_at` a phantom. The 121 make it
+#: non-empty, which is true: those sweeps happened. Noted so nobody "fixes" that
+#: check on the grounds that the rows are incomplete.
+
 
 def _reject_unknown_keys(fields: dict[str, Any]) -> None:
     """A key that is neither a column nor a known proposal is a decision nobody made."""
