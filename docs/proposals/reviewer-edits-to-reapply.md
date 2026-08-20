@@ -107,6 +107,44 @@ Not taken, because it changes what the generator proposes for all 63 entries and
 that is a reviewed output. Recorded as the durable fix rather than a third
 hand-edit next time.
 
+## Measured 2026-08-20: the reseats are the ONLY two entries the generator cannot reproduce
+
+Regenerated to a scratch file and compared entry by entry against the reviewed
+artifact:
+
+```
+62 entries in both
+identical primary surface : 60
+identical variant list    : 58
+entries where the generator emits FEWER variants : 2
+   deepseek/deepseek-v4-flash-0731   6 -> 3   lost: deepseek flash 0731,
+                                                    deepseek-v4-flash, deepseekv4flash
+   deepseek/deepseek-v4-pro-0813     6 -> 3   lost: deepseek 0813,
+                                                    deepseek-v4-pro, deepseekv4pro
+```
+
+**So this is not a demotion of a generated option — it is a hand-written surface
+set.** `rule_variants` returns `[]` for both ids today, because guard 2 requires
+the post-vendor-drop remainder to open with a family word and `v4` is not one. So
+the current generator cannot produce `deepseek v4 flash` by any path: not
+mechanically (which gives `deepseek v4 flash 0731`, with the date) and not by
+rule. The date-less forms in the reviewed entry came from a reviewer.
+
+**Two consequences.**
+
+**The paste is the whole block, not the `surface:` line.** Editing only the
+primary leaves it duplicated in `variants` and leaves the demoted form missing —
+tried, observed, corrected. The capture above is verbatim for that reason.
+
+**Regenerating is a net loss of retrieval coverage, so do not.** Those three lost
+forms per entry are the plausible ones — `deepseek v4 flash` is what somebody
+writes; `deepseek flash 0731` is not — and 60 of 62 primaries reproduce exactly,
+so a regenerate buys nothing except the membership delta. **Apply the membership
+delta by hand instead.** Done on 2026-08-20: `-meituan/longcat-2.0` (aged out of
+the launch window), `+z-ai/glm-5.3` (block lifted verbatim from a fresh
+generate), 63 entries before and after, both deepseek entries untouched at 6
+variants each.
+
 ## How to re-apply
 
 1. Regenerate with `--force`.
