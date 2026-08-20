@@ -649,6 +649,80 @@ def _cmd_registry_load_capabilities(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_ops_sweep_github(args: argparse.Namespace) -> int:
+    """The GitHub sweep, planned from `model_alias` and recorded in `harvest_run`.
+
+    The stage `chain.py` has carried as `run=None` since `ops/` was built. See
+    `collect/ops/sweep.py` for the three gaps it closes and the one guard it
+    deliberately does not import.
+    """
+    from collect.adapters.queries import load_queries
+    from collect.adapters.queries.cadence import split_by_cadence
+    from collect.db import transaction
+    from collect.http import build_client
+    from collect.ops.sweep import request_cap, seated_variants, sweep_github
+    from collect.rawstore import RawStore
+    from collect.registry.assertions import assert_terms_reviewed
+    from collect.registry.sources import load_sources
+
+    contract = load_sources()
+    github = next(s for s in contract.platforms if s["id"] == "github")
+    # NFR-5, before a single request: a known unexpired ruling, evidence that has
+    # not gone stale, and this run's own observation of the access path.
+    assert_terms_reviewed(
+        [github],
+        rulings=contract.rulings,
+        observations={"github": {"access_path": "api"}},
+        today=date.today(),
+    )
+    print("gate     : github terms reviewed and re-verified, harvest permitted")
+
+    queries = load_queries()
+    entries = list(queries.all_entries)
+    cadence = split_by_cadence(entries)
+    selected = cadence[args.cadence] if args.cadence != "all" else entries
+    cap = args.cap if args.cap is not None else request_cap()
+    scope = tuple(args.scope or ())
+
+    if args.dry_run:
+        from collect.adapters.queries import plan_searches
+        from collect.db import connect
+
+        conn = connect()
+        try:
+            by_model = seated_variants(conn)
+        finally:
+            conn.close()
+        planned = {
+            model: plan_searches(selected, list(v), scope=scope).request_count
+            for model, v in by_model.items()
+        }
+        total = sum(planned.values())
+        fits = [m for m in planned if sum(
+            planned[x] for x in list(planned)[: list(planned).index(m) + 1]
+        ) <= cap]
+        print(f"plan     : {len(by_model)} seated model(s), {len(selected)} entr(ies), "
+              f"{total} request(s) planned against a cap of {cap}")
+        print(f"           {len(fits)} model(s) fit the cap, "
+              f"{len(by_model) - len(fits)} would be unreached")
+        return 0
+
+    with build_client() as client, transaction() as conn:
+        _gate(conn)
+        from collect.adapters.github import GitHubHarvester
+
+        harvester = GitHubHarvester(
+            client=client,
+            store=RawStore(Path(args.store)),
+            max_fetch_per_query=args.max_fetch_per_query,
+        )
+        report = sweep_github(
+            conn, harvester, entries=selected, scope=scope, cap=cap
+        )
+    print(report.summary())
+    return 0
+
+
 def _cmd_registry_attest_seats(args: argparse.Namespace) -> int:
     """Write the manifest that records a review. No database, no rows.
 
@@ -854,6 +928,24 @@ def build_parser() -> argparse.ArgumentParser:
     ops_pre = ops_sub.add_parser(
         "preflight", help="the startup checks, without running the chain")
     ops_pre.set_defaults(func=_cmd_ops_preflight)
+    ops_sweep = ops_sub.add_parser(
+        "sweep-github",
+        help="sweep GitHub for every seated model, recording each query in harvest_run",
+    )
+    ops_sweep.add_argument(
+        "--cadence", default="daily", choices=("daily", "weekly", "all"),
+        help="which query entries to issue (default daily)")
+    ops_sweep.add_argument(
+        "--cap", type=int, default=None,
+        help="request budget; defaults to contract/harvest.yaml max_requests")
+    ops_sweep.add_argument("--scope", action="append", help="repeatable repo: qualifier")
+    ops_sweep.add_argument("--store", default="./_sweep_store")
+    ops_sweep.add_argument("--max-fetch-per-query", type=int, default=15)
+    ops_sweep.add_argument(
+        "--dry-run", action="store_true",
+        help="print the plan and the models the cap would not reach")
+    ops_sweep.set_defaults(func=_cmd_ops_sweep_github)
+
     ops_run = ops_sub.add_parser("run", help="run the nightly chain")
     ops_run.add_argument("--journal", help="append-only JSONL record of every stage")
     ops_run.add_argument(

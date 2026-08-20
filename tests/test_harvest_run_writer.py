@@ -275,3 +275,38 @@ def test_the_four_formerly_homeless_fields_now_reach_the_statement():
     assert params["pages_stored"] == 1
     assert params["sieve_pass_rate"] == 0.12
     assert params["outcome"] == "ok"
+
+
+def test_the_adapter_outcome_is_always_a_value_the_schema_allows():
+    """The mirrored-enum check that was missing, and its absence cost 121 rows.
+
+    `outcome_of` returned `fetched`, from the closed set proposed on #5. That set
+    never landed — `harvest_run_outcome_ck` allows `ok | refused | error`, aligned
+    to `job_run` and to `chain.py` by migration `20260818T1520`. So the first real
+    sweep opened 121 `harvest_run` rows and closed none: every close raised
+    `ValueError` at the call site, exactly as `close_harvest_run` intends, and the
+    caller logged it.
+
+    Nothing checked the two vocabularies stayed in step. The other lane already
+    paid for this once (`a289adf`), which is why this check exists here as well as
+    there.
+    """
+    from collect.adapters.github import GitHubHarvester, QueryRun
+    from collect.ops.ledger import ERROR, OK, REFUSED
+
+    allowed = {OK, REFUSED, ERROR}
+
+    class FakeRequest:
+        query_key = "probe"
+
+    for label, run in [
+        ("clean", QueryRun(request=FakeRequest())),
+        ("http errors", QueryRun(request=FakeRequest(), http_errors=3)),
+    ]:
+        assert GitHubHarvester.outcome_of(run) in allowed, (
+            f"{label}: outcome_of returned a value harvest_run_outcome_ck refuses"
+        )
+
+    throttled = QueryRun(request=FakeRequest())
+    throttled.rate_limited = 1
+    assert GitHubHarvester.outcome_of(throttled) in allowed
