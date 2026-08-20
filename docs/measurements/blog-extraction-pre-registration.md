@@ -10,31 +10,43 @@ nothing is not read as a failure.**
 
 ---
 
-## 1 · Guaranteed outcome one: every cell will be `insufficient`
+## 1 · Guaranteed outcome one: every cell will be `insufficient` — and the reason changed
 
-**Not a prediction. Arithmetic, for three independent reasons, and fixing the
-first two does not remove the third.**
+**CORRECTED 2026-08-20, before the run. The first version of this said `n_eff` has
+no input because `author` holds 0 rows. That was a bug being fixed rather than a
+property of the corpus, and stating it as a guaranteed outcome would have been
+right about the result and wrong about why.**
 
-**`author` holds 0 rows and `author_id` is NULL on all 57 documents.**
-`gate.py:116` sums weights over representatives keyed by `voice_id`, and
-`gate.py:131` derives `max_author_share` from per-author counts. With no author
-there is nothing to count, so `n_eff` has no input.
+`author_id` was NULL on all 57 documents because the blog write path deliberately
+wrote no author row — recorded reason, and it was about per-*article* rows. The
+unit is the feed, `contract/sources.yaml` already carries `byline_source` and
+`resolves_to_voices` per feed, and `assemble.authors.from_blog` now reads them.
+`blog:simonwillison.net` is `byline_source: feed_declared`,
+`declared_author: "Simon Willison"`, `resolves_to_voices: 1`.
 
-**And fixing that does not reach the bar, because this is a one-author corpus.**
-30 link-blog entries from one byline is **one voice**, however many claims come
-out of them. `n_eff` needs roughly 3.0 — about four independent voices — and a
-single author cannot produce a second one.
+**So the honest statement is stronger, not weaker: 30 documents, one author, one
+voice.**
 
-**And `platform_count >= 2` needs a second platform inside the same cell** — one
-model, one capability, one condition bucket. The GitHub documents are a second
-platform in the corpus and would have to land in the *same* cell to count.
+```
+n_eff needs           ~3.0, about four independent voices
+this corpus provides  1     — thirty documents from one byline
+platform_count needs  >= 2 INSIDE one cell (one model, one capability, one bucket)
+this corpus provides  1     — every one of the thirty is `blog`
+```
 
-So: **no cell can publish from this corpus.** `insufficient` is the correct
-output and it is not a bar that better extraction clears.
+**No cell can publish from this corpus, and no amount of extraction changes it.**
+`insufficient` is correct output. What changed is that it is now correct for a
+reason about the corpus rather than for a missing writer — and the contract
+measured that reason before anything was harvested.
 
 **Why this is stated in advance:** a run producing good claims and publishing
 nothing reads as an extraction failure. That is a true result carrying a false
 meaning — the mirror of the over-read, where a true quote carries a false claim.
+
+**And it is now falsifiable in a way it was not.** If a cell from these 30 ever
+shows `independent_voices > 1`, something has invented a voice: either an
+`entry`-byline path attributed articles to the wrong author, or an anonymous row
+was shared. The count is a check, not just an outcome.
 
 ## 2 · Guaranteed outcome two: over-extraction from our own template
 

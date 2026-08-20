@@ -51,8 +51,10 @@ already written against it.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from collect.adapters.blog.parse import extract_article_text
 from collect.assemble.article import ArticleInput, assemble_article, document_row
@@ -109,6 +111,14 @@ class BlogAssembleReport:
     #: Should be impossible; counted because "impossible" is how the last two
     #: defects in this lane described themselves.
     unreadable_after_write: int = 0
+
+    #: Author rows written for this feed. 1 for a `feed_declared` or `team`
+    #: byline, which is the voice count the contract measured.
+    author_rows: int = 0
+    #: An `entry`-byline feed produced several authors and no per-document
+    #: mapping exists yet, so those documents keep `author_id` NULL. Counted
+    #: rather than attributed to the first one.
+    authors_per_entry_unwired: int = 0
     #: `thread_context` rows whose `member_document_ids` did not all resolve to
     #: a `document` row. THE CHECK THE LAST VERIFICATION COULD NOT MAKE, because
     #: it supplied both sides itself.
@@ -126,8 +136,21 @@ class BlogAssembleReport:
         )
 
 
-def write_blog_run(conn, run, *, store: RawStore) -> BlogAssembleReport:
+def write_blog_run(
+    conn, run, *, store: RawStore, feed: Mapping[str, Any] | None = None
+) -> BlogAssembleReport:
     """Assemble and write every stored article in one `FeedRun`.
+
+    `feed` IS THE CONTRACT ENTRY, AND SUPPLYING IT IS WHAT GIVES A DOCUMENT AN
+    AUTHOR. This function wrote none for weeks, on the reason recorded below:
+    a per-article author row would create a voice nobody agreed to. That is right
+    about per-ARTICLE rows and the unit is the FEED — `contract/sources.yaml`
+    carries `byline_source` and `resolves_to_voices` per feed, so a
+    `feed_declared` blog with thirty articles is ONE voice with thirty documents.
+    See `assemble.authors.from_blog` for the four cases the contract rules.
+
+    Omitting `feed` keeps the old behaviour — `author_id` NULL, honestly unknown
+    — so no existing caller changes meaning by not being updated.
 
     `run` is a `collect.adapters.blog.fetch.FeedRun`. Takes the run rather than a
     list of texts so the caller cannot accidentally pass articles from a feed
@@ -135,6 +158,28 @@ def write_blog_run(conn, run, *, store: RawStore) -> BlogAssembleReport:
     of anything this sees.
     """
     report = BlogAssembleReport()
+
+    # ── the author, once per run, because the run IS one feed ─────────────
+    #
+    # Written before the documents that reference it: `document.author_id` is a
+    # foreign key, so the order is not a preference.
+    author_id: str | None = None
+    if feed is not None:
+        from collect.assemble.authors import from_blog, write_authors
+
+        extraction = from_blog(feed, [a.entry for a in run.articles if a.stored])
+        if len(extraction.rows) == 1:
+            write_authors(conn, extraction.rows)
+            author_id = extraction.rows[0].id
+            report.author_rows = 1
+        elif len(extraction.rows) > 1:
+            # An `entry`-byline feed: several voices in one run, and a document
+            # gets whichever wrote it. Not this run's shape yet — the nine feeds
+            # in the contract that do this have no stored articles — so it is
+            # counted and left NULL rather than guessed at.
+            write_authors(conn, extraction.rows)
+            report.author_rows = len(extraction.rows)
+            report.authors_per_entry_unwired = len(extraction.rows)
 
     for article_fetch in run.articles:
         if not article_fetch.stored:
@@ -178,6 +223,7 @@ def write_blog_run(conn, run, *, store: RawStore) -> BlogAssembleReport:
             text_ref=article_fetch.artifact.ref,
             content_hash=article_fetch.artifact.content_hash,
             published_at=article_fetch.entry.published_at,
+            author_id=author_id,
         )
         cursor = conn.execute(_DOCUMENT_SQL, document)
         inserted = max(0, cursor.rowcount)
