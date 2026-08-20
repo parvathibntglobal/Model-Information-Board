@@ -51,7 +51,10 @@ that describes the platform**, which is what conflating them into one enum cost:
 
 ```sql
 -- one migration, both callers, neither can act without it
-ALTER TABLE document ADD COLUMN is_placeholder boolean NOT NULL DEFAULT false;
+-- NULLABLE and no default. See "what the writer does for the 57 rows" below:
+-- `NOT NULL DEFAULT false` would assert that every stored row is not a
+-- placeholder, which is a claim about rows nobody has checked.
+ALTER TABLE document ADD COLUMN is_placeholder boolean;
 
 ALTER TABLE document DROP CONSTRAINT document_status_ck;
 ALTER TABLE document ADD  CONSTRAINT document_status_ck
