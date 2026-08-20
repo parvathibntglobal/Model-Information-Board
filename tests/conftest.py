@@ -667,3 +667,34 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config) -> None:
             "blogs are the only positive-evidence channel. Run: "
             "pip install -e '.[blog]'  (or the project's full dev install)."
         )
+
+
+# ── ask-path spend is MODULE state, so it must not leak between tests ──────
+
+
+@pytest.fixture(autouse=True)
+def _isolate_ask_spend():
+    """Reset `judge.ask.spend` before every test, with a cap configured.
+
+    Two reasons, and the second is the one that bites.
+
+    **The endpoint now refuses when no cap is configured** - an unauthenticated
+    endpoint that spends money must not run uncapped - so tests about Q1's
+    semantics would all answer 503 without this. They are testing what the
+    understanding means, not what it costs.
+
+    **And the total is process-wide by design**, which is exactly what makes
+    the cap bind across requests. The cost is that a test leaving a nearly
+    exhausted budget would make the next test fail for a reason that has
+    nothing to do with it, in an order-dependent way that reproduces only
+    under `-p no:randomly` or not at all. Resetting per test buys the
+    accumulation property without the shared-state hazard.
+
+    A generous limit rather than an unlimited one, so a runaway loop in a test
+    still stops.
+    """
+    from judge.ask import spend
+
+    spend.reset_for_test(limit_usd=1000.0)
+    yield
+    spend.reset_for_test(limit_usd=1000.0)
