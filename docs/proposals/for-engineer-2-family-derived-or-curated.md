@@ -76,6 +76,46 @@ across versions, `mistral-large` is a product line, and `gpt-4.1` is a *version*
 line. A human chose each. No single rule can, because they are not the same kind
 of thing.
 
+## 3a · The finding is the two shapes, not the 8-of-11
+
+**A percentage invites a threshold, and no threshold fixes this.** Two entries in
+your own artifact show why — same structure, opposite correct answers:
+
+```
+deepseek/deepseek-v4-pro-0813     derived: deepseek      family should be: deepseek-v4
+openai/gpt-5.3-codex              derived: gpt           family should be: gpt-5.3-codex
+```
+
+Both ids are `family — version — suffix`. **The correct family excludes the suffix
+in one and includes it in the other**, because `-pro` is a *tier* and `-codex` is
+a *line*. A rule reading structure sees the same string shape twice and has to
+produce different answers, so the error is not a tuning problem — it is that the
+distinction is semantic and the input carries no signal for it. Widen the rule to
+catch `deepseek-v4` and it makes `gpt-5.3` out of a codex model; narrow it and
+`deepseek` swallows v3, v4-flash and v4-pro together.
+
+**And the failures are the expensive kind, because the first token is often the
+vendor too.** `deepseek/deepseek-*`, `qwen/qwen3-*`, `meta-llama/llama-*` — 4 of
+the 41 and 6 of the 63 have a first token identical to their vendor prefix, and
+`gemini` covers 4 of the 41 under one word. A derived family surface there is one
+normalised string pointing at every model in the vendor's line, which
+`check_no_collisions` refuses outright — and if one ever did land, a mention would
+attribute to whichever model happened to hold the surface. **A wrong family costs
+attribution, not just retrieval.**
+
+### It is your `deepseek 0813` reseat arriving from the other direction
+
+You ruled that a bare build stamp is the loosest thing in the file — *"a surface
+whose only distinguishing token is a date stamp is not a primary"* — and demoted
+`deepseek 0813` on exactly that ground: it matches most loosely, and nobody types
+it. **Derivation gives `deepseek`, which is looser still**: `deepseek 0813` at
+least carries a token unique to one build, where `deepseek` carries nothing that
+distinguishes any of them.
+
+So the ruling you already made settles the derived-surface question a fortiori.
+That is the strongest argument against derivation on this file, and it is yours
+rather than mine.
+
 ## 4 · What the 41 look like on that axis
 
 | | of the 41 | what derivation does |
