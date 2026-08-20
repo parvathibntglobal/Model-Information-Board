@@ -21,6 +21,11 @@ const POLL_MS = 15000
 const usd = (n, dp = 4) => (n == null ? '—' : `$${Number(n).toFixed(dp)}`)
 
 export default function UsagePanel() {
+  // TWO PAID APIS, TWO UNITS, so they are tabs rather than two halves of one
+  // chart. OpenRouter bills dollars per day against a limit WE set; RapidAPI
+  // bills requests per 23.9 days against a limit somebody sells us. Putting
+  // both on one axis would be a rule-7 failure with a unit change.
+  const [tab, setTab] = useState('openrouter')
   const [data, setData] = useState(null)
   const [err, setErr] = useState(null)
   const [at, setAt] = useState(null)
@@ -58,6 +63,7 @@ export default function UsagePanel() {
   if (!data) return <section className="card"><span className="label">Reading the ledger…</span></section>
 
   const { cap, today, by_stage: stages, rates, hourly, daily, ledger } = data
+  const rapid = data.rapidapi || {}
   const pct = today.fraction_used == null ? null : Math.round(today.fraction_used * 100)
   const unwired = ledger.unwired_stages || []
 
@@ -65,12 +71,36 @@ export default function UsagePanel() {
     <section className="card card-flush">
       <div className="card-head">
         <span className="eyebrow"><IconGauge width={14} height={14} /> API usage — our cap</span>
-        <Badge tone={pct != null && pct >= 80 ? 'bad' : 'mute'}>
-          {cap.daily_usd == null ? 'no cap set' : `${pct ?? 0}% of ${usd(cap.daily_usd, 2)}/day`}
-        </Badge>
+        {tab === 'openrouter' ? (
+          <Badge tone={pct != null && pct >= 80 ? 'bad' : 'mute'}>
+            {cap.daily_usd == null ? 'no cap set' : `${pct ?? 0}% of ${usd(cap.daily_usd, 2)}/day`}
+          </Badge>
+        ) : (
+          <Badge tone={rapid.instrumented ? 'mute' : 'bad'}>
+            {rapid.instrumented ? 'requests' : 'not instrumented'}
+          </Badge>
+        )}
       </div>
 
       <div className="card-body stack stack-3">
+        <div className="row" style={{ gap: 6 }}>
+          {[
+            ['openrouter', 'OpenRouter — Gemini 2.5 Flash'],
+            ['rapidapi', 'RapidAPI — Reddit'],
+          ].map(([key, text]) => (
+            <button
+              key={key}
+              type="button"
+              className={`chip${tab === key ? ' chip-on' : ''}`}
+              onClick={() => setTab(key)}
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'rapidapi' ? <RapidApiTab rapid={rapid} /> : (
+        <>
         {/* THE CAVEATS COME FIRST. Both of these change what every number below
             MEANS, so putting them after the figures would let a reader finish
             with the reassuring half. */}
@@ -172,6 +202,8 @@ export default function UsagePanel() {
           {at && ` · refreshed ${at.toLocaleTimeString()}`}
           {err && ` · last refresh failed: ${err}`}
         </span>
+        </>
+        )}
       </div>
     </section>
   )
@@ -232,6 +264,57 @@ function Chart({ title, points, stages, cap }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+
+/**
+ * RapidAPI — requests, not dollars, and not live.
+ *
+ * The quota arrives in `x-ratelimit-requests-*` response headers read in
+ * `collect/adapters/reddit.py`, which is the other lane, and nothing persists
+ * them. So there is no row for this page to read.
+ *
+ * The last dated reading is deliberately NOT copied here. It lives in
+ * `contract/sources.yaml` beside the date it was read on; on a live dashboard
+ * the same number would read as current, which is the one thing this product
+ * exists not to do. An empty tab that says why beats a stale number that
+ * looks fine.
+ */
+function RapidApiTab({ rapid }) {
+  return (
+    <div className="stack stack-3">
+      <Notice icon={<IconAlert />}>
+        <strong style={{ color: 'var(--text)' }}>Not instrumented here.</strong>{' '}
+        {rapid.headline}
+      </Notice>
+
+      <div className="stack stack-1">
+        <span className="label">Billing window</span>
+        <p className="muted" style={{ margin: 0 }}>{rapid.window}</p>
+      </div>
+
+      {/* THE OPEN QUESTIONS ARE THE CONTENT. Both change what a usage bar would
+          mean, so they are the tab rather than a footnote under one. */}
+      <div className="stack stack-2">
+        <span className="label">Open questions — both change what a usage bar would mean</span>
+        {(rapid.open_questions || []).map((q) => (
+          <div key={q.question} className="stack stack-1">
+            <strong style={{ color: 'var(--text)' }}>{q.question}</strong>
+            <span className="muted">{q.detail}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="stack stack-1">
+        <span className="label">What would make this live</span>
+        <p className="muted" style={{ margin: 0 }}>{rapid.what_would_make_it_live}</p>
+      </div>
+
+      <span className="label" style={{ opacity: 0.7 }}>
+        Source of record: {rapid.source_of_record}
+      </span>
     </div>
   )
 }

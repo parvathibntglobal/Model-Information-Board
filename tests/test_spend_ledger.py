@@ -233,3 +233,54 @@ class TestTheEndpoint:
         body = TestClient(app).get("/admin/usage").json()
         assert "never recorded" in body["summary"]
         assert body["ledger"]["unwired_stages"] == [spend_ledger.STAGE_ASK]
+
+
+class TestTheOtherPaidApiIsNotMeasuredInDollars:
+    """RapidAPI bills requests per 23.9 days; the LLM bills dollars per day.
+
+    Same page, separate tab, separate units. The assertions here are mostly
+    about what the endpoint must NOT do - putting a dated observation on a live
+    dashboard is the failure, not the absence of a number.
+    """
+
+    def _rapid(self):
+        from fastapi.testclient import TestClient
+
+        from judge.app import app
+
+        return TestClient(app).get("/admin/usage").json()["rapidapi"]
+
+    def test_it_reports_requests_rather_than_dollars(self, ledger):
+        assert self._rapid()["unit"] == "requests"
+
+    def test_it_says_it_is_not_instrumented_rather_than_showing_zero(self, ledger):
+        """Zero requests used would be a lie; not-instrumented is the fact."""
+        rapid = self._rapid()
+        assert rapid["instrumented"] is False
+        assert "Not instrumented" in rapid["headline"]
+
+    def test_no_dated_observation_is_copied_onto_the_live_view(self, ledger):
+        """The quota reading lives in `contract/sources.yaml` beside its read
+        date. The same figure here would read as current, which is precisely the
+        confusion this product exists to prevent."""
+        body = json.dumps(self._rapid())
+        for stale in ("998660", "1000000", "500000"):
+            assert stale not in body, f"{stale} is a dated reading and must not appear live"
+
+    def test_the_window_is_not_described_as_a_month(self, ledger):
+        """23.9 days. Costing it as a monthly share is a third too low."""
+        window = self._rapid()["window"]
+        assert "23.9" in window
+        assert "not a month" in window
+
+    def test_both_open_questions_travel_with_it(self, ledger):
+        """Each changes what a usage bar would mean, so neither is a footnote."""
+        questions = " ".join(q["question"] + q["detail"] for q in self._rapid()["open_questions"])
+        assert "tier" in questions
+        assert "per-minute" in questions
+        # The tier question's whole point: a healthy-looking bar may be a cliff.
+        assert "looks healthy" in questions
+
+    def test_it_names_what_would_make_it_live(self, ledger):
+        """A gap with no repair attached is a complaint."""
+        assert "x-ratelimit-requests-" in self._rapid()["what_would_make_it_live"]

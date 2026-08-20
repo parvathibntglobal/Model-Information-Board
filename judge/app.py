@@ -673,6 +673,75 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
             "rows": report.total_rows,
             "unwired_stages": list(report.unwired_stages),
         },
+        "rapidapi": _rapidapi_quota(),
+    }
+
+
+def _rapidapi_quota() -> dict:
+    """The OTHER paid API, and it is not measured in dollars.
+
+    RapidAPI serves the Reddit path and is billed as a REQUEST QUOTA, not spend.
+    Putting it on the same axis as the LLM cap would be rule 7 with a unit
+    change: one is dollars per day against a limit we set, the other is requests
+    per 23.9 days against a limit somebody sells us. Same page, separate tab,
+    separate units.
+
+    NOT LIVE, AND THE REASON IS THE LANE BOUNDARY. RapidAPI's quota arrives in
+    response headers, captured at `collect/adapters/reddit.py:_QUOTA_HEADERS` -
+    which is `collect/`, and `judge/` never imports it. Nothing persists those
+    headers, so there is no row for this lane to read. Reporting a figure here
+    would mean copying a dated observation out of `contract/sources.yaml` onto a
+    live dashboard, where it would read as current. That is the failure this
+    whole board exists to avoid, so the numbers stay where their read date is
+    and this endpoint reports the instrumentation gap instead.
+
+    THE TWO OPEN QUESTIONS ARE RETURNED, not hidden, because both change what a
+    usage bar would MEAN:
+
+      * The billed tier is unverified. The gateway header says 1,000,000 and the
+        plan page says 500,000. If it is a 500,000 tier we are cut off there with
+        the header reading ~500,000 remaining and looking healthy. No request can
+        settle it - the answer would come from the party whose figure is in doubt.
+      * The per-minute allowance has never been read. A 429 arrived at the 32nd
+        rapid call and 25/min is a WORKING FIGURE, not a limit anyone published.
+    """
+    return {
+        "unit": "requests",
+        "instrumented": False,
+        "headline": (
+            "Not instrumented. RapidAPI quota arrives in response headers read in "
+            "collect/, and nothing persists them, so this lane has nothing to "
+            "read. The last dated observation lives in contract/sources.yaml with "
+            "its read date - deliberately not copied here, where it would read as "
+            "live."
+        ),
+        "window": "23.9 days, not a month - anything costed as a monthly share is a third too low",
+        "open_questions": [
+            {
+                "question": "Which tier are we actually billed on?",
+                "detail": (
+                    "The gateway header reports 1,000,000 and the plan page says "
+                    "500,000. On a 500,000 tier we are cut off at 500,000 while the "
+                    "header still reads ~500,000 remaining and looks healthy. Closes "
+                    "on somebody opening the RapidAPI subscription page - a browser, "
+                    "not a call."
+                ),
+            },
+            {
+                "question": "What is the per-minute allowance?",
+                "detail": (
+                    "Unknown. No header states one. A 429 arrived at the 32nd rapid "
+                    "call, so 25/min is a working figure we chose, not a limit "
+                    "RapidAPI published."
+                ),
+            },
+        ],
+        "what_would_make_it_live": (
+            "collect/ persisting the three x-ratelimit-requests-* headers it already "
+            "captures, with the timestamp of the read. One row per harvest run is "
+            "enough for a usage line; per call is enough for a rate line."
+        ),
+        "source_of_record": "contract/sources.yaml - the reddit-via-rapidapi entry",
     }
 
 

@@ -42,8 +42,6 @@ export default function Admin() {
 
       {/* health — no database required, so this always answers */}
       <Reveal>
-        <UsagePanel />
-
         <section className="card">
           <div className="row-between" style={{ marginBottom: 'var(--s3)' }}>
             <div className="row" style={{ gap: 8 }}>
@@ -64,6 +62,13 @@ export default function Admin() {
           )}
         </section>
       </Reveal>
+
+        {/* API usage — placed below Service deliberately. Service answers
+            "is the board up"; this answers "what are we spending", and the
+            two are read at different moments. Two paid APIs, different units. */}
+        <Reveal>
+          <UsagePanel />
+        </Reveal>
 
       {/* coverage */}
       <Reveal>
