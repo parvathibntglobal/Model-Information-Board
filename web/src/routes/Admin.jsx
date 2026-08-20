@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { health, coveragePage, filteredPage, changelogPage, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
+import UsagePanel from '../components/UsagePanel'
 import { IconAlert, IconGauge, IconLayers, IconFilter } from '../components/Icons'
 
 /**
@@ -41,6 +42,8 @@ export default function Admin() {
 
       {/* health — no database required, so this always answers */}
       <Reveal>
+        <UsagePanel />
+
         <section className="card">
           <div className="row-between" style={{ marginBottom: 'var(--s3)' }}>
             <div className="row" style={{ gap: 8 }}>

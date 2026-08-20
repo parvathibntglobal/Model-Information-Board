@@ -93,3 +93,8 @@ _flattened_probe/
 # ignored while its contents were not is exactly the check that looks like a
 # guarantee and is not.
 _handoff/
+
+# The spend ledger: a record of money actually spent (judge/spend_ledger.py).
+# Operational data, not source, and it differs per machine — committing it would
+# put one developer's spend on everyone else's admin page.
+var/

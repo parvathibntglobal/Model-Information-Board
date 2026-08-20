@@ -108,6 +108,14 @@ export const askRevise = (profile, acceptedAssumptions = []) =>
 export const askUnderstand = (text, shape = 'task') =>
   request('/ask/understand', { method: 'POST', body: { text, shape } })
 
+/**
+ * OUR spend against OUR shared daily cap — not OpenRouter's ceilings, which are
+ * different numbers on a different schedule. Covers both LLM stages under one
+ * limit; see judge/spend_ledger.py.
+ */
+export const adminUsage = (hours = 24, days = 14) =>
+  request(`/admin/usage?hours=${hours}&days=${days}`)
+
 /* ------------------------------------------------------------------ display */
 
 export const fmtInt = (n) =>
