@@ -160,7 +160,17 @@ class ExtractionOptions:
     #: moves every offset after the first one in every article that has one,
     #: and before this field existed it would have done so under an unchanged
     #: `extraction_version`.
-    pipeline: int = 1
+    #: BUMPED 1 -> 2 (2026-08-20): the recent-articles template strip in
+    #: `extract_article_text`. The second change this field was made for, after
+    #: the footnote back-link, and for the same reason - it belongs at extraction
+    #: rather than in the flattener where it would look solved.
+    #:
+    #: NOTE THAT THIS CHANGES NOTHING OBSERVABLE TODAY. `extraction_version` is
+    #: computed and persisted NOWHERE (`thread.py:38`), and the thread_context id
+    #: carries `pipeline_version` instead - so a re-flatten under this bump has
+    #: the same id and ON CONFLICT DO NOTHING drops it. The bump is correct and
+    #: inert until #5 A4 lands.
+    pipeline: int = 2
 
     def _rostered(self) -> dict[str, object]:
         """Every field, checked against the rosters in both directions.

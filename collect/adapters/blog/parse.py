@@ -58,6 +58,7 @@ engineer's words to somebody who did not write them.
 from __future__ import annotations
 
 import calendar
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -299,6 +300,7 @@ def extract_article_text(
     *,
     url: str | None = None,
     options: ExtractionOptions | None = None,
+    template_block: str | None = None,
 ) -> str | None:
     """Article HTML bytes to the plain text the extractor will read.
 
@@ -336,7 +338,58 @@ def extract_article_text(
         favor_recall=options.favor_recall,
         output_format=options.output_format,
     )
+    if text and template_block is not None:
+        text = strip_template_block(text, template_block)
     return text or None
+
+
+#: Per-feed heading that begins a template block, keyed by `source` id. NOT a
+#: general rule, and the measurement says why it cannot be one.
+#:
+#: `<h2>Recent articles</h2>` appears in 27 of the 30 stored simonwillison.net
+#: pages and trafilatura keeps it in all 27 — it sits inside the content region
+#: for this site's markup, so no extraction option removes it (`favor_precision`
+#: drops 65 characters and keeps the block). The list is the AUTHOR'S OWN link
+#: index: a model named in a headline there is named by the headline, not by
+#: anyone writing about it, and 13 of the 30 name a model ONLY there.
+#:
+#: **A rule that fires on one site and silently does nothing on eight is the
+#: thing to avoid**, so this is a mapping with an explicit absent state rather
+#: than a regex applied everywhere. The other eight feeds have NO stored HTML in
+#: `raw_store` — every blog document is simonwillison.net — so their templates
+#: are unverified rather than absent, and `template_block_for` says which of the
+#: two a caller is looking at.
+TEMPLATE_BLOCKS: dict[str, str] = {
+    "blog:simonwillison.net": "Recent articles",
+}
+
+
+def template_block_for(source_id: str | None) -> str | None:
+    """The heading that begins this feed's template block, or None.
+
+    None means **no rule recorded**, which is not the same as no template. Eight
+    of the nine feeds are in that state and will be until one of their pages is
+    stored and read.
+    """
+    return TEMPLATE_BLOCKS.get(source_id or "")
+
+
+def strip_template_block(text: str, heading: str) -> str:
+    """Drop everything from a markdown heading line onwards.
+
+    ANCHORED ON THE HEADING LINE, not on the words. `## Recent articles` at the
+    start of a line is the block; the same phrase inside a sentence is somebody
+    writing about recent articles and stays. A substring match here would be the
+    boundary defect this project has already recorded twice.
+
+    Everything AFTER the heading goes, because the block is terminal in this
+    template — it is the page footer. A rule that tried to find the end of the
+    block would need to know what follows it, which is more site knowledge for no
+    gain while the block is last.
+    """
+    pattern = re.compile(rf"^\s{{0,3}}#{{1,6}}\s+{re.escape(heading)}\s*$", re.MULTILINE)
+    match = pattern.search(text)
+    return text[: match.start()].rstrip() if match else text
 
 
 def current_extraction_version(options: ExtractionOptions | None = None) -> str:
