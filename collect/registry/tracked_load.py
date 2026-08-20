@@ -61,7 +61,12 @@ from pathlib import Path
 
 import yaml
 
-from collect.registry.aliases import AliasRow, check_no_collisions
+from collect.registry.aliases import (
+    SPELLING_STYLES,
+    AliasRow,
+    check_no_collisions,
+    spelling_styles,
+)
 from collect.registry.seat import (
     DEFAULT_ARTIFACT,
     ReviewedEntry,
@@ -237,15 +242,30 @@ def _live_verdict(conn, alias: AliasRow) -> str:
     one must not open a transaction, so the duplication is named here rather than
     left for a reader to notice.
     """
+    # THE ROW'S OWN EXISTENCE FIRST, and this is a correction to what this
+    # function did on the day it was written. It mirrored `_sync_alias`'s
+    # live-row SELECT and stopped there — but that query only sees
+    # `valid_until IS NULL`, so an alias belonging to a RETIRED model is never
+    # live and the plan predicted `insert` for a row already sitting in the
+    # table. `_sync_alias` gets this right by checking `cur.rowcount` after
+    # `ON CONFLICT (id) DO NOTHING` and reporting `unchanged`; its comment says
+    # so in as many words. I copied the query and not the check.
+    #
+    # Found by re-running the plan after the load: 2 inserts predicted where 41
+    # entries were already seated, both of them `z-ai/glm-4.5`, whose model
+    # carries a `retirement_date` — so its rows are correctly not live.
+    exists = conn.execute(
+        "SELECT 1 FROM model_alias WHERE id = %s", (alias.id,)
+    ).fetchone()
+    if exists:
+        return "unchanged"
+
     live = conn.execute(
         "SELECT id FROM model_alias "
         "WHERE normalized = %s AND model_version_id = %s AND valid_until IS NULL",
         (alias.normalized, alias.model_version_id),
     ).fetchall()
-    ids = {row[0] for row in live}
-    if alias.id in ids:
-        return "unchanged"
-    return "replace" if ids else "insert"
+    return "replace" if live else "insert"
 
 
 @dataclass
@@ -340,6 +360,36 @@ def plan(conn, manifest: Manifest, *, artifact_path: Path | None = None) -> Load
                 f"{', '.join(entry.blocking_incomplete)}. `family_surface` is "
                 f"permanent by design and does not block; anything else means the "
                 f"review is unfinished."
+            )
+            continue
+
+        # ── the three renderings, on this path for the first time ────────────
+        #
+        # `check_spelling_coverage` has always run at `load_seed` and never here,
+        # and BOTH WRITERS LAND IN model_alias — a rule enforced on one writer of
+        # a shared table, which is the one-sided invariant shape in a new place.
+        #
+        # It passes on all 41 today, which is the argument for wiring it rather
+        # than against: the artifact's `mechanical_variants` emits spaced,
+        # hyphenated and concatenated for every entry, so this costs a call and
+        # starts protecting the day that stops being true. Same reasoning that
+        # wired `assert_no_fixtures` while it was passing.
+        #
+        # Two things it does NOT claim. On this path it checks the GENERATOR
+        # rather than the review, because the renderings are mechanical — what it
+        # catches is a reviewer deleting one, or the generator changing. And it is
+        # orthogonal to the family question: the three renderings are renderings
+        # of ONE surface (`opus 4.8` / `opus-4.8` / `opus4.8`), not specificity
+        # tiers, so a version-and-snapshot-only seat can satisfy it completely.
+        declared = [entry.surface, *entry.variants]
+        missing = tuple(s for s in SPELLING_STYLES if s not in spelling_styles(declared))
+        if missing:
+            result.refusals.append(
+                f"{canonical_id} is missing the {', '.join(missing)} rendering(s). "
+                f"Neither GitHub nor Reddit has a fuzzy operator, so every spelling "
+                f"has to be issued as its own query — a model with no concatenated "
+                f"form is unfindable by somebody who wrote `opus4.8`, and that "
+                f"absence renders as nobody discussing it."
             )
             continue
 

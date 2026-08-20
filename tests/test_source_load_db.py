@@ -356,3 +356,74 @@ def test_gate_four_a_stored_medium_row_permits_the_feed_and_refuses_articles(
     # ... and the article path is not, however politely it is asked for.
     with pytest.raises(FeedOnlyError, match="Do not work around it"):
         fetcher.harvest_feed("https://netflixtechblog.com/feed", fetch_articles=True)
+
+
+def test_the_report_names_its_denominator_and_any_skip(conn):
+    """A loader that reports only what it wrote cannot prove it wrote everything.
+
+    `12 inserted` reads as complete whether the contract held 12 entries or 14 —
+    the same shape as a comparison that finds no rows and reports no differences.
+    So the report carries entries READ against rows WRITTEN, with the denominator
+    counted from the contract's own sections rather than from `source_rows()`:
+    `len(rows)` against `len(rows)` is a check that cannot fail.
+    """
+    from collect.registry.sources import load_source_rows, load_sources
+
+    contract = load_sources()
+    report = load_source_rows(conn, contract)
+
+    expected = len(contract.platforms) + len(contract.feeds)
+    assert report.declared == expected
+    assert report.total == expected, "every declared entry reached a row"
+    assert report.skipped == []
+    assert f"{report.total} of {report.declared} contract entries" in report.summary()
+
+    # github and reddit specifically, because both are API sources and the worry
+    # was that a required `endpoint` had dropped them. `endpoint` is nullable and
+    # `_source_row` reads every column with `.get()`, so nothing can be dropped
+    # for a missing field — but the row that PROVES the nullable path is `blogs`,
+    # which declares no endpoint and loads.
+    landed = {r[0]: r[1] for r in conn.execute("SELECT id, endpoint FROM source").fetchall()}
+    assert "github" in landed and "reddit" in landed
+    assert landed["blogs"] is None, "the endpoint-less platform row still lands"
+
+
+def test_a_contract_entry_that_never_reaches_a_row_is_named(conn):
+    """The skip path, exercised by making one — since nothing skips today.
+
+    A guard that has never fired is a guard nobody has seen work.
+    """
+    from collect.registry.sources import load_source_rows, load_sources
+
+    contract = load_sources()
+    full = contract.source_rows()
+    dropped = {"github", "reddit"}
+
+    class Filtered:
+        """A contract whose row builder omits two declared entries.
+
+        This is the future defect, made present: a filter, a parse that gives up
+        on an entry, a field requirement that excludes an API source with no feed
+        URL. The point is that the report says so instead of counting what
+        survived.
+        """
+
+        platforms = contract.platforms
+        feeds = contract.feeds
+
+        def source_rows(self):
+            return [row for row in full if row["id"] not in dropped]
+
+    report = load_source_rows(conn, Filtered())
+
+    assert report.declared == len(contract.platforms) + len(contract.feeds)
+    assert report.total == report.declared - 2
+    assert sorted(report.skipped) == ["github", "reddit"]
+
+    summary = report.summary()
+    assert f"{report.total} of {report.declared}" in summary
+    assert "SKIPPED" in summary and "github" in summary and "reddit" in summary
+    assert "harvest_run.source_id" in summary, (
+        "the skip has to say what it costs — a source with no row cannot carry a "
+        "harvest run, which is the blocker this loader was built to remove"
+    )

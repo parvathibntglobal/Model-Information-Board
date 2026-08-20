@@ -265,6 +265,24 @@ class SourceLoadReport:
     unchanged: int = 0
     changed_columns: dict[str, list[str]] = field(default_factory=dict)
 
+    #: ENTRIES THE CONTRACT OFFERED, counted upstream of `source_rows()`.
+    #:
+    #: A loader that reports only what it wrote cannot distinguish "wrote
+    #: everything" from "wrote everything it could parse". `12 inserted` reads
+    #: as complete whether the contract held 12 entries or 14, which is the same
+    #: shape as a comparison that finds no rows and reports no differences.
+    #:
+    #: **The denominator has to come from upstream of the thing being checked.**
+    #: Counting it off `source_rows()` would compare a number with itself and
+    #: could never see a drop, so it is counted from the contract's own
+    #: sections — `platforms` and `feeds` — and the two are compared.
+    declared: int = 0
+
+    #: Contract ids that were declared and did not reach a row. Empty today and
+    #: named rather than inferred, so a future filter surfaces in the output
+    #: instead of inside a count that looks finished.
+    skipped: list[str] = field(default_factory=list)
+
     #: Rows written with no `terms_ruling`. Not an error — `reddit` is
     #: honestly unreviewed and its row still has to exist for the foreign key
     #: — but counted, because an unreviewed source that nobody notices is the
@@ -277,9 +295,17 @@ class SourceLoadReport:
 
     def summary(self) -> str:
         lines = [
-            f"sources  : {self.inserted} inserted, {self.updated} updated, "
+            f"sources  : {self.total} of {self.declared} contract entries written "
+            f"— {self.inserted} inserted, {self.updated} updated, "
             f"{self.unchanged} unchanged"
         ]
+        if self.skipped:
+            lines.append(
+                f"SKIPPED  : {len(self.skipped)} declared entr(ies) never reached a "
+                f"row: {', '.join(sorted(self.skipped))}. A source with no row "
+                f"cannot be harvested and cannot carry a harvest_run — "
+                f"`harvest_run.source_id` is a foreign key to `source(id)`."
+            )
         for source_id, columns in sorted(self.changed_columns.items()):
             lines.append(f"           {source_id}: {', '.join(columns)}")
         if self.unreviewed:
@@ -362,6 +388,18 @@ def load_source_rows(conn, contract: SourcesContract | None = None) -> SourceLoa
     contract = contract or load_sources()
     rows = contract.source_rows()
     report = SourceLoadReport()
+
+    # Counted from the contract's own sections rather than from `rows`, so the
+    # comparison has an independent denominator. `len(rows)` against `len(rows)`
+    # is a check that cannot fail.
+    declared_ids = [
+        entry.get("id") for entry in (*contract.platforms, *contract.feeds)
+    ]
+    report.declared = len(declared_ids)
+    written_ids = {row.get("id") for row in rows}
+    report.skipped = [
+        source_id for source_id in declared_ids if source_id not in written_ids
+    ]
 
     _refuse_provenance_conflicts(conn, rows)
 

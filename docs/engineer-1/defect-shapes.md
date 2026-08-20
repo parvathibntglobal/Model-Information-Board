@@ -325,6 +325,76 @@ is it read                     no cheap answer. An AST call graph is closer than
 
 ---
 
+## 5a · The match that ignored word boundaries, twice
+
+**The shape.** A surface matched by containment rather than by boundary hits
+inside longer words. It is shape 5's sibling: the same well-formed, confidently
+wrong answer, arrived at by a substring rather than by a name.
+
+**First instance, `resolve()` on movie posts, 2026-08-18.** A pure-code matcher
+hit `free` inside *"freeze"* and `fusion` inside *"confusion"*, and it was
+invisible on an AI corpus — the control experiment on unrelated posts is what
+surfaced it (`docs/measurements/control-and-reshape.md`). It is quoted in
+CLAUDE.md as the reason code-only extraction was refused.
+
+**Second instance, in the tool built to sample for the golden set, 2026-08-20.**
+The two-surface stratum was counted by substring containment and reported **43**
+candidates. `re.finditer` with `` on both ends reported **2**, and **40 of the
+41 dropped were `pro` inside "problem" and "process"**.
+
+**The consequence is the one worth keeping: the stratum would have been NOISE
+rather than empty**, and noise is worse. An empty stratum says *look somewhere
+else*. A stratum of 43 rows where 41 are `pro`-in-`problem` says *here is your
+sample*, and a labeller works through it before anyone asks what matched.
+
+**AND THE BLAST RADIUS DEPENDS ON THE SURFACE LIST, NOT ON THE CORPUS**, which
+is why this went unnoticed on one side and not the other. Re-run against the 105
+alias surfaces in `model_alias`, over 57 stored documents:
+
+```
+>=2 surfaces, substring containment : 23
+>=2 surfaces, word boundaries       : 22        one document, four owner-claims
+```
+
+Nearly harmless — because **every one of those 105 surfaces carries a digit**.
+`gpt-4`, `opus 4.8`, `haiku-4.5` cannot hide inside an English word. The
+0-of-41-with-a-family-surface measurement is the same fact from the other side:
+the tracked-set artifact contains no bare family words, so the seated population
+is structurally immune to the defect that cost the golden-set tool 41 of 43.
+
+So the fix is `` on both ends in both places, and the lesson is that a
+containment matcher is safe **only for as long as no digit-free surface enters
+the list** — which is one reviewer accepting one `family_surface` away.
+
+## 5b · The literal inside SQL, invisible to a search for the column
+
+**The shape.** A value written as a string inside a SQL statement is not found by
+a search for the Python form of the same assignment. It is shape 5 run backwards:
+not a name matching in the wrong context, but the right name in a context the
+tool does not read.
+
+**Instance, 2026-08-20.** *"Only one writer passes `document.status`"* — reported
+twice, from `grep "status" --include=*.py` and from `grep '"status"'`. Both found
+`collect/assemble/article.py:184`, a dict value, and neither found
+`collect/adapters/github.py:538`:
+
+```sql
+INSERT INTO document (id, source, …, engagement, status)
+VALUES (%(id)s, %(source)s, …, %(engagement)s, 'kept')
+```
+
+**Two writers, both hardcoding a triage verdict on rows triage has never seen** —
+and the second one is why 27 GitHub documents read `kept` with `triage_verdict`
+NULL. The conclusion drawn from the miss was that changing the column default
+would be sufficient; with both writers visible, the default is the third source of
+the value and changing it alone fixes nothing.
+
+**Already recorded once from the other direction.** §5 notes `write_authors`
+having three apparent callers that *"were all prose"*, and that a column reached
+through a built identifier is invisible to a search for its name. This is the same
+sentence with the operand swapped, which is the argument for the habit below
+rather than for another instance.
+
 ## 6 · The absent value that became a definite one
 
 **The shape.** Rule 6. A missing value is silently converted into a definite one,
@@ -522,3 +592,5 @@ Ordered cheapest first, which is how they should be applied. Numbers are
 | 9 | A helper **named for what it returns** is read as a statement about what it covers |
 | 10 | **An import chain is no evidence of a call path.** Count the rows |
 | 11 | **Name the question before choosing the tool**, and say which question you answered |
+| 12 | **A containment match is a boundary match's false positive.** `\b` both ends, and ask whether any surface in the list is a word |
+| 13 | **Grep the SQL too.** A column written as a literal inside a statement answers no search for the assignment |

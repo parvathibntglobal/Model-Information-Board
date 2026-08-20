@@ -85,6 +85,7 @@ from collect.triage.entity import (  # noqa: E402
     SurfacePopulation,
     build_population,
     normalize,
+    normalize_with_boundaries,
     resolve,
 )
 from collect.triage.gates import Document, triage  # noqa: E402
@@ -175,12 +176,32 @@ def snippet_around(text: str, surface: str) -> tuple[str, int] | None:
     Matched on the NORMALISED string and mapped back, because the document spells
     the surface however the writer did - `GPT 5`, `gpt-5` - and a raw `find` on
     the surface misses every one of those.
+
+    **WORD BOUNDARIES ON BOTH ENDS, AND THIS FILE IS WHY THE RULE EXISTS TWICE.**
+    A plain `.find()` on the space-stripped text reported 43 candidates for the
+    two-surface stratum where a bounded match reports 2, and 40 of the 41 dropped
+    were `pro` inside "problem" and "process". A stratum of 43 rows where 41 are
+    noise is worse than an empty one: an empty stratum sends you elsewhere, and a
+    full one gets labelled.
+
+    Second instance of the defect `normalize_with_boundaries` was written for -
+    the first was `resolve()` hitting `free` inside "freeze" on a movie corpus.
+    So this REUSES that function rather than re-deriving the rule: two
+    implementations of one question is how the first fix failed to reach the
+    second caller.
+
+    The current seated surfaces all carry a digit and so cannot hide inside an
+    English word. That is a property of today's data and not of this code, which
+    is exactly why the check belongs here.
     """
-    norm_text = normalize(text)
     norm_surface = normalize(surface)
     if not norm_surface:
         return None
+    norm_text, starts, ends = normalize_with_boundaries(text)
+
     pos = norm_text.find(norm_surface)
+    while pos >= 0 and not (starts[pos] and ends[pos + len(norm_surface) - 1]):
+        pos = norm_text.find(norm_surface, pos + 1)
     if pos < 0:
         return None
 

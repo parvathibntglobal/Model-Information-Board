@@ -20,6 +20,7 @@ import pytest
 import yaml
 
 from collect.ids import model_version_id
+from collect.registry.aliases import SPELLING_STYLES, spelling_styles
 from collect.registry.seat import read_entry
 from collect.registry.tracked_load import (
     LoadRefused,
@@ -140,7 +141,10 @@ def test_a_second_load_adds_a_family_surface_and_disturbs_nothing(conn, tmp_path
     """
     _registry_row(conn, MODEL)
 
-    first = _artifact(tmp_path, _entry_block(MODEL, "opus 4.8", ["opus-4.8", "claude 4.8"]))
+    first = _artifact(
+        tmp_path,
+        _entry_block(MODEL, "opus 4.8", ["opus-4.8", "opus4.8", "claude 4.8"]),
+    )
     manifest = read_manifest(_manifest(tmp_path, first, [MODEL]))
     before = load(conn, manifest, artifact_path=first)
     conn.commit()
@@ -161,7 +165,7 @@ def test_a_second_load_adds_a_family_surface_and_disturbs_nothing(conn, tmp_path
     later = tmp_path / "later"
     later.mkdir()
     second = _artifact(
-        later, _entry_block(MODEL, "opus 4.8", ["opus-4.8", "claude 4.8", "opus"])
+        later, _entry_block(MODEL, "opus 4.8", ["opus-4.8", "opus4.8", "claude 4.8", "opus"])
     )
     reattested = read_manifest(_manifest(later, second, [MODEL]))
 
@@ -195,7 +199,9 @@ def test_a_blocking_incomplete_slot_refuses_and_family_surface_does_not(conn, tm
     """`family_surface` is permanent by design; anything else means unfinished."""
     _registry_row(conn, MODEL)
 
-    permitted = _artifact(tmp_path, _entry_block(MODEL, "opus 4.8", ["opus-4.8"]))
+    permitted = _artifact(
+        tmp_path, _entry_block(MODEL, "opus 4.8", ["opus-4.8", "opus4.8"])
+    )
     assert not plan(conn, read_manifest(_manifest(tmp_path, permitted, [MODEL])),
                     artifact_path=permitted).refusals
 
@@ -203,7 +209,7 @@ def test_a_blocking_incomplete_slot_refuses_and_family_surface_does_not(conn, tm
     blocked_dir.mkdir()
     blocked = _artifact(
         blocked_dir,
-        _entry_block(MODEL, "opus 4.8", ["opus-4.8"],
+        _entry_block(MODEL, "opus 4.8", ["opus-4.8", "opus4.8"],
                      incomplete="family_surface, attested_surfaces"),
     )
     refusals = plan(
@@ -220,8 +226,8 @@ def test_a_changed_entry_revokes_only_its_own_review(conn, tmp_path):
 
     artifact = _artifact(
         tmp_path,
-        _entry_block(MODEL, "opus 4.8", ["opus-4.8"])
-        + _entry_block(OTHER, "opus 5", ["opus-5"]),
+        _entry_block(MODEL, "opus 4.8", ["opus-4.8", "opus4.8"])
+        + _entry_block(OTHER, "opus 5", ["opus-5", "opus5"]),
     )
     stale = entry_fingerprint(read_entry(MODEL, artifact)).replace("sha256:", "sha256:0")
     prepared = plan(
@@ -246,8 +252,8 @@ def test_two_entries_claiming_one_surface_refuse_before_any_write(conn, tmp_path
 
     artifact = _artifact(
         tmp_path,
-        _entry_block(MODEL, "opus 4.8", ["opus"])
-        + _entry_block(OTHER, "opus 5", ["opus"]),
+        _entry_block(MODEL, "opus 4.8", ["opus-4.8", "opus4.8", "opus"])
+        + _entry_block(OTHER, "opus 5", ["opus-5", "opus5", "opus"]),
     )
     prepared = plan(
         conn, read_manifest(_manifest(tmp_path, artifact, [MODEL, OTHER])),
@@ -264,7 +270,9 @@ def test_two_entries_claiming_one_surface_refuse_before_any_write(conn, tmp_path
 def test_a_population_that_disagrees_with_itself_refuses(conn, tmp_path):
     """Rule 7 as a guard: a manifest edited by hand after the review."""
     _registry_row(conn, MODEL)
-    artifact = _artifact(tmp_path, _entry_block(MODEL, "opus 4.8", ["opus-4.8"]))
+    artifact = _artifact(
+        tmp_path, _entry_block(MODEL, "opus 4.8", ["opus-4.8", "opus4.8"])
+    )
     prepared = plan(
         conn, read_manifest(_manifest(tmp_path, artifact, [MODEL], population=41)),
         artifact_path=artifact,
@@ -281,7 +289,7 @@ def test_the_provisional_condition_fires_on_a_below_floor_seat_that_now_qualifie
     """
     artifact = _artifact(
         tmp_path,
-        _entry_block(MODEL, "opus 4.8", ["opus-4.8"], seated_by="launch-window",
+        _entry_block(MODEL, "opus 4.8", ["opus-4.8", "opus4.8"], seated_by="launch-window",
                      mentions=38),
     )
     caught = provisional_violations(artifact)
@@ -291,10 +299,114 @@ def test_the_provisional_condition_fires_on_a_below_floor_seat_that_now_qualifie
     below_dir.mkdir()
     below = _artifact(
         below_dir,
-        _entry_block(MODEL, "opus 4.8", ["opus-4.8"], seated_by="launch-window",
+        _entry_block(MODEL, "opus 4.8", ["opus-4.8", "opus4.8"], seated_by="launch-window",
                      mentions=13),
     )
     assert provisional_violations(below) == [], (
         "13 mentions against a floor of 20 is seated exactly as the policy "
         "intends — a check that fires on a correct state gets muted"
+    )
+
+
+def test_a_missing_rendering_refuses_on_this_path_too(conn, tmp_path):
+    """`check_spelling_coverage`'s rule, on the writer it never covered.
+
+    It has always run at `load_seed` and never at a seat, and both writers land
+    in `model_alias` — a rule enforced on one writer of a shared table. It passes
+    on all 41 attested entries today, which is the argument for wiring it rather
+    than against.
+
+    Asserted in both directions, because a check that cannot fail is not a check:
+    an entry carrying all three renderings plans cleanly, and one carrying only
+    the spaced form refuses and names what is missing.
+    """
+    _registry_row(conn, MODEL)
+
+    complete = _artifact(
+        tmp_path, _entry_block(MODEL, "opus 4.8", ["opus-4.8", "opus4.8"])
+    )
+    assert not plan(
+        conn, read_manifest(_manifest(tmp_path, complete, [MODEL])), artifact_path=complete
+    ).refusals
+
+    spaced_only = tmp_path / "spaced"
+    spaced_only.mkdir()
+    thin = _artifact(spaced_only, _entry_block(MODEL, "opus 4.8", ["claude opus 4.8"]))
+    refusals = plan(
+        conn, read_manifest(_manifest(spaced_only, thin, [MODEL])), artifact_path=thin
+    ).refusals
+
+    assert len(refusals) == 1
+    assert "hyphenated" in refusals[0] and "concatenated" in refusals[0]
+    assert "fuzzy operator" in refusals[0], (
+        "the refusal has to say why, or it reads as pedantry about spelling"
+    )
+
+
+def test_the_live_artifact_passes_the_rendering_rule(conn):
+    """The 41 attested seats, against the real file rather than a fixture.
+
+    This is the measurement that made wiring the check free: 0 of 41 fail. If it
+    ever fails, the generator changed or a reviewer deleted a rendering, and both
+    are things somebody needs to know before a sweep runs on the result.
+    """
+    from collect.registry.tracked_load import DEFAULT_MANIFEST
+
+    if not DEFAULT_MANIFEST.exists():
+        pytest.skip("no reviewed-seats manifest in the tree")
+
+    manifest = read_manifest(DEFAULT_MANIFEST)
+    for canonical_id in manifest.ids:
+        entry = read_entry(canonical_id)
+        declared = [entry.surface, *entry.variants]
+        missing = [s for s in SPELLING_STYLES if s not in spelling_styles(declared)]
+        assert not missing, f"{canonical_id} is missing {missing} from {declared}"
+
+
+def test_a_retired_model_replans_as_unchanged_rather_than_insert(conn, tmp_path):
+    """The plan must not predict a write `_sync_alias` will not make.
+
+    An alias for a model with a `retirement_date` carries `valid_until`, so it is
+    never "live" — and the live-row query this prediction was first built on
+    therefore reported `insert` for a row already in the table. `_sync_alias` gets
+    it right by checking `rowcount` after `ON CONFLICT (id) DO NOTHING`; the
+    prediction copied its query and not its check.
+
+    Found by re-running the plan against staging after the real load: 2 inserts
+    predicted for 41 already-seated entries, both rows of the one model carrying a
+    retirement date. Nothing was written wrongly — the report was wrong, which is
+    the failure mode this project treats as expensive.
+    """
+    conn.execute(
+        "INSERT INTO model_version (id, canonical_id, provider, retirement_date, "
+        "sources, provenance) VALUES (%s, %s, 'z-ai', %s, %s, 'polled')",
+        (model_version_id("z-ai/glm-4.5"), "z-ai/glm-4.5", "2026-12-31", "{}"),
+    )
+    conn.commit()
+
+    artifact = _artifact(
+        tmp_path, _entry_block("z-ai/glm-4.5", "glm 4.5", ["glm-4.5", "glm4.5"])
+    )
+    manifest = read_manifest(_manifest(tmp_path, artifact, ["z-ai/glm-4.5"]))
+
+    first = load(conn, manifest, artifact_path=artifact)
+    conn.commit()
+    assert first.inserted >= 2
+
+    closed = conn.execute(
+        "SELECT count(*) FROM model_alias WHERE valid_until IS NOT NULL"
+    ).fetchone()[0]
+    assert closed == first.inserted, "a retired model's aliases are all closed"
+
+    replanned = plan(conn, manifest, artifact_path=artifact)
+    assert replanned.counts["insert"] == 0, (
+        "every row already exists; predicting an insert reports a write that "
+        "ON CONFLICT DO NOTHING will silently not make"
+    )
+    assert replanned.counts["unchanged"] == first.inserted
+    assert replanned.counts["replace"] == 0
+
+    second = load(conn, manifest, artifact_path=artifact)
+    assert second.inserted == 0 and second.unchanged == first.inserted, (
+        "and the loader agrees with the plan, which is the point of the plan"
     )

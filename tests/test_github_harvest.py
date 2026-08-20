@@ -25,6 +25,7 @@ from collect.adapters.github import (
 from collect.adapters.queries.contract import QueryEntry, TermSet
 from collect.adapters.queries.github import render_search
 from collect.http import build_client
+from collect.ops.ledger import ERROR, OK, REFUSED
 from collect.rawstore import RawStore
 
 UA = "modelboard/0.1 (+https://modelboard.invalid/about)"
@@ -125,7 +126,34 @@ def test_a_genuine_zero_is_a_known_zero(tmp_path):
     assert run.retrieved == 0
     assert run.rate_limited is False
     assert run.truncated_by is None
-    assert h.outcome_of(run) == "fetched"
+
+    # ── WHY THIS IS MEMBERSHIP AND NOT `== "ok"` ─────────────────────────────
+    #
+    # This read `== "fetched"` until 2026-08-20, from the closed set proposed on
+    # issue #5 (`fetched | not-modified | robots-blocked | error`). **That set
+    # never landed.** `harvest_run_outcome_ck` permits `ok | refused | error`,
+    # aligned to `job_run` and to `chain.py`'s OK/REFUSED/ERROR by migration
+    # `20260818T1520`.
+    #
+    # SO `fetched` CANNOT BE WRITTEN, and restoring it here would not be a
+    # cosmetic disagreement: the first real sweep opened **121 harvest_run rows
+    # and closed none**, because `close_harvest_run` raised `ValueError` on every
+    # one and the caller logged it. The rows are still on staging, still
+    # `finished_at IS NULL`, which reads as "started and never came back".
+    #
+    # Asserted as MEMBERSHIP in the ledger's own constants rather than as a
+    # literal, because those are different tests. A literal fails when somebody
+    # changes a return value — churn. Membership fails when the adapter and the
+    # constraint stop agreeing, which is the defect that cost the 121 rows and
+    # which nothing was checking.
+    #
+    # The distinction this test exists for is kept beside it: a genuine zero is
+    # not an error. Its pair below asserts the other half.
+    assert h.outcome_of(run) in {OK, REFUSED, ERROR}
+    assert h.outcome_of(run) != ERROR, (
+        "the platform answered and the answer was nothing; that is a measurement "
+        "and must not carry the same outcome as a query that failed"
+    )
 
 
 def test_a_throttled_query_is_not_a_zero(tmp_path):
@@ -139,7 +167,10 @@ def test_a_throttled_query_is_not_a_zero(tmp_path):
     assert run.rate_limited is True
     assert run.truncated_by == "rate-limit"
     assert run.http_errors == 1
-    assert h.outcome_of(run) == "error"
+    # Also against the ledger's constant rather than a literal, so the pair
+    # cannot half-drift: the zero case above and this one now fail together if
+    # the vocabulary moves, instead of one of them passing on a stale string.
+    assert h.outcome_of(run) == ERROR
 
 
 def test_the_two_are_distinguishable_in_the_harvest_run_row(tmp_path):
