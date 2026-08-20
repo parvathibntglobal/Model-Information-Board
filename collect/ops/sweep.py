@@ -72,6 +72,12 @@ class SweepReport:
 
     models: list[ModelSweep] = field(default_factory=list)
     unreached: list[str] = field(default_factory=list)
+
+    #: Seated models that never entered the plan, with the reason. Distinct from
+    #: `unreached`, which is a budget outcome: these are excluded before a budget
+    #: is consulted, and a sweep that conflates them reports a cap problem where
+    #: the truth is a data one.
+    excluded: list[tuple[str, str]] = field(default_factory=list)
     requests_planned: int = 0
     requests_issued: int = 0
     candidates: int = 0
@@ -146,6 +152,12 @@ class SweepReport:
                   "failed close makes a completed query indistinguishable from a "
                   "killed one."
             )
+        if self.excluded:
+            lines.append(
+                f"EXCLUDED : {len(self.excluded)} seated model(s) never entered the "
+                f"plan — {self.excluded[0][0]}: {self.excluded[0][1]}"
+                + (f" (+{len(self.excluded) - 1} more)" if len(self.excluded) > 1 else "")
+            )
         if self.unreached:
             lines.append(
                 f"UNREACHED: {len(self.unreached)} seated model(s) the budget did not "
@@ -173,6 +185,45 @@ def seated_variants(conn) -> dict[str, tuple[str, ...]]:
         "ORDER BY mv.canonical_id"
     ).fetchall()
     return {row[0]: tuple(sorted(row[1])) for row in rows}
+
+
+def excluded_seats(conn) -> list[tuple[str, str]]:
+    """Seated models `seated_variants` drops, and why. Two silent exclusions.
+
+    **BOTH WERE MINE AND BOTH WERE SILENT.** `seated_variants` filters
+    `valid_until IS NULL` and unnests `variants`, so a seat disappears from a
+    sweep when either condition removes all of its rows — and the sweep reported
+    "40 seated models" with no line saying that 41 were seated and one was
+    dropped.
+
+    A count that shrinks without saying so is this project's most-repeated
+    defect, and here it hides the two cases most worth seeing: a retired model,
+    and a model seated with nothing searchable.
+    """
+    rows = conn.execute(
+        "SELECT mv.canonical_id, "
+        "       count(*) FILTER (WHERE a.valid_until IS NULL) AS live, "
+        "       count(*) FILTER (WHERE a.valid_until IS NULL "
+        "                        AND a.variants <> '{}') AS searchable "
+        "FROM model_alias a JOIN model_version mv ON mv.id = a.model_version_id "
+        "GROUP BY mv.canonical_id ORDER BY mv.canonical_id"
+    ).fetchall()
+    out = []
+    for canonical_id, live, searchable in rows:
+        if live == 0:
+            out.append((
+                canonical_id,
+                "every alias row's validity window is closed — a retired model is "
+                "correctly not swept, and correctly not silent about it",
+            ))
+        elif searchable == 0:
+            out.append((
+                canonical_id,
+                "seated, live, and no row carries a search string: the canonical id "
+                "and its local part earn no query, so this model is in the registry "
+                "and unreachable by any sweep",
+            ))
+    return out
 
 
 def sweep_budget(cadence: str = "daily", path: str | None = None) -> tuple[int, int]:
@@ -254,6 +305,7 @@ def sweep_github(
     report = SweepReport(cap=cap, max_minutes=minutes)
 
     by_model = seated_variants(conn)
+    report.excluded = excluded_seats(conn)
     if not by_model:
         raise RuntimeError(
             "no rows in `model_alias`, so there is nothing to search for. "
