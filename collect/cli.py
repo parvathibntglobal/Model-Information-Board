@@ -732,6 +732,27 @@ def _cmd_ops_sweep_github(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_assemble_github(args: argparse.Namespace) -> int:
+    """Assemble stored GitHub issues into `thread_context` rows.
+
+    The stage `chain.py` carries as `assemble-flatten` with `run=None`. 27
+    documents have been sitting on staging with no context, and `judge/` reads
+    `thread_context` — so an unassembled document is a document the extractor
+    cannot see.
+    """
+    from collect.assemble.issue import assemble_github_documents
+    from collect.db import transaction
+    from collect.rawstore import RawStore
+
+    with transaction() as conn:
+        _gate(conn)
+        report = assemble_github_documents(
+            conn, store=RawStore(Path(args.store)), limit=args.limit
+        )
+    print(report.summary())
+    return 0
+
+
 def _cmd_registry_attest_seats(args: argparse.Namespace) -> int:
     """Write the manifest that records a review. No database, no rows.
 
@@ -931,6 +952,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="days since release inside which a model qualifies regardless of "
         "mentions. Requires --mention-floor.")
     propose_aliases.set_defaults(func=_cmd_registry_propose_aliases)
+
+    assemble = sub.add_parser("assemble", help="E3 — turn documents into thread_context")
+    assemble_sub = assemble.add_subparsers(dest="assemble_command", required=True)
+    asm_gh = assemble_sub.add_parser(
+        "github", help="assemble stored GitHub issues into thread_context rows")
+    asm_gh.add_argument("--store", default="./raw_store")
+    asm_gh.add_argument("--limit", type=int, default=None)
+    asm_gh.set_defaults(func=_cmd_assemble_github)
 
     ops = sub.add_parser("ops", help="the nightly chain and its checks")
     ops_sub = ops.add_subparsers(dest="ops_command", required=True)
