@@ -220,7 +220,65 @@ which is the durable form you asked for and needs nothing added.
    `model_version` without one leaves models looking live (harmless), while a
    `job_run` row without the write makes everything look departed (not).
 
-## 8 · The shape underneath, worth knowing beyond this column
+## 8 · Why a stored `unavailable_since` is the wrong shape
+
+**Not a preference for tidiness. A stored derivation goes stale when its inputs
+change, and a model returning to the feed is exactly that case.**
+
+`unavailable_since` has two inputs — the model's last sighting, and the polls
+that came after it. Storing the answer means every change to either input has to
+find the stored value and rewrite it. One of those changes is the event the column
+exists to describe:
+
+**A model comes back.** `last_seen_in_feed` moves forward on the ordinary upsert,
+and the stored `unavailable_since` is now a sentence about a departure that has
+ended. Nothing in the write path knows to clear it, and the reason is §9's shape
+pointed the other way: the poller's statement ranges over the models the feed
+*returned*, so it can update a returning model's sighting without ever
+considering a column that describes its absence. **A flag nothing clears becomes
+permanent** — which is the same failure your `provisional AND mentions > 0` check
+exists to catch, one table over.
+
+**The computed pair has no such state to get wrong.** The moment the sighting is
+later than every recorded poll, the subquery returns NULL — the return clears it
+by construction, and nobody has to remember. There is nothing to reconcile
+because there is nothing stored to disagree.
+
+It also avoids inventing a second writer. A stored column needs something that
+marks departures, and that writer's verdict would range over an input collection
+too — the same class of defect, newly built.
+
+**If the read cost ever matters, materialise it; do not hand-maintain it.** A
+view over the same two facts, refreshed by the nightly chain, is the pattern this
+project already uses for the answer path — and it is regenerated rather than
+mutated, so a stale value is a stale *run*, which is visible, rather than a stale
+*row*, which is not.
+
+## 9 · A correction I owe you, because you have been reasoning about this table
+
+**I told you `job_run` is never written and that the poller is not a chain stage.
+Both were true of the conversation we had about the design, and both were already
+false of the code — by two commits.**
+
+- `poll-registry` has been a real stage with a real `run=` function since
+  `5c22af2` (2026-08-18), not a planned one.
+- `job_run` has had its table, its writer and its caller since `a3deeba` —
+  `open_run`/`close_run` in `ops/ledger.py`, called from `run_chain` for every
+  stage. `docs/measurements/unwired-tables.md` records it as **wired** with 12
+  rows.
+
+**What was true until this branch is a different sentence, and it is the one that
+matters to you:** the stage ran, wrote its `job_run` row, and *polled nothing* —
+it handed an httpx `Response` to `parse_models` and reported `OK` on 0 models. So
+the rows exist and some of them attest to a poll that never read the feed, which
+is why §7's third caveat is a caveat and not a footnote.
+
+I am flagging it rather than quietly correcting the record because you have been
+reasoning about `job_run` on what I told you, and "nothing writes it" and "it is
+written and some rows are wrong" lead to different designs. The second one is
+what you are working with.
+
+## 10 · The shape underneath, worth knowing beyond this column
 
 **A writer whose verdict ranges over an input collection cannot notice a row that
 is in the table and absent from the input.** Nothing is wrong with
