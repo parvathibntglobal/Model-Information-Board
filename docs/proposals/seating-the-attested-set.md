@@ -319,3 +319,27 @@ The generator's `--force` guards **review in a file**; a loader's hazard is
   than guarding a file.
 - **No `--force`.** With the two above in place it could only ever mean "skip
   them", and per §9 there is nothing it could undo afterwards.
+
+## 12 · Superseding §8: the question was one level too low, and the loader ships without
+
+§8 asked whether a family alias is worth having for the 4 models where it is
+assignable. **That is not the question, because `family` itself is NULL on all 342
+registry rows** — `openrouter.py:166` lists it in `UNAVAILABLE` beside `lifecycle`,
+the only writer takes it from a `SeedModel`, and the only source of one is
+`seed_models.yaml`. There is nothing for a family surface to be derived *from*.
+
+Reframed and put to Engineer 2 in `for-engineer-2-family-derived-or-curated.md`:
+**should `family` be derived from the canonical id, or stay a curation decision?**
+With the measurement that decides it — no derivation rule reproduces our own 11
+curated values (best is 8 of 11), because those 11 use three granularities chosen
+per vendor: `claude` across tiers, `mistral-large` as a product line, `gpt-4.1` as
+a version line.
+
+**And the loader ships without family surfaces.** Not a compromise —
+`model_alias` is append-only (§9), so a family row added later is an `INSERT`
+beside the existing rows rather than a rewrite of them. Seating 41 models with
+their version and snapshot surfaces is 41 models more than today; the missing
+family alias is a **coverage** loss, not a **correctness** one, and nothing
+published becomes wrong for want of it.
+
+So the family answer gates the *column*, and it does not gate the sweep.
