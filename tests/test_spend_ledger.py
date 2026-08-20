@@ -279,3 +279,54 @@ class TestTheOtherPaidApiIsReportedNotAnalysed:
     def test_it_names_where_the_readings_live(self, ledger):
         """A status with no pointer is a dead end."""
         assert "contract/sources.yaml" in self._rapid()["source_of_record"]
+
+
+class TestTheWholeKeyTotalIsSeparateFromThisMachine:
+    """The ledger is a local file; the API key is not.
+
+    Measured 2026-08-20: our ledger held $0.000000 while the key reported
+    $0.0089013 - my live run plus E1's re-run from another machine. Without this
+    figure the page reads "$0.00 spent" about a key that has been billed.
+    """
+
+    def _everyone(self, monkeypatch, **stub):
+        from fastapi.testclient import TestClient
+
+        from judge import key_usage
+        from judge.app import app
+
+        monkeypatch.setattr(key_usage, "fetch", lambda **_: key_usage.KeyUsage(**stub))
+        return TestClient(app).get("/admin/usage").json()["everyone"]
+
+    def test_it_reports_the_key_total_across_every_machine(self, ledger, monkeypatch):
+        body = self._everyone(monkeypatch, total_usd=0.0089013, today_usd=0.0)
+
+        assert body["available"] is True
+        assert body["total_usd"] == 0.0089013
+        assert "every machine" in body["scope"]
+
+    def test_an_unreachable_provider_is_unknown_rather_than_zero(self, ledger, monkeypatch):
+        """The whole point. A key we cannot read must not render as a key nobody
+        has spent on - the most reassuring of the available readings."""
+        body = self._everyone(
+            monkeypatch, total_usd=None, today_usd=None,
+            unavailable_because="could not reach the provider: timeout",
+        )
+
+        assert body["available"] is False
+        assert "UNKNOWN" in body["headline"]
+        assert "not zero" in body["headline"]
+        assert "total_usd" not in body, "a missing figure must be absent, not 0.0"
+
+    def test_the_two_day_windows_are_not_presented_as_comparable(self, ledger, monkeypatch):
+        """Ours resets at 00:00 UTC; the provider's window is undocumented. Two
+        numbers that look comparable and are not is rule 7's shape."""
+        body = self._everyone(monkeypatch, total_usd=1.0, today_usd=0.5)
+        assert "does not state" in body["day_boundary_note"]
+
+    def test_no_provider_limit_is_reported(self, ledger, monkeypatch):
+        """Usage answers who spent it. Their ceilings are not ours to restate,
+        and an earlier version of this page did exactly that."""
+        body = json.dumps(self._everyone(monkeypatch, total_usd=1.0, today_usd=0.5))
+        for word in ("limit", "credit", "remaining"):
+            assert word not in body.lower(), f"{word} is a provider ceiling, not our usage"
