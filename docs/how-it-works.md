@@ -339,7 +339,7 @@ shapes (2026-08-20, against the live 340-row registry):
 | `tracked.select()` | **yes**, `tracked.py:325` | **17 of 340** registry rows refused, `grounds = ('route-not-model',)`, `selected` False, and countable via `Selection.refused_routes` |
 | `entity.build_population()` | **yes**, `entity.py:218`, before any derivation | three route ids in → 0 surfaces out; routes subtracted from `model_count` |
 | `openrouter.parse_models()` → `model_version` | **no — deliberately** | both route shapes become registry rows. The registry records what the feed carries; the exclusion belongs downstream |
-| `openrouter.alias_coverage()` | **no — and this one is a defect** | reports **333 gaps of 340, 17 of them routes** (§3.3) |
+| `openrouter.alias_coverage()` | **yes**, since 2026-08-20 — it was the fourth caller the ruling needed | reported **333 gaps of 340, 17 of them routes**; now **316**, and `316 + 17 routes + 7 with surfaces = 340` closes exactly |
 | `propose.mechanical_variants()` | **no** | `openrouter/auto` → `['auto']`, `openrouter/free` → `['free']`. The primitive that produced the word-boundary false positives carries no guard of its own |
 | `propose.rule_variants()` | **no** | returns `[]` for all three, but by guards 2–3 (the remainder must open with a family word and carry a version token), **not** by the ruling |
 
@@ -359,13 +359,16 @@ one.** Read the three gaps separately:
   rulings: correct code, correct rule, one caller short. A fourth caller written
   from the function's own signature gets `free` and `auto` back and nothing warns
   it.
-- **`alias_coverage` is a defect, found by asking this question.** It answers
-  *"which polled models have no hand-written alias and so are unsearchable"*, and
-  17 of its 333 answers are not models. That figure is quoted in this document
-  and in the measurements as the headline constraint, so the ruling not reaching
-  it makes a rule-7 error in the number rather than a wrong verdict on a model.
-  Corrected in §3.3, not in code — the fix is `collect/`'s and is one line, and a
-  document is the wrong place to make it.
+- **`alias_coverage` was a defect, found by asking this question, and is fixed.**
+  It answers *"which polled models have no hand-written alias and so are
+  unsearchable"*, and **17 of its 333 answers were not models**. The cost was a
+  figure rather than a wrong verdict — which is exactly why three rulings passed
+  over it — and that figure is the headline constraint in this document and in
+  the measurements, so it was a rule-7 error in the number. It now returns
+  **316**, and `316 + 17 routes + 7 carrying surfaces = 340` closes exactly.
+  Pinned by `test_alias_coverage_does_not_count_routes_as_models_missing_a_surface`,
+  which asserts **both** route shapes, because the first attempt at this ruling
+  elsewhere checked only the `~` prefix and missed the `openrouter/` namespace.
 
 One asymmetry worth copying rather than tolerating: `tracked.select` **counts**
 its refusals, so 17 routes excluded is a number a reviewer can see, while
@@ -416,13 +419,15 @@ base model), `deepseek/deepseek-v3`, `mistral/mistral-large-2411` and
 the shortfall is not a rounding difference — it is four ids the feed spells
 differently or no longer carries.
 
-**The 333 you will find quoted is 17 too high, and this document quoted it
-too.** `alias_coverage()` returns 333 gaps of 340 and does not consult
-`is_route` (§3.2.1), so 17 of those "models awaiting a hand-written surface" are
-routing pointers that can never be seated correctly. The honest split is **316
-models plus 17 routes**. Nothing about the constraint changes; the number does,
-and it was wrong in the direction that overstates our own gap — which is the
-safer direction and still rule 7.
+**The 333 you will find quoted elsewhere is 17 too high, and this document
+quoted it too.** `alias_coverage()` returned 333 gaps of 340 without consulting
+`is_route`, so 17 of those "models awaiting a hand-written surface" were routing
+pointers that can never be seated correctly. **Fixed 2026-08-20** (§3.2.1); it
+now returns **316**. Nothing about the constraint changed; the number did, and it
+was wrong in the direction that overstates our own gap — the safer direction, and
+still rule 7. `docs/measurements/tracked-set.md` still carries 333 in its
+epigraph and has not been amended, because it is a dated measurement rather than
+a live figure.
 
 Whichever of 7 or 11 you take, the shape is the same and it is what gates
 everything downstream: **nothing in this system can produce evidence about a
@@ -2775,8 +2780,8 @@ Walk the path backwards. The first "no" is your answer.
    not give `opus 5`. No surface means no search-eligible alias row, which means
    no query is ever issued for it, which means no document, no claim, no cell —
    and a coverage page that cannot distinguish that from "engineers have not
-   discussed this model". Check `alias_coverage()`, and remember it counts the 17
-   routes among its gaps (§3.2.1), so subtract them before quoting its number.
+   discussed this model". Check `alias_coverage()` — it excludes routes since
+   2026-08-20, so its number is the models figure directly (§3.2.1).
 4. **Is it in the tracked set?** 340 models at 81.45 requests each against a
    ~900 nightly cap is 11 models a night, so the sweep is narrowed to **63 as of
    2026-08-18, 62 as of 2026-08-20** — the count moves with the date because the
@@ -2837,7 +2842,7 @@ number you find elsewhere against the population it actually came from.
 | **coverage_ratio** | `observed / (observed + hidden_min)`, where `hidden_min` is a **floor** | a measurement. It is an **upper bound**, overstated in the direction that flatters us |
 | **0 mentions** | for `claude opus 5` and `claude sonnet 5`, both equally visible to the same detector — a **measured zero** | the general case. `deepseek r1` is **not measured**: the detector cannot see letter-prefixed versions |
 | **268 of 340** models `mechanical-only` | recall **unmeasured** | 268 models nobody discusses |
-| **333** models with no alias surface | `alias_coverage()`'s return, which does not consult `is_route` | a count of models. **17 are routes**; the figure is **316** models plus 17 routes (§3.2.1) |
+| **333** models with no alias surface | `alias_coverage()`'s return **before 2026-08-20**, when it did not consult `is_route` | a count of models — 17 were routes. The live figure is **316**, and `316 + 17 + 7 = 340` (§3.2.1) |
 | **64** tracked models | floor 20, window 30, `as_of` **2026-08-18**, before the route ruling | a constant. It is 63 at that date with the ruling applied and **62 today**, because the launch window slides (§3.5) |
 | **887** threads | nothing — it appears once, in a table, with no run behind it | a corpus count. `thread_context` holds 32; the handoff bundle holds 12 |
 

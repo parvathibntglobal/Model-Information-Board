@@ -123,10 +123,27 @@ wrote nothing, so a green nightly reported success for producing no rows.
 are not models" — had callers in `collect/triage/entity.py` and `tracked.select`,
 and not in `propose()`, **the primary output of the module the ruling lives in**.
 So the narrowed path was protected and the un-narrowed path proposed six
-mechanical variants for a routing pointer. Fixed; and the same question asked
-again for this record found `alias_coverage()` still not consulting it, which is
-why the headline "333 models with no alias surface" is really 316 models and 17
-routes (`../how-it-works.md` §3.2.1).
+mechanical variants for a routing pointer.
+
+**Then it happened again, twice more, and the third instance is the instructive
+one.** Asking the same question while writing this record found
+`alias_coverage()` also not consulting it — **17 of its 333 "models awaiting a
+hand-written surface" were routes** — and fixing that made it the ruling's fourth
+caller. `alias_coverage` now returns **316**, and `316 + 17 routes + 7 carrying
+surfaces = 340` closes exactly.
+
+**Why that one survived three rulings: the cost was a figure, not a verdict.**
+The other instances produced a wrong *answer* about a model — a seat, a proposal,
+an entity match — and a wrong answer eventually meets somebody who disagrees with
+it. This produced a *number that was 5% too large*, in the direction that
+overstates our own gap, and 333 was quoted as the headline constraint in two
+documents and a measurement without anybody having reason to doubt it. **A ruling
+whose violation shows up only in a denominator has no natural discoverer.**
+
+The standing lesson, now written beside the predicate: **a ruling implemented as
+a predicate needs its call sites enumerated somewhere**, because nothing about
+`is_route` reveals which paths consult it — which is habit 10 (§2 above) applied
+to a rule rather than to a writer.
 
 **How to recognise it.** Never ask *"is this wired"* — the tools answer a
 different question. **Count the rows.** `job_run` exists precisely so that *"has
