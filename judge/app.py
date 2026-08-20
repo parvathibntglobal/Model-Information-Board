@@ -674,6 +674,56 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
             "unwired_stages": list(report.unwired_stages),
         },
         "rapidapi": _rapidapi_quota(),
+        "everyone": _whole_key_spend(),
+    }
+
+
+def _whole_key_spend() -> dict:
+    """Total spent on the API KEY, by anyone, straight from the provider.
+
+    Everything else on this page comes from `judge/spend_ledger.py`, which is a
+    local file. The API key is not local. So the rest of the page is one
+    machine's share of a key several people spend from - measured 2026-08-20,
+    our ledger held $0.000000 while the key reported $0.0089013.
+
+    One figure, from `GET /key`. A metadata call: zero tokens, $0.00.
+
+    DELIBERATELY NOT THE PROVIDER'S LIMITS. Their account credit and per-key cap
+    are different ceilings on a different schedule; ours is
+    EXTRACTION_DAILY_BUDGET_USD. Usage answers who spent it, which is the
+    question here. Restating their limits was tried and removed.
+
+    UNREACHABLE IS NOT ZERO. `available: False` carries a reason, because a
+    provider we cannot reach must never render as a key nobody has spent on -
+    the most reassuring of the readings available, and rule 6 forbids the
+    conversion.
+    """
+    from judge import key_usage
+
+    usage = key_usage.fetch()
+    if not usage.available:
+        return {
+            "available": False,
+            "why": usage.unavailable_because,
+            "headline": (
+                "Total spend across all machines is UNKNOWN, which is not zero. "
+                "Everything below is this machine only."
+            ),
+        }
+    return {
+        "available": True,
+        "scope": "every machine using this API key",
+        "total_usd": usage.total_usd,
+        "today_usd": usage.today_usd,
+        "headline": (
+            "Spent on this key by anyone, reported by the provider. Everything "
+            "below it is this machine's ledger only, which is why the two differ."
+        ),
+        "day_boundary_note": (
+            "the provider's day window is its own and the API does not state "
+            "whether it aligns with the 00:00 UTC our cap resets at, so this "
+            "sits beside our figure rather than being compared to it"
+        ),
     }
 
 

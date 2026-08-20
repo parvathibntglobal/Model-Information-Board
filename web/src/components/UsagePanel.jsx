@@ -64,6 +64,7 @@ export default function UsagePanel() {
 
   const { cap, today, by_stage: stages, rates, hourly, daily, ledger } = data
   const rapid = data.rapidapi || {}
+  const everyone = data.everyone || {}
   const pct = today.fraction_used == null ? null : Math.round(today.fraction_used * 100)
   const unwired = ledger.unwired_stages || []
 
@@ -83,6 +84,32 @@ export default function UsagePanel() {
       </div>
 
       <div className="card-body stack stack-3">
+        {/* ABOVE THE TABS on purpose. Everything in the OpenRouter tab is THIS
+            MACHINE's ledger, and this is the only figure that sees the whole
+            key — so it has to be read before the numbers it reframes, not after. */}
+        <div className="stack stack-1">
+          <span className="label">Total spent by everyone on this key</span>
+          {everyone.available ? (
+            <>
+              <span className="stat-n tnum" style={{ fontSize: 'var(--fs-xl, 1.5rem)' }}>
+                {usd(everyone.total_usd)}
+              </span>
+              <span className="muted" style={{ fontSize: 'var(--fs-sm)' }}>
+                Reported by OpenRouter, so it includes calls from every machine using
+                this key — {usd(data.today?.spent_usd)} of it recorded here. Everything
+                below is this machine only, which is why the two differ.
+              </span>
+            </>
+          ) : (
+            <Notice icon={<IconAlert />}>
+              <strong style={{ color: 'var(--text)' }}>
+                Spend across all machines is unknown.
+              </strong>{' '}
+              {everyone.why} Unknown is not zero — everything below is this machine only.
+            </Notice>
+          )}
+        </div>
+
         <div className="row" style={{ gap: 6 }}>
           {[
             ['openrouter', 'OpenRouter — Gemini 2.5 Flash'],
