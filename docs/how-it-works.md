@@ -2863,6 +2863,7 @@ control available that took two API calls, and nobody ran it until afterwards.
 | `docs/logic-and-workflow.md` | the specification of the machinery, stage by stage. Older than the measurements, so where the two disagree, prefer the measurement and fix the doc. |
 | `CLAUDE.md` | the seven rules, the stack decisions not to relitigate, and the fixture table. |
 | `collect/CLAUDE.md`, `judge/CLAUDE.md` | per-lane rules, and the three publish-path conditions that bite only when E8 is written. |
+| `docs/engineer-1/` | **the record for `collect/`** — what was built in what order, the measurements that changed a decision, the defect shapes, and the rulings *with their alternatives*. This document explains the machinery; that one explains why it has this shape. Start with `defect-shapes.md` if you are about to add a check. |
 | `docs/measurements/` | every figure in this document, with its population and what would revise it. **Read `README.md` first.** |
 | `docs/measurements/first-extraction-run.md` | the run in §7.4, **pre-registered before it happened** — predictions, and who owns each failure, committed in advance. The best single illustration of how this team measures. Its status line still reads "not yet run"; it has. |
 | `docs/engineer-2-handover.md` | the `judge/` handover, with a defect catalogue that is the useful half. |
