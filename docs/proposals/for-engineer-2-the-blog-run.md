@@ -9,6 +9,51 @@ inverted in a way that would have set the wrong expectation.**
 
 ---
 
+## If you want to measure RECALL, this is the wrong corpus — GitHub is where it lives
+
+**Put directly rather than left in the writeup, because it decides which run is
+worth your time.**
+
+```
+blog     30 documents ·  4 carry a first-hand capability observation
+                      · 23 relay somebody else's claim · 3 name no model
+github   27 documents · 18 carry TWO OR MORE model surfaces in their own text
+```
+
+**The blog corpus can test precision and cannot test recall.** It is a good
+population for *"does the extractor over-read a relayed claim"* — 23 of 30 are
+exactly that shape, and 13 of them relay from our own page template. It is a poor
+population for *"does the extractor find a capability report when one is there"*,
+because four is not a denominator. A low yield on these thirty is not evidence
+about recall, and I would not want it recorded as though it were.
+
+**The GitHub issues are the recall population**, and two things are true of them
+at once:
+
+- **They are richer.** 18 of 27 carry two or more model surfaces in the issue body
+  — bug reports with error strings and repro steps, which is what
+  `collect/CLAUDE.md` calls the highest-signal source.
+- **They are incomplete, and the missing part is the conversation.** Every one of
+  the 27 is the issue **body alone**: `GitHubHarvester` records `comment_count`
+  and calls no comments endpoint, so all 27 are one-member threads and 7 of them
+  carry 74 unread comments between them, one with 46.
+
+**And that matters for recall specifically**, because of what the unit measurement
+found: a comparison is a property of a conversation rather than a message — 7 of
+12 threads carried two surfaces against 2 of 812 comments. So the resolutions, the
+corrections and the *"we moved off X because of Y"* sentences are in the comments
+we have not fetched. Measuring recall on issue bodies alone would measure it on
+the part of the thread least likely to carry a resolved claim.
+
+**Comment fetching does not exist and is scoped:**
+`docs/proposals/github-issue-comments.md` — ~7 core calls on the current corpus,
+the coverage columns fill exactly because GitHub states the total up front, and
+the one genuinely new decision is ranking, since GitHub comments have no score.
+
+So the order I would suggest: precision on the blogs once the template block is
+out, recall on GitHub once comments are fetched. Doing recall on GitHub bodies
+today would produce a number that looks like recall and is not.
+
 ## The package
 
 | | |
