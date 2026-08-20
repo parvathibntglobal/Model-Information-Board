@@ -649,6 +649,120 @@ def _cmd_registry_load_capabilities(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_registry_attest_seats(args: argparse.Namespace) -> int:
+    """Write the manifest that records a review. No database, no rows.
+
+    **Nothing in the artifact records that a human read an entry.** `status`,
+    `seated_by` and `incomplete` are all `to_yaml` output — the generator's
+    measurements. So a bulk loader keyed on them would admit every future entry
+    the generator labels attested, with no person in the path, and the review
+    would become optional. This writes the missing fact down instead.
+
+    Yes, this can be run without reviewing anything. The guarantee was never *"a
+    human read it"* — it cannot be. It is *"a human took a deliberate act naming
+    this exact content, and any later change to that content revokes it"*, which
+    is strictly more than typing an id gives, because typing an id pins no
+    content at all.
+    """
+    import re
+    from datetime import UTC, datetime
+
+    import yaml as _yaml
+
+    from collect.registry.seat import DEFAULT_ARTIFACT
+    from collect.registry.tracked_load import (
+        DEFAULT_MANIFEST,
+        entry_fingerprint,
+        read_entry,
+    )
+
+    text = DEFAULT_ARTIFACT.read_text(encoding="utf-8")
+    blocks = re.split(r"\n  - canonical_id: ", text)[1:]
+    if not blocks:
+        print(f"parsed 0 entries out of {DEFAULT_ARTIFACT.name}", file=sys.stderr)
+        return 2
+
+    seats: dict[str, str] = {}
+    skipped: list[str] = []
+    for block in blocks:
+        canonical_id = block.split("\n")[0].strip()
+        ground = re.search(r"seated_by:\s*(\S+)", block)
+        if not ground or ground.group(1) != args.seated_by:
+            skipped.append(canonical_id)
+            continue
+        entry = read_entry(canonical_id)
+        if entry.blocking_incomplete:
+            skipped.append(canonical_id)
+            continue
+        seats[canonical_id] = entry_fingerprint(entry)
+
+    out = Path(args.out) if args.out else DEFAULT_MANIFEST
+    payload = {
+        "artifact": DEFAULT_ARTIFACT.name,
+        "reviewed_at": datetime.now(UTC).date().isoformat(),
+        "reviewed_by": args.reviewed_by,
+        "population": len(seats),
+        "finding": args.finding,
+        "seats": seats,
+    }
+    out.write_text(_yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    print(f"attested : {len(seats)} seat(s) on ground {args.seated_by!r} -> {out}")
+    print(f"skipped  : {len(skipped)} entr(ies) on other grounds or still incomplete")
+    return 0
+
+
+def _cmd_registry_load_tracked_set(args: argparse.Namespace) -> int:
+    """Load the reviewed seats into `model_alias`. The bulk path, with its guards.
+
+    `--dry-run` prints the plan and is what replaces the generator's `--force`:
+    an append-only table has no undo, so the only reversal available is not
+    writing the wrong thing. See `registry/tracked_load.py`.
+    """
+    from collect.db import connect, transaction
+    from collect.registry.tracked_load import LoadRefused, load, plan, read_manifest
+
+    manifest_path = Path(args.manifest) if args.manifest else None
+    try:
+        manifest = read_manifest(manifest_path)
+    except LoadRefused as refusal:
+        print(str(refusal), file=sys.stderr)
+        return 2
+
+    print(
+        f"manifest : {manifest.population} seat(s), reviewed "
+        f"{manifest.reviewed_at} by {manifest.reviewed_by}"
+    )
+
+    if args.dry_run:
+        # No transaction and no gate: this reads the registry and prints. The
+        # plan is the diagnostic somebody needs when the gate would refuse.
+        conn = connect()
+        try:
+            prepared = plan(conn, manifest)
+        finally:
+            conn.close()
+        print(prepared.summary())
+        for entry in prepared.entries:
+            counts = entry.counts
+            print(f"  {entry.canonical_id:<40} {counts['insert']} insert, "
+                  f"{counts['unchanged']} unchanged, {counts['replace']} supersede")
+        for reason in prepared.refusals:
+            print(f"  REFUSED  {reason}")
+        return 1 if prepared.refusals else 0
+
+    with transaction() as conn:
+        # Gated inside the transaction and before the write, so a refusal rolls
+        # back and nothing lands — same order as `load-seed` and `db init`.
+        _gate(conn)
+        try:
+            report = load(conn, manifest, allow_supersede=args.allow_supersede)
+        except LoadRefused as refusal:
+            print(str(refusal), file=sys.stderr)
+            return 2
+    print(report.summary())
+    return 0
+
+
 def _cmd_registry_seat_alias(args: argparse.Namespace) -> int:
     """Seat one reviewed model's surfaces from the tracked-set artifact.
 
@@ -825,6 +939,36 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="show the reviewed entry, write nothing"
     )
     seat_alias.set_defaults(func=_cmd_registry_seat_alias)
+
+    attest = reg_sub.add_parser(
+        "attest-seats",
+        help="write a reviewed-seats manifest for the entries you have reviewed",
+    )
+    attest.add_argument(
+        "--seated-by", default="attested",
+        help="which grounds to attest (default attested; launch-window entries are "
+             "Engineer 2's to rule on)",
+    )
+    attest.add_argument("--reviewed-by", required=True, help="who reviewed them")
+    attest.add_argument("--finding", default="", help="what the review concluded")
+    attest.add_argument("--out", default=None, help="default docs/proposals/reviewed-seats.yaml")
+    attest.set_defaults(func=_cmd_registry_attest_seats)
+
+    load_tracked = reg_sub.add_parser(
+        "load-tracked-set",
+        help="load the reviewed seats from a manifest into model_alias",
+    )
+    load_tracked.add_argument(
+        "--manifest", default=None, help="default docs/proposals/reviewed-seats.yaml"
+    )
+    load_tracked.add_argument(
+        "--dry-run", action="store_true", help="print the plan and write nothing"
+    )
+    load_tracked.add_argument(
+        "--allow-supersede", action="store_true",
+        help="permit closing a live alias row's validity window",
+    )
+    load_tracked.set_defaults(func=_cmd_registry_load_tracked_set)
 
     triage = sub.add_parser("triage", help="E4 — the hard gates")
     triage_sub = triage.add_subparsers(dest="command", required=True)

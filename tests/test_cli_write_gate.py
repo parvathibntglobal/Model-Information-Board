@@ -40,6 +40,12 @@ READ_ONLY = {
     # point of this set being explicit: the answer to "does this need `_gate`"
     # is recorded here rather than left to whoever reads the function next.
     "_cmd_registry_tracked_set",
+    # Writes a FILE and never a row: it records that a review happened, reading
+    # the artifact and hashing each reviewed entry. Classified rather than gated
+    # for the same reason as `propose-aliases` above — and the gate would be
+    # actively wrong here, because attesting a review is how somebody prepares to
+    # FIX a database the checks would refuse.
+    "_cmd_registry_attest_seats",
     # Runs the checks AS its purpose, and reports instead of raising.
     "_cmd_ops_preflight",
     # Runs the chain, whose first stage is preflight.

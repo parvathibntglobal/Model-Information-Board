@@ -1,0 +1,48 @@
+artifact: alias-surfaces-tracked-set.yaml
+reviewed_at: '2026-08-20'
+reviewed_by: engineer-1
+population: 41
+finding: 'Judgement group came back empty: in all 41 the seated primary is the most-mentioned
+  observed form.'
+seats:
+  anthropic/claude-opus-5: sha256:c429a4d20c86985ad8a44ec2cb31dcda119eba6529a9037d5c93661288549fe9
+  anthropic/claude-opus-4.6: sha256:9ead6fac48fe02eda5a20a2e7747e2729a90018832c759f953e8090b5bbf19e3
+  openai/gpt-5.5: sha256:69f14add6a4e74d7e77d6c617fe53b67303468a981e1a3e961a65772c0c21da4
+  anthropic/claude-sonnet-4.5: sha256:b73af0c6be7c317f73cbf71bfa9821e355a373503f9dbb3a7be3b72d8bca1a65
+  google/gemini-2.5-flash: sha256:1d021f266888165f8f7d104fd52339506fe2fee8c97ec8089806afcead3a5e5f
+  openai/gpt-5: sha256:8806243fe83481053a922fb1ab50a8e40c7dc8b2bc35c0fe8124ee24eb5c1661
+  anthropic/claude-opus-4.8: sha256:01f7f312839e29cd162e30fc5a4e01983fe135af11f0a8268bcbbe7115f11f9f
+  anthropic/claude-opus-4.7: sha256:693d78763dc049986907aef9ce6ff07b7498c3265e88273096ba89f18ab3d45d
+  google/gemini-2.5-pro: sha256:3b607373b4dea59cec17580a8cf15f45f147d52a8b5314f9035f72c6ee3fb0ce
+  anthropic/claude-opus-4.5: sha256:37d2489691e5d4bb6d5dedb2ee5304069d67926b53c1873112355015af39d85e
+  anthropic/claude-sonnet-5: sha256:84f0fa7c93041e7c95841538f31ff1197ff7e8a5de9abb82a6c1da77367c6fe8
+  openai/gpt-5.3-codex: sha256:3ce5a0955236fb22ba58e3b5bd320ca5208444cc309ae16f1024d4b04602ae3e
+  anthropic/claude-opus-4: sha256:65c31f99585060f0178be3c38e365d7eb5860b896fa1070392b085ea56898ba6
+  anthropic/claude-sonnet-4.6: sha256:96841ecc91190426d16a3e372ae553c709c16ca16aa12211dcce6b6ce92042b1
+  openai/gpt-5.4: sha256:d0bc77a5ca39e5ada0b8269de9405c87c04db635e6278c241da8313b6ff084fa
+  anthropic/claude-sonnet-4: sha256:acb285d02e4b57b01e80cb2a44d6f8b376cdabcb1c234477325a32dea884139c
+  openai/gpt-5.2: sha256:75b09d269c8690e9e6dbc9cca61cd456537f4942d7ca23c17bf39a9d181a2daf
+  google/gemini-3-flash-preview: sha256:34d594d04b27cde50d2e72e043fa42f0cacfa8bdb55d974f960deddd2228730c
+  anthropic/claude-haiku-4.5: sha256:12e089c8b83244dd0b2d35a14d740058d937b375f2cc7d07c64852059bc34d0e
+  openai/gpt-5.1: sha256:e7865d94252ad05c418f6f49ae9c77bab8b674df221fdb668e11d4c37e96646e
+  openai/gpt-4.1: sha256:97cba9a3c1c42561ef9d535943ef6615063ebb3f75d1a5c3340b102ae01b5a63
+  openai/gpt-4: sha256:32101ed97522b6ae8ef588feb81397622bd0ce8e2cc0babccaaf86af4518a8a9
+  qwen/qwen3-coder: sha256:96dd6f849acc5b780f0bbfbc101ad759cc2e236b1b6ab68015209af733870510
+  anthropic/claude-opus-4.1: sha256:da8aa1712af24da4f5ed5192f27641c7eab03a39d92915cec05afb6efd6fabec
+  z-ai/glm-4.6: sha256:d7860afc1400141d988204bb97619c21fe96fb5bc5383f6eb4ad51d5590ecd97
+  meta-llama/llama-3.3-70b-instruct: sha256:6439edf5c20648da66d3270da669b0928e02aa8d7e6a4e42f6d5c3872c681d50
+  z-ai/glm-5.1: sha256:5dd6833fad935f7393e782e59a831512a30f75c184b6b55e87dc00f3b960f06d
+  openai/gpt-5.4-mini: sha256:2062ed4074393adad733bf5470824e8e82258c7a5e5a62390ca57088a27b1db6
+  z-ai/glm-5.2: sha256:0a43a9523e52a2b0ac6263c0d89538c558cfa67d35d7cb30b6d1a6e9a12babec
+  z-ai/glm-4.7: sha256:9375e935d54e28ce96bbcc15212d91ab7d3ddb3b81f3ecbf9cecc2f0a335df74
+  google/gemini-3.5-flash: sha256:82b795676e05615d9836f47c3952d5a35385042aa806179777ae93567fa2a7cc
+  openai/gpt-5-mini: sha256:4595862437df74dd0400503171155d1291246ec6f0e8433a571f649fc6a8e988
+  qwen/qwen2.5-vl-72b-instruct: sha256:c5205be9b478d78ddab58540f05108275c5272437a9f8a0d2667ee4b601b06bf
+  x-ai/grok-4.5: sha256:4f9be3db4bb881f96118155d0f11358c2ee9c5f153716753cd9d5abe17b86095
+  x-ai/grok-4.6: sha256:a959204c33d4d37641c77b4e99efe2a1042b55003d8170f9976e26ba8ab52ff9
+  anthropic/claude-3-haiku: sha256:ae4630fed7b88835d7b624b3d4ab0db9df2c78a0e769323f663ea64c4cd641a1
+  openai/o4-mini: sha256:8ce59b495c76596cb9529f2bfd878325060f27e68e7a39164407d2cbc0260678
+  openai/gpt-4.1-mini: sha256:eea166b1eb4b7b2460b706855192b531ce9265c45829475d5b11c0caf73ba210
+  z-ai/glm-4.5: sha256:2dbbe198ac2d234f8e02c48c80722a3002b6fe19ede45eb16217b25548affe29
+  qwen/qwen3-max: sha256:d170266fdfd05dcb56289a6e310fccc313ef84b9cc0ca16974a71c10453f7b20
+  z-ai/glm-5: sha256:241c0101a3001d82c9e460d03dcb0d26e12f9c7a54f74ea225363344176058dd
