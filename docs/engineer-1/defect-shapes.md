@@ -4,7 +4,7 @@ Around thirty defects were found in this lane in a fortnight. Read as a list
 they teach almost nothing — the individual bug is never the one you meet next.
 **Grouped by shape they are the most transferable thing this project produced.**
 
-Nine shapes. Each has the sharpest instance, what it cost, and — the part that
+Ten shapes. Each has the sharpest instance, what it cost, and — the part that
 matters — **how to recognise a new one**, because the point is to catch the next
 one and not to remember these.
 
@@ -25,7 +25,7 @@ suite.*
 
 ---
 
-## The single sentence underneath all nine
+## The single sentence underneath all ten
 
 **What each one cost was not a wrong answer but a missing one.**
 
@@ -92,24 +92,27 @@ and **nothing had ever run it**, so 340 rows carried a schema default that reads
 exactly like a computed answer. Not "the code is wrong"; the code was right and
 had never executed.
 
-**The count, today, verified on `origin/main`** by AST sweep plus per-symbol grep
-— **six write-issuing functions have no production caller**:
+**The count** was **six** write-issuing functions with no production caller when
+this was written, and is **five** as of 2026-08-20 — `load_source_rows` gained
+`registry load-sources`, and the twelve rows are on staging:
 
 ```
 write_authors          collect/assemble/authors.py
 write_thread_context   collect/assemble/thread.py
 mark_swept             collect/registry/openrouter.py
-load_source_rows       collect/registry/sources.py
 open_harvest_run       collect/ops/ledger.py
 close_harvest_run      collect/ops/ledger.py
 ```
 
-Two consequences worth stating because neither is visible from the code:
-`assert_no_phantom_sweeps` compares `last_swept_at` against `harvest_run` and
-**both operands are pinned at zero**, so it cannot fire in either direction; and
-`load_source_rows` having no caller is why `source` holds 0 rows, which is why
-`open_harvest_run` refuses with a sentence naming the loader rather than emitting
-a foreign-key error.
+One consequence worth stating because it is not visible from the code:
+`assert_no_phantom_sweeps` compares `last_swept_at` against `harvest_run`, and
+**both operands are still pinned at zero** — `mark_swept` has no caller and no
+sweep has written a `harvest_run` row — so it cannot fire in either direction.
+
+`open_harvest_run` **can** now write: the `source` rows exist, and it was
+exercised against staging for `github`, `reddit` and `blog:simonwillison.net`
+inside a rolled-back transaction. What it lacks is a sweep to call it. Its
+refusal message was itself stale for a few hours, which is §2a.
 
 **Two sub-shapes, and the distinction is the expensive part.**
 
@@ -152,6 +155,58 @@ this stage ever run **here**"* is a query rather than an investigation, and
 import graph cannot answer it and a row count cannot be argued with.
 
 ---
+
+## 2a · The refusal that outlived its premise
+
+**The shape.** A refusal message is correct, legible, and names a remedy that has
+since been applied. It is read by somebody who is already stuck, and it sends
+them to the wrong place.
+
+**Sharpest instance — `open_harvest_run`, 2026-08-20.** `source` held 0 rows
+because `load_source_rows` had no caller (§2), so the writer refused upstream of
+the foreign key and said so:
+
+> *"`load_source_rows` is the loader that fills it — which has no caller yet.
+> **Wire that first**."*
+
+Exactly right for the whole build. Then `registry load-sources` landed, twelve
+rows went into staging, and the sentence became advice to wire something already
+wired — while remaining a perfectly accurate description of a foreign key.
+
+**Why it is not just §2 again.** §2 is a guard that cannot fire. This one fires
+correctly and *misdirects*, and the cost lands at the worst moment: a refusal is
+read by someone mid-failure, who has the least budget for a wrong lead. A stale
+docstring wastes a reader's afternoon; a stale refusal wastes it during an
+incident.
+
+**And the test pinned the wording, so it kept passing.**
+
+```python
+assert "load_source_rows" in str(refusal.value)
+```
+
+Habit 2 in its hardest form — *assert the state of the world, not the wording
+that describes it.* Here the wording **was** the state for as long as the loader
+had no caller, which is what made the assertion look like a state check. Nothing
+failed when the world moved underneath it.
+
+**The durable fix is which noun the message names.** It now names the **command**
+— `registry load-sources` — plus the id shapes. A command is a stable public
+surface; the internal function name was only ever relevant *while it had no
+caller*, so naming it baked the temporary condition into the permanent message.
+The test asserts the command is present **and that the function name is gone**,
+because "add the new thing" leaves the stale thing in place.
+
+**How to recognise it.** Two questions, and neither needs suspicion:
+
+- **Does this message name a remedy, and is the remedy still outstanding?** Every
+  refusal that says "do X first" is dated by X. When X lands, the message is a
+  loose end and nothing links them.
+- **Would this message be right if the thing it names were fixed?** If not, it is
+  describing today rather than the failure — and the failure is what outlives.
+
+Related to `#58b` — an invariant that outlived its premise — and distinct in what
+outlived: there, an assertion about data; here, a sentence about the build.
 
 ## 3 · The guard in the wrong place in the sequence
 

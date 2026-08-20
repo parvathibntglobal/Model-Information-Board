@@ -22,10 +22,10 @@ import pytest
 from collect.registry.openrouter import (
     MODELS_URL,
     PolledModel,
-    alias_coverage,
     base_id,
     map_model,
     parse_models,
+    undeclared_models,
 )
 from collect.registry.propose import is_route
 
@@ -227,22 +227,22 @@ def test_the_poller_names_what_it_cannot_supply():
         )
 
 
-def test_alias_coverage_reports_unsearchable_models(result):
+def test_undeclared_models_reports_the_unsearchable(result):
     """A polled model with no hand-written aliases is invisible to every sweep.
 
     `alias_rows` needs prose surfaces the feed does not carry, so this has to be
     a number somebody looks at rather than a silence. The gap is the whole reason
     the poller does not replace `seed_models.yaml` outright.
     """
-    known = {"anthropic/claude-opus-5"}
-    gap = alias_coverage(result.models, known)
+    declared = {"anthropic/claude-opus-5"}
+    gap = undeclared_models(result.models, declared)
     assert "anthropic/claude-opus-5" not in gap
     assert "qwen/qwen3.8-27b" in gap
     routes = [m.canonical_id for m in result.models if is_route(m.canonical_id)]
     assert len(gap) == result.distinct_models - 1 - len(routes)
 
 
-def test_alias_coverage_does_not_count_routes_as_models_missing_a_surface():
+def test_undeclared_models_does_not_count_routes_as_missing_a_surface():
     """The fourth caller `is_route` needed, and the reason it was missed thrice.
 
     A route is not a model awaiting a hand-written surface. It is a thing that
@@ -271,7 +271,7 @@ def test_alias_coverage_does_not_count_routes_as_models_missing_a_surface():
         "openrouter/auto",                  # a route, namespace
         "openrouter/free",                  # a route whose surface is a real word
     ))
-    gap = alias_coverage(models, {"anthropic/claude-opus-5"})
+    gap = undeclared_models(models, {"anthropic/claude-opus-5"})
 
     assert gap == ("qwen/qwen3.8-27b",), (
         "a route counted as a model missing a surface overstates the coverage "

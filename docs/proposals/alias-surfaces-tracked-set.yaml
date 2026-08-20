@@ -602,16 +602,6 @@ proposals:
       - lfm2.52.6b                    # mechanical, unattested
     incomplete: [family_surface, attested_surfaces]
 
-  - canonical_id: meituan/longcat-2.0
-    status: mechanical-only
-    seated_by: launch-window          # released inside the launch window; no attested surface, so every form below is derived
-    surface: INCOMPLETE   # no attested surface; recall is unmeasured, not zero
-    variants:
-      - longcat 2.0                   # mechanical, unattested
-      - longcat-2.0                   # mechanical, unattested
-      - longcat2.0                    # mechanical, unattested
-    incomplete: [family_surface, attested_surfaces]
-
   - canonical_id: meta/muse-glimmer-30b
     status: mechanical-only
     seated_by: launch-window          # released inside the launch window; no attested surface, so every form below is derived
@@ -702,4 +692,14 @@ proposals:
       - solar-pro-4                   # mechanical, unattested
       - solar-pro4                    # mechanical, unattested
       - solarpro4                     # mechanical, unattested
+    incomplete: [family_surface, attested_surfaces]
+
+  - canonical_id: z-ai/glm-5.3
+    status: mechanical-only
+    seated_by: launch-window          # released inside the launch window; no attested surface, so every form below is derived
+    surface: INCOMPLETE   # no attested surface; recall is unmeasured, not zero
+    variants:
+      - glm 5.3                       # mechanical, unattested
+      - glm-5.3                       # mechanical, unattested
+      - glm5.3                        # mechanical, unattested
     incomplete: [family_surface, attested_surfaces]

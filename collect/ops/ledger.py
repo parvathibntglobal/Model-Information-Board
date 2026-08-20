@@ -255,19 +255,28 @@ def open_harvest_run(conn, fields: dict[str, Any]) -> OpenHarvest:
     FR-10 needs distinguishable from a sweep that ran and found nothing. A
     single-statement writer can express neither, because it never runs.
 
-    Refuses when the `source` row is absent, upstream of the foreign key: `source`
-    holds 0 rows because `load_source_rows` has no caller, and `23503` would name
-    this writer instead of that loader.
+    Refuses when the `source` row is absent, upstream of the foreign key, so the
+    message names the loader rather than letting a `23503` name this writer.
+
+    THE REFUSAL USED TO SAY THE LOADER HAD NO CALLER. It did, for the whole build
+    — and that sentence outlived its premise on 2026-08-20, when
+    `registry load-sources` landed and twelve rows went into staging. A refusal
+    that tells you to wire something already wired sends the reader to the wrong
+    place, which is the same defect class as a stale wiring claim in a docstring;
+    it is only more expensive here because somebody reads it while something is
+    already broken.
     """
     _reject_unknown_keys(fields)
     source_id = fields["source_id"]
     if not conn.execute("SELECT 1 FROM source WHERE id = %s", (source_id,)).fetchone():
         raise UnknownSource(
             f"no source row for {source_id!r}, so this harvest cannot be "
-            "recorded. `harvest_run.source_id` references `source(id)`, and "
-            "`load_source_rows` is the loader that fills it — which has no "
-            "caller yet. Wire that first; this refusal is upstream of a foreign "
-            "key violation, not a substitute for one."
+            "recorded. `harvest_run.source_id` references `source(id)`; run "
+            "`registry load-sources` to seed the twelve from "
+            "contract/sources.yaml, or check the id — a platform row is "
+            "`github` / `reddit` / `blogs`, and a feed row is `blog:<host>`. "
+            "This refusal is upstream of a foreign key violation, not a "
+            "substitute for one."
         )
 
     started_at = fields.get("started_at") or datetime.now(UTC)

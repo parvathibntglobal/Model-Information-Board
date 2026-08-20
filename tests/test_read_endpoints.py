@@ -185,3 +185,87 @@ class TestAModelIdContainsASlash:
     def test_the_route_declares_a_path_parameter(self):
         paths = {getattr(r, "path", "") for r in app.routes}
         assert "/models/{model_version_id:path}" in paths
+
+
+class TestAnUnknownModelIdIsRefusedRatherThanRendered:
+    """FR-24 inverted, and the one place this API broke rule 4.
+
+    ⚠ ADDED FROM THE OTHER LANE, on instruction, alongside the fix in
+    `judge/app.py`. Flagged rather than quiet: see
+    `docs/proposals/model-page-id-resolution.md`.
+
+    `cell.model_version_id` is the internal `mv_…` id, so a canonical id matched
+    no row — and nothing checked, so it rendered instead of refusing. Every one
+    of these returned 200 with an identical page against a live registry:
+
+        /models/mv_568e0eb3a95b5113          the real key
+        /models/anthropic/claude-opus-5      what every caller holds
+        /models/total-nonsense-not-a-model   not a model
+        /models/                             the empty string
+
+    all four saying *"0 of 12 tracked capabilities have any reports at all"*. A
+    typo and a real model were the same page — which is the empty-page rule
+    working correctly for a real model and fabricating for one that does not
+    exist.
+
+    These assert the SHAPE without a database, which is all that can be asserted
+    here: the lookup needs one, so a no-database run answers 503 before it can
+    404. The 404 itself is exercised in `tests/test_read_endpoints_db.py`'s
+    absence by the live check recorded in the proposal — stated plainly rather
+    than left to look like coverage it is not.
+    """
+
+    def test_the_handler_validates_before_building_a_page(self):
+        """The lookup is the first thing after the connection.
+
+        Asserted by AST rather than by response, because the ordering is the
+        property: a page built before validation is a page that can be returned
+        for an id that does not exist, which is exactly what happened.
+        """
+        import ast
+        import inspect
+
+        from judge.app import model_page
+
+        tree = ast.parse(inspect.getsource(model_page).strip())
+
+        # BY LINE NUMBER, NOT BY WALK ORDER. The first version of this asserted
+        # `names.index("execute") < names.index("build")` over `ast.walk`, which
+        # is BREADTH-FIRST: `conn.execute(...).fetchone()` visits `fetchone`
+        # before its child `execute`, so the check compared traversal depth and
+        # called it source order. It failed on correct code — habit 11 in a test
+        # written about habit 11, which is the reason this comment exists rather
+        # than a silent fix.
+        at = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+                at.setdefault(node.func.attr, node.lineno)
+
+        assert "execute" in at, "no lookup: the id is not validated"
+        assert "fetchone" in at
+        assert at["execute"] < at["build"], (
+            f"the page is built (line {at['build']}) before the id is validated "
+            f"(line {at['execute']})"
+        )
+
+    def test_it_raises_a_404_and_not_an_empty_page(self):
+        """The refusal exists in the source and names both accepted shapes."""
+        import inspect
+
+        from judge.app import model_page
+
+        source = inspect.getsource(model_page)
+        assert "status_code=404" in source
+        assert "indistinguishable" in source, (
+            "the refusal has to say WHY, the way /capabilities/{key} does — "
+            "otherwise the next reader deletes it as defensive"
+        )
+
+    def test_both_id_shapes_are_accepted(self):
+        """Accepting only one would move the defect rather than close it."""
+        import inspect
+
+        from judge.app import model_page
+
+        source = inspect.getsource(model_page)
+        assert "WHERE id = %s OR canonical_id = %s" in source

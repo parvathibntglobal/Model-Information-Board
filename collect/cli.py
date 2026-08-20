@@ -156,6 +156,7 @@ def _cmd_ops_preflight(args: argparse.Namespace) -> int:
 def _cmd_ops_run(args: argparse.Namespace) -> int:
     """The nightly chain. Runs what exists and says what does not."""
     from collect.db import connect
+    from collect.http import build_client
     from collect.ops.chain import Journal, default_stages, run_chain
     from collect.registry.policy import load_registry_policy
 
@@ -166,15 +167,67 @@ def _cmd_ops_run(args: argparse.Namespace) -> int:
         except Exception as error:  # noqa: BLE001
             print(f"no database connection: {type(error).__name__}: {error}")
 
+    # THE OVERLAP GUARD, WHICH IS WHAT A SCHEDULER NEEDS AND NOTHING ASKED FOR.
+    # `ops/ledger.py:unfinished()` was written for exactly this question — rows
+    # that started and never concluded — and had no caller, so two cron runs
+    # could interleave and `job_run` would hold both with nothing saying so.
+    #
+    # It REPORTS AND REFUSES rather than waiting or killing, and it does not
+    # invent a staleness threshold. An unfinished row means one of two things and
+    # only the operator can tell them apart: a run still going, or a run that was
+    # killed. Both are worth seeing; neither should be guessed at. `--force`
+    # proceeds, so a stale row cannot block the chain forever — which is the
+    # failure mode a silent lock would have.
+    if conn is not None and not args.force:
+        from collect.ops.ledger import unfinished
+
+        stalled = unfinished(conn)
+        if stalled:
+            print(
+                f"refusing: {len(stalled)} job_run row(s) started and never "
+                f"finished. Either a run is still going, or one was killed - "
+                f"finished_at IS NULL cannot tell those apart, and they need "
+                f"opposite repairs."
+            )
+            for run_id, stage, started in stalled:
+                print(f"  {stage:<22} started {started:%Y-%m-%d %H:%M:%S}  {run_id}")
+            print("  Re-run with --force to proceed anyway.")
+            return 1
+
     journal = Journal(Path(args.journal) if args.journal else None)
     context = {
         "conn": conn,
         "environment": settings().environment,
         "policy": load_registry_policy(),
     }
+
+    # THE CLIENT NOTHING SUPPLIED. `_poll_registry_stage` reads
+    # `context["client"]` and refuses with "no HTTP client supplied" when it is
+    # absent — and `"client"` was set NOWHERE in this file, so `poll-registry`
+    # refused on every invocation the chain has ever had. The stage was wired,
+    # correct, and could not run: the registry's 340 rows were put there by a
+    # hand-run, the same way `author`'s 4,391 were.
+    #
+    # Third instance of one shape this week. `load_source_rows` had no caller;
+    # `undeclared_models` had no route check; this had no dependency. All three are
+    # correct code that nothing reaches, and all three read as a considered
+    # state from the outside — a refusal that names its reason is especially
+    # good at that.
+    #
+    # NO CREDENTIAL. Verified live 2026-08-20 with the key removed from the
+    # environment: no Authorization header, HTTP 200, 679,318 bytes, 414 feed
+    # entries folding to 340 models, and no rate-limit headers. So a client is
+    # free to supply and there is no reason to withhold it by default.
+    client = None
+    if not args.no_network:
+        client = build_client()
+        context["client"] = client
+
     try:
         run = run_chain(default_stages(), context, journal)
     finally:
+        if client is not None:
+            client.close()
         if conn is not None:
             conn.close()
     print(run.summary())
@@ -531,6 +584,109 @@ def _cmd_registry_load_seed(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_registry_load_sources(args: argparse.Namespace) -> int:
+    """Load `contract/sources.yaml` into `source`. The caller it never had.
+
+    `load_source_rows` has been correct and tested since it was written and had
+    NO CALLER — no command, no script, no chain stage. So `source` holds 0 rows,
+    and `harvest_run.source_id` is a FOREIGN KEY to `source(id)`: no harvest run
+    can be recorded for any platform, GitHub included, until this has run.
+
+    `ops/ledger.py:open_harvest_run` already refuses with a sentence naming this
+    loader rather than surfacing a `23503`, which is the right behaviour and is
+    also why nothing forced the gap into the open — a legible refusal is easy to
+    read as a considered state.
+
+    NOT a fixture. `assert_no_fixtures` does not look at `source` and must not
+    be taught to: a seeded feed is a curation decision, not a stand-in for
+    machinery that does not exist yet. So unlike `load-seed` this writes rows
+    that belong in production.
+    """
+    from collect.db import transaction
+    from collect.registry.sources import load_source_rows, load_sources
+
+    contract = load_sources()
+
+    if args.dry_run:
+        rows = contract.source_rows()
+        print(f"dry run   : {len(rows)} source row(s) from contract/sources.yaml")
+        for row in rows:
+            ruling = row.get("terms_ruling") or "NO RULING"
+            print(f"  {row['id']:<32} platform={row['platform']:<8} {ruling}")
+        return 0
+
+    with transaction() as conn:
+        # Gated inside the transaction and before the write, same order as
+        # `load-seed` and `db init`, so a refusal rolls back and nothing lands.
+        _gate(conn)
+        report = load_source_rows(conn, contract)
+    print(report.summary())
+    return 0
+
+
+def _cmd_registry_load_capabilities(args: argparse.Namespace) -> int:
+    """Load `contract/capabilities.yaml` into `capability`.
+
+    The table that blocks `claim`: `capability_key` is NOT NULL and REFERENCES
+    it, and it holds 0 rows, so no claim can be inserted for any model from any
+    platform however good the extraction. Twelve keys, no loader, since the
+    scaffold.
+    """
+    from collect.db import transaction
+    from collect.registry.capabilities import load_capabilities, load_capability_file
+
+    if args.dry_run:
+        version, rows = load_capability_file()
+        print(f"dry run   : {len(rows)} capability key(s) at version {version}")
+        for row in rows:
+            print(f"  {row.key:<38} {row.failure_mode}")
+        return 0
+
+    with transaction() as conn:
+        _gate(conn)
+        report = load_capabilities(conn)
+    print(report.summary())
+    return 0
+
+
+def _cmd_registry_seat_alias(args: argparse.Namespace) -> int:
+    """Seat one reviewed model's surfaces from the tracked-set artifact.
+
+    The consumer that artifact never had. One model at a time, named by a
+    person, because a bulk loader would defeat the `INCOMPLETE` markers the
+    format exists for.
+    """
+    from collect.db import transaction
+    from collect.registry.seat import SeatRefused, read_entry, seat
+
+    if args.dry_run:
+        try:
+            entry = read_entry(args.canonical_id)
+        except SeatRefused as refusal:
+            print(str(refusal))
+            return 1
+        print(f"dry run   : {entry.canonical_id}")
+        print(f"  surface : {entry.surface}")
+        for v in entry.variants:
+            print(f"  variant : {v}")
+        print(f"  incomplete: {list(entry.incomplete) or 'none'}"
+              f"   blocking: {list(entry.blocking_incomplete) or 'none'}")
+        return 0
+
+    with transaction() as conn:
+        _gate(conn)
+        try:
+            report = seat(conn, args.canonical_id)
+        except SeatRefused as refusal:
+            print(str(refusal))
+            return 1
+    print(
+        f"seated {report['canonical_id']}: {report['rows']} alias row(s), "
+        f"{report['searchable']} search-eligible, primary {report['surface']!r}"
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="collect", description=__doc__)
     sub = parser.add_subparsers(dest="group", required=True)
@@ -589,6 +745,14 @@ def build_parser() -> argparse.ArgumentParser:
     ops_run.add_argument(
         "--no-database", action="store_true",
         help="run without a connection; every stage that needs one refuses and says so")
+    ops_run.add_argument(
+        "--no-network", action="store_true",
+        help="run without an HTTP client; poll-registry refuses and says so. "
+             "The OpenRouter feed needs no credential, so the default is on.")
+    ops_run.add_argument(
+        "--force", action="store_true",
+        help="proceed even though a previous run never finished. Without this, "
+             "an unfinished job_run row refuses the chain and names it.")
     ops_run.set_defaults(func=_cmd_ops_run)
 
     tracked = reg_sub.add_parser(
@@ -633,6 +797,34 @@ def build_parser() -> argparse.ArgumentParser:
         "Records the gap in the report.",
     )
     load.set_defaults(func=_cmd_registry_load_seed)
+
+    load_src = reg_sub.add_parser(
+        "load-sources",
+        help="load contract/sources.yaml into `source`. harvest_run FKs to it.",
+    )
+    load_src.add_argument(
+        "--dry-run", action="store_true", help="build rows, touch nothing"
+    )
+    load_src.set_defaults(func=_cmd_registry_load_sources)
+
+    load_caps = reg_sub.add_parser(
+        "load-capabilities",
+        help="load contract/capabilities.yaml into `capability`. claim FKs to it.",
+    )
+    load_caps.add_argument(
+        "--dry-run", action="store_true", help="parse and report, touch nothing"
+    )
+    load_caps.set_defaults(func=_cmd_registry_load_capabilities)
+
+    seat_alias = reg_sub.add_parser(
+        "seat-alias",
+        help="seat one reviewed model's surfaces from the tracked-set artifact",
+    )
+    seat_alias.add_argument("canonical_id", help="e.g. anthropic/claude-opus-4.8")
+    seat_alias.add_argument(
+        "--dry-run", action="store_true", help="show the reviewed entry, write nothing"
+    )
+    seat_alias.set_defaults(func=_cmd_registry_seat_alias)
 
     triage = sub.add_parser("triage", help="E4 — the hard gates")
     triage_sub = triage.add_subparsers(dest="command", required=True)

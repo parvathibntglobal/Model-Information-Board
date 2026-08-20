@@ -119,16 +119,33 @@ def test_a_sweep_that_fetched_nothing_records_zero_rather_than_null():
 def test_it_refuses_when_the_source_row_is_absent():
     """Upstream of the foreign key, because 23503 sends the reader to this writer.
 
-    `source` holds 0 rows on staging: `load_source_rows` has no caller. Until it
-    does, every harvest is unrecordable, and the message has to say which loader
-    rather than which constraint.
+    THIS TEST PINNED A SENTENCE THAT OUTLIVED ITS PREMISE. It asserted
+    `"load_source_rows" in str(refusal)` and the docstring explained that the
+    loader had no caller — true for the whole build, and false from 2026-08-20,
+    when `registry load-sources` landed and twelve rows went into staging. The
+    assertion kept passing while the message it pinned had become advice to wire
+    something already wired.
+
+    Habit 2, in the form that is hardest to notice: assert the state of the
+    world, not the wording that describes it. So this now asserts what the
+    refusal must ENABLE — a reader knowing what to run — by naming the COMMAND,
+    which is stable, rather than the internal function, which was only ever
+    relevant while it had no caller.
     """
     conn = FakeConn(known=set())
 
     with pytest.raises(UnknownSource) as refusal:
         open_harvest_run(conn, fields())
 
-    assert "load_source_rows" in str(refusal.value)
+    message = str(refusal.value)
+    assert "registry load-sources" in message, (
+        "the refusal has to name the command a reader can run"
+    )
+    assert "source(id)" in message, "and the constraint it is upstream of"
+    assert "load_source_rows" not in message, (
+        "naming the internal function was only useful while it had no caller; "
+        "it now sends the reader to code rather than to a command"
+    )
     assert not any("INSERT INTO harvest_run" in s for s, _ in conn.statements)
 
 
