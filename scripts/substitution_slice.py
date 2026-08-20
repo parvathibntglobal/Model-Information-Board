@@ -159,7 +159,7 @@ def attested_models(limit: int = 6) -> list[Model]:
     The registry went from 11 models to 340, and the prediction to test is that
     the subject constraint is therefore materially different. It is not
     different by registry size alone: a polled model carries no reviewed alias
-    surfaces, so it is unsearchable (`openrouter.alias_coverage` reports exactly
+    surfaces, so it is unsearchable (`openrouter.undeclared_models` reports exactly
     that gap). What the extract supplies instead is MEASURED surfaces for the 72
     models the corpus discusses — `opus 5` at 1,445 mentions where the seed file
     nominates `claude opus 5` at 0 — so this set tests registry growth through

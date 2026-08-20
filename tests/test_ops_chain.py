@@ -227,3 +227,85 @@ def test_a_registry_event_fires_and_names_what_changed():
     alert = alerts.registry_change([{"type": "price-change"}, {"type": "new-model"}])
     assert alert.state == alerts.FIRED
     assert alert.figures == {"events": 2, "price-change": 1, "new-model": 1}
+
+
+def test_the_poll_stage_parses_the_response_rather_than_passing_it_on():
+    """The fourth instance, and the only one that reported OK.
+
+    `fetch_models` returns an httpx `Response` — deliberately, so the caller can
+    store the bytes before parsing. `_poll_registry_stage` passed it straight to
+    `parse_models`, which read it as neither dict nor list and returned an empty
+    `PollResult`. So every poll the chain ever ran reported `OK models=0`, and
+    the registry's rows came from a hand-run instead.
+
+    The other three misses that week REFUSED and named a reason. This one
+    SUCCEEDED and produced nothing, which is the shape no log line reveals.
+
+    Both sides are now guarded: `parse_models` raises `UnreadableFeed` on a
+    payload it cannot read, and this asserts the stage calls `.json()` — because
+    a guard that turns a type error into a legible failure does not excuse the
+    caller, and only the caller makes the poll work.
+    """
+    import ast
+    import inspect
+
+    from collect.ops import chain
+
+    source = inspect.getsource(chain._poll_registry_stage)
+    tree = ast.parse(source.strip())
+
+    parse_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "parse_models"
+    ]
+    assert parse_calls, "the stage no longer calls parse_models; this guard is stale"
+
+    for call in parse_calls:
+        first = call.args[0]
+        assert isinstance(first, ast.Call) and isinstance(first.func, ast.Attribute), (
+            "parse_models is being handed a bare value; it needs the parsed "
+            "document, and a Response silently parses to zero models"
+        )
+        assert first.func.attr == "json", (
+            f"parse_models' first argument calls .{first.func.attr}(), not .json()"
+        )
+
+
+def test_a_zero_model_poll_is_an_error_rather_than_a_quiet_ok():
+    """340 is the expected order of magnitude; 0 is a feed we could not read.
+
+    The whole reason the stage was broken for its entire life is that zero
+    models read as a successful night. So a parse that yields nothing is an
+    ERROR with the entry count beside it, not an OK with counts=0.
+    """
+    from collect.ops.chain import ERROR, _poll_registry_stage
+
+    class FakeResponse:
+        def json(self):
+            return {"data": []}
+
+    class FakeClient:
+        def get(self, url):
+            return FakeResponse()
+
+        @property
+        def status_code(self):  # pragma: no cover - not reached
+            return 200
+
+    # `fetch_models` checks `response.status_code`, so the client returns a
+    # response-shaped object with a 200.
+    class Resp(FakeResponse):
+        status_code = 200
+
+    class Client:
+        def get(self, url):
+            return Resp()
+
+    result = _poll_registry_stage({"conn": object(), "client": Client()})
+
+    assert result.outcome == ERROR, result
+    assert "0 models" in result.detail
+    assert result.starves, "an error on this stage has to say what it starves"

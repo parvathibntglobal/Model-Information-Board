@@ -182,7 +182,7 @@ def _cmd_ops_run(args: argparse.Namespace) -> int:
     # hand-run, the same way `author`'s 4,391 were.
     #
     # Third instance of one shape this week. `load_source_rows` had no caller;
-    # `alias_coverage` had no route check; this had no dependency. All three are
+    # `undeclared_models` had no route check; this had no dependency. All three are
     # correct code that nothing reaches, and all three read as a considered
     # state from the outside — a refusal that names its reason is especially
     # good at that.

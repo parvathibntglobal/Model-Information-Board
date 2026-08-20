@@ -304,11 +304,36 @@ def _poll_registry_stage(context) -> StageResult:
     if conn is None:
         return StageResult(REFUSED, "no database connection",
                            starves="the registry is not refreshed")
-    payload = fetch_models(context["client"]) if context.get("client") else None
-    if payload is None:
+    response = fetch_models(context["client"]) if context.get("client") else None
+    if response is None:
         return StageResult(REFUSED, "no HTTP client supplied",
                            starves="the registry is not refreshed")
-    result = parse_models(payload, retrieved_at=datetime.now(UTC))
+
+    # `.json()`, WHICH THIS LINE DID NOT DO. `fetch_models` returns the
+    # RESPONSE on purpose — its docstring says so, "so the caller can store the
+    # bytes before parsing" — and this stage passed the response object straight
+    # into `parse_models`, which read it as neither a dict nor a list and
+    # returned an empty result. Every poll the chain has ever run reported
+    # `OK models=0`, and the registry's rows came from a hand-run instead.
+    #
+    # `parse_models` now RAISES on a payload it cannot read, so this can never
+    # fail silently again — but the fix belongs on both sides: a guard that
+    # turns a type error into a legible failure does not excuse the caller.
+    result = parse_models(response.json(), retrieved_at=datetime.now(UTC))
+
+    # A ZERO IS NOW WORTH REFUSING ON. A feed that parses to no models is not a
+    # world with no models — it is a feed we could not read, or an endpoint that
+    # changed shape. Reported as an error rather than an OK with counts=0,
+    # because the whole reason this stage was broken for its entire life is that
+    # zero models read as a successful night.
+    if not result.models:
+        return StageResult(
+            ERROR,
+            f"the feed parsed to 0 models from {result.raw_entries} entries",
+            starves="the registry is not refreshed, and 340 models is the "
+                    "expected order of magnitude",
+        )
+
     counts = write_model_versions(conn, result)
     return StageResult(OK, counts={"models": len(result.models), **counts})
 

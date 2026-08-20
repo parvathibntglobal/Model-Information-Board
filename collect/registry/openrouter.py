@@ -30,7 +30,7 @@ wrote in `contract/` is what gets issued. The feed gives
 `claude opus 5`, `opus 5`, `opus5`, `claude opus`, or the family surface `opus`.
 
 **So this replaces the FACTS in `contract/seed_models.yaml` and not the SEARCH
-SURFACE.** `alias_coverage` below reports the gap per model rather than leaving
+SURFACE.** `undeclared_models` below reports the gap per model rather than leaving
 it to be discovered when a sweep finds nothing.
 
 SERVICE TIERS ARE NOT MODELS
@@ -310,11 +310,47 @@ class PollResult:
         )
 
 
+class UnreadableFeed(TypeError):
+    """The payload is not a feed. Raised rather than returning an empty result."""
+
+
 def parse_models(payload: Any, *, retrieved_at: datetime) -> PollResult:
-    """The feed to rows. Service tiers folded into the model they belong to."""
+    """The feed to rows. Service tiers folded into the model they belong to.
+
+    RAISES ON A PAYLOAD IT CANNOT READ, and it did not until 2026-08-20. The
+    line below returned `PollResult(retrieved_at, 0, (), 0)` for anything that
+    was not a list — which converted a caller's type error into the sentence
+    *"the feed has no models"*, reported by the nightly chain as **OK**.
+
+    That is what happened for the whole life of the chain. `fetch_models`
+    returns a `Response` — deliberately, so the caller can store the bytes
+    before parsing — and `_poll_registry_stage` handed it straight to this
+    function without `.json()`. A `Response` is not a dict and not a list, so
+    every poll parsed to zero models and the stage reported success:
+
+        parse_models(response)  ->  0 feed entries -> 0 models        OK
+        parse_models(.json())   ->  414 feed entries -> 340 models
+
+    The fourth instance of one shape in a day, and the worst of the four: the
+    other three REFUSED and named a reason, and a refusal is legible. This one
+    succeeded and produced nothing, which is rule 6 inside the module written to
+    uphold it — an unreadable payload becoming a definite statement about the
+    world.
+
+    So the defensive branch is now a refusal. An empty `data` list is still a
+    legitimate zero and still returns one: the distinction is between *the feed
+    said nothing* and *this is not the feed*.
+    """
     entries = payload.get("data") if isinstance(payload, dict) else payload
     if not isinstance(entries, list):
-        return PollResult(retrieved_at, 0, (), 0)
+        raise UnreadableFeed(
+            f"expected a feed document or a list of entries, got "
+            f"{type(payload).__name__}. If this is an httpx Response, the caller "
+            f"owes it a `.json()` — `fetch_models` returns the response on "
+            f"purpose so the bytes can be stored before parsing, and skipping "
+            f"the parse produced a silent 0-model poll for the whole life of "
+            f"the nightly chain."
+        )
 
     by_base: dict[str, dict[str, Any]] = {}
     batch_by_base: dict[str, dict[str, Any]] = {}
@@ -344,14 +380,32 @@ def parse_models(payload: Any, *, retrieved_at: datetime) -> PollResult:
     return PollResult(retrieved_at, len(entries), models, tier_count)
 
 
-def alias_coverage(models: tuple[PolledModel, ...], known: dict[str, Any]
-                   ) -> tuple[str, ...]:
-    """Which polled models have no hand-written alias list, and so are unsearchable.
+def undeclared_models(models: tuple[PolledModel, ...], declared: Any) -> tuple[str, ...]:
+    """Polled models absent from `contract/seed_models.yaml`, so unsearchable.
 
-    Reported rather than papered over. `alias_rows` needs prose surfaces the feed
+    RENAMED FROM `alias_coverage(models, known)`, 2026-08-20, because both halves
+    of that signature described something other than what they did and the
+    output was quoted as a coverage figure on the strength of the name.
+
+    `alias_coverage` reads as *"we checked each model's aliases"*. It does no such
+    thing: it is a set difference against a build fixture. And `known` reads as
+    *"known to the system"* — but every one of these models IS known, polled,
+    stored and in the window; what they are is **undeclared**. A model absent
+    from `known` is absent from an eleven-entry YAML, not from the registry.
+
+    The number is therefore a ROSTER REACHABILITY figure — *"of everything the
+    poller found, how much can a sweep look for"* — and not a load gap. That
+    distinction is what `docs/proposals/coverage-page-scope.md` is about: the
+    coverage page's four kinds are all properties of a LOAD, keyed to a model the
+    load touched, and this is a property of the FEED. Same word, different
+    question, and a reader seeing "333 gaps" concluded the first.
+
+    Reported rather than papered over: `alias_rows` needs prose surfaces the feed
     does not carry, so a polled model with no entry in `contract/seed_models.yaml`
-    lands in `model_version` and is invisible to every sweep. That is a coverage
-    gap and it should be a number somebody can look at, not a silence.
+    lands in `model_version` and is invisible to every sweep. That should be a
+    number somebody can look at rather than a silence — but the number has had no
+    production caller since it was written, so today it is a silence with a
+    function behind it.
 
     ROUTES ARE EXCLUDED, AND THIS IS THE FOURTH CALLER THE RULING NEEDED.
     `is_route` was ruled 2026-08-18 and had callers in `triage/entity.py`,
@@ -376,7 +430,7 @@ def alias_coverage(models: tuple[PolledModel, ...], known: dict[str, Any]
     return tuple(
         m.canonical_id
         for m in models
-        if m.canonical_id not in known and not is_route(m.canonical_id)
+        if m.canonical_id not in declared and not is_route(m.canonical_id)
     )
 
 
