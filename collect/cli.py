@@ -156,6 +156,7 @@ def _cmd_ops_preflight(args: argparse.Namespace) -> int:
 def _cmd_ops_run(args: argparse.Namespace) -> int:
     """The nightly chain. Runs what exists and says what does not."""
     from collect.db import connect
+    from collect.http import build_client
     from collect.ops.chain import Journal, default_stages, run_chain
     from collect.registry.policy import load_registry_policy
 
@@ -172,9 +173,34 @@ def _cmd_ops_run(args: argparse.Namespace) -> int:
         "environment": settings().environment,
         "policy": load_registry_policy(),
     }
+
+    # THE CLIENT NOTHING SUPPLIED. `_poll_registry_stage` reads
+    # `context["client"]` and refuses with "no HTTP client supplied" when it is
+    # absent — and `"client"` was set NOWHERE in this file, so `poll-registry`
+    # refused on every invocation the chain has ever had. The stage was wired,
+    # correct, and could not run: the registry's 340 rows were put there by a
+    # hand-run, the same way `author`'s 4,391 were.
+    #
+    # Third instance of one shape this week. `load_source_rows` had no caller;
+    # `alias_coverage` had no route check; this had no dependency. All three are
+    # correct code that nothing reaches, and all three read as a considered
+    # state from the outside — a refusal that names its reason is especially
+    # good at that.
+    #
+    # NO CREDENTIAL. Verified live 2026-08-20 with the key removed from the
+    # environment: no Authorization header, HTTP 200, 679,318 bytes, 414 feed
+    # entries folding to 340 models, and no rate-limit headers. So a client is
+    # free to supply and there is no reason to withhold it by default.
+    client = None
+    if not args.no_network:
+        client = build_client()
+        context["client"] = client
+
     try:
         run = run_chain(default_stages(), context, journal)
     finally:
+        if client is not None:
+            client.close()
         if conn is not None:
             conn.close()
     print(run.summary())
@@ -654,6 +680,10 @@ def build_parser() -> argparse.ArgumentParser:
     ops_run.add_argument(
         "--no-database", action="store_true",
         help="run without a connection; every stage that needs one refuses and says so")
+    ops_run.add_argument(
+        "--no-network", action="store_true",
+        help="run without an HTTP client; poll-registry refuses and says so. "
+             "The OpenRouter feed needs no credential, so the default is on.")
     ops_run.set_defaults(func=_cmd_ops_run)
 
     tracked = reg_sub.add_parser(
