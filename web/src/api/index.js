@@ -1,0 +1,144 @@
+/**
+ * The real backend. One module, one place to look.
+ *
+ * Base is `/api`, proxied to the FastAPI app in dev (see vite.config.js) and
+ * set with VITE_API_URL in a deployed build.
+ *
+ * Endpoints, as they actually exist in judge/app.py:
+ *
+ *   GET  /health                     no database needed
+ *   GET  /capabilities               no database needed
+ *   POST /ask/requirements           no database needed — deterministic Q3
+ *   POST /ask/revise                 no database needed — Q3 after an edit
+ *   POST /ask/understand             needs OPENROUTER_API_KEY — the one LLM call
+ *   GET  /models/{id}                needs the database
+ *   GET  /capabilities/{key}         needs the database
+ *   GET  /filtered  /coverage  /changelog    need the database
+ *
+ * The database-backed reads answer 503 when DATABASE_URL is unset, and the
+ * backend is explicit that this is not the same as a board with nothing on it.
+ * `BoardUnreadable` keeps that distinction all the way to the screen.
+ */
+
+const BASE = import.meta.env.VITE_API_URL || '/api'
+
+export class ApiError extends Error {
+  constructor(message, status, body) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.body = body
+  }
+}
+
+/** 503 from a read surface: the board cannot be read, which is not emptiness. */
+export class BoardUnreadable extends ApiError {
+  constructor(message, body) {
+    super(message, 503, body)
+    this.name = 'BoardUnreadable'
+  }
+}
+
+async function request(path, { method = 'GET', body, signal } = {}) {
+  let res
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method,
+      signal,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    })
+  } catch (err) {
+    if (err.name === 'AbortError') throw err
+    throw new ApiError('Cannot reach the API. Is the backend running on port 8000?', 0, null)
+  }
+
+  const text = await res.text()
+  let data = null
+  try { data = text ? JSON.parse(text) : null } catch { data = text }
+
+  if (!res.ok) {
+    // FastAPI puts the message in `detail`; the backend writes real sentences there
+    const detail = (data && (data.detail || data.message)) || `Request failed (${res.status})`
+    if (res.status === 503) throw new BoardUnreadable(detail, data)
+    throw new ApiError(detail, res.status, data)
+  }
+  return data
+}
+
+/* ------------------------------------------------------------------ reads */
+
+export const health = () => request('/health')
+export const listCapabilities = () => request('/capabilities')
+export const capabilityPage = (key) => request(`/capabilities/${encodeURIComponent(key)}`)
+/**
+ * Model ids can contain a slash — `google/gemini-2.5-flash`. The handoff is
+ * explicit that the slash must NOT be percent-encoded, so each segment is
+ * encoded and the separators are kept.
+ *
+ * Note: as of 2026-08-19 the backend route is `/models/{model_version_id}`,
+ * a single path param, which does not match a slash — so the documented
+ * `/models/google/gemini-2.5-flash` 404s and only the internal `mv_…` id
+ * resolves. Reported. This helper is already correct for when it is fixed.
+ */
+export const modelPath = (id) => String(id).split('/').map(encodeURIComponent).join('/')
+export const modelPage = (id) => request(`/models/${modelPath(id)}`)
+export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
+export const coveragePage = () => request('/coverage')
+export const changelogPage = (days = 30) => request(`/changelog?days=${days}`)
+
+/* ------------------------------------------------------------------ ask */
+
+/**
+ * Q3. Deterministic — the same task always produces the same requirements.
+ * Needs no API key and no database, which is why it is the page that works
+ * end to end today.
+ */
+export const askRequirements = (payload) =>
+  request('/ask/requirements', { method: 'POST', body: payload })
+
+/** Q3 again, over a profile the user has corrected. No model runs. */
+export const askRevise = (profile, acceptedAssumptions = []) =>
+  request('/ask/revise', {
+    method: 'POST',
+    body: { profile, accepted_assumptions: acceptedAssumptions },
+  })
+
+/** Q1 — the LLM call. 429 when the extraction budget is spent, 422 on refusal. */
+export const askUnderstand = (text, shape = 'task') =>
+  request('/ask/understand', { method: 'POST', body: { text, shape } })
+
+/* ------------------------------------------------------------------ display */
+
+export const fmtInt = (n) =>
+  n == null ? '—' : new Intl.NumberFormat('en-US').format(n)
+
+export const fmtTokens = (n) => {
+  if (n == null) return '—'
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)}M`
+  if (n >= 1000) return `${Math.round(n / 1000)}k`
+  return String(n)
+}
+
+/** Backend capability keys are dotted; this is the human label. */
+export const capLabel = (key) =>
+  (key || '')
+    .split('.')
+    .pop()
+    .replace(/_/g, ' ')
+    .replace(/^\w/, (c) => c.toUpperCase())
+
+export const TIER = {
+  1: { label: 'Trivial', note: 'almost anything qualifies — pick on price' },
+  2: { label: 'Small', note: 'many cheap models qualify' },
+  3: { label: 'Moderate', note: 'mid-tier and up' },
+  4: { label: 'Hard', note: 'few models; cost is secondary' },
+  5: { label: 'Frontier', note: 'one or two, or nothing does this reliably yet' },
+}
+
+export const ERROR_COST = {
+  experimental: { tone: 'mute', note: 'a wrong answer costs a rerun' },
+  internal: { tone: 'info', note: 'errors get noticed internally' },
+  'customer-facing': { tone: 'warn', note: 'requires praised, not merely uncriticised' },
+  irreversible: { tone: 'fail', note: 'writes, sends, payments — unevidenced picks are suppressed' },
+}
