@@ -40,7 +40,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -79,6 +78,13 @@ class SweepReport:
     group_hits: dict[str, int] = field(default_factory=dict)
     kept: int = 0
     stored: int = 0
+    max_minutes: int = 0
+
+    #: Set when the sweep stopped on wall clock rather than on request count.
+    #: Named separately because "ran out of requests" and "ran out of time" want
+    #: opposite repairs — one narrows the plan, the other is a throttle.
+    stopped_on_time: bool = False
+
     harvest_runs_opened: int = 0
     harvest_runs_closed: int = 0
 
@@ -111,7 +117,9 @@ class SweepReport:
             f"sweep    : {len(self.models)} model(s) swept, "
             f"{len(self.unreached)} unreached, "
             f"{self.requests_issued} of {self.requests_planned} planned request(s) "
-            f"issued against a cap of {self.cap}",
+            f"issued against a cap of {self.cap} request(s) / "
+            f"{self.max_minutes} minute(s)"
+            + (" — STOPPED ON WALL CLOCK" if self.stopped_on_time else ""),
             f"           {self.candidates} candidate(s), {self.kept} kept, "
             f"{self.stored} document(s) stored",
             f"           harvest_run: {self.harvest_runs_opened} opened, "
@@ -167,8 +175,26 @@ def seated_variants(conn) -> dict[str, tuple[str, ...]]:
     return {row[0]: tuple(sorted(row[1])) for row in rows}
 
 
-def request_cap(path: str | None = None) -> int:
-    """The cap from `contract/harvest.yaml`. Refuses rather than defaulting."""
+def sweep_budget(cadence: str = "daily", path: str | None = None) -> tuple[int, int]:
+    """`(max_requests, max_minutes)` for one cadence, from `contract/harvest.yaml`.
+
+    **CORRECTED. This was `request_cap()`, and it was wrong twice.**
+
+    It walked the contract and returned the FIRST `max_requests` it found, which
+    is `daily`'s 900 whatever cadence was asked for — so a weekly sweep would
+    have run against the daily ceiling, 900 instead of 600. And it read only half
+    the budget: `harvest.yaml` sets `max_minutes` beside `max_requests` for each
+    cadence, and says why — *"the minute figure is the one that survives a
+    rate-limit change, so it is checked too rather than left implied by the
+    request count."* The first real sweep proved that comment right: three 403s
+    with 16–22s backoffs inside 32 requests, so wall clock and request count came
+    apart immediately.
+
+    **What the cap governs, stated because I had it wrong:** requests per SWEEP,
+    per CADENCE — not per model. `harvest.yaml` says "Requests per sweep, per
+    cadence. The ceiling, not the target." A per-model reading makes 900 no
+    constraint at all, since one model's daily plan is ~53 requests.
+    """
     from pathlib import Path
 
     import yaml
@@ -177,30 +203,21 @@ def request_cap(path: str | None = None) -> int:
 
     target = Path(path) if path else REPO_ROOT / _HARVEST_CONTRACT
     raw = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
-
-    def find(node: Any) -> int | None:
-        if isinstance(node, dict):
-            if "max_requests" in node:
-                return int(node["max_requests"])
-            for value in node.values():
-                found = find(value)
-                if found is not None:
-                    return found
-        elif isinstance(node, list):
-            for value in node:
-                found = find(value)
-                if found is not None:
-                    return found
-        return None
-
-    cap = find(raw)
-    if cap is None:
+    budget = (raw.get("sweep_budget") or {}).get(cadence)
+    if not budget:
         raise RuntimeError(
-            f"no `max_requests` in {target}. A sweep without a budget the contract "
-            f"set is a sweep with a budget this code invented, and the whole point "
-            f"of the cap is that it is not ours to choose."
+            f"no `sweep_budget: {cadence}:` in {target}. A sweep without a budget "
+            f"the contract set is a sweep with a budget this code invented, and "
+            f"the whole point of the cap is that it is not ours to choose."
         )
-    return cap
+    missing = [k for k in ("max_requests", "max_minutes") if k not in budget]
+    if missing:
+        raise RuntimeError(
+            f"`sweep_budget: {cadence}` is missing {', '.join(missing)}. Both halves "
+            f"are the budget: the request count is what a plan can check in advance "
+            f"and the minute figure is what survives a rate-limit change."
+        )
+    return int(budget["max_requests"]), int(budget["max_minutes"])
 
 
 def sweep_github(
@@ -210,7 +227,10 @@ def sweep_github(
     entries,
     scope: tuple[str, ...] = (),
     cap: int | None = None,
+    max_minutes: int | None = None,
+    cadence: str = "daily",
     source_id: str = "github",
+    now=None,
 ) -> SweepReport:
     """Sweep every seated model until the budget runs out, recording each query.
 
@@ -220,12 +240,18 @@ def sweep_github(
     never came back". Committed per query for the same reason: a run held open in
     one transaction and rolled back would take every record of the night with it.
     """
+    import time
+
     from collect.adapters.github import QueryRun
     from collect.adapters.queries import plan_searches
     from collect.ops.ledger import close_harvest_run, open_harvest_run
 
-    cap = request_cap() if cap is None else cap
-    report = SweepReport(cap=cap)
+    contract_cap, contract_minutes = sweep_budget(cadence)
+    cap = contract_cap if cap is None else cap
+    minutes = contract_minutes if max_minutes is None else max_minutes
+    clock = now or time.monotonic
+    started = clock()
+    report = SweepReport(cap=cap, max_minutes=minutes)
 
     by_model = seated_variants(conn)
     if not by_model:
@@ -243,6 +269,11 @@ def sweep_github(
 
     for canonical_id, variants in by_model.items():
         plan = plans[canonical_id]
+        elapsed_minutes = (clock() - started) / 60
+        if elapsed_minutes >= minutes:
+            report.stopped_on_time = True
+            report.unreached.append(canonical_id)
+            continue
         if report.requests_issued + plan.request_count > cap:
             report.unreached.append(canonical_id)
             continue

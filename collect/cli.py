@@ -660,7 +660,7 @@ def _cmd_ops_sweep_github(args: argparse.Namespace) -> int:
     from collect.adapters.queries.cadence import split_by_cadence
     from collect.db import transaction
     from collect.http import build_client
-    from collect.ops.sweep import request_cap, seated_variants, sweep_github
+    from collect.ops.sweep import seated_variants, sweep_budget, sweep_github
     from collect.rawstore import RawStore
     from collect.registry.assertions import assert_terms_reviewed
     from collect.registry.sources import load_sources
@@ -681,7 +681,9 @@ def _cmd_ops_sweep_github(args: argparse.Namespace) -> int:
     entries = list(queries.all_entries)
     cadence = split_by_cadence(entries)
     selected = cadence[args.cadence] if args.cadence != "all" else entries
-    cap = args.cap if args.cap is not None else request_cap()
+    budget_cadence = args.cadence if args.cadence != "all" else "daily"
+    contract_cap, contract_minutes = sweep_budget(budget_cadence)
+    cap = args.cap if args.cap is not None else contract_cap
     scope = tuple(args.scope or ())
 
     if args.dry_run:
@@ -702,7 +704,13 @@ def _cmd_ops_sweep_github(args: argparse.Namespace) -> int:
             planned[x] for x in list(planned)[: list(planned).index(m) + 1]
         ) <= cap]
         print(f"plan     : {len(by_model)} seated model(s), {len(selected)} entr(ies), "
-              f"{total} request(s) planned against a cap of {cap}")
+              f"{total} request(s) planned against a cap of {cap} request(s) / "
+              f"{contract_minutes} minute(s)")
+        # A PLAN IS NOT A CLEARANCE. `_gate` is not called here and the terms gate
+        # above covers NFR-5 only, so this output says what a sweep would cost and
+        # nothing about whether one may run. Saying so, because two days of
+        # readiness readings came off this path.
+        print("           (plan only — `_gate` not run, so this is not a clearance)")
         print(f"           {len(fits)} model(s) fit the cap, "
               f"{len(by_model) - len(fits)} would be unreached")
         return 0
@@ -717,7 +725,8 @@ def _cmd_ops_sweep_github(args: argparse.Namespace) -> int:
             max_fetch_per_query=args.max_fetch_per_query,
         )
         report = sweep_github(
-            conn, harvester, entries=selected, scope=scope, cap=cap
+            conn, harvester, entries=selected, scope=scope, cap=cap,
+            max_minutes=args.max_minutes, cadence=budget_cadence,
         )
     print(report.summary())
     return 0
@@ -941,6 +950,11 @@ def build_parser() -> argparse.ArgumentParser:
     ops_sweep.add_argument("--scope", action="append", help="repeatable repo: qualifier")
     ops_sweep.add_argument("--store", default="./_sweep_store")
     ops_sweep.add_argument("--max-fetch-per-query", type=int, default=15)
+    ops_sweep.add_argument(
+        "--max-minutes", type=int, default=None,
+        help="wall-clock ceiling; defaults to contract/harvest.yaml max_minutes "
+             "for this cadence. Checked as well as the request count, because a "
+             "throttle moves one and not the other")
     ops_sweep.add_argument(
         "--dry-run", action="store_true",
         help="print the plan and the models the cap would not reach")
