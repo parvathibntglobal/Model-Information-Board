@@ -167,6 +167,33 @@ def _cmd_ops_run(args: argparse.Namespace) -> int:
         except Exception as error:  # noqa: BLE001
             print(f"no database connection: {type(error).__name__}: {error}")
 
+    # THE OVERLAP GUARD, WHICH IS WHAT A SCHEDULER NEEDS AND NOTHING ASKED FOR.
+    # `ops/ledger.py:unfinished()` was written for exactly this question — rows
+    # that started and never concluded — and had no caller, so two cron runs
+    # could interleave and `job_run` would hold both with nothing saying so.
+    #
+    # It REPORTS AND REFUSES rather than waiting or killing, and it does not
+    # invent a staleness threshold. An unfinished row means one of two things and
+    # only the operator can tell them apart: a run still going, or a run that was
+    # killed. Both are worth seeing; neither should be guessed at. `--force`
+    # proceeds, so a stale row cannot block the chain forever — which is the
+    # failure mode a silent lock would have.
+    if conn is not None and not args.force:
+        from collect.ops.ledger import unfinished
+
+        stalled = unfinished(conn)
+        if stalled:
+            print(
+                f"refusing: {len(stalled)} job_run row(s) started and never "
+                f"finished. Either a run is still going, or one was killed - "
+                f"finished_at IS NULL cannot tell those apart, and they need "
+                f"opposite repairs."
+            )
+            for run_id, stage, started in stalled:
+                print(f"  {stage:<22} started {started:%Y-%m-%d %H:%M:%S}  {run_id}")
+            print("  Re-run with --force to proceed anyway.")
+            return 1
+
     journal = Journal(Path(args.journal) if args.journal else None)
     context = {
         "conn": conn,
@@ -684,6 +711,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-network", action="store_true",
         help="run without an HTTP client; poll-registry refuses and says so. "
              "The OpenRouter feed needs no credential, so the default is on.")
+    ops_run.add_argument(
+        "--force", action="store_true",
+        help="proceed even though a previous run never finished. Without this, "
+             "an unfinished job_run row refuses the chain and names it.")
     ops_run.set_defaults(func=_cmd_ops_run)
 
     tracked = reg_sub.add_parser(
