@@ -240,12 +240,24 @@ def test_the_pipeline_generation_reaches_the_version_and_the_fingerprint():
     identifier - the legible component and the opts hash - or a reader has two
     values that can disagree about the same field.
     """
-    baseline = current_extraction_version()
-    bumped = current_extraction_version(ExtractionOptions(pipeline=2))
+    # ASSERTED AS A RELATIONSHIP, NOT AS THE CURRENT VALUE. This read
+    # `"+pipeline-1+" in baseline` and broke the day the default was bumped 1 -> 2
+    # for the template-block strip — a test pinning a value where it meant to pin
+    # a property, which is the shape that also pinned `outcome_of() == "fetched"`
+    # until the constraint disagreed with it.
+    current = DEFAULT_EXTRACTION.pipeline
+    other = current + 1
 
-    assert "+pipeline-1+" in baseline
-    assert "+pipeline-2+" in bumped
-    assert DEFAULT_EXTRACTION.fingerprint() != ExtractionOptions(pipeline=2).fingerprint()
+    baseline = current_extraction_version()
+    bumped = current_extraction_version(ExtractionOptions(pipeline=other))
+
+    assert f"+pipeline-{current}+" in baseline
+    assert f"+pipeline-{other}+" in bumped
+    assert baseline != bumped, "the legible component has to move"
+    assert (
+        DEFAULT_EXTRACTION.fingerprint()
+        != ExtractionOptions(pipeline=other).fingerprint()
+    ), "and so does the opts hash, or a reader has two values that can disagree"
 
 
 def test_pipeline_is_fingerprinted_and_not_passed():
@@ -340,3 +352,75 @@ def test_every_option_reaches_trafilatura(monkeypatch):
     # this asserts the roster too: a trafilatura option dropped from
     # `_TRAFILATURA_KEYS` would vanish from both sides and pass silently.
     assert set(passed) == set(options_module._TRAFILATURA_KEYS)
+
+
+# ── the template block: an author's link index is not a claim ──────────────
+
+
+class TestStripTemplateBlock:
+    """13 of 30 stored articles named a model ONLY inside the site's own
+    "Recent articles" list. A model named in a headline there is named by the
+    headline, not by anyone writing about it — and a claim built on it is
+    verified, attributed and about nothing."""
+
+    def test_it_drops_the_block_and_everything_after(self):
+        from collect.adapters.blog.parse import strip_template_block
+
+        text = (
+            "13th August 2026\n\n"
+            "Performance boost for DuckDB exports, see here.\n\n"
+            "## Recent articles\n\n"
+            "- Qwen 3.8 27B is excellent, but it defaults to wildly overthinking things\n"
+        )
+        out = strip_template_block(text, "Recent articles")
+
+        assert out == "13th August 2026\n\nPerformance boost for DuckDB exports, see here."
+        assert "Qwen" not in out, "the borrowed headline is the whole point"
+
+    def test_the_same_phrase_in_a_sentence_survives(self):
+        """Anchored on the heading line, not on the words.
+
+        A substring match here would be the boundary defect this project has
+        already recorded twice — `pro` inside "problem", `free` inside "freeze".
+        """
+        from collect.adapters.blog.parse import strip_template_block
+
+        text = "I read recent articles about Qwen daily, and the Recent articles vary."
+        assert strip_template_block(text, "Recent articles") == text
+
+    def test_a_document_without_the_block_is_returned_unchanged(self):
+        from collect.adapters.blog.parse import strip_template_block
+
+        text = "17th August 2026\n\nQwen 3.8 27B scores 52 on my own benchmark."
+        assert strip_template_block(text, "Recent articles") == text
+
+    def test_the_rule_is_per_feed_and_absent_is_distinguishable_from_none(self):
+        """A rule that fires on one site and silently does nothing on eight is
+        the thing to avoid, so absence is a value rather than an empty match."""
+        from collect.adapters.blog.parse import TEMPLATE_BLOCKS, template_block_for
+
+        assert template_block_for("blog:simonwillison.net") == "Recent articles"
+        assert template_block_for("blog:hamel.dev") is None, (
+            "no rule recorded is not the same as no template — eight feeds have "
+            "no stored HTML, so their templates are unverified rather than absent"
+        )
+        assert template_block_for(None) is None
+        assert len(TEMPLATE_BLOCKS) == 1, (
+            "one feed has been measured; a second entry wants a measurement "
+            "behind it rather than a guess from another site's markup"
+        )
+
+    def test_extraction_leaves_the_block_alone_unless_a_rule_is_passed(self):
+        """Opt-in, so no existing caller changes meaning by not being updated."""
+        from collect.adapters.blog.parse import extract_article_text
+
+        html = (
+            b"<html><body><article><p>Performance boost for DuckDB exports.</p>"
+            b"<h2>Recent articles</h2><ul><li>Qwen 3.8 27B is excellent</li></ul>"
+            b"</article></body></html>"
+        )
+        without = extract_article_text(html, url="https://example.com/a") or ""
+        with_rule = extract_article_text(
+            html, url="https://example.com/a", template_block="Recent articles"
+        ) or ""
+        assert len(with_rule) <= len(without)

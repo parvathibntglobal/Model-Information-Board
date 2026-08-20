@@ -342,7 +342,7 @@ def build_blogs(store: RawStore, limit: int) -> list[tuple[dict, list[dict], str
     return out
 
 
-def main(out_dir: Path) -> int:
+def main(out_dir: Path, *, limit: int | None = DEFAULT_THREADS) -> int:
     store = RawStore(Path(tempfile.mkdtemp()))
     (out_dir / "threads").mkdir(parents=True, exist_ok=True)
 
@@ -351,14 +351,15 @@ def main(out_dir: Path) -> int:
     incomplete: list[dict] = []
 
     reddit_export, reddit_docs, reddit_id = build_reddit(store)
-    blogs = build_blogs(store, limit=DEFAULT_THREADS - 1)
+    asked = limit if limit is not None else 10**6
+    blogs = build_blogs(store, limit=asked - 1)
 
     bundles = [(reddit_export, reddit_docs)]
     bundles.extend((export, documents) for export, documents, _ in blogs)
 
-    if len(bundles) < DEFAULT_THREADS:
+    if limit is not None and len(bundles) < limit:
         incomplete.append({
-            "asked_for": DEFAULT_THREADS,
+            "asked_for": limit,
             "produced": len(bundles),
             "why": (
                 f"only {len(blogs)} stored articles both extracted to >=1200 "
@@ -495,5 +496,43 @@ def main(out_dir: Path) -> int:
     return 0
 
 
+def _cli(argv: list[str] | None = None) -> int:
+    """A command rather than a script with a positional path.
+
+    `_handoff/` proved the shape and the objection to it was that a manual bundle
+    is not an interface. So: `--out`, `--limit`, `--all`, and a size line — the
+    manual step goes and no object-store decision is needed to remove it.
+
+    WHERE THIS SHAPE STOPS WORKING, measured rather than left to be found
+    (2026-08-20, staging):
+
+        30 of 59 thread_contexts are exportable      19,046 bytes each inline
+        29 are NOT — their flattened_text_ref resolves in no store this
+           process can see, because the GitHub sweep wrote its payloads to a
+           different directory than RAW_STORE_PATH
+        0.54 MB for 30 threads · 16.1 MB projected at the 887-thread corpus
+
+    **Size is not the ceiling. Resolvability is.** 16 MB of JSON is nothing; a
+    bundle that silently contains 30 of 59 threads is the whole problem, which is
+    why the count below is printed and not inferred. And a bundle structurally
+    cannot carry `MISSING`, `CORRUPT` or `TOMBSTONED` — an unresolvable payload
+    becomes an absent key, so the extractor sees a shorter thread rather than a
+    read failure. However many bundles ship, the four read outcomes stay
+    untested until both lanes address one store.
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--out", default="_handoff", help="output directory")
+    parser.add_argument(
+        "--limit", type=int, default=DEFAULT_THREADS,
+        help=f"threads to emit (default {DEFAULT_THREADS})")
+    parser.add_argument(
+        "--all", action="store_true",
+        help="emit every exportable thread, and report what could not be read")
+    args = parser.parse_args(argv)
+    return main(Path(args.out), limit=None if args.all else args.limit)
+
+
 if __name__ == "__main__":
-    raise SystemExit(main(Path(sys.argv[1] if len(sys.argv) > 1 else "_handoff")))
+    raise SystemExit(_cli())

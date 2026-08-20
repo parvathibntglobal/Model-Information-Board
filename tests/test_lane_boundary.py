@@ -289,3 +289,92 @@ def test_collect_never_writes_the_judgement_tables(path: Path):
     """
     written = _tables_written(path) & JUDGEMENT_TABLES
     assert not written, f"{path} writes {sorted(written)}, which judge/ owns"
+
+
+# ── the bridge the top-level check cannot see ─────────────────────────────
+#
+# ADDED 2026-08-20, AFTER MEASURING WHAT THE CHECK ABOVE ACTUALLY MATCHES.
+# `_imported_roots` takes `name.split(".")[0]`, so it sees a TOP-LEVEL name and
+# nothing else:
+#
+#     from collect.rawstore_reader import X   ->  {"collect"}          CAUGHT
+#     import rawstore_reader                 ->  {"rawstore_reader"}  not caught
+#     from store.rawstore_reader import X     ->  {"store"}            not caught
+#
+# So the two lane assertions are total over what they can see, and what they
+# cannot see is **anything that is not a lane**. A root-level module or a third
+# package is invisible to both — which matters because the proposal on the table
+# is to move a shared reader to exactly such a place. The check would keep
+# passing and would have stopped saying anything about the case it was quoted
+# for.
+#
+# `collect/rawstore_reader.py` is inside a lane today, so `judge/` importing it
+# IS caught. This closes the hole that opens the moment it is not: a one-hop
+# bridge, asserted directly rather than by an allowlist of permitted modules.
+#
+# One hop rather than a full graph walk, deliberately. A transitive closure over
+# every import turns one refusal into a chain a reader has to reconstruct, and
+# the failure this catches is a module sitting between the lanes on purpose —
+# which is one hop by construction. Deeper than that is a different defect and
+# wants a different message.
+
+
+def _repo_module_path(module: str) -> Path | None:
+    """The file a dotted module name resolves to inside this repo, if any."""
+    parts = module.split(".")
+    candidates = (ROOT.joinpath(*parts).with_suffix(".py"), ROOT.joinpath(*parts, "__init__.py"))
+    return next((c for c in candidates if c.is_file()), None)
+
+
+@pytest.mark.parametrize("path", sorted((ROOT / "judge").rglob("*.py")), ids=str)
+def test_judge_never_imports_a_module_that_imports_collect(path: Path):
+    """No module may sit between the lanes and pass bytes across.
+
+    The pair this asserts is `judge/` and `collect/`, the same pair as
+    `test_judge_never_imports_collect` — this one reaches through a module that
+    is in neither. Modelled on `test_registry_never_imports_harvest`: a specific
+    pair, asserted directly, rather than a list of modules that are allowed to be
+    in the middle. A list would answer "is this on the list" where the question
+    is "does this cross the boundary", and it grows one reasonable case at a time.
+    """
+    bridges = {}
+    for module in _imported_modules(path):
+        if module.split(".")[0] in {"collect", "judge"}:
+            continue  # the direct case; the assertions above own it
+        target = _repo_module_path(module)
+        if target is None:
+            continue  # third-party or stdlib
+        if "collect" in _imported_roots(target):
+            bridges[module] = target.relative_to(ROOT).as_posix()
+
+    assert not bridges, (
+        f"{path.relative_to(ROOT).as_posix()} imports "
+        + ", ".join(f"{m} ({p})" for m, p in sorted(bridges.items()))
+        + " — and that module imports collect/. A shared module that can reach a "
+        "lane is a corridor between the lanes, and the top-level import check "
+        "cannot see it: `import x` yields the root `x`, never `collect`."
+    )
+
+
+def test_the_bridge_check_can_actually_fail(tmp_path):
+    """Habit 3: a guard nobody has watched fail is a guard nobody has tested.
+
+    Builds the exact shape the assertion above exists to refuse — a module
+    outside both lanes that imports `collect/` — and confirms the predicate
+    catches it. Without this, the parametrised test passes because the shape does
+    not exist yet rather than because it is refused.
+    """
+    bridge = ROOT / "_bridge_probe.py"
+    consumer = tmp_path / "consumer.py"
+    consumer.write_text("import _bridge_probe\n", encoding="utf-8")
+    bridge.write_text("from collect.rawstore import RawStore\n", encoding="utf-8")
+    try:
+        found = {
+            module: _repo_module_path(module)
+            for module in _imported_modules(consumer)
+            if module.split(".")[0] not in {"collect", "judge"}
+        }
+        assert found == {"_bridge_probe": bridge}, "the module did not resolve to a repo file"
+        assert "collect" in _imported_roots(bridge), "the bridge's own import was not seen"
+    finally:
+        bridge.unlink()

@@ -107,6 +107,7 @@ take or refuse:
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -307,3 +308,74 @@ def overlap_by_handle(github_handles: set[str], reddit_handles: set[str]) -> set
 
 def now() -> datetime:
     return datetime.now(UTC)
+
+
+def from_blog(feed: Mapping[str, Any], entries: Iterable[Any] = ()) -> AuthorExtraction:
+    """Author rows for one blog feed. **The unit is the FEED, not the article.**
+
+    `blog/write.py` records the reason it wrote none: *"a per-article author row
+    invented here would create a voice the identity clustering never agreed to."*
+    That is right about per-article rows and it is not an argument against author
+    rows — the contract already rules this, per feed, in `contract/sources.yaml`
+    under `measured`:
+
+        byline_source     resolves_to_voices   what an author row is
+        ---------------   ------------------   -------------------------------
+        feed_declared     1                    ONE row, the declared author
+        team              1                    ONE row, the team as one voice
+        entry             2 / 7 / 10           one row per distinct entry byline
+        none              None                 NO ROW. Unknown, not anonymous
+
+    So a `feed_declared` feed with 30 articles is **one voice with thirty
+    documents**, which is both the honest count and lower than the 30 that
+    `author_id IS NULL` would eventually be replaced by if somebody wired this
+    per article. The decision it overturns was protecting against inflation; this
+    keys on the unit that cannot inflate.
+
+    `resolves_to_voices` is cited in `write.py` as living in this module. It does
+    not — it is per-feed metadata in `contract/sources.yaml`, exercised by
+    `tests/test_source_terms.py`. The measurement is real and the citation names
+    the wrong file, which is why the decision read as better supported than it
+    was.
+
+    `handle_hash` carries the digest and the name is discarded, exactly as for
+    Reddit. A public byline does not need storing to be counted, and FR-17's
+    clustering compares digests.
+    """
+    measured = (feed.get("measured") or {}) if isinstance(feed, Mapping) else {}
+    byline_source = measured.get("byline_source")
+    feed_id = feed.get("id") if isinstance(feed, Mapping) else None
+    if not feed_id:
+        return AuthorExtraction(rows=[], unattributable=1)
+
+    if byline_source in ("feed_declared", "team"):
+        declared = measured.get("declared_author")
+        if not declared:
+            # The contract says the byline is the feed's and does not say whose.
+            # A row keyed on the feed id with no handle would be a voice with no
+            # identity, which is what `identity_cluster_id` NULL already means.
+            return AuthorExtraction(rows=[], unattributable=1)
+        return AuthorExtraction(
+            rows=[
+                AuthorRow(
+                    source="blog",
+                    external_id=feed_id,
+                    handle_hash=hash_handle(declared),
+                )
+            ]
+        )
+
+    if byline_source == "entry":
+        rows = [
+            AuthorRow(source="blog", external_id=f"{feed_id}#{author}",
+                      handle_hash=hash_handle(author))
+            for author in sorted({
+                (getattr(e, "author", None) or "").strip()
+                for e in entries
+                if (getattr(e, "author", None) or "").strip()
+            })
+        ]
+        return AuthorExtraction(rows=_dedupe(rows))
+
+    # `none`, or a byline_source the contract has not ruled on. NULL is honest.
+    return AuthorExtraction(rows=[])

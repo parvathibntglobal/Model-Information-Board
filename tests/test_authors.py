@@ -213,3 +213,90 @@ def test_deduplication_is_by_source_and_external_id():
     result = from_reddit([Item("a", "t2_x"), Item("a", "t2_x"), Item("b", "t2_y")])
     assert result.distinct_authors == 2
     assert len(result.rows) == 2
+
+
+# ── blogs: the unit is the feed, not the article ──────────────────────────
+
+
+class TestFromBlog:
+    """`blog/write.py` wrote no author on a recorded reason, and the reason was
+    about per-ARTICLE rows. The contract already rules this per FEED, in
+    `contract/sources.yaml` under `measured` — so these cases are the contract's,
+    not a judgement made here."""
+
+    def test_a_feed_declared_byline_is_one_voice_however_many_articles(self):
+        from collect.assemble.authors import from_blog
+
+        feed = {
+            "id": "blog:simonwillison.net",
+            "measured": {
+                "byline_source": "feed_declared",
+                "declared_author": "Simon Willison",
+                "resolves_to_voices": 1,
+            },
+        }
+        extraction = from_blog(feed, entries=[object()] * 30)
+
+        assert len(extraction.rows) == 1, (
+            "thirty articles from one byline is ONE voice; a row per article is "
+            "the inflation the write path refused and was right to refuse"
+        )
+        row = extraction.rows[0]
+        assert row.source == "blog"
+        assert row.external_id == "blog:simonwillison.net"
+        assert row.handle_hash and "Simon Willison" not in row.handle_hash, (
+            "the digest is stored and the name is not, exactly as for Reddit"
+        )
+
+    def test_a_team_byline_is_also_one_voice(self):
+        from collect.assemble.authors import from_blog
+
+        extraction = from_blog({
+            "id": "blog:netflixtechblog.com",
+            "measured": {"byline_source": "team",
+                         "declared_author": "Netflix Technology Blog",
+                         "resolves_to_voices": 1},
+        })
+        assert len(extraction.rows) == 1
+
+    def test_no_byline_writes_no_row_rather_than_an_anonymous_one(self):
+        from collect.assemble.authors import from_blog
+
+        extraction = from_blog({
+            "id": "blog:vickiboykis.com",
+            "measured": {"byline_source": "none", "resolves_to_voices": None},
+        })
+        assert extraction.rows == [], (
+            "NULL author_id is unknown; a shared anonymous row would make every "
+            "unattributed article one voice and inflate n_eff"
+        )
+
+    def test_an_entry_byline_feed_yields_one_row_per_distinct_author(self):
+        from collect.assemble.authors import from_blog
+
+        class E:
+            def __init__(self, author):
+                self.author = author
+
+        extraction = from_blog(
+            {"id": "blog:slack.engineering",
+             "measured": {"byline_source": "entry", "resolves_to_voices": 7}},
+            entries=[E("A Dev"), E("B Dev"), E("A Dev"), E(None), E("  ")],
+        )
+        assert len(extraction.rows) == 2, "deduplicated, and blanks are not authors"
+        assert {r.external_id for r in extraction.rows} == {
+            "blog:slack.engineering#A Dev", "blog:slack.engineering#B Dev"
+        }
+
+    def test_a_declared_byline_with_no_name_is_unattributable_not_invented(self):
+        from collect.assemble.authors import from_blog
+
+        extraction = from_blog({
+            "id": "blog:example.com",
+            "measured": {"byline_source": "feed_declared", "resolves_to_voices": 1},
+        })
+        assert extraction.rows == []
+        assert extraction.unattributable == 1, (
+            "the contract says the byline is the feed's and does not say whose; "
+            "counted rather than given a row with no identity"
+        )
