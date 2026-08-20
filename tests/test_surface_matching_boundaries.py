@@ -41,6 +41,10 @@ class _Population:
     ("surface", "text"),
     [
         ("pro", "this is a problem with the tool loop"),
+        # The plural, named explicitly: it is the case that started the thread,
+        # and a matcher keyed on a trailing boundary could pass the singular by
+        # accident of what follows it.
+        ("pro", "two problems showed up in the same run"),
         ("pro", "the process hung after two calls"),
         ("free", "it would freeze on the third request"),
         ("fusion", "there was some confusion about the schema"),
@@ -96,8 +100,16 @@ def test_the_sampler_still_matches_across_separator_spellings():
     ("surface", "text"),
     [
         ("pro", "this is a problem with the tool loop"),
+        ("pro", "two problems showed up in the same run"),
         ("free", "it would freeze on the third request"),
         ("fusion", "there was some confusion about the schema"),
+        # MEASURED LIVE on the stored corpus, 2026-08-20: a boundary-blind
+        # matcher claims these and a bounded one claims none. `saba` is the
+        # surface the movie-post control found inside "wa[s a ba]d" and it is
+        # still in the population — 4 documents today.
+        ("saba", "that was a bad idea in retrospect"),
+        ("sonar", "the sonarqube report was clean"),
+        ("command a", "the command and its arguments were wrong"),
     ],
 )
 def test_resolve_does_not_match_a_digit_free_surface_inside_a_word(surface, text):

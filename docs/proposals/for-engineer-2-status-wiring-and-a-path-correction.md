@@ -76,6 +76,39 @@ row.* Not "triage ran and was unsure" — that is `filtered` and `rejected`. So 
 transition is `pending → {kept, filtered, rejected}` written by triage, and a row
 still `pending` is a coverage fact rather than a verdict.
 
+### What the writer does for the 57 rows already stored: nothing, and the column is nullable
+
+`NOT NULL DEFAULT false` would assert that every existing row is **not** a
+placeholder, which is a claim about rows nobody has checked — rule 6, in the
+direction that flatters us. So:
+
+```sql
+ALTER TABLE document ADD COLUMN is_placeholder boolean;   -- NULLABLE, no default
+```
+
+**NULL means nobody has looked**, and it is the honest value for all 57. Three
+states, and the third is the one a `false` default destroys:
+
+```
+true    the platform wrote [removed] or [deleted] where a body used to be
+false   we looked at the body at parse time and it was writing
+NULL    nothing has looked
+```
+
+**And the backfill is refused, deliberately.** Filling it from the stored body
+text would run `is_placeholder_body` — your *weaker* test, the one that cannot
+tell the platform's placeholder from a person quoting one — and write its answer
+into the column that exists to be the *stronger* one. That laundering is worse
+than a NULL: a reader could no longer tell which rows carry a parse-time
+observation and which carry a text guess, and the column's whole value is that it
+distinguishes them.
+
+The writer sets it **at parse time only**, where the platform's marker is visible
+and a quoted `[removed]` is not. Which means it stays NULL on every row already
+stored, and the first `true` arrives with the first Reddit document — of which we
+currently have **0**, because that path is gated shut. Stated so the emptiness is
+expected rather than read as a broken writer.
+
 **Yours to confirm:** that `is_placeholder` as a boolean is what you want rather
 than `'removed'` in the enum, and whether anything in the answer path is about to
 read `status` in a way a `pending` majority would surprise. Nothing reads it today
