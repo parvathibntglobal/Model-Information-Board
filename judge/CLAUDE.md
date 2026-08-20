@@ -76,6 +76,25 @@ honouring a deletion is not the same as silently rewriting history — but
 whether a retention limit satisfies 3.2 is a question for the ruling rather
 than for the publisher.
 
+> ⚠ **CROSS-LANE EDIT, 2026-08-20, on instruction and flagged.** Engineer 1
+> wrote the correction below; the section it corrects is Engineer 2's. Revert
+> freely — the measurement is `SELECT count(*) FROM document WHERE url IS NOT
+> NULL`, repeatable in one line.
+>
+> **CLOSED FOR THE DATABASE PATH, still open for the export.** On
+> `52.17.75.29/Model-information-Board`: **30 of 30 blog documents and 27 of 27
+> GitHub documents carry a `url`.** So a claim extracted from a document read out
+> of the database is renderable, and the page is no longer where it stops.
+>
+> What remains is exactly what the section says and no more: the `_handoff/`
+> export withholds the URL, and any run reading that export inherits the problem.
+> Once the resolver reads `flattened_text_ref` from the store instead, the export
+> stops being the input and the retention question is about the export rather
+> than about publication. **The retention design question is untouched** — whether
+> a URL under a `delete_after` date may be published, and what the page shows when
+> the date passes, is still unanswered and still wants answering before a publish
+> path exists.
+
 **Blog retention: the export withholds the URL, and published content needs
 one.**
 
