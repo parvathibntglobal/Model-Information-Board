@@ -229,6 +229,7 @@ def test_every_contract_loader_the_schema_depends_on_has_a_cli_caller():
     # Each entry names what breaks when the loader has no caller.
     required = {
         "load_source_rows": "harvest_run.source_id is a FK to source(id)",
+        "load_capabilities": "claim.capability_key is a NOT NULL FK to capability(key)",
         "load_seed": "model_version has no rows without it",
         "recompute_window": "in_window keeps a schema default that reads as computed",
     }

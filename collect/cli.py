@@ -571,6 +571,31 @@ def _cmd_registry_load_sources(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_registry_load_capabilities(args: argparse.Namespace) -> int:
+    """Load `contract/capabilities.yaml` into `capability`.
+
+    The table that blocks `claim`: `capability_key` is NOT NULL and REFERENCES
+    it, and it holds 0 rows, so no claim can be inserted for any model from any
+    platform however good the extraction. Twelve keys, no loader, since the
+    scaffold.
+    """
+    from collect.db import transaction
+    from collect.registry.capabilities import load_capabilities, load_capability_file
+
+    if args.dry_run:
+        version, rows = load_capability_file()
+        print(f"dry run   : {len(rows)} capability key(s) at version {version}")
+        for row in rows:
+            print(f"  {row.key:<38} {row.failure_mode}")
+        return 0
+
+    with transaction() as conn:
+        _gate(conn)
+        report = load_capabilities(conn)
+    print(report.summary())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="collect", description=__doc__)
     sub = parser.add_subparsers(dest="group", required=True)
@@ -682,6 +707,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="build rows, touch nothing"
     )
     load_src.set_defaults(func=_cmd_registry_load_sources)
+
+    load_caps = reg_sub.add_parser(
+        "load-capabilities",
+        help="load contract/capabilities.yaml into `capability`. claim FKs to it.",
+    )
+    load_caps.add_argument(
+        "--dry-run", action="store_true", help="parse and report, touch nothing"
+    )
+    load_caps.set_defaults(func=_cmd_registry_load_capabilities)
 
     triage = sub.add_parser("triage", help="E4 — the hard gates")
     triage_sub = triage.add_subparsers(dest="command", required=True)
