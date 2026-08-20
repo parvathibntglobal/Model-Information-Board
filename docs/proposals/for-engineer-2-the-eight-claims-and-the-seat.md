@@ -16,6 +16,45 @@ instance on purpose.
 
 ---
 
+## 0 · You have been told three different things. This is the fourth, and every line of it carries the command that checks it
+
+Three accounts of one run have now reached you, at least two of them from me. The
+answer to that is not a fourth confident paragraph — it is a table you can run.
+
+| statement | how to check it | result |
+|---|---|---|
+| nothing was unpushed | `git merge-base --is-ancestor ee5b702 origin/main` | passes; merged by `d35d25b` (#116) |
+| the code behind it is unchanged since | `git log ee5b702..origin/main -- judge/extract/{verify,schema,client}.py` | empty |
+| `find_model` never existed | `git grep -n find_model $(git rev-list --all)` on `judge/`+`collect/` | no definition, ever |
+| `SeedModel.name` never existed | `collect/registry/models.py:167` | fields are `canonical_id`, `provider`, `family`, `display_name`, `slot`, under `extra="forbid"` |
+| `resolve()` was already on main | `4f960ac` (`collect/triage/entity.py`), `792000a` (`judge/extract/resolver.py`) | both ancestors of `origin/main` |
+| no seed entry exists for `opus-4.8` | `git grep -lEi "opus[-. _]?4[-. _]?8" <every ref> -- contract/*` | zero hits, any spelling |
+| nor is one uncommitted | `git status --porcelain -- contract/seed_models.yaml` | clean |
+| `opus-4.8` is a **polled** row, both databases | `SELECT provenance FROM model_version WHERE canonical_id ILIKE '%opus-4.8%'` | `polled` on staging **and** on `localhost:5433` |
+| the alias rows exist | `SELECT count(*) FROM model_alias` on `localhost:5433/modelboard_test` | **4** |
+| the eight claims are in **no** database | `SELECT count(*) FROM claim` | **0** on staging, **0** on `localhost:5433` |
+
+**The last two lines together are the finding.** The four alias rows are still
+present, and `tests/conftest.py` runs `DROP SCHEMA public CASCADE` before every
+test — so their survival proves **no drop has happened since the seat**. Any claim
+inserted after the seat would therefore still be there too. `claim` is 0. **The
+claims were never inserted, not inserted-and-lost.**
+
+### So "the claims came from data arriving" does not hold either, and this is why
+
+`judge/` **never reads `model_alias`** — not one file in the lane mentions the
+table. And `pipeline.py:150` keys on `claim.model_ref.resolved_version_id`, which
+**nothing in production code ever sets**: the only writers of that field in the
+whole tree are test fixtures, all of them assigning
+`"google/gemini-2.5-flash"` by hand.
+
+So an alias row could not have made those claims resolve, and removing one could
+not have unmade it. A `model_version` row plus an alias is exactly the state that
+exists right now on `localhost:5433` — 340 polled rows, 4 alias rows — and `claim`
+is 0 in it. **The eight claims were extractor output that the pipeline dropped**,
+and the only thing that changes it is the unbuilt `resolve()`-from-`surface` fix
+in §3.
+
 ## 1 · The eight claims: `ee5b702`, two changes, neither one `resolve()`
 
 **Three accounts of this have now been wrong, including two of mine.** This one is
@@ -145,6 +184,28 @@ finds **0** — it passes, and on that database it is currently vacuous.
 seat an alias over a polled row rather than add a seed entry — is the path that was
 taken.
 
+### What reverting a seed edit would and would not do
+
+Worth stating even though there is nothing to revert, because the two possible
+states have different consequences and only one of them survives a revert:
+
+- **The alias rows would stand.** They are database rows; `seed_models.yaml` is an
+  input file. Nothing in the codebase deletes an alias row on a file edit —
+  `_sync_alias` is append-only and the single write it ever issues against an
+  existing row is closing `valid_until`. The same principle is already explicit one
+  table over: `load_capabilities` refuses to derive `active` from absence, because
+  *"a key that vanishes from the YAML"* must not retire a capability from a file
+  edit.
+- **What a revert removes is the ability to re-create them**, not the rows. And
+  here it removes nothing at all: those four rows came from `seat-alias` reading
+  the artifact, not from `load_seed` reading the seed file.
+- **And the claims' resolvability was never downstream of either**, per §0 — so
+  neither state changes it.
+
+Observed rather than reasoned: `localhost:5433/modelboard_test` right now holds 4
+alias rows for `opus-4.8`, 340 polled `model_version` rows, `opus-4.8` among them
+as `polled`, and 0 claims.
+
 ## 5 · Your fixture flag still stands, in a different direction
 
 You flagged `seed_models.yaml` still being listed under *build fixtures currently
@@ -202,3 +263,48 @@ had **29**, exactly one was missing, and it is **30/30** now. `check()` reports
 `20260818T1610_thread_context_coverage` did take effect: `observed_children`,
 `hidden_children_min`, `hidden_branches_unsized` and the generated
 `coverage_ratio` are all present.
+
+## 7 · What changes going forward, and it is your fix as much as mine
+
+**You raised the reporting gap, and it is the one defect here that produced all the
+others.** Three accounts of one run disagreed not because anybody was careless
+about the run, but because two facts that decide every such report were carried in
+someone's head:
+
+1. **Which database did this touch?**
+2. **Is the code that touched it on origin?**
+
+Both were answered from memory for a fortnight. Both went wrong in the same
+report — one said *"committed on main"* while the shell sat on an unmerged branch,
+in a report whose own subject was that shape. A check that depends on remembering
+is a check that holds until somebody is busy.
+
+So they are a command now (`scripts/write_report.py`):
+
+```
+python -m scripts.write_report --path collect/migrate.py --commit ee5b702
+
+WRITE REPORT
+  DSN            postgresql://bv_agent@52.17.75.29:5432/Model-information-Board
+  ENVIRONMENT    staging
+  branch         for-e2-eight-claims-and-the-seat  HEAD 76dbf81
+  HEAD on origin/main?  NO   (ahead 2, behind 0)
+  path  collect/migrate.py    on origin/main (last a3deeba)
+  commit ee5b702              on origin/main
+  commit 4c56ee2              DOES NOT EXIST IN THIS REPOSITORY
+```
+
+**The convention, for both lanes: every report that names a write carries that
+header.** Not "I believe this is on main" — the ancestor check, the DSN with the
+password stripped, and the branch the shell was actually on.
+
+Four things it refuses to guess, each one a way a report has already gone wrong
+here: it compares by **ancestor relation, not branch name**; it reports a path by
+whether its **last commit** is published rather than whether the file exists on
+the ref; it says **DOES NOT EXIST** for a sha that isn't an object, which is how
+`4c56ee2` was caught; and it **refuses with exit 2** rather than answering if the
+comparison ref is missing, because a stale origin turns a NO into a YES.
+
+It prints nothing out of `.env` but the DSN with the password removed. Host, port,
+database and user identify which database a write landed in and a report omitting
+them is unauditable; the password identifies nothing and belongs in no report.
