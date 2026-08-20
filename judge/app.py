@@ -17,7 +17,7 @@ import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from judge.ask import requirements
+from judge.ask import requirements, spend
 from judge.ask.profile import Assumption, RoleRequirement
 from judge.ask.rank import guard_for
 from judge.ask.understand import (
@@ -26,7 +26,6 @@ from judge.ask.understand import (
     understand,
 )
 from judge.config import capabilities
-from judge.extract.budget import Budget
 from judge.extract.client import OpenRouterClient
 
 app = FastAPI(
@@ -186,21 +185,51 @@ def understand_task(req: UnderstandRequest) -> UnderstandResponse:
     input, not a fault. Same distinction the extraction budget draws between a
     stop and a failure.
     """
-    budget = Budget.from_env()
-    if budget is not None:
-        try:
-            budget.check_before_call()
-        except Exception as exc:  # BudgetExhausted
-            raise HTTPException(status_code=429, detail=str(exc)) from exc
-
+    # THE TOTAL IS PROCESS-WIDE, not per request. The previous version built a
+    # fresh `Budget` here, so `spent_usd` was 0.0 at every check and the 429
+    # branch below could not fire for any limit above one call's estimate - a
+    # cap with a status code and a test that counted nothing. `judge/ask/spend.py`
+    # holds the running total and the charge below records it.
+    if not spend.is_configured():
+        # An unset cap means nobody decided. `judge/cli.py` may read that as an
+        # operator's choice, because a person typed the command; an anonymous
+        # request to a public endpoint with no authentication is not a person
+        # who decided. Refused rather than run uncapped.
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "the ask path is the one endpoint that spends money and no cap "
+                "is configured, so it is refused rather than run uncapped. Set "
+                "EXTRACTION_DAILY_BUDGET_USD. This is a missing decision, not a "
+                "fault, and not a board with nothing on it - every other "
+                "endpoint still answers."
+            ),
+        )
     try:
-        result = understand(req.text, client=OpenRouterClient.from_env(), shape=req.shape)
+        spend.check_before_call()
+    except spend.BudgetExhausted as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+
+    # The client is held rather than built inline so the charge below can name
+    # the model that actually ran. `Budget.spend_by_model` exists so a mid-run
+    # model swap is visible (rule 7); charging a generic label would defeat it.
+    client = OpenRouterClient.from_env()
+    try:
+        result = understand(req.text, client=client, shape=req.shape)
     except UnderstandingRefused as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except ValueError as exc:
         # A forged untrusted-block marker. Refused rather than sanitised, as
         # `wrap_untrusted` does for E5.
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    # CHARGED FROM WHAT THE CALL REPORTED, and this is the half that was
+    # missing: without it every check above reads a total of zero forever.
+    spend.charge(
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
+        model=client.model,
+    )
 
     return UnderstandResponse(
         profile=result.profile.model_dump(),

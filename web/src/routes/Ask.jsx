@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { askRequirements, askRevise, capLabel, fmtInt, TIER, ERROR_COST } from '../api'
+import { askRequirements, askRevise, askUnderstand, capLabel, fmtInt, TIER, ERROR_COST } from '../api'
 import { Badge, Notice, Reveal } from '../components/ui'
 import AskLoading from '../components/AskLoading'
 import { IconArrow, IconAlert, IconSearch } from '../components/Icons'
@@ -17,6 +17,13 @@ export default function Ask() {
   const [task, setTask] = useState(params.get('q') || '')
   const [toolCount, setToolCount] = useState('')
 
+  // OFF BY DEFAULT, deliberately. Two reasons, and the second is not a taste
+  // call: this endpoint is the only one that spends money and there is no
+  // authentication, and the paragraph above the form promises the answer is
+  // deterministic. Defaulting the model on would bill every visitor and make a
+  // claim on the page false.
+  const [useModel, setUseModel] = useState(false)
+  const [downgraded, setDowngraded] = useState(null)
   const [state, setState] = useState('idle')     // idle | loading | done | error
   const [arrived, setArrived] = useState(false)
   const [data, setData] = useState(null)
@@ -26,9 +33,36 @@ export default function Ask() {
   const run = useCallback(async (text, opts = {}) => {
     const q = text.trim()
     if (!q) return
-    setState('loading'); setArrived(false); setError(null); setData(null)
+    setState('loading'); setArrived(false); setError(null); setData(null); setDowngraded(null)
     try {
-      const res = await askRequirements({
+      let res = null
+
+      if (opts.useModel) {
+        // Q1: the model reads the free text and returns a profile plus every
+        // field it had to GUESS. That profile is exactly what /ask/revise
+        // consumes, so the model's reading flows into the same deterministic
+        // half the button below already used — and `accepted_assumptions: []`
+        // means every field it filled in comes back marked as a guess rather
+        // than as something you said.
+        try {
+          const understood = await askUnderstand(q)
+          const revised = await askRevise(understood.profile, [])
+          res = { ...revised, llmCaveat: understood.caveat }
+        } catch (err) {
+          // A refusal here is NOT an outage: 503 means no spend cap is
+          // configured, 429 means the cap is spent. The deterministic path
+          // still works, so fall back to it — but SAY SO. Silently answering a
+          // different question than the one asked is the failure this whole
+          // product is about.
+          if (err.status === 429 || err.status === 503 || err.name === 'BoardUnreadable') {
+            setDowngraded(err.message)
+          } else {
+            throw err
+          }
+        }
+      }
+
+      if (res === null) res = await askRequirements({
         task: q,
         // '' means unset. Number('') is 0, and '0' is truthy — both traps.
         tool_count: opts.toolCount === '' ? null : Number(opts.toolCount),
@@ -48,7 +82,7 @@ export default function Ask() {
     e?.preventDefault()
     if (state === 'loading') return
     setParams(task.trim() ? { q: task.trim() } : {}, { replace: true })
-    run(task, { toolCount })
+    run(task, { toolCount, useModel })
   }
 
   function reveal() {
@@ -70,10 +104,20 @@ export default function Ask() {
           <h1 style={{ fontSize: 'var(--fs-display)' }}>What do you need a model to do?</h1>
         </div>
 
+        {/* THE CLAIM HAS TO FOLLOW THE SWITCH. This paragraph promised a
+            deterministic answer, and with the model reading the text that is no
+            longer true of the first step — so the sentence changes rather than
+            standing while being false. */}
         <p className="muted">
-          Describe the work in your own words. The answer is deterministic — the
-          same task always produces the same requirements, so the reasoning is
-          auditable rather than a model’s mood on the day.
+          {useModel
+            ? <>Describe the work in your own words. A model reads it and proposes a
+                profile; <strong style={{ color: 'var(--text)' }}>every field it
+                fills in that you did not state comes back as an editable
+                guess</strong>, and editing one re-runs the answer without the
+                model, so a correction can never be overruled by it.</>
+            : <>Describe the work in your own words. The answer is deterministic — the
+                same task always produces the same requirements, so the reasoning is
+                auditable rather than a model’s mood on the day.</>}
         </p>
 
         <form className="card" onSubmit={submit}>
@@ -95,6 +139,21 @@ export default function Ask() {
             <span className="ask-hint">
               Setting this raises the tool-calling capabilities and picks the
               condition bucket to read cells at.
+            </span>
+
+            <label className="field field-inline">
+              <input
+                type="checkbox"
+                checked={useModel}
+                onChange={(e) => setUseModel(e.target.checked)}
+              />
+              <span className="field-label">Read my description with a model</span>
+            </label>
+            <span className="ask-hint">
+              Off by default. This is the only part of the board that calls a
+              language model, so it costs money and needs a spend cap configured
+              on the server. Everything else here is ordinary code, and the
+              rules-only reading is usually enough.
             </span>
           </div>
 
@@ -119,6 +178,17 @@ export default function Ask() {
               ))}
             </div>
           </div>
+        )}
+
+        {downgraded && (
+          <Notice icon={<IconAlert />}>
+            <strong style={{ color: 'var(--text)' }}>
+              Answered without the model.
+            </strong>{' '}
+            You asked for a model reading and it was declined, so the rules-only
+            path answered instead — a good answer to a slightly different
+            question, which you should know about rather than infer. {downgraded}
+          </Notice>
         )}
 
         {state === 'error' && (
@@ -166,6 +236,17 @@ function Result({ data, task }) {
 
   return (
     <div style={{ marginTop: 'var(--s6)' }} className="stack stack-4">
+      {/* Rendered rather than carried. Passing this through `run()` and never
+          showing it would make it one more thing in this repo that is built,
+          correct and unreachable - and it is the field that says which parts of
+          the answer a model supplied rather than you. */}
+      {live.llmCaveat && (
+        <Notice icon={<IconAlert />}>
+          <strong style={{ color: 'var(--text)' }}>A model read your description.</strong>{' '}
+          {live.llmCaveat}
+        </Notice>
+      )}
+
       {req.assumptions.length > 0 && (
         <div className="stack stack-2">
           <span className="label">
