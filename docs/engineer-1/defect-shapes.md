@@ -366,6 +366,35 @@ So the fix is `` on both ends in both places, and the lesson is that a
 containment matcher is safe **only for as long as no digit-free surface enters
 the list** — which is one reviewer accepting one `family_surface` away.
 
+## 5b · The literal inside SQL, invisible to a search for the column
+
+**The shape.** A value written as a string inside a SQL statement is not found by
+a search for the Python form of the same assignment. It is shape 5 run backwards:
+not a name matching in the wrong context, but the right name in a context the
+tool does not read.
+
+**Instance, 2026-08-20.** *"Only one writer passes `document.status`"* — reported
+twice, from `grep "status" --include=*.py` and from `grep '"status"'`. Both found
+`collect/assemble/article.py:184`, a dict value, and neither found
+`collect/adapters/github.py:538`:
+
+```sql
+INSERT INTO document (id, source, …, engagement, status)
+VALUES (%(id)s, %(source)s, …, %(engagement)s, 'kept')
+```
+
+**Two writers, both hardcoding a triage verdict on rows triage has never seen** —
+and the second one is why 27 GitHub documents read `kept` with `triage_verdict`
+NULL. The conclusion drawn from the miss was that changing the column default
+would be sufficient; with both writers visible, the default is the third source of
+the value and changing it alone fixes nothing.
+
+**Already recorded once from the other direction.** §5 notes `write_authors`
+having three apparent callers that *"were all prose"*, and that a column reached
+through a built identifier is invisible to a search for its name. This is the same
+sentence with the operand swapped, which is the argument for the habit below
+rather than for another instance.
+
 ## 6 · The absent value that became a definite one
 
 **The shape.** Rule 6. A missing value is silently converted into a definite one,
@@ -564,3 +593,4 @@ Ordered cheapest first, which is how they should be applied. Numbers are
 | 10 | **An import chain is no evidence of a call path.** Count the rows |
 | 11 | **Name the question before choosing the tool**, and say which question you answered |
 | 12 | **A containment match is a boundary match's false positive.** `\b` both ends, and ask whether any surface in the list is a word |
+| 13 | **Grep the SQL too.** A column written as a literal inside a statement answers no search for the assignment |
