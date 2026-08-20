@@ -39,12 +39,27 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from collect.adapters.github import GitHubHarvester, QueryRun
+# THE REPO ROOT, BECAUSE `checked_dsn` IMPORTS `tests.conftest` FOR THE
+# DISPOSABLE-DATABASE GUARD. `collect` resolves from the installed package, so
+# every import below worked and this script still could not run:
+# `python scripts/harvest_github.py` died on `No module named 'tests'` at the
+# first database call, AFTER the terms gate passed and the plan printed — which
+# reads like a database problem and is a path problem.
+#
+# `harvest_blogs.py` and `unfiltered_sweep.py` have carried this line since they
+# were written; this script did not, and nothing noticed because the two people
+# who ran it both had the repo root on their path. Two of three scripts
+# self-bootstrapping is worse than none doing it, because the exception names
+# the wrong layer.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from collect.adapters.github import GitHubHarvester, QueryRun  # noqa: E402
 from collect.adapters.queries import load_queries, plan_searches, render_search
 from collect.adapters.queries.cadence import split_by_cadence
 from collect.adapters.queries.github import SearchRequest

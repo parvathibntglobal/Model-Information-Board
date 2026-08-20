@@ -63,6 +63,11 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import Any
 
+# The route ruling. Same package, so no boundary question: the lane test forbids
+# `collect/registry/` importing `collect/adapters/`, not registry-internal
+# imports. `propose` imports nothing from here, so there is no cycle.
+from collect.registry.propose import is_route
+
 log = logging.getLogger(__name__)
 
 MODELS_URL = "https://openrouter.ai/api/v1/models"
@@ -347,8 +352,32 @@ def alias_coverage(models: tuple[PolledModel, ...], known: dict[str, Any]
     does not carry, so a polled model with no entry in `contract/seed_models.yaml`
     lands in `model_version` and is invisible to every sweep. That is a coverage
     gap and it should be a number somebody can look at, not a silence.
+
+    ROUTES ARE EXCLUDED, AND THIS IS THE FOURTH CALLER THE RULING NEEDED.
+    `is_route` was ruled 2026-08-18 and had callers in `triage/entity.py`,
+    `tracked.select` and — after the last fix — `propose()`. Not here. So this
+    function counted **17 of its 333 answers as models awaiting a surface**, and
+    a route is not a model missing a surface: it is a thing that must never be
+    given one, because a pointer names whatever the vendor currently resolves it
+    to and the mention is unattributable by construction (FR-4).
+
+    The cost was a figure rather than a wrong verdict, which is why it survived a
+    fourth time: 333 is quoted as the headline constraint in
+    `docs/measurements/tracked-set.md` and in `docs/how-it-works.md`, and the
+    honest split is **316 models plus 17 routes**. Wrong in the direction that
+    overstates our own gap — the safer direction, and still rule 7.
+
+    A ruling with a caller is not a ruling with every caller. This is the third
+    time that sentence has been written about `is_route`; the standing lesson is
+    that a ruling implemented as a predicate needs its call sites enumerated
+    somewhere, because nothing about the predicate reveals which paths consult
+    it. `tests/test_registry_openrouter.py` now pins this one.
     """
-    return tuple(m.canonical_id for m in models if m.canonical_id not in known)
+    return tuple(
+        m.canonical_id
+        for m in models
+        if m.canonical_id not in known and not is_route(m.canonical_id)
+    )
 
 
 def fetch_models(client, *, url: str = MODELS_URL):
