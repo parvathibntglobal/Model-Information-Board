@@ -196,3 +196,44 @@ class TestRegeneratingCannotSilentlyDiscardAReview:
 
         assert refusal is not None, "existence alone must refuse"
         assert "NOT evidence that nobody edited it" in refusal
+
+
+def test_every_contract_loader_the_schema_depends_on_has_a_cli_caller():
+    """Habit 10, as a guard rather than as a lesson learned twice.
+
+    `load_source_rows` was correct and tested from the day it was written and
+    had NO CALLER — no command, no script, no chain stage. `source` therefore
+    held 0 rows, and `harvest_run.source_id` is a FOREIGN KEY to `source(id)`,
+    so no harvest run could be recorded for any platform.
+
+    Nothing caught it because every tool this repo has walks the import graph:
+    `sources.py` is imported all over `collect/`, so every "is this wired"
+    question found it. **An import chain is no evidence of a call path.**
+
+    So this asserts the CALL, by AST, inside `cli.py` — the one place a human
+    can invoke it. It is deliberately narrow: a loader whose absence breaks a
+    foreign key is a different class from a helper nobody happens to use, and
+    the list below is the loaders in that class rather than every writer.
+    """
+    import ast
+
+    called: set[str] = set()
+    for node in ast.walk(_tree()):
+        if isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name):
+                called.add(func.id)
+            elif isinstance(func, ast.Attribute):
+                called.add(func.attr)
+
+    # Each entry names what breaks when the loader has no caller.
+    required = {
+        "load_source_rows": "harvest_run.source_id is a FK to source(id)",
+        "load_seed": "model_version has no rows without it",
+        "recompute_window": "in_window keeps a schema default that reads as computed",
+    }
+    missing = {name: why for name, why in required.items() if name not in called}
+    assert not missing, (
+        "loader(s) with no call site in cli.py: "
+        + "; ".join(f"{n} — {w}" for n, w in missing.items())
+    )

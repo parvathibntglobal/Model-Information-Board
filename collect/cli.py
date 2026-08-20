@@ -531,6 +531,46 @@ def _cmd_registry_load_seed(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_registry_load_sources(args: argparse.Namespace) -> int:
+    """Load `contract/sources.yaml` into `source`. The caller it never had.
+
+    `load_source_rows` has been correct and tested since it was written and had
+    NO CALLER — no command, no script, no chain stage. So `source` holds 0 rows,
+    and `harvest_run.source_id` is a FOREIGN KEY to `source(id)`: no harvest run
+    can be recorded for any platform, GitHub included, until this has run.
+
+    `ops/ledger.py:open_harvest_run` already refuses with a sentence naming this
+    loader rather than surfacing a `23503`, which is the right behaviour and is
+    also why nothing forced the gap into the open — a legible refusal is easy to
+    read as a considered state.
+
+    NOT a fixture. `assert_no_fixtures` does not look at `source` and must not
+    be taught to: a seeded feed is a curation decision, not a stand-in for
+    machinery that does not exist yet. So unlike `load-seed` this writes rows
+    that belong in production.
+    """
+    from collect.db import transaction
+    from collect.registry.sources import load_source_rows, load_sources
+
+    contract = load_sources()
+
+    if args.dry_run:
+        rows = contract.source_rows()
+        print(f"dry run   : {len(rows)} source row(s) from contract/sources.yaml")
+        for row in rows:
+            ruling = row.get("terms_ruling") or "NO RULING"
+            print(f"  {row['id']:<32} platform={row['platform']:<8} {ruling}")
+        return 0
+
+    with transaction() as conn:
+        # Gated inside the transaction and before the write, same order as
+        # `load-seed` and `db init`, so a refusal rolls back and nothing lands.
+        _gate(conn)
+        report = load_source_rows(conn, contract)
+    print(report.summary())
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="collect", description=__doc__)
     sub = parser.add_subparsers(dest="group", required=True)
@@ -633,6 +673,15 @@ def build_parser() -> argparse.ArgumentParser:
         "Records the gap in the report.",
     )
     load.set_defaults(func=_cmd_registry_load_seed)
+
+    load_src = reg_sub.add_parser(
+        "load-sources",
+        help="load contract/sources.yaml into `source`. harvest_run FKs to it.",
+    )
+    load_src.add_argument(
+        "--dry-run", action="store_true", help="build rows, touch nothing"
+    )
+    load_src.set_defaults(func=_cmd_registry_load_sources)
 
     triage = sub.add_parser("triage", help="E4 — the hard gates")
     triage_sub = triage.add_subparsers(dest="command", required=True)
