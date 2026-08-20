@@ -12,13 +12,6 @@ const EXAMPLES = [
   'Pull 30 fields out of scanned invoices, 5k a day. It feeds accounting.',
 ]
 
-/**
- * The backend double-encodes em dashes in a few literals, so they arrive as
- * "â€”". Repaired here so the UI does not look broken; the real fix is in the
- * Python source, reported upstream.
- */
-const mend = (s) => (typeof s === 'string' ? s.replace(/â€”/g, '—') : s)
-
 export default function Ask() {
   const [params, setParams] = useSearchParams()
   const [task, setTask] = useState(params.get('q') || '')
@@ -221,7 +214,7 @@ function Result({ data, task }) {
       </Reveal>
 
       {req.capabilities.length > 0 && (
-        <Notice icon={<IconSearch />}>{mend(live.note)}</Notice>
+        <Notice icon={<IconSearch />}>{live.note}</Notice>
       )}
 
       <Reveal>
@@ -298,7 +291,7 @@ function Result({ data, task }) {
                 <li className="dim" style={{ fontSize: 'var(--fs-sm)' }}>None — every constraint applies.</li>
               )}
               {req.dropped_constraints.map((d) => (
-                <li key={d} className="dropped">{mend(d)}</li>
+                <li key={d} className="dropped">{d}</li>
               ))}
             </ul>
           </div>
@@ -311,7 +304,7 @@ function Result({ data, task }) {
             <IconAlert style={{ flex: 'none', marginTop: 2, color: 'var(--warn)' }} />
             <div>
               <strong style={{ color: 'var(--text)' }}>Guard</strong>
-              <p style={{ marginTop: 4 }}>{mend(live.guard)}</p>
+              <p style={{ marginTop: 4 }}>{live.guard}</p>
             </div>
           </div>
         </Reveal>

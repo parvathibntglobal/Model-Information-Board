@@ -100,45 +100,46 @@ frontend computes no scores, no rankings and no costs.
 
 ## Known backend issues the frontend works around
 
-Found while wiring this up. None are frontend bugs and all four are worth fixing
-at the source.
+Four were found while wiring this up. **Two were fixed on `main` before this
+branch merged** and are recorded here only so the history reads straight.
 
-**1 · `/models/{vendor}/{name}` 404s.** `judge/app.py` declares
-`@app.get("/models/{model_version_id}")` — a single path param, which does not
-match a slash, and Starlette does not decode `%2F` into one.
+### Fixed upstream
 
+**1 · `/models/{vendor}/{name}` 404d.** The route was a single path param,
+which does not match a slash, so every real model page 404d while the suite
+passed on a fixture id of `mv1`. Fixed in `ae280be` with
+`{model_version_id:path}` — the same fix this document originally proposed.
+`modelPath()` in `web/src/api/index.js` already built the path for it.
+
+**2 · Double-encoded em dashes.** Several literals arrived as UTF-8 re-saved
+as cp1252. The source is now clean — a strict UTF-8 sweep of every `.py`,
+`.yaml`, `.json`, `.sql` and `.md` in the repo finds no occurrence, and the
+`/ask/requirements` payload comes back with real em dashes. The frontend's
+`mend()` repair has been deleted accordingly.
+
+### Still open
+
+**3 · `requests_per_month` is accepted and discarded.** `AskRequest` declares
+it with a docstring calling it load-bearing — "REQUESTS, never per-role calls"
+— and `infer_requirements()` then calls `requirements.infer()` with `task`,
+`input_tokens`, `output_tokens`, `tool_count` and `regions`. Not that. The
+field reaches `judge/ask/cost.py`, which multiplies by it, but nothing on this
+path ever puts it there.
+
+The input was removed from the form rather than ship a control that silently
+changes nothing.
+
+**4 · No trigger for "coding" or "programming".** Q3 matches verbs, so the
+most natural phrasing of a coding task raises zero capabilities:
+
+```python
+>>> from judge.ask import requirements
+>>> [len(requirements.infer(t).capabilities) for t in (
+...     "a good model for coding",     # 0
+...     "write code from a spec",      # 1  code.generation
+...     "refactor this file")]         # 1  code.editing_diff_fidelity
+[0, 1, 1]
 ```
-GET /models/google/gemini-2.5-flash      → 404
-GET /models/google%2Fgemini-2.5-flash    → 404
-GET /models/mv_cd62f9d5ea30935d          → 200
-```
 
-Fix: `{model_version_id:path}`. `modelPath()` in the frontend already builds the
-path correctly for when it is.
-
-**2 · Double-encoded em dashes.** Several literals arrive as `â€”` — the source
-was written UTF-8 and re-saved as cp1252.
-
-```bash
-curl -s -X POST localhost:8000/ask/requirements -H 'Content-Type: application/json' \
-  -d '{"task":"summarise tickets"}' | grep -o 'â€”'
-```
-
-`routes/Ask.jsx` repairs it on display. **Delete `mend()` once the source is fixed.**
-
-**3 · `requests_per_month` is accepted and discarded.** `AskRequest` declares it
-with a docstring calling it load-bearing, then never passes it to
-`requirements.infer()`. The input was removed from the form rather than ship a
-control that changes nothing.
-
-**4 · No trigger for "coding" or "programming".** Q3 matches verbs, so the most
-natural phrasing of a coding task raises zero capabilities:
-
-```
-"a good model for coding"      → 0 capabilities
-"write code from a spec"       → 1  code.generation
-"refactor this file"           → 1  code.editing_diff_fidelity
-```
-
-The UI explains this rather than showing an empty box, but the trigger list is
+`/ask` explains this rather than showing an empty box, but the trigger list is
 where it belongs.
