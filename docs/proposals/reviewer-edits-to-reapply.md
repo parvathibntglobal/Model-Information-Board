@@ -20,6 +20,40 @@ that leaves no trace in the input.
 So the re-apply is a paste rather than an archaeology exercise, and this is the
 thing to paste.
 
+## What CANNOT lose them: a recompute is not a regenerate
+
+**Corrected 2026-08-20. It was said that a recompute of the tracked set would
+discard the reseats. It would not, and this is written down because the fear
+nearly caused a capture of something that was never at risk.**
+
+Three facts, each a code reference rather than a recollection:
+
+| operation | what it writes |
+|---|---|
+| `registry recompute-window` | `model_version.in_window` and nothing else — `registry/load.py:recompute_window`, an `UPDATE` over the whole table. Touches no file. |
+| `registry tracked-set` | nothing. `cli.py:_cmd_registry_tracked_set` **prints rather than writes**, because the count is a contract decision. |
+| `registry propose-aliases` | this artifact — and it is the **only** writer of it. `_refuse_to_discard_review` refuses unless `--force`. |
+| `registry seat-alias` | `model_alias` rows, from `read_entry`. Reads the artifact, never writes it. |
+
+**The tracked set is not a stored thing.** It is a selection over
+`model_version` computed at call time by `registry/tracked.py:select`, so a
+"recompute" produces a report and leaves no row and no file behind. There is
+nothing in it for a reseat to be overwritten by, because the reseats are not in
+it — they are in this artifact, which is a different object with a different
+writer.
+
+**So `propose-aliases --force` is the only operation that can lose them**, which
+is what this file already says at the top and what the refusal already enforces.
+The membership delta a recompute reveals reaches the artifact only when a person
+regenerates or hand-applies it — as was done on 2026-08-20.
+
+**Why this is worth a section rather than a shrug.** "A recompute would discard
+the reseats" is rule 7's risk form: a true-sounding statement about what *could*
+go wrong with no operation named, so it reads as a statement about what *does*.
+Naming the writer changes the worry and leaves the conclusion untouched — still
+do not regenerate, still for the reason in the section below, and no longer for
+this one.
+
 ## What comes back for free, confirmed in the generator
 
 **The six `(free)` drops.** `propose.strip_pricing_annotation` handles both
