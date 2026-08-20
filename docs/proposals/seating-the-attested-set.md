@@ -194,3 +194,128 @@ they are attested below the floor. Either load them with the 41 and let the
 provisional check keep watching them, or hold them with the 17 and record the
 reason in one line — but the reason cannot be the one that applies to the 17, and
 two of the five are the only hand-reviewed entries in the file.
+
+---
+
+# Part two: the three questions that had to be settled before building
+
+## 8 · The family surface, settled by measurement rather than by judgement
+
+**Measured across the 41 before asking anyone.** The rule was: if most have one it
+is a per-entry decision, if none do it is a design question about the artifact.
+**None do, and it is worse than unfilled — for most of them it is unfillable.**
+
+| | of the 41 |
+|---|---|
+| `family_surface` filled | **0** |
+| carrying any digit-free surface, which is what `classify_specificity` needs to return `family` | **0** |
+| `model_version.family` populated on the registry row | **0** |
+| sharing a candidate family word with another of the 41 | **37** |
+
+The shared words: `opus` 7, `gpt` 7, `glm` 6, `sonnet` 4, `mini` 4, `flash` 3,
+and `haiku` / `instruct` / `grok` 2 each. **Only 4 of the 41 have a family word
+that names one model within the batch.**
+
+**Two mechanical corrections, because they change what the question is.**
+`alias_rows` does not *require* a family surface — `family` comes from
+`model.family` on every row and `specificity` is computed from the surface string,
+so an unfilled family surface costs a *row*, not a refusal. And for 37 of the 41 a
+bare family word cannot be written at all: one normalised surface pointing at two
+live models is what `check_no_collisions` refuses, and §5 rule 4 drops an
+ambiguous mention rather than guessing. `seat.py` already gives the reason — *"a
+bare `opus` is attested constantly and attributable to no single model."*
+
+**So the consequence stands and the framing changes.** Seating these 41 does mean
+the sweep never retrieves a bare `sonnet` — true, and worth knowing. But that is
+not a per-entry omission to be filled in; it is a property of seating more than
+one model per family, which the artifact does by design. The choice is not
+*"fill 41 family surfaces"*; it is *"is a family alias worth having for the 4
+models where it is even assignable"*.
+
+**The third finding is separate and belongs to `collect/`:**
+`model_version.family` is NULL on all 342 registry rows. The feed does not carry
+it and the poller does not derive it, so the `family` **column** on every alias
+row these seats produce is NULL too — and nothing anywhere can group by family
+today. Same shape as `lifecycle`, and mine to fix or to rule on.
+
+## 9 · Undo, or additive-only: additive, and the reason is that an undo would have to lie
+
+The question arrives with the writer rather than after it, so: **no undo, and not
+because it is hard.**
+
+`model_alias` is append-only under FR-4, and `_sync_alias` already shows the only
+write the design permits against an existing row — closing `valid_until`. So an
+"undo" cannot be a DELETE without breaking FR-4's time-aware resolution and
+NFR-4's rebuild. **It could only be a window close, and a window close is not a
+retraction — it is a claim about the world.** `mistral large` meaning
+`mistral-large-2411` until 2025-03-30 and `mistral-large-3` after is exactly what
+that column is for. Closing a window to undo a mistaken load would assert that a
+surface *stopped meaning* a model on the day we noticed our error, and a March
+post would then resolve differently than it should. The undo would put a lie in
+the table to tidy up a mistake.
+
+**So the hazard is handled before the write, not after it.** That is what §11's
+plan-and-refuse is for, and it is why the guards in §5 are strict rather than
+advisory: in an append-only table, *prevention is the only reversal available*.
+
+**A development-only `--rollback-run <id>` is refused on the same reasoning that
+refused `--force` here.** The code that closes windows for a rollback is the code
+that will run against staging one day. The rollback that exists already is the
+disposable instance: `DROP SCHEMA public CASCADE` and re-run, which is what the
+dev board does per test.
+
+**One real gap this leaves, and it should be named rather than absorbed.** A row
+that is *wrong* — an alias pointing at the wrong model — has no path out. It is
+not superseded and it did not stop being true; it was never true. Expressing that
+needs a column (`retracted_at`, or `provenance` plus a correction reason) so a
+correction is distinguishable from a change in the world. Until it exists **the
+loader must not write a row it cannot stand behind**, which is the whole argument
+for the manifest. Proposed, not taken: it is `contract/`.
+
+## 10 · The loader cannot land alone — `model_alias` has no reader
+
+**Checked before designing further, and it changes the sequencing.** The only
+`SELECT` against `model_alias` in the entire codebase is inside `_sync_alias`
+itself, reading the table to decide whether it is superseding. **Nothing reads
+those rows to plan a sweep, and nothing reads them to resolve a mention.**
+
+And the GitHub sweep that exists does not want them:
+`scripts/harvest_github.py:151` builds its query strings with
+`alias_rows(model)` over `next(m for m in seed_models() ...)` — **computed in
+memory from `contract/seed_models.yaml`**. So it can only ever sweep one of the 11
+seed models, and loading 41 models into `model_alias` would change nothing it does.
+
+**So `load-tracked-set` on its own would be the sixth producer with no consumer on
+this project, and the biggest one yet** — 41 models, 180 surfaces, invisible to
+every path that could use them. The reader is not a follow-up; it is the half that
+makes the loader worth running:
+
+```
+load-tracked-set   writes model_alias from the reviewed manifest
+        ↓
+query planning     reads model_alias where it currently reads seed_models()
+        ↓
+sweep-github       the chain stage that is still `run=None`
+```
+
+Recommended order, and it inverts what I would have built first: **the reader
+before the loader.** Point query planning at `model_alias` while the table still
+holds only the 11 seed models' rows plus `opus-4.8` — a change whose blast radius
+is 12 models and which is verifiable against a sweep we have already run — and
+only then load 41 more into a path that is known to read them.
+
+## 11 · What replaces `--force`
+
+Inheriting it would give a loader a flag that means *"I did not read the plan"*.
+The generator's `--force` guards **review in a file**; a loader's hazard is
+**rows in a table**, and the two want different instruments.
+
+- **A plan, printed by default.** Per entry: `insert` / `unchanged` / `replace`,
+  every refusal, and the union collision check across all 41. The loader is
+  idempotent, so re-running after reading the plan costs nothing.
+- **Refuse on supersede, not on existence.** An insert is additive and safe; a
+  `replace` closes a window another run opened. Default refuse, name the rows,
+  `--allow-supersede` to proceed. That guards FR-4's one permitted write rather
+  than guarding a file.
+- **No `--force`.** With the two above in place it could only ever mean "skip
+  them", and per §9 there is nothing it could undo afterwards.
