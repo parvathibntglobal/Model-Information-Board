@@ -41,6 +41,44 @@ that commit's file list, and no commit on any ref changes `resolve()` in a way
 that bears on this run. `resolve()` enters the story only as the fix that has
 **not been made** — see §3.
 
+### Verified mechanically, not remembered
+
+```
+commit ee5b702   on origin/main   judge: two defects the first live run found
+path  judge/extract/verify.py    on origin/main (last ee5b702)
+path  judge/extract/schema.py    on origin/main (last ee5b702)
+```
+
+`git merge-base --is-ancestor ee5b702 origin/main` passes, and `d35d25b` (#116)
+is the merge that brought it in. **And nothing has touched those files since:**
+`git log ee5b702..origin/main -- verify.py schema.py client.py` is empty, so the
+code at that commit and the code on `origin/main` today are the same code.
+
+**One thing that cannot be confirmed, and it should be said rather than glossed:**
+that the working tree at run time was byte-identical to the commit. The run
+preceded the commit that records it, and its artifacts are absent by design (§2),
+so the evidence is the commit's own message. `how-it-works.md` already carries
+that caveat beside the token figures — *"checked, not confirmed"* — and it applies
+here too. What is mechanically established is narrower and still enough: the
+fixes are on origin, they are unchanged since, and nothing about them was ever
+unpushed.
+
+### `find_model` and `SeedModel.name` never existed
+
+Both were named as fixes behind this run. Neither is a thing:
+
+- **`find_model`** — no function of that name in `judge/` or `collect/`, on any
+  ref. `model-page-id-resolution.md §1` already said so; the real defect was that
+  `/models/{id}` returned 200 for an unknown id, fixed in `2322482`.
+- **`SeedModel.name`** — `SeedModel` has `canonical_id`, `provider`, `family`,
+  `display_name` and `slot`, with `extra="forbid"`. There is no `name` field, so
+  `.name` on it could only ever have raised — and no commit on any ref changes
+  such an expression.
+
+Naming a fix after a symbol that does not exist is what let three accounts of one
+run disagree. Hence the two names being retired explicitly rather than quietly
+dropped.
+
 ## 2 · Which database, and why there is nothing to find in it
 
 **The local disposable Postgres on port 5433, never `DATABASE_URL`.** That was
@@ -110,7 +148,21 @@ taken.
 ## 5 · Your fixture flag still stands, in a different direction
 
 You flagged `seed_models.yaml` still being listed under *build fixtures currently
-in place*. That flag is right, and here is the accurate version of it:
+in place*. **That flag is right, and what it names is documentation drift rather
+than a live violation.** Not "the violation is on a branch, not on main" — there
+is no such branch either:
+
+```
+every local branch, every origin branch, the stash, in any spelling
+  git grep -lEi "opus[-. _]?4[-. _]?8" <ref> -- contract/*     →  zero hits
+git log --all -S"claude-opus-4.8" -- contract/                 →  no commits
+```
+
+Three unmerged branches touch `contract/` at all, and all three are
+`contract/sources.yaml` for the blog terms deferral. So nothing anywhere seats a
+model by editing the shared contract, and nothing is queued to.
+
+Here is the accurate version of the drift:
 
 - **Retired in practice on that DSN** — 0 seeded rows, so its removal condition
   ("when OpenRouter polling lands") is met on the one database that matters.
