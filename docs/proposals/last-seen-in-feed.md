@@ -141,7 +141,144 @@ last_seen_in_feed IS NULL` in the same migration, with the caveat that
 itself. Stated because it is the one place this column starts life slightly wrong
 and cannot be made right retrospectively.
 
-## 7 · The shape underneath, worth knowing beyond this column
+## 7 · Where the poll-level fact lives — `job_run`, and nothing new is needed
+
+**Answering E2, 2026-08-20: "nothing distinguishes *polled and it was gone* from
+*we have not polled since*, and an answer path filtering on staleness would read
+every live model as departed after any pause in polling." Correct, and it is rule
+6 in a timestamp. The missing half already exists.**
+
+`job_run` records the poller as a stage. `collect/ops/chain.py` opens a row
+before the stage runs and closes it after — `ledger.py:open_run` /
+`close_run` — for `stage = 'poll-registry'`, with `started_at`, `finished_at`
+and `outcome ∈ {ok, refused, error}` under a CHECK that a finish and an outcome
+arrive together. So:
+
+```sql
+-- The most recent poll we know looked at the feed.
+SELECT max(started_at) FROM job_run
+WHERE stage = 'poll-registry' AND outcome = 'ok';
+```
+
+**The pair is that against `last_seen_in_feed`, per model, and it separates all
+three states rather than two:**
+
+| `last_seen_in_feed` vs the last successful poll | what we know |
+|---|---|
+| `>=` | the last poll returned it. Present. |
+| `<` | the last poll looked and did not return it. **Departed from this feed.** |
+| NULL | never observed in any poll. Not the same as departed. |
+| *the poll query returns NULL* | **we have never recorded a successful poll.** Say so; do not read it as departure for anybody. |
+
+**`unavailable_since` does not need to be a column.** It is a derivation over the
+same two facts — the first poll that looked and did not find it:
+
+```sql
+SELECT min(started_at) FROM job_run
+WHERE stage = 'poll-registry' AND outcome = 'ok'
+  AND started_at > mv.last_seen_in_feed;
+```
+
+That cannot go stale and cannot disagree with the timestamp it is derived from,
+and **a reappearance clears it by construction** — `last_seen_in_feed` moves
+forward and the subquery returns NULL, with no reset logic for anyone to
+remember. It also answers §5.3: swap `min` for `count` and the threshold becomes
+"not returned by N successive polls", counted rather than converted from days,
+which is the durable form you asked for and needs nothing added.
+
+**Four things to get right, three of which bite:**
+
+1. **Compare against `started_at`, not `finished_at`.** The column is written
+   during the poll, so it always precedes the row's finish. Comparing against
+   `finished_at` marks every model departed by the duration of the poll.
+
+2. **`ledger.py:last_run(stage)` is not the query you want.** It returns the last
+   run *whatever its outcome* — deliberately, because "has this ever run against
+   this database" was the question it was built for. A filter written on it treats
+   last night's failed poll as the reference point and reads every model as
+   departed. **Mine to add:** a `last_successful_run(conn, stage)` sibling, so this
+   is not re-derived once per lane the way `unfinished()` nearly was.
+
+3. **An `outcome = 'ok'` row is not yet proof the feed was read.** Until this
+   branch, `_poll_registry_stage` handed an httpx `Response` to `parse_models`
+   and got back 0 models, and **reported `OK`** — so `job_run` on staging holds
+   `poll-registry` rows marked `ok` that never saw a model. That is your failure
+   mode arriving through the ledger instead of the timestamp: a bogus `ok` dated
+   later than any real sighting makes every live model read as departed. Post-fix,
+   0 models is an `ERROR`, so a fresh `ok` means models were written. Until the
+   pre-fix rows age out, add `AND (detail->>'models')::int > 0` — `close_run`
+   writes the stage's counts into `detail`, and `items_in`/`items_out` stay NULL
+   here because the poll reports `models`/`inserted`/`updated` under their own
+   names. **Also mine:** have the stage report `items_in = raw_entries` and
+   `items_out = len(models)` so "this poll read the feed" is a column check
+   instead of a jsonb probe.
+
+4. **Only the chain writes `job_run`.** `open_run`/`close_run` have exactly one
+   caller each, `ops/chain.py`, and there is no `registry poll` command — the
+   chain's stage is the only poll path, so today the pair is sound. If a hand-run
+   poller is ever added it must open a `job_run` row: a poll that writes
+   `model_version` without one leaves models looking live (harmless), while a
+   `job_run` row without the write makes everything look departed (not).
+
+## 8 · Why a stored `unavailable_since` is the wrong shape
+
+**Not a preference for tidiness. A stored derivation goes stale when its inputs
+change, and a model returning to the feed is exactly that case.**
+
+`unavailable_since` has two inputs — the model's last sighting, and the polls
+that came after it. Storing the answer means every change to either input has to
+find the stored value and rewrite it. One of those changes is the event the column
+exists to describe:
+
+**A model comes back.** `last_seen_in_feed` moves forward on the ordinary upsert,
+and the stored `unavailable_since` is now a sentence about a departure that has
+ended. Nothing in the write path knows to clear it, and the reason is §9's shape
+pointed the other way: the poller's statement ranges over the models the feed
+*returned*, so it can update a returning model's sighting without ever
+considering a column that describes its absence. **A flag nothing clears becomes
+permanent** — which is the same failure your `provisional AND mentions > 0` check
+exists to catch, one table over.
+
+**The computed pair has no such state to get wrong.** The moment the sighting is
+later than every recorded poll, the subquery returns NULL — the return clears it
+by construction, and nobody has to remember. There is nothing to reconcile
+because there is nothing stored to disagree.
+
+It also avoids inventing a second writer. A stored column needs something that
+marks departures, and that writer's verdict would range over an input collection
+too — the same class of defect, newly built.
+
+**If the read cost ever matters, materialise it; do not hand-maintain it.** A
+view over the same two facts, refreshed by the nightly chain, is the pattern this
+project already uses for the answer path — and it is regenerated rather than
+mutated, so a stale value is a stale *run*, which is visible, rather than a stale
+*row*, which is not.
+
+## 9 · A correction I owe you, because you have been reasoning about this table
+
+**I told you `job_run` is never written and that the poller is not a chain stage.
+Both were true of the conversation we had about the design, and both were already
+false of the code — by two commits.**
+
+- `poll-registry` has been a real stage with a real `run=` function since
+  `5c22af2` (2026-08-18), not a planned one.
+- `job_run` has had its table, its writer and its caller since `a3deeba` —
+  `open_run`/`close_run` in `ops/ledger.py`, called from `run_chain` for every
+  stage. `docs/measurements/unwired-tables.md` records it as **wired** with 12
+  rows.
+
+**What was true until this branch is a different sentence, and it is the one that
+matters to you:** the stage ran, wrote its `job_run` row, and *polled nothing* —
+it handed an httpx `Response` to `parse_models` and reported `OK` on 0 models. So
+the rows exist and some of them attest to a poll that never read the feed, which
+is why §7's third caveat is a caveat and not a footnote.
+
+I am flagging it rather than quietly correcting the record because you have been
+reasoning about `job_run` on what I told you, and "nothing writes it" and "it is
+written and some rows are wrong" lead to different designs. The second one is
+what you are working with.
+
+## 10 · The shape underneath, worth knowing beyond this column
 
 **A writer whose verdict ranges over an input collection cannot notice a row that
 is in the table and absent from the input.** Nothing is wrong with
