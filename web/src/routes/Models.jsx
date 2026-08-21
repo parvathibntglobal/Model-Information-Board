@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listModels, listCapabilities, capabilityPage, capLabel, fmtPrice, fmtTokens, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
@@ -36,6 +36,59 @@ function nullsLast(x, y) {
   return x - y
 }
 
+/* ------------------------------------------------------------------ search */
+
+/**
+ * Strip every separator, so `gpt-5`, `gpt 5` and `gpt5` are one string.
+ *
+ * This is the same normalisation the resolver applies to model mentions, and
+ * for the same reason: a version number is written three ways by three people
+ * and they all mean one model. The labelling pool has a whole stratum for it —
+ * "spacing-variant: gpt-5 against gpt 5 against gpt5. Same model, three
+ * surfaces, and the normaliser is what makes them one."
+ *
+ * A plain substring match got this wrong in the obvious direction. Measured
+ * over the 342 models on staging: `gpt-5` found 29 and `gpt 5` found NONE,
+ * which reads as "we do not have it" rather than "you typed a space".
+ */
+const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+
+const haystack = (m) =>
+  [norm(m.display_name), norm(m.provider), norm(m.canonical_id)].join('')
+
+/**
+ * Squash first, tokens second.
+ *
+ * Squashing the whole query is exact about adjacency — `gpt 5` returns the same
+ * 29 rows as `gpt-5`, no more. Falling back to per-token AND only when that
+ * finds nothing buys word-order tolerance ("opus claude" → 8) without loosening
+ * the common case, where it would have turned `o1 pro` from 1 hit into 2.
+ */
+function matches(models, query) {
+  const q = query.trim()
+  if (!q) return models
+
+  // an id typed or pasted in full still finds its model, though the column is gone
+  const raw = q.toLowerCase()
+  if (raw.startsWith('mv')) {
+    const byId = models.filter((m) => (m.model_version_id || '').toLowerCase().includes(raw))
+    if (byId.length) return byId
+  }
+
+  const squashed = norm(q)
+  if (squashed) {
+    const hit = models.filter((m) => haystack(m).includes(squashed))
+    if (hit.length) return hit
+  }
+
+  const terms = q.split(/\s+/).map(norm).filter(Boolean)
+  if (!terms.length) return models
+  return models.filter((m) => {
+    const h = haystack(m)
+    return terms.every((t) => h.includes(t))
+  })
+}
+
 export default function Models() {
   const [roster, setRoster] = useState(null)
   const [evidence, setEvidence] = useState({})   // model id -> [{capability, voices, phrases}]
@@ -48,6 +101,21 @@ export default function Models() {
   const [sort, setSort] = useState('name')
   const [freeOnly, setFreeOnly] = useState(false)
   const [meta, setMeta] = useState(null)      // summary + priced_at, straight from the API
+  const searchRef = useRef(null)
+
+  // "/" jumps to the search box, the convention on any page that is mostly a
+  // list. Guarded so it does not steal the key from someone typing in a field.
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
+      const t = e.target
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      e.preventDefault()
+      searchRef.current?.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -111,16 +179,7 @@ export default function Models() {
 
   const shown = useMemo(() => {
     if (!roster) return []
-    const q = query.trim().toLowerCase()
-    let out = roster
-    if (q) {
-      out = out.filter(
-        (m) =>
-          (m.display_name || '').toLowerCase().includes(q) ||
-          (m.provider || '').toLowerCase().includes(q) ||
-          (m.canonical_id || '').toLowerCase().includes(q)
-      )
-    }
+    let out = matches(roster, query)
     // `=== 0` and not falsy: null is "no published rate", not free.
     if (freeOnly) out = out.filter((m) => m.price_in === 0 && m.price_out === 0)
     return [...out].sort(SORTS[sort].fn)
@@ -186,13 +245,26 @@ export default function Models() {
           <label className="searchbar">
             <IconSearch width={15} height={15} />
             <input
+              ref={searchRef}
+              type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={`Filter ${roster.length} models by name or provider`}
-              aria-label="Filter models"
+              onKeyDown={(e) => { if (e.key === 'Escape') setQuery('') }}
+              placeholder={`Search ${roster.length} models — name, provider, or id`}
+              aria-label="Search models by name"
+              autoComplete="off"
+              spellCheck="false"
             />
             {query && <button className="x" onClick={() => setQuery('')}>clear</button>}
           </label>
+
+          {query && shown.length === 0 && (
+            <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+              Spacing and punctuation are ignored, so “gpt 5”, “gpt-5” and “gpt5”
+              all find the same models — if this is empty, the registry genuinely
+              has nothing by that name.
+            </p>
+          )}
 
           <div className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
             <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
