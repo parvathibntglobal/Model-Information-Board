@@ -6,15 +6,6 @@ export function Badge({ tone = 'mute', children, ...rest }) {
   return <span className={`badge badge-${tone}`} {...rest}>{children}</span>
 }
 
-export function Chip({ on, children, ...rest }) {
-  const Tag = rest.onClick ? 'button' : 'span'
-  return <Tag className={`chip${on ? ' chip-on' : ''}`} {...rest}>{children}</Tag>
-}
-
-export function Label({ children }) {
-  return <span className="label">{children}</span>
-}
-
 export function Stat({ n, l }) {
   return (
     <div className="stat">
@@ -24,39 +15,15 @@ export function Stat({ n, l }) {
   )
 }
 
-/**
- * Consensus meter. The bar is a reading aid for the counts beside it — the
- * board never publishes a score, so the number shown is always voices.
- */
-export function Meter({ name, value, voices, platforms }) {
-  const [w, setW] = useState(0)
-  useEffect(() => {
-    const t = setTimeout(() => setW(value), 60)
-    return () => clearTimeout(t)
-  }, [value])
-  return (
-    <div className="meter">
-      <span className="meter-name">{name}</span>
-      <span className="meter-val">
-        {voices != null ? `${voices} ${voices === 1 ? 'voice' : 'voices'}` : ''}
-        {platforms != null ? ` · ${platforms}pf` : ''}
-      </span>
-      <div className="meter-track">
-        <div className="meter-fill" style={{ width: `${Math.round(w * 100)}%` }} />
-      </div>
-    </div>
-  )
-}
-
-export function BandHead({ tone = 'mute', title, count }) {
-  return (
-    <div className="band-head">
-      <Badge tone={tone}>{title}</Badge>
-      {count != null && <span className="label">{count}</span>}
-      <span className="band-rule" />
-    </div>
-  )
-}
+// `Chip`, `Label`, `BandHead` and `Meter` lived here with no caller. Three were
+// merely unused; `Meter` was worth deleting rather than keeping.
+//
+// It drew a 0-1 bar from a `value` prop with no counted quantity behind it —
+// a filled bar IS a score, and rule 3 says no synthesised number reaches a
+// page. It sat one import away from being wired up by someone reaching for
+// "show consensus visually", and the comment above it called itself a reading
+// aid, so nothing would have flagged it. The counts it was meant to illustrate
+// already render as words.
 
 export function Notice({ icon, children }) {
   return (
@@ -79,8 +46,14 @@ export function Unreadable({ detail, compact }) {
       <p>{detail}</p>
       {!compact && (
         <p className="dim">
-          This is not a board with nothing on it. Start Postgres, point
-          DATABASE_URL at it, and apply <code>contract/tables.sql</code>.
+          This is not a board with nothing on it. Start Postgres, point{' '}
+          <code>DATABASE_URL</code> at it, then run <code>db init</code> and{' '}
+          <code>db migrate</code>.
+          {/* BOTH commands. `tables.sql` is the base schema and
+              contract/migrations/ holds 7 files on top of it, so applying only
+              the first leaves a database that connects, answers, and is missing
+              thread_extraction and job_run — which fails later, further away,
+              and looking like a different problem. */}
         </p>
       )}
     </div>

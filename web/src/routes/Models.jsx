@@ -40,6 +40,7 @@ export default function Models() {
   const [roster, setRoster] = useState(null)
   const [evidence, setEvidence] = useState({})   // model id -> [{capability, voices, phrases}]
   const [checked, setChecked] = useState(0)
+  const [failed, setFailed] = useState(0)
   const [total, setTotal] = useState(0)
   const [err, setErr] = useState(null)
   const [unreadable, setUnreadable] = useState(null)
@@ -80,8 +81,15 @@ export default function Models() {
           const page = await capabilityPage(key)
           if (!alive) return
           fold(page)
-        } catch { /* one capability failing should not blank the page */ }
-        if (alive) setChecked((n) => n + 1)
+          setChecked((n) => n + 1)
+        } catch {
+          // A capability that could not be READ is not a capability with
+          // nothing in it, and counting it as checked would let the page
+          // conclude "no model has a single report" from requests that never
+          // returned. One failure must not blank the roster, and it must not
+          // quietly join the tally either.
+          if (alive) setFailed((n) => n + 1)
+        }
       }
     })()
 
@@ -152,12 +160,20 @@ export default function Models() {
                   {meta.priced_at && ` Prices as advertised on ${new Date(meta.priced_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.`}
                 </p>
               )}
-              {checked < total && (
+              {checked + failed < total && (
                 <p className="dim" style={{ fontSize: 'var(--fs-xs)', marginTop: 'var(--s3)' }}>
                   Still reading capability pages — the evidence column fills in as they land.
                 </p>
               )}
-              {checked === total && withEvidence === 0 && (
+              {failed > 0 && (
+                <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--warn)', marginTop: 'var(--s3)' }}>
+                  {failed} of {total} capability {failed === 1 ? 'page' : 'pages'} could not
+                  be read, so the evidence column below is incomplete. A model showing
+                  “no reports” here may have reports under a capability that failed to
+                  load — that is a gap in this page, not a fact about the model.
+                </p>
+              )}
+              {checked === total && failed === 0 && withEvidence === 0 && (
                 <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--warn)', marginTop: 'var(--s3)' }}>
                   All {total} capabilities checked. No model has a single published
                   report — nobody has looked, which is not the same as nobody having

@@ -154,6 +154,11 @@ export const fmtTokens = (n) => {
 export const fmtPrice = (n) => {
   if (n == null) return 'no rate'
   if (n === 0) return 'Free'
+  // A rate below the rounding floor must not become "$0" — that is the NULL
+  // mistake wearing a different hat, a real charge displayed as no charge.
+  // Today's cheapest is $0.002/Mtok so nothing hits this, but providers ship
+  // sub-$0.001 rates and the failure would be silent when one does.
+  if (n < 0.001) return '<$0.001'
   if (n < 1) return `$${n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')}`
   return `$${n % 1 === 0 ? n : n.toFixed(2)}`
 }

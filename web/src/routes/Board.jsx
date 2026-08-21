@@ -32,7 +32,14 @@ export default function Board() {
         <p className="muted" style={{ maxWidth: '64ch' }}>
           Consensus counting needs a shared key — if one quote is filed under
           “tool calling” and another under “function calling reliability”, they
-          never group. These twelve are what the pipeline tags against.
+          never group.{' '}
+          {/* Counted, not written down. The list lives in
+              contract/capabilities.yaml and is meant to change; a hardcoded
+              "twelve" becomes a false statement the day someone adds one, and
+              nothing in the build would catch it. */}
+          {caps
+            ? `These ${caps.length} are what the pipeline tags against.`
+            : 'The list below is what the pipeline tags against.'}
         </p>
       </div>
 

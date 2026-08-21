@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { askRequirements, askRevise, askUnderstand, capLabel, fmtInt, TIER, ERROR_COST } from '../api'
 import { Badge, Notice, Reveal } from '../components/ui'
 import AskLoading from '../components/AskLoading'
@@ -210,8 +210,9 @@ function Result({ data, task }) {
   const [live, setLive] = useState(data)
   const [accepted, setAccepted] = useState([])
   const [busy, setBusy] = useState(false)
+  const [editError, setEditError] = useState(null)
 
-  useEffect(() => { setLive(data); setAccepted([]) }, [data])
+  useEffect(() => { setLive(data); setAccepted([]); setEditError(null) }, [data])
 
   const req = live.requirement
   const tier = TIER[req.complexity_tier] || {}
@@ -220,6 +221,7 @@ function Result({ data, task }) {
   /** Editing an assumption re-runs Q3 deterministically — no model involved. */
   async function edit(field, value) {
     setBusy(true)
+    setEditError(null)
     try {
       const profile = {
         raw_text: task,
@@ -229,8 +231,23 @@ function Result({ data, task }) {
         [field]: value,
       }
       const next = await askRevise(profile, accepted)
-      setLive({ requirement: next.requirement, guard: next.guard, note: next.note })
-    } catch { /* leave the previous answer standing */ }
+      // `still_guessed` travels with the answer. Dropping it here was the bug:
+      // the backend computes which fields nobody has looked at precisely so the
+      // page can say so, and a field silently absent from state is a field the
+      // reader can never be told about.
+      setLive({
+        requirement: next.requirement,
+        guard: next.guard,
+        note: next.note,
+        stillGuessed: next.still_guessed || [],
+      })
+    } catch (err) {
+      // NOT silent. The chip snaps back to its old value either way, so with no
+      // message the page shows the un-edited answer and looks like it simply
+      // ignored you — an answer to a question you did not ask, which is the one
+      // failure this whole product exists to prevent.
+      setEditError(err.message)
+    }
     setBusy(false)
   }
 
@@ -264,6 +281,36 @@ function Result({ data, task }) {
               />
             ))}
           </div>
+
+          {editError && (
+            <Notice icon={<IconAlert />}>
+              <strong style={{ color: 'var(--text)' }}>That edit did not go through.</strong>{' '}
+              The answer above is the one from before you changed anything — it has
+              not been revised. {editError}
+            </Notice>
+          )}
+
+          {/* Rule 6, applied to a review rather than to a value. A field nobody
+              looked at is not a field somebody approved, and the backend keeps
+              those two apart on purpose — so the page has to as well. */}
+          {live.stillGuessed?.length > 0 && (
+            <Notice icon={<IconAlert />}>
+              <strong style={{ color: 'var(--text)' }}>
+                {live.stillGuessed.length === 1
+                  ? 'One field is still a guess.'
+                  : `${live.stillGuessed.length} fields are still guesses.`}
+              </strong>{' '}
+              You have neither corrected nor confirmed{' '}
+              {live.stillGuessed.map((f, i) => (
+                <span key={f}>
+                  {i > 0 && (i === live.stillGuessed.length - 1 ? ' and ' : ', ')}
+                  <span className="mono">{f}</span>
+                </span>
+              ))}
+              . Press <em>ok</em> on a chip to mark it looked-at, or edit it — an
+              unexamined guess is not a confirmed one, and this answer rests on it.
+            </Notice>
+          )}
         </div>
       )}
 
@@ -394,10 +441,12 @@ function Result({ data, task }) {
       <Notice icon={<IconSearch />}>
         <strong style={{ color: 'var(--text)' }}>This is the whole answer today, and it is not an error.</strong>{' '}
         The requirement profile above is what the board can say with certainty. Naming
-        specific models needs published cells, and there are none yet — the registry
-        carries 11 models but no claim has been extracted, so every capability on every
-        model reads “nobody has discussed this”. Rather than invent candidates, the board
-        stops here.
+        specific models needs published cells, and there are none yet: no claim has been
+        extracted, so every capability on every model in the registry reads “nobody has
+        discussed this”. Rather than invent candidates, the board stops here. The{' '}
+        <Link to="/models">registry itself</Link> is populated and carries each model’s
+        advertised price — that is a vendor’s claim about itself, not evidence, and it is
+        not enough to recommend on.
       </Notice>
     </div>
   )
@@ -443,6 +492,24 @@ function NothingRecognised() {
   )
 }
 
+/**
+ * What the user typed into a chip, as a value the profile can carry.
+ *
+ * `Number('')` is 0 and `Number('  ')` is 0, so the obvious
+ * `isNaN(Number(v)) ? v : Number(v)` turns a CLEARED field into a definite
+ * zero — "no token budget stated" becoming "a budget of zero tokens". That is
+ * rule 6 at the keyboard: emptying a field means you are withdrawing the value,
+ * not asserting that it is nothing. Empty becomes null and stays absent.
+ */
+function coerce(raw) {
+  const v = String(raw).trim()
+  if (v === '') return null
+  if (v === 'true') return true
+  if (v === 'false') return false
+  const n = Number(v)
+  return Number.isNaN(n) ? v : n
+}
+
 function AssumptionChip({ a, busy, onCommit, onAccept, accepted }) {
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState(a.value)
@@ -458,7 +525,7 @@ function AssumptionChip({ a, busy, onCommit, onAccept, accepted }) {
           value={val}
           onChange={(e) => setVal(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') { setEditing(false); onCommit(isNaN(Number(val)) ? val : Number(val)) }
+            if (e.key === 'Enter') { setEditing(false); onCommit(coerce(val)) }
             if (e.key === 'Escape') { setEditing(false); setVal(a.value) }
           }}
           onBlur={() => { setEditing(false); setVal(a.value) }}
