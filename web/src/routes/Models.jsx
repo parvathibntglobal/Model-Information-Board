@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { listModels, listCapabilities, capabilityPage, capLabel, fmtPrice, fmtTokens, BoardUnreadable } from '../api'
+import { listModels, listCapabilities, capabilityPage, fetchAll, capLabel, fmtPrice, fmtTokens, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 
@@ -123,7 +123,7 @@ export default function Models() {
     ;(async () => {
       // the roster, in one call, with everything the provider advertises
       try {
-        const list = await listModels()
+        const list = await fetchAll((l, o) => listModels(l, o))
         if (!alive) return
         setRoster(list.models)
         setMeta({ summary: list.summary, priced_at: list.priced_at })
@@ -146,7 +146,7 @@ export default function Models() {
       for (const key of caps.map((c) => c.key)) {
         if (!alive) return
         try {
-          const page = await capabilityPage(key)
+          const page = await fetchAll((l, o) => capabilityPage(key, l, o))
           if (!alive) return
           fold(page)
           setChecked((n) => n + 1)

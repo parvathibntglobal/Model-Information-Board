@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
-import { modelPage, listModels, capLabel, fmtPrice, fmtTokens, fmtInt, BoardUnreadable } from '../api'
+import { modelPage, listModels, fetchAll, capLabel, fmtPrice, fmtTokens, fmtInt, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconExternal } from '../components/Icons'
 
@@ -35,7 +35,7 @@ export default function ModelDetail() {
   useEffect(() => {
     let live = true
     setSpec(null)
-    listModels()
+    fetchAll((l, o) => listModels(l, o))
       .then((list) => {
         if (!live) return
         setSpec(list.models.find((m) => m.model_version_id === id) || null)

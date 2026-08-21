@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { listCapabilities, capabilityPage, capLabel, BoardUnreadable } from '../api'
+import { listCapabilities, capabilityPage, fetchAll, capLabel, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow } from '../components/Icons'
 
@@ -118,7 +118,7 @@ function CapabilityDetail({ capKey }) {
 
   useEffect(() => {
     setPage(null); setErr(null); setUnreadable(null)
-    capabilityPage(capKey)
+    fetchAll((l, o) => capabilityPage(capKey, l, o))
       .then(setPage)
       .catch((e) => (e instanceof BoardUnreadable ? setUnreadable(e.message) : setErr(e.message)))
   }, [capKey])

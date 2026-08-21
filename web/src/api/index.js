@@ -22,6 +22,19 @@
 
 const BASE = import.meta.env.VITE_API_URL || '/api'
 
+/**
+ * Sent as `Authorization: Bearer` when the API has a token configured.
+ *
+ * THIS IS NOT A SECRET THE BROWSER CAN KEEP. It ships in the bundle, exactly
+ * like the demo hash in auth.js, so it authenticates the DEPLOYMENT and not the
+ * person - it stops the internet at large reading the board, and stops nothing
+ * that a viewer of this page could not already do. Per-user identity needs a
+ * session the server issues; see the note at the top of src/auth.js.
+ *
+ * Left unset for local work, where the API is open in development anyway.
+ */
+const TOKEN = import.meta.env.VITE_API_TOKEN || ''
+
 export class ApiError extends Error {
   constructor(message, status, body) {
     super(message)
@@ -45,7 +58,10 @@ async function request(path, { method = 'GET', body, signal } = {}) {
     res = await fetch(`${BASE}${path}`, {
       method,
       signal,
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      headers: {
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+        ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
+      },
       body: body ? JSON.stringify(body) : undefined,
     })
   } catch (err) {
@@ -70,7 +86,8 @@ async function request(path, { method = 'GET', body, signal } = {}) {
 
 export const health = () => request('/health')
 export const listCapabilities = () => request('/capabilities')
-export const capabilityPage = (key) => request(`/capabilities/${encodeURIComponent(key)}`)
+export const capabilityPage = (key, limit = 500, offset = 0) =>
+  request(`/capabilities/${encodeURIComponent(key)}?limit=${limit}&offset=${offset}`)
 /**
  * Model ids can contain a slash — `google/gemini-2.5-flash`. The handoff is
  * explicit that the slash must NOT be percent-encoded, so each segment is
@@ -93,7 +110,38 @@ export const modelPage = (id) => request(`/models/${modelPath(id)}`)
  * here, and a page that puts price beside consensus without marking the
  * difference is the one mistake this board exists to avoid.
  */
-export const listModels = () => request('/models')
+export const listModels = (limit = 500, offset = 0) =>
+  request(`/models?limit=${limit}&offset=${offset}`)
+
+/**
+ * Every page of a list endpoint, followed to the end.
+ *
+ * `/models` and `/capabilities/{key}` now page at 100 by default. A client that
+ * takes the first page and renders it is the worst outcome available here: the
+ * roster would silently become "the first 100 of 342" with nothing on screen
+ * saying so, and "no model matches" would start meaning "not in the first
+ * hundred". Pagination that a caller ignores is worse than none.
+ *
+ * `has_more` is read from the response rather than inferred from
+ * `returned === limit`, which is wrong on a last page that happens to be full.
+ * The loop is bounded because a server that always says `has_more` should stop
+ * a UI, not hang it.
+ */
+export const fetchAll = async (fetchPage, key = 'models') => {
+  const first = await fetchPage(500, 0)
+  const rows = [...(first[key] || [])]
+  let meta = first.page
+  let guard = 0
+
+  while (meta?.has_more && guard++ < 40) {
+    const next = await fetchPage(500, rows.length)
+    rows.push(...(next[key] || []))
+    meta = next.page
+    if (!next[key]?.length) break     // no progress: stop rather than spin
+  }
+
+  return { ...first, [key]: rows, page: meta, truncated: Boolean(meta?.has_more) }
+}
 export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
 export const coveragePage = () => request('/coverage')
 export const changelogPage = (days = 30) => request(`/changelog?days=${days}`)

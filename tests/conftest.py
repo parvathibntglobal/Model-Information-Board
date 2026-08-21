@@ -673,6 +673,28 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config) -> None:
 
 
 @pytest.fixture(autouse=True)
+def _isolate_ask_rate_limit():
+    """Reset `judge.gate`'s counter before every test, for the reason below.
+
+    The same hazard `_isolate_ask_spend` documents, one layer out. The limiter
+    on `/ask/understand` is a fixed window held in a module global, keyed on the
+    client host - and every TestClient in this suite is the same host. So the
+    twentieth `/ask/understand` call ANYWHERE in the run started answering 429,
+    and eight tests in `test_ask_understand_endpoint.py` failed while each one
+    passed on its own.
+
+    That is the shape worth naming: the failures pointed at Q1's semantics and
+    the cause was a counter in a different module, carried between tests by the
+    process rather than by anything either test touched.
+    """
+    from judge import gate
+
+    gate._reset_for_tests()
+    yield
+    gate._reset_for_tests()
+
+
+@pytest.fixture(autouse=True)
 def _isolate_ask_spend():
     """Reset `judge.ask.spend` before every test, with a cap configured.
 
