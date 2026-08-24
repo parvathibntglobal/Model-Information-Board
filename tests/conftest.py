@@ -686,12 +686,29 @@ def _isolate_ask_rate_limit():
     That is the shape worth naming: the failures pointed at Q1's semantics and
     the cause was a counter in a different module, carried between tests by the
     process rather than by anything either test touched.
-    """
-    from judge import gate
 
-    gate._reset_for_tests()
+    IT LOOKS UP `judge.gate` IN sys.modules AND NEVER IMPORTS IT, which matters
+    more than it looks. `from judge import gate` pulls in FastAPI, and
+    `Check the workflow file before anything depends on it` runs with pyyaml and
+    pytest ONLY - deliberately, before Install, because a guard that depends on
+    the install it is meant to precede is not a guard. An autouse fixture
+    importing an app module runs in that step too, so the first version of this
+    took the whole job down with `No module named 'fastapi'` before a single
+    workflow assertion had been made.
+
+    If the module was never imported, no request was served, so there is no
+    counter to reset and nothing to skip over.
+    """
+    import sys
+
+    def reset() -> None:
+        module = sys.modules.get("judge.gate")
+        if module is not None:
+            module._reset_for_tests()
+
+    reset()
     yield
-    gate._reset_for_tests()
+    reset()
 
 
 @pytest.fixture(autouse=True)
