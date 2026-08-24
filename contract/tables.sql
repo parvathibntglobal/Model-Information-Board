@@ -497,6 +497,17 @@ CREATE TABLE claim (
   is_sarcastic          boolean,         -- true → the claim is DISCARDED and logged
 
   evidence_tier         text NOT NULL,   -- A B C D E F
+
+  -- WHOSE claim this is, not whether it is true. Supplies `evidence_tier` via
+  -- `contract/harvest.yaml:evidence_tier_by_speaking`, and weights only - it is
+  -- NOT a storage gate, so a vendor's own words are stored and discounted
+  -- rather than refused.
+  --
+  -- NULLABLE, and that is deliberate: the four rows written before the column
+  -- existed have no answer, and back-filling would need the surface population
+  -- each was resolved against. A guess there is rule 6 on a provenance field.
+  speaking              text,            -- own-experience | vendor-about-own-product
+                                         -- | relayed-from-elsewhere
   extractor_model       text NOT NULL,
   extractor_confidence  real,
   pipeline_version      text NOT NULL,
@@ -507,7 +518,21 @@ CREATE TABLE claim (
   CONSTRAINT claim_severity_ck  CHECK (severity IS NULL
                                        OR severity IN ('mild', 'clear', 'severe')),
   -- FR-13: an unverified claim must never exist
-  CONSTRAINT claim_verified_ck  CHECK (quote_verified = true)
+  CONSTRAINT claim_verified_ck  CHECK (quote_verified = true),
+  -- Added by 20260821T1600_claim_speaking.sql, and this file did not describe it
+  -- for two days. The migration ran against staging and was verified THERE, so
+  -- every check I made passed and the equivalence test in CI - which compares a
+  -- migrated database against this file - was the only thing that could see the
+  -- gap. Checking the artifact is not checking the contract.
+  -- NO `IS NULL OR`, deliberately, and it is not a semantic choice: a CHECK
+  -- fails only on FALSE, so `speaking IN (...)` already admits NULL. The
+  -- equivalence test compares `pg_get_constraintdef` TEXTUALLY, so this has to
+  -- render identically to what the migration produced or the two disagree about
+  -- a constraint that behaves the same.
+  CONSTRAINT claim_speaking_check CHECK (speaking IN (
+                                    'own-experience',
+                                    'vendor-about-own-product',
+                                    'relayed-from-elsewhere'))
 );
 
 -- the aggregation hot path
