@@ -385,6 +385,11 @@ CREATE INDEX document_minhash_idx     ON document (minhash);
 CREATE INDEX document_simhash_idx     ON document (simhash);
 CREATE INDEX document_thread_root_idx ON document (thread_root_id);
 CREATE INDEX document_status_idx      ON document (status) WHERE status = 'kept';
+-- The join `harvest_run_id` exists for: "which documents did this query produce".
+-- Present in the migration and MISSED HERE, which `test_the_chain_and_the_file
+-- _agree_on_indexes` caught — the second time a migration/DDL divergence has been
+-- found by that equivalence rather than by anything behavioural.
+CREATE INDEX document_harvest_run_idx ON document (harvest_run_id);
 
 CREATE TABLE dedup_cluster (
   id                    text PRIMARY KEY,
