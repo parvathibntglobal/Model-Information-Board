@@ -21,6 +21,27 @@ import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
  * ordering 342 unevidenced models by price and putting the cheapest on top is
  * a recommendation, and this board does not make one without evidence.
  */
+/**
+ * The evidence filter, and it is three-valued rather than a checkbox.
+ *
+ * "Has evidence" sounds binary and is not. 3 of 342 models have a cell and NONE
+ * has a published one — every cell is `insufficient`, n_eff 0.012 against a
+ * gate of 3.0. A checkbox has to pick: "has evidence = has a cell" shows three
+ * models that did not clear the gate to someone who asked for evidence, and
+ * "has evidence = published" shows an empty list that reads as a broken filter.
+ *
+ * So all three states are offered, with counts, and the empty one is legible
+ * because the populated ones sit beside it. Rule 4 as a control.
+ */
+const EVIDENCE = {
+  all:         { label: 'All models',  match: () => true },
+  // ANY cell, published or not. Named for what a reader is looking for -
+  // "which of these has somebody actually said something about" - rather than
+  // for the gate status, which is a per-row fact and is shown as one.
+  evidence:    { label: 'Evidence',    match: (m) => (m.evidence?.cells || 0) > 0 },
+  unreported:  { label: 'Undiscussed', match: (m) => (m.evidence?.cells || 0) === 0 },
+}
+
 const SORTS = {
   name:     { label: 'Name',            fn: (a, b) => (a.display_name || '').localeCompare(b.display_name || '') },
   cheapest: { label: 'Cheapest input',  fn: (a, b) => nullsLast(a.price_in, b.price_in) },
@@ -100,6 +121,9 @@ export default function Models() {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('name')
   const [freeOnly, setFreeOnly] = useState(false)
+  const [evidenceFilter, setEvidenceFilter] = useState('all')
+  const [capFilter, setCapFilter] = useState('any')
+  const [caps, setCaps] = useState(null)   // the vocabulary, for the capability filter
   const [meta, setMeta] = useState(null)      // summary + priced_at, straight from the API
   const searchRef = useRef(null)
 
@@ -136,14 +160,15 @@ export default function Models() {
 
       // then the evidence, which is a separate kind of fact and a separate
       // set of calls. A capability page failing must not blank the roster.
-      let caps
+      let vocabulary
       try {
-        caps = await listCapabilities()
+        vocabulary = await listCapabilities()
       } catch { return }
       if (!alive) return
-      setTotal(caps.length)
+      setCaps(vocabulary)
+      setTotal(vocabulary.length)
 
-      for (const key of caps.map((c) => c.key)) {
+      for (const key of vocabulary.map((c) => c.key)) {
         if (!alive) return
         try {
           const page = await fetchAll((l, o) => capabilityPage(key, l, o))
@@ -182,8 +207,43 @@ export default function Models() {
     let out = matches(roster, query)
     // `=== 0` and not falsy: null is "no published rate", not free.
     if (freeOnly) out = out.filter((m) => m.price_in === 0 && m.price_out === 0)
+    out = out.filter(EVIDENCE[evidenceFilter].match)
+    if (capFilter !== 'any') {
+      out = out.filter((m) => (m.evidence?.capabilities || []).includes(capFilter))
+    }
     return [...out].sort(SORTS[sort].fn)
-  }, [roster, query, sort, freeOnly])
+  }, [roster, query, sort, freeOnly, evidenceFilter, capFilter])
+
+  /**
+   * How many models have been discussed under each capability.
+   *
+   * Counted off the whole roster and listing EVERY capability, including the
+   * ones at zero. Offering only the eight that have something would hide that
+   * four of the twelve have never been discussed at all — and "no option for
+   * it" reads as "not a thing we track" rather than "nobody has looked", which
+   * is rule 4 moved into a dropdown.
+   */
+  const capCounts = useMemo(() => {
+    const counts = {}
+    for (const m of roster || []) {
+      for (const k of m.evidence?.capabilities || []) counts[k] = (counts[k] || 0) + 1
+    }
+    return counts
+  }, [roster])
+
+  // Counted off the roster, not the filtered view — a tab that says how many
+  // it holds must not change when another tab is selected.
+  const publishedCount = useMemo(
+    () => (roster || []).filter((m) => m.evidence?.published > 0).length,
+    [roster]
+  )
+
+  const evidenceCounts = useMemo(() => {
+    if (!roster) return {}
+    return Object.fromEntries(
+      Object.entries(EVIDENCE).map(([k, v]) => [k, roster.filter(v.match).length])
+    )
+  }, [roster])
 
   const withEvidence = Object.keys(evidence).length
   const priced = roster ? roster.filter((m) => m.price_in != null).length : 0
@@ -266,6 +326,79 @@ export default function Models() {
             </p>
           )}
 
+          {/* EVIDENCE, on its own row and above the sorts. It answers a
+              different question from "how should these be ordered" — it says
+              which of them the board can speak about at all — and every option
+              carries its count so an empty one reads as a finding rather than
+              as a filter that broke. */}
+          <div className="stack stack-1">
+            <span className="label">What the board knows about them</span>
+            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+              {Object.entries(EVIDENCE).map(([k, e]) => (
+                <button
+                  key={k}
+                  className={`chip${evidenceFilter === k ? ' chip-on' : ''}`}
+                  aria-pressed={evidenceFilter === k}
+                  onClick={() => setEvidenceFilter(k)}
+                >
+                  {e.label}
+                  <span className="tnum" style={{ opacity: .6, marginLeft: 6 }}>
+                    {evidenceCounts[k] ?? '—'}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {evidenceFilter === 'evidence' && (
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
+                {publishedCount > 0
+                  ? <>{publishedCount} of these have cleared the gate; the rest are below it.</>
+                  : <>Somebody has reported on each of these. <strong>None has cleared the
+                     gate yet</strong> — publishing needs roughly three independent voices
+                     across two platforms, and every one of them is at one. Below the gate
+                     is not a verdict: not “good”, not “bad”, just not enough voices to say
+                     either. Each row says which state it is in.</>}
+              </p>
+            )}
+
+            {evidenceFilter === 'unreported' && (
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
+                Nobody has discussed these. An absence of evidence, not evidence of a
+                problem — a model here may be excellent and simply unwritten-about.
+              </p>
+            )}
+
+            {/* WHICH capability, which is the question people actually arrive
+                with. Every capability is listed, including the ones at zero:
+                omitting them would read as "not tracked" rather than "nobody
+                has looked", and those are opposite claims. */}
+            {caps && (
+              <label className="field field-inline" style={{ marginTop: 4 }}>
+                <span className="field-label">Discussed under</span>
+                <select
+                  value={capFilter}
+                  onChange={(e) => setCapFilter(e.target.value)}
+                  aria-label="Filter by capability"
+                >
+                  <option value="any">Any capability</option>
+                  {caps.map((c) => (
+                    <option key={c.key} value={c.key}>
+                      {capLabel(c.key)} — {capCounts[c.key] || 0}
+                      {c.requires_positive_consensus ? ' · fails silently' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {capFilter !== 'any' && (capCounts[capFilter] || 0) === 0 && (
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '70ch' }}>
+                No model has been discussed under <strong>{capLabel(capFilter)}</strong> yet.
+                Nobody has looked — which is not the same as every model being fine at it.
+              </p>
+            )}
+          </div>
+
           <div className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
             <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
               {Object.entries(SORTS).map(([k, s]) => (
@@ -296,7 +429,7 @@ export default function Models() {
 
           <div className="stack stack-1">
             {shown.slice(0, 200).map((m) => (
-              <ModelRow key={m.model_version_id} m={m} rows={evidence[m.model_version_id]} />
+              <ModelRow key={m.model_version_id} m={m} rows={evidence[m.model_version_id]} capFilter={capFilter} />
             ))}
             {shown.length > 200 && (
               <p className="dim" style={{ fontSize: 'var(--fs-xs)', padding: '10px 2px' }}>
@@ -314,13 +447,21 @@ export default function Models() {
   )
 }
 
-function ModelRow({ m, rows }) {
+function ModelRow({ m, rows, capFilter }) {
   const unpriced = m.price_in == null
 
   return (
     <Link
       to={`/models/${m.model_version_id}`}
-      state={{ from: '/models', name: m.display_name }}
+      // `focus` carries WHICH capability the reader was looking at when they
+      // clicked. Without it the model page opens on twelve capabilities, eleven
+      // of them empty, and the one they filtered for is somewhere below the
+      // fold with nothing marking it.
+      state={{
+        from: '/models',
+        name: m.display_name,
+        focus: capFilter !== 'any' ? capFilter : (m.evidence?.capabilities?.[0] || null),
+      }}
       className="mrow"
     >
       <span className="stack" style={{ gap: 3, minWidth: 0 }}>
@@ -329,9 +470,15 @@ function ModelRow({ m, rows }) {
           {m.provider}
           {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
         </span>
-        {rows && (
+        {/* Which capability, from the roster row itself — so it is on screen
+            the moment the list is, rather than 26 seconds later when the
+            capability sweep lands. `rows` upgrades it with voice counts if and
+            when that finishes. */}
+        {m.evidence?.capabilities?.length > 0 && (
           <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-            {rows.map((r) => `${capLabel(r.capability)} · ${r.voices} ${r.voices === 1 ? 'voice' : 'voices'}`).join('  ·  ')}
+            {rows
+              ? rows.map((r) => `${capLabel(r.capability)} · ${r.voices} ${r.voices === 1 ? 'voice' : 'voices'}`).join('  ·  ')
+              : m.evidence.capabilities.map(capLabel).join('  ·  ')}
           </span>
         )}
       </span>
@@ -353,11 +500,37 @@ function ModelRow({ m, rows }) {
           )}
         </span>
 
-        {rows
-          ? <Badge tone="pass">{rows.length} {rows.length === 1 ? 'report' : 'reports'}</Badge>
-          : <Badge tone="mute">no reports</Badge>}
+        {/* From the roster's own `evidence`, not from the capability sweep.
+            The sweep takes 26 seconds and can fail per-page; this arrives with
+            the row. `rows` still supplies WHICH capability once it lands. */}
+        <EvidenceBadge e={m.evidence} rows={rows} />
         <IconArrow width={13} height={13} style={{ opacity: .5 }} />
       </span>
     </Link>
   )
+}
+
+
+/**
+ * One badge, three states, never collapsed into two.
+ *
+ * `insufficient` is the one that must not be rounded off. Rounding it up to
+ * "reported" tells a reader a claim was proven; rounding it down to "no
+ * reports" hides that somebody looked. Both are wrong in a way the reader
+ * cannot see, which is what rule 4 is about.
+ */
+function EvidenceBadge({ e, rows }) {
+  const state = e?.state || 'unreported'
+
+  if (state === 'published') {
+    return <Badge tone="pass">published{rows ? ` · ${rows.length}` : ''}</Badge>
+  }
+  if (state === 'insufficient') {
+    return (
+      <Badge tone="warn" title="Someone has reported on this and it has not cleared the gate">
+        below the gate{e.cells ? ` · ${e.cells}` : ''}
+      </Badge>
+    )
+  }
+  return <Badge tone="mute">nobody has discussed this</Badge>
 }

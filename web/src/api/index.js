@@ -20,6 +20,8 @@
  * `BoardUnreadable` keeps that distinction all the way to the screen.
  */
 
+import { sessionToken } from '../auth'
+
 const BASE = import.meta.env.VITE_API_URL || '/api'
 
 /**
@@ -34,6 +36,15 @@ const BASE = import.meta.env.VITE_API_URL || '/api'
  * Left unset for local work, where the API is open in development anyway.
  */
 const TOKEN = import.meta.env.VITE_API_TOKEN || ''
+
+/**
+ * The signed token from signing in, read fresh on every request.
+ *
+ * Read at CALL TIME rather than captured at module load: the user is signed
+ * out when this module first evaluates, so a captured value would be '' for
+ * the life of the tab and every request after sign-in would go unauthenticated.
+ */
+const bearer = () => sessionToken() || TOKEN
 
 export class ApiError extends Error {
   constructor(message, status, body) {
@@ -60,7 +71,7 @@ async function request(path, { method = 'GET', body, signal } = {}) {
       signal,
       headers: {
         ...(body ? { 'Content-Type': 'application/json' } : {}),
-        ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
+        ...(bearer() ? { Authorization: `Bearer ${bearer()}` } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
     })

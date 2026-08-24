@@ -41,12 +41,13 @@ class _Result:
         return self._rows[0]
 
 
-def _row(name, price_in, price_out):
+def _row(name, price_in, price_out, *, cells=0, published=0, capabilities=None):
     return (
         f"mv_{name}", name, "vendor", f"vendor/{name}",
         price_in, price_out, None,
         128000, 4096,
         True, False, True, None, None,
+        cells, published, capabilities,
     )
 
 
@@ -79,7 +80,7 @@ def test_ordered_by_name_not_by_price():
     """A default sort by cost would be a recommendation made without evidence."""
     conn = _FakeConn([])
     RosterReader(conn).all()
-    assert "ORDER BY display_name" in conn.queries[0]
+    assert "ORDER BY mv.display_name" in conn.queries[0]
     assert "price" not in conn.queries[0].split("ORDER BY")[1]
 
 
@@ -109,3 +110,75 @@ def test_the_detail_route_still_wins_for_ids(monkeypatch, path):
     response = TestClient(app).get(path)
 
     assert response.status_code == 503
+
+
+# ── the evidence state, which is three-valued on purpose ────────────────────
+
+
+def test_no_cells_is_unreported():
+    conn = _FakeConn([_row("quiet", 1, 2)])
+    m = RosterReader(conn).all().models[0]
+    assert m["evidence"] == {
+        "state": "unreported", "cells": 0, "published": 0, "capabilities": [],
+    }
+
+
+def test_cells_that_did_not_clear_the_gate_are_insufficient_not_evidenced():
+    """The state that makes a boolean filter wrong.
+
+    3 of 342 models have a cell today and none has a published one. Calling
+    that "has evidence" would show a reader who asked for evidence three models
+    sitting at n_eff 0.012 against a gate of 3.0.
+    """
+    conn = _FakeConn([_row("partial", 1, 2, cells=2, published=0)])
+    m = RosterReader(conn).all().models[0]
+    assert m["evidence"]["state"] == "insufficient"
+    assert m["evidence"]["cells"] == 2
+    assert m["evidence"]["published"] == 0
+
+
+def test_a_published_cell_is_published():
+    conn = _FakeConn([_row("proven", 1, 2, cells=3, published=1)])
+    assert RosterReader(conn).all().models[0]["evidence"]["state"] == "published"
+
+
+def test_the_three_states_never_compare_equal():
+    """Rule 4 as an assertion: silence must not render as criticism, and
+    below-the-gate must not render as proven."""
+    conn = _FakeConn([
+        _row("quiet", 1, 2),
+        _row("partial", 1, 2, cells=1),
+        _row("proven", 1, 2, cells=1, published=1),
+    ])
+    states = {m["display_name"]: m["evidence"]["state"] for m in RosterReader(conn).all().models}
+    assert len(set(states.values())) == 3, states
+
+
+# ── which capability, not just how many ─────────────────────────────────────
+
+
+def test_the_capability_keys_travel_with_the_row():
+    """Claude Haiku 4.5 has one cell and it is instruction.adherence.
+
+    "1 cell" cannot answer "who has been discussed for following instructions",
+    which is the question the board exists for.
+    """
+    conn = _FakeConn([_row("haiku", 1, 5, cells=1, capabilities=["instruction.adherence"])])
+    m = RosterReader(conn).all().models[0]
+    assert m["evidence"]["capabilities"] == ["instruction.adherence"]
+
+
+def test_no_cells_means_an_empty_list_not_a_missing_key():
+    """A caller doing `.includes(...)` must not have to guard for undefined."""
+    conn = _FakeConn([_row("quiet", 1, 2)])
+    assert RosterReader(conn).all().models[0]["evidence"]["capabilities"] == []
+
+
+def test_a_null_from_array_agg_becomes_an_empty_list():
+    """array_agg over zero rows is NULL in postgres, not an empty array.
+
+    Passing that straight through would put `None` where the client expects a
+    list, and `null.includes` is a crash rather than a miss.
+    """
+    conn = _FakeConn([_row("quiet", 1, 2, cells=0, published=0, capabilities=None)])
+    assert RosterReader(conn).all().models[0]["evidence"]["capabilities"] == []

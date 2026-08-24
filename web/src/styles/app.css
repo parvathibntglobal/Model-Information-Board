@@ -564,3 +564,23 @@ tbody tr:hover{background:var(--surface-2)}
   transition:border-color .16s var(--ease),background .16s var(--ease);
 }
 .mrow:hover{border-color:var(--border-strong);background:var(--surface-2)}
+
+/* The capability a reader arrived for, marked so it is findable in a list of
+   twelve. A left rule and a lift rather than a background wash: the row already
+   carries state colour in its badges, and tinting the whole row would compete
+   with the thing it is meant to point at. */
+.caprow-focus{
+  position:relative;
+  border-radius:var(--r-sm);
+  background:var(--surface-2);
+  box-shadow:inset 3px 0 0 var(--warn);
+  padding-left:12px;
+  animation:capfocus 1.6s var(--ease) 1;
+}
+@keyframes capfocus{
+  0%,12%{background:var(--warn-dim)}
+  100%{background:var(--surface-2)}
+}
+@media (prefers-reduced-motion:reduce){
+  .caprow-focus{animation:none}
+}
