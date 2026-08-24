@@ -58,7 +58,8 @@ real gap and a real ambiguity. `document 7f3a, no claim` is not.
 
 ## 2 · `triage_verdict` — a column that exists and has never been written
 
-**The cheapest of the four, and I only found it while measuring the first.**
+**Found while measuring the first, and cheaper than items 1 and 3 in lane terms
+but not in hours — see below, where I correct my own estimate.**
 
 ```sql
 SELECT triage_verdict, count(*) FROM document GROUP BY 1;
@@ -72,9 +73,32 @@ document fail triage, or was it never triaged?"* has no answer in the database,
 and those are opposite findings: one is a filter working, the other is a stage
 that never reached it.
 
-**Cost: no contract change at all.** The columns exist. It is a write at the
-triage call site. This is the one I would land first regardless of what happens
-to the other three, and it is entirely in my lane.
+**Cost: no contract change — but larger than a write, and I had this wrong when
+I first drafted this section.** I wrote "a write at the triage call site" and
+then went to make it. **There is no triage call site.**
+
+```python
+# collect/ops/chain.py:433
+Stage("triage", run=None, needs=("assemble-flatten",),
+      starves="document.status and document.specificity_score, which no "
+              "writer sets today — so triage survival has neither a "
+              "numerator nor a denominator")
+```
+
+`run=None`. The stage is declared, its starvation is documented, and it has no
+runner. The only `triage` CLI subcommand is `population`, which prints the
+surface set and writes nothing. The triage I have run over the 195 comments and
+the blog corpus was **ad-hoc script work that never touched the database.**
+
+So this is: a stage runner, persistence for `triage_verdict`, `filter_reasons`,
+`status` and `specificity_score`, and tests. The pieces it composes already exist
+— `collect/triage/gates.py` and `specificity.py` are written and tested. **Still
+no contract change and still entirely my lane**, but it is a day's work rather
+than a line, and `ops.alerts` line 113 is already carrying the consequence:
+*"no triage gate sets document.status, so survival has no numerator"*.
+
+Correcting it here rather than quietly, because the estimate is what you would
+have scheduled against.
 
 ## 3 · The run reference — what was asked
 
@@ -118,7 +142,7 @@ This needs no new column either — it needs the model page to be able to read
 
 | | change | lane |
 |---|---|---|
-| 2 · `triage_verdict` | a write at one call site. Columns exist | **mine, no sign-off needed** |
+| 2 · `triage_verdict` | a stage runner + persistence. Columns exist, no contract change | **mine, no sign-off — but a day, not a line** |
 | 4 · searched-nothing | a view over `harvest_run` | mine |
 | 1 · `mention_unresolvable` | one `coverage_gap` kind — a CHECK alteration | **`contract/`, yours to approve** |
 | 3 · run reference | one column + one migration + one writer + two call sites | **`contract/`, yours to approve** |
@@ -147,6 +171,6 @@ six queries cannot be attributed to the first one after the fact. If you want
 that, say so and the sweep waits — it is your call, not mine, because the column
 is in your half of the contract.
 
-**Item 2 I am landing regardless**, since it needs nobody's permission and the
+**Item 2 I am landing next**, since it needs nobody's permission and the
 sweep will produce documents whose triage verdicts would otherwise be discarded
 exactly as the previous 343 were.
