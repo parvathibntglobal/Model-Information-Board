@@ -520,7 +520,14 @@ class GitHubHarvester:
 
     # ── the write path ───────────────────────────────────────────────────
 
-    def write_documents(self, conn, run: QueryRun, *, batch: int = 500) -> dict[str, int]:
+    def write_documents(
+        self,
+        conn,
+        run: QueryRun,
+        *,
+        batch: int = 500,
+        harvest_run_id: str | None = None,
+    ) -> dict[str, int]:
         """Insert one `document` per stored issue, WITH `author_id`. Absent values stay NULL.
 
         **`author_id` was omitted here until 2026-08-21 and it was the whole
@@ -579,14 +586,29 @@ class GitHubHarvester:
                     {"comments": issue.hit.comment_count, "reactions": issue.hit.reactions}
                 ),
                 "author_id": github_author_id(issue.hit),
+                # RETRIEVAL PROVENANCE. github is the only source that renders a
+                # query, so it is the only one that can carry a run id — and the
+                # two columns move together or the CHECK refuses the row.
+                #
+                # `not_recorded` when no id was passed, NOT `no_run_for_source`:
+                # a run exists for every github document, so the honest reading
+                # of a missing id is that this caller did not supply one. A
+                # default claiming github has no runs would be false and
+                # unfalsifiable from the row.
+                "harvest_run_id": harvest_run_id,
+                "retrieval_provenance": (
+                    "run_recorded" if harvest_run_id else "not_recorded"
+                ),
             }
             for issue in run.stored
         ]
         statement = (
             "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
-            "text_ref, content_hash, engagement, author_id, status) "
+            "text_ref, content_hash, engagement, author_id, status, "
+            "harvest_run_id, retrieval_provenance) "
             "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
-            "%(text_ref)s, %(content_hash)s, %(engagement)s, %(author_id)s, 'kept') "
+            "%(text_ref)s, %(content_hash)s, %(engagement)s, %(author_id)s, 'kept', "
+            "%(harvest_run_id)s, %(retrieval_provenance)s) "
             "ON CONFLICT (source, external_id) DO NOTHING"
         )
         inserted = 0

@@ -398,7 +398,14 @@ def sweep_github(
                 conn.rollback()
 
             harvester.harvest(request, run=run)
-            wrote = harvester.write_documents(conn, run)
+            # THE RUN ID REACHES THE DOCUMENTS. `opened` is minted before the
+            # fetch by the two-phase ledger, so it is already in scope here —
+            # which is why this is one call site and not a redesign. `None` when
+            # the ledger write failed above, and the writer records that as
+            # `not_recorded` rather than inventing provenance.
+            wrote = harvester.write_documents(
+                conn, run, harvest_run_id=opened.id if opened is not None else None
+            )
             conn.commit()
 
             seat.requests += 1

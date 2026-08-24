@@ -70,10 +70,17 @@ DOCUMENT_SOURCE = SOURCE_ID
 
 _INSERT = (
     "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
-    "thread_root_id, parent_id, text_ref, content_hash, engagement, author_id, status) "
+    "thread_root_id, parent_id, text_ref, content_hash, engagement, author_id, status, "
+    "retrieval_provenance) "
     "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
     "%(thread_root_id)s, %(parent_id)s, %(text_ref)s, %(content_hash)s, "
-    "%(engagement)s, %(author_id)s, 'kept') "
+    # `no_run_for_source` IS TYPED HERE RATHER THAN DEFAULTED. A subreddit
+    # listing renders no query and writes no `harvest_run` row, so a NULL
+    # `harvest_run_id` on a reddit document is COMPLETE rather than missing —
+    # and the column's default is `not_recorded`, which says the opposite.
+    # Stating it is a claim about the source, and a claim should be typed by
+    # somebody rather than inherited from a DEFAULT.
+    "%(engagement)s, %(author_id)s, 'kept', 'no_run_for_source') "
     "ON CONFLICT (source, external_id) DO NOTHING"
 )
 
