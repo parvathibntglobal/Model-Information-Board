@@ -1939,6 +1939,31 @@ disappears into documents that were never going to parse. The retry message
 carries the validation error **verbatim** — a retry that says "try again" is a
 second roll of the same dice; one that names the field is a correction.
 
+> **A RETRY IS NOT A SECOND CHANCE. IT IS A SECOND SAMPLE, AND IT CAN BE
+> WORSE.** Measured 2026-08-21: a first answer with one over-long quote and
+> eleven good claims was retried, and the second answer came back unreadable.
+> Taking the newest completion threw the eleven away.
+>
+> This inverts the assumption the obvious implementation is built on. Keeping
+> the last completion is what every retry loop does by default — it reads as
+> "the corrected one" — and it is only right if the retry is monotone, which
+> nothing about sampling a language model guarantees. **So `extract` salvages
+> across every completion and keeps whichever yields most**, logging when that
+> is not the newest.
+>
+> Two consequences worth carrying to any other retry in this codebase:
+>
+> - **every completion must be kept**, not just the last. The same defect had a
+>   second face: `run.input_tokens` read the final completion only, so one call
+>   per retry went unbilled in our own figures — an under-count in the
+>   flattering direction, ~17% on the 30-document blog run.
+> - **"it converged" is not "it arrived".** `qwen-38-27b` went from five
+>   validation errors to one on its retry, which looks like progress and still
+>   stored nothing. Convergence is the argument for per-claim salvage rather
+>   than for a higher ceiling.
+>
+> `docs/measurements/salvage-the-five-and-the-yield-movement.md` §2.
+
 **Verification is four steps against three artefacts** (`verify.py`). Step 0 is
 newer than the other three and §7.4 is entirely about why it exists:
 

@@ -457,7 +457,18 @@ LLM output → Pydantic validate
                          · temperature forced to 0.0
                          · corrective prompt naming the violated constraint
                          · max 2 retries, then dead-letter, raw payload retained
+                         · KEEP EVERY COMPLETION, and salvage from the BEST one
 ```
+
+> **A retry is a second sample, not a second chance.** Measured 2026-08-21: a
+> first answer holding eleven good claims and one over-long quote was retried,
+> and the retry came back unreadable — so taking the newest completion, which is
+> what every retry loop does by default, discarded the eleven. As implemented,
+> `judge/extract/runner.py` salvages across all completions and keeps whichever
+> yields most. The same "last completion only" assumption also under-counted
+> tokens by one call per retry, in the flattering direction. Anything added here
+> later inherits both traps.
+> `docs/measurements/salvage-the-five-and-the-yield-movement.md` §2.
 
 **`ValidationError` rate is a first-class monitored metric** — a rising rate is the earliest warning that the extractor has silently regressed, which is the exact failure this product exists to detect. It is also the trigger for the automatic extractor switch above.
 

@@ -1,0 +1,191 @@
+==============================================================================
+POPULATION FINGERPRINT
+==============================================================================
+  ran against    b5744297e9210497
+                 1247 surfaces (declared 23, mechanical 1173, vendor-drop 51) over 324 registry models and 55 declared, fingerprint b5744297e9210497
+  pool built at  dc69d8725ccfe658
+                 1337 surfaces (declared 23, mechanical 1263, vendor-drop 51)
+                 over 340 registry models and 55 declared
+
+  Deterministic: candidates iterated sorted, owners unioned over the
+  spellings sharing a normalised key. Before that fix this script gave
+  50.0%, 52.5% and 55.0% on three runs of the same input.
+
+==============================================================================
+SCORED: 40 of 50 labelled rows
+==============================================================================
+  10 carry surface "" - the retired `unresolvable` stratum. No string,
+  nothing to hand a resolver. That is 40, not 36: every one of the 40
+  occurs in its own snippet, only `pro` (row 13) unbounded-only.
+
+  LABELS UNCHANGED. Three-way, mapped to the ruled names:
+      resolves     -> names-one-model              expects a model id
+      ambiguous    -> names-a-line-not-a-version   expects no model id
+      not-a-model  -> not-a-model                  expects no model id
+
+  `names-a-line-not-a-version` and `not-a-model` are COLLAPSED for scoring:
+  both expect no model id, and the resolver has no third answer to give.
+  The distinction is recorded in the label and never scored - it is a
+  reading of the text, not a prediction about the code.
+
+------------------------------------------------------------------------------
+BINARY AGREEMENT
+------------------------------------------------------------------------------
+  agreement: 26/40 = 65.0%
+
+                         resolve() returned
+                       a model id     nothing     total
+    label expects id           18          12        30
+    label expects no            2           8        10
+    total                      20          20        40
+
+  precision 18/20 = 90.0%   of what the resolver resolved, how much the labeller agreed was one model
+  recall    18/30 = 60.0%   of what the labeller read as one model, how much the resolver got
+  false positives: 2   the expensive direction - a claim attached where
+                       the labeller says no single model was named
+
+  the three-way label, unscored but recorded:
+    names-one-model              n=30   agreement 18/30
+    names-a-line-not-a-version   n= 6   agreement 4/6
+    not-a-model                  n= 4   agreement 4/4
+
+  per stratum:
+    family-bare        8/13
+    spacing-variant    9/10
+    ambiguous-owner    2/10
+    single-clear       7/7
+
+==============================================================================
+EVERY DISAGREEMENT
+==============================================================================
+
+[1] row #6  MISSED  stratum=family-bare  surface='opus'
+    LABEL      resolves -> names-one-model   (expects a model id)
+    resolve()  nothing   no population surface covers this position
+    candidates []
+    https://www.reddit.com/r/LocalLLaMA/comments/1bcdtt0/llm_comparisontest_new_api_edition_claude_3_opus/
+    SNIPPET
+      🐺🐦‍⬛ LLM Comparison/Test: New API Edition (Claude 3 Opus &amp; Sonnet + Mistral Large)
+      Here's a new LLM API comparison where I test and rank Claude 3 Opus, Sonnet, and Mistral Large. Consider it a...
+
+[2] row #7  MISSED  stratum=family-bare  surface='sonnet'
+    LABEL      resolves -> names-one-model   (expects a model id)
+    resolve()  nothing   no population surface covers this position
+    candidates []
+    https://www.reddit.com/r/LocalLLaMA/comments/1bcdtt0/llm_comparisontest_new_api_edition_claude_3_opus/
+    SNIPPET
+      🐺🐦‍⬛ LLM Comparison/Test: New API Edition (Claude 3 Opus &amp; Sonnet + Mistral Large)
+      Here's a new LLM API comparison where I test and rank Claude 3 Opus, Sonnet, and Mistral Large. Consider it a follow-up to...
+
+[3] row #9  FALSE POSITIVE  stratum=family-bare  surface='deepseek'
+    LABEL      ambiguous -> names-a-line-not-a-version   (expects no model id)
+    resolve()  a model id   key 'deepseekr1' -> deepseek/deepseek-r1
+    candidates []
+    https://www.reddit.com/r/singularity/comments/1gvv0sr/chinese_o1_competitor_deepseekr1litepreview/
+    SNIPPET
+      Chinese o1 competitor (DeepSeek-R1-Lite-Preview) thinks for over 6 minutes! (Even GPT4o and Claude 3.5 Sonnet couldn't solve this)
+
+[4] row #10  FALSE POSITIVE  stratum=family-bare  surface='glm'
+    LABEL      ambiguous -> names-a-line-not-a-version   (expects no model id)
+    resolve()  a model id   key 'glm46' -> z-ai/glm-4.6
+    candidates []
+    https://www.reddit.com/r/LocalLLaMA/comments/1o77ag4/a_guide_to_the_best_agentic_tools_and_the_best/
+    SNIPPET
+      ...especially when you consider its not rate limited in 5 hour periods. They also have gpt 5 codex at 0.5x (so 40 million tokens monthly), and glm 4.6 at 0.25x (80 million monthly). This is a *very* generous $20 sub imo, especially if their GLM model has thinking available (I dont thin...
+
+[5] row #12  MISSED  stratum=family-bare  surface='mixtral'
+    LABEL      resolves -> names-one-model   (expects a model id)
+    resolve()  nothing   no population surface covers this position
+    candidates []
+    https://www.reddit.com/r/ClaudeAI/comments/1cfy5l2/is_the_quality_difference_between_claude_3_opus/
+    SNIPPET
+      ...LMs like Lllama 3 and Mistral Large (Le Chat), worth $20 / month?
+      It's been 4 months since I unsubbed from ChatGPT plus and replaced it with Mixtral then other better models, and I don't notice much difference in quality between them for my uses cases, including Claude 3 Sonnet and GPT 4...
+
+[6] row #17  MISSED  stratum=spacing-variant  surface='claude sonnet'
+    LABEL      resolves -> names-one-model   (expects a model id)
+    resolve()  nothing   key 'claudesonnet' -> in the population, no registry model derives it
+    candidates []
+    https://www.reddit.com/r/ClaudeAI/comments/1ikvj5w/i_compared_claude_sonnet_35_vs_deepseek_r1_on_500/
+    SNIPPET
+      I compared Claude Sonnet 3.5 vs Deepseek R1 on 500 real PRs - here's what I found
+      Been working on evaluating LLMs for code review and wanted to share some interesti...
+
+[7] row #25  MISSED  stratum=ambiguous-owner  surface='gemini 2.5'
+    LABEL      resolves -> names-one-model   (expects a model id)
+    resolve()  nothing   no population surface covers this position
+    candidates ['google/gemini-2.5-flash', 'google/gemini-2.5-flash-image', 'google/gemini-2.5-flash-lite', 'google/gemini-2.5-pro', 'google/gemini-2.5-pro-preview', 'google/gemini-2.5-pro-preview-05-06']
+    https://www.reddit.com/r/singularity/comments/1jkfl18/artificial_analysis_independently_confirms_gemini/
+    SNIPPET
+      Artificial Analysis independently confirms Gemini 2.5 is #1 across many evals while having 2nd fastest output speed only behind Gemini 2.0 Flash
+
+[8] row #26  MISSED  stratum=ambiguous-owner  surface='gemini 3 pro'
+    LABEL      resolves -> names-one-model   (expects a model id)
+    resolve()  nothing   no population surface covers this position
+    candidates ['google/gemini-3-pro-image', 'google/gemini-3-pro-image-preview']
+    https://www.reddit.com/r/u_enoumen/comments/1p0xs5l/ai_daily_news_rundown_google_unveils_gemini_3/
+    SNIPPET
+      ...into this trend, without some more thoughtful thinking.”
+      # 🛠 Products &amp; Development
+      # 🤖 Google unveils Gemini 3
+      * Google is launching Gemini 3 Pro today, giving everyone access to a natively multimodal model that processes text, images, and audio simultaneously to transform photos into...
+
+[9] row #27  MISSED  stratum=ambiguous-owner  surface='gemini 3.5'
+    LABEL      resolves -> names-one-model   (expects a model id)
+    resolve()  nothing   no population surface covers this position
+    candidates ['google/gemini-3.5-flash', 'google/gemini-3.5-flash-lite']
+    https://www.reddit.com/r/GeminiAI/comments/1te1mmo/gemini_35_pro_to_scale/
+    SNIPPET
+      Gemini 3.5 Pro to scale
+      You are not ready for this
+
+[10] row #28  MISSED  stratum=ambiguous-owner  surface='gpt 3.5'
+    LABEL      resolves -> names-one-model   (expects a model id)
+    resolve()  nothing   no population surface covers this position
+    candidates ['openai/gpt-3.5-turbo', 'openai/gpt-3.5-turbo-0613', 'openai/gpt-3.5-turbo-16k', 'openai/gpt-3.5-turbo-instruct']
+    https://www.reddit.com/r/LocalLLaMA/comments/1ed01p8/why_gpt4o_mini_beats_claude_35_sonnet_on_lmsys/
+    SNIPPET
+      ...nd Claude Sonnet 3.5 are accessible for free, whereas for the longest time LMSys was the only place people could access an LLM stronger than GPT-3.5 without paying.
+      * **Sidenote:** There is a surprisingly high frequency of non-English prompts that are sorted into the English dataset. It...
+
+[11] row #30  MISSED  stratum=ambiguous-owner  surface='mistral 3'
+    LABEL      resolves -> names-one-model   (expects a model id)
+    resolve()  nothing   no population surface covers this position
+    candidates ['mistralai/mistral-medium-3', 'mistralai/mistral-medium-3-5']
+    https://www.reddit.com/r/AIPulseDaily/comments/1pd6jed/just_woke_up_to_absolute_chaos_in_ai_land_dec_3/
+    SNIPPET
+      ...got long because there’s a LOT to unpack. Grab a snack.
+      -----
+      ## The “Holy Shit” Moment of the Day
+      **Mistral just went nuclear with their Mistral 3 release**
+      So I’ve been watching Mistral for a while, but this morning’s drop is legitimately insane. They released FOUR models at once—3B,...
+
+[12] row #31  MISSED  stratum=ambiguous-owner  surface='qwen3.6'
+    LABEL      resolves -> names-one-model   (expects a model id)
+    resolve()  nothing   no population surface covers this position
+    candidates ['qwen/qwen3.6-27b', 'qwen/qwen3.6-35b-a3b', 'qwen/qwen3.6-flash', 'qwen/qwen3.6-max-preview', 'qwen/qwen3.6-plus']
+    https://www.reddit.com/r/ClaudeCode/comments/1sadx8b/this_must_be_a_joke_we_are_users_not_your_debugger/
+    SNIPPET
+      ...Cursor** (Paid) — Sonnet 4.6 as backend reportedly offers much more runtime. One user ran it 8 hours straight.
+      **Chinese open-weight models** (Qwen 3.6, DeepSeek) — Qwen 3.6 preview on OpenRouter approaching Opus quality. Local inference improving fast.
+      **Hybrid workflow (MOST SUSTAINABLE)...
+
+[13] row #32  MISSED  stratum=ambiguous-owner  surface='claude 5'
+    LABEL      resolves -> names-one-model   (expects a model id)
+    resolve()  nothing   no population surface covers this position
+    candidates ['anthropic/claude-fable-5', 'anthropic/claude-opus-5', 'anthropic/claude-sonnet-5']
+    https://www.reddit.com/r/AIPulseDaily/comments/1rge86a/top_10_most_viewed_engaged_real_ai_news_updates/
+    SNIPPET
+      ...I/status/2029123987654321098 ](https://x.com/OpenAI/status/2029123987654321098)
+      2	\\\[\\\~498k likes | @AnthropicAI\\\]
+      Anthropic releases Claude 5.5 Sonnet — mid-tier reasoning model with 2M context, improved tool use, and 3× better long-horizon planning than Claude 5 Sonnet; live for...
+
+[14] row #33  MISSED  stratum=ambiguous-owner  surface='gemini 3'
+    LABEL      resolves -> names-one-model   (expects a model id)
+    resolve()  nothing   no population surface covers this position
+    candidates ['google/gemini-3-flash-preview', 'google/gemini-3-pro-image', 'google/gemini-3-pro-image-preview']
+    https://www.reddit.com/r/GeminiAI/comments/1p2ga6p/had_to_do_a_double_take_this_is_gemini_30_pro/
+    SNIPPET
+      Had to do a double take. This is Gemini 3.0 Pro / Nano Banana Pro.
+
+total disagreements: 14 of 40   (2 false positive, 12 missed)

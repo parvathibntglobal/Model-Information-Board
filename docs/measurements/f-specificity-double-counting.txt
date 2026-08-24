@@ -1,0 +1,75 @@
+==============================================================================
+THE TWO INPUTS, AND THEIR GRANULARITY
+==============================================================================
+  f_fuzziness   = FUZZINESS_WEIGHT[claim.specificity]   {'snapshot': 1.0, 'version': 0.6, 'family': 0.3}
+  f_specificity = specificity_factor(version_named, has_numbers,
+                                     has_conditions, has_repro_steps)
+                  version_named -> +0.2, numbers -> +0.2,
+                  conditions -> +0.2, repro -> +0.4, then 0.3 + 0.7*score
+
+  version_named comes from document.names_version (pipeline.py:223),
+  computed by collect/triage/specificity.py:names_version(text, aliases)
+  over the WHOLE document. claim.specificity is about the surface THIS
+  claim used. Different granularity, and contract/harvest.yaml already
+  warns about exactly this pair: 'Different granularity (document vs
+  claim) ... They must never be merged AND NEVER COMPARED'.
+
+==============================================================================
+DOES A FAMILY CLAIM OUTWEIGH A VERSION-NAMED ONE?
+==============================================================================
+  reference: a VERSION claim, version_named, no artifacts   0.2244
+
+  every FAMILY combination that beats it (reddit, tier A, fresh, central):
+    0.2550  family + version_named,numbers,conditions,repro
+
+  the case the finding is about - family claim with real artifacts:
+    0.2193  family, numbers+conditions+repro, version_named FALSE
+    0.2550  family, numbers+conditions+repro, version_named TRUE
+    0.1836  family, repro only, version_named TRUE
+    0.2244  version, version_named only (the reference)
+    0.3740  snapshot, version_named only
+
+  So the overtaking is REAL and it needs version_named=True on a
+  family claim - which is not a contradiction in the code, because
+  version_named is a fact about the DOCUMENT. Any family claim in a
+  document that names a version anywhere gets the +0.2.
+
+==============================================================================
+HOW MANY FAMILY CLAIMS PUBLISH A CELL
+==============================================================================
+  reddit   best single family claim 0.2550  ->  12 claims reach n_eff 3.0
+           worst (adjectives only)   0.0765  ->  40 claims
+  github   best single family claim 0.2850  ->  11 claims reach n_eff 3.0
+           worst (adjectives only)   0.0855  ->  36 claims
+
+  and for comparison, snapshot claims:
+  reddit   best single snapshot claim 0.8500  ->  4 claims
+  github   best single snapshot claim 0.9500  ->  4 claims
+
+==============================================================================
+IS version_named DERIVABLE FROM claim.specificity?
+==============================================================================
+  Mechanically yes: specificity in ('snapshot','version') <=> a version
+  was named by the surface this claim used. One expression.
+
+  But substituting it is NOT a one-line fix, for two reasons:
+
+  1. IT DOUBLE-COUNTS. f_specificity would give +0.2 for the same fact
+     f_fuzziness already prices at 0.6/1.0. A version claim would go
+     from 0.2244 to 0.2244 (unchanged) but a family
+     claim from 0.1122 to 0.0765 - a 22% cut applied twice
+     for one fact. The 0.2 and the 0.3 were chosen independently and
+     neither was calibrated.
+
+  2. IT CHANGES WHAT f_specificity MEASURES. Its docstring is 'real
+     experience carries numbers and error strings; slop carries
+     adjectives' - a DOCUMENT-QUALITY score. version_named is in it as a
+     cheap proxy for 'this person was being specific', not as an
+     attribution signal. Removing it narrows the factor to three
+     artifact signals, which may be right, and is a decision about what
+     the factor is for.
+
+  So: a one-line source change is AVAILABLE and the question of whether
+  to make it is a design question. The defect is not that the wrong
+  variable is passed - it is that one fact is priced twice at two
+  granularities, and nobody chose that.

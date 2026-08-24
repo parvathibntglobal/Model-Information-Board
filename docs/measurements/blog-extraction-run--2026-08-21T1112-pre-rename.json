@@ -1,0 +1,463 @@
+{
+ "run_at": "2026-08-21T11:12:41.264007+00:00",
+ "pre_registration": "docs/measurements/blog-extraction-pre-registration.md",
+ "extractor_model": "google/gemini-2.5-flash",
+ "documents": 30,
+ "template_block_stripped_in_memory": true,
+ "documents_shortened": 29,
+ "bytes_removed": 8118,
+ "claims_verified": 28,
+ "claims_rejected": 0,
+ "capabilities": {
+  "code.generation": 10,
+  "code.editing_diff_fidelity": 3,
+  "reasoning.multistep": 3,
+  "summarization.fidelity": 1,
+  "tool_calling.long_chain_reliability": 3,
+  "over_refusal": 1,
+  "context.effective_window": 2,
+  "extraction.faithfulness": 1,
+  "ops.latency_ttft": 3,
+  "instruction.adherence": 1
+ },
+ "unsupported_capability_claims": {
+  "tool_calling.long_chain_reliability": 3,
+  "context.effective_window": 2
+ },
+ "template_quotes_on_unrelated_posts": [],
+ "headline_quotes_on_the_owning_post": [
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "Qwen 3.8 27B is excellent, but it defaults to wildly overthinking things"
+  }
+ ],
+ "distinct_author_ids": 1,
+ "input_tokens": 75985,
+ "output_tokens": 5679,
+ "claims": [
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/10/openclaw/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/10/openclaw/",
+   "quote": "The API has zero authorisations checks on cancelling other people's reservations … I tested this with the person in waitlist position #1 — and it actually went through.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Opus 4.6",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/12/alchemy-utils/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/12/alchemy-utils/",
+   "quote": "I tasked Codex and GPT-5.6 Sol Ultra with building a prototype",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/12/alchemy-utils/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/12/alchemy-utils/",
+   "quote": "I tasked Codex and GPT-5.6 Sol Ultra with building a prototype",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "GPT-5.6 Sol Ultra",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/12/alchemy-utils/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/12/alchemy-utils/",
+   "quote": "I had Codex optimize it and got it down to around 35 seconds.",
+   "capability": "code.editing_diff_fidelity",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/12/deepseek-v4-pro-0813/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/12/deepseek-v4-pro-0813/",
+   "quote": "I got *very* different looking pelicans for the three different reasoning levels of low, medium, and high. I've not noticed this kind of difference from any other model",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "DeepSeek V4 Pro 0813",
+   "specificity": "snapshot",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/12/florian-herrengt/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/12/florian-herrengt/",
+   "quote": "Unfortunately, it seems like not even Fable can figure it out.",
+   "capability": "code.editing_diff_fidelity",
+   "polarity": "negative",
+   "surface": "Fable",
+   "specificity": "family",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/12/florian-herrengt/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/12/florian-herrengt/",
+   "quote": "Neither of you has any idea whether any of it is true but Claude seems very confident.",
+   "capability": "summarization.fidelity",
+   "polarity": "negative",
+   "surface": "Claude",
+   "specificity": "family",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/15/cors-chat/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/15/cors-chat/",
+   "quote": "I've tried it against LM Studio with the `--cors` option and OpenRouter, and both work fine.",
+   "capability": "tool_calling.long_chain_reliability",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "Qwen 3.8 27B is excellent, but it defaults to wildly overthinking things",
+   "capability": "over_refusal",
+   "polarity": "negative",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "I quickly ran into problems with LM Studio’s default context limit of 8,192 tokens—Qwen was using them all up thinking about even the most mundane of problems.",
+   "capability": "context.effective_window",
+   "polarity": "negative",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "This is by far the best pelican SVG I’ve been able to generate with a model that runs on a local machine",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Qwen",
+   "specificity": "family",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "This is *such a good match*.",
+   "capability": "extraction.faithfulness",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "it did manage to produce this full interface from this single prompt",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "After a sequence of reasoning and tool calls that accessed a bunch of different files it produced this reply, which is very solid.",
+   "capability": "tool_calling.long_chain_reliability",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "And it built and tested this pi_jsonl_to_md.py, which did exactly what I needed.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "There’s one very significant catch: it feels slow—especially when it starts over-thinking, but even without that it’s not particularly sprightly.",
+   "capability": "ops.latency_ttft",
+   "polarity": "negative",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "the `--spec-type draft-mtp` server outperformed the LM Studio default GGUF by around 72%.",
+   "capability": "ops.latency_ttft",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "We can have an open weights general purpose model with a long context, effective tool calling, strong vision ability, and competent code generation",
+   "capability": "tool_calling.long_chain_reliability",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "We can have an open weights general purpose model with a long context, effective tool calling, strong vision ability, and competent code generation",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/17/qwen-38-27b-scores-52/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/17/qwen-38-27b-scores-52/",
+   "quote": "Qwen 3.8 27B scores 52 on the Artificial Analysis Intelligence Index",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": true
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/17/qwen-38-27b-scores-52/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/17/qwen-38-27b-scores-52/",
+   "quote": "Qwen 3.8 27B is a truly astonishing model.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/17/we-tracked-a-shipment-of-rare-books-it-ended-at-an-amazon-ai-tra/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/17/we-tracked-a-shipment-of-rare-books-it-ended-at-an-amazon-ai-tra/",
+   "quote": "widely suspected to be companies looking to scan them for AI training",
+   "capability": "context.effective_window",
+   "polarity": "positive",
+   "surface": "Amazon AI",
+   "specificity": "family",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/moonlight-mayhem/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/7/moonlight-mayhem/",
+   "quote": "It produced a much better game!",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Codex Desktop running GPT-5.6 Sol Ultra",
+   "specificity": "snapshot",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/moonlight-mayhem/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/7/moonlight-mayhem/",
+   "quote": "Despite reviewing screenshots during development Codex failed to spot and correct this bug.",
+   "capability": "code.editing_diff_fidelity",
+   "polarity": "negative",
+   "surface": "Codex",
+   "specificity": "family",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/9/github-models-is-now-retired/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/9/github-models-is-now-retired/",
+   "quote": "GitHub Models is temporarily unavailable as part of a scheduled retirement brownout.",
+   "capability": "ops.latency_ttft",
+   "polarity": "negative",
+   "surface": "GitHub Models",
+   "specificity": "family",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/9/github-models-is-now-retired/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/9/github-models-is-now-retired/",
+   "quote": "I'm now generating my summaries using GPT-5.6 Luna.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "GPT-5.6 Luna",
+   "specificity": "snapshot",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/9/sqlite-text-history-prototype/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/9/sqlite-text-history-prototype/",
+   "quote": "The new GPT‑Live voice mode in the ChatGPT iPhone app has got really good",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "GPT‑Live",
+   "specificity": "family",
+   "relevance": "passing",
+   "has_repro_steps": false,
+   "has_numbers": false
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/9/sqlite-text-history-prototype/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/9/sqlite-text-history-prototype/",
+   "quote": "It churned away for 38 minutes and delivered this answer plus the files you see in this folder.\n\nThe approach works really well!",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "GPT-5.6 Sol Pro",
+   "specificity": "version",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false
+  }
+ ],
+ "unclassified": [
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quotes": [
+    "Qwen’s self-reported benchmarks for this model are eye-opening. They show a boost from both Qwen 3.6 27B *and* the closed-weight Qwen 3.7-Plus, which was one of Qwen’s strongest models of any size as recently as May this year."
+   ]
+  }
+ ],
+ "unclassified_total": 1,
+ "schema_retries_total": 6,
+ "no_claim_reasons": [
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/10/introducing-muse-glimmer/",
+   "reason": "extractor returned nothing parseable against the schema"
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/11/datasette-upload-dbs/",
+   "reason": "The document describes a software plugin and its functionality, but it does not make any claims about the capabilities or performance of a specific AI model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "reason": "extractor returned nothing parseable against the schema"
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/11/there-are-no-lossless-transformations-of-natural-language-text/",
+   "reason": "The document discusses LLMs in general terms but makes no specific claims about the capabilities or performance of any named model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/13/alchemy-utils/",
+   "reason": "No claims about a specific model were found."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/13/llm-gemini/",
+   "reason": "The user's previous attempt to extract claims resulted in a quote that was too long. I have re-evaluated the document and found a shorter quote that still carries a claim, but it is marked as sarcastic, so it is discarded."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/13/sqlite-utils-2/",
+   "reason": "The document discusses a bug fix in `sqlite-utils` and how to run a smoke test. It does not contain any claims about the capabilities or performance of an AI model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/13/sqlite-utils/",
+   "reason": "The document describes a software release (version 4.2) and its features, but it does not make any claims about the capabilities or performance of an AI model. The \"crashing bug\" mentioned refers to the software itself, not an AI model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/14/dont-classify-hallucinate/",
+   "reason": "The document discusses a technique for using LLMs to generate tags, but it does not make any claims about the capabilities or performance of a specific named model. The prompt example is a hypothetical one, not a report of actual model behavior."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/15/sighting-391300422/",
+   "reason": "The document is about a bird named Morris, not an AI model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/dario-amodei/",
+   "reason": "The document discusses public perception of AI and trust in tech companies, but it does not contain any specific claims about the capabilities or performance of a named AI model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/markdown-svg-upgrades/",
+   "reason": "No claims about AI models were made in the document."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/18/mojo-is-now-open-source/",
+   "reason": "The document discusses the Mojo programming language and its relationship with Python, but it does not make any claims about the capabilities or performance of specific AI models."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "reason": "extractor returned nothing parseable against the schema"
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/pdfs-are-terrible/",
+   "reason": "The document discusses token consumption in general terms and mentions a specific use case (converting PDFs to markdown) that is token-intensive, but it does not make any claims about the capabilities or performance of a specific AI model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/8/auto-mode/",
+   "reason": "extractor returned nothing parseable against the schema"
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/8/john-gruber/",
+   "reason": "The document is a personal reflection on blogging and does not contain any claims about AI models or their capabilities."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/8/now-we-have-a-timeline-of-the-openai-accidental-attack-against-h/",
+   "reason": "The document discusses OpenAI's training practices and RLVR in general terms, but does not make specific claims about the capabilities or performance of any named AI model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/9/claude-opus-5-system-prompt/",
+   "reason": "extractor returned nothing parseable against the schema"
+  }
+ ]
+}

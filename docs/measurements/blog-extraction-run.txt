@@ -1,0 +1,111 @@
+extraction failed the schema after 2 attempts: 1 validation error for ExtractionResult
+claims.0.quote
+  String should have at most 200 characters [type=string_too_long, input_value='Muse Glimmer achieves st...s from start to finish.', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/string_too_long
+extraction failed the schema after 2 attempts: 1 validation error for ExtractionResult
+claims.1.quote
+  String should have at most 200 characters [type=string_too_long, input_value="The reasoning tokens tha...Needs accessible focus.", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/string_too_long
+extraction failed the schema after 2 attempts: 2 validation errors for ExtractionResult
+claims.10.quote
+  String should have at most 200 characters [type=string_too_long, input_value='I’ve been getting arou...lts a whole lot faster.', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/string_too_long
+claims.11.quote
+  String should have at most 200 characters [type=string_too_long, input_value='Qwen supports Multi-Toke... inference performance.', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/string_too_long
+extraction failed the schema after 2 attempts: 4 validation errors for ExtractionResult
+claims.0.conditions.context_size
+  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='max', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/int_parsing
+claims.1.conditions.context_size
+  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='max', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/int_parsing
+claims.2.conditions.context_size
+  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='max', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/int_parsing
+claims.3.conditions.context_size
+  Input should be a valid integer, unable to parse string as an integer [type=int_parsing, input_value='max', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/int_parsing
+extraction failed the schema after 2 attempts: 3 validation errors for ExtractionResult
+claims.0.quote
+  String should have at most 200 characters [type=string_too_long, input_value='An agent is accidentally...iles into Artifactory .', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/string_too_long
+claims.6.quote
+  String should have at most 200 characters [type=string_too_long, input_value='The agents have remote c...associated credentials.', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/string_too_long
+claims.7.quote
+  String should have at most 200 characters [type=string_too_long, input_value='The agents found a Modal...ters in under 13 hours.', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/string_too_long
+extraction failed the schema after 2 attempts: 4 validation errors for ExtractionResult
+claims.0.conditions.structured_mode
+  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value='auto mode', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/bool_parsing
+claims.0.quote
+  String should have at most 200 characters [type=string_too_long, input_value='We’re going to publish...average human reviewer.', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/string_too_long
+claims.1.conditions.structured_mode
+  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value='auto mode', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/bool_parsing
+claims.2.conditions.structured_mode
+  Input should be a valid boolean, unable to interpret input [type=bool_parsing, input_value='auto mode', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/bool_parsing
+extraction failed the schema after 2 attempts: 1 validation error for ExtractionResult
+claims.0.quote
+  String should have at most 200 characters [type=string_too_long, input_value="If asked, Claude confirm...t for anything further.", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.13/v/string_too_long
+documents            30
+skipped              1  [('blog:sha256:053141a14a3c0a43', 'malformed ref')]
+shortened by strip   29
+bytes removed        8118
+
+model                google/gemini-2.5-flash
+capabilities         12
+pre-registered cost  30 x $0.00208 = $0.062, 6.2% of the $1.00 daily cap
+
+  [ 1/30] introducing-muse-glimmer                             proposed 0 verified 0 rejected 0
+  [ 2/30] openclaw                                             proposed 0 verified 0 rejected 0
+  [ 3/30] datasette-upload-dbs                                 proposed 0 verified 0 rejected 0
+  [ 4/30] stealing-reasoning-traces                            proposed 0 verified 0 rejected 0
+  [ 5/30] there-are-no-lossless-transformations-of-natural-language-text proposed 0 verified 0 rejected 0
+  [ 6/30] alchemy-utils                                        proposed 3 verified 3 rejected 0 <- 3 claim(s)
+  [ 7/30] deepseek-v4-pro-0813                                 proposed 0 verified 0 rejected 0
+  [ 8/30] florian-herrengt                                     proposed 2 verified 2 rejected 0 <- 2 claim(s)
+  [ 9/30] alchemy-utils                                        proposed 0 verified 0 rejected 0
+  [10/30] llm-gemini                                           proposed 0 verified 0 rejected 0
+  [11/30] sqlite-utils-2                                       proposed 0 verified 0 rejected 0
+  [12/30] sqlite-utils                                         proposed 0 verified 0 rejected 0
+  [13/30] dont-classify-hallucinate                            proposed 0 verified 0 rejected 0
+  [14/30] cors-chat                                            proposed 0 verified 0 rejected 0
+  [15/30] sighting-391300422                                   proposed 0 verified 0 rejected 0
+  [16/30] dario-amodei                                         proposed 0 verified 0 rejected 0
+  [17/30] markdown-svg-upgrades                                proposed 0 verified 0 rejected 0
+  [18/30] qwen-38-27b                                          proposed 0 verified 0 rejected 0
+  [19/30] qwen-38-27b-scores-52                                proposed 0 verified 0 rejected 0
+  [20/30] we-tracked-a-shipment-of-rare-books-it-ended-at-an-amazon-ai-tra proposed 0 verified 0 rejected 0
+  [21/30] mojo-is-now-open-source                              proposed 0 verified 0 rejected 0
+  [22/30] moonlight-mayhem                                     proposed 2 verified 2 rejected 0 <- 2 claim(s)
+  [23/30] openai-timeline                                      proposed 0 verified 0 rejected 0
+  [24/30] pdfs-are-terrible                                    proposed 0 verified 0 rejected 0
+  [25/30] auto-mode                                            proposed 0 verified 0 rejected 0
+  [26/30] john-gruber                                          proposed 0 verified 0 rejected 0
+  [27/30] now-we-have-a-timeline-of-the-openai-accidental-attack-against-h proposed 0 verified 0 rejected 0
+  [28/30] claude-opus-5-system-prompt                          proposed 0 verified 0 rejected 0
+  [29/30] github-models-is-now-retired                         proposed 0 verified 0 rejected 0
+  [30/30] sqlite-text-history-prototype                        proposed 1 verified 1 rejected 0 <- 1 claim(s)
+
+==========================================================================
+AGAINST THE PRE-REGISTRATION
+==========================================================================
+  claims verified                8
+  claims rejected by verification 0
+  documents producing a claim     4 of 30
+  tokens                          48945 in / 4484 out
+
+  §3 expected yield 0-4    -> 8 claims: ABOVE 6 - the pre-registration calls this over-extraction
+  §4 unsupported keys      -> none   (capabilities seen: {'code.generation': 4, 'code.editing_diff_fidelity': 3, 'summarization.fidelity': 1})
+  §2 template quotes on an unrelated post -> 0  (none)
+  ... the same headlines on the post that IS that article -> 0
+  §1 independent voices    -> 1 distinct author_id across 4 documents
+       one voice, as predicted, so every cell is `insufficient` regardless of the claims
+
+wrote C:\Users\anooj\Model-Information-Board\docs\measurements\blog-extraction-run.json

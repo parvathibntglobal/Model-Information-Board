@@ -1,0 +1,167 @@
+==============================================================================
+THE TWO LABELLINGS
+==============================================================================
+  anooj1   pool--labelled-by-anooj1.jsonl   labelled_by field: 'anon'
+  yathu    pool--labelled-by-yathu.jsonl   labelled_by field: 'yathu'
+  rows: 14   options: 4
+
+  anooj1 marginals: {'relayed-vendor-claim': 8, 'first-hand-observation': 3, 'nothing-here': 3}
+  yathu marginals: {'over-read': 2, 'nothing-here': 3, 'first-hand-observation': 6, 'relayed-vendor-claim': 3}
+
+==============================================================================
+AGREEMENT
+==============================================================================
+
+------------------------------------------------------------------------------
+ALL ROWS   n = 14
+------------------------------------------------------------------------------
+  raw agreement   8/14 = 57.1%
+  expected by chance  0.260
+  Cohen's kappa   0.421
+
+    anooj1 \ yathu  first-hand     relayed   over-read     nothing
+    first-hand                 3           0           0           0
+    relayed                    2           3           2           1
+    over-read                  0           0           0           0
+    nothing                    1           0           0           2
+
+------------------------------------------------------------------------------
+CLAIM ROWS  (sections A and C) - is this claim a correct reading   n = 8
+------------------------------------------------------------------------------
+  raw agreement   3/8 = 37.5%
+  expected by chance  0.266
+  Cohen's kappa   0.149
+
+    anooj1 \ yathu  first-hand     relayed   over-read     nothing
+    first-hand                 1           0           0           0
+    relayed                    2           2           2           1
+    over-read                  0           0           0           0
+    nothing                    0           0           0           0
+
+------------------------------------------------------------------------------
+DOCUMENT ROWS  (section B) - does this document contain a claim   n = 6
+------------------------------------------------------------------------------
+  raw agreement   5/6 = 83.3%
+  expected by chance  0.361
+  Cohen's kappa   0.739
+
+    anooj1 \ yathu  first-hand     relayed   over-read     nothing
+    first-hand                 2           0           0           0
+    relayed                    0           1           0           0
+    nothing                    1           0           0           2
+
+==============================================================================
+EVERY DISAGREEMENT
+==============================================================================
+
+[1] row 0   section C-fresh-run-same-corpus   unit claim
+    anooj1   relayed-vendor-claim
+    yathu    over-read
+    QUOTE
+      "So when Fable's classifiers detect a request related to cybersecurity, biology and chemistry, or distillation, the response is handled by Claude Opus 4.8, our next-most-capable model."
+    THE DOCUMENT IT CAME FROM
+      Introducing Claude Fable 5
+      Introducing Claude Fable 5: a Mythos-class model that we've made safe for general use. Its capabilities exceed those of any model we've ever made generally available.
+      Fable 5 is state of the art on nearly all tested benchmarks, with exceptional performance in software engineering, knowledge work, scientific research, and vision. It can run for days, and the longer the task, the larger its lead over our other models.
+      Fable 5 launches today alongside Claude Mythos 5. The two share the same underlying model, but Mythos 5, so far deployed only through [Project Glasswing](https://www.anthropic.com/glasswing), has the safeguards lifted in some areas. The safeguards are what distinguish the two, and why we've given th
+      Releasing a model this capable comes with risks. Without safeguards, Fable 5's capabilities in areas like cybersecurity could be misused to cause serious damage. So when Fable's classifiers detect a request related to cybersecurity, biology and chemistry, or distillation, the response is handled by 
+      Claude Fable 5 is available today on paid plans, in Claude Code, on the Claude API, and all major cloud platforms.  Through June 22, it's included in paid Claude plans at no additional cost.
+      Claude Mythos 5 is available to Glasswing partners, with a broader trusted access program to follow.
+      Read more: [https://www.anthropic.com/news/claude-fable-5-mythos-5](https://www.anthropic.com/news/claude-fable-5-mythos-5)
+
+[2] row 1   section C-fresh-run-same-corpus   unit claim
+    anooj1   relayed-vendor-claim
+    yathu    nothing-here
+    QUOTE
+      'more than 95% of sessions involve no fallback at all, and performance everywhere else is unaffected.'
+    THE DOCUMENT IT CAME FROM
+      Introducing Claude Fable 5
+      Introducing Claude Fable 5: a Mythos-class model that we've made safe for general use. Its capabilities exceed those of any model we've ever made generally available.
+      Fable 5 is state of the art on nearly all tested benchmarks, with exceptional performance in software engineering, knowledge work, scientific research, and vision. It can run for days, and the longer the task, the larger its lead over our other models.
+      Fable 5 launches today alongside Claude Mythos 5. The two share the same underlying model, but Mythos 5, so far deployed only through [Project Glasswing](https://www.anthropic.com/glasswing), has the safeguards lifted in some areas. The safeguards are what distinguish the two, and why we've given th
+      Releasing a model this capable comes with risks. Without safeguards, Fable 5's capabilities in areas like cybersecurity could be misused to cause serious damage. So when Fable's classifiers detect a request related to cybersecurity, biology and chemistry, or distillation, the response is handled by 
+      Claude Fable 5 is available today on paid plans, in Claude Code, on the Claude API, and all major cloud platforms.  Through June 22, it's included in paid Claude plans at no additional cost.
+      Claude Mythos 5 is available to Glasswing partners, with a broader trusted access program to follow.
+      Read more: [https://www.anthropic.com/news/claude-fable-5-mythos-5](https://www.anthropic.com/news/claude-fable-5-mythos-5)
+
+[3] row 2   section C-fresh-run-same-corpus   unit claim
+    anooj1   relayed-vendor-claim
+    yathu    first-hand-observation
+    QUOTE
+      "We'll keep refining the safeguards to reduce false positives."
+    THE DOCUMENT IT CAME FROM
+      Introducing Claude Fable 5
+      Introducing Claude Fable 5: a Mythos-class model that we've made safe for general use. Its capabilities exceed those of any model we've ever made generally available.
+      Fable 5 is state of the art on nearly all tested benchmarks, with exceptional performance in software engineering, knowledge work, scientific research, and vision. It can run for days, and the longer the task, the larger its lead over our other models.
+      Fable 5 launches today alongside Claude Mythos 5. The two share the same underlying model, but Mythos 5, so far deployed only through [Project Glasswing](https://www.anthropic.com/glasswing), has the safeguards lifted in some areas. The safeguards are what distinguish the two, and why we've given th
+      Releasing a model this capable comes with risks. Without safeguards, Fable 5's capabilities in areas like cybersecurity could be misused to cause serious damage. So when Fable's classifiers detect a request related to cybersecurity, biology and chemistry, or distillation, the response is handled by 
+      Claude Fable 5 is available today on paid plans, in Claude Code, on the Claude API, and all major cloud platforms.  Through June 22, it's included in paid Claude plans at no additional cost.
+      Claude Mythos 5 is available to Glasswing partners, with a broader trusted access program to follow.
+      Read more: [https://www.anthropic.com/news/claude-fable-5-mythos-5](https://www.anthropic.com/news/claude-fable-5-mythos-5)
+
+[4] row 9   section B-documents   unit document
+    anooj1   nothing-here
+    yathu    first-hand-observation
+    DOCUMENT reddit:t1_oqoehi3
+      It already costs 2x Opus 4.8(says [claude.ai](http://claude.ai) app) and will be cancelled post June 22? What is this even about?
+
+[5] row 10   section A-on-staging   unit claim
+    anooj1   relayed-vendor-claim
+    yathu    over-read
+    QUOTE
+      "So when Fable's classifiers detect a request related to cybersecurity, biology and chemistry, or distillation, the response is handled by Claude Opus 4.8, our next-most-capable model."
+
+[6] row 11   section A-on-staging   unit claim
+    anooj1   relayed-vendor-claim
+    yathu    first-hand-observation
+    QUOTE
+      "We'll keep refining the safeguards to reduce false positives."
+
+total disagreements: 6 of 14
+
+==============================================================================
+WITHIN-LABELLER CONSISTENCY (free, from duplicated quotes)
+==============================================================================
+  quotes appearing in more than one section: 3
+
+  "So when Fable's classifiers detect a request related to cybersecur"
+     rows [0, 10] sections ['C', 'A']
+     anooj1   ['relayed-vendor-claim', 'relayed-vendor-claim']   consistent
+     yathu    ['over-read', 'over-read']   consistent
+
+  "We'll keep refining the safeguards to reduce false positives."
+     rows [2, 11] sections ['C', 'A']
+     anooj1   ['relayed-vendor-claim', 'relayed-vendor-claim']   consistent
+     yathu    ['first-hand-observation', 'first-hand-observation']   consistent
+
+  'gives 10%+ better results on SWE-Bench'
+     rows [3, 13] sections ['C', 'A']
+     anooj1   ['first-hand-observation', 'relayed-vendor-claim']   *** INCONSISTENT ***
+     yathu    ['first-hand-observation', 'relayed-vendor-claim']   *** INCONSISTENT ***
+
+EVIDENCE EACH ROW CARRIED
+  C[ 0] claim    doc_text= 1739  quote=yes
+  C[ 1] claim    doc_text= 1739  quote=yes
+  C[ 2] claim    doc_text= 1739  quote=yes
+  C[ 3] claim    doc_text=  163  quote=yes
+  B[ 4] document doc_text= 1739  quote=no
+  B[ 5] document doc_text=  515  quote=no
+  B[ 6] document doc_text=  621  quote=no
+  B[ 7] document doc_text=  163  quote=no
+  B[ 8] document doc_text=  348  quote=no
+  B[ 9] document doc_text=  129  quote=no
+  A[10] claim    doc_text=    0  quote=yes
+  A[11] claim    doc_text=    0  quote=yes
+  A[12] claim    doc_text=    0  quote=yes
+  A[13] claim    doc_text=    0  quote=yes
+
+Section A rows carry NO document text. Section C rows do.
+
+DISTINCT CLAIM QUOTES (the C row preferred, because it carried context)
+  n = 5   agreement 2/5 = 40.0%   kappa 0.211  (pe=0.240)
+
+ >< C[ 0] relayed-vendor-claim     | over-read                "So when Fable's classifiers detect a request r"
+ >< C[ 1] relayed-vendor-claim     | nothing-here             'more than 95% of sessions involve no fallback '
+ >< C[ 2] relayed-vendor-claim     | first-hand-observation   "We'll keep refining the safeguards to reduce f"
+    C[ 3] first-hand-observation   | first-hand-observation   'gives 10%+ better results on SWE-Bench'
+    A[12] relayed-vendor-claim     | relayed-vendor-claim     'exceptional performance in software engineerin'

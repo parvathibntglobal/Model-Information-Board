@@ -1,0 +1,1063 @@
+{
+ "run_at": "2026-08-21T12:06:29.218502+00:00",
+ "pre_registration": "docs/measurements/blog-extraction-pre-registration.md",
+ "extractor_model": "google/gemini-2.5-flash",
+ "documents": 30,
+ "template_block_stripped_in_memory": true,
+ "documents_shortened": 29,
+ "bytes_removed": 8118,
+ "claims_verified": 36,
+ "claims_rejected": 2,
+ "capabilities": {
+  "tool_calling.long_chain_reliability": 2,
+  "code.generation": 9,
+  "reasoning.multistep": 7,
+  "instruction.adherence": 6,
+  "code.editing_diff_fidelity": 4,
+  "summarization.fidelity": 2,
+  "over_refusal": 2,
+  "extraction.faithfulness": 2,
+  "ops.latency_ttft": 2
+ },
+ "unsupported_capability_claims": {
+  "tool_calling.long_chain_reliability": 2
+ },
+ "template_quotes_on_unrelated_posts": [],
+ "headline_quotes_on_the_owning_post": [
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "quote": "Qwen 3.8 27B is excellent, but it defaults to wildly overthinking things"
+  }
+ ],
+ "distinct_author_ids": 1,
+ "input_tokens": 105662,
+ "output_tokens": 6609,
+ "claims": [
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/10/introducing-muse-glimmer/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/10/introducing-muse-glimmer/",
+   "slug": "introducing-muse-glimmer",
+   "quote": "The model handles a wide range of function calls, invoking tools with precise schemas throughout extended workflows.",
+   "capability": "tool_calling.long_chain_reliability",
+   "polarity": "positive",
+   "surface": "Muse Glimmer",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/10/openclaw/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/10/openclaw/",
+   "slug": "openclaw",
+   "quote": "The API has zero authorisations checks on cancelling other people's reservations … I tested this with the person in waitlist position #1 — and it actually went through.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Opus 4.6",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "slug": "stealing-reasoning-traces",
+   "quote": "Anthropic, OpenAI, and Google return encrypted chain-of-thought blocks to clients that can be replayed across sessions, users, and models.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Anthropic",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "slug": "stealing-reasoning-traces",
+   "quote": "Anthropic, OpenAI, and Google return encrypted chain-of-thought blocks to clients that can be replayed across sessions, users, and models.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "OpenAI",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "slug": "stealing-reasoning-traces",
+   "quote": "Anthropic, OpenAI, and Google return encrypted chain-of-thought blocks to clients that can be replayed across sessions, users, and models.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Google",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "slug": "stealing-reasoning-traces",
+   "quote": "Claude Haiku 4.5 was the easiest to attack.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Claude Haiku 4.5",
+   "specificity": "version",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/12/alchemy-utils/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/12/alchemy-utils/",
+   "slug": "alchemy-utils",
+   "quote": "I tasked Codex and GPT-5.6 Sol Ultra with building a prototype",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {
+    "domain": "database library"
+   }
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/12/alchemy-utils/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/12/alchemy-utils/",
+   "slug": "alchemy-utils",
+   "quote": "I tasked Codex and GPT-5.6 Sol Ultra with building a prototype",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "GPT-5.6 Sol Ultra",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {
+    "domain": "database library"
+   }
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/12/alchemy-utils/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/12/alchemy-utils/",
+   "slug": "alchemy-utils",
+   "quote": "I had Codex optimize it and got it down to around 35 seconds.",
+   "capability": "code.editing_diff_fidelity",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {
+    "domain": "database library"
+   }
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/12/florian-herrengt/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/12/florian-herrengt/",
+   "slug": "florian-herrengt",
+   "quote": "Unfortunately, it seems like not even Fable can figure it out.",
+   "capability": "code.editing_diff_fidelity",
+   "polarity": "negative",
+   "surface": "Fable",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/12/florian-herrengt/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/12/florian-herrengt/",
+   "slug": "florian-herrengt",
+   "quote": "Neither of you has any idea whether any of it is true but Claude seems very confident.",
+   "capability": "summarization.fidelity",
+   "polarity": "negative",
+   "surface": "Claude",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/13/llm-gemini/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/13/llm-gemini/",
+   "slug": "llm-gemini",
+   "quote": "Here's the high level one, which is pretty great:",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Gemini 3.7 Flash",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {
+    "reasoning_effort": "high"
+   }
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/dario-amodei/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/dario-amodei/",
+   "slug": "dario-amodei",
+   "quote": "I think by far the most accurate criticism of AI companies including Anthropic is that we haven’t yet delivered on our big promises to benefit the world.",
+   "capability": "over_refusal",
+   "polarity": "negative",
+   "surface": "Anthropic",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "slug": "qwen-38-27b",
+   "quote": "Qwen 3.8 27B is excellent, but it defaults to wildly overthinking things",
+   "capability": "over_refusal",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "slug": "qwen-38-27b",
+   "quote": "I’ve seen previous Qwen models deal well with this, so I decided to put it to the test drawing bounding boxes around some pelicans.",
+   "capability": "extraction.faithfulness",
+   "polarity": "positive",
+   "surface": "Qwen",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "slug": "qwen-38-27b",
+   "quote": "This is *such a good match*.",
+   "capability": "extraction.faithfulness",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "slug": "qwen-38-27b",
+   "quote": "I had Qwen 3.8 27B build for me, running offline on my laptop.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "slug": "qwen-38-27b",
+   "quote": "it did manage to produce this full interface from this single prompt",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "slug": "qwen-38-27b",
+   "quote": "this is a good example of how reasoning can make a difference.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "slug": "qwen-38-27b",
+   "quote": "On paper Qwen 3.8 27B has all three of these, so is it up to the task?",
+   "capability": "tool_calling.long_chain_reliability",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "slug": "qwen-38-27b",
+   "quote": "And it built and tested this pi_jsonl_to_md.py, which did exactly what I needed.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "slug": "qwen-38-27b",
+   "quote": "There’s one very significant catch: it feels slow—especially when it starts over-thinking, but even without that it’s not particularly sprightly.",
+   "capability": "ops.latency_ttft",
+   "polarity": "negative",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "slug": "qwen-38-27b",
+   "quote": "Qwen supports Multi-Token Prediction, an architecture trick where a cheaper mechanism guesses several tokens ahead and the main model can then quickly verify if the guesses were correct.",
+   "capability": "ops.latency_ttft",
+   "polarity": "positive",
+   "surface": "Qwen",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/16/qwen-38-27b/",
+   "slug": "qwen-38-27b",
+   "quote": "We can have an open weights general purpose model with a long context, effective tool calling, strong vision ability, and competent code generation, and we can fit the whole thing in just a 17GB file.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/17/qwen-38-27b-scores-52/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/17/qwen-38-27b-scores-52/",
+   "slug": "qwen-38-27b-scores-52",
+   "quote": "scores 52 on the Artificial Analysis Intelligence Index",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/17/qwen-38-27b-scores-52/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/17/qwen-38-27b-scores-52/",
+   "slug": "qwen-38-27b-scores-52",
+   "quote": "just one point behind GLM-5.2 (max) and DeepSeek V4 Pro 0813 (max)",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Qwen 3.8 27B",
+   "specificity": "version",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/18/mojo-is-now-open-source/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/18/mojo-is-now-open-source/",
+   "slug": "mojo-is-now-open-source",
+   "quote": "AI-assisted coding tools already help migrate Python to Mojo today",
+   "capability": "code.editing_diff_fidelity",
+   "polarity": "positive",
+   "surface": "AI-assisted coding tools",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {
+    "domain": "code migration"
+   }
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/moonlight-mayhem/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/7/moonlight-mayhem/",
+   "slug": "moonlight-mayhem",
+   "quote": "It produced a much better game!",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Codex Desktop running GPT-5.6 Sol Ultra",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {
+    "domain": "game development"
+   }
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/moonlight-mayhem/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/7/moonlight-mayhem/",
+   "slug": "moonlight-mayhem",
+   "quote": "Despite reviewing screenshots during development Codex failed to spot and correct this bug.",
+   "capability": "code.editing_diff_fidelity",
+   "polarity": "negative",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {
+    "domain": "game development"
+   }
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/8/auto-mode/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/8/auto-mode/",
+   "slug": "auto-mode",
+   "quote": "for the main categories of risks that we’re concerned about, like prompt injection and data exfiltration, the risks are far lower than the average human reviewer.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Claude Code",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {
+    "reasoning_effort": "auto"
+   }
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/8/auto-mode/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/8/auto-mode/",
+   "slug": "auto-mode",
+   "quote": "Auto mode would have blocked 89% of those actions.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Claude Code",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": true,
+   "conditions": {
+    "reasoning_effort": "auto"
+   }
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/8/auto-mode/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/8/auto-mode/",
+   "slug": "auto-mode",
+   "quote": "In this evaluation, none of the 720 attack attempts succeeded against Claude Fable 5, Opus 5, or Sonnet 5 running auto mode.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Claude Fable 5, Opus 5, or Sonnet 5",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": true,
+   "conditions": {
+    "reasoning_effort": "auto"
+   }
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/9/claude-opus-5-system-prompt/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/9/claude-opus-5-system-prompt/",
+   "slug": "claude-opus-5-system-prompt",
+   "quote": "Claude checks for newer information when it can search, and otherwise suggests checking Anthropic's site.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Claude",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {
+    "domain": "current events"
+   }
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/9/github-models-is-now-retired/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/9/github-models-is-now-retired/",
+   "slug": "github-models-is-now-retired",
+   "quote": "I'm now generating my summaries using GPT-5.6 Luna.",
+   "capability": "summarization.fidelity",
+   "polarity": "positive",
+   "surface": "GPT-5.6 Luna",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {
+    "domain": "folder summaries for the README"
+   }
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/9/sqlite-text-history-prototype/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/9/sqlite-text-history-prototype/",
+   "slug": "sqlite-text-history-prototype",
+   "quote": "The new GPT‑Live voice mode in the ChatGPT iPhone app has got really good, so I discussed the prototype with that.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "GPT‑Live",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {}
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/9/sqlite-text-history-prototype/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/9/sqlite-text-history-prototype/",
+   "slug": "sqlite-text-history-prototype",
+   "quote": "It churned away for 38 minutes and delivered this answer plus the files you see in this folder.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "GPT-5.6 Sol Pro",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "conditions": {
+    "reasoning_effort": "max"
+   }
+  }
+ ],
+ "unsalvaged": [
+  {
+   "slug": "introducing-muse-glimmer",
+   "index": 0,
+   "errors": [
+    "quote: String should have at most 200 characters"
+   ],
+   "raw_quote": "Muse Glimmer achieves strong success rates on full-task benchmarks including DeepSearch QA, MCP-Atlas, 𝛕-Bench and SWE-Bench, which measure its ability to work within scaffolds, write and debug code, and resolve multi-turn requests from start to finish.",
+   "raw_capability": "reasoning.multistep"
+  },
+  {
+   "slug": "stealing-reasoning-traces",
+   "index": 4,
+   "errors": [
+    "quote: String should have at most 200 characters"
+   ],
+   "raw_quote": "Here's GPT-5.5 thinking about some CSS:\n\nNeed app.css truncated. Need maybe not need. We'll replace entire app.css. Need create components. Need include keyboard support. Need accessible primitives. Need think architecture. Svelte 5. Components: - Button.svelte: variants, size, loading, disabled, children snippet, optional icon? Avoid maybe not. Needs accessible focus. [...]",
+   "raw_capability": "code.generation"
+  },
+  {
+   "slug": "qwen-38-27b",
+   "index": 1,
+   "errors": [
+    "conditions.context_size: Input should be a valid integer, unable to parse string as an integer"
+   ],
+   "raw_quote": "I quickly ran into problems with LM Studio’s default context limit of 8,192 tokens—Qwen was using them all up thinking about even the most mundane of problems.",
+   "raw_capability": "context.effective_window"
+  },
+  {
+   "slug": "claude-opus-5-system-prompt",
+   "index": 0,
+   "errors": [
+    "quote: String should have at most 200 characters"
+   ],
+   "raw_quote": "If asked, Claude confirms them accurately and matter-of-factly — it doesn't deny the suspension happened — and otherwise treats the export controls like any other current political topic: it gives a fair, accurate account rather than sharing personal opinions, and points to the linked statement for anything further.",
+   "raw_capability": "instruction.adherence"
+  }
+ ],
+ "per_document": [
+  {
+   "slug": "introducing-muse-glimmer",
+   "proposed": 3,
+   "verified": 1,
+   "rejected": 1,
+   "unsalvaged": 1,
+   "zero_kind": null,
+   "retries": 1,
+   "input_tokens": 6656,
+   "output_tokens": 556
+  },
+  {
+   "slug": "openclaw",
+   "proposed": 1,
+   "verified": 1,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": null,
+   "retries": 0,
+   "input_tokens": 2513,
+   "output_tokens": 83
+  },
+  {
+   "slug": "datasette-upload-dbs",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2656,
+   "output_tokens": 34
+  },
+  {
+   "slug": "stealing-reasoning-traces",
+   "proposed": 5,
+   "verified": 4,
+   "rejected": 0,
+   "unsalvaged": 1,
+   "zero_kind": null,
+   "retries": 1,
+   "input_tokens": 6643,
+   "output_tokens": 869
+  },
+  {
+   "slug": "there-are-no-lossless-transformations-of-natural-language-text",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2683,
+   "output_tokens": 37
+  },
+  {
+   "slug": "alchemy-utils",
+   "proposed": 3,
+   "verified": 3,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": null,
+   "retries": 0,
+   "input_tokens": 3089,
+   "output_tokens": 182
+  },
+  {
+   "slug": "deepseek-v4-pro-0813",
+   "proposed": 1,
+   "verified": 0,
+   "rejected": 1,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2700,
+   "output_tokens": 107
+  },
+  {
+   "slug": "florian-herrengt",
+   "proposed": 2,
+   "verified": 2,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": null,
+   "retries": 0,
+   "input_tokens": 2620,
+   "output_tokens": 136
+  },
+  {
+   "slug": "alchemy-utils",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2459,
+   "output_tokens": 37
+  },
+  {
+   "slug": "llm-gemini",
+   "proposed": 1,
+   "verified": 1,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": null,
+   "retries": 0,
+   "input_tokens": 2738,
+   "output_tokens": 75
+  },
+  {
+   "slug": "sqlite-utils-2",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2649,
+   "output_tokens": 45
+  },
+  {
+   "slug": "sqlite-utils",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2597,
+   "output_tokens": 31
+  },
+  {
+   "slug": "dont-classify-hallucinate",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2741,
+   "output_tokens": 60
+  },
+  {
+   "slug": "cors-chat",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2580,
+   "output_tokens": 72
+  },
+  {
+   "slug": "sighting-391300422",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2551,
+   "output_tokens": 31
+  },
+  {
+   "slug": "dario-amodei",
+   "proposed": 1,
+   "verified": 1,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": null,
+   "retries": 0,
+   "input_tokens": 2698,
+   "output_tokens": 154
+  },
+  {
+   "slug": "markdown-svg-upgrades",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2885,
+   "output_tokens": 21
+  },
+  {
+   "slug": "qwen-38-27b",
+   "proposed": 12,
+   "verified": 11,
+   "rejected": 0,
+   "unsalvaged": 1,
+   "zero_kind": null,
+   "retries": 1,
+   "input_tokens": 11649,
+   "output_tokens": 2263
+  },
+  {
+   "slug": "qwen-38-27b-scores-52",
+   "proposed": 2,
+   "verified": 2,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": null,
+   "retries": 0,
+   "input_tokens": 2574,
+   "output_tokens": 165
+  },
+  {
+   "slug": "we-tracked-a-shipment-of-rare-books-it-ended-at-an-amazon-ai-tra",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2706,
+   "output_tokens": 57
+  },
+  {
+   "slug": "mojo-is-now-open-source",
+   "proposed": 1,
+   "verified": 1,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": null,
+   "retries": 0,
+   "input_tokens": 2666,
+   "output_tokens": 115
+  },
+  {
+   "slug": "moonlight-mayhem",
+   "proposed": 2,
+   "verified": 2,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": null,
+   "retries": 0,
+   "input_tokens": 2895,
+   "output_tokens": 140
+  },
+  {
+   "slug": "openai-timeline",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 3717,
+   "output_tokens": 49
+  },
+  {
+   "slug": "pdfs-are-terrible",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2690,
+   "output_tokens": 35
+  },
+  {
+   "slug": "auto-mode",
+   "proposed": 3,
+   "verified": 3,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": null,
+   "retries": 0,
+   "input_tokens": 3249,
+   "output_tokens": 301
+  },
+  {
+   "slug": "john-gruber",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2599,
+   "output_tokens": 30
+  },
+  {
+   "slug": "now-we-have-a-timeline-of-the-openai-accidental-attack-against-h",
+   "proposed": 0,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": "silent",
+   "retries": 0,
+   "input_tokens": 2867,
+   "output_tokens": 75
+  },
+  {
+   "slug": "claude-opus-5-system-prompt",
+   "proposed": 2,
+   "verified": 1,
+   "rejected": 0,
+   "unsalvaged": 1,
+   "zero_kind": null,
+   "retries": 1,
+   "input_tokens": 5579,
+   "output_tokens": 296
+  },
+  {
+   "slug": "github-models-is-now-retired",
+   "proposed": 1,
+   "verified": 1,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": null,
+   "retries": 0,
+   "input_tokens": 2673,
+   "output_tokens": 156
+  },
+  {
+   "slug": "sqlite-text-history-prototype",
+   "proposed": 2,
+   "verified": 2,
+   "rejected": 0,
+   "unsalvaged": 0,
+   "zero_kind": null,
+   "retries": 1,
+   "input_tokens": 6340,
+   "output_tokens": 397
+  }
+ ],
+ "unclassified": [
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/8/auto-mode/",
+   "quotes": [
+    "I'm not sure how any version of auto mode could protect against that kind of malfeasance."
+   ]
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/9/sqlite-text-history-prototype/",
+   "quotes": [
+    "I have an interesting idea for a scheme for saving all previous versions of a piece of text that's constantly edited in a SQLite database um column in as efficient a way as possible."
+   ]
+  }
+ ],
+ "unclassified_total": 2,
+ "schema_retries_total": 5,
+ "no_claim_reasons": [
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/11/datasette-upload-dbs/",
+   "reason": "The document describes a software plugin and its functionality, but it does not mention any AI models or make any claims about their capabilities."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/11/there-are-no-lossless-transformations-of-natural-language-text/",
+   "reason": "The document discusses general principles of AI writing and communication, but does not make any specific claims about the capabilities or performance of any named AI model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/12/florian-herrengt/",
+   "reason": "None"
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/13/alchemy-utils/",
+   "reason": "The document is a changelog entry about performance boosts for DuckDB exports and CSV imports. It does not mention any AI models or their capabilities."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/13/sqlite-utils-2/",
+   "reason": "The document discusses a bug fix in `sqlite-utils` and how to run a smoke test. It does not contain any claims about the capabilities or performance of an AI model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/13/sqlite-utils/",
+   "reason": "The document describes software features and bug fixes, but makes no claims about the capabilities or performance of any AI model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/14/dont-classify-hallucinate/",
+   "reason": "The document discusses a technique for generating tags using an LLM and then mapping them to existing tags via vector embeddings. It provides an example prompt for a hypothetical model, but does not make any claims about the capabilities or performance of a specific, named model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/15/cors-chat/",
+   "reason": "The document describes a tool built to test models, but does not make any claims about the capabilities of the models themselves. It mentions GPT-5.6-Sol and Qwen 3.8 27B but only in the context of what the tool was built to test, not how they performed."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/15/sighting-391300422/",
+   "reason": "The document is a narrative about a bird named Morris and does not contain any claims about AI models or their capabilities."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/dario-amodei/",
+   "reason": "The document discusses AI in general and Anthropic as an AI company, but the only specific claim about a model's capability is about Anthropic's failure to deliver on promises, which aligns with over_refusal. There are no other claims about specific model behaviors or performance."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/16/markdown-svg-upgrades/",
+   "reason": "No claims were made about any AI model in the document."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/17/we-tracked-a-shipment-of-rare-books-it-ended-at-an-amazon-ai-tra/",
+   "reason": "The document discusses Amazon scanning books for AI training, and mentions Anthropic in the context of previous coverage on book scanning. However, it does not make any claims about the capabilities or performance of any specific AI model from either Amazon or Anthropic."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/18/mojo-is-now-open-source/",
+   "reason": "The document discusses AI-assisted coding tools in general, but does not name a specific model. The only claim made is about the general capability of these tools to help migrate code, which is captured."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "reason": "The document describes an incident involving an experimental, unreleased OpenAI model, but does not make any claims about its capabilities or performance. It focuses on the timeline of events and the actions of the agents."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/pdfs-are-terrible/",
+   "reason": "The document discusses token consumption in general terms, but does not make any specific claims about the capabilities or performance of a named AI model."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/8/john-gruber/",
+   "reason": "The document is a personal reflection on blogging and does not contain any claims about AI models or their capabilities."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/8/now-we-have-a-timeline-of-the-openai-accidental-attack-against-h/",
+   "reason": "The document discusses OpenAI's training process and potential issues with RLVR, but it does not make any specific claims about the capabilities or performance of a named model. The text speculates about why certain behaviors might have occurred during training, but these are not direct claims about a model's behavior in a deployed or evaluated state."
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/9/github-models-is-now-retired/",
+   "reason": "The document discusses the retirement of 'GitHub Models' and the author's switch to GPT-5.6 Luna for summarization. The only claim about a specific model's capability is regarding GPT-5.6 Luna's use for generating summaries. The rest of the document is about the retirement of a service and speculation about the reasons behind it, not about the capabilities of any specific model."
+  }
+ ]
+}

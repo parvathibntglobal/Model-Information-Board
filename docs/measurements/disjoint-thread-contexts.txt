@@ -1,0 +1,87 @@
+==============================================================================
+H2 - DID THE TWO RUNS SEE DIFFERENT COMMENTS?  NO
+==============================================================================
+  payload holds 195 comments with a body
+  of the 11 selected ids across both artefacts, missing from payload: none
+  Both child sets are present, with real scores. Ruled out.
+
+==============================================================================
+H4 - ARE THEY THE SAME KIND OF ARTEFACT?  NO, AND THIS IS THE ANSWER
+==============================================================================
+  `fixtures/threads/build.py` is not E3. Its own docstring:
+
+    "**Not E3.** `collect/assemble/` is Engineer 1's and is
+     authoritative. This is fixture tooling that produces the same
+     SHAPE so `judge/` can meet it before the real assembler exists."
+
+    "child selection is by score alone, where E3 ranks by
+     `specificity_score x log(1 + engagement)`"
+
+  And CHILD_COUNT = 6 against E3's MAX_CHILDREN = 5, because:
+
+    "the selection is forced to include specific shapes rather than
+     whatever ranked highest - a deleted body, two emoji documents, a
+     run of full blocks, and an HTML entity."
+
+  So the fixture's children were CHOSEN TO EXERCISE THE OFFSET MAP -
+  `[removed]`, emoji, block characters, `&gt;` - and not ranked at all.
+  Disjointness is the design, and it is documented at the top of the file
+  that produced it. The defect was mine: I extracted from judge-side test
+  tooling and compared it to an assembler output.
+
+==============================================================================
+H1 / H3 - DOES TODAY'S SELECTOR REPRODUCE THE DATABASE'S FIVE?
+==============================================================================
+  contract weights: {'has_numbers': 0.25, 'has_error_strings': 0.3, 'has_code': 0.2, 'has_conditions': 0.1, 'names_version': 0.15}
+  floor clears on : ('has_numbers', 'has_error_strings', 'has_code', 'has_conditions', 'names_version')
+
+  --- aliases=() (the adapter default)
+        2.5210  oqoc844    spec=0.45 score= 270  <-- in DB
+        1.2459  oqodw1j    spec=0.25 score= 145
+        1.1437  oqocfjv    spec=0.25 score=  96  <-- in fixture
+        1.1331  oqorjbe    spec=0.25 score=  92  <-- in DB
+        1.0978  oqocu7n    spec=0.20 score= 241  <-- in DB
+        0.9780  oqozyx5    spec=0.25 score=  49  <-- in DB
+        0.8959  oqofl6c    spec=0.25 score=  35  <-- in fixture
+      top5 = ['oqoc844', 'oqodw1j', 'oqocfjv', 'oqorjbe', 'oqocu7n']
+      matches DB set exactly: False
+      overlap with DB: 3/5   with fixture: 1/6
+
+  --- aliases=registry population (1247)
+        3.3613  oqoc844    spec=0.60 score= 270  <-- in DB
+        1.9211  oqocu7n    spec=0.35 score= 241  <-- in DB
+        1.8130  oqorjbe    spec=0.40 score=  92  <-- in DB
+        1.5648  oqozyx5    spec=0.40 score=  49  <-- in DB
+        1.5508  oqoehi3    spec=0.35 score=  83  <-- in DB
+        1.4105  oqol3jn    spec=0.40 score=  33
+        1.2459  oqodw1j    spec=0.25 score= 145
+      top5 = ['oqoc844', 'oqocu7n', 'oqorjbe', 'oqozyx5', 'oqoehi3']
+      matches DB set exactly: True
+      overlap with DB: 5/5   with fixture: 0/6
+
+==============================================================================
+DETERMINISM OF THE SELECTOR ITSELF
+==============================================================================
+  five runs of rank_children's arithmetic: IDENTICAL
+  ('oqoc844', 'oqodw1j', 'oqocfjv', 'oqorjbe', 'oqocu7n')
+  Ties break on external_id (thread.py:224), so H3 is ruled out by
+  construction as well as by measurement.
+
+==============================================================================
+WHAT THE DATABASE'S FIVE ACTUALLY SCORE
+==============================================================================
+  oqoc844    aliases=() (the adapte   spec=0.45 rank= 2.5210  [has_numbers, has_code -> 0.45]
+  oqoc844    aliases=registry popul   spec=0.60 rank= 3.3613  [has_numbers, has_code, names_version -> 0.60]
+
+  oqocu7n    aliases=() (the adapte   spec=0.20 rank= 1.0978  [has_code -> 0.20]
+  oqocu7n    aliases=registry popul   spec=0.35 rank= 1.9211  [has_code, names_version -> 0.35]
+
+  oqorjbe    aliases=() (the adapte   spec=0.25 rank= 1.1331  [has_numbers -> 0.25]
+  oqorjbe    aliases=registry popul   spec=0.40 rank= 1.8130  [has_numbers, names_version -> 0.40]
+
+  oqozyx5    aliases=() (the adapte   spec=0.25 rank= 0.9780  [has_numbers -> 0.25]
+  oqozyx5    aliases=registry popul   spec=0.40 rank= 1.5648  [has_numbers, names_version -> 0.40]
+
+  oqoehi3    aliases=() (the adapte   spec=0.20 rank= 0.8862  [has_code -> 0.20]
+  oqoehi3    aliases=registry popul   spec=0.35 rank= 1.5508  [has_code, names_version -> 0.35]
+
