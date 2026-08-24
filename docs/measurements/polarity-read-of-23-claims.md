@@ -139,3 +139,56 @@ Specifically:
 one model over one blog corpus plus a small Reddit set. It is the complete
 population of stored claims and it is not a sample of anything larger. A 30% error
 rate here is a fact about 23 claims, not a rate for the extractor.
+
+---
+
+## 7 · E2's counter-reading, recorded, and the two claims it does not cover
+
+**Ruling from Engineer 2, 2026-08-24: polarity is not a third extractor failure.
+There are two — vendor copy read as evidence, and first-hand reports missed — and
+`speaking` addresses the first.**
+
+The argument, and it is correct where it applies:
+
+> *"state of the art on nearly all tested benchmarks"* is a positive claim, and
+> what is wrong about it is **who said it**.
+
+**I agree, and this document already scored those that way.** `clm_ea8ce84c`
+(*"exceptional performance in software engineering"*), `clm_f50792ae` (*"none of
+the 720 attack attempts succeeded"*) and `clm_6b9561ea` (*"gives 10%+ better
+results on SWE-Bench"*) are all counted in the 13 that MATCH. A vendor asserting
+excellence is making a positive claim; the defect is attribution, and `speaking`
+is where it belongs. None of the 7 I called wrong is a vendor-copy case.
+
+**Two remain that the argument does not reach, and both are single-clause
+sentences by named individuals about their own testing:**
+
+```
+clm_1c6e656d  instruction.adherence  positive
+              "Claude Haiku 4.5 was the easiest to attack."
+
+clm_6bd482dd  over_refusal           positive
+              "Qwen 3.8 27B is excellent, but it defaults to wildly
+               overthinking things"
+```
+
+Neither is vendor copy. `speaking` on the first is `relayed-from-elsewhere` and
+on the second `own-experience`, both plausibly right — so the attribution
+machinery is working and the polarity is still the opposite of the sentence.
+
+**Where that leaves the classification, stated as a disagreement rather than
+resolved:** the *count* stands at 7 of 23 by my read, because a count is a
+measurement and this one is reproducible from the table by anyone who wants to
+re-read the quotes. Whether 2 inversions plus 5 not-a-claims constitutes a
+**third failure mode** or is a tail of the second is a judgement about
+classification, and that judgement is E2's to make — the taxonomy of extractor
+failures is hers.
+
+**What both readings agree on:** `speaking` is the fix for the vendor case, and
+it has landed. Nothing in this section changes that.
+
+**What would settle the remainder in one step:** the binary question in §5 —
+*does the polarity match the quote* — on the next labelling round. Two readers on
+23 rows is an afternoon, it needs no new pool, and it replaces this disagreement
+with a count neither of us authored. Until then §6 stands: one reader is not a
+measurement, and that applies to my 7 as much as to anything else here.
