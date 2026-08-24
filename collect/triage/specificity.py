@@ -234,12 +234,62 @@ def has_conditions(text: str) -> bool:
     return bool(_CONDITIONS.search(text))
 
 
+def alias_match_count(aliases, texts) -> int:
+    """How many of these documents any alias ACTUALLY MATCHES.
+
+    A COUNT, NOT A PRESENCE CHECK, and it lives here rather than in one script
+    because the defect it guards against has now appeared in two places.
+
+    **A LIST MATCHING NOTHING RECORDS IDENTICALLY TO A LIST MATCHING
+    EVERYTHING.** `version_aliases()` returned 35 strings for weeks and matched
+    zero documents. Every caller saw a non-empty tuple, recorded it in
+    provenance, and read it as a scoring input that was doing nothing — because
+    what was checked was that the list existed, not that it hit. A list is not
+    an input until something matches it.
+
+    The second instance was `scripts/harvest_github.py`, which printed
+    `aliases : 35 [...]` — the length of the list. Thirty-five aliases that
+    match nothing print the same as thirty-five that match everything, so a
+    sweep retrieving on dead variants looked exactly like a healthy one.
+
+    Same family as this file's own recorded lesson about "77% topic", which
+    counted topic matches only among documents where subject also matched and
+    so could not measure topic at all: **a figure computed over the wrong
+    population reads as a measurement of the right one.** Rule 7.
+
+    So: pass the documents, get the number that hit. If it is 0 the aliases
+    contributed nothing, whatever their length says.
+    """
+    return sum(1 for text in texts if names_version(text, aliases))
+
+
 def names_version(text: str, aliases) -> bool:
-    """A model is named at `version` or `snapshot` specificity.
+    """A model is named at `version` or `snapshot` specificity, SOMEWHERE IN THIS
+    DOCUMENT.
 
     `aliases` is the caller's pre-filtered surface list — family surfaces must
     already be excluded. A bare `sonnet` names a line rather than a tier, and
     counting it would credit a document that never said which model it meant.
+
+    THIS IS A DOCUMENT-LEVEL FACT AND IT IS NOT AN ATTRIBUTION SIGNAL FOR ONE
+    CLAIM. Flagged 2026-08-21 because it is being used as one across the lane
+    boundary: `judge/pipeline.py:223` passes `document.names_version` into
+    `weight.specificity_factor(version_named=...)`, which is evaluated per claim.
+    A document that names one version anywhere therefore credits +0.2 to EVERY
+    claim drawn from it, including claims whose own surface named only a family.
+
+    Measured consequence, on `judge/`'s own weights: a family-specificity claim
+    carrying numbers, conditions and a repro scores **0.2550** against **0.2244**
+    for a version-named claim carrying none — so it outweighs by 14%, and the
+    only path to that is this boolean being true for a claim it is not about. A
+    launch thread is the worst case: the root names the model, so every comment
+    in the flattened text inherits `names_version=True`.
+
+    Not a defect in this function. It answers the question it was asked, and
+    `contract/harvest.yaml` already warns that the document-level and claim-level
+    specificity notions "must never be merged AND NEVER COMPARED". This docstring
+    exists so the next caller reads that warning at the point of use.
+    `docs/proposals/for-engineer-2-inherited-subjects-and-family-claims.md`.
 
     NORMALISES FIRST, AND THAT IS NOT OPTIONAL. `sieve.matches` documents itself
     as operating on "already-normalised text" and does not casefold: against raw

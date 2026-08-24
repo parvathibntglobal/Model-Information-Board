@@ -86,9 +86,23 @@ from dataclasses import dataclass, field
 INCOMPLETE = "INCOMPLETE"
 
 #: Family words that name a line rather than a tier. Never proposed as a surface:
-#: `classify_specificity` would rank them `family`, and a family-specificity claim
-#: never counts as independent corroboration — so proposing one would add a
-#: surface that can record a claim and cannot lift a cell.
+#: `classify_specificity` ranks them `family`, and `judge/vet/weight.py` weights a
+#: family claim at 0.3 against 1.0 for a snapshot — so proposing one adds a
+#: surface that records a claim at a third of the weight of a specific one.
+#:
+#: THIS SAID "never counts as independent corroboration" AND THAT OVERSTATED THE
+#: CODE. `judge/curate/gate.py:count` takes one representative per voice and does
+#: not read specificity at all, so a family claim IS an independent voice; the only
+#: place specificity enters is `n_eff`, through FUZZINESS_WEIGHT. Corrected
+#: 2026-08-21 while checking this citation for the ruling in
+#: `collect/triage/entity.py`. The exclusion is right for a stronger reason than
+#: the one stated here — see that ruling.
+#:
+#: AND NOTHING DOWNSTREAM COUNTS FAMILY CLAIMS DIFFERENTLY AT ALL. Measured
+#: 2026-08-21: `judge/curate/gate.py:count` never reads specificity, so twelve
+#: family claims reach `N_EFF_MINIMUM` and clear `WIDELY_PRAISED_VOICES` on the
+#: way. So this exclusion is not a hint backed by a downstream check — it is the
+#: only thing between a family-specificity claim and a published cell.
 FAMILY_WORDS = frozenset({
     "opus", "sonnet", "haiku", "fable", "claude", "gemini", "gpt", "chatgpt",
     "qwen", "llama", "mistral", "mixtral", "deepseek", "grok", "codex", "kimi",

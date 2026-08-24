@@ -350,8 +350,39 @@ def _recompute_window_stage(context) -> StageResult:
     return StageResult(OK, counts=counts)
 
 
+def _load_capabilities_stage(context) -> StageResult:
+    """`contract/capabilities.yaml` into `capability`. THE TABLE `claim` FKs TO.
+
+    Wired here because it had no automated caller. `collect/registry/capabilities.py`
+    has existed and worked the whole time; its only caller was
+    `collect/cli.py registry load-capabilities`, which is a person with a
+    terminal. Nobody had typed it against staging, so `capability` held 0 rows,
+    and `claim.capability_key text NOT NULL REFERENCES capability(key)` meant
+    **no claim could insert in any run** — a foreign key nothing had reached.
+
+    Same shape as issue #27: not a broken check, a check with no caller. The
+    difference is that #27's absence was silent, and this one presents as an
+    extractor producing claims that vanish.
+
+    Idempotent, so running it nightly is a no-op once loaded.
+    """
+    from collect.registry.capabilities import load_capabilities
+
+    conn = context.get("conn")
+    if conn is None:
+        return StageResult(REFUSED, "no database connection",
+                           starves="capability stays as it is, and claim's "
+                                   "foreign key refuses every insert if it is empty")
+    report = load_capabilities(conn)
+    return StageResult(OK, counts={
+        "inserted": report.inserted,
+        "updated": report.updated,
+        "unchanged": report.unchanged,
+    })
+
+
 def default_stages() -> list[Stage]:
-    """Tonight's chain: three stages that run, and eight that say why they cannot.
+    """Tonight's chain: four stages that run, and nine that say why they cannot.
 
     Every `run=None` below is a to-do item with tonight's cost attached. They are
     listed rather than omitted, because a chain that quietly covers three stages
@@ -367,6 +398,11 @@ def default_stages() -> list[Stage]:
         Stage("preflight", run=_preflight_stage),
         Stage("poll-registry", run=_poll_registry_stage, needs=("preflight",)),
         Stage("recompute-window", run=_recompute_window_stage, needs=("preflight",)),
+        # BEFORE anything that could produce a claim. An empty `capability`
+        # table does not degrade extraction, it refuses every insert at the
+        # foreign key — so this belongs upstream of the sweeps rather than
+        # beside the rollup.
+        Stage("load-capabilities", run=_load_capabilities_stage, needs=("preflight",)),
         Stage("write-coverage-gaps", run=None, needs=("recompute-window",),
               starves="coverage_gap stays empty, so the four kinds "
                       "LoadReport already builds — 0 unsourced, 0 missing-spelling, "

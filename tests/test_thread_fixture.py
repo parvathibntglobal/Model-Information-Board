@@ -57,6 +57,8 @@ def claim_for(thread, start: int, end: int, document_id: str) -> ExtractedClaim:
                 "resolved_version_id": "google/gemini-2.5-flash",
                 "specificity": "family",
                 "resolution_confidence": 0.7,
+                # REQUIRED since 2026-08-21. No default to fall through to.
+                "speaking": "own-experience",
             },
             "capability": "summarization.fidelity",
             "polarity": "negative",

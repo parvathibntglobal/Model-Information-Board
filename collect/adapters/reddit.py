@@ -8,6 +8,38 @@ eighteen days because a selection that cannot state what it saw would write
 #54 landed the coverage columns, so it can now state it. The rules live in
 `collect/assemble/thread.py`; this module fetches and hands over.
 
+WHERE `document.author_id` IS WRITTEN: `reddit_write.py`, SINCE 2026-08-21
+--------------------------------------------------------------------------
+There was no Reddit document writer, so nothing set it - **0 of 6 reddit
+`document` rows carried an author** against 30 of 31 blog rows, and
+`blog/write.py` was the only module in the repository that set the column.
+`collect/adapters/reddit_write.py` now does, canonicalising through
+`author_external_id` below and refusing a row where the account is gone.
+
+**The 33 existing rows are still NULL.** `scripts/backfill_authors.py` sources
+the id from the stored payload rather than re-fetching, and reported 33
+candidates with 0 attributable on 2026-08-21 because every reddit and github
+payload is absent from the local raw store - the database is remote and its
+store is on that host. Run it there.
+
+The rest of this section is why the column matters, and it is unchanged.
+
+The handles exist: `RedditComment.author` is parsed and the stored API payload
+carries one per comment - the 1u1b22l thread has **152 distinct commenters**. So
+this is a writer gap and not missing data.
+
+It is load-bearing downstream. `judge/curate/gate.py:count` dedups voices off
+`claim.author_id`, which comes from `document.author_id`, so every Reddit claim
+currently collapses into one voice: the four on staging show
+`independent_voices = 1` for a thread with 152 authors. Reddit is also the only
+platform in the corpus with more than one author, so it is the only one that can
+supply voice diversity at all.
+
+Sourcing a handle from the payload at read time - as
+`scripts/extraction_reading_pool.py` does for a labelling artifact - is fine for
+something a human reads and wrong for anything that reaches a cell, because a
+cell needs a stable identity that `author_identity_cluster` can merge.
+
 WHY THIS PLATFORM IS DIFFERENT, AND WHAT THAT CLAIM IS ACTUALLY WORTH
 ----------------------------------------------------------------------
 **RETRIEVAL DOES NOT GUARANTEE THE PHRASE. THE SIEVE CARRIES IT.** That is the

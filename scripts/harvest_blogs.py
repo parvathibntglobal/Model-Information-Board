@@ -106,9 +106,26 @@ def main(argv: list[str] | None = None) -> int:
                 conn.close()
                 return 1
 
+    # ⚠ THIS DICT DROPPED TWO FIELDS AND THAT MADE REAL WORK INVISIBLE.
+    #
+    # `BlogAssembleReport` carries `author_rows` and
+    # `authors_attached_to_existing` per feed. Neither was accumulated here, so
+    # the sweep that took blog authors from 1 to 14 reported nothing about it and
+    # the change had to be found by querying the database afterwards.
+    #
+    # An accumulator that keeps SOME fields is the same failure as one that keeps
+    # only the last: the absence of a number reads as the absence of the thing.
+    # It is milder only because the dropped fields were additive rather than
+    # overwritten - the report was not wrong, it was silent, and silent is what
+    # nobody checks. Same family as a comparison that finds no rows and reports
+    # no differences.
+    #
+    # A field added to `BlogAssembleReport` must be added here, or it does not
+    # exist as far as anyone running this can tell.
     totals = {"feeds": 0, "refused": 0, "articles": 0, "documents": 0,
               "contexts": 0, "nothing_extracted": 0, "already_present": 0,
-              "members_unresolved": 0, "unreadable_after_write": 0}
+              "members_unresolved": 0, "unreadable_after_write": 0,
+              "author_rows": 0, "authors_attached_to_existing": 0}
 
     try:
         with build_client() as client:
@@ -140,13 +157,22 @@ def main(argv: list[str] | None = None) -> int:
                     totals["articles"] += stored
                     continue
 
-                report = write_blog_run(conn, run, store=store)
+                # `feed=` IS WHAT GIVES A DOCUMENT AN AUTHOR, and omitting it
+                # is why the first nine-feed sweep wrote 89 documents with zero
+                # authors. `write_blog_run` documents the default as "author_id
+                # NULL, honestly unknown" — honest, and not what a sweep wants.
+                # The writer supported this the whole time; nothing passed it.
+                report = write_blog_run(conn, run, store=store, feed=feed)
                 conn.commit()
                 totals["articles"] += report.articles_seen
                 totals["documents"] += report.documents_inserted
                 totals["contexts"] += report.contexts_inserted
                 totals["nothing_extracted"] += report.nothing_extracted
                 totals["already_present"] += report.already_present
+                totals["author_rows"] += report.author_rows
+                totals["authors_attached_to_existing"] += (
+                    report.authors_attached_to_existing
+                )
                 print(f"  {feed_id:38s} {report.summary()}")
     finally:
         if conn is not None:
