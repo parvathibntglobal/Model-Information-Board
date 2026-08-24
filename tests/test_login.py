@@ -187,3 +187,70 @@ def test_the_login_limiter_does_not_share_a_bucket_with_the_ask_box(monkeypatch)
         c.post("/ask/understand", json={"text": "x", "shape": "task"})
 
     assert c.post("/auth/login", json={"email": EMAIL, "password": PASSWORD}).status_code == 200
+
+
+# ── the credentials that ship in the repo ───────────────────────────────────
+
+
+DEMO_PASSWORD = "modelboard-demo"
+
+
+@pytest.fixture
+def _published(monkeypatch):
+    """Exactly what a fresh clone gets from .env.example."""
+    monkeypatch.setenv("AUTH_EMAIL", login.DEMO_EMAIL)
+    monkeypatch.setenv("AUTH_PASSWORD_HASH", login.DEMO_PASSWORD_HASH)
+    monkeypatch.setenv("SESSION_SECRET", login.DEMO_SESSION_SECRET)
+
+
+def test_the_shipped_password_actually_works(_published):
+    """If this fails, every collaborator's first five minutes are wasted."""
+    r = _client().post(
+        "/auth/login", json={"email": login.DEMO_EMAIL, "password": DEMO_PASSWORD}
+    )
+    assert r.status_code == 200
+
+
+def test_the_shipped_credentials_are_recognised_as_published(_published):
+    assert login.uses_published_credentials() is True
+
+
+def test_generated_credentials_are_not(monkeypatch):
+    monkeypatch.setenv("AUTH_PASSWORD_HASH", login.hash_password("something-else"))
+    monkeypatch.setenv("SESSION_SECRET", "a-real-secret")
+    assert login.uses_published_credentials() is False
+
+
+def test_the_shipped_credentials_are_REFUSED_outside_development(_published, monkeypatch):
+    """The published SESSION_SECRET lets anyone forge a token for any account.
+
+    A deployment running on it has a sign-in that checks nothing, so this
+    refuses rather than warning - a warning in a comment is what lets it travel.
+    """
+    monkeypatch.setenv("ENVIRONMENT", "staging")
+    r = _client().post(
+        "/auth/login", json={"email": login.DEMO_EMAIL, "password": DEMO_PASSWORD}
+    )
+    assert r.status_code == 503
+    assert "judge.credentials" in r.json()["detail"]
+
+
+def test_replacing_only_the_password_is_not_enough(_published, monkeypatch):
+    """The secret is the dangerous half, so a fresh password alone must not pass.
+
+    Someone hardening a deployment reaches for the password first. If that
+    silenced the refusal, the forgeable secret would survive the one moment
+    anybody was looking at this.
+    """
+    monkeypatch.setenv("ENVIRONMENT", "staging")
+    monkeypatch.setenv("AUTH_PASSWORD_HASH", login.hash_password("a-new-password"))
+
+    r = _client().post(
+        "/auth/login", json={"email": login.DEMO_EMAIL, "password": "a-new-password"}
+    )
+    assert r.status_code == 503
+
+
+def test_health_reports_that_the_demo_login_is_in_use(_published):
+    body = _client().get("/health").json()
+    assert "demo_credentials" in body["auth"]

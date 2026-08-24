@@ -59,10 +59,23 @@ def _environment() -> str:
 
 def auth_state() -> dict[str, object]:
     """What `/health` reports, so exposure is answerable rather than assumed."""
+    state: dict[str, object] = {}
+
+    # Reported whether or not it is currently refusing, because "are we on the
+    # published demo login" is a question an operator should be able to answer
+    # from outside the box rather than by reading someone's .env.
+    if login.uses_published_credentials():
+        state["demo_credentials"] = (
+            "sign-in is using the credentials published in .env.example. Fine for "
+            "development; refused outside it, because the signing secret is public "
+            "and any token can be forged. Replace with `python -m judge.credentials`."
+        )
+
     if _token():
-        return {"required": True, "reason": "API_TOKEN is set"}
+        return {**state, "required": True, "reason": "API_TOKEN is set"}
     if _environment() == DEV:
         return {
+            **state,
             "required": False,
             "reason": (
                 "no API_TOKEN and ENVIRONMENT=development, so this API is OPEN. "
@@ -70,6 +83,7 @@ def auth_state() -> dict[str, object]:
             ),
         }
     return {
+        **state,
         "required": True,
         "reason": f"no API_TOKEN and ENVIRONMENT={_environment()}, so every route refuses",
     }

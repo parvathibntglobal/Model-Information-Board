@@ -191,6 +191,26 @@ def sign_in(req: LoginRequest) -> LoginResponse:
             ),
         )
 
+    # THE PUBLISHED CREDENTIALS ARE A DEVELOPMENT AFFORDANCE AND NOTHING ELSE.
+    # `.env.example` ships a working email, hash and signing secret so a fresh
+    # clone can sign in without ceremony. The signing secret is the reason this
+    # check exists: with it, anyone can mint a valid token for any account
+    # without a password, so a deployment running on it has a login that checks
+    # nothing. Refused here rather than warned about, because a warning in a
+    # comment is what lets it travel.
+    environment = os.getenv("ENVIRONMENT", "development").strip().lower()
+    if login.uses_published_credentials() and environment != "development":
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "this server is running on the demo credentials published in "
+                ".env.example, and ENVIRONMENT is not development. The signing "
+                "secret is public, so any token can be forged and sign-in would "
+                "check nothing. Run `python -m judge.credentials` and replace all "
+                "three values."
+            ),
+        )
+
     if not login.authenticate(req.email, req.password):
         raise HTTPException(status_code=401, detail="Those details do not match an account.")
 
