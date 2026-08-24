@@ -594,3 +594,41 @@ Ordered cheapest first, which is how they should be applied. Numbers are
 | 11 | **Name the question before choosing the tool**, and say which question you answered |
 | 12 | **A containment match is a boundary match's false positive.** `\b` both ends, and ask whether any surface in the list is a word |
 | 13 | **Grep the SQL too.** A column written as a literal inside a statement answers no search for the assignment |
+| 14 | **`grep "<name>"` reads as presence. `grep "def <name>"` is the check.** A bare substring search matches any longer identifier containing the name — `_local_part` hits `def test_local_part` — so an absent symbol returns a line and looks defined. Verify a name by its DEFINITION, and when there is no definition, ask for a `file:line` before searching a second time: re-deriving an absence generates nothing |
+| 15 | **A description is not a change.** ~20 measurement documents against ~10 code changes in one session, and every change that landed had a failing test to attach to. The ones that stayed documents were cross-lane, or had no reproduction to pin. So the ratio is not a work-rate observation, it is a diagnostic: **if the failing test cannot be written, the defect is not yet understood well enough to fix** — which is also why an asserted symbol with no `file:line` cannot become a change, only a search |
+
+---
+
+## Shapes 14 and 15 are one shape from two sides — 2026-08-21
+
+Recorded together because they cost real turns in the same session and each one
+hides the other.
+
+**Three symbols were asserted that exist in no file, on no branch, in no
+commit** — `_local_part`, `_seed_ids`, and a `mistralai/mistral-large-3` registry
+row. Each time, a fix, a blast radius and a re-seed were designed on top of them,
+and each time the design was coherent: the reasoning was sound and its subject
+was absent.
+
+**Two things let that run:**
+
+- **from the asserting side**, `grep "_local_part"` returns
+  `tests/test_registry_aliases.py:64: def test_local_part():` — a real line, in a
+  real file, containing the name. Substring presence reads as definition. That is
+  shape 14, and it is the same family as shape 12: *a containment match is a
+  boundary match's false positive*, applied to identifiers instead of surfaces.
+- **from the answering side**, I replied "it does not exist" five times and
+  re-derived it from scratch each time instead of asking for the anchor once.
+  Restating an absence is not evidence-generating. That is shape 15's other face:
+  I produced descriptions where a question would have been cheaper.
+
+**And scepticism was not a safe default either**, which is what made it
+expensive: `cell_current` was raised the same way and is entirely real — a view in
+`contract/tables.sql:648`, read by `judge/ask/answer.py`, with a stale-row hazard
+nothing else would have surfaced. One of five was real. So each had to be
+checked; the waste was in checking the same one five times.
+
+**The rule, both directions:** cite a path or a symbol seen in a report, not one
+inferred from a mechanism — and when given a name with no path, ask for the path
+before the second search.
+

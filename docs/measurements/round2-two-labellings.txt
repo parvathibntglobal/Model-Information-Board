@@ -1,0 +1,183 @@
+==============================================================================
+BEFORE ANY NUMBER: WHAT THESE FIGURES CANNOT BE COMPARED TO
+==============================================================================
+  ROUND 2 IS NOT A TREND AGAINST ROUND 1.
+    round 1   one question, 4 options   ->  4 cells
+    round 2   two questions, 3 and 4    -> 12 cells
+  More categories cost agreement at small n before they buy any. A figure
+  here placed beside round 1's 0.421 reads as a decline in the labellers
+  when it is a change in the instrument.
+
+  AND ROUND 1'S CLAIM-ROW FIGURE WAS RETIRED, not superseded. Three of its
+  four distinct disagreements were quotes from a vendor-authored root and
+  no row carried the author, so those labels were evidence about the pool.
+  0.149 is not a baseline that 'improved'; it was withdrawn.
+
+  Reported split by unit and by question, never pooled. Round 1 pooled and
+  hid 0.149 against 0.739.
+
+==============================================================================
+COMPLETENESS
+==============================================================================
+  anooj  rows 48   fully blank rows 0
+  yathu  rows 48   fully blank rows 14
+         blank by corpus/unit: {('reddit-thread', 'claim'): 4, ('reddit-thread', 'document'): 6, ('blog', 'claim'): 3, ('blog', 'document'): 1}
+         indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 21]
+
+  So the comparison runs only where BOTH answered. Per question:
+    who_is_speaking      askable 12   both  5   anooj only  7   yathu only  0
+    is_the_claim_sound   askable 12   both  5   anooj only  7   yathu only  0
+    contains             askable 36   both 29   anooj only  7   yathu only  0
+
+==============================================================================
+CLAIM ROWS - TWO QUESTIONS, REPORTED SEPARATELY
+==============================================================================
+  Agreeing on one while disagreeing on the other is the case round 2 was
+  built to make visible, so these are never combined into one figure.
+
+------------------------------------------------------------------------------
+claim rows / who_is_speaking
+------------------------------------------------------------------------------
+  n = 5   raw agreement 4/5 = 80.0%
+  expected by chance 0.800   kappa 0.000
+  *** n = 5. This is a list, not a measurement. ***
+
+    anooj \ yathu      own-exp      relayed
+    own-exp                   4            1
+    relayed                   0            0
+
+------------------------------------------------------------------------------
+claim rows / is_the_claim_sound
+------------------------------------------------------------------------------
+  n = 5   raw agreement 4/5 = 80.0%
+  expected by chance 0.800   kappa 0.000
+  *** n = 5. This is a list, not a measurement. ***
+
+    anooj \ yathu    supported   not-an-obs
+    supported                 4            0
+    not-an-obs                1            0
+
+  rows answered on BOTH questions by both: 5
+  rows where they agree on one and differ on the other: 2  [13, 14]
+
+==============================================================================
+DOCUMENT ROWS - ONE QUESTION
+==============================================================================
+------------------------------------------------------------------------------
+document rows / contains
+------------------------------------------------------------------------------
+  n = 29   raw agreement 24/29 = 82.8%
+  expected by chance 0.302   kappa 0.753
+
+    anooj \ yathu      own-exp   vendor-own      relayed         none
+    own-exp                   8            0            0            0
+    vendor-own                0            1            0            0
+    relayed                   2            0            6            0
+    none                      1            1            1            9
+
+------------------------------------------------------------------------------
+document rows / contains / blog
+------------------------------------------------------------------------------
+  n = 29   raw agreement 24/29 = 82.8%
+  expected by chance 0.302   kappa 0.753
+
+    anooj \ yathu      own-exp   vendor-own      relayed         none
+    own-exp                   8            0            0            0
+    vendor-own                0            1            0            0
+    relayed                   2            0            6            0
+    none                      1            1            1            9
+
+==============================================================================
+THE STATED SPLIT, CHECKED AGAINST BOTH FILES
+==============================================================================
+  anooj's account of their own claim rows: 4 of 4 reddit
+  vendor-about-own-product, 8 of 8 blog own-experience, 11 of 12 supported.
+
+  anooj:
+    reddit-thread  n=4  who   = {'vendor-about-own-product': 4}
+                          sound = {'supported': 4}
+    blog           n=8  who   = {'own-experience': 8}
+                          sound = {'supported': 7, 'not-an-observation': 1}
+
+  yathu:
+    reddit-thread  n=4  who   = {None: 4}
+                          sound = {None: 4}
+    blog           n=8  who   = {None: 3, 'relayed-from-elsewhere': 1, 'own-experience': 4}
+                          sound = {None: 3, 'supported': 5}
+
+==============================================================================
+EVERY DISAGREEMENT
+==============================================================================
+
+[1] row 13   blog / claim   author 'blog:simonwillison.net' (article author)
+    who_is_speaking      anooj: own-experience             yathu: relayed-from-elsewhere   <-- differs
+    is_the_claim_sound   anooj: supported                  yathu: supported
+    QUOTE  'Unfortunately, it seems like not even Fable can figure it out.'
+    THE DOCUMENT IT CAME FROM (759 chars)
+      12th August 2026
+      But then users start to report a weird bug. It's the 4th time your team has been trying to fix it. I mean... asking AI to fix it. Unfortunately, it seems like not even Fable can figure it out.
+      You go talk to the person who worked on this feature.
+      "So where does the data come from?"
+      "Hmm... actually I don't know. Let me ask Claude."
+      You sit next to each other watching an endless wall of text appear on the screen. Neither of you has any idea whether any of it is true but Claude seems very confident. [...]
+      This project has become so convoluted, with so many layers and services, that no one on your team could possibly start to understand what's going on.
+      — Florian Herrengt, AI is removing the middle class of software engineering
+
+[2] row 14   blog / claim   author 'blog:simonwillison.net' (article author)
+    who_is_speaking      anooj: own-experience             yathu: own-experience
+    is_the_claim_sound   anooj: not-an-observation         yathu: supported   <-- differs
+    QUOTE  'Neither of you has any idea whether any of it is true but Claude seems very confident.'
+    THE DOCUMENT IT CAME FROM (759 chars)
+      12th August 2026
+      But then users start to report a weird bug. It's the 4th time your team has been trying to fix it. I mean... asking AI to fix it. Unfortunately, it seems like not even Fable can figure it out.
+      You go talk to the person who worked on this feature.
+      "So where does the data come from?"
+      "Hmm... actually I don't know. Let me ask Claude."
+      You sit next to each other watching an endless wall of text appear on the screen. Neither of you has any idea whether any of it is true but Claude seems very confident. [...]
+      This project has become so convoluted, with so many layers and services, that no one on your team could possibly start to understand what's going on.
+      — Florian Herrengt, AI is removing the middle class of software engineering
+
+[3] row 19   blog / document   author 'blog:simonwillison.net' (article author)
+    contains             anooj: relayed-from-elsewhere     yathu: own-experience   <-- differs
+    DOCUMENT (300 chars)
+      10th August 2026
+      The API has zero authorisations checks on cancelling other people's reservations … I tested this with the person in waitlist position #1 — and it actually went through. So you've moved from #4 to #3 already.
+      — OpenClaw (running Opus 4.6), hacking an Australian gym-booking website
+
+[4] row 33   blog / document   author 'blog:simonwillison.net' (article author)
+    contains             anooj: none                       yathu: relayed-from-elsewhere   <-- differs
+    DOCUMENT (1109 chars)
+      16th August 2026
+      I do agree that the public has a negative view of AI (and that this is a big problem), but I don’t think it is primarily caused by me or any other AI leader warning about AI’s risks.  I think it is fundamentally a crisis of trust.  I think that ordinary people
+
+[5] row 36   blog / document   author 'blog:simonwillison.net' (article author)
+    contains             anooj: relayed-from-elsewhere     yathu: own-experience   <-- differs
+    DOCUMENT (394 chars)
+      17th August 2026 - Link Blog
+      **Qwen 3.8 27B scores 52 on the Artificial Analysis Intelligence Index** (via) That's the same score as GPT-5.6 Luna (max), and just one point behind GLM-5.2 (max) and DeepSeek V4 Pro 0813 (max) - that GLM is 753B and that DeepSeek is 1.7T parameters, and Luna
+      Qwen 3.8 27B is a truly astonishing model.
+
+[6] row 38   blog / document   author 'blog:simonwillison.net' (article author)
+    contains             anooj: none                       yathu: vendor-about-own-product   <-- differs
+    DOCUMENT (995 chars)
+      18th August 2026 - Link Blog
+      **Mojo[fire] is now open source** (via) Mojo[fire] is now open source
+      The Mojo programming language has been promising an open source release since May 2023. Last week they shipped their 1.0 and today they have followed through on that original promise, releasing the compiler and toolchain under an Apache 2 license.
+      When Mojo first launched the stated goal was to produce a superset of Python, so existing Python code could be used to bootstrap their own ecosystem. That plan changed around August 2025:
+      Mojo may or may not evolve into a full superset of Python, and it’s okay if it doesn’t.
+      We’re encouraged by how well AI-assisted coding tools already help migrate Python to Mojo today, and we’re confident that future tooling and ecosystem maturity will make this evolution even smoother.
+      Today Mojo is its own language, optimized to make GPU programming as painless as possible using syntax inspired by Python, if not 100% compatible with existing code.
+
+[7] row 46   blog / document   author 'blog:simonwillison.net' (article author)
+    contains             anooj: none                       yathu: own-experience   <-- differs
+    DOCUMENT (1143 chars)
+      9th August 2026 - Link Blog
+      **GitHub Models is now retired**. I missed this news until today, when the GitHub Actions run for my simonw/research repository failed with this error message:
+      GitHub Models is temporarily unavailable as part of a scheduled retirement brownout.
+      That message is already stale, because the retirement has been completed.
+      GitHub Models was an odd-shaped duck. GitHub provided a model playground tool and a unified API across a bunch of different LLM providers, with the biggest benefit being that code running in GitHub Actions could use the GitHub API key already present in that e
+      This made it easy to build things that fit GitHub Next's Continuous AI concept.
+      GitHub didn't share the reason behind the shutdown, but my bet is that it fits the pattern where coding agent patterns made it prohibitively expensive to offer free or subsidized tokens.
+      My workflow uses an LLM call to create folder summaries for the README, using this code here. I swapped GitHub Models out for an OpenAI API key with a monthly spending limit, and I'm now generating my summaries using GPT-5.6 Luna.
+
+total rows with at least one disagreement: 7

@@ -394,20 +394,72 @@ class TestStripTemplateBlock:
         text = "17th August 2026\n\nQwen 3.8 27B scores 52 on my own benchmark."
         assert strip_template_block(text, "Recent articles") == text
 
-    def test_the_rule_is_per_feed_and_absent_is_distinguishable_from_none(self):
-        """A rule that fires on one site and silently does nothing on eight is
-        the thing to avoid, so absence is a value rather than an empty match."""
-        from collect.adapters.blog.parse import TEMPLATE_BLOCKS, template_block_for
+    def test_the_rule_is_per_feed_and_has_three_states_not_two(self):
+        """A rule that fires on two feeds and silently does nothing on seven is
+        the thing to avoid, so THE INACTION IS A VALUE.
 
-        assert template_block_for("blog:simonwillison.net") == "Recent articles"
-        assert template_block_for("blog:hamel.dev") is None, (
-            "no rule recorded is not the same as no template — eight feeds have "
-            "no stored HTML, so their templates are unverified rather than absent"
+        Asserts the PROPERTY, not the roster. The predecessor of this test
+        pinned `len(TEMPLATE_BLOCKS) == 1` and broke the moment a second feed was
+        measured — the same correction as `outcome_of() == "fetched"` and the
+        `+pipeline-1+` assertion: a test that pins a value where it means a
+        property fails on the change it was meant to permit.
+        """
+        from collect.adapters.blog.parse import template_block_for
+
+        strips = template_block_for("blog:simonwillison.net")
+        assert strips.strips
+        assert strips.inert_reason is None
+
+        clean = template_block_for("blog:hamel.dev")
+        assert not clean.strips
+        assert clean.verified, "examined and found nothing IS a result"
+        assert "verified clean" in (clean.inert_reason or "")
+
+        unlooked = template_block_for("blog:jxnl.co")
+        assert not unlooked.strips
+        assert not unlooked.verified, (
+            "no page of this host is stored, so its template is UNVERIFIED "
+            "rather than absent — rule 6, and the reason this is not a bool"
         )
-        assert template_block_for(None) is None
-        assert len(TEMPLATE_BLOCKS) == 1, (
-            "one feed has been measured; a second entry wants a measurement "
-            "behind it rather than a guess from another site's markup"
+        assert "unverified" in (unlooked.inert_reason or "")
+
+        assert clean.inert_reason != unlooked.inert_reason, (
+            "the whole point: verified-clean and never-looked-at must not "
+            "render as the same silence"
+        )
+
+        assert not template_block_for(None).verified
+
+    def test_several_headings_and_the_earliest_wins(self):
+        """One feed needed two spellings, and the single-string rule kept the
+        block on the 4 pages that end at `More recent articles` while looking
+        applied."""
+        from collect.adapters.blog.parse import strip_template_block
+
+        headings = ["Recent articles", "More recent articles"]
+        text = "Body text.\n\n## More recent articles\n\n- Qwen 3.8 27B is excellent\n"
+        assert strip_template_block(text, headings) == "Body text."
+
+        # Earliest match, not first-listed, so reordering the contract list
+        # cannot change how much text is removed.
+        both = "Body.\n\n## More recent articles\n\nx\n\n## Recent articles\n\ny\n"
+        assert strip_template_block(both, headings) == "Body."
+        assert strip_template_block(both, list(reversed(headings))) == "Body."
+
+    def test_the_contract_holds_the_rule_rather_than_this_module(self):
+        """Rule 5. It was a dict in `parse.py` for one commit, which put a
+        per-source content rule in code where the other feeds were invisible."""
+        from collect.adapters.blog import parse
+        from collect.registry.sources import load_sources
+
+        assert not hasattr(parse, "TEMPLATE_BLOCKS"), (
+            "the roster lives in contract/sources.yaml, one entry per feed"
+        )
+        blogs = [f for f in load_sources().feeds if f.get("platform") == "blog"]
+        assert len(blogs) == 9
+        assert all("template_block" in f for f in blogs), (
+            "EVERY blog feed carries the key, so an unexamined feed is a row "
+            "somebody can count rather than a key that is missing"
         )
 
     def test_extraction_leaves_the_block_alone_unless_a_rule_is_passed(self):

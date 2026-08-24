@@ -51,6 +51,9 @@ def claim_json(quote: str, start: int, end: int, **overrides) -> str:
             "resolved_version_id": "google/gemini-2.5-flash",
             "specificity": "family",
             "resolution_confidence": 0.8,
+            # REQUIRED since 2026-08-21. A model answer that omits it fails
+            # schema validation, which is the enforcement this field is for.
+            "speaking": "own-experience",
         },
         "capability": "summarization.fidelity",
         "polarity": "negative",
@@ -177,10 +180,22 @@ class TestSchemaRetry:
         assert len(client.calls) == 2, "MAX_SCHEMA_RETRIES = 1, so two calls total"
 
     def test_an_empty_tool_call_is_not_an_empty_result(self):
-        """Silence has to be explained, not inferred from a blank payload."""
+        """Silence has to be explained, not inferred from a blank payload.
+
+        The wording changed when salvage landed: an unreadable answer now says
+        so specifically instead of saying "nothing parseable". What the test
+        asserts is the intent, plus the stronger guarantee salvage added -
+        `zero_kind` distinguishes this from a document that said nothing.
+        """
+        from judge.extract.runner import ZERO_UNSALVAGED
+
         run, _ = run_with("", "")
         assert run.verified == []
-        assert "parseable" in (run.no_claim_reason or "")
+        assert run.no_claim_reason, "silence must be explained"
+        assert "could not be read" in run.no_claim_reason
+        assert run.zero_kind == ZERO_UNSALVAGED, (
+            "an unreadable answer is a validation zero, not a silent one"
+        )
 
 
 class TestTheUntrustedBlock:
@@ -225,3 +240,106 @@ class TestTheFakeItself:
         """
         with pytest.raises(AssertionError, match="ran out of scripted responses"):
             extract(thread(), client=FakeClient(), capability_keys=CAPABILITIES)
+
+class TestPerClaimSalvage:
+    """Eleven good claims must not depend on the twelfth.
+
+    `qwen-38-27b` proposed 14 claims twice and was recorded as a clean zero both
+    times, because two quotes were 15 and 8 characters over the limit. The
+    failure also SCALES WITH SUCCESS: 2 of 30 documents lost everything before
+    the quote limit went into the field description, and 5 of 30 after, when
+    more documents were producing claims at all.
+    """
+
+    @staticmethod
+    def _claim(**over):
+        """One claim dict. `claim_json` returns the whole envelope."""
+        return json.loads(claim_json("a quote", 0, 7, **over))["claims"][0]
+
+    def test_a_valid_batch_is_unchanged(self):
+        from judge.extract.runner import salvage_claims
+
+        payload = {"claims": [self._claim(), self._claim()], "no_claim_reason": None}
+        built, lost, err = salvage_claims(json.dumps(payload))
+        assert err is None
+        assert len(built) == 2
+        assert lost == []
+
+    def test_one_bad_claim_does_not_take_the_others(self):
+        """The whole point."""
+        from judge.extract.runner import salvage_claims
+
+        good = [self._claim() for _ in range(11)]
+        bad = self._claim()
+        bad["quote"] = "x" * 400
+        built, lost, err = salvage_claims(json.dumps({"claims": [*good, bad]}))
+        assert err is None
+        assert len(built) == 11
+        assert len(lost) == 1
+        assert lost[0].index == 11
+
+    def test_the_unsalvageable_claim_is_recorded_not_dropped(self):
+        """A count of losses is not evidence; the quote is."""
+        from judge.extract.runner import salvage_claims
+
+        bad = self._claim()
+        bad["quote"] = "y" * 400
+        _, lost, _ = salvage_claims(json.dumps({"claims": [bad]}))
+        assert lost[0].raw["quote"] == "y" * 400
+        assert any("quote" in e for e in lost[0].errors)
+
+    def test_an_unreadable_envelope_says_so_and_claims_nothing(self):
+        """A malformed envelope is a different failure from a malformed claim."""
+        from judge.extract.runner import salvage_claims
+
+        for payload in ("not json", "[]", '{"no_claims_key": 1}', '{"claims": 3}'):
+            built, lost, err = salvage_claims(payload)
+            assert err is not None, payload
+            assert built == [] and lost == []
+
+    def test_unclassified_is_not_guessed_from_a_failed_envelope(self):
+        """It lives on the envelope, and the envelope is what failed.
+
+        Reading it out of a partially-salvaged answer would be inventing a
+        finding about the capability vocabulary from a broken parse.
+        """
+        import inspect
+
+        from judge.extract import runner
+
+        src = inspect.getsource(runner.extract)
+        salvage_branch = src.split("SALVAGE.")[1].split("else:")[0]
+        assert "run.unclassified" not in salvage_branch
+
+    def test_proposed_counts_what_could_not_be_built(self):
+        """A 14-claim document that stored nothing had `proposed = 0` before."""
+        from judge.extract.runner import ExtractionRun, Unsalvaged
+
+        run = ExtractionRun(thread_context_id="t")
+        run.unsalvaged = [Unsalvaged(index=0, errors=("x",), raw={})]
+        assert run.proposed == 1
+        assert run.rejection_rate == 0.0 or run.rejection_rate is not None
+
+
+class TestARealZeroAndAValidationZero:
+    """Two zeros that read identically until they were named."""
+
+    def test_a_silent_zero_is_marked_silent(self):
+        from judge.extract.runner import ZERO_SILENT
+
+        run, _ = run_with(
+            json.dumps({"claims": [], "no_claim_reason": "nothing about a model"}), ""
+        )
+        assert run.verified == []
+        assert run.zero_kind == ZERO_SILENT
+
+    def test_a_validation_zero_is_marked_unsalvaged(self):
+        from judge.extract.runner import ZERO_UNSALVAGED
+
+        bad = json.loads(claim_json("a quote", 0, 7))["claims"][0]
+        bad["quote"] = "z" * 400
+        run, _ = run_with(json.dumps({"claims": [bad]}), "")
+        assert run.verified == []
+        assert run.zero_kind == ZERO_UNSALVAGED
+        assert len(run.unsalvaged) == 1
+        assert "validation zero" in (run.no_claim_reason or "")

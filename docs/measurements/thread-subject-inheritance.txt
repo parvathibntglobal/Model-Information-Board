@@ -1,0 +1,82 @@
+==============================================================================
+1. IS IT ALREADY HAPPENING? THE FOUR STORED CLAIMS
+==============================================================================
+  `wrap_untrusted(flattened_text)` gives the extractor the WHOLE flattened
+  thread - root and children together. `judge/extract/prompt.py` says
+  nothing about the root, the thread, or a subject: it asks for "a MODEL,
+  named specifically enough to identify" and leaves the rest open.
+
+  comment 1  specificity=version  mv=mv_86c0c8bf10aa4a0d  capability=code.generation
+    quote: 'exceptional performance in software engineering'
+    surfaces INSIDE the quote: NONE
+    ^^ THE QUOTE NAMES NO MODEL. The subject came from elsewhere in the
+       flattened thread, and the row records specificity=version with
+       nothing saying the subject was inherited.
+
+  comment 1  specificity=version  mv=mv_86c0c8bf10aa4a0d  capability=over_refusal
+    quote: "So when Fable's classifiers detect a request related to cybersecurity, biology and chemistry, or distillation, the respo"
+    surfaces INSIDE the quote: ['claude opus 4.8', 'claude-opus-4.8', 'claudeopus4.8', 'claude opus 4', 'claude-opus-4', 'claudeopus4', 'claude opus', 'opus 4.8', 'opus-4.8', 'opus4.8', 'opus 4', 'opus-4', 'opus4']
+
+  comment 1  specificity=version  mv=mv_86c0c8bf10aa4a0d  capability=over_refusal
+    quote: "We'll keep refining the safeguards to reduce false positives."
+    surfaces INSIDE the quote: NONE
+    ^^ THE QUOTE NAMES NO MODEL. The subject came from elsewhere in the
+       flattened thread, and the row records specificity=version with
+       nothing saying the subject was inherited.
+
+  comment 5  specificity=version  mv=mv_86c0c8bf10aa4a0d  capability=code.generation
+    quote: 'gives 10%+ better results on SWE-Bench'
+    surfaces INSIDE the quote: NONE
+    ^^ THE QUOTE NAMES NO MODEL. The subject came from elsewhere in the
+       flattened thread, and the row records specificity=version with
+       nothing saying the subject was inherited.
+
+==============================================================================
+2. WHAT A RULE WOULD ADMIT, AND WHAT SURVIVES TRIAGE
+==============================================================================
+  root: 'Introducing Claude Fable 5' -> ['anthropic/claude-fable-5']
+  comments with a body: 195
+
+  resolve to a model themselves (nothing changes)    27
+  would INHERIT under the two conditions            168  (86.2%)
+
+  85.7% eligibility is not reassurance. The two conditions are necessary
+  and nowhere near sufficient: 'names no other model' is satisfied by every
+  comment about pricing, the IPO, or nothing at all.
+
+  of the 168 eligible, dropped by a NON-ENTITY gate    72
+  reaching extraction                                   96  (49.2% of the thread)
+  drop reasons: {'too-short-no-artifact': 72}
+
+  a sample of what would reach a paid extraction call:
+    oqp1g34 score=8: 'i know math, i saw their comment about capacity.  but amount of work is measured in tokens/$ per tas'
+    oqppqg4 score=6: "OR they want to look extra profitable for the IPO. Don't assume good intentions where all the number"
+    oqodw1j score=145: 'Using it in any capacity will cost like $5000/mo'
+    oqpry3l score=13: 'Their monthly bill will be so large they will rather hire 10 juniors to do that shit'
+    oqr7qd1 score=4: 'Gratz. I hope everyone got some decent work done while they still could, before the ai companies bec'
+    oqoe2ii score=18: 'from another commenter they said its a temp measure they will restore it when they can'
+    oqog11u score=27: 'It makes sense - they have capacity to give it to everyone now but not later. '
+    oqokyvp score=18: 'They probably used the Odyssey (next next version) for that. An LLM so powerful that caused the sing'
+    oqom4s8 score=34: "Too bad they didn't use Chimaera. That's the most powerful model in the world but they don't have ac"
+    oqop8ge score=19: "Too bad they didn't use ███████. Which is most powerful model, so powerful its not even in my head y"
+
+==============================================================================
+3. THE VOICE-INFLATION FIGURE
+==============================================================================
+  distinct authors in the thread             152 over 195 comments
+  distinct authors among the eligible        134 over 168 comments
+  distinct authors among triage survivors     80 over 96 comments
+
+  gate.py:count takes ONE representative per voice_id, so the same person
+  commenting twice is already absorbed. What is NOT absorbed is different
+  people inheriting the SAME subject from ONE root.
+
+  Thresholds this would be measured against (judge/curate/gate.py):
+    N_EFF_MINIMUM             see gate.py - n_eff >= 3.0 demands 4+ claims
+    GENERALLY_PRAISED_VOICES  3
+    WIDELY_PRAISED_VOICES     5
+    AUTHOR_CAP_BELOW_FIVE_VOICES 0.50
+
+  So 80 inherited voices from one announcement thread clears
+  WIDELY_PRAISED_VOICES (5) on its own, from a single act of naming by the
+  vendor. The author cap does not help: the authors ARE different people.

@@ -26,6 +26,29 @@ this module is the port: the 304 path is real and tested now against
 `InMemoryValidatorStore`, and binding it to `watermark` later is one class
 implementing two methods. Nothing here writes to the database.
 
+⚠ WHAT THAT COSTS, MEASURED 2026-08-21 ON THE FIRST NINE-FEED SWEEP
+-------------------------------------------------------------------
+**`not-modified` is in the outcome vocabulary and is UNREACHABLE ACROSS RUNS.**
+Validators live in memory, so every sweep sends no `If-None-Match`, every feed
+answers 200, and `FeedRun.outcome` is `fetched` every time. Willison's feed had
+been swept days earlier and returned all 30 entries rather than a 304.
+
+Two consequences, and the second is worse than the cost:
+
+  COST         every blog sweep pays the full ~123 requests. There is no
+               cheap-when-unchanged path, only a designed one.
+
+  AMBIGUITY    **a feed that has gone silent and a feed with nothing new are
+               indistinguishable.** Both are `fetched` with 0 new articles.
+               `netflixtechblog.com` and `medium.com/airbnb-engineering` are in
+               exactly that state right now - 2 of 9 sources - and nothing in the
+               run output, the schema or `harvest_run` can say which. A nightly
+               chain would report success for both.
+
+The ambiguity is the reason to land the two columns, not the request count. A
+source going quiet is the cheapest possible signal that a parser broke or a feed
+moved, and it is currently unobservable.
+
 RULE 6, IN THE SMALL
 --------------------
 A 304 is not required to resend `ETag`, and many servers do not. Absent is not

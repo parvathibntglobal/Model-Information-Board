@@ -71,6 +71,7 @@ from collect.registry.aliases import alias_rows
 from collect.registry.assertions import assert_terms_reviewed
 from collect.registry.seed import seed_models
 from collect.registry.sources import load_sources
+from collect.triage.specificity import alias_match_count
 
 DEFAULT_MODEL = "google/gemini-2.5-flash"
 DEFAULT_CAPABILITIES = (
@@ -125,7 +126,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--capability", action="append", dest="capabilities")
     parser.add_argument("--dsn", default=DEFAULT_DSN)
-    parser.add_argument("--store", default="./_harvest_store")
+    # ── THE CANONICAL STORE, not a scratch directory ──────────────────────
+    #
+    # Was `./_harvest_store`, which is gitignored and machine-local, so the 27
+    # documents this script wrote to staging have `text_ref` values that resolve
+    # NOWHERE — 0 of 27, checked. The adapter was never missing a store call
+    # (`GitHubHarvester.fetch_issue` puts every payload, github.py:485); the
+    # DESTINATION was disposable, which is the same outcome by a different route
+    # and reads as an adapter gap in a report.
+    #
+    # `scripts/harvest_blogs.py` already used `settings().raw_store_path`, which
+    # is why 30 of 30 blog payloads resolve and none of the GitHub ones do. Two
+    # sibling harvest scripts, two stores, one of them a temp folder.
+    #
+    # Costs nothing extra to carry: the `put` already happens, so only where it
+    # lands changes. Re-fetching the existing 27 is 27 API requests; the next
+    # sweep persisting its own is free.
+    parser.add_argument("--store", default=None)
     parser.add_argument("--out", default="github-run-report.json")
     parser.add_argument("--max-fetch-per-query", type=int, default=15)
     parser.add_argument("--fetch-cap", type=int, default=160)
@@ -154,7 +171,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"model    : {args.model}")
     print(f"entries  : {len(entries)} "
           f"(daily {len(cadence['daily'])}, weekly {len(cadence['weekly'])})")
-    print(f"aliases  : {len(variants)}  {variants}")
+    # A LENGTH, NOT A MATCH COUNT — and the length is the figure that failed.
+    # 35 aliases matching nothing printed identically to 35 matching everything
+    # for weeks. The real number needs documents to match against, so it is
+    # reported after the sweep (see `alias_match_count` below) and the declared
+    # count is labelled as declared rather than left to read as a measurement.
+    print(f"aliases  : {len(variants)} declared  {variants}")
     print(f"requests : {plan.request_count} planned, {plan.distinct_queries} distinct")
     print(f"predicted: {plan.minutes_at(30):.1f} min at 30 search req/min\n")
 
@@ -169,7 +191,7 @@ def main(argv: list[str] | None = None) -> int:
     before = client.get("https://api.github.com/rate_limit").json()["resources"]
     harvester = GitHubHarvester(
         client=client,
-        store=RawStore(Path(args.store)),
+        store=RawStore(Path(args.store or settings().raw_store_path)),
         max_pages=1,
         max_fetch_per_query=args.max_fetch_per_query,
     )
@@ -214,6 +236,28 @@ def main(argv: list[str] | None = None) -> int:
             f"trunc={run.truncated_by or '-'}"
         )
     wall = time.monotonic() - started
+
+    # ── DID THE ALIASES ACTUALLY MATCH ANYTHING? ─────────────────────────
+    #
+    # THE SECOND INSTANCE OF THIS DEFECT IN TWO PLACES. `scripts/
+    # export_thread_contexts.py` recorded a non-empty alias tuple in provenance
+    # and read it as a scoring input while it matched zero documents; this
+    # script printed `len(variants)`. Both report that a list EXISTS. Neither
+    # reported that it HITS, and those diverge silently — a sweep retrieving on
+    # dead variants looks exactly like a healthy one, because the aliases are
+    # in the query string either way and the query still returns results.
+    #
+    # ITS POPULATION IS THE STORED DOCUMENTS, AND THAT IS STATED RATHER THAN
+    # GLOSSED. `QueryRun` retains `verdicts` (which carry matched TERMS, not
+    # bodies) and `stored` (which carries the hit). So the bodies available here
+    # are the ones the sieve KEPT — not every candidate. Reporting this figure
+    # as "of candidates" would be the very error being fixed: a number computed
+    # over one population answering a question about another.
+    #
+    # Counted with the same `alias_match_count` the export uses, so the two are
+    # comparable. If it is 0 the variants contributed nothing to what came back.
+    bodies = [issue.hit.sieve_text for run in runs for issue in run.stored]
+    alias_hits = alias_match_count(variants, bodies) if bodies else None
 
     # ── each group counted over ALL candidates, independently ────────────
     #
@@ -267,6 +311,12 @@ def main(argv: list[str] | None = None) -> int:
         "entries_daily": len(cadence["daily"]),
         "entries_weekly": len(cadence["weekly"]),
         "aliases": variants,
+        "aliases_declared": len(variants),
+        # A COUNT OF MATCHES, WITH ITS POPULATION NAMED IN THE KEY. `aliases`
+        # above is the list; a non-empty list is not evidence that any of it
+        # matched, which is exactly how 35 dead variants passed for weeks.
+        "aliases_matched_stored_documents": alias_hits,
+        "aliases_matched_of": len(bodies),
         **harvester.totals(),
         "queries_in_main_loop": len(runs),
         "wall_clock_seconds": round(wall, 1),
@@ -327,6 +377,22 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {name:<8} {n:4}/{candidates}  {n / candidates:6.1%}" if candidates
               else f"  {name:<8} no candidates")
     print(f"  signal only in quoted/fenced text: {quoted_only}")
+
+    # THE FIGURE THAT USED TO BE A LIST LENGTH. Printed with its population, so
+    # "35 aliases" can no longer stand in for "35 aliases that matched
+    # something" — they were the same string for weeks and are different facts.
+    if alias_hits is None:
+        print(f"\n=== aliases: {len(variants)} declared, MATCH COUNT UNKNOWN ===")
+        print("  no stored document bodies to match against, so this sweep")
+        print("  cannot say whether the variants hit. Not 0 — unknown.")
+    else:
+        share = alias_hits / len(bodies) if bodies else 0.0
+        print(f"\n=== aliases: {len(variants)} declared, "
+              f"{alias_hits} matched {len(bodies)} stored docs ({share:.1%}) ===")
+        if alias_hits == 0:
+            print("  ZERO. The variants contributed nothing to what came back;")
+            print("  `names_version` scored False on every stored document and")
+            print("  any ranking that read it ran on a dead input.")
 
     rv = report["retrieval_vs_sieve"]
     print("\n=== retrieval versus sieve ===")

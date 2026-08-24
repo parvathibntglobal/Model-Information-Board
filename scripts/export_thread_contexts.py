@@ -68,14 +68,36 @@ that sentence does not mention. Over-identification was the documented risk;
 this is under-identification, which is the direction the docstring says never
 happens.
 
-A FIRST DIAGNOSIS OF THIS THAT WAS WRONG, RECORDED SO IT IS NOT REPEATED:
-`version_aliases`. `rank_children` scores through `names_version`, so an alias
-set looked like the obvious input. Measured, it is not: `()` and the full
-registry surface set produce IDENTICAL members and identical scores
-(2.521, 1.2459, 1.1437, 1.1331, 1.0978) on this thread. The aliases are still
-inlined in `provenance` below, because recording a scoring input costs nothing
-and this export should be reproducible whatever the cause turns out to be — but
-they are not the cause.
+WHY THE FIRST DIAGNOSIS WAS WRONG, AND THE ALIASES WERE THE CAUSE AFTER ALL
+---------------------------------------------------------------------------
+This said: *"Measured, it is not: `()` and the full registry surface set produce
+IDENTICAL members and identical scores (2.521, 1.2459, 1.1437, 1.1331, 1.0978)
+on this thread. The aliases are still inlined in `provenance` below ... but they
+are not the cause."*
+
+**The control was broken and the two arms were the same arm.** `version_aliases()`
+returned `r.normalized` — `registry.aliases.normalize` output, which strips every
+non-alphanumeric and produces `anthropicclaudeopus5`. `names_version` normalises
+the text with `sieve.normalize`, which keeps spaces, dots and hyphens. So the
+"full registry surface set" arm matched **0 of this thread's 195 comment bodies**,
+which is what `()` matches, which is why the scores were identical.
+
+Corrected, with the real surface set:
+
+    aliases matching  0 of 195   oqoc844 oqodw1j oqocfjv oqorjbe oqocu7n
+                                 scores 2.5210 1.2459 1.1437 1.1331 1.0978
+    aliases matching 27 of 195   oqoc844 oqocu7n oqorjbe oqozyx5 oqoehi3
+                                 scores 3.3613 1.9211 1.8130 1.5648 1.5508
+    staging row                  oqoc844 oqocu7n oqorjbe oqozyx5 oqoehi3
+
+**The staging row is reproducible and this file said it was not.** Today's code
+reproduces it exactly, in order, when the aliases can match. So the divergence
+was never a dated code change and `PIPELINE_VERSION` not being bumped is a
+separate (real) hazard rather than the explanation.
+
+The lesson is the one that keeps recurring here: a non-empty list recorded in
+provenance looked like a scoring input. `alias_match_count` now counts matches
+rather than checking presence, because presence is what passed.
 
 The staging row cannot be reconstructed: the code that produced it is two
 commits back and nothing in the row identifies which. That belongs on the
@@ -93,6 +115,7 @@ import json
 import re
 import sys
 import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -108,9 +131,9 @@ from collect.assemble.article import (  # noqa: E402
 from collect.assemble.article import document_row as blog_document_row  # noqa: E402
 from collect.assemble.thread import assemble  # noqa: E402
 from collect.ids import content_hash  # noqa: E402
-from collect.rawstore import RawStore  # noqa: E402
-from collect.registry.aliases import all_alias_rows  # noqa: E402
+from collect.rawstore import RawStore
 from collect.registry.seed import seed_models  # noqa: E402
+from collect.triage.specificity import alias_match_count  # noqa: E402
 
 REDDIT_PAYLOAD = Path("fixtures/reddit/thread-1u1b22l-getPostComments.json")
 
@@ -171,20 +194,58 @@ def declared_url(data: bytes) -> str | None:
     return None
 
 
-def version_aliases() -> tuple[str, ...]:
-    """Version- and snapshot-specificity surfaces from the registry seed.
+def version_aliases(conn=None) -> tuple[str, ...]:
+    """Surfaces `names_version` can actually match. Registry-derived.
 
     `family` surfaces are EXCLUDED, per `names_version`'s own docstring: a bare
     `sonnet` names a line rather than a tier, and counting it would credit a
-    document that never said which model it meant.
+    document that never said which model it meant. `build_population` excludes
+    them already, via `_admissible`.
 
-    Derived rather than hardcoded, and inlined into the export's provenance,
-    because this is the input that made the staging row irreproducible.
+    THIS RETURNED `r.normalized` AND MATCHED NOTHING — FIXED 2026-08-21.
+    `registry.aliases.normalize` strips every non-alphanumeric, so it produced
+    `anthropicclaudeopus5`. `names_version` normalises the TEXT with
+    `sieve.normalize`, which lowercases and collapses whitespace and keeps dots,
+    hyphens and spaces — `'fable 5 on med is cheaper than opus 4.8'`. The two
+    normal forms are different, so an alias in the first can never appear in the
+    second.
+
+    Measured on this thread's 195 comment bodies:
+
+        r.normalized (what this returned)        0 of 195 match
+        the same rows' raw `surface`             0 of 195   (seed holds 10 models)
+        build_population surfaces (1247)        27 of 195
+
+    That is what made the docstring above wrong. See `WHY THE FIRST DIAGNOSIS
+    WAS WRONG` at the top of this file.
+
+    Sourced from `model_version` rather than the seed file, because that is what
+    the production assembler is handed and the seed file holds ten models.
     """
-    rows = all_alias_rows(seed_models())
-    return tuple(sorted(
-        {r.normalized for r in rows if r.specificity in ("version", "snapshot")}
-    ))
+    from collect.triage.entity import build_population
+
+    if conn is None:
+        from collect.db import connect
+
+        conn = connect()
+        close = True
+    else:
+        close = False
+    try:
+        rows = conn.execute(
+            "SELECT canonical_id, display_name FROM model_version "
+            "ORDER BY canonical_id"
+        ).fetchall()
+    finally:
+        if close:
+            conn.close()
+
+    declared: list[str] = []
+    for model in seed_models():
+        declared.append(model.aliases.surface)
+        declared.extend(model.aliases.variants)
+    population = build_population([(r[0], r[1]) for r in rows], declared)
+    return tuple(sorted(population.surfaces))
 
 
 def _sql_literal(value) -> str:
@@ -238,12 +299,27 @@ def build_reddit(store: RawStore) -> tuple[dict, list[dict], str]:
     for member in assembled.member_document_ids:
         text = raw_text_of[member]
         comment = by_id.get(member)
+        # `created_at` FROM THE PAYLOAD, and it was omitted here rather than
+        # absent from the source. Every Reddit body carries `created_utc`, the
+        # adapter already turns it into a UTC datetime, and this loop dropped
+        # it — so the seven landed in staging with `created_at IS NULL` and
+        # `Pipeline.run` skipped every claim built on them rather than
+        # weighting from a default. The production writers all populate it
+        # (27 of 27 GitHub, 30 of 30 blog); the gap was this export alone.
+        #
+        # Read through the adapter's own property so there is one definition of
+        # what a Reddit timestamp is. None stays None (rule 6) — the root
+        # falls back to the post's own `created_utc`, not to now().
+        when = comment.created_at if comment else None
+        if when is None and root.get("created_utc") is not None:
+            when = datetime.fromtimestamp(float(root["created_utc"]), tz=UTC)
         documents.append({
             "id": member,
             "source": "reddit",
             "external_id": member.split(":", 1)[1],
             "url": (comment.url if comment else
                     f"https://www.reddit.com{root.get('permalink', '/')}"),
+            "created_at": when,
             "text_ref": store.put(text).ref,
             "content_hash": content_hash(text),
             "author_id": None,
@@ -269,6 +345,14 @@ def build_reddit(store: RawStore) -> tuple[dict, list[dict], str]:
             # THE INPUT THAT MADE THE STAGING ROW IRREPRODUCIBLE. Recorded so
             # this file can be regenerated exactly; see the module docstring.
             "version_aliases": list(assembled_aliases),
+            # A COUNT, NOT A PRESENCE CHECK. 35 aliases matching 0 documents
+            # recorded identically to 1247 matching 27 for weeks. If this is 0,
+            # `names_version` contributed nothing to the ranking and
+            # `selection_method` is overstating what ran.
+            "version_aliases_matched_documents": alias_match_count(
+                assembled_aliases, [t for t in raw_text_of.values()]
+            ),
+            "version_aliases_of": len(raw_text_of),
             "version_aliases_source": "collect.registry.aliases.all_alias_rows("
                                       "seed_models()), specificity in "
                                       "(version, snapshot)",

@@ -45,6 +45,20 @@ MAX_SCHEMA_RETRIES = 1
 TOOL_NAME = "emit_claims"
 
 
+class ExtractorUnavailable(RuntimeError):
+    """The provider answered, and not with a completion.
+
+    Kept distinct from a schema violation and from an HTTP error, because the
+    three want different responses: a schema violation is retried with a
+    correction, an HTTP error is retried or backed off, and this one means the
+    upstream model is not answering at all and the document should be recorded
+    as unattempted rather than as producing nothing.
+
+    That distinction is rule 4 in the harvest layer: a document the extractor
+    never read must not join the documents that were read and said nothing.
+    """
+
+
 @dataclass(frozen=True)
 class Completion:
     """One model response, plus what it cost.
@@ -152,6 +166,24 @@ class OpenRouterClient:
         )
         response.raise_for_status()
         body = response.json()
+
+        # A PROVIDER ERROR ARRIVES AS HTTP 200, so `raise_for_status` passes and
+        # the body has no `choices`. This used to be a bare `KeyError: 'choices'`
+        # raised out of the middle of a corpus run — measured 2026-08-21, on
+        # document 21 of 75, which ended the run and took the twenty completed
+        # documents with it because nothing had been written yet.
+        #
+        # A KeyError is the wrong shape twice: it names a dict key rather than
+        # the upstream failure, and it is indistinguishable from a schema change
+        # on our side. Raised as itself, with whatever the provider said, so a
+        # caller can record a provider failure as one.
+        if "choices" not in body:
+            detail = body.get("error") or body
+            raise ExtractorUnavailable(
+                f"the provider returned HTTP {response.status_code} with no "
+                f"`choices`: {detail!r}"
+            )
+
         usage = body.get("usage") or {}
         calls = body["choices"][0]["message"].get("tool_calls") or []
         arguments = calls[0]["function"]["arguments"] if calls else ""

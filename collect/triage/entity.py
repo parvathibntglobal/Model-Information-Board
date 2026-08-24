@@ -50,13 +50,160 @@ FAMILY WORDS ARE EXCLUDED FROM ALL THREE
 -----------------------------------------
 A bare `opus` names a line, not a tier. 62% of family-word mentions carry no
 version at all, so admitting them would keep documents that name nothing
-specific enough to file a claim against - and `classify_specificity` would rank
-the resulting claim `family`, which never counts as independent corroboration.
-The gate would pass a document that cannot lift a cell.
+specific enough to file a claim against - and `classify_specificity` ranks the
+resulting claim `family`, which `judge/vet/weight.py` weights at 0.3 against
+1.0 for a snapshot. The gate would pass a document that cannot lift a cell.
 
 `mechanical_variants` and `rule_variants` already refuse them; the declared list
 does not, so this module filters. Three of the 27 declared-only surfaces are
 exactly `opus`, `sonnet` and `haiku`, and they are dropped here on purpose.
+
+THIS EXCLUSION IS A SPECIFICITY RULING, NOT A MATCHER RULE
+----------------------------------------------------------
+**Ruled 2026-08-21 after a version-adjacency rule was proposed, measured and
+refused. Recorded here rather than only in the report, because the report is
+where a reason goes to be re-litigated.**
+
+The proposal was reasonable: the exclusion is right on an isolated `air` and
+wrong on a family word standing next to a version, so admit the word when a
+version is adjacent. `docs/measurements/family-words-and-a-nondeterminism.md`
+has the four-arm run. Two facts killed it, and only the second is interesting.
+
+FIRST, MECHANICALLY, IT BUYS NOTHING. Admitting all three surfaces recovers 0 of
+40 labelled rows and costs 0 of 750 control documents; Tier 2 stays at exactly
+0.0%. `build_population` records no owner for a declared surface no derivation
+produces (rule 6 - it will not guess which model a human meant), so an admitted
+`opus` resolves to *nothing*, and the best any adjacency rule achieves is moving
+a row from "no surface matched" to "matched, owned by nobody".
+
+SECOND, AND THIS IS THE REASON: the recovery it appears to offer is a
+misattribution. `contract/seed_models.yaml` DOES name a model for each bare word,
+deliberately and with a comment saying so - and this is what it names:
+
+    opus   -> anthropic/claude-opus-5      specificity=family
+    sonnet -> anthropic/claude-sonnet-5    specificity=family
+    haiku  -> anthropic/claude-haiku-4-5   specificity=family
+
+Now take the row the proposal was built to recover. `sonnet` in *"LLM
+Comparison/Test: New API Edition (Claude 3 Opus & Sonnet + Mistral Large)"*,
+posted **2024-03-11**, about Claude 3. Resolving through the family word attaches
+that engineer's comparison to **Claude Sonnet 5**, which did not exist when they
+wrote it. Not a vague claim about a line - a definite claim about the wrong
+model, which is the thing `collect/surface_resolver.py` refuses ambiguity for:
+*"an unresolved claim is a counted absence, and a mis-resolved one is evidence
+against the wrong model."*
+
+A version being ADJACENT is not the same as the version being the one the surface
+means, and no window size closes that gap. `Claude 3` next to `Sonnet` tells you
+the writer meant Claude 3 Sonnet, and the population's answer for `sonnet` is
+Sonnet 5. The rule would read the context correctly and resolve incorrectly.
+
+SO THE COST IS REAL AND IT IS NOT PAID HERE. Measured over the 1,297-post
+substitution corpus, counting each (document, bare word) pair once: **1,026 of
+23,044 mentions - 4.45%** - are bare `opus`, `sonnet` or `haiku` that the seed
+file could attribute, over 692 documents, of which 48 would newly pass the gate.
+Denominator is 18,090 matched surface occurrences plus 4,954 bare family words
+declined; the corpus is Reddit-only and every post in it was retrieved by a query
+naming a model, so this is not a rate about a platform. 4.45% is not negligible -
+which is exactly why the answer is a ruling and not a threshold.
+
+`oqocfjv` IS SETTLED, FROM FOUR DIRECTIONS - 2026-08-21
+-------------------------------------------------------
+*"Fable uses up more tokens than a old Porsche gas"* - the only first-hand
+capability observation in the seven documents. It stays invisible, and the reason
+is now closed rather than open:
+
+    NOT by inheritance          a thread-subject rule was measured and ruled out.
+                                32 of 53 candidates name a second model and the 21
+                                survivors are all in announcement threads. And it
+                                would not have reached this comment anyway.
+    NOT by the word list        an adjacency rule recovers 0 of 40 labelled rows
+                                and costs 0 of 750 control documents.
+    NOT by any change to        there is NO DIGIT ANYWHERE in the text. Every rule
+    this file                   proposed tests for a version token, and there is
+                                none to find, at any window size.
+    ONLY as a family claim,     and nothing declines to count them. Measured:
+    if something declined       `judge/curate/gate.py:count` never reads
+    to count it                 specificity, so twelve family claims reach
+                                `N_EFF_MINIMUM` and clear `WIDELY_PRAISED_VOICES`
+                                on the way.
+
+THE PROTECTION IS THIS FILE REFUSING TO PRODUCE FAMILY CLAIMS, NOT THE GATE
+REFUSING TO COUNT THEM. That is a different sentence from the one this ruling
+was first written with, and it is the true one. `_admissible` excluding the bare
+words is the only thing standing between a family-specificity claim and a
+published cell - there is no second line of defence downstream, and the sentence
+in `propose.py` that said there was has been corrected.
+
+Which sharpens what this exclusion is for. It is not a hint to be relaxed once
+somebody handles families properly downstream; it is currently load-bearing on
+its own. **Anything that admits family words has to arrive together with the
+counting rule, not before it.** Reversing that order makes the only first-hand
+observation we have the first family claim to lift a cell.
+
+WHAT WOULD ACTUALLY RECOVER `oqocfjv`
+-------------------------------------
+*"Fable uses up more tokens than a old Porsche gas"* is the only first-hand
+capability observation in the seven, and `fable` is bare with **no digit anywhere
+in the text**. An adjacency rule tests for a version token that is not there, so
+it cannot reach this at any window size. Every arm measured returns NO MATCH.
+
+Recovering it needs a ruling on **whether a family-specificity claim may be
+stored and displayed at all**, and on what a page says when it holds one - not a
+change to this word list.
+
+MEASURED SINCE, and it changes the shape of that ruling. `family` is a permitted
+`Specificity` value and the gate does NOT refuse it: `judge/curate/gate.py:count`
+never reads specificity, so a family claim is one `independent_voices` like any
+other, and 0.3 enters only through `n_eff`. Best single family claim is 0.255 on
+Reddit and 0.285 on GitHub against `N_EFF_MINIMUM = 3.0`, so **twelve family
+claims publish a cell**. The weight is a 3x higher bar, not a refusal - and the
+cell would land on `anthropic/claude-opus-5`, which is the misattribution above
+arriving through the weighting instead of through resolution.
+
+Two mechanisms currently prevent it anyway, both incidental: `model_alias` holds
+**0 family rows** (82 snapshot, 23 version), and every `model_version` row is
+`provenance='polled'`, so the seed file's 13 family aliases have never been
+loaded. A family claim has no owner to resolve to today by accident rather than
+by rule. `docs/measurements/inherited-subjects-and-family-claims.md`.
+That is a shared decision touching
+`judge/vet/weight.py`'s 0.3, `judge/curate/gate.py` (which counts a family claim
+as an independent voice today, so `propose.py`'s "never counts as independent
+corroboration" overstates what the code does), and rule 4's display side. It is
+not E1's to take alone and it is not a matcher change.
+
+**Until that ruling exists, do not touch FAMILY_WORDS.** Anyone arriving here
+with the adjacency idea should read the run above first: it is measured, it is
+zero, and the zero is not the argument.
+
+REOPENED 2026-08-21 ON A CORPUS WHERE FAMILY WORDS ARE HOW PEOPLE WRITE, AND
+THE MEASUREMENT MOVED THE QUESTION OFF THIS FILE
+---------------------------------------------------------------------------
+Reopened because the exclusion had been the binding constraint four times and
+each measurement had called the cost small separately. Correct reasoning. The
+numbers, on 140 blog claims from six feeds:
+
+    133 of 140 resolve to no model
+     26 are a BARE family mention   Codex 11 - Claude 6 - Gemini 4 -
+                                    ChatGPT 3 - Mistral 1 - Deepseek 1
+     80 contain no family word AT ALL   LLM 15 - AI 6 - model 4 - agents 4
+
+So 60% of the loss is unreachable by any ruling about this constant: those
+authors wrote a category noun, not a family.
+
+**AND THE OTHER 26 ARE NOT BLOCKED HERE EITHER.** `claim.model_version_id` is
+NOT NULL, and a family is a COLUMN on `model_version`, not a ROW - there is no
+row meaning "the Claude family". Emptying FAMILY_WORDS would make `resolve()`
+return version surfaces, and `judge/pipeline.py:372` would drop the claim one
+line later for having no destination. Same zero, further down.
+
+So this file is not the binding constraint and changing it does not help. The
+question is whether a family-shaped destination should exist, which is a
+contract and `judge/` ruling:
+`docs/proposals/for-engineer-2-reopening-the-family-word-ruling.md`.
+
+The instruction above stands, now for a better reason: **not "the cost is small"
+but "the cost is not paid here".**
 
 NO MODEL PARTICIPATES. Substring matching over a normalised string.
 """

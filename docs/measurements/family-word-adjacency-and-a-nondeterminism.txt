@@ -1,0 +1,78 @@
+==============================================================================
+SCOPE - WHERE THE EXCLUSION HAPPENS
+==============================================================================
+  Four sites, all in POPULATION CONSTRUCTION, none with a document:
+    propose.py:246  _renderings        drops any rendering in FAMILY_WORDS
+    propose.py:306  rule_variants      guard 1: head must BE a family word
+    propose.py:308  rule_variants      guard 2: rest[0] must BE a family word
+    entity.py:191   _admissible        drops any surface in FAMILY_WORDS
+
+  build_population(models, declared) takes registry rows and declared
+  surfaces. No text parameter, and it runs once per process before any
+  document is read. So the answer is: NO WINDOW EXISTS at _admissible.
+  A version-adjacency rule cannot live there at any price.
+
+  baseline: 1247 surfaces (declared 23, mechanical 1173, vendor-drop 51) over 324 registry models and 55 declared, fingerprint b5744297e9210497
+  ceiling : 1250 surfaces (declared 26, mechanical 1173, vendor-drop 51) over 324 registry models and 58 declared, fingerprint 6dd62c5ebb2351b2
+  admitted by the ceiling: ['haiku', 'opus', 'sonnet']
+  lost by the ceiling:     []
+
+==============================================================================
+THE NORMALISED-KEY COLLISION, MEASURED
+==============================================================================
+  distinct normalised keys: 414  over 1247 surfaces
+  keys whose spellings DISAGREE about the owner set: 4
+    of which owned-vs-ownerless (the resolver flips on these): 3
+
+    'claudehaiku45': {'claude haiku 4.5': ('anthropic/claude-haiku-4.5',), 'claude-haiku-4-5': (), 'claude-haiku-4.5': ('anthropic/claude-haiku-4.5',), 'claudehaiku4.5': ('anthropic/claude-haiku-4.5',)}
+    'gemini25pro': {'gemini 2.5 pro': ('google/gemini-2.5-pro',), 'gemini 2.5pro': (), 'gemini-2.5-pro': ('google/gemini-2.5-pro',), 'gemini2.5pro': ('google/gemini-2.5-pro',)}
+    'gpt41mini': {'gpt 4.1 mini': ('openai/gpt-4.1-mini',), 'gpt-4.1 mini': (), 'gpt-4.1-mini': ('openai/gpt-4.1-mini',), 'gpt4.1mini': ('openai/gpt-4.1-mini',), 'gpt41mini': ()}
+
+  RegistrySurfaceResolver picks the FIRST frozenset member whose
+  normalised form matches, and breaks. Measured over the 5 seeds run
+  separately: 'gpt-4.1 mini' -> mv_ebd5240e5f207506 at PYTHONHASHSEED=3,
+  None at 1, 2, 4 and 5. Same registry, same input, different answer.
+
+==============================================================================
+SIDE 1 - THE 40 LABELLED ROWS WITH A SURFACE
+==============================================================================
+  labels: {'not-a-model': 4, 'ambiguous': 6, 'resolves': 30}
+
+  baseline               agreement 22/40 = 55.0%
+  ceiling (admit all)    agreement 22/40 = 55.0%
+  R1 immediate token     agreement 22/40 = 55.0%
+  R2 digit within 20     agreement 22/40 = 55.0%
+
+  --- ceiling (admit all): +0 / -0   (outcome changed on 2)
+      [same] # 6 'opus'             label=resolves     no-match -> no-owner  (opus -> no registry model derives it)
+      [same] # 7 'sonnet'           label=resolves     no-match -> no-owner  (sonnet -> no registry model derives it)
+  --- R1 immediate token: +0 / -0   (outcome changed on 1)
+      [same] # 6 'opus'             label=resolves     no-match -> no-owner  (opus -> no registry model derives it)
+  --- R2 digit within 20: +0 / -0   (outcome changed on 2)
+      [same] # 6 'opus'             label=resolves     no-match -> no-owner  (opus -> no registry model derives it)
+      [same] # 7 'sonnet'           label=resolves     no-match -> no-owner  (sonnet -> no registry model derives it)
+
+  The three rows the brief names:
+    #5 'mini'     label=resolves   | baseline=one-owner | ceiling=one-owner | R1=one-owner | R2=one-owner
+    #6 'opus'     label=resolves   | baseline=no-match | ceiling=no-owner | R1=no-owner | R2=no-owner
+    #7 'sonnet'   label=resolves   | baseline=no-match | ceiling=no-owner | R1=no-match | R2=no-owner
+
+==============================================================================
+SIDE 2 - THE CONTROL CORPORA
+==============================================================================
+  baseline               tier1 2/450 (0.4%)   tier2 0/300 (0.0%)
+  ceiling (admit all)    tier1 2/450 (0.4%)   tier2 0/300 (0.0%)
+      tier1 family-word hits: {'opus': 1}
+  R1 immediate token     tier1 2/450 (0.4%)   tier2 0/300 (0.0%)
+  R2 digit within 20     tier1 2/450 (0.4%)   tier2 0/300 (0.0%)
+
+==============================================================================
+oqocfjv
+==============================================================================
+  baseline               NO MATCH
+  ceiling (admit all)    NO MATCH
+  R1 immediate token     NO MATCH
+  R2 digit within 20     NO MATCH
+
+  No digit anywhere in the text. An adjacency rule tests for a thing that
+  is absent, so it cannot admit `fable` here at any window size.

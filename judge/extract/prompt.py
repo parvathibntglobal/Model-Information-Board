@@ -82,7 +82,8 @@ one you left blank.
 
 Do not stretch a quote to fit a capability. A quote that fits none of them goes \
 in `unclassified` - that list accumulating is how we learn the vocabulary is \
-short, and inventing a fit destroys the signal.
+short, and inventing a fit destroys the signal. USE IT. A quote you decline to \
+classify and do not record here is a capability nobody learns is missing.
 
 WHEN THERE IS NOTHING
 

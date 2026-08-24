@@ -240,3 +240,22 @@ def test_alias_count_stays_inside_the_query_budget():
     """10 models x ~5 surfaces x 12 capabilities = 600 queries per platform."""
     for model in _models():
         assert len(alias_rows(model)) <= 9, model.canonical_id
+
+
+def test_the_two_local_part_derivations_agree_on_every_registry_shape():
+    """`aliases.local_part` and `propose.py`'s local of the same name diverge.
+
+        'a/b/c'   aliases -> 'c'        propose -> 'b/c'
+
+    Zero registry ids have two slashes today, so they agree on all 342 and the
+    duplication is latent rather than live. This pins the agreement on the shape
+    that DOES exist, so the day a three-part id arrives one of these fails
+    instead of the two silently deriving different surfaces for one model.
+
+    Not unified: picking a winner means choosing what "the vendor prefix" is for
+    a three-part id, and no such id exists to decide it against. Inventing that
+    convention is what `propose.py` already refuses to do for `mistral large 3`.
+    """
+    for canonical in ("openai/gpt-5", "anthropic/claude-opus-4.8",
+                      "qwen/qwen3.8-27b", "~anthropic/claude-sonnet-latest"):
+        assert local_part(canonical) == canonical.split("/", 1)[-1], canonical

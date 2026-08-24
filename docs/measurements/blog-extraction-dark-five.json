@@ -1,0 +1,283 @@
+{
+ "run_at": "2026-08-21T11:42:41.486312+00:00",
+ "extractor_model": "google/gemini-2.5-flash",
+ "corpus": "the five documents that returned nothing parseable in the 30-of-30 run",
+ "claims": [
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/10/introducing-muse-glimmer/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/10/introducing-muse-glimmer/",
+   "slug": "introducing-muse-glimmer",
+   "quote": "The model handles a wide range of function calls, invoking tools with precise schemas throughout extended workflows.",
+   "capability": "tool_calling.long_chain_reliability",
+   "polarity": "positive",
+   "surface": "Muse Glimmer",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "recovered_by_salvage": true
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "slug": "stealing-reasoning-traces",
+   "quote": "Anthropic, OpenAI, and Google return encrypted chain-of-thought blocks to clients that can be replayed across sessions, users, and models.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Anthropic, OpenAI, and Google",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "recovered_by_salvage": true
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/11/stealing-reasoning-traces/",
+   "slug": "stealing-reasoning-traces",
+   "quote": "Claude Haiku 4.5 was the easiest to attack.",
+   "capability": "over_refusal",
+   "polarity": "negative",
+   "surface": "Claude Haiku 4.5",
+   "specificity": "version",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "recovered_by_salvage": true
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "slug": "openai-timeline",
+   "quote": "It tries to “reach out to another agent” by writing a note into Artifactory asking if anyone has the file.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "A different agent",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "recovered_by_salvage": true
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "slug": "openai-timeline",
+   "quote": "More agents discover this new informal message board while browsing Artifactory’s file listings, and start reading and writing messages.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Agents",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "recovered_by_salvage": true
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "slug": "openai-timeline",
+   "quote": "Agents successfully execute an**SSRF attack on Artifactory** for the first time, gaining indirect internet access by having Artifactory fetch external content for them.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Agents",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "recovered_by_salvage": true
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "slug": "openai-timeline",
+   "quote": "It has access to Artifactory and can benefit from the messages left by privous models.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "a new “highly persistent” experimental model",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "recovered_by_salvage": true
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "slug": "openai-timeline",
+   "quote": "Agents find and exploit a**zero-day RCE on Artifactory** (via a legacy token-refresh endpoint flaw).",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Agents",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "recovered_by_salvage": true
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "slug": "openai-timeline",
+   "quote": "Agents find**a new way to communicate via an unauthenticated WebDAV endpoint** , using directory names in Artifactory’s remote cache.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Agents",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "recovered_by_salvage": true
+  },
+  {
+   "post": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "document_id": "blog:https://simonwillison.net/2026/Aug/7/openai-timeline/",
+   "slug": "openai-timeline",
+   "quote": "The agents found a Modal-hosted insecure app with a weak API key, then used that to stage an attack against Hugging Face.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "The agents",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central",
+   "has_repro_steps": false,
+   "has_numbers": false,
+   "recovered_by_salvage": true
+  }
+ ],
+ "unsalvaged": [
+  {
+   "slug": "stealing-reasoning-traces",
+   "index": 2,
+   "errors": [
+    "quote: String should have at most 200 characters"
+   ],
+   "raw_quote": "Here's GPT-5.5 thinking about some CSS:\n\nNeed app.css truncated. Need maybe not need. We'll replace entire app.css. Need create components. Need include keyboard support. Need accessible primitives. Need think architecture. Svelte 5. Components: - Button.svelte: variants, size, loading, disabled, children snippet, optional icon? Avoid maybe not. Needs accessible focus. [...]",
+   "raw_capability": "reasoning.multistep"
+  },
+  {
+   "slug": "openai-timeline",
+   "index": 0,
+   "errors": [
+    "quote: String should have at most 200 characters"
+   ],
+   "raw_quote": "An agent is accidentally given an impossible task involving a Google Drive link despite no internet access). It tries attacking the Artifactory packaging service, fails, but discovers it can**write files into Artifactory** .",
+   "raw_capability": "reasoning.multistep"
+  },
+  {
+   "slug": "auto-mode",
+   "index": 0,
+   "errors": [
+    "conditions.structured_mode: Input should be a valid boolean, unable to interpret input"
+   ],
+   "raw_quote": "Broadly within Anthropic, almost every single person uses auto mode",
+   "raw_capability": "instruction.adherence"
+  },
+  {
+   "slug": "auto-mode",
+   "index": 1,
+   "errors": [
+    "conditions.structured_mode: Input should be a valid boolean, unable to interpret input",
+    "quote: String should have at most 200 characters"
+   ],
+   "raw_quote": "we’ve pretty much mitigated every attack. [...] for the main categories of risks that we’re concerned about, like prompt injection and data exfiltration, the risks are far lower than the average human reviewer.",
+   "raw_capability": "instruction.adherence"
+  },
+  {
+   "slug": "auto-mode",
+   "index": 2,
+   "errors": [
+    "conditions.structured_mode: Input should be a valid boolean, unable to interpret input"
+   ],
+   "raw_quote": "In this evaluation, none of the 720 attack attempts succeeded against Claude Fable 5, Opus 5, or Sonnet 5 running auto mode.",
+   "raw_capability": "instruction.adherence"
+  },
+  {
+   "slug": "claude-opus-5-system-prompt",
+   "index": 0,
+   "errors": [
+    "quote: String should have at most 200 characters"
+   ],
+   "raw_quote": "If asked, Claude confirms them accurately and matter-of-factly — it doesn't deny the suspension happened — and otherwise treats the export controls like any other current political topic: it gives a fair, accurate account rather than sharing personal opinions, and points to the linked statement for anything further.",
+   "raw_capability": "instruction.adherence"
+  }
+ ],
+ "per_document": [
+  {
+   "slug": "introducing-muse-glimmer",
+   "proposed": 2,
+   "verified": 1,
+   "rejected": 1,
+   "unsalvaged": 0,
+   "zero_kind": null,
+   "retries": 1,
+   "unclassified": [],
+   "no_claim_reason": "The first claim about 'End-to-end Agentic Task Completion' was too long and could not be shortened without losing the claim's meaning. The other claims were successfully extracted.",
+   "input_tokens": 6180,
+   "output_tokens": 528
+  },
+  {
+   "slug": "stealing-reasoning-traces",
+   "proposed": 3,
+   "verified": 2,
+   "rejected": 0,
+   "unsalvaged": 1,
+   "zero_kind": null,
+   "retries": 1,
+   "unclassified": [],
+   "no_claim_reason": null,
+   "input_tokens": 6167,
+   "output_tokens": 542
+  },
+  {
+   "slug": "openai-timeline",
+   "proposed": 8,
+   "verified": 7,
+   "rejected": 0,
+   "unsalvaged": 1,
+   "zero_kind": null,
+   "retries": 1,
+   "unclassified": [],
+   "no_claim_reason": null,
+   "input_tokens": 7243,
+   "output_tokens": 2038
+  },
+  {
+   "slug": "auto-mode",
+   "proposed": 3,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 3,
+   "zero_kind": "unsalvaged",
+   "retries": 1,
+   "unclassified": [],
+   "no_claim_reason": null,
+   "input_tokens": 6297,
+   "output_tokens": 625
+  },
+  {
+   "slug": "claude-opus-5-system-prompt",
+   "proposed": 1,
+   "verified": 0,
+   "rejected": 0,
+   "unsalvaged": 1,
+   "zero_kind": "unsalvaged",
+   "retries": 1,
+   "unclassified": [],
+   "no_claim_reason": "all 1 proposed claim(s) failed the schema; none could be salvaged. This is a validation zero, not a document that said nothing.",
+   "input_tokens": 5103,
+   "output_tokens": 229
+  }
+ ],
+ "input_tokens": 30990,
+ "output_tokens": 3962
+}

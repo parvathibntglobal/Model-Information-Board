@@ -13,13 +13,191 @@ No language model participates in this file.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import date, timedelta
-from typing import Literal
+from typing import Literal, NamedTuple
 
 from judge.config import capabilities
 
 EvidenceTier = Literal["A", "B", "C", "D", "E", "F"]
+
+# ═══════════════════════════════════════════════════════════════════════════
+# A WEIGHTING OR COUNTING INPUT MAY NOT HAVE A SILENT DEFAULT
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# **`f_specificity` held one value, 0.580, across every row `claim_weight` has
+# ever contained.** Not a narrow range - one value, `SELECT DISTINCT` returns a
+# single row. Every weight this system has computed came from a factor that had
+# never varied, because three of its four inputs were dead: `version_named` and
+# `has_conditions` arrived as a dataclass default and `has_numbers` still does.
+# Only `has_repro_steps` was live, and it was False on all four stored claims.
+#
+# That is the argument for this section. A silent default in a weighting factor
+# is indistinguishable from a measurement: the column has a value, the
+# breakdown renders, `explain()` prints seven numbers, and one of them is a
+# constant nobody chose.
+#
+# Ruled 2026-08-21: EITHER SOMETHING WRITES IT, OR `compute()` REFUSES AND THE
+# ABSENCE IS VISIBLE. This is rule 6 applied to the machinery rather than to the
+# data - a missing input is never silently converted into a definite one.
+#
+# `compute()` takes 12 required inputs and 5 are supplied by nothing that runs.
+# The refusal names WHICH and WHAT SHOULD WRITE IT, because a refusal that sends
+# somebody to this file when the gap is in an adapter costs more than it saves.
+
+
+class _Unsupplied:
+    """Not a value. Nothing wrote this.
+
+    `__bool__` raises on purpose. The whole failure being fixed here is a
+    `False` that meant "nobody measured", so this must not be quietly usable in
+    a boolean position anywhere downstream.
+    """
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "UNSUPPLIED"
+
+    def __bool__(self) -> bool:
+        raise TypeError(
+            "UNSUPPLIED is not a value and cannot be tested for truth. Something "
+            "read a weighting input that nothing wrote - see judge/vet/weight.py"
+        )
+
+
+UNSUPPLIED = _Unsupplied()
+"""Pass this rather than a plausible value when nothing supplied one."""
+
+#: The two failures are different and the refusal must say which.
+#:
+#:   WRONG_WRITER   something writes it, and what it writes is a constant. The
+#:                  value is present, defensible-looking, and the same every
+#:                  time. `evidence_tier` is this: `judge/pipeline.py` passes a
+#:                  module-level literal to every claim in the corpus.
+#:
+#:   NOT_CARRIED    the `document` table has the value and nothing builds the
+#:                  object that would carry it here. `DocumentFacts` has exactly
+#:                  one constructor in the repository and it is
+#:                  `tests/test_pipeline_db.py`; `run_all` takes `facts` as a
+#:                  parameter and the nightly job that would populate it does
+#:                  not exist. Fixing this is an ingest/plumbing job, NOT a
+#:                  change to this file.
+WRONG_WRITER = "wrong writer"
+NOT_CARRIED = "not carried"
+
+
+class _Gap(NamedTuple):
+    kind: str
+    writer: str
+    fix: str
+
+
+#: Per input: which failure, who is responsible, and what closing it means.
+#: Read by the refusal so the message is actionable rather than merely correct.
+INPUT_GAPS: dict[str, _Gap] = {
+    "evidence_tier": _Gap(
+        kind=WRONG_WRITER,
+        writer=(
+            "contract/harvest.yaml evidence_tier_by_speaking, via "
+            "weight.evidence_tier_for(claim.model_ref.speaking)"
+        ),
+        fix=(
+            "the mapping is missing a key for this `speaking` value, or the "
+            "contract block is absent. It was a module literal `\"D\"` until "
+            "2026-08-21 - applied to every claim in the corpus, including three "
+            "that quote a launch post and should be F, a 6x over-weight. Add "
+            "the key rather than restoring a default"
+        ),
+    ),
+    "platform": _Gap(
+        kind=NOT_CARRIED,
+        writer="document.source, via judge/pipeline.py DocumentFacts",
+        fix="build DocumentFacts from the document table - nothing does today",
+    ),
+    "claim_date": _Gap(
+        kind=NOT_CARRIED,
+        writer="document.created_at, via judge/pipeline.py DocumentFacts",
+        fix="build DocumentFacts from the document table - nothing does today",
+    ),
+    "has_numbers": _Gap(
+        kind=NOT_CARRIED,
+        writer="document.has_numbers, written by collect/triage/",
+        fix=(
+            "build DocumentFacts from the document table. The column IS "
+            "populated - True on 6 of 7 non-NULL rows - so this one is carriage "
+            "and not measurement. It may NOT be derived from the claim: rule 2 "
+            "forbids weighting on the extractor's own boolean"
+        ),
+    ),
+    "has_conditions": _Gap(
+        kind=NOT_CARRIED,
+        writer="document.has_conditions, written by collect/triage/",
+        fix=(
+            "build DocumentFacts from the document table - AND note the column "
+            "is False on all 7 populated rows and NULL on 57, so carrying it "
+            "changes nothing until something sets it True. It may NOT be "
+            "derived from claim.conditions: an absent condition is not a stated "
+            "absence (rule 6)"
+        ),
+    ),
+    "version_named": _Gap(
+        kind=NOT_CARRIED,
+        writer="derived from claim.model_ref.specificity in judge/pipeline.py",
+        fix="already closed 2026-08-21 - this entry exists so a revert is named",
+    ),
+    "relevance": _Gap(
+        kind=NOT_CARRIED,
+        writer="claim.relevance, from the extractor",
+        fix="supplied today",
+    ),
+    "specificity": _Gap(
+        kind=NOT_CARRIED,
+        writer="claim.model_ref.specificity, from the extractor",
+        fix="supplied today",
+    ),
+    "capability_key": _Gap(
+        kind=NOT_CARRIED,
+        writer="claim.capability, from the extractor",
+        fix="supplied today",
+    ),
+    "has_repro_steps": _Gap(
+        kind=NOT_CARRIED,
+        writer="claim.has_repro_steps, from the extractor",
+        fix="supplied today",
+    ),
+}
+
+
+class UnsuppliedWeightInput(Exception):
+    """A weighting input nothing wrote. Names the input, the writer and the fix.
+
+    Raised rather than defaulted, per the 2026-08-21 ruling. `run_all` catches
+    per thread and logs a refusal, so a batch reports which input is missing
+    instead of producing weights from constants.
+    """
+
+    def __init__(self, missing: Sequence[str]) -> None:
+        self.missing = tuple(missing)
+        lines = [
+            f"refusing to weight: {len(self.missing)} input(s) were UNSUPPLIED. "
+            "A weighting input may not have a silent default (ruled 2026-08-21)."
+        ]
+        for name in self.missing:
+            gap = INPUT_GAPS.get(name)
+            if gap is None:
+                lines.append(f"  {name}: UNSUPPLIED, and no writer is recorded for it")
+                continue
+            lines.append(f"  {name}  [{gap.kind}]")
+            lines.append(f"      should be written by: {gap.writer}")
+            lines.append(f"      to close it: {gap.fix}")
+        lines.append(
+            "  THE GAP IS NOT IN THIS FILE. Every entry above names the module "
+            "that should supply the value; weight.py only refuses to invent one."
+        )
+        super().__init__("\n".join(lines))
+
 
 # ── tier: how reproducible is this? ──────────────────────────────────────
 TIER_WEIGHT: dict[str, float] = {
@@ -30,6 +208,33 @@ TIER_WEIGHT: dict[str, float] = {
     "E": 0.04,  # hearsay, summarising someone else
     "F": 0.02,  # vendor marketing — capability FACTS only, never quality
 }
+
+def evidence_tier_for(speaking: str) -> EvidenceTier | _Unsupplied:
+    """`ModelRef.speaking` -> an evidence tier, from `contract/harvest.yaml`.
+
+    NOT A CONSTANT IN THIS FILE. It is a ruling about what a vendor's own words
+    are worth, and rule 5 puts that in versioned YAML - see
+    `evidence_tier_by_speaking` there, and the flag on it: the mapping changes
+    the weight of three stored claims by 6x and wants E2's sign-off.
+
+    Each value goes to the tier whose own gloss in `TIER_WEIGHT` already
+    describes it: E is "hearsay, summarising someone else" and F is "vendor
+    marketing". The mapping states an identity, it does not invent a scale.
+
+    RETURNS `UNSUPPLIED` RATHER THAN GUESSING when the key is missing or the
+    contract block is absent, so `compute()` refuses and names the gap. A
+    fallback tier here would be the exact defect the 2026-08-21 ruling was
+    written for - `DEFAULT_EVIDENCE_TIER` was a literal "D" applied to every
+    claim in the corpus, including three that quote a launch post.
+    """
+    from judge.config import evidence_tier_by_speaking
+
+    mapping = evidence_tier_by_speaking()
+    tier = mapping.get(speaking)
+    if tier not in TIER_WEIGHT:
+        return UNSUPPLIED
+    return tier  # type: ignore[return-value]
+
 
 # ── platform: GitHub is the failure channel, blogs the positive one ──────
 PLATFORM_WEIGHT: dict[str, float] = {
@@ -154,18 +359,18 @@ def specificity_factor(
 
 def compute(
     *,
-    evidence_tier: EvidenceTier,
-    platform: str,
-    capability_key: str,
-    relevance: str,
-    specificity: str,
-    claim_date: date,
+    evidence_tier: EvidenceTier | _Unsupplied,
+    platform: str | _Unsupplied,
+    capability_key: str | _Unsupplied,
+    relevance: str | _Unsupplied,
+    specificity: str | _Unsupplied,
+    claim_date: date | _Unsupplied,
     release_date: date | None,
     as_of: date,
-    version_named: bool,
-    has_numbers: bool,
-    has_conditions: bool,
-    has_repro_steps: bool,
+    version_named: bool | _Unsupplied,
+    has_numbers: bool | _Unsupplied,
+    has_conditions: bool | _Unsupplied,
+    has_repro_steps: bool | _Unsupplied,
     superseded_snapshot: bool = False,
     possibly_changed: bool = False,
 ) -> WeightFactors:
@@ -175,6 +380,28 @@ def compute(
     a quote about a model that has since been replaced, or replaced silently
     behind the same name, may describe something that no longer exists.
     """
+    # REFUSE BEFORE COMPUTING ANYTHING. Ruled 2026-08-21: a weighting input may
+    # not have a silent default. The check is first so no factor is derived from
+    # a constant before the caller learns which input is missing.
+    missing = [
+        name
+        for name, value in (
+            ("evidence_tier", evidence_tier),
+            ("platform", platform),
+            ("capability_key", capability_key),
+            ("relevance", relevance),
+            ("specificity", specificity),
+            ("claim_date", claim_date),
+            ("version_named", version_named),
+            ("has_numbers", has_numbers),
+            ("has_conditions", has_conditions),
+            ("has_repro_steps", has_repro_steps),
+        )
+        if value is UNSUPPLIED
+    ]
+    if missing:
+        raise UnsuppliedWeightInput(missing)
+
     if capability_key not in capabilities():
         raise ValueError(
             f"unknown capability {capability_key!r} — it must exist in "

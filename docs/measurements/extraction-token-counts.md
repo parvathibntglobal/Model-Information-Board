@@ -49,6 +49,58 @@ reads `estimated $0.00239, measured $0.00208` as evidence that estimating this
 way works, and reuses it. The check that catches this needs no suspicion — ask
 whether the *terms* agreed, not whether the totals did.
 
+### THE RATIO IS PER-CORPUS, AND BOTH CORPORA ARE CALLED "BLOGS" — 2026-08-21
+
+**5.83 chars/token was measured on Reddit comments and Simon Willison's
+link-blog prose. Applied to a code-heavy engineering-blog corpus it
+under-estimated input by 1.69x.**
+
+```
+                        estimated      actual
+75 blog documents      312,266 tok   527,847 tok
+cost                     $0.135        $0.2238
+
+backing out prompt overhead (97 calls x 1,919 tok for prompt + schema):
+  content tokens         168,363       341,704
+  chars                  981,558       981,558
+  CHARS PER TOKEN            5.83          2.87
+```
+
+**2.87, not 5.83 — half.** Code blocks, config, identifiers, JSON and long
+compound names tokenise at roughly half the density of prose, and these posts are
+mostly those.
+
+> **This is rule 7 with the population difference hidden inside the word
+> "blogs".** Both corpora are `source = 'blog'`, both arrive by RSS, both sit
+> under the same terms class in `contract/sources.yaml`. Nothing in the schema,
+> the config or the name distinguishes *a practitioner writing prose about models*
+> from *a company writing architecture posts full of code* — and they differ by
+> 2x on the one ratio a budget depends on. The figure was never wrong; it was
+> answering a question about different text, and the name gave no hint that the
+> text was different.
+>
+> Same shape as `52.7% subject match` and `96% phrase containment`: a real number
+> silently answering a question it was not asked. What is new is that here the
+> mislabelling is structural — the corpus boundary the ratio depends on **does not
+> exist as a field anywhere**, so no amount of care in quoting the figure would
+> have caught it.
+
+**Working figures, each with its corpus attached, and both wanting re-measurement
+rather than trust:**
+
+| corpus | chars/token | measured on |
+|---|---:|---|
+| Reddit comments, link-blog prose | **5.83** | n=3 calls, 1 thread (§0) |
+| engineering blogs with code | **2.87** | 75 documents, 6 feeds, 97 calls |
+
+**Use the pessimistic one for a mixed corpus**, and add the prompt-and-schema
+overhead **per call rather than per document** — 22 retries on that run added
+~42,000 tokens no per-document estimate would have predicted.
+
+The second cause of the miss is worth separating from the first: a retry is a
+whole extra call, and the 11,186-character system prompt plus tool schema is
+charged again on every attempt.
+
 ## 3 · There were TWO estimates, and they disagreed with each other
 
 This is the part that made the error hard to see.

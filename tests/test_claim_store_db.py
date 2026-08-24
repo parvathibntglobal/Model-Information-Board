@@ -107,6 +107,11 @@ def a_claim(capability="summarization.fidelity", start=0) -> ExtractedClaim:
                 "resolved_version_id": "google/gemini-2.5-flash",
                 "specificity": "family",
                 "resolution_confidence": 0.8,
+                # REQUIRED since 2026-08-21. These three sites were missed
+                # because the local runs excluded every `_db` test, so 28
+                # fixed construction sites read as all of them. CI, which
+                # has a database, is what found the other three.
+                "speaking": "own-experience",
             },
             "capability": capability,
             "polarity": "negative",

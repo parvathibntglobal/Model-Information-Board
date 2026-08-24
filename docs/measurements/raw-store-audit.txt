@@ -1,0 +1,376 @@
+raw store: raw/sha256/74/ba/74ba9a973c2b5eeb8d9bcbe8f8ee7fbd56dd5bb870dda2868ae6efa7dae711ac is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/a2/4d/a24dcd09efe638c66d23e6dda60d21b9e2bf4555dd23fb28b7745386d2108030 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/ad/6a/ad6a971bb1745fd963ef12bbdce91127067b8df5bc71a2ad697fd44d2dec1238 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/2e/a6/2ea674e7711c07b800e8b541fac79146ff23d7c8938247ae5b0d1904bb1e431f is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/d2/b4/d2b457177e40febd26bb783b9d7ddbe937c03536ccbabca496bdeaa9d4ffc808 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/3a/c1/3ac1baed0be81259e9437d91fdd043995c746b938327e7a24d8095bc533c83ac is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/57/bf/57bf5da46aef6ed4ae016b7651df2cee54f5c3eefa793c8f867ddea29cd94d35 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/9e/46/9e46736cd0a57fe99d60d377b98087dbdc1c71e7cae4ad93f435e7b3456ea179 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/f9/a0/f9a09bdedd0910dda25458b1c825905141040db42e8a56a26288e1dbff760018 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/44/72/44729539b1edc73c1bdcdb5f00b20926dae3d17e7a230cd1f6dac09eadf304cd is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/c1/f4/c1f41fee4bd18d5db6dab6ed66d8ece4af35480b966506b2edff853ce87ed2cb is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/3e/eb/3eeba26703392de6d9a13799234b7c370146119439279ab28181416f6c40fb2c is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/b8/b1/b8b13e1625fd76074ce5355842d87a4623717107cc8eeea77715858c0b9f7e4f is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/c1/35/c135c19e24453ab3e6dff609c9449127439fad82c95fcc181f9d7ddba866c872 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/93/7b/937bb889dd18d5d581d68c6741f131c44c0196901a56b8428d86f48ae1e68d85 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/f9/38/f93886a7c90cff7877bc77310bc8f2aae165dd07d813a31ae6b408a9fa10ac3c is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/6f/e4/6fe4e372d8d8645d650a72c1751221cb719c7e472540e42ec24dbaba9d870725 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/31/00/31007e2df2d0b0de7442293a372b0f16973cd89f09e73b81537221ddf932b89c is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/8c/25/8c25381368adaef915b42c2afd0fc3fb3879cecbda3e2bdce4563c36653be4c1 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/95/a6/95a67a14cb79d8635f9e5f8b4e60f3a2f196cbb7363467d85da048bff4ba8626 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/22/85/2285d4c99db2230202a9c7d3647e15d4132ba19c41ec18aafd890fafe250493f is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/96/fb/96fbb969e74ea5f91f4cb0db4eee84a4fbde06dc61622cb901e2576b6e78c7f6 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/f0/4f/f04f234da847212aa6bb93be24e9638da13422e5b11022a5a4c895387efb7da9 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/9a/9b/9a9ba5cc5d84b7d85ad4e6cbb9064aa2d92577363d33c01e9a569b2daa59458e is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/9f/29/9f29af779e5852945865706ded91c4f725fd47ff868c30de1f63ade5e4d8695b is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/0e/d3/0ed31b309d4d4468242922402d5dd94569f56a8cd5ff1a24c9193527cbacc34e is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/8a/28/8a28dd2f79823dcc83b5b3820659b4bde3fb4e8a37574fb56d65fa0a8db1d692 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/4a/03/4a0387ca44bfddde4bfe5d93a62d480bcab4b611572bdc8738ec5bc0aa9dc81b is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/b7/be/b7be00b90a018f09b5eb71a5d4e0fc4d2678d8362a05ca32db5c503368d3f0ae is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/57/08/5708f4c669fbe3f49ed7184f2ca4a806b8bc6e57f79b9de04d11c831d0defd4a is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/e0/da/e0dabf9ffb33e645fcbc932045618100fbb5da1a9692e78b0cd1abf826932828 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/df/ff/dfffa0f00bd51e86b63d7976bdf6b3801844077fb67d57a71679db7d41721a6e is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/08/a6/08a61061d74120af31ae74c5513a1bee4a573c4e5364238bc626d8ec208db1bf is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: raw/sha256/e9/6c/e96c62c62aad15ae1a6ab648f413f36329a25e73b4528414ae14c7d60c765fdb is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/12/27/1227b5b3f6380f03cd0b1d1e6cb26c567dfddad26624f573dc7efb79d59f47f2 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/d4/73/d4733dda78adf74d67b9c0765f3c906a4641e13703a85981123fa85e1de90446 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/74/ba/74ba9a973c2b5eeb8d9bcbe8f8ee7fbd56dd5bb870dda2868ae6efa7dae711ac is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/9e/46/9e46736cd0a57fe99d60d377b98087dbdc1c71e7cae4ad93f435e7b3456ea179 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/ff/33/ff3358c050c315359457bfe7d4c765bfd5d6c3e55cc9f45a18b4b2be5c629bdb is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/7a/56/7a5651fa7d8668d87926abc01283277314860e08eebb000130915a9fa78f5640 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/a5/bc/a5bc3ac4b2e2575cc3c71e3055c20ef0f0a2a4da105b7277d9c863a45942e9e1 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/29/d5/29d59b00627b8d0afe670e628d1613ee5430b770d9ee530f7ab3c58d4473034e is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/49/0e/490e2dd33411d0e3c222b3c626df1f6160c27d37e5431edbe5fb489b5486db29 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/d2/b4/d2b457177e40febd26bb783b9d7ddbe937c03536ccbabca496bdeaa9d4ffc808 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/b8/48/b848c4a3e7737630fe8c85ba9df4e8a04d50344fca6c6efd675f5bd1bf40e97f is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/ef/5c/ef5cdaab6484f477596f334873fdfe6d2bff62d271b051ef6ef5fa25cb0bb912 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/9f/29/9f29af779e5852945865706ded91c4f725fd47ff868c30de1f63ade5e4d8695b is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/12/fa/12fa05cb0c8fcf4a8a60075f872da70cd9d0d197ef5e63c6b0a19dc2070e89f5 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/9a/9b/9a9ba5cc5d84b7d85ad4e6cbb9064aa2d92577363d33c01e9a569b2daa59458e is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/9b/8e/9b8ee75113d776650176a6296cd395f0db5db0f18ef4ce21b6c00665b9066388 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/71/24/71240a1ca4c2f6a5eb37cee9aa0bb0ae2de0a558c32449eec8564de6ea37e88e is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/ad/6a/ad6a971bb1745fd963ef12bbdce91127067b8df5bc71a2ad697fd44d2dec1238 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/a7/88/a78898a090f1ccb295437c24c043b9e08384c5019c351154e5c93488db8ebbae is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/0e/d3/0ed31b309d4d4468242922402d5dd94569f56a8cd5ff1a24c9193527cbacc34e is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/f9/a0/f9a09bdedd0910dda25458b1c825905141040db42e8a56a26288e1dbff760018 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/a2/4d/a24dcd09efe638c66d23e6dda60d21b9e2bf4555dd23fb28b7745386d2108030 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/0f/ec/0fec09d901f45b77c58252cfbf0c0418405a53ed2485c07dec9d1ab8c5a883ca is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/f0/4f/f04f234da847212aa6bb93be24e9638da13422e5b11022a5a4c895387efb7da9 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/f9/38/f93886a7c90cff7877bc77310bc8f2aae165dd07d813a31ae6b408a9fa10ac3c is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/8a/28/8a28dd2f79823dcc83b5b3820659b4bde3fb4e8a37574fb56d65fa0a8db1d692 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/57/bf/57bf5da46aef6ed4ae016b7651df2cee54f5c3eefa793c8f867ddea29cd94d35 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/92/1f/921f709e7416aeb9daea89fc8d41f9d151ad8263d47f14b46379aedd05775a35 is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+raw store: flattened/sha256/44/72/44729539b1edc73c1bdcdb5f00b20926dae3d17e7a230cd1f6dac09eadf304cd is missing with no tombstone. NFR-4 rebuild-from-raw is no longer guaranteed. This is corruption or a bug, not a takedown.
+==============================================================================
+1. EVERY REF THE DATABASE POINTS AT
+==============================================================================
+  refs to check: 124
+
+  document         found          30
+  document         missing        34
+  thread_context   MALFORMED       1
+  thread_context   found          30
+  thread_context   missing        29
+
+  NOT EVEN A REF: 1 of 124
+    'flattened/inline-see-json' x1  (thread_context)
+    A sentinel in a column typed as a location. `parse_ref` rejects it
+    before touching the filesystem, so it raises ValueError rather than
+    reporting MISSING - a third outcome the reader's vocabulary has no
+    member for.
+
+  UNRESOLVABLE: 63 of 124
+    [missing] raw/sha256/74/ba/74ba9a973c2b5eeb8d9bcbe8f8ee7fbd56dd5bb870dda2868ae6efa7dae711ac
+       referenced by document: ['doc_1793cd19837595b2']
+    [missing] raw/sha256/a2/4d/a24dcd09efe638c66d23e6dda60d21b9e2bf4555dd23fb28b7745386d2108030
+       referenced by document: ['doc_bc416a4f0fcae908']
+    [missing] raw/sha256/ad/6a/ad6a971bb1745fd963ef12bbdce91127067b8df5bc71a2ad697fd44d2dec1238
+       referenced by document: ['doc_9fa61a4dac30cca7']
+    [missing] raw/sha256/2e/a6/2ea674e7711c07b800e8b541fac79146ff23d7c8938247ae5b0d1904bb1e431f
+       referenced by document: ['doc_a78ea3f77935b6e7']
+    [missing] raw/sha256/d2/b4/d2b457177e40febd26bb783b9d7ddbe937c03536ccbabca496bdeaa9d4ffc808
+       referenced by document: ['doc_58ef4bdf3a64c8f6']
+    [missing] raw/sha256/3a/c1/3ac1baed0be81259e9437d91fdd043995c746b938327e7a24d8095bc533c83ac
+       referenced by document: ['doc_2f5127f215ccdefc']
+    [missing] raw/sha256/57/bf/57bf5da46aef6ed4ae016b7651df2cee54f5c3eefa793c8f867ddea29cd94d35
+       referenced by document: ['doc_d4d843b2a93d441b']
+    [missing] raw/sha256/9e/46/9e46736cd0a57fe99d60d377b98087dbdc1c71e7cae4ad93f435e7b3456ea179
+       referenced by document: ['doc_1da6477c298b216f']
+    [missing] raw/sha256/f9/a0/f9a09bdedd0910dda25458b1c825905141040db42e8a56a26288e1dbff760018
+       referenced by document: ['doc_bc25294098745025']
+    [missing] raw/sha256/44/72/44729539b1edc73c1bdcdb5f00b20926dae3d17e7a230cd1f6dac09eadf304cd
+       referenced by document: ['doc_eebc3fe63463f886']
+    [missing] raw/sha256/c1/f4/c1f41fee4bd18d5db6dab6ed66d8ece4af35480b966506b2edff853ce87ed2cb
+       referenced by document: ['doc_6622a58b8a8793d6']
+    [missing] raw/sha256/3e/eb/3eeba26703392de6d9a13799234b7c370146119439279ab28181416f6c40fb2c
+       referenced by document: ['doc_422ffc48b2aba1a7']
+    [missing] raw/sha256/b8/b1/b8b13e1625fd76074ce5355842d87a4623717107cc8eeea77715858c0b9f7e4f
+       referenced by document: ['doc_8300c9317579275f']
+    [missing] raw/sha256/c1/35/c135c19e24453ab3e6dff609c9449127439fad82c95fcc181f9d7ddba866c872
+       referenced by document: ['doc_de80532e88866e36']
+    [missing] raw/sha256/93/7b/937bb889dd18d5d581d68c6741f131c44c0196901a56b8428d86f48ae1e68d85
+       referenced by document: ['doc_908130d1c6ae81f4']
+    [missing] raw/sha256/f9/38/f93886a7c90cff7877bc77310bc8f2aae165dd07d813a31ae6b408a9fa10ac3c
+       referenced by document: ['doc_cbf94117a4b9a3aa']
+    [missing] raw/sha256/6f/e4/6fe4e372d8d8645d650a72c1751221cb719c7e472540e42ec24dbaba9d870725
+       referenced by document: ['doc_777e7c76039485c2']
+    [missing] raw/sha256/31/00/31007e2df2d0b0de7442293a372b0f16973cd89f09e73b81537221ddf932b89c
+       referenced by document: ['doc_c0347f7cbe52cc75']
+    [missing] raw/sha256/8c/25/8c25381368adaef915b42c2afd0fc3fb3879cecbda3e2bdce4563c36653be4c1
+       referenced by document: ['doc_e839cbb088d0b239']
+    [missing] raw/sha256/95/a6/95a67a14cb79d8635f9e5f8b4e60f3a2f196cbb7363467d85da048bff4ba8626
+       referenced by document: ['doc_496bff24b8520a54']
+    [missing] raw/sha256/22/85/2285d4c99db2230202a9c7d3647e15d4132ba19c41ec18aafd890fafe250493f
+       referenced by document: ['doc_5481a1f5b9c446d2']
+    [missing] raw/sha256/96/fb/96fbb969e74ea5f91f4cb0db4eee84a4fbde06dc61622cb901e2576b6e78c7f6
+       referenced by document: ['doc_3c2008e44b3a1cf1']
+    [missing] raw/sha256/f0/4f/f04f234da847212aa6bb93be24e9638da13422e5b11022a5a4c895387efb7da9
+       referenced by document: ['doc_c26ccccc6331c7c7']
+    [missing] raw/sha256/9a/9b/9a9ba5cc5d84b7d85ad4e6cbb9064aa2d92577363d33c01e9a569b2daa59458e
+       referenced by document: ['doc_d4e6becb76574a28']
+    [missing] raw/sha256/9f/29/9f29af779e5852945865706ded91c4f725fd47ff868c30de1f63ade5e4d8695b
+       referenced by document: ['doc_7f125051748eb9a1']
+    [missing] raw/sha256/0e/d3/0ed31b309d4d4468242922402d5dd94569f56a8cd5ff1a24c9193527cbacc34e
+       referenced by document: ['doc_bbf36790d1bdeab6']
+    [missing] raw/sha256/8a/28/8a28dd2f79823dcc83b5b3820659b4bde3fb4e8a37574fb56d65fa0a8db1d692
+       referenced by document: ['doc_d22c80b2d913917a']
+    [missing] raw/sha256/4a/03/4a0387ca44bfddde4bfe5d93a62d480bcab4b611572bdc8738ec5bc0aa9dc81b
+       referenced by document: ['blog:sha256:053141a14a3c0a43']
+    [missing] raw/sha256/b7/be/b7be00b90a018f09b5eb71a5d4e0fc4d2678d8362a05ca32db5c503368d3f0ae
+       referenced by document: ['reddit:t1_oqoc844']
+    [missing] raw/sha256/57/08/5708f4c669fbe3f49ed7184f2ca4a806b8bc6e57f79b9de04d11c831d0defd4a
+       referenced by document: ['reddit:t1_oqocfjv']
+    [missing] raw/sha256/e0/da/e0dabf9ffb33e645fcbc932045618100fbb5da1a9692e78b0cd1abf826932828
+       referenced by document: ['reddit:t1_oqocu7n']
+    [missing] raw/sha256/df/ff/dfffa0f00bd51e86b63d7976bdf6b3801844077fb67d57a71679db7d41721a6e
+       referenced by document: ['reddit:t1_oqodw1j']
+    [missing] raw/sha256/08/a6/08a61061d74120af31ae74c5513a1bee4a573c4e5364238bc626d8ec208db1bf
+       referenced by document: ['reddit:t1_oqorjbe']
+    [missing] raw/sha256/e9/6c/e96c62c62aad15ae1a6ab648f413f36329a25e73b4528414ae14c7d60c765fdb
+       referenced by document: ['reddit:t3_1u1b22l']
+    [missing] flattened/sha256/12/27/1227b5b3f6380f03cd0b1d1e6cb26c567dfddad26624f573dc7efb79d59f47f2
+       referenced by thread_context: ['thread_context_eacc17c8af367044']
+    [missing] flattened/sha256/d4/73/d4733dda78adf74d67b9c0765f3c906a4641e13703a85981123fa85e1de90446
+       referenced by thread_context: ['thread_context_a32b878fb67b4bfa']
+    [missing] flattened/sha256/74/ba/74ba9a973c2b5eeb8d9bcbe8f8ee7fbd56dd5bb870dda2868ae6efa7dae711ac
+       referenced by thread_context: ['thread_context_4fd09498733f5ce5']
+    [missing] flattened/sha256/9e/46/9e46736cd0a57fe99d60d377b98087dbdc1c71e7cae4ad93f435e7b3456ea179
+       referenced by thread_context: ['thread_context_7e8e7fb55eba0491']
+    [missing] flattened/sha256/ff/33/ff3358c050c315359457bfe7d4c765bfd5d6c3e55cc9f45a18b4b2be5c629bdb
+       referenced by thread_context: ['thread_context_27e3db23e4dda535']
+    [missing] flattened/sha256/7a/56/7a5651fa7d8668d87926abc01283277314860e08eebb000130915a9fa78f5640
+       referenced by thread_context: ['thread_context_7120b67050e1ff57']
+    [missing] flattened/sha256/a5/bc/a5bc3ac4b2e2575cc3c71e3055c20ef0f0a2a4da105b7277d9c863a45942e9e1
+       referenced by thread_context: ['thread_context_eeaaa9cb3e1a88f1']
+    [missing] flattened/sha256/29/d5/29d59b00627b8d0afe670e628d1613ee5430b770d9ee530f7ab3c58d4473034e
+       referenced by thread_context: ['thread_context_af34d912b38128aa']
+    [missing] flattened/sha256/49/0e/490e2dd33411d0e3c222b3c626df1f6160c27d37e5431edbe5fb489b5486db29
+       referenced by thread_context: ['thread_context_688320db7790aa85']
+    [missing] flattened/sha256/d2/b4/d2b457177e40febd26bb783b9d7ddbe937c03536ccbabca496bdeaa9d4ffc808
+       referenced by thread_context: ['thread_context_3f88a7858c9aafb9']
+    [missing] flattened/sha256/b8/48/b848c4a3e7737630fe8c85ba9df4e8a04d50344fca6c6efd675f5bd1bf40e97f
+       referenced by thread_context: ['thread_context_fb5e61a98767ad97']
+    [missing] flattened/sha256/ef/5c/ef5cdaab6484f477596f334873fdfe6d2bff62d271b051ef6ef5fa25cb0bb912
+       referenced by thread_context: ['thread_context_999492b73e9e44d7']
+    [missing] flattened/sha256/9f/29/9f29af779e5852945865706ded91c4f725fd47ff868c30de1f63ade5e4d8695b
+       referenced by thread_context: ['thread_context_c02f1d12486421ca']
+    [missing] flattened/sha256/12/fa/12fa05cb0c8fcf4a8a60075f872da70cd9d0d197ef5e63c6b0a19dc2070e89f5
+       referenced by thread_context: ['thread_context_91dd23e624b62a1e']
+    [missing] flattened/sha256/9a/9b/9a9ba5cc5d84b7d85ad4e6cbb9064aa2d92577363d33c01e9a569b2daa59458e
+       referenced by thread_context: ['thread_context_2dbba8ee02184454']
+    [missing] flattened/sha256/9b/8e/9b8ee75113d776650176a6296cd395f0db5db0f18ef4ce21b6c00665b9066388
+       referenced by thread_context: ['thread_context_fc4620dc0e975e90']
+    [missing] flattened/sha256/71/24/71240a1ca4c2f6a5eb37cee9aa0bb0ae2de0a558c32449eec8564de6ea37e88e
+       referenced by thread_context: ['thread_context_a803a1d0505d9c40']
+    [missing] flattened/sha256/ad/6a/ad6a971bb1745fd963ef12bbdce91127067b8df5bc71a2ad697fd44d2dec1238
+       referenced by thread_context: ['thread_context_32c3d8cd13860e23']
+    [missing] flattened/sha256/a7/88/a78898a090f1ccb295437c24c043b9e08384c5019c351154e5c93488db8ebbae
+       referenced by thread_context: ['thread_context_bd1c92bf4ce1b2cc']
+    [missing] flattened/sha256/0e/d3/0ed31b309d4d4468242922402d5dd94569f56a8cd5ff1a24c9193527cbacc34e
+       referenced by thread_context: ['thread_context_7598cdb54da42851']
+    [missing] flattened/sha256/f9/a0/f9a09bdedd0910dda25458b1c825905141040db42e8a56a26288e1dbff760018
+       referenced by thread_context: ['thread_context_b025bf26735c84f7']
+    [missing] flattened/sha256/a2/4d/a24dcd09efe638c66d23e6dda60d21b9e2bf4555dd23fb28b7745386d2108030
+       referenced by thread_context: ['thread_context_e26088dae7e0319e']
+    [missing] flattened/sha256/0f/ec/0fec09d901f45b77c58252cfbf0c0418405a53ed2485c07dec9d1ab8c5a883ca
+       referenced by thread_context: ['thread_context_80f06620a2376d0a']
+    [missing] flattened/sha256/f0/4f/f04f234da847212aa6bb93be24e9638da13422e5b11022a5a4c895387efb7da9
+       referenced by thread_context: ['thread_context_60ba15192dcd8f59']
+    [missing] flattened/sha256/f9/38/f93886a7c90cff7877bc77310bc8f2aae165dd07d813a31ae6b408a9fa10ac3c
+       referenced by thread_context: ['thread_context_f4263f7478eddc07']
+    [missing] flattened/sha256/8a/28/8a28dd2f79823dcc83b5b3820659b4bde3fb4e8a37574fb56d65fa0a8db1d692
+       referenced by thread_context: ['thread_context_cd3f3d95620d9c04']
+    [missing] flattened/sha256/57/bf/57bf5da46aef6ed4ae016b7651df2cee54f5c3eefa793c8f867ddea29cd94d35
+       referenced by thread_context: ['thread_context_0e08501363fe354b']
+    [missing] flattened/sha256/92/1f/921f709e7416aeb9daea89fc8d41f9d151ad8263d47f14b46379aedd05775a35
+       referenced by thread_context: ['thread_context_106428d805962f78']
+    [missing] flattened/sha256/44/72/44729539b1edc73c1bdcdb5f00b20926dae3d17e7a230cd1f6dac09eadf304cd
+       referenced by thread_context: ['thread_context_970742ce3c27ae2d']
+
+==============================================================================
+2. WHAT THE STORE PHYSICALLY HOLDS
+==============================================================================
+  flattened      59 files, 0 tombstone markers
+  raw           150 files, 0 tombstone markers
+
+  refs on disk but referenced by nothing: 149
+  refs referenced but not on disk:        64
+    flattened/inline-see-json
+    flattened/sha256/0e/d3/0ed31b309d4d4468242922402d5dd94569f56a8cd5ff1a24c9193527cbacc34e
+    flattened/sha256/0f/ec/0fec09d901f45b77c58252cfbf0c0418405a53ed2485c07dec9d1ab8c5a883ca
+    flattened/sha256/12/27/1227b5b3f6380f03cd0b1d1e6cb26c567dfddad26624f573dc7efb79d59f47f2
+    flattened/sha256/12/fa/12fa05cb0c8fcf4a8a60075f872da70cd9d0d197ef5e63c6b0a19dc2070e89f5
+    flattened/sha256/29/d5/29d59b00627b8d0afe670e628d1613ee5430b770d9ee530f7ab3c58d4473034e
+    flattened/sha256/44/72/44729539b1edc73c1bdcdb5f00b20926dae3d17e7a230cd1f6dac09eadf304cd
+    flattened/sha256/49/0e/490e2dd33411d0e3c222b3c626df1f6160c27d37e5431edbe5fb489b5486db29
+    flattened/sha256/57/bf/57bf5da46aef6ed4ae016b7651df2cee54f5c3eefa793c8f867ddea29cd94d35
+    flattened/sha256/71/24/71240a1ca4c2f6a5eb37cee9aa0bb0ae2de0a558c32449eec8564de6ea37e88e
+    flattened/sha256/74/ba/74ba9a973c2b5eeb8d9bcbe8f8ee7fbd56dd5bb870dda2868ae6efa7dae711ac
+    flattened/sha256/7a/56/7a5651fa7d8668d87926abc01283277314860e08eebb000130915a9fa78f5640
+    flattened/sha256/8a/28/8a28dd2f79823dcc83b5b3820659b4bde3fb4e8a37574fb56d65fa0a8db1d692
+    flattened/sha256/92/1f/921f709e7416aeb9daea89fc8d41f9d151ad8263d47f14b46379aedd05775a35
+    flattened/sha256/9a/9b/9a9ba5cc5d84b7d85ad4e6cbb9064aa2d92577363d33c01e9a569b2daa59458e
+    flattened/sha256/9b/8e/9b8ee75113d776650176a6296cd395f0db5db0f18ef4ce21b6c00665b9066388
+    flattened/sha256/9e/46/9e46736cd0a57fe99d60d377b98087dbdc1c71e7cae4ad93f435e7b3456ea179
+    flattened/sha256/9f/29/9f29af779e5852945865706ded91c4f725fd47ff868c30de1f63ade5e4d8695b
+    flattened/sha256/a2/4d/a24dcd09efe638c66d23e6dda60d21b9e2bf4555dd23fb28b7745386d2108030
+    flattened/sha256/a5/bc/a5bc3ac4b2e2575cc3c71e3055c20ef0f0a2a4da105b7277d9c863a45942e9e1
+    flattened/sha256/a7/88/a78898a090f1ccb295437c24c043b9e08384c5019c351154e5c93488db8ebbae
+    flattened/sha256/ad/6a/ad6a971bb1745fd963ef12bbdce91127067b8df5bc71a2ad697fd44d2dec1238
+    flattened/sha256/b8/48/b848c4a3e7737630fe8c85ba9df4e8a04d50344fca6c6efd675f5bd1bf40e97f
+    flattened/sha256/d2/b4/d2b457177e40febd26bb783b9d7ddbe937c03536ccbabca496bdeaa9d4ffc808
+    flattened/sha256/d4/73/d4733dda78adf74d67b9c0765f3c906a4641e13703a85981123fa85e1de90446
+    flattened/sha256/ef/5c/ef5cdaab6484f477596f334873fdfe6d2bff62d271b051ef6ef5fa25cb0bb912
+    flattened/sha256/f0/4f/f04f234da847212aa6bb93be24e9638da13422e5b11022a5a4c895387efb7da9
+    flattened/sha256/f9/38/f93886a7c90cff7877bc77310bc8f2aae165dd07d813a31ae6b408a9fa10ac3c
+    flattened/sha256/f9/a0/f9a09bdedd0910dda25458b1c825905141040db42e8a56a26288e1dbff760018
+    flattened/sha256/ff/33/ff3358c050c315359457bfe7d4c765bfd5d6c3e55cc9f45a18b4b2be5c629bdb
+    raw/sha256/08/a6/08a61061d74120af31ae74c5513a1bee4a573c4e5364238bc626d8ec208db1bf
+    raw/sha256/0e/d3/0ed31b309d4d4468242922402d5dd94569f56a8cd5ff1a24c9193527cbacc34e
+    raw/sha256/22/85/2285d4c99db2230202a9c7d3647e15d4132ba19c41ec18aafd890fafe250493f
+    raw/sha256/2e/a6/2ea674e7711c07b800e8b541fac79146ff23d7c8938247ae5b0d1904bb1e431f
+    raw/sha256/31/00/31007e2df2d0b0de7442293a372b0f16973cd89f09e73b81537221ddf932b89c
+    raw/sha256/3a/c1/3ac1baed0be81259e9437d91fdd043995c746b938327e7a24d8095bc533c83ac
+    raw/sha256/3e/eb/3eeba26703392de6d9a13799234b7c370146119439279ab28181416f6c40fb2c
+    raw/sha256/44/72/44729539b1edc73c1bdcdb5f00b20926dae3d17e7a230cd1f6dac09eadf304cd
+    raw/sha256/4a/03/4a0387ca44bfddde4bfe5d93a62d480bcab4b611572bdc8738ec5bc0aa9dc81b
+    raw/sha256/57/08/5708f4c669fbe3f49ed7184f2ca4a806b8bc6e57f79b9de04d11c831d0defd4a
+    raw/sha256/57/bf/57bf5da46aef6ed4ae016b7651df2cee54f5c3eefa793c8f867ddea29cd94d35
+    raw/sha256/6f/e4/6fe4e372d8d8645d650a72c1751221cb719c7e472540e42ec24dbaba9d870725
+    raw/sha256/74/ba/74ba9a973c2b5eeb8d9bcbe8f8ee7fbd56dd5bb870dda2868ae6efa7dae711ac
+    raw/sha256/8a/28/8a28dd2f79823dcc83b5b3820659b4bde3fb4e8a37574fb56d65fa0a8db1d692
+    raw/sha256/8c/25/8c25381368adaef915b42c2afd0fc3fb3879cecbda3e2bdce4563c36653be4c1
+    raw/sha256/93/7b/937bb889dd18d5d581d68c6741f131c44c0196901a56b8428d86f48ae1e68d85
+    raw/sha256/95/a6/95a67a14cb79d8635f9e5f8b4e60f3a2f196cbb7363467d85da048bff4ba8626
+    raw/sha256/96/fb/96fbb969e74ea5f91f4cb0db4eee84a4fbde06dc61622cb901e2576b6e78c7f6
+    raw/sha256/9a/9b/9a9ba5cc5d84b7d85ad4e6cbb9064aa2d92577363d33c01e9a569b2daa59458e
+    raw/sha256/9e/46/9e46736cd0a57fe99d60d377b98087dbdc1c71e7cae4ad93f435e7b3456ea179
+    raw/sha256/9f/29/9f29af779e5852945865706ded91c4f725fd47ff868c30de1f63ade5e4d8695b
+    raw/sha256/a2/4d/a24dcd09efe638c66d23e6dda60d21b9e2bf4555dd23fb28b7745386d2108030
+    raw/sha256/ad/6a/ad6a971bb1745fd963ef12bbdce91127067b8df5bc71a2ad697fd44d2dec1238
+    raw/sha256/b7/be/b7be00b90a018f09b5eb71a5d4e0fc4d2678d8362a05ca32db5c503368d3f0ae
+    raw/sha256/b8/b1/b8b13e1625fd76074ce5355842d87a4623717107cc8eeea77715858c0b9f7e4f
+    raw/sha256/c1/35/c135c19e24453ab3e6dff609c9449127439fad82c95fcc181f9d7ddba866c872
+    raw/sha256/c1/f4/c1f41fee4bd18d5db6dab6ed66d8ece4af35480b966506b2edff853ce87ed2cb
+    raw/sha256/d2/b4/d2b457177e40febd26bb783b9d7ddbe937c03536ccbabca496bdeaa9d4ffc808
+    raw/sha256/df/ff/dfffa0f00bd51e86b63d7976bdf6b3801844077fb67d57a71679db7d41721a6e
+    raw/sha256/e0/da/e0dabf9ffb33e645fcbc932045618100fbb5da1a9692e78b0cd1abf826932828
+    raw/sha256/e9/6c/e96c62c62aad15ae1a6ab648f413f36329a25e73b4528414ae14c7d60c765fdb
+    raw/sha256/f0/4f/f04f234da847212aa6bb93be24e9638da13422e5b11022a5a4c895387efb7da9
+    raw/sha256/f9/38/f93886a7c90cff7877bc77310bc8f2aae165dd07d813a31ae6b408a9fa10ac3c
+    raw/sha256/f9/a0/f9a09bdedd0910dda25458b1c825905141040db42e8a56a26288e1dbff760018
+
+==============================================================================
+3. IS MISSING-WITH-NO-TOMBSTONE DISTINGUISHABLE FROM NEVER-WRITTEN?
+==============================================================================
+  The store's own vocabulary (collect/rawstore.py):
+    PayloadTombstoned  a marker file exists, carrying tombstoned_at,
+                       reason (takedown-request | upstream-deleted) and
+                       the content_hash. Deliberate, dated, attributed.
+    PayloadMissing     no blob and no marker. Docstring: "This is an ops
+                       alert, not a routine condition ... NFR-4 guarantees
+                       a full rebuild from the raw store; that guarantee
+                       is void the moment a blob disappears without a
+                       tombstone."
+    PayloadCorrupt     bytes disagree with the key they are filed under.
+
+  So TOMBSTONED vs MISSING is distinguishable: one has a marker file.
+
+  MISSING vs NEVER-WRITTEN IS NOT, and cannot be from the store alone.
+  A content-addressed store has no write log - `put` is idempotent by
+  construction, so 'this ref was written and is gone' and 'this ref was
+  computed and never put' leave byte-identical evidence: an absent file
+  under a path nothing created.
+
+  What DOES distinguish them is the row that points at the ref, and only
+  for two of the three cases:
+    - a row exists AND something downstream was derived from the payload
+      -> it was written and read at least once, so it is a LOSS
+    - a row exists and nothing was ever derived from it
+      -> indistinguishable. Could be a failed put whose caller wrote the
+         row anyway, or a loss before anything read it.
+
+  Applying it to the unresolvable refs above:
+    doc_1793cd19837595b2: 0 claims derived -> indistinguishable
+    doc_bc416a4f0fcae908: 0 claims derived -> indistinguishable
+    doc_9fa61a4dac30cca7: 0 claims derived -> indistinguishable
+    doc_a78ea3f77935b6e7: 0 claims derived -> indistinguishable
+    doc_58ef4bdf3a64c8f6: 0 claims derived -> indistinguishable
+    doc_2f5127f215ccdefc: 0 claims derived -> indistinguishable
+    doc_d4d843b2a93d441b: 0 claims derived -> indistinguishable
+    doc_1da6477c298b216f: 0 claims derived -> indistinguishable
+    doc_bc25294098745025: 0 claims derived -> indistinguishable
+    doc_eebc3fe63463f886: 0 claims derived -> indistinguishable
+    doc_6622a58b8a8793d6: 0 claims derived -> indistinguishable
+    doc_422ffc48b2aba1a7: 0 claims derived -> indistinguishable
+    doc_8300c9317579275f: 0 claims derived -> indistinguishable
+    doc_de80532e88866e36: 0 claims derived -> indistinguishable
+    doc_908130d1c6ae81f4: 0 claims derived -> indistinguishable
+    doc_cbf94117a4b9a3aa: 0 claims derived -> indistinguishable
+    doc_777e7c76039485c2: 0 claims derived -> indistinguishable
+    doc_c0347f7cbe52cc75: 0 claims derived -> indistinguishable
+    doc_e839cbb088d0b239: 0 claims derived -> indistinguishable
+    doc_496bff24b8520a54: 0 claims derived -> indistinguishable
+    doc_5481a1f5b9c446d2: 0 claims derived -> indistinguishable
+    doc_3c2008e44b3a1cf1: 0 claims derived -> indistinguishable
+    doc_c26ccccc6331c7c7: 0 claims derived -> indistinguishable
+    doc_d4e6becb76574a28: 0 claims derived -> indistinguishable
+    doc_7f125051748eb9a1: 0 claims derived -> indistinguishable
+    doc_bbf36790d1bdeab6: 0 claims derived -> indistinguishable
+    doc_d22c80b2d913917a: 0 claims derived -> indistinguishable
+    blog:sha256:053141a14a3c0a43: 0 claims derived -> indistinguishable
+    reddit:t1_oqoc844: 0 claims derived -> indistinguishable
+    reddit:t1_oqocfjv: 0 claims derived -> indistinguishable
+    reddit:t1_oqocu7n: 0 claims derived -> indistinguishable
+    reddit:t1_oqodw1j: 0 claims derived -> indistinguishable
+    reddit:t1_oqorjbe: 1 claims derived -> LOSS
+    reddit:t3_1u1b22l: 3 claims derived -> LOSS
+    thread_context_eacc17c8af367044: 4 claims derived -> LOSS - claims were extracted from this payload, so it existed and was read
+    thread_context_a32b878fb67b4bfa: 0 claims derived -> indistinguishable
+    thread_context_4fd09498733f5ce5: 0 claims derived -> indistinguishable
+    thread_context_7e8e7fb55eba0491: 0 claims derived -> indistinguishable
+    thread_context_27e3db23e4dda535: 0 claims derived -> indistinguishable
+    thread_context_7120b67050e1ff57: 0 claims derived -> indistinguishable
+    thread_context_eeaaa9cb3e1a88f1: 0 claims derived -> indistinguishable
+    thread_context_af34d912b38128aa: 0 claims derived -> indistinguishable
+    thread_context_688320db7790aa85: 0 claims derived -> indistinguishable
+    thread_context_3f88a7858c9aafb9: 0 claims derived -> indistinguishable
+    thread_context_fb5e61a98767ad97: 0 claims derived -> indistinguishable
+    thread_context_999492b73e9e44d7: 0 claims derived -> indistinguishable
+    thread_context_c02f1d12486421ca: 0 claims derived -> indistinguishable
+    thread_context_91dd23e624b62a1e: 0 claims derived -> indistinguishable
+    thread_context_2dbba8ee02184454: 0 claims derived -> indistinguishable
+    thread_context_fc4620dc0e975e90: 0 claims derived -> indistinguishable
+    thread_context_a803a1d0505d9c40: 0 claims derived -> indistinguishable
+    thread_context_32c3d8cd13860e23: 0 claims derived -> indistinguishable
+    thread_context_bd1c92bf4ce1b2cc: 0 claims derived -> indistinguishable
+    thread_context_7598cdb54da42851: 0 claims derived -> indistinguishable
+    thread_context_b025bf26735c84f7: 0 claims derived -> indistinguishable
+    thread_context_e26088dae7e0319e: 0 claims derived -> indistinguishable
+    thread_context_80f06620a2376d0a: 0 claims derived -> indistinguishable
+    thread_context_60ba15192dcd8f59: 0 claims derived -> indistinguishable
+    thread_context_f4263f7478eddc07: 0 claims derived -> indistinguishable
+    thread_context_cd3f3d95620d9c04: 0 claims derived -> indistinguishable
+    thread_context_0e08501363fe354b: 0 claims derived -> indistinguishable
+    thread_context_106428d805962f78: 0 claims derived -> indistinguishable
+    thread_context_970742ce3c27ae2d: 0 claims derived -> indistinguishable

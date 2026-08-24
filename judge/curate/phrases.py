@@ -59,8 +59,18 @@ CONDITION_LABELS: dict[str, str] = {
     "context_size:8k-32k": "on inputs up to 32k",
     "context_size:32k-128k": "on inputs up to 128k",
     "context_size:128k+": "past 128k",
-    "structured_mode:on": "with structured output enabled",
-    "structured_mode:off": "without structured output",
+    "schema_enforced:on": "with structured output enabled",
+    "schema_enforced:off": "without structured output",
+    # No capability is reasoning_effort-dominant yet, so these are unreachable
+    # today. They are here because `condition_label` falls back to the raw
+    # bucket string, and the day E2 moves `ops.latency_ttft` onto this
+    # dimension the fallback would put `reasoning_effort:max` on a page.
+    "reasoning_effort:off": "with thinking off",
+    "reasoning_effort:low": "at low reasoning effort",
+    "reasoning_effort:medium": "at medium reasoning effort",
+    "reasoning_effort:high": "at high reasoning effort",
+    "reasoning_effort:max": "at maximum reasoning effort",
+    "reasoning_effort:auto": "with the effort chosen by the provider",
 }
 
 

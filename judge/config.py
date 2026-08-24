@@ -88,7 +88,21 @@ def dominant_dimension() -> dict[str, str]:
     return dict(_read("conditions.yaml")["dominant_dimension"])
 
 
-def band_for(dimension: str, value: int | bool | None) -> str:
+#: Vendor spellings of the same tier, folded onto the bands in
+#: contract/conditions.yaml. Extraction can only produce the band names
+#: themselves (`Conditions.reasoning_effort` is a Literal), so this exists for
+#: every other writer - seeds, backfills, and whatever a human types.
+_EFFORT_ALIASES: dict[str, str] = {
+    "off": "off", "none": "off", "minimal": "off", "no-thinking": "off",
+    "low": "low",
+    "medium": "medium", "med": "medium", "default": "medium",
+    "high": "high",
+    "max": "max", "xhigh": "max", "highest": "max", "maximum": "max",
+    "auto": "auto", "dynamic": "auto", "router": "auto", "auto mode": "auto",
+}
+
+
+def band_for(dimension: str, value: int | bool | str | None) -> str:
     """Place a raw value into its fixed band.
 
     Bands are fixed rather than continuous because buckets must be countable —
@@ -119,8 +133,23 @@ def band_for(dimension: str, value: int | bool | None) -> str:
             return "32k-128k"
         return "128k+"
 
-    if dimension == "structured_mode":
+    if dimension == "schema_enforced":
         return "on" if value else "off"
+
+    if dimension == "reasoning_effort":
+        band = _EFFORT_ALIASES.get(str(value).strip().lower())
+        if band is None:
+            # DELIBERATELY LOUD. Mapping an unrecognised effort to `unknown`
+            # would turn a value somebody actually reported into missing data,
+            # which is rule 6 pointed the wrong way. `unknown` is what an
+            # ABSENT value produces (the `value is None` branch above), and it
+            # must stay the answer to one question only.
+            raise ValueError(
+                f"unrecognised reasoning_effort {value!r}. Add it to "
+                f"_EFFORT_ALIASES, or to the bands in contract/conditions.yaml "
+                f"if it is a new tier. Do not let it fall to 'unknown'."
+            )
+        return band
 
     raise ValueError(f"unknown condition dimension: {dimension!r}")
 
@@ -142,3 +171,19 @@ def _read(name: str) -> dict:
             "be present in every checkout."
         )
     return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+def evidence_tier_by_speaking() -> dict[str, str]:
+    """`contract/harvest.yaml` -> {speaking value: evidence tier}.
+
+    Returns `{}` when the block is absent rather than raising, because the
+    refusal belongs in `compute()` where the missing input can be named
+    alongside anything else that is missing. A raise here would report one gap
+    per round trip.
+    """
+    block = _read("harvest.yaml").get("evidence_tier_by_speaking") or {}
+    return {
+        key: value
+        for key, value in block.items()
+        if isinstance(value, str) and not key.startswith("not_a_")
+    }

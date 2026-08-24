@@ -123,6 +123,31 @@ GITHUB_SOURCE_ID = "github"
 DOCUMENT_SOURCE = "github"
 
 
+def github_author_id(hit: Any) -> str | None:
+    """The `author.id` a hit attributes to, or None where there is no identity.
+
+    Keyed on `user.id`, the stable numeric account id — NOT `user.login`. A login
+    is renameable, so keying on it makes a renamed account a new author and a
+    reused name two people merged into one. Reddit's `t2_` canonicalisation
+    exists for the same reason and this is the symmetric case.
+
+    **None must survive to the column.** Every fallback available here is worse
+    than NULL: the login splits one person across a rename, and any sentinel
+    merges every deleted account into a single `author` row that the gate then
+    counts as a voice corroborating itself.
+    """
+    from collect.assemble.authors import AuthorRow, hash_handle
+
+    external_id = getattr(hit, "author_external_id", None)
+    if not external_id:
+        return None
+    return AuthorRow(
+        source=DOCUMENT_SOURCE,
+        external_id=str(external_id),
+        handle_hash=hash_handle(getattr(hit, "author", None)),
+    ).id
+
+
 @dataclass(frozen=True)
 class SearchHit:
     """One search result. Carries the body, which is why the sieve can run first."""
@@ -496,7 +521,26 @@ class GitHubHarvester:
     # ── the write path ───────────────────────────────────────────────────
 
     def write_documents(self, conn, run: QueryRun, *, batch: int = 500) -> dict[str, int]:
-        """Insert one `document` per stored issue. Absent values stay NULL.
+        """Insert one `document` per stored issue, WITH `author_id`. Absent values stay NULL.
+
+        **`author_id` was omitted here until 2026-08-21 and it was the whole
+        column: 0 of 27 `github` document rows carried an author.** The id was
+        never missing — `SearchHit.author_external_id` has held `user.id` since
+        the adapter stopped keeping `user.login` alone — it simply was not being
+        written. `judge/curate/gate.py:count` dedups voices off
+        `claim.author_id`, so a NULL there is not an unknown author, it is no
+        voice at all.
+
+        `user.id` and not `user.login`, for the reason Reddit's `t2_`
+        canonicalisation exists: the numeric id survives a rename, a login does
+        not, and a reused login merges two people — the over-clustering
+        `collect/CLAUDE.md` calls the worse of the two failures.
+
+        AUTHORS ARE WRITTEN FIRST, because `document.author_id` references
+        `author.id`. A hit from a deleted account has no `user.id`, gets no
+        author row, and keeps `author_id` NULL rather than sharing one — a
+        sentinel would merge every deleted account into a single voice that then
+        corroborates itself.
 
         `ON CONFLICT DO NOTHING` on `(source, external_id)`: two queries in one
         sweep legitimately return the same issue, and the second is not an error.
@@ -516,6 +560,12 @@ class GitHubHarvester:
         conflict affects no rows, so `cur.rowcount` over the batch counts the
         inserts that actually happened.
         """
+        from collect.assemble.authors import from_github, write_authors
+
+        hits = [issue.hit for issue in run.stored]
+        extraction = from_github(hits)
+        author_counts = write_authors(conn, extraction.rows, batch=batch)
+
         rows = [
             {
                 "id": stable_id("doc", DOCUMENT_SOURCE, issue.external_id),
@@ -528,14 +578,15 @@ class GitHubHarvester:
                 "engagement": json.dumps(
                     {"comments": issue.hit.comment_count, "reactions": issue.hit.reactions}
                 ),
+                "author_id": github_author_id(issue.hit),
             }
             for issue in run.stored
         ]
         statement = (
             "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
-            "text_ref, content_hash, engagement, status) "
+            "text_ref, content_hash, engagement, author_id, status) "
             "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
-            "%(text_ref)s, %(content_hash)s, %(engagement)s, 'kept') "
+            "%(text_ref)s, %(content_hash)s, %(engagement)s, %(author_id)s, 'kept') "
             "ON CONFLICT (source, external_id) DO NOTHING"
         )
         inserted = 0
@@ -543,7 +594,40 @@ class GitHubHarvester:
             for start in range(0, len(rows), batch):
                 cur.executemany(statement, rows[start:start + batch])
                 inserted += max(0, cur.rowcount)
-        return {"inserted": inserted, "seen": len(rows)}
+
+        # AND ATTRIBUTE THE ROWS THAT ALREADY EXISTED. `ON CONFLICT DO NOTHING`
+        # is right for every other column and wrong for this one: the 27 github
+        # documents written before `author_id` existed would otherwise stay
+        # anonymous through every future sweep, because the conflict is silent
+        # and the row looks written. Guarded by `author_id IS NULL`, so a real
+        # attribution is never replaced by a later parse. Same fix, same
+        # reasoning, as `reddit_write.write_documents`.
+        attributions = [
+            {"id": r["id"], "author_id": r["author_id"]}
+            for r in rows if r["author_id"] is not None
+        ]
+        attributed = 0
+        if attributions:
+            with conn.cursor() as cur:
+                for start in range(0, len(attributions), batch):
+                    cur.executemany(
+                        "UPDATE document SET author_id = %(author_id)s "
+                        "WHERE id = %(id)s AND author_id IS NULL",
+                        attributions[start:start + batch],
+                    )
+                    attributed += max(0, cur.rowcount)
+        return {
+            "inserted": inserted,
+            "seen": len(rows),
+            "authors_attached_to_existing": max(0, attributed - inserted),
+            "authors_inserted": author_counts["inserted"],
+            "distinct_authors": extraction.distinct_authors,
+            # NAMED RATHER THAN DROPPED. A hit from a deleted account has no
+            # `user.id` and therefore no voice; the count separates "few voices"
+            # from "few ATTRIBUTABLE voices", which are different findings.
+            "documents_without_author": sum(1 for r in rows if r["author_id"] is None),
+            "unattributable": extraction.unattributable,
+        }
 
     def harvest_run_fields(self, run: QueryRun) -> dict[str, Any]:
         """The `harvest_run` row, plus the two fields with nowhere to live yet."""

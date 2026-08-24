@@ -1,0 +1,38 @@
+{
+ "_note": "ZERO IS THE RESULT, NOT MISSING DATA. An empty array on disk reads as 'never run'; this file is the record of four draws that each returned nothing, which is the finding.",
+ "question": "Do openai-timeline's twelve code.generation claims reproduce? They were quoted as the evidence that the capability vocabulary misfiles past `unclassified`, and they were never persisted.",
+ "answer": "No. 0 claims in 4 of 4 draws.",
+ "extractor_model": "google/gemini-2.5-flash",
+ "document": "blog:https://simonwillison.net/2026/Aug/6/openai-timeline/",
+ "document_chars": 5859,
+ "draws": [
+  {
+   "source": "30-of-30 corpus run",
+   "proposed": 0,
+   "verified": 0,
+   "zero_kind": "silent"
+  },
+  {
+   "source": "draw 1",
+   "proposed": 0,
+   "verified": 0,
+   "zero_kind": "silent"
+  },
+  {
+   "source": "draw 2",
+   "proposed": 0,
+   "verified": 0,
+   "zero_kind": "silent"
+  },
+  {
+   "source": "draw 3",
+   "proposed": 0,
+   "verified": 0,
+   "zero_kind": "silent"
+  }
+ ],
+ "stated_reason_identical_each_draw": "The document describes an incident involving an experimental, unreleased OpenAI model, but does not make any claims about...",
+ "assessment": "The stated reason is correct - the document is about an incident, not about a model's capability, and returning nothing is the right answer. The twelve came from one unpersisted draw and cannot be examined.",
+ "claims": [],
+ "writeup": "docs/measurements/the-effort-dimension.md"
+}

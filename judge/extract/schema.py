@@ -18,16 +18,81 @@ Relevance = Literal["central", "passing"]
 Specificity = Literal["snapshot", "version", "family"]
 EvidenceTier = Literal["A", "B", "C", "D", "E", "F"]
 
+#: WHOSE claim a quote is. Supplies `evidence_tier`; see `ModelRef.speaking`.
+#:
+#: The three values are the golden set's, not this file's. Each one is the
+#: residue of a disagreement two people had over real rows, and the derivation
+#: is in `docs/measurements/extraction-baseline-two-labellings.md` §5.
+Speaking = Literal[
+    "own-experience",
+    "vendor-about-own-product",
+    "relayed-from-elsewhere",
+]
+
+#: How much thinking the model was asked to do. Bands from
+#: `contract/conditions.yaml`; `unknown` is NOT here on purpose, because
+#: omitting the field is how you say the document did not state it, and having
+#: two ways to say the same thing loses the distinction rule 6 protects.
+ReasoningEffort = Literal["off", "low", "medium", "high", "max", "auto"]
+
 MAX_QUOTE_CHARS = 200
 
 
 class ModelRef(BaseModel):
-    """Which model the claim is about, and how sure we are."""
+    """Which model the claim is about, how sure we are, and whose claim it is.
+
+    `speaking` IS REQUIRED AND ITS EVIDENCE IS ASYMMETRIC. Recorded here rather
+    than only in the proposal, because the field enforces a distinction whose
+    two halves are not equally checked:
+
+        own-experience            8 of 8 by one labeller, and 4 of 5 where both
+                                  answered.  CORROBORATED.
+        vendor-about-own-product  4 of 4 by ONE labeller, on four rows drawn
+                                  from ONE announcement thread. The second
+                                  labeller left all four blank.  NOT
+                                  CORROBORATED.
+        relayed-from-elsewhere    used once, by the labeller who did not use
+                                  `vendor-about-own-product` at all.
+
+    **So the field is built on the stronger half and enforces the weaker one.**
+    That is a deliberate choice and not an oversight: `vendor-about-own-product`
+    is the value that changes a weight sixfold (see the tier mapping in
+    `contract/harvest.yaml`), and it is the value with one reader.
+
+    What that means in practice: a disagreement about a `vendor-about-own-product`
+    label is not yet evidence that the model got it wrong, because nobody has
+    established what right looks like on more than four rows. The golden set has
+    to grow before this field's accuracy can be argued about.
+    `docs/proposals/for-engineer-2-a-speaking-field-on-modelref.md` §4.
+    """
 
     surface: str = Field(description="exactly as the human wrote it")
     resolved_version_id: str | None = None
     specificity: Specificity
     resolution_confidence: float = Field(ge=0.0, le=1.0)
+    speaking: Speaking = Field(
+        description=(
+            "WHOSE claim this is, not whether it is true. Required — a claim "
+            "without one cannot be audited for provenance, which is the state "
+            "every claim currently in the table is in.\n\n"
+            "own-experience: the writer is reporting what happened when THEY "
+            "used the model — their run, their session, their bug. "
+            "\"I had Codex optimize it and got it down to around 35 seconds\".\n"
+            "vendor-about-own-product: the writer is the vendor, or speaking "
+            "for it, describing their own model — an announcement, a model "
+            "card, a release post. \"exceptional performance in software "
+            "engineering\", lifted out of a launch post.\n"
+            "relayed-from-elsewhere: the writer is repeating a claim somebody "
+            "else made — a benchmark, a model card, another post. A citation is "
+            "the tell: \"gives 10%+ better results on SWE-Bench (p 255 of the "
+            "model card pdf)\".\n\n"
+            "A VERBATIM QUOTE FROM AN ANNOUNCEMENT IS vendor-about-own-product "
+            "OR relayed-from-elsewhere, NEVER own-experience, however exactly "
+            "it is quoted. Quote verification cannot catch that mistake — the "
+            "sentence really is in the text — so this field is the only place "
+            "it can be caught."
+        )
+    )
 
 
 class Conditions(BaseModel):
@@ -39,12 +104,63 @@ class Conditions(BaseModel):
 
     Every field is optional, because a human writing a forum post owes us
     nothing. Absent means absent — never guessed into a band.
+
+    **THIS OBJECT IS WHERE MISFILED VALUES LAND, and the field's NAME was the
+    cause.** Three times in one week the extractor put a string into
+    `structured_mode`, a `bool | None` — `'xhigh'` twice, `'auto mode'` once,
+    the last costing four claims on a post about a feature called auto mode.
+
+    Two fixes were tried and only the second worked, which is the finding:
+
+      1. ADD `reasoning_effort`, with a description naming `'auto mode'` as its
+         own example. The misfiling continued unchanged — 3 of 4 claims, three
+         draws out of three, with `reasoning_effort` left null every time.
+      2. RENAME `structured_mode` to `schema_enforced`, changing nothing else.
+         Misfiling stopped dead and `reasoning_effort` came back `'auto'` on 4
+         of 4, in all three draws. Removing the field entirely did the same.
+
+    So the value was not going to the nearest-shaped slot. It was going to the
+    slot whose NAME matched the words in the document — "auto mode" to the only
+    field ending in `_mode`. **A field name is a stronger instruction than any
+    field's description**, including the description of the field that should
+    have won, and including a pointer in the wrong field's own description.
+    That qualifies the rule in
+    `docs/measurements/a-constraint-not-in-the-description-is-invisible.md`:
+    the description is necessary and it is not sufficient.
+
+    Naming consequence, and it is the actionable half: **do not name a field
+    after a word that appears in the corpus in another sense.**
+    `docs/measurements/the-effort-dimension.md`.
     """
 
     tool_count: int | None = None
     context_size: int | None = Field(default=None, description="input tokens, if stated")
-    structured_mode: bool | None = Field(
-        default=None, description="was provider-side schema enforcement on"
+    schema_enforced: bool | None = Field(
+        default=None,
+        description=(
+            "was PROVIDER-SIDE SCHEMA ENFORCEMENT on — true or false only, and "
+            "only about JSON/tool-schema validity being guaranteed at the API "
+            "layer. If the document names a mode, a tier or an effort setting, "
+            "that is `reasoning_effort`, not this."
+        ),
+    )
+    reasoning_effort: ReasoningEffort | None = Field(
+        default=None,
+        description=(
+            "How much thinking the model was asked to do, IF THE DOCUMENT SAYS. "
+            "Leave it out otherwise — do not infer it from how slow or how "
+            "thorough the model sounds.\n\n"
+            "off / low / medium / high / max — the tier that was selected. "
+            "Vendor names fold onto these: 'minimal' is off, 'xhigh' is max.\n"
+            "auto — the provider chose the effort rather than the user, e.g. a "
+            "router or an 'auto mode'. This is NOT the same as leaving the field "
+            "out: 'the setting was auto' is a fact about the run, 'the field is "
+            "absent' is a fact about the document.\n\n"
+            "This matters because the same model at low and at max effort "
+            "differs more than two different models at the same effort, so a "
+            "latency or reasoning claim without it cannot be compared to one "
+            "that has it."
+        ),
     )
     framework: str | None = Field(default=None, description="LangChain, raw API, ...")
     hosted_by: str | None = Field(
@@ -85,7 +201,18 @@ class ExtractedClaim(BaseModel):
 
     quote: str = Field(
         max_length=MAX_QUOTE_CHARS,
-        description="VERBATIM text from the source. No paraphrase, no ellipsis, no repair.",
+        description=(
+            "VERBATIM text from the source. No paraphrase, no ellipsis, no "
+            f"repair.\n\nAT MOST {MAX_QUOTE_CHARS} CHARACTERS — that is roughly "
+            "one sentence. Count before you answer. A longer quote is rejected "
+            "and takes every other claim in this answer down with it.\n\n"
+            "If the passage you want is longer, pick the ONE SENTENCE that "
+            "carries the claim — and it may be the second sentence rather than "
+            "the first, because the measurement is often at the end. Do not "
+            "trim or abbreviate to fit: the quote is checked by exact substring "
+            "match, so an edited quote fails, and a truncated one can lose the "
+            "part that carried the claim."
+        ),
     )
     quote_offset: tuple[int, int] = Field(description="[start, end) into flattened_text")
 
@@ -142,9 +269,21 @@ class ExtractionResult(BaseModel):
     unclassified: list[str] = Field(
         default_factory=list,
         description=(
-            "Quotes that clearly say something about a model but fit no capability "
-            "in the vocabulary. These accumulate; a growing cluster is the signal "
-            "that engineers are discussing something we do not yet track."
+            "BEFORE YOU ANSWER, CHECK EVERY CLAIM YOU MADE. For each one, ask: "
+            "does the capability key you chose actually name what the quote is "
+            "about? If it does not, DO NOT pick the nearest one — remove that "
+            "claim and put its quote here instead.\n\n"
+            "This list is how the capability vocabulary grows. A quote that "
+            "belongs here and gets forced into an existing key is worse than a "
+            "missing claim: it counts toward consensus about something the "
+            "writer never discussed, and nobody learns the key is missing.\n\n"
+            "Concretely: if a quote is about how many tokens a model spends, "
+            "how long its output is, or how much it over-thinks, there is NO "
+            "KEY FOR THAT in the vocabulary. `ops.latency_ttft` is time to "
+            "first token and `over_refusal` is declining to answer. Neither is "
+            "verbosity. Such a quote goes here.\n\n"
+            "An empty list means you checked and every claim fits. It is not a "
+            "default."
         ),
     )
 

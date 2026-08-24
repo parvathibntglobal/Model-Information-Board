@@ -71,6 +71,9 @@ def make_claim(quote: str, offset: tuple[int, int], **kw) -> ExtractedClaim:
             resolved_version_id="google/gemini-2.5-flash",
             specificity="version",
             resolution_confidence=0.9,
+            # REQUIRED since 2026-08-21. Every construction site must answer
+            # whose claim it is; there is no default to fall through to.
+            speaking="own-experience",
         ),
         capability="summarization.fidelity",
         polarity="negative",

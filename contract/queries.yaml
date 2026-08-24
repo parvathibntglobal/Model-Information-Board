@@ -182,12 +182,12 @@ queries:
                "wraps it in markdown", "code fence", "unparseable",
                "missing required field", "invalid for json schema",
                "not valid json"]
-    records_condition: structured_mode
+    records_condition: schema_enforced
     yields_claim_when: >
       IT SAYS WHETHER PROVIDER-SIDE ENFORCEMENT WAS ON. This one matters more
       than any other condition in the file: enforcement guarantees validity at
       the API layer, so the same complaint means opposite things depending on
-      the flag. A report that does not say lands in `structured_mode:unknown`
+      the flag. A report that does not say lands in `schema_enforced:unknown`
       and can never corroborate a claim in either band - which makes it
       near-worthless despite looking like a clean hit.
 
@@ -554,7 +554,7 @@ queries:
               "json mode", "json_schema"]
       signal: ["always valid json", "never malformed", "parsed cleanly",
                "no parse error", "schema held", "zero invalid"]
-    records_condition: structured_mode
+    records_condition: schema_enforced
     yields_claim_when: >
       SAME CONDITION AS THE NEGATIVE, and it matters more here. "Valid JSON
       every time" with provider enforcement ON is a claim about the API layer,

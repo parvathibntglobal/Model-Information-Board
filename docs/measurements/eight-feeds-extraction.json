@@ -1,0 +1,1897 @@
+{
+ "run_at": "2026-08-24T04:53:54.245018+00:00",
+ "prediction": "low yield; split stays Willison-dominated; zero-overlap survives",
+ "extractor_model": "google/gemini-2.5-flash",
+ "documents": 75,
+ "skipped": [
+  {
+   "host": "vickiboykis.com",
+   "reason": "malformed ref"
+  }
+ ],
+ "claims_verified": 140,
+ "capabilities": {
+  "instruction.adherence": 22,
+  "code.generation": 47,
+  "context.effective_window": 11,
+  "extraction.faithfulness": 16,
+  "ops.latency_ttft": 8,
+  "tool_calling.schema_accuracy": 1,
+  "reasoning.multistep": 11,
+  "over_refusal": 2,
+  "summarization.fidelity": 8,
+  "tool_calling.long_chain_reliability": 6,
+  "code.editing_diff_fidelity": 4,
+  "format.structured_output": 4
+ },
+ "by_host": {
+  "engineering.atspotify.com": {
+   "instruction.adherence": 1,
+   "code.generation": 1,
+   "context.effective_window": 1,
+   "extraction.faithfulness": 2
+  },
+  "engineering.grab.com": {
+   "ops.latency_ttft": 1,
+   "extraction.faithfulness": 6,
+   "tool_calling.schema_accuracy": 1,
+   "code.generation": 3,
+   "context.effective_window": 1,
+   "reasoning.multistep": 3,
+   "instruction.adherence": 2
+  },
+  "hamel.dev": {
+   "code.generation": 13,
+   "instruction.adherence": 7,
+   "over_refusal": 1,
+   "extraction.faithfulness": 2,
+   "summarization.fidelity": 1,
+   "reasoning.multistep": 2,
+   "ops.latency_ttft": 1
+  },
+  "jxnl.co": {
+   "context.effective_window": 5,
+   "reasoning.multistep": 2,
+   "tool_calling.long_chain_reliability": 4,
+   "extraction.faithfulness": 2,
+   "code.generation": 11,
+   "instruction.adherence": 5,
+   "summarization.fidelity": 4,
+   "ops.latency_ttft": 2,
+   "code.editing_diff_fidelity": 1,
+   "format.structured_output": 1
+  },
+  "slack.engineering": {
+   "ops.latency_ttft": 3,
+   "context.effective_window": 1,
+   "summarization.fidelity": 3,
+   "reasoning.multistep": 2,
+   "format.structured_output": 1,
+   "over_refusal": 1
+  },
+  "vickiboykis.com": {
+   "code.generation": 19,
+   "context.effective_window": 3,
+   "ops.latency_ttft": 1,
+   "instruction.adherence": 7,
+   "reasoning.multistep": 2,
+   "code.editing_diff_fidelity": 3,
+   "format.structured_output": 2,
+   "extraction.faithfulness": 4,
+   "tool_calling.long_chain_reliability": 2
+  }
+ },
+ "corporate_claims": 33,
+ "break_condition_hits": [
+  [
+   "engineering.atspotify.com",
+   "code.generation",
+   "Claude"
+  ],
+  [
+   "engineering.grab.com",
+   "code.generation",
+   "AI"
+  ],
+  [
+   "engineering.grab.com",
+   "code.generation",
+   "Claude Design"
+  ],
+  [
+   "engineering.grab.com",
+   "code.generation",
+   "GPT-4-32k"
+  ],
+  [
+   "slack.engineering",
+   "over_refusal",
+   "model"
+  ]
+ ],
+ "unattempted_provider_unavailable": [
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/eval-tools/",
+   "error": "the provider returned HTTP 200 with no `choices`: {'message': '* GenerateContentRequest.tools[0].function_declarations[0].parameters.properties[claims].items.properties[quote_offset].items: missing fi"
+  }
+ ],
+ "input_tokens": 527847,
+ "output_tokens": 26197,
+ "schema_retries": 22,
+ "cost_usd": 0.2238,
+ "claims": [
+  {
+   "host": "engineering.atspotify.com",
+   "url": "https://engineering.atspotify.com/2026/6/code-with-claude-coding-is-no-longer-the-constraint/",
+   "quote": "when Claude works in our codebase and uses a pattern we know isn’t optimal for our infrastructure, it gets immediate feedback from our lint system and corrects itself.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Claude",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.atspotify.com",
+   "url": "https://engineering.atspotify.com/2026/6/code-with-claude-coding-is-no-longer-the-constraint/",
+   "quote": "now anyone can open Claude in our client monorepo and prototype a feature idea in minutes instead of days. Even our CEO is building prototypes this way.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Claude",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.atspotify.com",
+   "url": "https://engineering.atspotify.com/2026/6/encoding-your-domain-expert-the-context-layer-behind-spotifys-data-assistant/",
+   "quote": "For one, context windows are limited, even if it’s a million tokens. A million tokens are insufficient to accommodate a whole data warehouse.",
+   "capability": "context.effective_window",
+   "polarity": "negative",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.atspotify.com",
+   "url": "https://engineering.atspotify.com/2026/6/encoding-your-domain-expert-the-context-layer-behind-spotifys-data-assistant/",
+   "quote": "Provide the same number of tables to a model, and it will be confident in selecting the wrong one.",
+   "capability": "extraction.faithfulness",
+   "polarity": "negative",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.atspotify.com",
+   "url": "https://engineering.atspotify.com/2026/8/when-can-llms-replace-humans-in-a-b-tests/",
+   "quote": "The bias is systematic and directional: LLM outcomes attenuate treatment effects toward zero, making treatments look less effective than they are.",
+   "capability": "extraction.faithfulness",
+   "polarity": "negative",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/counter-service-storage-migration",
+   "quote": "In production, p99 read latency was consistently better than the original setup, with roughly 50% improvement across our read paths.",
+   "capability": "ops.latency_ttft",
+   "polarity": "positive",
+   "surface": "Aerospike",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/crowdsourced-taxonomy-verification",
+   "quote": "However, relationships inferred from text co-occurrence or vector similarity do not always reflect semantic reality.",
+   "capability": "extraction.faithfulness",
+   "polarity": "negative",
+   "surface": "LLMs",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/crowdsourced-taxonomy-verification",
+   "quote": "For example, if an LLM ingests a blog post and predicts that “Pho” is related to “Italian Noodle Soup,” this link is stored as a candidate edge, invisible to the main search algorithm until validated.",
+   "capability": "extraction.faithfulness",
+   "polarity": "negative",
+   "surface": "automated LLMs",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/crowdsourced-taxonomy-verification",
+   "quote": "The system automatically deletes this edge, effectively correcting the AI’s hallucination and cleaning the dataset.",
+   "capability": "extraction.faithfulness",
+   "polarity": "negative",
+   "surface": "AI",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/crowdsourced-taxonomy-verification",
+   "quote": "This retrieval includes both verified neighbors, where relationships are already confirmed by experts, and candidate neighbors, where the relationships are predicted by AI models but not yet proven.",
+   "capability": "extraction.faithfulness",
+   "polarity": "negative",
+   "surface": "AI models",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/crowdsourced-taxonomy-verification",
+   "quote": "Conversely, if the score falls below a rejection threshold, indicating that users consistently ignore or reject the suggestion, the system concludes the relationship is an AI hallucination.",
+   "capability": "extraction.faithfulness",
+   "polarity": "negative",
+   "surface": "AI",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/crowdsourced-taxonomy-verification",
+   "quote": "An LLM-based ingestion pipeline flags a candidate parent-child link\n\n**Noodle Soup → Dry Mee Pok** and stores it as an unverified candidate edge in the KG, ready for live validation.",
+   "capability": "extraction.faithfulness",
+   "polarity": "negative",
+   "surface": "LLM-based ingestion pipeline",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/grab-bench-evaluating-ai",
+   "quote": "Tool calling: selected the right tool family but drifted on parameters.",
+   "capability": "tool_calling.schema_accuracy",
+   "polarity": "negative",
+   "surface": "AI",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/grab-bench-evaluating-ai",
+   "quote": "Coding agents: passed visible tests while missing a hidden stateful invariant.",
+   "capability": "code.generation",
+   "polarity": "negative",
+   "surface": "AI",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/grab-bench-evaluating-ai",
+   "quote": "If the model cites every event, fabricates an ID, adds a dietary-preference claim from one old order, or recommends an unsafe action, the row gets explicit failure tags or a score cap.",
+   "capability": "context.effective_window",
+   "polarity": "negative",
+   "surface": "model",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/grab-bench-evaluating-ai",
+   "quote": "We saw that more reasoning is not a universal good. It can help planning-heavy tool use and hurt tasks that need literal schema discipline.",
+   "capability": "reasoning.multistep",
+   "polarity": "negative",
+   "surface": "model",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/how-ai-is-transforming-analytics",
+   "quote": "Our data engineers own the product, the platform, the support queue and the eval loop, with Claude Design doing the interface work and the builders triaging their own bugs.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Claude Design",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/how-grab-builds-and-runs-ai-agents-at-scale",
+   "quote": "With the arrival of GPT-4-32k, we evolved it into a GPT-powered Level-0 support layer that could answer documented questions before a human needed to be paged.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "GPT-4-32k",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/how-grab-builds-and-runs-ai-agents-at-scale",
+   "quote": "At Level-0, it was a single-agent loop. It takes the user’s question, decides which tools to call, executes those calls, feeds the results back into the prompt, and returns an answer.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "gpt-4.1",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/jarvis-pro-route-firsr-answer-later",
+   "quote": "One early answer looked polished: it named the merchant, summarized the week, and recommended pushing promotions before the next review. It was also wrong.",
+   "capability": "instruction.adherence",
+   "polarity": "negative",
+   "surface": "Jarvis Pro",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/jarvis-pro-route-firsr-answer-later",
+   "quote": "In a focused portfolio and brand answer-quality suite, the average score moved from 78.5 to 91.0.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Jarvis Pro",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/our-journey-to-apache-iceberg-adoption",
+   "quote": "Z-ordering co-locates rows with similar values across specified dimensions, enabling Trino to leverage data skipping and min/max statistics to prune irrelevant files during query planning.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Trino",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/ai-stack/",
+   "quote": "They struggle to differentiate between editing the notebook and editing the final source code. It feels like fighting the AI instead of working with it.",
+   "capability": "code.generation",
+   "polarity": "negative",
+   "surface": "AI coding tools",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/ai-stack/",
+   "quote": "AI can read a codebase without documentation and give you an overview on the fly. It can help maintain documentation that is separate from the code, handling the tedious parts.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "AI",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/ai-stack/",
+   "quote": "My daily drivers now include Amp, Cursor, and Claude Code.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Claude Code",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/ai-stack/",
+   "quote": "AI performs best on code with abundant training data for specific domains.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "AI",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/ai-stack/",
+   "quote": "typed languages make AI-generated code more reliable in production",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "AI-generated code",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/audience/",
+   "quote": "Now I keep my favorite writing samples in a Claude project and reference them when I’m writing something important.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Claude",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals-faq/",
+   "quote": "build your own custom annotation interface with an AI coding assistant like Claude or Codex",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Claude or Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals-faq/",
+   "quote": "A failure is defined as providing a fabricated answer to an unanswerable question, which indicates poor calibration.",
+   "capability": "over_refusal",
+   "polarity": "negative",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals-faq/",
+   "quote": "LLMs often miss the structure, nuance, or quirks of specialized documents (e.g., legal filings, medical records, technical forms). Without real examples, critical edge cases are missed.",
+   "capability": "extraction.faithfulness",
+   "polarity": "negative",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals-faq/",
+   "quote": "LLMs often miss the structure, nuance, or quirks of specialized documents (e.g., legal filings, medical records, technical forms). Without real examples, critical edge cases are missed.",
+   "capability": "summarization.fidelity",
+   "polarity": "negative",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals-faq/",
+   "quote": "naive vector similarity search often fails because code relationships are complex and contextual.",
+   "capability": "code.generation",
+   "polarity": "negative",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals-faq/",
+   "quote": "modern coding assistants like Claude Code still uses retrieval —they just employ agentic search instead of relying solely on vector databases, similar to how human developers work.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Claude Code",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals/",
+   "quote": "I often utilize an LLM to generate these inputs synthetically",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals/",
+   "quote": "Our LLM prompt tells the LLM to not include UUIDs. We use a simple regex to assert that the LLM response doesn’t include UUIDs.",
+   "capability": "instruction.adherence",
+   "polarity": "negative",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals/",
+   "quote": "It often takes advanced reasoning capabilities to critique something well.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals/",
+   "quote": "LLMs can be used to unblock the creation of an eval system. Examples include using a LLM to:\n  - Generate test cases and write assertions\n  - Generate synthetic data\n  - Critique and label data etc.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals/",
+   "quote": "many failures involved small mistakes in the final output of the LLM (format, content, etc)",
+   "capability": "instruction.adherence",
+   "polarity": "negative",
+   "surface": "Lucy",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals/",
+   "quote": "Addressing one failure mode led to the emergence of others, resembling a game of whack-a-mole.",
+   "capability": "instruction.adherence",
+   "polarity": "negative",
+   "surface": "Lucy",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals/",
+   "quote": "Prompts expanded into long and unwieldy forms, attempting to cover numerous edge cases and examples.",
+   "capability": "instruction.adherence",
+   "polarity": "negative",
+   "surface": "Lucy",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals/",
+   "quote": "I like LangSmith - it doesn’t require that you use LangChain and is intuitive and easy to use. Searching, filtering, and reading traces are essential features for whatever solution you pick.",
+   "capability": "ops.latency_ttft",
+   "polarity": "positive",
+   "surface": "LangSmith",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/field-guide/",
+   "quote": "Sometimes the AI makes things up, so we need to check its answers",
+   "capability": "extraction.faithfulness",
+   "polarity": "negative",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/field-guide/",
+   "quote": "LLMs are surprisingly good at generating excellent - and diverse - examples of user prompts.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "LLMs",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/field-guide/",
+   "quote": "Research has shown that LLMs can be biased by simple factors like the ordering of options in a set, or even seemingly innocuous formatting changes in prompts.",
+   "capability": "instruction.adherence",
+   "polarity": "negative",
+   "surface": "GPT-4",
+   "specificity": "version",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/field-guide/",
+   "quote": "I’ve found this approach often yields 15-20% higher agreement rates between human and LLM evaluations compared to prompts without example critiques.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/llm-judge/",
+   "quote": "LLMs are surprisingly good at generating excellent - and diverse - examples of user prompts.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/llm-judge/",
+   "quote": "Seeing how the LLM breaks down its reasoning made me realize I wasn’t being consistent about how I judged certain edge cases.”",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "LLM",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/revenge/",
+   "quote": "They describe how Codex worked on a software project for months, autonomously, with agents developing code bounded by a harness of tests and specifications.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/coding-series-index/",
+   "quote": "Multi-agent systems fail due to context loss and conflicting decisions. The \"telephone game\" effect between agents creates more problems than benefits for coding tasks.",
+   "capability": "context.effective_window",
+   "polarity": "negative",
+   "surface": "Cognition",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/coding-series-index/",
+   "quote": "Single agents with proper context management consistently outperform multi-agent setups.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Cognition",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/coding-series-index/",
+   "quote": "Agent persistence can overcome limitations in retrieval tools. Simple grep and find tools with agentic loops often outperform complex embedding-based retrieval for coding tasks.",
+   "capability": "tool_calling.long_chain_reliability",
+   "polarity": "positive",
+   "surface": "Augment",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/coding-series-index/",
+   "quote": "Direct exploration approaches that mirror human engineering workflows produce better results.",
+   "capability": "extraction.faithfulness",
+   "polarity": "positive",
+   "surface": "Cline",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/do-your-engineers-know-how-to-leverage-ai/",
+   "quote": "ChatGPT responded in isolation, without any context about their actual codebase or existing architecture.",
+   "capability": "context.effective_window",
+   "polarity": "negative",
+   "surface": "ChatGPT",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/do-your-engineers-know-how-to-leverage-ai/",
+   "quote": "Every week your team spends copy-pasting into ChatGPT is a week your competitors are pulling further ahead.",
+   "capability": "code.generation",
+   "polarity": "negative",
+   "surface": "ChatGPT",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/domain-experts-the-lever-for-vertical-ai/",
+   "quote": "today's models fail because they lack context on how workflows are performed in specific industries.",
+   "capability": "context.effective_window",
+   "polarity": "negative",
+   "surface": "today's models",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/domain-experts-the-lever-for-vertical-ai/",
+   "quote": "Prompt injections (using input filtering and validation)",
+   "capability": "instruction.adherence",
+   "polarity": "negative",
+   "surface": "LLMs",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "passing"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/domain-experts-the-lever-for-vertical-ai/",
+   "quote": "For citation handling, Chris mentioned they've used both custom approaches and vendor solutions like Anthropic's citation API.",
+   "capability": "extraction.faithfulness",
+   "polarity": "positive",
+   "surface": "Anthropic's citation API",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "passing"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/domain-experts-the-lever-for-vertical-ai/",
+   "quote": "While today's models have strong reasoning capabilities, they often lack the contextual understanding of how specific workflows operate in specialized industries.",
+   "capability": "context.effective_window",
+   "polarity": "negative",
+   "surface": "today's models",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/how-extend-achieves-95-document-automation-lessons-from-eli-badgio/",
+   "quote": "Generic benchmarks like \"Gemini Flash is better than GPT-X\" aren't particularly useful for document automation.",
+   "capability": "instruction.adherence",
+   "polarity": "negative",
+   "surface": "Gemini Flash",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "passing"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/stop-trusting-mteb-rankings-kelly-hong-chroma/",
+   "quote": "the embedding model Weights & Biases had been using (text-embedding-3-small) actually performed worse than alternatives they tested.",
+   "capability": "summarization.fidelity",
+   "polarity": "negative",
+   "surface": "text-embedding-3-small",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/the-12-rag-performance-boost-youre-missing-ayush-lancedb/",
+   "quote": "Even the small MiniLM model showed improvements over baseline performance",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "MiniLM",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/the-12-rag-performance-boost-youre-missing-ayush-lancedb/",
+   "quote": "Modern BERT - A 150 million parameter model developed by AnswerAI that performs better than some billion-parameter models",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Modern BERT",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/the-12-rag-performance-boost-youre-missing-ayush-lancedb/",
+   "quote": "In Ayush's experiments, using an off-the-shelf re-ranker (AnswerAI's ColBERT Small) immediately improved performance by about 10% over the baseline.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "AnswerAI's ColBERT Small",
+   "specificity": "snapshot",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/the-12-rag-performance-boost-youre-missing-ayush-lancedb/",
+   "quote": "With smaller models like MiniLM: Negligible additional latency on GPU",
+   "capability": "ops.latency_ttft",
+   "polarity": "negative",
+   "surface": "MiniLM",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/the-12-rag-performance-boost-youre-missing-ayush-lancedb/",
+   "quote": "In Ayush's experiments with the MiniLM model: Baseline performance at top-5: 48% After fine-tuning: 58% (a 10% improvement)",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "MiniLM",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/the-12-rag-performance-boost-youre-missing-ayush-lancedb/",
+   "quote": "The problem with synthetic data generation is that LLMs (even powerful ones like GPT-4) can hallucinate up to 70% of the time when creating synthetic query-context pairs.",
+   "capability": "summarization.fidelity",
+   "polarity": "negative",
+   "surface": "GPT-4",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/the-12-rag-performance-boost-youre-missing-ayush-lancedb/",
+   "quote": "You might love using a powerful model like GPT-3 as a re-ranker, but if it takes 2 minutes per API call, that's probably not practical for most applications.",
+   "capability": "ops.latency_ttft",
+   "polarity": "negative",
+   "surface": "GPT-3",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/the-12-rag-performance-boost-youre-missing-ayush-lancedb/",
+   "quote": "This is why having a range of options - from lightweight models like MiniLM to more powerful ones like Modern BERT - gives you flexibility in designing your system.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "MiniLM",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "passing"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/the-12-rag-performance-boost-youre-missing-ayush-lancedb/",
+   "quote": "This is why having a range of options - from lightweight models like MiniLM to more powerful ones like Modern BERT - gives you flexibility in designing your system.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Modern BERT",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "passing"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/the-12-rag-performance-boost-youre-missing-ayush-lancedb/",
+   "quote": "Start with a small experiment using a lightweight model that you can train quickly (like MiniLM).",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "MiniLM",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "passing"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/why-cognition-does-not-use-multi-agent-systems/",
+   "quote": "In Devin. One thing we do is when you collaborating with your agent, when you collaborate when you're collaborating with Devin, Devin will give you the how confident it is in its plan.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Devin",
+   "specificity": "family",
+   "speaking": "vendor-about-own-product",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/why-glean-builds-custom-embedding-models-for-every-customer/",
+   "quote": "smaller, fine-tuned models often perform better for specific enterprise contexts.",
+   "capability": "summarization.fidelity",
+   "polarity": "positive",
+   "surface": "smaller, fine-tuned models",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/why-glean-builds-custom-embedding-models-for-every-customer/",
+   "quote": "small embedding models when fine-tuned to the domain and the specific task you have in hand can give you a lot better performance compared to just using large LLMs.",
+   "capability": "summarization.fidelity",
+   "polarity": "positive",
+   "surface": "smaller embedding models",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/why-grep-beat-embeddings-in-our-swe-bench-agent-lessons-from-augment/",
+   "quote": "embedding models didn't significantly improve performance",
+   "capability": "code.generation",
+   "polarity": "negative",
+   "surface": "embedding models",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/why-grep-beat-embeddings-in-our-swe-bench-agent-lessons-from-augment/",
+   "quote": "embedding-based retrieval wasn't the bottleneck they expected.",
+   "capability": "code.generation",
+   "polarity": "negative",
+   "surface": "embedding models",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/05/10/codex-maxxing/",
+   "quote": "Codex is still excellent for coding",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/05/10/codex-maxxing/",
+   "quote": "Steering lets you inject the next message after a tool call.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/05/10/codex-maxxing/",
+   "quote": "A long thread can remember a lot, but that memory is trapped inside the thread unless the useful parts get written somewhere durable.",
+   "capability": "context.effective_window",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/05/10/codex-maxxing/",
+   "quote": "Memories are what help Codex remember stable preferences, recurring workflows, project conventions, and known pitfalls when I start a new thread.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/05/10/codex-maxxing/",
+   "quote": "The loop crossed tool boundaries: Slack for feedback, Remotion for the render, `@computer` for the upload. That is when Heartbeats, connectors, and computer use stop feeling like separate features.",
+   "capability": "tool_calling.long_chain_reliability",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/05/10/codex-maxxing/",
+   "quote": "A strong goal has a real success criterion that the agent can keep pushing against.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/05/10/codex-maxxing/",
+   "quote": "The side panel is where Codex stops being only a chat app and starts becoming the place the work happens.",
+   "capability": "code.editing_diff_fidelity",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/05/10/codex-maxxing/",
+   "quote": "The important thing is not merely that Codex can generate artifacts. It is that I can inspect and annotate them without breaking the loop.",
+   "capability": "format.structured_output",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/06/16/three-ways-codex-can-use-a-computer/",
+   "quote": "A thread can start with an Appshot, move across apps and browsers, wait for someone else, and keep working after I leave.",
+   "capability": "tool_calling.long_chain_reliability",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/06/16/three-ways-codex-can-use-a-computer/",
+   "quote": "The automation woke the thread every five minutes, then every minute when the agent appeared. One supplied the finish line; the other let Codex wait without forgetting the job.",
+   "capability": "tool_calling.long_chain_reliability",
+   "polarity": "positive",
+   "surface": "Codex",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/agentic-testing-where-agents-fit-in-the-e2e-testing-stack/",
+   "quote": "Haiku did use more tokens than Sonnet or Opus in our runs, but all of the MCP-based approaches still used fewer tokens overall than the CLI and Code Gen approaches for the same flow.",
+   "capability": "ops.latency_ttft",
+   "polarity": "negative",
+   "surface": "Claude Sonnet 4.5",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/agentic-testing-where-agents-fit-in-the-e2e-testing-stack/",
+   "quote": "Haiku did use more tokens than Sonnet or Opus in our runs, but all of the MCP-based approaches still used fewer tokens overall than the CLI and Code Gen approaches for the same flow.",
+   "capability": "ops.latency_ttft",
+   "polarity": "negative",
+   "surface": "Claude Opus 4.6",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/agentic-testing-where-agents-fit-in-the-e2e-testing-stack/",
+   "quote": "Haiku did use more tokens than Sonnet or Opus in our runs, but all of the MCP-based approaches still used fewer tokens overall than the CLI and Code Gen approaches for the same flow.",
+   "capability": "ops.latency_ttft",
+   "polarity": "positive",
+   "surface": "Claude Haiku 4.5",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/managing-context-in-long-run-agentic-applications/",
+   "quote": "Even approaching an agent’s context window limit can degrade the quality of responses.",
+   "capability": "context.effective_window",
+   "polarity": "negative",
+   "surface": "Language model APIs",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/managing-context-in-long-run-agentic-applications/",
+   "quote": "Language models are known to hallucinate, and a proportion of the Experts’ findings could either be invented or grossly misinterpret the data.",
+   "capability": "summarization.fidelity",
+   "polarity": "negative",
+   "surface": "Language models",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/managing-context-in-long-run-agentic-applications/",
+   "quote": "While stronger models are still subject to hallucination, research suggests they err less frequently.",
+   "capability": "summarization.fidelity",
+   "polarity": "negative",
+   "surface": "stronger model",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/managing-context-in-long-run-agentic-applications/",
+   "quote": "Equally important is the capacity of the Critic to interpret nuances in the evidence, which is also improved with a stronger model.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "stronger model",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/managing-context-in-long-run-agentic-applications/",
+   "quote": "Language models are more likely to hallucinate when posed larger, open-ended questions.",
+   "capability": "summarization.fidelity",
+   "polarity": "negative",
+   "surface": "Language models",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/slack-ai-the-path-to-multi-cloud/",
+   "quote": "A prime example was our ability to quickly upgrade the AI Search features to new high-reasoning models, which led to more precise, context-aware answers.",
+   "capability": "reasoning.multistep",
+   "polarity": "positive",
+   "surface": "AI Search features",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/streamlining-security-investigations-with-agents/",
+   "quote": "if the output format is too complicated for the model, the execution can fail. Structured outputs are also subject to the usual problems of cheating and hallucination.",
+   "capability": "format.structured_output",
+   "polarity": "negative",
+   "surface": "model",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/streamlining-security-investigations-with-agents/",
+   "quote": "if the output format is too complicated for the model, the execution can fail.",
+   "capability": "over_refusal",
+   "polarity": "negative",
+   "surface": "model",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/01/03/everything-i-did-in-2024/",
+   "quote": "Mistral is a model that has consistently worked well for me both at work and for my own purposes, and I’ve enjoyed the chance to pit it against newer models like Qwen2.5 Coder, Llama2, and phi.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Mistral",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/01/14/how-fastapi-path-operations-work/",
+   "quote": "There are a lot of features that make FastAPI easy to get started with.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "FastAPI",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/01/14/how-fastapi-path-operations-work/",
+   "quote": "There are also a lot of nuances that take a while to understand.",
+   "capability": "code.generation",
+   "polarity": "negative",
+   "surface": "FastAPI",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/01/23/you-can-just-hack-on-atproto/",
+   "quote": "I did reasonably well between the two of them, with only 5% of requests that I had to bypass and send to Claude.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Claude",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/07/16/my-favorite-use-case-for-ai-is-writing-logs/",
+   "quote": "JetBrains’ model auto-infers the log completion from the surrounding text, with a limit of 384 characters.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "JetBrains’ model",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/07/16/my-favorite-use-case-for-ai-is-writing-logs/",
+   "quote": "The constrained output good enough most of the time that it speeds up my workflow a lot.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "JetBrains’ model",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/07/16/my-favorite-use-case-for-ai-is-writing-logs/",
+   "quote": "An added bonus is that it often writes a much clearer log than I, a lazy human, would write, logs.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "JetBrains’ model",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/07/16/my-favorite-use-case-for-ai-is-writing-logs/",
+   "quote": "They later changed this architecture to Llama2 after the success of the growing llama.cpp and GGUF community, as well as the better performance of the newer architecture.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Llama2",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/08/08/enabling-hugo-static-site-search-with-lunr.js/",
+   "quote": "To create the index that Lunr uses for search, I had Claude write a quick Python script that traverses my post directories and outputs a single JSON file of all indexes posts.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Claude",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/09/01/how-big-are-our-embeddings-now-and-why/",
+   "quote": "a concept that Anthropic explored in the famous Golden Gate Claude paper.",
+   "capability": "context.effective_window",
+   "polarity": "positive",
+   "surface": "Anthropic",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/09/01/how-big-are-our-embeddings-now-and-why/",
+   "quote": "UKP created and optimized a model, SBERT, focusing on sentence-level representations, which unlocked faster inference",
+   "capability": "ops.latency_ttft",
+   "polarity": "positive",
+   "surface": "SBERT",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/09/01/how-big-are-our-embeddings-now-and-why/",
+   "quote": "Minilm became the standard baseline model for document-level chunk embeddings at 384 dimensions and still performs extremely well for a number of tasks.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Minilm",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/09/01/how-big-are-our-embeddings-now-and-why/",
+   "quote": "Google also recently released embeddings for Gemini, with both API and local versions being available.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "Gemini",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/09/01/how-big-are-our-embeddings-now-and-why/",
+   "quote": "Qwen-3, along with many others is already at 4096.",
+   "capability": "context.effective_window",
+   "polarity": "positive",
+   "surface": "Qwen-3",
+   "specificity": "family",
+   "speaking": "relayed-from-elsewhere",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/10/20/i-want-to-see-the-claw/",
+   "quote": "we are still better at reasoning, at aesthetic judgment, at architecture.",
+   "capability": "reasoning.multistep",
+   "polarity": "negative",
+   "surface": "models",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/13/mechanical-sympathy/",
+   "quote": "The first time, it tried to fix the code instead of the test.",
+   "capability": "code.editing_diff_fidelity",
+   "polarity": "negative",
+   "surface": "the agent",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/13/mechanical-sympathy/",
+   "quote": "The second time, it rewrote the test to assert a`500` instead of a`200` .",
+   "capability": "code.editing_diff_fidelity",
+   "polarity": "negative",
+   "surface": "the agent",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/13/mechanical-sympathy/",
+   "quote": "Even with a spec file, agents (and most chatbots, still) will use Python’s `List` and`Dict` , which have been deprecated for years.",
+   "capability": "code.generation",
+   "polarity": "negative",
+   "surface": "agents (and most chatbots, still)",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/13/mechanical-sympathy/",
+   "quote": "Agents won’t use vectorized numerical operations unless prompted.",
+   "capability": "code.generation",
+   "polarity": "negative",
+   "surface": "Agents",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/13/mechanical-sympathy/",
+   "quote": "Agents fix code that already works correctly",
+   "capability": "code.editing_diff_fidelity",
+   "polarity": "negative",
+   "surface": "agents",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/13/mechanical-sympathy/",
+   "quote": "Context files are completely ignored",
+   "capability": "context.effective_window",
+   "polarity": "negative",
+   "surface": "agents",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/13/mechanical-sympathy/",
+   "quote": "Struggles with the nuances of business logic",
+   "capability": "reasoning.multistep",
+   "polarity": "negative",
+   "surface": "agents",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/13/mechanical-sympathy/",
+   "quote": "Erode under iterative refinement",
+   "capability": "instruction.adherence",
+   "polarity": "negative",
+   "surface": "agents",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/20/build-yourself-flowers/",
+   "quote": "Then, I ran it through Gemini Flash 2.5 running in Pi to break into paragraphs.",
+   "capability": "format.structured_output",
+   "polarity": "positive",
+   "surface": "Gemini Flash 2.5",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/20/build-yourself-flowers/",
+   "quote": "I also had Gemini break up my slide deck from a PDF I generated from Google Slides, into individual images to insert into the blog post and optimize the image format to webp for blog rendering.",
+   "capability": "extraction.faithfulness",
+   "polarity": "positive",
+   "surface": "Gemini",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/20/build-yourself-flowers/",
+   "quote": "Google recently released embeddings for Gemini, with both API and local versions being available.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Gemini",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/20/build-yourself-flowers/",
+   "quote": "I used Gemini APIs for embeddings and Perplexity to help me decide which embeddings to use.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Gemini APIs",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/18/tagging-my-blog-posts-with-bertopic-and-llms/",
+   "quote": "I’ve done this before in 2023, with GGUF Mistral using llama-cpp, but never finished the project.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "GGUF Mistral",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/18/tagging-my-blog-posts-with-bertopic-and-llms/",
+   "quote": "the project took me about 6-10 hours over a month, using BERTopic, Claude Code, and Pi with Deepseek.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Claude Code",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/18/tagging-my-blog-posts-with-bertopic-and-llms/",
+   "quote": "the project took me about 6-10 hours over a month, using BERTopic, Claude Code, and Pi with Deepseek.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Deepseek",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/18/tagging-my-blog-posts-with-bertopic-and-llms/",
+   "quote": "When local models like Mistral 7B-Instruct became available in 2023, I started playing around with them and realized that they did well at tagging.",
+   "capability": "extraction.faithfulness",
+   "polarity": "positive",
+   "surface": "Mistral 7B-Instruct",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/18/tagging-my-blog-posts-with-bertopic-and-llms/",
+   "quote": "It was annoying to deal with reprompting the model to run in a loop for every document and keeping track of the results of those documents, especially as the smaller, local model ran out of memory.",
+   "capability": "tool_calling.long_chain_reliability",
+   "polarity": "negative",
+   "surface": "Mistral 7B GGUF",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/18/tagging-my-blog-posts-with-bertopic-and-llms/",
+   "quote": "Constraining guaranteed outputs for categories using a combination of the prompt and Outlines was finicky, even with the help of Outlines, which made it easier.",
+   "capability": "format.structured_output",
+   "polarity": "negative",
+   "surface": "Mistral 7B GGUF",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/18/tagging-my-blog-posts-with-bertopic-and-llms/",
+   "quote": "Why Gemini? I’d already used it to write a small script cleaning up my markdown posts into documents, but Claude or ChatGPT would have done a similar job.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Gemini",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/18/tagging-my-blog-posts-with-bertopic-and-llms/",
+   "quote": "Why Gemini? I’d already used it to write a small script cleaning up my markdown posts into documents, but Claude or ChatGPT would have done a similar job.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "Claude",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/18/tagging-my-blog-posts-with-bertopic-and-llms/",
+   "quote": "Why Gemini? I’d already used it to write a small script cleaning up my markdown posts into documents, but Claude or ChatGPT would have done a similar job.",
+   "capability": "code.generation",
+   "polarity": "positive",
+   "surface": "ChatGPT",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "passing"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/18/tagging-my-blog-posts-with-bertopic-and-llms/",
+   "quote": "I then decided to get some more help from GPT-OSS running locally on LM Studio in thinking about what, if any, other top-level categories I should have, and refining the final list.",
+   "capability": "extraction.faithfulness",
+   "polarity": "positive",
+   "surface": "GPT-OSS",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/18/tagging-my-blog-posts-with-bertopic-and-llms/",
+   "quote": "I took the initial list of topics and spun up Claude Code in my blog repo. I asked it to go through all the posts that I had, in batches, and tag them, using this prompt:",
+   "capability": "extraction.faithfulness",
+   "polarity": "positive",
+   "surface": "Claude Code",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/18/tagging-my-blog-posts-with-bertopic-and-llms/",
+   "quote": "It was around this time that Claude Code started having reliability issues that were partially obscured from users.",
+   "capability": "tool_calling.long_chain_reliability",
+   "polarity": "negative",
+   "surface": "Claude Code",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/06/15/running-local-models-is-good-now/",
+   "quote": "GPT-OSS was the first one where I started doing that a lot less often.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "GPT-OSS",
+   "specificity": "family",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/06/15/running-local-models-is-good-now/",
+   "quote": "Gemma-4-12b-qat` just came out but I’ve already also really been impressed with its performance relative to its size.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "gemma-4-12b-qat",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/06/15/running-local-models-is-good-now/",
+   "quote": "The post recommends`Gemma 26B A4B` , but`gemma-4-12b-qat` is more recent and smaller and faster, without much sacrifice in accuracy.",
+   "capability": "instruction.adherence",
+   "polarity": "negative",
+   "surface": "Gemma 26B A4B",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/06/15/running-local-models-is-good-now/",
+   "quote": "The post recommends`Gemma 26B A4B` , but`gemma-4-12b-qat` is more recent and smaller and faster, without much sacrifice in accuracy.",
+   "capability": "instruction.adherence",
+   "polarity": "positive",
+   "surface": "gemma-4-12b-qat",
+   "specificity": "version",
+   "speaking": "own-experience",
+   "relevance": "central"
+  }
+ ],
+ "no_claim_reasons": [
+  {
+   "host": "engineering.atspotify.com",
+   "url": "https://engineering.atspotify.com/2026/7/content-ingestion-and-podcast-video-incident-report/",
+   "reason": "The document is an incident report about Spotify's podcast publishing pipeline. It discusses issues with video transcoding infrastructure, a software bug, and capacity planning. It does not mention any specific AI models or their capabilities.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "engineering.atspotify.com",
+   "url": "https://engineering.atspotify.com/2026/7/indexing-the-data-lake-for-online-point-queries/",
+   "reason": "The document is a technical explanation of a new data indexing method (RAP) and does not contain claims about the capabilities of any specific AI models. It mentions \"AI Agents\" in a general sense but does not evaluate their performance or characteristics.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/palana-part-1-secure-platform-for-ai-agents",
+   "reason": "all 2 proposed claim(s) failed the schema; none could be salvaged. This is a validation zero, not a document that said nothing.",
+   "zero_kind": "unsalvaged"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/part-2-palana-architecture",
+   "reason": "The document discusses \"AI agents\" and \"LLM traffic\" but does not make any specific claims about the capabilities or performance of a named AI model. It focuses on the architecture and security of a platform for running these agents.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "engineering.grab.com",
+   "url": "https://engineering.grab.com/scaling-out-distroless-adoption-with-ai",
+   "reason": "all 1 proposed claim(s) failed the schema; none could be salvaged. This is a validation zero, not a document that said nothing.",
+   "zero_kind": "unsalvaged"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/audience/",
+   "reason": "The document discusses general strategies for technical writing and content creation, mentioning AI tools in a general sense for tasks like voice-to-text and note-taking. The only specific model mentioned is Claude, but the quote about it doesn't describe a capability, only a use case. Therefore, no claims about model capabilities can be extracted.",
+   "zero_kind": null
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/course/",
+   "reason": "The document is an advertisement for a course on LLMs and does not contain claims about specific model capabilities or performance.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/drift/",
+   "reason": "The document discusses a method for detecting \"drift\" in AI models, but it does not make any claims about the capabilities or performance of specific named AI models. It focuses on the technique itself and a tool built to demonstrate it, not on the behavior of any particular model.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/eval-smell/",
+   "reason": "The document discusses AI tools in general terms and provides examples of how they might be designed or improved, but it does not make specific claims about the capabilities or performance of any named AI models.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "hamel.dev",
+   "url": "https://hamel.dev/blog/posts/evals-skills/",
+   "reason": "The document discusses \"evals skills\" for AI product evaluations, but it does not make any specific claims about the capabilities or performance of any named AI models. It describes a set of tools and methodologies for evaluating AI models, rather than evaluating a model itself.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/lexical-search-in-rag-applications/",
+   "reason": "The document discusses lexical and semantic search in general terms, and how they can be combined. It does not make any specific claims about the capabilities or performance of any named AI models.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/rag-series-index/",
+   "reason": "The document is a guide to Retrieval-Augmented Generation (RAG) systems. It discusses various aspects of RAG, including its challenges, key terms, implementation strategies, monitoring, anti-patterns, evaluation, and future trends. While it mentions \"language models\" and \"AI systems\" in general, it does not make any specific claims about the capabilities or performance of a named AI model.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2025/09/11/text-chunking-strategies-for-rag-applications/",
+   "reason": "The document discusses chunking strategies and their importance for RAG systems, but it does not make any specific claims about the performance or capabilities of any named AI model.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/01/24/things/",
+   "reason": "The document is a list of product recommendations and personal preferences. It does not contain any claims about the capabilities or performance of AI models.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/02/02/sunsetting-567-labs/",
+   "reason": "The document is about the sunsetting of a company and open-sourcing course content. It does not contain any claims about AI model capabilities.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/04/02/what-music-do-you-listen-to/",
+   "reason": "No claims were made about any AI model in the document.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/05/18/six-levels-of-complexity-of-an-ai-powered-morning-brief-with-codex/",
+   "reason": "The document discusses how to teach someone to use AI, specifically focusing on a \"Codex morning brief\" workflow. While it mentions \"Codex\" repeatedly, it does not make any claims about the capabilities or performance of the Codex model itself. The text describes a hypothetical use case and a pedagogical approach, not an evaluation of the model's behavior.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/06/28/two-kinds-of-scheduled-work-in-codex/",
+   "reason": "The document describes how to use \"Codex\" for scheduled tasks and messages, but it does not make any claims about the model's capabilities or performance. It provides instructions and examples of how to prompt the model, but not how well it performs.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "jxnl.co",
+   "url": "https://jxnl.co/writing/2026/07/05/taste/",
+   "reason": "The document discusses AI in general terms, but does not make any specific claims about the capabilities or performance of a named AI model.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/from-custom-to-open-scalable-network-probing-and-http-3-readiness-with-prometheus/",
+   "reason": "The document discusses the Prometheus Blackbox Exporter, but it does not make any claims about its capabilities as an AI model. It describes its functionality and a new feature added to it.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/from-ssh-to-rest-a-security-driven-modernization-of-slacks-emr-data-pipelines/",
+   "reason": "The document describes a migration project at Slack, detailing the challenges and solutions involved in moving from SSH-based job submission to a REST-based architecture. It does not make any claims about the capabilities or performance of specific AI models.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/how-slack-rebuilt-notifications/",
+   "reason": "The document is about Slack's notification system redesign and does not contain claims about specific AI models or their capabilities.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "slack.engineering",
+   "url": "https://slack.engineering/shipyard-how-we-built-slacks-next-generation-ec2-platform/",
+   "reason": "The document describes a system called Shipyard and its components, but does not make any claims about the capabilities or performance of specific AI models. It focuses on infrastructure modernization at Slack.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/03/17/20-years-of-yc/",
+   "reason": "The document is a personal reflection on Hacker News and YCombinator, and does not contain any claims about specific AI models or their capabilities.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/09/09/walking-around-the-app/",
+   "reason": "The document discusses general software development practices and quality assurance, but does not make any specific claims about the capabilities or performance of any AI models.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2025/12/22/2025-in-review/",
+   "reason": "The document discusses general software engineering practices and challenges, particularly in the context of machine learning systems, but does not make specific claims about the capabilities or performance of any named AI models.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/02/21/querying-3-billion-vectors/",
+   "reason": "The document discusses performance of different implementations of vector search, but does not make any claims about the capabilities of a specific AI model. The only mention of \"models\" refers to models that allow for similarity-based embedding queries, not a specific AI model being evaluated.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/03/04/antidote/",
+   "reason": "The document discusses general feelings about the current state of software engineering and AI, but does not make any specific claims about the capabilities or performance of any named AI model.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/05/nasa-elements-of-engineering-excellence/",
+   "reason": "The document discusses a NASA report about engineering excellence and organizational failures, but it does not mention or make any claims about specific AI models or their capabilities.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/04/06/on-programming-joy-and-octocat/",
+   "reason": "The document discusses GitHub and its Octocat mascot, and mentions Claude Code in passing, but makes no claims about the capabilities or performance of any AI model.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/05/28/we-should-be-more-tired-than-the-model/",
+   "reason": "The document discusses agentic code generation and LLMs in general terms, but does not make specific claims about the capabilities or performance of any named model.",
+   "zero_kind": "silent"
+  },
+  {
+   "host": "vickiboykis.com",
+   "url": "https://vickiboykis.com/2026/08/12/write-for-people/",
+   "reason": "The document discusses the general problem of machine-generated text and jargon, but it does not make any specific claims about the capabilities or performance of any named AI model.",
+   "zero_kind": "silent"
+  }
+ ],
+ "unclassified": [
+  {
+   "host": "engineering.atspotify.com",
+   "quotes": [
+    "Just putting all schemas into an LLM doesn’t work at this scale."
+   ]
+  },
+  {
+   "host": "engineering.grab.com",
+   "quotes": [
+    "The other issue was Domain Name System (DNS). The client resolved seed hostnames only during initialization and did not re-resolve them when the cluster topology refreshed. As a result, a full staging cluster replacement, with new IPs behind the same hostnames, left the client stuck on the old IPs until restart. We filed the bug upstream, and a fix shipped in a subsequent release."
+   ]
+  },
+  {
+   "host": "engineering.grab.com",
+   "quotes": [
+    "The AI landscape moves incredibly fast: a new state-of-the-art (SOTA) model appears on Tuesday, and a highly efficient open-source alternative shows up on Thursday. Switching providers should not feel like open-heart surgery. A unified Software Development Kit (SDK) and an LLM API gateway remove the need to refactor payload schemas, rewrite error handling, or integrate each provider from scratch. If moving from OpenAI to Anthropic, or routing to an open-source model endpoint, takes more than a few config changes, technical debt is already slowing you down."
+   ]
+  },
+  {
+   "host": "hamel.dev",
+   "quotes": [
+    "Now I keep my favorite writing samples in a Claude project and reference them when I’m writing something important."
+   ]
+  },
+  {
+   "host": "hamel.dev",
+   "quotes": [
+    "Rechat resolved many failure modes through fine-tuning that were not possible with prompt engineering alone. **Fine-tuning is best for learning syntax, style, and rules, whereas techniques like RAG supply the model with context or up-to-date facts.**"
+   ]
+  },
+  {
+   "host": "jxnl.co",
+   "quotes": [
+    "I've recently been experimenting with using OpenAI's Deep Research for this - I'll have it research a domain like \"search systems for lawyers dealing with employment claims\" and use that research as part of my prompt. This approach has been surprisingly effective for generating realistic queries."
+   ]
+  }
+ ]
+}
