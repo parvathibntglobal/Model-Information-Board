@@ -34,10 +34,12 @@ import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
  * because the populated ones sit beside it. Rule 4 as a control.
  */
 const EVIDENCE = {
-  all:          { label: 'All models',     match: () => true },
-  published:    { label: 'Published',      match: (m) => m.evidence?.state === 'published' },
-  insufficient: { label: 'Below the gate', match: (m) => m.evidence?.state === 'insufficient' },
-  unreported:   { label: 'Undiscussed',    match: (m) => (m.evidence?.state || 'unreported') === 'unreported' },
+  all:         { label: 'All models',  match: () => true },
+  // ANY cell, published or not. Named for what a reader is looking for -
+  // "which of these has somebody actually said something about" - rather than
+  // for the gate status, which is a per-row fact and is shown as one.
+  evidence:    { label: 'Evidence',    match: (m) => (m.evidence?.cells || 0) > 0 },
+  unreported:  { label: 'Undiscussed', match: (m) => (m.evidence?.cells || 0) === 0 },
 }
 
 const SORTS = {
@@ -231,6 +233,11 @@ export default function Models() {
 
   // Counted off the roster, not the filtered view — a tab that says how many
   // it holds must not change when another tab is selected.
+  const publishedCount = useMemo(
+    () => (roster || []).filter((m) => m.evidence?.published > 0).length,
+    [roster]
+  )
+
   const evidenceCounts = useMemo(() => {
     if (!roster) return {}
     return Object.fromEntries(
@@ -342,31 +349,22 @@ export default function Models() {
               ))}
             </div>
 
-            {evidenceFilter === 'published' && evidenceCounts.published === 0 && (
-              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '70ch' }}>
-                Nothing has cleared the gate yet, and that is the honest answer
-                rather than a broken filter. Publishing needs about three
-                independent voices across two platforms;{' '}
-                {evidenceCounts.insufficient > 0
-                  ? <>the {evidenceCounts.insufficient} under <em>Below the gate</em> have someone
-                     talking about them and not yet enough of them.</>
-                  : <>no model has any reports at all yet.</>}
-              </p>
-            )}
-
-            {evidenceFilter === 'insufficient' && (
-              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '70ch' }}>
-                Somebody has reported on these and it is <strong>not yet enough to
-                publish a finding</strong>. Below the gate is not a verdict — neither
-                “good” nor “bad”, just not enough voices to say either.
+            {evidenceFilter === 'evidence' && (
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
+                {publishedCount > 0
+                  ? <>{publishedCount} of these have cleared the gate; the rest are below it.</>
+                  : <>Somebody has reported on each of these. <strong>None has cleared the
+                     gate yet</strong> — publishing needs roughly three independent voices
+                     across two platforms, and every one of them is at one. Below the gate
+                     is not a verdict: not “good”, not “bad”, just not enough voices to say
+                     either. Each row says which state it is in.</>}
               </p>
             )}
 
             {evidenceFilter === 'unreported' && (
-              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '70ch' }}>
-                Nobody has discussed these. That is an absence of evidence, not
-                evidence of a problem — a model here may be excellent and simply
-                unwritten-about.
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
+                Nobody has discussed these. An absence of evidence, not evidence of a
+                problem — a model here may be excellent and simply unwritten-about.
               </p>
             )}
 
@@ -431,7 +429,7 @@ export default function Models() {
 
           <div className="stack stack-1">
             {shown.slice(0, 200).map((m) => (
-              <ModelRow key={m.model_version_id} m={m} rows={evidence[m.model_version_id]} />
+              <ModelRow key={m.model_version_id} m={m} rows={evidence[m.model_version_id]} capFilter={capFilter} />
             ))}
             {shown.length > 200 && (
               <p className="dim" style={{ fontSize: 'var(--fs-xs)', padding: '10px 2px' }}>
@@ -449,13 +447,21 @@ export default function Models() {
   )
 }
 
-function ModelRow({ m, rows }) {
+function ModelRow({ m, rows, capFilter }) {
   const unpriced = m.price_in == null
 
   return (
     <Link
       to={`/models/${m.model_version_id}`}
-      state={{ from: '/models', name: m.display_name }}
+      // `focus` carries WHICH capability the reader was looking at when they
+      // clicked. Without it the model page opens on twelve capabilities, eleven
+      // of them empty, and the one they filtered for is somewhere below the
+      // fold with nothing marking it.
+      state={{
+        from: '/models',
+        name: m.display_name,
+        focus: capFilter !== 'any' ? capFilter : (m.evidence?.capabilities?.[0] || null),
+      }}
       className="mrow"
     >
       <span className="stack" style={{ gap: 3, minWidth: 0 }}>
