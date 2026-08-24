@@ -120,6 +120,8 @@ export default function Models() {
   const [sort, setSort] = useState('name')
   const [freeOnly, setFreeOnly] = useState(false)
   const [evidenceFilter, setEvidenceFilter] = useState('all')
+  const [capFilter, setCapFilter] = useState('any')
+  const [caps, setCaps] = useState(null)   // the vocabulary, for the capability filter
   const [meta, setMeta] = useState(null)      // summary + priced_at, straight from the API
   const searchRef = useRef(null)
 
@@ -156,14 +158,15 @@ export default function Models() {
 
       // then the evidence, which is a separate kind of fact and a separate
       // set of calls. A capability page failing must not blank the roster.
-      let caps
+      let vocabulary
       try {
-        caps = await listCapabilities()
+        vocabulary = await listCapabilities()
       } catch { return }
       if (!alive) return
-      setTotal(caps.length)
+      setCaps(vocabulary)
+      setTotal(vocabulary.length)
 
-      for (const key of caps.map((c) => c.key)) {
+      for (const key of vocabulary.map((c) => c.key)) {
         if (!alive) return
         try {
           const page = await fetchAll((l, o) => capabilityPage(key, l, o))
@@ -203,8 +206,28 @@ export default function Models() {
     // `=== 0` and not falsy: null is "no published rate", not free.
     if (freeOnly) out = out.filter((m) => m.price_in === 0 && m.price_out === 0)
     out = out.filter(EVIDENCE[evidenceFilter].match)
+    if (capFilter !== 'any') {
+      out = out.filter((m) => (m.evidence?.capabilities || []).includes(capFilter))
+    }
     return [...out].sort(SORTS[sort].fn)
-  }, [roster, query, sort, freeOnly, evidenceFilter])
+  }, [roster, query, sort, freeOnly, evidenceFilter, capFilter])
+
+  /**
+   * How many models have been discussed under each capability.
+   *
+   * Counted off the whole roster and listing EVERY capability, including the
+   * ones at zero. Offering only the eight that have something would hide that
+   * four of the twelve have never been discussed at all — and "no option for
+   * it" reads as "not a thing we track" rather than "nobody has looked", which
+   * is rule 4 moved into a dropdown.
+   */
+  const capCounts = useMemo(() => {
+    const counts = {}
+    for (const m of roster || []) {
+      for (const k of m.evidence?.capabilities || []) counts[k] = (counts[k] || 0) + 1
+    }
+    return counts
+  }, [roster])
 
   // Counted off the roster, not the filtered view — a tab that says how many
   // it holds must not change when another tab is selected.
@@ -346,6 +369,36 @@ export default function Models() {
                 unwritten-about.
               </p>
             )}
+
+            {/* WHICH capability, which is the question people actually arrive
+                with. Every capability is listed, including the ones at zero:
+                omitting them would read as "not tracked" rather than "nobody
+                has looked", and those are opposite claims. */}
+            {caps && (
+              <label className="field field-inline" style={{ marginTop: 4 }}>
+                <span className="field-label">Discussed under</span>
+                <select
+                  value={capFilter}
+                  onChange={(e) => setCapFilter(e.target.value)}
+                  aria-label="Filter by capability"
+                >
+                  <option value="any">Any capability</option>
+                  {caps.map((c) => (
+                    <option key={c.key} value={c.key}>
+                      {capLabel(c.key)} — {capCounts[c.key] || 0}
+                      {c.requires_positive_consensus ? ' · fails silently' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {capFilter !== 'any' && (capCounts[capFilter] || 0) === 0 && (
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '70ch' }}>
+                No model has been discussed under <strong>{capLabel(capFilter)}</strong> yet.
+                Nobody has looked — which is not the same as every model being fine at it.
+              </p>
+            )}
           </div>
 
           <div className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
@@ -411,9 +464,15 @@ function ModelRow({ m, rows }) {
           {m.provider}
           {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
         </span>
-        {rows && (
+        {/* Which capability, from the roster row itself — so it is on screen
+            the moment the list is, rather than 26 seconds later when the
+            capability sweep lands. `rows` upgrades it with voice counts if and
+            when that finishes. */}
+        {m.evidence?.capabilities?.length > 0 && (
           <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-            {rows.map((r) => `${capLabel(r.capability)} · ${r.voices} ${r.voices === 1 ? 'voice' : 'voices'}`).join('  ·  ')}
+            {rows
+              ? rows.map((r) => `${capLabel(r.capability)} · ${r.voices} ${r.voices === 1 ? 'voice' : 'voices'}`).join('  ·  ')
+              : m.evidence.capabilities.map(capLabel).join('  ·  ')}
           </span>
         )}
       </span>

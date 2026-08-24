@@ -51,7 +51,16 @@ SQL = """
              WHERE c.model_version_id = mv.id)                      AS cells,
            (SELECT count(*) FROM cell c
              WHERE c.model_version_id = mv.id
-               AND c.status = 'published')                          AS published_cells
+               AND c.status = 'published')                          AS published_cells,
+           -- WHICH capability, not just how many. A count answers "is there
+           -- anything here"; the board's actual question is "who is good at
+           -- THIS", and a roster that cannot say which capability a model has
+           -- been discussed under cannot be filtered by the thing people came
+           -- to filter by. Claude Haiku 4.5 has exactly one cell and it is
+           -- instruction.adherence; "1 cell" does not tell you that.
+           (SELECT array_agg(DISTINCT c.capability_key ORDER BY c.capability_key)
+              FROM cell c
+             WHERE c.model_version_id = mv.id)                      AS capability_keys
       FROM model_version mv
      ORDER BY mv.display_name
 """
@@ -71,7 +80,7 @@ def _num(v: Decimal | None) -> float | None:
     return None if v is None else float(v)
 
 
-def _evidence(*, cells: int, published: int) -> dict:
+def _evidence(*, cells: int, published: int, capability_keys) -> dict:
     """Three states, and the middle one is why this is not a boolean.
 
     "Has evidence" sounds like a yes/no and is not. Right now 3 of 342 models
@@ -89,11 +98,20 @@ def _evidence(*, cells: int, published: int) -> dict:
     already renders badges for. `unreported` beside a populated `insufficient`
     bucket is legible; on its own it is not.
     """
+    # array_agg over no rows is NULL, not an empty array.
+    keys = list(capability_keys or ())
+
     if published:
-        return {"state": "published", "cells": cells, "published": published}
+        return {
+            "state": "published", "cells": cells,
+            "published": published, "capabilities": keys,
+        }
     if cells:
-        return {"state": "insufficient", "cells": cells, "published": 0}
-    return {"state": "unreported", "cells": 0, "published": 0}
+        return {
+            "state": "insufficient", "cells": cells,
+            "published": 0, "capabilities": keys,
+        }
+    return {"state": "unreported", "cells": 0, "published": 0, "capabilities": []}
 
 
 @dataclass(frozen=True)
@@ -125,7 +143,7 @@ class RosterReader:
                 "supports_structured_output": r[11],
                 "supports_caching": r[12],
                 "lifecycle": r[13],
-                "evidence": _evidence(cells=r[14], published=r[15]),
+                "evidence": _evidence(cells=r[14], published=r[15], capability_keys=r[16]),
             }
             for r in rows
         ]

@@ -41,13 +41,13 @@ class _Result:
         return self._rows[0]
 
 
-def _row(name, price_in, price_out, *, cells=0, published=0):
+def _row(name, price_in, price_out, *, cells=0, published=0, capabilities=None):
     return (
         f"mv_{name}", name, "vendor", f"vendor/{name}",
         price_in, price_out, None,
         128000, 4096,
         True, False, True, None, None,
-        cells, published,
+        cells, published, capabilities,
     )
 
 
@@ -118,7 +118,9 @@ def test_the_detail_route_still_wins_for_ids(monkeypatch, path):
 def test_no_cells_is_unreported():
     conn = _FakeConn([_row("quiet", 1, 2)])
     m = RosterReader(conn).all().models[0]
-    assert m["evidence"] == {"state": "unreported", "cells": 0, "published": 0}
+    assert m["evidence"] == {
+        "state": "unreported", "cells": 0, "published": 0, "capabilities": [],
+    }
 
 
 def test_cells_that_did_not_clear_the_gate_are_insufficient_not_evidenced():
@@ -150,3 +152,33 @@ def test_the_three_states_never_compare_equal():
     ])
     states = {m["display_name"]: m["evidence"]["state"] for m in RosterReader(conn).all().models}
     assert len(set(states.values())) == 3, states
+
+
+# ── which capability, not just how many ─────────────────────────────────────
+
+
+def test_the_capability_keys_travel_with_the_row():
+    """Claude Haiku 4.5 has one cell and it is instruction.adherence.
+
+    "1 cell" cannot answer "who has been discussed for following instructions",
+    which is the question the board exists for.
+    """
+    conn = _FakeConn([_row("haiku", 1, 5, cells=1, capabilities=["instruction.adherence"])])
+    m = RosterReader(conn).all().models[0]
+    assert m["evidence"]["capabilities"] == ["instruction.adherence"]
+
+
+def test_no_cells_means_an_empty_list_not_a_missing_key():
+    """A caller doing `.includes(...)` must not have to guard for undefined."""
+    conn = _FakeConn([_row("quiet", 1, 2)])
+    assert RosterReader(conn).all().models[0]["evidence"]["capabilities"] == []
+
+
+def test_a_null_from_array_agg_becomes_an_empty_list():
+    """array_agg over zero rows is NULL in postgres, not an empty array.
+
+    Passing that straight through would put `None` where the client expects a
+    list, and `null.includes` is a crash rather than a miss.
+    """
+    conn = _FakeConn([_row("quiet", 1, 2, cells=0, published=0, capabilities=None)])
+    assert RosterReader(conn).all().models[0]["evidence"]["capabilities"] == []
