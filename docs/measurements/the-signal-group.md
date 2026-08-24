@@ -180,3 +180,71 @@ and it will be worth more for having a settled instrument behind it.
 the vocabulary — which is the default if nobody decides. That produces a
 before-and-after where the instrument moved between the two, and this project has
 already retired one figure for exactly that reason.
+
+---
+
+## 7 · Locality is not the explanation, and this is settled by the code path
+
+The proposal was that *"one candidate in six carries a signal term and the
+locality window rejects most of them."* **It cannot, and no measurement is needed
+to rule it out — `sieve()` says so.**
+
+```python
+signal_hits = tuple(t for t in terms.signal if matches(t, prose))
+...
+if not missing and window is not None and not _within_window(terms, text, window):
+    missing.append("locality")
+```
+
+`signal_hits` is computed independently and returned as `verdict.signal`. The
+window's only effect is to append `"locality"` to `missing`. And `sweep_github`
+counts the group flags directly:
+
+```python
+for group in ("subject", "topic", "signal"):
+    if getattr(verdict, group):
+        report.group_hits[group] += 1
+```
+
+**So the 1.3% is measured BEFORE the window is consulted.** The window operates
+on the subset that already has all three groups — it can only reduce `passed`,
+never `signal`. Widening it from 1,200 characters cannot raise a 1.3% group rate.
+
+The docstring is explicit that this separation is deliberate: *"'topic and signal
+are too far apart' is a different statement from 'one of them is absent', and
+collapsing them would lose the distinction `missing` exists to carry."*
+
+**What the 16.25% versus 1.3% gap actually is**, restated because it has now been
+attributed to two wrong causes (the exclusion set, measured at 15%; and
+locality, ruled out here):
+
+> **A request asks its own entry's ~8 terms, not the vocabulary's 207.** Median
+> 8, min 6, max 13. The per-entry rate is 0.39% median, the best entry is 9.05%,
+> and three entries are 0.00%. The 1.3% is the weighted middle of that spread.
+
+**So the two fixes are not comparable in size, and the numbers say which:**
+
+| fix | what it could move | ceiling |
+|---|---|---|
+| **widen the vocabulary** — more terms per entry, in the register the platform uses | the per-entry rate, 0.39% median | up to the 16.25% the full vocabulary already reaches |
+| widen the locality window | `passed`, among candidates already at 1.3% | at most 1.3%, and only the fraction the window currently rejects |
+
+**Vocabulary is the larger fix by an order of magnitude**, and locality is not a
+competing candidate — it is downstream of the group that is failing.
+
+## 8 · A correction to my own document-size figure
+
+`sieve.py`'s own docstring carries a measurement I did not have when I wrote
+`the-unwind.md` §7:
+
+> *"Blog articles have a median of 8,191 characters against GitHub's 2,228."*
+
+**GitHub's median document is 2,228 characters.** My n=1 of 65,502 was a tail
+sample, not a typical one — and the 2.2k figure in the sieve cost model, which I
+described as *"measured, but on Reddit thread contexts"*, turns out to be right
+for GitHub too and for a reason I had not found.
+
+So the sieve cost model should use ~2.2k, the full-sweep sieve cost is the
+**9.4-minute** figure rather than 206.7, and §7's *"it lands nearer 48k"* is
+wrong. n=1 licensed less than I claimed, and the check I did not run was grep for
+an existing measurement before treating a fresh one as the first.
