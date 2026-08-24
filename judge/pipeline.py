@@ -192,6 +192,30 @@ class DocumentFacts:
     #: READ BY `compute()`, AND NO LONGER DEFAULTING TO `False`. Same ruling.
     has_numbers: bool | _Unsupplied = UNSUPPLIED
 
+    # ── THE FIELDS `judge/vet/reject.py` READS, restored at the merge ────────
+    #
+    # `main` added these while this branch was 304 commits behind, and the
+    # auto-merge kept THIS side of the class wholesale - so they vanished
+    # without a conflict marker. `reject_check` calls `document.text`,
+    # `.links`, `.dedup_cluster_id` and `.is_canonical_in_cluster`, and the
+    # only thing that noticed was `tests/test_pipeline_vets.py` failing with
+    # `unexpected keyword argument 'text'`.
+    #
+    # Worth the comment because of HOW it hid: two sides edited one dataclass in
+    # different regions, git merged both cleanly, and the result was a class
+    # missing half of what one caller needs. A clean merge is not a working one,
+    # and the suite is what said so.
+    #
+    # These keep `main`'s defaults rather than UNSUPPLIED: they feed the REJECT
+    # path, not the weighting path, and the 2026-08-21 ruling is about
+    # weighting inputs. An absent link list genuinely is an empty one.
+    text: str | None = None
+    links: tuple[str, ...] = ()
+    own_domain: str | None = None
+    dedup_cluster_id: str | None = None
+    is_canonical_in_cluster: bool = True
+    canonical_domain: str | None = None
+
 
 @runtime_checkable
 class SurfaceFinder(Protocol):
@@ -407,18 +431,13 @@ class SurfaceResolver(Protocol):
 
     def __call__(self, surface: str) -> str | None: ...
 
-    #: E6 REJECTION INPUTS. `vet.reject.check()` needs the text and the links,
-    #: which the four fields above do not carry - and that is precisely why the
-    #: reject stage had no caller while `vet.weight.compute()` had one. A
-    #: document reaching here with `text=None` is UNVETTED, which is recorded
-    #: as its own outcome rather than allowed to look like "passed": absent
-    #: input is not a clean bill of health (rule 6).
-    text: str | None = None
-    links: tuple[str, ...] = ()
-    own_domain: str | None = None
-    dedup_cluster_id: str | None = None
-    is_canonical_in_cluster: bool = True
-    canonical_domain: str | None = None
+    # NOTE: six `DocumentFacts` fields from `origin/main` were merged INTO this
+    # protocol here, after `__call__`, and git reported no conflict. They belong
+    # to `DocumentFacts` and now live there. Left as a comment because the
+    # failure mode is worth a line at the scene: a runtime_checkable Protocol
+    # with data members stops matching a plain callable, so
+    # `isinstance(resolver, SurfaceResolver)` went False and one test caught what
+    # a clean merge and a passing import did not.
 
 
 @dataclass
