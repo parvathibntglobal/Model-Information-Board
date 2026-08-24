@@ -170,3 +170,84 @@ not depend on comparability.
 **The thing to avoid**, which is the default if nobody decides: finish the sweep,
 call it the baseline, then change the vocabulary — leaving a before-and-after
 whose instrument moved in between.
+
+---
+
+# 7 · What survives, and it is the part you can act on
+
+**Everything above §7 is either withdrawn or contingent. This section is not.**
+
+## The finding: an entry's eight terms are equally thin on both platforms
+
+```
+                        GitHub          blogs
+                   (32,723 candidates)  (119 documents, median 6,054 chars)
+vocabulary-wide         16.25%          21.85%      (30.88% on long-form)
+PER-ENTRY MEDIAN         0.39%           0.42%      <- what a request asks
+```
+
+**A request never asks the vocabulary. It asks one entry's terms — median 8, min
+6, max 13 — and that set performs identically on the two platforms.**
+
+Per-platform terms would close the vocabulary-wide gap, which is 5.6 points and
+which no request experiences. They would not touch the 0.39-versus-0.42, which is
+the number that determines whether anything is retrieved.
+
+That is why the coverage argument is withdrawn rather than weakened: it was an
+argument about the wrong denominator.
+
+## The durable number: 101 of 207 terms fire nowhere
+
+```
+dead on GitHub  (32,723 candidates)   102 of 207
+dead on prose   (315 documents)       191 of 207   <- upper bound, small corpus
+DEAD ON BOTH                          101 of 207
+```
+
+**This does not depend on which platform is right**, which is what makes it
+actionable while the register question is closed. A term that fires zero times
+across 32,723 GitHub candidates and 315 prose documents is not misplaced, it is
+dead — and half the signal vocabulary is in that state.
+
+The GitHub half of that figure rests on 32,723 candidates, so it is not a
+small-sample artifact. The prose half is an upper bound and is not needed for the
+conclusion.
+
+## And the concentration, which is the same finding from the other side
+
+```
+truncat        2,574 firings   34.2% of all GitHub firings
+top 3                          45.8%
+top 10                         64.8%
+```
+
+A 207-term vocabulary in which one ordinary English stem supplies a third of the
+output is not a vocabulary that is in the wrong register. It is a vocabulary
+where **105 terms carry everything and 102 carry nothing**, and the live ones are
+concentrated in a handful.
+
+## What I would propose instead, and it is one line
+
+**Widen the per-entry sets, on both platforms, derived from the corpus rather
+than invented** — and delete or replace the 101 dead terms rather than carrying
+them.
+
+The derivation material now exists and did not before: 32,723 GitHub candidates
+in `_sweep_store` plus 119 blog documents, with `SieveVerdict.signal_in_excluded`
+already recording terms that matched only inside excluded spans. The right next
+measurement is what the *rejected* candidates say — the near-misses, where
+subject and topic both hit and signal did not.
+
+**Not proposing the terms themselves.** A term I invent is a term nobody typed,
+and `contract/queries.yaml` already carries the cost of that lesson: 275 of 275
+multi-word terms failed to match their own plural before anybody measured.
+
+## What is still open and is not mine
+
+- **Whether the 101 dead terms are deleted or replaced.** Deleting narrows
+  recall on a corpus we have not finished sweeping; replacing needs the
+  derivation above.
+- **The positive/silent-failure asymmetry** in §5 stands unaffected by the
+  retraction — it was measured per entry, not per platform, and it is the half
+  that most needs the widening.
+- **`contract/queries.yaml` is untouched by this document.**
