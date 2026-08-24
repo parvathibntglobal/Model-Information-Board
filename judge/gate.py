@@ -1,0 +1,184 @@
+"""Who may call this API, and how often.
+
+WHY THIS EXISTS. Every route in `judge/app.py` was reachable by anyone who could
+open a socket to it. Not a weak check - `Depends`, `HTTPBearer`, `Security` and
+`OAuth2` appear nowhere in the file, so there was no gate to tighten. Two of
+those routes make that expensive rather than merely untidy:
+
+    /admin/usage      reports spend on the OpenRouter key, including a
+                      cross-machine total for "every machine using this API key"
+    /ask/understand   is the one endpoint that spends money, and its cap is
+                      per-process, so an open one is an open wallet
+
+AN UNSET TOKEN IS A MISSING DECISION, AND THE ANSWER DEPENDS ON WHERE YOU ARE.
+
+`judge/ask/spend.py` already draws this distinction and it is the right one: a
+person typing a command has decided something; an anonymous HTTP request has
+not. So the rule here is not "default open" or "default closed", it is:
+
+    API_TOKEN set                       every route needs a bearer token
+    unset, ENVIRONMENT=development      open, and /health SAYS it is open
+    unset, anywhere else                refused, because nobody chose
+
+The middle case is what keeps a fresh clone usable - the thing that would
+otherwise make people delete this file on day one. The third is what stops the
+middle case from following someone to a server by accident, which is exactly how
+an unauthenticated board reaches the internet.
+
+`/health` is always reachable. A liveness probe that needs a credential is a
+liveness probe that reports the credential, and it deliberately reports the auth
+state so "is this thing exposed" is answerable without guessing.
+
+WHAT THIS IS NOT. A shared bearer token is one secret for all callers, with no
+identity, no revocation and no audit. It is the smallest thing that closes an
+open door, not an authentication system - see `web/src/auth.js`, which says the
+same about its own half. Sessions with per-user identity replace both.
+"""
+from __future__ import annotations
+
+import hmac
+import os
+import time
+from collections import deque
+from threading import Lock
+
+from fastapi import Header, HTTPException, Request
+
+DEV = "development"
+
+
+def _token() -> str:
+    return (os.getenv("API_TOKEN") or "").strip()
+
+
+def _environment() -> str:
+    return (os.getenv("ENVIRONMENT") or DEV).strip().lower()
+
+
+def auth_state() -> dict[str, object]:
+    """What `/health` reports, so exposure is answerable rather than assumed."""
+    if _token():
+        return {"required": True, "reason": "API_TOKEN is set"}
+    if _environment() == DEV:
+        return {
+            "required": False,
+            "reason": (
+                "no API_TOKEN and ENVIRONMENT=development, so this API is OPEN. "
+                "Set API_TOKEN before exposing it to anything but localhost."
+            ),
+        }
+    return {
+        "required": True,
+        "reason": f"no API_TOKEN and ENVIRONMENT={_environment()}, so every route refuses",
+    }
+
+
+#: Reachable without a token. `dependencies=[]` on a route does NOT remove an
+#: app-level dependency in FastAPI - app-level ones always run - so the
+#: exemption has to be made here, by path. Found by the test that asserted
+#: /health still answered with a token set; it did not.
+EXEMPT_PATHS = frozenset({"/health"})
+
+
+def require_token(
+    request: Request,
+    authorization: str | None = Header(default=None),
+) -> None:
+    """FastAPI dependency. Raises, or returns None and lets the route run."""
+    if request.url.path in EXEMPT_PATHS:
+        return
+
+    expected = _token()
+
+    if not expected:
+        if _environment() == DEV:
+            return
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"no API_TOKEN is set and ENVIRONMENT is {_environment()!r}, so this "
+                "API refuses rather than serving the board to anyone who can reach "
+                "it. This is a missing decision, not a fault. Set API_TOKEN, or set "
+                "ENVIRONMENT=development if this really is a local machine."
+            ),
+        )
+
+    supplied = ""
+    if authorization and authorization.lower().startswith("bearer "):
+        supplied = authorization[7:].strip()
+
+    # compare_digest, so a wrong token takes the same time as a nearly-right one
+    if not supplied or not hmac.compare_digest(supplied, expected):
+        raise HTTPException(
+            status_code=401,
+            detail="this API needs `Authorization: Bearer <API_TOKEN>`.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+# ── rate limiting the one endpoint that spends money ────────────────────────
+#
+# IN-PROCESS AND PER-MACHINE, and that is a real limit rather than a shortcut
+# nobody noticed. Two workers are two allowances, and a restart forgets
+# everything. It is the same shape as the spend cap, which `/admin/usage`
+# already labels "this machine's ledger only" - so this shares that honesty
+# rather than implying a guarantee it cannot make.
+#
+# It still does the job it is here for: an open ask box is a stranger spending
+# your OpenRouter balance, and a fixed window per client stops one caller
+# draining the daily cap in a loop. A shared limiter belongs with the shared
+# ledger in `model_call`, which is already on the list as a contract change.
+
+_WINDOW_SECONDS = 3600
+_hits: dict[str, deque[float]] = {}
+_hits_lock = Lock()
+
+
+def _limit() -> int:
+    raw = (os.getenv("ASK_RATE_PER_HOUR") or "").strip()
+    if not raw:
+        return 20
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 20
+
+
+def rate_limit_ask(request: Request) -> None:
+    """Fixed window per client, on `/ask/understand` only.
+
+    Keyed on the socket peer. Behind a proxy every caller shares one key, which
+    throttles everyone together instead of nobody - the safe direction to be
+    wrong in, and the reason this does not read X-Forwarded-For: a header the
+    client controls is a rate limit the client controls.
+    """
+    limit = _limit()
+    if limit <= 0:
+        return
+
+    key = request.client.host if request.client else "unknown"
+    now = time.monotonic()
+    cutoff = now - _WINDOW_SECONDS
+
+    with _hits_lock:
+        seen = _hits.setdefault(key, deque())
+        while seen and seen[0] < cutoff:
+            seen.popleft()
+        if len(seen) >= limit:
+            retry = int(seen[0] - cutoff) + 1
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"{limit} model-backed requests an hour from one caller is the "
+                    "limit on this endpoint, and it is the only one that spends "
+                    "money. Nothing is wrong with your request. Try again in "
+                    f"{retry}s, or raise ASK_RATE_PER_HOUR."
+                ),
+                headers={"Retry-After": str(retry)},
+            )
+        seen.append(now)
+
+
+def _reset_for_tests() -> None:
+    with _hits_lock:
+        _hits.clear()

@@ -52,6 +52,7 @@ from judge.store.extractions import (
     ExtractionRecord,
     fingerprint_of,
 )
+from judge.vet.reject import check as reject_check
 from judge.vet.weight import EvidenceTier, compute
 
 log = logging.getLogger(__name__)
@@ -80,6 +81,19 @@ class DocumentFacts:
     has_conditions: bool = False
     has_numbers: bool = False
 
+    #: E6 REJECTION INPUTS. `vet.reject.check()` needs the text and the links,
+    #: which the four fields above do not carry - and that is precisely why the
+    #: reject stage had no caller while `vet.weight.compute()` had one. A
+    #: document reaching here with `text=None` is UNVETTED, which is recorded
+    #: as its own outcome rather than allowed to look like "passed": absent
+    #: input is not a clean bill of health (rule 6).
+    text: str | None = None
+    links: tuple[str, ...] = ()
+    own_domain: str | None = None
+    dedup_cluster_id: str | None = None
+    is_canonical_in_cluster: bool = True
+    canonical_domain: str | None = None
+
 
 @dataclass
 class PipelineResult:
@@ -89,6 +103,19 @@ class PipelineResult:
     stored_claim_ids: list[str] = field(default_factory=list)
     cells: list[CellOutcome] = field(default_factory=list)
     extractor_disagreements: list[str] = field(default_factory=list)
+
+    #: document_id -> (trigger, detail) for documents E6 hard-rejected. Their
+    #: claims are dropped rather than weighted; kept here so a rejection is
+    #: reportable instead of showing up as a thread that happened to say nothing.
+    rejected_documents: dict[str, tuple[str, str]] = field(default_factory=dict)
+
+    #: Documents that reached weighting with no text to vet. NOT the same as
+    #: passing, and separated so a caller cannot read one as the other.
+    unvetted_documents: list[str] = field(default_factory=list)
+
+    #: Non-fatal observations from E6 - "free_api_credits_acknowledged" and the
+    #: like. Shown beside a document rather than hiding it.
+    document_flags: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
     @property
     def published(self) -> int:
@@ -114,6 +141,67 @@ class Pipeline:
         self._ledger = ExtractionLedger(conn)
         self._cells = CellStore(conn)
 
+    def _vet(
+        self,
+        result: PipelineResult,
+        facts: dict[str, DocumentFacts],
+        release_dates: dict[str, date],
+    ) -> set[str]:
+        """Hard rejection, per document. Returns the ids whose claims are dropped.
+
+        Three outcomes, kept apart on purpose:
+
+            rejected   a rule fired. Claims dropped, trigger recorded.
+            unvetted   no text was supplied, so no rule could run. Recorded as
+                       its own state - reading it as "kept" would be a missing
+                       value becoming a definite one.
+            kept       every rule ran and none fired.
+
+        This module still decides nothing: `reject.check()` decides, and this
+        moves values into it and its verdict out.
+        """
+        rejected: set[str] = set()
+
+        mentions: dict[str, list[str]] = {}
+        for claim, quote in result.extraction.verified:
+            resolved = claim.model_ref.resolved_version_id
+            if resolved:
+                mentions.setdefault(quote.document_id, []).append(resolved)
+
+        for document_id in {q.document_id for _, q in result.extraction.verified}:
+            document = facts.get(document_id)
+            if document is None or document.text is None:
+                result.unvetted_documents.append(document_id)
+                log.warning(
+                    "no text for %s, so E6 rejection could not run on it; "
+                    "recorded as unvetted rather than counted as kept",
+                    document_id,
+                )
+                continue
+
+            verdict = reject_check(
+                text=document.text,
+                links=list(document.links),
+                published_at=document.created_at,
+                model_release_dates=release_dates,
+                mentioned_models=mentions.get(document_id, []),
+                dedup_cluster_id=document.dedup_cluster_id,
+                is_canonical_in_cluster=document.is_canonical_in_cluster,
+                canonical_domain=document.canonical_domain,
+                own_domain=document.own_domain,
+            )
+
+            if verdict.flags:
+                result.document_flags[document_id] = verdict.flags
+
+            if verdict.rejected:
+                rejected.add(document_id)
+                trigger = getattr(verdict.trigger, "value", str(verdict.trigger))
+                result.rejected_documents[document_id] = (trigger, verdict.detail)
+                log.info("E6 rejected %s: %s - %s", document_id, trigger, verdict.detail)
+
+        return rejected
+
     def run(
         self,
         thread: ThreadInput,
@@ -135,7 +223,28 @@ class Pipeline:
             extraction=extract(thread, client=self._client, capability_keys=self._capabilities)
         )
 
+        # ── E6 REJECT, which had no caller until now ────────────────────────
+        #
+        # `vet/reject.py` defines the affiliate-link, sponsored-disclosure and
+        # discount-code rules and `pipeline.py` imported only `vet.weight`, so
+        # the reject stage ran on nothing. That is not hypothetical: the four
+        # claims currently on staging are quotes from a product ANNOUNCEMENT -
+        # "exceptional performance in software engineering", polarity positive -
+        # promotional text read as engineer opinion, which is the exact thing
+        # these rules exist to stop.
+        #
+        # It runs per DOCUMENT and after extraction rather than before. Before
+        # would be cheaper and is where `placeholder.py` sits, but rejection
+        # needs the resolved model mentions, and those do not exist until the
+        # extractor has proposed them. Cost is one call on a document whose
+        # claims are then discarded; correctness is the whole reason the stage
+        # exists. Moving it earlier is a real optimisation and a separate change.
+        rejected = self._vet(result, facts, release_dates or {})
+
         for claim, quote in result.extraction.verified:
+            if quote.document_id in rejected:
+                continue
+
             document = facts.get(quote.document_id)
             if document is None:
                 # A verified quote whose document we know nothing about cannot
