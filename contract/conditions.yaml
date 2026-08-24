@@ -46,7 +46,7 @@ dimensions:
       claims are meaningless without the length they were observed at.
     bands: ["<8k", "8k-32k", "32k-128k", "128k+", "unknown"]
 
-  - key: structured_mode
+  - key: schema_enforced
     description: Whether provider-side structured-output enforcement was on.
     why: >
       Enforcement guarantees schema validity at the API layer. A model that
@@ -54,6 +54,74 @@ dimensions:
       complaint about invalid JSON means something completely different
       depending on this flag.
     bands: ["on", "off", "unknown"]
+
+  # --------------------------------------------------------------------------
+  #  ⚠ TWO CHANGES, 2026-08-21, BY ENGINEER 1. BOTH NEED ENGINEER 2's SIGN-OFF.
+  #     contract/ is shared. One is a new dimension (a bucket-space change);
+  #     the other RENAMED `structured_mode` to `schema_enforced` above.
+  #
+  #     THE RENAME WAS NOT ASKED FOR. E1 took it because the measurement said
+  #     the new field alone does not work, and because it costs no migration
+  #     TODAY: 0 of 6 stored condition_bucket values carry the old prefix
+  #     (4 claim rows, 2 cell rows, all `context_size:unknown`). It will never
+  #     be cheaper. Revert is a find-and-replace across five files.
+  #
+  #  WHY: a bool had taken three strings.
+  #
+  #      'xhigh'      -> structured_mode   twice, on qwen-38-27b
+  #      'auto mode'  -> structured_mode   once, on the auto-mode post,
+  #                                        and it cost 4 claims
+  #
+  #  THE FIRST DIAGNOSIS WAS WRONG AND THE PROBE SAYS SO. We recorded it as
+  #  "no field for the thing, so it goes somewhere wrong rather than nowhere".
+  #  Adding `reasoning_effort` — with a description naming 'auto mode' as its
+  #  own example, and a pointer in `structured_mode`'s description — changed
+  #  NOTHING: 3 of 4 claims still misfiled, reasoning_effort null, three draws
+  #  out of three. Renaming the bool to `schema_enforced` and changing nothing
+  #  else stopped it dead, with reasoning_effort='auto' on 4 of 4, three draws
+  #  out of three. Deleting the bool did the same.
+  #
+  #  So the value was going to the field whose NAME matched the document's
+  #  words — "auto mode" to the only field ending in `_mode`. A FIELD NAME
+  #  OUTRANKS EVERY DESCRIPTION, including the description of the field that
+  #  should have won.
+  #
+  #  THE RULE THAT FALLS OUT, and it belongs in this file because this file
+  #  names things: DO NOT NAME A DIMENSION AFTER A WORD THE CORPUS USES IN
+  #  ANOTHER SENSE. `tool_count` and `context_size` are safe; `*_mode` was not.
+  #
+  #  Population: one document, one extractor (google/gemini-2.5-flash), three
+  #  arms, three draws each. The draws were byte-identical, so they show the
+  #  effect is stable at temperature 0 rather than that it generalises.
+  #  `docs/measurements/the-effort-dimension.md`
+  # --------------------------------------------------------------------------
+  - key: reasoning_effort
+    description: How much thinking the model was asked to do, if the report says.
+    why: >
+      The same model at low and at max effort differs more than two models at
+      the same effort — on latency by a large factor, and on multi-step
+      reasoning by enough to invert a comparison. A latency complaint at max
+      effort and a latency complaint at low effort are not the same claim, and
+      averaging them publishes a sentence that is true of neither.
+
+      `auto` is a band rather than an omission, and that is deliberate. "The
+      provider chose the effort" is a real, stated, comparable condition and it
+      is NOT the same as "the report does not say" — one is a setting somebody
+      selected, the other is missing data. Collapsing them would convert an
+      observed condition into an absence, which is rule 6.
+    bands: ["off", "low", "medium", "high", "max", "auto", "unknown"]
+    # Vendor names map onto these bands and the band list is what we count:
+    #   minimal/none -> off      xhigh/highest/max -> max
+    #   auto/dynamic/router -> auto
+    # NOT DONE, all three needing E2's call rather than mine:
+    #   1. no capability is reasoning_effort-DOMINANT yet (see below). Until one
+    #      is, this dimension is recorded and never bucketed on.
+    #   2. `contract/queries.yaml` has no query carrying
+    #      `records_condition: reasoning_effort`, so nothing is retrieved FOR
+    #      this dimension - it is only picked up incidentally.
+    #   3. `ops.latency_ttft` is the capability this most obviously dominates,
+    #      and moving it off `context_size` would rebucket every existing
+    #      latency claim. That is a re-run, not an edit.
 
 
 # ----------------------------------------------------------------------------
@@ -64,7 +132,7 @@ dimensions:
 #
 #      tool_calling.*            → tool_count
 #      context.effective_window  → context_size
-#      format.structured_output  → structured_mode
+#      format.structured_output  → schema_enforced
 #      everything else           → context_size
 #
 #  Q5 reads the cell AT THE TASK'S BUCKET. A 12-tool task looks up
@@ -75,7 +143,7 @@ dominant_dimension:
   "tool_calling.schema_accuracy":         tool_count
   "tool_calling.long_chain_reliability":  tool_count
   "context.effective_window":             context_size
-  "format.structured_output":             structured_mode
+  "format.structured_output":             schema_enforced
   "instruction.adherence":                context_size
   "summarization.fidelity":               context_size
   "extraction.faithfulness":              context_size

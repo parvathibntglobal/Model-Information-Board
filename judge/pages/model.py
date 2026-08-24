@@ -260,12 +260,24 @@ class ModelPageReader:
         `quote_verified` is in the WHERE clause even though a CHECK enforces
         it. The CHECK protects the table; this protects the page against a
         future path that writes around it, and costs one predicate.
+
+        `claimed_at` IS `document.created_at`, WHICH IS NOT `claim.created_at`.
+        This selected `c.claim_date` — a column that has never existed on
+        `claim` — so the page raised `UndefinedColumn` the first time a cell
+        had a quote to show, which was the first time any claim was stored.
+
+        The near-miss is the point: `claim.created_at` exists, would have run,
+        and is the moment WE EXTRACTED, not the moment somebody wrote the
+        sentence. Every quote would have rendered as fresh, the recency the
+        weighting decays would disagree with the date on the page, and it fails
+        in the flattering direction. The date a claim was made lives on the
+        document, and `Pipeline.run` already weights from exactly that field.
         """
         if not claim_ids:
             return {}
         rows = self._conn.execute(
             """
-            SELECT c.id, c.quote, d.url, d.source, c.claim_date
+            SELECT c.id, c.quote, d.url, d.source, d.created_at
             FROM claim c JOIN document d ON d.id = c.document_id
             WHERE c.id = ANY(%s) AND c.quote_verified
             """,

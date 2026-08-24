@@ -167,7 +167,7 @@ def infer(
     output_tokens: int | None = None,
     tool_count: int | None = None,
     regions: list[str] | None = None,
-    structured_mode: bool | None = None,
+    schema_enforced: bool | None = None,
 ) -> RoleRequirement:
     """Turn one role's description into a checkable requirement.
 
@@ -238,7 +238,7 @@ def infer(
     conditions_seen = {
         "tool_count": tool_count,
         "context_size": input_tokens,
-        "structured_mode": structured_mode if structured_mode is not None else needs_structured,
+        "schema_enforced": schema_enforced if schema_enforced is not None else needs_structured,
     }
 
     known = capabilities()

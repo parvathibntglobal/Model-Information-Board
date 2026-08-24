@@ -75,6 +75,23 @@ def claim_id_for(
     are genuinely different claims. The pipeline version is in it because a
     re-extraction under a changed prompt IS a different claim about the same
     text, and collapsing the two would silently discard whichever ran second.
+
+    ⚠ SO A DELETE IS PERMANENT FOR THIS PIPELINE VERSION, AND "RE-RUN TO
+    RESTORE" DOES NOT RESTORE.
+
+    "A re-run is an upsert" is true only if the extractor picks the IDENTICAL
+    span, and the extractor is nondeterministic — the same document has produced
+    8, 28 and 36 claims across three runs, and a quote chosen one sentence longer
+    hashes to a different id. So re-extraction after a delete produces a
+    DIFFERENT row, not the same row again: same document, same capability,
+    different id, and the deleted claim's id never recurs.
+
+    That makes the determinism here a property of the INPUTS rather than a
+    guarantee about re-runs, and the difference matters at exactly one moment:
+    when somebody deletes a row believing it is recoverable. It is not. Six
+    claims were deleted on 2026-08-21 for a defect that turned out to be in the
+    measurement of them, and re-extraction restored equivalents rather than
+    them.
     """
     start, end = quote_flat_offset
     digest = hashlib.sha256(
@@ -174,7 +191,7 @@ class ClaimStore:
                 pain_points, polarity, severity, quote, quote_flat_offset,
                 quote_raw_offset, quote_verified, relevance, has_repro_steps,
                 has_numbers, is_sarcastic, evidence_tier, extractor_model,
-                extractor_confidence, pipeline_version
+                extractor_confidence, pipeline_version, speaking
             ) VALUES (
                 %(id)s, %(document_id)s, %(thread_context_id)s, %(source_comment_id)s,
                 %(author_id)s, %(model_version_id)s, %(family)s, %(specificity)s,
@@ -183,7 +200,7 @@ class ClaimStore:
                 %(severity)s, %(quote)s, %(quote_flat_offset)s, %(quote_raw_offset)s,
                 true, %(relevance)s, %(has_repro_steps)s, %(has_numbers)s, false,
                 %(evidence_tier)s, %(extractor_model)s, %(extractor_confidence)s,
-                %(pipeline_version)s
+                %(pipeline_version)s, %(speaking)s
             )
             -- The offsets are updated with the quote. They cannot currently
             -- diverge, because claim_id_for hashes the offset so a changed span
@@ -209,6 +226,10 @@ class ClaimStore:
                 "model_version_id": stored.model_version_id,
                 "family": stored.family,
                 "specificity": claim.model_ref.specificity,
+                # STORED THOUGH IT ONLY AFFECTS WEIGHTING. The field has never
+                # run, so a mislabelling has to be recoverable - see the
+                # migration 20260821T1600_claim_speaking.sql.
+                "speaking": claim.model_ref.speaking,
                 "resolution_confidence": claim.model_ref.resolution_confidence,
                 "capability_key": claim.capability,
                 "taxonomy_version": stored.taxonomy_version,

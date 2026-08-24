@@ -370,6 +370,80 @@ specificity:
 
 
 # ============================================================================
+#  EVIDENCE TIER BY WHO IS SPEAKING
+#
+#  ⚠ NEW BLOCK, ADDED BY E1 2026-08-21, AND IT NEEDS E2's SIGN-OFF. It changes
+#    the weight of three claims already in the table by 6x. Flagged here rather
+#    than merged quietly, per the lane rule on contract/.
+#
+#  `ModelRef.speaking` supplies `evidence_tier`. It does not add a factor -
+#  `f_evidence` is the factor that already means "how reproducible is this",
+#  and provenance is the first thing that answers it.
+#
+#  WHY THIS IS A CONTRACT DECISION AND NOT A CONSTANT IN weight.py: it is a
+#  ruling about what a vendor's own words are worth, and rule 5 puts thresholds
+#  in versioned YAML. It is also the first mapping in this file that changes a
+#  weight already applied to stored rows, which is exactly the kind of change
+#  that should be diffable.
+#
+#  THE MAPPING, AND EACH VALUE GOES TO THE TIER WHOSE OWN DESCRIPTION MATCHES IT:
+#
+#    own-experience           -> D  0.12  "bare first-hand opinion"
+#    relayed-from-elsewhere   -> E  0.04  "hearsay, summarising someone else"
+#    vendor-about-own-product -> F  0.02  "vendor marketing - capability FACTS
+#                                          only, never quality"
+#
+#  These are not new judgements. TIER_WEIGHT's own gloss for E is "summarising
+#  someone else", which is what relayed means, and F is "vendor marketing",
+#  which is what a launch post is. The mapping states an identity that was
+#  already written down in judge/vet/weight.py.
+#
+#  WHAT IT CHANGES, MEASURED ON WHAT IS STORED:
+#
+#    3 claims quote the Fable 5 announcement -> D (0.12) becomes F (0.02), 6x DOWN
+#    1 claim relays a model-card number      -> D (0.12) becomes E (0.04), 3x DOWN
+#    8 blog claims are the author's own runs -> D (0.12) stays D, UNCHANGED
+#
+#  So the change is entirely a down-weighting of what is not first-hand. Nothing
+#  is promoted, and no claim is refused storage - see `not_a_storage_gate`.
+#
+#  A, B AND C ARE UNREACHABLE AND THAT IS A SEPARATE GAP. The ladder has six
+#  rungs; `speaking` can reach three. A ("published harness/prompts, N runs,
+#  numbers; or a GitHub repro"), B ("detailed first-hand build report") and C
+#  ("qualitative first-hand with conditions") all require knowing how much
+#  apparatus a report carries, and nothing supplies that today. `f_specificity`
+#  counts artifacts in a SEPARATE factor, so raising the tier on the same
+#  signals would price one fact twice - the defect this project has already
+#  recorded under `version_named`. So own-experience floors at D deliberately,
+#  and promoting it needs its own source and its own argument.
+# ============================================================================
+
+evidence_tier_by_speaking:
+
+  # ⚠ PROVISIONAL IN THE SAME SENSE AS specificity.weights: nothing has
+  #   calibrated the DISTANCE between these tiers. What is not provisional is
+  #   the ORDER - a vendor describing their own model is weaker evidence about
+  #   that model than an engineer reporting their own run, and no measurement is
+  #   needed to say so. If these values are argued about, argue about 0.12/0.04/
+  #   0.02, which live in judge/vet/weight.py TIER_WEIGHT, not about the order.
+  #
+  #   An absent or unknown key here does NOT fall back to a tier. `compute()`
+  #   refuses and names the gap, per the 2026-08-21 ruling that a weighting
+  #   input may not have a silent default.
+
+  own-experience:            D
+  relayed-from-elsewhere:    E
+  vendor-about-own-product:  F
+
+  # WEIGHTING ONLY. `speaking` never gates storage, and the reason is that the
+  # field has never run: its accuracy is unmeasured on exactly the decision it
+  # would be making. A claim the model mislabels must still exist, or a
+  # mislabelling is invisible and unfixable. Recorded here because a future
+  # reader will otherwise wonder why F is stored at all rather than dropped.
+  not_a_storage_gate: true
+
+
+# ============================================================================
 #  DEDUPE — FR-16. Syndicated copies contribute to REACH, never to WEIGHT.
 #
 #  SHARED. One blog syndicated four times and quoted twice is one person, and

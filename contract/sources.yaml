@@ -611,6 +611,33 @@ feeds:
     platform: blog
     endpoint: https://simonwillison.net/atom/everything/
     site: https://simonwillison.net/
+    # ── TEMPLATE BLOCK (per feed, 2026-08-20) ────────────────────────────
+    #
+    # The heading that begins a terminal block of the SITE'S OWN boilerplate —
+    # a link index, a recruiting pitch — which trafilatura keeps because for
+    # this markup it sits inside the content region. Everything from the
+    # heading line onwards is dropped before the text reaches an extractor.
+    #
+    # ⚠ `status` IS THE POINT OF THIS BLOCK, not `headings`. `unverified` means
+    # NOBODY HAS LOOKED, which is not `verified` with an empty list, and must
+    # never be read as "this feed has no template block" (rule 6). A rule that
+    # fires on one feed and silently does nothing on eight is the shape this
+    # makes countable: 2 feeds strip, 3 are verified clean, 4 are unlooked-at.
+    #
+    # `pages_examined` is the denominator (rule 7) — pages of THIS host in
+    # `raw_store` that extracted, never the feed's entry count.
+    template_block:
+      status: verified
+      checked_on: 2026-08-20
+      pages_examined: 62
+      # TWO HEADINGS, AND THE SECOND IS WHY THIS IS A LIST. The first rule
+      # written here matched `Recent articles` only, and that is the last
+      # heading on 57 of 62 pages — the other 4 end at `More recent articles`
+      # and would have kept their block under a rule that looked applied.
+      # 61 of 62 carry one or the other; 1 page carries neither.
+      headings:
+        - Recent articles
+        - More recent articles
     base_trust: 0.90
     provenance: seed
     terms_ruling: blog-class-a-self-hosted
@@ -662,6 +689,16 @@ feeds:
     platform: blog
     endpoint: https://hamel.dev/index.xml
     site: https://hamel.dev/
+    template_block:
+      status: verified
+      checked_on: 2026-08-20
+      pages_examined: 12
+      # EXAMINED AND CLEAN. The most common terminal heading is `Footnotes`
+      # (9 of 12), which is the author's own apparatus and not boilerplate.
+      # `Stay Connected` and `📬 Follow Me` each end one page — real template
+      # tails, but one page each is not a rule, and guessing one would strip
+      # an author's words on the other eleven.
+      headings: []
     base_trust: 0.90
     provenance: seed
     terms_ruling: blog-class-a-self-hosted
@@ -713,6 +750,11 @@ feeds:
     platform: blog
     endpoint: https://jxnl.co/feed_rss_created.xml
     site: https://jxnl.co/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
     base_trust: 0.90
     provenance: seed
     terms_ruling: blog-class-a-self-hosted
@@ -765,6 +807,13 @@ feeds:
     platform: blog
     endpoint: https://vickiboykis.com/index.xml
     site: https://vickiboykis.com/
+    template_block:
+      status: verified
+      checked_on: 2026-08-20
+      pages_examined: 20
+      # EXAMINED AND CLEAN. Every terminal heading across the 20 is a distinct
+      # article title — no heading repeats, so there is no template tail.
+      headings: []
     base_trust: 0.90
     provenance: seed
     terms_ruling: blog-class-a-self-hosted
@@ -822,6 +871,13 @@ feeds:
     platform: blog
     endpoint: https://slack.engineering/feed/
     site: https://slack.engineering/
+    template_block:
+      status: verified
+      checked_on: 2026-08-20
+      pages_examined: 8
+      # EXAMINED AND CLEAN. No terminal heading occurs more than twice and
+      # none is boilerplate (`Acknowledgements`, `What's Next?`).
+      headings: []
     base_trust: 0.90
     provenance: seed
     terms_ruling: blog-class-a-self-hosted
@@ -873,6 +929,11 @@ feeds:
     platform: blog
     endpoint: https://engineering.atspotify.com/feed/
     site: https://engineering.atspotify.com/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
     base_trust: 0.90
     provenance: seed
     terms_ruling: blog-class-a-self-hosted
@@ -926,6 +987,18 @@ feeds:
     platform: blog
     endpoint: https://engineering.grab.com/feed.xml
     site: https://engineering.grab.com/
+    template_block:
+      status: verified
+      checked_on: 2026-08-20
+      pages_examined: 10
+      # A SECOND FEED THAT NEEDS STRIPPING, found only because this stopped
+      # being one hardcoded site. `## Join us` opens a corporate-boilerplate
+      # and recruiting tail on 10 of 10 pages (833–1,448 chars) and
+      # `Related jobs at Grab` is the last heading on all 10. The rule anchors
+      # on `Join us` — the START of the block — because stripping from the
+      # later heading would leave the pitch in the text.
+      headings:
+        - Join us
     base_trust: 0.90
     provenance: seed
     terms_ruling: blog-class-a-self-hosted
@@ -989,6 +1062,11 @@ feeds:
     platform: blog
     endpoint: https://netflixtechblog.com/feed
     site: https://netflixtechblog.com/
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
     base_trust: 0.90
     provenance: seed
     terms_ruling: blog-class-b-medium
@@ -1066,6 +1144,11 @@ feeds:
     platform: blog
     endpoint: https://medium.com/feed/airbnb-engineering
     site: https://medium.com/airbnb-engineering
+    template_block:
+      status: unverified
+      pages_examined: 0
+      # NO PAGE OF THIS HOST IS STORED. Unverified, not clean.
+      headings: []
     base_trust: 0.90
     provenance: seed
     terms_ruling: blog-class-b-medium

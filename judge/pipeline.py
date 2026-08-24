@@ -19,8 +19,10 @@ written to be boring.
 
 WHERE THE VALUES ACTUALLY COME FROM, since four of them are not obvious:
 
-    version_named    document.names_version, computed at ingest by collect/
-    has_conditions   document.has_conditions, same
+    evidence_tier    claim.model_ref.speaking, through
+                     contract/harvest.yaml evidence_tier_by_speaking
+    version_named    claim.model_ref.specificity — snapshot or version is true
+    has_conditions   document.has_conditions — UNRESOLVED, see below
     has_numbers      document.has_numbers — the COUNTED one, not the extractor's
     condition_bucket judge/config.bucket_for(), from the claim's conditions
 
@@ -29,6 +31,77 @@ opinion of it, and rule 2 forbids a model participating in weighting — so the
 document-level count is authoritative and the extractor's boolean is recorded
 as a proposal. Where they disagree it is logged, which is the cheapest
 extractor-quality signal available and needs no labelling.
+
+TWO OF THOSE FOUR WERE REQUIRED ARGUMENTS WITH NO SUPPLIER — FIXED 2026-08-21
+----------------------------------------------------------------------------
+`version_named` and `has_conditions` used to read `document.names_version` and
+`document.has_conditions`. Both are fields on `DocumentFacts` with a `False`
+default, and **`DocumentFacts` has exactly one constructor in the repository:
+`tests/test_pipeline_db.py:190`.** There is no production caller, because
+`run_all` takes `facts` as a parameter and the nightly job that would build it
+does not exist yet. So in every real run both arrived as the dataclass default,
+and `specificity_factor` was scoring `version_named=False` for every claim in
+the corpus — including claims that named a snapshot.
+
+The database has the columns and they are barely populated either:
+`document.names_version` is True on 4 rows, False on 3, NULL on 57;
+`document.has_conditions` is **False on all 7 populated rows and NULL on 57 —
+never True, not once**. So wiring `DocumentFacts` to the table would have
+replaced a hardcoded False with a mostly-NULL False, which is rule 6's shape:
+absent silently becoming definite.
+
+`version_named` is now derived from the claim, which is the granularity
+`specificity_factor` is evaluated at: `specificity in ("snapshot", "version")`
+is the same fact the field was named for, taken from the value that actually
+carries it.
+
+`has_conditions` IS LEFT UNRESOLVED, AND THAT IS THE DECISION RATHER THAN THE
+TODO. It was derived from `claim.conditions` for about an hour and reverted.
+
+The derivation looks obvious — any non-None field on `claim.conditions`, the
+same expression used two lines below for `condition_bucket` — and it is wrong
+for the reason `Conditions` exists. Its own docstring: *"Every field is
+optional, because a human writing a forum post owes us nothing. Absent means
+absent — never guessed into a band."* An empty `Conditions` means the writer did
+not state their conditions. It does not mean the DOCUMENT stated none, and it
+certainly does not mean the claim was made without conditions.
+
+So `bool(claim.conditions...)` answers "did the extractor fill any field",
+which is a fact about extraction, and `specificity_factor` would spend it as
+"was this person being specific" — a fact about the writer. Weighting a claim
+down because a field is absent converts a missing value into a definite one,
+which is rule 6, and it does it silently across every claim in the corpus.
+**A wrong derivation here is worse than a missing input**: a missing input is
+visibly constant, and this would look like a working signal while ranking claims
+on a distinction nobody made.
+
+The document column is no better and the numbers say so: `document.has_conditions`
+is **False on all 7 populated rows and NULL on 57** — never True, not once. So
+wiring `DocumentFacts` to the table replaces a hardcoded False with a mostly-NULL
+False, which is the same rule-6 conversion one layer down.
+
+What it actually needs is a source that can say "not stated" distinctly from
+"stated as absent" — a three-valued input, or removing the signal from
+`specificity_factor`. Both are decisions about what the factor measures. Until
+one is made this argument stays visibly dead rather than plausibly alive, which
+is the honest state for an input nobody can supply.
+
+WHAT THIS COSTS, STATED RATHER THAN HIDDEN. `f_specificity` now gives +0.2 for
+a fact `f_fuzziness` already prices at 1.0/0.6/0.3, so one fact is priced twice
+and the compounded discount was chosen by nobody: a family claim carrying only
+`version_named` falls from 0.1122 to 0.0765, a 32% cut. That is a real
+objection and it is smaller than the alternative, which was a required argument
+supplied from a dataclass default. **The clean version is to drop
+`version_named` from `specificity_factor` entirely** — attribution is
+`f_fuzziness`'s job and it already does it, leaving `f_specificity` as three
+artifact signals with one meaning. That is a decision about what the factor is
+for rather than a wiring fix, so it is not taken here.
+`docs/measurements/f-specificity-double-counting.txt` has the arithmetic.
+
+`document.has_numbers` is deliberately NOT derived from the claim. Rule 2 —
+`ExtractedClaim.has_numbers` is the extractor's opinion, and a model may not
+participate in weighting. That one needs `DocumentFacts` wired to the table,
+which is a different fix with a different reason.
 """
 
 from __future__ import annotations
@@ -36,7 +109,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from judge import spend_ledger
 from judge.config import bucket_for
@@ -52,7 +125,12 @@ from judge.store.extractions import (
     ExtractionRecord,
     fingerprint_of,
 )
-from judge.vet.weight import EvidenceTier, compute
+from judge.vet.weight import (
+    UNSUPPLIED,
+    _Unsupplied,
+    compute,
+    evidence_tier_for,
+)
 
 log = logging.getLogger(__name__)
 
@@ -60,25 +138,272 @@ log = logging.getLogger(__name__)
 #: first-hand opinion. D is the LOWEST first-hand tier, chosen deliberately:
 #: guessing high would publish cells on evidence that has not earned it, and
 #: this default exists to be replaced rather than to be right.
-DEFAULT_EVIDENCE_TIER: EvidenceTier = "D"
+#: RETIRED AS A VALUE 2026-08-21. It was `"D"` — tier D, 0.12, "bare first-hand
+#: opinion" — passed to every claim in the corpus by both call sites below,
+#: including three that quote a vendor announcement and should be F at 0.02. A
+#: 6x over-weight, applied uniformly, by a module literal.
+#:
+#: Its docstring said "this default exists to be replaced rather than to be
+#: right", which was true and was not enforceable while it was a plausible
+#: tier. It is now the sentinel, so `compute()` refuses and names it as a
+#: WRONG_WRITER gap rather than weighting on it.
+#:
+#: What closes it: a real tier per claim. The proposed source is a `speaking`
+#: enum on `ModelRef` —
+#: `docs/proposals/for-engineer-2-a-speaking-field-on-modelref.md`.
+DEFAULT_EVIDENCE_TIER = UNSUPPLIED
 
 
 @dataclass
 class DocumentFacts:
     """What `collect/` computed about the document, read not recomputed.
 
-    `judge/` reads `document`; it never writes it. These four are the ones
-    weighting needs, and they had no supplier until `collect/triage/` started
-    producing them — before that, `compute()` could not be called for a real
-    claim at all.
+    `judge/` reads `document`; it never writes it.
+
+    THREE OF THESE SIX ARE STILL UNSUPPLIED, AND THIS CLASS HAS NO PRODUCTION
+    CONSTRUCTOR. The only one in the repository is
+    `tests/test_pipeline_db.py:190`; `run_all` takes `facts` as a parameter and
+    the nightly job that would build it from the `document` table is not
+    written. So the three booleans below arrive as their defaults in any real
+    run.
+
+    `names_version` was removed from the weighting path on 2026-08-21 — see the
+    module docstring — and is kept here because the column exists and a caller
+    wiring this up should carry it rather than rediscover it.
+
+    **`has_conditions` and `has_numbers` are both still read by `compute()` and
+    both still default**, for two different reasons that are each deliberate:
+    `has_numbers` cannot come from the claim because rule 2 forbids weighting on
+    the extractor's boolean, and `has_conditions` has no honest source on either
+    side — an absent condition is not a stated absence. Module docstring.
     """
 
     document_id: str
     platform: str
     created_at: date
-    names_version: bool = False
-    has_conditions: bool = False
-    has_numbers: bool = False
+    #: Retained for a future caller; NOT read by the weighting path any more.
+    names_version: bool | _Unsupplied = UNSUPPLIED
+    #: READ BY `compute()`, AND NO LONGER DEFAULTING TO `False`. An absent
+    #: condition is not a stated absence, so the absence is now carried as
+    #: `UNSUPPLIED` and `compute()` refuses rather than weighting on it.
+    has_conditions: bool | _Unsupplied = UNSUPPLIED
+    #: READ BY `compute()`, AND NO LONGER DEFAULTING TO `False`. Same ruling.
+    has_numbers: bool | _Unsupplied = UNSUPPLIED
+
+
+@runtime_checkable
+class SurfaceFinder(Protocol):
+    """Text -> every model surface that appears in it. For inheritance only.
+
+    WHY THIS IS A SECOND PROTOCOL AND NOT A METHOD ON `SurfaceResolver`.
+    `SurfaceResolver` answers "what model is this string?" and is asked about a
+    surface. This answers "does this text name any model?" and is asked about a
+    quote. Same population, opposite direction, and folding them would give the
+    resolver a method the store path never calls.
+
+    Injected the same way and for the same reason: the population lives in
+    `collect/` and this lane may not import it. `collect.surface_resolver`
+    supplies an implementation.
+    """
+
+    def __call__(self, text: str) -> tuple[str, ...]: ...
+
+
+def subject_was_inherited(
+    quote: str,
+    *,
+    model_version_id: str | None,
+    find_surfaces: SurfaceFinder | None,
+) -> bool | None:
+    """Did this claim's subject come from outside its own quote?
+
+    DERIVED IN CODE, NEVER ASKED OF THE MODEL, and that is the point. A field
+    the extractor filled could assert `false` about a quote naming nothing, and
+    nothing would catch it - the same shape as asking for a canonical id
+    instead of resolving one. Here the model proposes the attribution and code
+    checks whether the quote supports it, which is quote verification's own
+    argument applied to the subject.
+
+    Measured on the four claims in the table:
+
+        STATED     13 surfaces in the quote   "So when Fable's classifiers…"
+        INHERITED   0 surfaces in the quote   "We'll keep refining the safeguards…"
+        INHERITED   0                         "exceptional performance in software engineering"
+        INHERITED   0                         "gives 10%+ better results on SWE-Bench"
+
+    **Three of four, and all four record `specificity=version`.** `claim` has no
+    `surface` column, so the string that justified `version` is not in the row
+    and is not recoverable from it. The row asserts a precision its quote does
+    not have, and that is on rows already rendered.
+
+    Returns None when no finder was supplied - absent rather than False, because
+    "nobody checked" and "checked and the quote names a model" are different
+    facts and rule 6 keeps them apart.
+    """
+    verdict = quote_subject_verdict(
+        quote, model_version_id=model_version_id, find_surfaces=find_surfaces
+    )
+    if verdict is None:
+        return None
+    # `QUOTE_NAMES_SOMETHING_UNCOMPARED` is False here and that is not a
+    # shortcut: this question is only "did the quote name a model", which the
+    # surface list answers without a resolver. The comparison is the OTHER
+    # question, and its absence must not turn this one into None.
+    return verdict is QUOTE_NAMES_NOTHING
+
+
+#: The quote names no model at all. The LEGITIMATE case, and the common one: a
+#: comment inheriting its subject from a thread root is not a defect, and this
+#: check must never call it one.
+QUOTE_NAMES_NOTHING = "names-nothing"
+#: The quote names the model the claim is filed against. Agreement.
+QUOTE_NAMES_THE_MODEL = "names-the-model"
+#: The quote names a model, and NOT the one the claim is filed against.
+#: The defect. See `quote_subject_verdict`.
+QUOTE_NAMES_ANOTHER = "names-another-model"
+#: The quote names at least one model and no `resolve_surface` was supplied, so
+#: WHICH model could not be compared. Distinct from agreement and from
+#: disagreement, because a check that could not run must not report either.
+QUOTE_NAMES_SOMETHING_UNCOMPARED = "names-something-uncompared"
+
+
+def quote_subject_verdict(
+    quote: str,
+    *,
+    model_version_id: str | None,
+    find_surfaces: SurfaceFinder | None,
+    resolve_surface: SurfaceResolver | None = None,
+) -> str | None:
+    """Does the quote name the model the claim is filed against?
+
+    THE THIRD CHECK, AND THE GAP THE GPT-5.6 CASE FOUND. Verification proves the
+    quote is real; resolution proves the model exists; **nothing proved the
+    quote mentions the model.** A claim could be verified, attributed, and about
+    a different model than the one whose page it renders on - which is exactly
+    what happened: `"I'm now generating my summaries using GPT-5.6 Luna."` filed
+    against `openai/gpt-5` and displayed there with a working permalink.
+
+    No model call. Same shape as `subject_was_inherited`: the extractor proposes
+    an attribution and code checks whether the quote supports it.
+
+    THREE STATES FROM ONE RESOLUTION, which is why this and
+    `subject_was_inherited` are one function rather than two:
+
+        QUOTE_NAMES_NOTHING    the quote names no model. LEGITIMATE - a comment
+                               inheriting a thread root's subject lands here, and
+                               so does every blog sentence saying "it". This is
+                               what `subject_was_inherited` reports as True.
+        QUOTE_NAMES_THE_MODEL  agreement. Nothing to say.
+        QUOTE_NAMES_ANOTHER    the quote names a DIFFERENT model. The defect.
+        QUOTE_NAMES_SOMETHING_UNCOMPARED
+                               a model is named and no resolver was supplied, so
+                               which one is unknown. `subject_was_inherited`
+                               still answers False here, because its question is
+                               settled by the surface list alone.
+
+    **They compose rather than conflict, and they had to be one function to do
+    it.** Written separately, each would call `find_surfaces(quote)` and reach
+    its own conclusion, and the day one changed how it resolved the two would
+    disagree about the same quote - `subject_inherited=False` beside
+    "the quote names nothing" is a contradiction nobody would see, because the
+    two are reported in different places. One resolution, three outcomes, and
+    `subject_was_inherited` is now a projection of this rather than a sibling.
+
+    `resolve_surface` is OPTIONAL and the reason is rule 6: without it the
+    surfaces in a quote cannot be turned into model ids, so the comparison
+    cannot be made and the answer is None - *not* agreement. A check that
+    reports "fine" when it could not run is worse than one that does not run.
+
+    THE RATIO IS THE FINDING, NOT THE COUNT
+    ---------------------------------------
+    Measured on `/models/openai/gpt-5` before those rows were deleted:
+    **3 of the page's 5 rendered quotes were mis-attributed.** Not 3 of 176
+    claims - 3 of the 5 a reader could actually see.
+
+    ⚠ AND THE MECHANISM I ATTACHED TO THAT RATIO WAS OVERSTATED. Corrected
+    2026-08-21.
+
+    I wrote that the board surfaces mis-attribution PREFERENTIALLY, because a
+    wrong-but-confident resolution reaches a cell at the same rate a right one
+    does while an unresolvable claim is dropped. That reasoning is sound and its
+    only evidence was not: the 3-of-5 on the GPT-5 page came from a population I
+    had built wrong, not from a property of the pipeline. On the claims that
+    remain the flagged share is **1 of 6 stored, 1 of the 2 quotes in its own
+    cell** - no over-representation at all.
+
+    So the honest statement is narrower: **a mis-attributed claim renders exactly
+    as readily as a correct one**, which is enough reason to check, and is NOT
+    evidence that the board is enriched for them. The urgency the stronger
+    reading would have justified is not supported.
+
+    KNOWN FALSE-POSITIVE CLASS, and it is governed by `FAMILY_WORDS`
+    ---------------------------------------------------------------
+    A quote whose only reference to its true subject is a bare family word gets
+    flagged, because family words are excluded from the surface population. The
+    live instance: *"So when Fable's classifiers detect a request ... the
+    response is handled by Claude Opus 4.8"*, filed against `claude-fable-5`.
+    The quote names Opus 4.8 and refers to Fable only possessively, so the
+    finder sees one model and not the other - and the attribution is defensible.
+
+    So this is a REVIEW signal, not a gate. Its accuracy on exactly the decision
+    it would be making has never been measured, which is the same argument that
+    kept `speaking` to weighting rather than storage.
+    """
+    if find_surfaces is None or model_version_id is None:
+        return None
+
+    surfaces = find_surfaces(quote)
+    if not surfaces:
+        return QUOTE_NAMES_NOTHING
+
+    if resolve_surface is None:
+        # Surfaces found and no way to compare them. Its own state: NOT
+        # agreement, NOT disagreement, and not None either - "the quote names a
+        # model" is settled even when "which one" is not.
+        return QUOTE_NAMES_SOMETHING_UNCOMPARED
+
+    named = {resolve_surface(surface) for surface in surfaces}
+    named.discard(None)
+    if not named:
+        # Every surface in the quote resolved to nothing - an unseated model, a
+        # family word, a product name. The quote names no model WE TRACK, which
+        # for this check is the same state as naming none.
+        return QUOTE_NAMES_NOTHING
+    if model_version_id in named:
+        return QUOTE_NAMES_THE_MODEL
+    return QUOTE_NAMES_ANOTHER
+
+
+@runtime_checkable
+class SurfaceResolver(Protocol):
+    """Surface as a human wrote it -> `model_version.id`, or None.
+
+    WHY THIS EXISTS, AND IT IS NOT A NEW IDEA. `ModelRef.resolved_version_id`
+    is a schema field with a `None` default that **nothing ever wrote**. It
+    appears in exactly two non-test places: the field, and the read at the
+    bottom of `run()`. The prompt never mentions it, so the model correctly
+    leaves it null, and every claim was then dropped for referencing no tracked
+    model. Nothing was broken — the path had never been walked end to end.
+
+    RESOLUTION IS CODE'S, NOT THE MODEL'S. Asking the extractor for a canonical
+    id would make an LLM decide identity, which rule 2 forbids: it may propose,
+    it may never decide. So the model proposes a SURFACE, exactly as written,
+    and something outside this lane maps it.
+
+    Option (a), the same shape as `ExtractionClient` and for the reason
+    `judge/extract/resolver.py` gives: this lane NAMES what it needs and
+    whoever composes the application provides it. `collect/triage/entity.py`
+    owns the surface population and the normalisation; a dict passed in here
+    would have to agree with that normalisation and would silently rot when it
+    changed, so the callable goes across the boundary rather than its output.
+
+    RETURNING None IS A RESULT. An ambiguous surface — one owned by several
+    models, of which the substitution corpus found 49 — must come back None so
+    the claim is skipped and counted, never resolved to whichever model sorted
+    first (rule 6).
+    """
+
+    def __call__(self, surface: str) -> str | None: ...
 
 
 @dataclass
@@ -89,6 +414,14 @@ class PipelineResult:
     stored_claim_ids: list[str] = field(default_factory=list)
     cells: list[CellOutcome] = field(default_factory=list)
     extractor_disagreements: list[str] = field(default_factory=list)
+    #: Claims whose subject came from outside their own quote. DERIVED in code,
+    #: never asked of the model - see `subject_was_inherited`. Counted rather
+    #: than stored per claim, because the column is proposed and not signed off.
+    subjects_inherited: int = 0
+    #: Claims whose quote names a model that is NOT the one the claim is filed
+    #: against. Verified, attributed, and wrong - the gap the GPT-5.6 case found.
+    #: Same standing as `subjects_inherited`: counted, logged, not stored.
+    quote_names_another_model: int = 0
 
     @property
     def published(self) -> int:
@@ -122,6 +455,8 @@ class Pipeline:
         model_version_of: dict[str, str],
         release_dates: dict[str, date] | None = None,
         as_of: date | None = None,
+        resolve_surface: SurfaceResolver | None = None,
+        find_surfaces: SurfaceFinder | None = None,
     ) -> PipelineResult:
         """One thread, end to end.
 
@@ -129,6 +464,13 @@ class Pipeline:
         this module reads no table it does not write. `collect/` owns
         `document`, and a join here would put the lane boundary inside a
         function that is meant to be plumbing.
+
+        `resolve_surface` is the same arrangement for model identity — see
+        `SurfaceResolver`. Omitting it keeps the previous behaviour exactly:
+        claims resolve only through `resolved_version_id`, which nothing
+        populates, so every claim is skipped. That is stated rather than
+        defaulted into, because it was the behaviour for the whole of the
+        pipeline's life and it looked like a registry problem.
         """
         as_of = as_of or date.today()
         result = PipelineResult(
@@ -147,7 +489,15 @@ class Pipeline:
                 )
                 continue
 
+            # TWO ROUTES, TRIED IN THAT ORDER.
+            #
+            # `resolved_version_id` first, so a future extractor that does
+            # populate it is not overridden. Then the surface, resolved by code
+            # outside this lane. Before this, only the first route existed and
+            # nothing drove it.
             model_version_id = model_version_of.get(claim.model_ref.resolved_version_id or "")
+            if model_version_id is None and resolve_surface is not None:
+                model_version_id = resolve_surface(claim.model_ref.surface)
             if model_version_id is None:
                 # Unresolvable is a real state and a counted one. Dropping it
                 # silently is how "nobody discusses this model" and "we could
@@ -163,8 +513,53 @@ class Pipeline:
                 # a disagreement is a free signal about extraction quality.
                 result.extractor_disagreements.append(claim.source_comment_id)
 
+            # DERIVED, NOT ASKED FOR. See `subject_was_inherited`: the model
+            # proposes the attribution and code checks whether the quote
+            # supports it. Computed and logged rather than stored, because the
+            # column is proposed and not signed off -
+            # docs/proposals/for-engineer-2-subject-inheritance-and-the-thread-cap.md
+            # ONE RESOLUTION, BOTH QUESTIONS. `subject_was_inherited` is a
+            # projection of this verdict, so the two cannot disagree about the
+            # same quote.
+            verdict = quote_subject_verdict(
+                claim.quote,
+                model_version_id=model_version_id,
+                find_surfaces=find_surfaces,
+                resolve_surface=resolve_surface,
+            )
+            if verdict is QUOTE_NAMES_ANOTHER:
+                # THE THIRD CHECK. Verified, attributed, and about a different
+                # model than the page it will render on. Counted and logged, not
+                # stored: the column is proposed and unsigned, same standing as
+                # `subject_inherited`.
+                result.quote_names_another_model += 1
+                log.warning(
+                    "thread %s: claim filed against %s quotes %r, which names a "
+                    "DIFFERENT model. Verification passed, resolution passed, "
+                    "and the quote is about something else.",
+                    thread.thread_context_id,
+                    model_version_id,
+                    claim.quote[:80],
+                )
+            inherited = verdict is QUOTE_NAMES_NOTHING if verdict else None
+            if inherited:
+                log.info(
+                    "thread %s: claim quoting %r names no model in its own "
+                    "quote; subject inherited from elsewhere in the document, "
+                    "and the row will record specificity=%s regardless",
+                    thread.thread_context_id,
+                    claim.quote[:60],
+                    claim.model_ref.specificity,
+                )
+            result.subjects_inherited += 1 if inherited else 0
+
+            # THE TIER NOW COMES FROM WHO IS SPEAKING, not from a literal.
+            # `evidence_tier_for` returns UNSUPPLIED for an unmapped value and
+            # `compute()` refuses, so an enum value the contract does not price
+            # is a named gap rather than a silent tier.
+            evidence_tier = evidence_tier_for(claim.model_ref.speaking)
             weights = compute(
-                evidence_tier=DEFAULT_EVIDENCE_TIER,
+                evidence_tier=evidence_tier,
                 platform=document.platform,
                 capability_key=claim.capability,
                 relevance=claim.relevance,
@@ -172,7 +567,14 @@ class Pipeline:
                 claim_date=document.created_at,
                 release_date=(release_dates or {}).get(model_version_id),
                 as_of=as_of,
-                version_named=document.names_version,
+                # DERIVED FROM THE CLAIM, not read from the document.
+                # `DocumentFacts` has exactly one constructor in the repository
+                # and it is a test, so this was a required argument supplied
+                # from a dataclass default. See the module docstring.
+                version_named=claim.model_ref.specificity in ("snapshot", "version"),
+                # NOT DERIVED, DELIBERATELY. See the module docstring: there is
+                # no honest claim-side source for this one, and a wrong
+                # derivation is worse than a missing input.
                 has_conditions=document.has_conditions,
                 has_numbers=document.has_numbers,
                 has_repro_steps=claim.has_repro_steps,
@@ -188,7 +590,7 @@ class Pipeline:
                 condition_bucket=bucket_for(
                     claim.capability, claim.conditions.model_dump(exclude_none=True)
                 ),
-                evidence_tier=DEFAULT_EVIDENCE_TIER,
+                evidence_tier=evidence_tier,
                 claim_date=document.created_at,
                 extractor_model=self._extractor_model,
             )
@@ -222,6 +624,8 @@ class Pipeline:
         budget: Budget | None = None,
         already_extracted: dict[str, str | None] | None = None,
         driver: Driver | None = None,
+        resolve_surface: SurfaceResolver | None = None,
+        find_surfaces: SurfaceFinder | None = None,
     ) -> list[PipelineResult]:
         """A batch. A refused thread is skipped, never fatal.
 
@@ -257,6 +661,8 @@ class Pipeline:
                     model_version_of=model_version_of,
                     release_dates=release_dates,
                     as_of=as_of,
+                    resolve_surface=resolve_surface,
+                    find_surfaces=find_surfaces,
                 )
             except ExtractionRefused as exc:
                 log.error("thread %s refused: %s", thread.thread_context_id, exc)
