@@ -139,3 +139,69 @@ mine:** it rests on 100 items per query, and the recorded sweep says **18.9**
 a 192.5-minute full-roster sweep. I published the 21-hour number and it was an
 unstated assumption of my own, so it is corrected here rather than repeated with
 a caveat.
+
+---
+
+## 5 · Three populations that have been used interchangeably, and one that was never any of them
+
+**Added before the sweep re-ran.** These four numbers have all appeared this week
+meaning "the models", including in my own reports, and they are four different
+things:
+
+| | what it counts | where it comes from |
+|---|---|---|
+| **38** | models **named in at least one document we hold** | resolving the 316 readable texts against `build_population` |
+| **40** | models the **sweep queries** | `seated_variants(conn)` — a non-empty `variants` array, `valid_until IS NULL` |
+| **41** | models with **any** `model_alias` row | one more than 40: `z-ai/glm-4.5` is retired, every window closed |
+| **342** | rows in `model_version` | the OpenRouter registry, everything polled |
+| **78** | **nothing** | not reproducible from this database by any query |
+| **73** | **nothing** | never any of them |
+
+Two more that get confused with the above: **103** is valid `model_alias`
+**rows**, not models, and **282** is `in_window`.
+
+**Why it matters here rather than being pedantry:** the sweep cost rests on 40,
+the coverage claim rests on 38, and the "how much of the registry do we cover"
+question rests on 342. A figure quoted as "78 seated models" produced a
+145-minute estimate that is actually the 41-model figure, and using it as a
+per-model rate would read as a sweep costing half what it costs.
+
+**And the honest note:** I contributed to this. My own report costed "103 seated
+models", which is alias rows. The correction is the same one in both directions —
+name the population beside the number, which is rule 7 and which these four
+figures are a clean instance of.
+
+## 6 · Candidate volume: 6,132, not 74,000
+
+**The 21-hour projection was an extrapolation and the base was too small.**
+
+It came from a ~200-candidate bracket scaled to a full sweep, which produced
+figures near 74,000 candidates and put the sieve at 87% of a 21-hour run. The
+recorded evidence disagrees by an order of magnitude:
+
+```
+2026-08-20 sweep    153 runs    2,887 items fetched   18.9 items/query
+tonight, stopped     41 runs    2,853 items fetched   69.6 items/query
+```
+
+At the 900-request daily cap that is **~6,100 candidates**, not 74,000. So the
+sieve — measured at 2.7-2.9 ms per 1,000 characters — is minutes rather than
+hours, and **the sleep is not 97.6% of 21 hours; it is most of ~35 minutes,
+which is what the rate limit costs.**
+
+Both halves of that correction are mine and both had the same shape: a real
+measurement extrapolated from a population I chose and did not state. Recorded
+next to the sleep finding rather than in a footnote, because the two numbers were
+published together and would otherwise be corrected apart.
+
+## 7 · Provenance landed first
+
+`document.harvest_run_id` and `document.retrieval_provenance` are in the schema
+before this sweep runs, so **this is the first corpus that can name what
+retrieved it.** All 343 prior documents read `not_recorded`, which is what they
+are, and the state is distinguishable from the `no_run_for_source` that reddit
+and blog documents will carry from now on.
+
+The stopped run left one `harvest_run` row with `finished_at IS NULL`. That is
+the two-phase ledger doing exactly what it is for — a process that dies cannot
+write its own failure — and it should be read as "killed", not as "errored".
