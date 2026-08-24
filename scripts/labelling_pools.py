@@ -585,7 +585,11 @@ def build_entity_pool(
     for post in posts:
         text = post.text
         matched = resolve(text, population)
-        haystack = normalize(text)
+        # `haystack = normalize(text)` lived here and became dead when the
+        # unbounded `normalize(surface) in haystack` check was replaced by
+        # `occurs_bounded`, which normalises internally. Removed rather than
+        # silenced: a leftover from a boundary fix is the last thing to keep
+        # around, since it is the shape the fix removed.
 
         def row(
             stratum: str,

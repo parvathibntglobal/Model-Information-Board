@@ -140,8 +140,9 @@ def source_text_and_authors() -> tuple[dict[str, str], dict[str, str]]:
     carry what the model read.
     """
     sys.argv = [sys.argv[0]]
-    from collect.db import connect  # noqa: PLC0415
     from scripts.blog_extraction_run import load_documents  # noqa: PLC0415
+
+    from collect.db import connect  # noqa: PLC0415
 
     docs, _ = load_documents()
     text = {d["member"]: d["text"] for d in docs}
