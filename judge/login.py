@@ -42,6 +42,39 @@ ITERATIONS = 600_000
 ALGORITHM = "pbkdf2_sha256"
 DEFAULT_TTL_HOURS = 12
 
+# ── the credentials that ship in .env.example ───────────────────────────────
+#
+# A collaborator clones, copies .env.example, and can sign in. That is worth
+# having, and it costs something specific that has to be handled rather than
+# hoped about.
+#
+# THE PUBLISHED SESSION_SECRET IS THE PROBLEM, NOT THE PUBLISHED PASSWORD. A
+# known password is a door with a known key; anyone can also just read it and
+# so can you. A known SIGNING SECRET is different in kind: it lets anyone MINT
+# a valid token for any account without knowing any password, so the login
+# stops being a check at all. Publishing one and saying "development only" in a
+# comment is how that reaches a server.
+#
+# So the values below are recognised at runtime. In development they are the
+# whole point. Anywhere else the app REFUSES rather than accepting them, which
+# makes the guarantee structural instead of a note somebody has to read.
+DEMO_EMAIL = "demo@modelboard.dev"
+DEMO_PASSWORD_HASH = (
+    "pbkdf2_sha256$600000$6f2cb3123559be0ff20b98670686635f$"
+    "a943ddd50a55030e1ef970aff3ff0249c303a2edc591068f8962bfbd2c64e4c9"
+)
+DEMO_SESSION_SECRET = "development-only-secret-published-in-env-example-do-not-deploy"
+
+
+def uses_published_credentials() -> bool:
+    """True when this process is running on the credentials from the repo."""
+    email, password_hash = account()
+    return (
+        _secret() == DEMO_SESSION_SECRET
+        or password_hash == DEMO_PASSWORD_HASH
+        or (email == DEMO_EMAIL and password_hash == DEMO_PASSWORD_HASH)
+    )
+
 
 def hash_password(password: str, *, salt: str | None = None) -> str:
     """`pbkdf2_sha256$iterations$salt$hash`, the format `verify` expects."""
