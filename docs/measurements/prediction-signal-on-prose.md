@@ -94,3 +94,103 @@ proposal to the efficiency argument it already had, which is Engineer 2's to
 weigh on its own merits.
 
 The measurement follows this document, not the reverse.
+
+---
+
+# The result: the register hypothesis is falsified, and my own pooled figure was a denominator error
+
+## 7 · Pooling blogs with Reddit was wrong, and I did it first
+
+My first run reported the prose corpus as one population: **8.57% vocabulary-wide,
+0.16% per-entry, 191 of 207 never firing.** Read that way it looks like prose is
+*worse* than GitHub, which would have been a strange result.
+
+It is a pooling error. **Median document length: blogs 6,054 characters, Reddit
+95.** A 64x difference, averaged into one figure.
+
+```
+blog     n=119   median 6,054   p90 20,291   max 69,934
+           vocabulary-wide 21.85%    per-entry median 0.42%
+           of the 68 documents >=4,000 chars:  30.88%
+
+reddit   n=196   median    95   p90    403   max  3,550
+           vocabulary-wide  0.51%    per-entry median 0.00%
+```
+
+**Reddit's 95-character comments dragged blogs' 21.85% down to 8.57%.** Exactly
+the class of error this document's own §1 warned about, committed two sections
+later by me. A 95-character comment has no room for an eight-word phrase; it is
+not evidence that the vocabulary fails on prose.
+
+**Reddit is not the essay corpus and must not be reported as prose.** The essay
+corpus is the 119 blog documents.
+
+## 8 · Against the prediction, on the corpus that is actually prose
+
+| figure | GitHub | **predicted** | **blogs, measured** |
+|---|---|---|---|
+| vocabulary-wide | 16.25% | 30-55% | **21.85%** (30.88% on long-form) |
+| per-entry median | 0.39% | 1.5-4% | **0.42%** |
+| never fire | 102 | 60-85 | 191 pooled — see §9 |
+
+**My prediction was wrong in the direction I said it might be, and by more.** I
+predicted "better on prose, but by less than the register argument implies." The
+vocabulary-wide rate is better — 21.85% against 16.25%, and 30.88% on long-form,
+which lands inside the predicted band. **The per-entry rate is not better at all:
+0.42% against 0.39%.**
+
+## 9 · The pre-registered row that fires
+
+> **per-entry < 1%, near GitHub's 0.39%** — *"the register hypothesis is wrong.
+> The vocabulary underperforms on the corpus it was written for, and the platform
+> reading was never the story. Term selection is the whole finding, and
+> per-platform rendering loses its coverage argument entirely."*
+
+**0.42% on blogs. The row fires, on the corpus the vocabulary was written for.**
+
+And the sharpest single number, from the pooled run where it is still valid
+because it is a zero rather than a rate:
+
+```
+DEAD ON BOTH PLATFORMS: 101 of 207 terms
+```
+
+**Half the vocabulary fires nowhere** — not on 32,723 GitHub candidates and not
+on 315 prose documents. A term that fires on neither is dead vocabulary, not
+misplaced vocabulary, and §4 pre-committed to reading that as primary.
+
+**The distinction the result forces:**
+
+- **The vocabulary as a whole is somewhat better matched to prose** — 21.85%
+  against 16.25%, 30.88% on long-form. The register argument is not nothing.
+- **Each entry's ~8 terms are equally thin on both platforms** — 0.42% against
+  0.39%. And it is the per-entry rate that a request asks, so it is the per-entry
+  rate that determines retrieval.
+
+Per-platform terms address the first and not the second. **More terms per entry
+addresses the second, on both platforms at once.**
+
+## 10 · Withdrawing the coverage argument, as committed
+
+§6 said: *"if the per-entry rate on prose comes back under 1%, I will withdraw
+the coverage argument in `for-engineer-2-per-platform-signal-terms.md`."*
+
+**It came back at 0.42%. Withdrawn.** That proposal now carries only its original
+efficiency argument, which is Engineer 2's to weigh on its own merits, and the
+coverage claim is retracted in the file itself rather than left standing.
+
+**What replaces it as the finding:** the signal group is thin per entry
+everywhere, half the vocabulary is dead, and one term supplies a third of GitHub's
+firings. That is a term-selection problem, it is platform-independent, and it is
+a bigger lever than either per-platform rendering or the locality window.
+
+## 11 · What this still cannot settle
+
+**119 blog documents, one dominant author.** "The vocabulary works better on
+prose" is a claim about how engineers write; this measures how one engineer
+writes, plus 68 documents long enough to carry a phrase.
+
+**And the never-fire count from prose is an upper bound, not a count** — §5 said
+so before the numbers and it holds: a term firing once in 2,000 prose documents
+reads as 0 across 119. The 101 dead-on-both figure is the durable one, because
+its GitHub half rests on 32,723 candidates.
