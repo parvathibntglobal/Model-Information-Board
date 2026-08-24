@@ -44,6 +44,8 @@ from threading import Lock
 
 from fastapi import Header, HTTPException, Request
 
+from judge import login
+
 DEV = "development"
 
 
@@ -57,10 +59,23 @@ def _environment() -> str:
 
 def auth_state() -> dict[str, object]:
     """What `/health` reports, so exposure is answerable rather than assumed."""
+    state: dict[str, object] = {}
+
+    # Reported whether or not it is currently refusing, because "are we on the
+    # published demo login" is a question an operator should be able to answer
+    # from outside the box rather than by reading someone's .env.
+    if login.uses_published_credentials():
+        state["demo_credentials"] = (
+            "sign-in is using the credentials published in .env.example. Fine for "
+            "development; refused outside it, because the signing secret is public "
+            "and any token can be forged. Replace with `python -m judge.credentials`."
+        )
+
     if _token():
-        return {"required": True, "reason": "API_TOKEN is set"}
+        return {**state, "required": True, "reason": "API_TOKEN is set"}
     if _environment() == DEV:
         return {
+            **state,
             "required": False,
             "reason": (
                 "no API_TOKEN and ENVIRONMENT=development, so this API is OPEN. "
@@ -68,6 +83,7 @@ def auth_state() -> dict[str, object]:
             ),
         }
     return {
+        **state,
         "required": True,
         "reason": f"no API_TOKEN and ENVIRONMENT={_environment()}, so every route refuses",
     }
@@ -77,7 +93,12 @@ def auth_state() -> dict[str, object]:
 #: app-level dependency in FastAPI - app-level ones always run - so the
 #: exemption has to be made here, by path. Found by the test that asserted
 #: /health still answered with a token set; it did not.
-EXEMPT_PATHS = frozenset({"/health"})
+#:
+#: `/auth/login` is exempt for the obvious reason: it is where a caller GETS a
+#: credential, so requiring one to reach it would be a closed loop. It is also
+#: the one unauthenticated route that can be brute-forced, which is why it is
+#: rate-limited separately.
+EXEMPT_PATHS = frozenset({"/health", "/auth/login"})
 
 
 def require_token(
@@ -107,13 +128,32 @@ def require_token(
     if authorization and authorization.lower().startswith("bearer "):
         supplied = authorization[7:].strip()
 
-    # compare_digest, so a wrong token takes the same time as a nearly-right one
-    if not supplied or not hmac.compare_digest(supplied, expected):
+    if not supplied:
         raise HTTPException(
             status_code=401,
-            detail="this API needs `Authorization: Bearer <API_TOKEN>`.",
+            detail="this API needs `Authorization: Bearer <token>`.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # TWO KINDS OF BEARER, and the order matters only for cost.
+    #
+    #   the static API_TOKEN   one shared secret for machine callers, and for a
+    #                          deployment that wants the whole board closed
+    #   a signed session       what /auth/login issues to a person
+    #
+    # compare_digest first, so a wrong token takes the same time as a
+    # nearly-right one; `login.read` verifies its own HMAC the same way.
+    if hmac.compare_digest(supplied, expected):
+        return
+
+    if login.read(supplied):
+        return
+
+    raise HTTPException(
+        status_code=401,
+        detail="that token is not valid, or it has expired. Sign in again.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 # ── rate limiting the one endpoint that spends money ────────────────────────
@@ -177,6 +217,49 @@ def rate_limit_ask(request: Request) -> None:
                 headers={"Retry-After": str(retry)},
             )
         seen.append(now)
+
+
+def rate_limit_login(request: Request) -> None:
+    """Brute force is the only attack /auth/login is exposed to, so bound it.
+
+    A separate bucket from the ask limiter, because they defend different
+    things: that one protects a budget, this one protects a password. Sharing a
+    counter would let ordinary use of the Ask box exhaust the sign-in allowance,
+    which is a lockout caused by unrelated traffic.
+    """
+    limit = _int_env("LOGIN_RATE_PER_HOUR", 10)
+    if limit <= 0:
+        return
+
+    key = f"login:{request.client.host if request.client else 'unknown'}"
+    now = time.monotonic()
+    cutoff = now - _WINDOW_SECONDS
+
+    with _hits_lock:
+        seen = _hits.setdefault(key, deque())
+        while seen and seen[0] < cutoff:
+            seen.popleft()
+        if len(seen) >= limit:
+            retry = int(seen[0] - cutoff) + 1
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"{limit} sign-in attempts an hour from one address is the limit. "
+                    f"Try again in {retry}s."
+                ),
+                headers={"Retry-After": str(retry)},
+            )
+        seen.append(now)
+
+
+def _int_env(name: str, default: int) -> int:
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return default
 
 
 def _reset_for_tests() -> None:

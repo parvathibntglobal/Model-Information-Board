@@ -18,6 +18,7 @@ from typing import NamedTuple
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from judge import login
 from judge.ask import requirements, spend
 from judge.ask.profile import Assumption, RoleRequirement
 from judge.ask.rank import guard_for
@@ -28,7 +29,7 @@ from judge.ask.understand import (
 )
 from judge.config import capabilities
 from judge.extract.client import OpenRouterClient
-from judge.gate import auth_state, rate_limit_ask, require_token
+from judge.gate import auth_state, rate_limit_ask, rate_limit_login, require_token
 
 #: How many rows a list endpoint returns when the caller does not say.
 #:
@@ -144,6 +145,78 @@ def health() -> dict[str, object]:
         "capabilities_loaded": len(capabilities()),
         "auth": auth_state(),
     }
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    token: str
+    expires_at: int
+    email: str
+
+
+@app.post(
+    "/auth/login",
+    response_model=LoginResponse,
+    dependencies=[Depends(rate_limit_login)],
+)
+def sign_in(req: LoginRequest) -> LoginResponse:
+    """Exchange a password for a signed token.
+
+    THE CREDENTIAL LIVES IN .env AND NOT IN THE BUNDLE. `web/src/auth.js` used
+    to hold an email and an unsalted SHA-256 as literals, which shipped to every
+    visitor and was checked in the browser - readable and skippable. The browser
+    now sends a password once and holds only a token.
+
+    ONE MESSAGE FOR EVERY FAILURE. A wrong address and a wrong password get the
+    same 401 with the same text, and `authenticate()` checks both halves either
+    way, so neither the wording nor the timing says whether an account exists.
+
+    503 WHEN UNCONFIGURED, not a fallback to some default account. A missing
+    AUTH_EMAIL is a missing decision; inventing a login here would be the exact
+    "absent value becomes a definite one" that rule 6 forbids, with the
+    definite value being who may read the board.
+    """
+    if not login.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "sign-in is not configured on this server. It needs AUTH_EMAIL, "
+                "AUTH_PASSWORD_HASH and SESSION_SECRET in .env - generate them with "
+                "`python -m judge.credentials`. This is a missing decision rather "
+                "than a fault, and every unauthenticated route still answers."
+            ),
+        )
+
+    # THE PUBLISHED CREDENTIALS ARE A DEVELOPMENT AFFORDANCE AND NOTHING ELSE.
+    # `.env.example` ships a working email, hash and signing secret so a fresh
+    # clone can sign in without ceremony. The signing secret is the reason this
+    # check exists: with it, anyone can mint a valid token for any account
+    # without a password, so a deployment running on it has a login that checks
+    # nothing. Refused here rather than warned about, because a warning in a
+    # comment is what lets it travel.
+    environment = os.getenv("ENVIRONMENT", "development").strip().lower()
+    if login.uses_published_credentials() and environment != "development":
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "this server is running on the demo credentials published in "
+                ".env.example, and ENVIRONMENT is not development. The signing "
+                "secret is public, so any token can be forged and sign-in would "
+                "check nothing. Run `python -m judge.credentials` and replace all "
+                "three values."
+            ),
+        )
+
+    if not login.authenticate(req.email, req.password):
+        raise HTTPException(status_code=401, detail="Those details do not match an account.")
+
+    email, _ = login.account()
+    token, expires_at = login.issue(email)
+    return LoginResponse(token=token, expires_at=expires_at, email=email)
 
 
 @app.get("/capabilities")

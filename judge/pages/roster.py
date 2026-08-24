@@ -22,22 +22,47 @@ from decimal import Decimal
 # be this module quietly making the recommendation the rest of the system
 # refuses to make without evidence.
 SQL = """
-    SELECT id,
-           display_name,
-           provider,
-           canonical_id,
-           price_in,
-           price_out,
-           price_cached_read,
-           advertised_context,
-           max_output_tokens,
-           supports_tools,
-           supports_vision,
-           supports_structured_output,
-           supports_caching,
-           lifecycle
-      FROM model_version
-     ORDER BY display_name
+    SELECT mv.id,
+           mv.display_name,
+           mv.provider,
+           mv.canonical_id,
+           mv.price_in,
+           mv.price_out,
+           mv.price_cached_read,
+           mv.advertised_context,
+           mv.max_output_tokens,
+           mv.supports_tools,
+           mv.supports_vision,
+           mv.supports_structured_output,
+           mv.supports_caching,
+           mv.lifecycle,
+           -- E7 STATE, JOINED HERE RATHER THAN COUNTED IN THE CLIENT.
+           --
+           -- The frontend used to learn this by folding twelve capability
+           -- pages together: 12 requests, 656 KB and 26 SECONDS against
+           -- staging, during which a filter built on it gives confidently
+           -- wrong answers - a model whose only cell sits under the ninth
+           -- capability reads as unreported until the ninth page lands. And a
+           -- capability page that FAILS makes it wrong permanently, with no
+           -- way for a filter to be half-right about a row.
+           --
+           -- This is one join. 360ms, and correct the moment it returns.
+           (SELECT count(*) FROM cell c
+             WHERE c.model_version_id = mv.id)                      AS cells,
+           (SELECT count(*) FROM cell c
+             WHERE c.model_version_id = mv.id
+               AND c.status = 'published')                          AS published_cells,
+           -- WHICH capability, not just how many. A count answers "is there
+           -- anything here"; the board's actual question is "who is good at
+           -- THIS", and a roster that cannot say which capability a model has
+           -- been discussed under cannot be filtered by the thing people came
+           -- to filter by. Claude Haiku 4.5 has exactly one cell and it is
+           -- instruction.adherence; "1 cell" does not tell you that.
+           (SELECT array_agg(DISTINCT c.capability_key ORDER BY c.capability_key)
+              FROM cell c
+             WHERE c.model_version_id = mv.id)                      AS capability_keys
+      FROM model_version mv
+     ORDER BY mv.display_name
 """
 
 PRICED_AT_SQL = "SELECT max(observed_at) FROM pricing_history"
@@ -53,6 +78,40 @@ def _num(v: Decimal | None) -> float | None:
     five models that will bill them.
     """
     return None if v is None else float(v)
+
+
+def _evidence(*, cells: int, published: int, capability_keys) -> dict:
+    """Three states, and the middle one is why this is not a boolean.
+
+    "Has evidence" sounds like a yes/no and is not. Right now 3 of 342 models
+    have a cell and NONE has a published one - every cell is `insufficient`,
+    n_eff 0.012 against a gate of 3.0. A checkbox would have to pick:
+
+        "has evidence" = has a cell     shows 3 models that did not clear the
+                                        gate, to a reader who asked for
+                                        evidence. That is rule 4 inverted -
+                                        presenting below-threshold as proven.
+        "has evidence" = published      shows 0, and an empty list reads as a
+                                        broken filter rather than as a finding.
+
+    So the state travels instead, using the same three names the model page
+    already renders badges for. `unreported` beside a populated `insufficient`
+    bucket is legible; on its own it is not.
+    """
+    # array_agg over no rows is NULL, not an empty array.
+    keys = list(capability_keys or ())
+
+    if published:
+        return {
+            "state": "published", "cells": cells,
+            "published": published, "capabilities": keys,
+        }
+    if cells:
+        return {
+            "state": "insufficient", "cells": cells,
+            "published": 0, "capabilities": keys,
+        }
+    return {"state": "unreported", "cells": 0, "published": 0, "capabilities": []}
 
 
 @dataclass(frozen=True)
@@ -84,6 +143,7 @@ class RosterReader:
                 "supports_structured_output": r[11],
                 "supports_caching": r[12],
                 "lifecycle": r[13],
+                "evidence": _evidence(cells=r[14], published=r[15], capability_keys=r[16]),
             }
             for r in rows
         ]

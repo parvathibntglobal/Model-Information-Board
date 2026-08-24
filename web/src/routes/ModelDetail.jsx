@@ -65,6 +65,8 @@ export default function ModelDetail() {
 
       {spec && <SpecPanel s={spec} />}
 
+      {page && <ReportedStrip page={page} focus={state?.focus} />}
+
       {unreadable && <Unreadable detail={unreadable} />}
       {err && <Notice icon={<IconAlert />}>{err}</Notice>}
       {!page && !err && !unreadable && <div className="skel" style={{ height: 280 }} />}
@@ -102,7 +104,11 @@ export default function ModelDetail() {
                   .map((c) => {
                   const st = STATE[c.state] || STATE.unreported
                   return (
-                    <div key={c.key} className="caprow">
+                    <div
+                      key={c.key}
+                      id={`cap-${c.key}`}
+                      className={`caprow${c.key === state?.focus ? ' caprow-focus' : ''}`}
+                    >
                       <div className="stack" style={{ gap: 5 }}>
                         <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
                           <strong style={{ fontSize: 'var(--fs-sm)' }}>{capLabel(c.key)}</strong>
@@ -227,5 +233,79 @@ function Quote({ q, id }) {
         </a>
       </cite>
     </blockquote>
+  )
+}
+
+
+/**
+ * The capabilities somebody has actually reported on, above the full list.
+ *
+ * THE FULL LIST STAYS. FR-24 and rule 4 are the reason it exists at all — a
+ * page showing only what it has evidence for renders "nobody has looked" and
+ * "no problems found" identically, as nothing. So this does not filter
+ * anything; it is a jump list over the same rows.
+ *
+ * It earns its place because the honest full list is also a wall: twelve
+ * capabilities, eleven of them empty, and the one the reader filtered for
+ * somewhere below the fold with nothing marking it. Arriving from the Evidence
+ * filter and having to hunt is how a page with the right content still fails.
+ */
+function ReportedStrip({ page, focus }) {
+  const reported = page.capabilities.filter(
+    (c) => c.state !== 'unreported' && !page.unbound_phrases.includes(c.key)
+  )
+
+  useEffect(() => {
+    if (!focus) return
+    const el = document.getElementById(`cap-${focus}`)
+    if (!el) return
+    // rAF so the scroll happens after this render has painted, not against
+    // the previous layout.
+    const id = requestAnimationFrame(() =>
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    )
+    return () => cancelAnimationFrame(id)
+  }, [focus, page])
+
+  if (!reported.length) {
+    return (
+      <Notice icon={<IconAlert />}>
+        <strong style={{ color: 'var(--text)' }}>Nobody has reported on this model.</strong>{' '}
+        Every capability below reads “nobody has discussed this”. That is an absence of
+        evidence and not a finding about the model — it may be excellent and simply
+        unwritten-about.
+      </Notice>
+    )
+  }
+
+  return (
+    <div className="card stack stack-2">
+      <span className="eyebrow">
+        Reported on {reported.length} of {page.capabilities.length} capabilities
+      </span>
+      <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+        {reported.map((c) => (
+          <a
+            key={c.key}
+            href={`#cap-${c.key}`}
+            className={`chip${c.key === focus ? ' chip-on' : ''}`}
+            onClick={(e) => {
+              e.preventDefault()
+              document.getElementById(`cap-${c.key}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }}
+          >
+            {capLabel(c.key)}
+            <Badge tone={c.state === 'published' ? 'pass' : 'warn'}>
+              {c.state === 'published' ? 'published' : 'below the gate'}
+            </Badge>
+          </a>
+        ))}
+      </div>
+      <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+        Every capability is listed below, including the {page.capabilities.length - reported.length}{' '}
+        nobody has discussed. These are the ones with something behind them.
+      </p>
+    </div>
   )
 }
