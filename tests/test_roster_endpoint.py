@@ -41,12 +41,13 @@ class _Result:
         return self._rows[0]
 
 
-def _row(name, price_in, price_out):
+def _row(name, price_in, price_out, *, cells=0, published=0):
     return (
         f"mv_{name}", name, "vendor", f"vendor/{name}",
         price_in, price_out, None,
         128000, 4096,
         True, False, True, None, None,
+        cells, published,
     )
 
 
@@ -79,7 +80,7 @@ def test_ordered_by_name_not_by_price():
     """A default sort by cost would be a recommendation made without evidence."""
     conn = _FakeConn([])
     RosterReader(conn).all()
-    assert "ORDER BY display_name" in conn.queries[0]
+    assert "ORDER BY mv.display_name" in conn.queries[0]
     assert "price" not in conn.queries[0].split("ORDER BY")[1]
 
 
@@ -109,3 +110,43 @@ def test_the_detail_route_still_wins_for_ids(monkeypatch, path):
     response = TestClient(app).get(path)
 
     assert response.status_code == 503
+
+
+# ── the evidence state, which is three-valued on purpose ────────────────────
+
+
+def test_no_cells_is_unreported():
+    conn = _FakeConn([_row("quiet", 1, 2)])
+    m = RosterReader(conn).all().models[0]
+    assert m["evidence"] == {"state": "unreported", "cells": 0, "published": 0}
+
+
+def test_cells_that_did_not_clear_the_gate_are_insufficient_not_evidenced():
+    """The state that makes a boolean filter wrong.
+
+    3 of 342 models have a cell today and none has a published one. Calling
+    that "has evidence" would show a reader who asked for evidence three models
+    sitting at n_eff 0.012 against a gate of 3.0.
+    """
+    conn = _FakeConn([_row("partial", 1, 2, cells=2, published=0)])
+    m = RosterReader(conn).all().models[0]
+    assert m["evidence"]["state"] == "insufficient"
+    assert m["evidence"]["cells"] == 2
+    assert m["evidence"]["published"] == 0
+
+
+def test_a_published_cell_is_published():
+    conn = _FakeConn([_row("proven", 1, 2, cells=3, published=1)])
+    assert RosterReader(conn).all().models[0]["evidence"]["state"] == "published"
+
+
+def test_the_three_states_never_compare_equal():
+    """Rule 4 as an assertion: silence must not render as criticism, and
+    below-the-gate must not render as proven."""
+    conn = _FakeConn([
+        _row("quiet", 1, 2),
+        _row("partial", 1, 2, cells=1),
+        _row("proven", 1, 2, cells=1, published=1),
+    ])
+    states = {m["display_name"]: m["evidence"]["state"] for m in RosterReader(conn).all().models}
+    assert len(set(states.values())) == 3, states

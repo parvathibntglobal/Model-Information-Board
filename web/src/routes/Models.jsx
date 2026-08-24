@@ -21,6 +21,25 @@ import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
  * ordering 342 unevidenced models by price and putting the cheapest on top is
  * a recommendation, and this board does not make one without evidence.
  */
+/**
+ * The evidence filter, and it is three-valued rather than a checkbox.
+ *
+ * "Has evidence" sounds binary and is not. 3 of 342 models have a cell and NONE
+ * has a published one — every cell is `insufficient`, n_eff 0.012 against a
+ * gate of 3.0. A checkbox has to pick: "has evidence = has a cell" shows three
+ * models that did not clear the gate to someone who asked for evidence, and
+ * "has evidence = published" shows an empty list that reads as a broken filter.
+ *
+ * So all three states are offered, with counts, and the empty one is legible
+ * because the populated ones sit beside it. Rule 4 as a control.
+ */
+const EVIDENCE = {
+  all:          { label: 'All models',     match: () => true },
+  published:    { label: 'Published',      match: (m) => m.evidence?.state === 'published' },
+  insufficient: { label: 'Below the gate', match: (m) => m.evidence?.state === 'insufficient' },
+  unreported:   { label: 'Undiscussed',    match: (m) => (m.evidence?.state || 'unreported') === 'unreported' },
+}
+
 const SORTS = {
   name:     { label: 'Name',            fn: (a, b) => (a.display_name || '').localeCompare(b.display_name || '') },
   cheapest: { label: 'Cheapest input',  fn: (a, b) => nullsLast(a.price_in, b.price_in) },
@@ -100,6 +119,7 @@ export default function Models() {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('name')
   const [freeOnly, setFreeOnly] = useState(false)
+  const [evidenceFilter, setEvidenceFilter] = useState('all')
   const [meta, setMeta] = useState(null)      // summary + priced_at, straight from the API
   const searchRef = useRef(null)
 
@@ -182,8 +202,18 @@ export default function Models() {
     let out = matches(roster, query)
     // `=== 0` and not falsy: null is "no published rate", not free.
     if (freeOnly) out = out.filter((m) => m.price_in === 0 && m.price_out === 0)
+    out = out.filter(EVIDENCE[evidenceFilter].match)
     return [...out].sort(SORTS[sort].fn)
-  }, [roster, query, sort, freeOnly])
+  }, [roster, query, sort, freeOnly, evidenceFilter])
+
+  // Counted off the roster, not the filtered view — a tab that says how many
+  // it holds must not change when another tab is selected.
+  const evidenceCounts = useMemo(() => {
+    if (!roster) return {}
+    return Object.fromEntries(
+      Object.entries(EVIDENCE).map(([k, v]) => [k, roster.filter(v.match).length])
+    )
+  }, [roster])
 
   const withEvidence = Object.keys(evidence).length
   const priced = roster ? roster.filter((m) => m.price_in != null).length : 0
@@ -265,6 +295,58 @@ export default function Models() {
               has nothing by that name.
             </p>
           )}
+
+          {/* EVIDENCE, on its own row and above the sorts. It answers a
+              different question from "how should these be ordered" — it says
+              which of them the board can speak about at all — and every option
+              carries its count so an empty one reads as a finding rather than
+              as a filter that broke. */}
+          <div className="stack stack-1">
+            <span className="label">What the board knows about them</span>
+            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+              {Object.entries(EVIDENCE).map(([k, e]) => (
+                <button
+                  key={k}
+                  className={`chip${evidenceFilter === k ? ' chip-on' : ''}`}
+                  aria-pressed={evidenceFilter === k}
+                  onClick={() => setEvidenceFilter(k)}
+                >
+                  {e.label}
+                  <span className="tnum" style={{ opacity: .6, marginLeft: 6 }}>
+                    {evidenceCounts[k] ?? '—'}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {evidenceFilter === 'published' && evidenceCounts.published === 0 && (
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '70ch' }}>
+                Nothing has cleared the gate yet, and that is the honest answer
+                rather than a broken filter. Publishing needs about three
+                independent voices across two platforms;{' '}
+                {evidenceCounts.insufficient > 0
+                  ? <>the {evidenceCounts.insufficient} under <em>Below the gate</em> have someone
+                     talking about them and not yet enough of them.</>
+                  : <>no model has any reports at all yet.</>}
+              </p>
+            )}
+
+            {evidenceFilter === 'insufficient' && (
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '70ch' }}>
+                Somebody has reported on these and it is <strong>not yet enough to
+                publish a finding</strong>. Below the gate is not a verdict — neither
+                “good” nor “bad”, just not enough voices to say either.
+              </p>
+            )}
+
+            {evidenceFilter === 'unreported' && (
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '70ch' }}>
+                Nobody has discussed these. That is an absence of evidence, not
+                evidence of a problem — a model here may be excellent and simply
+                unwritten-about.
+              </p>
+            )}
+          </div>
 
           <div className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
             <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
@@ -353,11 +435,37 @@ function ModelRow({ m, rows }) {
           )}
         </span>
 
-        {rows
-          ? <Badge tone="pass">{rows.length} {rows.length === 1 ? 'report' : 'reports'}</Badge>
-          : <Badge tone="mute">no reports</Badge>}
+        {/* From the roster's own `evidence`, not from the capability sweep.
+            The sweep takes 26 seconds and can fail per-page; this arrives with
+            the row. `rows` still supplies WHICH capability once it lands. */}
+        <EvidenceBadge e={m.evidence} rows={rows} />
         <IconArrow width={13} height={13} style={{ opacity: .5 }} />
       </span>
     </Link>
   )
+}
+
+
+/**
+ * One badge, three states, never collapsed into two.
+ *
+ * `insufficient` is the one that must not be rounded off. Rounding it up to
+ * "reported" tells a reader a claim was proven; rounding it down to "no
+ * reports" hides that somebody looked. Both are wrong in a way the reader
+ * cannot see, which is what rule 4 is about.
+ */
+function EvidenceBadge({ e, rows }) {
+  const state = e?.state || 'unreported'
+
+  if (state === 'published') {
+    return <Badge tone="pass">published{rows ? ` · ${rows.length}` : ''}</Badge>
+  }
+  if (state === 'insufficient') {
+    return (
+      <Badge tone="warn" title="Someone has reported on this and it has not cleared the gate">
+        below the gate{e.cells ? ` · ${e.cells}` : ''}
+      </Badge>
+    )
+  }
+  return <Badge tone="mute">nobody has discussed this</Badge>
 }
