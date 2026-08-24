@@ -632,3 +632,33 @@ checked; the waste was in checking the same one five times.
 inferred from a mechanism — and when given a name with no path, ask for the path
 before the second search.
 
+---
+
+## Shapes 16 and 17 — a clean merge is not a working one — 2026-08-24
+
+**304 commits merged. ONE textual conflict. TWO defects the merge introduced with
+no conflict marker, and the diff, the import and `ruff` all passed.** Both in
+`judge/pipeline.py`, both found by exactly one test each.
+
+| 16 | **A dataclass field list and a Protocol body are the same shape to git.** `main` added six fields to `DocumentFacts`; this side rewrote the adjacent defaults. The merge kept this side's block wholesale — so `DocumentFacts` **lost six fields that `vet.reject.check()` reads** — and put `main`'s copy of those same lines **inside `SurfaceResolver(Protocol)`**, after its `__call__`. A `runtime_checkable` Protocol with data members stops matching a plain callable, so `isinstance(resolver, SurfaceResolver)` silently went False. Neither defect is visible in a diff, at import, or to a linter: both classes still parsed, both modules still imported, every name still resolved |
+| 17 | **`git merge` refusing to start was the only thing that enforced the ordering.** 21 untracked files would have been overwritten — every file PR #137 merged, untracked here because this branch was 304 behind. Nothing we built checked for that; git did. Moved aside, merged, compared: 14 identical, 7 differing only in line endings, 0 genuinely divergent |
+
+**What each one cost to find:** shape 16 was two failing tests —
+`DocumentFacts.__init__() got an unexpected keyword argument 'text'`, and one
+boundary assertion going False. Shape 17 cost nothing, because git aborted before
+any damage.
+
+**The transferable pair:**
+
+- **after a merge, run the suite before believing the merge.** "No conflicts" is
+  a statement about text, not about behaviour. A clean auto-merge can relocate a
+  block from one class to an adjacent one and leave both syntactically valid.
+- **and the check that caught the second one was not ours.** When a tool refuses,
+  the refusal is evidence — the correct response is to read it, not to force past
+  it. `git merge` aborting on 21 untracked files is the same class of signal as
+  `compute()` raising `UnsuppliedWeightInput`: a tool declining to guess.
+
+### And a third, from the same day
+
+| 18 | **`-k "not _db"` let 28 fixed sites read as all of them.** Making `speaking` required broke 28 construction sites; I fixed 28 and every local run excluded every database test, because the remote Postgres was unreachable. CI has a database and found three more. **An exclusion that makes a suite green is a smaller suite, not a passing one** — and the green is indistinguishable from the real thing at the summary line. Say which tests did not run, every time a total is quoted |
+
