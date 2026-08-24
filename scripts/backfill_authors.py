@@ -45,7 +45,6 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / ".env")
 
-from collect.adapters.github import github_author_id  # noqa: E402
 from collect.adapters.reddit import author_external_id  # noqa: E402
 from collect.adapters.reddit_write import _SET_AUTHOR  # noqa: E402
 from collect.assemble.authors import (  # noqa: E402

@@ -114,14 +114,35 @@ def test_documents_report_inserts_separately_from_rows_seen():
     """
     conn = FakeConn()
     result = GitHubHarvester.write_documents(None, conn, _Run(3))
-    assert result == {"inserted": 3, "seen": 3}
+    # SUBSET, NOT WHOLE-DICT EQUALITY. This test is about `inserted` and `seen`
+    # being different numbers; it broke when `author_id` landed and four author
+    # counts joined the return value, which is a change it has no opinion on.
+    assert result["inserted"] == 3
+    assert result["seen"] == 3
+
+
+def test_documents_report_what_could_not_be_attributed():
+    """A hit with no `user.id` gets no author row, and is counted saying so.
+
+    These doubles carry no `author_external_id`, so all three are
+    unattributable — which must be reported rather than read as three authored
+    documents. A count of 0 authors and a count of 3 unattributable are the two
+    halves of the same fact and only one of them is visible without this.
+    """
+    conn = FakeConn()
+    result = GitHubHarvester.write_documents(None, conn, _Run(3))
+    assert result["authors_inserted"] == 0
+    assert result["distinct_authors"] == 0
+    assert result["documents_without_author"] == 3
+    assert result["unattributable"] == 3
 
 
 def test_an_empty_run_issues_nothing():
     conn = FakeConn()
-    assert GitHubHarvester.write_documents(None, conn, _Run(0)) == {
-        "inserted": 0, "seen": 0
-    }
+    result = GitHubHarvester.write_documents(None, conn, _Run(0))
+    assert result["inserted"] == 0
+    assert result["seen"] == 0
+    assert result["unattributable"] == 0
     assert conn.statements == 0, "a sweep with no survivors should not talk to the database"
 
 

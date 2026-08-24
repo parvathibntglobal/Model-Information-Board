@@ -462,9 +462,14 @@ class TestSpeakingSuppliesTheEvidenceTier:
 
     def test_speaking_is_required_on_the_schema(self):
         """No default. A claim without one cannot be audited for provenance."""
+        # ValidationError, not bare Exception: a blind assert would also pass if
+        # the import broke or the signature changed, which is the opposite of
+        # what this test is for.
+        from pydantic import ValidationError
+
         from judge.extract.schema import ModelRef
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             ModelRef(surface="x", specificity="version", resolution_confidence=1.0)
 
     def test_the_model_reads_it_in_the_tool_schema(self):

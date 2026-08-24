@@ -68,10 +68,10 @@ from collect.db import apply_schema, connect
 from collect.http import build_client
 from collect.rawstore import RawStore
 from collect.registry.aliases import alias_rows
-from collect.triage.specificity import alias_match_count
 from collect.registry.assertions import assert_terms_reviewed
 from collect.registry.seed import seed_models
 from collect.registry.sources import load_sources
+from collect.triage.specificity import alias_match_count
 
 DEFAULT_MODEL = "google/gemini-2.5-flash"
 DEFAULT_CAPABILITIES = (

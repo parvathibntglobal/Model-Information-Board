@@ -128,7 +128,6 @@ from judge.store.extractions import (
 from judge.vet.reject import check as reject_check
 from judge.vet.weight import (
     UNSUPPLIED,
-    EvidenceTier,
     _Unsupplied,
     compute,
     evidence_tier_for,

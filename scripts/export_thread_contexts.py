@@ -132,9 +132,8 @@ from collect.assemble.article import document_row as blog_document_row  # noqa: 
 from collect.assemble.thread import assemble  # noqa: E402
 from collect.ids import content_hash  # noqa: E402
 from collect.rawstore import RawStore
-from collect.triage.specificity import alias_match_count  # noqa: E402
-from collect.registry.aliases import all_alias_rows  # noqa: E402
 from collect.registry.seed import seed_models  # noqa: E402
+from collect.triage.specificity import alias_match_count  # noqa: E402
 
 REDDIT_PAYLOAD = Path("fixtures/reddit/thread-1u1b22l-getPostComments.json")
 

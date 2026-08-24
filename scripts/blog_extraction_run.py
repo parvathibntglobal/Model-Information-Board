@@ -65,7 +65,7 @@ load_dotenv(ROOT / ".env")
 from collect.adapters.blog.parse import strip_template_block  # noqa: E402
 from collect.db import connect  # noqa: E402
 from collect.rawstore import RawStore  # noqa: E402
-from collect.rawstore_reader import ReadOutcome, RawStoreReader  # noqa: E402
+from collect.rawstore_reader import RawStoreReader, ReadOutcome  # noqa: E402
 from judge.config import capabilities  # noqa: E402
 from judge.extract.client import OpenRouterClient  # noqa: E402
 from judge.extract.runner import ThreadInput, extract  # noqa: E402
@@ -169,7 +169,7 @@ def main(argv=None) -> int:
     caps = list(capabilities().keys())
     print(f"model                {client.model}")
     print(f"capabilities         {len(caps)}")
-    print(f"pre-registered cost  30 x $0.00208 = $0.062, 6.2% of the $1.00 daily cap")
+    print("pre-registered cost  30 x $0.00208 = $0.062, 6.2% of the $1.00 daily cap")
     print()
 
     results = []
@@ -220,7 +220,7 @@ def main(argv=None) -> int:
           f"   (capabilities seen: {dict(caps_seen) or 'none'})")
 
     template_hits = []
-    for d, c, q in verified:
+    for d, c, _quote in verified:
         for headline, owner in PREREG_HEADLINES.items():
             if headline in c.quote and owner not in d["root"]:
                 template_hits.append((d["root"], headline, c.quote))
