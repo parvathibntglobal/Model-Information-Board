@@ -144,3 +144,84 @@ body                  : issue #933, 0 comments, 65,502 chars
 size, which the sieve cost model has been carrying as an unmeasured factor — the
 gap between a 192-minute and a 389-minute full sweep. One document is not a
 distribution, and it lands nearer the 48k assumption than the 2.2k one.
+
+---
+
+## 7 · The document size, n=1
+
+**65,502 characters**, from the confirming fetch of `Augustrains/agents-radar#933`.
+
+This is the **first real measurement of a GitHub document's size** in this
+project. The sieve cost model has been carrying two competing assumptions and no
+observation:
+
+| assumption | source | full-sweep sieve cost |
+|---|---|---|
+| ~2.2k chars | measured, but on **Reddit thread contexts** | 9.4 min |
+| ~48k chars | inferred by solving backwards from a 1,258-minute estimate | 206.7 min |
+
+**n=1, and it lands nearer 48k.** At the measured 2.7-2.9 ms per 1,000
+characters, a 65,502-character document costs ~180 ms to sieve — 34x the 5.3 ms
+the Reddit-sized figure implies.
+
+**What n=1 licenses and what it does not.** It settles that GitHub documents are
+*not* Reddit-sized, which was a live possibility and is now closed. It does not
+give a mean, a median, or a tail, and the tail is what a cost model needs: one
+250k-character monorepo issue costs more than thirty short ones.
+
+**What a distribution would take, and the sweep is the sample.** Every document
+this sweep stores is a GitHub payload in the raw store with a `content_hash` and
+now a `harvest_run_id`. The measurement is:
+
+```sql
+SELECT length(payload) FROM <raw store read> WHERE source = 'github'
+```
+
+over the stored set — median, p90, max. **At 30+ documents that is a usable
+distribution**; below ~10 it is anecdote with a denominator. The blocker is not
+method, it is n: the corpus held 27 GitHub documents and all 27 payloads resolve
+`missing` from this machine, so the sample has to come from a sweep run where
+the store lives.
+
+Recorded now so the figure travels with its n. `65,502` on its own would become
+"GitHub documents are 65k" inside a week.
+
+## 8 · The `sec-fetch-mode` diagnosis was invented
+
+Recorded at Engineer 2's request, as her own instance, because the pattern is
+what makes it worth a file rather than a correction.
+
+**The proposal was to remove `sec-fetch-mode` from the client "at the origin
+rather than for one call", and to check whether `sec-fetch-site`,
+`sec-fetch-dest`, `origin` and `referer` had leaked in with it.** It carried a
+remediation plan, a rationale, and a named sibling set.
+
+**None of those headers exists anywhere in this repository.** Zero matches across
+`collect/`, `scripts/` and `judge/`. The client sends seven headers and all seven
+are server-shaped. There was nothing to remove, and the mechanism the plan
+described — a browser-shaped header tripping a bot heuristic — was not what was
+happening.
+
+**The check is one command, and it is the same command in both directions:**
+
+```
+grep -rni "sec-fetch" collect/ scripts/ judge/
+```
+
+Before proposing that a thing be removed, grep the thing. That is the same check
+as *"`grep 'def <name>'` versus `grep '<name>'`"* from `defect-shapes.md` #14 —
+asked about a header rather than a symbol.
+
+**Why it is worth recording rather than absorbing.** This is the seventh instance
+this week of a symbol or mechanism asserted from expectation rather than read:
+`render_all`, the eligible-four, `harvest_reddit.py`, `78 seated models`, `73`,
+the `24 of 25` prose forms, and now `sec-fetch-mode`. **Six of the seven cost a
+verification pass and nothing else.** This one is the first to arrive with a
+remediation plan attached, which is the escalation worth noticing — a plan is
+harder to decline than an assertion, and had I taken it at face value I would
+have edited a header set that does not exist and reported a fix.
+
+**And the symmetry is the reason this file has both sections.** §3 records my
+`/rate_limit` probe reporting a different identity's budget, published twice as
+a conclusion. Same class: a mechanism believed before it was checked. The
+difference is only which of us had the faster check available.
