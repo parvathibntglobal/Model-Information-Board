@@ -13,8 +13,9 @@ degrades this surface.
 from __future__ import annotations
 
 import os
+from typing import NamedTuple
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from judge.ask import requirements, spend
@@ -27,6 +28,50 @@ from judge.ask.understand import (
 )
 from judge.config import capabilities
 from judge.extract.client import OpenRouterClient
+from judge.gate import auth_state, rate_limit_ask, require_token
+
+#: How many rows a list endpoint returns when the caller does not say.
+#:
+#: `/models` was 130 KB and `/capabilities/{key}` 56 KB, both the whole table in
+#: one response, and both grow with the registry rather than with anything the
+#: caller asked for. 100 covers the frontend's first screen comfortably.
+#:
+#: The default is a PAGE and not the whole set on purpose: a default of
+#: everything means the first caller to hit a slow response is a user, and the
+#: fix is a client change rather than a parameter.
+DEFAULT_PAGE = 100
+MAX_PAGE = 1000
+
+
+class _Page(NamedTuple):
+    items: list
+    meta: dict
+
+
+def _page(rows: list, *, limit: int, offset: int) -> _Page:
+    """One window over `rows`, and enough metadata to know it is a window.
+
+    `has_more` is stated rather than left to be inferred from
+    `len(items) == limit`, which is wrong exactly once - on the last page that
+    happens to be full - and wrong in the direction that makes a caller stop
+    early or loop forever.
+    """
+    total = len(rows)
+    limit = max(0, min(int(limit), MAX_PAGE))
+    offset = max(0, int(offset))
+    items = rows[offset : offset + limit] if limit else []
+    return _Page(
+        items=items,
+        meta={
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "returned": len(items),
+            "has_more": offset + len(items) < total,
+            "max_limit": MAX_PAGE,
+        },
+    )
+
 
 app = FastAPI(
     title="Model Information Board",
@@ -34,6 +79,12 @@ app = FastAPI(
         "What engineers actually say about AI models, and which cheaper one is safe for your task."
     ),
     version="0.1.0",
+    # EVERY ROUTE, rather than a decorator per handler. An app-wide dependency
+    # cannot be forgotten on the next endpoint somebody adds, and forgetting one
+    # is the whole failure mode here - the gap this closes was not a weak check,
+    # it was no check anywhere. `/health` opts back out explicitly below, which
+    # is a visible exception instead of an invisible omission.
+    dependencies=[Depends(require_token)],
 )
 
 
@@ -76,10 +127,22 @@ class AskResponse(BaseModel):
 
 @app.get("/health")
 def health() -> dict[str, object]:
+    """Liveness, and deliberately the one route that needs no token.
+
+    A probe that needs a credential is a probe that has to carry one. It also
+    reports `auth`, so "is this board exposed?" is answerable with one
+    unauthenticated GET rather than inferred from config nobody can see.
+
+    The exemption lives in `gate.EXEMPT_PATHS`, not in a `dependencies=[]` here:
+    an app-level dependency in FastAPI runs for every route and a route cannot
+    opt out of it. Writing `dependencies=[]` looks exactly like an exemption and
+    is not one.
+    """
     return {
         "status": "ok",
         "environment": os.getenv("ENVIRONMENT", "development"),
         "capabilities_loaded": len(capabilities()),
+        "auth": auth_state(),
     }
 
 
@@ -173,7 +236,13 @@ class UnderstandResponse(BaseModel):
     output_tokens: int
 
 
-@app.post("/ask/understand", response_model=UnderstandResponse)
+@app.post(
+    "/ask/understand",
+    response_model=UnderstandResponse,
+    # The spend cap bounds the DAY. This bounds one caller, so a single client
+    # in a loop cannot drain the whole day's allowance before anyone notices.
+    dependencies=[Depends(rate_limit_ask)],
+)
 def understand_task(req: UnderstandRequest) -> UnderstandResponse:
     """Q1 - the first of the two stages permitted to call a model.
 
@@ -375,6 +444,45 @@ def _conn():
     return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
 
 
+@app.get("/models")
+def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0) -> dict:
+    """The registry as a list, with what the provider advertises.
+
+    ADDITIVE. Every other read surface in this file answers "what did people
+    find out"; this one answers "what is on the tin" - price, context window,
+    feature flags. Those are a vendor's claims about itself, they pass no gate
+    and no voices stand behind them, so they are returned in their own shape
+    and never merged into a capability row where a reader could mistake one
+    kind of claim for the other.
+
+    Rule 3 permits these figures: price and tokens are MEASURED, not
+    synthesised. Rule 6 governs how they travel - a NULL price stays NULL all
+    the way to the page, because five of these models are routers with no rate
+    of their own and calling them free would be a definite value invented from
+    a missing one.
+
+    Ordered by name, never by price. A default sort by cost would be this
+    endpoint making the recommendation the rest of the system refuses to make
+    without evidence.
+    """
+    from judge.pages.roster import RosterReader
+
+    with _conn() as conn:
+        roster = RosterReader(conn).all()
+
+    page = _page(roster.models, limit=limit, offset=offset)
+    return {
+        # `count` is the FULL registry size and always was. A page that reported
+        # its own length here would answer "how many models are there" with "how
+        # many did you ask for", which is rule 7 with the denominator swapped.
+        "count": len(roster.models),
+        "priced_at": roster.priced_at,
+        "summary": roster.summary,
+        "page": page.meta,
+        "models": page.items,
+    }
+
+
 # `:path` because EVERY model id contains a slash - `google/gemini-2.5-flash`,
 # `anthropic/claude-opus-5`. Without it FastAPI matches only up to the first
 # separator and every real model page 404s, which is what the first live check
@@ -496,8 +604,15 @@ def model_page(model_version_id: str) -> dict:
 
 
 @app.get("/capabilities/{capability_key}")
-def capability_page(capability_key: str) -> dict:
-    """FR-25. Every model in the registry, not every model with a cell."""
+def capability_page(capability_key: str, limit: int = DEFAULT_PAGE, offset: int = 0) -> dict:
+    """FR-25. Every model in the registry, not every model with a cell.
+
+    PAGED, and the summary is deliberately NOT recomputed for the page. It says
+    "0 of 342 models in the registry have any reports on this capability", and
+    that sentence is about the registry - rewriting it per page would turn a
+    statement about coverage into a statement about pagination, which is exactly
+    the substitution rule 7 exists to catch.
+    """
     from judge.config import capabilities
     from judge.pages.capability import CapabilityPageReader
 
@@ -518,22 +633,26 @@ def capability_page(capability_key: str) -> dict:
     with _conn() as conn:
         page = CapabilityPageReader(conn).build(capability_key)
 
+    rows = [
+        {
+            "model_version_id": m.model_version_id,
+            "display_name": m.display_name,
+            "state": "unreported" if m.unreported else "reported",
+            "conditional": m.conditional,
+            "buckets": [{"bucket": b, "status": s} for b, s in m.buckets],
+            "phrases": list(m.phrases),
+            "voices": m.voices,
+        }
+        for m in page.models
+    ]
+    window = _page(rows, limit=limit, offset=offset)
+
     return {
         "key": page.key,
         "failure_mode": page.failure_mode,
         "summary": page.summary,
-        "models": [
-            {
-                "model_version_id": m.model_version_id,
-                "display_name": m.display_name,
-                "state": "unreported" if m.unreported else "reported",
-                "conditional": m.conditional,
-                "buckets": [{"bucket": b, "status": s} for b, s in m.buckets],
-                "phrases": list(m.phrases),
-                "voices": m.voices,
-            }
-            for m in page.models
-        ],
+        "page": window.meta,
+        "models": window.items,
     }
 
 
@@ -733,6 +852,56 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
             "unwired_stages": list(report.unwired_stages),
         },
         "rapidapi": _rapidapi_quota(),
+        "everyone": _whole_key_spend(),
+    }
+
+
+def _whole_key_spend() -> dict:
+    """Total spent on the API KEY, by anyone, straight from the provider.
+
+    Everything else on this page comes from `judge/spend_ledger.py`, which is a
+    local file. The API key is not local. So the rest of the page is one
+    machine's share of a key several people spend from - measured 2026-08-20,
+    our ledger held $0.000000 while the key reported $0.0089013.
+
+    One figure, from `GET /key`. A metadata call: zero tokens, $0.00.
+
+    DELIBERATELY NOT THE PROVIDER'S LIMITS. Their account credit and per-key cap
+    are different ceilings on a different schedule; ours is
+    EXTRACTION_DAILY_BUDGET_USD. Usage answers who spent it, which is the
+    question here. Restating their limits was tried and removed.
+
+    UNREACHABLE IS NOT ZERO. `available: False` carries a reason, because a
+    provider we cannot reach must never render as a key nobody has spent on -
+    the most reassuring of the readings available, and rule 6 forbids the
+    conversion.
+    """
+    from judge import key_usage
+
+    usage = key_usage.fetch()
+    if not usage.available:
+        return {
+            "available": False,
+            "why": usage.unavailable_because,
+            "headline": (
+                "Total spend across all machines is UNKNOWN, which is not zero. "
+                "Everything below is this machine only."
+            ),
+        }
+    return {
+        "available": True,
+        "scope": "every machine using this API key",
+        "total_usd": usage.total_usd,
+        "today_usd": usage.today_usd,
+        "headline": (
+            "Spent on this key by anyone, reported by the provider. Everything "
+            "below it is this machine's ledger only, which is why the two differ."
+        ),
+        "day_boundary_note": (
+            "the provider's day window is its own and the API does not state "
+            "whether it aligns with the 00:00 UTC our cap resets at, so this "
+            "sits beside our figure rather than being compared to it"
+        ),
     }
 
 

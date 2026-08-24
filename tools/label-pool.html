@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Golden set labeller</title>
+<!--
+  A labelling surface for fixtures/golden/*.jsonl.
+
+  WHY A LOCAL FILE. The snippets are harvested third-party content under a
+  "bounded snippet plus permalink, never full text" rule. Nothing here is
+  uploaded, no server is contacted, and there is no build step: open the file,
+  pick a pool, label, download. Your work also survives a closed tab via
+  localStorage.
+
+  THE ONE FEATURE THAT MATTERS MORE THAN THE REST: the answer is hidden until
+  you commit.
+
+  `note` in the entity pool states the expected answer for whole strata -
+  "the expected answer is 'cannot resolve'". The filter pool ships
+  `gate_verdict` and `gate_reasons`, which is the very thing you are being asked
+  to agree or disagree with. Seeing either before you decide does not bias the
+  label a little; it replaces it. So both are withheld until you have chosen,
+  then revealed so a disagreement is visible immediately.
+
+  That is the same reason a measurement gets pre-registered before it runs.
+-->
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --line:#262b36; --text:#e6e9ef;
+    --dim:#9aa4b6; --accent:#7aa2f7; --good:#9ece6a; --bad:#f7768e; --warn:#e0af68;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:15px/1.55 ui-sans-serif,system-ui,"Segoe UI",sans-serif}
+  .wrap{max-width:920px;margin:0 auto;padding:28px 20px 80px}
+  h1{font-size:19px;margin:0 0 4px}
+  .dim{color:var(--dim)}
+  .sm{font-size:13px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+        padding:18px;margin:16px 0}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .between{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  button{font:inherit;background:#20242e;color:var(--text);border:1px solid var(--line);
+         border-radius:8px;padding:9px 13px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button:disabled{opacity:.45;cursor:default}
+  .pill{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--dim)}
+  .snippet{background:#12151c;border:1px solid var(--line);border-radius:8px;padding:14px;
+           max-height:280px;overflow:auto;white-space:pre-wrap;font-size:14px}
+  mark{background:rgba(122,162,247,.28);color:var(--text);border-radius:3px;padding:0 2px}
+  .bar{height:5px;background:#20242e;border-radius:999px;overflow:hidden}
+  .bar>i{display:block;height:100%;background:var(--accent)}
+  a{color:var(--accent)}
+  .hidden{display:none}
+  .k{display:inline-block;min-width:18px;text-align:center;border:1px solid var(--line);
+     border-radius:4px;font-size:11px;padding:0 4px;color:var(--dim);margin-right:6px}
+  .reveal{border-left:3px solid var(--warn);padding-left:12px;margin-top:14px}
+  .agree{color:var(--good)} .disagree{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Golden set labeller</h1>
+  <p class="dim sm">
+    Nothing leaves this machine. Pick a pool from <code>fixtures/golden/</code>,
+    label, then download. Progress is saved in this browser as you go.
+  </p>
+
+  <div class="card">
+    <div class="row">
+      <input type="file" id="file" accept=".jsonl">
+      <span class="pill" id="who">labeller: not set</span>
+      <button id="setwho">set name</button>
+    </div>
+    <p class="dim sm" style="margin:10px 0 0">
+      Two people must label the same pool independently and compare before either
+      looks at extractor output — that agreement number is the point. Your name
+      goes into the export so the two files can be told apart.
+    </p>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="card">
+      <div class="between">
+        <div><strong id="poolname"></strong> <span class="pill" id="pos"></span></div>
+        <div class="row">
+          <button id="back">← back</button>
+          <button id="skip">skip</button>
+          <button id="dl">download labelled</button>
+        </div>
+      </div>
+      <div class="bar" style="margin-top:12px"><i id="prog" style="width:0"></i></div>
+      <p class="dim sm" id="counts" style="margin:8px 0 0"></p>
+    </div>
+
+    <div class="card">
+      <div class="between">
+        <span class="pill" id="stratum"></span>
+        <a id="src" href="#" target="_blank" rel="noreferrer noopener" class="sm">open source ↗</a>
+      </div>
+
+      <p class="dim sm" style="margin:12px 0 6px" id="question"></p>
+      <div class="snippet" id="snippet"></div>
+      <p class="dim sm" id="context" style="margin:10px 0 0"></p>
+
+      <div id="choices" class="row" style="margin-top:16px"></div>
+
+      <div id="revealed" class="reveal hidden"></div>
+    </div>
+
+    <div class="card">
+      <p class="dim sm" style="margin:0">
+        <strong>Withheld until you choose.</strong> The entity pool's
+        <code>note</code> states the expected answer for whole strata, and the
+        filter pool ships the gate's own verdict — the thing you are being asked
+        to agree with. Both appear only after you commit, so the label is yours
+        and not a reading of theirs.
+      </p>
+    </div>
+  </div>
+
+  <div id="empty" class="card dim">Choose a <code>.jsonl</code> pool file to begin.</div>
+</div>
+
+<script>
+const ENTITY = [
+  ["resolves",     "Resolves to one model",      "the surface clearly names a single model"],
+  ["ambiguous",    "Ambiguous — cannot resolve", "could be more than one model; the string alone cannot decide"],
+  ["not-a-model",  "Not a model mention",        "the surface is being used as an ordinary word, or names nothing we track"],
+];
+const FILTER = [
+  ["keep", "Should be KEPT", "a real person discussing a model — worth extracting from"],
+  ["drop", "Should be DROPPED", "no resolvable model, a bare link, or too short to carry an artifact"],
+];
+
+let meta = null, rows = [], i = 0, kind = null, who = localStorage.getItem("labeller") || "";
+const $ = id => document.getElementById(id);
+const key = () => "labels:" + (meta?._meta?.pool || "pool") + ":" + (who || "anon");
+
+function saveLocal(){
+  const picked = {};
+  rows.forEach((r, n) => { if (r.label != null) picked[n] = { label: r.label, at: r.labelled_at }; });
+  localStorage.setItem(key(), JSON.stringify({ i, picked }));
+}
+function loadLocal(){
+  try {
+    const s = JSON.parse(localStorage.getItem(key()) || "null");
+    if (!s) return;
+    Object.entries(s.picked || {}).forEach(([n, v]) => {
+      if (rows[n]) { rows[n].label = v.label; rows[n].labelled_at = v.at; }
+    });
+    i = Math.min(s.i || 0, rows.length - 1);
+  } catch {}
+}
+
+$("setwho").onclick = () => {
+  const v = prompt("Your name or initials (goes into the export):", who);
+  if (v) { who = v.trim(); localStorage.setItem("labeller", who); $("who").textContent = "labeller: " + who; if (rows.length) { loadLocal(); render(); } }
+};
+if (who) $("who").textContent = "labeller: " + who;
+
+$("file").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const lines = (await f.text()).split(/\r?\n/).filter(Boolean);
+  meta = JSON.parse(lines[0]);
+  rows = lines.slice(1).map(JSON.parse);
+  // Detect by SHAPE, not by filename: a renamed file must not silently get the
+  // wrong question and therefore the wrong label vocabulary.
+  kind = ("gate_verdict" in (rows[0] || {})) ? "filter"
+       : ("surface" in (rows[0] || {})) ? "entity" : null;
+  if (!kind) { alert("Unrecognised pool shape — no `surface` and no `gate_verdict`."); return; }
+  i = 0; loadLocal();
+  $("empty").classList.add("hidden"); $("app").classList.remove("hidden");
+  $("poolname").textContent = meta._meta?.pool || f.name;
+  render();
+};
+
+function esc(s){ return String(s ?? "").replace(/[&<>]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c])); }
+
+function highlight(text, surface){
+  const safe = esc(text);
+  if (!surface) return safe;
+  const pat = esc(surface).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return safe.replace(new RegExp(pat, "gi"), m => "<mark>" + m + "</mark>");
+}
+
+function render(){
+  const r = rows[i]; if (!r) return;
+  const done = rows.filter(x => x.label != null).length;
+  $("pos").textContent = `${i + 1} of ${rows.length}`;
+  $("prog").style.width = (done / rows.length * 100) + "%";
+  $("counts").textContent = `${done} labelled · ${rows.length - done} left`
+    + (r.label != null ? ` · this one: ${r.label}` : "");
+  $("stratum").textContent = kind === "entity" ? (r.stratum || "—")
+    : `${r.token_count ?? "?"} tokens${r.is_link_post ? " · link post" : ""}`;
+  $("src").href = r.source_url || "#";
+
+  $("question").innerHTML = kind === "entity"
+    ? `Does the highlighted surface <strong>${esc(r.surface)}</strong> refer to a model?`
+    : `Should this document be kept for extraction, or dropped?`;
+  $("snippet").innerHTML = highlight(r.snippet, kind === "entity" ? r.surface : null);
+
+  const ctx = [];
+  if (r.subreddit) ctx.push("r/" + r.subreddit);
+  if (r.created_at) ctx.push(r.created_at);
+  if (kind === "entity" && (r.all_surfaces_in_document || []).length)
+    ctx.push("other surfaces in the doc: " + r.all_surfaces_in_document.join(", "));
+  $("context").textContent = ctx.join("  ·  ");
+
+  const opts = kind === "entity" ? ENTITY : FILTER;
+  $("choices").innerHTML = opts.map(([v, label, why], n) =>
+    `<button data-v="${v}" title="${esc(why)}"><span class="k">${n + 1}</span>${esc(label)}</button>`
+  ).join("") ;
+  [...$("choices").querySelectorAll("button")].forEach(b => b.onclick = () => choose(b.dataset.v));
+
+  // Revealed ONLY once this row carries a label.
+  if (r.label != null) showReveal(r); else $("revealed").classList.add("hidden");
+}
+
+function showReveal(r){
+  const box = $("revealed");
+  let html = "";
+  if (kind === "filter" && r.gate_verdict) {
+    const agreed = (r.gate_verdict === "kept" && r.label === "keep")
+                || (r.gate_verdict === "dropped" && r.label === "drop");
+    html += `<p class="sm" style="margin:0 0 6px">The gate said <strong>${esc(r.gate_verdict)}</strong>`
+         + ((r.gate_reasons || []).length ? ` (${r.gate_reasons.map(esc).join(", ")})` : "")
+         + ` — you said <strong>${esc(r.label)}</strong>: `
+         + `<span class="${agreed ? "agree" : "disagree"}">${agreed ? "agree" : "DISAGREE"}</span>.</p>`;
+    if ((r.gates_that_did_not_run || []).length)
+      html += `<p class="dim sm" style="margin:0">gates that did not run: ${r.gates_that_did_not_run.map(esc).join(", ")}</p>`;
+  }
+  if (r.note) html += `<p class="dim sm" style="margin:6px 0 0">note from the pool: ${esc(r.note)}</p>`;
+  if (!html) html = `<p class="dim sm" style="margin:0">Nothing further recorded for this row.</p>`;
+  box.innerHTML = html;
+  box.classList.remove("hidden");
+}
+
+function choose(v){
+  const r = rows[i];
+  r.label = v;
+  r.labelled_at = new Date().toISOString();
+  r.labelled_by = who || "anon";
+  saveLocal();
+  showReveal(r);
+  // Deliberately does NOT auto-advance. The reveal is worth reading, and a
+  // labeller who has just been shown they disagree with the gate should get a
+  // beat to notice it rather than being moved on.
+  render();
+}
+
+$("back").onclick = () => { if (i > 0) { i--; saveLocal(); render(); } };
+$("skip").onclick = () => { if (i < rows.length - 1) { i++; saveLocal(); render(); } };
+document.addEventListener("keydown", e => {
+  if ($("app").classList.contains("hidden")) return;
+  const opts = kind === "entity" ? ENTITY : FILTER;
+  if (e.key >= "1" && e.key <= String(opts.length)) choose(opts[+e.key - 1][0]);
+  if (e.key === "ArrowRight") $("skip").click();
+  if (e.key === "ArrowLeft") $("back").click();
+});
+
+$("dl").onclick = () => {
+  const out = { _meta: { ...meta._meta,
+    labelled_by: who || "anon",
+    labelled_at: new Date().toISOString(),
+    labels_complete: rows.every(r => r.label != null),
+    labelled_count: rows.filter(r => r.label != null).length,
+    // Kept in the export because the caveat travels with the figure: this pool
+    // was retrieved by queries containing model names, so any rate computed
+    // from it describes that retrieval, not Reddit.
+    reminder: "rates from this pool describe documents retrieved by model-name queries, not a platform"
+  }};
+  const body = [JSON.stringify(out), ...rows.map(r => JSON.stringify(r))].join("\n") + "\n";
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([body], { type: "application/x-ndjson" }));
+  a.download = (meta._meta?.pool || "pool") + "--labelled-by-" + (who || "anon") + ".jsonl";
+  a.click();
+};
+</script>
+</body>
+</html>

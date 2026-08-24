@@ -673,6 +673,45 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config) -> None:
 
 
 @pytest.fixture(autouse=True)
+def _isolate_ask_rate_limit():
+    """Reset `judge.gate`'s counter before every test, for the reason below.
+
+    The same hazard `_isolate_ask_spend` documents, one layer out. The limiter
+    on `/ask/understand` is a fixed window held in a module global, keyed on the
+    client host - and every TestClient in this suite is the same host. So the
+    twentieth `/ask/understand` call ANYWHERE in the run started answering 429,
+    and eight tests in `test_ask_understand_endpoint.py` failed while each one
+    passed on its own.
+
+    That is the shape worth naming: the failures pointed at Q1's semantics and
+    the cause was a counter in a different module, carried between tests by the
+    process rather than by anything either test touched.
+
+    IT LOOKS UP `judge.gate` IN sys.modules AND NEVER IMPORTS IT, which matters
+    more than it looks. `from judge import gate` pulls in FastAPI, and
+    `Check the workflow file before anything depends on it` runs with pyyaml and
+    pytest ONLY - deliberately, before Install, because a guard that depends on
+    the install it is meant to precede is not a guard. An autouse fixture
+    importing an app module runs in that step too, so the first version of this
+    took the whole job down with `No module named 'fastapi'` before a single
+    workflow assertion had been made.
+
+    If the module was never imported, no request was served, so there is no
+    counter to reset and nothing to skip over.
+    """
+    import sys
+
+    def reset() -> None:
+        module = sys.modules.get("judge.gate")
+        if module is not None:
+            module._reset_for_tests()
+
+    reset()
+    yield
+    reset()
+
+
+@pytest.fixture(autouse=True)
 def _isolate_ask_spend():
     """Reset `judge.ask.spend` before every test, with a cap configured.
 

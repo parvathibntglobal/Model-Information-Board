@@ -275,6 +275,21 @@ class ModelPageReader:
         """
         if not claim_ids:
             return {}
+        # `d.created_at`, not `c.claim_date`. There is no `claim_date` column -
+        # the name is a PYTHON one, a field on StoredClaim and a parameter to
+        # weight.recency_factor, and `pipeline.py` sets it from
+        # `document.created_at` at both call sites. This query read it as though
+        # it were on the table and raised UndefinedColumn.
+        #
+        # It survived because `quotes_for` is only reached when a cell HAS quote
+        # ids, and there were no cells until the first pipeline run. The whole
+        # branch was unreachable, so every test of this page exercised the empty
+        # case and passed. The first model page with evidence on it 500ed.
+        #
+        # And `d.created_at` is the right column rather than the near-miss:
+        # `claimed_at` is when the PERSON said it, which is the document's date.
+        # `c.created_at` is when we extracted it, which is a fact about our
+        # batch schedule and would age every quote to the day we ran.
         rows = self._conn.execute(
             """
             SELECT c.id, c.quote, d.url, d.source, d.created_at

@@ -1,0 +1,37 @@
+{"_meta": {"purpose": "WITHHELD FROM THE LABELLER. What the extractor chose, by row_index.", "do_not": "Do not open this before labelling. It is the thing being measured."}}
+{"quote": "just one point behind GLM-5.2 (max) and DeepSeek V4 Pro 0813 (max)", "slug": "qwen-38-27b-scores-52", "extractor_chose": "reasoning.multistep", "row_index": 0}
+{"quote": "I tasked Codex and GPT-5.6 Sol Ultra with building a prototype", "slug": "alchemy-utils", "extractor_chose": "code.generation", "row_index": 1}
+{"quote": "The API has zero authorisations checks on cancelling other people's reservations … I tested this with the person in waitlist position #1 — and it actually went through.", "slug": "openclaw", "extractor_chose": "code.generation", "row_index": 2}
+{"quote": "It churned away for 38 minutes and delivered this answer plus the files you see in this folder.", "slug": "sqlite-text-history-prototype", "extractor_chose": "code.generation", "row_index": 3}
+{"quote": "this is a good example of how reasoning can make a difference.", "slug": "qwen-38-27b", "extractor_chose": "reasoning.multistep", "row_index": 4}
+{"quote": "The model handles a wide range of function calls, invoking tools with precise schemas throughout extended workflows.", "slug": "introducing-muse-glimmer", "extractor_chose": "tool_calling.long_chain_reliability", "row_index": 5}
+{"quote": "I had Qwen 3.8 27B build for me, running offline on my laptop.", "slug": "qwen-38-27b", "extractor_chose": "code.generation", "row_index": 6}
+{"quote": "AI-assisted coding tools already help migrate Python to Mojo today", "slug": "mojo-is-now-open-source", "extractor_chose": "code.editing_diff_fidelity", "row_index": 7}
+{"quote": "I tasked Codex and GPT-5.6 Sol Ultra with building a prototype", "slug": "alchemy-utils", "extractor_chose": "code.generation", "row_index": 8}
+{"quote": "Anthropic, OpenAI, and Google return encrypted chain-of-thought blocks to clients that can be replayed across sessions, users, and models.", "slug": "stealing-reasoning-traces", "extractor_chose": "reasoning.multistep", "row_index": 9}
+{"quote": "I’ve seen previous Qwen models deal well with this, so I decided to put it to the test drawing bounding boxes around some pelicans.", "slug": "qwen-38-27b", "extractor_chose": "extraction.faithfulness", "row_index": 10}
+{"quote": "Claude checks for newer information when it can search, and otherwise suggests checking Anthropic's site.", "slug": "claude-opus-5-system-prompt", "extractor_chose": "instruction.adherence", "row_index": 11}
+{"quote": "I think by far the most accurate criticism of AI companies including Anthropic is that we haven’t yet delivered on our big promises to benefit the world.", "slug": "dario-amodei", "extractor_chose": "over_refusal", "row_index": 12}
+{"quote": "I'm now generating my summaries using GPT-5.6 Luna.", "slug": "github-models-is-now-retired", "extractor_chose": "summarization.fidelity", "row_index": 13}
+{"quote": "Unfortunately, it seems like not even Fable can figure it out.", "slug": "florian-herrengt", "extractor_chose": "code.editing_diff_fidelity", "row_index": 14}
+{"quote": "In this evaluation, none of the 720 attack attempts succeeded against Claude Fable 5, Opus 5, or Sonnet 5 running auto mode.", "slug": "auto-mode", "extractor_chose": "instruction.adherence", "row_index": 15}
+{"quote": "And it built and tested this pi_jsonl_to_md.py, which did exactly what I needed.", "slug": "qwen-38-27b", "extractor_chose": "code.generation", "row_index": 16}
+{"quote": "scores 52 on the Artificial Analysis Intelligence Index", "slug": "qwen-38-27b-scores-52", "extractor_chose": "reasoning.multistep", "row_index": 17}
+{"quote": "Here's the high level one, which is pretty great:", "slug": "llm-gemini", "extractor_chose": "reasoning.multistep", "row_index": 18}
+{"quote": "This is *such a good match*.", "slug": "qwen-38-27b", "extractor_chose": "extraction.faithfulness", "row_index": 19}
+{"quote": "Anthropic, OpenAI, and Google return encrypted chain-of-thought blocks to clients that can be replayed across sessions, users, and models.", "slug": "stealing-reasoning-traces", "extractor_chose": "reasoning.multistep", "row_index": 20}
+{"quote": "It produced a much better game!", "slug": "moonlight-mayhem", "extractor_chose": "code.generation", "row_index": 21}
+{"quote": "Neither of you has any idea whether any of it is true but Claude seems very confident.", "slug": "florian-herrengt", "extractor_chose": "summarization.fidelity", "row_index": 22}
+{"quote": "We can have an open weights general purpose model with a long context, effective tool calling, strong vision ability, and competent code generation, and we can fit the whole thing in just a 17GB file.", "slug": "qwen-38-27b", "extractor_chose": "code.generation", "row_index": 23}
+{"quote": "Qwen 3.8 27B is excellent, but it defaults to wildly overthinking things", "slug": "qwen-38-27b", "extractor_chose": "over_refusal", "row_index": 24}
+{"quote": "for the main categories of risks that we’re concerned about, like prompt injection and data exfiltration, the risks are far lower than the average human reviewer.", "slug": "auto-mode", "extractor_chose": "instruction.adherence", "row_index": 25}
+{"quote": "Qwen supports Multi-Token Prediction, an architecture trick where a cheaper mechanism guesses several tokens ahead and the main model can then quickly verify if the guesses were correct.", "slug": "qwen-38-27b", "extractor_chose": "ops.latency_ttft", "row_index": 26}
+{"quote": "Claude Haiku 4.5 was the easiest to attack.", "slug": "stealing-reasoning-traces", "extractor_chose": "instruction.adherence", "row_index": 27}
+{"quote": "There’s one very significant catch: it feels slow—especially when it starts over-thinking, but even without that it’s not particularly sprightly.", "slug": "qwen-38-27b", "extractor_chose": "ops.latency_ttft", "row_index": 28}
+{"quote": "I had Codex optimize it and got it down to around 35 seconds.", "slug": "alchemy-utils", "extractor_chose": "code.editing_diff_fidelity", "row_index": 29}
+{"quote": "Auto mode would have blocked 89% of those actions.", "slug": "auto-mode", "extractor_chose": "instruction.adherence", "row_index": 30}
+{"quote": "On paper Qwen 3.8 27B has all three of these, so is it up to the task?", "slug": "qwen-38-27b", "extractor_chose": "tool_calling.long_chain_reliability", "row_index": 31}
+{"quote": "The new GPT‑Live voice mode in the ChatGPT iPhone app has got really good, so I discussed the prototype with that.", "slug": "sqlite-text-history-prototype", "extractor_chose": "instruction.adherence", "row_index": 32}
+{"quote": "it did manage to produce this full interface from this single prompt", "slug": "qwen-38-27b", "extractor_chose": "code.generation", "row_index": 33}
+{"quote": "Despite reviewing screenshots during development Codex failed to spot and correct this bug.", "slug": "moonlight-mayhem", "extractor_chose": "code.editing_diff_fidelity", "row_index": 34}
+{"quote": "Anthropic, OpenAI, and Google return encrypted chain-of-thought blocks to clients that can be replayed across sessions, users, and models.", "slug": "stealing-reasoning-traces", "extractor_chose": "reasoning.multistep", "row_index": 35}

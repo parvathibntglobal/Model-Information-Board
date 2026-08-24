@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { listCapabilities, capabilityPage, capLabel, BoardUnreadable } from '../api'
+import { listCapabilities, capabilityPage, fetchAll, capLabel, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow } from '../components/Icons'
 
@@ -32,7 +32,14 @@ export default function Board() {
         <p className="muted" style={{ maxWidth: '64ch' }}>
           Consensus counting needs a shared key — if one quote is filed under
           “tool calling” and another under “function calling reliability”, they
-          never group. These twelve are what the pipeline tags against.
+          never group.{' '}
+          {/* Counted, not written down. The list lives in
+              contract/capabilities.yaml and is meant to change; a hardcoded
+              "twelve" becomes a false statement the day someone adds one, and
+              nothing in the build would catch it. */}
+          {caps
+            ? `These ${caps.length} are what the pipeline tags against.`
+            : 'The list below is what the pipeline tags against.'}
         </p>
       </div>
 
@@ -111,7 +118,7 @@ function CapabilityDetail({ capKey }) {
 
   useEffect(() => {
     setPage(null); setErr(null); setUnreadable(null)
-    capabilityPage(capKey)
+    fetchAll((l, o) => capabilityPage(capKey, l, o))
       .then(setPage)
       .catch((e) => (e instanceof BoardUnreadable ? setUnreadable(e.message) : setErr(e.message)))
   }, [capKey])
@@ -142,7 +149,10 @@ function CapabilityDetail({ capKey }) {
           {page.models.map((m) => (
             <div key={m.model_version_id} className="modelrow">
               <div className="stack" style={{ gap: 3 }}>
-                <Link to={`/models/${encodeURIComponent(m.model_version_id)}`}>
+                <Link
+                  to={`/models/${encodeURIComponent(m.model_version_id)}`}
+                  state={{ from: '/board', name: m.display_name }}
+                >
                   <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.display_name || m.model_version_id}</strong>
                 </Link>
                 <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>
