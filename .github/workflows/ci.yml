@@ -77,6 +77,31 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
+      # BEFORE Install, AND THAT IS THE WHOLE POINT.
+      #
+      # `tests/test_ci_workflow.py` was written for the defect that killed the
+      # first two runs of this job - a `#` in a plain `run:` scalar, which YAML
+      # reads as a comment and truncates. It was correct, it was present, and it
+      # ran in the `Test` step: after Install, after the dev-extras assertion,
+      # after the database. Three steps after the one it guards.
+      #
+      # So a quoting bug still failed the job at `Assert the dev extras actually
+      # arrived`, with bash saying `unexpected EOF while looking for matching`
+      # and a step name that says nothing about YAML. The guard was real and the
+      # first person to read the log still had to work it out from scratch.
+      #
+      # A GUARD'S POSITION IN A SEQUENCE IS PART OF WHETHER IT WORKS. This one
+      # needs a YAML parser and a file, so it can run first; the checks that
+      # need the install or the database cannot, and that is what decides the
+      # order. `tests/conftest.py` records the shape.
+      #
+      # PyYAML only, installed on its own: pulling in `.[dev]` here would make
+      # this step depend on the install it is meant to precede.
+      - name: Check the workflow file before anything depends on it
+        run: |
+          pip install pyyaml pytest
+          pytest -q tests/test_ci_workflow.py
+
       - name: Install
         run: pip install -e ".[dev]"
 
@@ -101,9 +126,11 @@ jobs:
         # lints .py files, and this is a string in a YAML file. It was
         # protection against nothing, and it cost the whole job.
         #
-        # `tests/test_ci_workflow.py` is the check that would have caught it:
-        # the file is valid YAML and the Python is valid Python, and the two
-        # are only wrong together, so neither parser alone can see it.
+        # `tests/test_ci_workflow.py` is the check that catches it: the file
+        # is valid YAML and the Python is valid Python, and the two are only
+        # wrong together, so neither parser alone can see it. It now runs in
+        # its own step ABOVE this one, so a recurrence fails on a named
+        # assertion about YAML rather than here, on bash's unexpected EOF.
         run: python -c "import pytest_asyncio, ruff"
 
       - name: Mark the database disposable

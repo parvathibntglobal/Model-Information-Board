@@ -38,8 +38,37 @@ reads. A new shell needs no further setup.
 .\scripts\dev-postgres.ps1 -Destroy   # stop, drop the data directory, keep binaries
 ```
 
-Nothing lives in the repository and nothing is committed: binaries are about
-134 MB, the data directory grows.
+Nothing lives in the repository and nothing is committed. Measured 2026-08-18
+on one machine, after several test runs:
+
+| | files | size |
+|---|---|---|
+| `pg\` — extracted binaries | 1,562 | **130.5 MB** |
+| `pgdata\` — the data directory | 24,487 | **898.8 MB** |
+| total under `%LOCALAPPDATA%\modelboard-pg` | 26,051 | **1,029.6 MB** |
+
+**Budget a gigabyte, not a hundred megabytes.** The sentence this replaces said
+"binaries are about 134 MB, the data directory grows", which was roughly right
+about the half that does not matter and silent about the half that does: the
+binaries are fixed and small, and `pgdata` is eight times larger and still
+growing, because the suite drops and recreates schemas rather than vacuuming.
+
+⚠ **Two figures disagree and this is not resolved.** 301 MB was reported for the
+binaries; this machine measures 130.5 MB for `pg\` and nothing under the tree
+near 301 MB. Possible causes not investigated: size-on-disk versus logical size,
+a partially-extracted or unfiltered archive, or a different measurement root.
+Recorded rather than averaged or picked between - the number a reader should act
+on is the total, and that is a gigabyte on either account.
+
+**Windows PowerShell 5.1 is enough**, and the script now enforces it with
+`#requires -Version 5.1` rather than leaving the floor to this page. Verified by
+reading the script rather than by impression - no `&&`, `||`, `??`, `?.`, no
+ternary, no `-AsHashtable`, `-Parallel`, `$PSStyle`, `Get-Error` or
+`Join-String` - and run end to end under 5.1 through download, extraction,
+`initdb` and start. It was always a 5.1 script: two of its comments reason about
+5.1's native-stderr wrapping and its UTF-8 BOM, both of which 7 does not have.
+The `pwsh` invocations were in the script's own `.EXAMPLE` block and final
+`Write-Host`, so the file disagreed with itself rather than with this doc.
 
 **Port 5433, not 5432, on purpose.** It cannot collide with a real local
 server somebody is using for something else.
@@ -143,7 +172,16 @@ hand-written file with a BOM also works. Worth knowing generally: the repo's
 
 ---
 
-## Two more, found bringing the instance back up
+## Three more, found bringing the instance back up
+
+**Four of the five have now fired for somebody**, which is the argument for
+this section existing rather than the individual entries. Trap 4 fired for
+Engineer 2 exactly as written — and it did not save her time, it saved her a
+WRONG DIAGNOSIS, which is the more valuable of the two and the harder to
+notice. Without the note, `accepting connections: no response` beside a
+`postmaster.pid` naming a live-looking PID reads as *a running server that is
+busy or wedged*. That reading sends you to the server. The truth was that
+nothing was listening, and the check itself was lying.
 
 **A stale `postmaster.pid` blocks the restart, and will recur.** If the
 machine sleeps or the server dies mid-session, `pgdata\postmaster.pid`
@@ -185,6 +223,33 @@ being a Postgres that will answer, and only a protocol-level connect
 distinguishes them. `collect.db.connect` sets no `connect_timeout`, so a
 diagnostic connect should always pass one explicitly — otherwise the check
 you are using to diagnose a hang hangs too.
+
+**`pg_isready` without `-U postgres` writes FATAL lines into `pg.log`.** The
+server runs as the `postgres` role; `pg_isready` defaults the user to the
+current OS account, so on Windows it asks for a role named after your Windows
+username and the server logs:
+
+```
+FATAL:  role "<your Windows username>" does not exist
+```
+
+The readiness answer is still correct — `pg_isready` reports the server is
+accepting connections, because it got a protocol-level response, which is all
+it claims to measure. But the FATAL sits in `pg.log` **beside real failures**,
+newest-last, in the file you are reading precisely because something is wrong.
+It is harmless, self-inflicted, and it will cost somebody twenty minutes of
+chasing a permissions problem that does not exist.
+
+```powershell
+& "$bin\pg_isready.exe" -p 5433 -U postgres      # no FATAL in the log
+```
+
+Worth generalising, because this is the third entry in this file with the same
+shape: **a diagnostic that writes to the evidence it is diagnosing.** The
+`BeginConnect` check reported a reachable port that was not; this one adds
+noise to the log; both were reached for while something else was broken. A
+diagnostic gets read at the worst possible moment, so its own side effects are
+part of its cost.
 
 ---
 

@@ -86,6 +86,8 @@ terms_rulings:
     class: A
     party: publisher
     reviewed_on: 2026-08-14
+    reviewed_by: anooj
+    basis: internal-development-only
     review_valid_days: 90
     evidence_valid_days: 90
     fetch_articles: true
@@ -93,12 +95,45 @@ terms_rulings:
       Self-hosted practitioner or company blog: the publication and the domain
       are the same party. A public feed served without login or payment, with
       robots.txt permitting the feed path and the article paths it links.
-      Permitted: fetch the declared feed and the article URLs in it, one
-      request per second or slower, robots re-checked on every redirect hop,
-      conditional GET so an unchanged feed costs a 304. Published content is
-      quote + attribution + link; full text is retained privately for
-      verification and reprocessing and is never republished (NFR-5).
-      A source whose terms forbid this use is dropped, not worked around.
+
+      WHAT WAS ACTUALLY CHECKED, AND IT IS NOT THE TERMS. Per feed: robots.txt
+      read and re-read on every run, the feed path and article paths tested
+      against it, no paywall observed, no login required, feed type recorded.
+      That is mechanical evidence about the SERVER's stated crawl policy.
+      NO TERMS PAGE HAS BEEN READ FOR ANY OF THE NINE FEEDS.
+
+      So this ruling does not say the terms permit this, and no per-feed
+      `tos_notes` may say it either. It says what was observed, and it records
+      that the reading which would turn observation into permission has not
+      happened. TERMS REVIEW IS DEFERRED — a team decision, taken while the
+      project is internal — and the deferral is written here rather than left
+      as an absence somebody later reads as a clearance.
+
+      CURRENT USE: internal development and testing. Not published, no
+      external users, not monetized.
+
+      UNRESOLVED, DELIBERATELY RECORDED:
+        - No terms of service page has been read for any seeded feed. Robots
+          permission and terms permission are different things from different
+          documents, and only the first has been established.
+        - A 404 robots.txt is the absence of a crawl policy, not consent —
+          see THE 404 CAVEAT below. Where robots is silent the class A
+          reading carries the whole weight, and that reading is an inference
+          about a public feed rather than a permission anybody granted.
+        - Retention of full article text is governed by NFR-6 and
+          `document_status_ck`'s `tombstoned`: expiry is triggered here and
+          respected by `judge/pages/filtered.py`, which never renders one.
+
+      RE-REVIEW REQUIRED BEFORE: any external publication, any external user,
+      any monetization, or adding a feed outside the nine assessed.
+
+      Permitted under that basis: fetch the declared feed and the article URLs
+      in it, one request per second or slower, robots re-checked on every
+      redirect hop, conditional GET so an unchanged feed costs a 304. Published
+      content is quote + attribution + link; full text is retained privately
+      for verification and reprocessing and is never republished (NFR-5).
+      A source whose terms forbid this use is dropped, not worked around — and
+      since no terms page has been read, that condition has not been tested.
 
       THE 404 CAVEAT, which belongs in the ruling and not in a footnote.
       A robots.txt that 404s means "no crawl rules" and nothing whatsoever
@@ -110,8 +145,11 @@ terms_rulings:
       2026-08-14 — and it was also true of dropbox.tech, which is dropped for
       an unrelated reason. Where robots is silent, the class A reading is
       doing all of the work, so it is the reading that has to be right: a
-      public feed, no login, no payment, no terms page forbidding automated
-      retrieval. Silence is not consent, it is only the absence of a refusal.
+      public feed, no login, and no payment. NOT "no terms page forbidding
+      automated retrieval" — that clause was here and is withdrawn, because no
+      terms page has been read for any seeded feed and the sentence asserted the
+      check that was skipped. Silence is not consent, it is only the absence of
+      a refusal — and an unread terms page is not silence, it is unread.
 
     live_preconditions:
       robots_status: [rules, no-rules]
@@ -127,6 +165,8 @@ terms_rulings:
     party: platform
     platform_host: medium.com
     reviewed_on: 2026-08-14
+    reviewed_by: anooj
+    basis: internal-development-only
     review_valid_days: 90
     evidence_valid_days: 90
 
@@ -135,9 +175,21 @@ terms_rulings:
 
     summary: >-
       Medium-hosted publication, whether served from medium.com or from a
-      publisher's custom domain. Medium's terms and Medium's robots.txt
-      govern; the publisher's do not, and the publisher cannot grant what
-      Medium withholds.
+      publisher's custom domain. Medium's robots.txt governs, and the
+      publisher's does not — the publisher cannot grant what Medium withholds.
+
+      TERMS REVIEW IS DEFERRED HERE TOO, and the distinction matters more on
+      this class than on A. What was established is that MEDIUM IS THE PARTY
+      SPEAKING — demonstrated by two byte-identical robots.txt files — and that
+      its robots refuses the article path. Medium's terms of service have not
+      been read. So the article refusal rests on robots, which is sufficient to
+      refuse and would not be sufficient to permit.
+
+      CURRENT USE: internal development and testing. Not published, no external
+      users, not monetized.
+
+      RE-REVIEW REQUIRED BEFORE: any external publication, any external user,
+      any monetization, or fetching anything beyond the feed body.
 
       THAT THE PLATFORM IS THE PARTY SPEAKING IS DEMONSTRATED, NOT ASSERTED.
       medium.com/robots.txt and netflixtechblog.com/robots.txt were fetched
@@ -297,6 +349,86 @@ terms_rulings:
     recorded_evidence:
       republication_claimed: [false]
 
+  # ── Reddit, via a RapidAPI reseller ──────────────────────────────────────
+  #
+  # ⚠  THIS RULING PERMITS ONE THING: INTERNAL DEVELOPMENT AND TESTING.
+  #
+  # It is not a clearance. Four conditions are UNRESOLVED and recorded below
+  # rather than cleared, and two of them are direct conflicts with design
+  # decisions already made in this repository. Both surface on the day
+  # somebody builds the publish path, which is why they are also written
+  # where a publisher would be built and not only here:
+  #
+  #     Developer Terms 5.2  vs  author.handle_hash   -> collect/assemble/authors.py
+  #     Data API Terms 3.2   vs  the immutable store  -> collect/rawstore.py
+  #
+  # A condition recorded only in a ruling is read by whoever writes rulings.
+  # These need to be read by whoever writes the publisher.
+  - id: reddit-via-rapidapi
+    party: platform
+    platform_host: reddit.com
+    reviewed_on: 2026-08-18
+    reviewed_by: anooj
+    basis: internal-development-only
+    review_valid_days: 90
+    evidence_valid_days: 90
+    summary: >-
+      Access via a RapidAPI reseller, verified as a proxy of Reddit's official
+      Data API rather than a scrape: t2_ fullnames, subreddit_id, Reddit's own
+      cursor, 104 fields per post.
+
+      CURRENT USE: internal development and testing. Not published, no
+      external users, not monetized. On that basis Developer Terms 4.1's
+      monetization limb does not apply today.
+
+      UNRESOLVED, DELIBERATELY RECORDED:
+        - 4.1 also restricts access "by or on behalf of a business". Not
+          cleared. No legal review has happened.
+        - Data API Terms 2.8 requires credentials issued by Reddit and
+          prohibits masking the OAuth identity. A reseller route does not
+          satisfy this regardless of use.
+        - Developer Terms 5.2 requires citing the author's username. Our
+          schema stores handle_hash only, by design.
+        - Data API Terms 3.2 requires deleting data not required for the
+          approved use case. Our raw store is immutable by design (NFR-4).
+
+      RE-REVIEW REQUIRED BEFORE: any external publication, any external user,
+      any monetization, or a switch to a direct Reddit key.
+      Escalated to the MD 2026-08-18.
+
+      ONE RULING COVERS BOTH AN EVIDENCE SWEEP AND A MEASUREMENT SWEEP.
+      The alternative was a second, lighter ruling for sampling runs that
+      quote nobody and publish nothing, and it was refused: PURPOSE IS
+      SELF-DECLARED. An exempt category is one everything ends up filed
+      under, and the person writing the justification is the person who wants
+      the data. `assert_terms_reviewed` has no concept of purpose,
+      deliberately — it takes a source row and this run's observations, and a
+      fetch is a fetch. The retention difference is real and cuts the other
+      way: a measurement sweep keeps documents BECAUSE MOST OF THEM ARE ABOUT
+      NOTHING, and "we cited you" and "you were in a denominator" are
+      different answers to the same question. That is a reason to handle the
+      sample more strictly, not to hold it under different terms — Reddit's
+      terms do not vary by our motive. So it is a property of the SAMPLE:
+      stored outside raw/, a deletion date recorded at collection, this
+      ruling and every precondition it carries.
+
+    # THE BASIS IS ENFORCED, NOT REMEMBERED. `use_basis` is re-read on every
+    # run, so the ruling stops applying the moment the deployment stops being
+    # internal — rather than the moment somebody remembers to revisit it.
+    #
+    # It is a PROXY and its limits are stated where it is observed
+    # (`collect/adapters/reddit.py:observe_reddit_use`): it catches a
+    # production deployment and does NOT catch a staging instance that has
+    # acquired external users. That gap is why the four conditions above are
+    # recorded rather than treated as handled.
+    live_preconditions:
+      use_basis: [internal-development-only]
+    recorded_evidence:
+      official_api_proxy: [true]
+      full_text_republished: [false]
+      credentials_issued_by_reddit: [false]   # 2.8 unresolved, recorded as false
+      legal_review_completed: [false]         # 4.1 business limb, not cleared
+
 
 # ============================================================================
 #  PLATFORM ROWS — the trust weights, and one row per platform.
@@ -348,19 +480,71 @@ sources:
     endpoint: https://oauth.reddit.com
     base_trust: 0.85
     provenance: seed
-    # DEFERRED: the company holds the account and access will be requested
-    # later. The adapter is not being built. Blocking from week 3, because
-    # FR-6's acceptance is all three adapters returning content and FR-17's
-    # cross-platform identity clustering cannot be tested with one social
-    # platform. See docs/phase2-readiness.md.
+    # RULED 2026-08-18, INTERNAL DEVELOPMENT ONLY. See
+    # `reddit-via-rapidapi` above for what that permits and, more
+    # importantly, for the four conditions it does NOT clear.
     #
-    # No `terms_ruling`, deliberately. That is what blocks it, and it is a
-    # stronger block than a marker in prose: there is no ruling to name.
+    # The endpoint below is Reddit's official OAuth host, which is what the
+    # ruling is about. Access today is through a RapidAPI reseller
+    # (`RAPIDAPI_HOST`), and Data API Terms 2.8 is one of the unresolved
+    # conditions precisely because of that.
+    terms_ruling: reddit-via-rapidapi
+    terms_evidence:
+      checked_on: 2026-08-18
+      official_api_proxy: true
+      full_text_republished: false
+      credentials_issued_by_reddit: false
+      legal_review_completed: false
     tos_notes: >-
-      REVIEW REQUIRED before first harvest. Their terms prohibit scraping, so
-      the official API is mandatory. Record the current rate limit and
-      free-tier eligibility rather than trusting BUILD-PLAN's 60/min figure.
-      Names no ruling, so `assert_terms_reviewed()` refuses to harvest it.
+      Reviewed 2026-08-18 (User Agreement, Developer Terms, Data API Terms).
+      Their terms prohibit scraping, so the official API is mandatory; access
+      is via a RapidAPI reseller verified as a proxy of that API rather than a
+      scrape.
+
+      PERMITTED TODAY: internal development and testing only. Not published,
+      no external users, not monetized.
+
+      NOT CLEARED, and escalated to the MD on 2026-08-18: Developer Terms
+      4.1's "by or on behalf of a business" limb, Data API Terms 2.8
+      (credentials issued by Reddit, OAuth identity unmasked — a reseller
+      route does not satisfy this regardless of use), Developer Terms 5.2
+      (cite the author's username, against our handle_hash design) and Data
+      API Terms 3.2 (delete data not required for the approved use case,
+      against NFR-4's immutable store). The last two are conflicts with
+      decisions already made and surface when the publish path is built.
+
+      RATE LIMIT: 429 measured at the 32nd rapid call (2026-08-14), working
+      figure 25/min. The plan's actual per-minute allowance has never been
+      read — no header states one — so it stays unknown rather than becoming
+      32 by repetition. The "60/min" this note used to cite to BUILD-PLAN is
+      not in BUILD-PLAN and never was.
+
+      QUOTA, READ 2026-08-18 and no longer carried over from a docstring:
+        x-ratelimit-requests-limit       1000000
+        x-ratelimit-requests-remaining    998660
+        x-ratelimit-requests-reset       2064366  = 23.893 days,
+                                                   resets 2026-09-11 09:45 UTC
+      Exactly one unit per request, over 558 requests across six runs and per
+      individual call over the last 186. All three headers are now captured on
+      every call (collect/adapters/reddit.py:_QUOTA_HEADERS), so each is a
+      dated observation rather than a constant somebody wrote.
+
+      THE WINDOW IS 23.9 DAYS, NOT A MONTH. Anything costed as a "share of a
+      month" against this quota is a third too low. The reset is stored as the
+      duration it is; a date without its read_at is stale inside the window.
+
+      THE BILLED TIER IS STILL UNVERIFIED. This note said "1,000,000/month"
+      for weeks on the strength of a docstring, and the reading confirms the
+      number - which is the uncomfortable outcome, because a right answer from
+      an unsourced method is the one nobody revisits. What the reading does NOT
+      establish: the plan page says 500,000, and a gateway header is the
+      gateway's view rather than proof of what RapidAPI bills and serves. If
+      the subscription is a 500,000 tier we are cut off there with the header
+      reading ~500,000 remaining and looking healthy. No request can settle it
+      - the value would come from the party whose figure is in doubt - so it
+      closes on somebody opening the RapidAPI subscription page. A browser, not
+      a call. Same folklore shape as the "60/min" above, caught the same way.
+      See docs/measurements/reddit-rate-and-quota.md §1.4.
 
 
 # ============================================================================
@@ -471,6 +655,9 @@ feeds:
       sample article https://simonwillison.net/2026/Aug/13/sqlite-utils-2/
       returned 200 with no paywall and no login. Atom 1.0.
 
+      TERMS PAGE NOT READ. Robots permits the paths; that is a crawl policy
+      and not a terms reading. Deferred while the project is internal.
+
   - id: blog:hamel.dev
     platform: blog
     endpoint: https://hamel.dev/index.xml
@@ -518,6 +705,9 @@ feeds:
       Class A, ruling blog-class-a-self-hosted, evidence checked 2026-08-14.
       robots.txt 200, rules present, feed path and article path both allowed;
       sample fetch returned 200 with no paywall and no login. RSS 2.0.
+
+      TERMS PAGE NOT READ. Robots permits the paths; that is a crawl policy
+      and not a terms reading. Deferred while the project is internal.
 
   - id: blog:jxnl.co
     platform: blog
@@ -567,6 +757,9 @@ feeds:
       robots.txt 200, rules present, feed path and article path both allowed;
       sample article https://jxnl.co/writing/2026/07/05/taste/ returned 200
       with no paywall and no login. RSS 2.0, MkDocs RSS plugin.
+
+      TERMS PAGE NOT READ. Robots permits the paths; that is a crawl policy
+      and not a terms reading. Deferred while the project is internal.
 
   - id: blog:vickiboykis.com
     platform: blog
@@ -620,6 +813,9 @@ feeds:
       sample article https://vickiboykis.com/2026/08/12/write-for-people/
       returned 200 with no paywall and no login. RSS 2.0, Hugo.
 
+      TERMS PAGE NOT READ. Robots permits the paths; that is a crawl policy
+      and not a terms reading. Deferred while the project is internal.
+
   # ── Class A · self-hosted company engineering blogs ───────────────────────
 
   - id: blog:slack.engineering
@@ -670,6 +866,9 @@ feeds:
       https://slack.engineering/shipyard-how-we-built-slacks-next-generation-ec2-platform/
       returned 200 with no paywall and no login. RSS 2.0.
 
+      TERMS PAGE NOT READ. Robots permits the paths; that is a crawl policy
+      and not a terms reading. Deferred while the project is internal.
+
   - id: blog:engineering.atspotify.com
     platform: blog
     endpoint: https://engineering.atspotify.com/feed/
@@ -719,6 +918,9 @@ feeds:
       sample article
       https://engineering.atspotify.com/2026/8/when-can-llms-replace-humans-in-a-b-tests/
       returned 200 with no paywall and no login. RSS 2.0.
+
+      TERMS PAGE NOT READ. Robots permits the paths; that is a crawl policy
+      and not a terms reading. Deferred while the project is internal.
 
   - id: blog:engineering.grab.com
     platform: blog
@@ -777,6 +979,9 @@ feeds:
       permitted by default; sample article
       https://engineering.grab.com/grab-bench-evaluating-ai returned 200 with
       no paywall and no login. RSS 2.0.
+
+      TERMS PAGE NOT READ. Robots permits the paths; that is a crawl policy
+      and not a terms reading. Deferred while the project is internal.
 
   # ── Class B · Medium-hosted ──────────────────────────────────────────────
 
@@ -852,6 +1057,9 @@ feeds:
       error page) and the class B reading itself. Feed-only harvest; the 403 is
       not worked around. Paywall unknown, because a 403 page cannot show one,
       and not relied upon: content comes from the feed body. RSS 2.0, generator
+
+      MEDIUM'S TERMS PAGE NOT READ. The article refusal rests on robots, which
+      is enough to refuse and would not be enough to permit.
       Medium.
 
   - id: blog:medium.com/airbnb-engineering
@@ -910,6 +1118,9 @@ feeds:
       error page. Feed-only harvest; the 403 is not worked around. Paywall
       unknown, because a 403 page cannot show one, and not relied upon:
       content comes from the feed body. RSS 2.0, generator Medium.
+
+      MEDIUM'S TERMS PAGE NOT READ. The article refusal rests on robots, which
+      is enough to refuse and would not be enough to permit.
 
 
 # ----------------------------------------------------------------------------

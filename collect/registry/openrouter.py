@@ -30,7 +30,7 @@ wrote in `contract/` is what gets issued. The feed gives
 `claude opus 5`, `opus 5`, `opus5`, `claude opus`, or the family surface `opus`.
 
 **So this replaces the FACTS in `contract/seed_models.yaml` and not the SEARCH
-SURFACE.** `alias_coverage` below reports the gap per model rather than leaving
+SURFACE.** `undeclared_models` below reports the gap per model rather than leaving
 it to be discovered when a sweep finds nothing.
 
 SERVICE TIERS ARE NOT MODELS
@@ -62,6 +62,11 @@ import re
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import Any
+
+# The route ruling. Same package, so no boundary question: the lane test forbids
+# `collect/registry/` importing `collect/adapters/`, not registry-internal
+# imports. `propose` imports nothing from here, so there is no cycle.
+from collect.registry.propose import is_route
 
 log = logging.getLogger(__name__)
 
@@ -305,11 +310,47 @@ class PollResult:
         )
 
 
+class UnreadableFeed(TypeError):
+    """The payload is not a feed. Raised rather than returning an empty result."""
+
+
 def parse_models(payload: Any, *, retrieved_at: datetime) -> PollResult:
-    """The feed to rows. Service tiers folded into the model they belong to."""
+    """The feed to rows. Service tiers folded into the model they belong to.
+
+    RAISES ON A PAYLOAD IT CANNOT READ, and it did not until 2026-08-20. The
+    line below returned `PollResult(retrieved_at, 0, (), 0)` for anything that
+    was not a list — which converted a caller's type error into the sentence
+    *"the feed has no models"*, reported by the nightly chain as **OK**.
+
+    That is what happened for the whole life of the chain. `fetch_models`
+    returns a `Response` — deliberately, so the caller can store the bytes
+    before parsing — and `_poll_registry_stage` handed it straight to this
+    function without `.json()`. A `Response` is not a dict and not a list, so
+    every poll parsed to zero models and the stage reported success:
+
+        parse_models(response)  ->  0 feed entries -> 0 models        OK
+        parse_models(.json())   ->  414 feed entries -> 340 models
+
+    The fourth instance of one shape in a day, and the worst of the four: the
+    other three REFUSED and named a reason, and a refusal is legible. This one
+    succeeded and produced nothing, which is rule 6 inside the module written to
+    uphold it — an unreadable payload becoming a definite statement about the
+    world.
+
+    So the defensive branch is now a refusal. An empty `data` list is still a
+    legitimate zero and still returns one: the distinction is between *the feed
+    said nothing* and *this is not the feed*.
+    """
     entries = payload.get("data") if isinstance(payload, dict) else payload
     if not isinstance(entries, list):
-        return PollResult(retrieved_at, 0, (), 0)
+        raise UnreadableFeed(
+            f"expected a feed document or a list of entries, got "
+            f"{type(payload).__name__}. If this is an httpx Response, the caller "
+            f"owes it a `.json()` — `fetch_models` returns the response on "
+            f"purpose so the bytes can be stored before parsing, and skipping "
+            f"the parse produced a silent 0-model poll for the whole life of "
+            f"the nightly chain."
+        )
 
     by_base: dict[str, dict[str, Any]] = {}
     batch_by_base: dict[str, dict[str, Any]] = {}
@@ -339,16 +380,58 @@ def parse_models(payload: Any, *, retrieved_at: datetime) -> PollResult:
     return PollResult(retrieved_at, len(entries), models, tier_count)
 
 
-def alias_coverage(models: tuple[PolledModel, ...], known: dict[str, Any]
-                   ) -> tuple[str, ...]:
-    """Which polled models have no hand-written alias list, and so are unsearchable.
+def undeclared_models(models: tuple[PolledModel, ...], declared: Any) -> tuple[str, ...]:
+    """Polled models absent from `contract/seed_models.yaml`, so unsearchable.
 
-    Reported rather than papered over. `alias_rows` needs prose surfaces the feed
+    RENAMED FROM `alias_coverage(models, known)`, 2026-08-20, because both halves
+    of that signature described something other than what they did and the
+    output was quoted as a coverage figure on the strength of the name.
+
+    `alias_coverage` reads as *"we checked each model's aliases"*. It does no such
+    thing: it is a set difference against a build fixture. And `known` reads as
+    *"known to the system"* — but every one of these models IS known, polled,
+    stored and in the window; what they are is **undeclared**. A model absent
+    from `known` is absent from an eleven-entry YAML, not from the registry.
+
+    The number is therefore a ROSTER REACHABILITY figure — *"of everything the
+    poller found, how much can a sweep look for"* — and not a load gap. That
+    distinction is what `docs/proposals/coverage-page-scope.md` is about: the
+    coverage page's four kinds are all properties of a LOAD, keyed to a model the
+    load touched, and this is a property of the FEED. Same word, different
+    question, and a reader seeing "333 gaps" concluded the first.
+
+    Reported rather than papered over: `alias_rows` needs prose surfaces the feed
     does not carry, so a polled model with no entry in `contract/seed_models.yaml`
-    lands in `model_version` and is invisible to every sweep. That is a coverage
-    gap and it should be a number somebody can look at, not a silence.
+    lands in `model_version` and is invisible to every sweep. That should be a
+    number somebody can look at rather than a silence — but the number has had no
+    production caller since it was written, so today it is a silence with a
+    function behind it.
+
+    ROUTES ARE EXCLUDED, AND THIS IS THE FOURTH CALLER THE RULING NEEDED.
+    `is_route` was ruled 2026-08-18 and had callers in `triage/entity.py`,
+    `tracked.select` and — after the last fix — `propose()`. Not here. So this
+    function counted **17 of its 333 answers as models awaiting a surface**, and
+    a route is not a model missing a surface: it is a thing that must never be
+    given one, because a pointer names whatever the vendor currently resolves it
+    to and the mention is unattributable by construction (FR-4).
+
+    The cost was a figure rather than a wrong verdict, which is why it survived a
+    fourth time: 333 is quoted as the headline constraint in
+    `docs/measurements/tracked-set.md` and in `docs/how-it-works.md`, and the
+    honest split is **316 models plus 17 routes**. Wrong in the direction that
+    overstates our own gap — the safer direction, and still rule 7.
+
+    A ruling with a caller is not a ruling with every caller. This is the third
+    time that sentence has been written about `is_route`; the standing lesson is
+    that a ruling implemented as a predicate needs its call sites enumerated
+    somewhere, because nothing about the predicate reveals which paths consult
+    it. `tests/test_registry_openrouter.py` now pins this one.
     """
-    return tuple(m.canonical_id for m in models if m.canonical_id not in known)
+    return tuple(
+        m.canonical_id
+        for m in models
+        if m.canonical_id not in declared and not is_route(m.canonical_id)
+    )
 
 
 def fetch_models(client, *, url: str = MODELS_URL):
@@ -364,8 +447,30 @@ def fetch_models(client, *, url: str = MODELS_URL):
     return response
 
 
-def write_model_versions(conn, result: PollResult) -> dict[str, int]:
+def write_model_versions(
+    conn, result: PollResult, *, batch: int = 200, record_changes: bool = True
+) -> dict[str, int]:
     """Upsert polled facts. Sets `last_swept_at` on NOTHING.
+
+    BATCHED, AND THIS ONE RUNS NIGHTLY AT THE LARGEST VOLUME OF ANY WRITER HERE.
+    340 models, one round trip each: about 44 seconds against a remote instance
+    at the 130ms measured on `write_authors`, against roughly a second batched.
+    Same shape as `write_authors` and `github.write_documents`, found by sweeping
+    the other writers rather than by hitting it.
+
+    `executemany(returning=True)` keeps the per-row `RETURNING`, so inserts and
+    updates stay separable rather than summed into a single "written". That
+    distinction is now load-bearing rather than merely tidy: `_record_changes`
+    reads it to decide whether tonight's observation of a model is its FIRST,
+    and a first observation is a baseline rather than a price change.
+
+    FR-3'S PRODUCER LIVES HERE NOW. It used to live nowhere: `_record_event` and
+    `_record_prices` were called from `load_seed()` only, so the 11 seeded models
+    produced events and the 340 polled ones produced none — `model_event` held 0
+    rows and a price could move nightly with nothing recording it. Pass
+    `record_changes=False` to upsert without writing history or events; the
+    default is on, because a caller who forgets is exactly how it came to be
+    missing in the first place.
 
     THE SEPARATION THIS FUNCTION EXISTS TO KEEP. Polling reads facts about a
     model; sweeping looks for what engineers said about it. `updated_at` moves
@@ -379,12 +484,16 @@ def write_model_versions(conn, result: PollResult) -> dict[str, int]:
     """
     from collect.ids import stable_id
 
-    inserted = updated = 0
+    params = []
     for model in result.models:
         row = model.as_row()
-        row_id = stable_id("mv", row["canonical_id"])
-        outcome = conn.execute(
-            """
+        params.append({
+            **row,
+            "id": stable_id("mv", row["canonical_id"]),
+            "sources": _json(row["sources"]),
+        })
+
+    statement = """
             INSERT INTO model_version (
                 id, canonical_id, provider, display_name,
                 release_date, retirement_date, knowledge_cutoff,
@@ -423,15 +532,117 @@ def write_model_versions(conn, result: PollResult) -> dict[str, int]:
                 provenance                 = 'polled',
                 updated_at                 = now()
                 -- last_swept_at is NOT touched. See the docstring.
-            RETURNING (xmax = 0) AS was_insert
-            """,
-            {**row, "id": row_id, "sources": _json(row["sources"])},
-        ).fetchone()
-        if outcome and outcome[0]:
-            inserted += 1
-        else:
-            updated += 1
-    return {"inserted": inserted, "updated": updated}
+            RETURNING id, (xmax = 0) AS was_insert
+            """
+
+    # The id travels back with the verdict rather than the caller re-deriving it
+    # from position. Result sets do arrive in order, but an event attributed to
+    # the wrong model by an off-by-one is a defect nobody would see: it would
+    # read as a real price change on a real model.
+    verdicts: dict[str, bool] = {}
+    with conn.cursor() as cur:
+        for start in range(0, len(params), batch):
+            cur.executemany(statement, params[start:start + batch], returning=True)
+            # One result set per row. `nextset()` walks them; the last returns
+            # None, which ends the loop rather than an off-by-one.
+            while True:
+                outcome = cur.fetchone() if cur.pgresult is not None else None
+                if outcome is not None:
+                    verdicts[outcome[0]] = bool(outcome[1])
+                if not cur.nextset():
+                    break
+
+    counts = {
+        "inserted": sum(1 for was_insert in verdicts.values() if was_insert),
+        "updated": sum(1 for was_insert in verdicts.values() if not was_insert),
+    }
+    if not record_changes:
+        return counts
+    return {**counts, **_record_changes(conn, params, verdicts, batch=batch)}
+
+
+def _record_changes(conn, params, verdicts, *, batch: int) -> dict[str, int]:
+    """FR-3's producer: what moved tonight, recorded where an alert can read it.
+
+    Runs AFTER the upsert and reads `pricing_history`, which the upsert does not
+    touch — so there is no ordering hazard between the two. The registry row is
+    already the new one; the comparison is against the last thing we OBSERVED,
+    which is what `pricing_history` is for.
+
+    Three writes, each batched: history rows, `new-model` events, `price-change`
+    events. `observe_prices` decides all of it and is shared with the seed
+    loader, so there is one definition of "the price moved" in the lane.
+
+    NOT emitted here, and named rather than silently absent:
+    `deprecation-announced`. A `retirement_date` appearing in the feed is a real
+    event of that type, and it needs the prior value of THAT column to detect —
+    a different comparison from the price one, against `model_version` rather
+    than against an observation table. Worth building; not built here.
+    """
+    from collect.registry.events import (
+        NEW_MODEL,
+        PRICE_CHANGE,
+        PRICE_COLUMNS,
+        append_prices,
+        latest_prices,
+        observe_prices,
+        write_events,
+    )
+
+    previous = latest_prices(conn, [row["id"] for row in params])
+
+    to_append, observations = [], {}
+    for row in params:
+        observation = observe_prices(
+            previous.get(row["id"]), {column: row[column] for column in PRICE_COLUMNS}
+        )
+        observations[row["id"]] = observation
+        if observation.append:
+            to_append.append({
+                "model_version_id": row["id"],
+                **{column: row[column] for column in PRICE_COLUMNS},
+            })
+
+    observed_at = append_prices(conn, to_append, batch=batch)
+
+    events = []
+    for row in params:
+        if verdicts.get(row["id"]):
+            # A NEW MODEL IS NOT A PRICE CHANGE, however different its prices
+            # look from the nothing before them. Its first observation is a
+            # baseline, written above and not announced.
+            events.append({
+                "model_version_id": row["id"],
+                "type": NEW_MODEL,
+                "occurred_at": row.get("release_date"),
+                "payload": {"canonical_id": row["canonical_id"]},
+            })
+            continue
+        observation = observations[row["id"]]
+        if not observation.moved:
+            continue
+        events.append({
+            "model_version_id": row["id"],
+            "type": PRICE_CHANGE,
+            "occurred_at": observed_at.get(row["id"]),
+            "payload": {
+                "canonical_id": row["canonical_id"],
+                "changed": list(observation.changed),
+                "from": {c: str(observation.previous[c]) for c in observation.changed},
+                "to": {c: str(observation.incoming[c]) for c in observation.changed},
+            },
+        })
+
+    write_events(conn, events, batch=batch)
+    return {
+        "prices_recorded": len(to_append),
+        "events": len(events),
+        "price_changes": sum(1 for e in events if e["type"] == PRICE_CHANGE),
+        # A price we used to know and no longer do. Not an event and not a zero
+        # — see `PriceObservation.withdrawn`. Counted here so it reaches the run
+        # report rather than disappearing between two things it is not.
+        "prices_withdrawn": sum(1 for o in observations.values() if o.withdrawn),
+    }
 
 
 def mark_swept(conn, canonical_ids, *, at: datetime) -> int:

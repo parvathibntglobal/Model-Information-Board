@@ -102,14 +102,27 @@ class ExtractedClaim(BaseModel):
 
     @model_validator(mode="after")
     def _offsets_are_sane(self) -> ExtractedClaim:
+        """The offset is a HINT, and the length no longer has to match.
+
+        This required `end - start == len(quote)` and rejected the whole batch
+        when it did not. The first live run failed here on five of six claims,
+        by one to three characters each - because A LANGUAGE MODEL CANNOT COUNT
+        CHARACTERS, and asking it to was a design error rather than a defect in
+        its answer. The quotes themselves were correct.
+
+        So the model identifies the quote and CODE locates it: `locate()` in
+        the runner searches the flattened text and derives the true span. That
+        is strictly more rule-1 compliant than before - the model no longer
+        supplies a position anything trusts, and a span code computed is a span
+        code verified.
+
+        What remains checked here is only that the hint is not nonsense: a
+        forward range at a plausible position. A wrong-by-two hint is fine and
+        is exactly what arrives.
+        """
         start, end = self.quote_offset
         if start < 0 or end <= start:
             raise ValueError(f"quote_offset {self.quote_offset} is not a forward range")
-        if end - start != len(self.quote):
-            raise ValueError(
-                f"quote_offset spans {end - start} chars but quote is {len(self.quote)}. "
-                "The offset must delimit exactly the quoted text."
-            )
         return self
 
 

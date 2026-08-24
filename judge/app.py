@@ -2,7 +2,7 @@
 
 Free text in, a structured requirement profile out. Ranking against real cells
 arrives once collect/ is producing evidence; until then this runs on
-fixtures/hand_cells.yaml, and the UX test cannot tell the difference — which is
+hand-written cells, and the UX test could not tell the difference - which was
 the point of shipping it first.
 
 Nothing here touches the evidence pipeline. The answer path reads a
@@ -13,22 +13,78 @@ degrades this surface.
 from __future__ import annotations
 
 import os
+from typing import NamedTuple
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from judge.ask import requirements
-from judge.ask.profile import RoleRequirement
+from judge.ask import requirements, spend
+from judge.ask.profile import Assumption, RoleRequirement
 from judge.ask.rank import guard_for
+from judge.ask.understand import (
+    InputShape,
+    UnderstandingRefused,
+    understand,
+)
 from judge.config import capabilities
+from judge.extract.client import OpenRouterClient
+from judge.gate import auth_state, rate_limit_ask, require_token
+
+#: How many rows a list endpoint returns when the caller does not say.
+#:
+#: `/models` was 130 KB and `/capabilities/{key}` 56 KB, both the whole table in
+#: one response, and both grow with the registry rather than with anything the
+#: caller asked for. 100 covers the frontend's first screen comfortably.
+#:
+#: The default is a PAGE and not the whole set on purpose: a default of
+#: everything means the first caller to hit a slow response is a user, and the
+#: fix is a client change rather than a parameter.
+DEFAULT_PAGE = 100
+MAX_PAGE = 1000
+
+
+class _Page(NamedTuple):
+    items: list
+    meta: dict
+
+
+def _page(rows: list, *, limit: int, offset: int) -> _Page:
+    """One window over `rows`, and enough metadata to know it is a window.
+
+    `has_more` is stated rather than left to be inferred from
+    `len(items) == limit`, which is wrong exactly once - on the last page that
+    happens to be full - and wrong in the direction that makes a caller stop
+    early or loop forever.
+    """
+    total = len(rows)
+    limit = max(0, min(int(limit), MAX_PAGE))
+    offset = max(0, int(offset))
+    items = rows[offset : offset + limit] if limit else []
+    return _Page(
+        items=items,
+        meta={
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "returned": len(items),
+            "has_more": offset + len(items) < total,
+            "max_limit": MAX_PAGE,
+        },
+    )
+
 
 app = FastAPI(
     title="Model Information Board",
     description=(
-        "What engineers actually say about AI models, and which cheaper one is "
-        "safe for your task."
+        "What engineers actually say about AI models, and which cheaper one is safe for your task."
     ),
     version="0.1.0",
+    # EVERY ROUTE, rather than a decorator per handler. An app-wide dependency
+    # cannot be forgotten on the next endpoint somebody adds, and forgetting one
+    # is the whole failure mode here - the gap this closes was not a weak check,
+    # it was no check anywhere. `/health` opts back out explicitly below, which
+    # is a visible exception instead of an invisible omission.
+    dependencies=[Depends(require_token)],
 )
 
 
@@ -71,10 +127,22 @@ class AskResponse(BaseModel):
 
 @app.get("/health")
 def health() -> dict[str, object]:
+    """Liveness, and deliberately the one route that needs no token.
+
+    A probe that needs a credential is a probe that has to carry one. It also
+    reports `auth`, so "is this board exposed?" is answerable with one
+    unauthenticated GET rather than inferred from config nobody can see.
+
+    The exemption lives in `gate.EXEMPT_PATHS`, not in a `dependencies=[]` here:
+    an app-level dependency in FastAPI runs for every route and a route cannot
+    opt out of it. Writing `dependencies=[]` looks exactly like an exemption and
+    is not one.
+    """
     return {
         "status": "ok",
         "environment": os.getenv("ENVIRONMENT", "development"),
         "capabilities_loaded": len(capabilities()),
+        "auth": auth_state(),
     }
 
 
@@ -124,4 +192,805 @@ def infer_requirements(req: AskRequest) -> AskResponse:
         requirement=requirement,
         guard=guard_for(requirement),
         note=note,
+    )
+
+
+# ── Q1: free text in, editable assumptions out ────────────────────────────
+
+
+class UnderstandRequest(BaseModel):
+    """Free text, and which of FR-28's three shapes it is.
+
+    The shape is asked for rather than sniffed. They disagree about what
+    SILENCE means - a task omitting tools probably needs none, an agent config
+    omitting tools may be a config we were handed part of - and guessing which
+    kind of document this is would be a silent guess about how to read every
+    other silent guess.
+    """
+
+    text: str = Field(
+        description="the task, product brief, or pasted agent config",
+        examples=["summarise incoming support tickets into weekly themes"],
+    )
+    shape: InputShape = InputShape.TASK
+
+
+class UnderstandResponse(BaseModel):
+    """The profile, and every field we had to guess to build it.
+
+    `assumptions` is not a diagnostic. It is the SAFETY MECHANISM: Q1 has
+    nothing to verify its output against, unlike E5, so what makes it safe is
+    that the user sees every guess before anything acts on one. A client that
+    renders `profile` and drops `assumptions` has removed the guarantee, which
+    is why the caveat travels in the same response rather than being available
+    from a second call.
+    """
+
+    profile: dict
+    assumptions: list[Assumption]
+    caveat: str | None = Field(
+        default=None,
+        description="shown above the fields; None when the user stated everything",
+    )
+    input_tokens: int
+    output_tokens: int
+
+
+@app.post(
+    "/ask/understand",
+    response_model=UnderstandResponse,
+    # The spend cap bounds the DAY. This bounds one caller, so a single client
+    # in a loop cannot drain the whole day's allowance before anyone notices.
+    dependencies=[Depends(rate_limit_ask)],
+)
+def understand_task(req: UnderstandRequest) -> UnderstandResponse:
+    """Q1 - the first of the two stages permitted to call a model.
+
+    THE BUDGET IS CHECKED HERE TOO. Q1 is the second place this system spends
+    money and nothing was counting it - the same defect as the unwired cap, one
+    layer over. An uncapped ask box is a bill somebody discovers monthly.
+
+    A refusal is 422 rather than 500: Q1 declining is a decision about the
+    input, not a fault. Same distinction the extraction budget draws between a
+    stop and a failure.
+    """
+    # THE TOTAL IS PROCESS-WIDE, not per request. The previous version built a
+    # fresh `Budget` here, so `spent_usd` was 0.0 at every check and the 429
+    # branch below could not fire for any limit above one call's estimate - a
+    # cap with a status code and a test that counted nothing. `judge/ask/spend.py`
+    # holds the running total and the charge below records it.
+    if not spend.is_configured():
+        # An unset cap means nobody decided. `judge/cli.py` may read that as an
+        # operator's choice, because a person typed the command; an anonymous
+        # request to a public endpoint with no authentication is not a person
+        # who decided. Refused rather than run uncapped.
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "the ask path is the one endpoint that spends money and no cap "
+                "is configured, so it is refused rather than run uncapped. Set "
+                "EXTRACTION_DAILY_BUDGET_USD. This is a missing decision, not a "
+                "fault, and not a board with nothing on it - every other "
+                "endpoint still answers."
+            ),
+        )
+    try:
+        spend.check_before_call()
+    except spend.BudgetExhausted as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+
+    # The client is held rather than built inline so the charge below can name
+    # the model that actually ran. `Budget.spend_by_model` exists so a mid-run
+    # model swap is visible (rule 7); charging a generic label would defeat it.
+    client = OpenRouterClient.from_env()
+    try:
+        result = understand(req.text, client=client, shape=req.shape)
+    except UnderstandingRefused as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except ValueError as exc:
+        # A forged untrusted-block marker. Refused rather than sanitised, as
+        # `wrap_untrusted` does for E5.
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    # CHARGED FROM WHAT THE CALL REPORTED, and this is the half that was
+    # missing: without it every check above reads a total of zero forever.
+    spend.charge(
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
+        model=client.model,
+    )
+
+    return UnderstandResponse(
+        profile=result.profile.model_dump(),
+        assumptions=result.assumptions,
+        caveat=result.caveat,
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
+    )
+
+
+# ── FR-30: editing an assumption re-runs the recommendation ───────────────
+
+
+class ReviseRequest(BaseModel):
+    """The profile as the user has corrected it.
+
+    NO MODEL RUNS HERE, and that is the point of the endpoint existing
+    separately. Q1 guessed; the user has now told us. Re-reading their edits
+    through a language model would let it overrule a correction, which is the
+    exact failure the editable field was introduced to prevent - and it would
+    make the same input produce different requirements on different days.
+
+    So this is Q3 onward, deterministic, over a profile the user owns.
+    """
+
+    profile: dict = Field(description="the profile, with the user's corrections applied")
+    accepted_assumptions: list[str] = Field(
+        default_factory=list,
+        description=(
+            "fields the user looked at and left alone. Distinct from fields "
+            "they never saw - see the response's `still_guessed`."
+        ),
+    )
+
+
+class ReviseResponse(BaseModel):
+    requirement: RoleRequirement
+    guard: str | None = None
+    note: str
+
+    still_guessed: list[str] = Field(
+        default_factory=list,
+        description=(
+            "assumptions the user neither corrected nor explicitly accepted. "
+            "Rule 6 on a review rather than on a value: a field nobody looked "
+            "at is not a field somebody approved, and collapsing the two would "
+            "let an unexamined guess acquire the standing of a confirmed one."
+        ),
+    )
+
+
+@app.post("/ask/revise", response_model=ReviseResponse)
+def revise(req: ReviseRequest) -> ReviseResponse:
+    """Re-run the deterministic half after the user edits an assumption.
+
+    FR-30. The editable field is what makes Q1 safe, and a field you can edit
+    without anything changing is decoration.
+    """
+    task = req.profile.get("raw_text", "")
+    if not str(task).strip():
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "the revised profile carries no task text. Refused rather than "
+                "re-run against an empty task, which would produce a "
+                "recommendation about nobody's work."
+            ),
+        )
+
+    requirement = requirements.infer(
+        task,
+        input_tokens=req.profile.get("input_tokens"),
+        output_tokens=req.profile.get("output_tokens"),
+        tool_count=req.profile.get("tool_count"),
+        regions=req.profile.get("regions"),
+    )
+
+    guessed = [
+        field
+        for field, value in req.profile.items()
+        if field not in req.accepted_assumptions
+        and field != "raw_text"
+        and value not in (None, [], {}, "")
+    ]
+
+    silent = requirement.silent_failure_capabilities
+    note = (
+        f"{len(silent)} of {len(requirement.capabilities)} capabilities fail silently "
+        "and need positive consensus, not merely an absence of complaints."
+        if silent
+        else "All required capabilities fail loudly, so a validation retry is a real "
+        "mitigation and weaker evidence is acceptable."
+    )
+
+    return ReviseResponse(
+        requirement=requirement,
+        guard=guard_for(requirement),
+        note=note,
+        still_guessed=sorted(guessed),
+    )
+
+
+# ── the board's read surface ──────────────────────────────────────────────
+#
+# Five page modules existed with no endpoint and no caller, so nothing outside
+# this repository could reach a single one of them. Tenth instance of that
+# pattern here and the first where I built the module and the gap in the same
+# week.
+#
+# EVERY RESPONSE CARRIES ITS CAVEAT IN THE SAME OBJECT. That is not an API
+# style choice. This board's entire claim is that it distinguishes "nobody
+# looked" from "nobody complained", and a client that fetches a page and
+# renders only the findings has silently removed the distinction. Making the
+# caveat a separate call would make dropping it the easy path.
+
+
+def _conn():
+    """A read connection, or a 503 that says the board is not readable.
+
+    503 rather than 500: no database is an operational state, not a fault in
+    the request, and a page that cannot be read is different from a page with
+    nothing on it - which is the same distinction every one of these modules
+    is built around.
+    """
+    import os
+
+    import psycopg
+
+    from judge.store.claims import CONNECT_TIMEOUT_SECONDS
+
+    # Same variable and the same refusal as `judge.store.claims.transaction`.
+    # A default that quietly reaches localhost is how a read surface ends up
+    # serving a database nobody meant to expose.
+    url = os.getenv("DATABASE_URL")
+    if not url:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "no database configured, so the board cannot be read. This is "
+                "not the same as a board with nothing on it."
+            ),
+        )
+    return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
+
+
+@app.get("/models")
+def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0) -> dict:
+    """The registry as a list, with what the provider advertises.
+
+    ADDITIVE. Every other read surface in this file answers "what did people
+    find out"; this one answers "what is on the tin" - price, context window,
+    feature flags. Those are a vendor's claims about itself, they pass no gate
+    and no voices stand behind them, so they are returned in their own shape
+    and never merged into a capability row where a reader could mistake one
+    kind of claim for the other.
+
+    Rule 3 permits these figures: price and tokens are MEASURED, not
+    synthesised. Rule 6 governs how they travel - a NULL price stays NULL all
+    the way to the page, because five of these models are routers with no rate
+    of their own and calling them free would be a definite value invented from
+    a missing one.
+
+    Ordered by name, never by price. A default sort by cost would be this
+    endpoint making the recommendation the rest of the system refuses to make
+    without evidence.
+    """
+    from judge.pages.roster import RosterReader
+
+    with _conn() as conn:
+        roster = RosterReader(conn).all()
+
+    page = _page(roster.models, limit=limit, offset=offset)
+    return {
+        # `count` is the FULL registry size and always was. A page that reported
+        # its own length here would answer "how many models are there" with "how
+        # many did you ask for", which is rule 7 with the denominator swapped.
+        "count": len(roster.models),
+        "priced_at": roster.priced_at,
+        "summary": roster.summary,
+        "page": page.meta,
+        "models": page.items,
+    }
+
+
+# `:path` because EVERY model id contains a slash - `google/gemini-2.5-flash`,
+# `anthropic/claude-opus-5`. Without it FastAPI matches only up to the first
+# separator and every real model page 404s, which is what the first live check
+# against a database found. A URL-encoded %2F does not help: the ASGI server
+# decodes before routing, so the slash is back by the time the path is matched.
+@app.get("/models/{model_version_id:path}")
+def model_page(model_version_id: str) -> dict:
+    """FR-23 to FR-26. The full capability list, not the evidenced part.
+
+    ⚠ CROSS-LANE EDIT. `judge/` is Engineer 2's and `CLAUDE.md` says to propose
+    rather than edit. This was proposed in
+    `docs/proposals/model-page-id-resolution.md` and then directed twice, so it
+    is made HERE and flagged LOUDLY rather than quietly: revert it freely, the
+    reasoning is in the proposal, and nothing in `collect/` depends on it.
+
+    THE ID IS RESOLVED AND VALIDATED, WHICH IT WAS NOT.
+
+    `cell.model_version_id` is the internal `mv_…` id, so a canonical id matched
+    no row — and nothing checked, so it did not 404. It rendered. Called four
+    ways against a live registry, every one returned 200 with an identical page:
+
+        /models/mv_568e0eb3a95b5113          the real key
+        /models/anthropic/claude-opus-5      what every caller actually holds
+        /models/total-nonsense-not-a-model   not a model
+        /models/                             the empty string
+
+    All four: *"0 of 12 tracked capabilities have any reports at all."* **A typo
+    and a real model were the same page.**
+
+    That is FR-24 inverted. The rule that makes an empty page correct for a real
+    model with no evidence makes it a fabrication for one that does not exist,
+    and it is the one place this API breaks rule 4 — the rule the board is built
+    on. `/capabilities/{capability_key}` already gets this right thirty lines
+    down, and its refusal message is the argument for this one.
+
+    BOTH SHAPES RESOLVE. The `mv_` id is a stable internal key existing links
+    use; the canonical id is what the registry publishes and what `modelPath()`
+    builds. Accepting only one of them would move the defect rather than close
+    it.
+    """
+    from judge.pages.model import ModelPageReader
+
+    with _conn() as conn:
+        # One lookup, against the table `judge/pages/capability.py` already
+        # reads. No `collect/` import: `stable_id` is not needed because the
+        # database holds both columns.
+        found = conn.execute(
+            "SELECT id, canonical_id, display_name FROM model_version "
+            "WHERE id = %s OR canonical_id = %s",
+            (model_version_id, model_version_id),
+        ).fetchone()
+        if found is None:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"{model_version_id!r} is not a model in the registry. "
+                    f"Refused rather than rendered empty: an unknown id would "
+                    f"read 'nobody has reported on this model', which is "
+                    f"indistinguishable from a model in the registry that "
+                    f"nobody has discussed. Accepts the canonical id "
+                    f"(anthropic/claude-opus-5) or the internal id (mv_…)."
+                ),
+            )
+        mv_id, canonical_id, display_name = found
+
+        page = ModelPageReader(conn).build(mv_id, display_name=display_name or "")
+        quote_ids = tuple(q for c in page.capabilities for s in c.slices for q in s.quote_ids)
+        quotes = ModelPageReader(conn).quotes_for(quote_ids)
+
+    return {
+        # BOTH, because the caller asked by one and the cells are keyed by the
+        # other, and a client that cannot tell which it received cannot build a
+        # link back.
+        "model_version_id": page.model_version_id,
+        "canonical_id": canonical_id,
+        "display_name": display_name,
+        "summary": page.summary,
+        "capabilities": [
+            {
+                "key": c.key,
+                "failure_mode": c.failure_mode,
+                "state": (
+                    "unreported"
+                    if c.unreported
+                    else ("insufficient" if c.insufficient else "published")
+                ),
+                "headline": c.headline,
+                "needs_positive_consensus": c.needs_positive_consensus,
+                "conditions": [
+                    {
+                        "bucket": s.condition_bucket,
+                        "status": s.status,
+                        "phrase": s.consensus_phrase,
+                        "note": s.conditional_note,
+                        "voices": s.independent_voices,
+                        "platforms": s.platform_count,
+                        # FR-26: the ids travel WITH the phrase. A phrase
+                        # without them is an unfalsifiable claim.
+                        "quote_ids": list(s.quote_ids),
+                    }
+                    for s in c.slices
+                ],
+            }
+            for c in page.capabilities
+        ],
+        "quotes": {
+            qid: {
+                "text": q.text,
+                "permalink": q.permalink,
+                "platform": q.platform,
+                "claimed_at": q.claimed_at,
+            }
+            for qid, q in quotes.items()
+        },
+        # Surfaced rather than hidden: a published phrase with no evidence
+        # behind it is a rendering the client should refuse.
+        "unbound_phrases": [s.capability_key for s in page.unbound_phrases()],
+    }
+
+
+@app.get("/capabilities/{capability_key}")
+def capability_page(capability_key: str, limit: int = DEFAULT_PAGE, offset: int = 0) -> dict:
+    """FR-25. Every model in the registry, not every model with a cell.
+
+    PAGED, and the summary is deliberately NOT recomputed for the page. It says
+    "0 of 342 models in the registry have any reports on this capability", and
+    that sentence is about the registry - rewriting it per page would turn a
+    statement about coverage into a statement about pagination, which is exactly
+    the substitution rule 7 exists to catch.
+    """
+    from judge.config import capabilities
+    from judge.pages.capability import CapabilityPageReader
+
+    # Checked BEFORE connecting. An unknown key is a fact about the request,
+    # establishable without a database - and answering 503 for it would tell
+    # the caller the board is down when their key is simply wrong.
+    if capability_key not in capabilities():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"{capability_key!r} is not a tracked capability. Refused rather "
+                f"than rendered empty: an unknown key would read 'nobody has "
+                f"reported on this', which is indistinguishable from a real "
+                f"capability nobody has discussed."
+            ),
+        )
+
+    with _conn() as conn:
+        page = CapabilityPageReader(conn).build(capability_key)
+
+    rows = [
+        {
+            "model_version_id": m.model_version_id,
+            "display_name": m.display_name,
+            "state": "unreported" if m.unreported else "reported",
+            "conditional": m.conditional,
+            "buckets": [{"bucket": b, "status": s} for b, s in m.buckets],
+            "phrases": list(m.phrases),
+            "voices": m.voices,
+        }
+        for m in page.models
+    ]
+    window = _page(rows, limit=limit, offset=offset)
+
+    return {
+        "key": page.key,
+        "failure_mode": page.failure_mode,
+        "summary": page.summary,
+        "page": window.meta,
+        "models": window.items,
+    }
+
+
+@app.get("/filtered")
+def filtered_page(limit: int = 200) -> dict:
+    """FR-18. What we threw away, and the rule that threw it."""
+    from judge.pages.filtered import FilteredPage
+
+    with _conn() as conn:
+        report = FilteredPage(conn).report(limit=limit)
+
+    return {
+        "summary": report.summary,
+        "truncated": report.truncated,
+        "total_filtered": report.total_filtered,
+        "total_documents": report.total_documents,
+        "documents": [
+            {
+                "document_id": d.document_id,
+                "url": d.url,
+                "source": d.source,
+                "status": d.status,
+                "explained": d.explained,
+                "headline": d.headline,
+                "triggers": [{"rule": r, "explanation": e} for r, e in d.triggers],
+            }
+            for d in report.documents
+        ],
+    }
+
+
+@app.get("/coverage")
+def coverage_page() -> dict:
+    """What the board does not know, and what it has not checked."""
+    from judge.pages.coverage import CoveragePage
+
+    with _conn() as conn:
+        report = CoveragePage(conn).report()
+
+    return {
+        "summary": report.summary,
+        "pipeline_version": report.pipeline_version,
+        "measured_at_all": report.measured_at_all,
+        "kinds": [
+            {
+                "kind": k.kind,
+                "recognised": k.recognised,
+                "measured": k.measured,
+                "headline": k.headline,
+                "rows": k.rows,
+                "subjects": k.subjects,
+                "truncated": k.truncated,
+                "examples": list(k.examples),
+            }
+            for k in report.kinds
+        ],
+    }
+
+
+@app.get("/changelog")
+def changelog_page(days: int = 30) -> dict:
+    """FR-27. What changed, and whether it was us or the world."""
+    from judge.pages.changelog import ChangelogReader
+
+    with _conn() as conn:
+        log = ChangelogReader(conn).recent(days=days)
+
+    return {
+        "summary": log.summary,
+        "window_days": log.window_days,
+        "total_labels": log.total_labels,
+        "by_driver": {
+            driver: [
+                {
+                    "change_id": c.change_id,
+                    "label_id": c.label_id,
+                    "direction": c.direction,
+                    "headline": c.headline,
+                    "is_about_us": c.is_about_us,
+                    "evidenced": c.evidenced,
+                    "quote_ids": list(c.quote_ids),
+                }
+                for c in changes
+            ]
+            for driver, changes in log.by_driver().items()
+        },
+    }
+
+
+# ── the admin usage page: OUR cap, OUR spend, both stages ─────────────────
+
+
+@app.get("/admin/usage")
+def admin_usage(hours: int = 24, days: int = 14) -> dict:
+    """What we have spent today against the one shared daily cap.
+
+    OURS, NOT THE PROVIDER'S. OpenRouter has its own ceilings - account credit
+    and a per-key cap - and they are different numbers on a different schedule.
+    This endpoint reports the limit WE set and the spend WE recorded, because
+    that is the one a person can act on by changing a config value.
+
+    ONE CAP, TWO STAGES. `EXTRACTION_DAILY_BUDGET_USD` is the total across
+    extraction and the ask box together, not each. The limit is one figure and
+    every usage figure is split by stage, so a reader can see which of the two
+    consumed the day without the split implying two budgets.
+
+    EVERY FIGURE CARRIES WHAT IT IS DRAWN FROM (rule 7). `covers_whole_window`
+    is false when the ledger began after today did, in which case today's total
+    is a floor rather than a total; `unwired_stages` names any stage that has
+    never recorded at all, which is a wiring failure and not a quiet day. A page
+    rendering either of those as a plain zero would be stating the most
+    reassuring of two readings.
+    """
+    from judge import spend_ledger
+    from judge.extract.budget import Budget
+
+    configured = Budget.from_env()
+    estimated = (
+        configured.estimated_next_call_usd
+        if configured is not None
+        else Budget(limit_usd=None).estimated_next_call_usd
+    )
+    report = spend_ledger.report(
+        daily_cap_usd=configured.limit_usd if configured is not None else None,
+        estimated_call_usd=estimated,
+        hours=max(1, min(hours, 168)),
+        days=max(1, min(days, 90)),
+    )
+
+    def series(buckets):
+        return [
+            {
+                "label": b.label,
+                "starts_at": b.starts_at.isoformat(),
+                "usd": round(b.usd, 6),
+                "calls": b.calls,
+                "by_stage": {k: round(v, 6) for k, v in b.by_stage.items()},
+            }
+            for b in buckets
+        ]
+
+    return {
+        "summary": _usage_summary(report),
+        "cap": {
+            "daily_usd": report.daily_cap_usd,
+            "shared_by": list(spend_ledger.STAGES),
+            "note": (
+                "one cap for both stages together, not one each. Set by "
+                "EXTRACTION_DAILY_BUDGET_USD; enforced against the shared ledger "
+                "so it survives a restart and is seen by every worker."
+            ),
+            "resets_at": (report.day_starts_at.isoformat()),
+            "timezone": "UTC - stated because a reader elsewhere reads midnight as their own",
+        },
+        "today": {
+            "spent_usd": round(report.spent_today_usd, 6),
+            "remaining_usd": None
+            if report.remaining_usd is None
+            else round(report.remaining_usd, 6),
+            "fraction_used": None
+            if report.fraction_used is None
+            else round(report.fraction_used, 4),
+            "calls": report.calls_today,
+            "calls_remaining": report.calls_remaining,
+            "unmetered_calls": report.unmetered_today,
+            "is_a_floor_not_a_total": not report.covers_whole_window,
+        },
+        "by_stage": [
+            {
+                "stage": stage,
+                "label": spend_ledger.STAGE_LABELS[stage],
+                "spent_usd": round(report.by_stage_usd.get(stage, 0.0), 6),
+                "calls": report.by_stage_calls.get(stage, 0),
+                "ever_recorded": stage in report.stages_ever_recorded,
+            }
+            for stage in spend_ledger.STAGES
+        ],
+        "by_model": {k: round(v, 6) for k, v in report.by_model_usd.items()},
+        "rates": {
+            "usd_last_hour": None
+            if report.usd_per_hour_recent is None
+            else round(report.usd_per_hour_recent, 6),
+            "hours_to_cap": None
+            if report.hours_to_cap is None
+            else round(report.hours_to_cap, 2),
+            "price_in_per_million_usd": report.pricing_in_per_million,
+            "price_out_per_million_usd": report.pricing_out_per_million,
+            "measured_cost_per_call_usd": round(report.estimated_call_usd, 6),
+        },
+        "hourly": series(report.hourly),
+        "daily": series(report.daily),
+        "ledger": {
+            "counting_since": None
+            if report.first_seen_at is None
+            else report.first_seen_at.isoformat(),
+            "rows": report.total_rows,
+            "unwired_stages": list(report.unwired_stages),
+        },
+        "rapidapi": _rapidapi_quota(),
+        "everyone": _whole_key_spend(),
+    }
+
+
+def _whole_key_spend() -> dict:
+    """Total spent on the API KEY, by anyone, straight from the provider.
+
+    Everything else on this page comes from `judge/spend_ledger.py`, which is a
+    local file. The API key is not local. So the rest of the page is one
+    machine's share of a key several people spend from - measured 2026-08-20,
+    our ledger held $0.000000 while the key reported $0.0089013.
+
+    One figure, from `GET /key`. A metadata call: zero tokens, $0.00.
+
+    DELIBERATELY NOT THE PROVIDER'S LIMITS. Their account credit and per-key cap
+    are different ceilings on a different schedule; ours is
+    EXTRACTION_DAILY_BUDGET_USD. Usage answers who spent it, which is the
+    question here. Restating their limits was tried and removed.
+
+    UNREACHABLE IS NOT ZERO. `available: False` carries a reason, because a
+    provider we cannot reach must never render as a key nobody has spent on -
+    the most reassuring of the readings available, and rule 6 forbids the
+    conversion.
+    """
+    from judge import key_usage
+
+    usage = key_usage.fetch()
+    if not usage.available:
+        return {
+            "available": False,
+            "why": usage.unavailable_because,
+            "headline": (
+                "Total spend across all machines is UNKNOWN, which is not zero. "
+                "Everything below is this machine only."
+            ),
+        }
+    return {
+        "available": True,
+        "scope": "every machine using this API key",
+        "total_usd": usage.total_usd,
+        "today_usd": usage.today_usd,
+        "headline": (
+            "Spent on this key by anyone, reported by the provider. Everything "
+            "below it is this machine's ledger only, which is why the two differ."
+        ),
+        "day_boundary_note": (
+            "the provider's day window is its own and the API does not state "
+            "whether it aligns with the 00:00 UTC our cap resets at, so this "
+            "sits beside our figure rather than being compared to it"
+        ),
+    }
+
+
+def _rapidapi_quota() -> dict:
+    """The other paid API. Reported, not analysed - the limits are E1's call.
+
+    RapidAPI serves the Reddit path and is billed as a REQUEST QUOTA, not spend,
+    so it cannot share an axis with the LLM cap: one is dollars per day against a
+    limit we set, the other is requests against a limit somebody sells us. Same
+    page, separate tab.
+
+    **THIS LANE SETS NO NUMBER AND DERIVES NONE.** Engineer 1 owns the RapidAPI
+    quota, its window and whatever budget is placed on it - the calls are made in
+    `collect/adapters/reddit.py` and the readings are recorded in
+    `contract/sources.yaml` with their read dates. An earlier version of this
+    function restated a costing conclusion from that file and proposed how the
+    headers should be persisted. Both were out of lane: a figure we recompute is a
+    second source of truth for a quantity we do not own, and it is the copy that
+    goes stale without anyone noticing.
+
+    So this returns the STATUS only. Nothing here is live, because the quota
+    arrives in response headers read in `collect/` and nothing persists them, so
+    `judge/` has no row to read. The reason that matters is the same reason we
+    show no numbers: a dated reading placed on a live dashboard reads as current.
+    """
+    return {
+        "unit": "requests",
+        "instrumented": False,
+        "owner": "Engineer 1",
+        "headline": (
+            "Not tracked here. RapidAPI is billed as a request quota rather than "
+            "spend, the calls are made in the other lane, and nothing persists the "
+            "quota headers - so this lane has nothing live to read."
+        ),
+        "limits_status": (
+            "Engineer 1 decides the quota, the window and any budget on it. This "
+            "page reports that status and sets no figure of its own."
+        ),
+        "source_of_record": (
+            "contract/sources.yaml, the reddit-via-rapidapi entry - readings live "
+            "there beside the date they were read on, which is where they stay"
+        ),
+    }
+
+
+def _usage_summary(report) -> str:
+    """One sentence a person can act on, and it must not overstate.
+
+    The ordering is deliberate: an unwired stage or a partial window changes
+    what every other number on the page MEANS, so it is said first rather than
+    appended after the reassuring part.
+    """
+    from judge import spend_ledger
+
+    # AN EMPTY LEDGER IS NOT A WIRING GAP, and reporting it as one is the same
+    # mistake pointed the other way. With zero rows every stage is "missing", so
+    # the unwired check cannot tell a broken writer from a ledger that started
+    # five minutes ago and has correctly recorded nothing yet. Both readings are
+    # available and only one is alarming, so the empty case is answered first.
+    if report.total_rows == 0:
+        return (
+            "No model call has been recorded since the ledger began. Nothing has "
+            "been spent that this page can see - which is the expected state "
+            "before the first extraction run or Ask-box submission, and is not a "
+            "guarantee about spend that happened before the ledger existed."
+        )
+    if report.unwired_stages:
+        missing = ", ".join(
+            spend_ledger.STAGE_LABELS[s].split(" —")[0] for s in report.unwired_stages
+        )
+        verb = "have" if len(report.unwired_stages) > 1 else "has"
+        return (
+            f"{missing} {verb} never recorded a call while the other stage has, so "
+            f"everything below is spend from one stage only. That is a wiring gap "
+            f"rather than a quiet day, and the total is a floor."
+        )
+    if report.daily_cap_usd is None:
+        return (
+            f"No daily cap is configured, so nothing is limiting spend. "
+            f"${report.spent_today_usd:.4f} recorded today over "
+            f"{report.calls_today} calls across both stages."
+        )
+    floor = "" if report.covers_whole_window else (
+        " The ledger started after today did, so this is a floor rather than a total."
+    )
+    return (
+        f"${report.spent_today_usd:.4f} of the shared ${report.daily_cap_usd:.2f} "
+        f"daily cap used across both LLM stages, over {report.calls_today} calls. "
+        f"${(report.remaining_usd or 0.0):.4f} left, about "
+        f"{report.calls_remaining} more calls at the measured "
+        f"${report.estimated_call_usd:.5f} each.{floor}"
     )

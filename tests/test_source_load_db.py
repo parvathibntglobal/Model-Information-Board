@@ -189,13 +189,53 @@ def test_a_discovered_row_cannot_be_inserted_without_a_ruling(conn):
     conn.rollback()
 
 
-def test_reddit_is_stored_as_honestly_unreviewed(conn):
-    """NULL, not a sentinel ruling. The row exists; the permission does not."""
+def test_every_platform_row_is_stored_with_its_ruling(conn):
+    """Nothing is stored as unreviewed any more, and that is a change of state.
+
+    `reddit` was the one honestly-unreviewed row — NULL ruling, NULL
+    checked_on — until it was ruled on 2026-08-18. The mechanism that recorded
+    it as unreviewed is unchanged and still asserted, in
+    `test_an_unruled_row_is_stored_with_nulls_and_reported`; what moved is
+    which rows are in that state.
+    """
     report = load_source_rows(conn)
-    assert report.unreviewed == ["reddit"]
-    assert "cannot be harvested: reddit" in report.summary()
+    assert report.unreviewed == []
 
     row = _rows(conn)["reddit"]
+    assert row["terms_ruling"] == "reddit-via-rapidapi"
+    assert row["terms_checked_on"] == date(2026, 8, 18)
+
+
+def test_an_unruled_row_is_stored_with_nulls_and_reported(conn):
+    """NULL, not a sentinel ruling. The row exists; the permission does not.
+
+    The half of the previous test that was about the WRITER rather than about
+    Reddit, kept on a synthetic row so it cannot go stale when a ruling lands.
+    """
+    from collect.registry.sources import SourcesContract
+
+    synthetic = SourcesContract(
+        version="test",
+        review_marker="REVIEW REQUIRED",
+        rulings={},
+        platforms=[
+            {
+                "id": "unruled-x",
+                "platform": "blog",
+                "provenance": "seed",
+                "base_trust": 0.5,
+                # NOT NULL in the schema, which is NFR-5 enforcement: a source
+                # cannot exist without somebody having written down its terms.
+                "tos_notes": "REVIEW REQUIRED - synthetic row for this test",
+            }
+        ],
+        feeds=[],
+    )
+    report = load_source_rows(conn, synthetic)
+    assert report.unreviewed == ["unruled-x"]
+    assert "cannot be harvested: unruled-x" in report.summary()
+
+    row = _rows(conn)["unruled-x"]
     assert row["terms_ruling"] is None
     assert row["terms_checked_on"] is None
 
@@ -226,12 +266,18 @@ def test_gate_one_every_stored_feed_is_cleared_to_harvest(conn):
     )
 
 
-def test_gate_two_the_stored_reddit_row_refuses_for_naming_no_ruling(conn):
+def test_gate_two_the_stored_reddit_row_refuses_without_its_live_observation(conn):
+    """It named no ruling until 2026-08-18 and refused for that.
+
+    It now names one, and still refuses when the run supplies no observation
+    for the basis that ruling rests on — which is the stronger check, because
+    it is the one that keeps refusing after a permission exists.
+    """
     load_source_rows(conn)
     row = _rows(conn)["reddit"]
 
-    with pytest.raises(TermsNotReviewedError, match="names no terms ruling"):
-        assert_terms_reviewed([row], observations={}, today=REVIEWED_ON)
+    with pytest.raises(TermsNotReviewedError):
+        assert_terms_reviewed([row], observations={}, today=date(2026, 8, 18))
 
 
 def test_gate_three_the_stored_umbrella_row_refuses_as_a_fetch_target(conn, tmp_path):
@@ -310,3 +356,74 @@ def test_gate_four_a_stored_medium_row_permits_the_feed_and_refuses_articles(
     # ... and the article path is not, however politely it is asked for.
     with pytest.raises(FeedOnlyError, match="Do not work around it"):
         fetcher.harvest_feed("https://netflixtechblog.com/feed", fetch_articles=True)
+
+
+def test_the_report_names_its_denominator_and_any_skip(conn):
+    """A loader that reports only what it wrote cannot prove it wrote everything.
+
+    `12 inserted` reads as complete whether the contract held 12 entries or 14 —
+    the same shape as a comparison that finds no rows and reports no differences.
+    So the report carries entries READ against rows WRITTEN, with the denominator
+    counted from the contract's own sections rather than from `source_rows()`:
+    `len(rows)` against `len(rows)` is a check that cannot fail.
+    """
+    from collect.registry.sources import load_source_rows, load_sources
+
+    contract = load_sources()
+    report = load_source_rows(conn, contract)
+
+    expected = len(contract.platforms) + len(contract.feeds)
+    assert report.declared == expected
+    assert report.total == expected, "every declared entry reached a row"
+    assert report.skipped == []
+    assert f"{report.total} of {report.declared} contract entries" in report.summary()
+
+    # github and reddit specifically, because both are API sources and the worry
+    # was that a required `endpoint` had dropped them. `endpoint` is nullable and
+    # `_source_row` reads every column with `.get()`, so nothing can be dropped
+    # for a missing field — but the row that PROVES the nullable path is `blogs`,
+    # which declares no endpoint and loads.
+    landed = {r[0]: r[1] for r in conn.execute("SELECT id, endpoint FROM source").fetchall()}
+    assert "github" in landed and "reddit" in landed
+    assert landed["blogs"] is None, "the endpoint-less platform row still lands"
+
+
+def test_a_contract_entry_that_never_reaches_a_row_is_named(conn):
+    """The skip path, exercised by making one — since nothing skips today.
+
+    A guard that has never fired is a guard nobody has seen work.
+    """
+    from collect.registry.sources import load_source_rows, load_sources
+
+    contract = load_sources()
+    full = contract.source_rows()
+    dropped = {"github", "reddit"}
+
+    class Filtered:
+        """A contract whose row builder omits two declared entries.
+
+        This is the future defect, made present: a filter, a parse that gives up
+        on an entry, a field requirement that excludes an API source with no feed
+        URL. The point is that the report says so instead of counting what
+        survived.
+        """
+
+        platforms = contract.platforms
+        feeds = contract.feeds
+
+        def source_rows(self):
+            return [row for row in full if row["id"] not in dropped]
+
+    report = load_source_rows(conn, Filtered())
+
+    assert report.declared == len(contract.platforms) + len(contract.feeds)
+    assert report.total == report.declared - 2
+    assert sorted(report.skipped) == ["github", "reddit"]
+
+    summary = report.summary()
+    assert f"{report.total} of {report.declared}" in summary
+    assert "SKIPPED" in summary and "github" in summary and "reddit" in summary
+    assert "harvest_run.source_id" in summary, (
+        "the skip has to say what it costs — a source with no row cannot carry a "
+        "harvest run, which is the blocker this loader was built to remove"
+    )

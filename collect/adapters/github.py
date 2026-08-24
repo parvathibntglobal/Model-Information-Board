@@ -134,7 +134,16 @@ class SearchHit:
     title: str
     body: str
     created_at: str | None
+    #: The login. MUTABLE — GitHub allows renames, so this is not an identity.
+    #: Kept because it is the only handle available and `author.handle_hash`
+    #: needs it transiently; nothing retains it past that.
     author: str | None
+    #: The account's STABLE numeric id, which survives a rename. This is
+    #: GitHub's equivalent of Reddit's `t2_` and the adapter was discarding it —
+    #: `user.login` was the only thing kept, which is the exact failure the
+    #: Reddit canonicalisation exists to avoid. None when the API omits `user`,
+    #: which happens for a deleted account (rule 6: absent, not guessed).
+    author_external_id: str | None
     comment_count: int
     reactions: int
 
@@ -404,15 +413,33 @@ class GitHubHarvester:
             body=item.get("body") or "",
             created_at=item.get("created_at"),
             author=(item.get("user") or {}).get("login"),
+            author_external_id=(
+                str((item.get("user") or {}).get("id"))
+                if (item.get("user") or {}).get("id") is not None
+                else None
+            ),
             comment_count=int(item.get("comments") or 0),
             reactions=int((item.get("reactions") or {}).get("total_count") or 0),
         )
 
     # ── sieve, then fetch ────────────────────────────────────────────────
 
-    def harvest(self, request: SearchRequest) -> QueryRun:
-        """One query, end to end. Only sieve survivors cost a REST call."""
-        run = QueryRun(request=request)
+    def harvest(self, request: SearchRequest, *, run: QueryRun | None = None) -> QueryRun:
+        """One query, end to end. Only sieve survivors cost a REST call.
+
+        `run` EXISTS SO THE LEDGER CAN BE TWO-PHASE, and that is the whole reason
+        for the parameter. `harvest_run_fields` derives the row id from
+        `run.started_at`, and `started_at` is minted when the `QueryRun` is
+        constructed — so a caller that cannot construct it cannot open a
+        `harvest_run` row *before* the fetch. Opening it afterwards would give up
+        the one property the two-phase writer exists for: **a process that dies
+        cannot write its own failure**, so a killed sweep has to leave
+        `finished_at IS NULL` behind.
+
+        Passing a run in keeps the id derivation exactly as it was and moves
+        nothing else. Omitting it behaves as before.
+        """
+        run = run if run is not None else QueryRun(request=request)
         self._remember(run)
         hits = self.search(request, run)
 
@@ -468,36 +495,55 @@ class GitHubHarvester:
 
     # ── the write path ───────────────────────────────────────────────────
 
-    def write_documents(self, conn, run: QueryRun) -> int:
+    def write_documents(self, conn, run: QueryRun, *, batch: int = 500) -> dict[str, int]:
         """Insert one `document` per stored issue. Absent values stay NULL.
 
         `ON CONFLICT DO NOTHING` on `(source, external_id)`: two queries in one
         sweep legitimately return the same issue, and the second is not an error.
+
+        BATCHED, BECAUSE THE ROUND TRIP DOMINATES — the same shape and the same
+        fix as `assemble.authors.write_authors`, which took ten minutes for 4,391
+        rows at roughly 130ms of latency each and 3.8 seconds batched. This path
+        has never run against a remote instance with volume: every run so far has
+        been one query against a local Postgres, where 130ms is 1ms and the shape
+        is invisible. Inside the nightly chain it presents as a chain that appears
+        to hang.
+
+        `seen` and `inserted` are now separate, and that was a second defect
+        rather than a consequence of batching. The old counter incremented once
+        per row and called the total `written`, so a sweep whose queries
+        legitimately returned the same issue twice reported writing it twice. A
+        conflict affects no rows, so `cur.rowcount` over the batch counts the
+        inserts that actually happened.
         """
-        written = 0
-        for issue in run.stored:
-            hit = issue.hit
-            engagement = json.dumps(
-                {"comments": hit.comment_count, "reactions": hit.reactions}
-            )
-            conn.execute(
-                "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
-                "text_ref, content_hash, engagement, status) "
-                "VALUES (%s, %s, %s, %s, %s, now(), %s, %s, %s, 'kept') "
-                "ON CONFLICT (source, external_id) DO NOTHING",
-                (
-                    stable_id("doc", DOCUMENT_SOURCE, issue.external_id),
-                    DOCUMENT_SOURCE,
-                    issue.external_id,
-                    issue.html_url,
-                    hit.created_at,
-                    issue.ref,
-                    issue.content_hash,
-                    engagement,
+        rows = [
+            {
+                "id": stable_id("doc", DOCUMENT_SOURCE, issue.external_id),
+                "source": DOCUMENT_SOURCE,
+                "external_id": issue.external_id,
+                "url": issue.html_url,
+                "created_at": issue.hit.created_at,
+                "text_ref": issue.ref,
+                "content_hash": issue.content_hash,
+                "engagement": json.dumps(
+                    {"comments": issue.hit.comment_count, "reactions": issue.hit.reactions}
                 ),
-            )
-            written += 1
-        return written
+            }
+            for issue in run.stored
+        ]
+        statement = (
+            "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
+            "text_ref, content_hash, engagement, status) "
+            "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
+            "%(text_ref)s, %(content_hash)s, %(engagement)s, 'kept') "
+            "ON CONFLICT (source, external_id) DO NOTHING"
+        )
+        inserted = 0
+        with conn.cursor() as cur:
+            for start in range(0, len(rows), batch):
+                cur.executemany(statement, rows[start:start + batch])
+                inserted += max(0, cur.rowcount)
+        return {"inserted": inserted, "seen": len(rows)}
 
     def harvest_run_fields(self, run: QueryRun) -> dict[str, Any]:
         """The `harvest_run` row, plus the two fields with nowhere to live yet."""
@@ -526,14 +572,27 @@ class GitHubHarvester:
     def outcome_of(run: QueryRun) -> str:
         """The proposed `harvest_run.outcome` value for this run.
 
-        `rate-limited` is not in the closed set proposed on #5
-        (`fetched | not-modified | robots-blocked | error`). It reports as
-        `error` with `truncated_by = 'rate-limit'` carrying the distinction,
-        which the existing column already supports — so this needs no fifth
-        value, and the two facts stay separable.
+        **CORRECTED 2026-08-20, BY THE FIRST REAL SWEEP.** This returned
+        `fetched`, from the set proposed on #5
+        (`fetched | not-modified | robots-blocked | error`). That set never
+        landed: `harvest_run_outcome_ck` allows `ok | refused | error`, aligned
+        with `job_run` and with `chain.py`'s OK/REFUSED/ERROR by migration
+        `20260818T1520`. So every close raised, **121 rows were opened and none
+        closed**, and the run reported success — two vocabularies for one column,
+        with nothing checking they stayed in step. Same defect the other lane
+        already fixed once, in `a289adf`.
+
+        The distinctions #5 wanted are not lost, they are carried by the columns
+        that already hold them: `truncated_by = 'rate-limit'` separates a throttle
+        from an error, and `items_fetched = 0` separates "ran and found nothing"
+        from a NULL that means it never came back.
+
+        `refused` is not returned here. A query that reaches this adapter has
+        passed the terms gate; a refusal happens upstream and never builds a run.
+        Named so the absence is a decision rather than an oversight.
         """
         if run.rate_limited:
             return "error"
         if run.http_errors:
             return "error"
-        return "fetched"
+        return "ok"

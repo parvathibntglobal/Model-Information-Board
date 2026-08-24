@@ -1,0 +1,272 @@
+# Measurements
+
+Five reports live here and there was no convention for writing the sixth. This
+is it.
+
+Everything below exists because **three figures in one fortnight turned out to
+be measuring the instrument rather than the world**, and each was load-bearing
+in an argument before anyone checked. `CLAUDE.md` rule 7 is the rule; this is
+the method.
+
+The last two sections are not about figures. They are reasoning shapes that
+produced the same class of defect — something true and narrow read as something
+true and general — and they are here because this is where the shapes are
+recorded, not because they are measurements.
+
+---
+
+## Vary the query, not the world
+
+**A number retrieved by a query is a property of the query as much as of the
+world.** To find out which, change the query in a way that should not change the
+answer, and see whether it does.
+
+That is the whole technique, and it is cheap. Every one of the three failures
+had a control available that took two API calls, and nobody ran it until
+afterwards.
+
+Four forms it takes, all of them from real incidents:
+
+**Reverse the words inside the quotes.** `"claude sonnet 5"` returns 540 and
+`"sonnet claude 5"` returns 545. If word order does not change the answer, the
+quotes are not binding a phrase — they are requiring tokens and ranking the
+result. Everything downstream that assumed adjacency was wrong.
+
+**Substitute a token that should behave identically.** `"claude sonnet 5"`
+returns 123 at `org:openai` and `"claude sonnet 7"` returns 96. A version
+numeral that nothing uses should return nothing; both return plenty, because the
+numeral is being matched against the issue number. The count was never about the
+model.
+
+**Enumerate exhaustively where the set is small enough that ranking cannot bias
+it.** `"gemini flash" "dropped a detail"` returns 8. All eight fetched, checked
+by plain substring: **seven contain the phrase nowhere.** Any conclusion drawn
+from page one of a large result set is a conclusion about relevance ranking.
+
+**Add a token that must fail.** `"gemini flash" zzzqqx` returns 0, which
+establishes that tokens are required at all. Without that control, "the words
+are required but their order is not" is half a claim.
+
+**And sort the same query two ways.** `"as an AI"` returns 49,848 under every
+sort. The first 30 by relevance contain the phrase 30 times; the first 30 by
+date contain it once. Same set, different window. This is the one that survives
+a careful person eyeballing page one, which is why it needed its own finding
+rather than a footnote.
+
+---
+
+## What a figure must carry
+
+Not the principle — the format. A figure without these is not yet evidence:
+
+| | |
+|---|---|
+| **the count** | `52.7%`, `636`, `18 of 10,255` |
+| **the population** | what was counted, in units somebody can picture |
+| **how it was gathered** | the query, the scope, the date |
+| **what it cannot support** | where the number stops being evidence |
+
+So not `52.7% subject match` but:
+
+```
+52.7% subject match
+  of 636 candidates retrieved for gemini-2.5-flash using that model's own variants
+  GitHub Search, framework sweep, 2026-08-13
+  circular as a measure of how often models are named — the corpus was
+  selected by the thing being counted. Supports the shape, not the rate.
+```
+
+**This applies to counts, not only percentages.** What the three failures shared
+was an unstated population, not a form. `227 uncarried surfaces` needs its
+denominator exactly as much as `52.7%` does, and `0 mentions` needs to say
+whether the detector could have seen one — a zero from an instrument that cannot
+observe the thing is not a measurement of zero.
+
+**`None` and `0` are different findings.** `phrase_present = None` for
+not-measured, never `0`, because `0` asserts that no candidate carried the
+phrase and that is a result. Same for `last_swept_at`: NULL means never swept,
+not swept long ago.
+
+---
+
+## The three incidents, as worked examples
+
+They are examples rather than the point. Someone should be able to apply the
+method above without reading any of this.
+
+**`"context window"` present in 96% of 248 posts.** Read as evidence that Reddit
+binds quoted phrases. It was measuring collocation frequency — a common English
+pair comes back because relevance ranking returns it anyway. The variant probe
+settled it: 19 enumerated looser forms, 0 hits on three families. There is no
+phrase operator; it degrades to OR over tokens, and `"rolled back"` returns
+posts containing `back` without `rolled`.
+
+**`"went back to"` present in 100%.** The same mistake, and the 100% made it
+look stronger. It is the one substitution term with nowhere to insert a word,
+which is the single class where adjacency holds regardless of the index.
+
+**`52.7%` subject match on GitHub.** Quoted as evidence for GitHub's role and
+written into `docs/logic-and-workflow.md` §6 as a justification. The corpus had
+been retrieved for one model using that model's own variants, so the figure
+measures the retrieval. The shape survived — GitHub names models in configs
+rather than describing them in prose — and the rate did not.
+
+**One non-example worth keeping.** `82% of hand-written surfaces never observed`
+was measured, quotable, and withdrawn before anyone used it: it compared one
+platform's prose against a surface list built partly for another platform's
+configs. Withdrawing a figure that has not yet done any damage is cheaper than
+every entry above.
+
+---
+
+## Two identifiers, and what each can answer
+
+**A configuration identifier and a content identifier answer different
+questions at different times, and neither substitutes for the other.**
+
+|  | configuration | content |
+|---|---|---|
+| examples | `extraction_version`, `pipeline_version` | `document.content_hash`, a raw-store ref, `SurfacePopulation.fingerprint`, and `thread_context.content_fingerprint` (Engineer 2's, not yet in `contract/tables.sql`) |
+| what it names | what was *meant* to happen | what *did* happen |
+| available | **before** the work runs | only **after** |
+| so it can | select work — *which rows does upgrading trafilatura affect?* | describe work — *is this the text those offsets were measured against?* |
+| how it fails | **by omission**, silently: a term nobody added is a term it does not cover | **by being uninformative**: it says the bytes differ, never why, and cannot be planned against |
+
+The failure modes are opposites, which is why holding both is not redundancy.
+
+**Configuration fails by omission and the omission is invisible.**
+`extraction_version` was `trafilatura-{version}+opts-{fingerprint}` and covered
+trafilatura's options alone. Six lines of pre-processing of ours would have
+rewritten the byte string every offset in every `offset_map` is measured
+against, under an unchanged identifier — under-identification, which is the
+direction that matters. Nothing about the string looked wrong, because a
+configuration identifier cannot say what it left out. `pipeline` is now the
+third term (`collect/adapters/blog/options.py`), and the rosters there refuse a
+field that neither claims, which is the same discipline applied one level down:
+what an identifier ranges over has to be declared, or it is whatever somebody
+last added.
+
+**Content cannot fail that way and cannot answer the question either.** A
+fingerprint of the produced text covers every input at once and enumerates
+nothing, so no future step can escape it. It also cannot tell you *why* two
+texts differ, cannot regenerate either, and cannot be queried before the work is
+done. With only a content identifier, deciding whether a re-extraction is needed
+means performing the re-extraction to find out — the decision is undecidable in
+advance, which is the practical cost of collapsing the two.
+
+**Held together, the content one makes the configuration one falsifiable.**
+The bump convention stops being a promise. Written against columns that do not
+both exist yet — `thread_context` has neither — because the pairing is the
+point and the shape of the check is what has to survive the schema:
+
+```sql
+-- a producer that changed without its identifier changing
+SELECT extraction_version, count(DISTINCT content_fingerprint)
+FROM   thread_context
+GROUP  BY 1
+HAVING count(DISTINCT content_fingerprint) > 1;
+```
+
+The reverse — one fingerprint under several identifiers — is benign
+over-identification, and is what `pipeline_version` does today.
+
+**Neither can be added retrospectively.** Text produced before a term existed
+carries the identifier as it then read, and is indistinguishable from text
+produced after it under an unchanged configuration. That is a real cost of
+adding a term late and it is worth stating when it is paid, rather than
+discovering later that a corpus is unclassifiable.
+
+---
+
+## A proviso is evidence about the path it names
+
+**And about nothing else.** Engineer 2's framing, and it belongs here because it
+is rule 7 applied to a guarantee instead of a figure: a real guarantee silently
+answering a question it was not asked.
+
+`collect/assemble/thread.py` said, of `pipeline_version` standing in for
+`extraction_version`:
+
+> it over-identifies … It never under-identifies, which is the direction that
+> matters, **provided `PIPELINE_VERSION` is bumped when the flattener changes.**
+
+The proviso names one path — the flattener. The guarantee was stated over all of
+them. What actually changed was `collect/triage/specificity.py`, the scorer that
+picks which children get flattened, and the result was two different selections
+under one id, kept apart by nothing (`first-thread-context.md` §4). The
+direction that "never happens" happened, by a route the sentence did not
+mention. **Both engineers read the proviso as a caveat on a general claim; it
+was the entire extent of what had been checked.**
+
+### Its mirror image: a description naming one cause
+
+**A proviso naming one path understates what a guarantee covers. A description
+naming one cause overstates what a diagnosis explains.** Engineer 2 named the
+first; the second is mine, from the same fortnight, and the pair is worth
+holding together because they fail at opposite moments.
+
+|  | the proviso | the description |
+|---|---|---|
+| what it names | one path a guarantee was checked on | one cause a symptom was traced to |
+| what it costs | coverage — the guarantee is narrower than it reads | repair — the fix is confident and aimed at the wrong thing |
+| when it fails | later, when an unnamed path breaks the guarantee | immediately, in the work done next |
+| why review misses it | it is locally true | it is locally true |
+
+Both survive review for the same reason: neither is false. The proviso really
+was checked on the flattener; `PIPELINE_VERSION` really does change for any
+change to `collect/`. And a description that says *"`assemble_article` had no
+production caller"* really is true — it just is not the whole of why no blog
+row existed, and acting on it alone produces a caller that still cannot run.
+When the blog path was finally exercised end to end, the writer was fine and
+three other things were not: a script that failed its own terms gate by passing
+`observations={}`, a feed publishing one id for eight articles, and an id the
+caller supplied to both sides of the comparison. A description that named the
+first would have licensed a fix, and the fix would have been correct and
+insufficient.
+
+So the check has two halves, and they ask opposite questions:
+
+- of a guarantee: **what does the proviso range over?** If the answer is not
+  beside it, the guarantee is narrower than it reads.
+- of a diagnosis: **what else would produce this symptom?** If the answer is
+  "nothing I looked for", the cause is a candidate rather than a finding — and
+  the confident repair is the expensive part, not the wrong diagnosis.
+
+The asymmetry is worth stating plainly: an understated guarantee waits to hurt
+you, and a misdirected repair hurts you on the next commit.
+
+The check needs no suspicion, which is what makes it worth writing down:
+
+- **Ask what the proviso ranges over.** If the answer is not beside it, the
+  guarantee is not yet a guarantee — exactly as a figure without its denominator
+  is not yet evidence.
+- **A guarantee travels with the set of inputs it was established over**, and
+  that set is stated as a list, not as a direction. "Never under-identifies" is
+  a direction; "covers the flattener, the scorer, the selection cap and the
+  entity table" is a list somebody can check and find short.
+- **Count the paths before restating it.** `CLAUDE.md`'s `assert_no_fixtures`
+  entry was wrong three times in both directions on four lines, because each
+  correction was reasoned about rather than counted. Three apparent call sites
+  were a docstring and two comments.
+- **Where it can be a check, make it one.** The rosters in
+  `collect/adapters/blog/options.py` are this shape in code: the set of inputs
+  an identifier covers is declared, and a field outside it raises instead of
+  being folded in quietly.
+
+---
+
+## Report conventions
+
+- **State the negative results.** The union approach to GitHub's discarded
+  operators was measured at 3.4x worse unscoped and 124 hours against 134
+  scoped. Recording that stopped it being re-derived.
+- **Strike rather than delete a retracted claim.** The counts usually stand
+  while the interpretation does not, and how the correction arrived is part of
+  what the next reader needs.
+- **Name the instrument's limits beside its output.** A detector needing a
+  vendor word plus a digit cannot see `deepseek r1`, so that zero is a detector
+  limit rather than evidence — and in a table the two look identical.
+- **Say which platform.** All 5,546 documents in the alias extract are Reddit.
+  Id spellings unattested there are plausibly exactly what GitHub config lines
+  use, which is an argument for keeping mechanical variants rather than pruning
+  to what is attested.

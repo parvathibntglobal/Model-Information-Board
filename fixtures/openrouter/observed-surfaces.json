@@ -1,0 +1,5233 @@
+[
+ {
+  "surface": "opus 5",
+  "mentions": 1445,
+  "documents": 281,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-5"
+  ],
+  "by_source": {
+   "substitution-slice": 348,
+   "reddit-sweep": 1092,
+   "reddit-comments": 5
+  }
+ },
+ {
+  "surface": "sonnet 4.5",
+  "mentions": 416,
+  "documents": 93,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-sonnet-4.5"
+  ],
+  "by_source": {
+   "substitution-slice": 393,
+   "reddit-sweep": 21,
+   "reddit-comments": 2
+  }
+ },
+ {
+  "surface": "opus 4.6",
+  "mentions": 398,
+  "documents": 225,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.6"
+  ],
+  "by_source": {
+   "substitution-slice": 120,
+   "reddit-sweep": 225,
+   "reddit-comments": 53
+  }
+ },
+ {
+  "surface": "opus 4.8",
+  "mentions": 370,
+  "documents": 171,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.8"
+  ],
+  "by_source": {
+   "substitution-slice": 162,
+   "reddit-sweep": 167,
+   "reddit-comments": 41
+  }
+ },
+ {
+  "surface": "opus 4.7",
+  "mentions": 325,
+  "documents": 150,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.7"
+  ],
+  "by_source": {
+   "substitution-slice": 58,
+   "reddit-sweep": 188,
+   "reddit-comments": 79
+  }
+ },
+ {
+  "surface": "gpt-5",
+  "mentions": 311,
+  "documents": 103,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5"
+  ],
+  "by_source": {
+   "substitution-slice": 160,
+   "reddit-sweep": 147,
+   "reddit-comments": 4
+  }
+ },
+ {
+  "surface": "gemini 2.5 flash",
+  "mentions": 280,
+  "documents": 182,
+  "verdict": "resolved",
+  "models": [
+   "google/gemini-2.5-flash"
+  ],
+  "by_source": {
+   "substitution-slice": 31,
+   "reddit-sweep": 249
+  }
+ },
+ {
+  "surface": "gemini 2.5 pro",
+  "mentions": 233,
+  "documents": 119,
+  "verdict": "resolved",
+  "models": [
+   "google/gemini-2.5-pro"
+  ],
+  "by_source": {
+   "substitution-slice": 146,
+   "reddit-sweep": 87
+  }
+ },
+ {
+  "surface": "gpt 5.5",
+  "mentions": 228,
+  "documents": 37,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5.5"
+  ],
+  "by_source": {
+   "substitution-slice": 14,
+   "reddit-sweep": 210,
+   "reddit-comments": 4
+  }
+ },
+ {
+  "surface": "gpt 5.6",
+  "mentions": 207,
+  "documents": 30,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "openai/gpt-5.6-luna",
+   "openai/gpt-5.6-luna-pro",
+   "openai/gpt-5.6-sol",
+   "openai/gpt-5.6-sol-pro",
+   "openai/gpt-5.6-terra",
+   "openai/gpt-5.6-terra-pro"
+  ],
+  "by_source": {
+   "substitution-slice": 9,
+   "reddit-sweep": 196,
+   "reddit-comments": 2
+  }
+ },
+ {
+  "surface": "opus 4.5",
+  "mentions": 206,
+  "documents": 100,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.5"
+  ],
+  "by_source": {
+   "substitution-slice": 132,
+   "reddit-sweep": 67,
+   "reddit-comments": 7
+  }
+ },
+ {
+  "surface": "gpt-5.5",
+  "mentions": 204,
+  "documents": 58,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5.5"
+  ],
+  "by_source": {
+   "substitution-slice": 43,
+   "reddit-sweep": 156,
+   "reddit-comments": 5
+  }
+ },
+ {
+  "surface": "sonnet 5",
+  "mentions": 166,
+  "documents": 54,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-sonnet-5"
+  ],
+  "by_source": {
+   "substitution-slice": 111,
+   "reddit-sweep": 55
+  }
+ },
+ {
+  "surface": "gpt-5.3",
+  "mentions": 161,
+  "documents": 40,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-5.3-codex"
+  ],
+  "by_source": {
+   "substitution-slice": 12,
+   "reddit-sweep": 149
+  }
+ },
+ {
+  "surface": "gpt-5.6",
+  "mentions": 149,
+  "documents": 51,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "openai/gpt-5.6-luna",
+   "openai/gpt-5.6-luna-pro",
+   "openai/gpt-5.6-sol",
+   "openai/gpt-5.6-sol-pro",
+   "openai/gpt-5.6-terra",
+   "openai/gpt-5.6-terra-pro"
+  ],
+  "by_source": {
+   "substitution-slice": 18,
+   "reddit-sweep": 131
+  }
+ },
+ {
+  "surface": "sonnet 4.6",
+  "mentions": 142,
+  "documents": 87,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-sonnet-4.6"
+  ],
+  "by_source": {
+   "substitution-slice": 57,
+   "reddit-sweep": 78,
+   "reddit-comments": 7
+  }
+ },
+ {
+  "surface": "gemini-2.5-flash",
+  "mentions": 126,
+  "documents": 72,
+  "verdict": "resolved",
+  "models": [
+   "google/gemini-2.5-flash"
+  ],
+  "by_source": {
+   "substitution-slice": 34,
+   "reddit-sweep": 92
+  }
+ },
+ {
+  "surface": "qwen3",
+  "mentions": 125,
+  "documents": 52,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "qwen/qwen3-14b",
+   "qwen/qwen3-235b-a22b",
+   "qwen/qwen3-235b-a22b-2507",
+   "qwen/qwen3-235b-a22b-thinking-2507",
+   "qwen/qwen3-30b-a3b",
+   "qwen/qwen3-30b-a3b-instruct-2507",
+   "qwen/qwen3-30b-a3b-thinking-2507",
+   "qwen/qwen3-32b",
+   "qwen/qwen3-8b",
+   "qwen/qwen3-coder",
+   "qwen/qwen3-coder-30b-a3b-instruct",
+   "qwen/qwen3-coder-flash",
+   "qwen/qwen3-coder-next",
+   "qwen/qwen3-coder-plus",
+   "qwen/qwen3-max",
+   "qwen/qwen3-max-thinking",
+   "qwen/qwen3-next-80b-a3b-instruct",
+   "qwen/qwen3-next-80b-a3b-thinking",
+   "qwen/qwen3-vl-235b-a22b-instruct",
+   "qwen/qwen3-vl-235b-a22b-thinking",
+   "qwen/qwen3-vl-30b-a3b-instruct",
+   "qwen/qwen3-vl-30b-a3b-thinking",
+   "qwen/qwen3-vl-32b-instruct",
+   "qwen/qwen3-vl-8b-instruct",
+   "qwen/qwen3-vl-8b-thinking"
+  ],
+  "by_source": {
+   "substitution-slice": 33,
+   "reddit-sweep": 92
+  }
+ },
+ {
+  "surface": "gemini 3 pro",
+  "mentions": 119,
+  "documents": 51,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-3-pro-image",
+   "google/gemini-3-pro-image-preview"
+  ],
+  "by_source": {
+   "substitution-slice": 83,
+   "reddit-sweep": 34,
+   "reddit-comments": 2
+  }
+ },
+ {
+  "surface": "qwen3.6",
+  "mentions": 113,
+  "documents": 17,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "qwen/qwen3.6-27b",
+   "qwen/qwen3.6-35b-a3b",
+   "qwen/qwen3.6-flash",
+   "qwen/qwen3.6-max-preview",
+   "qwen/qwen3.6-plus"
+  ],
+  "by_source": {
+   "substitution-slice": 20,
+   "reddit-sweep": 93
+  }
+ },
+ {
+  "surface": "gpt-5.2",
+  "mentions": 108,
+  "documents": 33,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5.2"
+  ],
+  "by_source": {
+   "substitution-slice": 19,
+   "reddit-sweep": 89
+  }
+ },
+ {
+  "surface": "opus-4",
+  "mentions": 107,
+  "documents": 62,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4"
+  ],
+  "by_source": {
+   "substitution-slice": 27,
+   "reddit-sweep": 73,
+   "reddit-comments": 7
+  }
+ },
+ {
+  "surface": "qwen3.5",
+  "mentions": 103,
+  "documents": 23,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "qwen/qwen3.5-122b-a10b",
+   "qwen/qwen3.5-27b",
+   "qwen/qwen3.5-35b-a3b",
+   "qwen/qwen3.5-397b-a17b",
+   "qwen/qwen3.5-9b",
+   "qwen/qwen3.5-flash-02-23",
+   "qwen/qwen3.5-plus-02-15",
+   "qwen/qwen3.5-plus-20260420"
+  ],
+  "by_source": {
+   "substitution-slice": 29,
+   "reddit-sweep": 74
+  }
+ },
+ {
+  "surface": "gpt-5.4",
+  "mentions": 101,
+  "documents": 45,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5.4"
+  ],
+  "by_source": {
+   "substitution-slice": 17,
+   "reddit-sweep": 81,
+   "reddit-comments": 3
+  }
+ },
+ {
+  "surface": "sonnet 4",
+  "mentions": 95,
+  "documents": 48,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-sonnet-4"
+  ],
+  "by_source": {
+   "substitution-slice": 76,
+   "reddit-sweep": 19
+  }
+ },
+ {
+  "surface": "gemini 3",
+  "mentions": 93,
+  "documents": 37,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-3-flash-preview",
+   "google/gemini-3-pro-image",
+   "google/gemini-3-pro-image-preview"
+  ],
+  "by_source": {
+   "substitution-slice": 53,
+   "reddit-sweep": 39,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "gemini flash 2.5",
+  "mentions": 85,
+  "documents": 55,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-2.5-flash",
+   "google/gemini-2.5-flash-image",
+   "google/gemini-2.5-flash-lite"
+  ],
+  "by_source": {
+   "substitution-slice": 8,
+   "reddit-sweep": 77
+  }
+ },
+ {
+  "surface": "haiku 4.5",
+  "mentions": 83,
+  "documents": 43,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-haiku-4.5"
+  ],
+  "by_source": {
+   "substitution-slice": 31,
+   "reddit-sweep": 49,
+   "reddit-comments": 3
+  }
+ },
+ {
+  "surface": "opus-5",
+  "mentions": 78,
+  "documents": 39,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-5"
+  ],
+  "by_source": {
+   "substitution-slice": 11,
+   "reddit-sweep": 67
+  }
+ },
+ {
+  "surface": "gemini 3 flash",
+  "mentions": 76,
+  "documents": 32,
+  "verdict": "attested-gap",
+  "models": [
+   "google/gemini-3-flash-preview"
+  ],
+  "by_source": {
+   "substitution-slice": 38,
+   "reddit-sweep": 38
+  }
+ },
+ {
+  "surface": "gpt-5.1",
+  "mentions": 74,
+  "documents": 16,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5.1"
+  ],
+  "by_source": {
+   "substitution-slice": 23,
+   "reddit-sweep": 51
+  }
+ },
+ {
+  "surface": "gpt-4",
+  "mentions": 70,
+  "documents": 42,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-4"
+  ],
+  "by_source": {
+   "substitution-slice": 46,
+   "reddit-sweep": 24
+  }
+ },
+ {
+  "surface": "claude 3.7",
+  "mentions": 70,
+  "documents": 26,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 42,
+   "reddit-sweep": 28
+  }
+ },
+ {
+  "surface": "gemini 3.1 pro",
+  "mentions": 69,
+  "documents": 45,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-3.1-pro-preview",
+   "google/gemini-3.1-pro-preview-customtools"
+  ],
+  "by_source": {
+   "substitution-slice": 22,
+   "reddit-sweep": 45,
+   "reddit-comments": 2
+  }
+ },
+ {
+  "surface": "gpt-4.1",
+  "mentions": 67,
+  "documents": 34,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-4.1"
+  ],
+  "by_source": {
+   "substitution-slice": 28,
+   "reddit-sweep": 39
+  }
+ },
+ {
+  "surface": "opus 4.1",
+  "mentions": 66,
+  "documents": 27,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.1"
+  ],
+  "by_source": {
+   "substitution-slice": 48,
+   "reddit-sweep": 16,
+   "reddit-comments": 2
+  }
+ },
+ {
+  "surface": "qwen 3.5",
+  "mentions": 66,
+  "documents": 15,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 14,
+   "reddit-sweep": 52
+  }
+ },
+ {
+  "surface": "claude 3.5",
+  "mentions": 58,
+  "documents": 34,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 48,
+   "reddit-sweep": 10
+  }
+ },
+ {
+  "surface": "qwen 3.6",
+  "mentions": 58,
+  "documents": 14,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 23,
+   "reddit-sweep": 35
+  }
+ },
+ {
+  "surface": "opus 4",
+  "mentions": 53,
+  "documents": 36,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4"
+  ],
+  "by_source": {
+   "substitution-slice": 24,
+   "reddit-sweep": 26,
+   "reddit-comments": 3
+  }
+ },
+ {
+  "surface": "gemini-2.5-pro",
+  "mentions": 52,
+  "documents": 22,
+  "verdict": "resolved",
+  "models": [
+   "google/gemini-2.5-pro"
+  ],
+  "by_source": {
+   "substitution-slice": 35,
+   "reddit-sweep": 16,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "llama 4",
+  "mentions": 51,
+  "documents": 18,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "meta-llama/llama-4-maverick",
+   "meta-llama/llama-4-scout",
+   "meta-llama/llama-guard-4-12b"
+  ],
+  "by_source": {
+   "substitution-slice": 12,
+   "reddit-sweep": 39
+  }
+ },
+ {
+  "surface": "gpt5",
+  "mentions": 50,
+  "documents": 10,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5"
+  ],
+  "by_source": {
+   "substitution-slice": 48,
+   "reddit-comments": 2
+  }
+ },
+ {
+  "surface": "step 3",
+  "mentions": 50,
+  "documents": 37,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 20,
+   "reddit-sweep": 30
+  }
+ },
+ {
+  "surface": "chatgpt 5",
+  "mentions": 49,
+  "documents": 8,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 23,
+   "reddit-sweep": 25,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "step 1",
+  "mentions": 48,
+  "documents": 38,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 21,
+   "reddit-sweep": 27
+  }
+ },
+ {
+  "surface": "step 2",
+  "mentions": 48,
+  "documents": 38,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 20,
+   "reddit-sweep": 28
+  }
+ },
+ {
+  "surface": "sonnet-4",
+  "mentions": 45,
+  "documents": 35,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-sonnet-4"
+  ],
+  "by_source": {
+   "substitution-slice": 25,
+   "reddit-sweep": 20
+  }
+ },
+ {
+  "surface": "claude 4",
+  "mentions": 44,
+  "documents": 20,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "anthropic/claude-opus-4",
+   "anthropic/claude-sonnet-4"
+  ],
+  "by_source": {
+   "substitution-slice": 25,
+   "reddit-sweep": 19
+  }
+ },
+ {
+  "surface": "gpt 5.4",
+  "mentions": 43,
+  "documents": 21,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5.4"
+  ],
+  "by_source": {
+   "substitution-slice": 28,
+   "reddit-sweep": 10,
+   "reddit-comments": 5
+  }
+ },
+ {
+  "surface": "qwen3 coder",
+  "mentions": 43,
+  "documents": 9,
+  "verdict": "resolved",
+  "models": [
+   "qwen/qwen3-coder"
+  ],
+  "by_source": {
+   "substitution-slice": 10,
+   "reddit-sweep": 33
+  }
+ },
+ {
+  "surface": "llama 3.3",
+  "mentions": 42,
+  "documents": 27,
+  "verdict": "attested-gap",
+  "models": [
+   "meta-llama/llama-3.3-70b-instruct"
+  ],
+  "by_source": {
+   "substitution-slice": 11,
+   "reddit-sweep": 31
+  }
+ },
+ {
+  "surface": "glm-4.6",
+  "mentions": 42,
+  "documents": 3,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-4.6"
+  ],
+  "by_source": {
+   "substitution-slice": 41,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "qwen 3",
+  "mentions": 41,
+  "documents": 18,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 17,
+   "reddit-sweep": 24
+  }
+ },
+ {
+  "surface": "gemini 3.0",
+  "mentions": 38,
+  "documents": 12,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 34,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "gpt 5",
+  "mentions": 38,
+  "documents": 14,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5"
+  ],
+  "by_source": {
+   "substitution-slice": 19,
+   "reddit-sweep": 19
+  }
+ },
+ {
+  "surface": "opus-4.6",
+  "mentions": 36,
+  "documents": 6,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.6"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 34,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "glm 5.2",
+  "mentions": 34,
+  "documents": 12,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-5.2"
+  ],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 32
+  }
+ },
+ {
+  "surface": "claude 4.5",
+  "mentions": 32,
+  "documents": 17,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "anthropic/claude-haiku-4.5",
+   "anthropic/claude-opus-4.5",
+   "anthropic/claude-sonnet-4.5"
+  ],
+  "by_source": {
+   "substitution-slice": 27,
+   "reddit-sweep": 4,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "gemini 2.5",
+  "mentions": 31,
+  "documents": 28,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-2.5-flash",
+   "google/gemini-2.5-flash-image",
+   "google/gemini-2.5-flash-lite",
+   "google/gemini-2.5-pro",
+   "google/gemini-2.5-pro-preview",
+   "google/gemini-2.5-pro-preview-05-06"
+  ],
+  "by_source": {
+   "substitution-slice": 13,
+   "reddit-sweep": 18
+  }
+ },
+ {
+  "surface": "step 4",
+  "mentions": 30,
+  "documents": 24,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 16,
+   "reddit-sweep": 14
+  }
+ },
+ {
+  "surface": "sonnet 3.5",
+  "mentions": 29,
+  "documents": 19,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 26,
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "grok 4.5",
+  "mentions": 29,
+  "documents": 21,
+  "verdict": "resolved",
+  "models": [
+   "x-ai/grok-4.5"
+  ],
+  "by_source": {
+   "substitution-slice": 6,
+   "reddit-sweep": 23
+  }
+ },
+ {
+  "surface": "qwen3-coder",
+  "mentions": 29,
+  "documents": 13,
+  "verdict": "resolved",
+  "models": [
+   "qwen/qwen3-coder"
+  ],
+  "by_source": {
+   "substitution-slice": 9,
+   "reddit-sweep": 20
+  }
+ },
+ {
+  "surface": "grok 4.1",
+  "mentions": 29,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 26
+  }
+ },
+ {
+  "surface": "qwen2.5",
+  "mentions": 29,
+  "documents": 9,
+  "verdict": "attested-gap",
+  "models": [
+   "qwen/qwen2.5-vl-72b-instruct"
+  ],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 26
+  }
+ },
+ {
+  "surface": "gemini 3.1 flash",
+  "mentions": 28,
+  "documents": 15,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-3.1-flash-image",
+   "google/gemini-3.1-flash-image-preview",
+   "google/gemini-3.1-flash-lite",
+   "google/gemini-3.1-flash-lite-image",
+   "google/gemini-3.1-flash-lite-preview"
+  ],
+  "by_source": {
+   "substitution-slice": 15,
+   "reddit-sweep": 13
+  }
+ },
+ {
+  "surface": "gemini 3.5 flash",
+  "mentions": 28,
+  "documents": 17,
+  "verdict": "resolved",
+  "models": [
+   "google/gemini-3.5-flash"
+  ],
+  "by_source": {
+   "substitution-slice": 19,
+   "reddit-sweep": 9
+  }
+ },
+ {
+  "surface": "grok 4.6",
+  "mentions": 28,
+  "documents": 4,
+  "verdict": "resolved",
+  "models": [
+   "x-ai/grok-4.6"
+  ],
+  "by_source": {
+   "reddit-sweep": 28
+  }
+ },
+ {
+  "surface": "gemini pro 3",
+  "mentions": 28,
+  "documents": 2,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-3-pro-image",
+   "google/gemini-3-pro-image-preview"
+  ],
+  "by_source": {
+   "reddit-sweep": 28
+  }
+ },
+ {
+  "surface": "gemini-3-flash",
+  "mentions": 27,
+  "documents": 9,
+  "verdict": "attested-gap",
+  "models": [
+   "google/gemini-3-flash-preview"
+  ],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 24,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "glm 4.7",
+  "mentions": 26,
+  "documents": 7,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-4.7"
+  ],
+  "by_source": {
+   "substitution-slice": 9,
+   "reddit-sweep": 17
+  }
+ },
+ {
+  "surface": "sonnet 3.7",
+  "mentions": 26,
+  "documents": 17,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 24,
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "qwen 2.5",
+  "mentions": 24,
+  "documents": 8,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "qwen/qwen-2.5-72b-instruct",
+   "qwen/qwen-2.5-7b-instruct",
+   "qwen/qwen-2.5-coder-32b-instruct"
+  ],
+  "by_source": {
+   "substitution-slice": 4,
+   "reddit-sweep": 20
+  }
+ },
+ {
+  "surface": "opus 5.0",
+  "mentions": 24,
+  "documents": 6,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 13,
+   "reddit-sweep": 11
+  }
+ },
+ {
+  "surface": "qwen2.5-coder",
+  "mentions": 24,
+  "documents": 4,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 22
+  }
+ },
+ {
+  "surface": "glm-5.1",
+  "mentions": 24,
+  "documents": 4,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-5.1"
+  ],
+  "by_source": {
+   "reddit-sweep": 24
+  }
+ },
+ {
+  "surface": "grok-4",
+  "mentions": 23,
+  "documents": 8,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 13,
+   "reddit-sweep": 10
+  }
+ },
+ {
+  "surface": "llama 3",
+  "mentions": 23,
+  "documents": 10,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "nousresearch/hermes-3-llama-3.1-405b",
+   "nousresearch/hermes-3-llama-3.1-70b"
+  ],
+  "by_source": {
+   "substitution-slice": 14,
+   "reddit-sweep": 9
+  }
+ },
+ {
+  "surface": "gemini 2.0 flash",
+  "mentions": 22,
+  "documents": 14,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 6,
+   "reddit-sweep": 16
+  }
+ },
+ {
+  "surface": "glm 4.6",
+  "mentions": 22,
+  "documents": 11,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-4.6"
+  ],
+  "by_source": {
+   "substitution-slice": 19,
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "gpt-5-mini",
+  "mentions": 21,
+  "documents": 12,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 5,
+   "reddit-sweep": 16
+  }
+ },
+ {
+  "surface": "step 5",
+  "mentions": 21,
+  "documents": 18,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 14,
+   "reddit-sweep": 7
+  }
+ },
+ {
+  "surface": "gpt-5.4-mini",
+  "mentions": 21,
+  "documents": 5,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5.4-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 4,
+   "reddit-sweep": 17
+  }
+ },
+ {
+  "surface": "qwen3-max",
+  "mentions": 21,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "qwen/qwen3-max"
+  ],
+  "by_source": {
+   "reddit-sweep": 21
+  }
+ },
+ {
+  "surface": "gpt-4.1-mini",
+  "mentions": 20,
+  "documents": 8,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-4.1-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 8,
+   "reddit-sweep": 12
+  }
+ },
+ {
+  "surface": "llama 3.1",
+  "mentions": 20,
+  "documents": 11,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "aion-labs/aion-rp-llama-3.1-8b",
+   "meta-llama/llama-3.1-70b-instruct",
+   "meta-llama/llama-3.1-8b-instruct",
+   "nousresearch/hermes-3-llama-3.1-405b",
+   "nousresearch/hermes-3-llama-3.1-70b"
+  ],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 18
+  }
+ },
+ {
+  "surface": "gpt-4.5",
+  "mentions": 19,
+  "documents": 14,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 12,
+   "reddit-sweep": 6,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "o4-mini",
+  "mentions": 18,
+  "documents": 12,
+  "verdict": "resolved",
+  "models": [
+   "openai/o4-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 5,
+   "reddit-sweep": 13
+  }
+ },
+ {
+  "surface": "glm 5.1",
+  "mentions": 18,
+  "documents": 8,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-5.1"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 16,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "gpt-5.4 mini",
+  "mentions": 18,
+  "documents": 6,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-5.4-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 5,
+   "reddit-sweep": 13
+  }
+ },
+ {
+  "surface": "gemini 3.1",
+  "mentions": 17,
+  "documents": 12,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-3.1-flash-image",
+   "google/gemini-3.1-flash-image-preview",
+   "google/gemini-3.1-flash-lite",
+   "google/gemini-3.1-flash-lite-image",
+   "google/gemini-3.1-flash-lite-preview",
+   "google/gemini-3.1-pro-preview",
+   "google/gemini-3.1-pro-preview-customtools"
+  ],
+  "by_source": {
+   "substitution-slice": 6,
+   "reddit-sweep": 11
+  }
+ },
+ {
+  "surface": "glm-4",
+  "mentions": 17,
+  "documents": 9,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 5,
+   "reddit-sweep": 12
+  }
+ },
+ {
+  "surface": "step 6",
+  "mentions": 17,
+  "documents": 15,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 9,
+   "reddit-sweep": 7,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "qwen-3",
+  "mentions": 16,
+  "documents": 11,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 14
+  }
+ },
+ {
+  "surface": "chatgpt 5.2",
+  "mentions": 16,
+  "documents": 6,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 16
+  }
+ },
+ {
+  "surface": "glm-4.5",
+  "mentions": 16,
+  "documents": 4,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-4.5"
+  ],
+  "by_source": {
+   "substitution-slice": 4,
+   "reddit-sweep": 12
+  }
+ },
+ {
+  "surface": "gpt-5.1-thinking",
+  "mentions": 16,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 16
+  }
+ },
+ {
+  "surface": "gpt-3.5",
+  "mentions": 15,
+  "documents": 7,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "openai/gpt-3.5-turbo",
+   "openai/gpt-3.5-turbo-0613",
+   "openai/gpt-3.5-turbo-16k",
+   "openai/gpt-3.5-turbo-instruct"
+  ],
+  "by_source": {
+   "substitution-slice": 11,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "glm-5",
+  "mentions": 15,
+  "documents": 8,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-5"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 14
+  }
+ },
+ {
+  "surface": "o1-mini",
+  "mentions": 14,
+  "documents": 6,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 12,
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "claude 3",
+  "mentions": 14,
+  "documents": 10,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-3-haiku"
+  ],
+  "by_source": {
+   "substitution-slice": 9,
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "chatgpt-3",
+  "mentions": 14,
+  "documents": 4,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 14
+  }
+ },
+ {
+  "surface": "grok 4",
+  "mentions": 14,
+  "documents": 8,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 13
+  }
+ },
+ {
+  "surface": "step 8",
+  "mentions": 14,
+  "documents": 13,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 10,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "haiku 5",
+  "mentions": 14,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 13,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "ernie 4.5 turbo",
+  "mentions": 14,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 14
+  }
+ },
+ {
+  "surface": "gemini-3-pro",
+  "mentions": 14,
+  "documents": 1,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-3-pro-image",
+   "google/gemini-3-pro-image-preview"
+  ],
+  "by_source": {
+   "reddit-sweep": 14
+  }
+ },
+ {
+  "surface": "gemini 3.6 flash",
+  "mentions": 13,
+  "documents": 8,
+  "verdict": "resolved",
+  "models": [
+   "google/gemini-3.6-flash"
+  ],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 10
+  }
+ },
+ {
+  "surface": "gemini pro 2.5",
+  "mentions": 13,
+  "documents": 11,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-2.5-pro",
+   "google/gemini-2.5-pro-preview",
+   "google/gemini-2.5-pro-preview-05-06"
+  ],
+  "by_source": {
+   "substitution-slice": 7,
+   "reddit-sweep": 6
+  }
+ },
+ {
+  "surface": "gemini 3.0 pro",
+  "mentions": 13,
+  "documents": 5,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 8,
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "o3-mini",
+  "mentions": 13,
+  "documents": 7,
+  "verdict": "resolved",
+  "models": [
+   "openai/o3-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 9,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "llama-3.1",
+  "mentions": 13,
+  "documents": 5,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "aion-labs/aion-rp-llama-3.1-8b",
+   "meta-llama/llama-3.1-70b-instruct",
+   "meta-llama/llama-3.1-8b-instruct",
+   "nousresearch/hermes-3-llama-3.1-405b",
+   "nousresearch/hermes-3-llama-3.1-70b"
+  ],
+  "by_source": {
+   "reddit-sweep": 13
+  }
+ },
+ {
+  "surface": "gpt-4 turbo",
+  "mentions": 12,
+  "documents": 8,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "openai/gpt-4-turbo",
+   "openai/gpt-4-turbo-preview"
+  ],
+  "by_source": {
+   "substitution-slice": 7,
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "step 7",
+  "mentions": 12,
+  "documents": 11,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 8,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "grok 4.3",
+  "mentions": 12,
+  "documents": 9,
+  "verdict": "resolved",
+  "models": [
+   "x-ai/grok-4.3"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 11
+  }
+ },
+ {
+  "surface": "opus-4.8",
+  "mentions": 12,
+  "documents": 5,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.8"
+  ],
+  "by_source": {
+   "reddit-sweep": 11,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "claude 5",
+  "mentions": 11,
+  "documents": 7,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "anthropic/claude-fable-5",
+   "anthropic/claude-opus-5",
+   "anthropic/claude-sonnet-5"
+  ],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 8
+  }
+ },
+ {
+  "surface": "qwen-3.6",
+  "mentions": 11,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 8
+  }
+ },
+ {
+  "surface": "step 9",
+  "mentions": 11,
+  "documents": 10,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 7,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "gpt 5.2",
+  "mentions": 11,
+  "documents": 8,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5.2"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 10
+  }
+ },
+ {
+  "surface": "sonnet-5",
+  "mentions": 11,
+  "documents": 9,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-sonnet-5"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 10
+  }
+ },
+ {
+  "surface": "opus5",
+  "mentions": 11,
+  "documents": 4,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 11
+  }
+ },
+ {
+  "surface": "qwen 3 max",
+  "mentions": 10,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 6,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "claude-3",
+  "mentions": 10,
+  "documents": 6,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-3-haiku"
+  ],
+  "by_source": {
+   "substitution-slice": 8,
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "gemini-3.1-flash",
+  "mentions": 10,
+  "documents": 9,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-3.1-flash-image",
+   "google/gemini-3.1-flash-image-preview",
+   "google/gemini-3.1-flash-lite",
+   "google/gemini-3.1-flash-lite-image",
+   "google/gemini-3.1-flash-lite-preview"
+  ],
+  "by_source": {
+   "substitution-slice": 4,
+   "reddit-sweep": 5,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "deepseek 3.2",
+  "mentions": 10,
+  "documents": 10,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 5,
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "claude-3.5",
+  "mentions": 10,
+  "documents": 7,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 6,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "sonnet-4.5",
+  "mentions": 10,
+  "documents": 5,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-sonnet-4.5"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 9
+  }
+ },
+ {
+  "surface": "gpt 4.1",
+  "mentions": 9,
+  "documents": 8,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-4.1"
+  ],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 6
+  }
+ },
+ {
+  "surface": "gemini 1.5 flash",
+  "mentions": 9,
+  "documents": 8,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 7,
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "glm-5.2",
+  "mentions": 9,
+  "documents": 6,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-5.2"
+  ],
+  "by_source": {
+   "substitution-slice": 6,
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "gpt-5 mini",
+  "mentions": 9,
+  "documents": 8,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "openai/gpt-5-image-mini",
+   "openai/gpt-5-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 6
+  }
+ },
+ {
+  "surface": "chatgpt-5",
+  "mentions": 9,
+  "documents": 5,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 5,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "opus 3",
+  "mentions": 9,
+  "documents": 5,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 5,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "claude-4",
+  "mentions": 9,
+  "documents": 5,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "anthropic/claude-opus-4",
+   "anthropic/claude-sonnet-4"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 8
+  }
+ },
+ {
+  "surface": "step-20",
+  "mentions": 9,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 9
+  }
+ },
+ {
+  "surface": "llama-3.3",
+  "mentions": 9,
+  "documents": 7,
+  "verdict": "attested-gap",
+  "models": [
+   "meta-llama/llama-3.3-70b-instruct"
+  ],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 6
+  }
+ },
+ {
+  "surface": "gpt 5 mini",
+  "mentions": 9,
+  "documents": 3,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 6
+  }
+ },
+ {
+  "surface": "gpt 5.3",
+  "mentions": 9,
+  "documents": 5,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-5.3-codex"
+  ],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 7
+  }
+ },
+ {
+  "surface": "haiku-4",
+  "mentions": 9,
+  "documents": 8,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 7
+  }
+ },
+ {
+  "surface": "glm-4.7",
+  "mentions": 8,
+  "documents": 6,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-4.7"
+  ],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "o4 mini",
+  "mentions": 8,
+  "documents": 8,
+  "verdict": "resolved",
+  "models": [
+   "openai/o4-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 5,
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "gemini flash 2.0",
+  "mentions": 8,
+  "documents": 5,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "gpt-5 nano",
+  "mentions": 8,
+  "documents": 7,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-5-nano"
+  ],
+  "by_source": {
+   "reddit-sweep": 8
+  }
+ },
+ {
+  "surface": "chatgpt 5.6",
+  "mentions": 8,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 8
+  }
+ },
+ {
+  "surface": "grok 4.1 fast",
+  "mentions": 8,
+  "documents": 5,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 8
+  }
+ },
+ {
+  "surface": "llama 3.2",
+  "mentions": 7,
+  "documents": 4,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "meta-llama/llama-3.2-1b-instruct",
+   "meta-llama/llama-3.2-3b-instruct"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 6
+  }
+ },
+ {
+  "surface": "phi-4",
+  "mentions": 7,
+  "documents": 4,
+  "verdict": "resolved",
+  "models": [
+   "microsoft/phi-4"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 6
+  }
+ },
+ {
+  "surface": "qwen 3.6 plus",
+  "mentions": 7,
+  "documents": 4,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 4,
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "glm 4.5 air",
+  "mentions": 7,
+  "documents": 5,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-4.5-air"
+  ],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "gpt-5.5 pro",
+  "mentions": 7,
+  "documents": 5,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-5.5-pro"
+  ],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "gpt 5.1",
+  "mentions": 7,
+  "documents": 4,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5.1"
+  ],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "grok 3",
+  "mentions": 7,
+  "documents": 7,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "grok-4 turbo",
+  "mentions": 7,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 7
+  }
+ },
+ {
+  "surface": "llama-4",
+  "mentions": 7,
+  "documents": 3,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "meta-llama/llama-4-maverick",
+   "meta-llama/llama-4-scout",
+   "meta-llama/llama-guard-4-12b"
+  ],
+  "by_source": {
+   "reddit-sweep": 7
+  }
+ },
+ {
+  "surface": "qwen3.8-max",
+  "mentions": 7,
+  "documents": 3,
+  "verdict": "resolved",
+  "models": [
+   "qwen/qwen3.8-max"
+  ],
+  "by_source": {
+   "reddit-sweep": 7
+  }
+ },
+ {
+  "surface": "gemini 2.0",
+  "mentions": 6,
+  "documents": 5,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "qwen 3 coder",
+  "mentions": 6,
+  "documents": 6,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 4,
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "opus-4.7",
+  "mentions": 6,
+  "documents": 4,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.7"
+  ],
+  "by_source": {
+   "substitution-slice": 4,
+   "reddit-sweep": 1,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "glm 4.5",
+  "mentions": 6,
+  "documents": 4,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-4.5"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "claude 4.0",
+  "mentions": 6,
+  "documents": 4,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "sonnet-4.6",
+  "mentions": 6,
+  "documents": 3,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-sonnet-4.6"
+  ],
+  "by_source": {
+   "substitution-slice": 5,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "claude 4.8",
+  "mentions": 6,
+  "documents": 4,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.8"
+  ],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "chatgpt 5.2 thinking",
+  "mentions": 6,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 6
+  }
+ },
+ {
+  "surface": "opus-4.5",
+  "mentions": 6,
+  "documents": 4,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.5"
+  ],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "gemini 3.0 flash",
+  "mentions": 6,
+  "documents": 4,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 6
+  }
+ },
+ {
+  "surface": "minimax2.7",
+  "mentions": 6,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 6
+  }
+ },
+ {
+  "surface": "ernie 4.5",
+  "mentions": 6,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "baidu/ernie-4.5-vl-424b-a47b"
+  ],
+  "by_source": {
+   "reddit-sweep": 6
+  }
+ },
+ {
+  "surface": "gpt-3.5 turbo",
+  "mentions": 6,
+  "documents": 1,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "openai/gpt-3.5-turbo",
+   "openai/gpt-3.5-turbo-0613",
+   "openai/gpt-3.5-turbo-16k",
+   "openai/gpt-3.5-turbo-instruct"
+  ],
+  "by_source": {
+   "reddit-sweep": 6
+  }
+ },
+ {
+  "surface": "gemini 3.5 pro",
+  "mentions": 5,
+  "documents": 5,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 5
+  }
+ },
+ {
+  "surface": "chatgpt 4.5",
+  "mentions": 5,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 5
+  }
+ },
+ {
+  "surface": "glm 5",
+  "mentions": 5,
+  "documents": 4,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-5"
+  ],
+  "by_source": {
+   "substitution-slice": 4,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt-4.1 mini",
+  "mentions": 5,
+  "documents": 5,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-4.1-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "llama 2",
+  "mentions": 5,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "gpt 3.5",
+  "mentions": 5,
+  "documents": 2,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "openai/gpt-3.5-turbo",
+   "openai/gpt-3.5-turbo-0613",
+   "openai/gpt-3.5-turbo-16k",
+   "openai/gpt-3.5-turbo-instruct"
+  ],
+  "by_source": {
+   "substitution-slice": 5
+  }
+ },
+ {
+  "surface": "gemini-3",
+  "mentions": 5,
+  "documents": 3,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-3-flash-preview",
+   "google/gemini-3-pro-image",
+   "google/gemini-3-pro-image-preview"
+  ],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "llama3.1",
+  "mentions": 5,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "opus 5 max",
+  "mentions": 5,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "qwen3.7 flash",
+  "mentions": 5,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "qwen/qwen3.7-flash"
+  ],
+  "by_source": {
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "gpt-1",
+  "mentions": 5,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "codestral 2508",
+  "mentions": 5,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "mistralai/codestral-2508"
+  ],
+  "by_source": {
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "opus 4.5 thinking",
+  "mentions": 5,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 5
+  }
+ },
+ {
+  "surface": "gpt5.6",
+  "mentions": 4,
+  "documents": 4,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 4
+  }
+ },
+ {
+  "surface": "gpt-5-nano",
+  "mentions": 4,
+  "documents": 4,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5-nano"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "qwen2",
+  "mentions": 4,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 4
+  }
+ },
+ {
+  "surface": "gpt5.1",
+  "mentions": 4,
+  "documents": 4,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5.1"
+  ],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "claude 2",
+  "mentions": 4,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "gpt 5 pro",
+  "mentions": 4,
+  "documents": 2,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5-pro"
+  ],
+  "by_source": {
+   "substitution-slice": 3,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "gpt 5.4 mini",
+  "mentions": 4,
+  "documents": 3,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5.4-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "claude 4.7",
+  "mentions": 4,
+  "documents": 4,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.7"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 1,
+   "reddit-comments": 2
+  }
+ },
+ {
+  "surface": "llama 2 chat",
+  "mentions": 4,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 4
+  }
+ },
+ {
+  "surface": "llama2",
+  "mentions": 4,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 4
+  }
+ },
+ {
+  "surface": "o1-pro",
+  "mentions": 4,
+  "documents": 4,
+  "verdict": "resolved",
+  "models": [
+   "openai/o1-pro"
+  ],
+  "by_source": {
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "opus4.8",
+  "mentions": 4,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "minimax 2.7",
+  "mentions": 4,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "gemini-3.1-pro",
+  "mentions": 4,
+  "documents": 4,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-3.1-pro-preview",
+   "google/gemini-3.1-pro-preview-customtools"
+  ],
+  "by_source": {
+   "reddit-sweep": 3,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "gpt 5 nano",
+  "mentions": 4,
+  "documents": 2,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5-nano"
+  ],
+  "by_source": {
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "minimax-2.5",
+  "mentions": 4,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "claude-5",
+  "mentions": 4,
+  "documents": 3,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "anthropic/claude-fable-5",
+   "anthropic/claude-opus-5",
+   "anthropic/claude-sonnet-5"
+  ],
+  "by_source": {
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "haiku-4.5",
+  "mentions": 4,
+  "documents": 4,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-haiku-4.5"
+  ],
+  "by_source": {
+   "reddit-sweep": 3,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "gpt-4.1 nano",
+  "mentions": 4,
+  "documents": 4,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-4.1-nano"
+  ],
+  "by_source": {
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "gemini-flash-2.5",
+  "mentions": 4,
+  "documents": 2,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-2.5-flash",
+   "google/gemini-2.5-flash-image",
+   "google/gemini-2.5-flash-lite"
+  ],
+  "by_source": {
+   "reddit-sweep": 4
+  }
+ },
+ {
+  "surface": "gemini 1.5 pro",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "grok-3",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "kimi 2.6",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "gpt 5.1 thinking",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "gemini-2",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "kimi 2.5",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "sonnet 3.6",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "sonnet 4.0",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "opus 4.7 thinking",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "claude 3.0",
+  "mentions": 3,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "claude 2.0",
+  "mentions": 3,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "llama-2",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "gpt-3.5-turbo",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-3.5-turbo"
+  ],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "jamba 1.5",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "step 22",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "step 20",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "step 25",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "grok 4 fast",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "gpt-3",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt-2",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-5.4-image-2"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-comments": 2
+  }
+ },
+ {
+  "surface": "deepseek flash 0731",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "attested-gap",
+  "models": [
+   "deepseek/deepseek-v4-flash-0731"
+  ],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "claude4",
+  "mentions": 3,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "chatgpt 4",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "chatgpt-4",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 3
+  }
+ },
+ {
+  "surface": "opus 4.0",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "gemini-3.5-flash",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "resolved",
+  "models": [
+   "google/gemini-3.5-flash"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "gpt-5.3-chat",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "grok 2",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "gemini-2.0-flash",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt2",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "gemini-1.5-pro",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "opus 5 fast",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "sonnet 3",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "glm-4.7-flash",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-4.7-flash"
+  ],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "glm-4.5-flash",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "llama-3.2",
+  "mentions": 3,
+  "documents": 1,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "meta-llama/llama-3.2-1b-instruct",
+   "meta-llama/llama-3.2-3b-instruct"
+  ],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "gemini-1.5-flash",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "gpt-5.4 pro",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-5.4-pro"
+  ],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "claude 2026",
+  "mentions": 3,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "grok-3-mini",
+  "mentions": 3,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "gpt-5.2 pro",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-5.2-pro"
+  ],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "minimax 3",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "gemini 2.5-flash",
+  "mentions": 3,
+  "documents": 2,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-2.5-flash",
+   "google/gemini-2.5-flash-image",
+   "google/gemini-2.5-flash-lite"
+  ],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "yi 1.5",
+  "mentions": 3,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "gpt5.4 nano",
+  "mentions": 3,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "opus 4.6 thinking",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "glm 4",
+  "mentions": 3,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 3
+  }
+ },
+ {
+  "surface": "sonnet 4.7",
+  "mentions": 3,
+  "documents": 3,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1,
+   "reddit-comments": 2
+  }
+ },
+ {
+  "surface": "llama-3",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "nousresearch/hermes-3-llama-3.1-405b",
+   "nousresearch/hermes-3-llama-3.1-70b"
+  ],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "minimax 2.5",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "opus 4.7 max",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "qwen 3.5 max",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "deepseek 4",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "o3 mini",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "resolved",
+  "models": [
+   "openai/o3-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "grok 3 mini",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "chatgpt 3.5",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "claude max 5",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "chatgpt 5.1",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "gemini-pro-2.5",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-2.5-pro",
+   "google/gemini-2.5-pro-preview",
+   "google/gemini-2.5-pro-preview-05-06"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "deepseek 4 flash",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "gpt5.3",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "glm4.6",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-4.6"
+  ],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "step 10",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "qwen 2.5 coder",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "attested-gap",
+  "models": [
+   "qwen/qwen-2.5-coder-32b-instruct"
+  ],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "grok 5",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "mistral 3",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "mistralai/mistral-medium-3",
+   "mistralai/mistral-medium-3-5"
+  ],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "gemini 2",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "haiku 3.5",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "grok 4.5 fast",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "gemini flash 3",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "attested-gap",
+  "models": [
+   "google/gemini-3-flash-preview"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "claude 4.1",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.1"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "chatgpt-5.6",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "claude 4.6",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "anthropic/claude-opus-4.6",
+   "anthropic/claude-sonnet-4.6"
+  ],
+  "by_source": {
+   "substitution-slice": 1,
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "llama3.3",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 2
+  }
+ },
+ {
+  "surface": "claude-3.7",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "sonnet-3.7",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "phi-3.5-mini",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "qwen3.6-plus",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "resolved",
+  "models": [
+   "qwen/qwen3.6-plus"
+  ],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "llama3.2",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "qwen3.6 plus",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "qwen/qwen3.6-plus"
+  ],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "gemini 2.0 pro",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "nova-3",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "gpt 1",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "gpt-6",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "opus46",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "kimi 2.7 coder",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "gemini 1",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "glm 5.5",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1,
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "gpt-5.5 thinking",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "grok-4-fast",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "opus 98.3",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "qwen 1.5",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "qwen 2",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "o3-pro",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "resolved",
+  "models": [
+   "openai/o3-pro"
+  ],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "gpt-5.4 nano",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-5.4-nano"
+  ],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "grok 3-mini",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "qwen35",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "sonnet4.6",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "minimax2.5",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "glm5.1",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-5.1"
+  ],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "step 3.5 flash",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "stepfun/step-3.5-flash"
+  ],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "opus-47",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "nova 2",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "amazon/nova-2-lite-v1"
+  ],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "nova 2 lite",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "amazon/nova-2-lite-v1"
+  ],
+  "by_source": {
+   "reddit-sweep": 2
+  }
+ },
+ {
+  "surface": "sonnet 4.8",
+  "mentions": 2,
+  "documents": 2,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-comments": 2
+  }
+ },
+ {
+  "surface": "gemini 56",
+  "mentions": 2,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-comments": 2
+  }
+ },
+ {
+  "surface": "phi-4-mini",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "grok 3.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "sonnet4",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "glm-4.5-air",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-4.5-air"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "qwen 3.5 plus",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "haiku-3",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-3-haiku"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gemini-4.0",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "qwen3.6 max",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "qwen/qwen3.6-max-preview"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "chatgpt-5.1",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "chatgpt 5 mini",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gpt 40",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "chatgpt 5 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "o 5.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "o 7.3",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gpt-5.1 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "step 3.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "stepfun/step-3.5-flash"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gemini 3.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-3.5-flash",
+   "google/gemini-3.5-flash-lite"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gpt-5.1-mini",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-5.1-codex-mini"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gemini-3.1 pro",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-3.1-pro-preview",
+   "google/gemini-3.1-pro-preview-customtools"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gpt5.2 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "opus 4.8 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "sonnet-45",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "phi 4",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "microsoft/phi-4"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "phi-2",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "grok 4.0",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gpt 3",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gpt 4",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-4"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "opus4.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "deepseek 4 pro",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gpt-5 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "haiku 4",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "deepseek 3.0",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gpt-9804",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "qwen3.1",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "claude 3.7 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "step 11",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "step 12",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "grok3",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "grok-4.6",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "x-ai/grok-4.6"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "mistral 2",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gpt 5.2 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gpt-5 plus",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gemini 2.5-pro",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-2.5-pro",
+   "google/gemini-2.5-pro-preview",
+   "google/gemini-2.5-pro-preview-05-06"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "sonnet4.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "claude max20",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gemini 3 fast",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "chatgpt 5.5 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "o1 pro",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "openai/o1-pro"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "sonnet 4.1",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gpt4.1",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-4.1"
+  ],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "gpt 4.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "sonnet-20240620",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "substitution-slice": 1
+  }
+ },
+ {
+  "surface": "deepseek 0813",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "deepseek/deepseek-v4-pro-0813"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "qwen 3.8 max",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gemini-25",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "sonnet-3.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "deepseek-coder 6",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "kimi2.6",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "qwen-coder3",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt4",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-4"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "sonnet 60",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gemini pro 40",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "qwen-4",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "mistral-3",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "mistralai/mistral-medium-3",
+   "mistralai/mistral-medium-3-5"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "claude 2 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "qwen 3.7 plus",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "opus 4.8 fast",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "glm 4.7 flash",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-4.7-flash"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "opus 4.6 fast",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "opus 4.7 fast",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt 6.7",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt 3.5 turbo",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-3.5-turbo"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "o 2026",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt-5.4 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt-5.2 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "sonnet 4 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "glm 5.0",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "glm 5.0 turbo",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "step flash 3.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "stepfun/step-3.5-flash"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gemini pro 3.0",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "deepseek 7",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "deepseek 9",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "claude 7",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gemini 1.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "claude 1",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "claude 2.1",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gemini 1.0 pro",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gemini 1.0",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "qwen 2.5 max",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "grok 4.20",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "x-ai/grok-4.20"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "qwen 3.5 flash",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt-4.1-nano",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-4.1-nano"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "grok 32",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt-1 thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "minimax-3",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "opus-4.1",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-opus-4.1"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gemini 3.6",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "google/gemini-3.6-flash"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "opus 4.8 max",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "chatgpt 5.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "yi-1.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gemini-2.5 flash",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-2.5-flash",
+   "google/gemini-2.5-flash-image",
+   "google/gemini-2.5-flash-lite"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gemini-3.0-pro",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "qwen-3.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt3.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "haiku-3.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "qwen 27",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "step 1024",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "minimax2.7 plus",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "phi-3.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "chatgpt 5.2 chat",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "glm-4.5 air",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "z-ai/glm-4.5-air"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "grok 4.2 fast",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "phi4",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "microsoft/phi-4"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "glm5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-5"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gemini flash-2.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "google/gemini-2.5-flash",
+   "google/gemini-2.5-flash-image",
+   "google/gemini-2.5-flash-lite"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt5-thinking",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt 5.4 nano",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "openai/gpt-5.4-nano"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "chatgpt-2026",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gemini-flash-3",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "google/gemini-3-flash-preview"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "codestral-2501",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "claude-4.5",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap-ambiguous",
+  "models": [
+   "anthropic/claude-haiku-4.5",
+   "anthropic/claude-opus-4.5",
+   "anthropic/claude-sonnet-4.5"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "chatgpt 5.3",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "qwen3.8 max",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "qwen/qwen3.8-max"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gpt 5.4-pro",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-5.4-pro"
+  ],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "claude 5.6",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "gemini-001",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "nova 2 pro",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-sweep": 1
+  }
+ },
+ {
+  "surface": "haiku 3",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "anthropic/claude-3-haiku"
+  ],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "glm 5 turbo",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "resolved",
+  "models": [
+   "z-ai/glm-5-turbo"
+  ],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "opus 100",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "chatgpt 5.5 pro",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "gemini 63",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "mistral 61",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "llama4",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "mistral 38",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "minimax 10",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "gpt 2",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "attested-gap",
+  "models": [
+   "openai/gpt-5.4-image-2"
+  ],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "opus4.6",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "chatgpt 4.1",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ },
+ {
+  "surface": "gpt 2.0",
+  "mentions": 1,
+  "documents": 1,
+  "verdict": "unknown-model",
+  "models": [],
+  "by_source": {
+   "reddit-comments": 1
+  }
+ }
+]

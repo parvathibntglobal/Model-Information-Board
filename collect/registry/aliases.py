@@ -345,6 +345,41 @@ def find_collisions(rows: list[AliasRow]) -> dict[str, list[str]]:
 #: and `gpt 4.1 mini` are different literal queries and match different posts.
 SPELLING_STYLES = ("spaced", "hyphenated", "concatenated")
 
+# THE FLOOR STAYS AT THREE, AND IT COUNTS RENDERINGS — #33, ruled.
+#
+# The surface extract measured what the corpus attests: a median of 2 distinct
+# surfaces per discussed model, 17 of 72 reaching three, 18 appearing under
+# exactly one (docs/measurements/alias-surfaces.md §2). Read as usage, a floor of
+# three looks unmet by 55 of 72 models — which invited replacing it with a floor
+# of three ATTESTED surfaces. That is refused, for two reasons:
+#
+#   * the remedy would be fabrication. 55 models would each be fixed by somebody
+#     inventing a spelling to satisfy a gate, and a check that produces invented
+#     data is worse than no check.
+#   * spaced, hyphenated and concatenated are always derivable FROM THE ID. So
+#     the floor as written is always satisfiable without judgement, which is the
+#     property that makes it fair to fail a load over.
+#
+#     "Always" has one exception, counted rather than waved at: a SINGLE-TOKEN
+#     local part has no separator to vary, so it has no spaced or hyphenated
+#     rendering and satisfying the floor would mean choosing where to break the
+#     word. That is 1 of the 155 ids in the registry slice — `openrouter/auto`,
+#     which names a router and not a model. Pinned in
+#     tests/test_registry_spelling.py so the next single-token id arrives as a
+#     failing test rather than as a demand for judgement.
+#
+# So this gate reads STRING SHAPE and never mention counts: `spelling_styles`
+# takes surfaces, `spelling_gaps` takes models, and neither has a route to the
+# corpus. An unattested rendering costs a query and misses nothing — it is waste
+# against the budget, never an error, which is the retrieval argument at the top
+# of this module rather than a claim about how people write.
+#
+# The family surface is NOT part of the floor and must not become part of it.
+# `collect/registry/propose.py` keeps it as a permanent INCOMPLETE slot for a
+# reviewer to fill: required-but-INCOMPLETE-able. A gate would demand it, and a
+# bare `opus` is attested constantly and attributable to no single model, so the
+# only way to satisfy such a gate is to assert an attribution the data refuses.
+
 
 @dataclass(frozen=True, order=True)
 class SpellingGap:
@@ -415,6 +450,14 @@ def spelling_gaps(models: list[SeedModel]) -> list[SpellingGap]:
 
 
 def check_spelling_coverage(models: list[SeedModel]) -> None:
+    """Fail the load where a model cannot be found by one of the three renderings.
+
+    Three, counted as renderings and never as attestations — see the ruling
+    beside `SPELLING_STYLES`. The argument for the number is retrieval, not
+    usage: the corpus attests a median of 2 surfaces per model, and that is a
+    reason to expect an unattested rendering to return nothing, not a reason to
+    make the model unfindable by it.
+    """
     gaps = spelling_gaps(models)
     if gaps:
         raise SpellingCoverageError(gaps)

@@ -463,7 +463,10 @@ def test_a_model_with_no_prices_gets_no_all_null_history_row(conn):
         "price_out": None,
         "price_cached_read": None,
     }
-    assert _record_prices(conn, row) is None
+    observation, observed_at = _record_prices(conn, row)
+    assert not observation.append, "three NULLs assert nothing"
+    assert not observation.moved
+    assert observed_at is None
     assert _scalar(conn, "SELECT count(*) FROM pricing_history") == 6
 
 

@@ -19,6 +19,7 @@ require_feed_libraries()
 from collect.adapters.blog.options import (  # noqa: E402
     DEFAULT_EXTRACTION,
     ExtractionOptions,
+    UnrosteredOption,
 )
 from collect.adapters.blog.parse import (  # noqa: E402
     NotBytesError,
@@ -178,6 +179,36 @@ def test_default_options_are_the_ones_that_matter():
     assert DEFAULT_EXTRACTION.include_formatting is True
 
 
+def test_entries_sharing_an_id_are_dropped_and_counted_apart():
+    """An id shared by two entries is not an id, and it is not `unidentifiable`.
+
+    Live on one of the nine seeded feeds: hamel.dev gives the site root as both
+    guid and link for 8 of 20 entries. Every consequence of keeping them is
+    silent — the fetcher pulls a home page eight times, the document insert
+    counts seven as `already_present`, and `assemble_article` derives one
+    thread_context id from one document id, so seven flattenings vanish under
+    ON CONFLICT DO NOTHING. The surviving row holds the home page and reads as
+    an article.
+
+    Counted separately from `unidentifiable` because the two need different
+    responses: one feed omits identity, the other publishes a placeholder.
+    """
+    parsed = parse_feed(fixture("feed_shared_ids.xml"))
+
+    assert [e.title for e in parsed.entries] == ["A real article with its own permalink"]
+    assert parsed.ambiguous == 2
+    assert parsed.unidentifiable == 0
+
+
+def test_a_missing_id_and_a_shared_id_are_counted_in_different_fields():
+    """Rule 6: two causes that need different fixes must not share a counter."""
+    no_ids = parse_feed(fixture("feed_no_ids.xml"))
+    shared = parse_feed(fixture("feed_shared_ids.xml"))
+
+    assert no_ids.unidentifiable and not no_ids.ambiguous
+    assert shared.ambiguous and not shared.unidentifiable
+
+
 def test_nothing_extractable_returns_none_not_empty_string():
     """None means nothing was extracted. An empty document is a claim of absence.
 
@@ -201,6 +232,99 @@ def test_extraction_version_moves_with_the_options():
     assert baseline.startswith("trafilatura-")
 
 
+def test_the_pipeline_generation_reaches_the_version_and_the_fingerprint():
+    """The gap this closes: our own steps moving offsets under one identifier.
+
+    `pipeline` is not a trafilatura option, so nothing about trafilatura's
+    version or options moves when it changes. It has to move BOTH halves of the
+    identifier - the legible component and the opts hash - or a reader has two
+    values that can disagree about the same field.
+    """
+    # ASSERTED AS A RELATIONSHIP, NOT AS THE CURRENT VALUE. This read
+    # `"+pipeline-1+" in baseline` and broke the day the default was bumped 1 -> 2
+    # for the template-block strip — a test pinning a value where it meant to pin
+    # a property, which is the shape that also pinned `outcome_of() == "fetched"`
+    # until the constraint disagreed with it.
+    current = DEFAULT_EXTRACTION.pipeline
+    other = current + 1
+
+    baseline = current_extraction_version()
+    bumped = current_extraction_version(ExtractionOptions(pipeline=other))
+
+    assert f"+pipeline-{current}+" in baseline
+    assert f"+pipeline-{other}+" in bumped
+    assert baseline != bumped, "the legible component has to move"
+    assert (
+        DEFAULT_EXTRACTION.fingerprint()
+        != ExtractionOptions(pipeline=other).fingerprint()
+    ), "and so does the opts hash, or a reader has two values that can disagree"
+
+
+def test_pipeline_is_fingerprinted_and_not_passed():
+    """Both facts about one field, asserted together because they are a pair.
+
+    Fingerprinted and passed is what a trafilatura option is; fingerprinted and
+    not passed is what ours is. A field that is neither is the failure below.
+    """
+    assert "pipeline" not in DEFAULT_EXTRACTION.as_kwargs()
+    assert "pipeline" in {
+        pair.split("=")[0]
+        for pair in _fingerprint_payload(DEFAULT_EXTRACTION)
+    }
+
+
+def _fingerprint_payload(options: ExtractionOptions) -> list[str]:
+    """What `fingerprint()` hashes, rebuilt from the same rostered fields.
+
+    Reaches into a private method on purpose: the alternative is asserting that
+    two hashes differ, which cannot say WHICH field made the difference.
+    """
+    return [f"{key}={value}" for key, value in sorted(options._rostered().items())]
+
+
+def test_an_option_in_neither_roster_refuses_rather_than_being_folded_in():
+    """The difference between a fingerprint and a hash of whatever is in the dict.
+
+    A new field arriving silently is the shape this whole change is about: the
+    identifier keeps its meaning only while what it ranges over is declared.
+    Silently including an unknown field would still change the hash, which is
+    why this is easy to get wrong - the value moves, so it looks like it worked,
+    and nothing states whether the field reaches trafilatura.
+    """
+    from dataclasses import dataclass
+
+    @dataclass(frozen=True)
+    class WithAnUndeclaredStep(ExtractionOptions):
+        strip_footnote_links: bool = True
+
+    with pytest.raises(UnrosteredOption) as refusal:
+        WithAnUndeclaredStep().fingerprint()
+
+    assert "strip_footnote_links" in str(refusal.value)
+    assert "_PIPELINE_KEYS" in str(refusal.value)
+
+
+def test_a_roster_entry_with_no_field_behind_it_refuses(monkeypatch):
+    """The quiet direction: the roster over-claims and the hash still moves.
+
+    Removing a field changes the fingerprint, so nothing looks wrong from
+    outside while the set of inputs it covers has shrunk. This is the check
+    that makes the roster a statement about coverage rather than a comment.
+    """
+    from collect.adapters.blog import options as options_module
+
+    monkeypatch.setattr(
+        options_module,
+        "_PIPELINE_KEYS",
+        frozenset({"pipeline", "strip_footnote_links"}),
+    )
+
+    with pytest.raises(UnrosteredOption) as refusal:
+        DEFAULT_EXTRACTION.fingerprint()
+
+    assert "strip_footnote_links" in str(refusal.value)
+
+
 def test_every_option_reaches_trafilatura(monkeypatch):
     """The call site lists options explicitly, so it can drift from the dataclass.
 
@@ -210,6 +334,7 @@ def test_every_option_reaches_trafilatura(monkeypatch):
     `ExtractionOptions` that nobody wired up fails here rather than being
     silently ignored at extraction time.
     """
+    from collect.adapters.blog import options as options_module
     from collect.adapters.blog import parse as parse_module
 
     captured: dict[str, object] = {}
@@ -223,3 +348,79 @@ def test_every_option_reaches_trafilatura(monkeypatch):
 
     passed = {key: value for key, value in captured.items() if key != "url"}
     assert passed == DEFAULT_EXTRACTION.as_kwargs()
+    # `as_kwargs` is now a filtered view rather than the whole dataclass, so
+    # this asserts the roster too: a trafilatura option dropped from
+    # `_TRAFILATURA_KEYS` would vanish from both sides and pass silently.
+    assert set(passed) == set(options_module._TRAFILATURA_KEYS)
+
+
+# ── the template block: an author's link index is not a claim ──────────────
+
+
+class TestStripTemplateBlock:
+    """13 of 30 stored articles named a model ONLY inside the site's own
+    "Recent articles" list. A model named in a headline there is named by the
+    headline, not by anyone writing about it — and a claim built on it is
+    verified, attributed and about nothing."""
+
+    def test_it_drops_the_block_and_everything_after(self):
+        from collect.adapters.blog.parse import strip_template_block
+
+        text = (
+            "13th August 2026\n\n"
+            "Performance boost for DuckDB exports, see here.\n\n"
+            "## Recent articles\n\n"
+            "- Qwen 3.8 27B is excellent, but it defaults to wildly overthinking things\n"
+        )
+        out = strip_template_block(text, "Recent articles")
+
+        assert out == "13th August 2026\n\nPerformance boost for DuckDB exports, see here."
+        assert "Qwen" not in out, "the borrowed headline is the whole point"
+
+    def test_the_same_phrase_in_a_sentence_survives(self):
+        """Anchored on the heading line, not on the words.
+
+        A substring match here would be the boundary defect this project has
+        already recorded twice — `pro` inside "problem", `free` inside "freeze".
+        """
+        from collect.adapters.blog.parse import strip_template_block
+
+        text = "I read recent articles about Qwen daily, and the Recent articles vary."
+        assert strip_template_block(text, "Recent articles") == text
+
+    def test_a_document_without_the_block_is_returned_unchanged(self):
+        from collect.adapters.blog.parse import strip_template_block
+
+        text = "17th August 2026\n\nQwen 3.8 27B scores 52 on my own benchmark."
+        assert strip_template_block(text, "Recent articles") == text
+
+    def test_the_rule_is_per_feed_and_absent_is_distinguishable_from_none(self):
+        """A rule that fires on one site and silently does nothing on eight is
+        the thing to avoid, so absence is a value rather than an empty match."""
+        from collect.adapters.blog.parse import TEMPLATE_BLOCKS, template_block_for
+
+        assert template_block_for("blog:simonwillison.net") == "Recent articles"
+        assert template_block_for("blog:hamel.dev") is None, (
+            "no rule recorded is not the same as no template — eight feeds have "
+            "no stored HTML, so their templates are unverified rather than absent"
+        )
+        assert template_block_for(None) is None
+        assert len(TEMPLATE_BLOCKS) == 1, (
+            "one feed has been measured; a second entry wants a measurement "
+            "behind it rather than a guess from another site's markup"
+        )
+
+    def test_extraction_leaves_the_block_alone_unless_a_rule_is_passed(self):
+        """Opt-in, so no existing caller changes meaning by not being updated."""
+        from collect.adapters.blog.parse import extract_article_text
+
+        html = (
+            b"<html><body><article><p>Performance boost for DuckDB exports.</p>"
+            b"<h2>Recent articles</h2><ul><li>Qwen 3.8 27B is excellent</li></ul>"
+            b"</article></body></html>"
+        )
+        without = extract_article_text(html, url="https://example.com/a") or ""
+        with_rule = extract_article_text(
+            html, url="https://example.com/a", template_block="Recent articles"
+        ) or ""
+        assert len(with_rule) <= len(without)

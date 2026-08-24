@@ -51,11 +51,25 @@ Keep the thresholds conservative.
 |---|---|---|---|
 | GitHub | PAT, five minutes to set up | 30 search req/min | The highest-signal source: repro steps, error strings, real schemas |
 | Blogs | RSS + sitemaps, no auth | be polite, ~1 req/sec | **The only positive-evidence channel.** Do this one early |
-| Reddit | Script app, ~15 min | 60 req/min | Their terms prohibit scraping — use the API |
+| Reddit | Script app, ~15 min | **429 at 32 rapid calls; working figure 25/min** | Their terms prohibit scraping — use the API. The allowance is unread: see below |
 
 **No scraping. No paywall circumvention.** `robots.txt` respected, identifying
 User-Agent with a contact URL. A source whose terms forbid this use is dropped,
 not worked around.
+
+**Reddit's rate limit was folklore until 2026-08-18.** This table said
+`60 req/min`, and four other files attributed that number to `BUILD-PLAN.md` —
+which has never contained it, in any commit. What is measured is a 429 at the
+32nd rapid call (2026-08-14, no `Retry-After`), so **60/min would fail in the
+first minute of every sweep**: the number was not merely unsourced, it was wrong
+in the unsafe direction. `SEARCH_PER_MINUTE = 25` is the working figure, chosen
+under the break point rather than at it.
+
+**32 is where it broke, not what the plan permits.** No response header states
+an allowance; the 429 names the plan (`PRO`) and not the number. So the
+allowance is *unread*, and writing 32 — or 25 — anywhere as "the limit" would
+convert an inference into a recorded fact. Measurement and quota semantics in
+`docs/measurements/reddit-rate-and-quota.md`.
 
 ## Length-aware deduplication
 

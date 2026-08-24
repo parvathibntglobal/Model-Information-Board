@@ -14,6 +14,36 @@ data/raw/
 *.warc
 *.warc.gz
 
+# A measurement's local corpus, same rule. `scripts/substitution_slice.py`
+# writes 1,297 Reddit posts here so the sieve can be re-run for free; that is
+# retained full text, so it stays out of git as firmly as the store proper.
+# `git add -A` swept it in once — this is why the pattern is here and not in the
+# script's docstring.
+_substitution_slice/
+_harvest_store/
+
+# The unfiltered sweep's measurement population. Same rule, and one more
+# reason: it carries a `delete_after` date in its manifest, and a corpus with
+# a deletion date must not be the one thing in the repo that cannot be deleted.
+_unfiltered_sweep/
+_unfiltered_sweep_v2/
+_control_sweep/
+
+# The blog symbol census. Same two reasons, plus a third: it holds contexts
+# quoted out of real articles, which is retained third-party text and is the
+# one thing `docs/measurements/` must not accumulate.
+_blog_so_sweep/
+
+# The judge/ handoff export. The Reddit half comes from a committed fixture and
+# would be harmless; the blog half is extracted article text drawn from the
+# census corpus above, which carries a delete_after date. A retention date that
+# only some copies of the text obey is not a retention date, so this goes to
+# Engineer 2 out of band rather than through git.
+_handoff/
+# The same export, zipped for that out-of-band handover. A retention date the
+# directory obeys and its zip does not is not a retention date either.
+handoff.zip
+
 # ── python ───────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
@@ -49,3 +79,22 @@ Thumbs.db
 # ── generated output ─────────────────────────────────────────────────────
 site/
 exports/
+_flattened_probe/
+
+# E1's thread_context handoff. NOT a convenience entry.
+#
+# The blog half carries a `delete_after` date, and a retention date only some
+# copies obey is not a retention date. Committing it would put a dated deletion
+# obligation into git history, where deleting it later does not delete it.
+#
+# `git check-ignore _handoff/` already exited 0 before this line existed - a
+# trailing-slash match on some other rule - while the files inside exited 1 and
+# `git status` listed the directory as untracked. The directory reading as
+# ignored while its contents were not is exactly the check that looks like a
+# guarantee and is not.
+_handoff/
+
+# The spend ledger: a record of money actually spent (judge/spend_ledger.py).
+# Operational data, not source, and it differs per machine — committing it would
+# put one developer's spend on everyone else's admin page.
+var/

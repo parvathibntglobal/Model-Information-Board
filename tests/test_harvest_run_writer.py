@@ -1,0 +1,312 @@
+"""`harvest_run` has a writer. Three adapters build the row; one thing inserts it.
+
+No database: the connection is a double, because what is under test is the
+writer's own rules — which keys it accepts, which it drops by name, and what it
+refuses. The insert itself is one statement and `tests/test_harvest_schema.py`
+already covers the columns against a real Postgres.
+"""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+
+import pytest
+
+from collect.ops.ledger import (
+    DURATION_FILTER,
+    UnknownSource,
+    close_harvest_run,
+    open_harvest_run,
+)
+
+
+class FakeConn:
+    """Records statements. `SELECT 1 FROM source` answers from `known`."""
+
+    def __init__(self, known: set[str] | None = None) -> None:
+        self.known = known if known is not None else {"github"}
+        self.statements: list[tuple[str, object]] = []
+
+    def execute(self, sql, params=None):
+        self.statements.append((sql, params))
+        if "FROM source" in sql:
+            wanted = params[0] if isinstance(params, tuple) else params
+            return _Result((1,) if wanted in self.known else None)
+        return _Result(None)
+
+
+class _Result:
+    def __init__(self, row):
+        self._row = row
+
+    def fetchone(self):
+        return self._row
+
+
+def fields(**over):
+    base = {
+        "id": "hr_abc123",
+        "source_id": "github",
+        "query_key": "repo:openai/openai-python|tools",
+        "started_at": datetime(2026, 8, 19, 6, tzinfo=UTC),
+        "finished_at": datetime(2026, 8, 19, 6, 1, tzinfo=UTC),
+        "items_fetched": 100,
+        "items_kept": 12,
+        "http_errors": 0,
+        "exhausted": True,
+        "truncated_by": None,
+        "pipeline_version": "collect-0.1.0",
+        # Both proposed, neither a column. See _PROPOSED_NOT_IN_SCHEMA.
+        "outcome": "ok",
+        "sieve_pass_rate": 0.12,
+    }
+    base.update(over)
+    return base
+
+
+def test_the_row_exists_before_the_fetch_with_no_finish_time():
+    """Phase one. The record of an ATTEMPT, which is what a killed sweep leaves.
+
+    A single statement at the end can only record sweeps that finished, so the
+    two states FR-10 most needs apart — attempted-and-died, attempted-and-refused
+    — would both be absence.
+    """
+    conn = FakeConn()
+
+    opened = open_harvest_run(conn, fields())
+
+    assert opened.id == "hr_abc123"
+    insert = next(s for s, _ in conn.statements if "INSERT INTO harvest_run" in s)
+    assert "finished_at" not in insert, "phase one must leave finished_at NULL"
+    assert "items_fetched" not in insert
+    assert "ON CONFLICT (id) DO NOTHING" in insert
+    assert "outcome" not in insert and "sieve_pass_rate" not in insert
+
+
+def test_closing_sets_the_counts_and_the_finish_time_together():
+    """Phase two. They move together, as `job_run_finish_ck` makes them there."""
+    conn = FakeConn()
+    opened = open_harvest_run(conn, fields())
+
+    close_harvest_run(conn, opened, fields(), outcome="ok")
+
+    update = next(s for s, _ in conn.statements if s.startswith("UPDATE harvest_run"))
+    for column in ("finished_at", "items_fetched", "items_kept", "http_errors",
+                   "exhausted", "truncated_by", "outcome", "pages_fetched",
+                   "pages_stored", "sieve_pass_rate"):
+        assert column in update
+    # `outcome` and `finished_at` in ONE statement is what harvest_run_finish_ck
+    # requires: two statements would leave a window where the row reads
+    # "finished, verdict unknown", which is the state the constraint refuses.
+    assert update.count("WHERE id") == 1
+
+
+def test_a_sweep_that_fetched_nothing_records_zero_rather_than_null():
+    """Zero is a measurement; NULL is reserved for the sweep that never returned."""
+    conn = FakeConn()
+    opened = open_harvest_run(conn, fields())
+
+    close_harvest_run(conn, opened, fields(items_fetched=0, items_kept=0), outcome="ok")
+
+    _sql, params = next(
+        (s, p) for s, p in conn.statements if s.startswith("UPDATE harvest_run")
+    )
+    assert params["items_fetched"] == 0
+    assert params["items_kept"] == 0
+    assert params["finished_at"] is not None
+
+
+def test_it_refuses_when_the_source_row_is_absent():
+    """Upstream of the foreign key, because 23503 sends the reader to this writer.
+
+    THIS TEST PINNED A SENTENCE THAT OUTLIVED ITS PREMISE. It asserted
+    `"load_source_rows" in str(refusal)` and the docstring explained that the
+    loader had no caller — true for the whole build, and false from 2026-08-20,
+    when `registry load-sources` landed and twelve rows went into staging. The
+    assertion kept passing while the message it pinned had become advice to wire
+    something already wired.
+
+    Habit 2, in the form that is hardest to notice: assert the state of the
+    world, not the wording that describes it. So this now asserts what the
+    refusal must ENABLE — a reader knowing what to run — by naming the COMMAND,
+    which is stable, rather than the internal function, which was only ever
+    relevant while it had no caller.
+    """
+    conn = FakeConn(known=set())
+
+    with pytest.raises(UnknownSource) as refusal:
+        open_harvest_run(conn, fields())
+
+    message = str(refusal.value)
+    assert "registry load-sources" in message, (
+        "the refusal has to name the command a reader can run"
+    )
+    assert "source(id)" in message, "and the constraint it is upstream of"
+    assert "load_source_rows" not in message, (
+        "naming the internal function was only useful while it had no caller; "
+        "it now sends the reader to code rather than to a command"
+    )
+    assert not any("INSERT INTO harvest_run" in s for s, _ in conn.statements)
+
+
+def test_a_key_that_is_neither_a_column_nor_a_known_proposal_fails():
+    """A third homeless field must not be silently discarded.
+
+    Dropping unknown keys permissively is how `sieve_pass_rate` would have
+    vanished without anyone deciding it had nowhere to live. Named sets, not a
+    filter.
+    """
+    with pytest.raises(ValueError, match="neither a column"):
+        open_harvest_run(FakeConn(), fields(surprise_metric=1))
+
+
+def test_every_column_the_contract_declares_is_set_by_this_writer():
+    """The writer's column list against the schema's, so a new column is visible.
+
+    A column added to `harvest_run` that this writer does not populate takes its
+    default silently — which is how `in_window` came to sit at its schema default
+    on 340 rows and read like a computed answer.
+    """
+    import re
+    from pathlib import Path
+
+    from collect.ops.ledger import _HARVEST_RUN_COLUMNS
+
+    sql = (Path(__file__).resolve().parents[1] / "contract" / "tables.sql").read_text(
+        encoding="utf-8"
+    )
+    body = sql[sql.index("CREATE TABLE harvest_run") :]
+    body = body[: body.index("\n);")]
+    declared = {
+        m.group(1)
+        for m in re.finditer(r"^  ([a-z_]+)\s+(?:text|int|timestamptz|boolean)", body, re.M)
+    }
+
+    missing = declared - set(_HARVEST_RUN_COLUMNS)
+    assert not missing, (
+        f"harvest_run declares {sorted(missing)} and write_harvest_run does not "
+        "set them; they would take their schema default silently"
+    )
+
+
+def test_closing_without_a_verdict_is_impossible_by_signature():
+    """The failed-close case, refused in Python before the constraint sees it.
+
+    Engineer 2's argument for `harvest_run_finish_ck`: without it, an update that
+    sets `finished_at` and forgets `outcome` SUCCEEDS and leaves "finished,
+    verdict unknown" — indistinguishable from a schema that never recorded
+    verdicts. With it, the update is rejected and the row stays both-NULL, which
+    is job_run's own "did not finish" and is true.
+
+    So the constraint makes a half-written row accurate rather than missing, and
+    the keyword-only parameter with no default means a caller cannot reach that
+    refusal by omission.
+    """
+    import inspect
+
+    sig = inspect.signature(close_harvest_run)
+    outcome = sig.parameters["outcome"]
+    assert outcome.kind is inspect.Parameter.KEYWORD_ONLY
+    assert outcome.default is inspect.Parameter.empty, "a default would let a caller omit it"
+
+    conn = FakeConn()
+    opened = open_harvest_run(conn, fields())
+    with pytest.raises(TypeError):
+        close_harvest_run(conn, opened, fields())
+
+
+def test_an_outcome_outside_the_vocabulary_is_refused_by_name():
+    """Named here rather than surfacing as 23514 from harvest_run_outcome_ck."""
+    conn = FakeConn()
+    opened = open_harvest_run(conn, fields())
+
+    with pytest.raises(ValueError, match="must be one of"):
+        close_harvest_run(conn, opened, fields(), outcome="blocked")
+
+
+def test_a_refused_sweep_records_the_verdict_and_zero_counts():
+    """The state the column exists for: attempted, declined, nothing fetched."""
+    conn = FakeConn()
+    opened = open_harvest_run(conn, fields())
+
+    close_harvest_run(conn, opened, fields(items_fetched=0, items_kept=0), outcome="refused")
+
+    _sql, params = next(
+        (s, p) for s, p in conn.statements if s.startswith("UPDATE harvest_run")
+    )
+    assert params["outcome"] == "refused"
+    assert params["items_fetched"] == 0
+    assert params["finished_at"] is not None
+
+
+def test_the_duration_filter_is_stated_where_a_query_would_be_written():
+    """A refused run has finished_at ~ started_at, and refusals dominate first.
+
+    Both harvest commands refuse until their terms rulings land, so the first
+    population of this table is entirely refusals — the mean duration of a sweep
+    would be the mean duration of a gate check. The constant exists so the filter
+    is copied rather than remembered.
+    """
+    assert DURATION_FILTER == "outcome = 'ok'"
+
+    import inspect
+
+    from collect.ops import ledger
+
+    assert "entirely refusals" in inspect.getsource(ledger), (
+        "the warning must sit beside the column, not only in a proposal"
+    )
+
+
+def test_the_four_formerly_homeless_fields_now_reach_the_statement():
+    """outcome, pages_fetched, pages_stored, sieve_pass_rate all have columns now."""
+    conn = FakeConn()
+    opened = open_harvest_run(conn, fields())
+
+    close_harvest_run(
+        conn, opened, fields(pages_fetched=4, pages_stored=1, sieve_pass_rate=0.12),
+        outcome="ok",
+    )
+
+    _sql, params = next(
+        (s, p) for s, p in conn.statements if s.startswith("UPDATE harvest_run")
+    )
+    assert params["pages_fetched"] == 4
+    assert params["pages_stored"] == 1
+    assert params["sieve_pass_rate"] == 0.12
+    assert params["outcome"] == "ok"
+
+
+def test_the_adapter_outcome_is_always_a_value_the_schema_allows():
+    """The mirrored-enum check that was missing, and its absence cost 121 rows.
+
+    `outcome_of` returned `fetched`, from the closed set proposed on #5. That set
+    never landed — `harvest_run_outcome_ck` allows `ok | refused | error`, aligned
+    to `job_run` and to `chain.py` by migration `20260818T1520`. So the first real
+    sweep opened 121 `harvest_run` rows and closed none: every close raised
+    `ValueError` at the call site, exactly as `close_harvest_run` intends, and the
+    caller logged it.
+
+    Nothing checked the two vocabularies stayed in step. The other lane already
+    paid for this once (`a289adf`), which is why this check exists here as well as
+    there.
+    """
+    from collect.adapters.github import GitHubHarvester, QueryRun
+    from collect.ops.ledger import ERROR, OK, REFUSED
+
+    allowed = {OK, REFUSED, ERROR}
+
+    class FakeRequest:
+        query_key = "probe"
+
+    for label, run in [
+        ("clean", QueryRun(request=FakeRequest())),
+        ("http errors", QueryRun(request=FakeRequest(), http_errors=3)),
+    ]:
+        assert GitHubHarvester.outcome_of(run) in allowed, (
+            f"{label}: outcome_of returned a value harvest_run_outcome_ck refuses"
+        )
+
+    throttled = QueryRun(request=FakeRequest())
+    throttled.rate_limited = 1
+    assert GitHubHarvester.outcome_of(throttled) in allowed
