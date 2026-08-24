@@ -715,7 +715,47 @@ def _cmd_ops_sweep_github(args: argparse.Namespace) -> int:
               f"{len(by_model) - len(fits)} would be unreached")
         return 0
 
-    with build_client() as client, transaction() as conn:
+    # AN UNAUTHENTICATED SWEEP IS NOT A SWEEP, AND IT DOES NOT LOOK LIKE A
+    # FAILURE. This path called `build_client()` with no headers, so every
+    # request went out anonymous, against GitHub's anonymous ceilings:
+    #
+    #                       anonymous      authenticated
+    #     search            10 / minute    30 / minute
+    #     core (REST)       60 / HOUR      5,000 / hour
+    #
+    # `SEARCH_INTERVAL` is computed from 30/minute, so the sweep was 2.7x over
+    # the anonymous search limit from its first request, and it exhausted the
+    # whole 60/hour core budget in about a minute of fetching — after which
+    # EVERY fetch 403s. Measured: 407 runs, 18,801 candidates retrieved,
+    # 59 passed the sieve, **0 documents stored**.
+    #
+    # And the shape is the reason for the refusal below rather than a warning:
+    # a starved sweep reports zero documents, which is indistinguishable on a
+    # page from "nobody has discussed this". Rule 4, arriving through the
+    # credential rather than through the corpus.
+    #
+    # `scripts/harvest_github.py` has always passed the header. Only this path
+    # did not, which is why the harness produced 2,887 items and the CLI
+    # produced nothing.
+    token = settings().github_token
+    if not token:
+        print(
+            "GITHUB_TOKEN is not set, so this sweep would run anonymous: 10 "
+            "search requests a minute against a limiter built for 30, and 60 "
+            "REST calls an HOUR. It would retrieve candidates, pass some, and "
+            "store nothing — which reads as 'nobody discussed this' rather "
+            "than as a failure. Refusing instead.",
+            file=sys.stderr,
+        )
+        return 2
+
+    with build_client(
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+    ) as client, transaction() as conn:
         _gate(conn)
         from collect.adapters.github import GitHubHarvester
 

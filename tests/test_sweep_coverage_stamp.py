@@ -144,3 +144,52 @@ def test_the_summary_reports_the_stamp_count_separately_from_seats_swept():
         "zero must render as zero rather than the line disappearing — an absent "
         "line reads as 'not applicable' where the truth is 'nothing was covered'"
     )
+
+
+# ── the ceiling, and the seat it cuts short ───────────────────────────────
+
+
+def test_the_clock_is_checked_inside_the_request_loop_not_only_between_models():
+    """A ceiling a model can overrun by 64 requests is not a ceiling.
+
+    Measured 2026-08-24: 41m51s against a 35-minute contract ceiling. The check
+    lived at the model boundary only, so a sweep that passed it with a minute
+    left then issued a whole 64-request plan — and throttle backoffs of 15-22s
+    stretched that far past the limit.
+
+    Pinned as source, for the same reason the ORDER is: with a fast clock and no
+    throttling the two placements are behaviourally identical, so a revert would
+    pass any timing test that did not deliberately stall.
+    """
+    import inspect
+
+    from collect.ops import sweep as mod
+
+    src = inspect.getsource(mod.sweep_github)
+    body = src.split("for request in plan.requests:", 1)
+    assert len(body) == 2, "the request loop moved; this test needs updating"
+    inner = body[1]
+    assert "clock() - started" in inner, (
+        "the wall-clock ceiling must be re-checked INSIDE the request loop, or "
+        "one model's plan can run past it in full"
+    )
+    assert inner.index("clock() - started") < inner.index("harvester.harvest"), (
+        "the check has to come before the request is issued, not after"
+    )
+
+
+def test_a_seat_the_clock_cut_short_is_unreached_and_unstamped():
+    """Rule 6 again: a model that got 12 of 64 requests has no coverage date.
+
+    Stamping it would be worse than useless — the ordering takes
+    least-recently-swept first, so a false date sends a barely-swept model to
+    the BACK of the next night's queue, behind models that were actually
+    covered. The ordering would then be working against the thing it exists for.
+    """
+    report = SweepReport(cap=900, max_minutes=35)
+    report.stopped_on_time = True
+    report.unreached.append("z-ai/glm-5.2")
+
+    assert "z-ai/glm-5.2" not in report.marked_swept
+    assert "z-ai/glm-5.2" in report.unreached
+    assert "last_swept_at set on 0 model(s)" in report.summary()

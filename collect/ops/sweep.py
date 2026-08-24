@@ -380,7 +380,23 @@ def sweep_github(
             continue
 
         seat = ModelSweep(canonical_id=canonical_id, variants=variants)
+        overran = False
         for request in plan.requests:
+            # THE CEILING IS CHECKED HERE TOO, NOT ONLY AT THE MODEL BOUNDARY.
+            # It was checked once per model, and a model carries 32-64 requests
+            # — so a sweep that passed the check with one minute left ran the
+            # whole plan anyway. Measured on 2026-08-24: 41m51s against a
+            # 35-minute contract ceiling, because throttle backoffs of 15-22s
+            # stretched a single model's plan far past it.
+            #
+            # A ceiling a model can overrun by 64 requests is not a ceiling,
+            # and `contract/harvest.yaml` states the minutes are what the rate
+            # limit actually constrains — so overrunning them is not a
+            # bookkeeping slip, it is spending a budget the contract denied.
+            if (clock() - started) / 60 >= minutes:
+                report.stopped_on_time = True
+                overran = True
+                break
             # The row exists before the first HTTP call. See the docstring.
             run = QueryRun(request=request)
             fields = harvester.harvest_run_fields(run)
@@ -439,9 +455,20 @@ def sweep_github(
                     )
                     conn.rollback()
 
-        # EVERY REQUEST IN THIS SEAT'S PLAN WENT OUT, or we never entered the
-        # loop: the budget and clock checks are above, not inside it. So the
-        # model is covered, and only here is that true.
+        # A SEAT THE CLOCK CUT SHORT IS NOT COVERED, so it is not stamped and
+        # it is reported as unreached. Rule 6: `last_swept_at` answers "when was
+        # this last covered", and a model that got 12 of its 64 requests has no
+        # honest answer — stamping it would deprioritise it next night in favour
+        # of models actually swept, which is the ordering working backwards.
+        if overran:
+            report.unreached.append(canonical_id)
+            report.models.append(seat)
+            report.candidates += seat.candidates
+            report.kept += seat.kept
+            report.stored += seat.stored
+            continue
+
+        # EVERY REQUEST IN THIS SEAT'S PLAN WENT OUT. Only here is that true.
         try:
             mark_swept(conn, canonical_id, datetime.now(UTC))
             conn.commit()

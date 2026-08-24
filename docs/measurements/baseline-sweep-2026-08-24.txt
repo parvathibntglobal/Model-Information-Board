@@ -1,0 +1,70 @@
+search throttled (403) on attempt 1/2, waiting 22.1s: haiku-4.5 tool_choice type:issue
+fetch https://github.com/Augustrains/agents-radar/issues/933 returned 403
+fetch https://github.com/AlexdanerZe/agents-radar/issues/167 returned 403
+fetch https://github.com/Augustrains/agents-radar/issues/933 returned 403
+search throttled (403) on attempt 1/2, waiting 14.2s: claude-haiku-4.5 boilerplate type:issue
+fetch https://github.com/tasker-systems/temper/issues/457 returned 403
+fetch https://github.com/chf3198/megingjord-harness/issues/2518 returned 403
+fetch https://github.com/duanyytop/agents-radar/issues/2754 returned 403
+fetch https://github.com/duanyytop/agents-radar/issues/2543 returned 403
+fetch https://github.com/xiehd77-del/agents-radar/issues/456 returned 403
+search throttled (403) on attempt 1/2, waiting 15.5s: haiku-4.5 throughput type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: haiku-4.5 throughput type:issue
+search throttled (403) on attempt 1/2, waiting 20.1s: claudehaiku4.5 summarizing type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: claudehaiku4.5 summarizing type:issue
+fetch https://github.com/thrillmade/clud-bug/issues/243 returned 403
+search throttled (403) on attempt 1/2, waiting 25.1s: claude-haiku-4.5 extraction type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: claude-haiku-4.5 extraction type:issue
+fetch https://github.com/atyrode/dotfiles/issues/73 returned 403
+fetch https://github.com/atyrode/dotfiles/issues/73 returned 403
+search throttled (403) on attempt 1/2, waiting 27.2s: haiku4.5 multi-step type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: haiku4.5 multi-step type:issue
+fetch https://github.com/anthropics/claude-code/issues/19092 returned 403
+fetch https://github.com/anthropics/claude-code/issues/36959 returned 403
+fetch https://github.com/anthropics/claude-code/issues/3434 returned 403
+fetch https://github.com/kuhlman-labs/fishhawk/issues/1324 returned 403
+fetch https://github.com/lanmogu98/llm-exec-core/issues/2 returned 403
+fetch https://github.com/vectorize-io/hindsight/issues/1002 returned 403
+fetch https://github.com/atlas-crew/Facet/issues/103 returned 403
+fetch https://github.com/kuhlman-labs/fishhawk/issues/1324 returned 403
+fetch https://github.com/lanmogu98/llm-exec-core/issues/2 returned 403
+search throttled (403) on attempt 1/2, waiting 17.4s: opus-4 tool_choice type:issue
+fetch https://github.com/anthropics/claude-code/issues/20171 returned 403
+fetch https://github.com/anthropics/claude-code/issues/20171 returned 403
+fetch https://github.com/cline/cline/issues/10927 returned 403
+fetch https://github.com/cline/cline/issues/10927 returned 403
+fetch https://github.com/AlexdanerZe/agents-radar/issues/167 returned 403
+search throttled (403) on attempt 1/2, waiting 17.3s: claude-opus-4 boilerplate type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: claude-opus-4 boilerplate type:issue
+fetch https://github.com/anthropics/claude-agent-sdk-typescript/issues/355 returned 403
+search throttled (403) on attempt 1/2, waiting 25.6s: opus4 throughput type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: opus4 throughput type:issue
+fetch https://github.com/anthropics/claude-code/issues/44778 returned 403
+search throttled (403) on attempt 1/2, waiting 20.4s: opus-4 summarizing type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: opus-4 summarizing type:issue
+search throttled (403) on attempt 1/2, waiting 13.2s: claudeopus4 extraction type:issue
+search throttled (403) on attempt 1/2, waiting 30.4s: opus4 multi-step type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: opus4 multi-step type:issue
+search throttled (403) on attempt 1/2, waiting 1.9s: claude-4.1 tool_choice type:issue
+search throttled (403) on attempt 1/2, waiting 12.4s: claude-4.1 SEARCH/REPLACE type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: claude-4.1 SEARCH/REPLACE type:issue
+search throttled (403) on attempt 1/2, waiting 33.8s: claude-opus-4.1 guardrail type:issue
+search throttled (403) on attempt 1/2, waiting 5.4s: claude-opus-4.1 recall type:issue
+fetch https://github.com/PrototypeJam/synthesize/issues/11 returned 403
+fetch https://github.com/PrototypeJam/synthesize/issues/12 returned 403
+search throttled (403) on attempt 1/2, waiting 18.7s: claude-opus-4.1 summarizing type:issue
+fetch https://github.com/PrototypeJam/synthesize/issues/11 returned 403
+fetch https://github.com/PrototypeJam/synthesize/issues/12 returned 403
+fetch https://github.com/PrototypeJam/synthesize/issues/11 returned 403
+fetch https://github.com/PrototypeJam/synthesize/issues/12 returned 403
+search throttled (403) on attempt 1/2, waiting 20.9s: claude-opus-4.1 extraction type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: claude-opus-4.1 extraction type:issue
+search throttled (403) on attempt 1/2, waiting 22.6s: claudeopus4.1 multi-step type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: claudeopus4.1 multi-step type:issue
+fetch https://github.com/blader/Claudeception/issues/9 returned 403
+fetch https://github.com/blader/Claudeception/issues/9 returned 403
+search throttled (403) on attempt 1/2, waiting 24.0s: opus4.5 instruction type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: opus4.5 instruction type:issue
+search throttled (403) on attempt 1/2, waiting 30.3s: opus-4.5 multi-step type:issue
+search throttled (403) on attempt 2/2, waiting 4.4s: opus-4.5 multi-step type:issue
+search throttled (403) on attempt 1/2, waiting 26.6s: claudeopus4.5 guardrail type:issue
