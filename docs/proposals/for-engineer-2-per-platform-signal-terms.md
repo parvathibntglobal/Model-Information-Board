@@ -1,5 +1,34 @@
 # Signal terms are prose-shaped and GitHub is not: per-platform rendering, argued from measurement
 
+> ## ⚠ THE COVERAGE ARGUMENT BELOW IS WITHDRAWN — 2026-08-24, same day
+>
+> **Sections 2, 3 and 5 rest on a hypothesis that has since been tested and
+> falsified.** `docs/measurements/prediction-signal-on-prose.md` pre-registered
+> the test and its thresholds, then ran it on the 119 blog documents:
+>
+> ```
+>                       GitHub    blogs (the essay corpus)
+> vocabulary-wide       16.25%    21.85%   (30.88% on long-form)
+> per-entry median       0.39%     0.42%   <- the figure a request asks
+> ```
+>
+> **The per-entry rate is the same on both platforms.** The vocabulary as a whole
+> is somewhat better matched to prose, but each entry's ~8 terms are equally thin
+> everywhere — and it is the per-entry rate that determines retrieval. Per-platform
+> terms address the first and not the second.
+>
+> **101 of 207 terms fire on neither platform.** That is a term-selection problem,
+> it is platform-independent, and it is a larger lever than per-platform rendering.
+>
+> I committed in advance to withdrawing this if per-entry on prose came back under
+> 1%. It came back at 0.42%. **What remains of this proposal is the efficiency
+> argument in §3 row 1, which was never mine and stands on its own merits.**
+>
+> Left in place rather than deleted, because a proposal that was argued and then
+> refuted by its own pre-registered test is worth more as a record than as an
+> absence.
+
+
 **Proposed. `contract/queries.yaml` unchanged by this document** — it is shared,
 and this is a ruling rather than an edit.
 
