@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 log = logging.getLogger(__name__)
 
@@ -78,6 +79,12 @@ class SweepReport:
     #: is consulted, and a sweep that conflates them reports a cap problem where
     #: the truth is a data one.
     excluded: list[tuple[str, str]] = field(default_factory=list)
+
+    #: Models whose whole plan went out, and which therefore carry a
+    #: `last_swept_at`. Reported rather than inferred from `models`, because a
+    #: seat can appear there with a failed stamp — and the rotation reads the
+    #: column, not this list, so the two must be separately visible.
+    marked_swept: list[str] = field(default_factory=list)
     requests_planned: int = 0
     requests_issued: int = 0
     candidates: int = 0
@@ -130,6 +137,12 @@ class SweepReport:
             f"{self.stored} document(s) stored",
             f"           harvest_run: {self.harvest_runs_opened} opened, "
             f"{self.harvest_runs_closed} closed",
+            # THE LINE A BASELINE IS READ FROM. "swept" above counts seats this
+            # run touched; this counts seats that now carry a date, which is
+            # what a fortnight comparison joins on. They differ when a stamp
+            # fails, and a reader who cannot see both cannot tell a covered
+            # model from an uncovered one with documents.
+            f"           last_swept_at set on {len(self.marked_swept)} model(s)",
         ]
         if self.candidates:
             rates = "  ".join(
@@ -182,9 +195,45 @@ def seated_variants(conn) -> dict[str, tuple[str, ...]]:
         "     unnest(a.variants) v "
         "WHERE a.valid_until IS NULL "
         "GROUP BY mv.canonical_id "
-        "ORDER BY mv.canonical_id"
+        # LEAST-RECENTLY-SWEPT FIRST, NULLS FIRST — never swept outranks
+        # swept-a-week-ago. This was `ORDER BY mv.canonical_id`, and the order
+        # is not cosmetic: `run_sweep` walks this mapping and stops when the
+        # budget runs out, so whatever comes first is what gets covered.
+        #
+        # Alphabetically, 3,216 daily requests against a 900-request cap covers
+        # roughly the first 11 of 40 models and `anthropic/*` consumes the
+        # night. `z-ai/*` was not merely late, it was UNREACHABLE — every night,
+        # for the same reason, because a restart re-issues the same prefix.
+        # The 2026-08-20 record shows exactly this: the three models it swept
+        # are the three alphabetically-earliest seats it had.
+        #
+        # `canonical_id` remains the tiebreak so a run is still deterministic
+        # among models with equal (or absent) timestamps.
+        "ORDER BY MIN(mv.last_swept_at) ASC NULLS FIRST, mv.canonical_id"
     ).fetchall()
     return {row[0]: tuple(sorted(row[1])) for row in rows}
+
+
+def mark_swept(conn, canonical_id: str, when: datetime) -> None:
+    """Record that this model's whole plan was issued, at `when`.
+
+    WRITTEN ONLY FOR A SEAT WHOSE EVERY REQUEST WENT OUT. A model the budget
+    stopped short of keeps `last_swept_at` NULL, because the column answers
+    "when was this model last covered" and a half-covered model has no honest
+    answer to give. Rule 6: absent stays absent rather than becoming a definite
+    date that the rotation would then trust.
+
+    This is the column `contract/harvest.yaml` named as the precondition for a
+    rotation — *"a rotation changes what daily MEANS for a given model … that is
+    rule 4 with a date on it"* — and the one `assert_no_phantom_sweeps` joins
+    against `harvest_run`. It is written after the seat's `harvest_run` rows
+    exist, so the pair can never contradict.
+    """
+    conn.execute(
+        "UPDATE model_version SET last_swept_at = %(when)s "
+        "WHERE canonical_id = %(canonical_id)s",
+        {"when": when, "canonical_id": canonical_id},
+    )
 
 
 def excluded_seats(conn) -> list[tuple[str, str]]:
@@ -382,6 +431,23 @@ def sweep_github(
                         f"close {request.query_key}: {type(error).__name__}: {error}"
                     )
                     conn.rollback()
+
+        # EVERY REQUEST IN THIS SEAT'S PLAN WENT OUT, or we never entered the
+        # loop: the budget and clock checks are above, not inside it. So the
+        # model is covered, and only here is that true.
+        try:
+            mark_swept(conn, canonical_id, datetime.now(UTC))
+            conn.commit()
+            report.marked_swept.append(canonical_id)
+        except Exception as error:  # noqa: BLE001
+            # A failed stamp is NOT a failed sweep. The documents are written
+            # and committed above; this is the rotation's bookkeeping, and
+            # losing it must not roll back retrieval that succeeded.
+            log.warning("last_swept_at could not be set for %s: %s", canonical_id, error)
+            report.ledger_failures.append(
+                f"mark_swept {canonical_id}: {type(error).__name__}: {error}"
+            )
+            conn.rollback()
 
         report.models.append(seat)
         report.candidates += seat.candidates
