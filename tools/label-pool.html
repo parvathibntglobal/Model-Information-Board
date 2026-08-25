@@ -138,9 +138,23 @@ let meta = null, rows = [], i = 0, kind = null, who = localStorage.getItem("labe
 const $ = id => document.getElementById(id);
 const key = () => "labels:" + (meta?._meta?.pool || "pool") + ":" + (who || "anon");
 
+//: A row is DONE differently per mode. Reconcile rows carry a dict answer
+//: (`reconciled`) with one entry per question, so "done" means every question is
+//: settled — not a single non-null label.
+function rowDone(r){
+  if (kind === "reconcile") {
+    const keys = Object.keys(r.allowed_answers || {});
+    return keys.length > 0 && keys.every(k => (r.reconciled || {})[k] != null);
+  }
+  return r.label != null;
+}
+
 function saveLocal(){
   const picked = {};
-  rows.forEach((r, n) => { if (r.label != null) picked[n] = { label: r.label, at: r.labelled_at }; });
+  rows.forEach((r, n) => {
+    if (kind === "reconcile") { if (r.reconciled && Object.keys(r.reconciled).length) picked[n] = { reconciled: r.reconciled }; }
+    else if (r.label != null) picked[n] = { label: r.label, at: r.labelled_at };
+  });
   localStorage.setItem(key(), JSON.stringify({ i, picked }));
 }
 function loadLocal(){
@@ -148,7 +162,9 @@ function loadLocal(){
     const s = JSON.parse(localStorage.getItem(key()) || "null");
     if (!s) return;
     Object.entries(s.picked || {}).forEach(([n, v]) => {
-      if (rows[n]) { rows[n].label = v.label; rows[n].labelled_at = v.at; }
+      if (!rows[n]) return;
+      if (kind === "reconcile") rows[n].reconciled = v.reconciled || {};
+      else { rows[n].label = v.label; rows[n].labelled_at = v.at; }
     });
     i = Math.min(s.i || 0, rows.length - 1);
   } catch {}
@@ -170,12 +186,15 @@ $("file").onchange = async e => {
   const r0 = rows[0] || {};
   kind = ("gate_verdict" in r0) ? "filter"
        : ("surface" in r0) ? "entity"
+       : ("reconciled" in r0) ? "reconcile"
        : (r0.answers && "capability" in r0.answers) ? "capability" : null;
-  if (!kind) { alert("Unrecognised pool shape — no `surface`, `gate_verdict`, or `answers.capability`."); return; }
+  if (!kind) { alert("Unrecognised shape — no `surface`, `gate_verdict`, `reconciled`, or `answers.capability`."); return; }
   // Round 3 stores its answer at `answers.capability`; mirror it into the tool's
   // internal `label` so counting, resume and progress work unchanged. Written
   // back on download.
   if (kind === "capability") rows.forEach(r => { r.label = (r.answers && r.answers.capability) || null; });
+  // Reconcile keeps a dict answer; start from whatever is already settled.
+  if (kind === "reconcile") rows.forEach(r => { r.reconciled = r.reconciled || {}; });
   i = 0; loadLocal();
   $("empty").classList.add("hidden"); $("app").classList.remove("hidden");
   $("poolname").textContent = meta._meta?.pool || f.name;
@@ -202,9 +221,12 @@ function capabilityOptions(r){
 
 function render(){
   const r = rows[i]; if (!r) return;
-  const done = rows.filter(x => x.label != null).length;
+  const done = rows.filter(rowDone).length;
   $("pos").textContent = `${i + 1} of ${rows.length}`;
   $("prog").style.width = (done / rows.length * 100) + "%";
+  $("counts").textContent = `${done} settled · ${rows.length - done} left`;
+
+  if (kind === "reconcile") { renderReconcile(r); return; }
   $("counts").textContent = `${done} labelled · ${rows.length - done} left`
     + (r.label != null ? ` · this one: ${r.label}` : "");
   $("stratum").textContent = kind === "entity" ? (r.stratum || "—")
@@ -255,6 +277,59 @@ function render(){
   if (r.label != null) showReveal(r); else $("revealed").classList.add("hidden");
 }
 
+//: RECONCILE MODE. Each row carries several questions, each with its own options,
+//: plus what anooj and yathu answered. The two picks are shown against every
+//: option so the disagreement is visible, and the settled choice goes into
+//: `reconciled[questionKey]`. A row is done when every question is settled.
+function renderReconcile(r){
+  $("stratum").textContent = `row ${r.row_index ?? i}`;
+  $("src").href = "#";
+  $("question").innerHTML = `Settle this row together. `
+    + `<span class="dim sm">anooj and yathu disagreed; pick the agreed answer for each question.</span>`;
+  $("snippet").innerHTML = `<strong>Quote:</strong> ${esc(r.quote)}`
+    + `<hr style="border:none;border-top:1px solid var(--line);margin:10px 0">`
+    + `<span class="dim sm">document text:</span><br>${esc(r.source_document_text || "")}`;
+  $("context").textContent = [r.corpus, r.author_external_id].filter(Boolean).join("  ·  ");
+
+  const questions = r.allowed_answers || {};
+  const qtext = r.questions || {};
+  const a = r.anooj_answered || {}, y = r.yathu_answered || {};
+  let html = "";
+  for (const qk of Object.keys(questions)) {
+    html += `<div class="stack stack-1" style="margin-bottom:14px">`
+      + `<span class="label">${esc(qtext[qk] || qk)}</span>`
+      + `<div class="row" style="gap:6px;flex-wrap:wrap">`
+      + questions[qk].map(opt => {
+          const chosen = (r.reconciled || {})[qk] === opt;
+          const tags = [a[qk] === opt ? "anooj" : null, y[qk] === opt ? "yathu" : null].filter(Boolean);
+          return `<button data-qk="${esc(qk)}" data-v="${esc(opt)}"`
+            + ` style="${chosen ? "border-color:var(--good);background:#1c2a1c" : ""}">`
+            + `${esc(opt)}`
+            + (tags.length ? ` <span class="dim" style="font-size:11px">(${tags.join(", ")})</span>` : "")
+            + `</button>`;
+        }).join("")
+      + `</div></div>`;
+  }
+  $("choices").innerHTML = html;
+  [...$("choices").querySelectorAll("button")].forEach(b =>
+    b.onclick = () => chooseReconcile(b.dataset.qk, b.dataset.v));
+
+  const box = $("revealed");
+  if (rowDone(r)) {
+    box.innerHTML = `<p class="sm agree" style="margin:0">Settled: `
+      + Object.entries(r.reconciled).map(([k,v]) => `${esc(k)}=<strong>${esc(v)}</strong>`).join(", ")
+      + `</p>`;
+    box.classList.remove("hidden");
+  } else box.classList.add("hidden");
+}
+
+function chooseReconcile(qk, v){
+  const r = rows[i];
+  r.reconciled = { ...(r.reconciled || {}), [qk]: v };
+  saveLocal();
+  render();
+}
+
 function showReveal(r){
   const box = $("revealed");
   let html = "";
@@ -297,6 +372,9 @@ $("back").onclick = () => { if (i > 0) { i--; saveLocal(); render(); } };
 $("skip").onclick = () => { if (i < rows.length - 1) { i++; saveLocal(); render(); } };
 document.addEventListener("keydown", e => {
   if ($("app").classList.contains("hidden")) return;
+  if (e.key === "ArrowRight") { $("skip").click(); return; }
+  if (e.key === "ArrowLeft") { $("back").click(); return; }
+  if (kind === "reconcile") return;   // multi-question: pick by click, not number key
   const opts = kind === "capability" ? capabilityOptions(rows[i])
              : kind === "entity" ? ENTITY : FILTER;
   // Number keys 1-9 pick the first nine options; 13-way capability rows use the
@@ -310,8 +388,8 @@ $("dl").onclick = () => {
   const out = { _meta: { ...meta._meta,
     labelled_by: who || "anon",
     labelled_at: new Date().toISOString(),
-    labels_complete: rows.every(r => r.label != null),
-    labelled_count: rows.filter(r => r.label != null).length,
+    labels_complete: rows.every(rowDone),
+    labelled_count: rows.filter(rowDone).length,
     // Kept in the export because the caveat travels with the figure: this pool
     // was retrieved by queries containing model names, so any rate computed
     // from it describes that retrieval, not Reddit.
@@ -326,10 +404,18 @@ $("dl").onclick = () => {
       r.labelled_at = r.labelled_at || new Date().toISOString();
     }
   });
+  // Reconcile writes the settled dict into `reconciled` (already there) and
+  // stamps who settled it.
+  if (kind === "reconcile") rows.forEach(r => {
+    if (rowDone(r)) { r.reconciled_by = who || "anon"; r.reconciled_at = new Date().toISOString(); }
+  });
   const body = [JSON.stringify(out), ...rows.map(r => JSON.stringify(r))].join("\n") + "\n";
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([body], { type: "application/x-ndjson" }));
-  a.download = (meta._meta?.pool || "pool") + "--labelled-by-" + (who || "anon") + ".jsonl";
+  const stem = meta._meta?.pool || "pool";
+  a.download = kind === "reconcile"
+    ? stem + "--reconciled.jsonl"
+    : stem + "--labelled-by-" + (who || "anon") + ".jsonl";
   a.click();
 };
 </script>
