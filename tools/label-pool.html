@@ -167,9 +167,15 @@ $("file").onchange = async e => {
   rows = lines.slice(1).map(JSON.parse);
   // Detect by SHAPE, not by filename: a renamed file must not silently get the
   // wrong question and therefore the wrong label vocabulary.
-  kind = ("gate_verdict" in (rows[0] || {})) ? "filter"
-       : ("surface" in (rows[0] || {})) ? "entity" : null;
-  if (!kind) { alert("Unrecognised pool shape — no `surface` and no `gate_verdict`."); return; }
+  const r0 = rows[0] || {};
+  kind = ("gate_verdict" in r0) ? "filter"
+       : ("surface" in r0) ? "entity"
+       : (r0.answers && "capability" in r0.answers) ? "capability" : null;
+  if (!kind) { alert("Unrecognised pool shape — no `surface`, `gate_verdict`, or `answers.capability`."); return; }
+  // Round 3 stores its answer at `answers.capability`; mirror it into the tool's
+  // internal `label` so counting, resume and progress work unchanged. Written
+  // back on download.
+  if (kind === "capability") rows.forEach(r => { r.label = (r.answers && r.answers.capability) || null; });
   i = 0; loadLocal();
   $("empty").classList.add("hidden"); $("app").classList.remove("hidden");
   $("poolname").textContent = meta._meta?.pool || f.name;
@@ -185,6 +191,15 @@ function highlight(text, surface){
   return safe.replace(new RegExp(pat, "gi"), m => "<mark>" + m + "</mark>");
 }
 
+//: Round 3's options are DYNAMIC — the 13 allowed capabilities per row, with
+//: their meanings from `_meta.options`. Not hardcoded like ENTITY/FILTER,
+//: because the capability list is the contract's and must not be duplicated here.
+function capabilityOptions(r){
+  const allowed = (r.allowed_answers && r.allowed_answers.capability) || [];
+  const means = (meta && meta._meta && meta._meta.options) || {};
+  return allowed.map(key => [key, key, (means[key] && means[key].means) || ""]);
+}
+
 function render(){
   const r = rows[i]; if (!r) return;
   const done = rows.filter(x => x.label != null).length;
@@ -193,8 +208,30 @@ function render(){
   $("counts").textContent = `${done} labelled · ${rows.length - done} left`
     + (r.label != null ? ` · this one: ${r.label}` : "");
   $("stratum").textContent = kind === "entity" ? (r.stratum || "—")
+    : kind === "capability" ? (r.corpus || r.slug || "—")
     : `${r.token_count ?? "?"} tokens${r.is_link_post ? " · link post" : ""}`;
-  $("src").href = r.source_url || "#";
+  $("src").href = r.source_url || r.post || "#";
+
+  if (kind === "capability") {
+    // Quote first, then the surrounding document text. The extractor's own
+    // choice is NOT here — it is in the sidecar, hidden on purpose — so nothing
+    // to highlight or reveal.
+    $("question").innerHTML = `Which capability is this claim about? `
+      + `<span class="dim sm">(or <strong>cannot-tell</strong> if none fits)</span>`;
+    $("snippet").innerHTML = `<strong>Quote:</strong> ${esc(r.quote)}`
+      + `<hr style="border:none;border-top:1px solid var(--line);margin:10px 0">`
+      + `<span class="dim sm">document text:</span><br>${esc(r.source_document_text || "")}`;
+    $("context").textContent = [r.corpus, r.author_external_id, "row " + (r.row_index ?? i)]
+      .filter(Boolean).join("  ·  ");
+    const opts = capabilityOptions(r);
+    $("choices").innerHTML = opts.map(([v, label, why], n) =>
+      `<button data-v="${esc(v)}" title="${esc(why)}">`
+      + (n < 9 ? `<span class="k">${n + 1}</span>` : "") + `${esc(label)}</button>`
+    ).join("");
+    [...$("choices").querySelectorAll("button")].forEach(b => b.onclick = () => choose(b.dataset.v));
+    if (r.label != null) showReveal(r); else $("revealed").classList.add("hidden");
+    return;
+  }
 
   $("question").innerHTML = kind === "entity"
     ? `Does the highlighted surface <strong>${esc(r.surface)}</strong> refer to a model?`
@@ -231,6 +268,12 @@ function showReveal(r){
     if ((r.gates_that_did_not_run || []).length)
       html += `<p class="dim sm" style="margin:0">gates that did not run: ${r.gates_that_did_not_run.map(esc).join(", ")}</p>`;
   }
+  if (kind === "capability") {
+    // NO sidecar reveal, deliberately: the extractor's choice is withheld so a
+    // labeller judges the text, not the machine. Just confirm what was recorded.
+    html += `<p class="sm" style="margin:0">Recorded: <strong>${esc(r.label)}</strong>. `
+         + `The extractor's own choice stays hidden until scoring.</p>`;
+  }
   if (r.note) html += `<p class="dim sm" style="margin:6px 0 0">note from the pool: ${esc(r.note)}</p>`;
   if (!html) html = `<p class="dim sm" style="margin:0">Nothing further recorded for this row.</p>`;
   box.innerHTML = html;
@@ -254,8 +297,11 @@ $("back").onclick = () => { if (i > 0) { i--; saveLocal(); render(); } };
 $("skip").onclick = () => { if (i < rows.length - 1) { i++; saveLocal(); render(); } };
 document.addEventListener("keydown", e => {
   if ($("app").classList.contains("hidden")) return;
-  const opts = kind === "entity" ? ENTITY : FILTER;
-  if (e.key >= "1" && e.key <= String(opts.length)) choose(opts[+e.key - 1][0]);
+  const opts = kind === "capability" ? capabilityOptions(rows[i])
+             : kind === "entity" ? ENTITY : FILTER;
+  // Number keys 1-9 pick the first nine options; 13-way capability rows use the
+  // rest by click. Guard on 9 so a keypress never indexes past the list.
+  if (e.key >= "1" && e.key <= "9" && +e.key <= opts.length) choose(opts[+e.key - 1][0]);
   if (e.key === "ArrowRight") $("skip").click();
   if (e.key === "ArrowLeft") $("back").click();
 });
@@ -271,6 +317,15 @@ $("dl").onclick = () => {
     // from it describes that retrieval, not Reddit.
     reminder: "rates from this pool describe documents retrieved by model-name queries, not a platform"
   }};
+  // Round 3 keeps its answer at `answers.capability` (the format the scorer
+  // reads); write the tool's internal `label` back into it, and stamp who/when.
+  if (kind === "capability") rows.forEach(r => {
+    if (r.label != null) {
+      r.answers = { ...(r.answers || {}), capability: r.label };
+      r.labelled_by = who || "anon";
+      r.labelled_at = r.labelled_at || new Date().toISOString();
+    }
+  });
   const body = [JSON.stringify(out), ...rows.map(r => JSON.stringify(r))].join("\n") + "\n";
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([body], { type: "application/x-ndjson" }));
