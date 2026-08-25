@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { health, coveragePage, filteredPage, changelogPage, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
+import PipelinePanel from '../components/PipelinePanel'
 import { IconAlert, IconGauge, IconLayers, IconFilter } from '../components/Icons'
 
 /**
@@ -69,6 +70,14 @@ export default function Admin() {
         <Reveal>
           <UsagePanel />
         </Reveal>
+
+      {/* evidence pipeline — the funnel. Placed after usage and before the
+          coverage/filtered detail: it is the whole-pipeline picture those two
+          panels then zoom into (what triage threw, what the board does not
+          know). Counts, never money — the sibling of the panel above it. */}
+      <Reveal>
+        <PipelinePanel />
+      </Reveal>
 
       {/* coverage */}
       <Reveal>
