@@ -125,12 +125,70 @@ def test_the_email_is_case_insensitive():
     assert r.status_code == 200
 
 
-def test_unconfigured_sign_in_refuses_rather_than_inventing_an_account(monkeypatch):
-    """Rule 6, where the definite value would be who may read the board."""
-    monkeypatch.delenv("AUTH_EMAIL", raising=False)
+def test_nothing_configured_in_development_falls_back_to_the_demo_login(monkeypatch):
+    """A fresh clone signs in with no .env at all.
+
+    THIS TEST USED TO ASSERT THE OPPOSITE, and the reversal is the point.
+
+    It required all three variables and expected 503 naming them, on the
+    grounds that a missing AUTH_EMAIL is a missing decision. That is right
+    about a secret and wrong here: `.env` is gitignored, so it never updates
+    from a pull, and anyone who made theirs before the demo credentials landed
+    had a stale copy git could not fix and would not mention. They were told to
+    generate credentials when the fix was to re-copy a file.
+
+    The fallback is not an invented value - it is the pair published in
+    .env.example, printed in judge/login.py, announced by /health, and refused
+    outside development by the test below.
+    """
+    for key in ("AUTH_EMAIL", "AUTH_PASSWORD_HASH", "SESSION_SECRET"):
+        monkeypatch.delenv(key, raising=False)
+
+    r = _client().post(
+        "/auth/login", json={"email": login.DEMO_EMAIL, "password": "modelboard-demo"}
+    )
+    assert r.status_code == 200
+
+
+def test_nothing_configured_OUTSIDE_development_still_refuses(monkeypatch):
+    """The fallback is a development affordance and stops at the boundary."""
+    for key in ("AUTH_EMAIL", "AUTH_PASSWORD_HASH", "SESSION_SECRET"):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("ENVIRONMENT", "staging")
+
     r = _client().post("/auth/login", json={"email": EMAIL, "password": PASSWORD})
     assert r.status_code == 503
     assert "AUTH_EMAIL" in r.json()["detail"]
+
+
+def test_a_half_configured_account_does_not_get_a_demo_password(monkeypatch):
+    """An email with no hash must not silently acquire the demo one.
+
+    That would be a login the operator never configured, attached to an address
+    they did choose - which looks configured and is not.
+    """
+    monkeypatch.setenv("AUTH_EMAIL", "someone@example.com")
+    monkeypatch.delenv("AUTH_PASSWORD_HASH", raising=False)
+
+    r = _client().post(
+        "/auth/login", json={"email": "someone@example.com", "password": "modelboard-demo"}
+    )
+    assert r.status_code == 503
+
+
+def test_a_configured_account_is_not_overridden_by_the_fallback(monkeypatch):
+    """Setting your own credentials must actually replace the demo ones."""
+    monkeypatch.setenv("AUTH_EMAIL", "real@example.com")
+    monkeypatch.setenv("AUTH_PASSWORD_HASH", login.hash_password("a-real-password"))
+    monkeypatch.setenv("SESSION_SECRET", "a-real-secret")
+    c = _client()
+
+    assert c.post(
+        "/auth/login", json={"email": login.DEMO_EMAIL, "password": "modelboard-demo"}
+    ).status_code == 401
+    assert c.post(
+        "/auth/login", json={"email": "real@example.com", "password": "a-real-password"}
+    ).status_code == 200
 
 
 # ── the token actually opens the gate ───────────────────────────────────────
