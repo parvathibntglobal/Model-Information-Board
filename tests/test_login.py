@@ -312,3 +312,86 @@ def test_replacing_only_the_password_is_not_enough(_published, monkeypatch):
 def test_health_reports_that_the_demo_login_is_in_use(_published):
     body = _client().get("/health").json()
     assert "demo_credentials" in body["auth"]
+
+
+# ── ALLOW_DEMO_LOGIN: the flag that used to be ENVIRONMENT's second job ─────
+
+
+def test_staging_locked_the_demo_login_out_which_is_the_bug_this_fixes(
+    _published, monkeypatch
+):
+    """ENVIRONMENT=staging is CORRECT when reading the shared database.
+
+    It turns the build-fixture guard back on. It also, as a side effect nobody
+    chose, refused the shipped login - two correct settings, one variable.
+    """
+    monkeypatch.setenv("ENVIRONMENT", "staging")
+    r = _client().post(
+        "/auth/login", json={"email": login.DEMO_EMAIL, "password": DEMO_PASSWORD}
+    )
+    assert r.status_code == 503
+
+
+def test_ALLOW_DEMO_LOGIN_true_restores_it_without_touching_the_fixture_guard(
+    _published, monkeypatch
+):
+    monkeypatch.setenv("ENVIRONMENT", "staging")
+    monkeypatch.setenv("ALLOW_DEMO_LOGIN", "true")
+
+    r = _client().post(
+        "/auth/login", json={"email": login.DEMO_EMAIL, "password": DEMO_PASSWORD}
+    )
+    assert r.status_code == 200
+    # and the flag it used to be tangled with is untouched
+    import os
+
+    assert os.environ["ENVIRONMENT"] == "staging"
+
+
+@pytest.mark.parametrize("value", ["1", "true", "TRUE", "yes", "on"])
+def test_the_affirmative_spellings_all_work(_published, monkeypatch, value):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("ALLOW_DEMO_LOGIN", value)
+    assert login.demo_login_allowed() is True
+
+
+@pytest.mark.parametrize("value", ["0", "false", "no", "off"])
+def test_it_can_be_turned_OFF_even_in_development(monkeypatch, value):
+    """The override points both ways, so a shared dev box can refuse it."""
+    monkeypatch.setenv("ENVIRONMENT", "development")
+    monkeypatch.setenv("ALLOW_DEMO_LOGIN", value)
+    assert login.demo_login_allowed() is False
+
+
+def test_an_unrecognised_value_falls_back_to_ENVIRONMENT_rather_than_to_true():
+    """`ALLOW_DEMO_LOGIN=maybe` must not read as permission.
+
+    The safe direction for a value nobody can parse is the derived default,
+    not the permissive one.
+    """
+    import os
+
+    os.environ["ENVIRONMENT"] = "production"
+    os.environ["ALLOW_DEMO_LOGIN"] = "maybe"
+    try:
+        assert login.demo_login_allowed() is False
+    finally:
+        os.environ.pop("ALLOW_DEMO_LOGIN", None)
+
+
+def test_env_example_does_not_switch_it_on():
+    """Copying the shipped file must not be able to enable this.
+
+    Turning it on has to be something a person typed, which is the entire
+    difference between this and the flag it replaced.
+    """
+    import pathlib
+
+    text = pathlib.Path(__file__).resolve().parents[1].joinpath(".env.example").read_text(
+        encoding="utf-8"
+    )
+    active = [
+        line for line in text.splitlines()
+        if line.strip().startswith("ALLOW_DEMO_LOGIN=")
+    ]
+    assert active == [], active

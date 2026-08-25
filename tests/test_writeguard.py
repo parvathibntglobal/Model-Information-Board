@@ -17,7 +17,10 @@ import pytest
 
 from judge.writeguard import LOCAL_HOSTS, UnsafeWriteRefused, check, is_local
 
-SHARED = "postgresql://user:pw@52.17.75.29:5432/Model-information-Board"
+# TEST-NET-1, reserved for documentation, so this file adds no occurrence of the
+# real infrastructure address. What matters to the guard is only that the host is
+# not this machine.
+SHARED = "postgresql://user:pw@192.0.2.10:5432/Model-information-Board"
 LOCAL = "postgresql://user:pw@localhost:5432/modelboard"
 
 
@@ -34,7 +37,7 @@ def test_development_plus_a_remote_database_is_refused():
         check(SHARED, command="judge extract")
 
     message = str(raised.value)
-    assert "52.17.75.29" in message          # says which host
+    assert "192.0.2.10" in message           # says which host
     assert "judge extract" in message        # says which command
     assert "Nothing was written" in message  # says what did not happen
 

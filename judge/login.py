@@ -104,11 +104,41 @@ def _development() -> bool:
     return (os.getenv("ENVIRONMENT") or "development").strip().lower() == "development"
 
 
+def demo_login_allowed() -> bool:
+    """Whether the credentials published in the repo may be used to sign in.
+
+    SEPARATE FROM `ENVIRONMENT`, AND IT HAD TO BECOME SO. One flag was deciding
+    two unrelated things: whether the build-fixture guard runs, and whether the
+    demo login works. They point opposite ways the moment somebody reads the
+    shared database - `ENVIRONMENT=staging` is CORRECT there, because it turns
+    the fixture guard back on, and it also locked them out of the UI. Two
+    correct settings, one variable, no way to have both.
+
+    So the default is derived and the override is explicit:
+
+        unset                  follows ENVIRONMENT - development allows it
+        ALLOW_DEMO_LOGIN=true  allowed anywhere. Somebody typed this.
+        ALLOW_DEMO_LOGIN=false forbidden even in development
+
+    `true` is a deliberate act rather than an inherited state, which is the
+    property that matters: the danger is a deployment running on a signing
+    secret published in the repo, and that now requires someone to have written
+    the word. It is NOT set in `.env.example`, so copying that file cannot
+    switch it on by accident.
+    """
+    raw = (os.getenv("ALLOW_DEMO_LOGIN") or "").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    return _development()
+
+
 def _secret() -> str:
     configured = (os.getenv("SESSION_SECRET") or "").strip()
     if configured:
         return configured
-    return DEMO_SESSION_SECRET if _development() else ""
+    return DEMO_SESSION_SECRET if demo_login_allowed() else ""
 
 
 def account() -> tuple[str, str]:
@@ -150,7 +180,7 @@ def account() -> tuple[str, str]:
     # said it must not. Caught by the test for it, not by reading.
     if email or password_hash:
         return email, password_hash
-    if _development():
+    if demo_login_allowed():
         return DEMO_EMAIL, DEMO_PASSWORD_HASH
     return "", ""
 
