@@ -149,6 +149,25 @@ class ModelPage:
     capabilities: tuple[CapabilityView, ...] = ()
     quotes: dict[str, Quote] | None = None
 
+    #: When this model was last SWEPT for evidence — `model_version.last_swept_at`.
+    #: NULL means NEVER SWEPT, which is not "swept long ago" and not "no evidence
+    #: found": it is "WE HAVE NOT LOOKED at this model" (#33 Q2). That is a third
+    #: silence, distinct from the per-capability "nobody discussed this", and rule
+    #: 4 says the two must render differently — "we never asked" and "nobody
+    #: answered" are opposite claims about the world, and only one is about the
+    #: model. Kept as the timestamp rather than a bool so a page can also say
+    #: WHEN, and so `None` cannot be mistaken for `False`.
+    swept_at: Any = None
+
+    @property
+    def tracked(self) -> bool:
+        """Has this model been swept for evidence at all? The third-state test.
+
+        `last_swept_at is None` -> never swept -> NOT TRACKED. Everything below on
+        the page is then an absence of LOOKING, not an absence of findings.
+        """
+        return self.swept_at is not None
+
     @property
     def reported(self) -> tuple[CapabilityView, ...]:
         return tuple(c for c in self.capabilities if not c.unreported)
@@ -168,11 +187,25 @@ class ModelPage:
 
     @property
     def summary(self) -> str:
-        """Rule 7: the counts carry the list they were drawn from."""
+        """Rule 7: the counts carry the list they were drawn from.
+
+        And rule 4 at the MODEL level: an untracked model leads with WHY it is
+        empty. "0 of 12 have reports" on a model nobody has swept reads as "we
+        looked and found nothing" — the exact conflation #33 Q2 ruled against. So
+        the not-tracked caveat comes first, because it changes what every figure
+        after it means.
+        """
         total = len(self.capabilities)
         reported = len(self.reported)
         if not total:
             return "No capability list is loaded, so this page is not a finding."
+        if not self.tracked:
+            return (
+                "This model has NOT been swept for evidence — nobody has looked at "
+                "it yet. The capabilities below are empty because we have not "
+                f"asked, not because engineers reported no problems. All {total} "
+                "read as not-yet-looked-at rather than as a clean bill of health."
+            )
         body = f"{reported} of {total} tracked capabilities have any reports at all."
         silent = len(self.silent_and_unreported)
         if silent:
@@ -244,10 +277,23 @@ class ModelPageReader:
             )
             for key, capability in sorted(capabilities().items())
         )
+        # WHETHER WE HAVE LOOKED AT THIS MODEL (#33 Q2). `model_version` is
+        # collect/'s table; this reads it, exactly as this lane already reads
+        # `document` and `thread_context`. NULL `last_swept_at` is never-swept —
+        # the third silence — and `_conn.execute` returning no row at all (a
+        # model id the registry does not carry) is treated the same: not looked
+        # at, rather than invented as swept.
+        swept_row = self._conn.execute(
+            "SELECT last_swept_at FROM model_version WHERE id = %s",
+            (model_version_id,),
+        ).fetchone()
+        swept_at = swept_row[0] if swept_row else None
+
         return ModelPage(
             model_version_id=model_version_id,
             display_name=display_name or model_version_id,
             capabilities=views,
+            swept_at=swept_at,
         )
 
     def quotes_for(self, claim_ids: tuple[str, ...]) -> dict[str, Quote]:

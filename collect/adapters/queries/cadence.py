@@ -194,6 +194,89 @@ def assert_within_budget(cadence: str, plan, *, budgets=None, per_minute: int = 
         )
 
 
+class StalenessBoundError(RuntimeError):
+    """A tracked set whose rotation would refresh evidence slower than it decays.
+
+    Separate from `HarvestBudgetError` because it is a different ceiling: the
+    budget caps ONE night's spend, this caps how many nights a full pass takes.
+    A set can be within budget every night and still take 31 nights to come
+    round, which is the failure #33's decay argument named.
+    """
+
+
+def _load_rotation(path: Path | None = None) -> tuple[float, float]:
+    """`(staleness_bound_days, requests_per_model)` from `contract/harvest.yaml`."""
+    raw = yaml.safe_load((path or HARVEST_YAML).read_text(encoding="utf-8"))
+    rotation = raw.get("rotation")
+    if not rotation:
+        raise StalenessBoundError(
+            "no `rotation` block in contract/harvest.yaml, so the staleness bound "
+            "is unset. That is a missing decision, not a licence to track any "
+            "number of models (#33, rule 6)."
+        )
+    return float(rotation["staleness_bound_days"]), float(rotation["requests_per_model"])
+
+
+def implied_staleness_days(
+    tracked_count: int, *, daily_request_cap: int, requests_per_model: float
+) -> int:
+    """Nights for a full pass over `tracked_count` models = its staleness.
+
+    `models_per_night` floors, because a night that can afford 11.04 models
+    sweeps 11 — a partial model is not swept. Zero tracked models has zero
+    staleness. A `requests_per_model` larger than a whole night's cap means a
+    single model cannot be swept in one night, which is a budget error rather
+    than a staleness one and is raised as such.
+    """
+    if tracked_count <= 0:
+        return 0
+    models_per_night = int(daily_request_cap // requests_per_model)
+    if models_per_night <= 0:
+        raise StalenessBoundError(
+            f"one model costs {requests_per_model} requests, more than the daily "
+            f"cap of {daily_request_cap}: no model fits in a night. That is a "
+            f"budget ceiling, not a rotation one."
+        )
+    return -(-tracked_count // models_per_night)  # ceil division
+
+
+def assert_staleness_within_bound(
+    tracked_count: int, *, budgets=None, rotation: tuple[float, float] | None = None
+) -> None:
+    """Refuse a tracked set whose rotation would exceed the staleness bound.
+
+    Structural, like `assert_within_budget`: the model count is not chosen, it
+    falls out of the bound, and adding a model either fits or fails loudly. The
+    daily request cap is read from the same `sweep_budget` the nightly spend
+    check uses, so the two ceilings cannot drift apart.
+
+    Raises:
+        StalenessBoundError: naming the count, the implied staleness and the bound.
+    """
+    budgets = budgets or load_budgets()
+    daily = budgets.get(DAILY)
+    if daily is None:
+        raise StalenessBoundError("no `daily` sweep_budget to derive rotation against.")
+    bound_days, requests_per_model = rotation or _load_rotation()
+
+    staleness = implied_staleness_days(
+        tracked_count,
+        daily_request_cap=daily.max_requests,
+        requests_per_model=requests_per_model,
+    )
+    if staleness > bound_days:
+        models_per_night = int(daily.max_requests // requests_per_model)
+        fits = int(bound_days) * models_per_night
+        raise StalenessBoundError(
+            f"tracking {tracked_count} models implies a {staleness}-night rotation, "
+            f"over the {bound_days:.0f}-day staleness bound. At {requests_per_model} "
+            f"requests/model against a {daily.max_requests}/night cap, the bound "
+            f"fits {fits} models. Track fewer, or raise `rotation.staleness_bound_days` "
+            f"in contract/harvest.yaml as a deliberate decision — but a bound above "
+            f"the 30-day fast half-life means a full pass never catches the decay."
+        )
+
+
 def headroom(cadence: str, plan, *, budgets=None) -> int:
     """Requests still available in this cadence's budget. Negative when over.
 

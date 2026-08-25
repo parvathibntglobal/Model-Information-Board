@@ -73,6 +73,26 @@ export default function ModelDetail() {
 
       {page && (
         <>
+          {/* #33 Q2 — the THIRD silence, rendered distinctly. `tracked: false`
+              means we have never swept this model, so the empty capabilities are
+              "we have not looked", not "nobody reported problems". Rule 4 says
+              those must not look the same, so this is a distinct warn banner
+              rather than just a line in the summary. It is also the only silence
+              a reader can act on — they can ask for the model to be tracked. */}
+          {page.tracked === false && (
+            <div className="notice" style={{ borderColor: 'var(--warn)', background: 'var(--warn-dim, rgba(224,175,104,.1))' }}>
+              <IconAlert style={{ flex: 'none', marginTop: 2, color: 'var(--warn)' }} />
+              <div>
+                <strong style={{ color: 'var(--text)' }}>Not tracked yet.</strong>{' '}
+                This model has never been swept for evidence — nobody has looked at
+                it. The capabilities below are empty because <em>we have not asked</em>,
+                not because engineers reported no problems. That is different from a
+                tracked model with no evidence, and you can change it by asking for
+                this model to be tracked.
+              </div>
+            </div>
+          )}
+
           <Notice>{page.summary}</Notice>
 
           {page.unbound_phrases.length > 0 && (
