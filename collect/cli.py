@@ -438,6 +438,33 @@ def _cmd_registry_tracked_set(args: argparse.Namespace) -> int:
     print(summarise(selection))
     print()
     print(distribution(selection))
+
+    # #33 Q3: the tracked count is not chosen, it falls out of a staleness bound.
+    # Report the implied rotation, and REFUSE loudly if it exceeds the bound —
+    # so growing the set past what the sweep can refresh before the evidence
+    # decays fails here rather than silently never catching up.
+    from collect.adapters.queries.cadence import (
+        DAILY,
+        StalenessBoundError,
+        _load_rotation,
+        assert_staleness_within_bound,
+        implied_staleness_days,
+        load_budgets,
+    )
+
+    n = len(selection.tracked)
+    daily_cap = load_budgets()[DAILY].max_requests
+    bound_days, rpm = _load_rotation()
+    staleness = implied_staleness_days(n, daily_request_cap=daily_cap, requests_per_model=rpm)
+    print()
+    print(f"  rotation : {n} tracked -> {staleness}-night pass, "
+          f"staleness bound {bound_days:.0f} days")
+    try:
+        assert_staleness_within_bound(n)
+    except StalenessBoundError as exc:
+        print(f"  REFUSED  {exc}")
+        return 1
+
     if args.verbose:
         print()
         print("  rank  mentions  surfaces  seated by            model")

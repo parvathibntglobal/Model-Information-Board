@@ -633,6 +633,12 @@ def model_page(model_version_id: str) -> dict:
         "canonical_id": canonical_id,
         "display_name": display_name,
         "summary": page.summary,
+        # #33 Q2: the THIRD silence. `tracked` false means we have never swept
+        # this model, so the empty capabilities below are "we have not looked",
+        # not "nobody reported problems". The UI must render this distinctly from
+        # a tracked model with no evidence — rule 4 at the model level.
+        "tracked": page.tracked,
+        "swept_at": page.swept_at.isoformat() if page.swept_at is not None else None,
         "capabilities": [
             {
                 "key": c.key,

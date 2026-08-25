@@ -139,6 +139,40 @@ cadence_days:
 
 
 # ============================================================================
+#  ROTATION STALENESS BOUND  (#33, Q3)
+#
+#  The tracked set cannot grow past what the sweep can refresh before the
+#  evidence decays. A 340-model rotation takes ~31 nights; judge/vet/weight.py
+#  sets HALF_LIFE_DAYS_FAST = 30 for ops.latency_ttft — so a full pass would
+#  refresh evidence more slowly than it decays and never catch up. last_swept_at
+#  makes that visible; only a smaller tracked set closes it.
+#
+#  So the model count is NOT chosen — it FALLS OUT of a defended staleness bound.
+#  `assert_staleness_within_bound` fails loudly when the tracked set's implied
+#  rotation would exceed the bound, the same shape as `assert_within_budget`:
+#  adding a model either fits or fails, and "77 was a limit" need not be
+#  remembered.
+#
+#      models_per_night   = daily.max_requests // requests_per_model
+#      rotation_nights    = ceil(tracked_count / models_per_night)   = staleness
+#      assert staleness  <= staleness_bound_days
+#
+rotation:
+  #: The maximum staleness the sweep will defend, in days. 7 is under a quarter
+  #: of the 30-day fast half-life and a natural weekly cadence, and it happens to
+  #: buy 77 slots against the daily cap — comfortably more than the ~50 the
+  #: poller surfaces as slot-worthy. Chosen as a bound; the model count derives.
+  staleness_bound_days: 7
+
+  #: Requests to sweep ONE model, MEASURED not modelled (#33): 56 rendered forms
+  #: x 16 request-issuing daily entries = 896 at 11 seeded models -> 81.45 per
+  #: model, reproducing harvest.yaml's independently measured 4,073 at 50. A
+  #: build fixture: when the tracked set changes shape this is re-measured
+  #: rather than trusted.
+  requests_per_model: 81.45
+
+
+# ============================================================================
 #  SIEVE LOCALITY
 #
 #  How far apart `topic` and `signal` may be, in characters, and still count
