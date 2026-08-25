@@ -45,7 +45,18 @@ from typing import Any
 log = logging.getLogger("judge")
 
 
-def _connect() -> Any:
+def _connect(*, writing: str | None = None) -> Any:
+    """A connection, and for a WRITE command one refusal before it opens.
+
+    `writing` names the command. Passing it turns on the check in
+    `judge/writeguard.py`, which refuses ENVIRONMENT=development pointed at a
+    remote database - the flag switches the build-fixture guard off, and this
+    lane's write commands had no gate of any kind. `collect/cli.py` runs
+    `_gate()` on its writes; nothing here did.
+
+    Read commands do not pass it, deliberately: the state this refuses is
+    exactly the state somebody needs to read the board to diagnose.
+    """
     import psycopg
 
     from judge.store.claims import CONNECT_TIMEOUT_SECONDS
@@ -57,6 +68,15 @@ def _connect() -> Any:
             "default that quietly reaches localhost is how a batch writes to a "
             "real database once."
         )
+
+    if writing:
+        from judge.writeguard import UnsafeWriteRefused, check
+
+        try:
+            check(url, command=writing)
+        except UnsafeWriteRefused as refusal:
+            raise SystemExit(str(refusal)) from refusal
+
     return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
 
 
@@ -97,7 +117,7 @@ def _cmd_extract(args: argparse.Namespace, *, resolver_factory=None) -> int:
             "--dry-run to see what is pending without paying to find out."
         )
 
-    with _connect() as conn:
+    with _connect(writing="judge extract") as conn:
         ledger = ExtractionLedger(conn)
         seen = ledger.already_extracted()
         zero_yield, read = ledger.yield_rate()
@@ -352,7 +372,7 @@ def _cmd_rebuild_cells(args: argparse.Namespace) -> int:
     from judge.curate.nightly import close_the_night
     from judge.store.cells import CellStore
 
-    with _connect() as conn, conn.transaction():
+    with _connect(writing="judge rebuild-cells") as conn, conn.transaction():
         outcomes = CellStore(conn).rebuild_all()
         published = sum(1 for o in outcomes if o.publishes)
         print(f"  {len(outcomes)} cells recomputed, {published} publish")

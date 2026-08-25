@@ -198,16 +198,16 @@ def sign_in(req: LoginRequest) -> LoginResponse:
     # without a password, so a deployment running on it has a login that checks
     # nothing. Refused here rather than warned about, because a warning in a
     # comment is what lets it travel.
-    environment = os.getenv("ENVIRONMENT", "development").strip().lower()
-    if login.uses_published_credentials() and environment != "development":
+    if login.uses_published_credentials() and not login.demo_login_allowed():
         raise HTTPException(
             status_code=503,
             detail=(
                 "this server is running on the demo credentials published in "
                 ".env.example, and ENVIRONMENT is not development. The signing "
                 "secret is public, so any token can be forged and sign-in would "
-                "check nothing. Run `python -m judge.credentials` and replace all "
-                "three values."
+                "check nothing. Either run `python -m judge.credentials` and replace "
+                "all three values, or set ALLOW_DEMO_LOGIN=true if this really is a "
+                "machine where that is fine."
             ),
         )
 

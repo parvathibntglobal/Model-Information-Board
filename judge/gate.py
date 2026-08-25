@@ -66,10 +66,11 @@ def auth_state() -> dict[str, object]:
     # from outside the box rather than by reading someone's .env.
     if login.uses_published_credentials():
         state["demo_credentials"] = (
-            "sign-in is using the credentials published in .env.example. Fine for "
-            "development; refused outside it, because the signing secret is public "
-            "and any token can be forged. Replace with `python -m judge.credentials`."
+            "sign-in is using the credentials published in .env.example. The signing "
+            "secret is public, so any token can be forged - fine locally, never on "
+            "anything reachable. Replace with `python -m judge.credentials`."
         )
+        state["demo_login_allowed"] = login.demo_login_allowed()
 
     if _token():
         return {**state, "required": True, "reason": "API_TOKEN is set"}

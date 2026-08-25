@@ -100,16 +100,89 @@ def verify_password(password: str, stored: str) -> bool:
 # ── configuration ───────────────────────────────────────────────────────────
 
 
+def _development() -> bool:
+    return (os.getenv("ENVIRONMENT") or "development").strip().lower() == "development"
+
+
+def demo_login_allowed() -> bool:
+    """Whether the credentials published in the repo may be used to sign in.
+
+    SEPARATE FROM `ENVIRONMENT`, AND IT HAD TO BECOME SO. One flag was deciding
+    two unrelated things: whether the build-fixture guard runs, and whether the
+    demo login works. They point opposite ways the moment somebody reads the
+    shared database - `ENVIRONMENT=staging` is CORRECT there, because it turns
+    the fixture guard back on, and it also locked them out of the UI. Two
+    correct settings, one variable, no way to have both.
+
+    So the default is derived and the override is explicit:
+
+        unset                  follows ENVIRONMENT - development allows it
+        ALLOW_DEMO_LOGIN=true  allowed anywhere. Somebody typed this.
+        ALLOW_DEMO_LOGIN=false forbidden even in development
+
+    `true` is a deliberate act rather than an inherited state, which is the
+    property that matters: the danger is a deployment running on a signing
+    secret published in the repo, and that now requires someone to have written
+    the word. It is NOT set in `.env.example`, so copying that file cannot
+    switch it on by accident.
+    """
+    raw = (os.getenv("ALLOW_DEMO_LOGIN") or "").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    return _development()
+
+
 def _secret() -> str:
-    return (os.getenv("SESSION_SECRET") or "").strip()
+    configured = (os.getenv("SESSION_SECRET") or "").strip()
+    if configured:
+        return configured
+    return DEMO_SESSION_SECRET if demo_login_allowed() else ""
 
 
 def account() -> tuple[str, str]:
-    """(email, password_hash) from the environment. Empty strings when unset."""
-    return (
-        (os.getenv("AUTH_EMAIL") or "").strip().lower(),
-        (os.getenv("AUTH_PASSWORD_HASH") or "").strip(),
-    )
+    """(email, password_hash), falling back to the demo pair in development.
+
+    WHY THIS FALLS BACK, HAVING PREVIOUSLY REFUSED TO.
+
+    The first version required all three variables and answered 503 naming
+    them, on the grounds that a missing AUTH_EMAIL is a missing decision and
+    inventing a login would be rule 6 with "who may read the board" as the
+    definite value. That reasoning is right about a SECRET and wrong here, and
+    the difference took a real person hitting it to see.
+
+    `.env` is gitignored - correctly, it holds live credentials - so it never
+    updates from a pull. Anyone who created theirs before the demo credentials
+    landed has a stale copy that `git pull` cannot fix and will not mention.
+    That is not a decision they failed to make; it is a file git is not allowed
+    to touch. The 503 told them to generate credentials when the actual fix was
+    to re-copy a file.
+
+    And the value is not INVENTED. It is the same pair published in
+    `.env.example`, in the repo, printed in this module, announced by /health,
+    and refused outside development by the check in `/auth/login`. A documented
+    default that says what it is is not a silent conversion.
+
+    Outside development nothing falls back: `_secret()` returns "" and
+    `is_configured()` is False, so sign-in answers 503 exactly as before.
+    """
+    email = (os.getenv("AUTH_EMAIL") or "").strip().lower()
+    password_hash = (os.getenv("AUTH_PASSWORD_HASH") or "").strip()
+
+    # EITHER set means the operator is configuring this, so take what they gave
+    # and let `is_configured()` refuse an incomplete pair. Falling back on a
+    # half-set account would attach the demo PASSWORD to an address they chose -
+    # a login nobody configured, wearing the name of one that was.
+    #
+    # Ordering is the whole of it: this ran after the development check first,
+    # which made the branch unreachable and did exactly what its own comment
+    # said it must not. Caught by the test for it, not by reading.
+    if email or password_hash:
+        return email, password_hash
+    if demo_login_allowed():
+        return DEMO_EMAIL, DEMO_PASSWORD_HASH
+    return "", ""
 
 
 def is_configured() -> bool:

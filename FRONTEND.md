@@ -143,3 +143,40 @@ most natural phrasing of a coding task raises zero capabilities:
 
 `/ask` explains this rather than showing an empty box, but the trigger list is
 where it belongs.
+
+---
+
+## One rule if you also run backend commands
+
+`ENVIRONMENT=development` does two unrelated things, and the second is the one
+to know about.
+
+It makes sign-in accept the credentials published in `.env.example` — which is
+why it is set, and correct for running the UI. It **also switches off the
+build-fixture guard** in `collect/registry/assertions.py`, which normally stops
+seeded and hand-curated rows reaching the database.
+
+So this pairing is dangerous and nothing about it looks dangerous:
+
+```
+ENVIRONMENT=development  +  DATABASE_URL pointed at the shared AWS database
+```
+
+Reading the board that way is fine — `run-backend.py --staging` forces
+`default_transaction_read_only=on`, so the API cannot write whatever it tries,
+and the guarantee is in Postgres rather than in a promise. **That flag is on
+the API's connection string only.** `judge extract` and `judge rebuild-cells`
+build their own connection from a bare `DATABASE_URL`.
+
+`judge/writeguard.py` refuses that one pairing before either command opens a
+transaction. Every other combination passes untouched:
+
+| | |
+|---|---|
+| development + your own Postgres | fine, the normal way to work |
+| staging/production + remote | fine, the fixture guard is on |
+| **development + remote** | **refused** |
+
+To write against a shared database on purpose, set `ENVIRONMENT` to match the
+target so the checks actually run. To work locally, point `DATABASE_URL` at
+your own Postgres.
