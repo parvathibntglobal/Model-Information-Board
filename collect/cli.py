@@ -793,6 +793,27 @@ def _cmd_assemble_github(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_assemble_reddit(args: argparse.Namespace) -> int:
+    """Assemble stored Reddit comment trees into `thread_context` rows.
+
+    190 of 196 Reddit documents have no context, and `judge/` reads
+    `thread_context` — so an unassembled thread is nearly half the corpus the
+    extractor cannot see, on the platform that carries the most distinct voices.
+    No fetching and no model call: it reassembles what harvest already stored.
+    """
+    from collect.assemble.reddit import assemble_reddit_documents
+    from collect.db import transaction
+    from collect.rawstore import RawStore
+
+    with transaction() as conn:
+        _gate(conn)
+        report = assemble_reddit_documents(
+            conn, store=RawStore(Path(args.store)), limit=args.limit
+        )
+    print(report.summary())
+    return 0
+
+
 def _cmd_registry_attest_seats(args: argparse.Namespace) -> int:
     """Write the manifest that records a review. No database, no rows.
 
@@ -1000,6 +1021,12 @@ def build_parser() -> argparse.ArgumentParser:
     asm_gh.add_argument("--store", default="./raw_store")
     asm_gh.add_argument("--limit", type=int, default=None)
     asm_gh.set_defaults(func=_cmd_assemble_github)
+
+    asm_reddit = assemble_sub.add_parser(
+        "reddit", help="assemble stored Reddit comment trees into thread_context rows")
+    asm_reddit.add_argument("--store", default="./raw_store")
+    asm_reddit.add_argument("--limit", type=int, default=None)
+    asm_reddit.set_defaults(func=_cmd_assemble_reddit)
 
     ops = sub.add_parser("ops", help="the nightly chain and its checks")
     ops_sub = ops.add_subparsers(dest="ops_command", required=True)
