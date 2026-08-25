@@ -322,14 +322,74 @@ CREATE TABLE document (
   filter_reasons          text[],
   status                  text NOT NULL DEFAULT 'kept',
 
+  -- ── RETRIEVAL PROVENANCE ──────────────────────────────────────────────
+  --
+  -- ⚠ ADDED BY E1 2026-08-24 AND NEEDS E2's SIGN-OFF, per the lane rule on
+  --   contract/. Two columns, and the second is the reason the first is worth
+  --   having.
+  --
+  -- WHAT WAS ASKED. `harvest_run_id` names the query that retrieved this
+  -- document — which alias, which capability entry, which page. It is the join
+  -- that separates "this page is empty because we never asked" from "we asked
+  -- and got nothing", and without it neither is answerable: 343 documents are
+  -- stored and not one of them can name what retrieved it.
+  --
+  -- FK ADDED BY ALTER BELOW, not inline, because `harvest_run` is created after
+  -- `document` in this file.
+  harvest_run_id          text,
+  --
+  -- WHY A SECOND COLUMN, AND IT IS NOT BOOKKEEPING. A nullable FK cannot say
+  -- WHY it is null, and the two reasons are opposite findings:
+  --
+  --   no_run_for_source  the source issues no per-query run. Blog documents
+  --                      come from a feed fetch and reddit from a listing;
+  --                      neither renders a query, and `harvest_run` holds 153
+  --                      rows of which all 153 are github. So NULL here is
+  --                      CORRECT and complete — there is no run to point at.
+  --   not_recorded       a run existed, or might have, and nobody wrote it
+  --                      down. Every row predating these columns is this.
+  --   run_recorded       `harvest_run_id` is set.
+  --
+  -- Collapsing those into one NULL is rule 6 exactly, and it is the mistake
+  -- this project has now made four times — an absent value read as a definite
+  -- one. A coverage page that cannot tell them apart reports "no provenance"
+  -- for a blog document whose provenance is complete, and "provenance absent"
+  -- for a github document nobody instrumented, which have opposite repairs.
+  --
+  -- DEFAULT IS THE HONEST STATE FOR AN UNINSTRUMENTED WRITER. A new writer
+  -- that forgets to set this gets `not_recorded` rather than a claim, so the
+  -- failure mode is under-claiming. Blog and reddit writers set
+  -- `no_run_for_source` explicitly; that is a statement about the source, and
+  -- it should require somebody to type it.
+  --
+  -- NOT PERMANENT FOR BLOGS. `collect/adapters/blog/validators.py` already
+  -- names `feed_url` as the natural `watermark.query_key`, so a blog feed fetch
+  -- could become a `harvest_run` row and move those documents to
+  -- `run_recorded`. This column is what makes that migration visible instead of
+  -- silently reinterpreting existing NULLs.
+  retrieval_provenance    text NOT NULL DEFAULT 'not_recorded',
+
   CONSTRAINT document_status_ck
     CHECK (status IN ('kept', 'filtered', 'rejected', 'tombstoned')),
+  CONSTRAINT document_retrieval_provenance_ck
+    CHECK (retrieval_provenance IN ('run_recorded', 'no_run_for_source', 'not_recorded')),
+  -- THE TWO COLUMNS CANNOT DISAGREE. `run_recorded` with no id would be a
+  -- provenance claim with nothing behind it, and an id under any other state
+  -- would be provenance the page refuses to show. Either is worse than both
+  -- being absent.
+  CONSTRAINT document_retrieval_provenance_agrees_ck
+    CHECK ((retrieval_provenance = 'run_recorded') = (harvest_run_id IS NOT NULL)),
   UNIQUE (source, external_id)
 );
 CREATE INDEX document_minhash_idx     ON document (minhash);
 CREATE INDEX document_simhash_idx     ON document (simhash);
 CREATE INDEX document_thread_root_idx ON document (thread_root_id);
 CREATE INDEX document_status_idx      ON document (status) WHERE status = 'kept';
+-- The join `harvest_run_id` exists for: "which documents did this query produce".
+-- Present in the migration and MISSED HERE, which `test_the_chain_and_the_file
+-- _agree_on_indexes` caught — the second time a migration/DDL divergence has been
+-- found by that equivalence rather than by anything behavioural.
+CREATE INDEX document_harvest_run_idx ON document (harvest_run_id);
 
 CREATE TABLE dedup_cluster (
   id                    text PRIMARY KEY,
@@ -1002,6 +1062,19 @@ CREATE TABLE harvest_run (
   CONSTRAINT harvest_run_finish_ck
     CHECK ((finished_at IS NULL) = (outcome IS NULL))
 );
+
+-- `document.harvest_run_id`'s foreign key, declared here because `document` is
+-- created ~680 lines above `harvest_run` and an inline REFERENCES would fail on
+-- a fresh schema. See the RETRIEVAL PROVENANCE block on `document`.
+--
+-- NO ON DELETE CASCADE, deliberately. A document outlives the query that found
+-- it: deleting a harvest_run must never delete evidence. ON DELETE SET NULL is
+-- also wrong, because it would silently move a row from `run_recorded` to a
+-- state its own CHECK forbids — so a harvest_run with documents cannot be
+-- deleted at all, which is the correct answer for an append-only ledger.
+ALTER TABLE document
+  ADD CONSTRAINT document_harvest_run_fk
+  FOREIGN KEY (harvest_run_id) REFERENCES harvest_run(id);
 CREATE INDEX harvest_run_source_query_idx
   ON harvest_run (source_id, query_key, started_at DESC);
 CREATE INDEX harvest_run_truncated_idx ON harvest_run (truncated_by)

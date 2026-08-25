@@ -87,9 +87,17 @@ from collect.rawstore import RawStore
 
 _DOCUMENT_SQL = (
     "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
-    "text_ref, content_hash, author_id, status) "
+    "text_ref, content_hash, author_id, status, retrieval_provenance) "
     "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
-    "%(text_ref)s, %(content_hash)s, %(author_id)s, %(status)s) "
+    # `no_run_for_source`, TYPED RATHER THAN DEFAULTED, and not permanent. A feed
+    # fetch renders no query and writes no `harvest_run` row, so a NULL
+    # `harvest_run_id` here is complete rather than missing. `validators.py`
+    # already names `feed_url` as the natural `watermark.query_key`, so a feed
+    # fetch could become a run row later and move these documents to
+    # `run_recorded` — this literal is what makes that a VISIBLE migration
+    # rather than a silent reinterpretation of NULLs that were never
+    # distinguishable in the first place.
+    "%(text_ref)s, %(content_hash)s, %(author_id)s, %(status)s, 'no_run_for_source') "
     "ON CONFLICT (source, external_id) DO NOTHING"
 )
 

@@ -1,0 +1,9 @@
+gate     : github terms reviewed and re-verified, harvest permitted
+preflight ok in 'staging': 3 passed, 0 failed, 1 skipped
+sweep    : 7 model(s) swept, 34 unreached, 459 of 2144 planned request(s) issued against a cap of 900 request(s) / 35 minute(s) — STOPPED ON WALL CLOCK
+           23160 candidate(s), 116 kept, 52 document(s) stored
+           harvest_run: 459 opened, 459 closed
+           last_swept_at set on 6 model(s)
+           sieve: signal 302/23160 (1.3%)  subject 15106/23160 (65.2%)  topic 18011/23160 (77.8%)
+EXCLUDED : 1 seated model(s) never entered the plan — z-ai/glm-4.5: every alias row's validity window is closed — a retired model is correctly not swept, and correctly not silent about it
+UNREACHED: 34 seated model(s) the budget did not cover: anthropic/claude-sonnet-4.5, anthropic/claude-sonnet-4.6, anthropic/claude-sonnet-5, google/gemini-2.5-flash, google/gemini-2.5-pro, google/gemini-3-flash-preview, google/gemini-3.5-flash, meta-llama/llama-3.3-70b-instruct…

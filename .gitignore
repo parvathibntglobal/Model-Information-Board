@@ -98,3 +98,4 @@ _handoff/
 # Operational data, not source, and it differs per machine — committing it would
 # put one developer's spend on everyone else's admin page.
 var/
+_sweep_store/
