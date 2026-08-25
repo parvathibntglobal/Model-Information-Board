@@ -60,8 +60,21 @@ def _connect() -> Any:
     return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
 
 
-def _cmd_extract(args: argparse.Namespace) -> int:
-    """Run E5-E7 over pending threads, then close the night."""
+def _cmd_extract(args: argparse.Namespace, *, resolver_factory=None) -> int:
+    """Run E5-E7 over pending threads, then close the night.
+
+    `resolver_factory` IS HOW MODEL IDENTITY CROSSES THE LANE BOUNDARY. This
+    lane may not import `collect/`, so it cannot build the surface resolver
+    itself — the composition root does (`scripts/run_extraction.py`), and passes
+    `RegistrySurfaceResolver.from_connection` here. Built inside the connection
+    below, because the resolver reads `model_version` off the same `conn`.
+
+    Default `None` keeps `judge extract` lane-clean and reproduces the previous
+    behaviour exactly: with no resolver, claims resolve only through
+    `resolved_version_id`, which nothing populates, so every claim is skipped.
+    That was the whole "stores nothing" symptom, and it is a missing composition
+    root rather than a defect — see `judge.pipeline.SurfaceResolver`.
+    """
     from judge.curate.labels import Driver
     from judge.extract.budget import Budget
     from judge.store.extractions import ExtractionLedger
@@ -112,7 +125,10 @@ def _cmd_extract(args: argparse.Namespace) -> int:
             )
         print(f"  {len(seen)} threads already extracted and will be skipped")
         if getattr(args, "from_export", None):
-            return _extract_from_export(args, conn, ledger, seen, budget, driver)
+            resolve_surface = resolver_factory(conn) if resolver_factory is not None else None
+            return _extract_from_export(
+                args, conn, ledger, seen, budget, driver, resolve_surface=resolve_surface
+            )
 
         raise SystemExit(
             "cannot read thread text from the database. "
@@ -209,7 +225,14 @@ def _model_version_map(conn: Any) -> dict[str, str]:
 
 
 def _extract_from_export(
-    args: argparse.Namespace, conn: Any, ledger: Any, seen: Any, budget: Any, driver: Any
+    args: argparse.Namespace,
+    conn: Any,
+    ledger: Any,
+    seen: Any,
+    budget: Any,
+    driver: Any,
+    *,
+    resolve_surface: Any = None,
 ) -> int:
     """Run E5-E7 over an export that carries its own text.
 
@@ -247,6 +270,19 @@ def _extract_from_export(
     model_version_of = _model_version_map(conn)
     print(f"  {len(loaded.threads)} thread(s) with text, {len(facts)} document(s) resolved")
     print(f"  {len(model_version_of)} model_version rows to resolve claims against")
+    if resolve_surface is None:
+        # STATED, NOT SILENT. Without a resolver the model's SURFACE ("sonnet 4")
+        # never maps to a model_version, and claims resolve only through
+        # `resolved_version_id`, which nothing populates — so every claim is
+        # skipped. That is the "stores nothing" symptom, and printing it here
+        # stops the next run reading a zero as "the corpus said nothing".
+        print(
+            "  NO SURFACE RESOLVER: claims will resolve only via resolved_version_id "
+            "(unpopulated), so all will be skipped. Run via scripts/run_extraction.py "
+            "to wire the registry resolver."
+        )
+    else:
+        print("  surface resolver wired (registry): claims resolve by the surface written")
 
     results = Pipeline(
         conn,
@@ -260,6 +296,7 @@ def _extract_from_export(
         budget=budget,
         already_extracted=seen,
         driver=driver,
+        resolve_surface=resolve_surface,
     )
 
     verified = sum(len(r.extraction.verified) for r in results)
