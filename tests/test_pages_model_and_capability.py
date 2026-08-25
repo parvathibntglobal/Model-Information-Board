@@ -7,6 +7,8 @@ knows nothing" is the question rule 4 exists to answer.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 
 from judge.config import capabilities
@@ -98,8 +100,15 @@ class TestSilenceRendersDistinctlyFromCriticism:
         assert "fails silently" not in view.headline
 
     def test_the_summary_names_the_silent_unreported_count(self):
-        page = ModelPageReader(Conn()).build("mv1")
+        # A SWEPT model with no cells — we looked and found nothing, which is the
+        # only state where "these fail silently, so absence is not safety" applies.
+        # The stub's fetchone() is the `last_swept_at` read on the model page, so a
+        # timestamp here makes the page tracked (#33 Q2). Without it the page is
+        # NOT-TRACKED and leads with "we have not looked", a different silence.
+        swept = datetime(2026, 8, 20, tzinfo=UTC)
+        page = ModelPageReader(Conn(total=swept)).build("mv1")
 
+        assert page.tracked
         assert "0 of 12 tracked capabilities" in page.summary
         assert "fail silently" in page.summary
         assert "not evidence of safety" in page.summary
