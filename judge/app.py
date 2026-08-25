@@ -935,6 +935,65 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
     }
 
 
+# ── the admin pipeline page: what is in each stage, and what the last run did ─
+
+
+@app.get("/admin/pipeline")
+def admin_pipeline() -> dict:
+    """The evidence pipeline, stage by stage — counts now, ledger for last run.
+
+    Distinct from `/admin/usage`, which is money. This is EVIDENCE: how many
+    rows sit in each stage, grouped by the status column that partitions it, and
+    what the `job_run` ledger recorded on the last pass. Every number is
+    COUNTED (rule 3), carries its population (rule 7), and a stage with no rows
+    reports as NOT-YET-RUN rather than a clean zero (rule 4). Where a stage's
+    discards are logged and never stored (a failed quote check, a sarcastic or
+    promotional drop), it shows survivors and NAMES what it cannot count instead
+    of implying none were dropped.
+    """
+    from judge.pages.pipeline_status import PipelineStatus
+
+    with _conn() as conn:
+        report = PipelineStatus(conn).report()
+
+    return {
+        "summary": report.summary,
+        "pipeline_version": report.pipeline_version,
+        "caveats": list(report.caveats),
+        "stages": [
+            {
+                "id": s.id,
+                "name": s.name,
+                "lane": s.lane,
+                "flow": s.flow,
+                "unit": s.unit,
+                "total": s.total,
+                "measured": s.measured,
+                "unreadable": s.unreadable,
+                "caveat": s.caveat,
+                "buckets": [
+                    {"key": b.key, "label": b.label, "n": b.n, "tone": b.tone}
+                    for b in s.buckets
+                ],
+            }
+            for s in report.stages
+        ],
+        "runs_measured": report.runs_measured,
+        "runs": [
+            {
+                "stage": r.stage,
+                "started_at": r.started_at,
+                "finished_at": r.finished_at,
+                "outcome": r.outcome,
+                "running": r.running,
+                "items_in": r.items_in,
+                "items_out": r.items_out,
+            }
+            for r in report.runs
+        ],
+    }
+
+
 def _whole_key_spend() -> dict:
     """Total spent on the API KEY, by anyone, straight from the provider.
 

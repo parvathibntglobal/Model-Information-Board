@@ -186,6 +186,13 @@ export const askUnderstand = (text, shape = 'task') =>
 export const adminUsage = (hours = 24, days = 14) =>
   request(`/admin/usage?hours=${hours}&days=${days}`)
 
+/**
+ * The evidence pipeline, stage by stage. Counts (not money): how many rows sit
+ * in each stage grouped by its status column, plus the job_run ledger for the
+ * last pass. An empty stage reports as not-yet-run, never a clean zero.
+ */
+export const pipelineStatus = () => request('/admin/pipeline')
+
 /* ------------------------------------------------------------------ display */
 
 export const fmtInt = (n) =>
