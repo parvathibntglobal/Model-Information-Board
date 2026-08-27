@@ -12,7 +12,12 @@ degrades this surface.
 
 from __future__ import annotations
 
+import json
 import os
+import subprocess
+import sys
+import uuid
+from pathlib import Path
 from typing import NamedTuple
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -42,6 +47,11 @@ from judge.gate import auth_state, rate_limit_ask, rate_limit_login, require_tok
 #: fix is a client change rather than a parameter.
 DEFAULT_PAGE = 100
 MAX_PAGE = 1000
+
+#: Where `scripts/fetch_model.py` writes its per-run progress log, and where the
+#: fetch-log endpoint reads it. Repo root / var / fetch (gitignored, local).
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+_FETCH_DIR = _REPO_ROOT / "var" / "fetch"
 
 
 class _Page(NamedTuple):
@@ -791,6 +801,70 @@ def model_page(model_version_id: str) -> dict:
         # Surfaced rather than hidden: a published phrase with no evidence
         # behind it is a rendering the client should refuse.
         "unbound_phrases": [s.capability_key for s in page.unbound_phrases()],
+    }
+
+
+# ── per-model fetch: run this model's evidence pipeline on demand ──────────
+#
+# TRIGGERED BY A CLICK, NEVER BY A READ. NFR-2 keeps the answer path off the
+# pipeline, so GET /models is untouched; this is a distinct POST that starts an
+# out-of-band job. The job runs in a SUBPROCESS (`scripts/fetch_model.py`), so
+# judge/ never imports collect/ — the composition root does, in its own process.
+# APPEND-ONLY: the script never drops or deletes; it adds this model's rows.
+
+
+class FetchRequest(BaseModel):
+    model_version_id: str
+
+
+@app.post("/fetch/start")
+def start_fetch(req: FetchRequest) -> dict:
+    """Kick off a fresh fetch for one model and return its run id.
+
+    Returns immediately; progress is written to var/fetch/<run_id>.jsonl by the
+    subprocess and read back through /fetch/log. The run id has no slash (the
+    model id's slashes are flattened) so it is a safe filename and query value.
+    """
+    mv = req.model_version_id.strip()
+    if not mv:
+        raise HTTPException(status_code=422, detail="model_version_id is required")
+    run_id = f"{mv.replace('/', '_')}-{uuid.uuid4().hex[:8]}"
+    script = _REPO_ROOT / "scripts" / "fetch_model.py"
+    # Detached: we do not wait. env carries DATABASE_URL / GITHUB_TOKEN etc.,
+    # which run-backend.py loaded from .env into this process's environment.
+    subprocess.Popen(
+        [sys.executable, str(script), mv, "--run-id", run_id],
+        cwd=str(_REPO_ROOT),
+        env=os.environ.copy(),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return {"run_id": run_id, "model_version_id": mv}
+
+
+@app.get("/fetch/log")
+def fetch_log(run_id: str) -> dict:
+    """The per-stage progress of a fetch, as the subprocess has written it so far.
+
+    Polled by the model page. `done` flips true when the run writes its end
+    record — that is how the UI knows to stop polling. An absent file means the
+    run has not written its first line yet, which is not an error.
+    """
+    if "/" in run_id or "\\" in run_id or ".." in run_id:
+        raise HTTPException(status_code=422, detail="bad run id")
+    path = _FETCH_DIR / f"{run_id}.jsonl"
+    if not path.exists():
+        return {"run_id": run_id, "records": [], "done": False, "started": False}
+    records = [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    return {
+        "run_id": run_id,
+        "records": records,
+        "started": True,
+        "done": any(r.get("kind") == "end" for r in records),
     }
 
 
