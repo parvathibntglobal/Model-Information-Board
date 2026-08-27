@@ -245,6 +245,11 @@ function Quote({ q, id }) {
   }
   return (
     <blockquote className="mcard-quote" style={{ width: '100%' }}>
+      {/* PRAISE vs CRITICISM, read straight from the claim — never inferred in
+          the browser. A disputed sign (marked positive while naming a problem)
+          is flagged rather than shown as a green "praise", because for this
+          board a criticism read as praise is the dangerous direction. */}
+      <PolarityTag polarity={q.polarity} disputed={q.sign_disputed} />
       “{q.text}”
       <cite className="mcard-cite">
         {q.platform} · {q.claimed_at} ·{' '}
@@ -254,6 +259,38 @@ function Quote({ q, id }) {
       </cite>
     </blockquote>
   )
+}
+
+function PolarityTag({ polarity, disputed }) {
+  if (disputed) {
+    return (
+      <span
+        className="badge badge-fail"
+        title="Marked as praise by the extractor, but it also names a problem — the sign contradicts itself and is flagged for review rather than trusted."
+        style={{ marginRight: 8 }}
+      >
+        sign disputed
+      </span>
+    )
+  }
+  if (polarity === 'positive') {
+    return <span className="badge badge-pass" style={{ marginRight: 8 }}>praise</span>
+  }
+  if (polarity === 'negative') {
+    return <span className="badge badge-warn" style={{ marginRight: 8 }}>criticism</span>
+  }
+  if (polarity === 'neutral') {
+    return (
+      <span
+        className="badge badge-mute"
+        title="A factual observation with no praise or criticism. Counts as a voice discussing this capability, but toward neither positive nor negative."
+        style={{ marginRight: 8 }}
+      >
+        neutral
+      </span>
+    )
+  }
+  return null
 }
 
 

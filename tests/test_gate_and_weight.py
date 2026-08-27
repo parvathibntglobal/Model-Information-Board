@@ -115,6 +115,34 @@ class TestClassification:
         claims = [claim(f"v{i}", "github" if i % 2 else "blog", 0.9) for i in range(5)]
         assert classify(count(claims, as_of=TODAY)) is CellStatus.PUBLISHED
 
+    def test_all_neutral_is_insufficient_not_contested(self):
+        """No sentiment is not disagreement.
+
+        Five neutral voices clear the weight and platform gates, but there is no
+        praise or criticism to publish and nothing in dispute. `agreement` is
+        0/0 here, which the dissent check alone would read as maximal
+        disagreement — so this must stay INSUFFICIENT, not flip to CONTESTED.
+        """
+        claims = [
+            claim(f"v{i}", "github" if i % 2 else "blog", 0.9, "neutral")
+            for i in range(5)
+        ]
+        counts = count(claims, as_of=TODAY)
+        assert counts.positive == 0 and counts.negative == 0
+        assert counts.independent_voices == 5  # they ARE voices
+        assert classify(counts) is CellStatus.INSUFFICIENT
+
+    def test_one_neutral_voice_does_not_tip_a_disagreement(self):
+        """A neutral claim counts toward voices and weight, toward no sentiment."""
+        claims = [
+            claim("v1", "github", 0.9, "positive"),
+            claim("v2", "blog", 0.9, "positive"),
+            claim("v3", "reddit", 0.9, "neutral"),
+        ]
+        counts = count(claims, as_of=TODAY)
+        assert (counts.positive, counts.negative) == (2, 0)
+        assert counts.independent_voices == 3
+
 
 class TestSilenceIsNotCriticism:
     def test_no_evidence_says_nobody_discussed_it(self):

@@ -48,13 +48,25 @@ from judge.config import capabilities
 
 @dataclass(frozen=True)
 class Quote:
-    """One piece of evidence, as written."""
+    """One piece of evidence, as written.
+
+    `polarity` says whether the engineer was praising or criticising — read
+    straight from `claim.polarity`, never inferred here. `sign_disputed` is the
+    read-time twin of the extraction guard (`ExtractedClaim.polarity_contradicts_pain`):
+    a stored claim marked `positive` while carrying a `pain_point` contradicts
+    itself, and the page must SAY SO rather than render a green "positive" that
+    is lying. New extractions drop such claims; this flags the ones already
+    stored before the guard existed, without silently rewriting the count a
+    re-run would fix (rule 6 — surface the contradiction, do not convert it).
+    """
 
     claim_id: str
     text: str
     permalink: str
     platform: str
     claimed_at: str | None = None
+    polarity: str | None = None
+    sign_disputed: bool = False
 
 
 @dataclass(frozen=True)
@@ -338,7 +350,8 @@ class ModelPageReader:
         # batch schedule and would age every quote to the day we ran.
         rows = self._conn.execute(
             """
-            SELECT c.id, c.quote, d.url, d.source, d.created_at
+            SELECT c.id, c.quote, d.url, d.source, d.created_at,
+                   c.polarity, c.pain_points
             FROM claim c JOIN document d ON d.id = c.document_id
             WHERE c.id = ANY(%s) AND c.quote_verified
             """,
@@ -351,6 +364,11 @@ class ModelPageReader:
                 permalink=r[2],
                 platform=r[3],
                 claimed_at=str(r[4]) if r[4] else None,
+                polarity=r[5],
+                # The same contradiction the extraction guard now discards, read
+                # off a row stored before it existed: a pain point present while
+                # the sign is anything but negative (positive or neutral).
+                sign_disputed=(bool(r[6]) and r[5] != "negative"),
             )
             for r in rows
         }

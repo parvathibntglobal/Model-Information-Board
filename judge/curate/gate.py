@@ -196,6 +196,14 @@ def classify(counts: CellCounts, *, dissent_threshold: float = 0.70) -> CellStat
     """
     if not check_gate(counts).passed:
         return CellStatus.INSUFFICIENT
+    # NO SENTIMENT IS NOT DISAGREEMENT. A cell whose voices are all neutral (or
+    # that otherwise has zero positive and zero negative) clears the weight gate
+    # but has no direction to publish, and `agreement` is 0/0 = 0.0 — which the
+    # dissent check below would misread as maximal disagreement and mark
+    # CONTESTED. It is discussed-without-sentiment, so it stays INSUFFICIENT:
+    # there is nothing to say as praise or criticism, and nothing is in dispute.
+    if counts.positive + counts.negative == 0:
+        return CellStatus.INSUFFICIENT
     if counts.agreement < dissent_threshold:
         return CellStatus.CONTESTED
     return CellStatus.PUBLISHED
