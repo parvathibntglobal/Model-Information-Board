@@ -474,6 +474,113 @@ def revise(req: ReviseRequest) -> ReviseResponse:
     )
 
 
+# ── Q4–Q7: the requirement, ranked against real cells ─────────────────────
+
+
+@app.post("/ask/recommend")
+def recommend(req: AskRequest) -> dict:
+    """The answer path, wired at last: task → requirement → ranked models.
+
+    `judge/ask/answer.py`, `rank.py` and `AnswerStore` were all built and
+    correct, and nothing read a cell through them — so the Ask box named no
+    model. This is that missing caller.
+
+    NO MODEL RUNS HERE. Q1 (`/ask/understand`) is the only LLM step in this
+    path; from the requirement onward it is gating, banding and ranking — all
+    named by rule 2 as code's job. The justification is assembled from the cells
+    that produced it and carries their quote ids (rule 3, FR-34).
+
+    CANDIDATES ARE THE EVIDENCED MODELS — the distinct models in `cell_current`
+    (published + contested). A model with no cell cannot qualify and would only
+    pad the answer with hundreds of `no_evidence` rows, so the honest shape when
+    nothing is published yet is a NAMED ABSTENTION: `answer_for` returns
+    `abstained=True` and lists the capabilities that lack evidence, which is a
+    different and more useful answer than an empty list (FR-35).
+
+    THE ANSWER IS PERSISTED before it is returned (FR-36), so "why not X?" is
+    answerable against what we said at the time rather than what the cells would
+    say tonight. This endpoint therefore WRITES (task_profile, role, answer);
+    those are additive rows, and the commit is here because `answer_for` leaves
+    the transaction to its caller.
+    """
+    from judge.ask.answer import answer_for
+    from judge.store.answers import AnswerStore
+
+    requirement = requirements.infer(
+        req.task,
+        input_tokens=req.input_tokens,
+        output_tokens=req.output_tokens,
+        tool_count=req.tool_count,
+        regions=req.regions,
+    )
+
+    with _conn() as conn:
+        store = AnswerStore(conn)
+        profile_id = store.write_profile(
+            raw_text=req.task,
+            profile=requirement.model_dump(),
+            inferred_fields=tuple(a.field for a in requirement.assumptions),
+            complexity_tier=requirement.complexity_tier,
+            error_cost=requirement.error_cost,
+            requests_per_month=req.requests_per_month,
+        )
+        role_id = store.write_role(
+            task_profile_id=profile_id,
+            name="task",
+            capability_needs={
+                c.key: {"condition_bucket": c.condition_bucket, "failure_mode": c.failure_mode}
+                for c in requirement.capabilities
+            },
+            error_cost=requirement.error_cost,
+        )
+
+        rows = conn.execute(
+            """
+            SELECT DISTINCT cc.model_version_id, mv.display_name
+            FROM cell_current cc
+            JOIN model_version mv ON mv.id = cc.model_version_id
+            """
+        ).fetchall()
+        names = {mv_id: (display or mv_id) for mv_id, display in rows}
+
+        answer = answer_for(
+            conn,
+            role_id=role_id,
+            requirement=requirement,
+            model_version_ids=list(names),
+            display_names=names,
+            assumptions=tuple(a.render() for a in requirement.assumptions),
+        )
+        conn.commit()
+
+    def _cand(c) -> dict:
+        return {
+            "model_version_id": c.model_version_id,
+            "display_name": names.get(c.model_version_id, c.model_version_id),
+            "band": c.band,
+            "reason": c.reason,
+            "cost_per_task": c.cost_per_task,
+            "quote_ids": list(c.quote_ids),
+        }
+
+    return {
+        "abstained": answer.abstained,
+        # NAMES THE MISSING CAPABILITY when abstaining, so "no answer" and "no
+        # answer BECAUSE nobody has reported on X" are distinguishable (rule 4).
+        "reason": answer.reason,
+        "requirement": requirement.model_dump(),
+        "guard": guard_for(requirement),
+        # The ranked list is recommended + qualified ONLY. Unevidenced models
+        # are shown in their own section, never mixed into the ranking — hiding
+        # them makes the board quietly conservative, mixing them makes it dishonest.
+        "recommended": [_cand(c) for c in answer.candidates if c.band == "recommended"],
+        "qualified": [_cand(c) for c in answer.candidates if c.band == "qualified"],
+        "rejected": [_cand(c) for c in answer.candidates if c.band == "rejected"],
+        "no_evidence": [_cand(c) for c in answer.candidates if c.band == "no_evidence"],
+        "considered": len(names),
+    }
+
+
 # ── the board's read surface ──────────────────────────────────────────────
 #
 # Five page modules existed with no endpoint and no caller, so nothing outside

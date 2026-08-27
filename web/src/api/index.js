@@ -179,6 +179,14 @@ export const askUnderstand = (text, shape = 'task') =>
   request('/ask/understand', { method: 'POST', body: { text, shape } })
 
 /**
+ * Q4–Q7. The requirement, ranked against real cells. No model runs; the
+ * justification is bound to quote ids. Abstains — and names the missing
+ * capability — when no model has evidence clearing the bar.
+ */
+export const askRecommend = (payload) =>
+  request('/ask/recommend', { method: 'POST', body: payload })
+
+/**
  * OUR spend against OUR shared daily cap — not OpenRouter's ceilings, which are
  * different numbers on a different schedule. Covers both LLM stages under one
  * limit; see judge/spend_ledger.py.

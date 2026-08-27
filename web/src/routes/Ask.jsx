@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { askRequirements, askRevise, askUnderstand, capLabel, fmtInt, TIER, ERROR_COST } from '../api'
+import { askRequirements, askRevise, askUnderstand, askRecommend, capLabel, fmtInt, TIER, ERROR_COST } from '../api'
 import { Badge, Notice, Reveal } from '../components/ui'
 import AskLoading from '../components/AskLoading'
 import { IconArrow, IconAlert, IconSearch } from '../components/Icons'
@@ -438,17 +438,92 @@ function Result({ data, task }) {
         </Reveal>
       )}
 
-      <Notice icon={<IconSearch />}>
-        <strong style={{ color: 'var(--text)' }}>This is the whole answer today, and it is not an error.</strong>{' '}
-        The requirement profile above is what the board can say with certainty. Naming
-        specific models needs published cells, and there are none yet: no claim has been
-        extracted, so every capability on every model in the registry reads “nobody has
-        discussed this”. Rather than invent candidates, the board stops here. The{' '}
-        <Link to="/models">registry itself</Link> is populated and carries each model’s
-        advertised price — that is a vendor’s claim about itself, not evidence, and it is
-        not enough to recommend on.
-      </Notice>
+      <Recommendation task={task} toolCount={req.hard.tool_count} />
     </div>
+  )
+}
+
+/**
+ * Q4–Q7, rendered. Calls `/ask/recommend`, which gates the requirement against
+ * real cells. The ranked list is recommended + qualified ONLY; unevidenced
+ * models get their own section and are never mixed in. When nothing is
+ * published the endpoint abstains and NAMES the missing capability — a
+ * different answer from an empty list, and the one this box exists to give
+ * honestly.
+ */
+function Recommendation({ task, toolCount }) {
+  const [state, setState] = useState('loading') // loading | done | error
+  const [ans, setAns] = useState(null)
+  const [err, setErr] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    setState('loading')
+    askRecommend({ task, tool_count: toolCount ?? null })
+      .then((a) => { if (alive) { setAns(a); setState('done') } })
+      .catch((e) => { if (alive) { setErr(e.message); setState('error') } })
+    return () => { alive = false }
+  }, [task, toolCount])
+
+  if (state === 'loading') {
+    return <div className="card"><span className="label">Ranking against the evidence…</span></div>
+  }
+  if (state === 'error') {
+    return (
+      <Notice icon={<IconAlert />}>
+        <strong style={{ color: 'var(--text)' }}>Could not rank against the board.</strong>{' '}
+        The requirement above still stands; only the model recommendation failed. {err}
+      </Notice>
+    )
+  }
+
+  const ranked = [...(ans.recommended || []), ...(ans.qualified || [])]
+
+  if (ans.abstained) {
+    return (
+      <Notice icon={<IconSearch />}>
+        <strong style={{ color: 'var(--text)' }}>No model is recommended yet, and that is not an error.</strong>{' '}
+        {ans.reason}{' '}
+        Naming a model needs published cells, and none clear the bar today — the{' '}
+        <Link to="/models">registry</Link> carries each model’s advertised price, but a
+        vendor’s claim about itself is not evidence to recommend on. Considered{' '}
+        {ans.considered} evidenced model{ans.considered === 1 ? '' : 's'}.
+      </Notice>
+    )
+  }
+
+  return (
+    <Reveal>
+      <section className="card card-flush">
+        <div className="card-head">
+          <span className="label">Recommendation — capability decides, cost breaks the tie</span>
+          <span className="label">{ranked.length} of {ans.considered} qualify</span>
+        </div>
+        <div className="card-body stack stack-3">
+          {ranked.map((c) => (
+            <div key={c.model_version_id} className="caprow">
+              <div className="stack" style={{ gap: 4 }}>
+                <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: 'var(--fs-sm)' }}>{c.display_name}</strong>
+                  <Badge tone={c.band === 'recommended' ? 'pass' : 'info'}>{c.band}</Badge>
+                </div>
+                <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{c.reason}</span>
+              </div>
+              {c.cost_per_task != null && (
+                <span className="label">${Number(c.cost_per_task).toFixed(5)}/task</span>
+              )}
+            </div>
+          ))}
+          {(ans.no_evidence?.length > 0) && (
+            <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+              {ans.no_evidence.length} model{ans.no_evidence.length === 1 ? '' : 's'} considered had
+              no evidence for the needed capabilities — shown here, never mixed into the ranking,
+              because hiding them makes the board quietly conservative.
+            </p>
+          )}
+        </div>
+      </section>
+    </Reveal>
   )
 }
 
