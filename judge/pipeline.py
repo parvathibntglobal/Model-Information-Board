@@ -182,6 +182,14 @@ class DocumentFacts:
     document_id: str
     platform: str
     created_at: date
+    #: The document's author (`document.author_id`), carried so it can be written
+    #: onto the claim. WITHOUT IT NO CELL CAN EVER PUBLISH: `cells.py` derives a
+    #: voice from `claim.author_id or f"anon:{platform}"`, so a NULL author on
+    #: every claim collapses all of a platform's claims into ONE voice, capping
+    #: `independent_voices` at 1 where the gate needs several. NULL here stays
+    #: NULL (rule 6) — an unknown author is the anonymous fallback, not an
+    #: invented identity — but a KNOWN author must reach the claim.
+    author_id: str | None = None
     #: Retained for a future caller; NOT read by the weighting path any more.
     names_version: bool | _Unsupplied = UNSUPPLIED
     #: READ BY `compute()`, AND NO LONGER DEFAULTING TO `False`. An absent
@@ -713,6 +721,11 @@ class Pipeline:
                 quote=quote,
                 weights=weights,
                 document_id=quote.document_id,
+                # From the RESOLVED document (verify step 2 picked which comment),
+                # so a Reddit thread's claims carry the author of the comment the
+                # quote came from — distinct people, distinct voices. Without this
+                # every claim was one anonymous voice and no cell could publish.
+                author_id=document.author_id,
                 thread_context_id=thread.thread_context_id,
                 model_version_id=model_version_id,
                 condition_bucket=bucket_for(
