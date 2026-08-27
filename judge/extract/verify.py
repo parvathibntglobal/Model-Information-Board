@@ -46,6 +46,7 @@ class VerificationFailure(StrEnum):
     SPAN_CROSSES_COMMENTS = "span_crosses_comments"
     RAW_TEXT_MISSING = "raw_text_missing"
     SARCASTIC = "sarcastic"
+    POLARITY_CONTRADICTION = "polarity_contradiction"
 
 
 @dataclass(frozen=True)
@@ -166,6 +167,16 @@ def verify(
             claim,
             VerificationFailure.SARCASTIC,
             "extractor flagged the quote as sarcastic; claim discarded rather than inverted",
+        )
+    if claim.polarity_contradicts_pain:
+        # A claim marked positive while listing a pain point contradicts itself.
+        # Dropped rather than flipped, on the same principle as sarcasm: we do
+        # not guess which of two of the model's own answers to believe.
+        return Rejection(
+            claim,
+            VerificationFailure.POLARITY_CONTRADICTION,
+            "extractor marked the claim positive while listing a pain point; the sign "
+            "is contradictory, so the claim is discarded rather than flipped",
         )
 
     # ── step 0: LOCATE. Code finds the quote; the model only named it. ───

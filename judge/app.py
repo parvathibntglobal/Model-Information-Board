@@ -673,6 +673,11 @@ def model_page(model_version_id: str) -> dict:
                 "permalink": q.permalink,
                 "platform": q.platform,
                 "claimed_at": q.claimed_at,
+                # praise vs criticism, read straight from claim.polarity; and a
+                # flag when a stored `positive` contradicts a listed pain point,
+                # so the page shows the dispute instead of a false green.
+                "polarity": q.polarity,
+                "sign_disputed": q.sign_disputed,
             }
             for qid, q in quotes.items()
         },

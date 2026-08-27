@@ -249,14 +249,30 @@ def extract(
     # `is_sarcastic` discards before verification rather than after. Verifying a
     # quote we have already decided to drop spends the work and, worse, would
     # put a verified-and-discarded claim in the same bucket as a fabricated one.
-    keep = [claim for claim in claims_in if not claim.is_sarcastic]
-    dropped = len(claims_in) - len(keep)
-    if dropped:
+    # A polarity/pain-point contradiction is dropped here for the same reason:
+    # it is a decision we have already made, not a fabrication to flag.
+    keep = [
+        claim
+        for claim in claims_in
+        if not claim.is_sarcastic and not claim.polarity_contradicts_pain
+    ]
+    sarcastic = sum(1 for c in claims_in if c.is_sarcastic)
+    contradictory = sum(
+        1 for c in claims_in if not c.is_sarcastic and c.polarity_contradicts_pain
+    )
+    if sarcastic:
         log.info(
             "thread %s: dropped %d sarcastic claim(s). Inverting sarcasm is "
             "unreliable; dropping it is honest.",
             thread.thread_context_id,
-            dropped,
+            sarcastic,
+        )
+    if contradictory:
+        log.info(
+            "thread %s: dropped %d claim(s) marked positive while listing a pain "
+            "point. The sign is contradictory, so discarded rather than flipped.",
+            thread.thread_context_id,
+            contradictory,
         )
 
     # `verify` per claim rather than `verify_all`, which returns bare

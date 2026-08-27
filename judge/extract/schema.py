@@ -12,7 +12,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-Polarity = Literal["positive", "negative"]
+Polarity = Literal["positive", "negative", "neutral"]
 Severity = Literal["mild", "clear", "severe"]
 Relevance = Literal["central", "passing"]
 Specificity = Literal["snapshot", "version", "family"]
@@ -251,6 +251,33 @@ class ExtractedClaim(BaseModel):
         if start < 0 or end <= start:
             raise ValueError(f"quote_offset {self.quote_offset} is not a forward range")
         return self
+
+    @property
+    def polarity_contradicts_pain(self) -> bool:
+        """A stated pain point makes the claim negative — anything else contradicts it.
+
+        `pain_points` is the model's own list of problems the author raised. A
+        problem is a criticism, so a claim that lists one and is NOT `negative`
+        (it says `positive` or `neutral`) contradicts itself, and we cannot
+        trust the SIGN it gave. Discarded rather than flipped — for exactly the
+        reason the prompt discards sarcasm rather than inverting it: choosing
+        which of two contradictory signals to believe is the same guess, one
+        field over.
+
+        Why this belongs in CODE and not the model (rule 2): it is a purely
+        structural contradiction between two fields already on the row. No
+        judgement about the text is made here — only that two of the model's own
+        answers cannot both be right. That is the one thing code is allowed to
+        decide.
+
+        It caught two real claims on the live board — "the API has zero
+        authorisation checks…" and "Claude Haiku 4.5 was the easiest to attack",
+        both `positive` with `pain_points: ['security']` — a security complaint
+        read as praise, which for a board whose job is surfacing criticism is
+        the most dangerous direction to be wrong in. Extended to `neutral` with
+        the third polarity: a pain point is not a neutral observation either.
+        """
+        return bool(self.pain_points) and self.polarity != "negative"
 
 
 class ExtractionResult(BaseModel):

@@ -176,6 +176,53 @@ class TestSarcasm:
         assert result.reason is VerificationFailure.SARCASTIC
 
 
+class TestPolarityContradictsPain:
+    """A pain point makes a claim negative; any other sign contradicts it.
+
+    Discarded, not flipped — the same principle as sarcasm: choosing which of
+    two of the model's own answers to believe is a guess. This is the guard that
+    would have caught "Claude Haiku 4.5 was the easiest to attack" (positive,
+    pain_points=['security']) on the live board.
+    """
+
+    def _off(self):
+        q = "Fine under ~50k."
+        start = FLAT.index(q)
+        return q, (start, start + len(q))
+
+    def test_the_property_fires_when_a_pain_point_is_not_negative(self):
+        q, off = self._off()
+
+        def contradicts(polarity, pain):
+            return make_claim(q, off, polarity=polarity, pain_points=pain).polarity_contradicts_pain
+
+        assert contradicts("positive", ["security"])
+        # neutral with a pain point is also a contradiction — a problem is not neutral
+        assert contradicts("neutral", ["security"])
+        # negative WITH a pain point is consistent, not a contradiction
+        assert not contradicts("negative", ["security"])
+        # any sign with NO pain point is fine
+        assert not contradicts("positive", [])
+        assert not contradicts("neutral", [])
+
+    def test_a_positive_claim_naming_a_pain_point_is_discarded(self):
+        q, off = self._off()
+        result = run(make_claim(q, off, polarity="positive", pain_points=["security"]))
+        assert isinstance(result, Rejection)
+        assert result.reason is VerificationFailure.POLARITY_CONTRADICTION
+
+    def test_a_neutral_claim_naming_a_pain_point_is_discarded(self):
+        q, off = self._off()
+        result = run(make_claim(q, off, polarity="neutral", pain_points=["verbosity"]))
+        assert isinstance(result, Rejection)
+        assert result.reason is VerificationFailure.POLARITY_CONTRADICTION
+
+    def test_a_plain_neutral_claim_still_verifies(self):
+        q, off = self._off()
+        result = run(make_claim(q, off, polarity="neutral"))
+        assert isinstance(result, VerifiedQuote)
+
+
 class TestRun:
     def test_failure_rate_is_reported(self):
         good_quote = "Fine under ~50k."

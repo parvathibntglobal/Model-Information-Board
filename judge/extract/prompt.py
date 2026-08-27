@@ -60,6 +60,22 @@ is not a model.
 paraphrased, never tidied, never trimmed of a typo. Give the character offsets \
 of that span.
 
+POLARITY — praise, criticism, or neither. Choose exactly one.
+
+  positive  the writer reports the model doing this capability WELL.
+  negative  the writer reports it doing this BADLY, or names a problem with it.
+  neutral   a factual observation with no praise and no criticism - a spec, a \
+setting, a bare "it uses X", "the window is 200k". MOST spec-like statements are \
+neutral, and forcing them to positive or negative is a mislabel. Use neutral \
+rather than guessing a sentiment the writer did not express.
+
+If the writer names a PAIN POINT, the claim is `negative`. A pain point is not \
+compatible with `positive` or `neutral` - do not record both.
+
+`pain_points` - the specific problems the writer raised, as short lowercase \
+tags ("security", "verbosity", "latency"). Empty when they raised none. If you \
+fill this list, `polarity` must be `negative`.
+
 THE QUOTE IS CHECKED IN CODE AFTER YOU ANSWER.
 
 An exact substring match against the text you were given. A quote that is \

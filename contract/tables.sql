@@ -540,7 +540,10 @@ CREATE TABLE claim (
   conditions            jsonb,
   pain_points           text[],
 
-  polarity              text NOT NULL,   -- positive | negative
+  polarity              text NOT NULL,   -- positive | negative | neutral
+                                         -- neutral = a voice, never a sentiment:
+                                         -- counts toward discussion and weight,
+                                         -- toward neither positive nor negative.
   severity              text,            -- mild | clear | severe
                                          -- PHRASE SELECTION ONLY. Never averaged.
   comparison_target_id  text,            -- set when the quote compares two models
@@ -573,7 +576,7 @@ CREATE TABLE claim (
   pipeline_version      text NOT NULL,
   created_at            timestamptz NOT NULL DEFAULT now(),
 
-  CONSTRAINT claim_polarity_ck  CHECK (polarity IN ('positive', 'negative')),
+  CONSTRAINT claim_polarity_ck  CHECK (polarity IN ('positive', 'negative', 'neutral')),
   CONSTRAINT claim_relevance_ck CHECK (relevance IN ('central', 'passing')),
   CONSTRAINT claim_severity_ck  CHECK (severity IS NULL
                                        OR severity IN ('mild', 'clear', 'severe')),
