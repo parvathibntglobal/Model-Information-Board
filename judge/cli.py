@@ -185,14 +185,14 @@ def _document_facts(conn: Any, document_ids: set[str]) -> tuple[dict[str, Any], 
         return {}, set()
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, source, created_at FROM document WHERE id = ANY(%s)",
+            "SELECT id, source, created_at, author_id FROM document WHERE id = ANY(%s)",
             (list(document_ids),),
         )
         rows = cur.fetchall()
 
     facts: dict[str, Any] = {}
     undatable: list[str] = []
-    for doc_id, source, created_at in rows:
+    for doc_id, source, created_at, author_id in rows:
         if created_at is None:
             undatable.append(doc_id)
             # OMITTED, NOT DATED FROM A DEFAULT. `recency_factor` subtracts this
@@ -210,6 +210,11 @@ def _document_facts(conn: Any, document_ids: set[str]) -> tuple[dict[str, Any], 
             document_id=doc_id,
             platform=source,
             created_at=created_at.date() if hasattr(created_at, "date") else created_at,
+            # THE FIX FOR THE PUBLISH BLOCKER. Read from the document so the
+            # claim carries its author and distinct people count as distinct
+            # voices. NULL stays NULL — an unknown author becomes the anonymous
+            # per-platform fallback in cells.py, never an invented identity.
+            author_id=author_id,
             # THE EXTRACTOR PROPOSES THESE AND THE COUNT DECIDES (pipeline.py:161).
             # None is "not established here" rather than False, so a disagreement
             # gets recorded instead of resolved by a default.
