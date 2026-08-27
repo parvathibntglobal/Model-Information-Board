@@ -113,56 +113,103 @@ export default function ModelDetail() {
           )}
 
           <Reveal>
-            <section className="card card-flush">
-              <div className="card-head">
-                <span className="label">Every capability, not only the evidenced ones</span>
-                <span className="label">{page.capabilities.length}</span>
-              </div>
-              <div className="card-body stack stack-3">
-                {page.capabilities
-                  .filter((c) => !page.unbound_phrases.includes(c.key))
-                  .map((c) => {
-                  const st = STATE[c.state] || STATE.unreported
-                  return (
-                    <div
-                      key={c.key}
-                      id={`cap-${c.key}`}
-                      className={`caprow${c.key === state?.focus ? ' caprow-focus' : ''}`}
-                    >
-                      <div className="stack" style={{ gap: 5 }}>
-                        <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-                          <strong style={{ fontSize: 'var(--fs-sm)' }}>{capLabel(c.key)}</strong>
-                          <Badge tone={st.tone}>{st.label}</Badge>
-                          {c.needs_positive_consensus && <Badge tone="warn">needs positive consensus</Badge>}
-                        </div>
-                        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{c.headline}</span>
-
-                        {c.conditions.map((s) => (
-                          <div key={s.bucket} className="slice">
-                            <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{s.bucket}</span>
-                            <span style={{ fontSize: 'var(--fs-xs)' }}>{s.phrase || s.status}</span>
-                            <span className="label">
-                              {s.voices} {s.voices === 1 ? 'voice' : 'voices'} · {s.platforms}pf
-                            </span>
-                            {s.note && <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{s.note}</span>}
-                            {s.quote_ids.length > 0 && (
-                              <div className="wrapf" style={{ marginTop: 4 }}>
-                                {s.quote_ids.map((qid) => (
-                                  <Quote key={qid} q={page.quotes[qid]} id={qid} />
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </section>
+            <CapabilitiesSection page={page} focus={state?.focus} />
           </Reveal>
         </>
       )}
+    </div>
+  )
+}
+
+/**
+ * Capabilities, evidenced first. The undiscussed ones are COLLAPSED, not
+ * dropped — hiding them would erase the board's core distinction, because a
+ * capability engineers tested and found fine and one nobody ever mentioned
+ * would then look identical (rule 4), and for a silent-failure capability that
+ * blank reads as "safe" when it means "unknown".
+ *
+ * The count is framed as "tracked", never as a fixed universe: the capability
+ * taxonomy grows as new ones are found in the evidence, so the twelve here are
+ * what we track TODAY, not all there are. Presenting them as the denominator
+ * would be the rule-7 mistake this framing exists to avoid.
+ */
+function CapabilitiesSection({ page, focus }) {
+  const visible = page.capabilities.filter((c) => !page.unbound_phrases.includes(c.key))
+  const evidenced = visible.filter((c) => c.state !== 'unreported')
+  const undiscussed = visible.filter((c) => c.state === 'unreported')
+
+  return (
+    <section className="card card-flush">
+      <div className="card-head">
+        <span className="label">What engineers have reported</span>
+        <span className="label">{evidenced.length} of {visible.length} tracked capabilities</span>
+      </div>
+      <div className="card-body stack stack-3">
+        {evidenced.length === 0 && (
+          <p className="muted" style={{ fontSize: 'var(--fs-sm)' }}>
+            No capability has evidence yet — nobody has reported on this model’s behaviour.
+            That is an absence of reports, not a clean bill of health.
+          </p>
+        )}
+        {evidenced.map((c) => (
+          <CapRow key={c.key} c={c} page={page} focus={focus} />
+        ))}
+
+        {undiscussed.length > 0 && (
+          <details>
+            <summary className="label" style={{ cursor: 'pointer' }}>
+              {undiscussed.length} tracked capabilit{undiscussed.length === 1 ? 'y has' : 'ies have'}{' '}
+              no evidence yet — show {undiscussed.length === 1 ? 'it' : 'them'}
+            </summary>
+            <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: '8px 0 10px' }}>
+              These are the capabilities we track <em>today</em>, not all there are — the
+              taxonomy grows as new ones are found in the evidence. “Nobody has discussed
+              this” is an absence of reports; for a silent-failure capability it is not
+              reassurance, because a failure there produces no complaint to find.
+            </p>
+            <div className="stack stack-3">
+              {undiscussed.map((c) => (
+                <CapRow key={c.key} c={c} page={page} focus={focus} />
+              ))}
+            </div>
+          </details>
+        )}
+      </div>
+    </section>
+  )
+}
+
+/** One capability row — the same card whether it is evidenced or undiscussed. */
+function CapRow({ c, page, focus }) {
+  const st = STATE[c.state] || STATE.unreported
+  return (
+    <div id={`cap-${c.key}`} className={`caprow${c.key === focus ? ' caprow-focus' : ''}`}>
+      <div className="stack" style={{ gap: 5 }}>
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+          <strong style={{ fontSize: 'var(--fs-sm)' }}>{capLabel(c.key)}</strong>
+          <Badge tone={st.tone}>{st.label}</Badge>
+          {c.needs_positive_consensus && <Badge tone="warn">needs positive consensus</Badge>}
+        </div>
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{c.headline}</span>
+
+        {c.conditions.map((s) => (
+          <div key={s.bucket} className="slice">
+            <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{s.bucket}</span>
+            <span style={{ fontSize: 'var(--fs-xs)' }}>{s.phrase || s.status}</span>
+            <span className="label">
+              {s.voices} {s.voices === 1 ? 'voice' : 'voices'} · {s.platforms}pf
+            </span>
+            {s.note && <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{s.note}</span>}
+            {s.quote_ids.length > 0 && (
+              <div className="wrapf" style={{ marginTop: 4 }}>
+                {s.quote_ids.map((qid) => (
+                  <Quote key={qid} q={page.quotes[qid]} id={qid} />
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -260,15 +307,16 @@ function Quote({ q, id }) {
 /**
  * The capabilities somebody has actually reported on, above the full list.
  *
- * THE FULL LIST STAYS. FR-24 and rule 4 are the reason it exists at all — a
- * page showing only what it has evidence for renders "nobody has looked" and
- * "no problems found" identically, as nothing. So this does not filter
- * anything; it is a jump list over the same rows.
+ * THE UNDISCUSSED CAPABILITIES STAY, COLLAPSED. FR-24 and rule 4 are why they
+ * are not dropped — a page showing only what it has evidence for renders
+ * "nobody has looked" and "no problems found" identically, as nothing. So the
+ * evidenced ones show, and the rest sit one click away behind a disclosure in
+ * CapabilitiesSection, still present and still distinct.
  *
- * It earns its place because the honest full list is also a wall: twelve
- * capabilities, eleven of them empty, and the one the reader filtered for
- * somewhere below the fold with nothing marking it. Arriving from the Evidence
- * filter and having to hunt is how a page with the right content still fails.
+ * This strip is a jump list over the evidenced rows, which are always rendered
+ * (never inside the collapse), so every chip resolves. It earns its place
+ * because even an evidenced-first list can bury the one capability the reader
+ * arrived from the Evidence filter to see.
  */
 function ReportedStrip({ page, focus }) {
   const reported = page.capabilities.filter(
@@ -323,8 +371,9 @@ function ReportedStrip({ page, focus }) {
         ))}
       </div>
       <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-        Every capability is listed below, including the {page.capabilities.length - reported.length}{' '}
-        nobody has discussed. These are the ones with something behind them.
+        These are the ones with something behind them. The{' '}
+        {page.capabilities.length - reported.length} nobody has discussed are collapsed
+        below, one click away — kept, not hidden, because an absence is a finding too.
       </p>
     </div>
   )
