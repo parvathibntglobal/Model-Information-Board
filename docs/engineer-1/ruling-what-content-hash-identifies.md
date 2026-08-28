@@ -80,11 +80,38 @@ that convention exists to prevent — and on Reddit a re-fetch is not available,
 because the listing endpoint returns *recent* posts and those posts are no longer
 recent.
 
-**Recoverable, and that is the good news and also the argument.** The discovery
-pages are in `harvest_run.discovery_refs`; the store is content-addressed; so
-`json.dumps(post.raw)` recomputed from a stored page hashes to the same value and
-lands at the same location. The repair needs **no network call**. That property
-is precisely what (b) below preserves and what my fix spent.
+**Recoverable, and I named the wrong mechanism first.** This section said *"the
+discovery pages are in `harvest_run.discovery_refs`"*. **There is no
+`discovery_refs` column.** `harvest_run` carries `pages_stored`, a count;
+`run.discovery_refs` is an in-memory list on the dataclass and is never written.
+So the route I described does not exist.
+
+The conclusion survives, on a better mechanism, verified rather than asserted:
+
+```
+raw_store/raw objects                              6,464 total
+  per-post payloads (have selftext/body/title)     2,427
+  listing or search pages (have data/posts)           499
+payloads indexed by their own `id`/`name`          3,034 keys
+reddit documents                                   2,556
+external_ids that match a payload file             1,517
+```
+
+**The payloads were never deleted** — the store is immutable and
+content-addressed, so overwriting `text_ref` in Postgres orphaned the pointer,
+not the object. And the payload files carry the post's own `id`, so the mapping
+is **rebuilt by indexing the store**, not by re-deriving from pages: read each
+payload, take its `id`, and the file's own path is the hash. No parsing of
+listing pages, no `json.dumps` round-trip, **no network call**.
+
+**1,517 of 2,556, and I am not rounding that up.** The remaining 1,039 are
+reddit documents whose `external_id` matches no indexed payload — likely
+comments from the earlier thread-based harvest, which stored a different shape.
+Unestablished, and it is the first thing the repair has to settle rather than
+discover halfway through.
+
+That the objects outlived the pointer is precisely the property (b) below
+preserves, and what my fix spent.
 
 ## 2 · Blog already had the right answer, and it is the only platform with claims on the board
 
@@ -138,8 +165,10 @@ github   assemble_issue extracts title + body from the payload before flatten.
 
 reddit   assemble_reddit / assemble_reddit_post extract title + selftext (post)
          or body (comment) before flatten.
-         text_ref and content_hash restored to the payload, recomputed from
-         harvest_run.discovery_refs. No re-fetch, no network.
+         text_ref and content_hash restored to the payload by INDEXING THE
+         STORE on each payload's own `id` — §1b. No re-derivation, no network.
+         Verified reachable for 1,517 of 2,556; the other 1,039 are the
+         repair's first question, not a discovery to make halfway through.
          The 1,512 thread_contexts REBUILD — their text is unchanged in content,
          so the extraction just run stays valid; what changes is that the row
          once again names where its text came from.
