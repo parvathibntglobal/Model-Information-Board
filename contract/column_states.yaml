@@ -84,6 +84,28 @@ columns:
     key: {state: read, reviewed: false}
     version: {state: read, reviewed: false}
 
+  # The table exists; nothing writes it yet. The classifier's DB write is the
+  # next wire-up, at which point these flip from `reserved` to `write_only` (and
+  # the review path adds the reads). Reserved until then, deliberately.
+  capability_candidate:
+    created_at:
+      state: defaulted
+      reviewed: true
+      why: >-
+        DEFAULT now(). Never written by us
+    definition: {state: reserved, reviewed: false}
+    document_id: {state: reserved, reviewed: false}
+    id: {state: reserved, reviewed: false}
+    pipeline_version: {state: reserved, reviewed: false}
+    prompt_label: {state: reserved, reviewed: false}
+    proposed_key: {state: reserved, reviewed: false}
+    proposer_model: {state: reserved, reviewed: false}
+    quote: {state: reserved, reviewed: false}
+    quote_verified: {state: reserved, reviewed: false}
+    reviewed_at: {state: reserved, reviewed: false}
+    ruling: {state: reserved, reviewed: false}
+    ruling_target: {state: reserved, reviewed: false}
+
   cell:
     capability_key: {state: read, reviewed: false}
     computed_at: {state: write_only, reviewed: false}
