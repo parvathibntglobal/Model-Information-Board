@@ -669,6 +669,39 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config) -> None:
         )
 
 
+# ── the process environment leaks between tests, and .env leaks into it ────
+
+
+@pytest.fixture(autouse=True)
+def _isolate_auth_env(monkeypatch):
+    """Open auth for every test, unless the test itself asks for a token.
+
+    `judge/gate.py` reads `API_TOKEN` fresh on each request: set means every
+    route needs a bearer, unset + `ENVIRONMENT=development` means open. Almost
+    every endpoint test in this suite is a bare `TestClient` with no token, so
+    it depends on the OPEN state — and it got it, right up until some earlier
+    test imported a `collect.*` module.
+
+    `collect/config.py` loads `.env` into `os.environ` lazily, on first use.
+    A developer `.env` carries a real `API_TOKEN`, so the FIRST test to pull in
+    collect (`test_article_assemble.py`, alphabetically well before the ask
+    tests) flips auth to token-required for the rest of the process. Every
+    later tokenless request then answers 401 — and `test_ask_spend_cap.py`'s
+    `test_the_cap_binds_ACROSS_requests` reports it as "the cap never bound",
+    because the requests never reach the spend logic to bind it. Order-dependent,
+    passes in isolation, and points at the cap when the cap is fine.
+
+    CI is usually spared only because it has no `.env` to load; that is luck,
+    not isolation. Pinning the auth env per test makes the result the same with
+    or without a `.env`. `test_gate.py` already did exactly this locally; this
+    is that guard promoted so it covers the whole suite. A test that needs a
+    token sets `API_TOKEN` through its own function-scoped `monkeypatch`, which
+    runs after this fixture and overrides it.
+    """
+    monkeypatch.delenv("API_TOKEN", raising=False)
+    monkeypatch.setenv("ENVIRONMENT", "development")
+
+
 # ── ask-path spend is MODULE state, so it must not leak between tests ──────
 
 
