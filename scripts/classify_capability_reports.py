@@ -227,8 +227,11 @@ def main() -> int:
                          "error": f"{type(error).__name__}: {error}"})
             continue
         budget.charge(completion)
+        # `raw_arguments`, kept as TEXT by the client on purpose: a schema
+        # violation is something to log verbatim rather than something to have
+        # already failed to parse. Same reason the runner salvages from it.
         try:
-            parsed = json.loads(completion.text) if completion.text else {}
+            parsed = {} if completion.is_empty else json.loads(completion.raw_arguments)
         except ValueError:
             parsed = {}
         quote = parsed.get("quote")
