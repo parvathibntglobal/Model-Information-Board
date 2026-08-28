@@ -200,6 +200,30 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int)
     return inserted
 
 
+def _write_rapidapi_quota(remaining: int | None, limit: int | None, run_id: str) -> None:
+    """Persist the latest RapidAPI quota HEADER reading for the admin page.
+
+    RapidAPI bills the Reddit path as a request quota, and the remaining/limit
+    arrive in `x-ratelimit-*` response headers. This writes the RAW reading, not
+    a recompute, so the admin page shows the provider's OWN number cached with
+    its date rather than a second source of truth. It is shown 'as of' that date,
+    because the quota moves only when a fetch runs and a dated reading on a live
+    dashboard would otherwise read as current.
+
+    Written from this per-model fetch. The nightly Reddit sweep can write the
+    same file with one line so the figure also moves without a manual fetch.
+    """
+    if remaining is None and limit is None:
+        return  # nothing was read; do not overwrite a good reading with a blank
+    path = ROOT / "var" / "rapidapi-quota.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rec = {"quota_remaining": remaining, "quota_limit": limit,
+           "at": _now(), "source_run_id": run_id}
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(rec), encoding="utf-8")
+    tmp.replace(path)  # atomic, so a concurrent read never sees a half-written file
+
+
 def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: int,
                    max_threads: int) -> int:
     """E2 harvest — live Reddit search (RapidAPI) for this model, WITH comments.
@@ -224,17 +248,28 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                       f"for up to {max_threads} thread(s)")
 
     inserted = hits = threads = 0
+    q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
     with build_client() as client:
         searcher = harvester_for_source(reddit_src, client=client, store=store)
         for variant in queries:
             if threads >= max_threads:
                 break
             run = searcher.search(variant)
+            if run.quota_remaining is not None:
+                q_remaining = run.quota_remaining
+            if run.quota_limit is not None:
+                q_limit = run.quota_limit
             hits += len(run.posts)
             for post in run.posts:
                 if threads >= max_threads:
                     break
                 fetch = searcher.fetch_comments(post)
+                # A comment fetch is a metered call, so its quota reading is as
+                # fresh as a search's — take the latest either reports.
+                if getattr(fetch, "quota_remaining", None) is not None:
+                    q_remaining = fetch.quota_remaining
+                if getattr(fetch, "quota_limit", None) is not None:
+                    q_limit = fetch.quota_limit
                 if getattr(fetch, "not_a_thread", False) or not getattr(fetch, "comments", None):
                     continue  # a post with no comments will not assemble
                 items = [post, *fetch.comments]
@@ -247,8 +282,10 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                 conn.commit()
                 inserted += int(wrote.get("documents_inserted", 0) or 0)
                 threads += 1
+    _write_rapidapi_quota(q_remaining, q_limit, prog.run_id)
     prog.stage("E2R", "Harvest · Reddit", "ok",
                search_hits=hits, threads_fetched=threads, documents_inserted=inserted,
+               quota_remaining=q_remaining, quota_limit=q_limit,
                detail=f"{threads} thread(s) with comments fetched, {inserted} document(s) appended")
     return inserted
 
