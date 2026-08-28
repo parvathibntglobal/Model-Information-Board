@@ -341,11 +341,21 @@ CREATE TABLE document (
   -- WHY A SECOND COLUMN, AND IT IS NOT BOOKKEEPING. A nullable FK cannot say
   -- WHY it is null, and the two reasons are opposite findings:
   --
-  --   no_run_for_source  the source issues no per-query run. Blog documents
-  --                      come from a feed fetch and reddit from a listing;
-  --                      neither renders a query, and `harvest_run` holds 153
-  --                      rows of which all 153 are github. So NULL here is
-  --                      CORRECT and complete — there is no run to point at.
+  --   no_run_for_source  THIS RUN issued no per-query run. A blog feed fetch
+  --                      renders no query; a reddit SUBREDDIT LISTING renders
+  --                      none either. So NULL here is CORRECT and complete —
+  --                      there is no run to point at.
+  --
+  --                      ⚠ IT IS A CLAIM ABOUT THE RUN, NOT ABOUT THE SOURCE,
+  --                      and this comment said the second until 2026-08-28.
+  --                      "reddit comes from a listing" is not a property of
+  --                      reddit: the per-model fetch's reddit arm issues
+  --                      MODEL-NAME QUERIES through the same writer, and 853
+  --                      rows landed here asserting there had been nothing to
+  --                      record. A positive claim that nothing is missing, on
+  --                      rows where something was — worse than the absent value
+  --                      it was chosen over. `reddit_write.py` now requires the
+  --                      caller to type it and refuses to guess.
   --   not_recorded       a run existed, or might have, and nobody wrote it
   --                      down. Every row predating these columns is this.
   --   run_recorded       `harvest_run_id` is set.
@@ -371,16 +381,29 @@ CREATE TABLE document (
 
   CONSTRAINT document_status_ck
     CHECK (status IN ('kept', 'filtered', 'rejected', 'tombstoned')),
-  -- `unreviewed_writer` (added 2026-08-28) is a document written by code that
-  -- is not on `main`, by a run that opened no `harvest_run`. It is NOT
-  -- `not_recorded`: that value means a run existed and no id was passed, which
-  -- is a plumbing gap, and collapsing the two makes an unreviewed writer's rows
-  -- indistinguishable from it (rule 6). See the migration for the 853 rows that
-  -- were mislabelled `no_run_for_source` - a positive claim that nothing was
-  -- missing - and why that is worse than an absent value.
+  -- A FOURTH VALUE (`unreviewed_writer`) WAS ADDED HERE ON 2026-08-28 AND
+  -- WITHDRAWN THE SAME DAY. Recorded because the reasoning is the useful part.
+  --
+  -- It was meant for a document written by code not on `main`, by a run that
+  -- opened no `harvest_run`. It was wrong for two reasons, and only the second
+  -- was obvious in advance:
+  --
+  --   WRONG AXIS. This column answers ONE question - what do we know about what
+  --   retrieved this row - and "the writer is not on main" is a fact about CODE.
+  --   Two rows could both carry it with one having rendered a query and one not,
+  --   at which point the column stops answering its own question.
+  --
+  --   IT BREAKS A READER. judge/pages/pipeline_status.py counts exactly these
+  --   three values as three `count(*) FILTER` buckets against `count(*)` as the
+  --   total. A fourth makes them stop summing: rows in the total and in no
+  --   bucket, in the one page built to honour rules 4, 6 and 7. It shipped
+  --   because nobody checked for a reader, on the same day an audit of readers
+  --   was published.
+  --
+  -- The 853 rows it was for are `not_recorded`, which the vocabulary above
+  -- already covers: *"a run existed, OR MIGHT HAVE, and nobody wrote it down."*
   CONSTRAINT document_retrieval_provenance_ck
-    CHECK (retrieval_provenance IN ('run_recorded', 'no_run_for_source', 'not_recorded',
-                                    'unreviewed_writer')),
+    CHECK (retrieval_provenance IN ('run_recorded', 'no_run_for_source', 'not_recorded')),
   -- THE TWO COLUMNS CANNOT DISAGREE. `run_recorded` with no id would be a
   -- provenance claim with nothing behind it, and an id under any other state
   -- would be provenance the page refuses to show. Either is worse than both
