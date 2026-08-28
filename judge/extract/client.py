@@ -139,7 +139,12 @@ class OpenRouterClient:
 
         response = httpx.post(
             f"{self.base_url}/chat/completions",
-            timeout=self.timeout_seconds,
+            # Explicit phases rather than one float: a stalled CONNECT fails fast
+            # (10s) while a legitimately slow generation still gets the full read
+            # window. A read that goes idle past the window raises rather than
+            # hanging the batch - the on-demand fetch's E5 had no ceiling a caller
+            # could see, so a slow provider looked identical to a dead one.
+            timeout=httpx.Timeout(self.timeout_seconds, connect=10.0),
             headers={"Authorization": f"Bearer {self.api_key}"},
             json={
                 "model": self.model,

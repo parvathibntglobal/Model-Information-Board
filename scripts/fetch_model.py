@@ -65,6 +65,13 @@ CAPABILITIES = (
 
 FETCH_DIR = ROOT / "var" / "fetch"
 
+#: An on-demand fetch must stay responsive, and extraction is one LLM call per
+#: thread whose latency scales with the prompt. A 45-comment thread produced a
+#: ~13-minute E5 with no visible progress. Threads larger than this are DEFERRED
+#: to the nightly batch (which is uncapped) rather than read on a click; the cap
+#: is generous, so only pathologically large threads are held back.
+MAX_FETCH_THREAD_CHARS = 30_000
+
 
 class Progress:
     """One run's per-stage log. Append-only JSONL the fetch view tails."""
@@ -278,7 +285,14 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                 for c in fetch.comments:
                     body = getattr(c, "body", "") or ""
                     refs[c.external_id] = (store.put(body).ref, content_hash(body))
-                wrote = reddit_write(conn, items, refs=refs)
+                # This is the model-name SEARCH arm: a query was issued but no
+                # harvest_run row was opened, so `not_recorded` is the honest
+                # provenance — reddit_write.py:147 names this exact caller. The
+                # argument became required when retrieval_provenance merged, and
+                # this call site was not updated with it.
+                wrote = reddit_write(
+                    conn, items, refs=refs, retrieval_provenance="not_recorded"
+                )
                 conn.commit()
                 inserted += int(wrote.get("documents_inserted", 0) or 0)
                 threads += 1
@@ -384,11 +398,21 @@ def extract_and_curate(conn, prog: Progress) -> None:
     ledger = ExtractionLedger(conn)
     seen = ledger.already_extracted()
     threads, doc_ids = build_thread_inputs(conn, seen, limit=200)
+
+    # Defer pathologically large threads to the nightly batch so a click cannot
+    # become a many-minute call. Generous cap: most threads still read now.
+    oversized = [t for t in threads if len(t.flattened_text) > MAX_FETCH_THREAD_CHARS]
+    threads = [t for t in threads if len(t.flattened_text) <= MAX_FETCH_THREAD_CHARS]
+    if oversized:
+        prog.stage("E5", "Extract", "running",
+                   detail=f"{len(oversized)} oversized thread(s) deferred to the nightly "
+                          f"batch (> {MAX_FETCH_THREAD_CHARS:,} chars, too slow on demand)")
     prog.stage("E5", "Extract", "running",
                detail=f"{len(threads)} new thread(s) to read (LLM; capped spend)")
     if not threads:
         prog.stage("E5", "Extract", "skipped",
-                   detail="no new readable threads — nothing harvested resolved to local text")
+                   detail="no new readable threads to read now — "
+                          "nothing local, or all deferred as oversized")
         for id_, name in [("E6", "Vet"), ("E7", "Curate")]:
             prog.stage(id_, name, "skipped", detail="no claims to curate")
         return
@@ -400,6 +424,16 @@ def extract_and_curate(conn, prog: Progress) -> None:
     mvo = _model_version_map(conn)
     resolver = RegistrySurfaceResolver.from_connection(conn)
 
+    # Per-thread progress, so a slow E5 shows movement instead of looking hung -
+    # the whole reason E6/E7 seemed never to arrive was E5 running in silence.
+    total = len(threads)
+    counter = {"n": 0}
+
+    def _on_thread(tc_id: str) -> None:
+        counter["n"] += 1
+        prog.stage("E5", "Extract", "running",
+                   detail=f"reading thread {counter['n']}/{total} (LLM) — {tc_id}")
+
     results = Pipeline(
         conn,
         client=OpenRouterClient.from_env(),
@@ -408,6 +442,7 @@ def extract_and_curate(conn, prog: Progress) -> None:
     ).run_all(
         threads, facts=facts, model_version_of=mvo, budget=budget,
         already_extracted=seen, driver=Driver("new-evidence"), resolve_surface=resolver,
+        on_thread=_on_thread,
     )
     conn.commit()
 
