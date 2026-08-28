@@ -492,7 +492,16 @@ columns:
     requests_per_month: {state: write_only, reviewed: false}
 
   thread_context:
-    assembled_at: {state: read, reviewed: false}
+    assembled_at:
+      state: read
+      reviewed: true
+      why: >-
+        ORDER BY assembled_at DESC in scripts/fetch_model.py:295, taking the most
+        recently assembled contexts for an on-demand extraction. It was write_only
+        until #163 landed that reader, and this entry is where the guard caught its
+        first real drift - a state changed by another branch rather than one I had
+        mislabelled. Promoted to reviewed because a snapshot that flips does not
+        record why it flipped, and that reason is the whole point of this file.
     child_count: {state: write_only, reviewed: false}
     coverage_ratio:
       state: generated
