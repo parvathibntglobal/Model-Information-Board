@@ -236,49 +236,50 @@ class TestTheEndpoint:
 
 
 class TestTheOtherPaidApiIsReportedNotAnalysed:
-    """RapidAPI is billed in requests, and Engineer 1 owns its limits.
+    """RapidAPI is billed in requests, and before a Reddit fetch has recorded a
+    quota reading there is nothing to show - so this reports the not-yet-recorded
+    state honestly rather than a fake zero. The instrumented case (a reading is
+    present) is covered in tests/test_rapidapi_usage.py.
 
-    These assertions are mostly about what this lane must NOT do. Restating a
-    costing conclusion, or deriving a window, creates a second source of truth
-    for a quantity we do not own - and it is the copy that goes stale silently.
+    Each test points `_REPO_ROOT` at an empty dir so no `var/rapidapi-quota.json`
+    exists: the deterministic "nothing recorded yet" state, independent of what a
+    real fetch on the machine may have written.
     """
 
-    def _rapid(self):
+    def _rapid(self, monkeypatch, tmp_path):
         from fastapi.testclient import TestClient
 
+        import judge.app as app_module
         from judge.app import app
 
+        monkeypatch.setattr(app_module, "_REPO_ROOT", tmp_path)
         return TestClient(app).get("/admin/usage").json()["rapidapi"]
 
-    def test_it_reports_requests_rather_than_dollars(self, ledger):
+    def test_it_reports_requests_rather_than_dollars(self, ledger, monkeypatch, tmp_path):
         """Different unit, hence a separate tab rather than another chart line."""
-        assert self._rapid()["unit"] == "requests"
+        assert self._rapid(monkeypatch, tmp_path)["unit"] == "requests"
 
-    def test_it_says_it_is_not_instrumented_rather_than_showing_zero(self, ledger):
-        """Zero requests used would be a lie; not-tracked is the fact."""
-        rapid = self._rapid()
+    def test_before_a_reading_it_shows_no_number_rather_than_a_fake_zero(
+        self, ledger, monkeypatch, tmp_path
+    ):
+        """Zero requests used would be a lie; not-yet-recorded is the fact (rule 6)."""
+        rapid = self._rapid(monkeypatch, tmp_path)
         assert rapid["instrumented"] is False
-        assert "Not tracked here" in rapid["headline"]
+        assert "requests_used" not in rapid   # no fabricated 0
+        assert rapid["headline"]              # and it says why
 
-    def test_the_limits_are_attributed_to_engineer_1(self, ledger):
-        rapid = self._rapid()
-        assert rapid["owner"] == "Engineer 1"
-        assert "decides" in rapid["limits_status"]
-
-    def test_no_figure_or_window_is_asserted_here(self, ledger):
-        """THE POINT OF THIS CLASS.
-
-        No dated reading, no derived window, no budget. `contract/sources.yaml`
-        holds those beside their read dates; a copy on a live dashboard reads as
-        current, and a recomputed one competes with the file that owns it.
-        """
-        body = json.dumps(self._rapid())
+    def test_no_figure_or_window_is_invented_before_a_reading(
+        self, ledger, monkeypatch, tmp_path
+    ):
+        """Before a reading exists, no dated figure, window or budget is invented -
+        the numbers appear only once RapidAPI's own header has been read."""
+        body = json.dumps(self._rapid(monkeypatch, tmp_path))
         for figure in ("998660", "1000000", "500000", "23.9", "25/min", "32nd"):
-            assert figure not in body, f"{figure} is not this lane's to state"
+            assert figure not in body, f"{figure} is not invented before a reading exists"
 
-    def test_it_names_where_the_readings_live(self, ledger):
+    def test_it_names_where_the_reading_comes_from(self, ledger, monkeypatch, tmp_path):
         """A status with no pointer is a dead end."""
-        assert "contract/sources.yaml" in self._rapid()["source_of_record"]
+        assert "var/rapidapi-quota.json" in self._rapid(monkeypatch, tmp_path)["source_of_record"]
 
 
 class TestTheWholeKeyTotalIsSeparateFromThisMachine:

@@ -1230,43 +1230,66 @@ def _whole_key_spend() -> dict:
 
 
 def _rapidapi_quota() -> dict:
-    """The other paid API. Reported, not analysed - the limits are E1's call.
+    """The other paid API - Reddit via RapidAPI, billed as a REQUEST quota.
 
-    RapidAPI serves the Reddit path and is billed as a REQUEST QUOTA, not spend,
-    so it cannot share an axis with the LLM cap: one is dollars per day against a
-    limit we set, the other is requests against a limit somebody sells us. Same
-    page, separate tab.
+    Shows the latest quota HEADER reading a Reddit fetch persisted
+    (`var/rapidapi-quota.json`), with WHEN it was read. RapidAPI cannot share an
+    axis with the LLM cap: one is dollars per day against a limit we set, the
+    other is requests against a limit somebody sells us. Same page, separate tab.
 
-    **THIS LANE SETS NO NUMBER AND DERIVES NONE.** Engineer 1 owns the RapidAPI
-    quota, its window and whatever budget is placed on it - the calls are made in
-    `collect/adapters/reddit.py` and the readings are recorded in
-    `contract/sources.yaml` with their read dates. An earlier version of this
-    function restated a costing conclusion from that file and proposed how the
-    headers should be persisted. Both were out of lane: a figure we recompute is a
-    second source of truth for a quantity we do not own, and it is the copy that
-    goes stale without anyone noticing.
+    Two things this deliberately gets right, from the review that reverted an
+    earlier attempt:
+      * It shows RapidAPI's OWN header value cached with its date, not a figure
+        recomputed here - so it is not a second source of truth for a quantity we
+        do not own. When the reading moves, it is because the provider's number
+        moved, not because we recalculated one.
+      * It is shown 'as of' that date, never as live, because the quota moves
+        only when a fetch runs and a dated reading on a live dashboard would
+        otherwise read as current.
 
-    So this returns the STATUS only. Nothing here is live, because the quota
-    arrives in response headers read in `collect/` and nothing persists them, so
-    `judge/` has no row to read. The reason that matters is the same reason we
-    show no numbers: a dated reading placed on a live dashboard reads as current.
+    Requests, not dollars: the plan's per-request price is not in config, so a
+    dollar figure would be invented (rule 6). Requests USED is the spend on the
+    key - `limit - remaining`.
     """
-    return {
+    base = {
         "unit": "requests",
-        "instrumented": False,
-        "owner": "Engineer 1",
-        "headline": (
-            "Not tracked here. RapidAPI is billed as a request quota rather than "
-            "spend, the calls are made in the other lane, and nothing persists the "
-            "quota headers - so this lane has nothing live to read."
-        ),
         "limits_status": (
-            "Engineer 1 decides the quota, the window and any budget on it. This "
-            "page reports that status and sets no figure of its own."
+            "RapidAPI sells the Reddit path as a monthly request quota. This is "
+            "the last quota header a Reddit fetch saw; it moves only when a fetch "
+            "runs, not on a schedule."
         ),
         "source_of_record": (
-            "contract/sources.yaml, the reddit-via-rapidapi entry - readings live "
-            "there beside the date they were read on, which is where they stay"
+            "var/rapidapi-quota.json, written by a Reddit fetch from RapidAPI's "
+            "x-ratelimit-* headers - the provider's own number, cached with its date"
+        ),
+    }
+    store = _REPO_ROOT / "var" / "rapidapi-quota.json"
+    try:
+        rec = json.loads(store.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {
+            **base,
+            "instrumented": False,
+            "headline": (
+                "No quota reading recorded yet. RapidAPI's usage arrives in "
+                "response headers, so this fills in after the first Reddit fetch "
+                "and updates on each one - it is not live."
+            ),
+        }
+    limit = rec.get("quota_limit")
+    remaining = rec.get("quota_remaining")
+    used = limit - remaining if isinstance(limit, int) and isinstance(remaining, int) else None
+    return {
+        **base,
+        "instrumented": True,
+        "quota_limit": limit,
+        "quota_remaining": remaining,
+        "requests_used": used,
+        "as_of": rec.get("at"),
+        "headline": (
+            "RapidAPI's own quota headers, read on the last Reddit fetch and "
+            "cached with that timestamp - so read it as of the time shown, not "
+            "as a live figure."
         ),
     }
 

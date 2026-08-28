@@ -304,36 +304,63 @@ function Chart({ title, points, stages, cap }) {
 
 
 /**
- * RapidAPI — reported, not analysed.
+ * RapidAPI — Reddit, billed in requests rather than dollars, so it cannot share
+ * an axis with the LLM cap.
  *
- * Requests rather than dollars, so it cannot share an axis with the LLM cap.
- * And Engineer 1 owns the quota, its window and any budget on it, so this tab
- * states the status and no figure of its own.
- *
- * An earlier version restated a costing conclusion from `contract/sources.yaml`
- * and suggested how the headers should be persisted. Both were out of lane. A
- * number we recompute here is a second source of truth for a quantity we do not
- * own, and a dated reading on a live dashboard reads as current — so the
- * readings stay in `contract/sources.yaml` beside the date they were read on.
+ * When a Reddit fetch has recorded a quota reading, this shows the requests USED
+ * (limit − remaining) — the spend on the key — labelled AS OF the time it was
+ * read, never as live. It is RapidAPI's own header value cached with its date,
+ * not a figure recomputed here, and it is requests not dollars because the
+ * plan's per-request price is not configured (a dollar figure would be invented,
+ * rule 6). Before the first fetch there is nothing to show, and it says so.
  */
 function RapidApiTab({ rapid }) {
+  if (!rapid.instrumented) {
+    return (
+      <div className="stack stack-3">
+        <Notice icon={<IconAlert />}>
+          <strong style={{ color: 'var(--text)' }}>Nothing recorded yet.</strong>{' '}
+          {rapid.headline}
+        </Notice>
+        <div className="stack stack-1">
+          <span className="label">How it fills in</span>
+          <p className="muted" style={{ margin: 0 }}>{rapid.limits_status}</p>
+        </div>
+        <span className="label" style={{ opacity: 0.7 }}>
+          Source of record: {rapid.source_of_record}
+        </span>
+      </div>
+    )
+  }
+
+  const n = (v) => (typeof v === 'number' ? v.toLocaleString() : '—')
   return (
     <div className="stack stack-3">
-      <Notice icon={<IconAlert />}>
-        <strong style={{ color: 'var(--text)' }}>Not tracked here.</strong>{' '}
-        {rapid.headline}
-      </Notice>
-
       <div className="stack stack-1">
-        <span className="label">Who sets the limits</span>
-        <p className="muted" style={{ margin: 0 }}>{rapid.limits_status}</p>
+        <span className="label">Requests used this month on this key</span>
+        <span className="stat-n tnum" style={{ fontSize: 'var(--fs-xl, 1.5rem)' }}>
+          {n(rapid.requests_used)}
+          {rapid.quota_limit != null && (
+            <span className="muted" style={{ fontSize: 'var(--fs-sm)' }}>
+              {' '}of {n(rapid.quota_limit)}
+            </span>
+          )}
+        </span>
+        <span className="muted" style={{ fontSize: 'var(--fs-sm)' }}>
+          {rapid.quota_remaining != null
+            ? `${n(rapid.quota_remaining)} remaining. `
+            : ''}
+          RapidAPI's own quota header, <strong>as of {rapid.as_of || 'the last fetch'}</strong> —
+          it moves only when a Reddit fetch runs, so it is not live.
+        </span>
       </div>
 
       <div className="stack stack-1">
         <span className="label">Billed in</span>
         <p className="muted" style={{ margin: 0 }}>
-          {rapid.unit} — not dollars, which is why this is a separate tab rather
-          than another line on the chart.
+          {rapid.unit} — not dollars (the plan's per-request price isn't
+          configured, so a dollar figure would be invented), which is why this is
+          a separate tab rather than another line on the chart.
         </p>
       </div>
 
