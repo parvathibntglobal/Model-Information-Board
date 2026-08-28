@@ -30,6 +30,23 @@ class TestRedditWriteCall:
         assert 'retrieval_provenance="not_recorded"' in src
 
 
+class TestExtractionIsObservableAndBounded:
+    """E5 ran silently for ~13 min on 5 large threads and looked hung. These
+    pin the fixes: per-thread progress, and an oversized-thread cap."""
+
+    def test_run_all_accepts_a_progress_callback(self):
+        import inspect as _inspect
+
+        from judge.pipeline import Pipeline
+        assert "on_thread" in _inspect.signature(Pipeline.run_all).parameters
+
+    def test_the_fetch_wires_progress_and_caps_oversized_threads(self):
+        src = inspect.getsource(fetch_model.extract_and_curate)
+        assert "on_thread=" in src                 # per-thread progress wired
+        assert "MAX_FETCH_THREAD_CHARS" in src     # oversized threads deferred
+        assert isinstance(fetch_model.MAX_FETCH_THREAD_CHARS, int)
+
+
 class TestProgressLog:
     def test_run_stage_end_records_have_the_shape_the_reader_expects(self, monkeypatch, tmp_path):
         monkeypatch.setattr(fetch_model, "FETCH_DIR", tmp_path)
