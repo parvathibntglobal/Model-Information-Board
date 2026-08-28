@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
-import { modelPage, listModels, fetchAll, capLabel, fmtPrice, fmtTokens, fmtInt, BoardUnreadable } from '../api'
+import { modelPage, listModels, fetchAll, startFetch, fetchLog, capLabel, fmtPrice, fmtTokens, fmtInt, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconExternal } from '../components/Icons'
 
@@ -64,6 +64,8 @@ export default function ModelDetail() {
       </div>
 
       {spec && <SpecPanel s={spec} />}
+
+      <FetchPanel modelVersionId={id} onDone={() => modelPage(id).then(setPage).catch(() => {})} />
 
       {page && <ReportedStrip page={page} focus={state?.focus} />}
 
@@ -413,5 +415,117 @@ function ReportedStrip({ page, focus }) {
         below, one click away — kept, not hidden, because an absence is a finding too.
       </p>
     </div>
+  )
+}
+
+/* ----------------------------------------------------------------- fetch */
+
+const FETCH_TONE = { ok: 'pass', running: 'mute', skipped: 'mute', error: 'fail' }
+
+/**
+ * Run THIS model's evidence pipeline on demand, and watch it happen.
+ *
+ * Append-only: the fetch adds this model's rows, never edits or deletes
+ * existing ones. The button POSTs /fetch/start (which spawns the pipeline in a
+ * subprocess) and then polls /fetch/log for per-stage progress until the run
+ * writes its end record. Nothing runs until the button is pressed.
+ */
+function FetchPanel({ modelVersionId, onDone }) {
+  const [runId, setRunId] = useState(null)
+  const [records, setRecords] = useState([])
+  const [running, setRunning] = useState(false)
+  const [err, setErr] = useState(null)
+
+  useEffect(() => {
+    if (!runId) return
+    let alive = true
+    const tick = async () => {
+      try {
+        const res = await fetchLog(runId)
+        if (!alive) return
+        setRecords(res.records || [])
+        if (res.done) {
+          setRunning(false)
+          clearInterval(timer)
+          onDone?.()
+        }
+      } catch (e) {
+        if (alive) { setErr(e.message); setRunning(false); clearInterval(timer) }
+      }
+    }
+    const timer = setInterval(tick, 1500)
+    tick()
+    return () => { alive = false; clearInterval(timer) }
+  }, [runId])   // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function start() {
+    setErr(null); setRecords([]); setRunning(true)
+    try {
+      const res = await startFetch(modelVersionId)
+      setRunId(res.run_id)
+    } catch (e) {
+      setErr(e.message); setRunning(false)
+    }
+  }
+
+  const stages = records.filter((r) => r.kind === 'stage')
+  const end = records.find((r) => r.kind === 'end')
+
+  return (
+    <section className="card">
+      <div className="row-between" style={{ marginBottom: 'var(--s3)', flexWrap: 'wrap', gap: 8 }}>
+        <div className="stack" style={{ gap: 2 }}>
+          <span className="label">Fetch evidence for this model</span>
+          <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+            Runs a fresh harvest of this model’s discussion through the evidence pipeline.
+            Append-only — it adds new rows, never changes existing ones.
+          </span>
+        </div>
+        <button className="btn btn-primary" type="button" onClick={start} disabled={running}>
+          {running ? <><span className="spin" /> Fetching…</> : 'Fetch'}
+        </button>
+      </div>
+
+      {err && <Notice icon={<IconAlert />}>{err}</Notice>}
+
+      {(runId || stages.length > 0) && (
+        <div className="stack stack-2">
+          <span className="label">Fetch log</span>
+          {stages.length === 0 && !err && (
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>Starting…</span>
+          )}
+          {stages.map((s, i) => (
+            <div key={`${s.id}-${i}`} className="row" style={{ gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <Badge tone={FETCH_TONE[s.status] || 'mute'}>{s.id} {s.name} · {s.status}</Badge>
+              <span className="dim" style={{ fontSize: 'var(--fs-xs)', flex: 1, minWidth: 200 }}>
+                {s.detail}
+                {[
+                  s.variants != null && `${s.variants} variants`,
+                  s.planned_requests != null && `${s.planned_requests} requests planned`,
+                  s.requests_spent != null && `${s.requests_spent} requests spent`,
+                  s.sieve_kept != null && `sieve ${s.sieve_kept}/${s.sieve_candidates}`,
+                  s.documents_inserted != null && `${s.documents_inserted} documents added`,
+                ].filter(Boolean).length > 0 && (
+                  <span className="mono" style={{ color: 'var(--text-3)', marginLeft: 6 }}>
+                    {[
+                      s.variants != null && `${s.variants} variants`,
+                      s.planned_requests != null && `${s.planned_requests} req planned`,
+                      s.requests_spent != null && `${s.requests_spent} req spent`,
+                      s.sieve_kept != null && `sieve ${s.sieve_kept}/${s.sieve_candidates}`,
+                      s.documents_inserted != null && `+${s.documents_inserted} docs`,
+                    ].filter(Boolean).join(' · ')}
+                  </span>
+                )}
+              </span>
+            </div>
+          ))}
+          {end && (
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+              Run {end.status}. {end.detail}
+            </span>
+          )}
+        </div>
+      )}
+    </section>
   )
 }

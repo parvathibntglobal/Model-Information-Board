@@ -74,13 +74,25 @@ _INSERT = (
     "retrieval_provenance) "
     "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
     "%(thread_root_id)s, %(parent_id)s, %(text_ref)s, %(content_hash)s, "
-    # `no_run_for_source` IS TYPED HERE RATHER THAN DEFAULTED. A subreddit
-    # listing renders no query and writes no `harvest_run` row, so a NULL
-    # `harvest_run_id` on a reddit document is COMPLETE rather than missing —
-    # and the column's default is `not_recorded`, which says the opposite.
-    # Stating it is a claim about the source, and a claim should be typed by
-    # somebody rather than inherited from a DEFAULT.
-    "%(engagement)s, %(author_id)s, 'kept', 'no_run_for_source') "
+    # RETRIEVAL PROVENANCE IS THE CALLER'S CLAIM, NOT THIS STATEMENT'S.
+    #
+    # This read `'no_run_for_source'`, typed into the SQL, for every caller
+    # whatever the caller did. The justification was a SUBREDDIT LISTING, which
+    # renders no query and writes no `harvest_run` row — so a NULL
+    # `harvest_run_id` there is COMPLETE rather than missing, and the column's
+    # `not_recorded` default says the opposite.
+    #
+    # The reasoning was right and the placement was wrong. **It is a claim about
+    # the RUN, not about the source**, and a hardcoded string cannot tell the two
+    # apart: the per-model fetch's Reddit arm issues model-name QUERIES through
+    # this same writer, and its 853 rows landed asserting that there had been
+    # nothing to record. A positive claim that nothing is missing, on rows where
+    # something was. That is worse than the absent value it was chosen over.
+    #
+    # So the caller types it, with no default — a caller that has not thought
+    # about it must say so rather than inherit somebody else's claim. Rule 6 on
+    # our own writer.
+    "%(engagement)s, %(author_id)s, 'kept', %(retrieval_provenance)s) "
     "ON CONFLICT (source, external_id) DO NOTHING"
 )
 
@@ -111,9 +123,26 @@ def author_id_for(item: Any) -> str | None:
     ).id
 
 
+#: Every value `retrieval_provenance` may take from this writer, and what each
+#: claims. `run_recorded` is absent deliberately: it requires a `harvest_run_id`
+#: on the row, `document_retrieval_provenance_agrees_ck` enforces that, and this
+#: statement does not write the id — so offering the value here would build a
+#: row the database refuses.
+REDDIT_PROVENANCE: tuple[str, ...] = (
+    # A subreddit listing. No query was rendered, so a NULL harvest_run_id is
+    # complete rather than missing.
+    "no_run_for_source",
+    # A query was rendered and no run id reached this writer. A plumbing gap.
+    "not_recorded",
+    # The writer is not on `main`. See the 2026-08-28 migration.
+    "unreviewed_writer",
+)
+
+
 def document_row(
     item: Any,
     *,
+    retrieval_provenance: str,
     text_ref: str | None = None,
     content_hash: str | None = None,
 ) -> dict[str, Any]:
@@ -132,7 +161,18 @@ def document_row(
     written as NULL. `thread_root_id` NULL is already the state of all six
     reddit rows on staging, so this failure mode has a precedent and no alarm.
     A missing link must come from the data lacking it, never from a type check.
+
+    `retrieval_provenance` is required and unvalidated-against-nothing: it must
+    be one of `REDDIT_PROVENANCE`, and an unknown value raises here rather than
+    reaching the CHECK as a 23514 that names a constraint instead of a caller.
     """
+    if retrieval_provenance not in REDDIT_PROVENANCE:
+        raise ValueError(
+            f"retrieval_provenance={retrieval_provenance!r} is not one of "
+            f"{REDDIT_PROVENANCE}. It is a claim about the RUN that produced this "
+            f"row - whether a query was rendered, and whether its id reached the "
+            f"writer - so it cannot be defaulted or guessed here."
+        )
     root = getattr(item, "thread_root_id", None)
     parent = getattr(item, "parent_id", None)
     created = getattr(item, "created_at", None)
@@ -149,6 +189,7 @@ def document_row(
         "content_hash": content_hash,
         "engagement": json.dumps(engagement) if engagement is not None else None,
         "author_id": author_id_for(item),
+        "retrieval_provenance": retrieval_provenance,
     }
 
 
@@ -156,6 +197,7 @@ def write_documents(
     conn,
     items: Sequence[Any],
     *,
+    retrieval_provenance: str,
     refs: dict[str, tuple[str | None, str | None]] | None = None,
     batch: int = 500,
 ) -> dict[str, int]:
@@ -183,7 +225,14 @@ def write_documents(
     rows = []
     for item in items:
         ref, chash = refs.get(item.external_id, (None, None))
-        rows.append(document_row(item, text_ref=ref, content_hash=chash))
+        rows.append(
+            document_row(
+                item,
+                retrieval_provenance=retrieval_provenance,
+                text_ref=ref,
+                content_hash=chash,
+            )
+        )
 
     inserted = 0
     with conn.cursor() as cur:

@@ -153,6 +153,16 @@ export const fetchAll = async (fetchPage, key = 'models') => {
 
   return { ...first, [key]: rows, page: meta, truncated: Boolean(meta?.has_more) }
 }
+/**
+ * Per-model fetch. Kicks off this model's evidence pipeline (harvest → …) in a
+ * subprocess and returns a run id; poll fetchLog(runId) for live per-stage
+ * progress. Append-only — it adds this model's rows, never edits existing ones.
+ */
+export const startFetch = (modelVersionId) =>
+  request('/fetch/start', { method: 'POST', body: { model_version_id: modelVersionId } })
+export const fetchLog = (runId) =>
+  request(`/fetch/log?run_id=${encodeURIComponent(runId)}`)
+
 export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
 export const coveragePage = () => request('/coverage')
 export const changelogPage = (days = 30) => request(`/changelog?days=${days}`)
