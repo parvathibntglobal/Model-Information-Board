@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import html
 import re
+import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
@@ -151,13 +152,20 @@ _SMART = str.maketrans({
 def _normalise(text: str) -> str:
     """Fold the surface differences a faithful re-encoding introduces.
 
-    Deterministic and conservative: HTML entities decoded, smart quotes/dashes
-    to ASCII, whitespace collapsed, casefolded. Enough to recognise a re-encoded
-    quote; not so loose that a fabrication matches - it still has to be the same
-    words in the same order. No model involved, so rule 1 is intact: this only
-    CLASSIFIES a rejection, it never accepts a quote.
+    Deterministic and conservative: HTML entities decoded, NFKC unicode
+    normalisation (full-width forms, ligatures, compatibility characters), smart
+    quotes/dashes to ASCII, whitespace collapsed, casefolded. Enough to
+    recognise a re-encoded quote; not so loose that a fabrication matches - it
+    still has to be the same words in the same order. No model involved, so rule
+    1 is intact: this only CLASSIFIES a rejection, it never accepts a quote, and
+    the normalised match has no defensible offset so it can never reach a claim.
+
+    NFKC is here because it is what E1's harness measured the 34/34 split with,
+    so production reconciles with that number rather than reporting its own; the
+    definition lives in this one function so any harness can share it.
     """
-    return re.sub(r"\s+", " ", html.unescape(text).translate(_SMART)).strip().casefold()
+    folded = unicodedata.normalize("NFKC", html.unescape(text)).translate(_SMART)
+    return re.sub(r"\s+", " ", folded).strip().casefold()
 
 
 def _locate(quote: str, flattened_text: str, *, hint: int) -> tuple[int, int] | None:
