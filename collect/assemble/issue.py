@@ -44,6 +44,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from collect.assemble.flatten import FlatteningRules, flatten
+from collect.assemble.prose import github_issue_prose
 from collect.assemble.thread import AssembledThread
 from collect.config import settings
 from collect.ids import stable_id
@@ -69,7 +70,19 @@ def assemble_issue(
     store,
     pipeline_version: str | None = None,
 ) -> AssembledThread:
-    """One `thread_context` for one issue body. Touches no database."""
+    """One `thread_context` for one issue body. Touches no database.
+
+    `text` IS THE ISSUE PAYLOAD, not prose. `document.text_ref` for github points
+    at the raw API response - deliberately, so `content_hash` identifies one
+    document - and the prose is extracted HERE, per the ruling in
+    `docs/engineer-1/ruling-what-content-hash-identifies.md`.
+
+    Until 2026-08-28 this flattened the payload VERBATIM, so all 80 github
+    thread_contexts hold `{"url":"https://api.github.com/repos/...`. The prose
+    sits inside the JSON as `"body": "..."`, so a quote of it verified by exact
+    substring and `quote_verified` reported true - rule 1 returning true for the
+    wrong reason, with no symptom anywhere. Those 80 contexts need rebuilding.
+    """
     if not text or not text.strip():
         raise ValueError(
             f"{document_id}: no stored text. A thread_context over an empty "
@@ -77,6 +90,10 @@ def assemble_issue(
             f"which reads as a fabricating extractor rather than as a missing "
             f"body. Do not assemble it."
         )
+
+    # RAISES `NotAPayload` rather than falling back to `text`. Falling back is
+    # the defect this line exists to fix.
+    text = github_issue_prose(text)
 
     version = pipeline_version or settings().pipeline_version
     flattened = flatten([(document_id, text)], rules=GITHUB_RULES)

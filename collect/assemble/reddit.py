@@ -60,6 +60,7 @@ from dataclasses import dataclass, field
 
 from collect.adapters.reddit import reddit_document_id
 from collect.assemble.flatten import flatten
+from collect.assemble.prose import reddit_prose
 from collect.assemble.thread import MAX_CHILDREN, SELECTION_METHOD, AssembledThread, rank_children
 from collect.config import settings
 from collect.ids import stable_id
@@ -118,6 +119,17 @@ def assemble_reddit_post(
             f"reads as a fabricating extractor rather than as a missing body. Do "
             f"not assemble it."
         )
+
+    # `text` IS THE POST PAYLOAD, not prose. `document.text_ref` points at the
+    # bytes reddit gave us and the prose is derived HERE - the ruling in
+    # `docs/engineer-1/ruling-what-content-hash-identifies.md`, and the same
+    # arrangement blog has always had. RAISES `NotAPayload` rather than falling
+    # back to `text`: that fallback is the defect this line exists to fix.
+    #
+    # `reddit_prose` reproduces `title + TITLE_SEPARATOR + selftext` exactly,
+    # because the 1,512 contexts already built from that string hold offsets
+    # into it, and offsets cannot be rebuilt later.
+    text = reddit_prose(text)
 
     version = pipeline_version or settings().pipeline_version
     # THE OFFSET MAP FALLS OUT OF THIS, which is the whole point of the path.
@@ -355,8 +367,18 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
                 continue
             comments.append(
                 StoredComment(
+                    # PROSE AT THE RESOLUTION BOUNDARY. `text_ref` points at the
+                    # bytes reddit gave us since the content_hash ruling, and
+                    # `StoredComment.body` means what its name says - a comment's
+                    # text. So the payload is opened here, where bytes become a
+                    # domain object, rather than inside the assembler.
+                    #
+                    # `assemble_reddit_post` and `assemble_issue` take a bare
+                    # `str` straight off the store and so extract internally.
+                    # The rule is the signature: raw str is bytes, a typed field
+                    # is a value.
                     external_id=external_id,
-                    body=body_outcome.require(),
+                    body=reddit_prose(body_outcome.require()),
                     score=_score_of(engagement),
                 )
             )
@@ -393,7 +415,7 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
         try:
             assembled = assemble_reddit_thread(
                 root_document_id=root_document_id,
-                root_text=root_outcome.require(),
+                root_text=reddit_prose(root_outcome.require()),
                 comments=comments,
                 store=store,
                 version_aliases=version_aliases,

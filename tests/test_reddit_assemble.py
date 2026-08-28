@@ -159,10 +159,21 @@ class TestPostBodyOnly:
     thread. The refusal was right and the options were incomplete.
     """
 
+    # THE INPUT IS THE PAYLOAD, since 2026-08-28. `document.text_ref` points at
+    # the bytes reddit gave us and `assemble_reddit_post` extracts the prose -
+    # the ruling in `docs/engineer-1/ruling-what-content-hash-identifies.md`.
+    # These tests used to pass prose directly, which is what the old (wrong)
+    # storage shape made possible.
+    @staticmethod
+    def _payload(title="", selftext=""):
+        import json
+        return json.dumps({"id": "x", "name": "t3_x",
+                           "title": title, "selftext": selftext})
+
     def test_it_is_not_whole_document(self):
         """The blog value would assert the post IS the whole document."""
         assembled = assemble_reddit_post(
-            "reddit:t3_x", "Haiku 4.5 is fast. Much faster than Sonnet.",
+            "reddit:t3_x", self._payload("Haiku 4.5 is fast.", "Much faster than Sonnet."),
             comment_count=47, store=_store(), pipeline_version="test-1",
         )
         assert assembled.selection_method == POST_BODY_ONLY
@@ -176,7 +187,7 @@ class TestPostBodyOnly:
         the root and none of the thread. Low against wrong.
         """
         assembled = assemble_reddit_post(
-            "reddit:t3_x", "title and body", comment_count=47,
+            "reddit:t3_x", self._payload("title", "body"), comment_count=47,
             store=_store(), pipeline_version="test-1",
         )
         assert assembled.observed_children == 0
@@ -186,7 +197,7 @@ class TestPostBodyOnly:
     def test_a_post_with_no_comments_reports_zero_hidden(self):
         """The genuine empty-tree case, which is allowed to be NULL downstream."""
         assembled = assemble_reddit_post(
-            "reddit:t3_x", "title and body", comment_count=0,
+            "reddit:t3_x", self._payload("title", "body"), comment_count=0,
             store=_store(), pipeline_version="test-1",
         )
         assert assembled.hidden_children_min == 0
@@ -199,7 +210,7 @@ class TestPostBodyOnly:
         against an offset rather than only against a substring.
         """
         assembled = assemble_reddit_post(
-            "reddit:t3_x", "Haiku 4.5 is fast. Much faster.", comment_count=1,
+            "reddit:t3_x", self._payload("Haiku 4.5 is fast.", "Much faster."), comment_count=1,
             store=_store(), pipeline_version="test-1",
         )
         segments = assembled.flattened.as_offset_map()
@@ -222,10 +233,25 @@ class TestPostBodyOnly:
         2026-08-28 - the sweeps stored the payload where the text belongs. A
         substring check against that JSON passes, because `"selftext": "..."`
         contains the text, which is rule 1 returning true for the wrong reason.
+
+        **THIS TEST WAS WEAKER THAN IT LOOKED UNTIL THE PAYLOAD WENT IN.** It
+        used to hand PROSE to the assembler and assert the result was not JSON -
+        which it could not have been, since nothing in the path adds braces. It
+        proved prose stays prose. Now it hands a payload and asserts the
+        assembler extracts from it, which is the property that was actually
+        broken.
         """
+        import json
+
         assembled = assemble_reddit_post(
-            "reddit:t3_x", "Haiku 4.5 is fast. Much faster.", comment_count=0,
-            store=_store(), pipeline_version="test-1",
+            "reddit:t3_x",
+            json.dumps({"id": "x", "name": "t3_x",
+                        "title": "Haiku 4.5 is fast.", "selftext": "Much faster."}),
+            comment_count=0, store=_store(), pipeline_version="test-1",
         )
         assert not assembled.flattened.text.lstrip().startswith("{")
         assert "Haiku 4.5 is fast" in assembled.flattened.text
+        # The field NAMES must be gone, not just the braces. Their presence is
+        # what let a quote verify against a field value.
+        assert '"selftext"' not in assembled.flattened.text
+        assert '"title"' not in assembled.flattened.text
