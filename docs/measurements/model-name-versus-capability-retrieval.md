@@ -179,16 +179,69 @@ currently unwired: `chain.py` carries `Stage("triage", run=None, ...)` and
 answer today, and it is E2's lane. **This document prices the option; it does not
 recommend taking it.**
 
-## 5 · The cheapest next measurement
+## 5 · The probes ran, and the third option does not survive them
 
-Two probe requests, before anything is built:
+Two requests, issued 2026-08-28 against the authenticated search API. Raw
+responses retained.
 
 ```
-  claude-opus-5 type:issue                      baseline
-  claude-opus-5 type:issue is:issue state:open  structural narrowing
+QUERY                                            total_count
+claude-opus-5 type:issue                             112,736
+claude-opus-5 type:issue is:issue state:open          30,891     -3.65x
 ```
 
-Report candidates and sieve pass for each. If structural qualifiers narrow
-without touching the signal group, the third option is priced for a request
-apiece; if they do not, the binary was real after all and this document is the
-record of having checked.
+**The reported corpus shrinks 3.65x and what a sweep actually reads does not
+change at all.**
+
+```
+page 1, 100 items each
+  overlap                          100 of 100 ids
+  identical order                  yes
+  states on the BASELINE page      100 open, 0 closed
+```
+
+The two pages are the same documents in the same order. `state:open` is
+redundant at the top of the ranking because relevance already surfaces open
+issues first, and `is:issue` is redundant with the `type:issue` every query
+already carries. The 81,845 issues the qualifiers remove are all in a tail
+nobody fetches: `collect/adapters/github.py` sets `max_pages = 1` and its own
+docstring records that this is *"the default, and every run so far"*.
+
+**So structural qualifiers are priced at zero benefit and one request, at the
+depth we read.** They would begin to matter only if `max_pages` rose, and
+raising it is the more direct way to get the same documents.
+
+### The sieve, on the same 100
+
+```
+documents hitting subject      100
+documents hitting topic         83
+documents hitting signal        11
+passing the full sieve (any of 24 entries, with locality)    2
+```
+
+Independent corroboration of §2 from a different sample: topic is abundant,
+signal is scarce, and the full sieve passes 2%. The ordering
+topic >> signal >> pass is the same shape as the model-name arm's 63 / 3 / 3,
+though the rates are not comparable — this is the top 100 by relevance and that
+was all candidates.
+
+### What bounds this
+
+**One alias, one query pair, page 1.** n=1, and a second alias could behave
+differently. What makes it worth acting on anyway is that the explanation is
+structural rather than empirical: the redundancy of `is:issue` against
+`type:issue`, and of `state:open` against relevance ranking, does not depend on
+which model is in the query. A second pair would test that and costs two
+requests.
+
+**`label:bug` was NOT probed and stays behind a ruling** — §3.1. Filtering to
+bug labels makes the positive half of the four silent-failure capabilities
+structurally unreachable, and those already read 0.00-0.07%. That is rule 4
+arriving through the query, and it is a reason not to measure it casually.
+
+## 6 · Where that leaves the decision
+
+The binary was real after all, at the depth we sweep. Recorded here so the third
+option is closed by measurement rather than left open as an untested
+possibility - and so nobody re-proposes it without raising `max_pages` first.
