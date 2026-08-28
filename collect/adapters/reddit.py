@@ -183,13 +183,36 @@ lands this adapter refuses to mislabel it as `'rate-limit'` — see
 `RedditRun.harvest_run_fields`, which carries it homeless the same way the
 blog adapter carries `outcome`.
 
-'DATA NOT FOUND' MEANS ZERO RESULTS, NOT AN ERROR
--------------------------------------------------
-The API answers a query with no matches by returning `success: false` and
-`data: "data not found"` with HTTP 200. A nonsense query returns it; 25
-back-to-back calls produced none. Reading it as a failure would make "nobody
-discussed this" indistinguishable from "the call broke" — the collision this
-project keeps finding, and the reason `total_count` is `int | None` on GitHub.
+'DATA NOT FOUND' IS TRANSIENT. IT DOES NOT MEAN ZERO RESULTS
+-----------------------------------------------------------
+**This section said the opposite until 2026-08-28 and it was wrong in the unsafe
+direction.** It read: *"The API answers a query with no matches by returning
+`success: false` and `data: "data not found"` with HTTP 200 ... 25 back-to-back
+calls produced none."* The 25 calls were real; the conclusion did not follow.
+
+Measured 2026-08-28, immediately after a model-only sweep:
+
+    query          in the sweep        on re-probe          5 retries
+    'opus 4.8'     175 candidates      "data not found"     25 posts, 5 of 5
+    'sonnet 5'     0 candidates        25 posts             -
+    'GPT-5.6 Sol'  0 candidates        25 posts             -
+
+A query that returned 175 candidates an hour earlier returned `data not found`,
+and then returned 25 posts on five consecutive retries. **So the response is a
+transient gateway decline and the body is identical to a genuine zero.** It is
+NOT distinguishable by inspection, which is exactly why it cannot be recorded as
+a fact about the corpus.
+
+WHAT IT COST BEFORE IT WAS FOUND. `run.exhausted = True` and a `break` turned one
+blip into "this surface has no more results": two of seventeen surfaces in that
+sweep reported zero candidates for models that demonstrably have discussion, and
+a third stopped at page 2 of 7. A surface that silently returns nothing looked
+identical to a model nobody discusses — the collision this project keeps finding,
+produced here by the very comment that claimed to have avoided it.
+
+So a retry is attempted before exhaustion is recorded, and an empty response that
+survives the retries sets `empty_response` rather than `exhausted`. The two are
+different claims: one is about our reading, the other about the corpus.
 """
 
 from __future__ import annotations
@@ -363,6 +386,19 @@ class RedditRun:
     #: here meanwhile so the number exists before the column does.
     pages_fetched: int = 0
     pages_stored: int = 0
+
+    #: Pages that came back `success: false` / `data: "data not found"` AND
+    #: survived the retries. Counted separately from `exhausted`, because the two
+    #: are different claims: `exhausted` says the platform ran out of results and
+    #: this says WE COULD NOT GET A READABLE PAGE. Recording the second as the
+    #: first is what made two surfaces report zero candidates for models that
+    #: demonstrably have discussion - see the module docstring.
+    empty_response: int = 0
+
+    #: Retries spent on those pages. A run with retries and no `empty_response`
+    #: recovered; a run with both did not, and the ratio is the only evidence of
+    #: how often the gateway declines.
+    empty_retries: int = 0
 
     discovery_refs: list[str] = field(default_factory=list)
     posts: list[RedditPost] = field(default_factory=list)
@@ -645,15 +681,30 @@ class RedditHarvester:
             payload = response.json()
             data = payload.get("data")
             if not isinstance(data, dict):
-                # 'data not found' is ZERO RESULTS, not a failure. Exhausted,
-                # no error, nothing truncated.
-                run.exhausted = True
-                break
+                # TRANSIENT UNTIL PROVEN OTHERWISE. See the module docstring: a
+                # query with 175 results returned this, then 25 posts on five
+                # consecutive retries. Recording it as exhaustion turns a blip
+                # into a statement about the corpus.
+                data = self._retry_for_data(SEARCH_PATH, params, run)
+                if data is None:
+                    run.empty_response += 1
+                    break
+                # THE RETRY STORED ITS OWN PAGE and `response` still holds the
+                # EMPTY one. Storing that here would file a page with no posts
+                # beside posts that came from a different response - not
+                # corruption, since the store is content-addressed, but a
+                # `discovery_ref` that does not contain the documents it is the
+                # provenance for. A re-sieve would then read an empty page and
+                # conclude the query found nothing.
+                from_retry = True
+            else:
+                from_retry = False
 
             # Stored BEFORE the sieve, so a rejected post's text survives.
-            stored = self._store.put(response.content, namespace=RAW)
-            run.discovery_refs.append(stored.ref)
-            run.pages_stored += 1
+            if not from_retry:
+                stored = self._store.put(response.content, namespace=RAW)
+                run.discovery_refs.append(stored.ref)
+                run.pages_stored += 1
 
             items = data.get("posts") or []
             run.posts.extend(_post_of(item) for item in items)
@@ -710,18 +761,29 @@ class RedditHarvester:
             payload = response.json()
             data = payload.get("data")
             if not isinstance(data, dict):
-                # `success: false` with `data: "data not found"` is ZERO RESULTS
-                # at HTTP 200. Not an error, and not an empty subreddit either —
-                # the two are indistinguishable here, so this records the only
-                # one it can defend: nothing more to read.
-                run.exhausted = True
-                break
+                # Same transient response as `search`. Retried before it is
+                # believed; see the module docstring for the measurement.
+                data = self._retry_for_data(LISTING_PATH, params, run)
+                if data is None:
+                    run.empty_response += 1
+                    break
+                # THE RETRY STORED ITS OWN PAGE and `response` still holds the
+                # EMPTY one. Storing that here would file a page with no posts
+                # beside posts that came from a different response - not
+                # corruption, since the store is content-addressed, but a
+                # `discovery_ref` that does not contain the documents it is the
+                # provenance for. A re-sieve would then read an empty page and
+                # conclude the query found nothing.
+                from_retry = True
+            else:
+                from_retry = False
 
             # Stored BEFORE the sieve, so a rejected post's text survives and a
             # later re-sieve is possible over what this run actually saw.
-            stored = self._store.put(response.content, namespace=RAW)
-            run.discovery_refs.append(stored.ref)
-            run.pages_stored += 1
+            if not from_retry:
+                stored = self._store.put(response.content, namespace=RAW)
+                run.discovery_refs.append(stored.ref)
+                run.pages_stored += 1
 
             items = data.get("posts") or []
             run.posts.extend(_post_of(item) for item in items)
@@ -737,6 +799,38 @@ class RedditHarvester:
 
         run.finished_at = self._clock()
         return run
+
+    def _retry_for_data(self, path: str, params: dict[str, str], run: RedditRun,
+                        attempts: int = 2):
+        """Re-request a page that came back with no `data` dict. None if it stays empty.
+
+        TWO ATTEMPTS, NOT MORE. Measured 2026-08-28: five consecutive retries of a
+        query that had just returned `data not found` all returned 25 posts, so
+        one retry was enough every time it was tried. Two is one more than the
+        measurement needed and bounded, because this fires on a response that may
+        genuinely be empty and an unbounded retry would spend the monthly quota
+        proving a query has no matches.
+
+        Each attempt is a real request against the rate limiter and the quota, and
+        `_get` counts it - so the cost is visible rather than hidden inside a
+        helper.
+        """
+        for _ in range(attempts):
+            run.empty_retries += 1
+            response = self._get(path, params, run)
+            if response is None:
+                return None
+            data = response.json().get("data")
+            if isinstance(data, dict):
+                log.info("reddit: %r recovered on retry; the empty response was "
+                         "transient, not a zero", params.get("query") or params)
+                # STORED HERE, because the caller's store call is downstream of
+                # the branch this returns into.
+                stored = self._store.put(response.content, namespace=RAW)
+                run.discovery_refs.append(stored.ref)
+                run.pages_stored += 1
+                return data
+        return None
 
     def sieve_run(self, run: RedditRun, terms) -> RedditRun:
         """Apply a rendered term set to what search returned. No fetching."""
