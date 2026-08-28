@@ -553,6 +553,77 @@ CREATE TABLE capability (
   CONSTRAINT capability_failure_mode_ck CHECK (failure_mode IN ('silent', 'loud'))
 );
 
+-- A capability key a model PROPOSED and nobody has ruled on. NOT a capability.
+--
+-- `capability` above holds the twelve keys the contract defines and `claim` FKs
+-- to. This table deliberately has NO relationship to either: a proposal a claim
+-- could be filed against is a vocabulary decision taken by an INSERT, and the
+-- capability list is contract/capabilities.yaml's to change (rule 5). Adoption
+-- is a PR against that file, not a flag flipped here.
+--
+-- The whole point is the COUNT — "how many documents proposed this key" — so:
+--   * proposed_key is NOT UNIQUE: the same name from two documents is two pieces
+--     of evidence, and collapsing them would lose the count that separates a
+--     real capability from one person's phrasing.
+--   * one row per (document, key, prompt_label, pipeline_version), and `id` is
+--     the content-hash of exactly that tuple, so re-running the classifier is
+--     idempotent (ON CONFLICT DO NOTHING) and cannot inflate that count.
+--   * the count is a FLOOR: free-text keys fragment one capability across
+--     phrasings ('tool_calling.parallel' vs 'parallel_tool_use'), so a GROUP BY
+--     on the raw string UNDER-counts. Clustering near-duplicate keys belongs
+--     with the 8★ signal derivation (the same vocabulary problem); until it
+--     lands, any figure shown from here reads ">= N", with its population, per
+--     rule 7.
+CREATE TABLE capability_candidate (
+  id                text PRIMARY KEY,   -- content-hash of the natural key below
+
+  proposed_key      text NOT NULL,
+  definition        text NOT NULL,
+
+  -- Provenance. A proposal with no document behind it is an opinion.
+  document_id       text NOT NULL REFERENCES document(id),
+
+  -- The RAW span (verification step 3), never the flattened form: an admin
+  -- rules on what a claim would render.
+  quote             text NOT NULL,
+  -- Rule 1's shape. A proposal whose quote does not verify is stored `false`,
+  -- not discarded — a fabricated span is the most interesting row here.
+  quote_verified    boolean NOT NULL,
+
+  -- Which model proposed it, under which prompt: a temporary prompt's output
+  -- must not be indistinguishable from the extractor's.
+  proposer_model    text NOT NULL,
+  prompt_label      text NOT NULL,
+  pipeline_version  text NOT NULL,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+
+  -- A person's ruling. NULL means nobody has looked — NOT "declined" (rule 6).
+  reviewed_at       timestamptz,
+  ruling            text,
+  -- What an adopted/merged candidate BECAME: the contract key it was adopted as,
+  -- or the key/candidate it was merged into. Without it the trail ends on the
+  -- adopted row and "which proposals fed capability X" is unanswerable.
+  ruling_target     text,
+
+  CONSTRAINT capability_candidate_ruling_ck
+    CHECK (ruling IS NULL OR ruling IN ('adopted', 'declined', 'merged')),
+  -- A ruling and its date travel together: a ruling with no date is a claim
+  -- about a review that may not have happened.
+  CONSTRAINT capability_candidate_reviewed_ck
+    CHECK ((ruling IS NULL) = (reviewed_at IS NULL)),
+  -- A target exists exactly when the candidate became something: adopted/merged
+  -- require it; declined and not-yet-ruled must not carry one.
+  CONSTRAINT capability_candidate_target_ck CHECK (
+    CASE WHEN ruling IN ('adopted', 'merged') THEN ruling_target IS NOT NULL
+         ELSE ruling_target IS NULL END
+  ),
+  -- Idempotency: one row per (document, key, prompt, version). A re-run of the
+  -- classifier lands ON CONFLICT DO NOTHING here rather than doubling the count.
+  CONSTRAINT capability_candidate_natural_key
+    UNIQUE (document_id, proposed_key, prompt_label, pipeline_version)
+);
+CREATE INDEX capability_candidate_key_idx ON capability_candidate (proposed_key);
+
 CREATE TABLE claim (
   id                    text PRIMARY KEY,
   document_id           text NOT NULL REFERENCES document(id),
