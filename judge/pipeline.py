@@ -572,8 +572,15 @@ class Pipeline:
         as_of: date | None = None,
         resolve_surface: SurfaceResolver | None = None,
         find_surfaces: SurfaceFinder | None = None,
+        rebuild_cells: bool = True,
     ) -> PipelineResult:
         """One thread, end to end.
+
+        `rebuild_cells=False` is for `run_all`, which rebuilds ONCE after the
+        batch instead of once per thread. See the measurement in
+        `docs/measurements/the-twenty-seconds-is-a-full-board-rebuild-per-thread.md`
+        - per-thread it made a batch quadratic in cells. The default stays True
+        so a single `run()` still leaves a consistent board.
 
         `facts` and `model_version_of` are passed in rather than queried, so
         this module reads no table it does not write. `collect/` owns
@@ -737,10 +744,20 @@ class Pipeline:
             )
             result.stored_claim_ids.append(self._claims.write(stored))
 
-        if result.stored_claim_ids:
+        if result.stored_claim_ids and rebuild_cells:
             # Whole-table, for the reason in cells.py: a cell is a view of the
             # claims, weights decay daily, and an incremental path is a second
             # description of the aggregation that can disagree with the first.
+            #
+            # WHOLE-TABLE IS RIGHT AND PER-THREAD WAS NOT. `rebuild_all` walks
+            # every cell with evidence, at 3 sequential statements each, so a
+            # BATCH paid for every cell its earlier threads had created - 16.35s
+            # of a 21.70s thread, measured, and growing with the board. That is
+            # quadratic in cells at any latency, which is why `run_all` passes
+            # `rebuild_cells=False` and rebuilds once at the end.
+            #
+            # The cells.py argument is untouched: still whole-table, still one
+            # description of the aggregation. Only the FREQUENCY changed.
             result.cells = self._cells.rebuild_all(as_of=as_of)
 
         log.info(
@@ -804,6 +821,8 @@ class Pipeline:
                     as_of=as_of,
                     resolve_surface=resolve_surface,
                     find_surfaces=find_surfaces,
+                    # ONCE AFTER THE BATCH, not once per thread. See below.
+                    rebuild_cells=False,
                 )
             except ExtractionRefused as exc:
                 log.error("thread %s refused: %s", thread.thread_context_id, exc)
@@ -845,6 +864,28 @@ class Pipeline:
                 input_tokens=result.extraction.input_tokens or 0,
                 output_tokens=result.extraction.output_tokens or 0,
             )
+        # ── ONE board rebuild for the whole batch ───────────────────────────
+        #
+        # Was inside `run`, so a batch rebuilt every cell once per claim-bearing
+        # thread: 16.35s of a 21.70s thread against staging, and rising with the
+        # board, which is quadratic in cells at any latency. Measured in
+        # `docs/measurements/the-twenty-seconds-is-a-full-board-rebuild-per-thread.md`.
+        #
+        # ATTACHED TO THE LAST RESULT, and that is a compromise worth naming.
+        # A whole-board rebuild is a BATCH event and belongs to no single thread,
+        # but two readers want it through `results`: `close_the_night` below, and
+        # `cli.py`'s `sum(len(r.cells) for r in results)`. Putting the outcomes
+        # on one result keeps both totals right; per-result attribution is
+        # meaningless afterwards and nothing reads it that way.
+        #
+        # This also fixes a quieter bug: `as_of_cells` below used to receive the
+        # same cells once per claim-bearing thread - the whole board, duplicated
+        # up to a thousand times - and now receives each cell once.
+        if any(r.stored_claim_ids for r in results):
+            outcomes = self._cells.rebuild_all(as_of=as_of)
+            if results:
+                results[-1].cells = outcomes
+
         if driver is not None:
             # THE CALLER, and the reason this parameter exists. Labels, the
             # changelog and reported context all had a writer and none had

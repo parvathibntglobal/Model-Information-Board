@@ -46,8 +46,14 @@ def shape(sql: str) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--thread", required=True)
+    parser.add_argument("--thread", default=None)
     parser.add_argument("--export", default="_export_extract/threads")
+    parser.add_argument(
+        "--batch", type=int, default=0,
+        help="measure run_all over the first N threads instead of run() over "
+             "one. THIS IS THE REAL PATH: `run_all` passes rebuild_cells=False "
+             "and rebuilds once at the end, so per-thread cost only shows here.",
+    )
     args = parser.parse_args()
 
     from collect.db import connect
@@ -59,14 +65,17 @@ def main() -> int:
     from judge.pipeline import Pipeline
 
     loaded = export_source.load(pathlib.Path(args.export))
-    threads = [t for t in loaded.threads if t.thread_context_id == args.thread]
-    if not threads:
-        raise SystemExit(f"{args.thread} not in {args.export}")
+    if args.batch:
+        threads = loaded.threads[: args.batch]
+    else:
+        threads = [t for t in loaded.threads if t.thread_context_id == args.thread]
+        if not threads:
+            raise SystemExit(f"{args.thread} not in {args.export}")
     thread = threads[0]
 
     conn = connect()
     resolver = RegistrySurfaceResolver.from_connection(conn)
-    facts, _ = _document_facts(conn, set(thread.raw_text_of))
+    facts, _ = _document_facts(conn, {m for t in threads for m in t.raw_text_of})
     model_version_of = {
         r[0]: r[2]
         for r in conn.execute(
@@ -136,19 +145,36 @@ def main() -> int:
 
     counts.clear(); seconds.clear(); order.clear()   # exclude setup queries
     t0 = time.perf_counter()
-    result = pipeline.run(
-        thread,
-        facts=facts,
-        model_version_of=model_version_of,
-        resolve_surface=resolver,
-    )
+    if args.batch:
+        results = pipeline.run_all(
+            threads,
+            facts=facts,
+            model_version_of=model_version_of,
+            resolve_surface=resolver,
+        )
+    else:
+        results = [
+            pipeline.run(
+                thread,
+                facts=facts,
+                model_version_of=model_version_of,
+                resolve_surface=resolver,
+            )
+        ]
     total = time.perf_counter() - t0
     conn.rollback()
 
-    print(f"thread            {thread.thread_context_id}")
-    print(f"verified claims   {len(result.extraction.verified)}")
-    print(f"stored claims     {len(result.stored_claim_ids)}")
-    print(f"cells touched     {len(result.cells)}")
+    verified = sum(len(r.extraction.verified) for r in results)
+    stored = sum(len(r.stored_claim_ids) for r in results)
+    cells = sum(len(r.cells) for r in results)
+    label = f"run_all over {len(threads)} threads" if args.batch else thread.thread_context_id
+    print(f"measured          {label}")
+    print(f"verified claims   {verified}")
+    print(f"stored claims     {stored}")
+    print(f"cells touched     {cells}")
+    if args.batch:
+        print(f"per-thread wall   {total/len(threads):7.2f}s   "
+              f"-> 1,512 threads = {1512*total/len(threads)/3600:.1f} hours")
     print()
     print(f"wall clock        {total:7.2f}s")
     print(f"  model call      {api[0]:7.2f}s   ({100*api[0]/total:.1f}%)")
