@@ -85,6 +85,14 @@ class SourcesContract:
     platforms: list[dict[str, Any]]
     feeds: list[dict[str, Any]]
 
+    #: The listing sweep's population, or None where the block is absent.
+    #:
+    #: ABSENT IS NOT EMPTY. A missing block means nobody has chosen a subreddit
+    #: list, and a sweep over an empty list retrieves nothing and reports it as
+    #: nobody discussing anything — the shape rule 4 exists for. `sweep_reddit`
+    #: raises on None rather than sweeping zero subreddits.
+    sweep_subreddits: dict[str, Any] | None = None
+
     def source_rows(self) -> list[dict[str, Any]]:
         """The `source` rows this contract seeds — platforms and feeds alike.
 
@@ -195,6 +203,9 @@ def parse_sources(document: Mapping[str, Any]) -> SourcesContract:
         rulings=rulings,
         platforms=list(document.get("sources") or []),
         feeds=list(document.get("feeds") or []),
+        # `or None`, not `or {}`: see the field comment. An empty mapping would
+        # let a caller iterate zero subreddits and call that a sweep.
+        sweep_subreddits=dict(document.get("sweep_subreddits") or {}) or None,
     )
 
 
