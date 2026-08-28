@@ -1227,3 +1227,94 @@ feeds:
 #      expedia-group-tech,      class B Medium ruling already covers them.
 #    eng.lyft.com, craft.faire.com
 # ----------------------------------------------------------------------------
+
+# ============================================================================
+#  SWEEP SUBREDDITS — the listing sweep's population
+#
+#  WHAT A FIGURE MEASURED HERE MEANS, AND WHAT IT DOES NOT
+#
+#  THE DENOMINATOR IS STATED HERE RATHER THAN DISCOVERED AFTERWARDS, because
+#  every previous retrieval figure in this project was quoted without one.
+#
+#      pages_per_subreddit  7   x   25 posts per page   =   THE NEWEST 175
+#                                                           POSTS PER SUBREDDIT
+#
+#  Every rate this sweep produces is over that population. Not "survival over
+#  Reddit", not "survival over these subreddits" — survival over the newest 175
+#  posts in each of them, on the day it ran.
+#
+#  AND IT IS A RECENCY CUT, NOT A RANKING CUT. THIS IS THE REASON THE SHAPE WAS
+#  CHOSEN.
+#
+#  `/getPostsBySubreddit` sorted NEW takes the most recent posts. Nothing about
+#  which posts it returns depends on an index's opinion of relevance. Compare
+#  GitHub, where `max_pages = 1` means every rate is a top-100-BY-RELEVANCE
+#  figure: 321 of 1,019 runs hit that ceiling and supplied 51% of the yield, so
+#  the retrieved set there is the most favourable hundred the index could offer
+#  and every rate over it is an upper bound
+#  (docs/measurements/model-name-versus-capability-retrieval.md section 6).
+#
+#  A recency cut has no such bias. It is a truncation — posts older than the
+#  175th are not read — but the truncation is on a dimension unrelated to
+#  whether a post carries evidence, so a rate over it estimates the population
+#  rather than ceilings it. That is the whole argument for a listing over
+#  `/getSearchPosts`, and `scripts/unfiltered_sweep.py` states the other half:
+#  *"the index ranks, and ranking is the selection effect this exists to
+#  escape."*
+#
+#  WHAT IS STILL BIASED, AND IT IS THE SUBREDDIT CHOICE
+#
+#  Every available basis for choosing subreddits biases survival UPWARD. These
+#  were nominated by how many distinct model-pair queries each answered in the
+#  2026-08-17 slice — less circular than post count, and not uncircular. So a
+#  figure from here is SURVIVAL WITHIN THE SUBREDDITS WE WOULD HARVEST, and it
+#  must never be quoted as a fact about Reddit. The bias runs one way and is
+#  stated so the number can be read.
+#
+#  EQUAL DRAW, NOT PROPORTIONAL. Sampling in proportion to volume would make
+#  r/ClaudeAI roughly half the sample and the figure a fact about one subreddit.
+#  Equal draw makes it a fact about the set, at the cost of a design effect any
+#  confidence interval has to carry.
+#
+#  HAND-CURATED, like the seeded blog feeds. Nominated by measurement, chosen by
+#  a person, and two high-ranking nominees were excluded as content marketing.
+# ============================================================================
+
+sweep_subreddits:
+  version: "1.0"
+  chosen_on: 2026-08-28
+  draw: equal                  # posts per subreddit, not per corpus
+  sort: new                    # recency, not relevance. See above.
+                               # LOWERCASE is the endpoint's own spelling:
+                               # /getSearchPosts takes NEW, this one takes new,
+                               # and NEW returns 200 with no `posts` key -- a
+                               # silent zero on a sweep whose output is a rate.
+  pages_per_subreddit: 7
+  posts_per_page: 25           # the platform's page size, not our choice
+  #: 7 x 25 x 12 = 2,100 posts offered. The DENOMINATOR of every rate.
+  population_per_subreddit: 175
+  members:
+    - ClaudeAI
+    - ClaudeCode
+    - LocalLLaMA
+    - singularity
+    - OpenAI
+    - GithubCopilot
+    - codex
+    - ChatGPT
+    - Anthropic
+    - GeminiAI
+    - Bard
+    - LocalLLM
+  excluded:
+    - id: u_enoumen
+      reason: >-
+        a user profile page, not a subreddit. Syndicated news-rundown posts;
+        ranks high on breadth because it blanket-posts about every model.
+    - id: AISEOInsider
+      reason: >-
+        SEO listicles about models rather than reports from using them. Both are
+        what E6 vet exists to reject downstream; excluding them at selection
+        avoids spending the sample on a population we already know we would
+        discard, which would depress the survival figure for a reason unrelated
+        to what it measures.

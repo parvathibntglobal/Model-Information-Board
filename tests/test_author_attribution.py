@@ -285,16 +285,47 @@ class TestRetrievalProvenanceIsTheCallersClaim:
         assert "retrieval_provenance" in str(excinfo.value)
         assert "claim about the RUN" in str(excinfo.value)
 
-    def test_run_recorded_is_refused_because_this_writer_sets_no_id(self):
-        """Offering it would build a row `..._agrees_ck` rejects."""
-        assert "run_recorded" not in REDDIT_PROVENANCE
-        with pytest.raises(ValueError):
+    def test_run_recorded_without_an_id_is_refused(self):
+        """The `..._agrees_ck` pairing, mirrored so the error names the caller.
+
+        `run_recorded` was deliberately ABSENT from `REDDIT_PROVENANCE` until
+        2026-08-28, on the grounds that this writer set no id. Then
+        `ops/sweep_reddit.py` started opening a `harvest_run` row per subreddit
+        and carrying its id, at which point the value became not merely allowed
+        but REQUIRED - the constraint enforces it the moment the id is set.
+        """
+        with pytest.raises(ValueError) as excinfo:
             document_row(FakeComment(), retrieval_provenance="run_recorded")
+        assert "harvest_run_id" in str(excinfo.value)
+        assert "agrees_ck" in str(excinfo.value)
+
+    def test_an_id_without_run_recorded_is_refused_too(self):
+        """The other direction, which is the one that would have shipped.
+
+        A row carrying an id under `no_run_for_source` claims both that a run
+        exists and that there was none to record. Postgres refuses it as a
+        23514; this refuses it by name.
+        """
+        for value in (v for v in REDDIT_PROVENANCE if v != "run_recorded"):
+            with pytest.raises(ValueError):
+                document_row(
+                    FakeComment(), retrieval_provenance=value, harvest_run_id="hr_x"
+                )
 
     def test_the_value_reaches_the_row_rather_than_being_reinterpreted(self):
         for value in REDDIT_PROVENANCE:
-            row = document_row(FakeComment(), retrieval_provenance=value)
+            row = document_row(
+                FakeComment(),
+                retrieval_provenance=value,
+                harvest_run_id="hr_x" if value == "run_recorded" else None,
+            )
             assert row["retrieval_provenance"] == value
+
+    def test_the_id_reaches_the_row(self):
+        row = document_row(
+            FakeComment(), retrieval_provenance="run_recorded", harvest_run_id="hr_abc"
+        )
+        assert row["harvest_run_id"] == "hr_abc"
 
     def test_every_permitted_value_is_in_the_schema_check(self):
         """The tuple and the CHECK must not drift apart."""

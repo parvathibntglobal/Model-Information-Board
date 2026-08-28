@@ -799,6 +799,89 @@ def _cmd_ops_sweep_github(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_ops_sweep_reddit(args: argparse.Namespace) -> int:
+    """The Reddit listing sweep. The stage `chain.py` has carried as run=None.
+
+    LISTING, NOT SEARCH. `/getPostsBySubreddit` takes no query, so the sieve does
+    all the narrowing and the denominator is stateable: the newest
+    `pages x 25` posts per subreddit, sorted NEW. A recency cut, not a ranking
+    cut - which is the whole reason the shape was chosen over `/getSearchPosts`.
+    See `collect/ops/sweep_reddit.py`.
+    """
+    from collect.adapters.reddit import build_client as build_reddit_client
+    from collect.adapters.reddit import harvester_for_source
+    from collect.db import transaction
+    from collect.ops.sweep_reddit import LISTING, sweep_reddit
+    from collect.rawstore import RawStore
+    from collect.registry.sources import load_sources
+
+    contract = load_sources()
+    reddit = next((s for s in contract.platforms if s["id"] == "reddit"), None)
+    if reddit is None:
+        print("contract/sources.yaml has no `reddit` source row", file=sys.stderr)
+        return 2
+
+    block = contract.sweep_subreddits
+    if not block:
+        print(
+            "contract/sources.yaml has no `sweep_subreddits:` block, so there is "
+            "nothing to list. Refusing rather than sweeping zero subreddits, which "
+            "would report as nobody discussing anything.",
+            file=sys.stderr,
+        )
+        return 2
+
+    members = list(block.get("members") or [])
+    if args.subreddits:
+        members = [m for m in members if m in set(args.subreddits)]
+    pages = args.pages if args.pages is not None else int(block["pages_per_subreddit"])
+    per_page = int(block["posts_per_page"])
+    limit = args.limit_subreddits
+
+    planned = len(members if limit is None else members[:limit]) * pages
+    population = pages * per_page
+    print(
+        f"plan     : {len(members) if limit is None else min(limit, len(members))} "
+        f"subreddit(s) x {pages} page(s) = {planned} request(s)"
+    )
+    print(
+        f"           DENOMINATOR: the newest {population} posts per subreddit "
+        f"(sort {block.get('sort') or 'NEW'}). A RECENCY cut, not a ranking cut."
+    )
+
+    if args.dry_run:
+        # A PLAN IS NOT A CLEARANCE. Neither the terms gate nor `_gate` has run,
+        # so this says what a sweep would cost and nothing about whether one may.
+        print("           (plan only - no terms gate, no _gate, so not a clearance)")
+        return 0
+
+    # NFR-5, before a single request: a known unexpired ruling, evidence that has
+    # not gone stale, and this run's own observation of the access path. The gate
+    # lives in the factory, not the constructor - see `harvester_for_source`.
+    with build_reddit_client() as client, transaction() as conn:
+        _gate(conn)
+        harvester = harvester_for_source(
+            reddit,
+            rulings=contract.rulings,
+            client=client,
+            store=RawStore(Path(args.store)),
+            max_pages=pages,
+        )
+        print("gate     : reddit terms reviewed and re-verified, harvest permitted")
+        report = sweep_reddit(
+            conn,
+            harvester,
+            contract=contract,
+            cap=args.cap,
+            pages=args.pages,
+            subreddits=args.subreddits,
+            limit_subreddits=limit,
+            provenance=LISTING,
+        )
+    print(report.summary())
+    return 0
+
+
 def _cmd_assemble_github(args: argparse.Namespace) -> int:
     """Assemble stored GitHub issues into `thread_context` rows.
 
@@ -1082,6 +1165,30 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true",
         help="print the plan and the models the cap would not reach")
     ops_sweep.set_defaults(func=_cmd_ops_sweep_github)
+
+    ops_sweep_reddit = ops_sub.add_parser(
+        "sweep-reddit",
+        help="E2 - the Reddit LISTING sweep (no query; the sieve narrows)",
+    )
+    ops_sweep_reddit.add_argument(
+        "--store", default="raw_store", help="raw store path"
+    )
+    ops_sweep_reddit.add_argument(
+        "--pages", type=int, default=None,
+        help="pages per subreddit; defaults to contract/sources.yaml. CHANGING IT "
+             "CHANGES THE DENOMINATOR of every rate the run reports.",
+    )
+    ops_sweep_reddit.add_argument(
+        "--limit-subreddits", type=int, default=None,
+        help="list only the first N contracted subreddits (a smoke run)",
+    )
+    ops_sweep_reddit.add_argument(
+        "--subreddits", nargs="*", default=None,
+        help="restrict to these contracted subreddits",
+    )
+    ops_sweep_reddit.add_argument("--cap", type=int, default=None)
+    ops_sweep_reddit.add_argument("--dry-run", action="store_true")
+    ops_sweep_reddit.set_defaults(func=_cmd_ops_sweep_reddit)
 
     ops_run = ops_sub.add_parser("run", help="run the nightly chain")
     ops_run.add_argument("--journal", help="append-only JSONL record of every stage")

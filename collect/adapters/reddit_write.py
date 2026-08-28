@@ -71,7 +71,7 @@ DOCUMENT_SOURCE = SOURCE_ID
 _INSERT = (
     "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
     "thread_root_id, parent_id, text_ref, content_hash, engagement, author_id, status, "
-    "retrieval_provenance) "
+    "harvest_run_id, retrieval_provenance) "
     "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
     "%(thread_root_id)s, %(parent_id)s, %(text_ref)s, %(content_hash)s, "
     # RETRIEVAL PROVENANCE IS THE CALLER'S CLAIM, NOT THIS STATEMENT'S.
@@ -92,7 +92,8 @@ _INSERT = (
     # So the caller types it, with no default — a caller that has not thought
     # about it must say so rather than inherit somebody else's claim. Rule 6 on
     # our own writer.
-    "%(engagement)s, %(author_id)s, 'kept', %(retrieval_provenance)s) "
+    "%(engagement)s, %(author_id)s, 'kept', %(harvest_run_id)s, "
+    "%(retrieval_provenance)s) "
     "ON CONFLICT (source, external_id) DO NOTHING"
 )
 
@@ -129,8 +130,19 @@ def author_id_for(item: Any) -> str | None:
 #: statement does not write the id — so offering the value here would build a
 #: row the database refuses.
 REDDIT_PROVENANCE: tuple[str, ...] = (
-    # A subreddit listing. No query was rendered, so a NULL harvest_run_id is
-    # complete rather than missing.
+    # A run exists and its id is on the row. THE LISTING SWEEP'S VALUE, and it
+    # took a correction to get here.
+    #
+    # `no_run_for_source` was written for a listing on the grounds that no QUERY
+    # is rendered, which is true. But the value does not say "no query" - it says
+    # THIS SOURCE ISSUES NO PER-QUERY RUN, so a NULL `harvest_run_id` is complete.
+    # The moment `ops/sweep_reddit.py` opens a `harvest_run` row per subreddit
+    # that stops being true: a run exists, it is recordable, and
+    # `document_retrieval_provenance_agrees_ck` then REQUIRES this value because
+    # the id is set. Caught by wiring the id, not by reading the constraint.
+    "run_recorded",
+    # A subreddit listing that opened NO run row. Still reachable - a hand-run
+    # fetch, or a sweep whose ledger write failed - and correct there.
     "no_run_for_source",
     # A run existed, or might have, and nobody wrote it down. This is where a
     # QUERY-shaped reddit run belongs - the per-model fetch's model-name arm, or
@@ -148,6 +160,7 @@ def document_row(
     item: Any,
     *,
     retrieval_provenance: str,
+    harvest_run_id: str | None = None,
     text_ref: str | None = None,
     content_hash: str | None = None,
 ) -> dict[str, Any]:
@@ -175,8 +188,21 @@ def document_row(
         raise ValueError(
             f"retrieval_provenance={retrieval_provenance!r} is not one of "
             f"{REDDIT_PROVENANCE}. It is a claim about the RUN that produced this "
-            f"row - whether a query was rendered, and whether its id reached the "
-            f"writer - so it cannot be defaulted or guessed here."
+            f"row - whether a run exists, and whether its id reached the writer - "
+            f"so it cannot be defaulted or guessed here."
+        )
+    # THE DATABASE CONSTRAINT, MIRRORED SO THE ERROR NAMES THE CALLER.
+    # `document_retrieval_provenance_agrees_ck` enforces exactly this, and a
+    # violation there arrives as a 23514 naming a constraint, which tells whoever
+    # reads the traceback nothing about which argument was wrong.
+    if (retrieval_provenance == "run_recorded") != (harvest_run_id is not None):
+        raise ValueError(
+            f"retrieval_provenance={retrieval_provenance!r} and "
+            f"harvest_run_id={harvest_run_id!r} disagree. 'run_recorded' means the "
+            f"id is on the row and every other value means it is not - "
+            f"document_retrieval_provenance_agrees_ck refuses any other pairing, "
+            f"because a provenance claim with nothing behind it is worse than an "
+            f"absent one."
         )
     root = getattr(item, "thread_root_id", None)
     parent = getattr(item, "parent_id", None)
@@ -194,6 +220,7 @@ def document_row(
         "content_hash": content_hash,
         "engagement": json.dumps(engagement) if engagement is not None else None,
         "author_id": author_id_for(item),
+        "harvest_run_id": harvest_run_id,
         "retrieval_provenance": retrieval_provenance,
     }
 
@@ -203,6 +230,7 @@ def write_documents(
     items: Sequence[Any],
     *,
     retrieval_provenance: str,
+    harvest_run_id: str | None = None,
     refs: dict[str, tuple[str | None, str | None]] | None = None,
     batch: int = 500,
 ) -> dict[str, int]:
@@ -234,6 +262,7 @@ def write_documents(
             document_row(
                 item,
                 retrieval_provenance=retrieval_provenance,
+                harvest_run_id=harvest_run_id,
                 text_ref=ref,
                 content_hash=chash,
             )

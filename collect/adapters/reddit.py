@@ -215,6 +215,31 @@ SOURCE_ID = "reddit"
 SEARCH_PATH = "/getSearchPosts"
 COMMENTS_PATH = "/getPostComments"
 
+#: A subreddit listing. TAKES NO QUERY, which is the whole reason it exists here
+#: beside `SEARCH_PATH`: `scripts/unfiltered_sweep.py` refuses `/getSearchPosts`
+#: because *"the index ranks, and ranking is the selection effect this exists to
+#: escape."*
+#:
+#: THE DIFFERENCE IS THE KIND OF TRUNCATION, NOT WHETHER THERE IS ONE. Both stop
+#: early. A search stops at the most RELEVANT n — GitHub's `max_pages = 1` makes
+#: every rate there a top-100-by-relevance figure, an upper bound, because the
+#: index chose the hundred. A listing sorted NEW stops at the most RECENT n, and
+#: recency is unrelated to whether a post carries evidence — so a rate over it
+#: estimates the population instead of ceilinging it.
+LISTING_PATH = "/getPostsBySubreddit"
+
+#: `sort` for the listing. Recency is load-bearing, not a default: `TOP` or
+#: `HOT` would reintroduce a ranking cut through the back door and the
+#: denominator would stop being stateable.
+#:
+#: LOWERCASE, AND IT IS THE ENDPOINT'S SPELLING RATHER THAN A STYLE CHOICE.
+#: `/getSearchPosts` takes `RELEVANCE`/`NEW`/`TOP` and this one takes `new` --
+#: measured, because `NEW` returns HTTP 200 with a body carrying no `posts` key,
+#: which this adapter reads as "nothing more to read" and records as exhausted.
+#: A silent zero, on a sweep whose whole output is a rate. Found by a one-page
+#: smoke run before the real one, which is the argument for smoke runs.
+LISTING_SORT = "new"
+
 #: Observed 2026-08-14: 429 after 32 rapid calls, message "exceeded the rate
 #: limit per minute for your plan, PRO". Kept under it rather than at it.
 SEARCH_PER_MINUTE = 25
@@ -639,6 +664,74 @@ class RedditHarvester:
                 break
         else:
             # Ran out of pages before the platform ran out of results.
+            if cursor:
+                run.truncated_by = "result-ceiling"
+
+        run.finished_at = self._clock()
+        return run
+
+    def list_subreddit(
+        self, subreddit: str, *, pages: int, sort: str = LISTING_SORT
+    ) -> RedditRun:
+        """Page a subreddit listing, storing each page before anything is sieved.
+
+        `query_key` is `subreddit:<name> sort:<sort> pages:<n>` — the WHOLE
+        denominator in the string, so a `harvest_run` row says what population it
+        drew from and nobody has to reconstruct it. GitHub's rows say
+        `haiku-4.5 recall type:issue` and say nothing about the top-100 ceiling
+        that governs every rate computed from them; this does not repeat that.
+
+        `exhausted` means the subreddit ran out of posts before we ran out of
+        pages — a listing that reached the end. `truncated_by = 'result-ceiling'`
+        means the opposite: OUR page limit stopped us with posts still available,
+        which is the recency cut and the denominator above.
+
+        QUOTA IS NOT `truncated_by`. `harvest_run_truncated_ck` has no `'quota'`
+        value, so an exhausted monthly quota is recorded on `quota_exhausted` and
+        the gap is named in the sweep report. `rate-limit` would be wrong and
+        expensively so: it means retry in ~60s, quota means stop for 23.893 days,
+        and a scheduler told the first when the second is true spends the
+        exhausted quota discovering it. Proposed as a sixth value in PR #161.
+        """
+        run = RedditRun(query=f"subreddit:{subreddit} sort:{sort} pages:{pages}",
+                        sort=sort, started_at=self._clock())
+        cursor: str | None = None
+
+        for page in range(1, pages + 1):
+            params = {"subreddit": subreddit, "sort": sort}
+            if cursor:
+                params["cursor"] = cursor
+
+            response = self._get(LISTING_PATH, params, run)
+            run.pages_fetched = page
+            if response is None:
+                break
+
+            payload = response.json()
+            data = payload.get("data")
+            if not isinstance(data, dict):
+                # `success: false` with `data: "data not found"` is ZERO RESULTS
+                # at HTTP 200. Not an error, and not an empty subreddit either —
+                # the two are indistinguishable here, so this records the only
+                # one it can defend: nothing more to read.
+                run.exhausted = True
+                break
+
+            # Stored BEFORE the sieve, so a rejected post's text survives and a
+            # later re-sieve is possible over what this run actually saw.
+            stored = self._store.put(response.content, namespace=RAW)
+            run.discovery_refs.append(stored.ref)
+            run.pages_stored += 1
+
+            items = data.get("posts") or []
+            run.posts.extend(_post_of(item) for item in items)
+            cursor = data.get("cursor")
+
+            if not items or not cursor:
+                run.exhausted = True
+                break
+        else:
+            # Our page budget ran out first. THE RECENCY CUT, recorded.
             if cursor:
                 run.truncated_by = "result-ceiling"
 

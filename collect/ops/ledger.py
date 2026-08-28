@@ -205,7 +205,23 @@ def last_run(conn, stage: str) -> tuple[datetime, str | None] | None:
 #: reason it has nowhere to live, instead of being filtered out silently. A
 #: permissive `{k: v for k, v in fields.items() if k in COLUMNS}` is how the
 #: first four would have vanished without anyone deciding.
-_PROPOSED_NOT_IN_SCHEMA: frozenset[str] = frozenset()
+_PROPOSED_NOT_IN_SCHEMA: frozenset[str] = frozenset(
+    {
+        # `quota_exhausted` -- the Reddit adapter's carrier for "the MONTHLY
+        # quota ran out", which `harvest_run` cannot hold.
+        #
+        # It is not `truncated_by`. That CHECK has five values and none of them
+        # is quota: `rate-limit` means retry in ~60 seconds and quota means stop
+        # for 23.893 days (measured 2026-08-18), and a scheduler told the first
+        # when the second is true spends the exhausted quota discovering it.
+        #
+        # A sixth `truncated_by` value is proposed in PR #161. Until it lands the
+        # value is dropped HERE, visibly, rather than being refused at the writer
+        # -- which is what it did until 2026-08-28, making the Reddit listing
+        # sweep unable to open a harvest_run row at all.
+        "quota_exhausted",
+    }
+)
 
 #: Every column of `harvest_run` this writer sets. Named, so a new column in the
 #: contract that nothing populates is visible here rather than defaulting quietly.
