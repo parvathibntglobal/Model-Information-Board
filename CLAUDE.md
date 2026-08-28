@@ -6,17 +6,27 @@ advisor that uses it to recommend cheaper models for specific sub-agent tasks.
 - **Requirements and the build plan:** `BUILD-PLAN.md`
 - **How the machinery works:** `docs/logic-and-workflow.md`
 
-## Lane ownership
+## Working agreement (lanes dropped 2026-08-28)
 
-Two engineers work this repo in parallel.
+We no longer divide the repo into owned lanes. The `collect/` → `judge/`
+data-flow architecture stays; the *ownership* rule around it is gone, because it
+cost more than it saved - a signal measurement sat in a PR for two days before
+it reached the person building a gate on top of it. This supersedes the
+per-lane ownership language still in `collect/CLAUDE.md` and `judge/CLAUDE.md`.
 
-- `collect/` is owned by **Engineer 1**. `judge/` is owned by **Engineer 2**.
-- **Do not edit outside your lane.** Propose the change to the other person instead.
-- `contract/` is **shared**. Never modify it without flagging it - it is the
-  interface between two people working in parallel, and it should change
-  perhaps five times in eight weeks, each time on purpose.
+- **Touch anything. Tell each other after, not before.** No routing a change
+  through a proposal that then sits.
+- **The AST lane-boundary test stays - for testing, not ownership.** Two
+  implementations of one storage contract can only be byte-compared while
+  neither imports the other, which is what the flattener equivalence check
+  relies on. Keep the reason visible so nobody removes the test as a leftover.
+- **`contract/` still gets two eyes.** That file is the agreement, not just
+  code - a contract change is proposed and reviewed, never taken solo.
+- **Measurements travel the day they are taken**, not via a PR body.
+- **Say what you broke, not what you built.**
+- **Shared-DB / staging writes are coordinated** - see Conventions.
 
-The data crosses the lane boundary exactly once, in one direction:
+The data still crosses the boundary exactly once, in one direction:
 
 ```
 collect/  ---->  document + thread_context (carrying offset_map)  ---->  judge/
@@ -141,6 +151,25 @@ These are the rules a helpful refactor will otherwise quietly violate.
 
    Method and worked examples in `docs/measurements/README.md`.
 
+8. **An unmeasured check ships as a weight, not a gate.** A check whose error
+   rate has not been measured against a population it did not choose ships as a
+   weight, a flag, or a recorded field - never a gate - and is promoted only
+   once measured. A wrong gate's false positives are invisible: it drops the
+   document, and an absence we *caused* reads as one we *found* - rule 4 one
+   stage earlier, on what the pipeline discards rather than what the page
+   renders. A wrong weight keeps the document and mis-ranks it visibly, which is
+   the evidence that decides whether it should ever become a gate; so the
+   direction is one-way, weight first and gate later on evidence, never the
+   reverse.
+
+   No test can tell a measured check from an unmeasured one - the measurement
+   lives in a document - so this one is a **reviewer question** rather than a
+   code constraint, the same shape as rule 7's: **what population was this
+   filter's error rate measured on, and did the filter choose that population?**
+   The PR template carries it. Settled twice - speaking on ModelRef, and the
+   8★ behaviour gate - which is what makes it a rule rather than a precedent.
+   Argument and both instances in `docs/weight-before-drop.md`.
+
 ## Stack decisions already made - do not relitigate
 
 - Python 3.11+. Postgres plus an object store. `httpx` for fetching.
@@ -212,6 +241,12 @@ These are the rules a helpful refactor will otherwise quietly violate.
   from the sources we sweep* - never "of Reddit", which we do not sample.
   Output verbosity and retry rate are figures to calibrate, not
   specifications.
+- **Writing to the shared staging DB is coordinated.** Evidence writes are
+  append-only (`ON CONFLICT DO NOTHING`); never a global rebuild against
+  staging. Migrations apply **once, in order, by whoever merges the migration
+  PR, immediately after merge, and announced the same day** - check the ledger
+  first, because it got out of step once. Before a staging write session, say
+  so, so two of us are not writing the same afternoon.
 
 ## Build fixtures currently in place
 

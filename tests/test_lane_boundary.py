@@ -3,6 +3,15 @@
 These are cheap, mechanical checks over the source of `collect/`. They exist
 because the lane boundary and the no-LLM rule are invariants, and an
 invariant nobody checks is a comment.
+
+The collect/judge boundary these checks enforce OUTLIVED the two-engineer lanes
+it was named for (dropped 2026-08-28; see CLAUDE.md's working agreement). Keep
+them anyway, for the reason that has nothing to do with ownership: two
+implementations of one storage contract can only be byte-compared while neither
+imports the other, which is what the flattener equivalence check relies on.
+Delete this and those independent-implementation cross-checks quietly stop
+meaning anything. The boundary is a testing invariant now, not a territory line
+- do not remove it as a leftover of the lanes.
 """
 
 from __future__ import annotations
