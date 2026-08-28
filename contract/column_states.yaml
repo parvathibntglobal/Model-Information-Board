@@ -95,7 +95,7 @@ columns:
     max_author_share: {state: write_only, reviewed: false}
     median_age: {state: write_only, reviewed: false}
     model_version_id: {state: read, reviewed: false}
-    n_eff: {state: read, reviewed: false}
+    n_eff: {state: write_only, reviewed: false}
     negative: {state: read, reviewed: false}
     pipeline_version: {state: write_only, reviewed: false}
     platform_count: {state: read, reviewed: false}
@@ -170,7 +170,7 @@ columns:
     canonical_document_id: {state: reserved, reviewed: false}
     first_seen_at: {state: reserved, reviewed: false}
     id: {state: reserved, reviewed: false}
-    reach: {state: unwired, reviewed: false}
+    reach: {state: reserved, reviewed: false}
     size: {state: reserved, reviewed: false}
 
   document:
@@ -369,9 +369,9 @@ columns:
     id: {state: write_only, reviewed: false}
     model_version_id: {state: write_only, reviewed: false}
     occurred_at: {state: write_only, reviewed: false}
-    payload: {state: read, reviewed: false}
+    payload: {state: write_only, reviewed: false}
     source_url: {state: reserved, reviewed: false}
-    type: {state: read, reviewed: false}
+    type: {state: write_only, reviewed: false}
 
   model_version:
     advertised_context: {state: read, reviewed: false}
@@ -421,7 +421,7 @@ columns:
     max_tokens: {state: write_only, reviewed: false}
     min_tokens: {state: write_only, reviewed: false}
     model_version_id: {state: write_only, reviewed: false}
-    price: {state: read, reviewed: false}
+    price: {state: write_only, reviewed: false}
     price_cached_read: {state: write_only, reviewed: false}
     sources: {state: write_only, reviewed: false}
 
@@ -458,7 +458,7 @@ columns:
 
   source:
     base_trust: {state: write_only, reviewed: false}
-    endpoint: {state: read, reviewed: false}
+    endpoint: {state: write_only, reviewed: false}
     health_status: {state: reserved, reviewed: false}
     id: {state: read, reviewed: false}
     last_yield: {state: reserved, reviewed: false}

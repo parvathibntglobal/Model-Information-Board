@@ -231,7 +231,7 @@
   "state": "UNWRITTEN, read",
   "written_at": [],
   "read_at": [
-   "web/src/api/index.js:web"
+   "web/src/routes/Models.jsx:web"
   ],
   "select_star_table": false
  },
@@ -276,8 +276,7 @@
    "collect/registry/capabilities.py:dict-key"
   ],
   "read_at": [
-   "collect/registry/capabilities.py:177",
-   "web/src/routes/Ask.jsx:web"
+   "collect/registry/capabilities.py:177"
   ],
   "select_star_table": false
  },
@@ -304,7 +303,7 @@
   ],
   "read_at": [
    "collect/registry/capabilities.py:177",
-   "web/src/auth.js:web"
+   "web/src/components/PipelinePanel.jsx:web"
   ],
   "select_star_table": false
  },
@@ -317,8 +316,7 @@
    "collect/registry/capabilities.py:dict-key"
   ],
   "read_at": [
-   "collect/registry/capabilities.py:177",
-   "web/src/components/UsagePanel.jsx:web"
+   "collect/registry/capabilities.py:177"
   ],
   "select_star_table": false
  },
@@ -451,14 +449,12 @@
  {
   "table": "cell",
   "column": "n_eff",
-  "state": "written+read",
+  "state": "written, UNREAD",
   "written_at": [
    "judge/store/cells.py:195",
    "judge/store/cells.py:dict-key"
   ],
-  "read_at": [
-   "web/src/routes/Models.jsx:web"
-  ],
+  "read_at": [],
   "select_star_table": false
  },
  {
@@ -613,7 +609,7 @@
   ],
   "read_at": [
    "judge/curate/reported_context.py:193",
-   "web/src/components/AskLoading.jsx:web"
+   "web/src/routes/ModelDetail.jsx:web"
   ],
   "select_star_table": false
  },
@@ -793,8 +789,7 @@
    "judge/store/claims.py:dict-key"
   ],
   "read_at": [
-   "judge/pages/model.py:352",
-   "web/src/api/index.js:web"
+   "judge/pages/model.py:352"
   ],
   "select_star_table": false
  },
@@ -1121,8 +1116,7 @@
   "state": "UNWRITTEN, read",
   "written_at": [],
   "read_at": [
-   "judge/pages/coverage.py:227",
-   "web/src/routes/Ask.jsx:web"
+   "judge/pages/coverage.py:227"
   ],
   "select_star_table": false
  },
@@ -1153,11 +1147,9 @@
  {
   "table": "dedup_cluster",
   "column": "reach",
-  "state": "UNWRITTEN, read",
+  "state": "neither",
   "written_at": [],
-  "read_at": [
-   "web/src/auth.js:web"
-  ],
+  "read_at": [],
   "select_star_table": false
  },
  {
@@ -1523,7 +1515,7 @@
   "column": "exhausted",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:365",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1534,7 +1526,7 @@
   "column": "finished_at",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:365",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1545,7 +1537,7 @@
   "column": "http_errors",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:365",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1556,8 +1548,8 @@
   "column": "id",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:291",
-   "collect/ops/ledger.py:349"
+   "collect/ops/ledger.py:307",
+   "collect/ops/ledger.py:365"
   ],
   "read_at": [],
   "select_star_table": false
@@ -1567,7 +1559,7 @@
   "column": "items_fetched",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:365",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1578,7 +1570,7 @@
   "column": "items_kept",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:365",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1589,7 +1581,7 @@
   "column": "outcome",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:365",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1600,7 +1592,7 @@
   "column": "pages_fetched",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:365",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1611,7 +1603,7 @@
   "column": "pages_stored",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:365",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1622,7 +1614,7 @@
   "column": "pipeline_version",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:307",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1633,7 +1625,7 @@
   "column": "query_key",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:307",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1644,7 +1636,7 @@
   "column": "sieve_pass_rate",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:365",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1655,7 +1647,7 @@
   "column": "source_id",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:307",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1666,7 +1658,7 @@
   "column": "started_at",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:307",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1677,7 +1669,7 @@
   "column": "truncated_by",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:365",
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [],
@@ -1890,7 +1882,7 @@
   ],
   "read_at": [
    "judge/curate/labels.py:197",
-   "web/src/App.jsx:web"
+   "web/src/routes/Board.jsx:web"
   ],
   "select_star_table": false
  },
@@ -1915,8 +1907,7 @@
    "judge/curate/labels.py:243"
   ],
   "read_at": [
-   "judge/pages/changelog.py:183",
-   "web/src/routes/Admin.jsx:web"
+   "judge/pages/changelog.py:183"
   ],
   "select_star_table": false
  },
@@ -2053,7 +2044,8 @@
    "collect/registry/load.py:619"
   ],
   "read_at": [
-   "collect/assemble/reddit.py:310"
+   "collect/assemble/reddit.py:310",
+   "scripts/fetch_model.py:108"
   ],
   "select_star_table": false
  },
@@ -2151,14 +2143,12 @@
  {
   "table": "model_event",
   "column": "payload",
-  "state": "written+read",
+  "state": "written, UNREAD",
   "written_at": [
    "collect/registry/events.py:240",
    "collect/registry/events.py:dict-key"
   ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ],
+  "read_at": [],
   "select_star_table": false
  },
  {
@@ -2172,14 +2162,12 @@
  {
   "table": "model_event",
   "column": "type",
-  "state": "written+read",
+  "state": "written, UNREAD",
   "written_at": [
    "collect/registry/events.py:240",
    "collect/registry/events.py:dict-key"
   ],
-  "read_at": [
-   "web/src/components/AuraField.jsx:web"
-  ],
+  "read_at": [],
   "select_star_table": false
  },
  {
@@ -2695,13 +2683,11 @@
  {
   "table": "price_tier",
   "column": "price",
-  "state": "written+read",
+  "state": "written, UNREAD",
   "written_at": [
    "collect/registry/load.py:480"
   ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ],
+  "read_at": [],
   "select_star_table": false
  },
  {
@@ -2804,8 +2790,7 @@
    "judge/curate/reported_context.py:232"
   ],
   "read_at": [
-   "judge/curate/reported_context.py:163",
-   "web/src/routes/Ask.jsx:web"
+   "judge/curate/reported_context.py:163"
   ],
   "select_star_table": false
  },
@@ -2991,6 +2976,7 @@
   "column": "base_trust",
   "state": "written, UNREAD",
   "written_at": [
+   "scripts/fetch_model.py:138",
    "scripts/harvest_github.py:205"
   ],
   "read_at": [],
@@ -2999,13 +2985,12 @@
  {
   "table": "source",
   "column": "endpoint",
-  "state": "written+read",
+  "state": "written, UNREAD",
   "written_at": [
+   "scripts/fetch_model.py:138",
    "scripts/harvest_github.py:205"
   ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ],
+  "read_at": [],
   "select_star_table": true
  },
  {
@@ -3021,12 +3006,12 @@
   "column": "id",
   "state": "written+read",
   "written_at": [
-   "collect/registry/sources.py:422",
-   "scripts/harvest_github.py:205"
+   "collect/registry/sources.py:433",
+   "scripts/fetch_model.py:138"
   ],
   "read_at": [
-   "collect/ops/ledger.py:271",
-   "collect/registry/sources.py:343"
+   "collect/ops/ledger.py:287",
+   "collect/registry/sources.py:354"
   ],
   "select_star_table": true
  },
@@ -3043,6 +3028,7 @@
   "column": "platform",
   "state": "written+read",
   "written_at": [
+   "scripts/fetch_model.py:138",
    "scripts/harvest_github.py:205"
   ],
   "read_at": [
@@ -3055,10 +3041,11 @@
   "column": "provenance",
   "state": "written+read",
   "written_at": [
+   "scripts/fetch_model.py:138",
    "scripts/harvest_github.py:205"
   ],
   "read_at": [
-   "collect/registry/sources.py:343"
+   "collect/registry/sources.py:354"
   ],
   "select_star_table": true
  },
@@ -3067,6 +3054,7 @@
   "column": "terms_checked_on",
   "state": "written, UNREAD",
   "written_at": [
+   "scripts/fetch_model.py:138",
    "scripts/harvest_github.py:205"
   ],
   "read_at": [],
@@ -3077,6 +3065,7 @@
   "column": "terms_evidence",
   "state": "written, UNREAD",
   "written_at": [
+   "scripts/fetch_model.py:138",
    "scripts/harvest_github.py:205"
   ],
   "read_at": [],
@@ -3087,6 +3076,7 @@
   "column": "terms_ruling",
   "state": "written, UNREAD",
   "written_at": [
+   "scripts/fetch_model.py:138",
    "scripts/harvest_github.py:205"
   ],
   "read_at": [],
@@ -3097,6 +3087,7 @@
   "column": "tos_notes",
   "state": "written, UNREAD",
   "written_at": [
+   "scripts/fetch_model.py:138",
    "scripts/harvest_github.py:205"
   ],
   "read_at": [],
@@ -3160,7 +3151,7 @@
    "judge/store/answers.py:175"
   ],
   "read_at": [
-   "web/src/api/index.js:web"
+   "web/src/routes/Ask.jsx:web"
   ],
   "select_star_table": false
  },
@@ -3189,12 +3180,14 @@
  {
   "table": "thread_context",
   "column": "assembled_at",
-  "state": "written, UNREAD",
+  "state": "written+read",
   "written_at": [
    "collect/adapters/blog/write.py:119",
    "collect/assemble/thread.py:298"
   ],
-  "read_at": [],
+  "read_at": [
+   "scripts/fetch_model.py:295"
+  ],
   "select_star_table": false
  },
  {
@@ -3307,7 +3300,8 @@
    "collect/assemble/thread.py:298"
   ],
   "read_at": [
-   "scripts/blog_extraction_run.py:93"
+   "scripts/blog_extraction_run.py:93",
+   "scripts/fetch_model.py:295"
   ],
   "select_star_table": false
  },
@@ -3450,7 +3444,7 @@
   "state": "UNWRITTEN, read",
   "written_at": [],
   "read_at": [
-   "web/src/components/FluidCanvas.jsx:web"
+   "web/src/routes/ModelDetail.jsx:web"
   ],
   "select_star_table": false
  },

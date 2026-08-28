@@ -52,6 +52,16 @@ INSERT_TABLE = re.compile(r"INSERT\s+INTO\s+([a-z_]+)", re.I)
 #: A view is never written. Leaving `cell_current` in put 18 columns into
 #: "unwritten, read" and "neither" as artifacts of the method rather than
 #: findings, so callers pass the view names and they are dropped.
+#: A web-side hit only counts as a read where it looks like a FIELD ACCESS.
+#: `row.reach`, `row["reach"]`, or `reach:` as an object key -- never a bare word,
+#: because column names are often ordinary English and prose then reads as a
+#: reader. See the web block in `discover` for the two columns that proved it.
+_ACCESS = (
+    r"\.\s*{name}(?![A-Za-z0-9_])"
+    r"|\[\s*[\"']{name}[\"']\s*\]"
+    r"|(?<![A-Za-z0-9_.]){name}\s*:"
+)
+
 WRITTEN_READ = "written+read"
 WRITTEN_UNREAD = "written, UNREAD"
 UNWRITTEN_READ = "UNWRITTEN, read"
@@ -171,20 +181,25 @@ def discover(schema: dict[str, list[str]]) -> dict[tuple[str, str], dict]:
                 if column in keys:
                     written[(table, column)].add(f"{rel}:dict-key")
 
-    # THE WEB CHECK IS TABLE-BLIND, SO IT ONLY COUNTS FOR UNAMBIGUOUS NAMES.
+    # THE WEB CHECK NEEDS A FIELD ACCESS, NOT A WORD. Two corrections deep.
     #
-    # A JSX file has no FROM clause: all it can say is "the string
-    # `pipeline_version` appears here". Attributing that to every table with a
-    # column of that name credited `claim.pipeline_version` with a read that was
-    # really `job_run.pipeline_version` rendered by PipelinePanel.jsx — a false
-    # POSITIVE, in a method whose other errors all run the other way.
+    # First it was table-blind: a JSX hit on `pipeline_version` was credited to
+    # every table owning a column of that name, giving `claim.pipeline_version` a
+    # read that was really `job_run`'s. Fixed by requiring the name to belong to
+    # exactly one table.
     #
-    # So a web hit is evidence only where the column name belongs to exactly one
-    # table. `truncated_by` and `triage_verdict` qualify; `pipeline_version`,
-    # `created_at` and `id` do not, and for those the web side abstains rather
-    # than guessing. Abstaining under-counts reads, which is the direction this
-    # method already errs in and the direction `read_not_by_query` exists to
-    # absorb.
+    # That was not enough, because column names are often ordinary English.
+    # `dedup_cluster.reach` is unique to its table AND appears in
+    # `web/src/auth.js:47` as *"Cannot reach the API"* -- a word in an error
+    # string, counted as a read of an empty table. It then classified as
+    # UNWRITTEN-read, which is the DIAGNOSTIC state, so the false positive landed
+    # in the one bucket somebody would act on.
+    #
+    # So a web hit must look like an ACCESS: `.reach`, `["reach"]`, `['reach']`,
+    # or `reach:` as an object key. Prose does not match any of those. Still
+    # under-counts -- a name reached through a destructure or a variable is
+    # invisible -- and that is the direction this method already errs in, which
+    # `read_not_by_query` exists to absorb.
     owners: dict[str, set[str]] = collections.defaultdict(set)
     for table, cols in schema.items():
         for column in cols:
@@ -192,11 +207,12 @@ def discover(schema: dict[str, list[str]]) -> dict[tuple[str, str], dict]:
 
     web = {str(p.relative_to(ROOT)).replace("\\", "/"): p.read_text(encoding="utf-8",
            errors="replace") for p in _web_files()}
-    for (table, column), pattern in word.items():
+    for (table, column), _pattern in word.items():
         if len(owners[column]) != 1:
             continue
+        access = re.compile(_ACCESS.format(name=re.escape(column)))
         for rel, text in web.items():
-            if pattern.search(text):
+            if access.search(text):
                 read[(table, column)].add(f"{rel}:web")
                 break
 
