@@ -283,8 +283,19 @@ def main() -> int:
 
             refs = {}
             for post in keep:
-                payload = json.dumps(post.raw, ensure_ascii=False, sort_keys=True)
-                stored = store.put(payload.encode("utf-8"), namespace=RAW)
+                # THE DOCUMENT'S TEXT, NOT ITS PAYLOAD. `document.text_ref` is
+                # where the document's TEXT lives; the API payload lives in the
+                # `raw` namespace and the search page already holds it, so
+                # nothing is lost by not storing it twice.
+                #
+                # This stored `json.dumps(post.raw)` until 2026-08-28, which made
+                # `text_ref` point at a JSON envelope. `assemble_*` passes that
+                # straight to `flatten`, so the thread_context would have held
+                # JSON - and a quote would then verify against a field VALUE,
+                # which is worse than failing to verify: it is rule 1 returning
+                # true for the wrong reason.
+                text = (post.title or "") + chr(10) * 2 + (post.selftext or "")
+                stored = store.put(text.encode("utf-8"), namespace=RAW)
                 refs[post.external_id] = (stored.ref, stored.content_hash)
             wrote = write_documents(
                 conn, keep,

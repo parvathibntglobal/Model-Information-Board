@@ -87,6 +87,42 @@ CREATE TABLE capability_candidate (
 CREATE INDEX capability_candidate_key_idx ON capability_candidate (proposed_key);
 ```
 
+## 2a · The fragmentation you predicted, now measured
+
+**Your floor argument for not deduplicating on `proposed_key` was written against
+a hypothetical. This is the measurement, and it is worse than the hypothetical.**
+
+The withheld-list classification asked for a capability name with the twelve-key
+list removed, over 774 documents:
+
+```
+proposals                552
+DISTINCT names           528
+most frequent name         4   (model_performance.degradation)
+```
+
+**528 distinct names from 552 proposals.** An exact-string `GROUP BY proposed_key`
+over that output would report 528 candidates with a median support of one — and the
+count that was supposed to separate a real capability from one person's phrasing
+would separate nothing, because almost every row is its own group.
+
+So the not-UNIQUE decision is right and it is not sufficient. The unit of the table
+is correct — one row per (proposal, document) — and **the query that reads it cannot
+be an exact-string group by.** Names arrive as
+`model_behavior.coding_performance`, `coding.performance`,
+`code_generation.accuracy`, `model_performance.coding_tasks`,
+`model_performance.coding_quality` — five names, one capability, five groups.
+
+**What that implies for the table, and it is a reading problem rather than a schema
+one.** Nothing above changes the columns. It changes what a reader of them has to
+do: cluster before counting, and the clustering is a judgement. Which argues for
+`ruling: merged` in the vocabulary — already in the proposed CHECK — carrying real
+weight, because merging is going to be the common outcome rather than the rare one.
+
+I would not add a normalised-name column. A normalisation is a clustering rule
+frozen into the schema, and the measurement above says the rule is not obvious
+enough to freeze.
+
 ## 3 · The one design decision that matters
 
 **`proposed_key` is not UNIQUE, and that is the point.**

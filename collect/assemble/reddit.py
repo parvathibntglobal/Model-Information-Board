@@ -69,6 +69,78 @@ from collect.rawstore import FLATTENED
 #: platform, so it must be the bare source and never a subreddit.
 REDDIT_SOURCE = "reddit"
 
+#: A post whose comments exist and were not fetched. NOT `whole_document`.
+#:
+#: THE THIRD SHAPE, and it is GitHub's rather than the blog's. `assemble_article`
+#: writes `whole_document` because a blog article IS the whole document;
+#: `assemble_issue` refuses that value for an issue body and says why — *"the body
+#: is one member of a thread that exists and was not fetched"*. A Reddit post from
+#: a search sweep is the second case: 1,417 of 1,507 documents from the 2026-08-28
+#: model-only sweep carry `num_comments > 0`, so the conversation is counted in the
+#: stored engagement and was never read.
+#:
+#: Before this existed, `assemble_reddit_documents` refused all 1,559 such posts —
+#: correctly, because its only alternative was to call them Reddit threads. The
+#: refusal was right and the options were incomplete.
+POST_BODY_ONLY = "post_body_only"
+
+
+def assemble_reddit_post(
+    document_id: str,
+    text: str,
+    *,
+    comment_count: int,
+    store,
+    pipeline_version: str | None = None,
+) -> AssembledThread:
+    """One `thread_context` for one post body. Touches no database.
+
+    Mirrors `assemble_issue` deliberately, down to the refusal on empty text: two
+    platforms, one shape, and a second implementation of the same decision is how
+    the two quietly stop agreeing.
+
+    `hidden_children_min` IS THE COUNTED COMMENTS AND NOT ZERO. `coverage_ratio`
+    is GENERATED as `observed / (observed + hidden_children_min)`, so:
+
+        observed 0, hidden 47   ->  0.0    we read the root and none of the thread
+        observed 0, hidden 0    ->  NULL   the empty-tree case, which a post with
+                                           47 counted comments is not
+
+    Writing 0 would make a post with a live conversation read as a post with no
+    conversation, and `coverage_ratio` would then be NULL rather than low — the
+    difference `assemble_issue` calls *"a coverage figure that is low and one that
+    is wrong"*.
+    """
+    if not text or not text.strip():
+        raise ValueError(
+            f"{document_id}: no stored text. A thread_context over an empty string "
+            f"verifies every quote against nothing and rejects them all, which "
+            f"reads as a fabricating extractor rather than as a missing body. Do "
+            f"not assemble it."
+        )
+
+    version = pipeline_version or settings().pipeline_version
+    # THE OFFSET MAP FALLS OUT OF THIS, which is the whole point of the path.
+    # `collect/CLAUDE.md`'s first rule is that the map cannot be rebuilt later, so
+    # a body-only assembly is what makes a quote from these documents verifiable
+    # against a position rather than only against a string.
+    flattened = flatten([(document_id, text)])
+    stored = store.put(flattened.text, namespace=FLATTENED)
+
+    return AssembledThread(
+        id=stable_id("thread_context", document_id, version),
+        thread_root_id=document_id,
+        member_document_ids=flattened.member_document_ids,
+        flattened=flattened,
+        flattened_text_ref=stored.ref,
+        observed_children=0,
+        #: A FLOOR, not a guess: the platform's own count of what we did not read.
+        hidden_children_min=max(0, int(comment_count or 0)),
+        hidden_branches_unsized=0,
+        pipeline_version=version,
+        selection_method=POST_BODY_ONLY,
+    )
+
 
 @dataclass(frozen=True)
 class StoredComment:
@@ -152,6 +224,16 @@ class RedditAssemblyReport:
     assembled: int = 0
     comments_selected: int = 0
     comments_held: int = 0
+
+    #: Assembled as POST_BODY_ONLY - a post whose comments were never fetched.
+    #: Counted apart from `assembled` because the two carry different coverage:
+    #: a thread assembly read children, and this read none.
+    body_only: int = 0
+    #: Comments the platform counted and we did not read, summed over body-only
+    #: assemblies. The `hidden_children_min` total, surfaced so a coverage figure
+    #: does not have to be recomputed from the rows.
+    comments_unread: int = 0
+    posts_with_unread_comments: int = 0
     refusals: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
@@ -160,7 +242,15 @@ class RedditAssemblyReport:
             f"assembled, {self.already_assembled} already had a thread_context, "
             f"{len(self.refusals)} refused"
         ]
-        if self.assembled:
+        if self.body_only:
+            lines.append(
+                f"body-only: {self.body_only} post(s) assembled as "
+                f"{POST_BODY_ONLY} - {self.posts_with_unread_comments} of them "
+                f"carry comments we never fetched, {self.comments_unread} in "
+                f"total, recorded as hidden_children_min so coverage_ratio reads "
+                f"0.0 rather than NULL or 1.0"
+            )
+        if self.comments_held:
             lines.append(
                 f"voices   : {self.comments_held} comment(s) held across the "
                 f"assembled threads, {self.comments_selected} selected for "
@@ -205,7 +295,7 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
     report = RedditAssemblyReport()
 
     roots = conn.execute(
-        "SELECT d.id, d.external_id, d.text_ref "
+        "SELECT d.id, d.external_id, d.text_ref, d.engagement "
         "FROM document d "
         "WHERE d.source = %s "
         "  AND d.thread_root_id IS NULL "
@@ -221,7 +311,7 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
     # per thread.
     version_aliases = _version_aliases(conn)
 
-    for root_document_id, root_external_id, root_text_ref in roots:
+    for root_document_id, root_external_id, root_text_ref, root_engagement in roots:
         if not root_text_ref:
             report.refusals.append(
                 f"{root_document_id}: the post has no text_ref, so there is no "
@@ -237,6 +327,9 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
                 f"the store, so a missing payload is a missing document."
             )
             continue
+
+        # The platform's own comment count, read once per root.
+        root_comment_count = int((root_engagement or {}).get("comments") or 0)
 
         comment_rows = conn.execute(
             "SELECT external_id, text_ref, engagement "
@@ -269,11 +362,32 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
             )
 
         if not comments:
-            report.refusals.append(
-                f"{root_document_id}: no comment bodies resolved, so this would "
-                f"assemble a post with no children — which is the blog shape, not "
-                f"a Reddit thread. Not assembled."
-            )
+            # THE THIRD SHAPE, and this used to be a refusal. It refused because
+            # the only alternative was to call a childless post a Reddit thread,
+            # and that was the right call with two options. `POST_BODY_ONLY` is
+            # the third: it assembles the body and records the comments it did not
+            # read, so `coverage_ratio` says 0.0 rather than claiming the post is
+            # a whole document.
+            #
+            # `root_comment_count` is the PLATFORM's count from the stored
+            # engagement, not our own tally - the point is the gap between what
+            # exists and what we fetched, and our tally is the wrong side of it.
+            try:
+                assembled = assemble_reddit_post(
+                    root_document_id,
+                    root_outcome.require(),
+                    comment_count=root_comment_count,
+                    store=store,
+                )
+            except ValueError as refusal:
+                report.refusals.append(str(refusal))
+                continue
+            write_thread_context(conn, assembled)
+            report.assembled += 1
+            report.body_only += 1
+            report.comments_unread += root_comment_count
+            if root_comment_count:
+                report.posts_with_unread_comments += 1
             continue
 
         try:
