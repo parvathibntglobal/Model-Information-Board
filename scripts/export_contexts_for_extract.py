@@ -1,0 +1,169 @@
+"""Export real `thread_context` rows in the shape `judge/extract` can load.
+
+WHY THIS EXISTS AND WHY IT IS NOT `export_thread_contexts.py`
+
+`judge extract` refuses to read thread text from the database, deliberately:
+`thread_context.flattened_text_ref` is a LOCATION in an object store,
+`collect/rawstore.py` is the only reader, and `judge/` never imports `collect/`.
+So the pipeline can be HANDED threads and cannot fetch them. That is the lane
+interface working, not a gap to route around.
+
+`scripts/export_thread_contexts.py` looks like the exporter for this and is not:
+it re-derives blog articles by scanning `raw_store` for HTML and re-assembling
+them. It never reads a `thread_context` row. Run with `--all` against a database
+holding 1,512 reddit contexts it emitted 128 blog threads, because reddit is not
+a shape it builds.
+
+**This reads the rows.** `thread_context` for the flattened ref and the offset
+map, then each member document's `text_ref` for `raw_text_of`, then one JSON file
+per thread in the shape `export_source.load` parses.
+
+WHAT IT REFUSES RATHER THAN DEFAULTS
+
+Every one of these is a case `export_source.load` would otherwise skip after the
+model call was already paid for, or worse, load as an empty thread:
+
+    no flattened_text_ref        the row exists and its text does not
+    ref does not resolve         a missing payload is a missing document
+    empty flattened text         extracts to nothing, indistinguishable from a
+                                 thread that says nothing
+    no member raw text           step 3 renders the RAW span, so a quote could
+                                 verify and be unrenderable
+    offset_map empty             `verify` has nothing to map a span through
+
+Named and counted, never written as a partial file.
+
+    python scripts/export_contexts_for_extract.py --out DIR [--limit N]
+                                                  [--selection-method post_body_only]
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import pathlib
+
+from collect.config import settings
+from collect.rawstore import RawStore
+from collect.rawstore_reader import RawStoreReader
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out", required=True)
+    parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument(
+        "--selection-method", default=None,
+        help="restrict to one selection_method, e.g. post_body_only",
+    )
+    parser.add_argument(
+        "--skip-extracted", action="store_true",
+        help="omit threads already in `thread_extraction` at this pipeline "
+             "version. The extractor skips them anyway; this keeps the export "
+             "honest about what it is offering.",
+    )
+    args = parser.parse_args()
+
+    out_dir = pathlib.Path(args.out) / "threads"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    reader = RawStoreReader(RawStore(settings().raw_store_path))
+
+    from collect.db import connect
+
+    conn = connect()
+    try:
+        clauses = ["tc.flattened_text_ref IS NOT NULL"]
+        params: list[object] = []
+        if args.selection_method:
+            clauses.append("tc.selection_method = %s")
+            params.append(args.selection_method)
+        if args.skip_extracted:
+            clauses.append(
+                "NOT EXISTS (SELECT 1 FROM thread_extraction te "
+                "WHERE te.thread_context_id = tc.id)"
+            )
+        rows = conn.execute(
+            "SELECT tc.id, tc.thread_root_id, tc.member_document_ids, "
+            "       tc.flattened_text_ref, tc.offset_map, tc.selection_method, "
+            "       tc.hidden_children_min, d.source "
+            "FROM thread_context tc "
+            "JOIN document d ON d.id = tc.thread_root_id "
+            "WHERE " + " AND ".join(clauses) + " ORDER BY tc.id"
+            + (f" LIMIT {int(args.limit)}" if args.limit else ""),
+            tuple(params),
+        ).fetchall()
+
+        text_of: dict[str, str] = {}
+        wanted = {m for r in rows for m in (r[2] or [])}
+        if wanted:
+            for doc_id, ref in conn.execute(
+                "SELECT id, text_ref FROM document WHERE id = ANY(%s)", (list(wanted),)
+            ).fetchall():
+                if not ref:
+                    continue
+                outcome = reader.resolve(ref)
+                if outcome.found:
+                    text_of[doc_id] = outcome.require()
+    finally:
+        conn.close()
+
+    written = 0
+    refused: dict[str, int] = {}
+
+    def refuse(reason: str) -> None:
+        refused[reason] = refused.get(reason, 0) + 1
+
+    for (thread_id, root_id, members, flat_ref, offset_map,
+         selection_method, hidden_min, source) in rows:
+        outcome = reader.resolve(flat_ref)
+        if not outcome.found:
+            refuse(f"flattened text did not resolve ({outcome.outcome})")
+            continue
+        flattened = outcome.require()
+        if not flattened.strip():
+            refuse("flattened text is empty")
+            continue
+        if not offset_map:
+            refuse("offset_map is empty, so a span cannot be mapped")
+            continue
+        raw_text_of = {m: text_of[m] for m in (members or []) if m in text_of}
+        if not raw_text_of:
+            refuse("no member raw text, so a verified quote could not be displayed")
+            continue
+
+        payload = {
+            "thread_context_id": thread_id,
+            "thread_root_id": root_id,
+            "member_document_ids": list(members or []),
+            "flattened_text": flattened,
+            "offset_map": offset_map,
+            "raw_text_of": raw_text_of,
+            "provenance": {
+                "platform": source,
+                "built_by": "scripts/export_contexts_for_extract.py",
+                "rulings": {
+                    "selection_method": selection_method,
+                    # CARRIED, because it is the coverage the extractor is
+                    # entitled to know about: 0 observed children with a
+                    # non-zero floor means we read the root and none of the
+                    # thread, and a claim from it is one voice by construction.
+                    "hidden_children_min": hidden_min,
+                },
+            },
+        }
+        (out_dir / f"{thread_id}.json").write_text(
+            json.dumps(payload, ensure_ascii=False, default=str), encoding="utf-8"
+        )
+        written += 1
+
+    print(f"candidates : {len(rows)} thread_context row(s)")
+    print(f"written    : {written} -> {out_dir}")
+    if refused:
+        print("refused    :")
+        for reason, count in sorted(refused.items(), key=lambda kv: -kv[1]):
+            print(f"  {count:5d}  {reason}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

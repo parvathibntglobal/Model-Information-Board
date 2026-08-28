@@ -99,3 +99,9 @@ _handoff/
 # put one developer's spend on everyone else's admin page.
 var/
 _sweep_store/
+
+# Export directories built by scripts/export_contexts_for_extract.py. Same
+# reason as _handoff/: thread text, not source, and rebuildable from the
+# database plus the raw store.
+_export_extract/
+_export_modelonly/
