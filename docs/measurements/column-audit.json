@@ -1,0 +1,3489 @@
+[
+ {
+  "table": "answer",
+  "column": "abstained",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/answers.py:248"
+  ],
+  "read_at": [
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "answer",
+  "column": "assumptions",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/answers.py:248"
+  ],
+  "read_at": [
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "answer",
+  "column": "candidates",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:248"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "answer",
+  "column": "created_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "answer",
+  "column": "id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:248"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "answer",
+  "column": "reason",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/answers.py:248",
+   "judge/store/answers.py:dict-key"
+  ],
+  "read_at": [
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "answer",
+  "column": "role_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:248"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "audit",
+  "column": "audited_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "audit",
+  "column": "auditor",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "audit",
+  "column": "claim_id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "audit",
+  "column": "id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "audit",
+  "column": "notes",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "audit",
+  "column": "verdict",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "web/src/routes/Models.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "account_created_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/assemble/authors.py:279",
+   "collect/assemble/authors.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "external_id",
+  "state": "written+read",
+  "written_at": [
+   "collect/assemble/authors.py:279",
+   "collect/assemble/authors.py:dict-key"
+  ],
+  "read_at": [
+   "scripts/capability_choice_pool.py:151",
+   "scripts/corpus_inventory.py:133"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "first_seen_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "handle_hash",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/assemble/authors.py:279",
+   "collect/assemble/authors.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "collect/assemble/authors.py:279",
+   "collect/assemble/authors.py:dict-key"
+  ],
+  "read_at": [
+   "scripts/capability_choice_pool.py:151",
+   "scripts/corpus_inventory.py:133"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "identity_cluster_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/assemble/authors.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "karma",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/assemble/authors.py:279",
+   "collect/assemble/authors.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "source",
+  "state": "written+read",
+  "written_at": [
+   "collect/assemble/authors.py:279",
+   "collect/assemble/authors.py:dict-key"
+  ],
+  "read_at": [
+   "scripts/backfill_authors.py:68",
+   "scripts/corpus_inventory.py:133"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "technical_history_score",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "author_identity_cluster",
+  "column": "evidence",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "web/src/api/index.js:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "author_identity_cluster",
+  "column": "id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "author_identity_cluster",
+  "column": "member_author_ids",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "author_identity_cluster",
+  "column": "merged_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "capability",
+  "column": "active",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "capability",
+  "column": "description",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/capabilities.py:184",
+   "collect/registry/capabilities.py:dict-key"
+  ],
+  "read_at": [
+   "collect/registry/capabilities.py:177",
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "capability",
+  "column": "failure_mode",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/capabilities.py:184",
+   "collect/registry/capabilities.py:dict-key"
+  ],
+  "read_at": [
+   "collect/registry/capabilities.py:177"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "capability",
+  "column": "key",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/capabilities.py:184",
+   "collect/registry/capabilities.py:dict-key"
+  ],
+  "read_at": [
+   "collect/registry/capabilities.py:177",
+   "web/src/auth.js:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "capability",
+  "column": "version",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/capabilities.py:184",
+   "collect/registry/capabilities.py:dict-key"
+  ],
+  "read_at": [
+   "collect/registry/capabilities.py:177",
+   "web/src/components/UsagePanel.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "capability_key",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/nightly.py:125",
+   "judge/pages/capability.py:137"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "computed_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/cells.py:195"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "condition_bucket",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/capability.py:137",
+   "judge/pages/model.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "conditional_note",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/model.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "consensus_phrase",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/capability.py:137",
+   "judge/pages/model.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "freshest_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "independent_voices",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/capability.py:137",
+   "judge/pages/model.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "max_author_share",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "median_age",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "model_version_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/nightly.py:125",
+   "judge/pages/capability.py:137"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "n_eff",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "web/src/routes/Models.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "negative",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/nightly.py:125",
+   "judge/pages/model.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "pipeline_version",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "platform_count",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/model.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "positive",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/nightly.py:125",
+   "judge/pages/model.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "provenance",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195"
+  ],
+  "read_at": [
+   "collect/registry/assertions.py:378"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "quote_ids",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/nightly.py:125",
+   "judge/pages/model.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "status",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/nightly.py:125",
+   "judge/pages/capability.py:137"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "author_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:193",
+   "judge/store/cells.py:136"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "capability_key",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/thread_coverage.py:223",
+   "judge/store/cells.py:120"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "comparison_target_id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "condition_bucket",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/thread_coverage.py:223",
+   "judge/store/cells.py:120"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "conditions",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:193",
+   "web/src/components/AskLoading.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "created_at",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "judge/pages/model.py:352",
+   "judge/store/cells.py:136"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "document_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/model.py:352",
+   "judge/store/cells.py:136"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "evidence_tier",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "extractor_confidence",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "extractor_model",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "family",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "has_numbers",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "has_repro_steps",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:193",
+   "judge/curate/thread_coverage.py:223"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "is_sarcastic",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "model_version_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:193",
+   "judge/curate/thread_coverage.py:223"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "pain_points",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/model.py:352"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "pipeline_version",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "polarity",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:193",
+   "judge/pages/model.py:352"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "quote",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/model.py:352",
+   "web/src/api/index.js:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "quote_flat_offset",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "quote_raw_offset",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "quote_verified",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:193",
+   "judge/pages/model.py:352"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "relevance",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "resolution_confidence",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "severity",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/cells.py:136"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "source_comment_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "speaking",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "specificity",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "taxonomy_version",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "thread_context_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/thread_coverage.py:223",
+   "judge/store/claims.py:310"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "claim_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/cells.py:136",
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "computed_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_evidence",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_fuzziness",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_launch",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_platform",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_recency",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_relevance",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_specificity",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "pipeline_version",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "w_final",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/cells.py:136",
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "coverage_gap",
+  "column": "detail",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "coverage_gap",
+  "column": "id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "coverage_gap",
+  "column": "kind",
+  "state": "written+read",
+  "written_at": [
+   "judge/pages/coverage.py:1"
+  ],
+  "read_at": [
+   "judge/pages/coverage.py:227"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "coverage_gap",
+  "column": "observed_at",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "judge/pages/coverage.py:207"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "coverage_gap",
+  "column": "pipeline_version",
+  "state": "written+read",
+  "written_at": [
+   "judge/pages/coverage.py:1"
+  ],
+  "read_at": [
+   "judge/pages/coverage.py:207",
+   "judge/pages/coverage.py:227"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "coverage_gap",
+  "column": "subject",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "judge/pages/coverage.py:227",
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "dedup_cluster",
+  "column": "canonical_document_id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "dedup_cluster",
+  "column": "first_seen_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "dedup_cluster",
+  "column": "id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "dedup_cluster",
+  "column": "reach",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "web/src/auth.js:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "dedup_cluster",
+  "column": "size",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "author_id",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:314",
+   "collect/adapters/blog/write.py:89"
+  ],
+  "read_at": [
+   "judge/cli.py:188",
+   "judge/store/cells.py:136"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "content_hash",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "created_at",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
+  ],
+  "read_at": [
+   "judge/cli.py:188",
+   "judge/pages/model.py:352"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "dedup_cluster_id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "engagement",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/github.py:606",
+   "collect/adapters/github.py:dict-key"
+  ],
+  "read_at": [
+   "collect/assemble/issue.py:143",
+   "collect/assemble/reddit.py:242"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "external_id",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:314",
+   "collect/adapters/blog/write.py:89"
+  ],
+  "read_at": [
+   "collect/adapters/blog/write.py:107",
+   "collect/assemble/reddit.py:208"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "fetched_at",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
+  ],
+  "read_at": [
+   "judge/pages/filtered.py:204"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "filter_reasons",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "judge/pages/filtered.py:204"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "harvest_run_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/adapters/github.py:606",
+   "collect/adapters/github.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "has_code",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "has_conditions",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "has_error_strings",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "has_numbers",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
+  ],
+  "read_at": [
+   "collect/adapters/blog/write.py:107",
+   "collect/adapters/blog/write.py:114"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "is_canonical_in_cluster",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "lang",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "minhash",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "names_version",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "parent_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/adapters/reddit_write.py:72",
+   "collect/adapters/reddit_write.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "retrieval_provenance",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
+  ],
+  "read_at": [
+   "judge/pages/pipeline_status.py:192"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "simhash",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "source",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:314",
+   "collect/adapters/blog/write.py:89"
+  ],
+  "read_at": [
+   "collect/adapters/blog/write.py:107",
+   "collect/assemble/issue.py:143"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "specificity_score",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "status",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
+  ],
+  "read_at": [
+   "judge/pages/filtered.py:204",
+   "judge/pages/filtered.py:215"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "text_ref",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
+  ],
+  "read_at": [
+   "collect/adapters/blog/write.py:107",
+   "collect/assemble/issue.py:143"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "thread_root_id",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/reddit_write.py:72",
+   "collect/adapters/reddit_write.py:dict-key"
+  ],
+  "read_at": [
+   "collect/assemble/issue.py:143",
+   "collect/assemble/reddit.py:208"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "triage_verdict",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "scripts/corpus_inventory.py:133",
+   "scripts/corpus_inventory.py:162"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "url",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
+  ],
+  "read_at": [
+   "judge/pages/filtered.py:204",
+   "judge/pages/model.py:352"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "golden_label",
+  "column": "document_id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "golden_label",
+  "column": "label",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "web/src/api/index.js:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "golden_label",
+  "column": "label_type",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "golden_label",
+  "column": "labeled_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "golden_label",
+  "column": "labeler",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "exhausted",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "finished_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "http_errors",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:349"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "items_fetched",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "items_kept",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "outcome",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "pages_fetched",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "pages_stored",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "pipeline_version",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "query_key",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "sieve_pass_rate",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "source_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "started_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "truncated_by",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "detail",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:98",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "finished_at",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/ledger.py:98",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [
+   "collect/ops/ledger.py:120",
+   "judge/pages/pipeline_status.py:364"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/ledger.py:72",
+   "collect/ops/ledger.py:98"
+  ],
+  "read_at": [
+   "collect/ops/ledger.py:120"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "items_in",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/ledger.py:98"
+  ],
+  "read_at": [
+   "judge/pages/pipeline_status.py:364",
+   "web/src/components/PipelinePanel.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "items_out",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/ledger.py:98"
+  ],
+  "read_at": [
+   "judge/pages/pipeline_status.py:364",
+   "web/src/components/PipelinePanel.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "outcome",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/ledger.py:98",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [
+   "collect/ops/ledger.py:137",
+   "judge/pages/pipeline_status.py:364"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "pipeline_version",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/ledger.py:72",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/pipeline_status.py:389"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "stage",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/ledger.py:72"
+  ],
+  "read_at": [
+   "collect/ops/ledger.py:120",
+   "collect/ops/ledger.py:137"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "started_at",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/ledger.py:72",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [
+   "collect/ops/ledger.py:120",
+   "collect/ops/ledger.py:137"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "capability_key",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [
+   "judge/curate/labels.py:197"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "earned_by_quote_ids",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [
+   "judge/curate/labels.py:197"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "first_seen_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [
+   "judge/curate/labels.py:197"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "kind",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [
+   "judge/curate/labels.py:197"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "last_confirmed_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "model_version_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [
+   "judge/curate/labels.py:197"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "state",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [
+   "judge/curate/labels.py:197",
+   "web/src/App.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label_change",
+  "column": "direction",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:243"
+  ],
+  "read_at": [
+   "judge/pages/changelog.py:183",
+   "judge/pages/pipeline_status.py:316"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label_change",
+  "column": "driver",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:243"
+  ],
+  "read_at": [
+   "judge/pages/changelog.py:183",
+   "web/src/routes/Admin.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label_change",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:243"
+  ],
+  "read_at": [
+   "judge/pages/changelog.py:183"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label_change",
+  "column": "label_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:243"
+  ],
+  "read_at": [
+   "judge/pages/changelog.py:183"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label_change",
+  "column": "occurred_at",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "judge/pages/changelog.py:183"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label_change",
+  "column": "quote_ids",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:243"
+  ],
+  "read_at": [
+   "judge/pages/changelog.py:183"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "confidence",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "created_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "family",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:619",
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:614",
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [
+   "collect/ops/sweep.py:192",
+   "collect/ops/sweep.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "model_version_id",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [
+   "collect/ops/sweep.py:192",
+   "collect/ops/sweep.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "normalized",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [
+   "collect/assemble/reddit.py:310",
+   "collect/registry/tracked_load.py:264"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "provider_hint",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "specificity",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [
+   "collect/assemble/reddit.py:310"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "surface",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [
+   "scripts/corpus_inventory.py:90",
+   "web/src/api/index.js:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "valid_from",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "valid_until",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:614",
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [
+   "collect/ops/sweep.py:192",
+   "collect/ops/sweep.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "variants",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [
+   "collect/ops/sweep.py:192",
+   "collect/ops/sweep.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "model_event",
+  "column": "detected_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "model_event",
+  "column": "id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/events.py:240",
+   "collect/registry/events.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "model_event",
+  "column": "model_version_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/events.py:240",
+   "collect/registry/events.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "model_event",
+  "column": "occurred_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/events.py:240",
+   "collect/registry/events.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "model_event",
+  "column": "payload",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/events.py:240",
+   "collect/registry/events.py:dict-key"
+  ],
+  "read_at": [
+   "web/src/api/index.js:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "model_event",
+  "column": "source_url",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "model_event",
+  "column": "type",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/events.py:240",
+   "collect/registry/events.py:dict-key"
+  ],
+  "read_at": [
+   "web/src/components/AuraField.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "model_version",
+  "column": "advertised_context",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24",
+   "web/src/routes/ModelDetail.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "batch_discount",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "canonical_id",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/sweep.py:233",
+   "collect/registry/load.py:343"
+  ],
+  "read_at": [
+   "collect/cli.py:272",
+   "collect/cli.py:418"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "deprecation_date",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "display_name",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "collect/cli.py:272",
+   "collect/cli.py:418"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "family",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [
+   "collect/registry/seat.py:165"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "first_seen_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:538",
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [
+   "collect/ops/sweep.py:192",
+   "collect/ops/sweep.py:253"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "in_window",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:538",
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [
+   "collect/registry/load.py:538",
+   "collect/registry/load.py:547"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "knowledge_cutoff",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "last_swept_at",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/sweep.py:233",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "collect/ops/sweep.py:192",
+   "collect/registry/assertions.py:97"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "lifecycle",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "max_output_tokens",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24",
+   "web/src/routes/ModelDetail.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "possibly_changed",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "price_cached_read",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "price_in",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "price_out",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "provenance",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "collect/registry/assertions.py:375",
+   "collect/registry/load.py:510"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "provider",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "collect/registry/seat.py:165",
+   "judge/pages/roster.py:24"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "regions",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "release_date",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:538",
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [
+   "collect/cli.py:272",
+   "collect/cli.py:418"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "retirement_date",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "collect/registry/seat.py:165"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "sources",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "supports_batch",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "supports_caching",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24",
+   "web/src/routes/ModelDetail.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "supports_structured_output",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24",
+   "web/src/routes/ModelDetail.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "supports_tools",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24",
+   "web/src/routes/ModelDetail.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "supports_vision",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24",
+   "web/src/routes/ModelDetail.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "updated_at",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:343",
+   "collect/registry/load.py:538"
+  ],
+  "read_at": [
+   "collect/registry/load.py:538"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "outcome",
+  "column": "adopted",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [
+   "judge/store/answers.py:343"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "answer_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "cost_usd",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "failure_kind",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "latency_ms",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "model_version_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:306",
+   "judge/store/answers.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "reported_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "retries",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "success",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [
+   "judge/store/answers.py:343"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "what_happened",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "price_tier",
+  "column": "dimension",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:480"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "price_tier",
+  "column": "max_tokens",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:480"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "price_tier",
+  "column": "min_tokens",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:480"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "price_tier",
+  "column": "model_version_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:480"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "price_tier",
+  "column": "price",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:480"
+  ],
+  "read_at": [
+   "web/src/api/index.js:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "price_tier",
+  "column": "price_cached_read",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:480",
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "price_tier",
+  "column": "sources",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:480",
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "pricing_history",
+  "column": "model_version_id",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/events.py:205",
+   "collect/registry/events.py:dict-key"
+  ],
+  "read_at": [
+   "collect/registry/events.py:175",
+   "collect/registry/load.py:380"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "pricing_history",
+  "column": "observed_at",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/events.py:205",
+   "collect/registry/load.py:392"
+  ],
+  "read_at": [
+   "collect/registry/events.py:175",
+   "collect/registry/load.py:380"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "pricing_history",
+  "column": "price_cached_read",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/events.py:205",
+   "collect/registry/load.py:392"
+  ],
+  "read_at": [
+   "collect/registry/events.py:175",
+   "collect/registry/load.py:380"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "pricing_history",
+  "column": "price_in",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/events.py:205",
+   "collect/registry/load.py:392"
+  ],
+  "read_at": [
+   "collect/registry/events.py:175",
+   "collect/registry/load.py:380"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "pricing_history",
+  "column": "price_out",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/events.py:205",
+   "collect/registry/load.py:392"
+  ],
+  "read_at": [
+   "collect/registry/events.py:175",
+   "collect/registry/load.py:380"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "reported_context",
+  "column": "advertised",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/reported_context.py:232"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:163",
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "reported_context",
+  "column": "computed_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/curate/reported_context.py:232"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "reported_context",
+  "column": "model_version_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/reported_context.py:232"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:163"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "reported_context",
+  "column": "provenance",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/reported_context.py:232"
+  ],
+  "read_at": [
+   "collect/registry/assertions.py:385",
+   "judge/curate/reported_context.py:163"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "reported_context",
+  "column": "quote_ids",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/reported_context.py:232"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:163"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "reported_context",
+  "column": "reported_high",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/reported_context.py:232"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:163"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "reported_context",
+  "column": "reported_low",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/reported_context.py:232"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:163"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "role",
+  "column": "capability_needs",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:212"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "role",
+  "column": "dependents",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:212"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "role",
+  "column": "error_cost",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:212"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "role",
+  "column": "failure_mode",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:212"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "role",
+  "column": "id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:212"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "role",
+  "column": "name",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/answers.py:212"
+  ],
+  "read_at": [
+   "web/src/api/index.js:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "role",
+  "column": "runs_per_request",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:212"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "role",
+  "column": "task_profile_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:212"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "schema_migration",
+  "column": "applied_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "schema_migration",
+  "column": "content_hash",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "schema_migration",
+  "column": "filename",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "source",
+  "column": "base_trust",
+  "state": "written, UNREAD",
+  "written_at": [
+   "scripts/harvest_github.py:205"
+  ],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "endpoint",
+  "state": "written+read",
+  "written_at": [
+   "scripts/harvest_github.py:205"
+  ],
+  "read_at": [
+   "web/src/api/index.js:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "health_status",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/sources.py:422",
+   "scripts/harvest_github.py:205"
+  ],
+  "read_at": [
+   "collect/ops/ledger.py:271",
+   "collect/registry/sources.py:343"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "last_yield",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "platform",
+  "state": "written+read",
+  "written_at": [
+   "scripts/harvest_github.py:205"
+  ],
+  "read_at": [
+   "web/src/routes/ModelDetail.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "provenance",
+  "state": "written+read",
+  "written_at": [
+   "scripts/harvest_github.py:205"
+  ],
+  "read_at": [
+   "collect/registry/sources.py:343"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "terms_checked_on",
+  "state": "written, UNREAD",
+  "written_at": [
+   "scripts/harvest_github.py:205"
+  ],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "terms_evidence",
+  "state": "written, UNREAD",
+  "written_at": [
+   "scripts/harvest_github.py:205"
+  ],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "terms_ruling",
+  "state": "written, UNREAD",
+  "written_at": [
+   "scripts/harvest_github.py:205"
+  ],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "tos_notes",
+  "state": "written, UNREAD",
+  "written_at": [
+   "scripts/harvest_github.py:205"
+  ],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "task_profile",
+  "column": "complexity_tier",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/answers.py:175"
+  ],
+  "read_at": [
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "task_profile",
+  "column": "created_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "task_profile",
+  "column": "error_cost",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:175"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "task_profile",
+  "column": "id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:175"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "task_profile",
+  "column": "inferred_fields",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:175"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "task_profile",
+  "column": "profile",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/answers.py:175"
+  ],
+  "read_at": [
+   "web/src/api/index.js:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "task_profile",
+  "column": "raw_text",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/answers.py:175"
+  ],
+  "read_at": [
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "task_profile",
+  "column": "requests_per_month",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:175"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "assembled_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "child_count",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "coverage_ratio",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "judge/curate/thread_coverage.py:223"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "flattened_text_ref",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [
+   "scripts/blog_extraction_run.py:93",
+   "scripts/corpus_inventory.py:154"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "hidden_branches_unsized",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "hidden_children_min",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [
+   "judge/curate/thread_coverage.py:223"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [
+   "collect/assemble/issue.py:143",
+   "collect/assemble/reddit.py:208"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "member_document_ids",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [
+   "scripts/blog_extraction_run.py:93",
+   "scripts/corpus_inventory.py:154"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "observed_children",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [
+   "judge/curate/thread_coverage.py:223",
+   "judge/pages/pipeline_status.py:213"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "offset_map",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [
+   "scripts/blog_extraction_run.py:93"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "pipeline_version",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "selection_method",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [
+   "scripts/blog_extraction_run.py:93"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "thread_root_id",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [
+   "collect/assemble/issue.py:143",
+   "collect/assemble/reddit.py:208"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_extraction",
+  "column": "claims_written",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [
+   "judge/pages/pipeline_status.py:253",
+   "judge/store/extractions.py:181"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_extraction",
+  "column": "content_fingerprint",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [
+   "judge/store/extractions.py:107"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_extraction",
+  "column": "extracted_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_extraction",
+  "column": "input_tokens",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [
+   "judge/store/extractions.py:196"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_extraction",
+  "column": "output_tokens",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [
+   "judge/store/extractions.py:196"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_extraction",
+  "column": "pipeline_version",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [
+   "judge/store/extractions.py:107",
+   "judge/store/extractions.py:181"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_extraction",
+  "column": "schema_retries",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_extraction",
+  "column": "thread_context_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [
+   "judge/pages/pipeline_status.py:253",
+   "judge/store/extractions.py:107"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "watermark",
+  "column": "cursor",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "web/src/components/FluidCanvas.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "watermark",
+  "column": "exhausted",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "watermark",
+  "column": "last_run_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "watermark",
+  "column": "query_key",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "watermark",
+  "column": "source_id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ }
+]
