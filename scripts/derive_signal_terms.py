@@ -53,10 +53,22 @@ from collect.ops.sweep import seated_variants
 LISTING_WINDOW_HOURS = 12
 
 #: Function words, plus the model names and family words themselves. The names
-#: are excluded because subject already matched them — a term that is a model
-#: name is not a signal term, it is the thing signal is supposed to be ABOUT.
-STOP = set(
-    ["the", "a", "an", "and", "or", "but", "if", "of", "to", "in", "on", "at", "for", "with", "from", "by", "as", "is", "are", "was", "were", "be", "been", "being", "it", "its", "this", "that", "these", "those", "i", "you", "he", "she", "we", "they", "them", "us", "our", "your", "my", "me", "not", "no", "do", "does", "did", "have", "has", "had", "will", "would", "can", "could", "should", "may", "might", "must", "about", "into", "over", "under", "again", "more", "most", "other", "some", "such", "only", "own", "same", "so", "than", "too", "very", "just", "now", "then", "there", "here", "what", "which", "who", "whom", "when", "where", "why", "how", "all", "any", "both", "each", "few", "nor", "s", "t", "ve", "ll", "re", "m", "d", "o", "y", "one", "two", "get", "got", "go", "going", "make", "made", "use", "used", "using", "like", "really", "much", "even", "still", "also", "way", "thing", "things", "time", "lot", "bit", "see", "know", "think", "want", "need", "try", "trying", "new", "good", "great", "better", "best", "bad", "worse", "worst", "first", "last", "next", "different", "model", "models", "ai", "llm", "claude", "gpt", "gemini", "qwen", "opus", "sonnet", "haiku", "flash", "fable", "sol", "luna", "code"]
+#: are excluded because subject already matched them - a term that IS a model
+#: name is not a signal term, it is the thing signal is supposed to be about.
+STOP = frozenset(
+    """
+        the a an and or but if of to in on at for with from by as is are was
+        were be been being it its this that these those i you he she we they
+        them us our your my me not no do does did have has had will would
+        can could should may might must about into over under again more
+        most other some such only own same so than too very just now then
+        there here what which who whom when where why how all any both each
+        few nor s t ve ll re m d o y one two get got go going make made use
+        used using like really much even still also way thing things time
+        lot bit see know think want need try trying new good great better
+        best bad worse worst first last next different model models ai llm
+        claude gpt gemini qwen opus sonnet haiku flash fable sol luna code
+    """.split()  # noqa: SIM905 - 161 words; a list literal is unreadable
 )
 
 _WORD = re.compile(r"[a-z][a-z'\-]{2,}")
