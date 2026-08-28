@@ -407,6 +407,32 @@ def extract_and_curate(conn, prog: Progress) -> None:
         prog.stage("E5", "Extract", "running",
                    detail=f"{len(oversized)} oversized thread(s) deferred to the nightly "
                           f"batch (> {MAX_FETCH_THREAD_CHARS:,} chars, too slow on demand)")
+
+    # PRE-LLM HARD GATES. The model reads only what survives them, so a
+    # promotional/placeholder/too-short thread never costs a token. Reuses the
+    # vet rules (judge/screen.py) on text the fetch already has - the funnel's
+    # "gates before the LLM". Coarse by design: a thread drops if its flattened
+    # text triggers a rule; per-DOCUMENT granularity (drop one comment, keep the
+    # thread) would need to rewrite the assembled offset_map and is a later
+    # refinement. Every drop is named on the stage line, not silent.
+    from collections import Counter
+
+    from judge.screen import screen as pre_llm_screen
+
+    verdicts = [(t, pre_llm_screen(text=t.flattened_text)) for t in threads]
+    dropped = [(t.thread_context_id, v.trigger) for t, v in verdicts if v.dropped]
+    threads = [t for t, v in verdicts if not v.dropped]
+    if dropped:
+        by_trigger = Counter(trig for _, trig in dropped)
+        summary = ", ".join(f"{n} {trig}" for trig, n in by_trigger.most_common())
+        prog.stage("E4b", "Screen · pre-LLM", "ok", dropped=len(dropped),
+                   by_trigger=dict(by_trigger),
+                   detail=f"{len(dropped)} thread(s) dropped before the LLM ({summary}); "
+                          f"{len(threads)} pass to extract")
+    else:
+        prog.stage("E4b", "Screen · pre-LLM", "ok",
+                   detail=f"all {len(threads)} thread(s) passed the pre-LLM screen")
+
     prog.stage("E5", "Extract", "running",
                detail=f"{len(threads)} new thread(s) to read (LLM; capped spend)")
     if not threads:
