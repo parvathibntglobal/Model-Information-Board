@@ -278,7 +278,14 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                 for c in fetch.comments:
                     body = getattr(c, "body", "") or ""
                     refs[c.external_id] = (store.put(body).ref, content_hash(body))
-                wrote = reddit_write(conn, items, refs=refs)
+                # This is the model-name SEARCH arm: a query was issued but no
+                # harvest_run row was opened, so `not_recorded` is the honest
+                # provenance — reddit_write.py:147 names this exact caller. The
+                # argument became required when retrieval_provenance merged, and
+                # this call site was not updated with it.
+                wrote = reddit_write(
+                    conn, items, refs=refs, retrieval_provenance="not_recorded"
+                )
                 conn.commit()
                 inserted += int(wrote.get("documents_inserted", 0) or 0)
                 threads += 1

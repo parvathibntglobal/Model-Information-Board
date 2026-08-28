@@ -13,10 +13,21 @@ Two pieces are testable without a database, an LLM, or the network:
 
 from __future__ import annotations
 
+import inspect
 import json
 from types import SimpleNamespace
 
 import scripts.fetch_model as fetch_model
+
+
+class TestRedditWriteCall:
+    def test_it_passes_retrieval_provenance(self):
+        """reddit_write.write_documents requires retrieval_provenance (it merged
+        as required), and the model-name arm is 'not_recorded' per reddit_write.py.
+        A call without it crashes the whole Reddit stage — invisible until a live
+        fetch, which is how it shipped once."""
+        src = inspect.getsource(fetch_model.harvest_reddit)
+        assert 'retrieval_provenance="not_recorded"' in src
 
 
 class TestProgressLog:
