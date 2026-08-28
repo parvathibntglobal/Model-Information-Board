@@ -1,23 +1,27 @@
 [
  {
   "table": "answer",
-  "column": "id",
+  "column": "abstained",
   "state": "written+read",
   "written_at": [
    "judge/store/answers.py:248"
   ],
   "read_at": [
-   "web/src/api/index.js:web"
-  ]
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": false
  },
  {
   "table": "answer",
-  "column": "role_id",
-  "state": "written, UNREAD",
+  "column": "assumptions",
+  "state": "written+read",
   "written_at": [
    "judge/store/answers.py:248"
   ],
-  "read_at": []
+  "read_at": [
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": false
  },
  {
   "table": "answer",
@@ -26,18 +30,26 @@
   "written_at": [
    "judge/store/answers.py:248"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "answer",
-  "column": "abstained",
-  "state": "written+read",
+  "column": "created_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "answer",
+  "column": "id",
+  "state": "written, UNREAD",
   "written_at": [
    "judge/store/answers.py:248"
   ],
-  "read_at": [
-   "web/src/routes/Ask.jsx:web"
-  ]
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "answer",
@@ -49,48 +61,58 @@
   ],
   "read_at": [
    "web/src/routes/Ask.jsx:web"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "answer",
-  "column": "assumptions",
-  "state": "written+read",
+  "column": "role_id",
+  "state": "written, UNREAD",
   "written_at": [
    "judge/store/answers.py:248"
   ],
-  "read_at": [
-   "web/src/routes/Ask.jsx:web"
-  ]
- },
- {
-  "table": "answer",
-  "column": "created_at",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "audit",
-  "column": "id",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
- },
- {
-  "table": "audit",
-  "column": "claim_id",
+  "column": "audited_at",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "audit",
   "column": "auditor",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "audit",
+  "column": "claim_id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "audit",
+  "column": "id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "audit",
+  "column": "notes",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "audit",
@@ -99,21 +121,52 @@
   "written_at": [],
   "read_at": [
    "web/src/routes/Models.jsx:web"
-  ]
+  ],
+  "select_star_table": false
  },
  {
-  "table": "audit",
-  "column": "notes",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
+  "table": "author",
+  "column": "account_created_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/assemble/authors.py:279",
+   "collect/assemble/authors.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
-  "table": "audit",
-  "column": "audited_at",
+  "table": "author",
+  "column": "external_id",
+  "state": "written+read",
+  "written_at": [
+   "collect/assemble/authors.py:279",
+   "collect/assemble/authors.py:dict-key"
+  ],
+  "read_at": [
+   "scripts/capability_choice_pool.py:151",
+   "scripts/corpus_inventory.py:133"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "first_seen_at",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "handle_hash",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/assemble/authors.py:279",
+   "collect/assemble/authors.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "author",
@@ -126,7 +179,29 @@
   "read_at": [
    "scripts/capability_choice_pool.py:151",
    "scripts/corpus_inventory.py:133"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "identity_cluster_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/assemble/authors.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "author",
+  "column": "karma",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/assemble/authors.py:279",
+   "collect/assemble/authors.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "author",
@@ -139,89 +214,16 @@
   "read_at": [
    "scripts/backfill_authors.py:68",
    "scripts/corpus_inventory.py:133"
-  ]
- },
- {
-  "table": "author",
-  "column": "external_id",
-  "state": "written+read",
-  "written_at": [
-   "collect/assemble/authors.py:279",
-   "collect/assemble/authors.py:dict-key"
   ],
-  "read_at": [
-   "scripts/capability_choice_pool.py:151",
-   "scripts/corpus_inventory.py:133"
-  ]
- },
- {
-  "table": "author",
-  "column": "handle_hash",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/assemble/authors.py:279",
-   "collect/assemble/authors.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "author",
-  "column": "account_created_at",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/assemble/authors.py:279",
-   "collect/assemble/authors.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "author",
-  "column": "karma",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/assemble/authors.py:279",
-   "collect/assemble/authors.py:dict-key"
-  ],
-  "read_at": []
+  "select_star_table": false
  },
  {
   "table": "author",
   "column": "technical_history_score",
   "state": "neither",
   "written_at": [],
-  "read_at": []
- },
- {
-  "table": "author",
-  "column": "identity_cluster_id",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/assemble/authors.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "author",
-  "column": "first_seen_at",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "author_identity_cluster",
-  "column": "id",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
- },
- {
-  "table": "author_identity_cluster",
-  "column": "member_author_ids",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "author_identity_cluster",
@@ -230,40 +232,40 @@
   "written_at": [],
   "read_at": [
    "web/src/api/index.js:web"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "author_identity_cluster",
+  "column": "id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "author_identity_cluster",
+  "column": "member_author_ids",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "author_identity_cluster",
   "column": "merged_at",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "capability",
-  "column": "key",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/capabilities.py:184",
-   "collect/registry/capabilities.py:dict-key"
-  ],
-  "read_at": [
-   "collect/registry/capabilities.py:177",
-   "web/src/auth.js:web"
-  ]
- },
- {
-  "table": "capability",
-  "column": "failure_mode",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/capabilities.py:184",
-   "collect/registry/capabilities.py:dict-key"
-  ],
-  "read_at": [
-   "collect/registry/capabilities.py:177",
-   "web/src/routes/Ask.jsx:web"
-  ]
+  "column": "active",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "capability",
@@ -276,7 +278,35 @@
   "read_at": [
    "collect/registry/capabilities.py:177",
    "web/src/routes/Ask.jsx:web"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "capability",
+  "column": "failure_mode",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/capabilities.py:184",
+   "collect/registry/capabilities.py:dict-key"
+  ],
+  "read_at": [
+   "collect/registry/capabilities.py:177"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "capability",
+  "column": "key",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/capabilities.py:184",
+   "collect/registry/capabilities.py:dict-key"
+  ],
+  "read_at": [
+   "collect/registry/capabilities.py:177",
+   "web/src/auth.js:web"
+  ],
+  "select_star_table": false
  },
  {
   "table": "capability",
@@ -289,27 +319,8 @@
   "read_at": [
    "collect/registry/capabilities.py:177",
    "web/src/components/UsagePanel.jsx:web"
-  ]
- },
- {
-  "table": "capability",
-  "column": "active",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "cell",
-  "column": "model_version_id",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/cells.py:195",
-   "judge/store/cells.py:dict-key"
   ],
-  "read_at": [
-   "judge/curate/nightly.py:125",
-   "judge/pages/capability.py:137"
-  ]
+  "select_star_table": false
  },
  {
   "table": "cell",
@@ -322,7 +333,18 @@
   "read_at": [
    "judge/curate/nightly.py:125",
    "judge/pages/capability.py:137"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "computed_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/cells.py:195"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "cell",
@@ -335,19 +357,46 @@
   "read_at": [
    "judge/pages/capability.py:137",
    "judge/pages/model.py:253"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "cell",
-  "column": "n_eff",
+  "column": "conditional_note",
   "state": "written+read",
   "written_at": [
    "judge/store/cells.py:195",
    "judge/store/cells.py:dict-key"
   ],
   "read_at": [
-   "web/src/routes/Models.jsx:web"
-  ]
+   "judge/pages/model.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "consensus_phrase",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/capability.py:137",
+   "judge/pages/model.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "freshest_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "cell",
@@ -360,19 +409,8 @@
   "read_at": [
    "judge/pages/capability.py:137",
    "judge/pages/model.py:253"
-  ]
- },
- {
-  "table": "cell",
-  "column": "platform_count",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/cells.py:195",
-   "judge/store/cells.py:dict-key"
   ],
-  "read_at": [
-   "judge/pages/model.py:253"
-  ]
+  "select_star_table": false
  },
  {
   "table": "cell",
@@ -382,11 +420,23 @@
    "judge/store/cells.py:195",
    "judge/store/cells.py:dict-key"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "cell",
-  "column": "positive",
+  "column": "median_age",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "model_version_id",
   "state": "written+read",
   "written_at": [
    "judge/store/cells.py:195",
@@ -394,8 +444,22 @@
   ],
   "read_at": [
    "judge/curate/nightly.py:125",
-   "judge/pages/model.py:253"
-  ]
+   "judge/pages/capability.py:137"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "n_eff",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "web/src/routes/Models.jsx:web"
+  ],
+  "select_star_table": false
  },
  {
   "table": "cell",
@@ -408,11 +472,36 @@
   "read_at": [
    "judge/curate/nightly.py:125",
    "judge/pages/model.py:253"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "cell",
-  "column": "status",
+  "column": "pipeline_version",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "platform_count",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/model.py:253"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "cell",
+  "column": "positive",
   "state": "written+read",
   "written_at": [
    "judge/store/cells.py:195",
@@ -420,8 +509,9 @@
   ],
   "read_at": [
    "judge/curate/nightly.py:125",
-   "judge/pages/capability.py:137"
-  ]
+   "judge/pages/model.py:253"
+  ],
+  "select_star_table": false
  },
  {
   "table": "cell",
@@ -432,32 +522,8 @@
   ],
   "read_at": [
    "collect/registry/assertions.py:378"
-  ]
- },
- {
-  "table": "cell",
-  "column": "consensus_phrase",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/cells.py:195",
-   "judge/store/cells.py:dict-key"
   ],
-  "read_at": [
-   "judge/pages/capability.py:137",
-   "judge/pages/model.py:253"
-  ]
- },
- {
-  "table": "cell",
-  "column": "conditional_note",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/cells.py:195",
-   "judge/store/cells.py:dict-key"
-  ],
-  "read_at": [
-   "judge/pages/model.py:253"
-  ]
+  "select_star_table": false
  },
  {
   "table": "cell",
@@ -470,251 +536,22 @@
   "read_at": [
    "judge/curate/nightly.py:125",
    "judge/pages/model.py:253"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "cell",
-  "column": "freshest_at",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/cells.py:195",
-   "judge/store/cells.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "cell",
-  "column": "median_age",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/cells.py:195",
-   "judge/store/cells.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "cell",
-  "column": "computed_at",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/cells.py:195"
-  ],
-  "read_at": []
- },
- {
-  "table": "cell",
-  "column": "pipeline_version",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/cells.py:195",
-   "judge/store/cells.py:dict-key"
-  ],
-  "read_at": [
-   "web/src/components/PipelinePanel.jsx:web"
-  ]
- },
- {
-  "table": "cell_current",
-  "column": "model_version_id",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "judge/app.py:538",
-   "judge/ask/answer.py:68"
-  ]
- },
- {
-  "table": "cell_current",
-  "column": "capability_key",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "judge/ask/answer.py:68"
-  ]
- },
- {
-  "table": "cell_current",
-  "column": "condition_bucket",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "judge/ask/answer.py:68",
-   "web/src/routes/Ask.jsx:web"
-  ]
- },
- {
-  "table": "cell_current",
-  "column": "n_eff",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "web/src/routes/Models.jsx:web"
-  ]
- },
- {
-  "table": "cell_current",
-  "column": "independent_voices",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "judge/ask/answer.py:68"
-  ]
- },
- {
-  "table": "cell_current",
-  "column": "platform_count",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "cell_current",
-  "column": "max_author_share",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "cell_current",
-  "column": "positive",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "judge/ask/answer.py:68",
-   "web/src/routes/Ask.jsx:web"
-  ]
- },
- {
-  "table": "cell_current",
-  "column": "negative",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "judge/ask/answer.py:68",
-   "web/src/components/FluidCanvas.jsx:web"
-  ]
- },
- {
-  "table": "cell_current",
   "column": "status",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "judge/ask/answer.py:68",
-   "web/src/auth.js:web"
-  ]
- },
- {
-  "table": "cell_current",
-  "column": "provenance",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "cell_current",
-  "column": "consensus_phrase",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "judge/ask/answer.py:68"
-  ]
- },
- {
-  "table": "cell_current",
-  "column": "conditional_note",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "cell_current",
-  "column": "quote_ids",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "judge/ask/answer.py:68",
-   "web/src/routes/ModelDetail.jsx:web"
-  ]
- },
- {
-  "table": "cell_current",
-  "column": "freshest_at",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "cell_current",
-  "column": "median_age",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "cell_current",
-  "column": "computed_at",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "cell_current",
-  "column": "pipeline_version",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "web/src/components/PipelinePanel.jsx:web"
-  ]
- },
- {
-  "table": "claim",
-  "column": "id",
   "state": "written+read",
   "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
+   "judge/store/cells.py:195",
+   "judge/store/cells.py:dict-key"
   ],
   "read_at": [
-   "judge/curate/reported_context.py:193",
-   "judge/curate/thread_coverage.py:223"
-  ]
- },
- {
-  "table": "claim",
-  "column": "document_id",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
+   "judge/curate/nightly.py:125",
+   "judge/pages/capability.py:137"
   ],
-  "read_at": [
-   "judge/pages/model.py:352",
-   "judge/store/cells.py:136"
-  ]
- },
- {
-  "table": "claim",
-  "column": "thread_context_id",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": [
-   "judge/curate/thread_coverage.py:223",
-   "judge/store/claims.py:310"
-  ]
- },
- {
-  "table": "claim",
-  "column": "source_comment_id",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": []
+  "select_star_table": false
  },
  {
   "table": "claim",
@@ -727,50 +564,8 @@
   "read_at": [
    "judge/curate/reported_context.py:193",
    "judge/store/cells.py:136"
-  ]
- },
- {
-  "table": "claim",
-  "column": "model_version_id",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
   ],
-  "read_at": [
-   "judge/curate/reported_context.py:193",
-   "judge/curate/thread_coverage.py:223"
-  ]
- },
- {
-  "table": "claim",
-  "column": "family",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "claim",
-  "column": "specificity",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "claim",
-  "column": "resolution_confidence",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": []
+  "select_star_table": false
  },
  {
   "table": "claim",
@@ -783,17 +578,16 @@
   "read_at": [
    "judge/curate/thread_coverage.py:223",
    "judge/store/cells.py:120"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "claim",
-  "column": "taxonomy_version",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": []
+  "column": "comparison_target_id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "claim",
@@ -806,7 +600,8 @@
   "read_at": [
    "judge/curate/thread_coverage.py:223",
    "judge/store/cells.py:120"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "claim",
@@ -819,7 +614,137 @@
   "read_at": [
    "judge/curate/reported_context.py:193",
    "web/src/components/AskLoading.jsx:web"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "created_at",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "judge/pages/model.py:352",
+   "judge/store/cells.py:136"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "document_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/model.py:352",
+   "judge/store/cells.py:136"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "evidence_tier",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "extractor_confidence",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "extractor_model",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "family",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "has_numbers",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "has_repro_steps",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:193",
+   "judge/curate/thread_coverage.py:223"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "is_sarcastic",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "model_version_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:193",
+   "judge/curate/thread_coverage.py:223"
+  ],
+  "select_star_table": false
  },
  {
   "table": "claim",
@@ -831,7 +756,19 @@
   ],
   "read_at": [
    "judge/pages/model.py:352"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "pipeline_version",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "claim",
@@ -844,26 +781,8 @@
   "read_at": [
    "judge/curate/reported_context.py:193",
    "judge/pages/model.py:352"
-  ]
- },
- {
-  "table": "claim",
-  "column": "severity",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
   ],
-  "read_at": [
-   "judge/store/cells.py:136"
-  ]
- },
- {
-  "table": "claim",
-  "column": "comparison_target_id",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
+  "select_star_table": false
  },
  {
   "table": "claim",
@@ -876,7 +795,8 @@
   "read_at": [
    "judge/pages/model.py:352",
    "web/src/api/index.js:web"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "claim",
@@ -886,7 +806,8 @@
    "judge/store/claims.py:186",
    "judge/store/claims.py:dict-key"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "claim",
@@ -896,7 +817,8 @@
    "judge/store/claims.py:186",
    "judge/store/claims.py:dict-key"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "claim",
@@ -908,7 +830,8 @@
   "read_at": [
    "judge/curate/reported_context.py:193",
    "judge/pages/model.py:352"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "claim",
@@ -918,88 +841,43 @@
    "judge/store/claims.py:186",
    "judge/store/claims.py:dict-key"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "claim",
-  "column": "has_repro_steps",
+  "column": "resolution_confidence",
   "state": "written, UNREAD",
   "written_at": [
    "judge/store/claims.py:186",
    "judge/store/claims.py:dict-key"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "claim",
-  "column": "has_numbers",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "claim",
-  "column": "is_sarcastic",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/claims.py:186"
-  ],
-  "read_at": []
- },
- {
-  "table": "claim",
-  "column": "evidence_tier",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "claim",
-  "column": "extractor_model",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "claim",
-  "column": "extractor_confidence",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/claims.py:186",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "claim",
-  "column": "pipeline_version",
+  "column": "severity",
   "state": "written+read",
   "written_at": [
    "judge/store/claims.py:186",
    "judge/store/claims.py:dict-key"
   ],
   "read_at": [
-   "web/src/components/PipelinePanel.jsx:web"
-  ]
+   "judge/store/cells.py:136"
+  ],
+  "select_star_table": false
  },
  {
   "table": "claim",
-  "column": "created_at",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "judge/pages/model.py:352",
-   "judge/store/cells.py:136"
-  ]
+  "column": "source_comment_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "claim",
@@ -1009,7 +887,44 @@
    "judge/store/claims.py:186",
    "judge/store/claims.py:dict-key"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "specificity",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "taxonomy_version",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim",
+  "column": "thread_context_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:186",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/curate/thread_coverage.py:223",
+   "judge/store/claims.py:310"
+  ],
+  "select_star_table": false
  },
  {
   "table": "claim_weight",
@@ -1022,7 +937,118 @@
   "read_at": [
    "judge/store/cells.py:136",
    "judge/store/claims.py:323"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "computed_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_evidence",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_fuzziness",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_launch",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_platform",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_recency",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_relevance",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "f_specificity",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [
+   "judge/store/claims.py:323"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "claim_weight",
+  "column": "pipeline_version",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/claims.py:269",
+   "judge/store/claims.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "claim_weight",
@@ -1035,119 +1061,24 @@
   "read_at": [
    "judge/store/cells.py:136",
    "judge/store/claims.py:323"
-  ]
- },
- {
-  "table": "claim_weight",
-  "column": "f_evidence",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/claims.py:269",
-   "judge/store/claims.py:dict-key"
   ],
-  "read_at": [
-   "judge/store/claims.py:323"
-  ]
+  "select_star_table": false
  },
  {
-  "table": "claim_weight",
-  "column": "f_platform",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/claims.py:269",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": [
-   "judge/store/claims.py:323"
-  ]
- },
- {
-  "table": "claim_weight",
-  "column": "f_specificity",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/claims.py:269",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": [
-   "judge/store/claims.py:323"
-  ]
- },
- {
-  "table": "claim_weight",
-  "column": "f_relevance",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/claims.py:269",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": [
-   "judge/store/claims.py:323"
-  ]
- },
- {
-  "table": "claim_weight",
-  "column": "f_recency",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/claims.py:269",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": [
-   "judge/store/claims.py:323"
-  ]
- },
- {
-  "table": "claim_weight",
-  "column": "f_launch",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/claims.py:269",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": [
-   "judge/store/claims.py:323"
-  ]
- },
- {
-  "table": "claim_weight",
-  "column": "f_fuzziness",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/claims.py:269",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": [
-   "judge/store/claims.py:323"
-  ]
- },
- {
-  "table": "claim_weight",
-  "column": "computed_at",
+  "table": "coverage_gap",
+  "column": "detail",
   "state": "neither",
   "written_at": [],
-  "read_at": []
- },
- {
-  "table": "claim_weight",
-  "column": "pipeline_version",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/claims.py:269",
-   "judge/store/claims.py:dict-key"
-  ],
-  "read_at": [
-   "web/src/components/PipelinePanel.jsx:web"
-  ]
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "coverage_gap",
   "column": "id",
-  "state": "UNWRITTEN, read",
+  "state": "neither",
   "written_at": [],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "coverage_gap",
@@ -1157,28 +1088,9 @@
    "judge/pages/coverage.py:1"
   ],
   "read_at": [
-   "judge/pages/coverage.py:227",
-   "web/src/routes/Admin.jsx:web"
-  ]
- },
- {
-  "table": "coverage_gap",
-  "column": "subject",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "judge/pages/coverage.py:227",
-   "web/src/routes/Ask.jsx:web"
-  ]
- },
- {
-  "table": "coverage_gap",
-  "column": "detail",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "web/src/auth.js:web"
-  ]
+   "judge/pages/coverage.py:227"
+  ],
+  "select_star_table": false
  },
  {
   "table": "coverage_gap",
@@ -1187,7 +1099,8 @@
   "written_at": [],
   "read_at": [
    "judge/pages/coverage.py:207"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "coverage_gap",
@@ -1199,30 +1112,43 @@
   "read_at": [
    "judge/pages/coverage.py:207",
    "judge/pages/coverage.py:227"
-  ]
+  ],
+  "select_star_table": false
  },
  {
-  "table": "dedup_cluster",
-  "column": "id",
+  "table": "coverage_gap",
+  "column": "subject",
   "state": "UNWRITTEN, read",
   "written_at": [],
   "read_at": [
-   "web/src/api/index.js:web"
-  ]
+   "judge/pages/coverage.py:227",
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": false
  },
  {
   "table": "dedup_cluster",
   "column": "canonical_document_id",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "dedup_cluster",
-  "column": "size",
+  "column": "first_seen_at",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "dedup_cluster",
+  "column": "id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "dedup_cluster",
@@ -1231,66 +1157,16 @@
   "written_at": [],
   "read_at": [
    "web/src/auth.js:web"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "dedup_cluster",
-  "column": "first_seen_at",
+  "column": "size",
   "state": "neither",
   "written_at": [],
-  "read_at": []
- },
- {
-  "table": "document",
-  "column": "id",
-  "state": "written+read",
-  "written_at": [
-   "collect/adapters/blog/write.py:89",
-   "collect/adapters/github.py:606"
-  ],
-  "read_at": [
-   "collect/adapters/blog/write.py:107",
-   "collect/adapters/blog/write.py:114"
-  ]
- },
- {
-  "table": "document",
-  "column": "source",
-  "state": "written+read",
-  "written_at": [
-   "collect/adapters/blog/write.py:314",
-   "collect/adapters/blog/write.py:89"
-  ],
-  "read_at": [
-   "collect/adapters/blog/write.py:107",
-   "collect/assemble/issue.py:143"
-  ]
- },
- {
-  "table": "document",
-  "column": "external_id",
-  "state": "written+read",
-  "written_at": [
-   "collect/adapters/blog/write.py:314",
-   "collect/adapters/blog/write.py:89"
-  ],
-  "read_at": [
-   "collect/adapters/blog/write.py:107",
-   "collect/assemble/reddit.py:208"
-  ]
- },
- {
-  "table": "document",
-  "column": "url",
-  "state": "written+read",
-  "written_at": [
-   "collect/adapters/blog/write.py:89",
-   "collect/adapters/github.py:606"
-  ],
-  "read_at": [
-   "judge/pages/filtered.py:204",
-   "judge/pages/model.py:352"
-  ]
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "document",
@@ -1303,30 +1179,19 @@
   "read_at": [
    "judge/cli.py:188",
    "judge/store/cells.py:136"
-  ]
- },
- {
-  "table": "document",
-  "column": "thread_root_id",
-  "state": "written+read",
-  "written_at": [
-   "collect/adapters/reddit_write.py:72",
-   "collect/adapters/reddit_write.py:dict-key"
   ],
-  "read_at": [
-   "collect/assemble/issue.py:143",
-   "collect/assemble/reddit.py:208"
-  ]
+  "select_star_table": false
  },
  {
   "table": "document",
-  "column": "parent_id",
+  "column": "content_hash",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/adapters/reddit_write.py:72",
-   "collect/adapters/reddit_write.py:dict-key"
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "document",
@@ -1339,63 +1204,16 @@
   "read_at": [
    "judge/cli.py:188",
    "judge/pages/model.py:352"
-  ]
- },
- {
-  "table": "document",
-  "column": "fetched_at",
-  "state": "written+read",
-  "written_at": [
-   "collect/adapters/blog/write.py:89",
-   "collect/adapters/github.py:606"
   ],
-  "read_at": [
-   "judge/pages/filtered.py:204"
-  ]
+  "select_star_table": false
  },
  {
   "table": "document",
-  "column": "lang",
+  "column": "dedup_cluster_id",
   "state": "neither",
   "written_at": [],
-  "read_at": []
- },
- {
-  "table": "document",
-  "column": "text_ref",
-  "state": "written+read",
-  "written_at": [
-   "collect/adapters/blog/write.py:89",
-   "collect/adapters/github.py:606"
-  ],
-  "read_at": [
-   "collect/adapters/blog/write.py:107",
-   "collect/assemble/issue.py:143"
-  ]
- },
- {
-  "table": "document",
-  "column": "content_hash",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/adapters/blog/write.py:89",
-   "collect/adapters/github.py:606"
-  ],
-  "read_at": []
- },
- {
-  "table": "document",
-  "column": "minhash",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "document",
-  "column": "simhash",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "document",
@@ -1408,73 +1226,35 @@
   "read_at": [
    "collect/assemble/issue.py:143",
    "collect/assemble/reddit.py:242"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "document",
-  "column": "has_numbers",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "document",
-  "column": "has_error_strings",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "document",
-  "column": "has_code",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "document",
-  "column": "has_conditions",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "document",
-  "column": "names_version",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "document",
-  "column": "specificity_score",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "document",
-  "column": "dedup_cluster_id",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "document",
-  "column": "is_canonical_in_cluster",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "document",
-  "column": "triage_verdict",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
+  "column": "external_id",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:314",
+   "collect/adapters/blog/write.py:89"
+  ],
   "read_at": [
-   "scripts/corpus_inventory.py:133",
-   "scripts/corpus_inventory.py:162"
-  ]
+   "collect/adapters/blog/write.py:107",
+   "collect/assemble/reddit.py:208"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "fetched_at",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
+  ],
+  "read_at": [
+   "judge/pages/filtered.py:204"
+  ],
+  "select_star_table": false
  },
  {
   "table": "document",
@@ -1483,7 +1263,151 @@
   "written_at": [],
   "read_at": [
    "judge/pages/filtered.py:204"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "harvest_run_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/adapters/github.py:606",
+   "collect/adapters/github.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "has_code",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "has_conditions",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "has_error_strings",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "has_numbers",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
+  ],
+  "read_at": [
+   "collect/adapters/blog/write.py:107",
+   "collect/adapters/blog/write.py:114"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "is_canonical_in_cluster",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "lang",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "minhash",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "names_version",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "parent_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/adapters/reddit_write.py:72",
+   "collect/adapters/reddit_write.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "retrieval_provenance",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
+  ],
+  "read_at": [
+   "judge/pages/pipeline_status.py:192"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "simhash",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "source",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:314",
+   "collect/adapters/blog/write.py:89"
+  ],
+  "read_at": [
+   "collect/adapters/blog/write.py:107",
+   "collect/assemble/issue.py:143"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "specificity_score",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "document",
@@ -1496,45 +1420,69 @@
   "read_at": [
    "judge/pages/filtered.py:204",
    "judge/pages/filtered.py:215"
-  ]
- },
- {
-  "table": "document",
-  "column": "harvest_run_id",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/adapters/github.py:606",
-   "collect/adapters/github.py:dict-key"
   ],
-  "read_at": []
+  "select_star_table": false
  },
  {
   "table": "document",
-  "column": "retrieval_provenance",
+  "column": "text_ref",
   "state": "written+read",
   "written_at": [
    "collect/adapters/blog/write.py:89",
    "collect/adapters/github.py:606"
   ],
   "read_at": [
-   "judge/pages/pipeline_status.py:192"
-  ]
+   "collect/adapters/blog/write.py:107",
+   "collect/assemble/issue.py:143"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "thread_root_id",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/reddit_write.py:72",
+   "collect/adapters/reddit_write.py:dict-key"
+  ],
+  "read_at": [
+   "collect/assemble/issue.py:143",
+   "collect/assemble/reddit.py:208"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "triage_verdict",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "scripts/corpus_inventory.py:133",
+   "scripts/corpus_inventory.py:162"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "document",
+  "column": "url",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:89",
+   "collect/adapters/github.py:606"
+  ],
+  "read_at": [
+   "judge/pages/filtered.py:204",
+   "judge/pages/model.py:352"
+  ],
+  "select_star_table": false
  },
  {
   "table": "golden_label",
   "column": "document_id",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "web/src/routes/Admin.jsx:web"
-  ]
- },
- {
-  "table": "golden_label",
-  "column": "label_type",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "golden_label",
@@ -1543,107 +1491,32 @@
   "written_at": [],
   "read_at": [
    "web/src/api/index.js:web"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "golden_label",
-  "column": "labeler",
+  "column": "label_type",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "golden_label",
   "column": "labeled_at",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
-  "table": "harvest_run",
-  "column": "id",
-  "state": "written+read",
-  "written_at": [
-   "collect/ops/ledger.py:291",
-   "collect/ops/ledger.py:349"
-  ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
- },
- {
-  "table": "harvest_run",
-  "column": "source_id",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/ops/ledger.py:291",
-   "collect/ops/ledger.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "harvest_run",
-  "column": "query_key",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/ops/ledger.py:291",
-   "collect/ops/ledger.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "harvest_run",
-  "column": "started_at",
-  "state": "written+read",
-  "written_at": [
-   "collect/ops/ledger.py:291",
-   "collect/ops/ledger.py:dict-key"
-  ],
-  "read_at": [
-   "web/src/components/PipelinePanel.jsx:web"
-  ]
- },
- {
-  "table": "harvest_run",
-  "column": "finished_at",
-  "state": "written+read",
-  "written_at": [
-   "collect/ops/ledger.py:349",
-   "collect/ops/ledger.py:dict-key"
-  ],
-  "read_at": [
-   "web/src/components/PipelinePanel.jsx:web"
-  ]
- },
- {
-  "table": "harvest_run",
-  "column": "items_fetched",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/ops/ledger.py:349",
-   "collect/ops/ledger.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "harvest_run",
-  "column": "items_kept",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/ops/ledger.py:349",
-   "collect/ops/ledger.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "harvest_run",
-  "column": "http_errors",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/ops/ledger.py:349",
-   "collect/ops/ledger.py:dict-key"
-  ],
-  "read_at": []
+  "table": "golden_label",
+  "column": "labeler",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "harvest_run",
@@ -1653,41 +1526,74 @@
    "collect/ops/ledger.py:349",
    "collect/ops/ledger.py:dict-key"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "harvest_run",
-  "column": "truncated_by",
+  "column": "finished_at",
   "state": "written, UNREAD",
   "written_at": [
    "collect/ops/ledger.py:349",
    "collect/ops/ledger.py:dict-key"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "harvest_run",
-  "column": "pipeline_version",
-  "state": "written+read",
-  "written_at": [
-   "collect/ops/ledger.py:291",
-   "collect/ops/ledger.py:dict-key"
-  ],
-  "read_at": [
-   "web/src/components/PipelinePanel.jsx:web"
-  ]
- },
- {
-  "table": "harvest_run",
-  "column": "outcome",
-  "state": "written+read",
+  "column": "http_errors",
+  "state": "written, UNREAD",
   "written_at": [
    "collect/ops/ledger.py:349",
    "collect/ops/ledger.py:dict-key"
   ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:349"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "items_fetched",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "items_kept",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "outcome",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "harvest_run",
@@ -1697,7 +1603,8 @@
    "collect/ops/ledger.py:349",
    "collect/ops/ledger.py:dict-key"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "harvest_run",
@@ -1707,7 +1614,30 @@
    "collect/ops/ledger.py:349",
    "collect/ops/ledger.py:dict-key"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "pipeline_version",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "query_key",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "harvest_run",
@@ -1717,45 +1647,52 @@
    "collect/ops/ledger.py:349",
    "collect/ops/ledger.py:dict-key"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
-  "table": "job_run",
-  "column": "id",
-  "state": "written+read",
+  "table": "harvest_run",
+  "column": "source_id",
+  "state": "written, UNREAD",
   "written_at": [
-   "collect/ops/ledger.py:72",
-   "collect/ops/ledger.py:98"
-  ],
-  "read_at": [
-   "collect/ops/ledger.py:120",
-   "web/src/api/index.js:web"
-  ]
- },
- {
-  "table": "job_run",
-  "column": "stage",
-  "state": "written+read",
-  "written_at": [
-   "collect/ops/ledger.py:72"
-  ],
-  "read_at": [
-   "collect/ops/ledger.py:120",
-   "collect/ops/ledger.py:137"
-  ]
- },
- {
-  "table": "job_run",
-  "column": "started_at",
-  "state": "written+read",
-  "written_at": [
-   "collect/ops/ledger.py:72",
+   "collect/ops/ledger.py:291",
    "collect/ops/ledger.py:dict-key"
   ],
-  "read_at": [
-   "collect/ops/ledger.py:120",
-   "collect/ops/ledger.py:137"
-  ]
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "started_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:291",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "harvest_run",
+  "column": "truncated_by",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:349",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "detail",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/ops/ledger.py:98",
+   "collect/ops/ledger.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "job_run",
@@ -1768,7 +1705,47 @@
   "read_at": [
    "collect/ops/ledger.py:120",
    "judge/pages/pipeline_status.py:364"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/ledger.py:72",
+   "collect/ops/ledger.py:98"
+  ],
+  "read_at": [
+   "collect/ops/ledger.py:120"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "items_in",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/ledger.py:98"
+  ],
+  "read_at": [
+   "judge/pages/pipeline_status.py:364",
+   "web/src/components/PipelinePanel.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "job_run",
+  "column": "items_out",
+  "state": "written+read",
+  "written_at": [
+   "collect/ops/ledger.py:98"
+  ],
+  "read_at": [
+   "judge/pages/pipeline_status.py:364",
+   "web/src/components/PipelinePanel.jsx:web"
+  ],
+  "select_star_table": false
  },
  {
   "table": "job_run",
@@ -1781,43 +1758,8 @@
   "read_at": [
    "collect/ops/ledger.py:137",
    "judge/pages/pipeline_status.py:364"
-  ]
- },
- {
-  "table": "job_run",
-  "column": "items_in",
-  "state": "written+read",
-  "written_at": [
-   "collect/ops/ledger.py:98"
   ],
-  "read_at": [
-   "judge/pages/pipeline_status.py:364",
-   "web/src/components/PipelinePanel.jsx:web"
-  ]
- },
- {
-  "table": "job_run",
-  "column": "items_out",
-  "state": "written+read",
-  "written_at": [
-   "collect/ops/ledger.py:98"
-  ],
-  "read_at": [
-   "judge/pages/pipeline_status.py:364",
-   "web/src/components/PipelinePanel.jsx:web"
-  ]
- },
- {
-  "table": "job_run",
-  "column": "detail",
-  "state": "written+read",
-  "written_at": [
-   "collect/ops/ledger.py:98",
-   "collect/ops/ledger.py:dict-key"
-  ],
-  "read_at": [
-   "web/src/auth.js:web"
-  ]
+  "select_star_table": false
  },
  {
   "table": "job_run",
@@ -1828,45 +1770,36 @@
    "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [
-   "judge/pages/pipeline_status.py:389",
-   "web/src/components/PipelinePanel.jsx:web"
-  ]
+   "judge/pages/pipeline_status.py:389"
+  ],
+  "select_star_table": false
  },
  {
-  "table": "label",
-  "column": "id",
+  "table": "job_run",
+  "column": "stage",
   "state": "written+read",
   "written_at": [
-   "judge/curate/labels.py:220"
+   "collect/ops/ledger.py:72"
   ],
   "read_at": [
-   "judge/curate/labels.py:197",
-   "web/src/api/index.js:web"
-  ]
+   "collect/ops/ledger.py:120",
+   "collect/ops/ledger.py:137"
+  ],
+  "select_star_table": false
  },
  {
-  "table": "label",
-  "column": "model_version_id",
+  "table": "job_run",
+  "column": "started_at",
   "state": "written+read",
   "written_at": [
-   "judge/curate/labels.py:220"
+   "collect/ops/ledger.py:72",
+   "collect/ops/ledger.py:dict-key"
   ],
   "read_at": [
-   "judge/curate/labels.py:197",
-   "web/src/api/index.js:web"
-  ]
- },
- {
-  "table": "label",
-  "column": "kind",
-  "state": "written+read",
-  "written_at": [
-   "judge/curate/labels.py:220"
+   "collect/ops/ledger.py:120",
+   "collect/ops/ledger.py:137"
   ],
-  "read_at": [
-   "judge/curate/labels.py:197",
-   "web/src/routes/Admin.jsx:web"
-  ]
+  "select_star_table": false
  },
  {
   "table": "label",
@@ -1877,7 +1810,76 @@
   ],
   "read_at": [
    "judge/curate/labels.py:197"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "earned_by_quote_ids",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [
+   "judge/curate/labels.py:197"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "first_seen_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [
+   "judge/curate/labels.py:197"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "kind",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [
+   "judge/curate/labels.py:197"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "last_confirmed_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "label",
+  "column": "model_version_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:220"
+  ],
+  "read_at": [
+   "judge/curate/labels.py:197"
+  ],
+  "select_star_table": false
  },
  {
   "table": "label",
@@ -1889,59 +1891,8 @@
   "read_at": [
    "judge/curate/labels.py:197",
    "web/src/App.jsx:web"
-  ]
- },
- {
-  "table": "label",
-  "column": "earned_by_quote_ids",
-  "state": "written+read",
-  "written_at": [
-   "judge/curate/labels.py:220"
   ],
-  "read_at": [
-   "judge/curate/labels.py:197"
-  ]
- },
- {
-  "table": "label",
-  "column": "first_seen_at",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/curate/labels.py:220"
-  ],
-  "read_at": []
- },
- {
-  "table": "label",
-  "column": "last_confirmed_at",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/curate/labels.py:220"
-  ],
-  "read_at": []
- },
- {
-  "table": "label_change",
-  "column": "id",
-  "state": "written+read",
-  "written_at": [
-   "judge/curate/labels.py:243"
-  ],
-  "read_at": [
-   "judge/pages/changelog.py:183",
-   "web/src/api/index.js:web"
-  ]
- },
- {
-  "table": "label_change",
-  "column": "label_id",
-  "state": "written+read",
-  "written_at": [
-   "judge/curate/labels.py:243"
-  ],
-  "read_at": [
-   "judge/pages/changelog.py:183"
-  ]
+  "select_star_table": false
  },
  {
   "table": "label_change",
@@ -1953,7 +1904,8 @@
   "read_at": [
    "judge/pages/changelog.py:183",
    "judge/pages/pipeline_status.py:316"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "label_change",
@@ -1965,7 +1917,42 @@
   "read_at": [
    "judge/pages/changelog.py:183",
    "web/src/routes/Admin.jsx:web"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label_change",
+  "column": "id",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:243"
+  ],
+  "read_at": [
+   "judge/pages/changelog.py:183"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label_change",
+  "column": "label_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/labels.py:243"
+  ],
+  "read_at": [
+   "judge/pages/changelog.py:183"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "label_change",
+  "column": "occurred_at",
+  "state": "UNWRITTEN, read",
+  "written_at": [],
+  "read_at": [
+   "judge/pages/changelog.py:183"
+  ],
+  "select_star_table": false
  },
  {
   "table": "label_change",
@@ -1975,18 +1962,38 @@
    "judge/curate/labels.py:243"
   ],
   "read_at": [
-   "judge/pages/changelog.py:183",
-   "web/src/routes/ModelDetail.jsx:web"
-  ]
+   "judge/pages/changelog.py:183"
+  ],
+  "select_star_table": false
  },
  {
-  "table": "label_change",
-  "column": "occurred_at",
-  "state": "UNWRITTEN, read",
+  "table": "model_alias",
+  "column": "confidence",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "created_at",
+  "state": "neither",
   "written_at": [],
-  "read_at": [
-   "judge/pages/changelog.py:183"
-  ]
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "family",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:619",
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "model_alias",
@@ -1999,52 +2006,8 @@
   "read_at": [
    "collect/ops/sweep.py:192",
    "collect/ops/sweep.py:253"
-  ]
- },
- {
-  "table": "model_alias",
-  "column": "surface",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:619"
   ],
-  "read_at": [
-   "scripts/corpus_inventory.py:90",
-   "web/src/api/index.js:web"
-  ]
- },
- {
-  "table": "model_alias",
-  "column": "normalized",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:619"
-  ],
-  "read_at": [
-   "collect/assemble/reddit.py:310",
-   "collect/registry/tracked_load.py:264"
-  ]
- },
- {
-  "table": "model_alias",
-  "column": "variants",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:619"
-  ],
-  "read_at": [
-   "collect/ops/sweep.py:192",
-   "collect/ops/sweep.py:253"
-  ]
- },
- {
-  "table": "model_alias",
-  "column": "provider_hint",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/registry/load.py:619"
-  ],
-  "read_at": []
+  "select_star_table": false
  },
  {
   "table": "model_alias",
@@ -2056,17 +2019,31 @@
   "read_at": [
    "collect/ops/sweep.py:192",
    "collect/ops/sweep.py:253"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "model_alias",
-  "column": "family",
+  "column": "normalized",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [
+   "collect/assemble/reddit.py:310",
+   "collect/registry/tracked_load.py:264"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "provider_hint",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/registry/load.py:619",
-   "collect/registry/load.py:dict-key"
+   "collect/registry/load.py:619"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "model_alias",
@@ -2077,7 +2054,21 @@
   ],
   "read_at": [
    "collect/assemble/reddit.py:310"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "model_alias",
+  "column": "surface",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:619"
+  ],
+  "read_at": [
+   "scripts/corpus_inventory.py:90",
+   "web/src/api/index.js:web"
+  ],
+  "select_star_table": false
  },
  {
   "table": "model_alias",
@@ -2086,7 +2077,8 @@
   "written_at": [
    "collect/registry/load.py:619"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "model_alias",
@@ -2099,59 +2091,51 @@
   "read_at": [
    "collect/ops/sweep.py:192",
    "collect/ops/sweep.py:253"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "model_alias",
-  "column": "confidence",
-  "state": "written, UNREAD",
+  "column": "variants",
+  "state": "written+read",
   "written_at": [
    "collect/registry/load.py:619"
   ],
-  "read_at": []
+  "read_at": [
+   "collect/ops/sweep.py:192",
+   "collect/ops/sweep.py:253"
+  ],
+  "select_star_table": false
  },
  {
-  "table": "model_alias",
-  "column": "created_at",
+  "table": "model_event",
+  "column": "detected_at",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "model_event",
   "column": "id",
-  "state": "written+read",
+  "state": "written, UNREAD",
   "written_at": [
    "collect/registry/events.py:240",
    "collect/registry/events.py:dict-key"
   ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "model_event",
   "column": "model_version_id",
-  "state": "written+read",
+  "state": "written, UNREAD",
   "written_at": [
    "collect/registry/events.py:240",
    "collect/registry/events.py:dict-key"
   ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
- },
- {
-  "table": "model_event",
-  "column": "type",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/events.py:240",
-   "collect/registry/events.py:dict-key"
-  ],
-  "read_at": [
-   "web/src/components/AuraField.jsx:web"
-  ]
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "model_event",
@@ -2161,14 +2145,8 @@
    "collect/registry/events.py:240",
    "collect/registry/events.py:dict-key"
   ],
-  "read_at": []
- },
- {
-  "table": "model_event",
-  "column": "detected_at",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "model_event",
@@ -2180,122 +2158,29 @@
   ],
   "read_at": [
    "web/src/api/index.js:web"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "model_event",
   "column": "source_url",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
-  "table": "model_version",
-  "column": "id",
+  "table": "model_event",
+  "column": "type",
   "state": "written+read",
   "written_at": [
-   "collect/registry/load.py:538",
-   "collect/registry/load.py:dict-key"
+   "collect/registry/events.py:240",
+   "collect/registry/events.py:dict-key"
   ],
   "read_at": [
-   "collect/ops/sweep.py:192",
-   "collect/ops/sweep.py:253"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "canonical_id",
-  "state": "written+read",
-  "written_at": [
-   "collect/ops/sweep.py:233",
-   "collect/registry/load.py:343"
+   "web/src/components/AuraField.jsx:web"
   ],
-  "read_at": [
-   "collect/cli.py:272",
-   "collect/cli.py:418"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "provider",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
-  ],
-  "read_at": [
-   "collect/registry/seat.py:165",
-   "judge/pages/roster.py:24"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "family",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key"
-  ],
-  "read_at": [
-   "collect/registry/seat.py:165"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "display_name",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
-  ],
-  "read_at": [
-   "collect/cli.py:272",
-   "collect/cli.py:418"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "release_date",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:538",
-   "collect/registry/load.py:dict-key"
-  ],
-  "read_at": [
-   "collect/cli.py:272",
-   "collect/cli.py:418"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "deprecation_date",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/registry/load.py:dict-key"
-  ],
-  "read_at": []
- },
- {
-  "table": "model_version",
-  "column": "retirement_date",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
-  ],
-  "read_at": [
-   "collect/registry/seat.py:165"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "lifecycle",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key"
-  ],
-  "read_at": [
-   "judge/pages/roster.py:24"
-  ]
+  "select_star_table": false
  },
  {
   "table": "model_version",
@@ -2308,69 +2193,8 @@
   "read_at": [
    "judge/pages/roster.py:24",
    "web/src/routes/ModelDetail.jsx:web"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "max_output_tokens",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
   ],
-  "read_at": [
-   "judge/pages/roster.py:24",
-   "web/src/routes/ModelDetail.jsx:web"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "knowledge_cutoff",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
-  ],
-  "read_at": []
- },
- {
-  "table": "model_version",
-  "column": "price_in",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
-  ],
-  "read_at": [
-   "judge/pages/roster.py:24",
-   "web/src/routes/ModelDetail.jsx:web"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "price_out",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
-  ],
-  "read_at": [
-   "judge/pages/roster.py:24",
-   "web/src/routes/ModelDetail.jsx:web"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "price_cached_read",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
-  ],
-  "read_at": [
-   "judge/pages/roster.py:24",
-   "web/src/routes/ModelDetail.jsx:web"
-  ]
+  "select_star_table": true
  },
  {
   "table": "model_version",
@@ -2380,112 +2204,80 @@
    "collect/registry/load.py:dict-key",
    "collect/registry/openrouter.py:496"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": true
  },
  {
   "table": "model_version",
-  "column": "supports_tools",
+  "column": "canonical_id",
   "state": "written+read",
   "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
+   "collect/ops/sweep.py:233",
+   "collect/registry/load.py:343"
   ],
   "read_at": [
-   "judge/pages/roster.py:24",
-   "web/src/routes/ModelDetail.jsx:web"
-  ]
+   "collect/cli.py:272",
+   "collect/cli.py:418"
+  ],
+  "select_star_table": true
  },
  {
   "table": "model_version",
-  "column": "supports_structured_output",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
-  ],
-  "read_at": [
-   "judge/pages/roster.py:24",
-   "web/src/routes/ModelDetail.jsx:web"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "supports_vision",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
-  ],
-  "read_at": [
-   "judge/pages/roster.py:24",
-   "web/src/routes/ModelDetail.jsx:web"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "supports_caching",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
-  ],
-  "read_at": [
-   "judge/pages/roster.py:24",
-   "web/src/routes/ModelDetail.jsx:web"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "supports_batch",
+  "column": "deprecation_date",
   "state": "written, UNREAD",
   "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
+   "collect/registry/load.py:dict-key"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": true
  },
  {
   "table": "model_version",
-  "column": "regions",
+  "column": "display_name",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "collect/cli.py:272",
+   "collect/cli.py:418"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "family",
   "state": "written+read",
   "written_at": [
    "collect/registry/load.py:dict-key"
   ],
   "read_at": [
-   "web/src/routes/Ask.jsx:web"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "sources",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
+   "collect/registry/seat.py:165"
   ],
-  "read_at": [
-   "web/src/components/OrbitHub.jsx:web"
-  ]
+  "select_star_table": true
  },
  {
   "table": "model_version",
-  "column": "possibly_changed",
+  "column": "first_seen_at",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": true
  },
  {
   "table": "model_version",
-  "column": "provenance",
+  "column": "id",
   "state": "written+read",
   "written_at": [
-   "collect/registry/load.py:dict-key",
-   "collect/registry/openrouter.py:496"
+   "collect/registry/load.py:538",
+   "collect/registry/load.py:dict-key"
   ],
   "read_at": [
-   "collect/registry/assertions.py:375",
-   "collect/registry/load.py:510"
-  ]
+   "collect/ops/sweep.py:192",
+   "collect/ops/sweep.py:253"
+  ],
+  "select_star_table": true
  },
  {
   "table": "model_version",
@@ -2498,26 +2290,19 @@
   "read_at": [
    "collect/registry/load.py:538",
    "collect/registry/load.py:547"
-  ]
- },
- {
-  "table": "model_version",
-  "column": "first_seen_at",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "model_version",
-  "column": "updated_at",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:343",
-   "collect/registry/load.py:538"
   ],
-  "read_at": [
-   "collect/registry/load.py:538"
-  ]
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "knowledge_cutoff",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [],
+  "select_star_table": true
  },
  {
   "table": "model_version",
@@ -2530,16 +2315,239 @@
   "read_at": [
    "collect/ops/sweep.py:192",
    "collect/registry/assertions.py:97"
-  ]
+  ],
+  "select_star_table": true
  },
  {
-  "table": "outcome",
-  "column": "answer_id",
+  "table": "model_version",
+  "column": "lifecycle",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "max_output_tokens",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24",
+   "web/src/routes/ModelDetail.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "possibly_changed",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "price_cached_read",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "price_in",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "price_out",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "provenance",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "collect/registry/assertions.py:375",
+   "collect/registry/load.py:510"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "provider",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "collect/registry/seat.py:165",
+   "judge/pages/roster.py:24"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "regions",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "release_date",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:538",
+   "collect/registry/load.py:dict-key"
+  ],
+  "read_at": [
+   "collect/cli.py:272",
+   "collect/cli.py:418"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "retirement_date",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "collect/registry/seat.py:165"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "sources",
   "state": "written, UNREAD",
   "written_at": [
-   "judge/store/answers.py:306"
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "supports_batch",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "supports_caching",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24",
+   "web/src/routes/ModelDetail.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "supports_structured_output",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24",
+   "web/src/routes/ModelDetail.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "supports_tools",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24",
+   "web/src/routes/ModelDetail.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "supports_vision",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:dict-key",
+   "collect/registry/openrouter.py:496"
+  ],
+  "read_at": [
+   "judge/pages/roster.py:24",
+   "web/src/routes/ModelDetail.jsx:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "model_version",
+  "column": "updated_at",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/load.py:343",
+   "collect/registry/load.py:538"
+  ],
+  "read_at": [
+   "collect/registry/load.py:538"
+  ],
+  "select_star_table": true
  },
  {
   "table": "outcome",
@@ -2550,19 +2558,77 @@
   ],
   "read_at": [
    "judge/store/answers.py:343"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "answer_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "cost_usd",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "failure_kind",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "latency_ms",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "outcome",
   "column": "model_version_id",
-  "state": "written+read",
+  "state": "written, UNREAD",
   "written_at": [
    "judge/store/answers.py:306",
    "judge/store/answers.py:dict-key"
   ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "reported_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "outcome",
+  "column": "retries",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:306"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "outcome",
@@ -2573,43 +2639,8 @@
   ],
   "read_at": [
    "judge/store/answers.py:343"
-  ]
- },
- {
-  "table": "outcome",
-  "column": "retries",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/answers.py:306"
   ],
-  "read_at": []
- },
- {
-  "table": "outcome",
-  "column": "latency_ms",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/answers.py:306"
-  ],
-  "read_at": []
- },
- {
-  "table": "outcome",
-  "column": "cost_usd",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/answers.py:306"
-  ],
-  "read_at": []
- },
- {
-  "table": "outcome",
-  "column": "failure_kind",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/answers.py:306"
-  ],
-  "read_at": []
+  "select_star_table": false
  },
  {
   "table": "outcome",
@@ -2618,25 +2649,8 @@
   "written_at": [
    "judge/store/answers.py:306"
   ],
-  "read_at": []
- },
- {
-  "table": "outcome",
-  "column": "reported_at",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "price_tier",
-  "column": "model_version_id",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/load.py:480"
-  ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "price_tier",
@@ -2645,16 +2659,8 @@
   "written_at": [
    "collect/registry/load.py:480"
   ],
-  "read_at": []
- },
- {
-  "table": "price_tier",
-  "column": "min_tokens",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/registry/load.py:480"
-  ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "price_tier",
@@ -2663,7 +2669,28 @@
   "written_at": [
    "collect/registry/load.py:480"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "price_tier",
+  "column": "min_tokens",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:480"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "price_tier",
+  "column": "model_version_id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/registry/load.py:480"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "price_tier",
@@ -2674,31 +2701,30 @@
   ],
   "read_at": [
    "web/src/api/index.js:web"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "price_tier",
   "column": "price_cached_read",
-  "state": "written+read",
+  "state": "written, UNREAD",
   "written_at": [
    "collect/registry/load.py:480",
    "collect/registry/load.py:dict-key"
   ],
-  "read_at": [
-   "web/src/routes/ModelDetail.jsx:web"
-  ]
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "price_tier",
   "column": "sources",
-  "state": "written+read",
+  "state": "written, UNREAD",
   "written_at": [
    "collect/registry/load.py:480",
    "collect/registry/load.py:dict-key"
   ],
-  "read_at": [
-   "web/src/components/OrbitHub.jsx:web"
-  ]
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "pricing_history",
@@ -2711,46 +2737,8 @@
   "read_at": [
    "collect/registry/events.py:175",
    "collect/registry/load.py:380"
-  ]
- },
- {
-  "table": "pricing_history",
-  "column": "price_in",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/events.py:205",
-   "collect/registry/load.py:392"
   ],
-  "read_at": [
-   "collect/registry/events.py:175",
-   "collect/registry/load.py:380"
-  ]
- },
- {
-  "table": "pricing_history",
-  "column": "price_out",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/events.py:205",
-   "collect/registry/load.py:392"
-  ],
-  "read_at": [
-   "collect/registry/events.py:175",
-   "collect/registry/load.py:380"
-  ]
- },
- {
-  "table": "pricing_history",
-  "column": "price_cached_read",
-  "state": "written+read",
-  "written_at": [
-   "collect/registry/events.py:205",
-   "collect/registry/load.py:392"
-  ],
-  "read_at": [
-   "collect/registry/events.py:175",
-   "collect/registry/load.py:380"
-  ]
+  "select_star_table": false
  },
  {
   "table": "pricing_history",
@@ -2763,19 +2751,50 @@
   "read_at": [
    "collect/registry/events.py:175",
    "collect/registry/load.py:380"
-  ]
+  ],
+  "select_star_table": false
  },
  {
-  "table": "reported_context",
-  "column": "model_version_id",
+  "table": "pricing_history",
+  "column": "price_cached_read",
   "state": "written+read",
   "written_at": [
-   "judge/curate/reported_context.py:232"
+   "collect/registry/events.py:205",
+   "collect/registry/load.py:392"
   ],
   "read_at": [
-   "judge/curate/reported_context.py:163",
-   "web/src/api/index.js:web"
-  ]
+   "collect/registry/events.py:175",
+   "collect/registry/load.py:380"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "pricing_history",
+  "column": "price_in",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/events.py:205",
+   "collect/registry/load.py:392"
+  ],
+  "read_at": [
+   "collect/registry/events.py:175",
+   "collect/registry/load.py:380"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "pricing_history",
+  "column": "price_out",
+  "state": "written+read",
+  "written_at": [
+   "collect/registry/events.py:205",
+   "collect/registry/load.py:392"
+  ],
+  "read_at": [
+   "collect/registry/events.py:175",
+   "collect/registry/load.py:380"
+  ],
+  "select_star_table": false
  },
  {
   "table": "reported_context",
@@ -2787,41 +2806,30 @@
   "read_at": [
    "judge/curate/reported_context.py:163",
    "web/src/routes/Ask.jsx:web"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "reported_context",
-  "column": "reported_low",
+  "column": "computed_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/curate/reported_context.py:232"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "reported_context",
+  "column": "model_version_id",
   "state": "written+read",
   "written_at": [
    "judge/curate/reported_context.py:232"
   ],
   "read_at": [
    "judge/curate/reported_context.py:163"
-  ]
- },
- {
-  "table": "reported_context",
-  "column": "reported_high",
-  "state": "written+read",
-  "written_at": [
-   "judge/curate/reported_context.py:232"
   ],
-  "read_at": [
-   "judge/curate/reported_context.py:163"
-  ]
- },
- {
-  "table": "reported_context",
-  "column": "quote_ids",
-  "state": "written+read",
-  "written_at": [
-   "judge/curate/reported_context.py:232"
-  ],
-  "read_at": [
-   "judge/curate/reported_context.py:163",
-   "web/src/routes/ModelDetail.jsx:web"
-  ]
+  "select_star_table": false
  },
  {
   "table": "reported_context",
@@ -2833,36 +2841,94 @@
   "read_at": [
    "collect/registry/assertions.py:385",
    "judge/curate/reported_context.py:163"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "reported_context",
-  "column": "computed_at",
-  "state": "written, UNREAD",
+  "column": "quote_ids",
+  "state": "written+read",
   "written_at": [
    "judge/curate/reported_context.py:232"
   ],
-  "read_at": []
+  "read_at": [
+   "judge/curate/reported_context.py:163"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "reported_context",
+  "column": "reported_high",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/reported_context.py:232"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:163"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "reported_context",
+  "column": "reported_low",
+  "state": "written+read",
+  "written_at": [
+   "judge/curate/reported_context.py:232"
+  ],
+  "read_at": [
+   "judge/curate/reported_context.py:163"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "role",
+  "column": "capability_needs",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:212"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "role",
+  "column": "dependents",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:212"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "role",
+  "column": "error_cost",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:212"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "role",
+  "column": "failure_mode",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:212"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "role",
   "column": "id",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/answers.py:212"
-  ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
- },
- {
-  "table": "role",
-  "column": "task_profile_id",
   "state": "written, UNREAD",
   "written_at": [
    "judge/store/answers.py:212"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "role",
@@ -2873,16 +2939,8 @@
   ],
   "read_at": [
    "web/src/api/index.js:web"
-  ]
- },
- {
-  "table": "role",
-  "column": "capability_needs",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/answers.py:212"
   ],
-  "read_at": []
+  "select_star_table": false
  },
  {
   "table": "role",
@@ -2891,59 +2949,72 @@
   "written_at": [
    "judge/store/answers.py:212"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "role",
-  "column": "failure_mode",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/answers.py:212"
-  ],
-  "read_at": [
-   "web/src/routes/Ask.jsx:web"
-  ]
- },
- {
-  "table": "role",
-  "column": "error_cost",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/answers.py:212"
-  ],
-  "read_at": [
-   "web/src/routes/Ask.jsx:web"
-  ]
- },
- {
-  "table": "role",
-  "column": "dependents",
+  "column": "task_profile_id",
   "state": "written, UNREAD",
   "written_at": [
    "judge/store/answers.py:212"
   ],
-  "read_at": []
- },
- {
-  "table": "schema_migration",
-  "column": "filename",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "schema_migration",
-  "column": "content_hash",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "schema_migration",
   "column": "applied_at",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "schema_migration",
+  "column": "content_hash",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "schema_migration",
+  "column": "filename",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "source",
+  "column": "base_trust",
+  "state": "written, UNREAD",
+  "written_at": [
+   "scripts/harvest_github.py:205"
+  ],
+  "read_at": [],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "endpoint",
+  "state": "written+read",
+  "written_at": [
+   "scripts/harvest_github.py:205"
+  ],
+  "read_at": [
+   "web/src/api/index.js:web"
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "health_status",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": true
  },
  {
   "table": "source",
@@ -2956,7 +3027,16 @@
   "read_at": [
    "collect/ops/ledger.py:271",
    "collect/registry/sources.py:343"
-  ]
+  ],
+  "select_star_table": true
+ },
+ {
+  "table": "source",
+  "column": "last_yield",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": true
  },
  {
   "table": "source",
@@ -2967,36 +3047,8 @@
   ],
   "read_at": [
    "web/src/routes/ModelDetail.jsx:web"
-  ]
- },
- {
-  "table": "source",
-  "column": "endpoint",
-  "state": "written+read",
-  "written_at": [
-   "scripts/harvest_github.py:205"
   ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
- },
- {
-  "table": "source",
-  "column": "base_trust",
-  "state": "written, UNREAD",
-  "written_at": [
-   "scripts/harvest_github.py:205"
-  ],
-  "read_at": []
- },
- {
-  "table": "source",
-  "column": "tos_notes",
-  "state": "written, UNREAD",
-  "written_at": [
-   "scripts/harvest_github.py:205"
-  ],
-  "read_at": []
+  "select_star_table": true
  },
  {
   "table": "source",
@@ -3007,16 +3059,8 @@
   ],
   "read_at": [
    "collect/registry/sources.py:343"
-  ]
- },
- {
-  "table": "source",
-  "column": "terms_ruling",
-  "state": "written, UNREAD",
-  "written_at": [
-   "scripts/harvest_github.py:205"
   ],
-  "read_at": []
+  "select_star_table": true
  },
  {
   "table": "source",
@@ -3025,7 +3069,8 @@
   "written_at": [
    "scripts/harvest_github.py:205"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": true
  },
  {
   "table": "source",
@@ -3034,54 +3079,28 @@
   "written_at": [
    "scripts/harvest_github.py:205"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": true
  },
  {
   "table": "source",
-  "column": "health_status",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
+  "column": "terms_ruling",
+  "state": "written, UNREAD",
+  "written_at": [
+   "scripts/harvest_github.py:205"
+  ],
+  "read_at": [],
+  "select_star_table": true
  },
  {
   "table": "source",
-  "column": "last_yield",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
- },
- {
-  "table": "task_profile",
-  "column": "id",
-  "state": "written+read",
+  "column": "tos_notes",
+  "state": "written, UNREAD",
   "written_at": [
-   "judge/store/answers.py:175"
+   "scripts/harvest_github.py:205"
   ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
- },
- {
-  "table": "task_profile",
-  "column": "raw_text",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/answers.py:175"
-  ],
-  "read_at": [
-   "web/src/routes/Ask.jsx:web"
-  ]
- },
- {
-  "table": "task_profile",
-  "column": "profile",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/answers.py:175"
-  ],
-  "read_at": [
-   "web/src/api/index.js:web"
-  ]
+  "read_at": [],
+  "select_star_table": true
  },
  {
   "table": "task_profile",
@@ -3092,27 +3111,36 @@
   ],
   "read_at": [
    "web/src/routes/Ask.jsx:web"
-  ]
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "task_profile",
+  "column": "created_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "task_profile",
   "column": "error_cost",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/answers.py:175"
-  ],
-  "read_at": [
-   "web/src/routes/Ask.jsx:web"
-  ]
- },
- {
-  "table": "task_profile",
-  "column": "requests_per_month",
   "state": "written, UNREAD",
   "written_at": [
    "judge/store/answers.py:175"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "task_profile",
+  "column": "id",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:175"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "task_profile",
@@ -3121,53 +3149,74 @@
   "written_at": [
    "judge/store/answers.py:175"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "task_profile",
-  "column": "created_at",
-  "state": "neither",
+  "column": "profile",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/answers.py:175"
+  ],
+  "read_at": [
+   "web/src/api/index.js:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "task_profile",
+  "column": "raw_text",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/answers.py:175"
+  ],
+  "read_at": [
+   "web/src/routes/Ask.jsx:web"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "task_profile",
+  "column": "requests_per_month",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/answers.py:175"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "assembled_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "child_count",
+  "state": "written, UNREAD",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "coverage_ratio",
+  "state": "UNWRITTEN, read",
   "written_at": [],
-  "read_at": []
- },
- {
-  "table": "thread_context",
-  "column": "id",
-  "state": "written+read",
-  "written_at": [
-   "collect/adapters/blog/write.py:119",
-   "collect/assemble/thread.py:298"
-  ],
   "read_at": [
-   "collect/assemble/issue.py:143",
-   "collect/assemble/reddit.py:208"
-  ]
- },
- {
-  "table": "thread_context",
-  "column": "thread_root_id",
-  "state": "written+read",
-  "written_at": [
-   "collect/adapters/blog/write.py:119",
-   "collect/assemble/thread.py:298"
+   "judge/curate/thread_coverage.py:223"
   ],
-  "read_at": [
-   "collect/assemble/issue.py:143",
-   "collect/assemble/reddit.py:208"
-  ]
- },
- {
-  "table": "thread_context",
-  "column": "member_document_ids",
-  "state": "written+read",
-  "written_at": [
-   "collect/adapters/blog/write.py:119",
-   "collect/assemble/thread.py:298"
-  ],
-  "read_at": [
-   "scripts/blog_extraction_run.py:93",
-   "scripts/corpus_inventory.py:154"
-  ]
+  "select_star_table": false
  },
  {
   "table": "thread_context",
@@ -3180,63 +3229,60 @@
   "read_at": [
    "scripts/blog_extraction_run.py:93",
    "scripts/corpus_inventory.py:154"
-  ]
- },
- {
-  "table": "thread_context",
-  "column": "offset_map",
-  "state": "written+read",
-  "written_at": [
-   "collect/adapters/blog/write.py:119",
-   "collect/assemble/thread.py:298"
   ],
-  "read_at": [
-   "scripts/blog_extraction_run.py:93"
-  ]
+  "select_star_table": false
  },
  {
   "table": "thread_context",
-  "column": "child_count",
+  "column": "hidden_branches_unsized",
   "state": "written, UNREAD",
   "written_at": [
    "collect/adapters/blog/write.py:119",
    "collect/assemble/thread.py:298"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
  },
  {
   "table": "thread_context",
-  "column": "selection_method",
+  "column": "hidden_children_min",
   "state": "written+read",
   "written_at": [
    "collect/adapters/blog/write.py:119",
    "collect/assemble/thread.py:298"
   ],
   "read_at": [
-   "scripts/blog_extraction_run.py:93"
-  ]
- },
- {
-  "table": "thread_context",
-  "column": "assembled_at",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/adapters/blog/write.py:119",
-   "collect/assemble/thread.py:298"
+   "judge/curate/thread_coverage.py:223"
   ],
-  "read_at": []
+  "select_star_table": false
  },
  {
   "table": "thread_context",
-  "column": "pipeline_version",
+  "column": "id",
   "state": "written+read",
   "written_at": [
    "collect/adapters/blog/write.py:119",
    "collect/assemble/thread.py:298"
   ],
   "read_at": [
-   "web/src/components/PipelinePanel.jsx:web"
-  ]
+   "collect/assemble/issue.py:143",
+   "collect/assemble/reddit.py:208"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "member_document_ids",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [
+   "scripts/blog_extraction_run.py:93",
+   "scripts/corpus_inventory.py:154"
+  ],
+  "select_star_table": false
  },
  {
   "table": "thread_context",
@@ -3249,71 +3295,59 @@
   "read_at": [
    "judge/curate/thread_coverage.py:223",
    "judge/pages/pipeline_status.py:213"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "thread_context",
-  "column": "hidden_children_min",
+  "column": "offset_map",
   "state": "written+read",
   "written_at": [
    "collect/adapters/blog/write.py:119",
    "collect/assemble/thread.py:298"
   ],
   "read_at": [
-   "judge/curate/thread_coverage.py:223"
-  ]
+   "scripts/blog_extraction_run.py:93"
+  ],
+  "select_star_table": false
  },
  {
   "table": "thread_context",
-  "column": "hidden_branches_unsized",
-  "state": "written, UNREAD",
-  "written_at": [
-   "collect/adapters/blog/write.py:119",
-   "collect/assemble/thread.py:298"
-  ],
-  "read_at": []
- },
- {
-  "table": "thread_context",
-  "column": "coverage_ratio",
-  "state": "UNWRITTEN, read",
-  "written_at": [],
-  "read_at": [
-   "judge/curate/thread_coverage.py:223"
-  ]
- },
- {
-  "table": "thread_extraction",
-  "column": "thread_context_id",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/extractions.py:147"
-  ],
-  "read_at": [
-   "judge/pages/pipeline_status.py:253",
-   "judge/store/extractions.py:107"
-  ]
- },
- {
-  "table": "thread_extraction",
   "column": "pipeline_version",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/extractions.py:147"
-  ],
-  "read_at": [
-   "judge/store/extractions.py:107",
-   "judge/store/extractions.py:181"
-  ]
- },
- {
-  "table": "thread_extraction",
-  "column": "extracted_at",
   "state": "written, UNREAD",
   "written_at": [
-   "judge/store/extractions.py:147"
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
   ],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "selection_method",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [
+   "scripts/blog_extraction_run.py:93"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_context",
+  "column": "thread_root_id",
+  "state": "written+read",
+  "written_at": [
+   "collect/adapters/blog/write.py:119",
+   "collect/assemble/thread.py:298"
+  ],
+  "read_at": [
+   "collect/assemble/issue.py:143",
+   "collect/assemble/reddit.py:208"
+  ],
+  "select_star_table": false
  },
  {
   "table": "thread_extraction",
@@ -3325,38 +3359,8 @@
   "read_at": [
    "judge/pages/pipeline_status.py:253",
    "judge/store/extractions.py:181"
-  ]
- },
- {
-  "table": "thread_extraction",
-  "column": "input_tokens",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/extractions.py:147"
   ],
-  "read_at": [
-   "judge/store/extractions.py:196"
-  ]
- },
- {
-  "table": "thread_extraction",
-  "column": "output_tokens",
-  "state": "written+read",
-  "written_at": [
-   "judge/store/extractions.py:147"
-  ],
-  "read_at": [
-   "judge/store/extractions.py:196"
-  ]
- },
- {
-  "table": "thread_extraction",
-  "column": "schema_retries",
-  "state": "written, UNREAD",
-  "written_at": [
-   "judge/store/extractions.py:147"
-  ],
-  "read_at": []
+  "select_star_table": false
  },
  {
   "table": "thread_extraction",
@@ -3367,28 +3371,78 @@
   ],
   "read_at": [
    "judge/store/extractions.py:107"
-  ]
+  ],
+  "select_star_table": false
  },
  {
-  "table": "watermark",
-  "column": "source_id",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
+  "table": "thread_extraction",
+  "column": "extracted_at",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [],
+  "select_star_table": false
  },
  {
-  "table": "watermark",
-  "column": "query_key",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
+  "table": "thread_extraction",
+  "column": "input_tokens",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [
+   "judge/store/extractions.py:196"
+  ],
+  "select_star_table": false
  },
  {
-  "table": "watermark",
-  "column": "last_run_at",
-  "state": "neither",
-  "written_at": [],
-  "read_at": []
+  "table": "thread_extraction",
+  "column": "output_tokens",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [
+   "judge/store/extractions.py:196"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_extraction",
+  "column": "pipeline_version",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [
+   "judge/store/extractions.py:107",
+   "judge/store/extractions.py:181"
+  ],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_extraction",
+  "column": "schema_retries",
+  "state": "written, UNREAD",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "thread_extraction",
+  "column": "thread_context_id",
+  "state": "written+read",
+  "written_at": [
+   "judge/store/extractions.py:147"
+  ],
+  "read_at": [
+   "judge/pages/pipeline_status.py:253",
+   "judge/store/extractions.py:107"
+  ],
+  "select_star_table": false
  },
  {
   "table": "watermark",
@@ -3397,13 +3451,39 @@
   "written_at": [],
   "read_at": [
    "web/src/components/FluidCanvas.jsx:web"
-  ]
+  ],
+  "select_star_table": false
  },
  {
   "table": "watermark",
   "column": "exhausted",
   "state": "neither",
   "written_at": [],
-  "read_at": []
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "watermark",
+  "column": "last_run_at",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "watermark",
+  "column": "query_key",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
+ },
+ {
+  "table": "watermark",
+  "column": "source_id",
+  "state": "neither",
+  "written_at": [],
+  "read_at": [],
+  "select_star_table": false
  }
 ]

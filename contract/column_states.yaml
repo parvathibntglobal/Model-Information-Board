@@ -1,0 +1,532 @@
+# Declared state of every schema column.
+#
+# ⚠ contract/ IS SHARED. Adding a column means adding a line here, and that is
+#   the point: the state is DECLARED rather than DISCOVERED.
+#
+# THE PROPERTY THIS GUARDS
+#
+# Not "every column is read" - write_only is often correct, and five columns
+# below are deliberately so. The property is that somebody wrote down which,
+# and why. 138 of 306 columns were in a state nobody had declared when this
+# file was generated (docs/measurements/column-audit-306-columns.md).
+#
+# tests/test_column_states.py asserts:
+#   1. every column in the live schema has an entry here   <- fails on the 307th
+#   2. the discovered state matches the declared one, unless `known_gap` says
+#      why it does not
+#
+# Step 1 is the value. A snapshot of today's 306 passes forever and says nothing
+# about the next column. Same arrangement as cli.py's AST guard, where read-only
+# commands must be listed explicitly so an unclassified one fails rather than
+# running unguarded - and for the reason that guard records: a behavioural test
+# cannot see a path that never had a check.
+#
+# STATES
+#
+#   read               written, and read by a SELECT in this repository
+#   read_not_by_query  READ, by something the static audit cannot see - YAML,
+#                      config, a person reading the row. Requires `why` naming
+#                      the reader. This exists so reads-through-YAML are a
+#                      declared state rather than a growing exception list
+#   write_only         written deliberately and not read. Requires `why`
+#   generated          a GENERATED column. Never written by us
+#   defaulted          a DB DEFAULT supplies it. Never written by us
+#   unwired            a reader exists and the writer is a known missing stage.
+#                      Requires `known_gap` naming what is missing
+#   reserved           neither written nor read, deliberately, awaiting a stage
+#
+# `reviewed: false` means THIS ENTRY IS A SNAPSHOT, not a decision - the state
+# was discovered by the audit and nobody has ruled on it. It is not a pass. The
+# count of them is the remaining debt and the test prints it.
+
+version: "1.0"
+
+columns:
+
+  answer:
+    abstained: {state: read, reviewed: false}
+    assumptions: {state: read, reviewed: false}
+    candidates: {state: write_only, reviewed: false}
+    created_at: {state: reserved, reviewed: false}
+    id: {state: write_only, reviewed: false}
+    reason: {state: read, reviewed: false}
+    role_id: {state: write_only, reviewed: false}
+
+  audit:
+    audited_at: {state: reserved, reviewed: false}
+    auditor: {state: reserved, reviewed: false}
+    claim_id: {state: reserved, reviewed: false}
+    id: {state: reserved, reviewed: false}
+    notes: {state: reserved, reviewed: false}
+    verdict: {state: unwired, reviewed: false}
+
+  author:
+    account_created_at: {state: write_only, reviewed: false}
+    external_id: {state: read, reviewed: false}
+    first_seen_at: {state: reserved, reviewed: false}
+    handle_hash: {state: write_only, reviewed: false}
+    id: {state: read, reviewed: false}
+    identity_cluster_id: {state: write_only, reviewed: false}
+    karma: {state: write_only, reviewed: false}
+    source: {state: read, reviewed: false}
+    technical_history_score: {state: reserved, reviewed: false}
+
+  author_identity_cluster:
+    evidence: {state: unwired, reviewed: false}
+    id: {state: reserved, reviewed: false}
+    member_author_ids: {state: reserved, reviewed: false}
+    merged_at: {state: reserved, reviewed: false}
+
+  capability:
+    active: {state: reserved, reviewed: false}
+    description: {state: read, reviewed: false}
+    failure_mode: {state: read, reviewed: false}
+    key: {state: read, reviewed: false}
+    version: {state: read, reviewed: false}
+
+  cell:
+    capability_key: {state: read, reviewed: false}
+    computed_at: {state: write_only, reviewed: false}
+    condition_bucket: {state: read, reviewed: false}
+    conditional_note: {state: read, reviewed: false}
+    consensus_phrase: {state: read, reviewed: false}
+    freshest_at: {state: write_only, reviewed: false}
+    independent_voices: {state: read, reviewed: false}
+    max_author_share: {state: write_only, reviewed: false}
+    median_age: {state: write_only, reviewed: false}
+    model_version_id: {state: read, reviewed: false}
+    n_eff: {state: read, reviewed: false}
+    negative: {state: read, reviewed: false}
+    pipeline_version: {state: write_only, reviewed: false}
+    platform_count: {state: read, reviewed: false}
+    positive: {state: read, reviewed: false}
+    provenance: {state: read, reviewed: false}
+    quote_ids: {state: read, reviewed: false}
+    status: {state: read, reviewed: false}
+
+  claim:
+    author_id: {state: read, reviewed: false}
+    capability_key: {state: read, reviewed: false}
+    comparison_target_id: {state: reserved, reviewed: false}
+    condition_bucket: {state: read, reviewed: false}
+    conditions: {state: read, reviewed: false}
+    created_at:
+      state: defaulted
+      reviewed: true
+      why: >-
+        DEFAULT now(). Never written by us
+    document_id: {state: read, reviewed: false}
+    evidence_tier: {state: write_only, reviewed: false}
+    extractor_confidence: {state: write_only, reviewed: false}
+    extractor_model: {state: write_only, reviewed: false}
+    family: {state: write_only, reviewed: false}
+    has_numbers: {state: write_only, reviewed: false}
+    has_repro_steps: {state: write_only, reviewed: false}
+    id: {state: read, reviewed: false}
+    is_sarcastic: {state: write_only, reviewed: false}
+    model_version_id: {state: read, reviewed: false}
+    pain_points: {state: read, reviewed: false}
+    pipeline_version:
+      state: write_only
+      reviewed: true
+      why: >-
+        diffability - every derived row carries it so a scoring change is re-runnable (CLAUDE.md conventions). Read by a person diffing runs
+    polarity: {state: read, reviewed: false}
+    quote: {state: read, reviewed: false}
+    quote_flat_offset: {state: write_only, reviewed: false}
+    quote_raw_offset: {state: write_only, reviewed: false}
+    quote_verified: {state: read, reviewed: false}
+    relevance: {state: write_only, reviewed: false}
+    resolution_confidence: {state: write_only, reviewed: false}
+    severity: {state: read, reviewed: false}
+    source_comment_id: {state: write_only, reviewed: false}
+    speaking: {state: write_only, reviewed: false}
+    specificity: {state: write_only, reviewed: false}
+    taxonomy_version: {state: write_only, reviewed: false}
+    thread_context_id: {state: read, reviewed: false}
+
+  claim_weight:
+    claim_id: {state: read, reviewed: false}
+    computed_at: {state: reserved, reviewed: false}
+    f_evidence: {state: read, reviewed: false}
+    f_fuzziness: {state: read, reviewed: false}
+    f_launch: {state: read, reviewed: false}
+    f_platform: {state: read, reviewed: false}
+    f_recency: {state: read, reviewed: false}
+    f_relevance: {state: read, reviewed: false}
+    f_specificity: {state: read, reviewed: false}
+    pipeline_version: {state: write_only, reviewed: false}
+    w_final: {state: read, reviewed: false}
+
+  coverage_gap:
+    detail: {state: reserved, reviewed: false}
+    id: {state: reserved, reviewed: false}
+    kind: {state: read, reviewed: false}
+    observed_at: {state: unwired, reviewed: false}
+    pipeline_version: {state: read, reviewed: false}
+    subject: {state: unwired, reviewed: false}
+
+  dedup_cluster:
+    canonical_document_id: {state: reserved, reviewed: false}
+    first_seen_at: {state: reserved, reviewed: false}
+    id: {state: reserved, reviewed: false}
+    reach: {state: unwired, reviewed: false}
+    size: {state: reserved, reviewed: false}
+
+  document:
+    author_id: {state: read, reviewed: false}
+    content_hash:
+      state: write_only
+      reviewed: true
+      why: >-
+        content addressing - matched on, never selected
+    created_at: {state: read, reviewed: false}
+    dedup_cluster_id:
+      state: reserved
+      reviewed: true
+      why: >-
+        dedupe output; Stage('assemble-dedupe', run=None)
+      known_gap: >-
+        E1's lane - dedupe is unwired
+    engagement: {state: read, reviewed: false}
+    external_id: {state: read, reviewed: false}
+    fetched_at: {state: read, reviewed: false}
+    filter_reasons:
+      state: unwired
+      reviewed: true
+      why: >-
+        as triage_verdict
+      known_gap: >-
+        E2's lane - triage is unwired
+    harvest_run_id:
+      state: read
+      reviewed: true
+      why: >-
+        the join to harvest_run. Its reader is the provenance display, not yet built
+      known_gap: >-
+        no reader yet - the coverage page is where it belongs
+    has_code: {state: reserved, reviewed: false}
+    has_conditions: {state: reserved, reviewed: false}
+    has_error_strings: {state: reserved, reviewed: false}
+    has_numbers: {state: reserved, reviewed: false}
+    id: {state: read, reviewed: false}
+    is_canonical_in_cluster:
+      state: reserved
+      reviewed: true
+      why: >-
+        as dedup_cluster_id
+      known_gap: >-
+        E1's lane - dedupe is unwired
+    lang: {state: reserved, reviewed: false}
+    minhash: {state: reserved, reviewed: false}
+    names_version: {state: reserved, reviewed: false}
+    parent_id: {state: write_only, reviewed: false}
+    retrieval_provenance: {state: read, reviewed: false}
+    simhash: {state: reserved, reviewed: false}
+    source: {state: read, reviewed: false}
+    specificity_score:
+      state: reserved
+      reviewed: true
+      why: >-
+        triage output; nothing writes it while triage is unwired
+      known_gap: >-
+        E2's lane
+    status: {state: read, reviewed: false}
+    text_ref: {state: read, reviewed: false}
+    thread_root_id: {state: read, reviewed: false}
+    triage_verdict:
+      state: unwired
+      reviewed: true
+      why: >-
+        a consumer exists; the writer is Stage('triage', run=None) in chain.py
+      known_gap: >-
+        E2's lane - triage is unwired
+    url: {state: read, reviewed: false}
+
+  golden_label:
+    document_id: {state: reserved, reviewed: false}
+    label: {state: unwired, reviewed: false}
+    label_type: {state: reserved, reviewed: false}
+    labeled_at: {state: reserved, reviewed: false}
+    labeler: {state: reserved, reviewed: false}
+
+  harvest_run:
+    exhausted:
+      state: write_only
+      reviewed: true
+      why: >-
+        distinguishes 'no more results' from 'we stopped'
+    finished_at: {state: write_only, reviewed: false}
+    http_errors:
+      state: write_only
+      reviewed: true
+      why: >-
+        per-run diagnostic, read by a person reading the row
+    id: {state: write_only, reviewed: false}
+    items_fetched:
+      state: read
+      reviewed: true
+      why: >-
+        the candidate denominator for every sieve rate
+      known_gap: >-
+        no reader yet - same
+    items_kept:
+      state: read
+      reviewed: true
+      why: >-
+        the numerator for every sieve rate
+      known_gap: >-
+        no reader yet - same
+    outcome: {state: write_only, reviewed: false}
+    pages_fetched:
+      state: write_only
+      reviewed: true
+      why: >-
+        re-sieve provenance: 'this run stored page 1 of 4'
+      known_gap: >-
+        github.py does not populate it and every row is github's - 0 of 1,019 populated
+    pages_stored:
+      state: write_only
+      reviewed: true
+      why: >-
+        as pages_fetched
+      known_gap: >-
+        github.py does not populate it - 0 of 1,019 populated
+    pipeline_version: {state: write_only, reviewed: false}
+    query_key:
+      state: read
+      reviewed: true
+      why: >-
+        what was actually searched for; the join that names what retrieved a document
+      known_gap: >-
+        no reader yet - same
+    sieve_pass_rate:
+      state: write_only
+      reviewed: true
+      why: >-
+        a per-run convenience; the POOLED rate is computed from items_kept/items_fetched, and averaging this column is the mean-of-ratios error
+    source_id:
+      state: read
+      reviewed: true
+      why: >-
+        which platform a run belongs to
+      known_gap: >-
+        no reader yet - same
+    started_at: {state: write_only, reviewed: false}
+    truncated_by:
+      state: read
+      reviewed: true
+      why: >-
+        every retrieval rate must be quoted with its truncation share beside it; the column already holds result-ceiling on 126 of 1,019 runs
+      known_gap: >-
+        no reader yet - docs/measurements/column-audit-306-columns.md section 2
+
+  job_run:
+    detail: {state: write_only, reviewed: false}
+    finished_at: {state: read, reviewed: false}
+    id: {state: read, reviewed: false}
+    items_in: {state: read, reviewed: false}
+    items_out: {state: read, reviewed: false}
+    outcome: {state: read, reviewed: false}
+    pipeline_version: {state: read, reviewed: false}
+    stage: {state: read, reviewed: false}
+    started_at: {state: read, reviewed: false}
+
+  label:
+    capability_key: {state: read, reviewed: false}
+    earned_by_quote_ids: {state: read, reviewed: false}
+    first_seen_at: {state: write_only, reviewed: false}
+    id: {state: read, reviewed: false}
+    kind: {state: read, reviewed: false}
+    last_confirmed_at: {state: write_only, reviewed: false}
+    model_version_id: {state: read, reviewed: false}
+    state: {state: read, reviewed: false}
+
+  label_change:
+    direction: {state: read, reviewed: false}
+    driver: {state: read, reviewed: false}
+    id: {state: read, reviewed: false}
+    label_id: {state: read, reviewed: false}
+    occurred_at: {state: unwired, reviewed: false}
+    quote_ids: {state: read, reviewed: false}
+
+  model_alias:
+    confidence: {state: write_only, reviewed: false}
+    created_at: {state: reserved, reviewed: false}
+    family: {state: write_only, reviewed: false}
+    id: {state: read, reviewed: false}
+    model_version_id: {state: read, reviewed: false}
+    normalized: {state: read, reviewed: false}
+    provider_hint: {state: write_only, reviewed: false}
+    specificity: {state: read, reviewed: false}
+    surface: {state: read, reviewed: false}
+    valid_from: {state: write_only, reviewed: false}
+    valid_until: {state: read, reviewed: false}
+    variants: {state: read, reviewed: false}
+
+  model_event:
+    detected_at: {state: reserved, reviewed: false}
+    id: {state: write_only, reviewed: false}
+    model_version_id: {state: write_only, reviewed: false}
+    occurred_at: {state: write_only, reviewed: false}
+    payload: {state: read, reviewed: false}
+    source_url: {state: reserved, reviewed: false}
+    type: {state: read, reviewed: false}
+
+  model_version:
+    advertised_context: {state: read, reviewed: false}
+    batch_discount: {state: write_only, reviewed: false}
+    canonical_id: {state: read, reviewed: false}
+    deprecation_date: {state: write_only, reviewed: false}
+    display_name: {state: read, reviewed: false}
+    family: {state: read, reviewed: false}
+    first_seen_at: {state: reserved, reviewed: false}
+    id: {state: read, reviewed: false}
+    in_window: {state: read, reviewed: false}
+    knowledge_cutoff: {state: write_only, reviewed: false}
+    last_swept_at: {state: read, reviewed: false}
+    lifecycle: {state: read, reviewed: false}
+    max_output_tokens: {state: read, reviewed: false}
+    possibly_changed: {state: reserved, reviewed: false}
+    price_cached_read: {state: read, reviewed: false}
+    price_in: {state: read, reviewed: false}
+    price_out: {state: read, reviewed: false}
+    provenance: {state: read, reviewed: false}
+    provider: {state: read, reviewed: false}
+    regions: {state: read, reviewed: false}
+    release_date: {state: read, reviewed: false}
+    retirement_date: {state: read, reviewed: false}
+    sources: {state: write_only, reviewed: false}
+    supports_batch: {state: write_only, reviewed: false}
+    supports_caching: {state: read, reviewed: false}
+    supports_structured_output: {state: read, reviewed: false}
+    supports_tools: {state: read, reviewed: false}
+    supports_vision: {state: read, reviewed: false}
+    updated_at: {state: read, reviewed: false}
+
+  outcome:
+    adopted: {state: read, reviewed: false}
+    answer_id: {state: write_only, reviewed: false}
+    cost_usd: {state: write_only, reviewed: false}
+    failure_kind: {state: write_only, reviewed: false}
+    latency_ms: {state: write_only, reviewed: false}
+    model_version_id: {state: write_only, reviewed: false}
+    reported_at: {state: reserved, reviewed: false}
+    retries: {state: write_only, reviewed: false}
+    success: {state: read, reviewed: false}
+    what_happened: {state: write_only, reviewed: false}
+
+  price_tier:
+    dimension: {state: write_only, reviewed: false}
+    max_tokens: {state: write_only, reviewed: false}
+    min_tokens: {state: write_only, reviewed: false}
+    model_version_id: {state: write_only, reviewed: false}
+    price: {state: read, reviewed: false}
+    price_cached_read: {state: write_only, reviewed: false}
+    sources: {state: write_only, reviewed: false}
+
+  pricing_history:
+    model_version_id: {state: read, reviewed: false}
+    observed_at: {state: read, reviewed: false}
+    price_cached_read: {state: read, reviewed: false}
+    price_in: {state: read, reviewed: false}
+    price_out: {state: read, reviewed: false}
+
+  reported_context:
+    advertised: {state: read, reviewed: false}
+    computed_at: {state: write_only, reviewed: false}
+    model_version_id: {state: read, reviewed: false}
+    provenance: {state: read, reviewed: false}
+    quote_ids: {state: read, reviewed: false}
+    reported_high: {state: read, reviewed: false}
+    reported_low: {state: read, reviewed: false}
+
+  role:
+    capability_needs: {state: write_only, reviewed: false}
+    dependents: {state: write_only, reviewed: false}
+    error_cost: {state: write_only, reviewed: false}
+    failure_mode: {state: write_only, reviewed: false}
+    id: {state: write_only, reviewed: false}
+    name: {state: read, reviewed: false}
+    runs_per_request: {state: write_only, reviewed: false}
+    task_profile_id: {state: write_only, reviewed: false}
+
+  schema_migration:
+    applied_at: {state: reserved, reviewed: false}
+    content_hash: {state: reserved, reviewed: false}
+    filename: {state: reserved, reviewed: false}
+
+  source:
+    base_trust: {state: write_only, reviewed: false}
+    endpoint: {state: read, reviewed: false}
+    health_status: {state: reserved, reviewed: false}
+    id: {state: read, reviewed: false}
+    last_yield: {state: reserved, reviewed: false}
+    platform: {state: read, reviewed: false}
+    provenance: {state: read, reviewed: false}
+    terms_checked_on: {state: write_only, reviewed: false}
+    terms_evidence:
+      state: read_not_by_query
+      reviewed: true
+      why: >-
+        re-verified every run by assert_terms_reviewed against this run's live observations, through the YAML rather than the column
+    terms_ruling:
+      state: read_not_by_query
+      reviewed: true
+      why: >-
+        READ, and not by a SELECT: assert_terms_reviewed resolves it through contract/sources.yaml. The audit under-counts it for that reason, which is why this state exists rather than an exception list
+    tos_notes:
+      state: read_not_by_query
+      reviewed: true
+      why: >-
+        a human-readable record. Its reader is a person opening the row, and rightly so
+
+  task_profile:
+    complexity_tier: {state: read, reviewed: false}
+    created_at: {state: reserved, reviewed: false}
+    error_cost: {state: write_only, reviewed: false}
+    id: {state: write_only, reviewed: false}
+    inferred_fields: {state: write_only, reviewed: false}
+    profile: {state: read, reviewed: false}
+    raw_text: {state: read, reviewed: false}
+    requests_per_month: {state: write_only, reviewed: false}
+
+  thread_context:
+    assembled_at: {state: read, reviewed: false}
+    child_count: {state: write_only, reviewed: false}
+    coverage_ratio:
+      state: generated
+      reviewed: true
+      why: >-
+        GENERATED from observed + hidden_children_min. Never written by us, and a NULL is the honest empty-tree answer
+    flattened_text_ref: {state: read, reviewed: false}
+    hidden_branches_unsized: {state: write_only, reviewed: false}
+    hidden_children_min: {state: read, reviewed: false}
+    id: {state: read, reviewed: false}
+    member_document_ids: {state: read, reviewed: false}
+    observed_children: {state: read, reviewed: false}
+    offset_map: {state: read, reviewed: false}
+    pipeline_version: {state: write_only, reviewed: false}
+    selection_method: {state: read, reviewed: false}
+    thread_root_id: {state: read, reviewed: false}
+
+  thread_extraction:
+    claims_written: {state: read, reviewed: false}
+    content_fingerprint: {state: read, reviewed: false}
+    extracted_at:
+      state: write_only
+      reviewed: true
+      why: >-
+        ledger. 'We read it and found nothing' is the whole point of the row
+    input_tokens: {state: read, reviewed: false}
+    output_tokens: {state: read, reviewed: false}
+    pipeline_version: {state: read, reviewed: false}
+    schema_retries: {state: write_only, reviewed: false}
+    thread_context_id: {state: read, reviewed: false}
+
+  watermark:
+    cursor: {state: unwired, reviewed: false}
+    exhausted: {state: reserved, reviewed: false}
+    last_run_at: {state: reserved, reviewed: false}
+    query_key: {state: reserved, reviewed: false}
+    source_id: {state: reserved, reviewed: false}
