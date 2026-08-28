@@ -168,6 +168,32 @@ def _normalise(text: str) -> str:
     return re.sub(r"\s+", " ", folded).strip().casefold()
 
 
+def _matching_flattened_span(quote_normalised: str, flattened_text: str) -> str | None:
+    """The exact original flattened substring that normalises to the quote.
+
+    DIAGNOSTIC ONLY, and it returns text rather than an offset for that reason:
+    normalisation changes character positions, so this span has no defensible
+    coordinate and must never reach a claim. It exists to SHOW the other side of
+    an encoding mismatch - what the model quoted vs what was actually in the
+    flattened text - so the accept-path call is made from the record.
+
+    Brute force, because it runs only on the rare mismatch path: for each start,
+    grow the window until its normalisation equals the quote's or overshoots it.
+    Whitespace collapse can shrink a window, so the window is allowed to run a
+    little past the quote length before giving up.
+    """
+    n = len(flattened_text)
+    cap = len(quote_normalised) * 2 + 16
+    for i in range(n):
+        for j in range(i + 1, min(n, i + cap) + 1):
+            window = _normalise(flattened_text[i:j])
+            if window == quote_normalised:
+                return flattened_text[i:j]
+            if len(window) > len(quote_normalised):
+                break
+    return None
+
+
 def _locate(quote: str, flattened_text: str, *, hint: int) -> tuple[int, int] | None:
     """Every occurrence of the quote, and the one nearest the hint.
 
@@ -242,13 +268,23 @@ def verify(
         # only place the distinction can be recorded, so split them here.
         normalised = _normalise(claim.quote)
         if normalised and normalised in _normalise(flattened_text):
+            # RECORD BOTH SIDES. Deciding the accept path needs to know whether
+            # this is the extractor reformatting punctuation or collect/'s
+            # flattening introducing characters the model never saw - and that
+            # is unanswerable from the model's quote alone. The flattened span
+            # that matches under normalisation is the other side; captured here
+            # so the call can be made from the logged rejection rather than by
+            # re-running the corpus. Diagnostic only - it is never an offset.
+            shown = _matching_flattened_span(normalised, flattened_text)
+            shown_note = f"; flattened text there is {shown!r}" if shown is not None else ""
             return Rejection(
                 claim,
                 VerificationFailure.ENCODING_MISMATCH,
                 "quote is absent by exact match but present after normalising "
-                f"(entities/quotes/whitespace/case): {claim.quote[:60]!r} — a "
-                "re-encoding of shown text, not a fabrication; still rejected, "
-                "because rule 1 needs the exact span and step 3 renders the raw one",
+                f"(entities/nfkc/quotes/whitespace/case): model quoted "
+                f"{claim.quote!r}{shown_note} — a re-encoding of shown text, not "
+                "a fabrication; still rejected, because rule 1 needs the exact "
+                "span and step 3 renders the raw one",
             )
         return Rejection(
             claim,
