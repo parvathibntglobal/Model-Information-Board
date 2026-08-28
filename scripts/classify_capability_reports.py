@@ -289,9 +289,15 @@ def main() -> int:
     schema = tool_schema(withhold_keys=args.withhold_keys)
     client = OpenRouterClient.from_env()
     print(f"model     : {client.model}")
+    prompt_label = (
+        "capability-classification/withheld-keys/2026-08-28"
+        if args.withhold_keys
+        else "capability-classification/twelve-keys/2026-08-28"
+    )
     variant = ("KEY LIST WITHHELD (anchoring control)" if args.withhold_keys
                else "twelve keys listed")
     print(f"prompt    : {variant}")
+    print(f"label     : {prompt_label}")
     rows: list[dict] = []
     stopped = None
 
@@ -338,6 +344,16 @@ def main() -> int:
             "quote": quote,
             "quote_verified": verified,
             "reason": parsed.get("reason"),
+            # RUN IDENTITY ON EVERY ROW, not only in the printed header.
+            #
+            # `capability_candidate` needs `proposer_model`, `prompt_label` and
+            # `pipeline_version` — and all three are properties of the RUN, so a
+            # file that records them nowhere cannot be inserted later without
+            # somebody remembering which prompt produced it. That is the one thing
+            # that would have forced a re-run at $0.60, and it costs nothing here.
+            "proposer_model": completion.model,
+            "prompt_label": prompt_label,
+            "pipeline_version": settings().pipeline_version,
             "input_tokens": completion.input_tokens,
             "output_tokens": completion.output_tokens,
         })
