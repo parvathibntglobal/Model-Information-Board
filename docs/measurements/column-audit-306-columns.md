@@ -1,5 +1,42 @@
 # The column audit: 306 columns, four states, and a fifth the four cannot see
 
+> ## ⚠ THE FIGURES BELOW ARE SUPERSEDED — 2026-08-28, same day
+>
+> **My own instrument was wrong, in my favour, and the corrected finding is
+> LARGER.** The web-side read check was table-blind: a JSX file has no FROM
+> clause, so a hit on the string `pipeline_version` was credited to every table
+> owning a column of that name. That gave `claim.pipeline_version` a read which
+> was really `job_run.pipeline_version`, rendered by `PipelinePanel.jsx`.
+>
+> A web hit now counts only where the column name belongs to exactly one table;
+> otherwise the web side abstains. **29 columns move, and every one of them moves
+> toward fewer reads:**
+>
+> ```
+>                      as published    corrected
+>   written + read          168           145
+>   written, UNREAD          75            98
+>   neither                  45            51
+>   UNWRITTEN, read          18            12
+> ```
+>
+> **The direction matters as much as the numbers.** This was a false POSITIVE, in
+> a method whose other known errors all run the other way — it cannot see reads
+> that route through YAML (`source.terms_ruling`), a `SELECT *`, a dynamically
+> built statement, or a person reading a row. Removing a false positive from a
+> method that under-counts leaves the corrected figures **still an upper bound on
+> reads**: the true count of read columns is at most 145 and the true count of
+> unread ones is at least 98.
+>
+> Every count in the body below reads high on the read side and low on the unread
+> side by the same 29. The prose conclusions are unaffected and understated —
+> `harvest_run` is still 10 of 15 write-only, and the third state still clusters
+> on the `run=None` stages.
+>
+> Corrected script, manifest and guard: PR #166. Left in place rather than
+> rewritten, because a measurement corrected by its own re-run is worth more as a
+> record than as an absence.
+
 **The recollection was two instances. The enumeration is 75 written-and-unread,
 18 unwritten-and-read, and 45 neither — and `harvest_run` is 10 of the 75, which
 is most of the table.**
