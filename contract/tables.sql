@@ -371,8 +371,16 @@ CREATE TABLE document (
 
   CONSTRAINT document_status_ck
     CHECK (status IN ('kept', 'filtered', 'rejected', 'tombstoned')),
+  -- `unreviewed_writer` (added 2026-08-28) is a document written by code that
+  -- is not on `main`, by a run that opened no `harvest_run`. It is NOT
+  -- `not_recorded`: that value means a run existed and no id was passed, which
+  -- is a plumbing gap, and collapsing the two makes an unreviewed writer's rows
+  -- indistinguishable from it (rule 6). See the migration for the 853 rows that
+  -- were mislabelled `no_run_for_source` - a positive claim that nothing was
+  -- missing - and why that is worse than an absent value.
   CONSTRAINT document_retrieval_provenance_ck
-    CHECK (retrieval_provenance IN ('run_recorded', 'no_run_for_source', 'not_recorded')),
+    CHECK (retrieval_provenance IN ('run_recorded', 'no_run_for_source', 'not_recorded',
+                                    'unreviewed_writer')),
   -- THE TWO COLUMNS CANNOT DISAGREE. `run_recorded` with no id would be a
   -- provenance claim with nothing behind it, and an id under any other state
   -- would be provenance the page refuses to show. Either is worse than both
