@@ -262,7 +262,17 @@ columns:
       reviewed: true
       why: >-
         per-run diagnostic, read by a person reading the row
-    id: {state: read, reviewed: false}
+    id:
+      state: read
+      reviewed: true
+      why: >-
+        the two-phase ledger mints it before the fetch and the SWEEPS CARRY IT
+        ONTO THE DOCUMENTS - ops/sweep_reddit.py and scripts/model_only_sweep.py
+        pass opened.id to reddit_write.write_documents, and document.harvest_run_id
+        is a foreign key to it. It was write_only until 2026-08-28, when a listing
+        sweep first opened a run row whose id a document could point at. Second
+        time this guard caught drift from another branch rather than a state I had
+        mislabelled; the first was thread_context.assembled_at.
     items_fetched:
       state: read
       reviewed: true
