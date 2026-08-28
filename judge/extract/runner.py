@@ -41,7 +41,13 @@ from judge.extract.client import (
 from judge.extract.placeholder import has_nothing_to_extract
 from judge.extract.prompt import build_system_prompt, wrap_untrusted
 from judge.extract.schema import MAX_QUOTE_CHARS, ExtractedClaim, ExtractionResult
-from judge.extract.verify import OffsetMapping, Rejection, VerifiedQuote, verify
+from judge.extract.verify import (
+    OffsetMapping,
+    Rejection,
+    VerificationFailure,
+    VerifiedQuote,
+    verify,
+)
 
 log = logging.getLogger(__name__)
 
@@ -138,6 +144,28 @@ class ExtractionRun:
         one an alert would act on.
         """
         return len(self.rejected) / self.proposed if self.proposed else None
+
+    @property
+    def fabricated(self) -> int:
+        """Rejected quotes absent even after normalisation — invented or injected.
+
+        The count the encoding/fabrication split is about. `claim_verified_ck`
+        forbids storing a failed quote, so `rejected` is the only record it
+        exists in at all, and separating this from a re-encoded quote
+        (`encoding_mismatches`) is the difference between the real fabrication
+        rate and one twice as high.
+        """
+        return sum(1 for _, rej in self.rejected if rej.reason == VerificationFailure.NOT_FOUND)
+
+    @property
+    def encoding_mismatches(self) -> int:
+        """Rejected quotes present after normalisation — a re-encoding of shown
+        text, not a fabrication. A fidelity signal, pointed at the normalisation
+        chain rather than at the model."""
+        return sum(
+            1 for _, rej in self.rejected
+            if rej.reason == VerificationFailure.ENCODING_MISMATCH
+        )
 
 
 @dataclass(frozen=True)

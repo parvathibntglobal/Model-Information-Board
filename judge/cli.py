@@ -326,6 +326,8 @@ def _extract_from_export(
 
     verified = sum(len(r.extraction.verified) for r in results)
     rejected = sum(len(r.extraction.rejected) for r in results)
+    fabricated = sum(r.extraction.fabricated for r in results)
+    encoding = sum(r.extraction.encoding_mismatches for r in results)
     unclassified = sum(len(r.extraction.unclassified) for r in results)
     proposed = verified + rejected + unclassified
     stored = sum(len(r.stored_claim_ids) for r in results)
@@ -344,6 +346,16 @@ def _extract_from_export(
         f"  proposed {proposed} = verified {verified} + rejected {rejected} "
         f"+ unclassified {unclassified}"
     )
+    if rejected:
+        # SPLIT THE REJECTIONS, because fabrication and a re-encoded quote are
+        # opposite findings and this print is the only place the count lives -
+        # `claim_verified_ck` forbids storing a failed quote. Folding them was
+        # the difference between the real fabrication rate and one twice as high.
+        other = rejected - fabricated - encoding
+        print(
+            f"    of which fabricated {fabricated} (absent even normalised) · "
+            f"encoding {encoding} (present re-encoded, recoverable) · other {other}"
+        )
     print(f"  stored {stored} · cells {cells} · schema retries {retries}")
     if verified and not stored:
         # TWO CAUSES, AND THIS MUST NOT PICK ONE. `pipeline.run` drops a verified
