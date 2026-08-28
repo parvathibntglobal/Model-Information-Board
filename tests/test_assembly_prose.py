@@ -67,8 +67,17 @@ class _Store:
 def _looks_like_a_container(text: str) -> str | None:
     """The whole check. Returns what it looks like, or None for prose."""
     head = text.lstrip()[:1]
-    if head == "{" or head == "[":
-        return "JSON"
+    if head in {"{", "["}:
+        # PARSE, do not sniff. A leading `[` is not evidence - the flattener
+        # substitutes emoji as shortcodes, so a real issue titled with one
+        # flattens to `[bar_chart] AI CLI Tools Digest`. A first-character
+        # check flagged 39 rebuilt github contexts and all 39 were prose.
+        try:
+            if isinstance(json.loads(text), (dict, list)):
+                return "JSON"
+        except ValueError:
+            return None
+        return None
     if head == "<":
         return "markup"
     return None
