@@ -343,3 +343,82 @@ class TestARealZeroAndAValidationZero:
         assert run.zero_kind == ZERO_UNSALVAGED
         assert len(run.unsalvaged) == 1
         assert "validation zero" in (run.no_claim_reason or "")
+
+
+class TestTheToolSchemaIsReadableByAStrictValidator:
+    """`prefixItems` cost a run, and it presented as an intermittent outage.
+
+    `quote_offset: tuple[int, int]` renders as JSON Schema 2020-12's
+    `prefixItems`, which is correct and which Gemini's function-declaration
+    validator does not implement. It returns HTTP 200 carrying a 400 about
+    `...properties[quote_offset].items: missing field`.
+
+    IT SURVIVED 50 THREADS FIRST. OpenRouter routes across backends and only
+    some validate this strictly, so a latent schema defect presents as a
+    transient provider error - and retrying lands on a lenient route and
+    confirms the wrong diagnosis. That is why this is a test rather than a
+    retry.
+    """
+
+    @staticmethod
+    def _arrays_without_items(node, path=""):
+        found = []
+        if isinstance(node, dict):
+            if node.get("type") == "array" and "items" not in node:
+                found.append(path or "<root>")
+            for key, value in node.items():
+                found += TestTheToolSchemaIsReadableByAStrictValidator._arrays_without_items(
+                    value, f"{path}.{key}"
+                )
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                found += TestTheToolSchemaIsReadableByAStrictValidator._arrays_without_items(
+                    value, f"{path}[{index}]"
+                )
+        return found
+
+    def test_no_array_in_the_tool_schema_lacks_items(self):
+        from judge.extract.client import tool_schema_for
+        from judge.extract.schema import ExtractionResult
+
+        schema = tool_schema_for(ExtractionResult)
+        missing = self._arrays_without_items(schema)
+        assert not missing, (
+            f"arrays with no `items`: {missing}. A strict function-calling "
+            f"validator rejects the whole tool with a 400 wrapped in a 200."
+        )
+
+    def test_prefix_items_is_gone_entirely(self):
+        import json
+
+        from judge.extract.client import tool_schema_for
+        from judge.extract.schema import ExtractionResult
+
+        assert "prefixItems" not in json.dumps(tool_schema_for(ExtractionResult))
+
+    def test_quote_offset_keeps_its_length_constraint(self):
+        from judge.extract.client import tool_schema_for
+        from judge.extract.schema import ExtractionResult
+
+        field = tool_schema_for(ExtractionResult)["properties"]["claims"]["items"][
+            "properties"
+        ]["quote_offset"]
+        # Widening must not lose the shape: two integers, still two.
+        assert field["type"] == "array"
+        assert field["items"] == {"type": "integer"}
+        assert field["minItems"] == 2
+        assert field["maxItems"] == 2
+
+    def test_a_heterogeneous_tuple_refuses_rather_than_guessing(self):
+        import pytest
+        from pydantic import BaseModel
+
+        from judge.extract.client import tool_schema_for
+
+        class Mixed(BaseModel):
+            pair: tuple[int, str]
+
+        # Picking the first member's type would tell the model position 1 is an
+        # integer. No such field exists today; this fires if one is added.
+        with pytest.raises(ValueError, match="disagree on type"):
+            tool_schema_for(Mixed)
