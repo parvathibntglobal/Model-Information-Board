@@ -561,6 +561,13 @@ CREATE TABLE capability (
 -- capability list is contract/capabilities.yaml's to change (rule 5). Adoption
 -- is a PR against that file, not a flag flipped here.
 --
+-- THE ABSENCE OF A FOREIGN KEY TO `capability` IS THE DESIGN, NOT AN OMISSION.
+-- A proposal exists precisely to name a key the twelve do not have, so a FK
+-- constraining proposed_key to existing keys would reject the very rows this
+-- table is for. The missing constraint is what forces adoption through
+-- capabilities.yaml plus two eyes rather than an INSERT here - it is load-
+-- bearing, and someone tidying "unconstrained" columns should read this first.
+--
 -- The whole point is the COUNT — "how many documents proposed this key" — so:
 --   * proposed_key is NOT UNIQUE: the same name from two documents is two pieces
 --     of evidence, and collapsing them would lose the count that separates a
@@ -570,10 +577,12 @@ CREATE TABLE capability (
 --     idempotent (ON CONFLICT DO NOTHING) and cannot inflate that count.
 --   * the count is a FLOOR: free-text keys fragment one capability across
 --     phrasings ('tool_calling.parallel' vs 'parallel_tool_use'), so a GROUP BY
---     on the raw string UNDER-counts. Clustering near-duplicate keys belongs
---     with the 8★ signal derivation (the same vocabulary problem); until it
---     lands, any figure shown from here reads ">= N", with its population, per
---     rule 7.
+--     on the raw string UNDER-counts. MEASURED: the withheld run produced 552
+--     proposals with 528 distinct names, so an exact-string GROUP BY would
+--     report 528 candidates where there are really a handful. Clustering
+--     near-duplicate keys belongs with the 8★ signal derivation (the same
+--     vocabulary problem); until it lands, any figure shown from here reads
+--     ">= N", with its population, per rule 7.
 CREATE TABLE capability_candidate (
   id                text PRIMARY KEY,   -- content-hash of the natural key below
 
