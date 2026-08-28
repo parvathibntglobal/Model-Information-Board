@@ -240,6 +240,53 @@ bug labels makes the positive half of the four silent-failure capabilities
 structurally unreachable, and those already read 0.00-0.07%. That is rule 4
 arriving through the query, and it is a reason not to measure it casually.
 
+## 6 · The denominator none of these figures has carried
+
+**`max_pages = 1`. Every retrieval figure in this project is a top-100-by-relevance
+figure, not a corpus figure** — and that qualifier has not been stated beside any
+of them, including in this document until now.
+
+It applies to the 0.404%, the 0.134% and the 0.13% alike. None of them is
+"fraction of matching issues that survive the sieve". All of them are "fraction
+of the first hundred results, ranked by GitHub's relevance, that survive the
+sieve". Those are different quantities and the second is the one we have.
+
+**How much it actually bites, measured rather than asserted:**
+
+```
+harvest_run, 1,019 runs
+  fetched exactly 100  (page-1 ceiling hit)    321   31.5%
+  fetched 1-99         (page 1 IS everything)  318   31.2%
+  fetched 0                                    380   37.3%
+  maximum items_fetched on any run             100
+
+kept documents from the 321 truncated runs      93 of 181   51.4%
+runs carrying truncated_by = 'result-ceiling'  126
+```
+
+So the pooled 0.404% is a **mixture**: a true corpus figure for the 638 runs
+whose whole result set fit on one page, and a top-100 figure for the 321 that
+hit the ceiling — and **the truncated third supplies half the yield**.
+
+**The direction of the bias is knowable and it is upward.** Relevance ranking
+puts the best matches first, so the top 100 of a 112,736-result query is the most
+favourable hundred available. A figure computed over all matches would be lower,
+not higher. Every rate quoted here is therefore a **ceiling**, and the model-name
+arm — whose queries are broader and so more often truncated — is the one that
+benefits most from the bias.
+
+**The instrument already records this and nobody quoted it.** `truncated_by`
+carries `result-ceiling` on 126 runs and `harvest_run` carries `pages_fetched`
+and `pages_stored`, exactly so a re-sieve can say *"this run stored page 1 of 4"*.
+`collect/adapters/github.py` says so in its own docstring. The column was right
+and the reporting was not.
+
+**What to do about it:** quote the rate with the truncation share beside it, the
+way rule 7 asks - *"0.404% over 1,019 runs, of which 321 hit the page-1 ceiling
+and supplied 51% of the yield"*. Raising `max_pages` would change the quantity
+rather than fix the reporting, and it costs a request per extra page across
+1,019 runs.
+
 ## 6 · Where that leaves the decision
 
 The binary was real after all, at the depth we sweep. Recorded here so the third
