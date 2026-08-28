@@ -91,7 +91,11 @@ def check(url: str | None, *, command: str) -> None:
     if not url:
         return                      # no target; the caller's own error is clearer
     if environment() != DEV:
-        return                      # the fixture guard is on, which is the point
+        # This guard refuses only the DEV+remote pairing. It does NOT assert a
+        # fixture check runs here: judge/ does not call preflight(), so on a
+        # non-dev flag NO fixture check runs on this path - returning here only
+        # declines to over-refuse, it does not hand off to another guard.
+        return
     if is_local(url):
         return                      # your own machine, write whatever you like
 
@@ -103,6 +107,9 @@ def check(url: str | None, *, command: str) -> None:
         f"command could write seeded or hand-curated rows into a shared database. "
         f"Reading the board that way is fine and is why the flag is set; writing "
         f"is not.\n\n"
-        f"Either point DATABASE_URL at your own Postgres, or set ENVIRONMENT to "
-        f"match the target so the fixture checks actually run. Nothing was written."
+        f"Point DATABASE_URL at your own Postgres. Nothing was written.\n\n"
+        f"Setting ENVIRONMENT=staging will also satisfy this check and is NOT a "
+        f"substitute: no fixture check runs on this path yet (judge/ does not "
+        f"call preflight()), so it turns this guard off without turning another "
+        f"one on."
     )

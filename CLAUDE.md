@@ -259,6 +259,15 @@ Load-bearing during the build and poisonous afterwards.
 |---|---|---|
 | `contract/seed_models.yaml` | 10 hardcoded models so work starts without the registry poller | When OpenRouter polling lands |
 
+**The shared database is already fully polled: 342 `model_version` rows,
+`provenance='polled'`, ZERO `seed` (verified 2026-08-28).** So on the one
+database the poisoning risk matters for, it is absent - polling has landed
+there. The file has NOT been removed, because code still references it (the
+seed loader, and `scripts/fetch_model.py`'s alias fallback), so a fresh or
+local DB can still be seeded. A fixture nobody loaded looks identical from the
+file to a fixture nobody removed, which is why this row now carries the count
+rather than only the trigger.
+
 `fixtures/hand_cells.yaml` was listed here until the Ask box was parked and the
 file deleted. The section documenting our guard against stale fixtures had gone
 stale itself, which is the joke writing itself and the reason this table lists
