@@ -132,10 +132,15 @@ REDDIT_PROVENANCE: tuple[str, ...] = (
     # A subreddit listing. No query was rendered, so a NULL harvest_run_id is
     # complete rather than missing.
     "no_run_for_source",
-    # A query was rendered and no run id reached this writer. A plumbing gap.
+    # A run existed, or might have, and nobody wrote it down. This is where a
+    # QUERY-shaped reddit run belongs - the per-model fetch's model-name arm, or
+    # any future search sweep whose harvest_run id does not reach this writer.
+    #
+    # A fourth value `unreviewed_writer` was added on 2026-08-28 and withdrawn
+    # the same day: it described the CODE that wrote the row rather than what
+    # retrieved it, and a fourth value breaks `pipeline_status.py`, which counts
+    # exactly three. See contract/tables.sql.
     "not_recorded",
-    # The writer is not on `main`. See the 2026-08-28 migration.
-    "unreviewed_writer",
 )
 
 
