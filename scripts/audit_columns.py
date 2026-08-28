@@ -9,8 +9,16 @@ modules that insert, and it cannot see a column reached only through
 `SELECT *`, a dynamically-built statement, or an ORM.
 """
 from __future__ import annotations
-import ast, pathlib, re, sys, json, collections
+
+import ast
+import collections
+import json
+import pathlib
+import re
+import sys
+
 import psycopg
+
 from collect.config import settings
 
 ROOT = pathlib.Path(".")
