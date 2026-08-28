@@ -1,0 +1,344 @@
+# Model-name against capability retrieval on GitHub: ~3x on precision, and the cause is signal rather than topic
+
+**Two findings, and they point at different repairs. The headline number is a
+retrieval figure; the mechanism underneath it is a vocabulary figure, and only
+one of them is an argument for changing how we retrieve.**
+
+*Engineer 1 · 2026-08-28 · no fetches, no model calls. Capability figures read
+from `harvest_run`; model-name figures reported by E2's run and NOT verifiable
+in this database — every one is labelled where it appears*
+
+---
+
+## 0 · Provenance of every number here, because two sources are mixed
+
+| figure | source | verifiable here |
+|---|---|---|
+| capability requests, candidates, kept | `harvest_run`, 1,019 rows | **yes** |
+| model-name candidates, kept | E2's run output | **no** — no `harvest_run` row exists for it |
+| model-name topic / signal hits | E2's run output | **no** |
+| qualifiers in use | `contract/queries.yaml` + 591 distinct `query_key`s | **yes** |
+
+`harvest_run` holds no row after 2026-08-24 and none with `source_id` other than
+`github`, so the model-name arm left no trace in the shared database. Its figures
+are carried here as reported, and marked. They should not be re-quoted without
+this line.
+
+---
+
+## 1 · The precision comparison, corrected
+
+```
+CAPABILITY QUERIES          (harvest_run, measured)
+  requests                        1,019
+  candidates                     44,848
+  kept                              181
+  pooled kept / candidates        0.404%
+  mean of per-run rates (n=895)   0.359%      <- weights a 2-candidate run
+                                                 like a 200-candidate one
+  380 of 1,019 runs fetched 0 candidates
+
+MODEL-NAME ARM              (reported, not verifiable here)
+  candidates                      2,239
+  kept                                3
+  kept / candidates               0.134%
+
+RATIO      pooled  3.0x      mean  2.7x
+```
+
+**About 3x worse on precision, not 23x.** An earlier reading of 3.4% for the
+capability arm is an order of magnitude high: no slice of `harvest_run` produces
+it. The closest value in the table is `avg(sieve_pass_rate) = 0.003585`, which is
+**0.36%**. Checked every grouping — by night, pooled and mean, and the full
+distribution: 850 of 895 runs sit in [0, 0.02] and six exceed 0.067.
+
+**Quote the pooled figure.** The mean of per-run ratios is the same
+mean-of-ratios error the extraction cost model already made once across corpora
+with a 240x median spread. For "what fraction of candidates survive the sieve",
+the pooled ratio is the quantity.
+
+The baseline is not stable either, which bounds how much any single comparison
+can carry:
+
+```
+2026-08-20   153 requests    2,887 candidates      6 kept   pooled 0.208%
+2026-08-24   866 requests   41,961 candidates    175 kept   pooled 0.417%
+```
+
+Two runs of the same instrument, four days apart, 2.0x apart on precision.
+
+## 2 · The cause is the signal group, not the topic token
+
+Reported from the model-name arm: **63 topic hits, 3 signal hits** on 2,239
+candidates. Signal fires at **0.13%**.
+
+That is not a retrieval finding. It is the per-entry signal thinness already
+measured independently and pre-registered:
+
+```
+per-entry signal rate, median      GitHub 0.39%   blogs 0.42%
+terms that fire on neither platform          101 of 207
+one stem (`truncat`)                         34.2% of all GitHub firings
+```
+
+`docs/measurements/prediction-signal-on-prose.md`, `the-signal-group.md`.
+
+**So removing the topic token was not what cost the yield.** Topic still hit 63
+times. The sieve requires subject AND topic AND signal, and signal is what failed
+— which it also does under capability queries, at a rate the same order of
+magnitude. **The 3x is a signal-vocabulary result wearing a retrieval result's
+clothes.**
+
+The two findings argue for different repairs and should not be quoted as one:
+
+| finding | what it prices | what it argues for |
+|---|---|---|
+| 3x precision | the cost of dropping the capability token | a retrieval decision |
+| signal at 0.13% | the vocabulary, on both query shapes | widening or replacing the 101 dead terms |
+
+Acting on the first alone buys a 3x precision improvement on a corpus the second
+finding says is thin either way.
+
+## 3 · The third option: structural qualifiers — real, and NOT already in use
+
+It was framed as a binary — capability token or bare alias — and there is a third
+axis. **Correcting the claim that four of twelve queries already use it:**
+
+```
+contract/queries.yaml         26 entries, each carrying exactly
+                              subject / topic / signal / stance / records_condition
+                              NO qualifier field exists in the schema
+
+harvest_run                   591 distinct query_key values
+  carrying `type:`            591   (hardcoded in render_search, every query)
+  carrying `is:issue`           0
+  carrying `state:open`         0
+  carrying `label:`             0
+  carrying `repo:` or `org:`    0
+```
+
+**No structural qualifier beyond `type:issue` has ever been issued.** The
+mechanism exists and is unused: `render_search` takes `item_type` (default
+`"issue"`) and `plan_searches` takes a `scope` tuple, surfaced as a repeatable
+`--scope` flag that no recorded sweep passed.
+
+So the third option is **available and unexercised**, not established. Pitching
+it as already-working would claim evidence that does not exist. What supports it
+is one adjacent measurement: `org:` qualifiers compose correctly and union
+exactly — `org:langchain-ai` 475 + `org:run-llama` 56, both together 531
+(`collect/adapters/queries/github.py`). Qualifiers are honoured where the boolean
+operators are not.
+
+**Why it matters for the circularity argument:** a structural qualifier narrows
+without naming a capability, so a capability nobody wrote a query for is still
+reachable. That is the objection the reframe was proposed to answer, and it
+survives here — which is the whole reason this is a third option rather than a
+variant of the first.
+
+### 3.1 · The qualifiers are not equivalent, and one of them is nearly the objection
+
+**`label:bug` selects for complaints, which is a stance and not a capability.**
+It is nearer the circularity objection than `is:issue` is, and it carries a
+second cost the others do not:
+
+> A corpus filtered to `label:bug` makes positive evidence structurally
+> unreachable. `harvest.yaml` is explicit that for the four **silent-failure**
+> capabilities *"nobody complained" is not evidence, because you would not find
+> out* — and those already read 0.00-0.07% on positive stances. Filtering to bug
+> labels would take the positive half from thin to absent, and rule 4 says the
+> resulting silence must not render as approval.
+
+Ranked by how much stance they smuggle in:
+
+```
+type:issue      none            already applied to every query
+is:issue        none            structural; separates issues from PRs
+state:open      weak            selects unresolved, correlates with unfixed
+label:bug       STRONG          selects complaints. A stance filter wearing a
+                                structural name
+```
+
+**Recommendation: test `is:issue` and `state:open`; hold `label:bug` behind an
+explicit ruling**, because adopting it silently would re-import the selection
+effect the reframe exists to remove.
+
+## 4 · What this settles and what it does not
+
+**Settles:** the price of dropping the capability token is ~3x on precision, on
+the same platform with the same sieve. That number was previously an argument;
+it is now a measurement with a stated denominator.
+
+**Does not settle — the circularity argument is untouched.** A capability nobody
+wrote a query for has empty cells forever under capability retrieval, however
+good its precision. Precision and coverage are different axes and this measures
+one.
+
+**Whether 3x is affordable depends on triage absorbing it**, and triage is
+currently unwired: `chain.py` carries `Stage("triage", run=None, ...)` and
+`triage_verdict` is NULL on every row. So the affordability question has no
+answer today, and it is E2's lane. **This document prices the option; it does not
+recommend taking it.**
+
+## 5 · The probes ran, and the third option does not survive them
+
+Two requests, issued 2026-08-28 against the authenticated search API. Raw
+responses retained.
+
+```
+QUERY                                            total_count
+claude-opus-5 type:issue                             112,736
+claude-opus-5 type:issue is:issue state:open          30,891     -3.65x
+```
+
+**The reported corpus shrinks 3.65x and what a sweep actually reads does not
+change at all.**
+
+```
+page 1, 100 items each
+  overlap                          100 of 100 ids
+  identical order                  yes
+  states on the BASELINE page      100 open, 0 closed
+```
+
+The two pages are the same documents in the same order. `state:open` is
+redundant at the top of the ranking because relevance already surfaces open
+issues first, and `is:issue` is redundant with the `type:issue` every query
+already carries. The 81,845 issues the qualifiers remove are all in a tail
+nobody fetches: `collect/adapters/github.py` sets `max_pages = 1` and its own
+docstring records that this is *"the default, and every run so far"*.
+
+**So structural qualifiers are priced at zero benefit and one request, at the
+depth we read.** They would begin to matter only if `max_pages` rose, and
+raising it is the more direct way to get the same documents.
+
+### The sieve, on the same 100
+
+```
+documents hitting subject      100
+documents hitting topic         83
+documents hitting signal        11
+passing the full sieve (any of 24 entries, with locality)    2
+```
+
+Independent corroboration of §2 from a different sample: topic is abundant,
+signal is scarce, and the full sieve passes 2%. The ordering
+topic >> signal >> pass is the same shape as the model-name arm's 63 / 3 / 3,
+though the rates are not comparable — this is the top 100 by relevance and that
+was all candidates.
+
+### What bounds this
+
+**One alias, one query pair, page 1.** n=1, and a second alias could behave
+differently. What makes it worth acting on anyway is that the explanation is
+structural rather than empirical: the redundancy of `is:issue` against
+`type:issue`, and of `state:open` against relevance ranking, does not depend on
+which model is in the query. A second pair would test that and costs two
+requests.
+
+**`label:bug` was NOT probed and stays behind a ruling** — §3.1. Filtering to
+bug labels makes the positive half of the four silent-failure capabilities
+structurally unreachable, and those already read 0.00-0.07%. That is rule 4
+arriving through the query, and it is a reason not to measure it casually.
+
+## 6 · The denominator none of these figures has carried
+
+**`max_pages = 1`. Every retrieval figure in this project is a top-100-by-relevance
+figure, not a corpus figure** — and that qualifier has not been stated beside any
+of them, including in this document until now.
+
+It applies to the 0.404%, the 0.134% and the 0.13% alike. None of them is
+"fraction of matching issues that survive the sieve". All of them are "fraction
+of the first hundred results, ranked by GitHub's relevance, that survive the
+sieve". Those are different quantities and the second is the one we have.
+
+**How much it actually bites, measured rather than asserted:**
+
+```
+harvest_run, 1,019 runs
+  fetched exactly 100  (page-1 ceiling hit)    321   31.5%
+  fetched 1-99         (page 1 IS everything)  318   31.2%
+  fetched 0                                    380   37.3%
+  maximum items_fetched on any run             100
+
+kept documents from the 321 truncated runs      93 of 181   51.4%
+runs carrying truncated_by = 'result-ceiling'  126
+```
+
+So the pooled 0.404% is a **mixture**: a true corpus figure for the 638 runs
+whose whole result set fit on one page, and a top-100 figure for the 321 that
+hit the ceiling — and **the truncated third supplies half the yield**.
+
+**The direction of the bias is knowable and it is upward.** Relevance ranking
+puts the best matches first, so the top 100 of a 112,736-result query is the most
+favourable hundred available. A figure computed over all matches would be lower,
+not higher. Every rate quoted here is therefore a **ceiling**, and the model-name
+arm — whose queries are broader and so more often truncated — is the one that
+benefits most from the bias.
+
+**The instrument already records this and nobody quoted it.** `truncated_by`
+carries `result-ceiling` on 126 runs and `harvest_run` carries `pages_fetched`
+and `pages_stored`, exactly so a re-sieve can say *"this run stored page 1 of 4"*.
+`collect/adapters/github.py` says so in its own docstring. The column was right
+and the reporting was not.
+
+**What to do about it:** quote the rate with the truncation share beside it, the
+way rule 7 asks - *"0.404% over 1,019 runs, of which 321 hit the page-1 ceiling
+and supplied 51% of the yield"*. Raising `max_pages` would change the quantity
+rather than fix the reporting, and it costs a request per extra page across
+1,019 runs.
+
+## 6a · The truncation applies to BOTH arms, and its direction is not the one it looks like
+
+§6 makes every rate here a ceiling. The obvious next step is to say the
+model-name arm truncates more often — broader queries, more results, so a
+smaller and more favourable slice — and therefore that the true gap is *wider*
+than 3x.
+
+**The arithmetic says the opposite is more likely, and neither is settled.**
+
+```
+this repository            max_pages = 1, PER_PAGE = 100
+                           -> at most 100 candidates per harvest_run row
+measured                   max(items_fetched) over 1,019 runs = 100.  Confirms it.
+
+the CAPABILITY arm         321 of 1,019 runs at the ceiling (31.5%),
+                           supplying 51% of the yield.
+                           MEASURED upward bias.
+
+the MODEL-NAME arm         2,239 candidates from "3 runs" = 746 per run.
+                           SEVEN TIMES the page-1 ceiling.
+```
+
+So the model-name arm did not fetch page 1 only. Either it ran with
+`max_pages > 1`, or "3 runs" means three sweep *invocations* issuing at least
+23 queries between them — the same unit ambiguity that already broke the
+per-request comparison.
+
+**Both readings matter and they point opposite ways:**
+
+| if the model-name arm... | then its rate is | and the true gap is |
+|---|---|---|
+| paged deeper than 1 | **less** inflated than the capability arm's | **narrower** than 3x |
+| issued ~23 page-1 queries | inflated like the capability arm, perhaps more | **wider** than 3x |
+
+The only truncation bias in this document that is *measured* sits on the
+capability arm — 31.5% of runs at the ceiling, half the yield — and it pushes
+**0.404% downward**, which closes the gap rather than opening it.
+
+**This is the second correction to this comparison and both go the same way.**
+The first took the capability figure from a misread 3.4% to a measured 0.404%,
+taking the gap from 23x to 3x. This one says 0.404% is itself a ceiling. Both
+shrink the distance between the two arms, and neither was in the direction the
+comparison was first argued in.
+
+**What settles it, and it is one question rather than a measurement:** what
+`max_pages` the model-name arm ran with, and whether "3 runs" counts requests or
+invocations. Until that is answered the ratio should be quoted as *"~3x, with
+both arms measured as ceilings and the relative bias unresolved"* — which is
+weaker than a number and is what the evidence supports.
+
+## 6 · Where that leaves the decision
+
+The binary was real after all, at the depth we sweep. Recorded here so the third
+option is closed by measurement rather than left open as an untested
+possibility - and so nobody re-proposes it without raising `max_pages` first.
