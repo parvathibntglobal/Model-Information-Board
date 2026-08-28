@@ -492,7 +492,7 @@ columns:
     requests_per_month: {state: write_only, reviewed: false}
 
   thread_context:
-    assembled_at: {state: write_only, reviewed: false}
+    assembled_at: {state: read, reviewed: false}
     child_count: {state: write_only, reviewed: false}
     coverage_ratio:
       state: generated
