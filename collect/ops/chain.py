@@ -381,8 +381,97 @@ def _load_capabilities_stage(context) -> StageResult:
     })
 
 
+def _sweep_reddit_stage(context) -> StageResult:
+    """The Reddit LISTING sweep. `collect/ops/sweep_reddit.py`.
+
+    WIRED 2026-08-28, AND IT WAS BUILT THREE HOURS BEFORE IT WAS WIRED. The stage
+    function and the `ops sweep-reddit` command landed in PR #173 and this entry
+    stayed `run=None`, so the chain reported nine refusing stages when it had
+    eight, and this one's `starves=` text still said *"no document writer for them
+    either"* — a writer that had existed since 2026-08-21. **A stale refusal is
+    worse than a missing stage: it names a blocker that is gone, so the next
+    person costs the wrong work.** Exactly the shape `collect/CLAUDE.md`'s
+    uncalled-writer entries keep recording, produced by me in one sitting.
+
+    IT BUILDS ITS OWN CLIENT. `context["client"]` is the OpenRouter/registry
+    client and carries no RapidAPI headers, so a Reddit request through it would
+    404 at the gateway. Refusing on a missing key rather than raising: no
+    `RAPIDAPI_KEY` is a configuration state the night should report and survive,
+    not a crash that takes the rollup with it.
+
+    The terms gate fires in `harvester_for_source`, before a single request.
+    """
+    from collect.adapters.reddit import RedditConfigError, build_client, harvester_for_source
+    from collect.config import settings
+    from collect.ops.sweep_reddit import LISTING, sweep_reddit
+    from collect.rawstore import RawStore
+    from collect.registry.sources import load_sources
+
+    conn = context.get("conn")
+    if conn is None:
+        return StageResult(REFUSED, "no database connection",
+                           starves="no Reddit documents, and the listing's "
+                                   "harvest_run rows are not opened either")
+
+    contract = load_sources()
+    reddit = next((s for s in contract.platforms if s["id"] == "reddit"), None)
+    if reddit is None:
+        return StageResult(REFUSED, "contract/sources.yaml has no reddit source row",
+                           starves="no Reddit documents; the terms gate cannot even "
+                                   "be asked without a source row to ask about")
+    if not contract.sweep_subreddits:
+        return StageResult(
+            REFUSED, "contract/sources.yaml has no sweep_subreddits block",
+            starves="no Reddit documents. NOT the same as a sweep that found "
+                    "nothing: nobody has chosen a subreddit list, and sweeping an "
+                    "empty one would report as nobody discussing anything",
+        )
+
+    try:
+        client = build_client()
+    except RedditConfigError as error:
+        return StageResult(REFUSED, str(error),
+                           starves="no Reddit documents tonight. Reddit is the only "
+                                   "source that is structurally many voices, so the "
+                                   "voice count stays at whatever blog can reach")
+
+    with client:
+        harvester = harvester_for_source(
+            reddit,
+            rulings=contract.rulings,
+            client=client,
+            store=RawStore(settings().raw_store_path),
+        )
+        report = sweep_reddit(conn, harvester, contract=contract, provenance=LISTING)
+
+    return StageResult(OK, counts={
+        "subreddits": len(report.subreddits),
+        "unreached": len(report.unreached),
+        "requests": report.requests_issued,
+        "candidates": report.candidates,
+        # THE DENOMINATOR TRAVELS WITH THE COUNTS. A candidate figure without the
+        # population it was drawn from is the failure rule 7 is about, and the
+        # journal is read long after the run.
+        "offered": report.offered,
+        "population_per_subreddit": report.population_per_subreddit,
+        "kept": report.kept,
+        "stored": report.stored,
+        # The result, not `stored`. See RedditSweepReport.
+        "distinct_threads": report.distinct_threads,
+        "harvest_runs_closed": report.harvest_runs_closed,
+        "documents_with_run_id": report.documents_with_run_id,
+        "quota_exhausted": report.quota_exhausted,
+    })
+
+
 def default_stages() -> list[Stage]:
-    """Tonight's chain: four stages that run, and nine that say why they cannot.
+    """Tonight's chain: FIVE stages that run, and eight that say why they cannot.
+
+    THIS COUNT HAS BEEN STALE TWICE AND BOTH TIMES BY ONE. It said four-and-nine
+    while `sweep-reddit` was wired, which is the same defect as that stage's own
+    `starves=` text naming a writer that already existed. A number in a docstring
+    beside a list the reader can count is a number nobody re-derives — so if this
+    disagrees with the list below, the list is right.
 
     Every `run=None` below is a to-do item with tonight's cost attached. They are
     listed rather than omitted, because a chain that quietly covers three stages
@@ -393,6 +482,13 @@ def default_stages() -> list[Stage]:
     is missing; `refresh-coverage` is a window recompute that exists and a
     `coverage_gap` writer that does not. Refusing either wholesale would discard
     working coverage to report a missing writer.
+
+    AND ONE REFUSAL IS NOW LOUDER THAN THE OTHERS. `sweep-github` still reads
+    `run=None` while `collect/ops/sweep.py:sweep_github` exists and has a CLI
+    command — the same gap `sweep-reddit` had until this change. It is left as a
+    refusal rather than quietly wired because the GitHub sweep spends a 900-request
+    budget and overran its 35-minute ceiling on 2026-08-24, so putting it in the
+    nightly chain is a scheduling decision rather than a wiring one.
     """
     return [
         Stage("preflight", run=_preflight_stage),
@@ -416,8 +512,13 @@ def default_stages() -> list[Stage]:
               starves="no blog documents, and no document writer for them at all "
                       "— blogs are the only positive-evidence channel, so the "
                       "silent-failure capabilities cannot reach positive consensus"),
-        Stage("sweep-reddit", run=None, needs=("poll-registry",),
-              starves="no Reddit documents, and no document writer for them either"),
+        # NEEDS `recompute-window` RATHER THAN `poll-registry`, and the change is
+        # not cosmetic. The sieve narrows on seated aliases — a listing renders no
+        # query, so the terms do all the work — and `seated_variants` reads
+        # `model_alias` for models the window admits. Depending on the poll alone
+        # would let a night with a stale window sieve against yesterday's seats
+        # and report the result as a yield.
+        Stage("sweep-reddit", run=_sweep_reddit_stage, needs=("recompute-window",)),
         Stage("assemble-authors", run=None, needs=("sweep-github",),
               starves="author rows. NOTE: `from_github` and `from_reddit` read the "
                       "adapter's in-memory hits, not stored documents, so this "
