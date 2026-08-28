@@ -43,9 +43,23 @@ import argparse
 import json
 import pathlib
 
+from collect.assemble.prose import (
+    NotAPayload,
+    github_issue_prose,
+    reddit_prose,
+)
 from collect.config import settings
 from collect.rawstore import RawStore
 from collect.rawstore_reader import RawStoreReader
+
+#: `document.source` -> how to get prose out of that platform's payload. A
+#: source with no entry is passed through unchanged: blog `text_ref` is HTML and
+#: `extract_article_text` is not importable here, so blog exports are not this
+#: script's business.
+_EXTRACTORS = {
+    "reddit": reddit_prose,
+    "github": github_issue_prose,
+}
 
 
 def main() -> int:
@@ -96,14 +110,31 @@ def main() -> int:
         text_of: dict[str, str] = {}
         wanted = {m for r in rows for m in (r[2] or [])}
         if wanted:
-            for doc_id, ref in conn.execute(
-                "SELECT id, text_ref FROM document WHERE id = ANY(%s)", (list(wanted),)
+            for doc_id, source, ref in conn.execute(
+                "SELECT id, source, text_ref FROM document WHERE id = ANY(%s)",
+                (list(wanted),),
             ).fetchall():
                 if not ref:
                     continue
                 outcome = reader.resolve(ref)
-                if outcome.found:
+                if not outcome.found:
+                    continue
+                # PROSE, NOT THE PAYLOAD. `text_ref` points at the bytes the
+                # platform gave us since the content_hash ruling, and
+                # `raw_text_of` is what step 3 renders a verified quote FROM.
+                # Handing it the envelope would display a JSON span - the same
+                # defect one layer further on, and the layer a reader sees.
+                extract = _EXTRACTORS.get(source)
+                if extract is None:
                     text_of[doc_id] = outcome.require()
+                    continue
+                try:
+                    text_of[doc_id] = extract(outcome.require())
+                except NotAPayload:
+                    # SKIPPED, so the thread is refused below by
+                    # "no member raw text" rather than exported with an
+                    # envelope in it.
+                    continue
     finally:
         conn.close()
 
