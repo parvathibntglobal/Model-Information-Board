@@ -165,9 +165,12 @@ These are the rules a helpful refactor will otherwise quietly violate.
    No test can tell a measured check from an unmeasured one - the measurement
    lives in a document - so this one is a **reviewer question** rather than a
    code constraint, the same shape as rule 7's: **what population was this
-   filter's error rate measured on, and did the filter choose that population?**
-   The PR template carries it. Settled twice - speaking on ModelRef, and the
-   8★ behaviour gate - which is what makes it a rule rather than a precedent.
+   filter's error rate measured on, and did the filter, or anything upstream of
+   it, choose that population?** (The upstream clause catches the trap: "no, I
+   used the whole corpus" is not an answer when the corpus is an earlier
+   filter's output.) The PR template carries it. Settled twice - speaking on
+   ModelRef, and the 8★ behaviour check - which is what makes it a rule rather
+   than a precedent.
    Argument and both instances in `docs/weight-before-drop.md`.
 
 ## Stack decisions already made - do not relitigate
