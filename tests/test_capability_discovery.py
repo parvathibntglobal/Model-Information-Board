@@ -69,11 +69,11 @@ class TestStore:
     def test_only_attributed_proposals_are_stored_and_the_rest_are_counted(self):
         proposals = [
             ProposedCapability("output.verbosity", "over-writes", "burns tokens", True, "doc1"),
-            ProposedCapability("reasoning.overthinking", "over-reasons", "overthinks", True, "doc2"),
+            ProposedCapability("reasoning.overthink", "over-reasons", "overthinks", True, "doc2"),
             ProposedCapability("x.made_up", "not in the text", "nowhere", False, None),  # skip
         ]
         conn = _Conn()
-        out = store_proposals(conn, proposals, proposer_model="google/gemini-2.5-flash", prompt_label="t")
+        out = store_proposals(conn, proposals, proposer_model="gemini", prompt_label="t")
         assert out == {"proposed": 3, "stored": 2, "unattributed": 1}
         assert len(conn.cur.rows) == 2  # the None-document one was not inserted
 
