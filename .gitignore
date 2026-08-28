@@ -105,3 +105,7 @@ _sweep_store/
 # database plus the raw store.
 _export_extract/
 _export_modelonly/
+
+# Timing and baseline artifacts from scripts/, rebuildable and machine-specific.
+_timing_extraction.json
+_before_rollup.json
