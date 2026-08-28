@@ -287,6 +287,56 @@ and supplied 51% of the yield"*. Raising `max_pages` would change the quantity
 rather than fix the reporting, and it costs a request per extra page across
 1,019 runs.
 
+## 6a · The truncation applies to BOTH arms, and its direction is not the one it looks like
+
+§6 makes every rate here a ceiling. The obvious next step is to say the
+model-name arm truncates more often — broader queries, more results, so a
+smaller and more favourable slice — and therefore that the true gap is *wider*
+than 3x.
+
+**The arithmetic says the opposite is more likely, and neither is settled.**
+
+```
+this repository            max_pages = 1, PER_PAGE = 100
+                           -> at most 100 candidates per harvest_run row
+measured                   max(items_fetched) over 1,019 runs = 100.  Confirms it.
+
+the CAPABILITY arm         321 of 1,019 runs at the ceiling (31.5%),
+                           supplying 51% of the yield.
+                           MEASURED upward bias.
+
+the MODEL-NAME arm         2,239 candidates from "3 runs" = 746 per run.
+                           SEVEN TIMES the page-1 ceiling.
+```
+
+So the model-name arm did not fetch page 1 only. Either it ran with
+`max_pages > 1`, or "3 runs" means three sweep *invocations* issuing at least
+23 queries between them — the same unit ambiguity that already broke the
+per-request comparison.
+
+**Both readings matter and they point opposite ways:**
+
+| if the model-name arm... | then its rate is | and the true gap is |
+|---|---|---|
+| paged deeper than 1 | **less** inflated than the capability arm's | **narrower** than 3x |
+| issued ~23 page-1 queries | inflated like the capability arm, perhaps more | **wider** than 3x |
+
+The only truncation bias in this document that is *measured* sits on the
+capability arm — 31.5% of runs at the ceiling, half the yield — and it pushes
+**0.404% downward**, which closes the gap rather than opening it.
+
+**This is the second correction to this comparison and both go the same way.**
+The first took the capability figure from a misread 3.4% to a measured 0.404%,
+taking the gap from 23x to 3x. This one says 0.404% is itself a ceiling. Both
+shrink the distance between the two arms, and neither was in the direction the
+comparison was first argued in.
+
+**What settles it, and it is one question rather than a measurement:** what
+`max_pages` the model-name arm ran with, and whether "3 runs" counts requests or
+invocations. Until that is answered the ratio should be quoted as *"~3x, with
+both arms measured as ceilings and the relative bias unresolved"* — which is
+weaker than a number and is what the evidence supports.
+
 ## 6 · Where that leaves the decision
 
 The binary was real after all, at the depth we sweep. Recorded here so the third
