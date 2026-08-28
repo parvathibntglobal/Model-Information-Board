@@ -280,6 +280,38 @@ class ExtractedClaim(BaseModel):
         return bool(self.pain_points) and self.polarity != "negative"
 
 
+class CapabilityProposal(BaseModel):
+    """A capability the writer describes that NONE of the known keys name.
+
+    Capability discovery, and it is bound by the same two rules as a claim. Rule
+    2: the extractor PROPOSES a key, a human RULES on it (the `capability_candidate`
+    table), so the vocabulary never grows by a model's say-so. Rule 1: it carries
+    a verbatim quote, checked by exact substring like every other quote, so a
+    proposal cannot be conjured from nothing.
+
+    Distinct from `unclassified`, which is a quote that fits nothing and which the
+    model could not even name — this one comes with a proposed key and a
+    definition, so it is evidence a specific capability is missing rather than
+    just that some capability is.
+    """
+
+    proposed_key: str = Field(
+        description=(
+            "a NEW dotted key in the style of the vocabulary — e.g. "
+            "'output.verbosity' or 'reasoning.overthinking'. NOT one of the "
+            "existing keys; if an existing key fits, this is a claim, not a proposal."
+        )
+    )
+    definition: str = Field(description="one line: what this capability measures")
+    quote: str = Field(
+        max_length=MAX_QUOTE_CHARS,
+        description=(
+            "VERBATIM text that describes the capability. Checked by exact "
+            "substring, so no paraphrase — the same rule as a claim's quote."
+        ),
+    )
+
+
 class ExtractionResult(BaseModel):
     """Everything the extractor returns for one flattened thread.
 
@@ -289,6 +321,18 @@ class ExtractionResult(BaseModel):
     """
 
     claims: list[ExtractedClaim] = Field(default_factory=list)
+    proposed_capabilities: list[CapabilityProposal] = Field(
+        default_factory=list,
+        description=(
+            "CAPABILITY DISCOVERY. When a quote describes a real, recurring thing "
+            "a model does or fails at that NONE of the keys name, propose a new "
+            "key here with a one-line definition and the quote — rather than "
+            "forcing it into the nearest key (which fabricates consensus) or "
+            "dropping it into `unclassified` unnamed (which loses what it was "
+            "about). This is how the vocabulary grows on evidence. An empty list "
+            "means every quote fit an existing key; it is not a default."
+        ),
+    )
     no_claim_reason: str | None = Field(
         default=None,
         description="required when claims is empty: why this thread yielded nothing",

@@ -477,6 +477,31 @@ def extract_and_curate(conn, prog: Progress) -> None:
     cells = sum(len(r.cells) for r in results)
     prog.stage("E5", "Extract", "ok",
                detail=f"{verified} claim(s) verified, {stored} stored")
+
+    # CAPABILITY DISCOVERY. Proposals the extractor made for keys none of the 12
+    # named — appended to capability_candidate for an admin to rule on. The LLM
+    # proposes; a person adopts (a capabilities.yaml PR). Idempotent, so a
+    # re-fetch cannot inflate the count.
+    from judge.store.capability_candidates import store_proposals
+    proposals = [p for r in results for p in r.extraction.proposed_capabilities]
+    if proposals:
+        outcome = store_proposals(
+            conn, proposals,
+            proposer_model=os.getenv("EXTRACTOR_MODEL", "google/gemini-2.5-flash"),
+            prompt_label="fetch-extract",
+        )
+        conn.commit()
+        prog.stage("E5b", "Discover", "ok",
+                   proposed=outcome["proposed"], stored=outcome["stored"],
+                   unattributed=outcome["unattributed"],
+                   detail=f"{outcome['proposed']} capability proposal(s); "
+                          f"{outcome['stored']} new candidate(s) stored for review"
+                          + (f", {outcome['unattributed']} unattributable"
+                             if outcome["unattributed"] else ""))
+    else:
+        prog.stage("E5b", "Discover", "ok",
+                   detail="no new capabilities proposed — every claim fit an existing key")
+
     prog.stage("E6", "Vet", "ok", detail="promotional/sarcastic/contradictory dropped in-run")
     prog.stage("E7", "Curate", "ok",
                detail=f"{cells} cell(s) computed — capability cards refresh from these")
