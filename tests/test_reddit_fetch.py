@@ -6,8 +6,10 @@ measured on 2026-08-14 — `kind`/`data` envelopes, `t2_`/`t3_` fullnames,
 `created_utc` as an epoch float — reduced to the fields the adapter reads.
 
 The two that matter most here are the ones that were measured rather than
-assumed: `'data not found'` is zero results and not an error, and the page is
-stored BEFORE the sieve runs.
+assumed: the page is stored BEFORE the sieve runs, and `'data not found'` is
+**transient rather than zero results** — which is a correction, made 2026-08-28
+after a query with 175 results returned it and then recovered on five
+consecutive retries. This file asserted the old reading until then.
 """
 
 from __future__ import annotations
@@ -172,21 +174,47 @@ def _a_post() -> RedditPost:
     return _post_of(post())
 
 
-# ── 'data not found' is zero results ──────────────────────────────────────
+# ── 'data not found' is TRANSIENT, not zero results ───────────────────────
 
 
-def test_no_matches_is_not_an_error(tmp_path):
-    """The collision this project keeps finding, avoided by measurement.
+def test_an_empty_response_is_retried_before_it_is_believed(tmp_path):
+    """It is not an error, and it is not exhaustion either.
 
-    A nonsense query returns success:false / 'data not found' with HTTP 200.
-    Reading it as a failure makes "nobody discussed this" indistinguishable
-    from "the call broke".
+    **This test asserted `run.exhausted is True` until 2026-08-28, and that was
+    the falsified belief rather than a wrong assertion.** Measured that day: a
+    query which had just returned 175 candidates came back `success: false` /
+    `data: "data not found"`, then returned 25 posts on five consecutive
+    retries. The body is identical to a genuine zero, so it cannot be read as
+    one.
+
+    What it cost before it was found: two of seventeen surfaces in a model-only
+    sweep reported zero candidates for models that demonstrably have discussion.
+    A surface that silently returns nothing looked exactly like a model nobody
+    discusses.
     """
     run = harvester(responder(NO_RESULTS), tmp_path).search("zzzz nonexistent")
     assert run.posts == []
-    assert run.http_errors == 0, "not an error"
-    assert run.exhausted is True
+    assert run.http_errors == 0, "still not an error"
+    # THE CLAIM THAT CHANGED. `exhausted` is a statement about the platform
+    # running out of results; `empty_response` is a statement about us being
+    # unable to read a page. Only the second is defensible here.
+    assert run.exhausted is False
+    assert run.empty_response == 1
+    assert run.empty_retries == 2, "retried before believed, and the cost counted"
     assert run.truncated_by is None
+
+
+def test_a_transient_empty_response_recovers_on_retry(tmp_path):
+    """The case the retry exists for: empty once, then real posts."""
+    # `responder` serves each page in turn and then repeats the last, so this is
+    # exactly: empty first, real posts on the retry.
+    run = harvester(responder(NO_RESULTS, page([post()])), tmp_path).search("opus 4.8")
+    assert len(run.posts) == 1, "the retry's posts, not the empty page's"
+    assert run.empty_response == 0, "it recovered, so nothing was unreadable"
+    assert run.empty_retries == 1
+    # The RETRY's page is the one stored. Storing the empty response would file a
+    # discovery_ref that does not contain the documents it is provenance for.
+    assert run.pages_stored == 1
 
 
 def test_a_real_http_error_is_an_error(tmp_path):
