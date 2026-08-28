@@ -262,7 +262,7 @@ columns:
       reviewed: true
       why: >-
         per-run diagnostic, read by a person reading the row
-    id: {state: write_only, reviewed: false}
+    id: {state: read, reviewed: false}
     items_fetched:
       state: read
       reviewed: true
