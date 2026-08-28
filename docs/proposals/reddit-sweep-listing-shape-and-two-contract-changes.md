@@ -211,11 +211,42 @@ the two-phase commit-per-query arrangement, `RedditRun.harvest_run_fields`,
 and the sieve.
 
 **New:** a `sweep_reddit` stage beside `sweep_github`, ~200 lines. It iterates
-subreddits rather than seated models, so `seated_variants` and `mark_swept` do
-**not** apply — `last_swept_at` is a per-model column and a listing sweep covers
-no particular model. That asymmetry should be stated in the stage rather than
-worked around, or the rotation will read a listing sweep as having refreshed
-models it never targeted.
+subreddits rather than seated models.
+
+### 5.1 · `mark_swept` does not carry over, and the asymmetry is STATED rather than solved
+
+`seated_variants` and `mark_swept` do **not** apply. `last_swept_at` answers
+*"when was this model last covered"*, and a listing sweep covers no particular
+model — it covers twelve subreddits, and which models appear in them is an
+outcome rather than an input.
+
+**Do not solve this.** The tempting fixes are both worse than the gap:
+
+```
+stamp every model a swept post mentions   -> a model mentioned once in one
+                                             comment reads as freshly covered,
+                                             and the rotation deprioritises it
+                                             in favour of models actually swept.
+                                             The ordering working backwards -
+                                             which sweep.py already refuses to
+                                             do for a clock-cut seat.
+
+stamp nothing and say nothing             -> a Reddit sweep runs nightly and
+                                             last_swept_at never moves, so the
+                                             column silently means
+                                             "last GitHub sweep" while being
+                                             named for coverage in general.
+```
+
+So the stage should **write no `last_swept_at` and say so in its report** — a
+named absence, the same shape as `SweepReport.unreached`. A rotation reading a
+listing sweep as per-model freshness would be rule 6 in the scheduler: an
+unmeasured value becoming a definite one, and the resulting deprioritisation is
+invisible because it looks like a considered ordering.
+
+The honest coverage statement for a listing sweep is per **subreddit**, not per
+model. If that is wanted durably it is a new column and a separate proposal; it
+is not this one, and the gap is not a defect to patch on the way past.
 
 **Not needed:** the per-platform renderer. A listing takes no query, so the
 renderer stays parked until and unless shape A is chosen. The GitHub probes
