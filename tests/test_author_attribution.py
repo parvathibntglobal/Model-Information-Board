@@ -24,10 +24,22 @@ Each test here is a failure that has a name and a precedent:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+
+import pytest
 from typing import Any
 
 from collect.adapters.github import github_author_id
-from collect.adapters.reddit_write import author_id_for, document_row, write_documents
+from collect.adapters.reddit_write import (
+    REDDIT_PROVENANCE,
+    author_id_for,
+    document_row,
+    write_documents,
+)
+
+#: These fakes stand in for a subreddit LISTING - no query was rendered, so a
+#: NULL harvest_run_id is complete. Typed rather than defaulted: the writer now
+#: refuses to guess, which is the point of the 2026-08-28 change.
+LISTING = "no_run_for_source"
 from collect.assemble.authors import AuthorRow, from_github, from_reddit, hash_handle
 
 
@@ -144,7 +156,7 @@ class TestTheHandleIsNotRetained:
         assert hash_handle("SomeOne") == hash_handle("someone")
 
     def test_the_document_row_carries_no_handle_either(self):
-        row = document_row(FakeComment(author="a-very-distinctive-handle"))
+        row = document_row(FakeComment(author="a-very-distinctive-handle"), retrieval_provenance=LISTING)
         assert "a-very-distinctive-handle" not in repr(row)
         assert row["author_id"] is not None
 
@@ -170,7 +182,7 @@ class TestNoAuthorMeansNoRow:
         assert extraction.distinct_authors == 0
         assert extraction.unattributable == 115
 
-        rows = [document_row(c) for c in items]
+        rows = [document_row(c, retrieval_provenance=LISTING) for c in items]
         assert all(r["author_id"] is None for r in rows)
         assert len({r["author_id"] for r in rows}) == 1  # all None, no shared id
 
@@ -194,14 +206,14 @@ class TestTheDocumentRow:
     def test_a_comment_carries_its_thread_and_parent(self):
         """Discriminated on the fields. An earlier `isinstance(item,
         RedditComment)` wrote NULL linkage for anything of another type."""
-        row = document_row(FakeComment())
+        row = document_row(FakeComment(), retrieval_provenance=LISTING)
         assert row["thread_root_id"] == "t3_root"
         assert row["parent_id"] == "t3_root"
         assert row["source"] == "reddit"
         assert row["id"] == "reddit:t1_abc"
 
     def test_absent_refs_stay_null_rather_than_becoming_empty_strings(self):
-        row = document_row(FakeComment())
+        row = document_row(FakeComment(), retrieval_provenance=LISTING)
         assert row["text_ref"] is None
         assert row["content_hash"] is None
 
@@ -215,7 +227,7 @@ class TestTheDocumentRow:
             author: str | None = "someone"
             author_fullname: str | None = "t2_2ii4xgakc7"
 
-        row = document_row(FakePost())
+        row = document_row(FakePost(), retrieval_provenance=LISTING)
         assert row["thread_root_id"] is None
         assert row["parent_id"] is None
         assert row["author_id"] is not None
@@ -232,7 +244,7 @@ class TestAnExistingRowStillGetsItsAuthor:
     def test_write_documents_updates_the_author_on_a_conflicting_row(self):
         conn = FakeConn()
         items = [FakeComment(external_id="t1_a"), FakeComment(external_id="t1_b")]
-        counts = write_documents(conn, items)
+        counts = write_documents(conn, items, retrieval_provenance=LISTING)
 
         updates = [sql for sql, _ in conn.calls if sql.startswith("UPDATE document")]
         assert updates, "an existing row must still get its author_id"
@@ -246,7 +258,48 @@ class TestAnExistingRowStillGetsItsAuthor:
 
     def test_an_authorless_item_is_not_in_the_update_batch(self):
         conn = FakeConn()
-        write_documents(conn, [FakeComment(external_id="t1_x", author_fullname=None)])
+        write_documents(conn, [FakeComment(external_id="t1_x", author_fullname=None)],
+                        retrieval_provenance=LISTING)
         for sql, params in conn.calls:
             if sql.startswith("UPDATE document"):
                 assert params == [], "nothing to attribute, so nothing to update"
+
+
+class TestRetrievalProvenanceIsTheCallersClaim:
+    """The writer refuses to guess which run produced a row.
+
+    `no_run_for_source` was typed into the INSERT for every caller, and the
+    per-model fetch's Reddit arm - which issues model-name QUERIES through this
+    same writer - wrote 853 rows asserting there had been nothing to record.
+    A positive claim that nothing was missing, on rows where something was.
+    """
+
+    def test_an_unknown_value_raises_here_rather_than_at_the_check(self):
+        with pytest.raises(ValueError) as excinfo:
+            document_row(FakeComment(), retrieval_provenance="probably_fine")
+        # The message must name the CALLER's problem, not the constraint. A
+        # 23514 from Postgres names `document_retrieval_provenance_ck`, which
+        # tells whoever reads the traceback nothing about what to pass.
+        assert "retrieval_provenance" in str(excinfo.value)
+        assert "claim about the RUN" in str(excinfo.value)
+
+    def test_run_recorded_is_refused_because_this_writer_sets_no_id(self):
+        """Offering it would build a row `..._agrees_ck` rejects."""
+        assert "run_recorded" not in REDDIT_PROVENANCE
+        with pytest.raises(ValueError):
+            document_row(FakeComment(), retrieval_provenance="run_recorded")
+
+    def test_the_value_reaches_the_row_rather_than_being_reinterpreted(self):
+        for value in REDDIT_PROVENANCE:
+            row = document_row(FakeComment(), retrieval_provenance=value)
+            assert row["retrieval_provenance"] == value
+
+    def test_every_permitted_value_is_in_the_schema_check(self):
+        """The tuple and the CHECK must not drift apart."""
+        from collect.config import CONTRACT_DIR
+
+        ddl = (CONTRACT_DIR / "tables.sql").read_text(encoding="utf-8")
+        start = ddl.index("document_retrieval_provenance_ck")
+        clause = ddl[start:start + 400]
+        for value in REDDIT_PROVENANCE:
+            assert f"'{value}'" in clause, f"{value} is writable and not in the CHECK"
