@@ -24,9 +24,9 @@ Each test here is a failure that has a name and a precedent:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import pytest
-from typing import Any
 
 from collect.adapters.github import github_author_id
 from collect.adapters.reddit_write import (
@@ -35,12 +35,12 @@ from collect.adapters.reddit_write import (
     document_row,
     write_documents,
 )
+from collect.assemble.authors import AuthorRow, from_github, from_reddit, hash_handle
 
 #: These fakes stand in for a subreddit LISTING - no query was rendered, so a
 #: NULL harvest_run_id is complete. Typed rather than defaulted: the writer now
 #: refuses to guess, which is the point of the 2026-08-28 change.
 LISTING = "no_run_for_source"
-from collect.assemble.authors import AuthorRow, from_github, from_reddit, hash_handle
 
 
 @dataclass(frozen=True)
@@ -156,7 +156,9 @@ class TestTheHandleIsNotRetained:
         assert hash_handle("SomeOne") == hash_handle("someone")
 
     def test_the_document_row_carries_no_handle_either(self):
-        row = document_row(FakeComment(author="a-very-distinctive-handle"), retrieval_provenance=LISTING)
+        row = document_row(
+            FakeComment(author="a-very-distinctive-handle"), retrieval_provenance=LISTING
+        )
         assert "a-very-distinctive-handle" not in repr(row)
         assert row["author_id"] is not None
 
