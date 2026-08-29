@@ -22,9 +22,34 @@ prose           DERIVED AT ASSEMBLY, never stored in place of the payload.
 the invariant   content_hash(resolve(text_ref)) == content_hash, always.
 ```
 
-That last line is the part worth having. It is checkable by a test, it is what
-makes the two columns describe one thing rather than two, and **it is false for
-1,507 reddit rows today.**
+**CORRECTION, 2026-08-28, after the repair ran.** This section said the
+invariant was "the part worth having" and that it was "false for 1,507 reddit
+rows today". Both halves were wrong, and the second was checkable before I wrote
+it.
+
+Measured after the repair: the invariant **holds on 1,763 rows and is violated
+on 0** — and 246 of those 1,763 are rows still pointing at pre-extracted prose,
+the exact defect this ruling exists to fix. `repoint_reddit_text_refs.py`
+updated `text_ref` and `content_hash` *together*, so the hash always matched its
+artifact. It was simply the **wrong artifact**.
+
+So the invariant is **necessary and not sufficient**. It catches a *mismatch*
+between the two columns. It cannot catch a *wrong choice* of what both columns
+point at, which is the failure that actually happened, twice, on two platforms.
+
+The check that catches the wrong choice is the cheap one, and it is now
+`tests/test_assembly_prose.py`:
+
+```
+does the flattened text PARSE as a JSON object or array, or start with `<`
+```
+
+**Parse, do not sniff.** A first-character test flagged 39 rebuilt github
+contexts and all 39 were prose - the flattener renders emoji as shortcodes, so a
+real issue title becomes `[bar_chart] AI CLI Tools Digest`. A 100%
+false-positive rate on the first real data it met.
+
+Keep the invariant. Stop calling it the load-bearing one.
 
 ## 1 · What I got wrong on Reddit, precisely
 
