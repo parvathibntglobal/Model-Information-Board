@@ -176,6 +176,86 @@ def github_alias_form(surface: str) -> str:
     return surface
 
 
+#: Emission order for one alias on GitHub. Ranked by MEASURED yield per request
+#: over 1,019 harvest runs and 44,848 candidates, not by taste:
+#:
+#:     hyphenated                 551 runs  40,909 fetched  173 kept  74.2/run
+#:     concatenated-with-numeral  436 runs   2,439 fetched    8 kept   5.6/run
+#:     spaced                      32 runs   1,500 fetched    0 kept
+#:
+#: `docs/measurements/what-github-needs-before-a-sweep.md`.
+ALIAS_FORMS: tuple[str, ...] = ("hyphenated", "concatenated")
+
+
+def github_alias_forms(surface: str) -> tuple[str, ...]:
+    """Every form worth issuing for one alias, MOST PRODUCTIVE FIRST.
+
+    WHY THIS RETURNS A LIST AND `github_alias_form` RETURNS ONE STRING. The two
+    forms retrieve **disjoint sets**. Measured per document rather than per
+    request:
+
+        found ONLY by concatenated     4
+        found by both                  0
+        found ONLY by hyphenated      48
+
+    Zero overlap. So the concatenated form is not a worse way of finding the same
+    issues - it finds different ones, and dropping it discards a measured 7.7% of
+    the corpus.
+
+    **EXPENSIVE AND USELESS ARE DIFFERENT STATES, and the second is the easy
+    read.** 5.6 fetched per run against 74.2 looks like noise until you ask what
+    it uniquely produced; then it is 109 requests per unique document against
+    hyphenated's 11.5. A 9.5x cost difference is a PRIORITY, not a filter -
+    which is rule 8's shape with the measurement already in hand: the error rate
+    is known, so this ships as a weight with a number rather than a gate on a
+    guess.
+
+    So: emit hyphenated always, concatenated last and only when the search
+    budget is not the binding constraint. The caller decides that; this function
+    only orders them.
+
+    WHY GITHUB WANTS THE OPPOSITE FORM TO REDDIT, WHICH IS THE THING THAT STOPS
+    SOMEONE UNIFYING THESE LATER
+    ---------------------------------------------------------------------------
+    **GitHub's preference is about the INDEX. Reddit's is about CONVENTION.**
+
+    GitHub Search tokenises on punctuation, so `claude-sonnet-4.5` becomes
+    matchable terms - `claude`, `sonnet`, `4`, `5` - and an issue mentioning the
+    model matches on them. `claudesonnet4.5` is a **single rare token** that
+    appears nowhere, which is why it fetches 0 on run after run rather than
+    fetching noise. The concatenated form does not retrieve badly; it barely
+    retrieves at all, and the four documents it does find are ones where somebody
+    literally typed it.
+
+    Reddit has no such index in play - the sweep matches against titles - so the
+    question there is *how does a human write this*, and the answer was the
+    vendor's own marketing spelling: `qwen3.8-27b` hyphenated matched 116 of 175
+    titles against 42 spaced, because that is how the announcement wrote it and
+    how people copy it.
+
+    **Same alias, two questions.** GitHub asks *how does this tokenise*; Reddit
+    asks *how do humans write this*. A single renderer with a platform flag would
+    have to answer both from one rule, and there is no rule that produces
+    `claude-sonnet-4.5` for a tokeniser and `qwen3.8-27b` for a copy-paste
+    convention except "look up the platform" - which is what having two arms
+    already is, stated honestly.
+
+    A trailing numeral is what makes hyphenation load-bearing rather than
+    cosmetic: see `github_alias_form`, where the spaced form collected issue #5
+    from unrelated repositories, 89 of 123 results.
+    """
+    surface = surface.strip()
+    if not surface:
+        return ()
+    hyphenated = github_alias_form(surface)
+    concatenated = "".join(surface.split())
+    if concatenated.casefold() == hyphenated.casefold():
+        # Nothing to add. A single-token alias has one form, and returning it
+        # twice would double the request count for no candidates.
+        return (hyphenated,)
+    return (hyphenated, concatenated)
+
+
 def _narrowing_token(terms: RenderedTerms) -> str | None:
     """The single most selective single-word topic term, or None.
 

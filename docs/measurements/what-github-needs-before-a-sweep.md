@@ -47,9 +47,20 @@ differently productive.
                                                             the search budget is
                                                             not the binding
                                                             constraint
-4  spaced                            claude sonnet 4.5      not emitted — 0 kept
-                                                            in 32 runs
+4  spaced, WHERE A TRAILING NUMERAL  claude sonnet 5        never emitted — it
+   WOULD COLLIDE                                             collects issue #5,
+                                                             89 of 123 results
 ```
+
+**Correction to an earlier draft of this section, which said "spaced: not
+emitted, 0 kept in 32 runs".** That conflated two populations. `github_alias_form`
+deliberately KEEPS a space where no trailing numeral collides — `gpt-4.1 mini`
+renders unchanged, because the numeral is not the last token — and that
+reasoning is sound and untouched. The 32-run "other" bucket in the table above
+is aliases with neither a hyphen nor a letter-digit boundary, which is a
+different set from "spaced aliases in general". n=32 is also too small to
+retire a form on. What is retired is the spaced form **of an alias ending in a
+numeral**, and that was retired on the issue-#5 measurement, not on this one.
 
 **Why this is a priority order and not a filter.** Rule 8: a check whose error
 rate has not been measured against a population it did not choose ships as a

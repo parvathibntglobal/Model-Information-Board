@@ -194,6 +194,27 @@ class StoredIssue:
 
 
 @dataclass
+class StoredComment:
+    """One GitHub issue comment, stored as its own payload.
+
+    `author_handle` IS CARRIED AND IS NOT STORED TO THE DATABASE BY THIS CLASS.
+    It exists because `n_eff` counts distinct VOICES and the comment author is
+    the whole point of fetching comments at all - a second person on a thread is
+    a second voice, the same person twice is still one. `collect/assemble/
+    authors.py` hashes it; per the 2026-08-18 ruling the handle itself is
+    retained nowhere, and it reaches `handle_hash` transiently.
+    """
+
+    external_id: str
+    issue_api_url: str
+    html_url: str
+    author_handle: str | None
+    ref: str
+    content_hash: str
+    already_present: bool
+
+
+@dataclass
 class QueryRun:
     """What one query cost and what it produced. The FR-10 row, plus the sieve."""
 
@@ -517,6 +538,103 @@ class GitHubHarvester:
             already_present=stored.already_present,
             hit=hit,
         )
+
+    # ── comments: the voices half ────────────────────────────────────────
+    #
+    # WHY THIS IS NOT A TIDINESS FIX. `coverage_ratio` reads 0.0 on all 71 github
+    # contexts with 149 comments recorded as `hidden_children_min`, and that
+    # number is honest rather than cosmetic: we read the issue body and none of
+    # the thread. What the thread holds is DISTINCT AUTHORS, and `n_eff` counts
+    # VOICES - one engineer posting five times is one voice, and a second person
+    # writing "same here, on 4.8 as well" is a second voice on the same cell.
+    #
+    # WHY IT IS FREE. `GET /rate_limit`, measured: search 30/minute, core
+    # 5,000/hour, SEPARATE BUCKETS. Discovery spends search; this spends core,
+    # which is otherwise used only for issue bodies. The whole current corpus is
+    # 32 requests - every commented issue has at most 46 comments and
+    # `per_page=100` takes them in one page - which is 0.64% of one hour.
+    #
+    # So this rides the existing sweep and cannot slow discovery down. That is
+    # the exact opposite of Reddit, where the equivalent is 132,442 unread
+    # comments and a real cost.
+
+    #: One page holds every comment on every issue in the corpus (max observed
+    #: 46). Paging is still implemented, because "max observed" is a fact about
+    #: 80 documents and not a property of GitHub.
+    COMMENTS_PER_PAGE = 100
+
+    def fetch_comments(
+        self,
+        issue_api_url: str,
+        run: QueryRun,
+        *,
+        max_pages: int = 5,
+    ) -> list[StoredComment]:
+        """Every comment on one issue, stored individually.
+
+        STORED PER COMMENT, not as one page blob, and for the reason the
+        content_hash ruling settled: `text_ref` names the per-document artifact
+        so `content_hash` identifies ONE document. A page holding forty comments
+        would make forty documents share a hash and break dedupe the same way a
+        search response would - `github.py`'s own argument for why `text_ref`
+        names the issue rather than the search page, one level down.
+
+        Returns [] rather than raising on an HTTP failure: a thread whose
+        comments could not be fetched is a coverage fact, and the issue body is
+        still worth keeping. The failure is counted on `run`.
+        """
+        stored: list[StoredComment] = []
+        for page in range(1, max_pages + 1):
+            url = f"{issue_api_url}/comments"
+            try:
+                response = self._get(
+                    url,
+                    params={"per_page": self.COMMENTS_PER_PAGE, "page": page},
+                    search=False,
+                )
+            except httpx.HTTPError as error:
+                run.http_errors += 1
+                log.error("comment fetch failed for %s: %s", url, error)
+                return stored
+
+            run.rest_calls += 1
+            if response.status_code != 200:
+                run.http_errors += 1
+                log.error("comment fetch %s returned %s", url, response.status_code)
+                return stored
+
+            try:
+                payload = response.json()
+            except ValueError:
+                run.http_errors += 1
+                log.error("comment fetch %s returned unparseable JSON", url)
+                return stored
+            if not isinstance(payload, list) or not payload:
+                return stored
+
+            for comment in payload:
+                if not isinstance(comment, dict) or comment.get("id") is None:
+                    continue
+                # EACH COMMENT IS ITS OWN STORED PAYLOAD. `json.dumps` with
+                # sorted keys so the same comment re-fetched hashes identically
+                # and the content-addressed store deduplicates it.
+                blob = json.dumps(comment, sort_keys=True, ensure_ascii=False)
+                put = self._store.put(blob, namespace=RAW)
+                stored.append(
+                    StoredComment(
+                        external_id=f"gh-comment:{comment['id']}",
+                        issue_api_url=issue_api_url,
+                        html_url=comment.get("html_url") or "",
+                        author_handle=((comment.get("user") or {}).get("login")),
+                        ref=put.ref,
+                        content_hash=put.content_hash,
+                        already_present=put.already_present,
+                    )
+                )
+
+            if len(payload) < self.COMMENTS_PER_PAGE:
+                return stored
+        return stored
 
     # ── the write path ───────────────────────────────────────────────────
 
