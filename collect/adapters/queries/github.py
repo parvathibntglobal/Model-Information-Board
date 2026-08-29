@@ -256,6 +256,71 @@ def github_alias_forms(surface: str) -> tuple[str, ...]:
     return (hyphenated, concatenated)
 
 
+#: Query SHAPES, ranked by on-subject documents per request. Measured
+#: 2026-08-28 over 18 requests and 1,451 candidates, three models:
+#:
+#:     shape    reqs  cands  on-subject  UNIQUE  on-subject/request
+#:     title       3    300          93      79               31.0
+#:     label       3    300          65      29               21.7
+#:     repro       6    600          95      61               15.8
+#:     signal      6    251          22      21                3.7
+#:
+#: `docs/measurements/what-github-needs-before-a-sweep.md`.
+SHAPES: tuple[str, ...] = ("title", "topic", "repro")
+
+
+def title_only_query(surface: str, *, item_type: str = "issue") -> str:
+    """`"<alias>" in:title type:issue` — the highest-precision shape measured.
+
+    **76 of 100 candidates on-subject on a single query**, and 93 of 300 across
+    three models, against a pooled all-time keep rate of 0.404%. That is the
+    largest retrieval improvement measured on this platform and nobody had
+    issued it before 2026-08-28.
+
+    WHY IT WORKS, and it is the tokeniser argument again. GitHub indexes title
+    and body together by default, so `"claude-sonnet-4.5"` matches a changelog
+    entry, a lockfile diff, a dependency bump - anything that merely CONTAINS the
+    string. `in:title` restricts the match to the field a human chose to write,
+    and a model named in a title is what the issue is ABOUT rather than something
+    it happens to mention.
+
+    WHAT IT DOES NOT FIX, stated because the number invites the wrong
+    conclusion. Across all four shapes tested, **230 on-subject documents
+    produced ZERO signal hits.** `in:title` moves the funnel's first stage from
+    ~20% to 31% and changes nothing downstream. It is a better place to start
+    failing, not a fix - signal is a sieve question, and no query shape reaches
+    it.
+
+    NEAR-DISJOINT WITH THE OTHER SHAPES, which is why the sweep should run
+    several rather than pick this one:
+
+        title n signal   0        repro n signal   0
+        title n repro    9        repro n label   30
+        title n label   10        signal n label   1
+
+    79 of `title`'s 93 on-subject documents were found by no other shape.
+    """
+    return f'"{github_alias_form(surface)}" in:title type:{item_type}'
+
+
+def repro_query(surface: str, word: str = "traceback", *, item_type: str = "issue") -> str:
+    """Alias plus a repro artifact word. 61 unique on-subject documents in 6 requests.
+
+    Kept as a shape despite producing 0 kept, because `unique` is the number
+    that matters when shapes are disjoint: 61 of its 95 on-subject documents
+    were found by nothing else, and it shares NOTHING with the signal shape.
+
+    **The reading that motivated this arm is withdrawn.** It was chosen because
+    the productive topic tokens (`SEARCH/REPLACE`, `json_schema`) are literal
+    artifacts and the barren ones (`extraction`, `boilerplate`) are conceptual
+    English - so a repro word should behave like the productive class.
+    `traceback` produced zero signal hits, exactly like everything else. The
+    topic-token measurement stands on its own numbers; this arm did not confirm
+    the explanation for it, and the shape earns its place on uniqueness instead.
+    """
+    return f'"{github_alias_form(surface)}" {word} type:{item_type}'
+
+
 def _narrowing_token(terms: RenderedTerms) -> str | None:
     """The single most selective single-word topic term, or None.
 
