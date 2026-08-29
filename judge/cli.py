@@ -169,7 +169,11 @@ def _cmd_extract(args: argparse.Namespace, *, resolver_factory=None) -> int:
 
 
 
-def _document_facts(conn: Any, document_ids: set[str]) -> tuple[dict[str, Any], set[str]]:
+def _document_facts(
+    conn: Any,
+    document_ids: set[str],
+    text_of: dict[str, str] | None = None,
+) -> tuple[dict[str, Any], set[str]]:
     """`DocumentFacts` for the documents an export refers to, read from the DB.
 
     Read rather than taken from the export: `platform` and `created_at` decide
@@ -178,6 +182,21 @@ def _document_facts(conn: Any, document_ids: set[str]) -> tuple[dict[str, Any], 
     pipeline already skips a claim whose document it knows nothing about rather
     than weighting it from defaults, and inventing a platform here would silently
     change `f_platform`.
+
+    `text_of` IS THE ONE THING TAKEN FROM THE EXPORT, and the reasoning above is
+    why it has to be. E6 hard rejection had NEVER RUN on this path: `text` was
+    never populated, so `pipeline.py`'s vet step took the `unvetted` branch for
+    every document in every run. `unvetted` is correctly designed - it is not
+    counted as `kept` - but nothing persists it, so a claim no rule ran against
+    was indistinguishable from one that passed every rule.
+
+    The rule above does not extend to `text`. `platform` and `created_at` are
+    FIGURES that feed a weight and the export could lie about them undetectably.
+    `text` is the SUBSTRATE: it is what the model was shown and what every quote
+    was verified against by exact substring. There is nothing to check it
+    against because it is the thing everything else is checked against - and the
+    database cannot supply it anyway, since `document.text_ref` is a store
+    location and this lane may not read the store.
     """
     from judge.pipeline import DocumentFacts
 
@@ -221,6 +240,9 @@ def _document_facts(conn: Any, document_ids: set[str]) -> tuple[dict[str, Any], 
             names_version=None,
             has_conditions=None,
             has_numbers=None,
+            # E6'S INPUT. None keeps the honest `unvetted` branch for a document
+            # the export did not carry; it no longer means "every document".
+            text=(text_of or {}).get(doc_id),
         )
     if undatable:
         # NAMED SEPARATELY from documents the database does not have. "Not in
@@ -279,7 +301,14 @@ def _extract_from_export(
     if not loaded.threads:
         raise SystemExit("no thread in that export carried usable text; nothing to run")
 
-    facts, undatable = _document_facts(conn, loaded.document_ids)
+    # `raw_text_of` is keyed by member document id and carries the prose each
+    # quote was verified against - exactly what `reject_check` needs.
+    text_of = {
+        doc_id: text
+        for thread in loaded.threads
+        for doc_id, text in thread.raw_text_of.items()
+    }
+    facts, undatable = _document_facts(conn, loaded.document_ids, text_of)
     # UNDATABLE SUBTRACTED, because they are not missing. A document present but
     # carrying no created_at was already reported with that reason; counting it
     # again as "no row in this database" would state the wrong repair twice.

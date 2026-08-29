@@ -115,7 +115,15 @@ def main(argv: list[str] | None = None) -> int:
 
     conn = connect()
     resolver = RegistrySurfaceResolver.from_connection(conn)
-    facts, undatable = _document_facts(conn, loaded.document_ids)
+    # E6's input, from the export. See `_document_facts`: `text` is the
+    # substrate every quote was verified against, and the database cannot supply
+    # it because `text_ref` is a store location this lane may not read.
+    text_of = {
+        doc_id: text
+        for thread in loaded.threads
+        for doc_id, text in thread.raw_text_of.items()
+    }
+    facts, undatable = _document_facts(conn, loaded.document_ids, text_of)
     model_version_of = {
         r[0]: r[2]
         for r in conn.execute(
@@ -143,6 +151,11 @@ def main(argv: list[str] | None = None) -> int:
               "unsalvaged": 0, "threads": 0, "batches": 0}
     started = time.perf_counter()
     stopped_by_budget = False
+    # THE SURFACES WE DECLINED TO GUESS. 347 of 450 verified claims were dropped
+    # here on 2026-08-28 and the only trace was a log.info the default level does
+    # not emit. Collected so the run REPORTS them rather than losing them.
+    unresolved: list[str] = []
+    unvetted = 0
 
     for start in range(0, len(threads), args.batch_size):
         slice_ = threads[start : start + args.batch_size]
@@ -182,6 +195,8 @@ def main(argv: list[str] | None = None) -> int:
             totals["unclassified"] += len(r.extraction.unclassified)
             totals["unsalvaged"] += len(r.extraction.unsalvaged)
             totals["stored"] += len(r.stored_claim_ids)
+            unresolved.extend(r.unresolved_surfaces)
+            unvetted += len(r.unvetted_documents)
         seen = ledger.already_extracted()
 
         elapsed = time.perf_counter() - started
@@ -210,6 +225,20 @@ def main(argv: list[str] | None = None) -> int:
           f" + unclassified {totals['unclassified']}")
     print(f"unsalvaged        : {totals['unsalvaged']} (proposed and unbuildable)")
     print(f"stored            : {totals['stored']}")
+    if unresolved:
+        import collections as _c
+
+        tally = _c.Counter(unresolved)
+        print(f"unresolved surface: {len(unresolved)} claim(s) dropped at model "
+              f"resolution, {len(tally)} distinct surface(s)")
+        print("  Each is a REFUSAL TO INVENT SPECIFICITY, not a failure: a "
+              "family name, an ambiguous codename or a range cannot name one "
+              "model version. Named here because rule 4 says an absence we "
+              "caused must not read as an absence we found.")
+        for surface, n in tally.most_common(15):
+            print(f"    {n:5d}  {surface!r}")
+    if unvetted:
+        print(f"unvetted documents: {unvetted} (E6 could not run - no text)")
     if totals["verified"] and not totals["stored"]:
         print("  VERIFIED BUT NOT STORED: either the documents could not be "
               "weighted or the models resolved to no tracked row.")

@@ -463,6 +463,12 @@ class PipelineResult:
     #: against. Verified, attributed, and wrong - the gap the GPT-5.6 case found.
     #: Same standing as `subjects_inherited`: counted, logged, not stored.
     quote_names_another_model: int = 0
+    #: Surfaces the extractor proposed that resolve to no tracked model, in the
+    #: order they were dropped. NOT a count: the SURFACE is the finding - it says
+    #: whether the drop was a family name, an ambiguous codename or a range, and
+    #: a count says only that something went missing. Every one is a deliberate
+    #: refusal to invent specificity; this is the record of what was refused.
+    unresolved_surfaces: list[str] = field(default_factory=list)
 
     #: document_id -> (trigger, detail) for documents E6 hard-rejected. Their
     #: claims are dropped rather than weighted; kept here so a rejection is
@@ -645,6 +651,21 @@ class Pipeline:
                 # Unresolvable is a real state and a counted one. Dropping it
                 # silently is how "nobody discusses this model" and "we could
                 # not resolve the name" become the same absence.
+                #
+                # RECORDED ON THE RESULT, not only logged. This comment described
+                # the hazard for months while the only trace was a `log.info`
+                # the default level does not emit - so 347 of 450 verified claims
+                # vanished on 2026-08-28 with nothing to read afterwards, and
+                # `judge/cli.py` said of them: "Neither is recorded anywhere but
+                # this output."
+                #
+                # MEASURED, and every observed drop was a CORRECT refusal:
+                # '5.0' (a version with no family), 'Qwen' (family only), 'Terra'
+                # and 'Sol' (each ambiguous between a base and a -pro variant),
+                # 'Opus 4.2-4.7' (a range). Resolving any of them would invent
+                # specificity. So this records what we declined to guess, which is
+                # rule 4's absence problem at the largest scale in the pipeline.
+                result.unresolved_surfaces.append(claim.model_ref.surface)
                 log.info(
                     "claim references %r which resolves to no tracked model",
                     claim.model_ref.surface,
