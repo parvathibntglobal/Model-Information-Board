@@ -27,9 +27,14 @@ from psycopg.types.json import Json
 from psycopg.types.range import Range
 
 from judge import reweight
-from judge.store.claims import CONNECT_TIMEOUT_SECONDS, PIPELINE_VERSION, claim_id_for
+from judge.reweight import FROZEN, READ
+from judge.store.claims import CONNECT_TIMEOUT_SECONDS, claim_id_for
 
 OLD = "e5.0-test"
+#: The tier ruling's fork. Named so the tests run the same two steps a person
+#: does - tier first at FROZEN, document facts second at READ - rather than
+#: collapsing both into one call that measures neither.
+TIER = "e5.2-test"
 CAPABILITY = "summarization.fidelity"
 BUCKET = "context_size:8k-32k"
 
@@ -93,8 +98,11 @@ def _e51_factors(*, platform, repro, days_ago=10, tier="D"):
     finding about the fixture and noise about the code. Building the before-row
     the way the before-code built it means the drift check tests the ruling.
 
-    `has_conditions=None` and `has_numbers=None` reproduce
-    `judge/cli.py:_document_facts`, which passes literal `None` for both.
+    `has_conditions=False` and `has_numbers=False` are what e5.1 EFFECTIVELY
+    priced these rows at: `judge/cli.py:_document_facts` passed a literal
+    `None`, the refusal tested `is UNSUPPLIED` and missed it, and
+    `specificity_factor` read it as falsy. Since 2026-08-30 `compute()` refuses
+    `None`, so the fixture states the value rather than relying on the hole.
     """
     from judge.vet.weight import compute
 
@@ -108,8 +116,8 @@ def _e51_factors(*, platform, repro, days_ago=10, tier="D"):
         release_date=None,
         as_of=date.today(),
         version_named=True,
-        has_conditions=None,
-        has_numbers=None,
+        has_conditions=False,
+        has_numbers=False,
         has_repro_steps=repro,
     )
 
@@ -151,7 +159,8 @@ class TestTheForkIsRealAndSeparated:
         _claim(seeded, "c1", "d1", speaking="own-experience", repro=True, numbers=True)
         seeded.commit()
 
-        report = reweight.plan(seeded, from_version=OLD, to_version=PIPELINE_VERSION)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
         reweight.apply(seeded, report)
         seeded.commit()
 
@@ -160,7 +169,7 @@ class TestTheForkIsRealAndSeparated:
                 "SELECT pipeline_version, evidence_tier FROM claim ORDER BY 1"
             ).fetchall()
         )
-        assert rows == {OLD: "D", PIPELINE_VERSION: "B"}, (
+        assert rows == {OLD: "D", TIER: "B"}, (
             "both versions coexist and only the new one carries the new tier"
         )
 
@@ -169,13 +178,14 @@ class TestTheForkIsRealAndSeparated:
         _claim(seeded, "c1", "d1", speaking="own-experience", repro=True, numbers=True)
         seeded.commit()
 
-        report = reweight.plan(seeded, from_version=OLD, to_version=PIPELINE_VERSION)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
         assert report.deltas[0].claim_id_after == claim_id_for(
             thread_context_id="tc1",
             source_comment_id="d1",
             capability_key=CAPABILITY,
             quote_flat_offset=(0, 10),
-            pipeline_version=PIPELINE_VERSION,
+            pipeline_version=TIER,
         )
 
     def test_n_eff_counts_one_version_not_a_voice_s_best_across_two(self, seeded):
@@ -194,13 +204,14 @@ class TestTheForkIsRealAndSeparated:
                numbers=True)
         seeded.commit()
 
-        report = reweight.plan(seeded, from_version=OLD, to_version=PIPELINE_VERSION)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
         reweight.apply(seeded, report)
         seeded.commit()
 
         key = CellKey("mv1", CAPABILITY, BUCKET)
         before = CellStore(seeded, pipeline_version=OLD).compute(key)
-        after = CellStore(seeded, pipeline_version=PIPELINE_VERSION).compute(key)
+        after = CellStore(seeded, pipeline_version=TIER).compute(key)
 
         stored = seeded.execute(
             "SELECT w_final FROM claim_weight WHERE claim_id = 'c1'"
@@ -229,7 +240,8 @@ class TestWhatIsPromotedAndWhatIsNot:
                numbers=numbers)
         seeded.commit()
 
-        report = reweight.plan(seeded, from_version=OLD, to_version=PIPELINE_VERSION)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
         assert report.deltas[0].tier_after == expected
 
     def test_a_vendor_announcement_full_of_numbers_stays_at_F(self, seeded):
@@ -246,7 +258,8 @@ class TestWhatIsPromotedAndWhatIsNot:
                repro=True, numbers=True, tier="F", platform="blog")
         seeded.commit()
 
-        report = reweight.plan(seeded, from_version=OLD, to_version=PIPELINE_VERSION)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
         delta = report.deltas[0]
         assert delta.tier_after == "F"
         assert not delta.promoted
@@ -258,7 +271,8 @@ class TestWhatIsPromotedAndWhatIsNot:
                repro=True, numbers=True, tier="E")
         seeded.commit()
 
-        report = reweight.plan(seeded, from_version=OLD, to_version=PIPELINE_VERSION)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
         assert report.deltas[0].tier_after == "E"
 
     def test_the_document_falsifies_the_extractor_s_numbers(self, seeded):
@@ -273,7 +287,8 @@ class TestWhatIsPromotedAndWhatIsNot:
                numbers=True)
         seeded.commit()
 
-        report = reweight.plan(seeded, from_version=OLD, to_version=PIPELINE_VERSION)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
         assert report.deltas[0].tier_after == "D"
 
     def test_a_null_document_column_withholds_and_is_counted(self, seeded):
@@ -289,7 +304,8 @@ class TestWhatIsPromotedAndWhatIsNot:
                numbers=True)
         seeded.commit()
 
-        report = reweight.plan(seeded, from_version=OLD, to_version=PIPELINE_VERSION)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
         assert report.written == 1, "withheld, not dropped"
         assert report.deltas[0].tier_after == "D"
         assert report.unconfirmed["has_numbers"] == 1
@@ -314,7 +330,8 @@ class TestTheVendorMisfilingCounter:
                numbers=True, platform="blog")
         seeded.commit()
 
-        report = reweight.plan(seeded, from_version=OLD, to_version=PIPELINE_VERSION)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
         flagged = report.provider_domain_promotions()
         assert [d.provider_host for d in flagged] == ["anthropic.com"]
         assert "PROMOTED ON A PROVIDER'S OWN DOMAIN" in reweight.summarise(report)
@@ -327,7 +344,8 @@ class TestTheVendorMisfilingCounter:
                numbers=True, platform="blog")
         seeded.commit()
 
-        report = reweight.plan(seeded, from_version=OLD, to_version=PIPELINE_VERSION)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
         assert report.deltas[0].tier_after == "B", (
             "flagged for review and still promoted - blocking it here would be a "
             "gate decided by an unmeasured signal, which is the thing rule 8 "
@@ -342,9 +360,13 @@ class TestTheVendorMisfilingCounter:
                numbers=True, platform="blog")
         seeded.commit()
 
-        report = reweight.plan(seeded, from_version=OLD, to_version=PIPELINE_VERSION)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
         assert report.provider_domain_promotions() == []
-        assert "no promotion on a provider's own domain" in reweight.summarise(report)
+        assert (
+            "no TIER promotion on a provider's own domain"
+            in reweight.summarise(report)
+        )
 
 
 class TestARefusalIsNotASilentTruncation:
@@ -359,8 +381,162 @@ class TestARefusalIsNotASilentTruncation:
         _claim(seeded, "c1", "d1", speaking=None, repro=True, numbers=True)
         seeded.commit()
 
-        report = reweight.plan(seeded, from_version=OLD, to_version=PIPELINE_VERSION)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
         assert report.read == 1
         assert report.written == 0
         assert report.refusals["evidence_tier"] == 1
         assert "REFUSED" in reweight.summarise(report)
+
+
+class TestTheDocumentFactsRuling:
+    """READ mode — the second of the two 2026-08-30 rulings, on its own fork.
+
+    `judge/cli.py:_document_facts` passed a literal `None` for `has_numbers` and
+    `has_conditions`; `compute()`'s refusal tested `is UNSUPPLIED` and did not
+    catch it; `specificity_factor` read it as falsy. Every claim in the table
+    was weighted as though both were False. These assert what changes when the
+    columns genuinely arrive — and that it is a SEPARATE fork from the tier, so
+    neither diff carries two causes.
+    """
+
+    def test_a_present_column_moves_f_specificity_and_says_how_many(self, seeded):
+        _document(seeded, "d1", author="a1", has_numbers=True, has_conditions=True)
+        _claim(seeded, "c1", "d1", speaking="own-experience", repro=False,
+               numbers=True)
+        seeded.commit()
+
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=READ)
+        moved = report.specificity_moves()
+        assert len(moved) == 1
+        was, now = moved[0].f_specificity_before, moved[0].factors.f_specificity
+        assert now > was, "the old value was the minimum - it can only rise"
+        assert "f_specificity moved on 1 of 1" in reweight.summarise(report)
+
+    def test_a_null_column_refuses_rather_than_scoring_it_false(self, seeded):
+        """The whole finding, at the layer that was hiding it.
+
+        A NULL is not a False and never was. Under the repaired check it is a
+        refusal — which drops the claim, and that is the cost the measurement
+        script exists to price before anyone runs this for real.
+        """
+        _document(seeded, "d1", author="a1", has_numbers=None, has_conditions=None)
+        _claim(seeded, "c1", "d1", speaking="own-experience", repro=True,
+               numbers=True)
+        seeded.commit()
+
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=READ)
+        assert report.read == 1
+        assert report.written == 0
+        assert report.refusals["has_numbers"] == 1
+        assert report.refusals["has_conditions"] == 1
+        assert "REFUSED" in reweight.summarise(report)
+
+    def test_frozen_mode_does_not_refuse_the_same_claim(self, seeded):
+        """The two modes differ on exactly this row, which is why there are two.
+
+        Running the tier ruling in READ mode would have dropped this claim and
+        attributed the loss to the tier. FROZEN prices it the way e5.1 did, so
+        the tier diff measures the tier.
+        """
+        _document(seeded, "d1", author="a1", has_numbers=None, has_conditions=None)
+        _claim(seeded, "c1", "d1", speaking="own-experience", repro=True,
+               numbers=True)
+        seeded.commit()
+
+        frozen = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
+        assert frozen.written == 1
+        assert frozen.deltas[0].tier_after == "C", (
+            "promoted on repro steps alone. The NUMBERS rung is still withheld - "
+            "the falsifier reads the same NULL column in both modes, because "
+            "FROZEN is about f_specificity and not about the ladder"
+        )
+        assert frozen.unconfirmed["has_numbers"] == 1
+
+    def test_frozen_mode_holds_f_specificity_and_the_drift_check_proves_it(self, seeded):
+        _document(seeded, "d1", author="a1", has_numbers=True, has_conditions=True)
+        _claim(seeded, "c1", "d1", speaking="own-experience", repro=False,
+               numbers=True)
+        seeded.commit()
+
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=FROZEN)
+        assert report.factor_drift == {}
+        assert report.specificity_moves() == []
+        assert "only f_evidence moved" in reweight.summarise(report)
+
+    def test_the_mode_is_on_the_report_not_only_in_the_caller(self, seeded):
+        """A set of numbers whose cause is not attached to them is the failure."""
+        _document(seeded, "d1", author="a1")
+        _claim(seeded, "c1", "d1", speaking="own-experience", repro=True, numbers=True)
+        seeded.commit()
+
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=READ)
+        assert report.document_facts == READ
+        assert "document facts: read" in reweight.summarise(report)
+
+    def test_an_unknown_mode_refuses(self, seeded):
+        with pytest.raises(ValueError, match="document_facts must be"):
+            reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                          document_facts="whatever")
+
+
+class TestPromotedIsNotTheSameQuestionAsHeavier:
+    """A vendor claim can gain weight without being misfiled.
+
+    In READ mode `f_specificity` reads the document's numbers, and an
+    announcement carries numbers by construction — so a correctly-filed vendor
+    claim gets heavier while staying at F. Reading that as "promoted" put it
+    under a warning saying `speaking` had misfiled it, which is a false
+    accusation about the one row this whole change is checked against.
+    """
+
+    def test_a_vendor_claim_gets_heavier_without_being_promoted(self, seeded):
+        _document(seeded, "d1", platform="blog",
+                  url="https://www.anthropic.com/news/fable-5", author="vendor",
+                  has_numbers=True, has_conditions=True)
+        _claim(seeded, "c1", "d1", speaking="vendor-about-own-product",
+               repro=True, numbers=True, tier="F", platform="blog")
+        seeded.commit()
+
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=READ)
+        delta = report.deltas[0]
+        assert delta.tier_after == "F"
+        assert delta.heavier, "f_specificity rose on the document's numbers"
+        assert not delta.promoted, "the TIER did not move, and only that is a promotion"
+        assert report.provider_domain_promotions() == []
+        assert len(report.provider_domain_heavier_without_promotion()) == 1
+
+    def test_the_two_lists_are_reported_separately(self, seeded):
+        _document(seeded, "d1", platform="blog",
+                  url="https://www.anthropic.com/news/fable-5", author="vendor",
+                  has_numbers=True, has_conditions=True)
+        _claim(seeded, "c1", "d1", speaking="vendor-about-own-product",
+               repro=True, numbers=True, tier="F", platform="blog")
+        seeded.commit()
+
+        text = reweight.summarise(
+            reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                          document_facts=READ)
+        )
+        assert "no TIER promotion on a provider's own domain" in text
+        assert "HEAVIER ON A PROVIDER'S OWN DOMAIN WITHOUT A TIER MOVE" in text
+
+    def test_a_tier_promotion_is_still_flagged_as_one(self, seeded):
+        _document(seeded, "d1", platform="blog",
+                  url="https://www.anthropic.com/news/fable-5", author="a1",
+                  has_numbers=True, has_conditions=True)
+        _claim(seeded, "c1", "d1", speaking="own-experience", repro=True,
+               numbers=True, platform="blog")
+        seeded.commit()
+
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=READ)
+        assert report.deltas[0].promoted
+        assert len(report.provider_domain_promotions()) == 1
+        assert report.provider_domain_heavier_without_promotion() == []

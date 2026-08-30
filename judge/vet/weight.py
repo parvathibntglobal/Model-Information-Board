@@ -494,6 +494,31 @@ def compute(
     # REFUSE BEFORE COMPUTING ANYTHING. Ruled 2026-08-21: a weighting input may
     # not have a silent default. The check is first so no factor is derived from
     # a constant before the caller learns which input is missing.
+    #
+    # ⚠ `None` REFUSES TOO, SINCE 2026-08-30, AND FOR TWO YEARS OF ROWS IT DID
+    #   NOT. The test was `value is UNSUPPLIED`, so a `None` walked straight
+    #   past a check written to make exactly this impossible, and
+    #   `specificity_factor` then read it as falsy. That is not a hypothetical:
+    #   `judge/cli.py:_document_facts` passes a literal `None` for
+    #   `has_numbers` and `has_conditions` on the only path that has ever
+    #   produced a claim, so EVERY claim in the table was weighted as though
+    #   both were False, whatever the document says.
+    #
+    #   The sentinel was built because `False` had meant "nobody measured".
+    #   `None` means the same thing and had the same effect, and it got in
+    #   because the guard was written against the SHAPE of the old bug rather
+    #   than against its substance. A sentinel that only catches the one
+    #   spelling somebody remembered is a guard against a spelling.
+    #
+    #   ⚠ THIS IS A REFUSAL, WHICH MEANS THE CLAIM IS NOT STORED. Rule 8's
+    #     hazard applies and is accepted here rather than dodged: a refusal is
+    #     a drop, and a drop is an absence we caused. What makes it the right
+    #     trade is that it is a LOUD absence - `UnsuppliedWeightInput` names the
+    #     input and the writer, `run_all` logs it per thread, and
+    #     `judge/reweight.py` counts it per input - whereas the `None` it
+    #     replaces was a silent wrong weight on every row. Rule 8 prefers a
+    #     visible wrong weight to an invisible wrong gate; it says nothing in
+    #     favour of an invisible wrong weight, which is what this was.
     missing = [
         name
         for name, value in (
@@ -508,7 +533,7 @@ def compute(
             ("has_conditions", has_conditions),
             ("has_repro_steps", has_repro_steps),
         )
-        if value is UNSUPPLIED
+        if value is UNSUPPLIED or value is None
     ]
     if missing:
         raise UnsuppliedWeightInput(missing)

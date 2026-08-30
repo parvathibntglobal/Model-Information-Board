@@ -204,14 +204,15 @@ def _document_facts(
         return {}, set()
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, source, created_at, author_id FROM document WHERE id = ANY(%s)",
+            "SELECT id, source, created_at, author_id, has_numbers, has_conditions "
+            "FROM document WHERE id = ANY(%s)",
             (list(document_ids),),
         )
         rows = cur.fetchall()
 
     facts: dict[str, Any] = {}
     undatable: list[str] = []
-    for doc_id, source, created_at, author_id in rows:
+    for doc_id, source, created_at, author_id, has_numbers, has_conditions in rows:
         if created_at is None:
             undatable.append(doc_id)
             # OMITTED, NOT DATED FROM A DEFAULT. `recency_factor` subtracts this
@@ -235,11 +236,30 @@ def _document_facts(
             # per-platform fallback in cells.py, never an invented identity.
             author_id=author_id,
             # THE EXTRACTOR PROPOSES THESE AND THE COUNT DECIDES (pipeline.py:161).
-            # None is "not established here" rather than False, so a disagreement
-            # gets recorded instead of resolved by a default.
+            #
+            # ⚠ READ FROM THE TABLE SINCE 2026-08-30. These were literal `None`,
+            #   and the comment here said `None` was "not established here rather
+            #   than False, so a disagreement gets recorded instead of resolved
+            #   by a default". The first half was true and the second was not:
+            #   `compute()`'s refusal tested `value is UNSUPPLIED`, so the `None`
+            #   went straight through and `specificity_factor` read it as falsy.
+            #   Every claim this pipeline has ever written was weighted as though
+            #   both were False, on a path whose whole purpose was to make that
+            #   impossible. `compute()` now refuses `None` as well, so a document
+            #   that HAS the value must supply it or its claims are dropped -
+            #   which is why these are read rather than left as a sentinel.
+            #
+            #   ⚠ THE COLUMNS ARE NULL ON MOST DOCUMENTS AND THAT IS NOW A
+            #     REFUSAL, NOT A ZERO. `collect/triage/specificity.py` computes
+            #     both and nothing writes them - `contract/column_states.yaml`
+            #     carries them as `unwired` with the gap named. So this fix moves
+            #     the failure from a silent wrong weight to a loud dropped claim,
+            #     and the remaining repair is in the other lane: write the
+            #     columns. `scripts/measure_document_facts_gap.py` is what says
+            #     how many claims that is.
             names_version=None,
-            has_conditions=None,
-            has_numbers=None,
+            has_conditions=has_conditions,
+            has_numbers=has_numbers,
             # E6'S INPUT. None keeps the honest `unvetted` branch for a document
             # the export did not carry; it no longer means "every document".
             text=(text_of or {}).get(doc_id),
@@ -453,14 +473,36 @@ def _print_cell_deltas(pairs, names: dict[str, str] | None = None) -> int:
         now = after.counts.n_eff
         if now >= N_EFF_MINIMUM > was:
             crossed += 1
-        if abs(now - was) > 1e-9:
+        shrank = before is not None and (
+            after.counts.independent_voices < before.counts.independent_voices
+            or after.counts.platform_count < before.counts.platform_count
+        )
+        if abs(now - was) > 1e-9 or shrank:
             moved += 1
+            # VOICES AND PLATFORMS CAN GO DOWN, and only a refusal does that.
+            # Printed as a delta rather than a level, because a cell that lost
+            # its second platform has stopped being publishable for a reason
+            # the n_eff column does not show - and losing evidence we DROPPED
+            # reads exactly like evidence we never had.
+            lost = []
+            if before is not None:
+                if after.counts.independent_voices < before.counts.independent_voices:
+                    lost.append(
+                        f"voices {before.counts.independent_voices}"
+                        f"->{after.counts.independent_voices}"
+                    )
+                if after.counts.platform_count < before.counts.platform_count:
+                    lost.append(
+                        f"platforms {before.counts.platform_count}"
+                        f"->{after.counts.platform_count}"
+                    )
             print(f"    {names.get(after.key.model_version_id, after.key.model_version_id):32s} "
                   f"{after.key.capability_key:26s} "
                   f"{was:.4f} -> {now:.4f}  "
                   f"voices={after.counts.independent_voices} "
                   f"platforms={after.counts.platform_count}"
-                  f"{'   CROSSES' if now >= N_EFF_MINIMUM else ''}")
+                  f"{'   CROSSES' if now >= N_EFF_MINIMUM else ''}"
+                  f"{'   LOST ' + ', '.join(lost) if lost else ''}")
     print(f"\n  {moved} cells moved, {crossed} crossed {N_EFF_MINIMUM}")
     if not crossed:
         # THE NUMBER THAT MATTERS AS MUCH AS THE OTHER ONE. A re-weight that
@@ -486,8 +528,14 @@ def _cmd_reweight(args: argparse.Namespace) -> int:
     from judge.store.cells import CellStore
     from judge.store.claims import PIPELINE_VERSION
 
+    to_version = args.to_version or PIPELINE_VERSION
     with _connect(writing="judge reweight" if args.apply else None) as conn:
-        report = plan(conn, from_version=args.from_version, to_version=PIPELINE_VERSION)
+        report = plan(
+            conn,
+            from_version=args.from_version,
+            to_version=to_version,
+            document_facts=args.document_facts,
+        )
         print(summarise(report))
 
         try:
@@ -499,7 +547,7 @@ def _cmd_reweight(args: argparse.Namespace) -> int:
                 _print_cell_deltas(cell_deltas(conn, report), names)
                 if not args.apply:
                     raise _RolledBack
-                print(f"\n  wrote {written} claims at {PIPELINE_VERSION}")
+                print(f"\n  wrote {written} claims at {to_version}")
         except _RolledBack:
             print(
                 "\n  DRY RUN - rolled back, nothing written. The figures above "
@@ -508,7 +556,12 @@ def _cmd_reweight(args: argparse.Namespace) -> int:
             return 0
 
         with conn.transaction():
-            outcomes = CellStore(conn).rebuild_all()
+            # AT `to_version`, NOT AT PIPELINE_VERSION. A run producing the
+            # e5.2 intermediate must rebuild cells from the claims it just
+            # wrote; the default constant points at e5.3 and would have
+            # rebuilt from a version with no rows - "0 cells, 0 publish",
+            # which reads as a finished run that found nothing.
+            outcomes = CellStore(conn, pipeline_version=to_version).rebuild_all()
             published = sum(1 for o in outcomes if o.publishes)
             print(f"  {len(outcomes)} cells rebuilt, {published} publish")
             if args.driver:
@@ -559,6 +612,22 @@ def main(argv: list[str] | None = None) -> int:
         help="the pipeline version to re-price FROM, e.g. e5.1. Required rather "
         "than inferred: guessing which fork is the baseline is how a diff gets "
         "computed against the wrong one.",
+    )
+    reweight.add_argument(
+        "--to-version",
+        metavar="V",
+        help="the version to write. Defaults to PIPELINE_VERSION. Given "
+        "explicitly to produce an INTERMEDIATE fork - e5.2 exists only so the "
+        "tier ruling and the document-facts ruling get one diff each.",
+    )
+    reweight.add_argument(
+        "--document-facts",
+        choices=("frozen", "read"),
+        default="read",
+        help="frozen: hold has_numbers/has_conditions at the values e5.1 "
+        "effectively used (both False), so only f_evidence moves. read: take "
+        "them from the document, which is the 2026-08-30 ruling and refuses a "
+        "NULL. One ruling per run.",
     )
     reweight.add_argument(
         "--apply", action="store_true", help="write. Without it, a dry run."

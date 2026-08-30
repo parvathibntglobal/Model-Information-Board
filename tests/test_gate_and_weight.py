@@ -675,3 +675,74 @@ class TestSpeakingIsRequiredAndTheModelSeesIt:
             "alone does not stop that"
         )
         assert counts.n_eff < 3.0, "and they cannot publish, which is the weight"
+
+
+class TestNoneIsRefusedNotScoredAsFalse:
+    """The 2026-08-30 repair to the 2026-08-21 ruling's own check.
+
+    `compute()` refused `UNSUPPLIED` and let `None` straight through, so
+    `specificity_factor` read it as falsy. `judge/cli.py:_document_facts` passed
+    a literal `None` for `has_numbers` and `has_conditions` on the only path
+    that has ever produced a claim — so every claim in the table was weighted as
+    though both were False, by a guard whose whole purpose was to prevent
+    exactly that.
+
+    The sentinel was built because `False` had meant "nobody measured". `None`
+    means the same thing, and it got in because the guard was written against
+    the SHAPE of the old bug rather than its substance.
+    """
+
+    @pytest.mark.parametrize(
+        "field",
+        ["evidence_tier", "platform", "capability_key", "relevance", "specificity",
+         "claim_date", "version_named", "has_numbers", "has_conditions",
+         "has_repro_steps"],
+    )
+    def test_none_refuses_on_every_checked_input(self, field):
+        """Parametrised over the whole list, not the two that were caught.
+
+        Auditing only `has_numbers` and `has_conditions` would fix the instance
+        and leave the class - and the class is what this check is for.
+        """
+        args = {**TestAWeightingInputMayNotHaveASilentDefault.ARGS, field: None}
+        with pytest.raises(weight.UnsuppliedWeightInput) as exc:
+            weight.compute(**args)
+        assert field in str(exc.value)
+
+    def test_release_date_none_is_a_value_and_still_computes(self):
+        """The one `None` that means something, and it must NOT be refused.
+
+        `launch_factor` reads `release_date is None` as "no release date known"
+        and returns 1.0 - an absent discount rather than an absent measurement.
+        Sweeping every `None` into the refusal would have broken it, which is
+        why the check lists its inputs instead of scanning the signature.
+        """
+        factors = weight.compute(
+            **{**TestAWeightingInputMayNotHaveASilentDefault.ARGS, "release_date": None}
+        )
+        assert factors.f_launch == 1.0
+
+    def test_the_refusal_names_the_writer_so_the_fix_is_not_in_this_file(self):
+        args = {
+            **TestAWeightingInputMayNotHaveASilentDefault.ARGS,
+            "has_numbers": None,
+            "has_conditions": None,
+        }
+        with pytest.raises(weight.UnsuppliedWeightInput) as exc:
+            weight.compute(**args)
+        message = str(exc.value)
+        assert "collect/triage" in message
+        assert "THE GAP IS NOT IN THIS FILE" in message
+
+    def test_false_is_still_a_value_and_computes(self):
+        """A measured False must not be swept up with an unmeasured one.
+
+        The whole distinction this check exists to keep is between "counted, and
+        there were none" and "nobody counted".
+        """
+        args = {
+            **TestAWeightingInputMayNotHaveASilentDefault.ARGS,
+            "has_numbers": False,
+            "has_conditions": False,
+        }
+        assert weight.compute(**args).f_specificity > 0

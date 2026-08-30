@@ -80,15 +80,30 @@ both booleans over both non-first-hand `speaking` values so the property is *"th
 booleans are not read here"* rather than *"they happen not to matter for this
 input"*.
 
-**And the E6 half of the worry does not hold, in a way that makes the risk
-larger rather than smaller.** E6's five triggers are `affiliate_link`,
-`sponsored_disclosure`, `discount_code`, `syndicated_duplicate` and
-`predates_model`. **None of them detects a vendor announcement.** So E6 having
-been unwired on the 197 is not what leaves this exposed — E6 running on all 197
-would not have caught a single one. The only thing standing between an
-announcement and a first-hand tier is `speaking`, and `speaking` is the
-extractor's own label, unmeasured on the same unlabelled golden-set round as
-`has_repro_steps`.
+### The correction, and E2 asked for it to be recorded as one
+
+The brief said *"E6 was wired last night, so the reject rules run on future
+claims and not on the 197 already stored"*, and read the announcement problem as
+a gate that exists and had not yet run. **It is not.** E6's five triggers are
+`affiliate_link`, `sponsored_disclosure`, `discount_code`,
+`syndicated_duplicate` and `predates_model`, and **none of them detects a vendor
+announcement.** E6 running on all 197 would have caught zero of them.
+
+So the announcement problem **has no gate and never had one**, on any branch, at
+any point in this project. E6 being unwired was never what left it exposed, and
+wiring E6 did not close it. That makes the exposure larger than the brief
+assumed, not smaller — and it is worth stating in that direction, because the
+version where E6 was the guard has a fix (wire it, done) and the true version
+does not.
+
+E2 asked for this to sit in the writeup as a correction to the brief rather than
+as a footnote, and it belongs there for a reason beyond bookkeeping: the same
+sentence would have been believed by whoever read the commit next.
+
+**What stands in for the missing gate is `speaking`** — the extractor's own
+label, unmeasured on the same unlabelled golden-set round as `has_repro_steps`.
+An announcement it files as `own-experience` is full of numbers by construction
+and now promotes.
 
 That cannot be fixed by a gate today, so it is counted: `judge/reweight.py`
 reports every promotion whose document is hosted on a provider's own domain,
@@ -134,22 +149,64 @@ overrides the conclusion and not the objection. De-duplicating means dropping
 every stored weight in a second way, so it is a separate ruling and is not taken
 here.
 
-**`document.has_numbers` and `has_conditions` have never reached the weighting
-path.** `judge/cli.py:_document_facts` passes a literal `None` for both — it does
-not read the columns — and `compute()`'s refusal tests `is UNSUPPLIED`, so `None`
-slips past it and `specificity_factor` reads it as falsy. **Every claim in the
-table was weighted as though both were False**, whatever the document says. That
-is the 2026-08-21 ruling's own hole, still open on the only path that has ever
-produced a claim.
+**`None` walked straight past the check built to stop exactly this — and E2 is
+right that it may matter more than the tier re-key.** `judge/cli.py:_document_facts`
+passed a literal `None` for `has_numbers` and `has_conditions`; `compute()`'s
+refusal tested `value is UNSUPPLIED`; `specificity_factor` then read the `None`
+as falsy. **Every claim in the table was weighted as though both were False**,
+whatever the document says, by a guard whose entire purpose was to make that
+impossible.
 
-`judge/reweight.py` reproduces the defect deliberately — it passes `None` too —
-so that the only factor that moves is `f_evidence` and the diff is attributable
-to one ruling. Fixing it in the same commit would have changed `f_specificity`
-on most of the corpus and left neither change measurable. **A silent improvement
-inside a measurement is still a confounder.** The reproduction is asserted rather
-than asserted-about: `plan()` compares each recomputed factor against the stored
+The sentinel exists because `False` had once meant "nobody measured". `None`
+means the same thing and had the same effect, and it got in because the guard was
+written against the **shape** of the old bug rather than its substance. A
+sentinel that catches only the spelling somebody remembered is a guard against a
+spelling.
+
+**Fixed 2026-08-30, in three places, and the third is the one that costs
+something.**
+
+```
+compute()            refuses `None` as well as UNSUPPLIED, on all ten inputs
+                     - parametrised over the whole list, because auditing the
+                     two that were caught would fix the instance and leave the
+                     class
+_document_facts()    reads document.has_numbers / has_conditions
+release_date         still accepts None, which MEANS "no release date known"
+                     and returns f_launch 1.0. The one None that is a value,
+                     and the reason the check lists its inputs rather than
+                     scanning the signature
+```
+
+⚠ **A refusal is a drop, and the columns are NULL on most documents.**
+`collect/triage/specificity.py` computes both and nothing writes them —
+`contract/column_states.yaml` now carries them as `unwired` with the gap named.
+So this repair moves the failure from a silent wrong weight to a **loud dropped
+claim**, and the remaining repair is in the other lane: write the columns.
+
+That is rule 8's hazard and it is accepted rather than dodged. What makes it the
+right trade is that the absence is loud — `UnsuppliedWeightInput` names the input
+and its writer, and `judge/reweight.py` counts refusals per input — whereas the
+`None` it replaces was a silent wrong weight on every row. **Rule 8 prefers a
+visible wrong weight to an invisible wrong gate; it says nothing in favour of an
+invisible wrong weight**, which is what this was.
+
+**How many stored claims change is not guessed here.**
+`scripts/measure_document_facts_gap.py` is read-only, runs against the corpus
+rather than a sample, and reports the refusals broken out by which column is
+NULL, per platform and per model, plus the claims whose `f_specificity` actually
+moves. It has not run yet, for the reason in §1. Nobody should learn how many
+claims a NULL column drops by running the migration that drops them.
+
+**The two rulings get two pipeline versions, and that is what pays for the
+attribution.** `e5.1 → e5.2` is the tier alone, with the document booleans held
+at the values e5.1 effectively used — `--document-facts frozen`, passing `False`
+explicitly, so the reproduction no longer depends on the bug being present.
+`e5.2 → e5.3` is the document facts alone. A single diff carrying both would
+measure neither, and `plan()` asserts the separation per claim rather than
+claiming it in a comment: it compares each recomputed factor against the stored
 one and counts any that moves, `f_recency` excepted because it decays with the
-calendar. A non-empty drift count prints in bold at the top of the report.
+calendar.
 
 **`CellStore` had no `pipeline_version` filter**, which was harmless while the
 table held one version and is not harmless after a fork. `count()` keeps one
@@ -171,13 +228,27 @@ the same claim. It now derives the contrasting version from the constant.
 ## 6 · What runs next, in order
 
 ```
-judge reweight --from-version e5.1                 dry run, rolls back
-judge reweight --from-version e5.1 --apply --driver config-change
-scripts/report_rollup_delta.py                     against _before_rollup.json
+1  scripts/measure_document_facts_gap.py --pipeline-version e5.1
+       read-only. How many claims a NULL column drops, before anything drops one.
+
+2  judge reweight --from-version e5.1 --to-version e5.2 --document-facts frozen
+       dry run. THE TIER RULING ALONE. Drift must be empty.
+   judge reweight --from-version e5.1 --to-version e5.2 --document-facts frozen                   --apply --driver config-change
+
+3  judge reweight --from-version e5.2 --document-facts read
+       dry run. THE DOCUMENT-FACTS RULING ALONE, at e5.3. f_specificity moves
+       here by design and is reported as a result rather than as drift.
+       Gated on step 1's number.
+
+4  scripts/report_rollup_delta.py                against _before_rollup.json
 ```
 
-The dry run prints the tier moves, the withheld promotions, the provider-domain
-flags and the per-cell `n_eff` before and after — all of it inside a transaction
-that is rolled back, because pricing cells needs the claims to be IN the table.
-**Read the drift line first.** If anything but `f_evidence` moved, the rest of
-the report is not about the tier ruling and nothing in §2 applies to it.
+Each dry run prints the tier moves, the withheld promotions, the provider-domain
+flags and the per-cell `n_eff` before and after — all inside a transaction that
+is rolled back, because pricing cells needs the claims to be IN the table.
+
+**Read the drift line first, and stop if anything but `f_evidence` moved.** In
+step 2 that line must read *"only f_evidence moved"*; anything else means the
+run is not about the tier ruling and nothing in §2 applies to it. In step 3
+`f_specificity` moving is the point, so it is excluded from drift there and
+counted separately — the stop condition still holds for the other four factors.

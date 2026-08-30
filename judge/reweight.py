@@ -79,6 +79,7 @@ from judge.store.claims import PIPELINE_VERSION, claim_id_for
 #: about who a provider is.
 from judge.vet.reject import _PROVIDER_DOMAINS
 from judge.vet.weight import (
+    TIER_WEIGHT,
     UNSUPPLIED,
     UnsuppliedWeightInput,
     WeightFactors,
@@ -88,6 +89,25 @@ from judge.vet.weight import (
 )
 
 log = logging.getLogger(__name__)
+
+#: What `has_numbers` and `has_conditions` are worth to `f_specificity`.
+#:
+#:   frozen  the values e5.1 EFFECTIVELY used - both False. `_document_facts`
+#:           passed a literal `None`, `compute()`'s refusal tested
+#:           `is UNSUPPLIED` and missed it, and `specificity_factor` read it as
+#:           falsy. So False is not a guess about those rows, it is what they
+#:           were priced at. Passing it explicitly reproduces e5.1's arithmetic
+#:           without relying on the hole, and lets the tier diff move one factor.
+#:
+#:   read    the columns. What the ruling asks for, and what `_document_facts`
+#:           now does. A NULL column is a REFUSAL under the repaired check, not
+#:           a False, so this mode drops claims and counts them.
+#:
+#: TWO MODES RATHER THAN TWO COMMITS, because both rulings landed the same day
+#: and a single diff carrying both measures neither.
+FROZEN = "frozen"
+READ = "read"
+
 
 @dataclass
 class ClaimDelta:
@@ -106,6 +126,10 @@ class ClaimDelta:
     w_after: float
     unconfirmed: tuple[str, ...]
     provider_host: str | None
+    #: What `f_specificity` was at `from_version`. Carried so the READ-mode run
+    #: can report how many claims the document columns actually moved, which is
+    #: the number the whole `None`-slipping-past-the-refusal finding turns on.
+    f_specificity_before: float | None
     #: The seven factors behind `w_after`. Carried on the delta rather than in a
     #: module-level cache so `plan()` stays a pure function of the connection -
     #: a cache keyed on claim id would survive between runs and hand `apply()`
@@ -113,16 +137,32 @@ class ClaimDelta:
     factors: WeightFactors
 
     @property
-    def promoted(self) -> bool:
+    def heavier(self) -> bool:
         """Strictly heavier than before, outside float noise.
 
         THE TOLERANCE IS NOT COSMETIC. `claim_weight.w_final` is `real`, a
         four-byte float, so a weight read back is never bit-identical to the
-        eight-byte one that produced it. A bare `>` therefore reported a claim
-        whose tier did not move as PROMOTED — including a vendor claim, which is
-        the one row this whole change is being checked against.
+        eight-byte one that produced it. A bare `>` reported a claim whose tier
+        had not moved as promoted — including a vendor claim, which is the one
+        row this whole change is being checked against.
         """
         return self.w_after - self.w_before > 1e-6 * max(self.w_before, 1e-6)
+
+    @property
+    def promoted(self) -> bool:
+        """The TIER moved up. Not the same question as `heavier`, and the
+        difference is what the provider-domain flag is about.
+
+        A claim can get heavier without being promoted - in READ mode a vendor
+        claim whose document carries numbers gains `f_specificity` while staying
+        at F. Reading `heavier` as `promoted` put a CORRECTLY-filed announcement
+        under a warning that says `speaking` had misfiled it, which is a false
+        accusation about the one row this change is checked against. Both are
+        reported; they are just not the same row set.
+        """
+        return TIER_WEIGHT.get(self.tier_after, 0.0) > TIER_WEIGHT.get(
+            self.tier_before, 0.0
+        )
 
 
 @dataclass
@@ -131,6 +171,11 @@ class ReweightReport:
 
     from_version: str
     to_version: str
+    #: FROZEN or READ - which of the two 2026-08-30 rulings this run measures.
+    #: On the report rather than only in the caller, because a set of numbers
+    #: whose cause is not attached to them is the thing this whole exercise is
+    #: trying to stop producing.
+    document_facts: str = READ
     deltas: list[ClaimDelta] = field(default_factory=list)
     #: input name -> claims `compute()` refused on it. Refusals are NOT written
     #: at the new version, so this is a truncation and has to be visible.
@@ -154,9 +199,43 @@ class ReweightReport:
         """"D->B" -> how many. The one table a reviewer asks for first."""
         return Counter(f"{d.tier_before}->{d.tier_after}" for d in self.deltas)
 
+    def specificity_moves(self) -> list[ClaimDelta]:
+        """Claims whose `f_specificity` changed once the columns reached it.
+
+        Empty by construction in FROZEN mode - the drift check refuses to let it
+        be anything else. In READ mode it is the answer to "how many stored
+        claims change when both fields actually reach the path", counted rather
+        than reasoned about from the NULL rates.
+        """
+        return [
+            d
+            for d in self.deltas
+            if d.f_specificity_before is not None
+            and abs(d.f_specificity_before - d.factors.f_specificity) > 1e-4
+        ]
+
     def provider_domain_promotions(self) -> list[ClaimDelta]:
-        """Promoted claims hosted on a provider's own domain. For review."""
+        """TIER-promoted claims hosted on a provider's own domain. For review.
+
+        Keyed on `promoted` and not on `heavier`: the thing worth a human's time
+        is an announcement the extractor filed as first-hand and the ladder then
+        lifted. A vendor claim that merely got heavier is on the next list.
+        """
         return [d for d in self.deltas if d.promoted and d.provider_host]
+
+    def provider_domain_heavier_without_promotion(self) -> list[ClaimDelta]:
+        """Vendor-domain claims that gained weight without moving tier.
+
+        Separate because the cause is different and so is the remedy. These are
+        not misfiled - they are correctly at F and got heavier through
+        `f_specificity`, which reads the document's numbers. An announcement is
+        full of numbers by construction, so this is the OTHER door into E2's
+        worry and it opens in READ mode rather than in the tier ruling.
+        """
+        return [
+            d for d in self.deltas
+            if d.heavier and not d.promoted and d.provider_host
+        ]
 
 
 def _provider_host(url: str | None) -> str | None:
@@ -197,11 +276,14 @@ ORDER BY c.id
 """
 
 
+
+
 def plan(
     conn: Any,
     *,
     from_version: str,
     to_version: str = PIPELINE_VERSION,
+    document_facts: str = READ,
     as_of: date | None = None,
 ) -> ReweightReport:
     """Price every claim at both versions. READS ONLY — nothing is written.
@@ -210,7 +292,13 @@ def plan(
     reviewed before a row exists. A re-weight is cheap to run and expensive to
     explain after the fact, which is the wrong way round for a change that
     moves every number on the board.
+
+    `document_facts` picks which of the two 2026-08-30 rulings this run is
+    measuring - see `FROZEN` and `READ`. Run them in that order, one version
+    each, and each diff has exactly one cause.
     """
+    if document_facts not in (FROZEN, READ):
+        raise ValueError(f"document_facts must be {FROZEN!r} or {READ!r}")
     if from_version == to_version:
         raise ValueError(
             f"from_version and to_version are both {to_version!r}. A re-weight "
@@ -219,7 +307,11 @@ def plan(
         )
 
     as_of = as_of or datetime.now().date()
-    report = ReweightReport(from_version=from_version, to_version=to_version)
+    report = ReweightReport(
+        from_version=from_version,
+        to_version=to_version,
+        document_facts=document_facts,
+    )
 
     for row in conn.execute(_READ_SQL, (from_version,)).fetchall():
         (
@@ -261,26 +353,23 @@ def plan(
                 # diff. `_factor_drift` below asserts it rather than trusting
                 # this comment.
                 version_named=specificity in ("snapshot", "version"),
-                # ⚠ `None`, AND DELIBERATELY NOT THE COLUMN, THOUGH THE COLUMN
-                #   IS RIGHT THERE IN `_READ_SQL`.
+                # ⚠ `False` IN FROZEN MODE, AND IT IS NOT A GUESS. It is what
+                #   e5.1 priced these rows at: `_document_facts` passed a
+                #   literal `None`, the refusal tested `is UNSUPPLIED` and let it
+                #   through, and `specificity_factor` read it as falsy. Passing
+                #   False explicitly reproduces that arithmetic exactly while
+                #   the repaired check refuses `None` - the reproduction no
+                #   longer depends on the bug being present.
                 #
-                #   `judge/cli.py:_document_facts` passes a literal `None` for
-                #   both of these - it does not read them - so EVERY claim in
-                #   the table was weighted as though both were False, whatever
-                #   `document.has_numbers` actually says. `compute()`'s refusal
-                #   tests `is UNSUPPLIED`, so `None` slips past it and
-                #   `specificity_factor` reads it as falsy. That is the
-                #   2026-08-21 ruling's own hole, still open on the only path
-                #   that has ever produced a claim.
-                #
-                #   Reading the columns here would fix it AND move
-                #   `f_specificity` on most of the corpus in the same commit as
-                #   the tier ruling, leaving neither measurable. So this
-                #   reproduces the defect on purpose, the drift check proves it
-                #   reproduced it, and the fix is filed separately. A silent
-                #   improvement inside a measurement is still a confounder.
-                has_conditions=None,
-                has_numbers=None,
+                #   In READ mode these are the columns, and a NULL refuses.
+                has_conditions=(
+                    False if document_facts == FROZEN
+                    else (doc_conditions if doc_conditions is not None else UNSUPPLIED)
+                ),
+                has_numbers=(
+                    False if document_facts == FROZEN
+                    else (doc_numbers if doc_numbers is not None else UNSUPPLIED)
+                ),
                 has_repro_steps=claim_repro if claim_repro is not None else UNSUPPLIED,
             )
         except UnsuppliedWeightInput as gap:
@@ -294,13 +383,21 @@ def plan(
         # kind of belief that survives a review and not a re-run. f_recency is
         # excluded and only that one: it decays with the calendar, so it moves
         # between any two runs and its movement says nothing about the ruling.
-        for name, was, now in (
+        #
+        # In READ mode `f_specificity` is the factor the ruling is ABOUT, so it
+        # is expected to move and is excluded from drift there. Excluding it in
+        # FROZEN mode would defeat the check entirely, which is why the
+        # exclusion is keyed on the mode rather than left as a constant.
+        checks = [
             ("f_platform", was_platform, weights.f_platform),
             ("f_specificity", was_specificity, weights.f_specificity),
             ("f_relevance", was_relevance, weights.f_relevance),
             ("f_launch", was_launch, weights.f_launch),
             ("f_fuzziness", was_fuzziness, weights.f_fuzziness),
-        ):
+        ]
+        if document_facts == READ:
+            checks = [c for c in checks if c[0] != "f_specificity"]
+        for name, was, now in checks:
             if was is not None and abs(float(was) - now) > 1e-4:
                 report.factor_drift[name] += 1
                 log.warning(
@@ -330,6 +427,9 @@ def plan(
                 w_after=weights.w_final,
                 unconfirmed=verdict.unconfirmed,
                 provider_host=_provider_host(url),
+                f_specificity_before=(
+                    float(was_specificity) if was_specificity is not None else None
+                ),
                 factors=weights,
             )
         )
@@ -461,7 +561,10 @@ def cell_deltas(
 def summarise(report: ReweightReport) -> str:
     """The report a human reads. Counts only — nothing here is a score."""
     lines: list[str] = []
-    lines.append(f"{report.from_version} -> {report.to_version}")
+    lines.append(
+        f"{report.from_version} -> {report.to_version}   "
+        f"document facts: {report.document_facts}"
+    )
     lines.append(f"  read {report.read} claims, wrote {report.written}")
 
     if report.factor_drift:
@@ -472,7 +575,13 @@ def summarise(report: ReweightReport) -> str:
         for name, n in report.factor_drift.most_common():
             lines.append(f"    {n:5d}  {name}")
     else:
-        lines.append("  only f_evidence moved (f_recency excluded - it decays)")
+        lines.append(
+            "  only f_evidence moved"
+            if report.document_facts == FROZEN
+            else "  only f_evidence and f_specificity moved (f_specificity is "
+            "what this run is FOR)"
+        )
+        lines.append("    f_recency is excluded either way - it decays with the calendar")
 
     if report.refusals:
         lines.append("  REFUSED (not carried to the new version):")
@@ -483,6 +592,18 @@ def summarise(report: ReweightReport) -> str:
         lines.append("  promotions WITHHELD because the input was absent, not false:")
         for name, n in report.unconfirmed.most_common():
             lines.append(f"    {n:5d}  {name}")
+
+    moved = report.specificity_moves()
+    if report.document_facts == READ:
+        lines.append(
+            f"  f_specificity moved on {len(moved)} of {report.written} written "
+            f"claims (the document columns reaching the path)"
+        )
+        by_pair: Counter = Counter()
+        for d in moved:
+            by_pair[f"{d.f_specificity_before:.2f} -> {d.factors.f_specificity:.2f}"] += 1
+        for pair, n in by_pair.most_common():
+            lines.append(f"    {n:5d}  {pair}")
 
     lines.append("  tier moves:")
     for move, n in sorted(report.tier_moves().items(), key=lambda kv: -kv[1]):
@@ -506,6 +627,27 @@ def summarise(report: ReweightReport) -> str:
             lines.append(f"    {len(deltas):5d}  {model:34s} {hosts}")
     else:
         lines.append(
-            "  no promotion on a provider's own domain (the vendor-misfiling case)"
+            "  no TIER promotion on a provider's own domain (the misfiling case)"
         )
+
+    heavier = report.provider_domain_heavier_without_promotion()
+    if heavier:
+        by_model_h: dict[str, list[ClaimDelta]] = defaultdict(list)
+        for delta in heavier:
+            by_model_h[delta.model_version_id].append(delta)
+        lines.append(
+            "  !! HEAVIER ON A PROVIDER'S OWN DOMAIN WITHOUT A TIER MOVE. Correctly"
+        )
+        lines.append(
+            "    filed as vendor and still gaining weight - f_specificity reads the"
+        )
+        lines.append(
+            "    document's numbers, and an announcement carries numbers by"
+        )
+        lines.append("    construction. The other door into the same worry:")
+        for model, deltas in sorted(by_model_h.items(), key=lambda kv: -len(kv[1])):
+            gained = sum(d.w_after - d.w_before for d in deltas)
+            lines.append(
+                f"    {len(deltas):5d}  {model:34s} +{gained:.4f} total w_final"
+            )
     return "\n".join(lines)

@@ -48,11 +48,27 @@ from judge.vet.weight import WeightFactors
 #: extractor model, the verification, the weighting. Every derived row carries
 #: it so a scoring change is re-runnable and diffable rather than archaeology.
 #:
-#: e5.1 -> e5.2, 2026-08-30: `evidence_tier` is keyed on
-#: (speaking, has_repro_steps, has_numbers) instead of `speaking` alone —
-#: contract/harvest.yaml `evidence_tier_rules`. A WEIGHTING change, not an
-#: extraction one, so `judge reweight` produces the e5.2 rows from the stored
-#: e5.1 inputs and no model is called.
+#: TWO RULINGS LANDED ON 2026-08-30 AND THEY GET TWO VERSIONS, NOT ONE.
+#: Both are weighting changes, so `judge reweight` produces both from stored
+#: inputs and no model is called for either. They are separated because a diff
+#: with two causes measures neither.
+#:
+#:   e5.1 -> e5.2   `evidence_tier` keys on (speaking, has_repro_steps,
+#:                  has_numbers) instead of `speaking` alone —
+#:                  contract/harvest.yaml `evidence_tier_rules`. ONLY
+#:                  `f_evidence` moves; `judge reweight --document-facts frozen`
+#:                  holds the document booleans at the values e5.1 effectively
+#:                  used, and the drift check proves it held them.
+#:
+#:   e5.2 -> e5.3   `compute()` refuses `None`, and `_document_facts` reads
+#:                  `document.has_numbers` / `has_conditions` instead of passing
+#:                  a literal `None` that the refusal did not catch. ONLY
+#:                  `f_specificity` moves, plus refusals where the columns are
+#:                  NULL. `judge reweight --document-facts read`.
+#:
+#: A plain `judge extract` writes e5.3, because the extraction path now reads
+#: the columns. e5.2 exists only as the intermediate the tier diff is measured
+#: against, which is what a version-stamped fork is for.
 #:
 #: ⚠ THE VERSION IS IN `claim_id_for`, SO A BUMP FORKS THE TABLE RATHER THAN
 #:   UPDATING IT. That is the point — the e5.1 rows stay for the diff — and it
@@ -60,7 +76,7 @@ from judge.vet.weight import WeightFactors
 #:   held one version and no aggregation needed to say which; after it, an
 #:   unfiltered `n_eff` would take each voice's best weight across BOTH versions
 #:   and quietly report a mixture that is neither.
-PIPELINE_VERSION = "e5.2"
+PIPELINE_VERSION = "e5.3"
 
 CONNECT_TIMEOUT_SECONDS = 10
 
