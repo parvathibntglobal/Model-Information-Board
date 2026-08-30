@@ -1,20 +1,28 @@
-"""Assemble a stored GitHub issue into a `thread_context`.
+"""Assemble a stored GitHub issue into a `thread_context`. Two shapes now.
 
-THE THIRD SHAPE IS NOT YET IN THE DATA, AND SAYING SO IS THE POINT
-------------------------------------------------------------------
-The assembler was built for two shapes: a Reddit tree (`assemble`, ranked
-children) and a blog article (`assemble_article`, one member, `whole_document`).
-A GitHub issue *with its comments* would be a third — a shallow tree with a body
-and n replies, ranked differently from Reddit because there are no votes.
+THE THIRD SHAPE ARRIVED ON 2026-08-30
+--------------------------------------
+The assembler was built for two: a Reddit tree (`assemble`, ranked children) and
+a blog article (`assemble_article`, one member, `whole_document`). A GitHub issue
+*with its comments* is a third — a shallow tree with a body and n replies, ranked
+differently from Reddit because there are no votes.
 
-**It is not what is stored.** `GitHubHarvester` records `comment_count` into
-`engagement` and never fetches a comment: all 27 rows on staging carry
-`parent_id IS NULL` and `thread_root_id IS NULL`. So each document is the issue
-body alone, and that is structurally the blog case — one member, no children.
+This module now holds both GitHub cases:
 
-Building a tree assembler now would be building it against no data. What this
-does instead is assemble the one member honestly, and **record the comments it did
-not read**, which is exactly what the coverage columns are for.
+    assemble_issue          the body alone. `issue_body_only`.
+    assemble_issue_thread   body + fetched comments. `issue_with_comments`.
+
+**The body-only path is not deprecated and must not be.** 25 of the 71 stored
+issues carry comments that were counted and never fetched, and an issue with no
+comments at all is genuinely one member. Which function to call is a fact about
+what was fetched, not a preference — and `selection_method` records the answer
+so the two never have to be told apart by inference.
+
+WHY THE SPLIT SURVIVED THE COMMENTS LANDING. The paragraph that used to sit here
+said building a tree assembler "would be building it against no data", and that
+was right at the time. What made it right was the absence of comments, not the
+absence of a need — so when 148 comments landed, the argument expired rather
+than being overturned. Recorded because the two read identically from a diff.
 
 WHY `observed_children = 0` AND `hidden_children_min = comment_count`
 ---------------------------------------------------------------------
@@ -41,6 +49,7 @@ are harvested.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from collect.assemble.flatten import FlatteningRules, flatten
@@ -112,6 +121,154 @@ def assemble_issue(
         pipeline_version=version,
         selection_method=ISSUE_BODY_ONLY,
     )
+
+
+#: The third shape, and it is NOT `issue_body_only`. A reader grouping by
+#: `selection_method` must be able to tell an issue we read the body of from an
+#: issue we read the thread of - the module docstring above promised exactly
+#: that ("must be able to find these again the day comments are harvested"), and
+#: this is that day.
+ISSUE_WITH_COMMENTS = "issue_with_comments"
+
+#: How many comments reach the flattened text. Same value and same reason as
+#: Reddit's cap: the extractor reads the root plus a handful of children, and
+#: more children is more tokens against a per-call budget rather than more
+#: signal. Named separately because a shared constant would make two independent
+#: judgements look like one decision.
+MAX_ISSUE_COMMENTS = 5
+
+
+@dataclass(frozen=True)
+class AssemblyComment:
+    """What the assembler needs from one fetched comment.
+
+    A PROTOCOL-SHAPED VALUE RATHER THAN `StoredComment` ITSELF, because
+    `collect/assemble/` must not import an adapter: the assembler serves three
+    platforms and depending on one of them inverts that. The caller builds these.
+    """
+
+    document_id: str
+    body: str
+    external_id: str
+    #: GitHub declares it, `StoredComment.is_bot` reads it. Carried here so the
+    #: refusal below is a property of the assembler rather than a rule the
+    #: caller is trusted to have applied.
+    is_bot: bool = False
+    #: There are no votes on a GitHub comment. See `_rank_issue_comments`.
+    score: int | None = None
+
+
+def assemble_issue_thread(
+    *,
+    root_document_id: str,
+    root_text: str,
+    comments: Sequence[AssemblyComment],
+    comment_count: int,
+    store,
+    version_aliases,
+    max_children: int = MAX_ISSUE_COMMENTS,
+    pipeline_version: str | None = None,
+) -> AssembledThread:
+    """One `thread_context` over an issue body AND its fetched comments.
+
+    THE THIRD SHAPE, BUILT NOW BECAUSE THE DATA FINALLY EXISTS. The module
+    docstring above says a tree assembler "would be building it against no
+    data"; 148 comments across 30 issues is data, and 25 of the 71 issues carry
+    comments that were counted and never fetched.
+
+    ⚠ BOTS ARE REFUSED AS MEMBERS, AND THIS IS THE GUARD THAT MATTERS.
+      `github-actions[bot]` is the busiest commenter in the corpus. Writing its
+      document with `author_id` NULL is not enough on its own: `cells.py` maps a
+      NULL author to `ANONYMOUS_VOICE:platform`, so a bot left in the flattened
+      text could be quoted by the extractor and contribute that shared voice.
+      Excluding it from `member_document_ids` is what stops it being read at all.
+
+      Refused here rather than only in the caller because this function decides
+      what the extractor sees. A rule applied by whoever remembers is a rule
+      that holds until somebody writes a second caller.
+
+    ⚠ `hidden_children_min` IS THE COUNT WE DID NOT FETCH, NOT ZERO. GitHub's
+      `comment_count` is the thread's true size, so an issue reporting 12
+      comments of which we hold 8 is `observed 8, hidden_min 4` and
+      `coverage_ratio 0.667`. Setting hidden to 0 because we fetched "the
+      comments" would claim 1.0 coverage of a thread we read two thirds of -
+      and the bots we refuse are part of what we did not read, deliberately:
+      they are excluded from `observed` too, so the ratio describes human
+      coverage rather than API coverage.
+    """
+    if not root_text or not root_text.strip():
+        raise ValueError(
+            f"{root_document_id}: no stored root text. A thread_context over an "
+            f"empty string verifies every quote against nothing and rejects them "
+            f"all, which reads as a fabricating extractor rather than a missing "
+            f"issue. Do not assemble it."
+        )
+
+    version = pipeline_version or settings().pipeline_version
+
+    usable = [
+        c for c in comments if not c.is_bot and c.body and c.body.strip()
+    ]
+    selected = [c for _score, c in _rank_issue_comments(usable, version_aliases)][
+        :max_children
+    ]
+
+    documents: list[tuple[str, str]] = [(root_document_id, root_text)]
+    documents.extend((c.document_id, c.body) for c in selected)
+
+    flattened = flatten(documents, rules=GITHUB_RULES)
+    stored = store.put(flattened.text, namespace=FLATTENED)
+
+    # WHAT WE HOLD, not what we selected. `observed_children` answers "how many
+    # voices do we have" and `member_document_ids` answers "which did the
+    # extractor read" - the same split Reddit's assembler makes, and conflating
+    # them would report a five-comment cap as a five-comment thread.
+    observed = len(usable)
+    hidden = max(0, int(comment_count or 0) - observed)
+
+    return AssembledThread(
+        id=stable_id("thread_context", root_document_id, version),
+        thread_root_id=root_document_id,
+        member_document_ids=flattened.member_document_ids,
+        flattened=flattened,
+        flattened_text_ref=stored.ref,
+        observed_children=observed,
+        hidden_children_min=hidden,
+        # GitHub issue comments are a flat list, not a tree. There are no
+        # collapsed branches to be unsized, so 0 is a measurement here where on
+        # Reddit it would be a guess.
+        hidden_branches_unsized=0,
+        pipeline_version=version,
+        selection_method=ISSUE_WITH_COMMENTS,
+    )
+
+
+def _rank_issue_comments(comments, version_aliases):
+    """Rank by specificity alone. There are no votes on a GitHub comment.
+
+    ⚠ NOT `thread.rank_children`, AND THE DIFFERENCE IS NOT AN OVERSIGHT.
+      That function scores `specificity x log1p(max(score, 0))`, and a GitHub
+      issue comment has no score - reactions exist but are not returned on the
+      comment list endpoint. Passing score=None through `log1p(max(None or 0,0))`
+      gives `log1p(0) = 0.0`, which multiplies EVERY comment to zero and makes
+      the ranking a tie broken on `external_id` - a selection by comment id,
+      which is arrival order, presented as a relevance ranking.
+
+      That is the failure this project keeps finding: a computation that runs,
+      produces a number, and ranks on something nobody chose. So the engagement
+      term is dropped rather than defaulted, and specificity stands alone.
+
+    Ties break on `external_id` so a re-run selects the same comments and
+    produces the same `offset_map`.
+    """
+    from collect.triage.specificity import score_document
+
+    ranked = []
+    for comment in comments:
+        specificity = score_document(comment.body, version_aliases=version_aliases)
+        ranked.append((specificity.score, comment))
+    ranked.sort(key=lambda pair: (-pair[0], pair[1].external_id))
+    return ranked
 
 
 @dataclass

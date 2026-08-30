@@ -75,6 +75,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -136,15 +137,30 @@ def github_author_id(hit: Any) -> str | None:
     merges every deleted account into a single `author` row that the gate then
     counts as a voice corroborating itself.
     """
+    return github_author_id_for(
+        getattr(hit, "author_external_id", None), getattr(hit, "author", None)
+    )
+
+
+def github_author_id_for(external_id: Any, handle: str | None) -> str | None:
+    """The same id, from the two values rather than from a hit object.
+
+    EXTRACTED SO COMMENTS AND ISSUES CANNOT DISAGREE ABOUT WHO AN AUTHOR IS.
+    `SearchHit` calls the handle `author` and `StoredComment` calls it
+    `author_handle`, so a duck-typed `getattr(hit, "author")` would silently
+    return None for every comment - producing a `handle_hash` of None on rows
+    that have a handle, and two different `author.id` values for one person
+    depending on which path found them. That is the over-clustering failure in
+    reverse: the same account split in two, corroborating itself.
+    """
     from collect.assemble.authors import AuthorRow, hash_handle
 
-    external_id = getattr(hit, "author_external_id", None)
     if not external_id:
         return None
     return AuthorRow(
         source=DOCUMENT_SOURCE,
         external_id=str(external_id),
-        handle_hash=hash_handle(getattr(hit, "author", None)),
+        handle_hash=hash_handle(handle),
     ).id
 
 
@@ -203,15 +219,81 @@ class StoredComment:
     a second voice, the same person twice is still one. `collect/assemble/
     authors.py` hashes it; per the 2026-08-18 ruling the handle itself is
     retained nowhere, and it reaches `handle_hash` transiently.
+
+    `author_external_id` IS `user.id`, NOT `user.login`, for the reason Reddit's
+    `t2_` canonicalisation exists: a numeric id survives a rename and a reused
+    login merges two people, which is the over-clustering `collect/CLAUDE.md`
+    calls the worse of the two failures. It was absent from this class until
+    2026-08-30, which meant a comment could not have become a voice even after
+    it was written - `document.author_id` references `author.id` and there was
+    nothing to reference.
+
+    `author_type` IS THE API'S OWN ANSWER TO "IS THIS A BOT", and see `is_bot`.
     """
 
     external_id: str
     issue_api_url: str
     html_url: str
     author_handle: str | None
+    #: `user.id`. None for a deleted account, which gets no author row rather
+    #: than a shared sentinel - a sentinel would merge every deleted account
+    #: into one voice that then corroborates itself.
+    author_external_id: str | None
+    #: `user.type`, verbatim: "User", "Bot", "Organization", or None when the
+    #: payload carried no user at all. NOT normalised to a boolean here, because
+    #: the ruling on what to do with a bot is Engineer 2's and a boolean would
+    #: bake half of it in.
+    author_type: str | None
+    #: `created_at`, so a comment document carries when the human wrote it.
+    #: `weight.recency_factor` subtracts this from `as_of`, and a missing date
+    #: sends the claim down the "no document facts" path rather than being
+    #: dated from a default.
+    created_at: str | None
+    #: The comment body, for assembly. Held rather than re-read from the store,
+    #: because the fetch already parsed the payload once.
+    body: str | None
     ref: str
     content_hash: str
     already_present: bool
+
+    @property
+    def is_bot(self) -> bool:
+        """Whether GitHub says this account is a bot.
+
+        ⚠ KEYED ON `user.type`, AND THE `[bot]` SUFFIX IS ONLY A CORROBORATION.
+          Measured over the 148 comments already fetched: `user.type == "Bot"`
+          and `login.endswith("[bot]")` agree on all 148, 23 Bot and 125 User,
+          with no disagreement in either direction.
+
+          THAT AGREEMENT HAS A DENOMINATOR OF TWO, NOT 148. The 23 bot comments
+          come from exactly two accounts - `github-actions[bot]` and
+          `linear[bot]` - so what is measured is that two GitHub Apps follow
+          GitHub's own naming convention, which they do because the platform
+          renders it. 148 is the comment count and the wrong denominator to
+          quote (rule 7).
+
+          So the suffix is not sufficient and is not used as the test. It is a
+          STRING HEURISTIC over a name a human can choose: a person may register
+          `notabot` or a helpful maintainer may be called `releasebot`, and
+          neither is a GitHub App. `user.type` is the platform DECLARING what
+          the account is, which is a field rather than an inference - the same
+          distinction as `document.has_numbers` counting versus the extractor
+          asserting. `bot_suffix_disagrees` reports any row where the two part
+          company, so the day one does, it is a finding rather than a silent
+          reclassification.
+        """
+        return (self.author_type or "").casefold() == "bot"
+
+    @property
+    def bot_suffix_disagrees(self) -> bool:
+        """`user.type` and the `[bot]` suffix pointing different ways.
+
+        Zero on the 148 comments measured. Counted anyway, because it is the
+        only thing that would tell us the heuristic and the field have diverged
+        - and the population that would show it is the one we have not fetched.
+        """
+        handle = (self.author_handle or "").casefold()
+        return self.is_bot != handle.endswith("[bot]")
 
 
 @dataclass
@@ -620,12 +702,20 @@ class GitHubHarvester:
                 # and the content-addressed store deduplicates it.
                 blob = json.dumps(comment, sort_keys=True, ensure_ascii=False)
                 put = self._store.put(blob, namespace=RAW)
+                user = comment.get("user") or {}
                 stored.append(
                     StoredComment(
                         external_id=f"gh-comment:{comment['id']}",
                         issue_api_url=issue_api_url,
                         html_url=comment.get("html_url") or "",
-                        author_handle=((comment.get("user") or {}).get("login")),
+                        author_handle=user.get("login"),
+                        # `user.id`, stringified. Absent for a deleted account.
+                        author_external_id=(
+                            str(user["id"]) if user.get("id") is not None else None
+                        ),
+                        author_type=user.get("type"),
+                        created_at=comment.get("created_at"),
+                        body=comment.get("body"),
                         ref=put.ref,
                         content_hash=put.content_hash,
                         already_present=put.already_present,
@@ -767,6 +857,147 @@ class GitHubHarvester:
             # from "few ATTRIBUTABLE voices", which are different findings.
             "documents_without_author": sum(1 for r in rows if r["author_id"] is None),
             "unattributable": extraction.unattributable,
+        }
+
+    #: What `filter_reasons` records for a comment whose author GitHub declares
+    #: a bot. Named rather than inlined so `/filtered` and this write path
+    #: cannot disagree about the string, and so a grep finds both.
+    BOT_AUTHOR_REASON = "bot_author"
+
+    def write_comments(
+        self,
+        conn,
+        comments: Sequence[StoredComment],
+        *,
+        issue_document_id_by_api_url: dict[str, str],
+        harvest_run_id: str | None = None,
+        batch: int = 500,
+    ) -> dict[str, int]:
+        """Insert one `document` per stored comment, linked to its issue.
+
+        148 COMMENTS WERE FETCHED AND NOTHING STORED THEM. That is what this
+        closes. The value is voices: 65 distinct human comment authors against
+        45 issue-body authors, and `n_eff` counts authors rather than claims, so
+        comments roughly double the voice pool on the platform where the
+        publishable evidence is.
+
+        ⚠ A BOT IS NOT A VOICE, AND THIS PATH REFUSES TO MAKE ONE.
+
+        `github-actions[bot]` is the single busiest commenter in the corpus at
+        22 of 148, and `linear[bot]` brings the pair to 23. Nothing filters bots
+        anywhere today. A bot comment reaching `n_eff` would be an automated
+        account corroborating a cell, which is the failure the voice count
+        exists to prevent, arriving through a door nobody had shut.
+
+        WHAT THIS DOES, AND WHAT IT DELIBERATELY DOES NOT DECIDE. The ruling on
+        bots - drop at collection, or weight at E6 - is Engineer 2's, and
+        `judge/vet/reject.py` is her file. So this stores the row and refuses to
+        make it a voice, which is the only option that keeps both rulings open:
+
+            status            'filtered', not 'kept'
+            filter_reasons    ['bot_author'], so /filtered names the rule
+            author_id          NULL, so no `author` row and no voice
+            the payload        kept, so a ruling either way is applied to data
+                               we already hold rather than to a re-fetch
+
+        DROPPING THE ROW ENTIRELY WOULD PREJUDGE IT. "Rejected is not deleted"
+        is this project's rule for exactly this case: a filter you cannot
+        inspect cannot be trusted, and a bot comment that never reached the
+        table cannot be re-weighted the day the ruling says weight it.
+
+        ⚠ `author_id` NULL IS NOT ENOUGH ON ITS OWN, which is why assembly
+          excludes bots too. `judge/store/cells.py` maps a NULL author to
+          `ANONYMOUS_VOICE:platform` - one shared voice per platform - so a bot
+          left in an assembled thread could still be quoted and still contribute
+          that shared voice. The guard that matters is `assemble_issue_thread`
+          refusing bots as members; this one stops the row being an author.
+        """
+        from collect.assemble.authors import AuthorRow, hash_handle, write_authors
+
+        linked = [c for c in comments if c.issue_api_url in issue_document_id_by_api_url]
+        skipped_unlinked = len(comments) - len(linked)
+
+        humans = [c for c in linked if not c.is_bot]
+        bots = [c for c in linked if c.is_bot]
+        disagreements = sum(1 for c in linked if c.bot_suffix_disagrees)
+
+        # AUTHORS FIRST, because `document.author_id` references `author.id`.
+        # Humans only - see the docstring.
+        author_rows = [
+            AuthorRow(
+                source=DOCUMENT_SOURCE,
+                external_id=str(c.author_external_id),
+                handle_hash=hash_handle(c.author_handle),
+            )
+            for c in humans
+            if c.author_external_id
+        ]
+        author_counts = write_authors(conn, author_rows, batch=batch)
+
+        rows = []
+        for comment in linked:
+            issue_document_id = issue_document_id_by_api_url[comment.issue_api_url]
+            is_bot = comment.is_bot
+            rows.append(
+                {
+                    "id": stable_id("doc", DOCUMENT_SOURCE, comment.external_id),
+                    "source": DOCUMENT_SOURCE,
+                    "external_id": comment.external_id,
+                    "url": comment.html_url,
+                    "created_at": comment.created_at,
+                    "text_ref": comment.ref,
+                    "content_hash": comment.content_hash,
+                    # THE THREAD LINKS, and this is the first github row to
+                    # carry either. Every github document before this had
+                    # `parent_id IS NULL` and `thread_root_id IS NULL`, because
+                    # every one was an issue body with no fetched children.
+                    "parent_id": issue_document_id,
+                    "thread_root_id": issue_document_id,
+                    "author_id": (
+                        None
+                        if is_bot or not comment.author_external_id
+                        else github_author_id_for(comment.author_external_id, comment.author_handle)
+                    ),
+                    "status": "filtered" if is_bot else "kept",
+                    "filter_reasons": [self.BOT_AUTHOR_REASON] if is_bot else None,
+                    "harvest_run_id": harvest_run_id,
+                    "retrieval_provenance": (
+                        "run_recorded" if harvest_run_id else "not_recorded"
+                    ),
+                }
+            )
+
+        statement = (
+            "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
+            "text_ref, content_hash, parent_id, thread_root_id, author_id, status, "
+            "filter_reasons, harvest_run_id, retrieval_provenance) "
+            "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
+            "%(text_ref)s, %(content_hash)s, %(parent_id)s, %(thread_root_id)s, "
+            "%(author_id)s, %(status)s, %(filter_reasons)s, "
+            "%(harvest_run_id)s, %(retrieval_provenance)s) "
+            "ON CONFLICT (source, external_id) DO NOTHING"
+        )
+        inserted = 0
+        with conn.cursor() as cur:
+            for start in range(0, len(rows), batch):
+                cur.executemany(statement, rows[start:start + batch])
+                inserted += max(0, cur.rowcount)
+
+        return {
+            "seen": len(comments),
+            "linked": len(linked),
+            # NAMED, not folded into `seen`. A comment whose issue is not in the
+            # map is a plumbing fault - the caller built the map - and a comment
+            # written by a bot is a ruling. Counting them together would let a
+            # broken map read as a well-filtered sweep.
+            "skipped_no_issue": skipped_unlinked,
+            "inserted": inserted,
+            "human": len(humans),
+            "bot_filtered": len(bots),
+            "bot_accounts": len({c.author_handle for c in bots if c.author_handle}),
+            "bot_suffix_disagreements": disagreements,
+            "unattributable": sum(1 for c in humans if not c.author_external_id),
+            "authors_inserted": author_counts.get("inserted", 0),
         }
 
     def harvest_run_fields(self, run: QueryRun) -> dict[str, Any]:

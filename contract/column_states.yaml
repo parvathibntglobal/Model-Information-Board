@@ -224,12 +224,17 @@ columns:
     external_id: {state: read, reviewed: false}
     fetched_at: {state: read, reviewed: false}
     filter_reasons:
-      state: unwired
+      state: read
       reviewed: true
       why: >-
-        as triage_verdict
-      known_gap: >-
-        E2's lane - triage is unwired
+        WRITTEN SINCE 2026-08-30 by collect/adapters/github.py write_comments, which
+        stores a bot-authored issue comment as status='filtered' with
+        filter_reasons ['bot_author'] rather than dropping it - so judge/pages/filtered.py
+        can name the rule that excluded it. Was 'unwired' with the gap 'E2's lane -
+        triage is unwired', which is STILL TRUE OF TRIAGE and stopped being true of
+        the column: a known_gap exempts an entry from the mismatch check, so leaving
+        it would have hidden the first writer this column ever had behind a gap
+        statement about a different stage
     harvest_run_id:
       state: read
       reviewed: true
