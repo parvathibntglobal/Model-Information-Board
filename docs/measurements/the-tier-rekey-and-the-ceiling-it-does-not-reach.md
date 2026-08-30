@@ -227,37 +227,50 @@ the same claim. It now derives the contrasting version from the constant.
 
 ## 6 · What runs next, in order
 
+Four rulings landed on 2026-08-30 and each gets its own `pipeline_version`, so
+each diff has exactly one cause. Every step after the first is a re-weight from
+stored inputs: no model is called and nothing is re-extracted.
+
 ```
+0  scripts/capture_rollup_baseline.py --pipeline-version e5.1
+       Re-capture, do not skip. The file on disk records claims_total 51
+       against a table holding 197, and step 4 would announce the gap as
+       its own result. Now carries pipeline_version and a real timestamp,
+       and refuses to overwrite a capture from a different fork.
+
 1  scripts/measure_document_facts_gap.py --pipeline-version e5.1
-       read-only. How many claims a NULL column drops, before anything drops one.
+       Read-only. How many claims a NULL column drops, before anything
+       drops one.
 
-2  judge reweight --from-version e5.1 --to-version e5.2 --document-facts frozen
-       dry run. THE TIER RULING ALONE. Drift must be empty.
-   judge reweight --from-version e5.1 --to-version e5.2 --document-facts frozen                   --apply --driver config-change
+2  judge reweight --from-version e5.1 --to-version e5.2                   --document-facts frozen --specificity legacy
+       THE TIER RULING ALONE. Drift must be empty.
+       Then again with --apply --driver config-change.
 
-3  judge reweight --from-version e5.2 --document-facts read
-       dry run. THE DOCUMENT-FACTS RULING ALONE, at e5.3. f_specificity moves
-       here by design and is reported as a result rather than as drift.
-       Gated on step 1's number.
+3  judge reweight --from-version e5.2 --to-version e5.3                   --document-facts read --specificity legacy
+       THE DOCUMENT-FACTS RULING ALONE. f_specificity moves here by
+       design and is counted as a result rather than as drift. Gated on
+       step 1's number.
 
-4  scripts/report_rollup_delta.py       NOT against _before_rollup.json
+4  judge reweight --from-version e5.3 --document-facts read                   --specificity current
+       OPTION 1 ALONE, at e5.4. f_specificity moves again, the other way.
+
+5  scripts/report_rollup_delta.py        against the step-0 baseline
 ```
-
-⚠ **`_before_rollup.json` is stale and step 4 would lie with it.** It records
-`claims_total: 51`, captured 2026-08-28 before the 150-thread run landed the
-other 146. Run against it, the delta report would announce **+146 claims** as
-though the re-weight had produced them — a real number answering a question it
-was not asked, which is rule 7 in its most convincing form because the
-arithmetic is correct. Re-capture the baseline first, or skip step 4: the
-re-weight computes both sides of the cell diff itself, from `claim` at two
-pipeline versions, which is the whole reason it does not need a snapshot.
 
 Each dry run prints the tier moves, the withheld promotions, the provider-domain
-flags and the per-cell `n_eff` before and after — all inside a transaction that
-is rolled back, because pricing cells needs the claims to be IN the table.
+flags, the per-cell `n_eff` before and after, and **what the board lost** — all
+inside a transaction that is rolled back, because pricing cells needs the claims
+to be IN the table.
 
 **Read the drift line first, and stop if anything but `f_evidence` moved.** In
 step 2 that line must read *"only f_evidence moved"*; anything else means the
-run is not about the tier ruling and nothing in §2 applies to it. In step 3
-`f_specificity` moving is the point, so it is excluded from drift there and
+run is not about the tier ruling and nothing in §2 applies to it. In steps 3 and
+4 `f_specificity` moving is the point, so it is excluded from drift there and
 counted separately — the stop condition still holds for the other four factors.
+
+**Then read the quieter-board section, which prints whether or not anything was
+lost.** Voices and platforms only ever fall because a claim was refused, and
+`n_eff` can rise on the same run that costs a cell its second platform — so a
+report showing only `n_eff` would show that cell improving. A cell dropping from
+two platforms to one has stopped being publishable, and an absence we caused
+renders exactly like one we found.

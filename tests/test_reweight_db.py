@@ -104,9 +104,15 @@ def _e51_factors(*, platform, repro, days_ago=10, tier="D"):
     `specificity_factor` read it as falsy. Since 2026-08-30 `compute()` refuses
     `None`, so the fixture states the value rather than relying on the hole.
     """
-    from judge.vet.weight import compute
+    from judge.vet.weight import LEGACY_SPECIFICITY_WEIGHTS, compute
 
     return compute(
+        # THE FOUR-SIGNAL FORM, because that is what wrote these rows. Using
+        # today's two-signal form here would make the fixture agree with the
+        # code under test by construction, and the drift check - whose whole job
+        # is to catch a before/after computed with different arithmetic - would
+        # be asserting that a thing equals itself.
+        specificity_weights=LEGACY_SPECIFICITY_WEIGHTS,
         evidence_tier=tier,
         platform=platform,
         capability_key=CAPABILITY,
@@ -160,7 +166,8 @@ class TestTheForkIsRealAndSeparated:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         reweight.apply(seeded, report)
         seeded.commit()
 
@@ -179,7 +186,8 @@ class TestTheForkIsRealAndSeparated:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         assert report.deltas[0].claim_id_after == claim_id_for(
             thread_context_id="tc1",
             source_comment_id="d1",
@@ -205,7 +213,8 @@ class TestTheForkIsRealAndSeparated:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         reweight.apply(seeded, report)
         seeded.commit()
 
@@ -241,7 +250,8 @@ class TestWhatIsPromotedAndWhatIsNot:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         assert report.deltas[0].tier_after == expected
 
     def test_a_vendor_announcement_full_of_numbers_stays_at_F(self, seeded):
@@ -259,7 +269,8 @@ class TestWhatIsPromotedAndWhatIsNot:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         delta = report.deltas[0]
         assert delta.tier_after == "F"
         assert not delta.promoted
@@ -272,7 +283,8 @@ class TestWhatIsPromotedAndWhatIsNot:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         assert report.deltas[0].tier_after == "E"
 
     def test_the_document_falsifies_the_extractor_s_numbers(self, seeded):
@@ -288,7 +300,8 @@ class TestWhatIsPromotedAndWhatIsNot:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         assert report.deltas[0].tier_after == "D"
 
     def test_a_null_document_column_withholds_and_is_counted(self, seeded):
@@ -305,7 +318,8 @@ class TestWhatIsPromotedAndWhatIsNot:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         assert report.written == 1, "withheld, not dropped"
         assert report.deltas[0].tier_after == "D"
         assert report.unconfirmed["has_numbers"] == 1
@@ -331,7 +345,8 @@ class TestTheVendorMisfilingCounter:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         flagged = report.provider_domain_promotions()
         assert [d.provider_host for d in flagged] == ["anthropic.com"]
         assert "PROMOTED ON A PROVIDER'S OWN DOMAIN" in reweight.summarise(report)
@@ -345,7 +360,8 @@ class TestTheVendorMisfilingCounter:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         assert report.deltas[0].tier_after == "B", (
             "flagged for review and still promoted - blocking it here would be a "
             "gate decided by an unmeasured signal, which is the thing rule 8 "
@@ -361,7 +377,8 @@ class TestTheVendorMisfilingCounter:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         assert report.provider_domain_promotions() == []
         assert (
             "no TIER promotion on a provider's own domain"
@@ -382,7 +399,8 @@ class TestARefusalIsNotASilentTruncation:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         assert report.read == 1
         assert report.written == 0
         assert report.refusals["evidence_tier"] == 1
@@ -407,7 +425,7 @@ class TestTheDocumentFactsRuling:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=READ)
+                               document_facts=READ, specificity=reweight.LEGACY)
         moved = report.specificity_moves()
         assert len(moved) == 1
         was, now = moved[0].f_specificity_before, moved[0].factors.f_specificity
@@ -427,12 +445,38 @@ class TestTheDocumentFactsRuling:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=READ)
+                               document_facts=READ, specificity=reweight.LEGACY)
         assert report.read == 1
         assert report.written == 0
         assert report.refusals["has_numbers"] == 1
         assert report.refusals["has_conditions"] == 1
         assert "REFUSED" in reweight.summarise(report)
+
+    def test_option_1_shrinks_which_nulls_refuse_at_all(self, seeded):
+        """An unread input must not drop a claim, and Option 1 made one unread.
+
+        Under the legacy formula a NULL `document.has_numbers` refused the
+        claim. Under Option 1 that column reaches only the TIER falsifier, which
+        WITHHOLDS a promotion rather than refusing — so the same row survives,
+        at the tier its other signal earns. A refusal over an input the function
+        no longer reads would be a gate that had stopped meaning anything and
+        went on dropping documents.
+        """
+        _document(seeded, "d1", author="a1", has_numbers=None, has_conditions=False)
+        _claim(seeded, "c1", "d1", speaking="own-experience", repro=True,
+               numbers=True)
+        seeded.commit()
+
+        legacy = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=READ, specificity=reweight.LEGACY)
+        assert legacy.written == 0 and legacy.refusals["has_numbers"] == 1
+
+        current = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                                document_facts=READ, specificity=reweight.CURRENT)
+        assert current.written == 1, "the claim survives"
+        assert current.refusals == {}
+        assert current.deltas[0].tier_after == "C", "promoted on repro alone"
+        assert current.unconfirmed["has_numbers"] == 1, "withheld, and said so"
 
     def test_frozen_mode_does_not_refuse_the_same_claim(self, seeded):
         """The two modes differ on exactly this row, which is why there are two.
@@ -447,7 +491,8 @@ class TestTheDocumentFactsRuling:
         seeded.commit()
 
         frozen = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN,
+                               specificity=reweight.LEGACY)
         assert frozen.written == 1
         assert frozen.deltas[0].tier_after == "C", (
             "promoted on repro steps alone. The NUMBERS rung is still withheld - "
@@ -463,7 +508,7 @@ class TestTheDocumentFactsRuling:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=FROZEN)
+                               document_facts=FROZEN, specificity=reweight.LEGACY)
         assert report.factor_drift == {}
         assert report.specificity_moves() == []
         assert "only f_evidence moved" in reweight.summarise(report)
@@ -486,16 +531,22 @@ class TestTheDocumentFactsRuling:
 
 
 class TestPromotedIsNotTheSameQuestionAsHeavier:
-    """A vendor claim can gain weight without being misfiled.
+    """A vendor claim can gain weight without being misfiled — and Option 1
+    closed the route by which it did.
 
-    In READ mode `f_specificity` reads the document's numbers, and an
-    announcement carries numbers by construction — so a correctly-filed vendor
-    claim gets heavier while staying at F. Reading that as "promoted" put it
-    under a warning saying `speaking` had misfiled it, which is a false
-    accusation about the one row this whole change is checked against.
+    Under the legacy four-signal `f_specificity`, an announcement's own numbers
+    and repro steps lifted its weight while it sat correctly at F. Reading that
+    as "promoted" put a correctly-filed claim under a warning saying `speaking`
+    had misfiled it — a false accusation about the one row this whole change is
+    checked against.
+
+    Under Option 1 neither signal reaches `f_specificity` at all, so the route
+    is gone: a vendor claim's numbers now buy it nothing anywhere. The
+    distinction still has to exist in the code, because `f_specificity` can
+    still move on `has_conditions`.
     """
 
-    def test_a_vendor_claim_gets_heavier_without_being_promoted(self, seeded):
+    def test_under_the_legacy_formula_it_got_heavier_at_the_same_tier(self, seeded):
         _document(seeded, "d1", platform="blog",
                   url="https://www.anthropic.com/news/fable-5", author="vendor",
                   has_numbers=True, has_conditions=True)
@@ -504,13 +555,36 @@ class TestPromotedIsNotTheSameQuestionAsHeavier:
         seeded.commit()
 
         report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                               document_facts=READ)
+                               document_facts=READ, specificity=reweight.LEGACY)
         delta = report.deltas[0]
         assert delta.tier_after == "F"
-        assert delta.heavier, "f_specificity rose on the document's numbers"
+        assert delta.heavier, "the announcement's own numbers lifted it"
         assert not delta.promoted, "the TIER did not move, and only that is a promotion"
         assert report.provider_domain_promotions() == []
         assert len(report.provider_domain_heavier_without_promotion()) == 1
+
+    def test_option_1_closes_that_route(self, seeded):
+        """The result worth having: a vendor's numbers now buy it nothing.
+
+        `has_numbers` and `has_repro_steps` reach only the tier, and the tier
+        has no vendor rung. So the second door into E2's worry — an
+        announcement getting heavier through `f_specificity` rather than through
+        the ladder — is shut, and this claim gets LIGHTER rather than heavier.
+        """
+        _document(seeded, "d1", platform="blog",
+                  url="https://www.anthropic.com/news/fable-5", author="vendor",
+                  has_numbers=True, has_conditions=True)
+        _claim(seeded, "c1", "d1", speaking="vendor-about-own-product",
+               repro=True, numbers=True, tier="F", platform="blog")
+        seeded.commit()
+
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=READ, specificity=reweight.CURRENT)
+        delta = report.deltas[0]
+        assert delta.tier_after == "F"
+        assert not delta.heavier
+        assert delta.w_after < delta.w_before
+        assert report.provider_domain_heavier_without_promotion() == []
 
     def test_the_two_lists_are_reported_separately(self, seeded):
         _document(seeded, "d1", platform="blog",
@@ -522,7 +596,7 @@ class TestPromotedIsNotTheSameQuestionAsHeavier:
 
         text = reweight.summarise(
             reweight.plan(seeded, from_version=OLD, to_version=TIER,
-                          document_facts=READ)
+                          document_facts=READ, specificity=reweight.LEGACY)
         )
         assert "no TIER promotion on a provider's own domain" in text
         assert "HEAVIER ON A PROVIDER'S OWN DOMAIN WITHOUT A TIER MOVE" in text
@@ -540,3 +614,89 @@ class TestPromotedIsNotTheSameQuestionAsHeavier:
         assert report.deltas[0].promoted
         assert len(report.provider_domain_promotions()) == 1
         assert report.provider_domain_heavier_without_promotion() == []
+
+
+class TestTheBoardGettingQuieterIsAResult:
+    """Voices and platforms only ever go DOWN because a claim was refused.
+
+    A refusal is a claim we dropped, so a cell that falls from two platforms to
+    one has stopped being publishable for a reason `n_eff` does not show — and
+    `n_eff` can RISE on the same run that costs the cell its second platform.
+    Every other line in this report notices evidence arriving; this is the one
+    that notices it leaving.
+    """
+
+    def _two_platform_cell(self, seeded, *, second_doc_numbers):
+        _document(seeded, "d1", platform="reddit", author="a1",
+                  has_numbers=True, has_conditions=False)
+        _claim(seeded, "c1", "d1", speaking="own-experience", repro=True,
+               numbers=True, thread="tc1")
+        _document(seeded, "d2", platform="blog", author="a2",
+                  has_numbers=second_doc_numbers, has_conditions=None)
+        _claim(seeded, "c2", "d2", speaking="own-experience", repro=True,
+               numbers=True, platform="blog", thread="tc2")
+        seeded.commit()
+
+    def test_a_refusal_that_costs_a_cell_its_second_platform_is_reported(self, seeded):
+        from judge.reweight import cell_deltas, quieter_cells, summarise_losses
+
+        # d2's has_conditions is NULL, so under the legacy formula its claim is
+        # refused - and it was the cell's only blog voice.
+        self._two_platform_cell(seeded, second_doc_numbers=True)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=READ, specificity=reweight.LEGACY)
+        reweight.apply(seeded, report)
+
+        losses = quieter_cells(cell_deltas(seeded, report))
+        assert len(losses) == 1
+        loss = losses[0]
+        assert (loss.voices_before, loss.voices_after) == (2, 1)
+        assert (loss.platforms_before, loss.platforms_after) == (2, 1)
+        assert loss.lost_publishability, "two platforms to one is the gate condition"
+        assert not loss.gone
+
+        text = summarise_losses(losses)
+        assert "THE BOARD GOT QUIETER" in text
+        assert "NO LONGER PUBLISHABLE" in text
+
+    def test_no_loss_is_printed_as_a_result_and_not_as_silence(self, seeded):
+        """A section that appears only on bad news teaches that its absence
+        means nothing was checked. "0 cells lost voices" is something to rely on.
+        """
+        from judge.reweight import summarise_losses
+
+        assert "GOT NO QUIETER" in summarise_losses([])
+
+    def test_a_cell_losing_every_voice_is_marked_gone(self, seeded):
+        from judge.reweight import cell_deltas, quieter_cells, summarise_losses
+
+        _document(seeded, "d1", author="a1", has_numbers=None, has_conditions=None)
+        _claim(seeded, "c1", "d1", speaking="own-experience", repro=True, numbers=True)
+        seeded.commit()
+
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=READ, specificity=reweight.LEGACY)
+        reweight.apply(seeded, report)
+
+        losses = quieter_cells(cell_deltas(seeded, report))
+        assert len(losses) == 1 and losses[0].gone
+        assert "GONE" in summarise_losses(losses)
+
+    def test_n_eff_rising_does_not_hide_a_lost_platform(self, seeded):
+        """The case the n_eff column cannot show, asserted directly.
+
+        The surviving voice is promoted, so `n_eff` goes UP on the same run that
+        takes the cell from two platforms to one. A report that printed only
+        `n_eff` would show this cell improving.
+        """
+        from judge.reweight import cell_deltas, quieter_cells
+
+        self._two_platform_cell(seeded, second_doc_numbers=True)
+        report = reweight.plan(seeded, from_version=OLD, to_version=TIER,
+                               document_facts=READ, specificity=reweight.LEGACY)
+        reweight.apply(seeded, report)
+
+        pairs = cell_deltas(seeded, report)
+        before, after = pairs[0]
+        assert after.counts.n_eff > before.counts.n_eff, "n_eff rose"
+        assert quieter_cells(pairs)[0].lost_publishability, "and the cell still lost"

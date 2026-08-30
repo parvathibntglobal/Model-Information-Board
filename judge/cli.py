@@ -448,13 +448,14 @@ class _RolledBack(Exception):
 
 
 def _print_cell_deltas(pairs, names: dict[str, str] | None = None) -> int:
-    """n_eff before and after, per cell, and how many crossed the gate.
+    """n_eff before and after per cell, how many crossed the gate, and what was lost.
 
     `names` maps `model_version.id` to `canonical_id`. Cells are keyed on the
     internal id, and `mv1` on a line that is supposed to answer "which model
     publishes first" is a row a reader has to go and look up.
     """
     from judge.curate.gate import N_EFF_MINIMUM
+    from judge.reweight import quieter_cells, summarise_losses
 
     names = names or {}
 
@@ -463,9 +464,6 @@ def _print_cell_deltas(pairs, names: dict[str, str] | None = None) -> int:
     print(f"\n  CELLS - n_eff before -> after, gate at {N_EFF_MINIMUM}")
     for before, after in pairs:
         if after is None:
-            # A cell that exists at the OLD version and not the new one means
-            # every claim in it was refused. Reported rather than skipped: a
-            # cell that silently stops existing is rule 4 at the worst moment.
             print(f"    {names.get(before.key.model_version_id, before.key.model_version_id):32s} "
                   f"{before.key.capability_key:26s} GONE - every claim refused")
             continue
@@ -479,36 +477,25 @@ def _print_cell_deltas(pairs, names: dict[str, str] | None = None) -> int:
         )
         if abs(now - was) > 1e-9 or shrank:
             moved += 1
-            # VOICES AND PLATFORMS CAN GO DOWN, and only a refusal does that.
-            # Printed as a delta rather than a level, because a cell that lost
-            # its second platform has stopped being publishable for a reason
-            # the n_eff column does not show - and losing evidence we DROPPED
-            # reads exactly like evidence we never had.
-            lost = []
-            if before is not None:
-                if after.counts.independent_voices < before.counts.independent_voices:
-                    lost.append(
-                        f"voices {before.counts.independent_voices}"
-                        f"->{after.counts.independent_voices}"
-                    )
-                if after.counts.platform_count < before.counts.platform_count:
-                    lost.append(
-                        f"platforms {before.counts.platform_count}"
-                        f"->{after.counts.platform_count}"
-                    )
             print(f"    {names.get(after.key.model_version_id, after.key.model_version_id):32s} "
                   f"{after.key.capability_key:26s} "
                   f"{was:.4f} -> {now:.4f}  "
                   f"voices={after.counts.independent_voices} "
                   f"platforms={after.counts.platform_count}"
-                  f"{'   CROSSES' if now >= N_EFF_MINIMUM else ''}"
-                  f"{'   LOST ' + ', '.join(lost) if lost else ''}")
+                  f"{'   CROSSES' if now >= N_EFF_MINIMUM else ''}")
     print(f"\n  {moved} cells moved, {crossed} crossed {N_EFF_MINIMUM}")
     if not crossed:
         # THE NUMBER THAT MATTERS AS MUCH AS THE OTHER ONE. A re-weight that
         # publishes nothing is a result, and printing only the movers would let
         # it read as a run that had not finished.
         print("  NOTHING NEW PUBLISHES. The gate is unchanged and unmet.")
+
+    # ITS OWN SECTION, PRINTED WHETHER OR NOT ANYTHING WAS LOST. A quieter board
+    # is the direction nobody checks: every other line here notices evidence
+    # arriving, and a section that appears only on bad news teaches the reader
+    # that its absence means nothing was looked at.
+    print()
+    print(summarise_losses(quieter_cells(pairs), names))
     return crossed
 
 
@@ -535,6 +522,7 @@ def _cmd_reweight(args: argparse.Namespace) -> int:
             from_version=args.from_version,
             to_version=to_version,
             document_facts=args.document_facts,
+            specificity=args.specificity,
         )
         print(summarise(report))
 
@@ -628,6 +616,15 @@ def main(argv: list[str] | None = None) -> int:
         "effectively used (both False), so only f_evidence moves. read: take "
         "them from the document, which is the 2026-08-30 ruling and refuses a "
         "NULL. One ruling per run.",
+    )
+    reweight.add_argument(
+        "--specificity",
+        choices=("legacy", "current"),
+        default="current",
+        help="legacy: the four-signal f_specificity, in force until 2026-08-30. "
+        "current: Option 1's two signals. Needed to reproduce the BEFORE side of "
+        "a version that predates Option 1 - a diff against a formula that never "
+        "applied is a diff about nothing.",
     )
     reweight.add_argument(
         "--apply", action="store_true", help="write. Without it, a dry run."

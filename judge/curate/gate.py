@@ -2,10 +2,32 @@
 
 Pure code. No language model, and no score is displayed.
 
-THE ARITHMETIC MATTERS. A single claim cannot exceed w = 0.95 (the platform
-base caps it), so `n_eff >= 3.0` already demands four or more claims, and five
-or six at realistic weights. A separate `voices >= 3` condition would be dead
-text — which is why it is not in the gate.
+THE ARITHMETIC MATTERS, AND IT MOVED ON 2026-08-30. A separate `voices >= 3`
+condition is still dead text — the point of this paragraph — but the numbers it
+rested on are not the ones it was written with.
+
+    was    a single claim cannot exceed w = 0.95, so `n_eff >= 3.0` demands
+           four or more claims, five or six at realistic weights
+    now    `weight.MAX_POSSIBLE_WEIGHT` is 0.551, so it demands SIX or more
+
+`f_specificity` lost two of its four signals when the evidence tier took over
+pricing them (Option 1, `docs/proposals/for-engineer-2-the-double-count-the-
+tier-ruling-inherited.md`), which took the factor's RANGE from 1.00 to 0.58 —
+and a factor in a product carries its range into the ceiling. Nobody chose to
+raise this bar; it moved as a side effect and is recorded rather than corrected,
+because `N_EFF_MINIMUM` is a threshold and moving it to restore the old
+effective bar would be a ruling wearing bookkeeping's clothes.
+
+⚠ AND 0.95 WAS ALREADY A FIGURE ABOUT AN UNREACHABLE RUNG. It prices tier A,
+  which `contract/harvest.yaml evidence_tier_rules` deliberately cannot emit.
+  `weight.MAX_REACHABLE_WEIGHT` (0.358) is the ceiling on a claim this pipeline
+  can actually produce, and `3.0 / 0.358` is about NINE voices. Quote that one
+  when asking what a cell needs — rule 7, on a constant that survived years of
+  inspection because its arithmetic was correct.
+
+Neither number is imported here on purpose: this module holds the thresholds and
+`weight.py` holds the factors, and a gate that computed its own ceiling would be
+a second description of the weighting that can disagree with the first.
 
 The author cap is conditional for the same reason. It exists to stop one loud
 account carrying a cell. Below five voices that risk is already bounded by the
@@ -148,8 +170,14 @@ class GateResult:
 
 _GATE_EXPLANATIONS = {
     GateFailure.NOT_ENOUGH_WEIGHT: (
-        f"weighted evidence below {N_EFF_MINIMUM} — needs roughly four or more "
-        "solid claims, since no single claim exceeds 0.95"
+        # ⚠ THIS STRING RENDERS ON /filtered, so it is a figure reaching a page
+        #   and rule 7 applies. "four or more … no single claim exceeds 0.95"
+        #   was both stale (0.95 became 0.551) and, before that, a statement
+        #   about tier A — a rung the ladder cannot emit — offered as a
+        #   statement about claims in general. Nine is the figure for evidence
+        #   this pipeline can actually produce, and it says which.
+        f"weighted evidence below {N_EFF_MINIMUM} — needs roughly nine or more "
+        "independent voices at the best tier the evidence ladder can reach"
     ),
     GateFailure.ONE_PLATFORM_ONLY: (
         "all evidence comes from one platform; a published claim must not rest "

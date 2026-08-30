@@ -42,9 +42,34 @@ def claim(voice: str, platform: str, w: float, polarity: str = "positive", **kw)
 
 
 class TestWeightCeiling:
-    def test_no_single_claim_can_exceed_point_nine_five(self):
-        """This cap is why `voices >= 3` would be dead text in the gate."""
-        assert weight.MAX_POSSIBLE_WEIGHT == 0.95
+    def test_the_ceiling_fell_when_f_specificity_lost_two_signals(self):
+        """0.95 -> 0.551, and the gate's meaning moved with it.
+
+        Option 1 removed `has_numbers` and `has_repro_steps` from
+        `specificity_factor`, which took the factor's RANGE from 1.00 to 0.58.
+        `f_specificity` is a term in a product, so that is a 42% cut to the
+        ceiling on every claim - not only on the ones carrying the two removed
+        signals. `n_eff >= 3.0` needed 3.16 claims and now needs 5.44.
+
+        Asserted rather than commented because it is a side effect nobody chose:
+        Option 1 was argued as a fix to how one fact is priced, and it changed
+        how many voices a cell needs. If someone restores the two signals this
+        must fail, and if someone re-weights the remaining two it must fail too.
+        """
+        assert pytest.approx(0.58) == weight.MAX_SPECIFICITY
+        assert pytest.approx(0.551) == weight.MAX_POSSIBLE_WEIGHT
+        assert N_EFF_MINIMUM / weight.MAX_POSSIBLE_WEIGHT > 5
+
+    def test_the_reachable_ceiling_is_the_one_that_answers_the_question(self):
+        """`MAX_POSSIBLE_WEIGHT` prices tier A, which the ladder cannot emit.
+
+        Rule 7, on a constant. 0.551 is a real number about a rung no claim can
+        reach; 0.358 is the ceiling on a claim this pipeline can actually
+        produce, and it is the one to quote when asking how many voices a cell
+        needs - 8.4 rather than 5.4.
+        """
+        assert weight.MAX_REACHABLE_WEIGHT < weight.MAX_POSSIBLE_WEIGHT
+        assert pytest.approx(0.3581, abs=1e-4) == weight.MAX_REACHABLE_WEIGHT
 
     def test_three_perfect_claims_do_not_clear_the_gate(self):
         """3 x 0.95 = 2.85, which fails n_eff >= 3.0. Four claims minimum."""
@@ -220,14 +245,37 @@ class TestRecency:
         assert fast < slow
 
     def test_repro_steps_outweigh_a_wordy_post_with_none(self):
-        """A two-line GitHub repro is the most valuable document type there is."""
-        terse_repro = weight.specificity_factor(
-            version_named=False, has_numbers=False, has_conditions=False, has_repro_steps=True
-        )
-        wordy_nothing = weight.specificity_factor(
-            version_named=True, has_numbers=False, has_conditions=False, has_repro_steps=False
-        )
+        """A two-line GitHub repro is still the most valuable document type.
+
+        THE PROPERTY MOVED FACTORS, WHICH IS THE WHOLE POINT OF OPTION 1. It
+        used to live in `f_specificity`, where repro was weighted double; it now
+        lives in the tier, where B's own gloss is "detailed first-hand build
+        report". Asserted through `evidence_tier_for` so the claim being made is
+        about the pipeline rather than about one function - if the property had
+        simply been deleted along with the specificity term, this test would
+        have been deleted with it and nobody would have noticed the loss.
+        """
+        terse_repro = weight.TIER_WEIGHT[
+            weight.evidence_tier_for(
+                "own-experience", has_repro_steps=True, has_numbers=False
+            ).tier
+        ]
+        wordy_nothing = weight.TIER_WEIGHT[
+            weight.evidence_tier_for(
+                "own-experience", has_repro_steps=False, has_numbers=False
+            ).tier
+        ]
         assert terse_repro > wordy_nothing
+
+    def test_repro_steps_no_longer_reach_f_specificity(self):
+        """The other half of Option 1: it is priced ONCE, not moved twice."""
+        with_repro = weight.specificity_factor(
+            version_named=True, has_conditions=False, has_repro_steps=True
+        )
+        without = weight.specificity_factor(
+            version_named=True, has_conditions=False, has_repro_steps=False
+        )
+        assert with_repro == without
 
 class TestTheWeightingInputsHaveASupplier:
     """`version_named` and `has_conditions` were required arguments with none.
@@ -370,21 +418,47 @@ class TestAWeightingInputMayNotHaveASilentDefault:
     @pytest.mark.parametrize(
         "field",
         ["evidence_tier", "platform", "capability_key", "relevance", "specificity",
-         "claim_date", "version_named", "has_numbers", "has_conditions",
-         "has_repro_steps"],
+         "claim_date", "version_named", "has_conditions"],
     )
-    def test_every_input_is_refused_when_unsupplied(self, field):
+    def test_every_input_it_reads_is_refused_when_unsupplied(self, field):
         args = {**self.ARGS, field: weight.UNSUPPLIED}
         with pytest.raises(weight.UnsuppliedWeightInput) as exc:
             weight.compute(**args)
         assert field in exc.value.missing
         assert field in str(exc.value)
 
+    @pytest.mark.parametrize("field", ["has_numbers", "has_repro_steps"])
+    def test_an_input_it_no_longer_READS_is_not_refused(self, field):
+        """Option 1, 2026-08-30, and the direction matters.
+
+        These two now reach the TIER and nothing else, and the tier arrives at
+        `compute()` already decided. Refusing over them would drop a claim on an
+        input this function does not read — rule 8's worst form, a gate that had
+        stopped meaning anything and went on dropping documents. The refusal
+        list follows `specificity_weights` for exactly this reason.
+        """
+        assert weight.compute(**{**self.ARGS, field: weight.UNSUPPLIED}).w_final > 0
+        assert weight.compute(**{**self.ARGS, field: None}).w_final > 0
+
+    def test_the_legacy_weights_require_all_four_again(self):
+        """Because under them all four ARE read.
+
+        `judge/reweight.py` prices a stored version with the formula that
+        version used, so the refusal has to move with the formula. A check that
+        stayed fixed while the arithmetic changed would refuse the wrong claims
+        in one direction and pass them in the other.
+        """
+        args = {**self.ARGS, "specificity_weights": weight.LEGACY_SPECIFICITY_WEIGHTS}
+        for field in ("has_numbers", "has_repro_steps"):
+            with pytest.raises(weight.UnsuppliedWeightInput) as exc:
+                weight.compute(**{**args, field: weight.UNSUPPLIED})
+            assert field in exc.value.missing
+
     def test_the_message_names_the_writer_and_not_this_file(self):
         with pytest.raises(weight.UnsuppliedWeightInput) as exc:
-            weight.compute(**{**self.ARGS, "has_numbers": weight.UNSUPPLIED})
+            weight.compute(**{**self.ARGS, "has_conditions": weight.UNSUPPLIED})
         text = str(exc.value)
-        assert "document.has_numbers" in text, "must name what should write it"
+        assert "document.has_conditions" in text, "must name what should write it"
         assert "collect/triage/" in text, "must name the module"
         assert "THE GAP IS NOT IN THIS FILE" in text
 
@@ -412,12 +486,12 @@ class TestAWeightingInputMayNotHaveASilentDefault:
     def test_all_inputs_refused_are_reported_together(self):
         """One traversal, not one round trip per missing field."""
         args = {**self.ARGS, "evidence_tier": weight.UNSUPPLIED,
-                "has_numbers": weight.UNSUPPLIED,
+                "version_named": weight.UNSUPPLIED,
                 "has_conditions": weight.UNSUPPLIED}
         with pytest.raises(weight.UnsuppliedWeightInput) as exc:
             weight.compute(**args)
         assert set(exc.value.missing) == {
-            "evidence_tier", "has_numbers", "has_conditions"}
+            "evidence_tier", "has_conditions", "version_named"}
 
     def test_the_pipeline_tier_literal_is_now_the_sentinel(self):
         """`DEFAULT_EVIDENCE_TIER` was 'D' and is retired as a value.
@@ -695,8 +769,7 @@ class TestNoneIsRefusedNotScoredAsFalse:
     @pytest.mark.parametrize(
         "field",
         ["evidence_tier", "platform", "capability_key", "relevance", "specificity",
-         "claim_date", "version_named", "has_numbers", "has_conditions",
-         "has_repro_steps"],
+         "claim_date", "version_named", "has_conditions"],
     )
     def test_none_refuses_on_every_checked_input(self, field):
         """Parametrised over the whole list, not the two that were caught.

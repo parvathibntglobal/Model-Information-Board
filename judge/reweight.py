@@ -65,6 +65,7 @@ from __future__ import annotations
 
 import logging
 from collections import Counter, defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any
@@ -79,6 +80,8 @@ from judge.store.claims import PIPELINE_VERSION, claim_id_for
 #: about who a provider is.
 from judge.vet.reject import _PROVIDER_DOMAINS
 from judge.vet.weight import (
+    LEGACY_SPECIFICITY_WEIGHTS,
+    SPECIFICITY_WEIGHTS,
     TIER_WEIGHT,
     UNSUPPLIED,
     UnsuppliedWeightInput,
@@ -107,6 +110,19 @@ log = logging.getLogger(__name__)
 #: and a single diff carrying both measures neither.
 FROZEN = "frozen"
 READ = "read"
+
+#: Which generation of `f_specificity` a run prices with.
+#:
+#:   legacy   the four-signal form, in force from the start of the project until
+#:            Option 1 landed on 2026-08-30. Needed to reproduce the BEFORE side
+#:            of e5.1/e5.2/e5.3 - a diff against a formula that never applied is
+#:            a diff about nothing.
+#:   current  Option 1's two-signal form. What `judge extract` writes today.
+#:
+#: A run that changes BOTH this and `document_facts` measures neither, which is
+#: why the run order gives each ruling its own version.
+LEGACY = "legacy"
+CURRENT = "current"
 
 
 @dataclass
@@ -171,6 +187,8 @@ class ReweightReport:
 
     from_version: str
     to_version: str
+    #: LEGACY or CURRENT - which generation of `f_specificity` was priced.
+    specificity: str = CURRENT
     #: FROZEN or READ - which of the two 2026-08-30 rulings this run measures.
     #: On the report rather than only in the caller, because a set of numbers
     #: whose cause is not attached to them is the thing this whole exercise is
@@ -284,6 +302,7 @@ def plan(
     from_version: str,
     to_version: str = PIPELINE_VERSION,
     document_facts: str = READ,
+    specificity: str = CURRENT,
     as_of: date | None = None,
 ) -> ReweightReport:
     """Price every claim at both versions. READS ONLY — nothing is written.
@@ -299,6 +318,11 @@ def plan(
     """
     if document_facts not in (FROZEN, READ):
         raise ValueError(f"document_facts must be {FROZEN!r} or {READ!r}")
+    if specificity not in (LEGACY, CURRENT):
+        raise ValueError(f"specificity must be {LEGACY!r} or {CURRENT!r}")
+    specificity_weights = (
+        LEGACY_SPECIFICITY_WEIGHTS if specificity == LEGACY else SPECIFICITY_WEIGHTS
+    )
     if from_version == to_version:
         raise ValueError(
             f"from_version and to_version are both {to_version!r}. A re-weight "
@@ -311,6 +335,7 @@ def plan(
         from_version=from_version,
         to_version=to_version,
         document_facts=document_facts,
+        specificity=specificity,
     )
 
     for row in conn.execute(_READ_SQL, (from_version,)).fetchall():
@@ -371,6 +396,7 @@ def plan(
                     else (doc_numbers if doc_numbers is not None else UNSUPPLIED)
                 ),
                 has_repro_steps=claim_repro if claim_repro is not None else UNSUPPLIED,
+                specificity_weights=specificity_weights,
             )
         except UnsuppliedWeightInput as gap:
             for name in gap.missing:
@@ -395,7 +421,13 @@ def plan(
             ("f_launch", was_launch, weights.f_launch),
             ("f_fuzziness", was_fuzziness, weights.f_fuzziness),
         ]
-        if document_facts == READ:
+        # `f_specificity` is EXPECTED to move in any run whose ruling is about
+        # it, so it is excluded from drift there and counted as a result
+        # instead. Excluded on the mode rather than always, because in the
+        # tier-only run (frozen + legacy) an f_specificity move means the run is
+        # not measuring what it says it is - which is the whole reason the
+        # check exists.
+        if document_facts == READ or specificity == CURRENT:
             checks = [c for c in checks if c[0] != "f_specificity"]
         for name, was, now in checks:
             if was is not None and abs(float(was) - now) > 1e-4:
@@ -558,12 +590,121 @@ def cell_deltas(
     return pairs
 
 
+@dataclass(frozen=True)
+class CellLoss:
+    """A cell that lost voices, lost platforms, or stopped existing.
+
+    ⚠ THIS IS A RESULT, NOT A SIDE EFFECT, and that is why it has a type rather
+      than a suffix on a print line.
+
+    Voices and platforms only ever go DOWN because a claim was refused, and a
+    refusal is a claim we dropped. A cell that falls from two platforms to one
+    has stopped being publishable — `PLATFORM_MINIMUM = 2` — and nothing in the
+    `n_eff` column says so, because `n_eff` can rise on the same run that costs
+    the cell its second platform.
+
+    THE DIRECTION NOBODY CHECKS. Every report this project writes is built to
+    notice the board getting louder; a re-weight that quietly makes it quieter
+    produces an absence WE CAUSED, rendering identically to one we found. That
+    is rule 4 one stage before the page and rule 8's whole argument about what a
+    wrong gate costs.
+    """
+
+    model_version_id: str
+    capability_key: str
+    condition_bucket: str
+    voices_before: int
+    voices_after: int
+    platforms_before: int
+    platforms_after: int
+
+    @property
+    def gone(self) -> bool:
+        return self.voices_after == 0
+
+    @property
+    def lost_publishability(self) -> bool:
+        """Had two platforms and now has fewer. The gate condition it breaks."""
+        return self.platforms_before >= 2 > self.platforms_after
+
+
+def quieter_cells(pairs: Sequence[tuple[Any, Any]]) -> list[CellLoss]:
+    """Every cell that lost voices or platforms, worst first.
+
+    Computed from the (before, after) pairs rather than from the claim deltas,
+    because the loss is a property of the AGGREGATE: a refused claim costs a
+    cell a platform only if it was that cell's only claim on it, which no
+    per-claim count can see.
+    """
+    losses: list[CellLoss] = []
+    for before, after in pairs:
+        if before is None:
+            continue
+        vb = before.counts.independent_voices
+        pb = before.counts.platform_count
+        va = after.counts.independent_voices if after is not None else 0
+        pa = after.counts.platform_count if after is not None else 0
+        if va < vb or pa < pb:
+            losses.append(
+                CellLoss(
+                    model_version_id=before.key.model_version_id,
+                    capability_key=before.key.capability_key,
+                    condition_bucket=before.key.condition_bucket,
+                    voices_before=vb,
+                    voices_after=va,
+                    platforms_before=pb,
+                    platforms_after=pa,
+                )
+            )
+    return sorted(losses, key=lambda c: (c.voices_after - c.voices_before,
+                                         c.platforms_after - c.platforms_before))
+
+
+def summarise_losses(
+    losses: Sequence[CellLoss], names: dict[str, str] | None = None
+) -> str:
+    """The quieter-board report. Printed even when empty, and that is the point.
+
+    "0 cells lost voices" is a result somebody can rely on. A section that
+    appears only when something is wrong teaches the reader that its absence
+    means nothing was checked.
+    """
+    names = names or {}
+    if not losses:
+        return "  THE BOARD GOT NO QUIETER. 0 cells lost voices or platforms."
+
+    gone = [c for c in losses if c.gone]
+    unpublishable = [c for c in losses if c.lost_publishability]
+    lines = [
+        "  !! THE BOARD GOT QUIETER. This is a result, not a side effect - every",
+        "     voice below was DROPPED by a refusal, and an absence we caused",
+        "     renders exactly like one we found (rule 4).",
+        f"     {len(losses)} cells lost evidence, {len(gone)} lost all of it, "
+        f"{len(unpublishable)} fell below PLATFORM_MINIMUM",
+    ]
+    for c in losses:
+        model = names.get(c.model_version_id, c.model_version_id)
+        marks = []
+        if c.gone:
+            marks.append("GONE")
+        if c.lost_publishability:
+            marks.append("NO LONGER PUBLISHABLE - one platform")
+        lines.append(
+            f"     {model:32s} {c.capability_key:26s} "
+            f"voices {c.voices_before}->{c.voices_after}  "
+            f"platforms {c.platforms_before}->{c.platforms_after}"
+            + (f"   {' | '.join(marks)}" if marks else "")
+        )
+    return "\n".join(lines)
+
+
 def summarise(report: ReweightReport) -> str:
     """The report a human reads. Counts only — nothing here is a score."""
     lines: list[str] = []
     lines.append(
         f"{report.from_version} -> {report.to_version}   "
-        f"document facts: {report.document_facts}"
+        f"document facts: {report.document_facts}   "
+        f"f_specificity: {report.specificity}"
     )
     lines.append(f"  read {report.read} claims, wrote {report.written}")
 
@@ -577,7 +718,7 @@ def summarise(report: ReweightReport) -> str:
     else:
         lines.append(
             "  only f_evidence moved"
-            if report.document_facts == FROZEN
+            if report.document_facts == FROZEN and report.specificity == LEGACY
             else "  only f_evidence and f_specificity moved (f_specificity is "
             "what this run is FOR)"
         )
@@ -594,10 +735,22 @@ def summarise(report: ReweightReport) -> str:
             lines.append(f"    {n:5d}  {name}")
 
     moved = report.specificity_moves()
-    if report.document_facts == READ:
+    if report.document_facts == READ or report.specificity == CURRENT:
+        # NAMED BY CAUSE, not by symptom. The same count means two different
+        # things in the two runs that produce it, and a line that says only
+        # "f_specificity moved" leaves the reader to guess which ruling they are
+        # looking at from the flags they scrolled past.
+        because = (
+            "the document columns reaching the path"
+            if report.document_facts == READ and report.specificity == LEGACY
+            else "has_numbers and has_repro_steps leaving f_specificity"
+            if report.specificity == CURRENT
+            else "the formula and the columns both changing - THIS RUN MEASURES "
+            "NEITHER, split it"
+        )
         lines.append(
             f"  f_specificity moved on {len(moved)} of {report.written} written "
-            f"claims (the document columns reaching the path)"
+            f"claims ({because})"
         )
         by_pair: Counter = Counter()
         for d in moved:

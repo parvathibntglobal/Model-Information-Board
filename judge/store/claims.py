@@ -66,9 +66,16 @@ from judge.vet.weight import WeightFactors
 #:                  `f_specificity` moves, plus refusals where the columns are
 #:                  NULL. `judge reweight --document-facts read`.
 #:
-#: A plain `judge extract` writes e5.3, because the extraction path now reads
-#: the columns. e5.2 exists only as the intermediate the tier diff is measured
-#: against, which is what a version-stamped fork is for.
+#:   e5.3 -> e5.4   Option 1 of the double-count proposal, taken on E1's
+#:                  instruction: `has_numbers` and `has_repro_steps` leave
+#:                  `specificity_factor` because `evidence_tier_rules` now
+#:                  prices them. ONLY `f_specificity` moves.
+#:                  `judge reweight --specificity current`.
+#:
+#: A plain `judge extract` writes e5.4. e5.2 and e5.3 exist only as the
+#: intermediates each diff is measured against, which is what a version-stamped
+#: fork is for - and each is reproducible from the one before it with no model
+#: call, which is what makes three forks cheap rather than three runs.
 #:
 #: ⚠ THE VERSION IS IN `claim_id_for`, SO A BUMP FORKS THE TABLE RATHER THAN
 #:   UPDATING IT. That is the point — the e5.1 rows stay for the diff — and it
@@ -76,7 +83,7 @@ from judge.vet.weight import WeightFactors
 #:   held one version and no aggregation needed to say which; after it, an
 #:   unfiltered `n_eff` would take each voice's best weight across BOTH versions
 #:   and quietly report a mixture that is neither.
-PIPELINE_VERSION = "e5.3"
+PIPELINE_VERSION = "e5.4"
 
 CONNECT_TIMEOUT_SECONDS = 10
 

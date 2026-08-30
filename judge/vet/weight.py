@@ -443,28 +443,83 @@ def launch_factor(*, claim_date: date, release_date: date | None) -> float:
     return LAUNCH_FLOOR + (1 - LAUNCH_FLOOR) * min(1.0, days / LAUNCH_WINDOW_DAYS)
 
 
+#: What `f_specificity` reads, and it is TWO signals since 2026-08-30.
+#:
+#: OPTION 1 OF docs/proposals/for-engineer-2-the-double-count-the-tier-ruling-
+#: inherited.md, taken on E1's instruction. `has_numbers` and `has_repro_steps`
+#: were removed because `contract/harvest.yaml evidence_tier_rules` now keys the
+#: TIER on the same two booleans, and one fact may not be priced twice - the
+#: objection the old contract block raised against promoting at all, which E2's
+#: ruling overrode without making false.
+#:
+#: ⚠ WHAT IS LEFT IS TWO SIGNALS AND ONE OF THEM IS DEAD ON THIS CORPUS.
+#:   `document.has_conditions` is False on all 7 populated rows and NULL on 57,
+#:   so `version_named` is the only live term - and `f_fuzziness` already prices
+#:   version-naming at 1.0/0.6/0.3. That leaves `f_specificity` a two-valued
+#:   restatement of another factor, which is the SECOND question in that
+#:   proposal and is E2's to rule on: stop here, or retire the factor and run
+#:   six. Written here rather than left implicit because a factor that has
+#:   stopped measuring anything is invisible in a table of seven numbers that
+#:   all look like measurements.
+SPECIFICITY_WEIGHTS: dict[str, float] = {
+    "version_named": 0.2,
+    "has_conditions": 0.2,
+}
+
+#: The four-signal form, in force from the start of the project to 2026-08-30.
+#:
+#: KEPT SO `judge/reweight.py` CAN REPRODUCE THE ARITHMETIC OF A STORED VERSION,
+#: not as a fallback anybody may select at runtime. A re-weight that cannot
+#: reproduce the BEFORE side computes a diff against a version that never
+#: existed, and every conclusion drawn from it is about nothing. Same reason
+#: `--document-facts frozen` exists.
+LEGACY_SPECIFICITY_WEIGHTS: dict[str, float] = {
+    "version_named": 0.2,
+    "has_numbers": 0.2,
+    "has_conditions": 0.2,
+    # A repro was weighted double the other signals: a two-line GitHub comment
+    # with reproduction steps is the most valuable document type there is, and
+    # it would otherwise score poorly on every naive heuristic. That argument is
+    # still true - it just belongs to the tier now, where B's own gloss is
+    # "detailed first-hand build report", rather than being made twice.
+    "has_repro_steps": 0.4,
+}
+
+
 def specificity_factor(
     *,
     version_named: bool,
-    has_numbers: bool,
     has_conditions: bool,
-    has_repro_steps: bool,
+    has_numbers: bool | None | _Unsupplied = UNSUPPLIED,
+    has_repro_steps: bool | None | _Unsupplied = UNSUPPLIED,
+    weights: dict[str, float] = SPECIFICITY_WEIGHTS,
 ) -> float:
-    """Real experience carries numbers and error strings; slop carries adjectives.
+    """Real experience carries artifacts; slop carries adjectives.
 
-    A repro is weighted double the other signals: a two-line GitHub comment with
-    reproduction steps is the most valuable document type there is, and it
-    would otherwise score poorly on every naive heuristic.
+    `weights` names which signals count and what each is worth, so the caller
+    can price a claim the way an older `pipeline_version` priced it. Anything
+    not in `weights` is ignored entirely - passing it is allowed and changes
+    nothing, which is what lets `reweight` hand the same arguments to both forms.
+
+    ⚠ THE RANGE MOVED WITH THE WEIGHTS, and it is the part that surprises.
+      Four signals reached 1.00; two reach 0.58. `f_specificity` is a factor in
+      a product, so that is a 42% cut to the ceiling on EVERY claim, not only on
+      the ones that carried the two removed signals - see `MAX_POSSIBLE_WEIGHT`,
+      which had to move with it.
     """
+    supplied = {
+        "version_named": version_named,
+        "has_conditions": has_conditions,
+        "has_numbers": has_numbers,
+        "has_repro_steps": has_repro_steps,
+    }
     score = 0.0
-    if version_named:
-        score += 0.2
-    if has_numbers:
-        score += 0.2
-    if has_conditions:
-        score += 0.2
-    if has_repro_steps:
-        score += 0.4
+    for name, value in weights.items():
+        signal = supplied[name]
+        if signal is UNSUPPLIED or signal is None:
+            raise UnsuppliedWeightInput([name])
+        if signal:
+            score += value
     return 0.3 + 0.7 * score
 
 
@@ -482,6 +537,7 @@ def compute(
     has_numbers: bool | _Unsupplied,
     has_conditions: bool | _Unsupplied,
     has_repro_steps: bool | _Unsupplied,
+    specificity_weights: dict[str, float] = SPECIFICITY_WEIGHTS,
     superseded_snapshot: bool = False,
     possibly_changed: bool = False,
 ) -> WeightFactors:
@@ -519,6 +575,21 @@ def compute(
     #     replaces was a silent wrong weight on every row. Rule 8 prefers a
     #     visible wrong weight to an invisible wrong gate; it says nothing in
     #     favour of an invisible wrong weight, which is what this was.
+    #
+    # ⚠ THE BOOLEAN HALF OF THE LIST FOLLOWS `specificity_weights`, and that is
+    #   not a convenience. After Option 1 (2026-08-30) `has_numbers` and
+    #   `has_repro_steps` reach the TIER and nothing else, and the tier arrives
+    #   here already decided - so requiring them would refuse a claim over an
+    #   input this function no longer reads. That is the rule-8 failure in its
+    #   worst form: a drop caused by a check that had stopped meaning anything.
+    #   Under `LEGACY_SPECIFICITY_WEIGHTS` all four are required again, because
+    #   there they are read.
+    boolean_inputs = {
+        "version_named": version_named,
+        "has_numbers": has_numbers,
+        "has_conditions": has_conditions,
+        "has_repro_steps": has_repro_steps,
+    }
     missing = [
         name
         for name, value in (
@@ -528,10 +599,7 @@ def compute(
             ("relevance", relevance),
             ("specificity", specificity),
             ("claim_date", claim_date),
-            ("version_named", version_named),
-            ("has_numbers", has_numbers),
-            ("has_conditions", has_conditions),
-            ("has_repro_steps", has_repro_steps),
+            *((name, boolean_inputs[name]) for name in specificity_weights),
         )
         if value is UNSUPPLIED or value is None
     ]
@@ -559,6 +627,7 @@ def compute(
             has_numbers=has_numbers,
             has_conditions=has_conditions,
             has_repro_steps=has_repro_steps,
+            weights=specificity_weights,
         ),
         f_relevance=RELEVANCE_WEIGHT[relevance],
         f_recency=recency,
@@ -567,12 +636,50 @@ def compute(
     )
 
 
-MAX_POSSIBLE_WEIGHT = TIER_WEIGHT["A"] * PLATFORM_WEIGHT["github"] * 1.0 * 1.0 * 1.0 * 1.0 * 1.0
-"""0.95 — the ceiling on a single claim.
+MAX_SPECIFICITY = 0.3 + 0.7 * sum(SPECIFICITY_WEIGHTS.values())
+"""0.58 — and it was 1.00 until Option 1 landed on 2026-08-30.
 
-Every other factor tops out at 1.0, so the platform base is the binding cap.
-This is why `n_eff >= 3.0` in the publication gate already implies four or more
-claims, and why a separate "voices >= 3" condition would be dead text.
+DERIVED FROM THE WEIGHTS RATHER THAN TYPED. The constant below is the gate's
+own arithmetic, and it was a literal `1.0` standing for "every other factor tops
+out at 1.0" — a sentence that stopped being true the moment two of the four
+specificity signals were removed. A ceiling written as a number goes stale
+silently; a ceiling written as an expression cannot.
+"""
+
+MAX_POSSIBLE_WEIGHT = (
+    TIER_WEIGHT["A"] * PLATFORM_WEIGHT["github"] * MAX_SPECIFICITY * 1.0 * 1.0 * 1.0 * 1.0
+)
+"""0.551 — the ceiling on a single claim. It was 0.95, and this is a real change.
+
+⚠ THE PUBLICATION GATE ASKS FOR MORE CLAIMS THAN IT DID, AND NOBODY VOTED FOR
+  THAT. `n_eff >= 3.0` needed 3.16 claims at 0.95 and needs 5.44 at 0.551, so
+  `curate/gate.py`'s "four or more" is now "six or more". That is a side effect
+  of removing the double count, not a decision about the bar - Option 1 was
+  argued as a fix to how one fact is priced, and it moved the gate's meaning
+  because `f_specificity` is a factor in a product and its RANGE fell with its
+  weights.
+
+  Nothing here compensates for it. Lowering `N_EFF_MINIMUM` to hold the old
+  effective bar would be a threshold change dressed as bookkeeping, and the
+  threshold is not this file's to move. It is written down so the next person to
+  ask "why does this need six voices" finds the answer rather than the number.
+
+AND THE 0.95 IT REPLACES WAS ALREADY A FIGURE ABOUT A TIER THE LADDER CANNOT
+REACH. `TIER_WEIGHT["A"]` is unreachable by construction, so the honest ceiling
+on any claim this pipeline can produce is the tier-B one - see
+`docs/measurements/what-separates-a-populated-board-from-a-publishing-one.md`
+§3, where exactly this figure was found answering a question it was not asked.
+"""
+
+MAX_REACHABLE_WEIGHT = (
+    TIER_WEIGHT["B"] * PLATFORM_WEIGHT["github"] * MAX_SPECIFICITY * 1.0 * 1.0 * 1.0 * 1.0
+)
+"""0.358 — the ceiling on a claim the ladder can actually produce.
+
+`MAX_POSSIBLE_WEIGHT` prices tier A, which `evidence_tier_rules` deliberately
+cannot emit. This is the same arithmetic at the rung that exists, and it is the
+number to quote when asking how many voices a cell needs. Rule 7: the two differ
+by 1.7x and only one of them answers "how much can a real claim weigh".
 """
 
 
