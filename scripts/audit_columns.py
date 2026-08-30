@@ -47,6 +47,30 @@ SQL_VERB = re.compile(r"\b(INSERT\s+INTO|UPDATE|SELECT|DELETE\s+FROM)\b", re.I)
 STAR = re.compile(r"SELECT\s+\*", re.I)
 WRITE_VERB = re.compile(r"\b(INSERT\s+INTO|UPDATE)\b", re.I)
 TABLE_REF = re.compile(r"(?:INSERT\s+INTO|UPDATE|FROM|JOIN)\s+([a-z_]+)", re.I)
+
+#: `FROM claim c`, `JOIN claim_weight AS w` -> the alias and the table it names.
+#: Used to attribute a QUALIFIED column reference to one table instead of to
+#: every table in the statement — the SQL twin of the web check's "the name must
+#: belong to exactly one table" correction below, and found the same way: by a
+#: false positive. `claim` and `claim_weight` both have `pipeline_version`, and
+#: `judge/store/cells.py` joins them and filters on `c.pipeline_version`. Without
+#: aliases that one WHERE clause credited `claim_weight.pipeline_version` with a
+#: read it does not have, and the column's declared `write_only` — which is
+#: correct — read as a mismatch.
+#:
+#: The trailing keyword guard matters: `JOIN document d ON ...` must yield
+#: `d`, and `FROM claim WHERE ...` must yield no alias at all rather than the
+#: alias `where`.
+TABLE_ALIAS = re.compile(
+    r"(?:FROM|JOIN)\s+([a-z_]+)(?:\s+AS)?\s+([a-z][a-z0-9_]*)"
+    r"(?=\s|,|$)",
+    re.I,
+)
+_ALIAS_STOPWORDS = frozenset(
+    {"on", "where", "group", "order", "limit", "join", "left", "right", "inner",
+     "outer", "full", "cross", "using", "set", "values", "returning", "as",
+     "and", "or", "union", "having", "offset", "for", "natural"}
+)
 INSERT_TABLE = re.compile(r"INSERT\s+INTO\s+([a-z_]+)", re.I)
 
 #: A view is never written. Leaving `cell_current` in put 18 columns into
@@ -168,13 +192,44 @@ def discover(schema: dict[str, list[str]]) -> dict[tuple[str, str], dict]:
             is_read = bool(re.search(r"\bSELECT\b", s, re.I))
             if STAR.search(s):
                 star |= tables
+            # alias -> table, for the qualified references below.
+            aliases = {
+                alias.lower(): tbl.lower()
+                for tbl, alias in TABLE_ALIAS.findall(s)
+                if alias.lower() not in _ALIAS_STOPWORDS and tbl.lower() in schema
+            }
             for table in tables:
                 for column in schema[table]:
-                    if word[(table, column)].search(s):
-                        if is_write:
-                            written[(table, column)].add(f"{rel}:{lineno}")
-                        if is_read:
-                            read[(table, column)].add(f"{rel}:{lineno}")
+                    if not word[(table, column)].search(s):
+                        continue
+                    # A reference qualified by an alias belongs to THAT alias's
+                    # table. Only skip when every occurrence in the statement is
+                    # qualified and none of them resolves here — an unqualified
+                    # occurrence is genuinely ambiguous and keeps the old,
+                    # over-counting behaviour, which is the direction this
+                    # method already errs in.
+                    qualified = {
+                        m.group(1).lower()
+                        for m in re.finditer(
+                            r"(?<![A-Za-z0-9_])([a-z][a-z0-9_]*)\."
+                            + re.escape(column)
+                            + r"(?![A-Za-z0-9_])",
+                            s,
+                            re.I,
+                        )
+                    }
+                    bare = re.search(
+                        r"(?<![A-Za-z0-9_.])" + re.escape(column) + r"(?![A-Za-z0-9_])",
+                        s,
+                    )
+                    if qualified and not bare:
+                        owners = {aliases.get(q, q) for q in qualified}
+                        if table not in owners:
+                            continue
+                    if is_write:
+                        written[(table, column)].add(f"{rel}:{lineno}")
+                    if is_read:
+                        read[(table, column)].add(f"{rel}:{lineno}")
 
         for table in inserting & set(schema):
             for column in schema[table]:

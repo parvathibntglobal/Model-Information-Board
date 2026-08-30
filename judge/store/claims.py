@@ -47,7 +47,20 @@ from judge.vet.weight import WeightFactors
 #: Bumped whenever anything that produces a claim changes — the prompt, the
 #: extractor model, the verification, the weighting. Every derived row carries
 #: it so a scoring change is re-runnable and diffable rather than archaeology.
-PIPELINE_VERSION = "e5.1"
+#:
+#: e5.1 -> e5.2, 2026-08-30: `evidence_tier` is keyed on
+#: (speaking, has_repro_steps, has_numbers) instead of `speaking` alone —
+#: contract/harvest.yaml `evidence_tier_rules`. A WEIGHTING change, not an
+#: extraction one, so `judge reweight` produces the e5.2 rows from the stored
+#: e5.1 inputs and no model is called.
+#:
+#: ⚠ THE VERSION IS IN `claim_id_for`, SO A BUMP FORKS THE TABLE RATHER THAN
+#:   UPDATING IT. That is the point — the e5.1 rows stay for the diff — and it
+#:   is also why `CellStore` filters on this constant. Before the bump the table
+#:   held one version and no aggregation needed to say which; after it, an
+#:   unfiltered `n_eff` would take each voice's best weight across BOTH versions
+#:   and quietly report a mixture that is neither.
+PIPELINE_VERSION = "e5.2"
 
 CONNECT_TIMEOUT_SECONDS = 10
 

@@ -20,7 +20,13 @@ from psycopg.types.range import Range
 
 from judge.extract.schema import ExtractedClaim
 from judge.extract.verify import VerifiedQuote
-from judge.store.claims import CONNECT_TIMEOUT_SECONDS, ClaimStore, StoredClaim, claim_id_for
+from judge.store.claims import (
+    CONNECT_TIMEOUT_SECONDS,
+    PIPELINE_VERSION,
+    ClaimStore,
+    StoredClaim,
+    claim_id_for,
+)
 from judge.vet.weight import WeightFactors
 
 
@@ -221,7 +227,12 @@ class TestTheTwoProperties:
         """
         store = ClaimStore(seeded)
         store.write(a_stored())
-        store.write(a_stored(pipeline_version="e5.2"))
+        # DERIVED FROM THE CONSTANT, not a literal. This was `"e5.2"` and it
+        # passed until `PIPELINE_VERSION` was bumped to e5.2, at which point the
+        # two writes became the same claim and the test asserted the opposite of
+        # its own name. A fixture that hardcodes the value it is contrasting
+        # with breaks silently on the day that value moves.
+        store.write(a_stored(pipeline_version=f"{PIPELINE_VERSION}-other"))
         seeded.commit()
 
         assert store.count_for_thread("tc1") == 2

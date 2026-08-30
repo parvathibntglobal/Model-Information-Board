@@ -423,6 +423,108 @@ def _cmd_rebuild_cells(args: argparse.Namespace) -> int:
     return 0
 
 
+class _RolledBack(Exception):
+    """Ends the dry run's transaction without committing. Never escapes."""
+
+
+def _print_cell_deltas(pairs, names: dict[str, str] | None = None) -> int:
+    """n_eff before and after, per cell, and how many crossed the gate.
+
+    `names` maps `model_version.id` to `canonical_id`. Cells are keyed on the
+    internal id, and `mv1` on a line that is supposed to answer "which model
+    publishes first" is a row a reader has to go and look up.
+    """
+    from judge.curate.gate import N_EFF_MINIMUM
+
+    names = names or {}
+
+    crossed = 0
+    moved = 0
+    print(f"\n  CELLS - n_eff before -> after, gate at {N_EFF_MINIMUM}")
+    for before, after in pairs:
+        if after is None:
+            # A cell that exists at the OLD version and not the new one means
+            # every claim in it was refused. Reported rather than skipped: a
+            # cell that silently stops existing is rule 4 at the worst moment.
+            print(f"    {names.get(before.key.model_version_id, before.key.model_version_id):32s} "
+                  f"{before.key.capability_key:26s} GONE - every claim refused")
+            continue
+        was = before.counts.n_eff if before else 0.0
+        now = after.counts.n_eff
+        if now >= N_EFF_MINIMUM > was:
+            crossed += 1
+        if abs(now - was) > 1e-9:
+            moved += 1
+            print(f"    {names.get(after.key.model_version_id, after.key.model_version_id):32s} "
+                  f"{after.key.capability_key:26s} "
+                  f"{was:.4f} -> {now:.4f}  "
+                  f"voices={after.counts.independent_voices} "
+                  f"platforms={after.counts.platform_count}"
+                  f"{'   CROSSES' if now >= N_EFF_MINIMUM else ''}")
+    print(f"\n  {moved} cells moved, {crossed} crossed {N_EFF_MINIMUM}")
+    if not crossed:
+        # THE NUMBER THAT MATTERS AS MUCH AS THE OTHER ONE. A re-weight that
+        # publishes nothing is a result, and printing only the movers would let
+        # it read as a run that had not finished.
+        print("  NOTHING NEW PUBLISHES. The gate is unchanged and unmet.")
+    return crossed
+
+
+def _cmd_reweight(args: argparse.Namespace) -> int:
+    """Re-price stored claims under the current PIPELINE_VERSION. Spends nothing.
+
+    A DRY RUN BY DEFAULT, and that is not a nicety. A re-weight moves every
+    number on the board, so the arithmetic is the argument for making the
+    change and has to be readable before a row exists. Both paths write inside
+    one transaction - the cells can only be priced from claims that are IN the
+    table - and the dry run rolls that transaction back.
+    """
+    from judge.curate.labels import Driver
+    from judge.curate.nightly import close_the_night
+    from judge.reweight import apply as apply_reweight
+    from judge.reweight import cell_deltas, plan, summarise
+    from judge.store.cells import CellStore
+    from judge.store.claims import PIPELINE_VERSION
+
+    with _connect(writing="judge reweight" if args.apply else None) as conn:
+        report = plan(conn, from_version=args.from_version, to_version=PIPELINE_VERSION)
+        print(summarise(report))
+
+        try:
+            with conn.transaction():
+                written = apply_reweight(conn, report)
+                names = dict(
+                    conn.execute("SELECT id, canonical_id FROM model_version").fetchall()
+                )
+                _print_cell_deltas(cell_deltas(conn, report), names)
+                if not args.apply:
+                    raise _RolledBack
+                print(f"\n  wrote {written} claims at {PIPELINE_VERSION}")
+        except _RolledBack:
+            print(
+                "\n  DRY RUN - rolled back, nothing written. The figures above "
+                "are what --apply would produce."
+            )
+            return 0
+
+        with conn.transaction():
+            outcomes = CellStore(conn).rebuild_all()
+            published = sum(1 for o in outcomes if o.publishes)
+            print(f"  {len(outcomes)} cells rebuilt, {published} publish")
+            if args.driver:
+                result = close_the_night(
+                    conn, driver=Driver(args.driver), as_of_cells=outcomes
+                )
+                print(f"  {result.summary()}")
+            else:
+                print(
+                    "  no --driver given, so labels and the changelog are NOT "
+                    "updated. A re-weight is a config-change and saying so is "
+                    "the whole point of the column."
+                )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="judge", description=__doc__)
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -443,6 +545,26 @@ def main(argv: list[str] | None = None) -> int:
     rebuild = sub.add_parser("rebuild-cells", help="recompute cells from claims")
     rebuild.add_argument("--driver", choices=drivers, help="why labels may change")
     rebuild.set_defaults(fn=_cmd_rebuild_cells)
+
+    # RE-WEIGHT IS NOT RE-EXTRACT AND NOT REBUILD-CELLS. It re-prices stored
+    # claims under the current PIPELINE_VERSION, which is the only way a change
+    # to contract/harvest.yaml reaches rows that already exist. No model call.
+    reweight = sub.add_parser(
+        "reweight", help="re-price stored claims at the current pipeline version"
+    )
+    reweight.add_argument(
+        "--from-version",
+        required=True,
+        metavar="V",
+        help="the pipeline version to re-price FROM, e.g. e5.1. Required rather "
+        "than inferred: guessing which fork is the baseline is how a diff gets "
+        "computed against the wrong one.",
+    )
+    reweight.add_argument(
+        "--apply", action="store_true", help="write. Without it, a dry run."
+    )
+    reweight.add_argument("--driver", choices=drivers, help="why labels may change")
+    reweight.set_defaults(fn=_cmd_reweight)
 
     args = parser.parse_args(argv)
     logging.basicConfig(

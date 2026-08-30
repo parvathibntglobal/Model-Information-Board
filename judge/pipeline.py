@@ -19,8 +19,9 @@ written to be boring.
 
 WHERE THE VALUES ACTUALLY COME FROM, since four of them are not obvious:
 
-    evidence_tier    claim.model_ref.speaking, through
-                     contract/harvest.yaml evidence_tier_by_speaking
+    evidence_tier    (claim.model_ref.speaking, claim.has_repro_steps,
+                     claim.has_numbers vetoed by document.has_numbers), through
+                     contract/harvest.yaml evidence_tier_rules
     version_named    claim.model_ref.specificity — snapshot or version is true
     has_conditions   document.has_conditions — UNRESOLVED, see below
     has_numbers      document.has_numbers — the COUNTED one, not the extractor's
@@ -107,6 +108,7 @@ which is a different fix with a different reason.
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Protocol, runtime_checkable
@@ -131,6 +133,7 @@ from judge.vet.weight import (
     _Unsupplied,
     compute,
     evidence_tier_for,
+    promotable_numbers,
 )
 
 log = logging.getLogger(__name__)
@@ -483,6 +486,14 @@ class PipelineResult:
     #: like. Shown beside a document rather than hiding it.
     document_flags: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
+    #: signal name -> how many claims could NOT be promoted on it because the
+    #: input was absent rather than false. The tier ladder withholds rather than
+    #: refuses (see `evidence_tier_for`), so without this counter a claim that
+    #: stayed at D because nobody counted its numbers is indistinguishable from
+    #: one that stayed at D because it is a bare opinion. Rule 4, one stage
+    #: before the page: the absence has to be reportable.
+    tier_signals_unconfirmed: Counter[str] = field(default_factory=Counter)
+
     @property
     def published(self) -> int:
         return sum(1 for cell in self.cells if cell.publishes)
@@ -717,11 +728,31 @@ class Pipeline:
                 )
             result.subjects_inherited += 1 if inherited else 0
 
-            # THE TIER NOW COMES FROM WHO IS SPEAKING, not from a literal.
-            # `evidence_tier_for` returns UNSUPPLIED for an unmapped value and
-            # `compute()` refuses, so an enum value the contract does not price
-            # is a named gap rather than a silent tier.
-            evidence_tier = evidence_tier_for(claim.model_ref.speaking)
+            # THE TIER COMES FROM WHAT THE EVIDENCE CARRIES, not from a literal
+            # and, since 2026-08-30, not from `speaking` alone. `speaking` said
+            # WHOSE claim it is; the tier grades HOW CHECKABLE it is, so keying
+            # one on the other floored every first-hand report at D whether it
+            # carried a harness or a hunch. `evidence_tier_for` still returns
+            # UNSUPPLIED for a `speaking` value the contract does not price, and
+            # `compute()` refuses, so that stays a named gap rather than a
+            # silent tier.
+            #
+            # `promotable_numbers` is the falsifier: the extractor proposes
+            # `has_numbers` and `document.has_numbers` - counted by code in
+            # collect/triage/ - may veto it. It can only veto. A promotion the
+            # code cannot confirm is withheld and NAMED, never silently taken
+            # and never turned into a dropped claim.
+            verdict = evidence_tier_for(
+                claim.model_ref.speaking,
+                has_repro_steps=claim.has_repro_steps,
+                has_numbers=promotable_numbers(
+                    claim.has_numbers, document.has_numbers
+                ),
+            )
+            evidence_tier = verdict.tier
+            for signal in verdict.unconfirmed:
+                result.tier_signals_unconfirmed[signal] += 1
+
             weights = compute(
                 evidence_tier=evidence_tier,
                 platform=document.platform,

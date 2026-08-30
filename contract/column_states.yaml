@@ -116,32 +116,64 @@ columns:
       why: >-
         DEFAULT now(). Never written by us
     document_id: {state: read, reviewed: false}
-    evidence_tier: {state: write_only, reviewed: false}
+    evidence_tier:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - the BEFORE side of the tier diff
     extractor_confidence: {state: write_only, reviewed: false}
     extractor_model: {state: write_only, reviewed: false}
     family: {state: write_only, reviewed: false}
-    has_numbers: {state: write_only, reviewed: false}
-    has_repro_steps: {state: write_only, reviewed: false}
+    has_numbers:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute(), and since 2026-08-30 it proposes an evidence_tier promotion that document.has_numbers may veto
+    has_repro_steps:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute(), and since 2026-08-30 it also keys evidence_tier
     id: {state: read, reviewed: false}
     is_sarcastic: {state: write_only, reviewed: false}
     model_version_id: {state: read, reviewed: false}
     pain_points: {state: read, reviewed: false}
     pipeline_version:
-      state: write_only
+      state: read
       reviewed: true
       why: >-
-        diffability - every derived row carries it so a scoring change is re-runnable (CLAUDE.md conventions). Read by a person diffing runs
+        diffability - every derived row carries it so a scoring change is re-runnable (CLAUDE.md conventions). READ BY CODE since 2026-08-30, not only by a person diffing runs: PIPELINE_VERSION is hashed into claim_id_for, so a bump forks the table, and judge/store/cells.py filters on this column so n_eff aggregates one version rather than each voice's best weight across two
     polarity: {state: read, reviewed: false}
     quote: {state: read, reviewed: false}
-    quote_flat_offset: {state: write_only, reviewed: false}
+    quote_flat_offset:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - the span is hashed into the new claim id
     quote_raw_offset: {state: write_only, reviewed: false}
     quote_verified: {state: read, reviewed: false}
-    relevance: {state: write_only, reviewed: false}
+    relevance:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute()
     resolution_confidence: {state: write_only, reviewed: false}
     severity: {state: read, reviewed: false}
-    source_comment_id: {state: write_only, reviewed: false}
-    speaking: {state: write_only, reviewed: false}
-    specificity: {state: write_only, reviewed: false}
+    source_comment_id:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - the re-weight needs it to derive the new claim id
+    speaking:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - it keys evidence_tier
+    specificity:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute()
     taxonomy_version: {state: write_only, reviewed: false}
     thread_context_id: {state: read, reviewed: false}
 
@@ -206,9 +238,17 @@ columns:
       known_gap: >-
         no reader yet - the coverage page is where it belongs
     has_code: {state: reserved, reviewed: false}
-    has_conditions: {state: reserved, reviewed: false}
+    has_conditions:
+      state: unwired
+      reviewed: true
+      known_gap: >-
+        collect/triage/specificity.py computes it and nothing writes the column. judge/vet/weight.py reads it for f_specificity; it is False on all 7 populated rows and NULL on 57
     has_error_strings: {state: reserved, reviewed: false}
-    has_numbers: {state: reserved, reviewed: false}
+    has_numbers:
+      state: unwired
+      reviewed: true
+      known_gap: >-
+        collect/triage/specificity.py computes it and nothing writes the column. judge/vet/weight.py reads it for f_specificity and judge/reweight.py reads it as the veto on a claim's self-reported has_numbers, so a NULL here withholds a tier promotion and is counted
     id: {state: read, reviewed: false}
     is_canonical_in_cluster:
       state: reserved

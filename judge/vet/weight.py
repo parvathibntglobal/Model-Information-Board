@@ -100,15 +100,18 @@ INPUT_GAPS: dict[str, _Gap] = {
     "evidence_tier": _Gap(
         kind=WRONG_WRITER,
         writer=(
-            "contract/harvest.yaml evidence_tier_by_speaking, via "
-            "weight.evidence_tier_for(claim.model_ref.speaking)"
+            "contract/harvest.yaml evidence_tier_rules, via "
+            "weight.evidence_tier_for(speaking, has_repro_steps=, has_numbers=)"
         ),
         fix=(
-            "the mapping is missing a key for this `speaking` value, or the "
-            "contract block is absent. It was a module literal `\"D\"` until "
-            "2026-08-21 - applied to every claim in the corpus, including three "
-            "that quote a launch post and should be F, a 6x over-weight. Add "
-            "the key rather than restoring a default"
+            "the ladder is missing a key for this `speaking` value or for this "
+            "combination of the two booleans, the contract block is absent, or "
+            "one of the booleans was never written. It was a module literal "
+            '`"D"` until 2026-08-21 - applied to every claim in the corpus, '
+            "including three that quote a launch post and should be F, a 6x "
+            "over-weight - and keyed on `speaking` alone until 2026-08-30, "
+            "which put B and C out of reach of any corpus. Add the key rather "
+            "than restoring a default"
         ),
     ),
     "platform": _Gap(
@@ -128,7 +131,12 @@ INPUT_GAPS: dict[str, _Gap] = {
             "build DocumentFacts from the document table. The column IS "
             "populated - True on 6 of 7 non-NULL rows - so this one is carriage "
             "and not measurement. It may NOT be derived from the claim: rule 2 "
-            "forbids weighting on the extractor's own boolean"
+            "forbids weighting on the extractor's own boolean. Since 2026-08-30 "
+            "this column has a SECOND job - it vetoes a tier promotion that "
+            "`claim.has_numbers` proposes, and it can only veto, never confirm "
+            "(collect/triage/specificity.py). That is the caller's rule, not "
+            "this factor's: `f_specificity` still reads the counted column "
+            "alone"
         ),
     ),
     "has_conditions": _Gap(
@@ -209,31 +217,134 @@ TIER_WEIGHT: dict[str, float] = {
     "F": 0.02,  # vendor marketing — capability FACTS only, never quality
 }
 
-def evidence_tier_for(speaking: str) -> EvidenceTier | _Unsupplied:
-    """`ModelRef.speaking` -> an evidence tier, from `contract/harvest.yaml`.
+class TierVerdict(NamedTuple):
+    """A tier, plus the signals that could not be confirmed on the way to it.
+
+    TWO RETURN VALUES BECAUSE RULE 6 ASKS FOR TWO. `tier` is what the weight
+    uses. `unconfirmed` is the caveat: which promotion signals were absent
+    rather than false, so a run can report "n claims stayed at D because
+    nothing had counted their numbers" instead of publishing a D that reads as
+    a judgement. A single return value would make those two indistinguishable
+    in exactly the way rule 4 forbids one stage later.
+    """
+
+    tier: EvidenceTier | _Unsupplied
+    unconfirmed: tuple[str, ...] = ()
+
+
+def promotable_numbers(
+    claim_has_numbers: bool | None | _Unsupplied,
+    document_has_numbers: bool | None | _Unsupplied,
+) -> bool | _Unsupplied:
+    """May `has_numbers` lift this claim's tier? The falsifier, applied once.
+
+    `claim.has_numbers` is the extractor's self-report and reaches `w_final`
+    with no code check. `document.has_numbers` is the same question asked of the
+    same text by code, and `collect/triage/specificity.py` fixes its standing:
+
+        document False  ->  the claim's `true` is a fabrication. There are no
+                            numbers in the document for the quote to contain.
+        document True   ->  says NOTHING about whether THIS quote holds one.
+
+    So this is an AND read as a veto, never as a confirmation. Code can block a
+    promotion; code never grants one. Reading the True case as confirmation
+    would launder an unverified extractor boolean into a verified one, which is
+    worse than not checking at all - and it is one of the two reasons the ladder
+    caps at B.
+
+    ABSENT IS NEITHER. A NULL on either side returns UNSUPPLIED - the documents
+    written before `collect/triage/` existed carry NULL in all six columns, and
+    coalescing that either way turns "nobody counted" into a decision.
+    `evidence_tier_for` then withholds the promotion AND names the signal, which
+    is rule 6's "say so" rather than rule 6's silent exclusion.
+    """
+    if (
+        claim_has_numbers is UNSUPPLIED
+        or document_has_numbers is UNSUPPLIED
+        or claim_has_numbers is None
+        or document_has_numbers is None
+    ):
+        return UNSUPPLIED
+    return bool(claim_has_numbers) and bool(document_has_numbers)
+
+
+def evidence_tier_for(
+    speaking: str,
+    *,
+    has_repro_steps: bool | None | _Unsupplied,
+    has_numbers: bool | None | _Unsupplied,
+) -> TierVerdict:
+    """(speaking, repro steps, numbers) -> a tier, from `contract/harvest.yaml`.
 
     NOT A CONSTANT IN THIS FILE. It is a ruling about what a vendor's own words
-    are worth, and rule 5 puts that in versioned YAML - see
-    `evidence_tier_by_speaking` there, and the flag on it: the mapping changes
-    the weight of three stored claims by 6x and wants E2's sign-off.
+    are worth and about what separates a build report from an opinion, and rule
+    5 puts that in versioned YAML - see `evidence_tier_rules` there.
 
-    Each value goes to the tier whose own gloss in `TIER_WEIGHT` already
-    describes it: E is "hearsay, summarising someone else" and F is "vendor
-    marketing". The mapping states an identity, it does not invent a scale.
+    KEYED ON THREE INPUTS SINCE 2026-08-30, AND THAT IS THE WHOLE CHANGE.
+    `speaking` alone answered WHOSE claim it is; `TIER_WEIGHT`'s glosses grade
+    HOW CHECKABLE it is. Keying one on the other made B and C unreachable by
+    construction - 0 of 197 stored claims reached them - because an engineer
+    with a published harness and an engineer with a hunch were both
+    `own-experience`. Both booleans were already on the claim, feeding
+    `f_specificity` at 1.6x and the tier at nothing.
 
-    RETURNS `UNSUPPLIED` RATHER THAN GUESSING when the key is missing or the
-    contract block is absent, so `compute()` refuses and names the gap. A
-    fallback tier here would be the exact defect the 2026-08-21 ruling was
-    written for - `DEFAULT_EVIDENCE_TIER` was a literal "D" applied to every
-    claim in the corpus, including three that quote a launch post.
+    ⚠ `has_numbers` HERE IS THE FALSIFIED BOOLEAN, not the extractor's raw one.
+    Callers pass `promotable_numbers(claim.has_numbers, document.has_numbers)` -
+    the self-report vetoed by the code-side count. It is a separate function
+    rather than an argument pair here so the two callers (`judge/pipeline.py`,
+    `judge/reweight.py`) share one definition of the veto instead of writing it
+    twice and drifting.
+
+    ⚠ AN ABSENT BOOLEAN WITHHOLDS A PROMOTION. IT DOES NOT REFUSE THE CLAIM.
+    This is the one place the 2026-08-21 "refuse rather than default" ruling is
+    deliberately not applied, and the reason is rule 8. Refusing would make
+    `compute()` raise and the claim would be DROPPED - a wrong gate, whose false
+    positives are invisible because the document simply is not there, and an
+    absence we caused reads as one we found. Withholding leaves the claim on the
+    board at the tier it already had, which is a wrong WEIGHT: visible,
+    rankable, and the evidence that decides whether the rung was right.
+
+    Not silent, though. The absent signal is named in `TierVerdict.unconfirmed`
+    and the callers count it, so "stayed at D" and "could not be promoted from D"
+    stay distinguishable - rule 4 one stage before the page.
+
+    STILL RETURNS `UNSUPPLIED` when `speaking` itself is unmapped or the contract
+    block is absent, so `compute()` refuses and names the gap. That case is a
+    contract that does not price a value the extractor can emit, and inventing a
+    tier for it is the exact defect the 2026-08-21 ruling was written for:
+    `DEFAULT_EVIDENCE_TIER` was a literal "D" applied to every claim in the
+    corpus, including three that quote a launch post.
     """
-    from judge.config import evidence_tier_by_speaking
+    from judge.config import evidence_tier_rules
 
-    mapping = evidence_tier_by_speaking()
-    tier = mapping.get(speaking)
+    rung = evidence_tier_rules().get(speaking)
+
+    # A flat tier - `relayed-from-elsewhere` and `vendor-about-own-product`.
+    # Neither has rungs, so neither reads the booleans: numbers in a relay are
+    # still someone else's numbers, and numbers in a launch post are still the
+    # vendor's. Returning before the booleans are examined is deliberate -
+    # reporting a missing signal nothing would have read is a caveat about
+    # nothing, and it would put a vendor claim in the "could not be promoted"
+    # count when no promotion was ever on offer.
+    if isinstance(rung, str):
+        return TierVerdict(rung if rung in TIER_WEIGHT else UNSUPPLIED)  # type: ignore[arg-type]
+
+    if not isinstance(rung, dict):
+        return TierVerdict(UNSUPPLIED)
+
+    unconfirmed: list[str] = []
+    signals = 0
+    for name, value in (("has_repro_steps", has_repro_steps), ("has_numbers", has_numbers)):
+        if value is UNSUPPLIED or value is None:
+            unconfirmed.append(name)
+            continue
+        signals += int(bool(value))
+
+    key = ("neither", "one_of_the_two", "repro_steps_and_numbers")[signals]
+    tier = rung.get(key)
     if tier not in TIER_WEIGHT:
-        return UNSUPPLIED
-    return tier  # type: ignore[return-value]
+        return TierVerdict(UNSUPPLIED, tuple(unconfirmed))
+    return TierVerdict(tier, tuple(unconfirmed))  # type: ignore[arg-type]
 
 
 # ── platform: GitHub is the failure channel, blogs the positive one ──────

@@ -19,7 +19,7 @@ from psycopg.types.range import Range
 
 from judge.curate.gate import CellStatus
 from judge.store.cells import CellKey, CellStore
-from judge.store.claims import CONNECT_TIMEOUT_SECONDS
+from judge.store.claims import CONNECT_TIMEOUT_SECONDS, PIPELINE_VERSION
 
 SCHEMA = Path(__file__).resolve().parent.parent / "contract" / "tables.sql"
 CAPABILITY = "summarization.fidelity"
@@ -129,7 +129,7 @@ def add_claim(
             "central",
             "B",
             "google/gemini-2.5-flash",
-            "e5.1",
+            PIPELINE_VERSION,
             date.today() - timedelta(days=days_ago),
         ),
     )
@@ -137,7 +137,7 @@ def add_claim(
         "INSERT INTO claim_weight (claim_id, w_final, f_evidence, f_platform, "
         "f_specificity, f_relevance, f_recency, f_launch, f_fuzziness, pipeline_version) "
         "VALUES (%s,%s,1,1,1,1,1,1,1,%s)",
-        (claim_id, weight, "e5.1"),
+        (claim_id, weight, PIPELINE_VERSION),
     )
 
 

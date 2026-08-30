@@ -404,70 +404,137 @@ specificity:
 
 
 # ============================================================================
-#  EVIDENCE TIER BY WHO IS SPEAKING
+#  EVIDENCE TIER BY WHAT THE EVIDENCE CARRIES
 #
-#  ⚠ NEW BLOCK, ADDED BY E1 2026-08-21, AND IT NEEDS E2's SIGN-OFF. It changes
-#    the weight of three claims already in the table by 6x. Flagged here rather
-#    than merged quietly, per the lane rule on contract/.
+#  ⚠ RULED 2026-08-30. E2 delegated the tier decision to E1 and asked for
+#    Option 2 of docs/proposals/for-engineer-2-tier-a-is-unreachable-by-
+#    construction.md, capped at B. This block is that ruling. It supersedes
+#    `evidence_tier_by_speaking`, which keyed on `speaking` alone and is gone.
 #
-#  `ModelRef.speaking` supplies `evidence_tier`. It does not add a factor -
-#  `f_evidence` is the factor that already means "how reproducible is this",
-#  and provenance is the first thing that answers it.
+#  WHAT WAS WRONG WITH KEYING ON `speaking` ALONE: `TIER_WEIGHT`'s own glosses
+#  describe HOW CHECKABLE a report is, and `speaking` describes WHOSE report it
+#  is. Two axes, one key. An engineer who publishes repro steps and numbers, and
+#  an engineer who writes "opus feels slow", were both `own-experience` and
+#  therefore both tier D - an 8.3x difference in the gloss, collapsed to nothing
+#  by the key. Measured: 0 of 197 stored claims across three platforms reached
+#  A, B or C, because no value the extractor can emit mapped above D. Tiers
+#  worth 1.00, 0.65 and 0.35 were unreachable BY CONSTRUCTION.
 #
-#  WHY THIS IS A CONTRACT DECISION AND NOT A CONSTANT IN weight.py: it is a
-#  ruling about what a vendor's own words are worth, and rule 5 puts thresholds
-#  in versioned YAML. It is also the first mapping in this file that changes a
-#  weight already applied to stored rows, which is exactly the kind of change
-#  that should be diffable.
+#  THE KEY IS NOW (speaking, has_repro_steps, has_numbers). Both booleans are
+#  already on `claim`; nothing new is extracted and no model call is added.
 #
-#  THE MAPPING, AND EACH VALUE GOES TO THE TIER WHOSE OWN DESCRIPTION MATCHES IT:
+#  THE ORDER THE OLD BLOCK CALLED NON-PROVISIONAL IS PRESERVED. A vendor is
+#  still below a relay, and a relay still below first-hand. Only `own-experience`
+#  gained rungs, and it gained them upward from D, so no claim moves DOWN under
+#  this ruling.
 #
-#    own-experience           -> D  0.12  "bare first-hand opinion"
-#    relayed-from-elsewhere   -> E  0.04  "hearsay, summarising someone else"
-#    vendor-about-own-product -> F  0.02  "vendor marketing - capability FACTS
-#                                          only, never quality"
+#  ── THE CAP IS B, AND THAT IS RULE 8, NOT MODESTY ─────────────────────────
 #
-#  These are not new judgements. TIER_WEIGHT's own gloss for E is "summarising
-#  someone else", which is what relayed means, and F is "vendor marketing",
-#  which is what a launch post is. The mapping states an identity that was
-#  already written down in judge/vet/weight.py.
+#  `has_repro_steps` is the extractor's own boolean and its error rate has never
+#  been measured against a population it did not choose. Round 3 of the golden
+#  set is what would measure it and it is UNLABELLED. Rule 8 says an unmeasured
+#  check ships as a weight and never as a gate: `evidence_tier` IS a weight
+#  (`f_evidence`), the gate is `n_eff >= 3.0`, so shipping this is inside the
+#  rule - but promoting to A on that boolean would make the extractor's
+#  self-report the thing that clears the bar tier A's gloss reserves for
+#  "published harness/prompts, N runs, numbers; or a GitHub repro". A stays a
+#  rung a human confirms. Promote to A when round 3 is labelled and the booleans
+#  have a measured error rate, and not before.
 #
-#  WHAT IT CHANGES, MEASURED ON WHAT IS STORED:
+#  ── has_numbers IS FALSIFIED BY CODE BEFORE IT MAY PROMOTE ────────────────
 #
-#    3 claims quote the Fable 5 announcement -> D (0.12) becomes F (0.02), 6x DOWN
-#    1 claim relays a model-card number      -> D (0.12) becomes E (0.04), 3x DOWN
-#    8 blog claims are the author's own runs -> D (0.12) stays D, UNCHANGED
+#  `claim.has_numbers` is self-reported by the extractor. `document.has_numbers`
+#  is the same question asked of the same text by CODE, and
+#  collect/triage/specificity.py states its one-directional standing: it
+#  FALSIFIES and it cannot confirm.
 #
-#  So the change is entirely a down-weighting of what is not first-hand. Nothing
-#  is promoted, and no claim is refused storage - see `not_a_storage_gate`.
+#    document.has_numbers False  ->  a claim asserting has_numbers is a
+#                                    fabrication. There are no numbers to quote.
+#    document.has_numbers True   ->  says NOTHING about whether THIS quote
+#                                    contains one.
 #
-#  A, B AND C ARE UNREACHABLE AND THAT IS A SEPARATE GAP. The ladder has six
-#  rungs; `speaking` can reach three. A ("published harness/prompts, N runs,
-#  numbers; or a GitHub repro"), B ("detailed first-hand build report") and C
-#  ("qualitative first-hand with conditions") all require knowing how much
-#  apparatus a report carries, and nothing supplies that today. `f_specificity`
-#  counts artifacts in a SEPARATE factor, so raising the tier on the same
-#  signals would price one fact twice - the defect this project has already
-#  recorded under `version_named`. So own-experience floors at D deliberately,
-#  and promoting it needs its own source and its own argument.
+#  So the promotion requires BOTH, and that is the falsifier used as a veto
+#  rather than as a confirmation: code can block a promotion, code never grants
+#  one. A NULL `document.has_numbers` is not a veto and not a confirmation - it
+#  is absent, so the numbers rung is not reached and the run says how many
+#  claims that happened to (rule 6: absent stays absent, and say so).
+#
+#  There is NO code-side falsifier for `has_repro_steps`. That asymmetry is a
+#  second reason B is the ceiling, and it is not a gap to be closed by inventing
+#  one: `document.has_code` is a different question, and reading it as a repro
+#  check is the class of error recorded in docs/measurements/control-and-reshape.md.
+#
+#  ── WHAT THIS BLOCK DOES NOT FIX, AND IT MAKES IT WORSE ───────────────────
+#
+#  ⚠ `has_numbers` AND `has_repro_steps` NOW PRICE ONCE IN THE TIER AND ONCE IN
+#    `f_specificity`. The old block named this and used it as the argument for
+#    NOT promoting: "raising the tier on the same signals would price one fact
+#    twice - the defect this project has already recorded under `version_named`".
+#    E2's ruling overrides the conclusion; it does not make the objection false.
+#
+#    Measured on the factors as they stand:
+#
+#      f_specificity   version only         0.44
+#                      version + both       0.86      1.95x
+#      f_evidence      D -> B                         5.42x
+#      combined lift on one claim                    10.6x
+#
+#    A claim carrying both signals is now worth 10.6x a bare opinion, of which
+#    1.95x is counted twice. De-duplicating means dropping `has_numbers` (0.2)
+#    and `has_repro_steps` (0.4) from `specificity_factor()`, which changes every
+#    stored weight in a second way and is a SEPARATE ruling. It is not taken
+#    here. Recorded so the next reader finds a known over-weight rather than
+#    discovers one.
+#
+#  ── THE VENDOR CASE, CHECKED BEFORE THIS LANDED ───────────────────────────
+#
+#  `vendor-about-own-product` HAS NO RUNGS. A vendor announcement stays F (0.02)
+#  however many numbers it carries, so a correctly-filed launch post cannot get
+#  heavier under this change. Verified against the one instance held locally:
+#  the auto-mode post's "none of the 720 attack attempts succeeded" is
+#  `vendor-about-own-product` with `has_numbers: true`, and it stays F.
+#
+#  THE RESIDUAL RISK IS A MISFILED ONE, and E6 does not cover it. E6's five
+#  triggers are affiliate_link, sponsored_disclosure, discount_code,
+#  syndicated_duplicate and predates_model - NONE of them detects a vendor
+#  announcement. So wiring E6 (2026-08-29) did not and could not guard this;
+#  what guards it is `speaking`, which is the extractor's own label and is
+#  unmeasured on the same golden-set round. An announcement the extractor files
+#  as `own-experience` carries numbers by construction and would promote.
+#  `judge/reweight.py` COUNTS those - promotions on documents whose host is a
+#  provider domain - and reports them per model. A count, not a gate: rule 8,
+#  and it is the population round 3 should be asked about first.
 # ============================================================================
 
-evidence_tier_by_speaking:
+evidence_tier_rules:
 
   # ⚠ PROVISIONAL IN THE SAME SENSE AS specificity.weights: nothing has
   #   calibrated the DISTANCE between these tiers. What is not provisional is
-  #   the ORDER - a vendor describing their own model is weaker evidence about
-  #   that model than an engineer reporting their own run, and no measurement is
-  #   needed to say so. If these values are argued about, argue about 0.12/0.04/
-  #   0.02, which live in judge/vet/weight.py TIER_WEIGHT, not about the order.
+  #   the ORDER. The values 1.00/0.65/0.35/0.12/0.04/0.02 live in
+  #   judge/vet/weight.py TIER_WEIGHT and are NOT changed by this ruling.
   #
   #   An absent or unknown key here does NOT fall back to a tier. `compute()`
   #   refuses and names the gap, per the 2026-08-21 ruling that a weighting
   #   input may not have a silent default.
 
-  own-experience:            D
-  relayed-from-elsewhere:    E
-  vendor-about-own-product:  F
+  own-experience:
+    # Both signals. "detailed first-hand build report: task, versions,
+    # conditions" - B's own gloss, and the ceiling this ruling allows.
+    repro_steps_and_numbers:  B
+    # One of the two. C's gloss says "qualitative first-hand with conditions";
+    # this keys on one-of-two rather than on conditions, because
+    # `has_conditions` is a DOCUMENT-level boolean that is False on all 7
+    # populated rows and NULL on 57 - keying C on it would make C unreachable
+    # in the same way `speaking` made B unreachable. This is the rung to
+    # revisit first when round 3 is labelled.
+    one_of_the_two:           C
+    # Unchanged. "bare first-hand opinion".
+    neither:                  D
+
+  # UNCHANGED, AND NO RUNGS. Numbers in a relay are still someone else's
+  # numbers; numbers in a launch post are still the vendor's.
+  relayed-from-elsewhere:     E
+  vendor-about-own-product:   F
 
   # WEIGHTING ONLY. `speaking` never gates storage, and the reason is that the
   # field has never run: its accuracy is unmeasured on exactly the decision it
