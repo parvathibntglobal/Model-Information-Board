@@ -240,8 +240,17 @@ the same claim. It now derives the contrasting version from the constant.
        here by design and is reported as a result rather than as drift.
        Gated on step 1's number.
 
-4  scripts/report_rollup_delta.py                against _before_rollup.json
+4  scripts/report_rollup_delta.py       NOT against _before_rollup.json
 ```
+
+⚠ **`_before_rollup.json` is stale and step 4 would lie with it.** It records
+`claims_total: 51`, captured 2026-08-28 before the 150-thread run landed the
+other 146. Run against it, the delta report would announce **+146 claims** as
+though the re-weight had produced them — a real number answering a question it
+was not asked, which is rule 7 in its most convincing form because the
+arithmetic is correct. Re-capture the baseline first, or skip step 4: the
+re-weight computes both sides of the cell diff itself, from `claim` at two
+pipeline versions, which is the whole reason it does not need a snapshot.
 
 Each dry run prints the tier moves, the withheld promotions, the provider-domain
 flags and the per-cell `n_eff` before and after — all inside a transaction that
