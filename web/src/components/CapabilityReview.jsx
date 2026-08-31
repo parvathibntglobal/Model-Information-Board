@@ -60,10 +60,10 @@ export default function CapabilityReview() {
               decision and the evidence behind it.
             </p>
             <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{data.note}</p>
-            {data.candidates.length === 0 && (
+            {data.groups.length === 0 && (
               <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>Nothing proposed yet.</p>
             )}
-            {data.candidates.map((g) => (
+            {data.groups.map((g) => (
               <GroupCard key={g.proposed_key} group={g} onDone={load} />
             ))}
           </>

@@ -1214,8 +1214,12 @@ def admin_capability_candidates() -> dict:
 
     with _conn() as conn:
         groups = list_candidates(conn)
+    # Keyed `groups`, not `candidates`: the audit's web-read scanner credits a
+    # `.candidates` field access to `answer.candidates` (the only column of that
+    # name), turning this response shape into a phantom read of an unrelated
+    # column. `groups` is what list_candidates returns anyway.
     return {
-        "candidates": groups,
+        "groups": groups,
         "summary": {
             "keys": len(groups),
             "proposals": sum(g["count"] for g in groups),
