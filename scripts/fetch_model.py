@@ -376,7 +376,20 @@ def build_thread_inputs(conn, seen, *, limit: int):
     return inputs, doc_ids
 
 
-def extract_and_curate(conn, prog: Progress) -> None:
+def _thread_latest_dates(conn, thread_ids: list[str]) -> dict:
+    """thread_context_id -> the newest document date in it. For the release gate."""
+    if not thread_ids:
+        return {}
+    rows = conn.execute(
+        "SELECT tc.id, max(d.created_at) "
+        "FROM thread_context tc JOIN document d ON d.id = ANY(tc.member_document_ids) "
+        "WHERE tc.id = ANY(%s) GROUP BY tc.id",
+        (thread_ids,),
+    ).fetchall()
+    return {tc_id: latest for tc_id, latest in rows}
+
+
+def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
     """E5–E7 — extract claims from this fetch's threads, vet, and curate cells.
 
     Spends (capped) OpenRouter money and writes claims + cells. Scoped to the
@@ -384,6 +397,11 @@ def extract_and_curate(conn, prog: Progress) -> None:
     The surface resolver is wired here — the composition root's job — so a
     claim's SURFACE ("gemini flash") maps to a model_version. Curation is the
     pipeline's own step; it runs inside one transaction, so it is atomic.
+
+    `release_date` is the fetched model's release date. On a model-name harvest
+    the model IS known, so the release gate (reject.py rule 5) runs here rather
+    than in the generic text screen: a thread whose newest document predates the
+    model cannot be about it — a coincidental name match or a fabrication.
     """
     from collect.surface_resolver import RegistrySurfaceResolver
     from judge import spend_ledger
@@ -407,6 +425,51 @@ def extract_and_curate(conn, prog: Progress) -> None:
         prog.stage("E5", "Extract", "running",
                    detail=f"{len(oversized)} oversized thread(s) deferred to the nightly "
                           f"batch (> {MAX_FETCH_THREAD_CHARS:,} chars, too slow on demand)")
+
+    # PRE-LLM HARD GATES. The model reads only what survives them, so a
+    # promotional/placeholder/too-short thread never costs a token. Reuses the
+    # vet rules (judge/screen.py) on text the fetch already has - the funnel's
+    # "gates before the LLM". Coarse by design: a thread drops if its flattened
+    # text triggers a rule; per-DOCUMENT granularity (drop one comment, keep the
+    # thread) would need to rewrite the assembled offset_map and is a later
+    # refinement. Every drop is named on the stage line, not silent.
+    from collections import Counter
+
+    from judge.screen import screen as pre_llm_screen
+
+    verdicts = [(t, pre_llm_screen(text=t.flattened_text)) for t in threads]
+    dropped = [(t.thread_context_id, v.trigger) for t, v in verdicts if v.dropped]
+    threads = [t for t, v in verdicts if not v.dropped]
+
+    # RELEASE-DATE GATE (reject.py rule 5), here because the model is known: a
+    # thread whose newest document predates the model's release cannot be about
+    # it. Compared against the newest document so a thread that CONTINUED after
+    # release is kept; only wholly-pre-release threads drop. Skipped when the
+    # model has no release date on record (rule 6: absent is not "predates").
+    if release_date is not None and threads:
+        latest = _thread_latest_dates(conn, [t.thread_context_id for t in threads])
+        predates = []
+        kept = []
+        for t in threads:
+            newest = latest.get(t.thread_context_id)
+            if newest is not None and newest.date() < release_date:
+                predates.append(t.thread_context_id)
+            else:
+                kept.append(t)
+        threads = kept
+        dropped.extend((tc, "predates_model") for tc in predates)
+
+    if dropped:
+        by_trigger = Counter(trig for _, trig in dropped)
+        summary = ", ".join(f"{n} {trig}" for trig, n in by_trigger.most_common())
+        prog.stage("E4b", "Screen · pre-LLM", "ok", dropped=len(dropped),
+                   by_trigger=dict(by_trigger),
+                   detail=f"{len(dropped)} thread(s) dropped before the LLM ({summary}); "
+                          f"{len(threads)} pass to extract")
+    else:
+        prog.stage("E4b", "Screen · pre-LLM", "ok",
+                   detail=f"all {len(threads)} thread(s) passed the pre-LLM screen")
+
     prog.stage("E5", "Extract", "running",
                detail=f"{len(threads)} new thread(s) to read (LLM; capped spend)")
     if not threads:
@@ -451,6 +514,44 @@ def extract_and_curate(conn, prog: Progress) -> None:
     cells = sum(len(r.cells) for r in results)
     prog.stage("E5", "Extract", "ok",
                detail=f"{verified} claim(s) verified, {stored} stored")
+
+    # CAPABILITY DISCOVERY. Proposals the extractor made for keys none of the 12
+    # named — appended to capability_candidate for an admin to rule on. The LLM
+    # proposes; a person adopts (a capabilities.yaml PR). Idempotent, so a
+    # re-fetch cannot inflate the count.
+    from judge.store.capability_candidates import store_proposals
+    proposals = [p for r in results for p in r.extraction.proposed_capabilities]
+    # The store must never break a fetch. If the migration has not reached this
+    # database yet, the proposals are named in the log and dropped for this run
+    # rather than crashing extraction on a missing table.
+    table_present = conn.execute(
+        "SELECT to_regclass('public.capability_candidate')"
+    ).fetchone()[0] is not None
+    if proposals and table_present:
+        outcome = store_proposals(
+            conn, proposals,
+            proposer_model=os.getenv("EXTRACTOR_MODEL", "google/gemini-2.5-flash"),
+            prompt_label="fetch-extract",
+        )
+        conn.commit()
+        prog.stage("E5b", "Discover", "ok",
+                   proposed=outcome["proposed"], stored=outcome["stored"],
+                   unattributed=outcome["unattributed"],
+                   detail=f"{outcome['proposed']} capability proposal(s); "
+                          f"{outcome['stored']} new candidate(s) stored for review"
+                          + (f", {outcome['unattributed']} unattributable"
+                             if outcome["unattributed"] else ""))
+    elif proposals and not table_present:
+        prog.stage("E5b", "Discover", "skipped", proposed=len(proposals),
+                   keys=sorted({p.proposed_key for p in proposals}),
+                   detail=f"{len(proposals)} capability proposal(s) NOT stored: the "
+                          "capability_candidate table is not on this database yet "
+                          "(migration unapplied). Proposed keys: "
+                          + ", ".join(sorted({p.proposed_key for p in proposals})[:8]))
+    else:
+        prog.stage("E5b", "Discover", "ok",
+                   detail="no new capabilities proposed — every claim fit an existing key")
+
     prog.stage("E6", "Vet", "ok", detail="promotional/sarcastic/contradictory dropped in-run")
     prog.stage("E7", "Curate", "ok",
                detail=f"{cells} cell(s) computed — capability cards refresh from these")
@@ -478,7 +579,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         conn = connect(dsn)  # NO drop, NO disposability wipe — append-only
         row = conn.execute(
-            "SELECT canonical_id, display_name FROM model_version WHERE id = %s",
+            "SELECT canonical_id, display_name, release_date FROM model_version WHERE id = %s",
             (args.model_version_id,),
         ).fetchone()
         if row is None:
@@ -486,7 +587,7 @@ def main(argv: list[str] | None = None) -> int:
                        detail=f"{args.model_version_id} is not in the registry")
             prog.done("error", "unknown model")
             return 1
-        canonical_id, display_name = row
+        canonical_id, display_name, release_date = row
         variants = _variants_for(conn, args.model_version_id, canonical_id)
         prog.stage("E1", "Registry", "ok",
                    model=display_name or canonical_id, variants=len(variants),
@@ -529,7 +630,7 @@ def main(argv: list[str] | None = None) -> int:
                    detail="documents default to 'kept'; filter-persist not wired")
 
         try:
-            extract_and_curate(conn, prog)
+            extract_and_curate(conn, prog, release_date=release_date)
         except Exception as exc:
             conn.rollback()
             prog.stage("E5", "Extract", "error", detail=str(exc).splitlines()[0][:200])

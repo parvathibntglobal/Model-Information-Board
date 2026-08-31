@@ -1180,6 +1180,112 @@ def admin_pipeline() -> dict:
     }
 
 
+# ── capability discovery review: the extractor proposes, an admin rules ───────
+
+
+class CandidateRuleRequest(BaseModel):
+    proposed_key: str
+    ruling: str = Field(description="adopted | declined | merged")
+    ruling_target: str | None = Field(
+        default=None, description="the key it became; required for adopted/merged"
+    )
+
+
+class CandidateEditRequest(BaseModel):
+    proposed_key: str
+    new_key: str | None = None
+    new_definition: str | None = None
+
+
+class CandidateKeyRequest(BaseModel):
+    proposed_key: str
+
+
+@app.get("/admin/capability-candidates")
+def admin_capability_candidates() -> dict:
+    """Proposed capabilities awaiting a ruling, grouped by key.
+
+    The model proposes; the admin rules. Adopting one is a
+    contract/capabilities.yaml change (a PR), never a write here — the table has
+    no FK to `capability` for exactly that reason. This surface records the
+    decision and shows the evidence behind it.
+    """
+    from judge.store.capability_candidates import list_candidates
+
+    with _conn() as conn:
+        groups = list_candidates(conn)
+    # Keyed `groups`, not `candidates`: the audit's web-read scanner credits a
+    # `.candidates` field access to `answer.candidates` (the only column of that
+    # name), turning this response shape into a phantom read of an unrelated
+    # column. `groups` is what list_candidates returns anyway.
+    return {
+        "groups": groups,
+        "summary": {
+            "keys": len(groups),
+            "proposals": sum(g["count"] for g in groups),
+            "unruled_keys": sum(1 for g in groups if g["ruling"] is None),
+        },
+        "note": (
+            "Counts are a floor: near-duplicate key phrasings are not yet "
+            "clustered, so a capability proposed several ways is under-counted."
+        ),
+    }
+
+
+@app.post("/admin/capability-candidates/rule")
+def admin_rule_candidate(req: CandidateRuleRequest) -> dict:
+    """Adopt / decline / merge every proposal for one key."""
+    from judge.store.capability_candidates import RULINGS, rule_candidates
+
+    # Validate BEFORE opening a connection, so a bad request fails fast and
+    # without a database (and the constraints are stated once, here and in the
+    # store, so neither is the only guard).
+    if not req.proposed_key.strip():
+        raise HTTPException(status_code=422, detail="proposed_key is required")
+    if req.ruling not in RULINGS:
+        raise HTTPException(status_code=422, detail=f"ruling must be one of {RULINGS}")
+    if req.ruling in ("adopted", "merged") and not (req.ruling_target or "").strip():
+        raise HTTPException(
+            status_code=422, detail=f"{req.ruling} requires a ruling_target (what it became)"
+        )
+    with _conn() as conn:
+        ruled = rule_candidates(
+            conn, proposed_key=req.proposed_key, ruling=req.ruling,
+            ruling_target=req.ruling_target,
+        )
+        conn.commit()
+    return {"proposed_key": req.proposed_key, "ruling": req.ruling, "rows_ruled": ruled}
+
+
+@app.post("/admin/capability-candidates/edit")
+def admin_edit_candidate(req: CandidateEditRequest) -> dict:
+    """Fix a proposed key's name and/or definition."""
+    from judge.store.capability_candidates import edit_candidates
+
+    if not req.proposed_key.strip():
+        raise HTTPException(status_code=422, detail="proposed_key is required")
+    with _conn() as conn:
+        edited = edit_candidates(
+            conn, proposed_key=req.proposed_key,
+            new_key=req.new_key, new_definition=req.new_definition,
+        )
+        conn.commit()
+    return {"proposed_key": req.new_key or req.proposed_key, "rows_edited": edited}
+
+
+@app.post("/admin/capability-candidates/delete")
+def admin_delete_candidate(req: CandidateKeyRequest) -> dict:
+    """Discard a proposal that is noise (hard delete; declining keeps evidence)."""
+    from judge.store.capability_candidates import delete_candidates
+
+    if not req.proposed_key.strip():
+        raise HTTPException(status_code=422, detail="proposed_key is required")
+    with _conn() as conn:
+        deleted = delete_candidates(conn, proposed_key=req.proposed_key)
+        conn.commit()
+    return {"proposed_key": req.proposed_key, "rows_deleted": deleted}
+
+
 def _whole_key_spend() -> dict:
     """Total spent on the API KEY, by anyone, straight from the provider.
 

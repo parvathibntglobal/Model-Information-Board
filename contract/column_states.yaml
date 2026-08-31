@@ -93,18 +93,22 @@ columns:
       reviewed: true
       why: >-
         DEFAULT now(). Never written by us
-    definition: {state: reserved, reviewed: false}
-    document_id: {state: reserved, reviewed: false}
-    id: {state: reserved, reviewed: false}
-    pipeline_version: {state: reserved, reviewed: false}
-    prompt_label: {state: reserved, reviewed: false}
-    proposed_key: {state: reserved, reviewed: false}
-    proposer_model: {state: reserved, reviewed: false}
-    quote: {state: reserved, reviewed: false}
-    quote_verified: {state: reserved, reviewed: false}
-    reviewed_at: {state: reserved, reviewed: false}
-    ruling: {state: reserved, reviewed: false}
-    ruling_target: {state: reserved, reviewed: false}
+    # Wired 2026-08-31: discovery store + admin review UI. Written by
+    # judge/store/capability_candidates.py, read by list_candidates and the
+    # admin surface. prompt_label/pipeline_version are written but not selected
+    # back (provenance, not display).
+    definition: {state: read, reviewed: true}
+    document_id: {state: read, reviewed: true}
+    id: {state: read, reviewed: true}
+    pipeline_version: {state: write_only, reviewed: true}
+    prompt_label: {state: write_only, reviewed: true}
+    proposed_key: {state: read, reviewed: true}
+    proposer_model: {state: read, reviewed: true}
+    quote: {state: read, reviewed: true}
+    quote_verified: {state: read, reviewed: true}
+    reviewed_at: {state: read, reviewed: true}
+    ruling: {state: read, reviewed: true}
+    ruling_target: {state: read, reviewed: true}
 
   cell:
     capability_key: {state: read, reviewed: false}

@@ -3,6 +3,7 @@ import { health, coveragePage, filteredPage, changelogPage, BoardUnreadable } fr
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
 import PipelinePanel from '../components/PipelinePanel'
+import CapabilityReview from '../components/CapabilityReview'
 import { IconAlert, IconGauge, IconLayers, IconFilter } from '../components/Icons'
 
 /**
@@ -77,6 +78,13 @@ export default function Admin() {
           know). Counts, never money — the sibling of the panel above it. */}
       <Reveal>
         <PipelinePanel />
+      </Reveal>
+
+      {/* capability discovery review — the extractor's proposed keys, awaiting a
+          ruling. Placed after the pipeline picture because it is a decision the
+          run produces, not a health signal. */}
+      <Reveal>
+        <CapabilityReview />
       </Reveal>
 
       {/* coverage */}
