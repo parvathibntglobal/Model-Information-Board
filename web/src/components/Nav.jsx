@@ -6,7 +6,7 @@ import { Badge } from './ui'
 const LINKS = [
   { to: '/', label: 'Home', end: true },
   { to: '/ask', label: 'Ask' },
-  { to: '/board', label: 'Board' },
+  { to: '/articles', label: 'Articles' },
   { to: '/models', label: 'Models' },
   { to: '/admin', label: 'Admin' },
 ]

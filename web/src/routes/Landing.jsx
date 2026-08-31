@@ -58,7 +58,7 @@ export default function Landing() {
               <Link to="/ask" className="btn btn-primary btn-lg">
                 Describe a task <IconArrow width={15} height={15} />
               </Link>
-              <Link to="/board" className="btn btn-ghost btn-lg">Browse the board</Link>
+              <Link to="/articles" className="btn btn-ghost btn-lg">Browse articles</Link>
             </Reveal>
 
             <span className="hero-hint">move the cursor · double-click to break the surface</span>
