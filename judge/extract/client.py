@@ -238,6 +238,19 @@ def tool_schema_for(model_cls: type) -> dict[str, object]:
                 target = definitions[ref.split("/")[-1]]
                 merged = {k: v for k, v in node.items() if k != "$ref"}
                 return {**inline(target, expansions + 1), **merged}
+            if "prefixItems" in node:
+                # GEMINI DOES NOT SUPPORT `prefixItems` (the tuple form). pydantic
+                # emits it for a `tuple[int, int]` like `quote_offset`, and
+                # Google's function-calling validator rejects the whole schema
+                # ("quote_offset.items: missing field"). OpenRouter routes some
+                # requests to that validator and some to a lenient one, so it
+                # fails intermittently. Rewrite to a plain `items` array — the
+                # tuples here are homogeneous (two integers), so the first item's
+                # schema is the element schema, and minItems/maxItems still pin
+                # the length.
+                prefix = node.get("prefixItems") or []
+                node = {k: v for k, v in node.items() if k != "prefixItems"}
+                node["items"] = prefix[0] if prefix else {"type": "string"}
             return {k: inline(v, expansions) for k, v in node.items()}
         if isinstance(node, list):
             return [inline(v, expansions) for v in node]
