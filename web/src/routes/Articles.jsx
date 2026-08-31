@@ -1,55 +1,96 @@
 import { useSearchParams } from 'react-router-dom'
 import { MODELS, PLATFORMS, modelById } from '../data/articles'
 import { Badge, Notice, Reveal } from '../components/ui'
-import { IconExternal, IconQuote, IconSearch, IconAlert } from '../components/Icons'
+import { IconExternal, IconQuote, IconSearch, IconAlert, IconArrow } from '../components/Icons'
 
 /**
  * Articles — what each platform publishes about a model.
  *
- * The workflow pivot: instead of tagging forum evidence against a capability
- * vocabulary, we collect articles/mentions of a model across arXiv, X and
- * Reddit and show them per platform. arXiv is wired first from a static scrape;
- * the other two declare themselves "not collected yet" rather than render an
- * empty list, because an empty panel must not read as "nothing exists."
+ * Two levels: a list of models, and — on clicking one — that model's arXiv / X
+ * / Reddit view. arXiv is wired first from a static scrape; the other two
+ * declare themselves "not collected yet" rather than render an empty list,
+ * because an empty panel must not read as "nothing exists."
  */
 export default function Articles() {
   const [params, setParams] = useSearchParams()
-  const modelId = params.get('model') || MODELS[0].id
+  const modelId = params.get('model')
   const platformId = params.get('platform') || 'arxiv'
+
+  if (!modelId) {
+    return <ModelList onOpen={(id) => setParams({ model: id, platform: 'arxiv' })} />
+  }
+
   const model = modelById(modelId)
+  return (
+    <ModelView
+      model={model}
+      platformId={platformId}
+      onPlatform={(id) => setParams({ model: model.id, platform: id })}
+      onBack={() => setParams({})}
+    />
+  )
+}
 
-  const setModel = (id) => setParams({ model: id, platform: platformId })
-  const setPlatform = (id) => setParams({ model: modelId, platform: id })
+/* ── level 1: the models list ──────────────────────────────────────────── */
 
-  const platformData = model.platforms[platformId]
-
+function ModelList({ onOpen }) {
   return (
     <div className="shell section-tight stack stack-4">
       <div className="stack stack-1">
         <span className="eyebrow">Articles</span>
-        <h1 style={{ fontSize: 'var(--fs-display)' }}>{model.name}</h1>
+        <h1 style={{ fontSize: 'var(--fs-display)' }}>Articles by model</h1>
         <p className="muted" style={{ maxWidth: '64ch' }}>
-          What the public record says about {model.name}, gathered per platform.
-          arXiv is collected; X and Reddit are next. An empty panel means
-          “not collected yet,” never “nothing exists.”
+          What the public record says about each model, gathered per platform —
+          arXiv, X and Reddit. Open a model to see its collected articles.
         </p>
       </div>
 
-      {/* Model selector — one for now, built to grow. */}
-      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-        {MODELS.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            className={`chip${m.id === modelId ? ' chip-on' : ''}`}
-            onClick={() => setModel(m.id)}
-          >
-            {m.name}
-          </button>
+      <div className="stack stack-2">
+        {MODELS.map((m, i) => (
+          <Reveal key={m.id} delay={i * 60}>
+            <button type="button" className="caplink" onClick={() => onOpen(m.id)}>
+              <span className="stack" style={{ gap: 4, alignItems: 'flex-start' }}>
+                <strong style={{ fontSize: 'var(--fs-md, var(--fs-sm))' }}>{m.name}</strong>
+                <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{m.vendor}</span>
+                <span className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                  {PLATFORMS.map((p) => {
+                    const data = m.platforms[p.id]
+                    const n = data?.articles?.length
+                    return (
+                      <span key={p.id} className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+                        {p.label} {typeof n === 'number' ? n : '—'}
+                      </span>
+                    )
+                  })}
+                </span>
+              </span>
+              <IconArrow width={14} height={14} />
+            </button>
+          </Reveal>
         ))}
       </div>
+    </div>
+  )
+}
 
-      {/* Platform tabs */}
+/* ── level 2: one model, its platforms ─────────────────────────────────── */
+
+function ModelView({ model, platformId, onPlatform, onBack }) {
+  const platformData = model.platforms[platformId]
+  return (
+    <div className="shell section-tight stack stack-4">
+      <div className="stack stack-1">
+        <button type="button" className="btn btn-ghost" style={{ alignSelf: 'flex-start' }} onClick={onBack}>
+          ← All models
+        </button>
+        <span className="eyebrow">Articles · {model.vendor}</span>
+        <h1 style={{ fontSize: 'var(--fs-display)' }}>{model.name}</h1>
+        <p className="muted" style={{ maxWidth: '64ch' }}>
+          Collected per platform. An empty panel means “not collected yet,”
+          never “nothing exists.”
+        </p>
+      </div>
+
       <div className="row" style={{ gap: 8, flexWrap: 'wrap', borderBottom: '1px solid var(--bg-3, rgba(127,127,127,.18))', paddingBottom: 10 }}>
         {PLATFORMS.map((p) => {
           const data = model.platforms[p.id]
@@ -59,7 +100,7 @@ export default function Articles() {
               key={p.id}
               type="button"
               className={`chip${p.id === platformId ? ' chip-on' : ''}`}
-              onClick={() => setPlatform(p.id)}
+              onClick={() => onPlatform(p.id)}
             >
               {p.label}
               {typeof count === 'number'
