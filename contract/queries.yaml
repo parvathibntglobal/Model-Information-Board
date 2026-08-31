@@ -266,7 +266,7 @@ queries:
     terms:
       subject: ["{alias}"]
       topic: ["generated", "wrote the code", "code generation", "asked it to write",
-              "scaffold", "boilerplate"]
+              "scaffold"]  # "boilerplate" dropped: 2,751 candidates / 0 kept (#195)
       signal: ["doesn't compile", "does not compile", "hallucinated the api",
                "no such method", "wrong import", "made up a function",
                "deprecated api", "wrong signature", "does not exist in the"]
@@ -435,8 +435,8 @@ queries:
       JSON is perfectly valid and the value is fiction.
     terms:
       subject: ["{alias}"]
-      topic: ["extraction", "extract", "parse", "structured field", "populate",
-              "pull out the", "field extraction"]
+      topic: ["extract", "parse", "structured field", "populate",
+              "pull out the", "field extraction"]  # "extraction" dropped: 5,315 candidates / 0 kept (#195)
       signal: ["invented a value", "made up a value", "hallucinated the",
                "should have been null", "wasn't in the document",
                "filled in a field", "guessed the", "not in the source"]
@@ -455,7 +455,7 @@ queries:
       complaints.
     terms:
       subject: ["{alias}"]
-      topic: ["extraction", "extract", "parse", "structured field", "populate"]
+      topic: ["extract", "parse", "structured field", "populate"]  # "extraction" dropped (#195)
       signal: ["correctly returned null", "didn't invent", "no hallucinated field",
                "matched the source", "held up", "no regression", "no regressions",
                "nulls were right"]
