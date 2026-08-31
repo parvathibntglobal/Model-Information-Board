@@ -47,7 +47,43 @@ from judge.vet.weight import WeightFactors
 #: Bumped whenever anything that produces a claim changes — the prompt, the
 #: extractor model, the verification, the weighting. Every derived row carries
 #: it so a scoring change is re-runnable and diffable rather than archaeology.
-PIPELINE_VERSION = "e5.1"
+#:
+#: TWO RULINGS LANDED ON 2026-08-30 AND THEY GET TWO VERSIONS, NOT ONE.
+#: Both are weighting changes, so `judge reweight` produces both from stored
+#: inputs and no model is called for either. They are separated because a diff
+#: with two causes measures neither.
+#:
+#:   e5.1 -> e5.2   `evidence_tier` keys on (speaking, has_repro_steps,
+#:                  has_numbers) instead of `speaking` alone —
+#:                  contract/harvest.yaml `evidence_tier_rules`. ONLY
+#:                  `f_evidence` moves; `judge reweight --document-facts frozen`
+#:                  holds the document booleans at the values e5.1 effectively
+#:                  used, and the drift check proves it held them.
+#:
+#:   e5.2 -> e5.3   `compute()` refuses `None`, and `_document_facts` reads
+#:                  `document.has_numbers` / `has_conditions` instead of passing
+#:                  a literal `None` that the refusal did not catch. ONLY
+#:                  `f_specificity` moves, plus refusals where the columns are
+#:                  NULL. `judge reweight --document-facts read`.
+#:
+#:   e5.3 -> e5.4   Option 1 of the double-count proposal, taken on E1's
+#:                  instruction: `has_numbers` and `has_repro_steps` leave
+#:                  `specificity_factor` because `evidence_tier_rules` now
+#:                  prices them. ONLY `f_specificity` moves.
+#:                  `judge reweight --specificity current`.
+#:
+#: A plain `judge extract` writes e5.4. e5.2 and e5.3 exist only as the
+#: intermediates each diff is measured against, which is what a version-stamped
+#: fork is for - and each is reproducible from the one before it with no model
+#: call, which is what makes three forks cheap rather than three runs.
+#:
+#: ⚠ THE VERSION IS IN `claim_id_for`, SO A BUMP FORKS THE TABLE RATHER THAN
+#:   UPDATING IT. That is the point — the e5.1 rows stay for the diff — and it
+#:   is also why `CellStore` filters on this constant. Before the bump the table
+#:   held one version and no aggregation needed to say which; after it, an
+#:   unfiltered `n_eff` would take each voice's best weight across BOTH versions
+#:   and quietly report a mixture that is neither.
+PIPELINE_VERSION = "e5.4"
 
 CONNECT_TIMEOUT_SECONDS = 10
 

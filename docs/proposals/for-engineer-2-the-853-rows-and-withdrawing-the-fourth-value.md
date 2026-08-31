@@ -15,6 +15,15 @@ does it.
 ```
 live document.retrieval_provenance      no_run_for_source 854 | not_recorded 344 | run_recorded 52
                                         total 1,250. The panel's three buckets sum EXACTLY.
+[as of this proposal. RE-COUNTED 2026-08-31, and left above because these are
+ the numbers the ruling was made on:
+   no_run_for_source 1 | not_recorded 1,788 | run_recorded 2,531   total 4,320
+ The buckets still sum exactly, which is the property this line was checking.
+ `not_recorded` grew by 1,148 in the four days to 08-31 - reddit 1,492, github
+ 176, blog 120 - so "a known gap of 344" has become "a gap growing faster than
+ anything closes it", and 926 of that day's additions were E1's own writes. The
+ 853 this proposal is about are now inside the 1,788, which is what withdrawing
+ the fourth value chose.]
 live CHECK                              three values. 'unreviewed_writer' is NOT in it.
 20260828T1200_..._unreviewed.sql        on disk, merged, NOT applied
 ```

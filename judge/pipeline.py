@@ -19,8 +19,9 @@ written to be boring.
 
 WHERE THE VALUES ACTUALLY COME FROM, since four of them are not obvious:
 
-    evidence_tier    claim.model_ref.speaking, through
-                     contract/harvest.yaml evidence_tier_by_speaking
+    evidence_tier    (claim.model_ref.speaking, claim.has_repro_steps,
+                     claim.has_numbers vetoed by document.has_numbers), through
+                     contract/harvest.yaml evidence_tier_rules
     version_named    claim.model_ref.specificity — snapshot or version is true
     has_conditions   document.has_conditions — UNRESOLVED, see below
     has_numbers      document.has_numbers — the COUNTED one, not the extractor's
@@ -107,6 +108,7 @@ which is a different fix with a different reason.
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
@@ -132,6 +134,7 @@ from judge.vet.weight import (
     _Unsupplied,
     compute,
     evidence_tier_for,
+    promotable_numbers,
 )
 
 log = logging.getLogger(__name__)
@@ -464,6 +467,12 @@ class PipelineResult:
     #: against. Verified, attributed, and wrong - the gap the GPT-5.6 case found.
     #: Same standing as `subjects_inherited`: counted, logged, not stored.
     quote_names_another_model: int = 0
+    #: Surfaces the extractor proposed that resolve to no tracked model, in the
+    #: order they were dropped. NOT a count: the SURFACE is the finding - it says
+    #: whether the drop was a family name, an ambiguous codename or a range, and
+    #: a count says only that something went missing. Every one is a deliberate
+    #: refusal to invent specificity; this is the record of what was refused.
+    unresolved_surfaces: list[str] = field(default_factory=list)
 
     #: document_id -> (trigger, detail) for documents E6 hard-rejected. Their
     #: claims are dropped rather than weighted; kept here so a rejection is
@@ -477,6 +486,14 @@ class PipelineResult:
     #: Non-fatal observations from E6 - "free_api_credits_acknowledged" and the
     #: like. Shown beside a document rather than hiding it.
     document_flags: dict[str, tuple[str, ...]] = field(default_factory=dict)
+
+    #: signal name -> how many claims could NOT be promoted on it because the
+    #: input was absent rather than false. The tier ladder withholds rather than
+    #: refuses (see `evidence_tier_for`), so without this counter a claim that
+    #: stayed at D because nobody counted its numbers is indistinguishable from
+    #: one that stayed at D because it is a bare opinion. Rule 4, one stage
+    #: before the page: the absence has to be reportable.
+    tier_signals_unconfirmed: Counter[str] = field(default_factory=Counter)
 
     @property
     def published(self) -> int:
@@ -573,8 +590,15 @@ class Pipeline:
         as_of: date | None = None,
         resolve_surface: SurfaceResolver | None = None,
         find_surfaces: SurfaceFinder | None = None,
+        rebuild_cells: bool = True,
     ) -> PipelineResult:
         """One thread, end to end.
+
+        `rebuild_cells=False` is for `run_all`, which rebuilds ONCE after the
+        batch instead of once per thread. See the measurement in
+        `docs/measurements/the-twenty-seconds-is-a-full-board-rebuild-per-thread.md`
+        - per-thread it made a batch quadratic in cells. The default stays True
+        so a single `run()` still leaves a consistent board.
 
         `facts` and `model_version_of` are passed in rather than queried, so
         this module reads no table it does not write. `collect/` owns
@@ -639,6 +663,21 @@ class Pipeline:
                 # Unresolvable is a real state and a counted one. Dropping it
                 # silently is how "nobody discusses this model" and "we could
                 # not resolve the name" become the same absence.
+                #
+                # RECORDED ON THE RESULT, not only logged. This comment described
+                # the hazard for months while the only trace was a `log.info`
+                # the default level does not emit - so 347 of 450 verified claims
+                # vanished on 2026-08-28 with nothing to read afterwards, and
+                # `judge/cli.py` said of them: "Neither is recorded anywhere but
+                # this output."
+                #
+                # MEASURED, and every observed drop was a CORRECT refusal:
+                # '5.0' (a version with no family), 'Qwen' (family only), 'Terra'
+                # and 'Sol' (each ambiguous between a base and a -pro variant),
+                # 'Opus 4.2-4.7' (a range). Resolving any of them would invent
+                # specificity. So this records what we declined to guess, which is
+                # rule 4's absence problem at the largest scale in the pipeline.
+                result.unresolved_surfaces.append(claim.model_ref.surface)
                 log.info(
                     "claim references %r which resolves to no tracked model",
                     claim.model_ref.surface,
@@ -690,11 +729,31 @@ class Pipeline:
                 )
             result.subjects_inherited += 1 if inherited else 0
 
-            # THE TIER NOW COMES FROM WHO IS SPEAKING, not from a literal.
-            # `evidence_tier_for` returns UNSUPPLIED for an unmapped value and
-            # `compute()` refuses, so an enum value the contract does not price
-            # is a named gap rather than a silent tier.
-            evidence_tier = evidence_tier_for(claim.model_ref.speaking)
+            # THE TIER COMES FROM WHAT THE EVIDENCE CARRIES, not from a literal
+            # and, since 2026-08-30, not from `speaking` alone. `speaking` said
+            # WHOSE claim it is; the tier grades HOW CHECKABLE it is, so keying
+            # one on the other floored every first-hand report at D whether it
+            # carried a harness or a hunch. `evidence_tier_for` still returns
+            # UNSUPPLIED for a `speaking` value the contract does not price, and
+            # `compute()` refuses, so that stays a named gap rather than a
+            # silent tier.
+            #
+            # `promotable_numbers` is the falsifier: the extractor proposes
+            # `has_numbers` and `document.has_numbers` - counted by code in
+            # collect/triage/ - may veto it. It can only veto. A promotion the
+            # code cannot confirm is withheld and NAMED, never silently taken
+            # and never turned into a dropped claim.
+            verdict = evidence_tier_for(
+                claim.model_ref.speaking,
+                has_repro_steps=claim.has_repro_steps,
+                has_numbers=promotable_numbers(
+                    claim.has_numbers, document.has_numbers
+                ),
+            )
+            evidence_tier = verdict.tier
+            for signal in verdict.unconfirmed:
+                result.tier_signals_unconfirmed[signal] += 1
+
             weights = compute(
                 evidence_tier=evidence_tier,
                 platform=document.platform,
@@ -738,10 +797,20 @@ class Pipeline:
             )
             result.stored_claim_ids.append(self._claims.write(stored))
 
-        if result.stored_claim_ids:
+        if result.stored_claim_ids and rebuild_cells:
             # Whole-table, for the reason in cells.py: a cell is a view of the
             # claims, weights decay daily, and an incremental path is a second
             # description of the aggregation that can disagree with the first.
+            #
+            # WHOLE-TABLE IS RIGHT AND PER-THREAD WAS NOT. `rebuild_all` walks
+            # every cell with evidence, at 3 sequential statements each, so a
+            # BATCH paid for every cell its earlier threads had created - 16.35s
+            # of a 21.70s thread, measured, and growing with the board. That is
+            # quadratic in cells at any latency, which is why `run_all` passes
+            # `rebuild_cells=False` and rebuilds once at the end.
+            #
+            # The cells.py argument is untouched: still whole-table, still one
+            # description of the aggregation. Only the FREQUENCY changed.
             result.cells = self._cells.rebuild_all(as_of=as_of)
 
         log.info(
@@ -812,6 +881,8 @@ class Pipeline:
                     as_of=as_of,
                     resolve_surface=resolve_surface,
                     find_surfaces=find_surfaces,
+                    # ONCE AFTER THE BATCH, not once per thread. See below.
+                    rebuild_cells=False,
                 )
             except ExtractionRefused as exc:
                 log.error("thread %s refused: %s", thread.thread_context_id, exc)
@@ -853,6 +924,28 @@ class Pipeline:
                 input_tokens=result.extraction.input_tokens or 0,
                 output_tokens=result.extraction.output_tokens or 0,
             )
+        # ── ONE board rebuild for the whole batch ───────────────────────────
+        #
+        # Was inside `run`, so a batch rebuilt every cell once per claim-bearing
+        # thread: 16.35s of a 21.70s thread against staging, and rising with the
+        # board, which is quadratic in cells at any latency. Measured in
+        # `docs/measurements/the-twenty-seconds-is-a-full-board-rebuild-per-thread.md`.
+        #
+        # ATTACHED TO THE LAST RESULT, and that is a compromise worth naming.
+        # A whole-board rebuild is a BATCH event and belongs to no single thread,
+        # but two readers want it through `results`: `close_the_night` below, and
+        # `cli.py`'s `sum(len(r.cells) for r in results)`. Putting the outcomes
+        # on one result keeps both totals right; per-result attribution is
+        # meaningless afterwards and nothing reads it that way.
+        #
+        # This also fixes a quieter bug: `as_of_cells` below used to receive the
+        # same cells once per claim-bearing thread - the whole board, duplicated
+        # up to a thousand times - and now receives each cell once.
+        if any(r.stored_claim_ids for r in results):
+            outcomes = self._cells.rebuild_all(as_of=as_of)
+            if results:
+                results[-1].cells = outcomes
+
         if driver is not None:
             # THE CALLER, and the reason this parameter exists. Labels, the
             # changelog and reported context all had a writer and none had

@@ -17,7 +17,13 @@ from pathlib import Path
 
 import pytest
 
-from collect.assemble.reddit import StoredComment, _score_of, assemble_reddit_thread
+from collect.assemble.reddit import (
+    POST_BODY_ONLY,
+    StoredComment,
+    _score_of,
+    assemble_reddit_post,
+    assemble_reddit_thread,
+)
 from collect.assemble.thread import SELECTION_METHOD
 from collect.rawstore import RawStore
 
@@ -140,3 +146,112 @@ class TestScoreParsing:
         assert _score_of({"controversiality": 1}) is None
         assert _score_of(None) is None
         assert _score_of("not json") is None
+
+
+# ── the third shape: a post whose comments were never fetched ──────────────
+
+
+class TestPostBodyOnly:
+    """A search sweep returns posts, not threads. That is neither of the two.
+
+    `assemble_reddit_documents` refused all 1,559 such posts until 2026-08-28 -
+    correctly, because its only alternative was calling a childless post a Reddit
+    thread. The refusal was right and the options were incomplete.
+    """
+
+    # THE INPUT IS THE PAYLOAD, since 2026-08-28. `document.text_ref` points at
+    # the bytes reddit gave us and `assemble_reddit_post` extracts the prose -
+    # the ruling in `docs/engineer-1/ruling-what-content-hash-identifies.md`.
+    # These tests used to pass prose directly, which is what the old (wrong)
+    # storage shape made possible.
+    @staticmethod
+    def _payload(title="", selftext=""):
+        import json
+        return json.dumps({"id": "x", "name": "t3_x",
+                           "title": title, "selftext": selftext})
+
+    def test_it_is_not_whole_document(self):
+        """The blog value would assert the post IS the whole document."""
+        assembled = assemble_reddit_post(
+            "reddit:t3_x", self._payload("Haiku 4.5 is fast.", "Much faster than Sonnet."),
+            comment_count=47, store=_store(), pipeline_version="test-1",
+        )
+        assert assembled.selection_method == POST_BODY_ONLY
+        assert assembled.selection_method != "whole_document"
+
+    def test_hidden_children_min_is_the_platforms_count_not_zero(self):
+        """0 would make a post with 47 comments read as a post with none.
+
+        `coverage_ratio` is GENERATED from observed / (observed + hidden), so 0
+        gives 0/0 -> NULL, the empty-tree case. 47 gives 0.0, which says we read
+        the root and none of the thread. Low against wrong.
+        """
+        assembled = assemble_reddit_post(
+            "reddit:t3_x", self._payload("title", "body"), comment_count=47,
+            store=_store(), pipeline_version="test-1",
+        )
+        assert assembled.observed_children == 0
+        assert assembled.hidden_children_min == 47
+        assert assembled.hidden_branches_unsized == 0
+
+    def test_a_post_with_no_comments_reports_zero_hidden(self):
+        """The genuine empty-tree case, which is allowed to be NULL downstream."""
+        assembled = assemble_reddit_post(
+            "reddit:t3_x", self._payload("title", "body"), comment_count=0,
+            store=_store(), pipeline_version="test-1",
+        )
+        assert assembled.hidden_children_min == 0
+
+    def test_the_offset_map_falls_out_of_it(self):
+        """The whole point: a quote needs a position, not only a string.
+
+        `collect/CLAUDE.md`'s first rule is that the map cannot be rebuilt later,
+        so a body-only assembly is what makes these documents' quotes verifiable
+        against an offset rather than only against a substring.
+        """
+        assembled = assemble_reddit_post(
+            "reddit:t3_x", self._payload("Haiku 4.5 is fast.", "Much faster."), comment_count=1,
+            store=_store(), pipeline_version="test-1",
+        )
+        segments = assembled.flattened.as_offset_map()
+        assert segments, "no offset map, no verifiable quote"
+        assert tuple(assembled.member_document_ids) == ("reddit:t3_x",)
+
+    def test_empty_text_refuses_rather_than_assembling_nothing(self):
+        """Same refusal as `assemble_issue`, and for the same reason."""
+        with pytest.raises(ValueError) as excinfo:
+            assemble_reddit_post(
+                "reddit:t3_x", "   ", comment_count=3,
+                store=_store(), pipeline_version="test-1",
+            )
+        assert "fabricating extractor" in str(excinfo.value)
+
+    def test_the_flattened_text_is_the_post_not_a_payload(self):
+        """A JSON envelope here would make a quote verify against a field VALUE.
+
+        `text_ref` pointed at `json.dumps(post.raw)` for 1,507 documents on
+        2026-08-28 - the sweeps stored the payload where the text belongs. A
+        substring check against that JSON passes, because `"selftext": "..."`
+        contains the text, which is rule 1 returning true for the wrong reason.
+
+        **THIS TEST WAS WEAKER THAN IT LOOKED UNTIL THE PAYLOAD WENT IN.** It
+        used to hand PROSE to the assembler and assert the result was not JSON -
+        which it could not have been, since nothing in the path adds braces. It
+        proved prose stays prose. Now it hands a payload and asserts the
+        assembler extracts from it, which is the property that was actually
+        broken.
+        """
+        import json
+
+        assembled = assemble_reddit_post(
+            "reddit:t3_x",
+            json.dumps({"id": "x", "name": "t3_x",
+                        "title": "Haiku 4.5 is fast.", "selftext": "Much faster."}),
+            comment_count=0, store=_store(), pipeline_version="test-1",
+        )
+        assert not assembled.flattened.text.lstrip().startswith("{")
+        assert "Haiku 4.5 is fast" in assembled.flattened.text
+        # The field NAMES must be gone, not just the braces. Their presence is
+        # what let a quote verify against a field value.
+        assert '"selftext"' not in assembled.flattened.text
+        assert '"title"' not in assembled.flattened.text

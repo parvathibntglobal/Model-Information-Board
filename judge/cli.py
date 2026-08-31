@@ -169,7 +169,11 @@ def _cmd_extract(args: argparse.Namespace, *, resolver_factory=None) -> int:
 
 
 
-def _document_facts(conn: Any, document_ids: set[str]) -> tuple[dict[str, Any], set[str]]:
+def _document_facts(
+    conn: Any,
+    document_ids: set[str],
+    text_of: dict[str, str] | None = None,
+) -> tuple[dict[str, Any], set[str]]:
     """`DocumentFacts` for the documents an export refers to, read from the DB.
 
     Read rather than taken from the export: `platform` and `created_at` decide
@@ -178,6 +182,21 @@ def _document_facts(conn: Any, document_ids: set[str]) -> tuple[dict[str, Any], 
     pipeline already skips a claim whose document it knows nothing about rather
     than weighting it from defaults, and inventing a platform here would silently
     change `f_platform`.
+
+    `text_of` IS THE ONE THING TAKEN FROM THE EXPORT, and the reasoning above is
+    why it has to be. E6 hard rejection had NEVER RUN on this path: `text` was
+    never populated, so `pipeline.py`'s vet step took the `unvetted` branch for
+    every document in every run. `unvetted` is correctly designed - it is not
+    counted as `kept` - but nothing persists it, so a claim no rule ran against
+    was indistinguishable from one that passed every rule.
+
+    The rule above does not extend to `text`. `platform` and `created_at` are
+    FIGURES that feed a weight and the export could lie about them undetectably.
+    `text` is the SUBSTRATE: it is what the model was shown and what every quote
+    was verified against by exact substring. There is nothing to check it
+    against because it is the thing everything else is checked against - and the
+    database cannot supply it anyway, since `document.text_ref` is a store
+    location and this lane may not read the store.
     """
     from judge.pipeline import DocumentFacts
 
@@ -185,14 +204,15 @@ def _document_facts(conn: Any, document_ids: set[str]) -> tuple[dict[str, Any], 
         return {}, set()
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, source, created_at, author_id FROM document WHERE id = ANY(%s)",
+            "SELECT id, source, created_at, author_id, has_numbers, has_conditions "
+            "FROM document WHERE id = ANY(%s)",
             (list(document_ids),),
         )
         rows = cur.fetchall()
 
     facts: dict[str, Any] = {}
     undatable: list[str] = []
-    for doc_id, source, created_at, author_id in rows:
+    for doc_id, source, created_at, author_id, has_numbers, has_conditions in rows:
         if created_at is None:
             undatable.append(doc_id)
             # OMITTED, NOT DATED FROM A DEFAULT. `recency_factor` subtracts this
@@ -216,11 +236,33 @@ def _document_facts(conn: Any, document_ids: set[str]) -> tuple[dict[str, Any], 
             # per-platform fallback in cells.py, never an invented identity.
             author_id=author_id,
             # THE EXTRACTOR PROPOSES THESE AND THE COUNT DECIDES (pipeline.py:161).
-            # None is "not established here" rather than False, so a disagreement
-            # gets recorded instead of resolved by a default.
+            #
+            # ⚠ READ FROM THE TABLE SINCE 2026-08-30. These were literal `None`,
+            #   and the comment here said `None` was "not established here rather
+            #   than False, so a disagreement gets recorded instead of resolved
+            #   by a default". The first half was true and the second was not:
+            #   `compute()`'s refusal tested `value is UNSUPPLIED`, so the `None`
+            #   went straight through and `specificity_factor` read it as falsy.
+            #   Every claim this pipeline has ever written was weighted as though
+            #   both were False, on a path whose whole purpose was to make that
+            #   impossible. `compute()` now refuses `None` as well, so a document
+            #   that HAS the value must supply it or its claims are dropped -
+            #   which is why these are read rather than left as a sentinel.
+            #
+            #   ⚠ THE COLUMNS ARE NULL ON MOST DOCUMENTS AND THAT IS NOW A
+            #     REFUSAL, NOT A ZERO. `collect/triage/specificity.py` computes
+            #     both and nothing writes them - `contract/column_states.yaml`
+            #     carries them as `unwired` with the gap named. So this fix moves
+            #     the failure from a silent wrong weight to a loud dropped claim,
+            #     and the remaining repair is in the other lane: write the
+            #     columns. `scripts/measure_document_facts_gap.py` is what says
+            #     how many claims that is.
             names_version=None,
-            has_conditions=None,
-            has_numbers=None,
+            has_conditions=has_conditions,
+            has_numbers=has_numbers,
+            # E6'S INPUT. None keeps the honest `unvetted` branch for a document
+            # the export did not carry; it no longer means "every document".
+            text=(text_of or {}).get(doc_id),
         )
     if undatable:
         # NAMED SEPARATELY from documents the database does not have. "Not in
@@ -279,7 +321,14 @@ def _extract_from_export(
     if not loaded.threads:
         raise SystemExit("no thread in that export carried usable text; nothing to run")
 
-    facts, undatable = _document_facts(conn, loaded.document_ids)
+    # `raw_text_of` is keyed by member document id and carries the prose each
+    # quote was verified against - exactly what `reject_check` needs.
+    text_of = {
+        doc_id: text
+        for thread in loaded.threads
+        for doc_id, text in thread.raw_text_of.items()
+    }
+    facts, undatable = _document_facts(conn, loaded.document_ids, text_of)
     # UNDATABLE SUBTRACTED, because they are not missing. A document present but
     # carrying no created_at was already reported with that reason; counting it
     # again as "no row in this database" would state the wrong repair twice.
@@ -406,6 +455,129 @@ def _cmd_rebuild_cells(args: argparse.Namespace) -> int:
     return 0
 
 
+class _RolledBack(Exception):
+    """Ends the dry run's transaction without committing. Never escapes."""
+
+
+def _print_cell_deltas(pairs, names: dict[str, str] | None = None) -> int:
+    """n_eff before and after per cell, how many crossed the gate, and what was lost.
+
+    `names` maps `model_version.id` to `canonical_id`. Cells are keyed on the
+    internal id, and `mv1` on a line that is supposed to answer "which model
+    publishes first" is a row a reader has to go and look up.
+    """
+    from judge.curate.gate import N_EFF_MINIMUM
+    from judge.reweight import quieter_cells, summarise_losses
+
+    names = names or {}
+
+    crossed = 0
+    moved = 0
+    print(f"\n  CELLS - n_eff before -> after, gate at {N_EFF_MINIMUM}")
+    for before, after in pairs:
+        if after is None:
+            print(f"    {names.get(before.key.model_version_id, before.key.model_version_id):32s} "
+                  f"{before.key.capability_key:26s} GONE - every claim refused")
+            continue
+        was = before.counts.n_eff if before else 0.0
+        now = after.counts.n_eff
+        if now >= N_EFF_MINIMUM > was:
+            crossed += 1
+        shrank = before is not None and (
+            after.counts.independent_voices < before.counts.independent_voices
+            or after.counts.platform_count < before.counts.platform_count
+        )
+        if abs(now - was) > 1e-9 or shrank:
+            moved += 1
+            print(f"    {names.get(after.key.model_version_id, after.key.model_version_id):32s} "
+                  f"{after.key.capability_key:26s} "
+                  f"{was:.4f} -> {now:.4f}  "
+                  f"voices={after.counts.independent_voices} "
+                  f"platforms={after.counts.platform_count}"
+                  f"{'   CROSSES' if now >= N_EFF_MINIMUM else ''}")
+    print(f"\n  {moved} cells moved, {crossed} crossed {N_EFF_MINIMUM}")
+    if not crossed:
+        # THE NUMBER THAT MATTERS AS MUCH AS THE OTHER ONE. A re-weight that
+        # publishes nothing is a result, and printing only the movers would let
+        # it read as a run that had not finished.
+        print("  NOTHING NEW PUBLISHES. The gate is unchanged and unmet.")
+
+    # ITS OWN SECTION, PRINTED WHETHER OR NOT ANYTHING WAS LOST. A quieter board
+    # is the direction nobody checks: every other line here notices evidence
+    # arriving, and a section that appears only on bad news teaches the reader
+    # that its absence means nothing was looked at.
+    print()
+    print(summarise_losses(quieter_cells(pairs), names))
+    return crossed
+
+
+def _cmd_reweight(args: argparse.Namespace) -> int:
+    """Re-price stored claims under the current PIPELINE_VERSION. Spends nothing.
+
+    A DRY RUN BY DEFAULT, and that is not a nicety. A re-weight moves every
+    number on the board, so the arithmetic is the argument for making the
+    change and has to be readable before a row exists. Both paths write inside
+    one transaction - the cells can only be priced from claims that are IN the
+    table - and the dry run rolls that transaction back.
+    """
+    from judge.curate.labels import Driver
+    from judge.curate.nightly import close_the_night
+    from judge.reweight import apply as apply_reweight
+    from judge.reweight import cell_deltas, plan, summarise
+    from judge.store.cells import CellStore
+    from judge.store.claims import PIPELINE_VERSION
+
+    to_version = args.to_version or PIPELINE_VERSION
+    with _connect(writing="judge reweight" if args.apply else None) as conn:
+        report = plan(
+            conn,
+            from_version=args.from_version,
+            to_version=to_version,
+            document_facts=args.document_facts,
+            specificity=args.specificity,
+        )
+        print(summarise(report))
+
+        try:
+            with conn.transaction():
+                written = apply_reweight(conn, report)
+                names = dict(
+                    conn.execute("SELECT id, canonical_id FROM model_version").fetchall()
+                )
+                _print_cell_deltas(cell_deltas(conn, report), names)
+                if not args.apply:
+                    raise _RolledBack
+                print(f"\n  wrote {written} claims at {to_version}")
+        except _RolledBack:
+            print(
+                "\n  DRY RUN - rolled back, nothing written. The figures above "
+                "are what --apply would produce."
+            )
+            return 0
+
+        with conn.transaction():
+            # AT `to_version`, NOT AT PIPELINE_VERSION. A run producing the
+            # e5.2 intermediate must rebuild cells from the claims it just
+            # wrote; the default constant points at e5.3 and would have
+            # rebuilt from a version with no rows - "0 cells, 0 publish",
+            # which reads as a finished run that found nothing.
+            outcomes = CellStore(conn, pipeline_version=to_version).rebuild_all()
+            published = sum(1 for o in outcomes if o.publishes)
+            print(f"  {len(outcomes)} cells rebuilt, {published} publish")
+            if args.driver:
+                result = close_the_night(
+                    conn, driver=Driver(args.driver), as_of_cells=outcomes
+                )
+                print(f"  {result.summary()}")
+            else:
+                print(
+                    "  no --driver given, so labels and the changelog are NOT "
+                    "updated. A re-weight is a config-change and saying so is "
+                    "the whole point of the column."
+                )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="judge", description=__doc__)
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -426,6 +598,51 @@ def main(argv: list[str] | None = None) -> int:
     rebuild = sub.add_parser("rebuild-cells", help="recompute cells from claims")
     rebuild.add_argument("--driver", choices=drivers, help="why labels may change")
     rebuild.set_defaults(fn=_cmd_rebuild_cells)
+
+    # RE-WEIGHT IS NOT RE-EXTRACT AND NOT REBUILD-CELLS. It re-prices stored
+    # claims under the current PIPELINE_VERSION, which is the only way a change
+    # to contract/harvest.yaml reaches rows that already exist. No model call.
+    reweight = sub.add_parser(
+        "reweight", help="re-price stored claims at the current pipeline version"
+    )
+    reweight.add_argument(
+        "--from-version",
+        required=True,
+        metavar="V",
+        help="the pipeline version to re-price FROM, e.g. e5.1. Required rather "
+        "than inferred: guessing which fork is the baseline is how a diff gets "
+        "computed against the wrong one.",
+    )
+    reweight.add_argument(
+        "--to-version",
+        metavar="V",
+        help="the version to write. Defaults to PIPELINE_VERSION. Given "
+        "explicitly to produce an INTERMEDIATE fork - e5.2 exists only so the "
+        "tier ruling and the document-facts ruling get one diff each.",
+    )
+    reweight.add_argument(
+        "--document-facts",
+        choices=("frozen", "read"),
+        default="read",
+        help="frozen: hold has_numbers/has_conditions at the values e5.1 "
+        "effectively used (both False), so only f_evidence moves. read: take "
+        "them from the document, which is the 2026-08-30 ruling and refuses a "
+        "NULL. One ruling per run.",
+    )
+    reweight.add_argument(
+        "--specificity",
+        choices=("legacy", "current"),
+        default="current",
+        help="legacy: the four-signal f_specificity, in force until 2026-08-30. "
+        "current: Option 1's two signals. Needed to reproduce the BEFORE side of "
+        "a version that predates Option 1 - a diff against a formula that never "
+        "applied is a diff about nothing.",
+    )
+    reweight.add_argument(
+        "--apply", action="store_true", help="write. Without it, a dry run."
+    )
+    reweight.add_argument("--driver", choices=drivers, help="why labels may change")
+    reweight.set_defaults(fn=_cmd_reweight)
 
     args = parser.parse_args(argv)
     logging.basicConfig(

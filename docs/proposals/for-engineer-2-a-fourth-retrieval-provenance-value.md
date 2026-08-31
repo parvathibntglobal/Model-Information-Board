@@ -33,6 +33,16 @@ Three values, and each already means something specific:
 | `no_run_for_source` | this source renders no query, so there is nothing to record | 854 |
 | `not_recorded` | **a run existed and no id was passed** | 344 |
 
+> **The row counts above are AS OF THIS PROPOSAL and are left as written**, because
+> they are the evidence the ruling was made on and rewriting them would falsify
+> the record. Re-counted 2026-08-31 for anyone arriving here for a current
+> figure: `not_recorded` is **1,788** of 4,320 — reddit 1,492, github 176, blog
+> 120 — up 1,148 in the four days to 08-31. `no_run_for_source` is 1 (the 853
+> were corrected to `not_recorded`, per
+> `for-engineer-2-the-853-rows-and-withdrawing-the-fourth-value.md`) and
+> `run_recorded` is 2,531. The argument below does not turn on the magnitudes,
+> but "344" is quoted elsewhere as a live figure and it is not one.
+
 ## 2 · Why `not_recorded` is the wrong home, and it is rule 6
 
 `not_recorded` is a statement about *plumbing*: the sweep ran, the ledger row was

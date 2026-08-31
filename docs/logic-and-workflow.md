@@ -519,6 +519,28 @@ w = evidence_tier      A 1.00 · B 0.65 · C 0.35 · D 0.12 · E 0.04 · F 0.02
 | **E** | Hearsay / summarising someone else |
 | **F** | Vendor marketing — capability *facts* only, never quality |
 
+**Which tier a claim gets is decided by `contract/harvest.yaml:evidence_tier_rules`, keyed on three stored fields — `(speaking, has_repro_steps, has_numbers)`.** Re-keyed 2026-08-30, on E2's delegated ruling, from `speaking` alone:
+
+```
+own-experience  + repro steps + numbers   ->  B
+own-experience  + one of the two          ->  C
+own-experience  + neither                 ->  D
+relayed-from-elsewhere                    ->  E   (no rungs)
+vendor-about-own-product                  ->  F   (no rungs)
+```
+
+> **A is unreachable on purpose.** `has_repro_steps` is the extractor's own boolean and its error rate is unmeasured — round 3 of the golden set is what would measure it and it is unlabelled. Rule 8 lets an unmeasured signal ship as a *weight*, which `f_evidence` is; it does not let it clear a bar A's own gloss reserves for a published harness. **B, not A, until the boolean is measured.**
+>
+> **The vendor rung is flat, and that is the guard.** A launch post carries figures by construction, so if `has_numbers` reached the vendor rung an announcement would outweigh the engineers disagreeing with it. It does not: `vendor-about-own-product` maps straight to F however many numbers it holds. E6 would not catch that case either — its five triggers are affiliate links, sponsored disclosures, discount codes, syndication and predates-model, and none of them detects a vendor announcement. What stands between an announcement and a first-hand tier is `speaking`, which is also the extractor's unmeasured label, so `judge/reweight.py` **counts** promotions on a provider's own domain and names them per model. A count, not a gate.
+>
+> **`has_numbers` is falsified by code before it may promote.** `claim.has_numbers` is the extractor's self-report; `document.has_numbers` is the same question answered by `collect/triage/`, and it falsifies without confirming — a document with no numbers cannot contain a quote with one, while a document that has some says nothing about *this* quote. So the promotion needs both, read as a veto. Where the column is NULL the promotion is **withheld and counted**, never silently taken or silently refused.
+>
+> **What this does not fix:** both booleans now price once in the tier and once in `f_specificity` — 5.42× and 1.95×, 10.6× combined on a claim carrying both. The old block used that double-count as its argument against promoting; the ruling overrides the conclusion, not the objection. De-duplicating `specificity_factor` is a separate ruling and is not taken.
+
+> **A weighting input may not have a silent default — and `None` was one until 2026-08-30.** `compute()` refuses an unsupplied input rather than inventing it, but the check tested `value is UNSUPPLIED` and a literal `None` walked past it into `specificity_factor`, which read it as falsy. `_document_facts` passed exactly that `None` for `has_numbers` and `has_conditions`, so **every claim the pipeline has ever written was weighted as though both were False.** The check now refuses `None` on all ten inputs; `release_date` is deliberately not one of them, because there `None` means "no release date known" and returns `f_launch = 1.0`. Since `collect/triage/` computes both columns and nothing writes them, a NULL is now a refused claim rather than a wrong weight — a loud absence instead of a silent one, and the remaining repair is to write the columns.
+
+**A tier ruling reaches stored claims through `judge reweight`, not `rebuild-cells`.** `rebuild-cells` re-aggregates `claim_weight`; it never re-prices it, and for most of this project `judge/pipeline.py` — which runs the extractor — was the only caller of `weight.compute()`. `judge reweight --from-version <v>` re-prices stored claims at the current `PIPELINE_VERSION` with no model call. Because the version is hashed into `claim_id_for`, that **forks** the table rather than updating it: the old rows stay for the diff, and `CellStore` filters on `pipeline_version` so `n_eff` aggregates one version instead of handing each voice its best weight across two.
+
 **Half-lives:** latency, cost and rate limits **30 days** · tool calling, instruction following and extraction **120 days** · everything else **180 days**.
 
 ### The launch-window rule

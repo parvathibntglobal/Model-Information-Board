@@ -120,11 +120,78 @@ def classify(row: dict, text: str, variants: dict[str, list[str]]) -> tuple[str,
     return NOTHING, []
 
 
+def _seated(canonical_ids) -> dict[str, set[str]]:
+    """Surfaces already in `model_alias`, so the table can mark them."""
+    import psycopg
+
+    from collect.config import settings
+
+    out: dict[str, set[str]] = collections.defaultdict(set)
+    with psycopg.connect(settings().database_url, connect_timeout=25) as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT mv.canonical_id, a.surface FROM model_version mv "
+            "JOIN model_alias a ON a.model_version_id = mv.id "
+            "WHERE mv.canonical_id = ANY(%s)",
+            (list(canonical_ids),),
+        )
+        for canonical, surface in cur.fetchall():
+            out[canonical].add(surface)
+    return out
+
+
+def _form_table(failures, posts, variants) -> None:
+    """Every derived form, with the distinct posts it recovers. For the review.
+
+    A COUNT PER FORM, NOT PER MODEL. The per-model totals say seating is worth
+    612 candidates; they do not say that `qwen3.8-27b` carries 119 of them and
+    `claudefable5` carries none. The review is deciding form by form, and
+    `model_alias` is append-only — a surface seated wrongly is superseded rather
+    than removed — so the unit of the table has to be the unit of the decision.
+    """
+    seated = _seated(DISPLAY)
+    print(f"{'model':<28} {'form':<26} {'origin':<12} {'recovers':>8}  verdict")
+    print("=" * 104)
+    for canonical in DISPLAY:
+        for form in variants[canonical]:
+            if "/" in form:
+                print(f"{canonical:<28} {form:<26} {'canonical-id':<12} "
+                      f"{0:>8}  EXCLUDE - nobody types this")
+                continue
+            recovered = set()
+            for row in failures:
+                if row["canonical_id"] != canonical:
+                    continue
+                inner = posts.get(row["external_id"])
+                text = row["title"] or ""
+                if inner:
+                    text = ((inner.get("title") or "") + chr(10)
+                            + (inner.get("selftext") or ""))
+                if matches(form, normalize(text)):
+                    recovered.add(row["external_id"])
+            count = len(recovered)
+            if form in seated[canonical]:
+                origin, verdict = "seated", "already seated"
+            elif count >= 20:
+                origin, verdict = "derived-new", "SEAT - carries real volume"
+            elif count > 0:
+                origin, verdict = "derived-new", "seat, low volume"
+            else:
+                origin, verdict = "derived-new", "judgement: recovers nothing here"
+            print(f"{canonical:<28} {form:<26} {origin:<12} {count:>8}  {verdict}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--jsonl", default="model_only_sweep.jsonl")
     parser.add_argument("--hours", type=int, default=8)
     parser.add_argument("--examples", type=int, default=7)
+    parser.add_argument(
+        "--forms", action="store_true",
+        help="print every derived form with what it recovers, for the seating "
+             "review. A form recovering 119 and one recovering 1 are different "
+             "decisions and the review has to be able to tell them apart.",
+    )
     args = parser.parse_args()
 
     rows = [
@@ -141,7 +208,12 @@ def main() -> int:
     )
     if recovered < len(failures):
         print(
-            f"  ⚠ {len(failures) - recovered} failures have no stored page, so the "
+            # ASCII. cp1252 cannot encode U+26A0, and this print sits inside an
+            # `if` that only fires when there IS something to warn about - so
+            # the crash would take out the denominator caveat and leave a split
+            # that looks like it was over the whole population. See
+            # tests/test_script_output_is_encodable.py.
+            f"  !! {len(failures) - recovered} failures have no stored page, so the "
             f"split below is over {recovered} and not {len(failures)}"
         )
 
@@ -174,6 +246,10 @@ def main() -> int:
             if evidence:
                 print(f"    text DOES contain: {evidence[:5]}")
             print(f"    {row['url'][:76]}")
+
+    if args.forms:
+        _form_table(failures, posts, variants)
+        return 0
 
     print("\n===== bucket A by model — what seating would recover =====")
     by_model = collections.Counter(r["canonical_id"] for r, _ in buckets[SURFACE_WRONG])

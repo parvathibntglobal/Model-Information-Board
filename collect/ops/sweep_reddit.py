@@ -237,7 +237,6 @@ def sweep_reddit(
     sweep as per-model freshness is rule 6 in the scheduler, and the
     deprioritisation it causes is invisible because it looks considered.
     """
-    import json
 
     from collect.adapters.queries.sieve import matches, normalize, sieve
     from collect.adapters.reddit_write import write_documents
@@ -376,8 +375,19 @@ def sweep_reddit(
         # writer starved of input looks like a writer that works.
         refs = {}
         for post in run.survivors:
-            payload = json.dumps(post.raw, ensure_ascii=False, sort_keys=True)
-            stored = harvester_store.put(payload.encode("utf-8"), namespace=RAW)
+            # THE DOCUMENT'S TEXT, NOT ITS PAYLOAD. `document.text_ref` is where
+            # the document's TEXT lives; the API payload lives in the `raw`
+            # namespace and the listing page already holds it, so nothing is lost
+            # by not storing it twice.
+            #
+            # This stored `json.dumps(post.raw)` until 2026-08-28, which made
+            # `text_ref` point at a JSON envelope. `assemble_*` passes that
+            # straight to `flatten`, so a thread_context would have held JSON -
+            # and a quote would then verify against a field VALUE, which is worse
+            # than failing to verify: it is rule 1 returning true for the wrong
+            # reason.
+            text = (post.title or "") + "\n\n" + (post.selftext or "")
+            stored = harvester_store.put(text.encode("utf-8"), namespace=RAW)
             refs[post.external_id] = (stored.ref, stored.content_hash)
 
         # THE RUN ID REACHES THE DOCUMENTS. `opened` is minted before the fetch

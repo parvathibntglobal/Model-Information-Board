@@ -1,0 +1,42 @@
+{
+ "as_of": "2026-08-30",
+ "why_not_the_database": "staging unreachable (TCP timeout, 52.17.75.29:5432); the 150-thread run's per-claim output was never persisted, so the empirical before/after cannot be produced from this checkout",
+ "gate": 3.0,
+ "lift_D_to_B": 5.416666666666667,
+ "lift_D_to_A": 8.333333333333334,
+ "stored_claims": 197,
+ "stored_tiers": {
+  "D": 157,
+  "E": 29,
+  "F": 11
+ },
+ "promotable_at_most": 157,
+ "unmovable": 40,
+ "best_cell": {
+  "cell": "anthropic/claude-sonnet-5 \u00b7 reasoning.multistep",
+  "n_eff": 0.1409,
+  "voices": 7,
+  "platforms": 2
+ },
+ "best_cell_ceiling_at_B": 0.7632083333333334,
+ "best_cell_ceiling_at_A": 1.1741666666666668,
+ "voices_needed_if_every_voice_reaches_B": 27.515422831249655,
+ "voices_needed_if_none_promote": 149.04187366926897,
+ "local_blog_runs": {
+  "files": [
+   "docs/measurements\\blog-extraction-dark-five.json",
+   "docs/measurements\\blog-extraction-run.json",
+   "docs/measurements\\eight-feeds-extraction.json"
+  ],
+  "claims": 186,
+  "by_key": {
+   "vendor-about-own-product  repro=False  numbers=False": 13,
+   "relayed-from-elsewhere  repro=False  numbers=False": 47,
+   "own-experience  repro=False  numbers=False": 124,
+   "vendor-about-own-product  repro=False  numbers=True": 2
+  },
+  "would_promote": 0,
+  "repro_true": 0,
+  "own_with_numbers": 0
+ }
+}

@@ -1,0 +1,32 @@
+{
+ "as_of_pipeline_version": "e5.1",
+ "population": 199,
+ "population_note": "claims stored at this pipeline_version - the corpus",
+ "would_refuse": 24,
+ "would_refuse_by_reason": {
+  "has_numbers+has_conditions": 24
+ },
+ "would_refuse_by_platform": {
+  "reddit": 24
+ },
+ "would_refuse_by_model": {
+  "google/gemini-2.5-flash": 1,
+  "google/gemini-3.5-flash": 2,
+  "google/gemini-2.5-pro": 1,
+  "google/gemini-3.5-flash-lite": 1,
+  "google/gemma-4-31b-it": 1,
+  "anthropic/claude-sonnet-5": 15,
+  "anthropic/claude-sonnet-4.6": 1,
+  "anthropic/claude-opus-4.6": 1,
+  "google/gemini-3.6-flash": 1
+ },
+ "f_specificity_moves": 45,
+ "f_specificity_moves_by_pair": {
+  "0.44 -> 0.58": 34,
+  "0.30 -> 0.44": 11
+ },
+ "unchanged": 130,
+ "rows_priced_under_legacy_four_signal_weights": 19,
+ "rows_not_reproducing_stored_f_specificity": 0,
+ "legacy_note": "the 2026-08-30 SPECIFICITY_WEIGHTS change shipped without a pipeline_version bump, so e5.1 labels rows priced under both the four-signal and two-signal forms"
+}

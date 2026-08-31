@@ -1,0 +1,2446 @@
+[
+ {
+  "from": "e5.1",
+  "to": "e5.2",
+  "measures": "the tier ruling alone",
+  "read": 197,
+  "written": 194,
+  "drift": {
+   "f_launch": 96,
+   "f_specificity": 16
+  },
+  "refusals": {
+   "evidence_tier": 3
+  },
+  "unconfirmed": {
+   "has_numbers": 154
+  },
+  "tier_moves": {
+   "E->E": 29,
+   "D->D": 154,
+   "F->F": 11
+  },
+  "f_specificity_moves": 16,
+  "provider_domain_promotions": [],
+  "cells": [
+   {
+    "model": "openai/gpt-5.6-sol",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.06267001529999999,
+    "n_eff_after": 0.0516132969,
+    "voices": 3,
+    "platforms": 2,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.6-sol",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.008714961,
+    "n_eff_after": 0.0086148605,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.6-sol",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.002296451,
+    "n_eff_after": 0.0021426645,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.6-sol",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.008867295,
+    "n_eff_after": 0.008799265,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.6-sol",
+    "capability": "summarization.fidelity",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.022383574,
+    "n_eff_after": 0.011740548,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "moonshotai/kimi-k2.5",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "n_eff_before": 0.0020571728,
+    "n_eff_after": 0.0020335442,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.6-sol-pro",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.035474572,
+    "n_eff_after": 0.026196009,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.6-sol-pro",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0076355883,
+    "n_eff_after": 0.004978011,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "z-ai/glm-5.2",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.019373802,
+    "n_eff_after": 0.01714495,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "z-ai/glm-5.2",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.004089225,
+    "n_eff_after": 0.0039045622,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "code.editing_diff_fidelity",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.012370338,
+    "n_eff_after": 0.006809942,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.094114933,
+    "n_eff_after": 0.089964852,
+    "voices": 6,
+    "platforms": 2,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.07299193500000001,
+    "n_eff_after": 0.072085652,
+    "voices": 4,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.01028479,
+    "n_eff_after": 0.009596048,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.012322793,
+    "n_eff_after": 0.00611963,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.044657035,
+    "n_eff_after": 0.038205802999999997,
+    "voices": 3,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "n_eff_before": 0.003553171,
+    "n_eff_after": 0.0027604452,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "google/gemini-3.7-flash",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.008439654,
+    "n_eff_after": 0.003768707,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "google/gemini-3.7-flash",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.026143523,
+    "n_eff_after": 0.0120122153,
+    "voices": 2,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "google/gemini-3.7-flash",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.053041456,
+    "n_eff_after": 0.026125777,
+    "voices": 2,
+    "platforms": 2,
+    "publishes": false
+   },
+   {
+    "model": "google/gemini-3.7-flash",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "n_eff_before": 0.0016462057,
+    "n_eff_after": 0.0007280662,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.5",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.007883373,
+    "n_eff_after": 0.0065935794,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.5",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.007944322,
+    "n_eff_after": 0.0070574954,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-5",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.021621108,
+    "n_eff_after": 0.011340621,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-5",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.038524434,
+    "n_eff_after": 0.01694004,
+    "voices": 2,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-5",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0204811687,
+    "n_eff_after": 0.012313481099999999,
+    "voices": 3,
+    "platforms": 2,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-5",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.041398224000000004,
+    "n_eff_after": 0.036099507,
+    "voices": 3,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-5",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.140916658,
+    "n_eff_after": 0.0776734972,
+    "voices": 7,
+    "platforms": 2,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-5",
+    "capability": "summarization.fidelity",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.021872332,
+    "n_eff_after": 0.011948466,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "code.editing_diff_fidelity",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.021208795,
+    "n_eff_after": 0.02104608,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0227319997,
+    "n_eff_after": 0.0224901014,
+    "voices": 2,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.002437002,
+    "n_eff_after": 0.0024183053,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.041202456,
+    "n_eff_after": 0.035945678999999994,
+    "voices": 3,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.00599753,
+    "n_eff_after": 0.0057266913,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.020565387,
+    "n_eff_after": 0.020407608,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.043161034,
+    "n_eff_after": 0.042664022999999995,
+    "voices": 2,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "n_eff_before": 0.008882928,
+    "n_eff_after": 0.003928646,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.107449922,
+    "n_eff_after": 0.059267194999999995,
+    "voices": 4,
+    "platforms": 2,
+    "publishes": false
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.052828972,
+    "n_eff_after": 0.036565074,
+    "voices": 2,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "extraction.faithfulness",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.04454909,
+    "n_eff_after": 0.013135061,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:32k-128k",
+    "n_eff_before": 0.021372767,
+    "n_eff_after": 0.011855848,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.11614376539999999,
+    "n_eff_after": 0.05641118046000001,
+    "voices": 6,
+    "platforms": 2,
+    "publishes": false
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.045240603,
+    "n_eff_after": 0.013519947,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.1109314443,
+    "n_eff_after": 0.0576674152,
+    "voices": 5,
+    "platforms": 2,
+    "publishes": false
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:6-15",
+    "n_eff_before": 0.026312964,
+    "n_eff_after": 0.019198399,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "n_eff_before": 0.04454909,
+    "n_eff_after": 0.013135061,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "deepseek/deepseek-v4-pro",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.002437002,
+    "n_eff_after": 0.0024183053,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "moonshotai/kimi-k2.6",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "n_eff_before": 0.0020571728,
+    "n_eff_after": 0.0020335442,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-5",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.024268873,
+    "n_eff_after": 0.022105183,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "moonshotai/kimi-k2.7-code",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.021621108,
+    "n_eff_after": 0.021455228,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.2",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.010936166,
+    "n_eff_after": 0.010810554,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.6-luna",
+    "capability": "code.editing_diff_fidelity",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.022469936,
+    "n_eff_after": 0.011740548,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.6-luna",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.023307169,
+    "n_eff_after": 0.023039462,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.6-luna",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0009863683,
+    "n_eff_after": 0.00085706584,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.6-luna",
+    "capability": "summarization.fidelity",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.026911745,
+    "n_eff_after": 0.026196009,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "deepseek/deepseek-v4-flash",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.027545067,
+    "n_eff_after": 0.02733374,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "google/gemini-3.6-flash",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.011191787,
+    "n_eff_after": 0.004699038,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "code.editing_diff_fidelity",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0067503466,
+    "n_eff_after": 0.0042424197,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.08887410659999999,
+    "n_eff_after": 0.051952569,
+    "voices": 5,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.007991654,
+    "n_eff_after": 0.007899862,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "extraction.faithfulness",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.017160684,
+    "n_eff_after": 0.008473094,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0102507646,
+    "n_eff_after": 0.0094101157,
+    "voices": 2,
+    "platforms": 2,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.008437291,
+    "n_eff_after": 0.0058101214,
+    "voices": 2,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.02012791,
+    "n_eff_after": 0.007960939,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0529371853,
+    "n_eff_after": 0.0431419425,
+    "voices": 3,
+    "platforms": 2,
+    "publishes": false
+   },
+   {
+    "model": "google/gemini-3.5-flash",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.021621108,
+    "n_eff_after": 0.021455228,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "google/gemini-3.5-flash",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0060916264,
+    "n_eff_after": 0.005986976,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "google/gemini-3.5-flash",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0017799386,
+    "n_eff_after": 0.0016607414,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "qwen/qwen3.7-max",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.021621108,
+    "n_eff_after": 0.021455228,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-haiku-4.5",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.007944322,
+    "n_eff_after": 0.003753987,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-haiku-4.5",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0315222915,
+    "n_eff_after": 0.030782848499999998,
+    "voices": 3,
+    "platforms": 2,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-haiku-4.5",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.008226154,
+    "n_eff_after": 0.008163043,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-haiku-4.5",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.052562002999999996,
+    "n_eff_after": 0.052158745,
+    "voices": 2,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "x-ai/grok-4.5",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0025143723,
+    "n_eff_after": 0.0011881343,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "google/gemini-2.5-pro",
+    "capability": "summarization.fidelity",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0026668946,
+    "n_eff_after": 0.0026362627,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.5",
+    "capability": "code.editing_diff_fidelity",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.022469936,
+    "n_eff_after": 0.022211846,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.5",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.030678571,
+    "n_eff_after": 0.030443202,
+    "voices": 2,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "moonshotai/kimi-k3",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.023083866,
+    "n_eff_after": 0.012707801,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "moonshotai/kimi-k3",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.002593037,
+    "n_eff_after": 0.0012253062,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.8",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.050121279,
+    "n_eff_after": 0.049651046000000004,
+    "voices": 2,
+    "platforms": 2,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.8",
+    "capability": "extraction.faithfulness",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.022126477,
+    "n_eff_after": 0.021872332,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.8",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.023577984,
+    "n_eff_after": 0.02317293,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.8",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.018894888,
+    "n_eff_after": 0.00889422,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.8",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.044174463,
+    "n_eff_after": 0.043584613,
+    "voices": 2,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.3-codex",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0033093258,
+    "n_eff_after": 0.003159882,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.3-codex",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0083389785,
+    "n_eff_after": 0.008275001,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.3-codex",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "n_eff_before": 0.0020571728,
+    "n_eff_after": 0.0020335442,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.5",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.011925974,
+    "n_eff_after": 0.011721093,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "google/gemini-2.5-flash",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0017799386,
+    "n_eff_after": 0.0016607414,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.7",
+    "capability": "format.structured_output",
+    "bucket": "schema_enforced:unknown",
+    "n_eff_before": 0.0020571728,
+    "n_eff_after": 0.0020335442,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "anthropic/claude-opus-4.7",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0032139968,
+    "n_eff_after": 0.0030688578,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.6-terra",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.027545067,
+    "n_eff_after": 0.02733374,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "openai/gpt-5.6-terra",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.0009185804,
+    "n_eff_after": 0.00085706584,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   },
+   {
+    "model": "xiaomi/mimo-v2.5-pro",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "n_eff_before": 0.021621108,
+    "n_eff_after": 0.021455228,
+    "voices": 1,
+    "platforms": 1,
+    "publishes": false
+   }
+  ],
+  "quieter": [
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     7,
+     5
+    ],
+    "platforms": [
+     1,
+     1
+    ],
+    "lost_publishability": false,
+    "gone": false
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     1
+    ],
+    "platforms": [
+     1,
+     1
+    ],
+    "lost_publishability": false,
+    "gone": false
+   }
+  ]
+ },
+ {
+  "from": "e5.2",
+  "to": "e5.3",
+  "measures": "document facts reaching the path",
+  "read": 194,
+  "written": 0,
+  "drift": {},
+  "refusals": {
+   "has_numbers": 194,
+   "has_conditions": 194
+  },
+  "unconfirmed": {
+   "has_numbers": 154
+  },
+  "tier_moves": {},
+  "f_specificity_moves": 0,
+  "provider_domain_promotions": [],
+  "cells": [],
+  "quieter": [
+   {
+    "model": "anthropic/claude-sonnet-5",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "voices": [
+     7,
+     0
+    ],
+    "platforms": [
+     2,
+     0
+    ],
+    "lost_publishability": true,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     6,
+     0
+    ],
+    "platforms": [
+     2,
+     0
+    ],
+    "lost_publishability": true,
+    "gone": true
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     6,
+     0
+    ],
+    "platforms": [
+     2,
+     0
+    ],
+    "lost_publishability": true,
+    "gone": true
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "voices": [
+     5,
+     0
+    ],
+    "platforms": [
+     2,
+     0
+    ],
+    "lost_publishability": true,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     5,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     4,
+     0
+    ],
+    "platforms": [
+     2,
+     0
+    ],
+    "lost_publishability": true,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "voices": [
+     4,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-sol",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     3,
+     0
+    ],
+    "platforms": [
+     2,
+     0
+    ],
+    "lost_publishability": true,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-5",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     3,
+     0
+    ],
+    "platforms": [
+     2,
+     0
+    ],
+    "lost_publishability": true,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "voices": [
+     3,
+     0
+    ],
+    "platforms": [
+     2,
+     0
+    ],
+    "lost_publishability": true,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-haiku-4.5",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "voices": [
+     3,
+     0
+    ],
+    "platforms": [
+     2,
+     0
+    ],
+    "lost_publishability": true,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "voices": [
+     3,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-5",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "voices": [
+     3,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "voices": [
+     3,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "google/gemini-3.7-flash",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     0
+    ],
+    "platforms": [
+     2,
+     0
+    ],
+    "lost_publishability": true,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     0
+    ],
+    "platforms": [
+     2,
+     0
+    ],
+    "lost_publishability": true,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.8",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     0
+    ],
+    "platforms": [
+     2,
+     0
+    ],
+    "lost_publishability": true,
+    "gone": true
+   },
+   {
+    "model": "google/gemini-3.7-flash",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-5",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-haiku-4.5",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.5",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.8",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "voices": [
+     2,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-sol",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-sol",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-sol",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-sol",
+    "capability": "summarization.fidelity",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "moonshotai/kimi-k2.5",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-sol-pro",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-sol-pro",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "z-ai/glm-5.2",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "z-ai/glm-5.2",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "code.editing_diff_fidelity",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.6",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "google/gemini-3.7-flash",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "google/gemini-3.7-flash",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.5",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.5",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-5",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-5",
+    "capability": "summarization.fidelity",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "code.editing_diff_fidelity",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-sonnet-4.6",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "extraction.faithfulness",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:32k-128k",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:6-15",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "qwen/qwen3.8-27b",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "deepseek/deepseek-v4-pro",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "moonshotai/kimi-k2.6",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-5",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "moonshotai/kimi-k2.7-code",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.2",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-luna",
+    "capability": "code.editing_diff_fidelity",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-luna",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-luna",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-luna",
+    "capability": "summarization.fidelity",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "deepseek/deepseek-v4-flash",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "google/gemini-3.6-flash",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "code.editing_diff_fidelity",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "extraction.faithfulness",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-fable-5",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "google/gemini-3.5-flash",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "google/gemini-3.5-flash",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "google/gemini-3.5-flash",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "qwen/qwen3.7-max",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-haiku-4.5",
+    "capability": "context.effective_window",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-haiku-4.5",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "x-ai/grok-4.5",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "google/gemini-2.5-pro",
+    "capability": "summarization.fidelity",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.5",
+    "capability": "code.editing_diff_fidelity",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "moonshotai/kimi-k3",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "moonshotai/kimi-k3",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.8",
+    "capability": "extraction.faithfulness",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.8",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.8",
+    "capability": "over_refusal",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.3-codex",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.3-codex",
+    "capability": "reasoning.multistep",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.3-codex",
+    "capability": "tool_calling.long_chain_reliability",
+    "bucket": "tool_count:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.5",
+    "capability": "instruction.adherence",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "google/gemini-2.5-flash",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.7",
+    "capability": "format.structured_output",
+    "bucket": "schema_enforced:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "anthropic/claude-opus-4.7",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-terra",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "openai/gpt-5.6-terra",
+    "capability": "ops.latency_ttft",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   },
+   {
+    "model": "xiaomi/mimo-v2.5-pro",
+    "capability": "code.generation",
+    "bucket": "context_size:unknown",
+    "voices": [
+     1,
+     0
+    ],
+    "platforms": [
+     1,
+     0
+    ],
+    "lost_publishability": false,
+    "gone": true
+   }
+  ]
+ },
+ {
+  "from": "e5.3",
+  "to": "e5.4",
+  "measures": "Option 1, the double count removed",
+  "read": 0,
+  "written": 0,
+  "drift": {},
+  "refusals": {},
+  "unconfirmed": {},
+  "tier_moves": {},
+  "f_specificity_moves": 0,
+  "provider_domain_promotions": [],
+  "cells": [],
+  "quieter": []
+ }
+]

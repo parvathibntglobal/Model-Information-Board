@@ -83,6 +83,51 @@ PROVENANCE = "run_recorded"
 PROVENANCE_WITHOUT_LEDGER = "not_recorded"
 
 
+def all_derived_forms(conn) -> list[tuple[str, str, str]]:
+    """Every form `propose.py` derives, for all eleven. The CORRECTED surface set.
+
+    Run-local again, and deliberately: seating these needs a reviewed manifest
+    with a content hash per seat, and `tracked_load.read_manifest` requires
+    `reviewed_by` — a person. Adding forms to an already-seated model changes its
+    artifact and therefore invalidates the hash its existing review is bound to,
+    which is the guard working rather than an obstacle. So the MEASUREMENT runs on
+    derived surfaces and the registry write waits for the review.
+    """
+    from collect.registry.propose import mechanical_variants, rule_variants
+
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT canonical_id, display_name FROM model_version "
+        "WHERE canonical_id = ANY(%s)",
+        (list(MODELS),),
+    )
+    display = dict(cur.fetchall())
+    cur.execute(
+        "SELECT mv.canonical_id, a.surface FROM model_version mv "
+        "JOIN model_alias a ON a.model_version_id = mv.id "
+        "WHERE mv.canonical_id = ANY(%s)",
+        (list(MODELS),),
+    )
+    seated: dict[str, set[str]] = {}
+    for canonical, surface in cur.fetchall():
+        seated.setdefault(canonical, set()).add(surface)
+
+    out: list[tuple[str, str, str]] = []
+    for canonical in MODELS:
+        name = display.get(canonical) or ""
+        forms = sorted(set(mechanical_variants(canonical, name)
+                           + rule_variants(canonical, name)))
+        for form in forms:
+            # A canonical id is not something a person types. Dropped for the
+            # same reason `surfaces_for` drops it: it costs a request and returns
+            # the corpus or nothing.
+            if "/" in form:
+                continue
+            origin = "seated" if form in seated.get(canonical, ()) else "derived-new"
+            out.append((canonical, form, origin))
+    return out
+
+
 def surfaces_for(conn) -> list[tuple[str, str, str]]:
     """`[(canonical_id, surface, origin)]` for the eleven. Registry first."""
     cur = conn.cursor()
@@ -149,6 +194,11 @@ def main() -> int:
     parser.add_argument("--sort", default="RELEVANCE")
     parser.add_argument("--out", default="model_only_sweep.jsonl")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--all-forms", action="store_true",
+        help="query EVERY form propose.py derives, not just the seated surface. "
+             "This is the corrected surface set — see all_derived_forms.",
+    )
     args = parser.parse_args()
 
     contract = load_sources()
@@ -159,7 +209,7 @@ def main() -> int:
     from collect.db import transaction
 
     with transaction() as conn:
-        plan = surfaces_for(conn)
+        plan = all_derived_forms(conn) if args.all_forms else surfaces_for(conn)
         entries = _term_sets(conn)
 
     per_minute = 25
@@ -233,8 +283,19 @@ def main() -> int:
 
             refs = {}
             for post in keep:
-                payload = json.dumps(post.raw, ensure_ascii=False, sort_keys=True)
-                stored = store.put(payload.encode("utf-8"), namespace=RAW)
+                # THE DOCUMENT'S TEXT, NOT ITS PAYLOAD. `document.text_ref` is
+                # where the document's TEXT lives; the API payload lives in the
+                # `raw` namespace and the search page already holds it, so
+                # nothing is lost by not storing it twice.
+                #
+                # This stored `json.dumps(post.raw)` until 2026-08-28, which made
+                # `text_ref` point at a JSON envelope. `assemble_*` passes that
+                # straight to `flatten`, so the thread_context would have held
+                # JSON - and a quote would then verify against a field VALUE,
+                # which is worse than failing to verify: it is rule 1 returning
+                # true for the wrong reason.
+                text = (post.title or "") + chr(10) * 2 + (post.selftext or "")
+                stored = store.put(text.encode("utf-8"), namespace=RAW)
                 refs[post.external_id] = (stored.ref, stored.content_hash)
             wrote = write_documents(
                 conn, keep,

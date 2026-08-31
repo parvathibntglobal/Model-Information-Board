@@ -173,17 +173,30 @@ def _read(name: str) -> dict:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def evidence_tier_by_speaking() -> dict[str, str]:
-    """`contract/harvest.yaml` -> {speaking value: evidence tier}.
+def evidence_tier_rules() -> dict[str, str | dict[str, str]]:
+    """`contract/harvest.yaml` -> the evidence-tier ladder.
+
+    Two shapes, because two of the three `speaking` values have no rungs:
+
+        {"relayed-from-elsewhere": "E"}                    a flat tier
+        {"own-experience": {"repro_steps_and_numbers": "B",
+                            "one_of_the_two": "C",
+                            "neither": "D"}}               a sub-ladder
 
     Returns `{}` when the block is absent rather than raising, because the
     refusal belongs in `compute()` where the missing input can be named
     alongside anything else that is missing. A raise here would report one gap
     per round trip.
+
+    RENAMED FROM `evidence_tier_by_speaking` 2026-08-30, and the name is the
+    point: the old one described a key that was the whole defect. See the block
+    in `harvest.yaml` - `speaking` answers WHOSE claim it is and `TIER_WEIGHT`
+    grades HOW CHECKABLE it is, so keying one on the other put every first-hand
+    report, harness or none, on the same rung.
     """
-    block = _read("harvest.yaml").get("evidence_tier_by_speaking") or {}
+    block = _read("harvest.yaml").get("evidence_tier_rules") or {}
     return {
         key: value
         for key, value in block.items()
-        if isinstance(value, str) and not key.startswith("not_a_")
+        if isinstance(value, (str, dict)) and not key.startswith("not_a_")
     }

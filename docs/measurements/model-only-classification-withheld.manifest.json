@@ -1,0 +1,12 @@
+{
+ "note": "run identity for a file written before the script recorded it inline. Recovered out of band, not re-run.",
+ "proposer_model": "google/gemini-2.5-flash",
+ "prompt_label": "capability-classification/withheld-keys/2026-08-28",
+ "pipeline_version": "collect-0.1.0",
+ "cap_usd": 1.0,
+ "spent_usd": 0.4407,
+ "calls": 774,
+ "errors": 0,
+ "population": "774 triage survivors of the model-only reddit corpus, 2026-08-28",
+ "caveat": "ran on 774 documents, not the 358 the twelve-key run used - the corrected sweep added survivors while this was queued. The clean comparison is the 358 shared documents."
+}

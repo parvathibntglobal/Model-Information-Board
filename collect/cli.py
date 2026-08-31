@@ -199,7 +199,34 @@ def _cmd_ops_run(args: argparse.Namespace) -> int:
         "conn": conn,
         "environment": settings().environment,
         "policy": load_registry_policy(),
+        # THE INTENT, NOT JUST THE CLIENT. Withholding `context["client"]` only
+        # stops stages that read it, and `_sweep_reddit_stage` builds its own -
+        # so `--no-network` was silently a no-op for the one wired stage that
+        # writes documents. A flag that does not apply is worse than an absent
+        # one, because the caller has already decided. Every stage checks this.
+        "offline": bool(args.no_network),
     }
+
+    # `--only`, ADDED 2026-08-31 FOR A REASON THAT COST A REOPENED GAP.
+    # `score-documents` is cheap, deterministic, needs no network and writes six
+    # recorded fields - and the only way to run it was the whole chain, which
+    # fires a live Reddit sweep. So it did not get run, and 926 documents were
+    # written with NULL specificity columns in one afternoon by paths that do
+    # not score. A stage that cannot be invoked alone is a stage that will not
+    # be invoked.
+    #
+    # `select_stages` pulls dependencies in, so `--only score-documents` still
+    # runs `preflight` - narrowing what is ATTEMPTED, never what is CHECKED.
+    stages = default_stages()
+    selection: tuple[str, ...] = tuple(args.only or ())
+    if selection:
+        from collect.ops.chain import UnknownStage, select_stages
+
+        try:
+            stages = select_stages(stages, selection)
+        except UnknownStage as error:
+            print(f"refusing: {error}")
+            return 1
 
     # THE CLIENT NOTHING SUPPLIED. `_poll_registry_stage` reads
     # `context["client"]` and refuses with "no HTTP client supplied" when it is
@@ -224,7 +251,12 @@ def _cmd_ops_run(args: argparse.Namespace) -> int:
         context["client"] = client
 
     try:
-        run = run_chain(default_stages(), context, journal)
+        run = run_chain(stages, context, journal)
+        if selection:
+            # The denominator, so a two-stage summary cannot read as a full
+            # night. See `ChainRun.selected_of`.
+            run.selected_of = len(default_stages())
+            run.selection = selection
     finally:
         if client is not None:
             client.close()
@@ -1199,6 +1231,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-network", action="store_true",
         help="run without an HTTP client; poll-registry refuses and says so. "
              "The OpenRouter feed needs no credential, so the default is on.")
+    ops_run.add_argument(
+        "--only", action="append", metavar="STAGE",
+        help="run just this stage and what it depends on. Repeatable. The "
+             "summary names how many of the full chain were NOT attempted, "
+             "because those are not refusals. An unknown name refuses and "
+             "lists the stages the chain has.")
     ops_run.add_argument(
         "--force", action="store_true",
         help="proceed even though a previous run never finished. Without this, "

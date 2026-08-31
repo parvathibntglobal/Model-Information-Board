@@ -44,6 +44,7 @@ not present is recorded as unverified rather than trusted.
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import pathlib
 
@@ -101,10 +102,84 @@ TOOL_SCHEMA = {
 }
 
 
-def system_prompt() -> str:
-    """The twelve keys with definitions. No signal vocabulary — see the module."""
+def tool_schema(withhold_keys: bool = False) -> dict:
+    """`TOOL_SCHEMA`, with the key field neutralised when the list is withheld.
+
+    THE SCHEMA IS PART OF THE PROMPT AND THE FIRST ATTEMPT MISSED THAT. Withholding
+    the list from the system message while leaving `capability_key`'s description
+    reading *"One of the listed keys"* still anchored the model - the smoke run
+    filled `capability_key` and proposed nothing, from a prompt that had shown it
+    no keys at all. A forced tool schema is instruction, not just validation.
+    """
+    if not withhold_keys:
+        return TOOL_SCHEMA
+    schema = copy.deepcopy(TOOL_SCHEMA)
+    props = schema["properties"]
+    props["capability_key"]["description"] = (
+        "LEAVE THIS NULL. There is no list to choose from in this run."
+    )
+    # FLATTENED, AND THE NESTED VERSION IS WHY. `proposed_key` is an object with
+    # its own `required`, and asking for it produced `null` on every document that
+    # WAS judged a capability report - the model answered the boolean and the
+    # reason and skipped the object. Two flat fields with the name in the
+    # schema's top-level `required` are filled reliably where a nested object is
+    # not, which is a property of tool-calling rather than of this prompt.
+    del props["proposed_key"]
+    props["proposed_name"] = {
+        "type": ["string", "null"],
+        "description": (
+            "REQUIRED when is_capability_report is true, null otherwise. Name the "
+            "capability being reported IN YOUR OWN WORDS, as a short dotted name "
+            "like `area.specific_thing`. There is no list; invent the name."
+        ),
+    }
+    props["proposed_definition"] = {
+        "type": ["string", "null"],
+        "description": "One line: what that capability measures.",
+    }
+    schema["required"] = ["is_capability_report", "reason", "proposed_name"]
+    return schema
+
+
+def system_prompt(withhold_keys: bool = False) -> str:
+    """The twelve keys with definitions. No signal vocabulary — see the module.
+
+    `withhold_keys` removes the list entirely and asks for the capability in the
+    model's own words. THE CONTROL FOR PROMPT ANCHORING: the first pass returned
+    ZERO new-key proposals from 255 capability reports, and that has two readings
+    which the first pass cannot separate — the taxonomy is sufficient, or a model
+    shown twelve comprehensive-looking keys and told to "propose sparingly"
+    assigns rather than proposes. Withholding the list removes the anchor; the
+    free-text answers are then compared to the twelve afterwards, in code.
+    """
     raw = yaml.safe_load((CONTRACT_DIR / "capabilities.yaml").read_text(encoding="utf-8"))
-    caps = raw.get("capabilities") or raw
+    caps = raw.get("capabilities") if isinstance(raw, dict) else raw
+    if withhold_keys:
+        return chr(10).join([
+            "You are reading one post from a public forum about AI models.",
+            "",
+            "DECIDE: does anyone in this document say something about how a named "
+            "model BEHAVED when they used it?",
+            "",
+            "Read widely. A capability report can be:",
+            "  - inside a price or cost comparison",
+            "  - an answer in a 'which model should I use' thread",
+            "  - a recommendation, or a reason for switching",
+            "  - an aside in a post that is mostly about something else",
+            "",
+            "It is NOT a capability report if the document only: announces or links "
+            "a release, asks a question without answering it, discusses company "
+            "news or pricing with no behavioural claim, or is a benchmark table "
+            "with no first-hand observation.",
+            "",
+            "If it IS a report, NAME THE CAPABILITY IN YOUR OWN WORDS. Put it in "
+            "`proposed_key` as a short dotted name plus a one-line definition of "
+            "what it measures — for example `area.specific_thing`. Leave "
+            "`capability_key` null: there is no list to choose from.",
+            "",
+            "Always give a verbatim quote when is_capability_report is true. Copy "
+            "the span exactly from the document; do not paraphrase or shorten it.",
+        ])
     lines = [
         "You are reading one post from a public forum about AI models.",
         "",
@@ -181,6 +256,11 @@ def main() -> int:
     parser.add_argument("--cap-usd", type=float, default=1.00)
     parser.add_argument("--out", default="classification.jsonl")
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument(
+        "--withhold-keys", action="store_true",
+        help="remove the twelve-key list and ask for the capability in the "
+             "model's own words. The control for prompt anchoring.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -205,9 +285,19 @@ def main() -> int:
         print("(dry run — no model call, no spend)")
         return 0
 
-    system = system_prompt()
+    system = system_prompt(withhold_keys=args.withhold_keys)
+    schema = tool_schema(withhold_keys=args.withhold_keys)
     client = OpenRouterClient.from_env()
     print(f"model     : {client.model}")
+    prompt_label = (
+        "capability-classification/withheld-keys/2026-08-28"
+        if args.withhold_keys
+        else "capability-classification/twelve-keys/2026-08-28"
+    )
+    variant = ("KEY LIST WITHHELD (anchoring control)" if args.withhold_keys
+               else "twelve keys listed")
+    print(f"prompt    : {variant}")
+    print(f"label     : {prompt_label}")
     rows: list[dict] = []
     stopped = None
 
@@ -220,7 +310,7 @@ def main() -> int:
             break
         try:
             completion = client.complete(
-                system=system, user=doc["text"], tool_schema=TOOL_SCHEMA
+                system=system, user=doc["text"], tool_schema=schema
             )
         except Exception as error:  # noqa: BLE001
             rows.append({**{k: v for k, v in doc.items() if k != "text"},
@@ -244,10 +334,26 @@ def main() -> int:
             **{k: v for k, v in doc.items() if k != "text"},
             "is_capability_report": bool(parsed.get("is_capability_report")),
             "capability_key": parsed.get("capability_key"),
-            "proposed_key": parsed.get("proposed_key"),
+            # Either shape: the nested object from the twelve-key prompt, or the
+            # flat pair from the withheld-list control.
+            "proposed_key": parsed.get("proposed_key") or (
+                {"name": parsed["proposed_name"],
+                 "definition": parsed.get("proposed_definition") or ""}
+                if parsed.get("proposed_name") else None
+            ),
             "quote": quote,
             "quote_verified": verified,
             "reason": parsed.get("reason"),
+            # RUN IDENTITY ON EVERY ROW, not only in the printed header.
+            #
+            # `capability_candidate` needs `proposer_model`, `prompt_label` and
+            # `pipeline_version` — and all three are properties of the RUN, so a
+            # file that records them nowhere cannot be inserted later without
+            # somebody remembering which prompt produced it. That is the one thing
+            # that would have forced a re-run at $0.60, and it costs nothing here.
+            "proposer_model": completion.model,
+            "prompt_label": prompt_label,
+            "pipeline_version": settings().pipeline_version,
             "input_tokens": completion.input_tokens,
             "output_tokens": completion.output_tokens,
         })

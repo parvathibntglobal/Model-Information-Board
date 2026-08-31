@@ -104,11 +104,25 @@ class CellOutcome:
 class CellStore:
     """Reads `claim` and `claim_weight`. Writes `cell`. Nothing else."""
 
-    def __init__(self, conn: Any) -> None:
+    def __init__(self, conn: Any, *, pipeline_version: str = PIPELINE_VERSION) -> None:
         self._conn = conn
+        #: WHICH VERSION OF THE CLAIMS THIS AGGREGATES, and it is not decoration.
+        #:
+        #: `claim_id_for` hashes `pipeline_version`, so a bump FORKS the table:
+        #: after `judge reweight` the same quote exists twice, once at e5.1 and
+        #: once at e5.2, with different weights and the same `author_id`. `count()`
+        #: keeps one representative per voice AT ITS HIGHEST WEIGHT, so an
+        #: unfiltered read would silently give every voice the better of its two
+        #: tiers and report an `n_eff` that belongs to no version — worst on
+        #: exactly the claims a re-tier moved, which are the ones being measured.
+        #:
+        #: Defaulting to the current version means the board renders one version.
+        #: Passing an older one is how the BEFORE side of a diff is computed
+        #: without restoring a database.
+        self._pipeline_version = pipeline_version
 
     def keys_with_claims(self) -> list[CellKey]:
-        """Every cell that has any evidence at all.
+        """Every cell that has any evidence at all, at this pipeline version.
 
         Cells with no claims are deliberately not enumerated. A capability
         nobody has discussed is real and has to render, but that absence is a
@@ -120,8 +134,10 @@ class CellStore:
             """
             SELECT DISTINCT model_version_id, capability_key, condition_bucket
             FROM claim
+            WHERE pipeline_version = %s
             ORDER BY model_version_id, capability_key, condition_bucket
-            """
+            """,
+            (self._pipeline_version,),
         ).fetchall()
         return [CellKey(*row) for row in rows]
 
@@ -142,8 +158,14 @@ class CellStore:
             WHERE c.model_version_id = %s
               AND c.capability_key = %s
               AND c.condition_bucket = %s
+              AND c.pipeline_version = %s
             """,
-            (key.model_version_id, key.capability_key, key.condition_bucket),
+            (
+                key.model_version_id,
+                key.capability_key,
+                key.condition_bucket,
+                self._pipeline_version,
+            ),
         ).fetchall()
 
         claims: list[WeightedClaim] = []
@@ -188,9 +210,16 @@ class CellStore:
             coverage=coverage,
         )
 
-    def write(self, outcome: CellOutcome, *, pipeline_version: str = PIPELINE_VERSION) -> None:
-        """Upsert one cell, whether or not the gate passed."""
+    def write(self, outcome: CellOutcome, *, pipeline_version: str | None = None) -> None:
+        """Upsert one cell, whether or not the gate passed.
+
+        `pipeline_version` defaults to the one this store READ, not to the
+        module constant. A cell stamped with a version other than the claims it
+        counted is a row that cannot be diffed, which is the one thing the
+        column exists for.
+        """
         counts, key = outcome.counts, outcome.key
+        pipeline_version = pipeline_version or self._pipeline_version
         self._conn.execute(
             """
             INSERT INTO cell (

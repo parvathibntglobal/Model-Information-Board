@@ -217,6 +217,22 @@ def tool_schema_for(model_cls: type) -> dict[str, object]:
     larger and every consumer can read it without resolving anything, which is
     the only property that matters at a boundary where the reader is a language
     model.
+
+    `prefixItems` IS NORMALISED TO `items` FOR THE SAME REASON, and it cost a
+    run to learn. `quote_offset: tuple[int, int]` renders as JSON Schema
+    2020-12's `prefixItems`, which is correct and which Gemini's
+    function-declaration validator does not implement - it looks for `items`,
+    finds none, and returns HTTP 200 carrying
+
+        {'message': '* GenerateContentRequest.tools[0].function_declarations[0]
+         .parameters.properties[claims].items.properties[quote_offset].items:
+         missing field.', 'code': 400}
+
+    **It survived 50 threads before firing**, because OpenRouter routes across
+    backends and only some validate this strictly. So a latent schema defect
+    presents as an intermittent provider outage, which is the worst possible
+    disguise: `ExtractorUnavailable` reads as "try again later" and retrying
+    lands on a lenient route, confirming the wrong diagnosis.
     """
     schema = model_cls.model_json_schema()
     definitions = schema.pop("$defs", {})
@@ -238,22 +254,66 @@ def tool_schema_for(model_cls: type) -> dict[str, object]:
                 target = definitions[ref.split("/")[-1]]
                 merged = {k: v for k, v in node.items() if k != "$ref"}
                 return {**inline(target, expansions + 1), **merged}
-            if "prefixItems" in node:
-                # GEMINI DOES NOT SUPPORT `prefixItems` (the tuple form). pydantic
-                # emits it for a `tuple[int, int]` like `quote_offset`, and
-                # Google's function-calling validator rejects the whole schema
-                # ("quote_offset.items: missing field"). OpenRouter routes some
-                # requests to that validator and some to a lenient one, so it
-                # fails intermittently. Rewrite to a plain `items` array — the
-                # tuples here are homogeneous (two integers), so the first item's
-                # schema is the element schema, and minItems/maxItems still pin
-                # the length.
-                prefix = node.get("prefixItems") or []
-                node = {k: v for k, v in node.items() if k != "prefixItems"}
-                node["items"] = prefix[0] if prefix else {"type": "string"}
+            # `prefixItems` IS NOT HANDLED HERE. It was, until the 2026-08-31
+            # merge put two implementations of one rewrite in one function
+            # chain: this one and `widen_tuples` below, called as
+            # `widen_tuples(inline(schema))`.
+            #
+            # THE MERGE WAS TEXTUALLY CLEAN AND SEMANTICALLY NOT. They are
+            # separate functions, so git combined them without a conflict, and
+            # the result was that this block stripped `prefixItems` FIRST -
+            # leaving `widen_tuples` nothing to inspect and its refusal
+            # unreachable. `test_a_heterogeneous_tuple_refuses_rather_than_
+            # guessing` went from passing to DID NOT RAISE, which is the only
+            # reason anybody found out.
+            #
+            # The two differ on exactly one case and it is the dangerous one.
+            # Both rewrite `prefixItems` to `items` for Gemini, which is the
+            # reason the rewrite exists. This one took `prefix[0]` on the stated
+            # assumption that "the tuples here are homogeneous" - true today,
+            # and a silent misdescription to the extractor on the day it stops
+            # being true. `widen_tuples` raises instead.
+            #
+            # So the rewrite lives in ONE place, and it is the one that refuses.
             return {k: inline(v, expansions) for k, v in node.items()}
         if isinstance(node, list):
             return [inline(v, expansions) for v in node]
         return node
 
-    return inline(schema)
+    def widen_tuples(node: object) -> object:
+        """`prefixItems` -> `items`, keeping min/maxItems as the real constraint.
+
+        REFUSES rather than guessing when the members disagree. A heterogeneous
+        tuple - `tuple[int, str]` - has no single `items` type, and picking the
+        first would silently tell the model that position 1 is an integer. No
+        such field exists today; if one is added, this raises at import of the
+        first tool call rather than mis-describing the shape to the extractor.
+
+        `minItems`/`maxItems` already carry the length, so nothing is lost:
+        `{"type":"array","items":{"type":"integer"},"minItems":2,"maxItems":2}`
+        is the same constraint every validator understands.
+        """
+        if isinstance(node, dict):
+            out = {k: widen_tuples(v) for k, v in node.items() if k != "prefixItems"}
+            prefix = node.get("prefixItems")
+            if isinstance(prefix, list) and prefix:
+                types = {
+                    m.get("type") for m in prefix if isinstance(m, dict)
+                }
+                if len(types) != 1:
+                    raise ValueError(
+                        f"prefixItems members disagree on type "
+                        f"({sorted(t or '?' for t in types)}); "
+                        "a heterogeneous tuple cannot be expressed as `items` "
+                        "and guessing one would misdescribe a position to the "
+                        "extractor. Model this field as a nested object instead."
+                    )
+                out["items"] = widen_tuples(prefix[0])
+                out.setdefault("minItems", len(prefix))
+                out.setdefault("maxItems", len(prefix))
+            return out
+        if isinstance(node, list):
+            return [widen_tuples(v) for v in node]
+        return node
+
+    return widen_tuples(inline(schema))

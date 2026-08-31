@@ -118,10 +118,18 @@ columns:
     consensus_phrase: {state: read, reviewed: false}
     freshest_at: {state: write_only, reviewed: false}
     independent_voices: {state: read, reviewed: false}
-    max_author_share: {state: write_only, reviewed: false}
+    max_author_share:
+      state: read
+      reviewed: false
+      why: >-
+        read by scripts/report_rollup_delta.py, which re-checks the stored gate inputs against judge/curate/gate.py's thresholds. It is not a second opinion about the cell - it can only disagree with `status` if the thresholds moved since the rollup, which is the thing worth knowing
     median_age: {state: write_only, reviewed: false}
     model_version_id: {state: read, reviewed: false}
-    n_eff: {state: write_only, reviewed: false}
+    n_eff:
+      state: read
+      reviewed: false
+      why: >-
+        read by scripts/capture_rollup_baseline.py and scripts/report_rollup_delta.py. `cell` is keyed WITHOUT pipeline_version, so a rebuild overwrites these rows and the before-state is unrecoverable after the fact - the baseline exists so the board getting QUIETER is visible, which is the direction nobody checks
     negative: {state: read, reviewed: false}
     pipeline_version: {state: write_only, reviewed: false}
     platform_count: {state: read, reviewed: false}
@@ -142,32 +150,64 @@ columns:
       why: >-
         DEFAULT now(). Never written by us
     document_id: {state: read, reviewed: false}
-    evidence_tier: {state: write_only, reviewed: false}
+    evidence_tier:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - the BEFORE side of the tier diff
     extractor_confidence: {state: write_only, reviewed: false}
     extractor_model: {state: write_only, reviewed: false}
     family: {state: write_only, reviewed: false}
-    has_numbers: {state: write_only, reviewed: false}
-    has_repro_steps: {state: write_only, reviewed: false}
+    has_numbers:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute(), and since 2026-08-30 it proposes an evidence_tier promotion that document.has_numbers may veto
+    has_repro_steps:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute(), and since 2026-08-30 it also keys evidence_tier
     id: {state: read, reviewed: false}
     is_sarcastic: {state: write_only, reviewed: false}
     model_version_id: {state: read, reviewed: false}
     pain_points: {state: read, reviewed: false}
     pipeline_version:
-      state: write_only
+      state: read
       reviewed: true
       why: >-
-        diffability - every derived row carries it so a scoring change is re-runnable (CLAUDE.md conventions). Read by a person diffing runs
+        diffability - every derived row carries it so a scoring change is re-runnable (CLAUDE.md conventions). READ BY CODE since 2026-08-30, not only by a person diffing runs: PIPELINE_VERSION is hashed into claim_id_for, so a bump forks the table, and judge/store/cells.py filters on this column so n_eff aggregates one version rather than each voice's best weight across two
     polarity: {state: read, reviewed: false}
     quote: {state: read, reviewed: false}
-    quote_flat_offset: {state: write_only, reviewed: false}
+    quote_flat_offset:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - the span is hashed into the new claim id
     quote_raw_offset: {state: write_only, reviewed: false}
     quote_verified: {state: read, reviewed: false}
-    relevance: {state: write_only, reviewed: false}
+    relevance:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute()
     resolution_confidence: {state: write_only, reviewed: false}
     severity: {state: read, reviewed: false}
-    source_comment_id: {state: write_only, reviewed: false}
-    speaking: {state: write_only, reviewed: false}
-    specificity: {state: write_only, reviewed: false}
+    source_comment_id:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - the re-weight needs it to derive the new claim id
+    speaking:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - it keys evidence_tier
+    specificity:
+      state: read
+      reviewed: true
+      why: >-
+        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute()
     taxonomy_version: {state: write_only, reviewed: false}
     thread_context_id: {state: read, reviewed: false}
 
@@ -218,12 +258,17 @@ columns:
     external_id: {state: read, reviewed: false}
     fetched_at: {state: read, reviewed: false}
     filter_reasons:
-      state: unwired
+      state: read
       reviewed: true
       why: >-
-        as triage_verdict
-      known_gap: >-
-        E2's lane - triage is unwired
+        WRITTEN SINCE 2026-08-30 by collect/adapters/github.py write_comments, which
+        stores a bot-authored issue comment as status='filtered' with
+        filter_reasons ['bot_author'] rather than dropping it - so judge/pages/filtered.py
+        can name the rule that excluded it. Was 'unwired' with the gap 'E2's lane -
+        triage is unwired', which is STILL TRUE OF TRIAGE and stopped being true of
+        the column: a known_gap exempts an entry from the mismatch check, so leaving
+        it would have hidden the first writer this column ever had behind a gap
+        statement about a different stage
     harvest_run_id:
       state: read
       reviewed: true
@@ -231,10 +276,25 @@ columns:
         the join to harvest_run. Its reader is the provenance display, not yet built
       known_gap: >-
         no reader yet - the coverage page is where it belongs
-    has_code: {state: reserved, reviewed: false}
-    has_conditions: {state: reserved, reviewed: false}
-    has_error_strings: {state: reserved, reviewed: false}
-    has_numbers: {state: reserved, reviewed: false}
+    # ⚠ THE FIVE COMPONENTS AND specificity_score GAINED A WRITER 2026-08-31 -
+    #   collect/triage/store.py:score_unscored, called by the `score-documents`
+    #   stage in collect/ops/chain.py and by scripts/backfill_document_facts.py.
+    #   `reviewed: false` on all six: E1 recorded the discovered state so the
+    #   `known_gap` texts below would stop asserting "nothing writes the column",
+    #   which stopped being true that day. The STATE is a fact; whether these
+    #   belong at `written+read` is E2's to confirm. Two eyes on contract/.
+    has_code: {state: read, reviewed: false, why: "written by collect/triage/store.py; read by triage/gates.py:has_artifact"}
+    has_conditions:
+      state: read
+      reviewed: false
+      why: >-
+        written by collect/triage/store.py since 2026-08-31. judge/vet/weight.py reads it for f_specificity's has_conditions argument. It does NOT key evidence_tier - contract/harvest.yaml's C rung is one_of_the_two over (has_repro_steps, has_numbers), so writing this changes a weight and not a tier
+    has_error_strings: {state: read, reviewed: false, why: "written by collect/triage/store.py; read by triage/gates.py:has_artifact"}
+    has_numbers:
+      state: read
+      reviewed: false
+      why: >-
+        written by collect/triage/store.py since 2026-08-31. judge/vet/weight.py reads it for f_specificity and judge/reweight.py reads it as the veto on a claim's self-reported has_numbers, so a NULL here withholds a tier promotion and is counted. Backfilled over the stored corpus the same day; rows whose payload is absent from the backfilling host stay NULL rather than False
     id: {state: read, reviewed: false}
     is_canonical_in_cluster:
       state: reserved
@@ -245,18 +305,20 @@ columns:
         E1's lane - dedupe is unwired
     lang: {state: reserved, reviewed: false}
     minhash: {state: reserved, reviewed: false}
-    names_version: {state: reserved, reviewed: false}
-    parent_id: {state: write_only, reviewed: false}
+    names_version: {state: read, reviewed: false, why: "written by collect/triage/store.py since 2026-08-31; read by assemble/thread.py's child ranking"}
+    parent_id:
+      state: read
+      reviewed: false
+      why: >-
+        read by collect/assemble/issue.py:assemble_github_documents since 2026-08-31. `parent_id IS NULL` is what separates an issue BODY from a comment, and the query had no such clause until comments existed - it would have assembled 148 comments as their own single-comment threads, putting the same text in front of the extractor twice under two ids
     retrieval_provenance: {state: read, reviewed: false}
     simhash: {state: reserved, reviewed: false}
     source: {state: read, reviewed: false}
     specificity_score:
-      state: reserved
-      reviewed: true
+      state: write_only
+      reviewed: false
       why: >-
-        triage output; nothing writes it while triage is unwired
-      known_gap: >-
-        E2's lane
+        written by collect/triage/store.py since 2026-08-31. STILL WRITE-ONLY, and deliberately: E3's child ranking is the intended reader and is blocked on comment fetching, and the column is COMPARABLE WITHIN A SOURCE ONLY (see contract/tables.sql) - github means 0.527 against blogs 0.286, so a cross-source sort on it sorts by platform. The five component columns carry no such restriction. NO `known_gap` ON PURPOSE: that key makes the discovered-state check skip the column, and this one should start failing the day something reads it
     status: {state: read, reviewed: false}
     text_ref: {state: read, reviewed: false}
     thread_root_id: {state: read, reviewed: false}
@@ -542,7 +604,11 @@ columns:
     member_document_ids: {state: read, reviewed: false}
     observed_children: {state: read, reviewed: false}
     offset_map: {state: read, reviewed: false}
-    pipeline_version: {state: write_only, reviewed: false}
+    pipeline_version:
+      state: read
+      reviewed: false
+      why: >-
+        read by scripts/export_contexts_for_extract.py --pipeline-version since 2026-08-31. 584 GitHub issues hold both an issue_body_only context at collect-0.1.0 and an issue_with_comments fork at collect-0.2.0-issue-comments; neither has a thread_extraction row, so selecting on "not yet extracted" alone takes both and the same issue body reaches the extractor twice - one author counted as two voices
     selection_method: {state: read, reviewed: false}
     thread_root_id: {state: read, reviewed: false}
 

@@ -152,8 +152,20 @@ class TestDeclaredMatchesDiscovered:
                         f"{table}.{column}: declared {declared!r}, discovered {actual!r}"
                     )
         assert not mismatched, (
-            f"{len(mismatched)} column(s) are not in the state they declare, and "
-            f"none names a `known_gap`:\n  " + "\n  ".join(mismatched[:20])
+            f"{len(mismatched)} column(s) are not in the state they declare:\n  "
+            + "\n  ".join(mismatched[:20])
+            + "\n\n"
+            "IF THE DISCOVERED STATE IS NOW CORRECT, DO NOT ONLY EDIT THE STATE.\n"
+            "Set `reviewed: true` and add a `why` naming the reader or writer that\n"
+            "changed. A state edited without its reason is a snapshot wearing a\n"
+            "declaration's clothes, which is the thing this file exists to prevent\n"
+            "- and it has happened twice, because THIS MESSAGE used to name the\n"
+            "state and not the reason, so the smallest green-making edit was one\n"
+            "word. thread_context.assembled_at and harvest_run.id, 2026-08-27/28.\n"
+            "\n"
+            "If the declaration is the intent and the code has not caught up, add\n"
+            "`known_gap` instead - that is the acknowledged-gap path, not a\n"
+            "failure."
         )
 
     def test_read_not_by_query_names_its_reader(self, manifest):

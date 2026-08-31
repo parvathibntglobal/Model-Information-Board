@@ -42,9 +42,34 @@ def claim(voice: str, platform: str, w: float, polarity: str = "positive", **kw)
 
 
 class TestWeightCeiling:
-    def test_no_single_claim_can_exceed_point_nine_five(self):
-        """This cap is why `voices >= 3` would be dead text in the gate."""
-        assert weight.MAX_POSSIBLE_WEIGHT == 0.95
+    def test_the_ceiling_fell_when_f_specificity_lost_two_signals(self):
+        """0.95 -> 0.551, and the gate's meaning moved with it.
+
+        Option 1 removed `has_numbers` and `has_repro_steps` from
+        `specificity_factor`, which took the factor's RANGE from 1.00 to 0.58.
+        `f_specificity` is a term in a product, so that is a 42% cut to the
+        ceiling on every claim - not only on the ones carrying the two removed
+        signals. `n_eff >= 3.0` needed 3.16 claims and now needs 5.44.
+
+        Asserted rather than commented because it is a side effect nobody chose:
+        Option 1 was argued as a fix to how one fact is priced, and it changed
+        how many voices a cell needs. If someone restores the two signals this
+        must fail, and if someone re-weights the remaining two it must fail too.
+        """
+        assert pytest.approx(0.58) == weight.MAX_SPECIFICITY
+        assert pytest.approx(0.551) == weight.MAX_POSSIBLE_WEIGHT
+        assert N_EFF_MINIMUM / weight.MAX_POSSIBLE_WEIGHT > 5
+
+    def test_the_reachable_ceiling_is_the_one_that_answers_the_question(self):
+        """`MAX_POSSIBLE_WEIGHT` prices tier A, which the ladder cannot emit.
+
+        Rule 7, on a constant. 0.551 is a real number about a rung no claim can
+        reach; 0.358 is the ceiling on a claim this pipeline can actually
+        produce, and it is the one to quote when asking how many voices a cell
+        needs - 8.4 rather than 5.4.
+        """
+        assert weight.MAX_REACHABLE_WEIGHT < weight.MAX_POSSIBLE_WEIGHT
+        assert pytest.approx(0.3581, abs=1e-4) == weight.MAX_REACHABLE_WEIGHT
 
     def test_three_perfect_claims_do_not_clear_the_gate(self):
         """3 x 0.95 = 2.85, which fails n_eff >= 3.0. Four claims minimum."""
@@ -220,14 +245,37 @@ class TestRecency:
         assert fast < slow
 
     def test_repro_steps_outweigh_a_wordy_post_with_none(self):
-        """A two-line GitHub repro is the most valuable document type there is."""
-        terse_repro = weight.specificity_factor(
-            version_named=False, has_numbers=False, has_conditions=False, has_repro_steps=True
-        )
-        wordy_nothing = weight.specificity_factor(
-            version_named=True, has_numbers=False, has_conditions=False, has_repro_steps=False
-        )
+        """A two-line GitHub repro is still the most valuable document type.
+
+        THE PROPERTY MOVED FACTORS, WHICH IS THE WHOLE POINT OF OPTION 1. It
+        used to live in `f_specificity`, where repro was weighted double; it now
+        lives in the tier, where B's own gloss is "detailed first-hand build
+        report". Asserted through `evidence_tier_for` so the claim being made is
+        about the pipeline rather than about one function - if the property had
+        simply been deleted along with the specificity term, this test would
+        have been deleted with it and nobody would have noticed the loss.
+        """
+        terse_repro = weight.TIER_WEIGHT[
+            weight.evidence_tier_for(
+                "own-experience", has_repro_steps=True, has_numbers=False
+            ).tier
+        ]
+        wordy_nothing = weight.TIER_WEIGHT[
+            weight.evidence_tier_for(
+                "own-experience", has_repro_steps=False, has_numbers=False
+            ).tier
+        ]
         assert terse_repro > wordy_nothing
+
+    def test_repro_steps_no_longer_reach_f_specificity(self):
+        """The other half of Option 1: it is priced ONCE, not moved twice."""
+        with_repro = weight.specificity_factor(
+            version_named=True, has_conditions=False, has_repro_steps=True
+        )
+        without = weight.specificity_factor(
+            version_named=True, has_conditions=False, has_repro_steps=False
+        )
+        assert with_repro == without
 
 class TestTheWeightingInputsHaveASupplier:
     """`version_named` and `has_conditions` were required arguments with none.
@@ -370,21 +418,47 @@ class TestAWeightingInputMayNotHaveASilentDefault:
     @pytest.mark.parametrize(
         "field",
         ["evidence_tier", "platform", "capability_key", "relevance", "specificity",
-         "claim_date", "version_named", "has_numbers", "has_conditions",
-         "has_repro_steps"],
+         "claim_date", "version_named", "has_conditions"],
     )
-    def test_every_input_is_refused_when_unsupplied(self, field):
+    def test_every_input_it_reads_is_refused_when_unsupplied(self, field):
         args = {**self.ARGS, field: weight.UNSUPPLIED}
         with pytest.raises(weight.UnsuppliedWeightInput) as exc:
             weight.compute(**args)
         assert field in exc.value.missing
         assert field in str(exc.value)
 
+    @pytest.mark.parametrize("field", ["has_numbers", "has_repro_steps"])
+    def test_an_input_it_no_longer_READS_is_not_refused(self, field):
+        """Option 1, 2026-08-30, and the direction matters.
+
+        These two now reach the TIER and nothing else, and the tier arrives at
+        `compute()` already decided. Refusing over them would drop a claim on an
+        input this function does not read — rule 8's worst form, a gate that had
+        stopped meaning anything and went on dropping documents. The refusal
+        list follows `specificity_weights` for exactly this reason.
+        """
+        assert weight.compute(**{**self.ARGS, field: weight.UNSUPPLIED}).w_final > 0
+        assert weight.compute(**{**self.ARGS, field: None}).w_final > 0
+
+    def test_the_legacy_weights_require_all_four_again(self):
+        """Because under them all four ARE read.
+
+        `judge/reweight.py` prices a stored version with the formula that
+        version used, so the refusal has to move with the formula. A check that
+        stayed fixed while the arithmetic changed would refuse the wrong claims
+        in one direction and pass them in the other.
+        """
+        args = {**self.ARGS, "specificity_weights": weight.LEGACY_SPECIFICITY_WEIGHTS}
+        for field in ("has_numbers", "has_repro_steps"):
+            with pytest.raises(weight.UnsuppliedWeightInput) as exc:
+                weight.compute(**{**args, field: weight.UNSUPPLIED})
+            assert field in exc.value.missing
+
     def test_the_message_names_the_writer_and_not_this_file(self):
         with pytest.raises(weight.UnsuppliedWeightInput) as exc:
-            weight.compute(**{**self.ARGS, "has_numbers": weight.UNSUPPLIED})
+            weight.compute(**{**self.ARGS, "has_conditions": weight.UNSUPPLIED})
         text = str(exc.value)
-        assert "document.has_numbers" in text, "must name what should write it"
+        assert "document.has_conditions" in text, "must name what should write it"
         assert "collect/triage/" in text, "must name the module"
         assert "THE GAP IS NOT IN THIS FILE" in text
 
@@ -412,12 +486,12 @@ class TestAWeightingInputMayNotHaveASilentDefault:
     def test_all_inputs_refused_are_reported_together(self):
         """One traversal, not one round trip per missing field."""
         args = {**self.ARGS, "evidence_tier": weight.UNSUPPLIED,
-                "has_numbers": weight.UNSUPPLIED,
+                "version_named": weight.UNSUPPLIED,
                 "has_conditions": weight.UNSUPPLIED}
         with pytest.raises(weight.UnsuppliedWeightInput) as exc:
             weight.compute(**args)
         assert set(exc.value.missing) == {
-            "evidence_tier", "has_numbers", "has_conditions"}
+            "evidence_tier", "has_conditions", "version_named"}
 
     def test_the_pipeline_tier_literal_is_now_the_sentinel(self):
         """`DEFAULT_EVIDENCE_TIER` was 'D' and is retired as a value.
@@ -430,64 +504,196 @@ class TestAWeightingInputMayNotHaveASilentDefault:
 
         assert pipeline.DEFAULT_EVIDENCE_TIER is weight.UNSUPPLIED
 
-class TestSpeakingSuppliesTheEvidenceTier:
-    """`ModelRef.speaking` -> `evidence_tier`, through the contract.
+class TestTheEvidenceTierLadder:
+    """(speaking, has_repro_steps, has_numbers) -> `evidence_tier`, via the contract.
 
-    Built 2026-08-21 on asymmetric evidence, and that is recorded in the field's
-    own docstring: `own-experience` is corroborated (8 of 8 by one labeller, 4 of
-    5 where both answered); `vendor-about-own-product` has ONE labeller and four
-    rows from one announcement thread. The field is built on the stronger half
-    and enforces the weaker one.
+    RE-KEYED 2026-08-30, on E2's delegated ruling, from `speaking` alone.
+    `speaking` was built on asymmetric evidence and that is recorded in the
+    field's own docstring: `own-experience` is corroborated (8 of 8 by one
+    labeller, 4 of 5 where both answered); `vendor-about-own-product` has ONE
+    labeller and four rows from one announcement thread. Nothing here revises
+    that. What changed is that `speaking` is no longer the WHOLE key, because
+    `TIER_WEIGHT`'s glosses grade how checkable a report is and `speaking` says
+    only whose it is - so B and C were unreachable by construction and 0 of 197
+    stored claims reached them.
     """
 
-    def test_the_mapping_is_the_contract_s_and_not_this_file_s(self):
-        """Rule 5. A ruling about what a vendor's words are worth lives in YAML."""
-        from judge.config import evidence_tier_by_speaking
+    def test_the_ladder_is_the_contract_s_and_not_this_file_s(self):
+        """Rule 5. A ruling about what evidence is worth lives in YAML."""
+        from judge.config import evidence_tier_rules
 
-        assert evidence_tier_by_speaking() == {
-            "own-experience": "D",
+        assert evidence_tier_rules() == {
+            "own-experience": {
+                "repro_steps_and_numbers": "B",
+                "one_of_the_two": "C",
+                "neither": "D",
+            },
             "relayed-from-elsewhere": "E",
             "vendor-about-own-product": "F",
         }
 
     @pytest.mark.parametrize(
-        "speaking,tier",
-        [("own-experience", "D"), ("relayed-from-elsewhere", "E"),
-         ("vendor-about-own-product", "F")],
+        "repro,numbers,tier",
+        [(True, True, "B"), (True, False, "C"), (False, True, "C"), (False, False, "D")],
     )
-    def test_each_value_maps_to_the_tier_whose_gloss_describes_it(self, speaking, tier):
-        assert weight.evidence_tier_for(speaking) == tier
+    def test_first_hand_climbs_on_what_the_report_carries(self, repro, numbers, tier):
+        assert weight.evidence_tier_for(
+            "own-experience", has_repro_steps=repro, has_numbers=numbers
+        ).tier == tier
+
+    @pytest.mark.parametrize("speaking,tier",
+                             [("relayed-from-elsewhere", "E"),
+                              ("vendor-about-own-product", "F")])
+    @pytest.mark.parametrize("repro,numbers", [(True, True), (False, False)])
+    def test_a_relay_and_a_vendor_have_no_rungs(self, speaking, tier, repro, numbers):
+        """Numbers in a launch post are still the vendor's numbers.
+
+        THE CASE THIS EXISTS FOR. A vendor announcement is full of figures by
+        construction, so if `has_numbers` reached the vendor rung the change
+        would make the board WORSE - a launch post would outweigh the engineers
+        disagreeing with it. Parametrised over both boolean states so the
+        property is "the booleans are not read here" rather than "they happen
+        not to matter for this one input".
+        """
+        assert weight.evidence_tier_for(
+            speaking, has_repro_steps=repro, has_numbers=numbers
+        ).tier == tier
 
     def test_the_ordering_is_what_matters_and_it_holds(self):
         """The distances are uncalibrated; the order needs no measurement.
 
         A vendor describing their own model is weaker evidence about that model
-        than an engineer reporting their own run. Asserted as an ordering so a
-        change to 0.12/0.04/0.02 does not break it and an inversion does.
+        than an engineer reporting their own run, and an engineer who published
+        repro steps and numbers is stronger than one who published neither.
+        Asserted as an ordering so a change to 0.65/0.35/0.12/0.04/0.02 does not
+        break it and an inversion does.
         """
         w = weight.TIER_WEIGHT
-        assert (w[weight.evidence_tier_for("vendor-about-own-product")]
-                < w[weight.evidence_tier_for("relayed-from-elsewhere")]
-                < w[weight.evidence_tier_for("own-experience")])
+
+        def t(speaking, repro=False, numbers=False):
+            return w[weight.evidence_tier_for(
+                speaking, has_repro_steps=repro, has_numbers=numbers).tier]
+
+        assert (t("vendor-about-own-product")
+                < t("relayed-from-elsewhere")
+                < t("own-experience")
+                < t("own-experience", repro=True)
+                < t("own-experience", repro=True, numbers=True))
+
+    def test_the_ceiling_is_B_and_A_is_out_of_reach(self):
+        """Rule 8, stated as a test so a later edit to the YAML trips it.
+
+        Promoting to A on `has_repro_steps` would make the extractor's own
+        unmeasured boolean the thing that clears the bar A's gloss reserves for
+        "published harness/prompts, N runs, numbers; or a GitHub repro". Round 3
+        of the golden set is what would measure that boolean and it is
+        unlabelled. So no combination of inputs may return A until it is.
+        """
+        from judge.config import evidence_tier_rules
+
+        reachable = set()
+        for value in evidence_tier_rules().values():
+            reachable |= set(value.values()) if isinstance(value, dict) else {value}
+        assert "A" not in reachable
 
     def test_vendor_is_six_times_lighter_than_the_literal_it_replaced(self):
-        """The change this makes to what is already stored.
+        """The change the 2026-08-21 mapping made to what was already stored.
 
-        Three of the four claims in the table quote the Fable 5 announcement and
-        were weighted at tier D — the module literal applied to every claim in
-        the corpus. At F they weigh a sixth as much.
+        Three of the four claims in the table then quoted the Fable 5
+        announcement and were weighted at tier D — the module literal applied to
+        every claim in the corpus. At F they weigh a sixth as much, and this
+        ruling does not give it back.
         """
         w = weight.TIER_WEIGHT
-        assert w["D"] / w[weight.evidence_tier_for("vendor-about-own-product")] == 6
+        vendor = weight.evidence_tier_for(
+            "vendor-about-own-product", has_repro_steps=True, has_numbers=True
+        ).tier
+        assert w["D"] / w[vendor] == 6
 
-    def test_an_unmapped_value_refuses_rather_than_defaulting(self):
+    def test_an_unmapped_speaking_value_refuses_rather_than_defaulting(self):
         """The 2026-08-21 ruling, applied to the field that motivated it."""
-        assert weight.evidence_tier_for("something-nobody-priced") is weight.UNSUPPLIED
+        verdict = weight.evidence_tier_for(
+            "something-nobody-priced", has_repro_steps=True, has_numbers=True
+        )
+        assert verdict.tier is weight.UNSUPPLIED
         with pytest.raises(weight.UnsuppliedWeightInput) as exc:
             weight.compute(**{**TestAWeightingInputMayNotHaveASilentDefault.ARGS,
                               "evidence_tier": weight.UNSUPPLIED})
-        assert "evidence_tier_by_speaking" in str(exc.value)
+        assert "evidence_tier_rules" in str(exc.value)
 
+    def test_an_absent_boolean_withholds_the_promotion_and_names_it(self):
+        """NOT a refusal, and the asymmetry with the test above is the point.
+
+        Refusing here would make `compute()` raise and the claim would be
+        DROPPED - a wrong gate whose false positives are invisible, because the
+        evidence simply is not on the page. Rule 8 says an unmeasured check
+        ships as a weight: the claim stays at the tier it had, and the absent
+        signal is NAMED so "bare opinion" and "nobody counted its numbers" do
+        not render as the same D.
+        """
+        verdict = weight.evidence_tier_for(
+            "own-experience", has_repro_steps=True, has_numbers=weight.UNSUPPLIED
+        )
+        assert verdict.tier == "C"
+        assert verdict.unconfirmed == ("has_numbers",)
+
+    def test_a_vendor_claim_reports_no_unconfirmed_signal(self):
+        """A caveat about a promotion that was never on offer is noise.
+
+        `vendor-about-own-product` has no rungs, so a missing boolean costs it
+        nothing and must not appear in the withheld-promotion count - that count
+        is read as "how much evidence is unpriced", and padding it with claims
+        no ladder would have lifted makes the number answer a question it was
+        not asked.
+        """
+        verdict = weight.evidence_tier_for(
+            "vendor-about-own-product",
+            has_repro_steps=weight.UNSUPPLIED,
+            has_numbers=weight.UNSUPPLIED,
+        )
+        assert verdict.tier == "F"
+        assert verdict.unconfirmed == ()
+
+
+class TestTheNumbersFalsifier:
+    """`promotable_numbers` — the extractor proposes, the code may veto.
+
+    `collect/triage/specificity.py` fixes the direction: `document.has_numbers`
+    FALSIFIES `claim.has_numbers` and cannot confirm it. So this is an AND, and
+    the True/True case is still not confirmation — which is one of the two
+    reasons the ladder stops at B.
+    """
+
+    @pytest.mark.parametrize(
+        "claim_value,document_value,expected",
+        [
+            (True, True, True),
+            # The veto. There are no numbers in the document for the quote to
+            # contain, so the extractor's `true` is a fabrication.
+            (True, False, False),
+            # Not a promotion either way: the extractor did not claim numbers.
+            (False, True, False),
+            (False, False, False),
+        ],
+    )
+    def test_the_and_is_a_veto(self, claim_value, document_value, expected):
+        assert weight.promotable_numbers(claim_value, document_value) is expected
+
+    @pytest.mark.parametrize(
+        "claim_value,document_value",
+        [(True, None), (None, True), (None, None), (True, weight.UNSUPPLIED)],
+    )
+    def test_absent_is_neither_true_nor_false(self, claim_value, document_value):
+        """Rule 6. Documents written before collect/triage/ carry NULL here.
+
+        Coalescing the NULL either way turns "nobody counted" into a decision:
+        one direction silently promotes a claim nothing checked, the other
+        silently withholds. The second is not the safe one, only the quiet one.
+        """
+        assert weight.promotable_numbers(claim_value, document_value) is weight.UNSUPPLIED
+
+
+class TestSpeakingIsRequiredAndTheModelSeesIt:
     def test_speaking_is_required_on_the_schema(self):
         """No default. A claim without one cannot be audited for provenance."""
         # ValidationError, not bare Exception: a blind assert would also pass if
@@ -529,7 +735,12 @@ class TestSpeakingSuppliesTheEvidenceTier:
 
         # Three different people, each quoting the same announcement, each
         # weighted at tier F.
-        tier = weight.evidence_tier_for("vendor-about-own-product")
+        # Both booleans TRUE deliberately: an announcement carries numbers, and
+        # after the 2026-08-30 re-keying the assertion worth making is that
+        # carrying them changes nothing for a vendor.
+        tier = weight.evidence_tier_for(
+            "vendor-about-own-product", has_repro_steps=True, has_numbers=True
+        ).tier
         w = weight.TIER_WEIGHT[tier] * weight.PLATFORM_WEIGHT["reddit"]
         vendor = [claim(f"voice{i}", "reddit", w) for i in range(3)]
         counts = gate.count(vendor, as_of=TODAY)
@@ -538,3 +749,73 @@ class TestSpeakingSuppliesTheEvidenceTier:
             "alone does not stop that"
         )
         assert counts.n_eff < 3.0, "and they cannot publish, which is the weight"
+
+
+class TestNoneIsRefusedNotScoredAsFalse:
+    """The 2026-08-30 repair to the 2026-08-21 ruling's own check.
+
+    `compute()` refused `UNSUPPLIED` and let `None` straight through, so
+    `specificity_factor` read it as falsy. `judge/cli.py:_document_facts` passed
+    a literal `None` for `has_numbers` and `has_conditions` on the only path
+    that has ever produced a claim — so every claim in the table was weighted as
+    though both were False, by a guard whose whole purpose was to prevent
+    exactly that.
+
+    The sentinel was built because `False` had meant "nobody measured". `None`
+    means the same thing, and it got in because the guard was written against
+    the SHAPE of the old bug rather than its substance.
+    """
+
+    @pytest.mark.parametrize(
+        "field",
+        ["evidence_tier", "platform", "capability_key", "relevance", "specificity",
+         "claim_date", "version_named", "has_conditions"],
+    )
+    def test_none_refuses_on_every_checked_input(self, field):
+        """Parametrised over the whole list, not the two that were caught.
+
+        Auditing only `has_numbers` and `has_conditions` would fix the instance
+        and leave the class - and the class is what this check is for.
+        """
+        args = {**TestAWeightingInputMayNotHaveASilentDefault.ARGS, field: None}
+        with pytest.raises(weight.UnsuppliedWeightInput) as exc:
+            weight.compute(**args)
+        assert field in str(exc.value)
+
+    def test_release_date_none_is_a_value_and_still_computes(self):
+        """The one `None` that means something, and it must NOT be refused.
+
+        `launch_factor` reads `release_date is None` as "no release date known"
+        and returns 1.0 - an absent discount rather than an absent measurement.
+        Sweeping every `None` into the refusal would have broken it, which is
+        why the check lists its inputs instead of scanning the signature.
+        """
+        factors = weight.compute(
+            **{**TestAWeightingInputMayNotHaveASilentDefault.ARGS, "release_date": None}
+        )
+        assert factors.f_launch == 1.0
+
+    def test_the_refusal_names_the_writer_so_the_fix_is_not_in_this_file(self):
+        args = {
+            **TestAWeightingInputMayNotHaveASilentDefault.ARGS,
+            "has_numbers": None,
+            "has_conditions": None,
+        }
+        with pytest.raises(weight.UnsuppliedWeightInput) as exc:
+            weight.compute(**args)
+        message = str(exc.value)
+        assert "collect/triage" in message
+        assert "THE GAP IS NOT IN THIS FILE" in message
+
+    def test_false_is_still_a_value_and_computes(self):
+        """A measured False must not be swept up with an unmeasured one.
+
+        The whole distinction this check exists to keep is between "counted, and
+        there were none" and "nobody counted".
+        """
+        args = {
+            **TestAWeightingInputMayNotHaveASilentDefault.ARGS,
+            "has_numbers": False,
+            "has_conditions": False,
+        }
+        assert weight.compute(**args).f_specificity > 0

@@ -1,0 +1,120 @@
+{
+ "comments_rebuilt": 2016,
+ "refs_unresolved": 0,
+ "write_counts": {
+  "seen": 2016,
+  "linked": 2016,
+  "skipped_no_issue": 0,
+  "inserted": 1868,
+  "human": 1816,
+  "bot_filtered": 200,
+  "bot_accounts": 26,
+  "bot_suffix_disagreements": 0,
+  "unattributable": 0,
+  "authors_inserted": 779
+ },
+ "reassembled": 584,
+ "reassembly_refusals": [],
+ "fork_pipeline_version": "collect-0.2.0-issue-comments",
+ "voices_before": {
+  "cells": 105,
+  "voices_total": 164,
+  "voices_max": 7,
+  "cells_by_voices": {
+   "1": 78,
+   "2": 13,
+   "3": 7,
+   "4": 2,
+   "5": 1,
+   "6": 2,
+   "7": 2
+  },
+  "distinct_claim_voices": 91,
+  "github_document_authors": 1097
+ },
+ "voices_after": {
+  "cells": 105,
+  "voices_total": 164,
+  "voices_max": 7,
+  "cells_by_voices": {
+   "1": 78,
+   "2": 13,
+   "3": 7,
+   "4": 2,
+   "5": 1,
+   "6": 2,
+   "7": 2
+  },
+  "distinct_claim_voices": 91,
+  "github_document_authors": 1876
+ },
+ "voices_note": "unchanged by construction - a voice is claim.author_id and nothing here extracts. The pool moved; the cells cannot until the forked contexts are read.",
+ "coverage_before": {
+  "contexts": 1387,
+  "observed_children_total": 125,
+  "hidden_children_min_total": 2058,
+  "measurable": 616,
+  "mean_ratio_over_measurable": 0.03826379368506494,
+  "by_method_and_ratio": {
+   "issue_body_only @ 0.000": 586,
+   "issue_body_only @ empty-thread (NULL)": 771,
+   "issue_with_comments @ 0.000": 3,
+   "issue_with_comments @ 0.333": 1,
+   "issue_with_comments @ 0.500": 3,
+   "issue_with_comments @ 0.667": 1,
+   "issue_with_comments @ 0.750": 1,
+   "issue_with_comments @ 0.800": 2,
+   "issue_with_comments @ 0.857": 1,
+   "issue_with_comments @ 0.929": 1,
+   "issue_with_comments @ 0.935": 1,
+   "issue_with_comments @ 1.000": 16
+  }
+ },
+ "coverage_after": {
+  "contexts": 1941,
+  "observed_children_total": 1816,
+  "hidden_children_min_total": 2248,
+  "measurable": 1170,
+  "mean_ratio_over_measurable": 0.43329223227350433,
+  "by_method_and_ratio": {
+   "issue_body_only @ 0.000": 586,
+   "issue_body_only @ empty-thread (NULL)": 771,
+   "issue_with_comments @ 0.000": 48,
+   "issue_with_comments @ 0.200": 3,
+   "issue_with_comments @ 0.250": 1,
+   "issue_with_comments @ 0.333": 8,
+   "issue_with_comments @ 0.500": 24,
+   "issue_with_comments @ 0.667": 10,
+   "issue_with_comments @ 0.714": 1,
+   "issue_with_comments @ 0.750": 5,
+   "issue_with_comments @ 0.800": 8,
+   "issue_with_comments @ 0.833": 3,
+   "issue_with_comments @ 0.846": 1,
+   "issue_with_comments @ 0.857": 1,
+   "issue_with_comments @ 0.875": 2,
+   "issue_with_comments @ 0.889": 1,
+   "issue_with_comments @ 0.900": 2,
+   "issue_with_comments @ 0.905": 1,
+   "issue_with_comments @ 0.909": 1,
+   "issue_with_comments @ 0.923": 1,
+   "issue_with_comments @ 0.929": 1,
+   "issue_with_comments @ 0.933": 1,
+   "issue_with_comments @ 0.935": 1,
+   "issue_with_comments @ 0.938": 1,
+   "issue_with_comments @ 0.944": 2,
+   "issue_with_comments @ 0.960": 1,
+   "issue_with_comments @ 0.968": 1,
+   "issue_with_comments @ 0.974": 1,
+   "issue_with_comments @ 1.000": 454
+  }
+ },
+ "coverage_fork_only": {
+  "n": 584,
+  "mean": 0.8680683420547946,
+  "median": 1.0,
+  "at_one": 454,
+  "at_zero": 48,
+  "observed": 1816,
+  "hidden": 216
+ }
+}

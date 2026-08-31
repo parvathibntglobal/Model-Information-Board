@@ -1,0 +1,49 @@
+{
+ "measured": "2026-08-30",
+ "population": "the 148 comments already fetched from 30 github issues; NOT a sample of GitHub and not of the 71 stored issues",
+ "comments": 148,
+ "issues_with_comments": 30,
+ "user_type_counts": {
+  "User": 125,
+  "Bot": 23
+ },
+ "distinct_accounts": 67,
+ "distinct_human_accounts": 65,
+ "bot_accounts": [
+  "github-actions[bot]",
+  "linear[bot]"
+ ],
+ "bot_account_count": 2,
+ "agreement_user_type_vs_bot_suffix": {
+  "type_bot=False,suffix=False": 125,
+  "type_bot=True,suffix=True": 23
+ },
+ "disagreements": 0,
+ "denominator_note": "the suffix and the field agree on 148 of 148 comments, but that is 2 distinct bot accounts - github-actions[bot] and linear[bot]. The denominator for the agreement claim is ACCOUNTS, not comments.",
+ "busiest_commenters": [
+  [
+   "github-actions[bot]",
+   22
+  ],
+  [
+   "chf3198",
+   13
+  ],
+  [
+   "arafatkatze",
+   9
+  ],
+  [
+   "wrburgess",
+   7
+  ],
+  [
+   "iveelane-fdatracker",
+   6
+  ],
+  [
+   "warwickallen",
+   5
+  ]
+ ]
+}

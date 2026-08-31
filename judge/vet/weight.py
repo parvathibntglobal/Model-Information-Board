@@ -100,15 +100,18 @@ INPUT_GAPS: dict[str, _Gap] = {
     "evidence_tier": _Gap(
         kind=WRONG_WRITER,
         writer=(
-            "contract/harvest.yaml evidence_tier_by_speaking, via "
-            "weight.evidence_tier_for(claim.model_ref.speaking)"
+            "contract/harvest.yaml evidence_tier_rules, via "
+            "weight.evidence_tier_for(speaking, has_repro_steps=, has_numbers=)"
         ),
         fix=(
-            "the mapping is missing a key for this `speaking` value, or the "
-            "contract block is absent. It was a module literal `\"D\"` until "
-            "2026-08-21 - applied to every claim in the corpus, including three "
-            "that quote a launch post and should be F, a 6x over-weight. Add "
-            "the key rather than restoring a default"
+            "the ladder is missing a key for this `speaking` value or for this "
+            "combination of the two booleans, the contract block is absent, or "
+            "one of the booleans was never written. It was a module literal "
+            '`"D"` until 2026-08-21 - applied to every claim in the corpus, '
+            "including three that quote a launch post and should be F, a 6x "
+            "over-weight - and keyed on `speaking` alone until 2026-08-30, "
+            "which put B and C out of reach of any corpus. Add the key rather "
+            "than restoring a default"
         ),
     ),
     "platform": _Gap(
@@ -128,7 +131,12 @@ INPUT_GAPS: dict[str, _Gap] = {
             "build DocumentFacts from the document table. The column IS "
             "populated - True on 6 of 7 non-NULL rows - so this one is carriage "
             "and not measurement. It may NOT be derived from the claim: rule 2 "
-            "forbids weighting on the extractor's own boolean"
+            "forbids weighting on the extractor's own boolean. Since 2026-08-30 "
+            "this column has a SECOND job - it vetoes a tier promotion that "
+            "`claim.has_numbers` proposes, and it can only veto, never confirm "
+            "(collect/triage/specificity.py). That is the caller's rule, not "
+            "this factor's: `f_specificity` still reads the counted column "
+            "alone"
         ),
     ),
     "has_conditions": _Gap(
@@ -209,31 +217,134 @@ TIER_WEIGHT: dict[str, float] = {
     "F": 0.02,  # vendor marketing — capability FACTS only, never quality
 }
 
-def evidence_tier_for(speaking: str) -> EvidenceTier | _Unsupplied:
-    """`ModelRef.speaking` -> an evidence tier, from `contract/harvest.yaml`.
+class TierVerdict(NamedTuple):
+    """A tier, plus the signals that could not be confirmed on the way to it.
+
+    TWO RETURN VALUES BECAUSE RULE 6 ASKS FOR TWO. `tier` is what the weight
+    uses. `unconfirmed` is the caveat: which promotion signals were absent
+    rather than false, so a run can report "n claims stayed at D because
+    nothing had counted their numbers" instead of publishing a D that reads as
+    a judgement. A single return value would make those two indistinguishable
+    in exactly the way rule 4 forbids one stage later.
+    """
+
+    tier: EvidenceTier | _Unsupplied
+    unconfirmed: tuple[str, ...] = ()
+
+
+def promotable_numbers(
+    claim_has_numbers: bool | None | _Unsupplied,
+    document_has_numbers: bool | None | _Unsupplied,
+) -> bool | _Unsupplied:
+    """May `has_numbers` lift this claim's tier? The falsifier, applied once.
+
+    `claim.has_numbers` is the extractor's self-report and reaches `w_final`
+    with no code check. `document.has_numbers` is the same question asked of the
+    same text by code, and `collect/triage/specificity.py` fixes its standing:
+
+        document False  ->  the claim's `true` is a fabrication. There are no
+                            numbers in the document for the quote to contain.
+        document True   ->  says NOTHING about whether THIS quote holds one.
+
+    So this is an AND read as a veto, never as a confirmation. Code can block a
+    promotion; code never grants one. Reading the True case as confirmation
+    would launder an unverified extractor boolean into a verified one, which is
+    worse than not checking at all - and it is one of the two reasons the ladder
+    caps at B.
+
+    ABSENT IS NEITHER. A NULL on either side returns UNSUPPLIED - the documents
+    written before `collect/triage/` existed carry NULL in all six columns, and
+    coalescing that either way turns "nobody counted" into a decision.
+    `evidence_tier_for` then withholds the promotion AND names the signal, which
+    is rule 6's "say so" rather than rule 6's silent exclusion.
+    """
+    if (
+        claim_has_numbers is UNSUPPLIED
+        or document_has_numbers is UNSUPPLIED
+        or claim_has_numbers is None
+        or document_has_numbers is None
+    ):
+        return UNSUPPLIED
+    return bool(claim_has_numbers) and bool(document_has_numbers)
+
+
+def evidence_tier_for(
+    speaking: str,
+    *,
+    has_repro_steps: bool | None | _Unsupplied,
+    has_numbers: bool | None | _Unsupplied,
+) -> TierVerdict:
+    """(speaking, repro steps, numbers) -> a tier, from `contract/harvest.yaml`.
 
     NOT A CONSTANT IN THIS FILE. It is a ruling about what a vendor's own words
-    are worth, and rule 5 puts that in versioned YAML - see
-    `evidence_tier_by_speaking` there, and the flag on it: the mapping changes
-    the weight of three stored claims by 6x and wants E2's sign-off.
+    are worth and about what separates a build report from an opinion, and rule
+    5 puts that in versioned YAML - see `evidence_tier_rules` there.
 
-    Each value goes to the tier whose own gloss in `TIER_WEIGHT` already
-    describes it: E is "hearsay, summarising someone else" and F is "vendor
-    marketing". The mapping states an identity, it does not invent a scale.
+    KEYED ON THREE INPUTS SINCE 2026-08-30, AND THAT IS THE WHOLE CHANGE.
+    `speaking` alone answered WHOSE claim it is; `TIER_WEIGHT`'s glosses grade
+    HOW CHECKABLE it is. Keying one on the other made B and C unreachable by
+    construction - 0 of 197 stored claims reached them - because an engineer
+    with a published harness and an engineer with a hunch were both
+    `own-experience`. Both booleans were already on the claim, feeding
+    `f_specificity` at 1.6x and the tier at nothing.
 
-    RETURNS `UNSUPPLIED` RATHER THAN GUESSING when the key is missing or the
-    contract block is absent, so `compute()` refuses and names the gap. A
-    fallback tier here would be the exact defect the 2026-08-21 ruling was
-    written for - `DEFAULT_EVIDENCE_TIER` was a literal "D" applied to every
-    claim in the corpus, including three that quote a launch post.
+    ⚠ `has_numbers` HERE IS THE FALSIFIED BOOLEAN, not the extractor's raw one.
+    Callers pass `promotable_numbers(claim.has_numbers, document.has_numbers)` -
+    the self-report vetoed by the code-side count. It is a separate function
+    rather than an argument pair here so the two callers (`judge/pipeline.py`,
+    `judge/reweight.py`) share one definition of the veto instead of writing it
+    twice and drifting.
+
+    ⚠ AN ABSENT BOOLEAN WITHHOLDS A PROMOTION. IT DOES NOT REFUSE THE CLAIM.
+    This is the one place the 2026-08-21 "refuse rather than default" ruling is
+    deliberately not applied, and the reason is rule 8. Refusing would make
+    `compute()` raise and the claim would be DROPPED - a wrong gate, whose false
+    positives are invisible because the document simply is not there, and an
+    absence we caused reads as one we found. Withholding leaves the claim on the
+    board at the tier it already had, which is a wrong WEIGHT: visible,
+    rankable, and the evidence that decides whether the rung was right.
+
+    Not silent, though. The absent signal is named in `TierVerdict.unconfirmed`
+    and the callers count it, so "stayed at D" and "could not be promoted from D"
+    stay distinguishable - rule 4 one stage before the page.
+
+    STILL RETURNS `UNSUPPLIED` when `speaking` itself is unmapped or the contract
+    block is absent, so `compute()` refuses and names the gap. That case is a
+    contract that does not price a value the extractor can emit, and inventing a
+    tier for it is the exact defect the 2026-08-21 ruling was written for:
+    `DEFAULT_EVIDENCE_TIER` was a literal "D" applied to every claim in the
+    corpus, including three that quote a launch post.
     """
-    from judge.config import evidence_tier_by_speaking
+    from judge.config import evidence_tier_rules
 
-    mapping = evidence_tier_by_speaking()
-    tier = mapping.get(speaking)
+    rung = evidence_tier_rules().get(speaking)
+
+    # A flat tier - `relayed-from-elsewhere` and `vendor-about-own-product`.
+    # Neither has rungs, so neither reads the booleans: numbers in a relay are
+    # still someone else's numbers, and numbers in a launch post are still the
+    # vendor's. Returning before the booleans are examined is deliberate -
+    # reporting a missing signal nothing would have read is a caveat about
+    # nothing, and it would put a vendor claim in the "could not be promoted"
+    # count when no promotion was ever on offer.
+    if isinstance(rung, str):
+        return TierVerdict(rung if rung in TIER_WEIGHT else UNSUPPLIED)  # type: ignore[arg-type]
+
+    if not isinstance(rung, dict):
+        return TierVerdict(UNSUPPLIED)
+
+    unconfirmed: list[str] = []
+    signals = 0
+    for name, value in (("has_repro_steps", has_repro_steps), ("has_numbers", has_numbers)):
+        if value is UNSUPPLIED or value is None:
+            unconfirmed.append(name)
+            continue
+        signals += int(bool(value))
+
+    key = ("neither", "one_of_the_two", "repro_steps_and_numbers")[signals]
+    tier = rung.get(key)
     if tier not in TIER_WEIGHT:
-        return UNSUPPLIED
-    return tier  # type: ignore[return-value]
+        return TierVerdict(UNSUPPLIED, tuple(unconfirmed))
+    return TierVerdict(tier, tuple(unconfirmed))  # type: ignore[arg-type]
 
 
 # ── platform: GitHub is the failure channel, blogs the positive one ──────
@@ -332,28 +443,83 @@ def launch_factor(*, claim_date: date, release_date: date | None) -> float:
     return LAUNCH_FLOOR + (1 - LAUNCH_FLOOR) * min(1.0, days / LAUNCH_WINDOW_DAYS)
 
 
+#: What `f_specificity` reads, and it is TWO signals since 2026-08-30.
+#:
+#: OPTION 1 OF docs/proposals/for-engineer-2-the-double-count-the-tier-ruling-
+#: inherited.md, taken on E1's instruction. `has_numbers` and `has_repro_steps`
+#: were removed because `contract/harvest.yaml evidence_tier_rules` now keys the
+#: TIER on the same two booleans, and one fact may not be priced twice - the
+#: objection the old contract block raised against promoting at all, which E2's
+#: ruling overrode without making false.
+#:
+#: ⚠ WHAT IS LEFT IS TWO SIGNALS AND ONE OF THEM IS DEAD ON THIS CORPUS.
+#:   `document.has_conditions` is False on all 7 populated rows and NULL on 57,
+#:   so `version_named` is the only live term - and `f_fuzziness` already prices
+#:   version-naming at 1.0/0.6/0.3. That leaves `f_specificity` a two-valued
+#:   restatement of another factor, which is the SECOND question in that
+#:   proposal and is E2's to rule on: stop here, or retire the factor and run
+#:   six. Written here rather than left implicit because a factor that has
+#:   stopped measuring anything is invisible in a table of seven numbers that
+#:   all look like measurements.
+SPECIFICITY_WEIGHTS: dict[str, float] = {
+    "version_named": 0.2,
+    "has_conditions": 0.2,
+}
+
+#: The four-signal form, in force from the start of the project to 2026-08-30.
+#:
+#: KEPT SO `judge/reweight.py` CAN REPRODUCE THE ARITHMETIC OF A STORED VERSION,
+#: not as a fallback anybody may select at runtime. A re-weight that cannot
+#: reproduce the BEFORE side computes a diff against a version that never
+#: existed, and every conclusion drawn from it is about nothing. Same reason
+#: `--document-facts frozen` exists.
+LEGACY_SPECIFICITY_WEIGHTS: dict[str, float] = {
+    "version_named": 0.2,
+    "has_numbers": 0.2,
+    "has_conditions": 0.2,
+    # A repro was weighted double the other signals: a two-line GitHub comment
+    # with reproduction steps is the most valuable document type there is, and
+    # it would otherwise score poorly on every naive heuristic. That argument is
+    # still true - it just belongs to the tier now, where B's own gloss is
+    # "detailed first-hand build report", rather than being made twice.
+    "has_repro_steps": 0.4,
+}
+
+
 def specificity_factor(
     *,
     version_named: bool,
-    has_numbers: bool,
     has_conditions: bool,
-    has_repro_steps: bool,
+    has_numbers: bool | None | _Unsupplied = UNSUPPLIED,
+    has_repro_steps: bool | None | _Unsupplied = UNSUPPLIED,
+    weights: dict[str, float] = SPECIFICITY_WEIGHTS,
 ) -> float:
-    """Real experience carries numbers and error strings; slop carries adjectives.
+    """Real experience carries artifacts; slop carries adjectives.
 
-    A repro is weighted double the other signals: a two-line GitHub comment with
-    reproduction steps is the most valuable document type there is, and it
-    would otherwise score poorly on every naive heuristic.
+    `weights` names which signals count and what each is worth, so the caller
+    can price a claim the way an older `pipeline_version` priced it. Anything
+    not in `weights` is ignored entirely - passing it is allowed and changes
+    nothing, which is what lets `reweight` hand the same arguments to both forms.
+
+    ⚠ THE RANGE MOVED WITH THE WEIGHTS, and it is the part that surprises.
+      Four signals reached 1.00; two reach 0.58. `f_specificity` is a factor in
+      a product, so that is a 42% cut to the ceiling on EVERY claim, not only on
+      the ones that carried the two removed signals - see `MAX_POSSIBLE_WEIGHT`,
+      which had to move with it.
     """
+    supplied = {
+        "version_named": version_named,
+        "has_conditions": has_conditions,
+        "has_numbers": has_numbers,
+        "has_repro_steps": has_repro_steps,
+    }
     score = 0.0
-    if version_named:
-        score += 0.2
-    if has_numbers:
-        score += 0.2
-    if has_conditions:
-        score += 0.2
-    if has_repro_steps:
-        score += 0.4
+    for name, value in weights.items():
+        signal = supplied[name]
+        if signal is UNSUPPLIED or signal is None:
+            raise UnsuppliedWeightInput([name])
+        if signal:
+            score += value
     return 0.3 + 0.7 * score
 
 
@@ -371,6 +537,7 @@ def compute(
     has_numbers: bool | _Unsupplied,
     has_conditions: bool | _Unsupplied,
     has_repro_steps: bool | _Unsupplied,
+    specificity_weights: dict[str, float] = SPECIFICITY_WEIGHTS,
     superseded_snapshot: bool = False,
     possibly_changed: bool = False,
 ) -> WeightFactors:
@@ -383,6 +550,46 @@ def compute(
     # REFUSE BEFORE COMPUTING ANYTHING. Ruled 2026-08-21: a weighting input may
     # not have a silent default. The check is first so no factor is derived from
     # a constant before the caller learns which input is missing.
+    #
+    # ⚠ `None` REFUSES TOO, SINCE 2026-08-30, AND FOR TWO YEARS OF ROWS IT DID
+    #   NOT. The test was `value is UNSUPPLIED`, so a `None` walked straight
+    #   past a check written to make exactly this impossible, and
+    #   `specificity_factor` then read it as falsy. That is not a hypothetical:
+    #   `judge/cli.py:_document_facts` passes a literal `None` for
+    #   `has_numbers` and `has_conditions` on the only path that has ever
+    #   produced a claim, so EVERY claim in the table was weighted as though
+    #   both were False, whatever the document says.
+    #
+    #   The sentinel was built because `False` had meant "nobody measured".
+    #   `None` means the same thing and had the same effect, and it got in
+    #   because the guard was written against the SHAPE of the old bug rather
+    #   than against its substance. A sentinel that only catches the one
+    #   spelling somebody remembered is a guard against a spelling.
+    #
+    #   ⚠ THIS IS A REFUSAL, WHICH MEANS THE CLAIM IS NOT STORED. Rule 8's
+    #     hazard applies and is accepted here rather than dodged: a refusal is
+    #     a drop, and a drop is an absence we caused. What makes it the right
+    #     trade is that it is a LOUD absence - `UnsuppliedWeightInput` names the
+    #     input and the writer, `run_all` logs it per thread, and
+    #     `judge/reweight.py` counts it per input - whereas the `None` it
+    #     replaces was a silent wrong weight on every row. Rule 8 prefers a
+    #     visible wrong weight to an invisible wrong gate; it says nothing in
+    #     favour of an invisible wrong weight, which is what this was.
+    #
+    # ⚠ THE BOOLEAN HALF OF THE LIST FOLLOWS `specificity_weights`, and that is
+    #   not a convenience. After Option 1 (2026-08-30) `has_numbers` and
+    #   `has_repro_steps` reach the TIER and nothing else, and the tier arrives
+    #   here already decided - so requiring them would refuse a claim over an
+    #   input this function no longer reads. That is the rule-8 failure in its
+    #   worst form: a drop caused by a check that had stopped meaning anything.
+    #   Under `LEGACY_SPECIFICITY_WEIGHTS` all four are required again, because
+    #   there they are read.
+    boolean_inputs = {
+        "version_named": version_named,
+        "has_numbers": has_numbers,
+        "has_conditions": has_conditions,
+        "has_repro_steps": has_repro_steps,
+    }
     missing = [
         name
         for name, value in (
@@ -392,12 +599,9 @@ def compute(
             ("relevance", relevance),
             ("specificity", specificity),
             ("claim_date", claim_date),
-            ("version_named", version_named),
-            ("has_numbers", has_numbers),
-            ("has_conditions", has_conditions),
-            ("has_repro_steps", has_repro_steps),
+            *((name, boolean_inputs[name]) for name in specificity_weights),
         )
-        if value is UNSUPPLIED
+        if value is UNSUPPLIED or value is None
     ]
     if missing:
         raise UnsuppliedWeightInput(missing)
@@ -423,6 +627,7 @@ def compute(
             has_numbers=has_numbers,
             has_conditions=has_conditions,
             has_repro_steps=has_repro_steps,
+            weights=specificity_weights,
         ),
         f_relevance=RELEVANCE_WEIGHT[relevance],
         f_recency=recency,
@@ -431,12 +636,50 @@ def compute(
     )
 
 
-MAX_POSSIBLE_WEIGHT = TIER_WEIGHT["A"] * PLATFORM_WEIGHT["github"] * 1.0 * 1.0 * 1.0 * 1.0 * 1.0
-"""0.95 — the ceiling on a single claim.
+MAX_SPECIFICITY = 0.3 + 0.7 * sum(SPECIFICITY_WEIGHTS.values())
+"""0.58 — and it was 1.00 until Option 1 landed on 2026-08-30.
 
-Every other factor tops out at 1.0, so the platform base is the binding cap.
-This is why `n_eff >= 3.0` in the publication gate already implies four or more
-claims, and why a separate "voices >= 3" condition would be dead text.
+DERIVED FROM THE WEIGHTS RATHER THAN TYPED. The constant below is the gate's
+own arithmetic, and it was a literal `1.0` standing for "every other factor tops
+out at 1.0" — a sentence that stopped being true the moment two of the four
+specificity signals were removed. A ceiling written as a number goes stale
+silently; a ceiling written as an expression cannot.
+"""
+
+MAX_POSSIBLE_WEIGHT = (
+    TIER_WEIGHT["A"] * PLATFORM_WEIGHT["github"] * MAX_SPECIFICITY * 1.0 * 1.0 * 1.0 * 1.0
+)
+"""0.551 — the ceiling on a single claim. It was 0.95, and this is a real change.
+
+⚠ THE PUBLICATION GATE ASKS FOR MORE CLAIMS THAN IT DID, AND NOBODY VOTED FOR
+  THAT. `n_eff >= 3.0` needed 3.16 claims at 0.95 and needs 5.44 at 0.551, so
+  `curate/gate.py`'s "four or more" is now "six or more". That is a side effect
+  of removing the double count, not a decision about the bar - Option 1 was
+  argued as a fix to how one fact is priced, and it moved the gate's meaning
+  because `f_specificity` is a factor in a product and its RANGE fell with its
+  weights.
+
+  Nothing here compensates for it. Lowering `N_EFF_MINIMUM` to hold the old
+  effective bar would be a threshold change dressed as bookkeeping, and the
+  threshold is not this file's to move. It is written down so the next person to
+  ask "why does this need six voices" finds the answer rather than the number.
+
+AND THE 0.95 IT REPLACES WAS ALREADY A FIGURE ABOUT A TIER THE LADDER CANNOT
+REACH. `TIER_WEIGHT["A"]` is unreachable by construction, so the honest ceiling
+on any claim this pipeline can produce is the tier-B one - see
+`docs/measurements/what-separates-a-populated-board-from-a-publishing-one.md`
+§3, where exactly this figure was found answering a question it was not asked.
+"""
+
+MAX_REACHABLE_WEIGHT = (
+    TIER_WEIGHT["B"] * PLATFORM_WEIGHT["github"] * MAX_SPECIFICITY * 1.0 * 1.0 * 1.0 * 1.0
+)
+"""0.358 — the ceiling on a claim the ladder can actually produce.
+
+`MAX_POSSIBLE_WEIGHT` prices tier A, which `evidence_tier_rules` deliberately
+cannot emit. This is the same arithmetic at the rung that exists, and it is the
+number to quote when asking how many voices a cell needs. Rule 7: the two differ
+by 1.7x and only one of them answers "how much can a real claim weigh".
 """
 
 
