@@ -28,6 +28,33 @@ retrieved them. `harvest_run_id` landed specifically so a document can name the
 query that found it — *"the join that separates 'this page is empty because we
 never asked' from 'we asked and got nothing'"*, per `contract/tables.sql`.
 
+## ⚠ The attribution above is wrong, and Engineer 2's reply is why
+
+**Recorded 2026-08-31, after she answered.** I wrote this as though one other
+person had written on 2026-08-31. There were **two**, and neither batch is
+hers in the way I assumed:
+
+- **The three Reddit thread_contexts were not hers.**
+- **Her per-model fetch stored roughly 13 claims at 11:48 IST, plus 2 earlier**,
+  and neither was announced.
+
+So the day had **two unannounced writers, not one**, and I was one of them — the
+926 NULL-specificity rows in the last section are mine and I did not announce
+them either. The convention this note leans on is *"before a staging write
+session, say so"*, and it was broken from both sides on the same afternoon.
+
+**The re-baseline was the right call for both.** Every figure in this session
+that was taken before those writes and quoted after them needed re-deriving
+rather than carrying, and that is what happened — three times for the extraction
+projection alone. The lesson is not "announce better"; it is that a measurement
+against a shared database has a denominator that moves, and re-deriving is
+cheaper than the argument about who moved it.
+
+I am leaving the original text below rather than editing it, because what it got
+wrong is the interesting part: I identified the writes correctly and attributed
+them to a single person by elimination, which is exactly the reasoning
+`harvest_run` exists to make unnecessary.
+
 ## No collision
 
 Checked, because two of us were writing the same afternoon and the convention

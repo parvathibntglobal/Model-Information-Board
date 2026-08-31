@@ -140,6 +140,28 @@ Two things in that number are worth having beside it:
 reads one version or the other, not both. Whether the 199 move or a second
 version stands beside them is your ruling, not a consequence of the price.
 
+## 3.6 · Her answer: the detector exists and is unwired on purpose
+
+**Recorded 2026-08-31 from Engineer 2's reply, and it changes what this proposal
+is asking for.**
+
+`judge/vet/repro.py` is **built**, and deliberately not wired — wiring it
+collides with our `rebuild_all` change. So the gap this document describes is
+not "nobody has written a detector"; it is that the one that exists cannot be
+connected yet.
+
+**`DocumentFacts.text` is the single fix that lands both it and E6**, and it
+waits on the calibration ruling rather than on either of us. That reorders the
+ask: the description-and-prompt change in §3 is still worth making, but it is no
+longer the only route to a populated `has_repro_steps`, and the two should not
+be decided independently — a code-side detector and an extractor field that both
+answer "does this carry a repro" is the double-count in §4 acquiring a third
+head.
+
+Nothing here is blocked on me. Left in place because the argument about what
+`0 of 199` measures is unchanged, and because the cost figure in §3.5 is the
+input either route needs.
+
 ## 4 · What this changes downstream, stated before it is done
 
 If the field starts coming back True at any rate above zero, **every claim it
