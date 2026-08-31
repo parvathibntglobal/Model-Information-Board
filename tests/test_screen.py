@@ -46,3 +46,51 @@ class TestPreLLMScreen:
         got = links_in("see https://example.com/x?ref=1 and http://foo.bar/y here")
         assert "https://example.com/x?ref=1" in got
         assert "http://foo.bar/y" in got
+
+
+class TestBotSelfIdentification:
+    def test_an_explicit_bot_is_dropped(self):
+        v = screen(text="I am a bot, and this action was performed automatically by me.")
+        assert v.dropped and v.trigger == "bot_selfid"
+
+    def test_beep_boop_is_dropped(self):
+        v = screen(text="Beep boop! Here is the summary you asked for, from your friendly helper.")
+        assert v.dropped and v.trigger == "bot_selfid"
+
+    def test_a_human_mentioning_bots_is_not_dropped(self):
+        # Discussing bots is not being one — the pattern is a self-identification.
+        v = screen(text="gemini handled the bot-detection task well and did not overthink it")
+        assert v.dropped is False
+
+
+class TestLanguage:
+    def test_clean_english_passes(self):
+        assert screen(text=_CLEAN).dropped is False
+
+    def test_non_latin_script_is_dropped(self):
+        # Chinese — decisively non-Latin, so the script ratio fires. Long enough
+        # to clear the too_short floor and reach the language check.
+        v = screen(text=(
+            "这个模型对于大型任务非常有效并且每次都能可靠地处理长文本内容"
+            "表现优秀稳定可靠值得推荐给所有需要它的团队在生产环境中使用"
+        ))
+        assert v.dropped and v.trigger == "non_english"
+
+    def test_latin_text_with_no_english_function_words_is_dropped(self):
+        # Long Latin-script text carrying not one common English word.
+        v = screen(text=(
+            "zzt qmx lorplk vwenta brklm frtsun glomph vrenzik tolmaq brundel "
+            "wexlo praften murgle snelvok trundish greblik omphal wextra brommel snargle"
+        ))
+        assert v.dropped and v.trigger == "non_english"
+
+    def test_thin_text_is_never_dropped_on_language(self):
+        # Under the letter floor: judged too little to call, so kept (but caught
+        # by too_short first here — the point is language does not fire on it).
+        assert screen(text="mañana").trigger != "non_english"
+
+    def test_code_shaped_english_is_kept(self):
+        # Error strings / identifiers with English function words present must pass.
+        v = screen(text="the call failed with TypeError: cannot read property of "
+                        "undefined in the loop")
+        assert v.dropped is False

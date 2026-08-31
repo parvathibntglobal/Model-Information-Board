@@ -15,22 +15,28 @@ there is one description of "promotional", not two.
 WHAT RUNS HERE — text only, needs nothing the LLM produces:
 
     platform placeholder        [removed]/[deleted]      judge/extract/placeholder.py
+    minimum signal              too short to carry a claim   here
+    bot self-identification     "I am a bot" / "beep boop"   here
+    language                    not English (heuristic)      here
     affiliate / tracking link   provider link + params   reject.py rule 1
     sponsored disclosure        paid-placement wording   reject.py rule 2
     discount code               code for the product      reject.py rule 3
-    minimum signal              too short to carry a claim   here
+
+The language and bot checks are DELIBERATELY conservative — a false drop removes
+a real voice, so both err toward keeping: language fires only on decisively
+non-English text, and bot only on an explicit self-identification (the account
+flags and karma heuristics need author metadata from harvest, and heuristics are
+weights, not drops).
 
 WHAT DOES NOT RUN HERE YET — named rather than skipped, because an absent check
 must not read as a passed one:
 
-    release-date sanity   reject.py rule 5, needs resolved model MENTIONS from a
-                          deterministic resolver (not the extractor's)
-    syndication           reject.py rule 4, needs the E3 dedup cluster
-    language / bot        collect-side E4 triage, not judge's to run
-
-So this is the promotional/placeholder/length subset of the funnel's step 6/2/3
-— the part that needs only the document's text, which is exactly what a caller
-has before the model call.
+    release-date sanity   reject.py rule 5. On the model-name fetch the model IS
+                          known, so this runs in the fetch (not here) against the
+                          fetched model's release date
+    syndication           reject.py rule 4, needs the E3 dedup cluster (no writer)
+    8★ behaviour          needs a signal vocabulary derived from near-misses; a
+                          hand-written one would silently empty the corpus (rule 8)
 """
 
 from __future__ import annotations
@@ -50,6 +56,57 @@ _URL = re.compile(r"https?://[^\s)>\]}\"']+")
 #: floor, not a judgement about content — the LLM's time is better spent on text
 #: that could say something.
 MIN_SIGNAL_CHARS = 40
+
+#: Common English function words. Their near-total absence in Latin-script text
+#: of any length is a strong signal it is not English.
+_ENGLISH_STOPWORDS = frozenset({
+    "the", "a", "an", "and", "or", "but", "is", "are", "was", "were", "be", "been",
+    "to", "of", "in", "on", "at", "for", "with", "that", "this", "it", "its", "you",
+    "i", "we", "they", "he", "she", "as", "by", "from", "not", "no", "have", "has",
+    "had", "do", "does", "did", "will", "would", "can", "could", "should", "there",
+    "their", "what", "when",
+})
+
+#: Internal markers E3 adds, stripped before language detection so "[root by …]"
+#: and "[upside_down_face]" are not counted as the author's words.
+_BRACKET_TAG = re.compile(r"\[[^\]]*\]")
+
+#: Explicit bot self-identification. Reddit bots are usually required to say so,
+#: which makes this high precision. NOT an attempt to enumerate bots — the flags
+#: and account heuristics live at harvest, and heuristics are weights not drops.
+_BOT_SELFID = [
+    re.compile(p, re.I)
+    for p in (
+        r"\bi[' ]?a?m a bot\b",
+        r"\bbeep[ -]?boop\b",
+        r"\bthis action was performed automatically\b",
+        r"\baction was performed automatically\b",
+    )
+]
+
+
+def _is_bot_selfid(text: str) -> bool:
+    return any(p.search(text) for p in _BOT_SELFID)
+
+
+def _looks_non_english(text: str) -> bool:
+    """Conservative: True only when the text is decisively not English.
+
+    A false drop removes a real voice, so this errs hard toward KEEPING. Two
+    decisive cases: majority non-Latin script, and Latin-script text of real
+    length carrying not one common English function word (Spanish, French, …).
+    Thin or code-shaped text is left alone.
+    """
+    body = _BRACKET_TAG.sub(" ", text)
+    letters = [c for c in body if c.isalpha()]
+    if len(letters) < 30:
+        return False  # too little to judge; never drop on thin evidence
+    non_ascii = sum(1 for c in letters if not c.isascii())
+    if non_ascii / len(letters) > 0.5:
+        return True  # majority non-Latin script (Cyrillic, CJK, Arabic, …)
+    # Latin script, real length, and not one English function word.
+    words = re.findall(r"[a-z]{2,}", body.lower())
+    return len(words) >= 20 and not any(w in _ENGLISH_STOPWORDS for w in words)
 
 
 @dataclass(frozen=True)
@@ -81,6 +138,12 @@ def screen(*, text: str) -> ScreenVerdict:
     if len(stripped) < MIN_SIGNAL_CHARS:
         return ScreenVerdict(
             True, "too_short", f"under {MIN_SIGNAL_CHARS} chars — no room for a claim"
+        )
+    if _is_bot_selfid(text):
+        return ScreenVerdict(True, "bot_selfid", "author self-identifies as a bot")
+    if _looks_non_english(text):
+        return ScreenVerdict(
+            True, "non_english", "text is not English by the conservative heuristic"
         )
 
     # The promotional rules, from the one place they are defined. Only the
