@@ -118,10 +118,18 @@ columns:
     consensus_phrase: {state: read, reviewed: false}
     freshest_at: {state: write_only, reviewed: false}
     independent_voices: {state: read, reviewed: false}
-    max_author_share: {state: write_only, reviewed: false}
+    max_author_share:
+      state: read
+      reviewed: false
+      why: >-
+        read by scripts/report_rollup_delta.py, which re-checks the stored gate inputs against judge/curate/gate.py's thresholds. It is not a second opinion about the cell - it can only disagree with `status` if the thresholds moved since the rollup, which is the thing worth knowing
     median_age: {state: write_only, reviewed: false}
     model_version_id: {state: read, reviewed: false}
-    n_eff: {state: write_only, reviewed: false}
+    n_eff:
+      state: read
+      reviewed: false
+      why: >-
+        read by scripts/capture_rollup_baseline.py and scripts/report_rollup_delta.py. `cell` is keyed WITHOUT pipeline_version, so a rebuild overwrites these rows and the before-state is unrecoverable after the fact - the baseline exists so the board getting QUIETER is visible, which is the direction nobody checks
     negative: {state: read, reviewed: false}
     pipeline_version: {state: write_only, reviewed: false}
     platform_count: {state: read, reviewed: false}
@@ -298,7 +306,11 @@ columns:
     lang: {state: reserved, reviewed: false}
     minhash: {state: reserved, reviewed: false}
     names_version: {state: read, reviewed: false, why: "written by collect/triage/store.py since 2026-08-31; read by assemble/thread.py's child ranking"}
-    parent_id: {state: write_only, reviewed: false}
+    parent_id:
+      state: read
+      reviewed: false
+      why: >-
+        read by collect/assemble/issue.py:assemble_github_documents since 2026-08-31. `parent_id IS NULL` is what separates an issue BODY from a comment, and the query had no such clause until comments existed - it would have assembled 148 comments as their own single-comment threads, putting the same text in front of the extractor twice under two ids
     retrieval_provenance: {state: read, reviewed: false}
     simhash: {state: reserved, reviewed: false}
     source: {state: read, reviewed: false}
@@ -592,7 +604,11 @@ columns:
     member_document_ids: {state: read, reviewed: false}
     observed_children: {state: read, reviewed: false}
     offset_map: {state: read, reviewed: false}
-    pipeline_version: {state: write_only, reviewed: false}
+    pipeline_version:
+      state: read
+      reviewed: false
+      why: >-
+        read by scripts/export_contexts_for_extract.py --pipeline-version since 2026-08-31. 584 GitHub issues hold both an issue_body_only context at collect-0.1.0 and an issue_with_comments fork at collect-0.2.0-issue-comments; neither has a thread_extraction row, so selecting on "not yet extracted" alone takes both and the same issue body reaches the extractor twice - one author counted as two voices
     selection_method: {state: read, reviewed: false}
     thread_root_id: {state: read, reviewed: false}
 

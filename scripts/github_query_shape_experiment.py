@@ -2,7 +2,19 @@
 
 WHAT IS ALREADY MEASURED AND IS NOT RE-DERIVED HERE
 
-    capability vs model-name    3.4% kept against 0.15% - 23x
+    capability vs model-name    ~3x on precision, pooled. CORRECTED 2026-08-31;
+                                this line read "3.4% kept against 0.15% - 23x"
+                                and both halves were wrong. The 3.4% is an order
+                                of magnitude high - no slice of `harvest_run`
+                                produces it, and the closest value is
+                                avg(sieve_pass_rate) = 0.36%. Quote the POOLED
+                                ratio, not the mean of per-run ratios: that is
+                                the same mean-of-ratios error the extraction
+                                cost model made once already.
+                                docs/measurements/model-name-versus-capability-
+                                retrieval.md carries the corrected reading and
+                                has since it was written; this docstring is
+                                where the stale copy survived.
     the diagnosis               signal fails, not topic: 2,239 candidates gave
                                 63 topic hits and 3 signal hits
     structural qualifiers       `is:issue state:open` shrinks the reported corpus
