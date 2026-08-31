@@ -754,22 +754,36 @@ class TestAStaleBaselineIsRefusedRatherThanBelieved:
         """The refusal must not be the only outcome."""
         assert self._refusal({"pipeline_version": "e5.4"}, "e5.4") is None
 
-    def test_the_file_on_disk_is_marked_and_carries_no_usable_counts(self):
-        """Marking it is not enough if the wrong numbers stay where they are read.
+    def test_any_baseline_on_disk_gets_a_definite_verdict(self):
+        """The durable property, and the first version of this test did not have it.
 
-        `report_rollup_delta` reads `before["claims_total"]`, so leaving that key
-        at the top level would keep 51 usable by anything that skipped the
-        staleness check. The original capture is preserved under a key nothing
-        reads.
+        It asserted `_before_rollup.json` was MARKED STALE - a transient state of
+        a gitignored local file, which step 0 then correctly overwrote with a
+        fresh capture. A test that fails when the thing it describes is repaired
+        is testing the weather.
+
+        What must always hold is that the file cannot be BELIEVED BY ACCIDENT:
+        whatever is on disk, `baseline_refusal` gives a definite answer, and a
+        file carrying usable counts must also carry the `pipeline_version` that
+        lets staleness be checked. `claims_total` without it is the exact shape
+        that would have announced +146 claims.
         """
         import json
         from pathlib import Path
 
         path = Path(__file__).resolve().parent.parent / "_before_rollup.json"
         if not path.exists():
-            pytest.skip("no baseline on disk; nothing to mark")
+            pytest.skip("no baseline on disk; the absent path is loud already")
         before = json.loads(path.read_text(encoding="utf-8"))
-        assert before.get("stale") is True
-        assert "claims_total" not in before, "the wrong number must not stay readable"
-        assert before["superseded_capture_2026_08_28"]["claims_total"] == 51
-        assert self._refusal(before, "e5.1") is not None
+
+        if "claims_total" in before:
+            assert before.get("pipeline_version"), (
+                "a baseline carrying counts must carry the version they were "
+                "counted at, or nothing can tell it from a stale one"
+            )
+            assert self._refusal(before, before["pipeline_version"]) is None
+        else:
+            assert self._refusal(before, "any-version") is not None, (
+                "a file with no usable counts must be refused rather than "
+                "silently contributing nothing"
+            )

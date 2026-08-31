@@ -1,0 +1,53 @@
+{
+ "as_of_pipeline_version": "e5.1",
+ "population": 197,
+ "population_note": "claims stored at this pipeline_version - the corpus",
+ "would_refuse": 194,
+ "would_refuse_by_reason": {
+  "has_numbers+has_conditions": 194
+ },
+ "would_refuse_by_platform": {
+  "reddit": 157,
+  "github": 17,
+  "blog": 20
+ },
+ "would_refuse_by_model": {
+  "google/gemini-2.5-flash": 1,
+  "google/gemini-3.5-flash": 3,
+  "google/gemini-2.5-pro": 1,
+  "qwen/qwen3.8-27b": 33,
+  "openai/gpt-5.5": 4,
+  "moonshotai/kimi-k2.7-code": 1,
+  "qwen/qwen3.7-max": 1,
+  "xiaomi/mimo-v2.5-pro": 1,
+  "anthropic/claude-sonnet-5": 24,
+  "z-ai/glm-5.2": 3,
+  "anthropic/claude-opus-4.7": 4,
+  "anthropic/claude-opus-4.6": 21,
+  "anthropic/claude-opus-5": 1,
+  "openai/gpt-5.3-codex": 3,
+  "openai/gpt-5.6-sol-pro": 2,
+  "openai/gpt-5.6-luna": 6,
+  "openai/gpt-5.6-sol": 12,
+  "anthropic/claude-fable-5": 22,
+  "anthropic/claude-haiku-4.5": 8,
+  "google/gemini-3.7-flash": 7,
+  "moonshotai/kimi-k3": 2,
+  "anthropic/claude-sonnet-4.6": 14,
+  "anthropic/claude-opus-4.8": 7,
+  "moonshotai/kimi-k2.6": 1,
+  "deepseek/deepseek-v4-pro": 1,
+  "moonshotai/kimi-k2.5": 1,
+  "anthropic/claude-sonnet-4.5": 2,
+  "openai/gpt-5.6-terra": 2,
+  "anthropic/claude-opus-4.5": 1,
+  "google/gemini-3.6-flash": 1,
+  "openai/gpt-5.2": 1,
+  "x-ai/grok-4.5": 2,
+  "deepseek/deepseek-v4-flash": 1
+ },
+ "f_specificity_moves": 0,
+ "f_specificity_moves_by_pair": {},
+ "unchanged": 3,
+ "rows_not_reproducing_stored_f_specificity": 3
+}
