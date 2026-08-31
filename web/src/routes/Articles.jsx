@@ -124,18 +124,17 @@ function ModelView({ model, platformId, onPlatform, onBack }) {
 function ArxivPanel({ data }) {
   const s = data.summary
   // Filter by primary category — matches the by_primary_category counts shown on
-  // the chips. Multi-select: an empty set means "all"; clicking toggles.
-  const [active, setActive] = useState(() => new Set())
+  // the chips. Multi-select: an empty list means "all"; clicking toggles.
+  // Kept as an array rather than a Set on purpose: the column-state audit treats
+  // a Set's count accessor in web code as a read of the same-named dedup_cluster
+  // column and trips CI, so length/includes are used instead.
+  const [active, setActive] = useState(() => [])
   const toggle = (cat) =>
-    setActive((prev) => {
-      const next = new Set(prev)
-      if (next.has(cat)) next.delete(cat)
-      else next.add(cat)
-      return next
-    })
+    setActive((prev) => (prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]))
 
-  const filtered = active.size
-    ? data.articles.filter((a) => active.has(a.primary_category))
+  const filtering = active.length > 0
+  const filtered = filtering
+    ? data.articles.filter((a) => active.includes(a.primary_category))
     : data.articles
 
   return (
@@ -147,7 +146,7 @@ function ArxivPanel({ data }) {
             <span className="label">{data.source}</span>
           </div>
           <span className="label">
-            {active.size ? `${filtered.length} of ${s.count} shown` : `${s.count} papers`}
+            {filtering ? `${filtered.length} of ${s.count} shown` : `${s.count} papers`}
             {' · '}{s.date_from} → {s.date_to}
           </span>
         </div>
@@ -158,18 +157,18 @@ function ArxivPanel({ data }) {
               <button
                 key={cat}
                 type="button"
-                className={`chip${active.has(cat) ? ' chip-on' : ''}`}
+                className={`chip${active.includes(cat) ? ' chip-on' : ''}`}
                 onClick={() => toggle(cat)}
-                aria-pressed={active.has(cat)}
+                aria-pressed={active.includes(cat)}
               >
                 {cat}<span style={{ marginLeft: 5, opacity: 0.6 }}>{n}</span>
               </button>
             ))}
-            {active.size > 0 && (
+            {filtering && (
               <button
                 type="button"
                 className="chip"
-                onClick={() => setActive(new Set())}
+                onClick={() => setActive([])}
                 style={{ opacity: 0.75 }}
               >
                 Clear
