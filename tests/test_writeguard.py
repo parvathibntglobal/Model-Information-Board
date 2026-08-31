@@ -51,6 +51,19 @@ def test_the_refusal_says_how_to_proceed_rather_than_only_what_is_wrong():
     assert "ENVIRONMENT" in message
 
 
+def test_the_remedy_does_not_offer_staging_as_a_safe_alternative():
+    """#189: ENVIRONMENT=staging satisfies this check but runs NO fixture check
+    on judge's path (preflight is uncalled), so the message must not present it
+    as an equal remedy to changing the target. The safe remedy is the target."""
+    with pytest.raises(UnsafeWriteRefused) as raised:
+        check(SHARED, command="judge extract")
+
+    message = str(raised.value)
+    assert "your own Postgres" in message            # the remedy that is actually safe
+    assert "not a substitute" in message.lower()     # staging named as NOT one
+    assert "preflight" in message                     # and why: no check runs here
+
+
 # ── and the three combinations that are fine ────────────────────────────────
 
 
@@ -74,10 +87,11 @@ def test_a_unix_socket_dsn_with_no_host_is_local():
 def test_a_remote_database_is_fine_when_the_flag_is_not_development(
     environment, monkeypatch
 ):
-    """The fixture guard is ON, which is the whole point of the check.
+    """A non-development flag is not the pairing this guard refuses, so it passes.
 
-    This must not become "never write to staging" — that would be a different
-    rule, and it would be wrong.
+    NOT because a fixture check runs here — on judge's path none does (preflight
+    is uncalled, #189). This asserts the guard does not OVER-refuse; it must not
+    become "never write to staging", which would be a different and wrong rule.
     """
     monkeypatch.setenv("ENVIRONMENT", environment)
     check(SHARED, command="judge extract")

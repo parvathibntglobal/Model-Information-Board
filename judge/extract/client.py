@@ -139,7 +139,12 @@ class OpenRouterClient:
 
         response = httpx.post(
             f"{self.base_url}/chat/completions",
-            timeout=self.timeout_seconds,
+            # Explicit phases rather than one float: a stalled CONNECT fails fast
+            # (10s) while a legitimately slow generation still gets the full read
+            # window. A read that goes idle past the window raises rather than
+            # hanging the batch - the on-demand fetch's E5 had no ceiling a caller
+            # could see, so a slow provider looked identical to a dead one.
+            timeout=httpx.Timeout(self.timeout_seconds, connect=10.0),
             headers={"Authorization": f"Bearer {self.api_key}"},
             json={
                 "model": self.model,
@@ -249,6 +254,27 @@ def tool_schema_for(model_cls: type) -> dict[str, object]:
                 target = definitions[ref.split("/")[-1]]
                 merged = {k: v for k, v in node.items() if k != "$ref"}
                 return {**inline(target, expansions + 1), **merged}
+            # `prefixItems` IS NOT HANDLED HERE. It was, until the 2026-08-31
+            # merge put two implementations of one rewrite in one function
+            # chain: this one and `widen_tuples` below, called as
+            # `widen_tuples(inline(schema))`.
+            #
+            # THE MERGE WAS TEXTUALLY CLEAN AND SEMANTICALLY NOT. They are
+            # separate functions, so git combined them without a conflict, and
+            # the result was that this block stripped `prefixItems` FIRST -
+            # leaving `widen_tuples` nothing to inspect and its refusal
+            # unreachable. `test_a_heterogeneous_tuple_refuses_rather_than_
+            # guessing` went from passing to DID NOT RAISE, which is the only
+            # reason anybody found out.
+            #
+            # The two differ on exactly one case and it is the dangerous one.
+            # Both rewrite `prefixItems` to `items` for Gemini, which is the
+            # reason the rewrite exists. This one took `prefix[0]` on the stated
+            # assumption that "the tuples here are homogeneous" - true today,
+            # and a silent misdescription to the extractor on the day it stops
+            # being true. `widen_tuples` raises instead.
+            #
+            # So the rewrite lives in ONE place, and it is the one that refuses.
             return {k: inline(v, expansions) for k, v in node.items()}
         if isinstance(node, list):
             return [inline(v, expansions) for v in node]

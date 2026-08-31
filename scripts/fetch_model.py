@@ -65,6 +65,13 @@ CAPABILITIES = (
 
 FETCH_DIR = ROOT / "var" / "fetch"
 
+#: An on-demand fetch must stay responsive, and extraction is one LLM call per
+#: thread whose latency scales with the prompt. A 45-comment thread produced a
+#: ~13-minute E5 with no visible progress. Threads larger than this are DEFERRED
+#: to the nightly batch (which is uncapped) rather than read on a click; the cap
+#: is generous, so only pathologically large threads are held back.
+MAX_FETCH_THREAD_CHARS = 30_000
+
 
 class Progress:
     """One run's per-stage log. Append-only JSONL the fetch view tails."""
@@ -200,6 +207,30 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int)
     return inserted
 
 
+def _write_rapidapi_quota(remaining: int | None, limit: int | None, run_id: str) -> None:
+    """Persist the latest RapidAPI quota HEADER reading for the admin page.
+
+    RapidAPI bills the Reddit path as a request quota, and the remaining/limit
+    arrive in `x-ratelimit-*` response headers. This writes the RAW reading, not
+    a recompute, so the admin page shows the provider's OWN number cached with
+    its date rather than a second source of truth. It is shown 'as of' that date,
+    because the quota moves only when a fetch runs and a dated reading on a live
+    dashboard would otherwise read as current.
+
+    Written from this per-model fetch. The nightly Reddit sweep can write the
+    same file with one line so the figure also moves without a manual fetch.
+    """
+    if remaining is None and limit is None:
+        return  # nothing was read; do not overwrite a good reading with a blank
+    path = ROOT / "var" / "rapidapi-quota.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rec = {"quota_remaining": remaining, "quota_limit": limit,
+           "at": _now(), "source_run_id": run_id}
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(rec), encoding="utf-8")
+    tmp.replace(path)  # atomic, so a concurrent read never sees a half-written file
+
+
 def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: int,
                    max_threads: int) -> int:
     """E2 harvest — live Reddit search (RapidAPI) for this model, WITH comments.
@@ -224,17 +255,28 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                       f"for up to {max_threads} thread(s)")
 
     inserted = hits = threads = 0
+    q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
     with build_client() as client:
         searcher = harvester_for_source(reddit_src, client=client, store=store)
         for variant in queries:
             if threads >= max_threads:
                 break
             run = searcher.search(variant)
+            if run.quota_remaining is not None:
+                q_remaining = run.quota_remaining
+            if run.quota_limit is not None:
+                q_limit = run.quota_limit
             hits += len(run.posts)
             for post in run.posts:
                 if threads >= max_threads:
                     break
                 fetch = searcher.fetch_comments(post)
+                # A comment fetch is a metered call, so its quota reading is as
+                # fresh as a search's — take the latest either reports.
+                if getattr(fetch, "quota_remaining", None) is not None:
+                    q_remaining = fetch.quota_remaining
+                if getattr(fetch, "quota_limit", None) is not None:
+                    q_limit = fetch.quota_limit
                 if getattr(fetch, "not_a_thread", False) or not getattr(fetch, "comments", None):
                     continue  # a post with no comments will not assemble
                 items = [post, *fetch.comments]
@@ -243,12 +285,21 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                 for c in fetch.comments:
                     body = getattr(c, "body", "") or ""
                     refs[c.external_id] = (store.put(body).ref, content_hash(body))
-                wrote = reddit_write(conn, items, refs=refs)
+                # This is the model-name SEARCH arm: a query was issued but no
+                # harvest_run row was opened, so `not_recorded` is the honest
+                # provenance — reddit_write.py:147 names this exact caller. The
+                # argument became required when retrieval_provenance merged, and
+                # this call site was not updated with it.
+                wrote = reddit_write(
+                    conn, items, refs=refs, retrieval_provenance="not_recorded"
+                )
                 conn.commit()
                 inserted += int(wrote.get("documents_inserted", 0) or 0)
                 threads += 1
+    _write_rapidapi_quota(q_remaining, q_limit, prog.run_id)
     prog.stage("E2R", "Harvest · Reddit", "ok",
                search_hits=hits, threads_fetched=threads, documents_inserted=inserted,
+               quota_remaining=q_remaining, quota_limit=q_limit,
                detail=f"{threads} thread(s) with comments fetched, {inserted} document(s) appended")
     return inserted
 
@@ -325,7 +376,20 @@ def build_thread_inputs(conn, seen, *, limit: int):
     return inputs, doc_ids
 
 
-def extract_and_curate(conn, prog: Progress) -> None:
+def _thread_latest_dates(conn, thread_ids: list[str]) -> dict:
+    """thread_context_id -> the newest document date in it. For the release gate."""
+    if not thread_ids:
+        return {}
+    rows = conn.execute(
+        "SELECT tc.id, max(d.created_at) "
+        "FROM thread_context tc JOIN document d ON d.id = ANY(tc.member_document_ids) "
+        "WHERE tc.id = ANY(%s) GROUP BY tc.id",
+        (thread_ids,),
+    ).fetchall()
+    return {tc_id: latest for tc_id, latest in rows}
+
+
+def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
     """E5–E7 — extract claims from this fetch's threads, vet, and curate cells.
 
     Spends (capped) OpenRouter money and writes claims + cells. Scoped to the
@@ -333,6 +397,11 @@ def extract_and_curate(conn, prog: Progress) -> None:
     The surface resolver is wired here — the composition root's job — so a
     claim's SURFACE ("gemini flash") maps to a model_version. Curation is the
     pipeline's own step; it runs inside one transaction, so it is atomic.
+
+    `release_date` is the fetched model's release date. On a model-name harvest
+    the model IS known, so the release gate (reject.py rule 5) runs here rather
+    than in the generic text screen: a thread whose newest document predates the
+    model cannot be about it — a coincidental name match or a fabrication.
     """
     from collect.surface_resolver import RegistrySurfaceResolver
     from judge import spend_ledger
@@ -347,11 +416,66 @@ def extract_and_curate(conn, prog: Progress) -> None:
     ledger = ExtractionLedger(conn)
     seen = ledger.already_extracted()
     threads, doc_ids = build_thread_inputs(conn, seen, limit=200)
+
+    # Defer pathologically large threads to the nightly batch so a click cannot
+    # become a many-minute call. Generous cap: most threads still read now.
+    oversized = [t for t in threads if len(t.flattened_text) > MAX_FETCH_THREAD_CHARS]
+    threads = [t for t in threads if len(t.flattened_text) <= MAX_FETCH_THREAD_CHARS]
+    if oversized:
+        prog.stage("E5", "Extract", "running",
+                   detail=f"{len(oversized)} oversized thread(s) deferred to the nightly "
+                          f"batch (> {MAX_FETCH_THREAD_CHARS:,} chars, too slow on demand)")
+
+    # PRE-LLM HARD GATES. The model reads only what survives them, so a
+    # promotional/placeholder/too-short thread never costs a token. Reuses the
+    # vet rules (judge/screen.py) on text the fetch already has - the funnel's
+    # "gates before the LLM". Coarse by design: a thread drops if its flattened
+    # text triggers a rule; per-DOCUMENT granularity (drop one comment, keep the
+    # thread) would need to rewrite the assembled offset_map and is a later
+    # refinement. Every drop is named on the stage line, not silent.
+    from collections import Counter
+
+    from judge.screen import screen as pre_llm_screen
+
+    verdicts = [(t, pre_llm_screen(text=t.flattened_text)) for t in threads]
+    dropped = [(t.thread_context_id, v.trigger) for t, v in verdicts if v.dropped]
+    threads = [t for t, v in verdicts if not v.dropped]
+
+    # RELEASE-DATE GATE (reject.py rule 5), here because the model is known: a
+    # thread whose newest document predates the model's release cannot be about
+    # it. Compared against the newest document so a thread that CONTINUED after
+    # release is kept; only wholly-pre-release threads drop. Skipped when the
+    # model has no release date on record (rule 6: absent is not "predates").
+    if release_date is not None and threads:
+        latest = _thread_latest_dates(conn, [t.thread_context_id for t in threads])
+        predates = []
+        kept = []
+        for t in threads:
+            newest = latest.get(t.thread_context_id)
+            if newest is not None and newest.date() < release_date:
+                predates.append(t.thread_context_id)
+            else:
+                kept.append(t)
+        threads = kept
+        dropped.extend((tc, "predates_model") for tc in predates)
+
+    if dropped:
+        by_trigger = Counter(trig for _, trig in dropped)
+        summary = ", ".join(f"{n} {trig}" for trig, n in by_trigger.most_common())
+        prog.stage("E4b", "Screen · pre-LLM", "ok", dropped=len(dropped),
+                   by_trigger=dict(by_trigger),
+                   detail=f"{len(dropped)} thread(s) dropped before the LLM ({summary}); "
+                          f"{len(threads)} pass to extract")
+    else:
+        prog.stage("E4b", "Screen · pre-LLM", "ok",
+                   detail=f"all {len(threads)} thread(s) passed the pre-LLM screen")
+
     prog.stage("E5", "Extract", "running",
                detail=f"{len(threads)} new thread(s) to read (LLM; capped spend)")
     if not threads:
         prog.stage("E5", "Extract", "skipped",
-                   detail="no new readable threads — nothing harvested resolved to local text")
+                   detail="no new readable threads to read now — "
+                          "nothing local, or all deferred as oversized")
         for id_, name in [("E6", "Vet"), ("E7", "Curate")]:
             prog.stage(id_, name, "skipped", detail="no claims to curate")
         return
@@ -363,6 +487,16 @@ def extract_and_curate(conn, prog: Progress) -> None:
     mvo = _model_version_map(conn)
     resolver = RegistrySurfaceResolver.from_connection(conn)
 
+    # Per-thread progress, so a slow E5 shows movement instead of looking hung -
+    # the whole reason E6/E7 seemed never to arrive was E5 running in silence.
+    total = len(threads)
+    counter = {"n": 0}
+
+    def _on_thread(tc_id: str) -> None:
+        counter["n"] += 1
+        prog.stage("E5", "Extract", "running",
+                   detail=f"reading thread {counter['n']}/{total} (LLM) — {tc_id}")
+
     results = Pipeline(
         conn,
         client=OpenRouterClient.from_env(),
@@ -371,6 +505,7 @@ def extract_and_curate(conn, prog: Progress) -> None:
     ).run_all(
         threads, facts=facts, model_version_of=mvo, budget=budget,
         already_extracted=seen, driver=Driver("new-evidence"), resolve_surface=resolver,
+        on_thread=_on_thread,
     )
     conn.commit()
 
@@ -379,6 +514,44 @@ def extract_and_curate(conn, prog: Progress) -> None:
     cells = sum(len(r.cells) for r in results)
     prog.stage("E5", "Extract", "ok",
                detail=f"{verified} claim(s) verified, {stored} stored")
+
+    # CAPABILITY DISCOVERY. Proposals the extractor made for keys none of the 12
+    # named — appended to capability_candidate for an admin to rule on. The LLM
+    # proposes; a person adopts (a capabilities.yaml PR). Idempotent, so a
+    # re-fetch cannot inflate the count.
+    from judge.store.capability_candidates import store_proposals
+    proposals = [p for r in results for p in r.extraction.proposed_capabilities]
+    # The store must never break a fetch. If the migration has not reached this
+    # database yet, the proposals are named in the log and dropped for this run
+    # rather than crashing extraction on a missing table.
+    table_present = conn.execute(
+        "SELECT to_regclass('public.capability_candidate')"
+    ).fetchone()[0] is not None
+    if proposals and table_present:
+        outcome = store_proposals(
+            conn, proposals,
+            proposer_model=os.getenv("EXTRACTOR_MODEL", "google/gemini-2.5-flash"),
+            prompt_label="fetch-extract",
+        )
+        conn.commit()
+        prog.stage("E5b", "Discover", "ok",
+                   proposed=outcome["proposed"], stored=outcome["stored"],
+                   unattributed=outcome["unattributed"],
+                   detail=f"{outcome['proposed']} capability proposal(s); "
+                          f"{outcome['stored']} new candidate(s) stored for review"
+                          + (f", {outcome['unattributed']} unattributable"
+                             if outcome["unattributed"] else ""))
+    elif proposals and not table_present:
+        prog.stage("E5b", "Discover", "skipped", proposed=len(proposals),
+                   keys=sorted({p.proposed_key for p in proposals}),
+                   detail=f"{len(proposals)} capability proposal(s) NOT stored: the "
+                          "capability_candidate table is not on this database yet "
+                          "(migration unapplied). Proposed keys: "
+                          + ", ".join(sorted({p.proposed_key for p in proposals})[:8]))
+    else:
+        prog.stage("E5b", "Discover", "ok",
+                   detail="no new capabilities proposed — every claim fit an existing key")
+
     prog.stage("E6", "Vet", "ok", detail="promotional/sarcastic/contradictory dropped in-run")
     prog.stage("E7", "Curate", "ok",
                detail=f"{cells} cell(s) computed — capability cards refresh from these")
@@ -406,7 +579,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         conn = connect(dsn)  # NO drop, NO disposability wipe — append-only
         row = conn.execute(
-            "SELECT canonical_id, display_name FROM model_version WHERE id = %s",
+            "SELECT canonical_id, display_name, release_date FROM model_version WHERE id = %s",
             (args.model_version_id,),
         ).fetchone()
         if row is None:
@@ -414,7 +587,7 @@ def main(argv: list[str] | None = None) -> int:
                        detail=f"{args.model_version_id} is not in the registry")
             prog.done("error", "unknown model")
             return 1
-        canonical_id, display_name = row
+        canonical_id, display_name, release_date = row
         variants = _variants_for(conn, args.model_version_id, canonical_id)
         prog.stage("E1", "Registry", "ok",
                    model=display_name or canonical_id, variants=len(variants),
@@ -457,7 +630,7 @@ def main(argv: list[str] | None = None) -> int:
                    detail="documents default to 'kept'; filter-persist not wired")
 
         try:
-            extract_and_curate(conn, prog)
+            extract_and_curate(conn, prog, release_date=release_date)
         except Exception as exc:
             conn.rollback()
             prog.stage("E5", "Extract", "error", detail=str(exc).splitlines()[0][:200])

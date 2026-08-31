@@ -109,6 +109,7 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Protocol, runtime_checkable
@@ -836,6 +837,7 @@ class Pipeline:
         driver: Driver | None = None,
         resolve_surface: SurfaceResolver | None = None,
         find_surfaces: SurfaceFinder | None = None,
+        on_thread: Callable[[str], None] | None = None,
     ) -> list[PipelineResult]:
         """A batch. A refused thread is skipped, never fatal.
 
@@ -860,6 +862,12 @@ class Pipeline:
                     thread.thread_context_id,
                 )
                 continue
+            # A progress hook for callers that want to SEE a long batch move -
+            # the on-demand fetch's E5 was silent for the whole extraction, so a
+            # slow run and a hung one looked identical. Fired before the call it
+            # is about to make; a no-op for the nightly batch, which passes none.
+            if on_thread is not None:
+                on_thread(thread.thread_context_id)
             if budget is not None:
                 # BEFORE the call. Spend cannot be undone, so a check after it
                 # is a report rather than a cap.

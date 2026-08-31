@@ -96,10 +96,22 @@ Do not fill a field to be helpful. `conditions` left empty means the writer did 
 not state them, and that is a finding. A tool count you assumed is worse than \
 one you left blank.
 
-Do not stretch a quote to fit a capability. A quote that fits none of them goes \
-in `unclassified` - that list accumulating is how we learn the vocabulary is \
-short, and inventing a fit destroys the signal. USE IT. A quote you decline to \
-classify and do not record here is a capability nobody learns is missing.
+Do not stretch a quote to fit a capability. Forcing a quote into the nearest key \
+fabricates consensus about something the writer never discussed. A quote that \
+fits none of the keys has two homes, and choosing the right one is how the \
+vocabulary grows on evidence:
+
+  - If the quote describes a REAL, recurring thing a model does or fails at that \
+none of the keys name - token spend, output length, over-thinking, and so on - \
+PROPOSE a new key for it in `proposed_capabilities`: a dotted key in the same \
+style, a one-line definition, and the quote. You are proposing a word for the \
+vocabulary, not deciding it: a person rules on every proposal.
+  - If you cannot even name what it is about, put the quote in `unclassified`. \
+That is the weaker signal - some capability is missing - and the named proposal \
+is the stronger one, that a SPECIFIC capability is.
+
+A quote you decline to classify and record in neither is a capability nobody \
+learns is missing.
 
 WHEN THERE IS NOTHING
 

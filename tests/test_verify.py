@@ -237,3 +237,65 @@ class TestRun:
         assert len(run_result.verified) == 1
         assert len(run_result.rejected) == 1
         assert run_result.failure_rate == 0.5  # alerts above 1% in production
+
+
+class TestEncodingVersusFabrication:
+    """A quote absent by exact match is one of two opposite things, and this is
+    the only place the distinction can be recorded (claim_verified_ck forbids
+    storing a failed quote). Fold them together and the fabrication rate doubles.
+    """
+
+    def _reject(self, quote: str):
+        # offset is a hint only, so any in-range value reaches the locate step.
+        return run(make_claim(quote, (30, 30 + len(quote))))
+
+    def test_a_case_only_difference_is_encoding_not_fabrication(self):
+        r = self._reject("fine under ~50k.")  # FLAT has "Fine"
+        assert isinstance(r, Rejection)
+        assert r.reason is VerificationFailure.ENCODING_MISMATCH
+
+    def test_collapsed_whitespace_is_encoding(self):
+        r = self._reject("Fine under  ~50k.")  # double space; FLAT has one
+        assert r.reason is VerificationFailure.ENCODING_MISMATCH
+
+    def test_an_html_entity_reencoding_is_encoding(self):
+        r = self._reject("Flash is great&nbsp;for bulk")  # &nbsp; -> space
+        assert r.reason is VerificationFailure.ENCODING_MISMATCH
+
+    def test_a_genuinely_invented_quote_is_still_not_found(self):
+        r = self._reject("Flash is terrible at absolutely everything")
+        assert r.reason is VerificationFailure.NOT_FOUND
+
+    def test_an_exact_match_still_verifies(self):
+        quote = "Fine under ~50k."
+        start = FLAT.index(quote)
+        assert isinstance(run(make_claim(quote, (start, start + len(quote)))), VerifiedQuote)
+
+    def test_the_rates_separate_the_two(self):
+        good_start = FLAT.index("Fine under ~50k.")
+        good = make_claim("Fine under ~50k.", (good_start, good_start + 16))
+        encoded = make_claim("fine under ~50k.", (good_start, good_start + 16))   # case
+        invented = make_claim("Fine under ~90k.", (good_start, good_start + 16))  # fabricated
+
+        rr = verify_all(
+            [good, encoded, invented],
+            flattened_text=FLAT, offset_map=OFFSET_MAP, raw_text_of=RAW,
+        )
+        assert rr.failure_rate == 2 / 3          # both failures
+        assert rr.fabrication_rate == 1 / 3      # only the invented one
+        assert rr.encoding_mismatch_rate == 1 / 3
+
+    def test_extraction_run_exposes_the_split(self):
+        from judge.extract.runner import ExtractionRun
+
+        c = make_claim("x", (0, 1))
+        run_obj = ExtractionRun(
+            thread_context_id="tc",
+            rejected=[
+                (c, Rejection(c, VerificationFailure.NOT_FOUND, "invented")),
+                (c, Rejection(c, VerificationFailure.ENCODING_MISMATCH, "re-encoded")),
+                (c, Rejection(c, VerificationFailure.SARCASTIC, "dropped")),
+            ],
+        )
+        assert run_obj.fabricated == 1
+        assert run_obj.encoding_mismatches == 1

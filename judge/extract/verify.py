@@ -24,6 +24,8 @@ injected instruction cannot produce a verifiable span.
 
 from __future__ import annotations
 
+import html
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
@@ -34,12 +36,23 @@ from judge.extract.schema import ExtractedClaim
 class VerificationFailure(StrEnum):
     """Why a claim was discarded. Every one of these is logged, never swallowed."""
 
-    #: The quote appears nowhere in the text the extractor was given. This is
-    #: what a fabricated quote produces, and it is the failure rule 1 exists
-    #: for - distinct from TEXT_MISMATCH, which meant a position disagreed.
-    #: Since code now LOCATES the quote rather than trusting a supplied offset,
-    #: a mismatch can only mean absence.
+    #: The quote appears nowhere in the text the extractor was given, even after
+    #: normalisation. This is what a fabricated OR injected quote produces, and
+    #: it is the failure rule 1 exists for - distinct from ENCODING_MISMATCH,
+    #: which means the words ARE there in a different surface form.
     NOT_FOUND = "not_found"
+
+    #: Absent by exact match but PRESENT after normalisation - HTML entities
+    #: decoded (the trafilatura double-decode case, judge/CLAUDE.md), smart
+    #: quotes and whitespace folded, case ignored. The model re-encoded what it
+    #: was shown rather than inventing it: an encoding/fidelity miss, NOT
+    #: fabrication. Split out because the two carry opposite meanings and,
+    #: since `claim_verified_ck` forbids storing a failed quote, this reason is
+    #: the ONLY record that a rejection was recoverable rather than invented -
+    #: folding it into NOT_FOUND was the difference between the real fabrication
+    #: rate and one twice as high. Still a rejection: rule 1 needs an exact span
+    #: and step 3 renders the raw one, so an accept path is a separate decision.
+    ENCODING_MISMATCH = "encoding_mismatch"
     OFFSET_OUT_OF_RANGE = "offset_out_of_range"
     TEXT_MISMATCH = "text_mismatch"
     UNMAPPED_SPAN = "unmapped_span"
@@ -127,6 +140,26 @@ class Rejection:
     detail: str
 
 
+#: Smart quotes, dashes and the non-breaking space, folded to ASCII. The
+#: surface differences a faithful re-encoding introduces without changing a word.
+_SMART = str.maketrans({
+    "‘": "'", "’": "'", "“": '"', "”": '"',
+    "–": "-", "—": "-", " ": " ",
+})
+
+
+def _normalise(text: str) -> str:
+    """Fold the surface differences a faithful re-encoding introduces.
+
+    Deterministic and conservative: HTML entities decoded, smart quotes/dashes
+    to ASCII, whitespace collapsed, casefolded. Enough to recognise a re-encoded
+    quote; not so loose that a fabrication matches - it still has to be the same
+    words in the same order. No model involved, so rule 1 is intact: this only
+    CLASSIFIES a rejection, it never accepts a quote.
+    """
+    return re.sub(r"\s+", " ", html.unescape(text).translate(_SMART)).strip().casefold()
+
+
 def _locate(quote: str, flattened_text: str, *, hint: int) -> tuple[int, int] | None:
     """Every occurrence of the quote, and the one nearest the hint.
 
@@ -196,6 +229,19 @@ def verify(
     # to the first one in the thread.
     located = _locate(claim.quote, flattened_text, hint=claim.quote_offset[0])
     if located is None:
+        # ABSENT BY EXACT MATCH — but is it invented, or just re-encoded? The two
+        # are opposite findings (fabrication vs a fidelity miss), and this is the
+        # only place the distinction can be recorded, so split them here.
+        normalised = _normalise(claim.quote)
+        if normalised and normalised in _normalise(flattened_text):
+            return Rejection(
+                claim,
+                VerificationFailure.ENCODING_MISMATCH,
+                "quote is absent by exact match but present after normalising "
+                f"(entities/quotes/whitespace/case): {claim.quote[:60]!r} — a "
+                "re-encoding of shown text, not a fabrication; still rejected, "
+                "because rule 1 needs the exact span and step 3 renders the raw one",
+            )
         return Rejection(
             claim,
             VerificationFailure.NOT_FOUND,
@@ -279,13 +325,38 @@ class VerificationRun:
 
     @property
     def failure_rate(self) -> float:
-        """Monitored. Above 1% alerts.
+        """All verification failures over all outcomes. Monitored; above 1% alerts.
 
-        It is both the fabrication detector and the injection tripwire — a
-        planted instruction cannot produce a span that survives step 1.
+        A blunt monitor: it moves for a fabrication, an offset-map bug and a
+        re-encoded quote alike. `fabrication_rate` is the sharper signal inside
+        it — the one that actually means the model invented or was injected.
         """
         total = len(self.verified) + len(self.rejected)
         return len(self.rejected) / total if total else 0.0
+
+    def _count(self, reason: VerificationFailure) -> int:
+        return sum(1 for r in self.rejected if r.reason == reason)
+
+    @property
+    def fabrication_rate(self) -> float:
+        """NOT_FOUND over all outcomes — the injection/fabrication tripwire.
+
+        A quote absent even after normalisation is invented or injected; a
+        re-encoded one (ENCODING_MISMATCH) is neither. Folding the two together
+        was the difference between the real rate and one twice as high, and since
+        `claim_verified_ck` forbids storing a failed quote, this is the only
+        place the fabrication rate can be known.
+        """
+        total = len(self.verified) + len(self.rejected)
+        return self._count(VerificationFailure.NOT_FOUND) / total if total else 0.0
+
+    @property
+    def encoding_mismatch_rate(self) -> float:
+        """ENCODING_MISMATCH over all outcomes — recoverable fidelity misses,
+        not fabrications. Worth watching on its own: a rising one points at the
+        normalisation chain (e.g. trafilatura), not at the model."""
+        total = len(self.verified) + len(self.rejected)
+        return self._count(VerificationFailure.ENCODING_MISMATCH) / total if total else 0.0
 
 
 def verify_all(

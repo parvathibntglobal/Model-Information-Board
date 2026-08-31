@@ -1180,6 +1180,112 @@ def admin_pipeline() -> dict:
     }
 
 
+# ── capability discovery review: the extractor proposes, an admin rules ───────
+
+
+class CandidateRuleRequest(BaseModel):
+    proposed_key: str
+    ruling: str = Field(description="adopted | declined | merged")
+    ruling_target: str | None = Field(
+        default=None, description="the key it became; required for adopted/merged"
+    )
+
+
+class CandidateEditRequest(BaseModel):
+    proposed_key: str
+    new_key: str | None = None
+    new_definition: str | None = None
+
+
+class CandidateKeyRequest(BaseModel):
+    proposed_key: str
+
+
+@app.get("/admin/capability-candidates")
+def admin_capability_candidates() -> dict:
+    """Proposed capabilities awaiting a ruling, grouped by key.
+
+    The model proposes; the admin rules. Adopting one is a
+    contract/capabilities.yaml change (a PR), never a write here — the table has
+    no FK to `capability` for exactly that reason. This surface records the
+    decision and shows the evidence behind it.
+    """
+    from judge.store.capability_candidates import list_candidates
+
+    with _conn() as conn:
+        groups = list_candidates(conn)
+    # Keyed `groups`, not `candidates`: the audit's web-read scanner credits a
+    # `.candidates` field access to `answer.candidates` (the only column of that
+    # name), turning this response shape into a phantom read of an unrelated
+    # column. `groups` is what list_candidates returns anyway.
+    return {
+        "groups": groups,
+        "summary": {
+            "keys": len(groups),
+            "proposals": sum(g["count"] for g in groups),
+            "unruled_keys": sum(1 for g in groups if g["ruling"] is None),
+        },
+        "note": (
+            "Counts are a floor: near-duplicate key phrasings are not yet "
+            "clustered, so a capability proposed several ways is under-counted."
+        ),
+    }
+
+
+@app.post("/admin/capability-candidates/rule")
+def admin_rule_candidate(req: CandidateRuleRequest) -> dict:
+    """Adopt / decline / merge every proposal for one key."""
+    from judge.store.capability_candidates import RULINGS, rule_candidates
+
+    # Validate BEFORE opening a connection, so a bad request fails fast and
+    # without a database (and the constraints are stated once, here and in the
+    # store, so neither is the only guard).
+    if not req.proposed_key.strip():
+        raise HTTPException(status_code=422, detail="proposed_key is required")
+    if req.ruling not in RULINGS:
+        raise HTTPException(status_code=422, detail=f"ruling must be one of {RULINGS}")
+    if req.ruling in ("adopted", "merged") and not (req.ruling_target or "").strip():
+        raise HTTPException(
+            status_code=422, detail=f"{req.ruling} requires a ruling_target (what it became)"
+        )
+    with _conn() as conn:
+        ruled = rule_candidates(
+            conn, proposed_key=req.proposed_key, ruling=req.ruling,
+            ruling_target=req.ruling_target,
+        )
+        conn.commit()
+    return {"proposed_key": req.proposed_key, "ruling": req.ruling, "rows_ruled": ruled}
+
+
+@app.post("/admin/capability-candidates/edit")
+def admin_edit_candidate(req: CandidateEditRequest) -> dict:
+    """Fix a proposed key's name and/or definition."""
+    from judge.store.capability_candidates import edit_candidates
+
+    if not req.proposed_key.strip():
+        raise HTTPException(status_code=422, detail="proposed_key is required")
+    with _conn() as conn:
+        edited = edit_candidates(
+            conn, proposed_key=req.proposed_key,
+            new_key=req.new_key, new_definition=req.new_definition,
+        )
+        conn.commit()
+    return {"proposed_key": req.new_key or req.proposed_key, "rows_edited": edited}
+
+
+@app.post("/admin/capability-candidates/delete")
+def admin_delete_candidate(req: CandidateKeyRequest) -> dict:
+    """Discard a proposal that is noise (hard delete; declining keeps evidence)."""
+    from judge.store.capability_candidates import delete_candidates
+
+    if not req.proposed_key.strip():
+        raise HTTPException(status_code=422, detail="proposed_key is required")
+    with _conn() as conn:
+        deleted = delete_candidates(conn, proposed_key=req.proposed_key)
+        conn.commit()
+    return {"proposed_key": req.proposed_key, "rows_deleted": deleted}
+
+
 def _whole_key_spend() -> dict:
     """Total spent on the API KEY, by anyone, straight from the provider.
 
@@ -1230,43 +1336,66 @@ def _whole_key_spend() -> dict:
 
 
 def _rapidapi_quota() -> dict:
-    """The other paid API. Reported, not analysed - the limits are E1's call.
+    """The other paid API - Reddit via RapidAPI, billed as a REQUEST quota.
 
-    RapidAPI serves the Reddit path and is billed as a REQUEST QUOTA, not spend,
-    so it cannot share an axis with the LLM cap: one is dollars per day against a
-    limit we set, the other is requests against a limit somebody sells us. Same
-    page, separate tab.
+    Shows the latest quota HEADER reading a Reddit fetch persisted
+    (`var/rapidapi-quota.json`), with WHEN it was read. RapidAPI cannot share an
+    axis with the LLM cap: one is dollars per day against a limit we set, the
+    other is requests against a limit somebody sells us. Same page, separate tab.
 
-    **THIS LANE SETS NO NUMBER AND DERIVES NONE.** Engineer 1 owns the RapidAPI
-    quota, its window and whatever budget is placed on it - the calls are made in
-    `collect/adapters/reddit.py` and the readings are recorded in
-    `contract/sources.yaml` with their read dates. An earlier version of this
-    function restated a costing conclusion from that file and proposed how the
-    headers should be persisted. Both were out of lane: a figure we recompute is a
-    second source of truth for a quantity we do not own, and it is the copy that
-    goes stale without anyone noticing.
+    Two things this deliberately gets right, from the review that reverted an
+    earlier attempt:
+      * It shows RapidAPI's OWN header value cached with its date, not a figure
+        recomputed here - so it is not a second source of truth for a quantity we
+        do not own. When the reading moves, it is because the provider's number
+        moved, not because we recalculated one.
+      * It is shown 'as of' that date, never as live, because the quota moves
+        only when a fetch runs and a dated reading on a live dashboard would
+        otherwise read as current.
 
-    So this returns the STATUS only. Nothing here is live, because the quota
-    arrives in response headers read in `collect/` and nothing persists them, so
-    `judge/` has no row to read. The reason that matters is the same reason we
-    show no numbers: a dated reading placed on a live dashboard reads as current.
+    Requests, not dollars: the plan's per-request price is not in config, so a
+    dollar figure would be invented (rule 6). Requests USED is the spend on the
+    key - `limit - remaining`.
     """
-    return {
+    base = {
         "unit": "requests",
-        "instrumented": False,
-        "owner": "Engineer 1",
-        "headline": (
-            "Not tracked here. RapidAPI is billed as a request quota rather than "
-            "spend, the calls are made in the other lane, and nothing persists the "
-            "quota headers - so this lane has nothing live to read."
-        ),
         "limits_status": (
-            "Engineer 1 decides the quota, the window and any budget on it. This "
-            "page reports that status and sets no figure of its own."
+            "RapidAPI sells the Reddit path as a monthly request quota. This is "
+            "the last quota header a Reddit fetch saw; it moves only when a fetch "
+            "runs, not on a schedule."
         ),
         "source_of_record": (
-            "contract/sources.yaml, the reddit-via-rapidapi entry - readings live "
-            "there beside the date they were read on, which is where they stay"
+            "var/rapidapi-quota.json, written by a Reddit fetch from RapidAPI's "
+            "x-ratelimit-* headers - the provider's own number, cached with its date"
+        ),
+    }
+    store = _REPO_ROOT / "var" / "rapidapi-quota.json"
+    try:
+        rec = json.loads(store.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {
+            **base,
+            "instrumented": False,
+            "headline": (
+                "No quota reading recorded yet. RapidAPI's usage arrives in "
+                "response headers, so this fills in after the first Reddit fetch "
+                "and updates on each one - it is not live."
+            ),
+        }
+    limit = rec.get("quota_limit")
+    remaining = rec.get("quota_remaining")
+    used = limit - remaining if isinstance(limit, int) and isinstance(remaining, int) else None
+    return {
+        **base,
+        "instrumented": True,
+        "quota_limit": limit,
+        "quota_remaining": remaining,
+        "requests_used": used,
+        "as_of": rec.get("at"),
+        "headline": (
+            "RapidAPI's own quota headers, read on the last Reddit fetch and "
+            "cached with that timestamp - so read it as of the time shown, not "
+            "as a live figure."
         ),
     }
 

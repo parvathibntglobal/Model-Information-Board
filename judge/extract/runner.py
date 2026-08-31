@@ -41,7 +41,13 @@ from judge.extract.client import (
 from judge.extract.placeholder import has_nothing_to_extract
 from judge.extract.prompt import build_system_prompt, wrap_untrusted
 from judge.extract.schema import MAX_QUOTE_CHARS, ExtractedClaim, ExtractionResult
-from judge.extract.verify import OffsetMapping, Rejection, VerifiedQuote, verify
+from judge.extract.verify import (
+    OffsetMapping,
+    Rejection,
+    VerificationFailure,
+    VerifiedQuote,
+    verify,
+)
 
 log = logging.getLogger(__name__)
 
@@ -86,6 +92,46 @@ class Unsalvaged:
 
 
 @dataclass
+class ProposedCapability:
+    """A capability-discovery proposal from the extractor, quote-verified.
+
+    `quote_verified=False` is KEPT, not dropped — a proposed key backed by a
+    quote that is not in the text is the most interesting thing here, exactly as
+    `capability_candidate` holds unverified proposals rather than discarding them.
+    An LLM proposes the key; a human rules on it, so the vocabulary never grows
+    by a model's say-so (rule 2).
+    """
+
+    proposed_key: str
+    definition: str
+    quote: str
+    quote_verified: bool
+    #: The document the quote resolves to through the offset map — provenance for
+    #: `capability_candidate`, whose `document_id` is NOT NULL. None when the
+    #: quote does not locate or spans two documents, in which case it cannot be
+    #: stored (a proposal with no document behind it is an opinion) but is still
+    #: counted, never silently dropped.
+    document_id: str | None = None
+
+
+def _attribute(quote: str, flattened_text: str, offset_map: Iterable[OffsetMapping]) -> str | None:
+    """Which document a proposal's quote came from. Lightweight step-2 attribution.
+
+    Not the full raw-span verification a claim gets — a proposal is not published,
+    so it needs provenance, not a display span. None when the quote is absent or
+    crosses documents, so it is never attributed to a guess.
+    """
+    if not quote:
+        return None
+    start = flattened_text.find(quote)
+    if start < 0:
+        return None
+    end = start + len(quote)
+    documents = {m.document_id for m in offset_map if m.overlaps(start, end)}
+    return next(iter(documents)) if len(documents) == 1 else None
+
+
+@dataclass
 class ExtractionRun:
     """What one thread produced, including what it failed to produce."""
 
@@ -107,6 +153,11 @@ class ExtractionRun:
     #: different reasons and this is one of them.
     #: `docs/proposals/for-engineer-2-a-speaking-field-on-modelref.md` §0.
     unclassified: list[str] = field(default_factory=list)
+    #: Capability-discovery proposals — a NEW key the extractor named, with a
+    #: definition and a quote, when no existing key fit. Quote-verified here;
+    #: stored in `capability_candidate` for a human to rule on. See
+    #: `ProposedCapability`.
+    proposed_capabilities: list[ProposedCapability] = field(default_factory=list)
     #: Claims the model proposed that could not be built. See `Unsalvaged`.
     unsalvaged: list[Unsalvaged] = field(default_factory=list)
     no_claim_reason: str | None = None
@@ -138,6 +189,28 @@ class ExtractionRun:
         one an alert would act on.
         """
         return len(self.rejected) / self.proposed if self.proposed else None
+
+    @property
+    def fabricated(self) -> int:
+        """Rejected quotes absent even after normalisation — invented or injected.
+
+        The count the encoding/fabrication split is about. `claim_verified_ck`
+        forbids storing a failed quote, so `rejected` is the only record it
+        exists in at all, and separating this from a re-encoded quote
+        (`encoding_mismatches`) is the difference between the real fabrication
+        rate and one twice as high.
+        """
+        return sum(1 for _, rej in self.rejected if rej.reason == VerificationFailure.NOT_FOUND)
+
+    @property
+    def encoding_mismatches(self) -> int:
+        """Rejected quotes present after normalisation — a re-encoding of shown
+        text, not a fabrication. A fidelity signal, pointed at the normalisation
+        chain rather than at the model."""
+        return sum(
+            1 for _, rej in self.rejected
+            if rej.reason == VerificationFailure.ENCODING_MISMATCH
+        )
 
 
 @dataclass(frozen=True)
@@ -244,6 +317,20 @@ def extract(
     else:
         run.unclassified = list(result.unclassified)
         run.no_claim_reason = result.no_claim_reason
+        # Verify each proposal's quote the same way a claim's is checked: exact
+        # substring against the text the model was shown. An unverifiable quote
+        # is kept and flagged, not dropped - a proposed key with a fabricated
+        # quote is a finding, not nothing.
+        run.proposed_capabilities = [
+            ProposedCapability(
+                proposed_key=p.proposed_key,
+                definition=p.definition,
+                quote=p.quote,
+                quote_verified=bool(p.quote) and p.quote in thread.flattened_text,
+                document_id=_attribute(p.quote, thread.flattened_text, thread.offset_map),
+            )
+            for p in result.proposed_capabilities
+        ]
         claims_in = list(result.claims)
 
     # `is_sarcastic` discards before verification rather than after. Verifying a

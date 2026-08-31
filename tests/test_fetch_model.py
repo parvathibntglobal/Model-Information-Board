@@ -13,10 +13,38 @@ Two pieces are testable without a database, an LLM, or the network:
 
 from __future__ import annotations
 
+import inspect
 import json
 from types import SimpleNamespace
 
 import scripts.fetch_model as fetch_model
+
+
+class TestRedditWriteCall:
+    def test_it_passes_retrieval_provenance(self):
+        """reddit_write.write_documents requires retrieval_provenance (it merged
+        as required), and the model-name arm is 'not_recorded' per reddit_write.py.
+        A call without it crashes the whole Reddit stage — invisible until a live
+        fetch, which is how it shipped once."""
+        src = inspect.getsource(fetch_model.harvest_reddit)
+        assert 'retrieval_provenance="not_recorded"' in src
+
+
+class TestExtractionIsObservableAndBounded:
+    """E5 ran silently for ~13 min on 5 large threads and looked hung. These
+    pin the fixes: per-thread progress, and an oversized-thread cap."""
+
+    def test_run_all_accepts_a_progress_callback(self):
+        import inspect as _inspect
+
+        from judge.pipeline import Pipeline
+        assert "on_thread" in _inspect.signature(Pipeline.run_all).parameters
+
+    def test_the_fetch_wires_progress_and_caps_oversized_threads(self):
+        src = inspect.getsource(fetch_model.extract_and_curate)
+        assert "on_thread=" in src                 # per-thread progress wired
+        assert "MAX_FETCH_THREAD_CHARS" in src     # oversized threads deferred
+        assert isinstance(fetch_model.MAX_FETCH_THREAD_CHARS, int)
 
 
 class TestProgressLog:

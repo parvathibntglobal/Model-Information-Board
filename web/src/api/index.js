@@ -211,6 +211,28 @@ export const adminUsage = (hours = 24, days = 14) =>
  */
 export const pipelineStatus = () => request('/admin/pipeline')
 
+/**
+ * Capabilities the extractor PROPOSED that none of the current keys name. The
+ * model proposes, an admin rules. Adopting one is a contract/capabilities.yaml
+ * PR, never a write here — these record the decision and its evidence.
+ */
+export const capabilityCandidates = () => request('/admin/capability-candidates')
+export const ruleCapability = (proposed_key, ruling, ruling_target = null) =>
+  request('/admin/capability-candidates/rule', {
+    method: 'POST',
+    body: { proposed_key, ruling, ruling_target },
+  })
+export const editCapability = (proposed_key, { new_key = null, new_definition = null }) =>
+  request('/admin/capability-candidates/edit', {
+    method: 'POST',
+    body: { proposed_key, new_key, new_definition },
+  })
+export const deleteCapability = (proposed_key) =>
+  request('/admin/capability-candidates/delete', {
+    method: 'POST',
+    body: { proposed_key },
+  })
+
 /* ------------------------------------------------------------------ display */
 
 export const fmtInt = (n) =>

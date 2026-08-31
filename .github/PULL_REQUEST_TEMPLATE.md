@@ -12,9 +12,11 @@ ones that do and answer them. An unchecked box is a fine answer if you say why.
 
 - [ ] **Rule 8 — an unmeasured check ships as a weight, not a gate.**
       If this PR adds or changes a filter/gate/drop:
-      **what population was its error rate measured on, and did the filter
-      choose that population?** If it hasn't been measured against a population
-      it did not choose, it ships as a weight/flag/recorded field, not a gate.
+      **what population was its error rate measured on, and did the filter, or
+      anything upstream of it, choose that population?** ("No, I used the whole
+      corpus" is not an answer when the corpus is an earlier filter's output.)
+      If it hasn't been measured against a population it did not choose, it
+      ships as a weight/flag/recorded field, not a gate.
       (Argument: `docs/weight-before-drop.md`.)
 - [ ] **Contract change?** `contract/` is the agreement — flagged and reviewed
       by the other person, never taken solo.
