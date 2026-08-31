@@ -71,6 +71,14 @@ def main() -> int:
         help="restrict to one selection_method, e.g. post_body_only",
     )
     parser.add_argument(
+        "--pipeline-version", default=None,
+        help="restrict to contexts assembled at this pipeline_version. Added "
+             "2026-08-31, when 584 GitHub issues gained a second context under "
+             "a fork: without it, --skip-extracted selects both the body-only "
+             "row and its with-comments fork and the same issue body is "
+             "extracted twice. See the comment on --skip-extracted.",
+    )
+    parser.add_argument(
         "--skip-extracted", action="store_true",
         help="omit threads already in `thread_extraction` at this pipeline "
              "version. The extractor skips them anyway; this keeps the export "
@@ -91,7 +99,36 @@ def main() -> int:
         if args.selection_method:
             clauses.append("tc.selection_method = %s")
             params.append(args.selection_method)
+        if args.pipeline_version:
+            clauses.append("tc.pipeline_version = %s")
+            params.append(args.pipeline_version)
         if args.skip_extracted:
+            # ⚠ `--skip-extracted` IS NOT ENOUGH ON ITS OWN SINCE 2026-08-31,
+            #   AND ADDING `--selection-method` OR `--pipeline-version` IS.
+            #
+            #   584 GitHub issues now hold TWO contexts: the original
+            #   `issue_body_only` at `collect-0.1.0`, and an
+            #   `issue_with_comments` fork at `collect-0.2.0-issue-comments`.
+            #   The fork was deliberate - re-assembling in place would have
+            #   destroyed the offsets of claims already written against the
+            #   body-only rows (`scripts/write_github_comments.py`).
+            #
+            #   NEITHER HAS A `thread_extraction` ROW, so this clause selects
+            #   BOTH, and the fork's flattened text is a SUPERSET of the
+            #   body-only one - it is the same issue body plus its comments. The
+            #   extractor would read the body twice, under two context ids, and
+            #   two claims quoting one issue body is ONE AUTHOR COUNTED AS TWO
+            #   VOICES.
+            #
+            #   That is precisely the failure the comment path exists to
+            #   prevent, arriving from the other side: `assemble_issue_thread`
+            #   refuses bots as members and `gate.count` takes one
+            #   representative per author, and both are defeated if the same
+            #   person's text enters twice under different ids.
+            #
+            #   The collision is COUNTED AND PRINTED below rather than filtered
+            #   here, because which version the board should read is a ruling
+            #   and not this script's to take.
             clauses.append(
                 "NOT EXISTS (SELECT 1 FROM thread_extraction te "
                 "WHERE te.thread_context_id = tc.id)"
@@ -106,6 +143,33 @@ def main() -> int:
             + (f" LIMIT {int(args.limit)}" if args.limit else ""),
             tuple(params),
         ).fetchall()
+
+        # THE COLLISION, COUNTED. One thread_root_id appearing twice means the
+        # same issue body is about to be extracted under two context ids. See
+        # the `--skip-extracted` comment above for why that is a voice defect
+        # rather than a duplication nuisance.
+        _roots: dict[str, list[str]] = {}
+        for _r in rows:
+            _roots.setdefault(_r[1], []).append(_r[5])
+        _doubled = {root: methods for root, methods in _roots.items() if len(methods) > 1}
+        if _doubled:
+            _shapes: dict[str, int] = {}
+            for methods in _doubled.values():
+                _shapes["+".join(sorted(methods))] = (
+                    _shapes.get("+".join(sorted(methods)), 0) + 1
+                )
+            print(
+                f"!! {len(_doubled)} thread_root_id(s) appear TWICE in this "
+                f"selection. The same document text would be extracted under two "
+                f"context ids, and one author would be counted as two voices."
+            )
+            for shape, n in sorted(_shapes.items(), key=lambda kv: -kv[1]):
+                print(f"     {n:5d}  {shape}")
+            print(
+                "   Narrow with --selection-method or --pipeline-version. "
+                "Exporting anyway: which version the board reads is a ruling, "
+                "not this script's call."
+            )
 
         text_of: dict[str, str] = {}
         wanted = {m for r in rows for m in (r[2] or [])}
