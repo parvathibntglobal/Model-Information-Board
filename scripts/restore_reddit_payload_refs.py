@@ -57,9 +57,9 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from collect.config import settings          # noqa: E402
-from collect.db import connect               # noqa: E402
-from collect.rawstore import RAW, RawStore   # noqa: E402
+from collect.config import settings  # noqa: E402
+from collect.db import connect  # noqa: E402
+from collect.rawstore import RAW, RawStore  # noqa: E402
 from collect.rawstore_reader import RawStoreReader  # noqa: E402
 
 #: Stores searched for payloads. The configured store is written to; the others

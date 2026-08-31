@@ -276,7 +276,8 @@ def tool_schema_for(model_cls: type) -> dict[str, object]:
                 }
                 if len(types) != 1:
                     raise ValueError(
-                        f"prefixItems members disagree on type ({sorted(t or '?' for t in types)}); "
+                        f"prefixItems members disagree on type "
+                        f"({sorted(t or '?' for t in types)}); "
                         "a heterogeneous tuple cannot be expressed as `items` "
                         "and guessing one would misdescribe a position to the "
                         "extractor. Model this field as a nested object instead."

@@ -182,7 +182,7 @@ def main() -> int:
     results: list[dict] = []
     ids_by_shape: dict[str, set[str]] = collections.defaultdict(set)
 
-    for index, (shape, alias, sieve_alias, query) in enumerate(plan, 1):
+    for shape, alias, sieve_alias, query in plan:
         response = client.get(
             SEARCH_URL, params={"q": query, "per_page": 100, "page": 1}
         )

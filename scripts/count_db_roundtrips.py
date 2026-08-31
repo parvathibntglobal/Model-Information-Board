@@ -143,7 +143,10 @@ def main() -> int:
         extractor_model=os.getenv("EXTRACTOR_MODEL", "google/gemini-2.5-flash"),
     )
 
-    counts.clear(); seconds.clear(); order.clear()   # exclude setup queries
+    # Exclude setup queries from the measurement.
+    counts.clear()
+    seconds.clear()
+    order.clear()
     t0 = time.perf_counter()
     if args.batch:
         results = pipeline.run_all(

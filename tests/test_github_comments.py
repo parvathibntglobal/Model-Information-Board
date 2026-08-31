@@ -15,9 +15,8 @@ from __future__ import annotations
 import json
 
 import httpx
-import pytest
 
-from collect.adapters.github import GitHubHarvester, QueryRun, StoredComment
+from collect.adapters.github import GitHubHarvester, QueryRun
 
 
 class _Response:

@@ -40,10 +40,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from collect.assemble.issue import assemble_github_documents  # noqa: E402
-from collect.config import settings                            # noqa: E402
-from collect.db import connect                                 # noqa: E402
-from collect.rawstore import RawStore                          # noqa: E402
-from collect.rawstore_reader import RawStoreReader             # noqa: E402
+from collect.config import settings  # noqa: E402
+from collect.db import connect  # noqa: E402
+from collect.rawstore import RawStore  # noqa: E402
+from collect.rawstore_reader import RawStoreReader  # noqa: E402
 
 _IDS = (
     "SELECT tc.id FROM thread_context tc "
