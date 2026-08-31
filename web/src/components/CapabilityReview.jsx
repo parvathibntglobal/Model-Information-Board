@@ -35,6 +35,12 @@ export default function CapabilityReview() {
   useEffect(() => { load() }, [load])
 
   const { data, err, unreadable } = state
+  // Never let a payload shape blank the whole admin page: a stale backend (or a
+  // future response change) can arrive without `groups`, and one component's
+  // assumption must not take the route down with it. Default to safe values and
+  // render an empty panel instead of throwing.
+  const summary = data?.summary ?? { keys: 0, unruled_keys: 0 }
+  const groups = Array.isArray(data?.groups) ? data.groups : []
   return (
     <section className="card card-flush">
       <div className="card-head">
@@ -44,7 +50,7 @@ export default function CapabilityReview() {
         </div>
         {data && (
           <span className="label">
-            {data.summary.unruled_keys} unruled · {data.summary.keys} keys
+            {summary.unruled_keys} unruled · {summary.keys} keys
           </span>
         )}
       </div>
@@ -60,10 +66,10 @@ export default function CapabilityReview() {
               decision and the evidence behind it.
             </p>
             <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{data.note}</p>
-            {data.groups.length === 0 && (
+            {groups.length === 0 && (
               <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>Nothing proposed yet.</p>
             )}
-            {data.groups.map((g) => (
+            {groups.map((g) => (
               <GroupCard key={g.proposed_key} group={g} onDone={load} />
             ))}
           </>
