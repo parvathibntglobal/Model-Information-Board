@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { MODELS, PLATFORMS, modelById } from '../data/articles'
 import { Badge, Notice, Reveal } from '../components/ui'
@@ -122,6 +123,21 @@ function ModelView({ model, platformId, onPlatform, onBack }) {
 
 function ArxivPanel({ data }) {
   const s = data.summary
+  // Filter by primary category — matches the by_primary_category counts shown on
+  // the chips. Multi-select: an empty set means "all"; clicking toggles.
+  const [active, setActive] = useState(() => new Set())
+  const toggle = (cat) =>
+    setActive((prev) => {
+      const next = new Set(prev)
+      if (next.has(cat)) next.delete(cat)
+      else next.add(cat)
+      return next
+    })
+
+  const filtered = active.size
+    ? data.articles.filter((a) => active.has(a.primary_category))
+    : data.articles
+
   return (
     <div className="stack stack-3">
       <section className="card card-flush">
@@ -130,26 +146,50 @@ function ArxivPanel({ data }) {
             <IconSearch width={14} height={14} style={{ color: 'var(--text-3)' }} />
             <span className="label">{data.source}</span>
           </div>
-          <span className="label">{s.count} papers · {s.date_from} → {s.date_to}</span>
+          <span className="label">
+            {active.size ? `${filtered.length} of ${s.count} shown` : `${s.count} papers`}
+            {' · '}{s.date_from} → {s.date_to}
+          </span>
         </div>
         <div className="card-body stack stack-2">
           <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '70ch' }}>{data.note}</p>
-          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             {Object.entries(s.by_primary_category).map(([cat, n]) => (
-              <span key={cat} className="mono" style={{ fontSize: 11, color: 'var(--text-3)', border: '1px solid var(--bg-3, rgba(127,127,127,.22))', borderRadius: 6, padding: '2px 7px' }}>
-                {cat} · {n}
-              </span>
+              <button
+                key={cat}
+                type="button"
+                className={`chip${active.has(cat) ? ' chip-on' : ''}`}
+                onClick={() => toggle(cat)}
+                aria-pressed={active.has(cat)}
+              >
+                {cat}<span style={{ marginLeft: 5, opacity: 0.6 }}>{n}</span>
+              </button>
             ))}
+            {active.size > 0 && (
+              <button
+                type="button"
+                className="chip"
+                onClick={() => setActive(new Set())}
+                style={{ opacity: 0.75 }}
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
       </section>
 
       <div className="stack stack-2">
-        {data.articles.map((a, i) => (
+        {filtered.map((a, i) => (
           <Reveal key={a.arxiv_id} delay={Math.min(i * 25, 200)}>
             <PaperCard a={a} />
           </Reveal>
         ))}
+        {filtered.length === 0 && (
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+            No papers in the selected categories.
+          </p>
+        )}
       </div>
     </div>
   )
