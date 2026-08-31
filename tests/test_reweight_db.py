@@ -700,3 +700,76 @@ class TestTheBoardGettingQuieterIsAResult:
         before, after = pairs[0]
         assert after.counts.n_eff > before.counts.n_eff, "n_eff rose"
         assert quieter_cells(pairs)[0].lost_publishability, "and the cell still lost"
+
+
+class TestAStaleBaselineIsRefusedRatherThanBelieved:
+    """`scripts/report_rollup_delta.py` compares against a file on disk.
+
+    A MISSING BASELINE ANNOUNCES ITSELF AND A STALE ONE DOES NOT. That is the
+    whole asymmetry: the report already prints "NO BASELINE ... absolute figures
+    only" when the file is absent, and had no way to tell a two-day-old file
+    from a current one. `_before_rollup.json` recorded `claims_total: 51` while
+    the table held 197, so a run against it would have announced +146 claims as
+    the measured run's own result.
+    """
+
+    def _refusal(self, before, version):
+        """Loaded BY PATH, not by putting `scripts/` on `sys.path`.
+
+        A test helper that mutates `sys.path` mutates it for every test that
+        runs after it, and `scripts/` holds a couple of dozen modules with
+        ordinary names. That is a global side effect from a local convenience,
+        and the failure it produces - some other module resolving to a script -
+        lands nowhere near here.
+        """
+        import importlib.util
+        from pathlib import Path
+
+        path = Path(__file__).resolve().parent.parent / "scripts" / "report_rollup_delta.py"
+        spec = importlib.util.spec_from_file_location("_report_rollup_delta", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.baseline_refusal(before, version)
+
+    def test_a_baseline_marked_stale_is_refused_and_says_why(self):
+        refusal = self._refusal(
+            {"stale": True, "stale_reason": "captured before the 150-thread run"},
+            "e5.1",
+        )
+        assert refusal is not None
+        assert "captured before the 150-thread run" in refusal
+
+    def test_an_undated_baseline_is_refused_because_it_cannot_be_checked(self):
+        """The one that would otherwise pass. It has counts and looks fine."""
+        refusal = self._refusal({"claims_total": 51, "cells_total": 28}, "e5.1")
+        assert refusal is not None
+        assert "pipeline_version" in refusal
+
+    def test_a_baseline_from_another_fork_is_refused(self):
+        """A bump forks `claim`, so a cross-fork diff reports the fork."""
+        refusal = self._refusal({"pipeline_version": "e5.1"}, "e5.4")
+        assert refusal is not None and "e5.1" in refusal and "e5.4" in refusal
+
+    def test_a_matching_baseline_is_accepted(self):
+        """The refusal must not be the only outcome."""
+        assert self._refusal({"pipeline_version": "e5.4"}, "e5.4") is None
+
+    def test_the_file_on_disk_is_marked_and_carries_no_usable_counts(self):
+        """Marking it is not enough if the wrong numbers stay where they are read.
+
+        `report_rollup_delta` reads `before["claims_total"]`, so leaving that key
+        at the top level would keep 51 usable by anything that skipped the
+        staleness check. The original capture is preserved under a key nothing
+        reads.
+        """
+        import json
+        from pathlib import Path
+
+        path = Path(__file__).resolve().parent.parent / "_before_rollup.json"
+        if not path.exists():
+            pytest.skip("no baseline on disk; nothing to mark")
+        before = json.loads(path.read_text(encoding="utf-8"))
+        assert before.get("stale") is True
+        assert "claims_total" not in before, "the wrong number must not stay readable"
+        assert before["superseded_capture_2026_08_28"]["claims_total"] == 51
+        assert self._refusal(before, "e5.1") is not None

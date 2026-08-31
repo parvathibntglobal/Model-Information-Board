@@ -35,24 +35,80 @@ import json
 import pathlib
 
 
+#: Why a baseline on disk was not used. Each of these is a case where the file
+#: EXISTS and comparing against it would produce arithmetic that is correct and
+#: about the wrong question - the failure mode a missing file does not have,
+#: because a missing file announces itself.
+def baseline_refusal(before: dict, version: str) -> str | None:
+    """Why this baseline may not be compared against, or None if it may be.
+
+    THREE REFUSALS, AND THE FIRST TWO ARE THE SAME DEFECT SEEN TWICE. A stale
+    baseline is worse than no baseline: the "NO BASELINE" path below is loud,
+    and a two-day-old file is silent. `_before_rollup.json` sat on disk
+    recording `claims_total: 51` while the table held 197, so a run against it
+    would have announced **+146 claims** as the run's own result.
+    """
+    if before.get("stale"):
+        return (
+            "the file marks itself stale: "
+            + str(before.get("stale_reason") or "no reason recorded")
+        )
+    if not before.get("pipeline_version"):
+        return (
+            "it carries no `pipeline_version`, so it predates "
+            "scripts/capture_rollup_baseline.py and CANNOT BE CHECKED for "
+            "staleness. An undated baseline is not a baseline - it is a number "
+            "that will be believed"
+        )
+    if before["pipeline_version"] != version:
+        return (
+            f"it was captured at {before['pipeline_version']!r} and this run "
+            f"counts {version!r}. Comparing across a fork reports the fork's "
+            "contents as the run's own result"
+        )
+    return None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--before", default="_before_rollup.json")
+    parser.add_argument(
+        "--pipeline-version",
+        help="which fork to count. Defaults to judge's PIPELINE_VERSION.",
+    )
     args = parser.parse_args()
 
     from collect.db import connect
+    from judge.store.claims import PIPELINE_VERSION
+
+    # ⚠ FILTERED BY VERSION SINCE 2026-08-30, and it was not before. A bump
+    #   FORKS `claim` rather than updating it, so after the tier and
+    #   document-facts re-weights the table holds four copies of every claim.
+    #   `select count(*) from claim` would have reported roughly 4x and called
+    #   the forks new evidence.
+    version = args.pipeline_version or PIPELINE_VERSION
 
     before = None
     path = pathlib.Path(args.before)
     if path.exists():
-        before = json.loads(path.read_text(encoding="utf-8"))
+        candidate = json.loads(path.read_text(encoding="utf-8"))
+        refusal = baseline_refusal(candidate, version)
+        if refusal is None:
+            before = candidate
+        else:
+            print(f"BASELINE AT {path} REFUSED: {refusal}.")
+            print("  Absolute figures only, and no first-time-cell comparison.")
+            print("  Re-capture with scripts/capture_rollup_baseline.py.")
     else:
         print(f"NO BASELINE at {path}: absolute figures only, no first-time-cell "
               f"comparison. A missing baseline is not an empty one.")
+    print(f"  counting claims at pipeline_version={version!r}")
 
     conn = connect()
     try:
-        claims_total = conn.execute("select count(*) from claim").fetchone()[0]
+        claims_total = conn.execute(
+            "select count(*) from claim where pipeline_version = %s", (version,)
+        ).fetchone()[0]
         cells_total = conn.execute("select count(*) from cell").fetchone()[0]
 
         print("=" * 74)
@@ -66,7 +122,9 @@ def main() -> int:
 
         by_platform = dict(conn.execute(
             "select d.source, count(*) from claim cl "
-            "join document d on d.id = cl.document_id group by 1 order by 2 desc"
+            "join document d on d.id = cl.document_id "
+            "where cl.pipeline_version = %s group by 1 order by 2 desc",
+            (version,),
         ).fetchall())
         print("\n  by platform (the field PLATFORM_MINIMUM = 2 counts):")
         for src, n in by_platform.items():
@@ -77,7 +135,8 @@ def main() -> int:
         rows = conn.execute(
             "select mv.canonical_id, count(distinct cl.id) from claim cl "
             "join model_version mv on mv.id = cl.model_version_id "
-            "group by 1 order by 2 desc"
+            "where cl.pipeline_version = %s group by 1 order by 2 desc",
+            (version,),
         ).fetchall()
         prev_claims = (before or {}).get("claims_by_model", {})
         for cid, n in rows:
@@ -129,10 +188,29 @@ def main() -> int:
             author_cap_for,
         )
 
+        # PER-CELL, KEYED THE WAY THE BASELINE KEYS IT. `cells_by_model` counts
+        # cells per model and cannot see a cell that KEPT its row and LOST a
+        # voice - the model still has the same number of cells. Only the
+        # per-cell map records that, which is why capture_rollup_baseline.py
+        # writes one.
+        baseline_cells = (before or {}).get("cells", {})
+        quieter: list[tuple] = []
+
         for row in cells:
             cid, cap, bucket, status = row[0], row[1], row[2], row[3]
             n_eff, voices, platforms, share = row[4], row[5], row[6], row[7]
             per_model[cid][status] += 1
+
+            was = baseline_cells.get(f"{cid}|{cap}|{bucket}")
+            if was is not None and (
+                (voices or 0) < was.get("voices", 0)
+                or (platforms or 0) < was.get("platforms", 0)
+            ):
+                quieter.append(
+                    (cid, cap, bucket, was.get("voices", 0), voices or 0,
+                     was.get("platforms", 0), platforms or 0)
+                )
+
             if status == "published":
                 published.append(row)
                 continue
