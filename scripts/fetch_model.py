@@ -484,7 +484,13 @@ def extract_and_curate(conn, prog: Progress) -> None:
     # re-fetch cannot inflate the count.
     from judge.store.capability_candidates import store_proposals
     proposals = [p for r in results for p in r.extraction.proposed_capabilities]
-    if proposals:
+    # The store must never break a fetch. If the migration has not reached this
+    # database yet, the proposals are named in the log and dropped for this run
+    # rather than crashing extraction on a missing table.
+    table_present = conn.execute(
+        "SELECT to_regclass('public.capability_candidate')"
+    ).fetchone()[0] is not None
+    if proposals and table_present:
         outcome = store_proposals(
             conn, proposals,
             proposer_model=os.getenv("EXTRACTOR_MODEL", "google/gemini-2.5-flash"),
@@ -498,6 +504,13 @@ def extract_and_curate(conn, prog: Progress) -> None:
                           f"{outcome['stored']} new candidate(s) stored for review"
                           + (f", {outcome['unattributed']} unattributable"
                              if outcome["unattributed"] else ""))
+    elif proposals and not table_present:
+        prog.stage("E5b", "Discover", "skipped", proposed=len(proposals),
+                   keys=sorted({p.proposed_key for p in proposals}),
+                   detail=f"{len(proposals)} capability proposal(s) NOT stored: the "
+                          "capability_candidate table is not on this database yet "
+                          "(migration unapplied). Proposed keys: "
+                          + ", ".join(sorted({p.proposed_key for p in proposals})[:8]))
     else:
         prog.stage("E5b", "Discover", "ok",
                    detail="no new capabilities proposed — every claim fit an existing key")
