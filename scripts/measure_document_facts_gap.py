@@ -39,7 +39,7 @@ import collections
 import json
 import pathlib
 
-from judge.vet.weight import specificity_factor
+from judge.vet.weight import LEGACY_SPECIFICITY_WEIGHTS, specificity_factor
 
 _SQL = """
 SELECT c.id, mv.canonical_id, d.source, c.specificity,
@@ -79,6 +79,7 @@ def main() -> int:
     moved: list[tuple] = []
     unchanged = 0
     stale_before = 0
+    legacy_priced = 0
 
     for (claim_id, model, platform, specificity, doc_numbers, doc_conditions,
          repro, was_specificity) in rows:
@@ -112,7 +113,29 @@ def main() -> int:
             has_repro_steps=bool(repro),
         )
         if was_specificity is not None and abs(float(was_specificity) - was) > 1e-4:
-            stale_before += 1
+            # DOES THE FOUR-SIGNAL FORM EXPLAIN IT? `SPECIFICITY_WEIGHTS` went
+            # from four signals to two on 2026-08-30, and `pipeline_version` was
+            # NOT bumped - so `e5.1` labels rows priced under both forms and the
+            # only thing separating them is `claim.created_at`. Recomputing every
+            # row with today's weights therefore fails to reproduce the ones
+            # priced before the change, and that is a property of this script
+            # rather than a defect in the row.
+            #
+            # Checked HERE rather than reported as unexplained, because "19 rows
+            # do not reproduce" and "19 rows predate a weight change" are the
+            # same fact wearing very different clothes, and only the second one
+            # tells you what to do.
+            legacy = specificity_factor(
+                version_named=version_named,
+                has_numbers=bool(doc_numbers),
+                has_conditions=bool(doc_conditions),
+                has_repro_steps=bool(repro),
+                weights=LEGACY_SPECIFICITY_WEIGHTS,
+            )
+            if abs(float(was_specificity) - legacy) <= 1e-4:
+                legacy_priced += 1
+            else:
+                stale_before += 1
         if abs(now - was) > 1e-4:
             moved.append((claim_id, model, platform, was, now))
         else:
@@ -147,9 +170,29 @@ def main() -> int:
     print(f"  columns present and genuinely False           {unchanged:5d}"
           f"   {unchanged / total:6.1%}")
 
+    if legacy_priced:
+        print()
+        print(f"  {legacy_priced} rows were priced under the FOUR-SIGNAL weights")
+        print("    (`LEGACY_SPECIFICITY_WEIGHTS`), which the 2026-08-30 change")
+        print("    replaced with the two-signal form. They reproduce exactly under")
+        print("    those weights, so they are EXPLAINED and not stale.")
+        print()
+        print("    !! THE FINDING IS NOT THE ROWS, IT IS THE LABEL. The weight")
+        print("      change shipped WITHOUT a `pipeline_version` bump, so 'e5.1'")
+        print("      now names two different arithmetics and only `claim.created_at`")
+        print("      separates them. The convention it breaks is this project's own:")
+        print("      'every derived row carries pipeline_version, so any scoring")
+        print("      change is fully re-runnable and diffable'. A reweight that")
+        print("      cannot reproduce the BEFORE side computes a diff against a")
+        print("      version that never existed.")
+
     if stale_before:
         print()
-        print(f"  ⚠ {stale_before} rows do NOT reproduce their stored f_specificity")
+        # PLAIN ASCII, and that is not a style preference. This line crashed the
+        # whole script on Windows - cp1252 cannot encode U+26A0 - and it crashed
+        # AFTER printing every other figure, so the run looked complete and the
+        # one warning it existed to raise was the only thing lost.
+        print(f"  !! {stale_before} rows reproduce under NEITHER weight form")
         print("    from (version_named, False, False, has_repro_steps). Something")
         print("    other than the None-slip moved them, so the 'was' column above")
         print("    is not the whole story for those rows. Reported rather than")
@@ -166,7 +209,13 @@ def main() -> int:
         "f_specificity_moves": len(moved),
         "f_specificity_moves_by_pair": dict(by_pair),
         "unchanged": unchanged,
+        "rows_priced_under_legacy_four_signal_weights": legacy_priced,
         "rows_not_reproducing_stored_f_specificity": stale_before,
+        "legacy_note": (
+            "the 2026-08-30 SPECIFICITY_WEIGHTS change shipped without a "
+            "pipeline_version bump, so e5.1 labels rows priced under both the "
+            "four-signal and two-signal forms"
+        ),
     }
     path = pathlib.Path(args.json)
     path.parent.mkdir(parents=True, exist_ok=True)

@@ -318,10 +318,19 @@ class TestTheCommentWritePath:
         assert counts["skipped_no_issue"] == 1 and counts["inserted"] == 0
 
     def test_harvest_run_id_and_provenance_move_together(self, with_issue):
-        """344 documents have no provenance because the column did not exist.
+        """Documents with no provenance exist because the column did not exist.
 
-        These are not going to be the 345th. The CHECK refuses a row where the
-        two disagree, so this asserts the value rather than the intent.
+        These are not going to join them. The CHECK refuses a row where the two
+        disagree, so this asserts the value rather than the intent.
+
+        THE COUNT USED TO BE IN THIS DOCSTRING AND IT IS GONE ON PURPOSE. It
+        said 344, which was true when written and was 1,788 by 2026-08-31 -
+        reddit 1,492, github 176, blog 120 - having grown 1,148 in four days.
+        A figure pinned in a docstring beside an assertion that does not test it
+        goes stale in one direction only: downward-looking, so it keeps reading
+        as a small settled gap. The live count belongs in a measurement that
+        re-derives it (`docs/measurements/todays-reddit-writes-carry-no-harvest-
+        run.md`), not here, where nothing would ever fail to correct it.
         """
         # `harvest_run.source_id` references `source`, so the row it names
         # has to exist. Seeded here rather than in the shared fixture: only

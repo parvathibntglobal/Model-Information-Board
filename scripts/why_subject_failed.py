@@ -208,7 +208,12 @@ def main() -> int:
     )
     if recovered < len(failures):
         print(
-            f"  ⚠ {len(failures) - recovered} failures have no stored page, so the "
+            # ASCII. cp1252 cannot encode U+26A0, and this print sits inside an
+            # `if` that only fires when there IS something to warn about - so
+            # the crash would take out the denominator caveat and leave a split
+            # that looks like it was over the whole population. See
+            # tests/test_script_output_is_encodable.py.
+            f"  !! {len(failures) - recovered} failures have no stored page, so the "
             f"split below is over {recovered} and not {len(failures)}"
         )
 

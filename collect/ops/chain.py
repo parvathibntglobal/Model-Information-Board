@@ -116,6 +116,64 @@ class Journal:
                 handle.flush()
 
 
+class UnknownStage(ValueError):
+    """`--only` named a stage the chain does not have.
+
+    RAISES rather than selecting nothing, for the reason `sweep_requests` raises
+    on a refused shape: asking for a stage is a decision somebody made, and a
+    run that quietly selected zero stages would print a clean summary of nothing
+    and read as a night with no work to do.
+    """
+
+    def __init__(self, name: str, known) -> None:
+        super().__init__(
+            f"no stage named {name!r}. The chain has: {', '.join(sorted(known))}"
+        )
+
+
+def select_stages(stages, only):
+    """The named stages plus everything they depend on, in chain order.
+
+    WHY DEPENDENCIES COME TOO, RATHER THAN BEING SKIPPED. `score-documents`
+    needs `preflight`, and `preflight` is the build-fixture guard - the check
+    that refuses to write outside `development` when seeded rows are present.
+    A `--only score-documents` that skipped it would run a WRITE stage with the
+    guard bypassed, which is exactly what `cli.py`'s AST test exists to prevent
+    one layer down. So `--only` narrows what is ATTEMPTED, never what is
+    CHECKED.
+
+    Order is the chain's own, not the order the caller typed. The chain's
+    ordering is a dependency statement; letting a command-line reorder it would
+    make `--only a,b` and `--only b,a` different runs.
+
+    Returns the sublist. Raises `UnknownStage` on a name the chain does not
+    have - a typo that silently selected nothing is the failure mode here.
+    """
+    by_name = {stage.name: stage for stage in stages}
+    wanted = list(only)
+    for name in wanted:
+        if name not in by_name:
+            raise UnknownStage(name, by_name)
+
+    needed: set[str] = set()
+
+    def _pull(name: str) -> None:
+        if name in needed:
+            return
+        needed.add(name)
+        for need in by_name[name].needs:
+            # A `needs` entry naming a stage the chain does not have is a
+            # defect in the stage list rather than in the caller's request, so
+            # it raises here too rather than being dropped.
+            if need not in by_name:
+                raise UnknownStage(need, by_name)
+            _pull(need)
+
+    for name in wanted:
+        _pull(name)
+    return [stage for stage in stages if stage.name in needed]
+
+
 @dataclass
 class ChainRun:
     """Every stage's outcome, and the summary a person reads in the morning."""
@@ -123,6 +181,13 @@ class ChainRun:
     results: dict[str, StageResult] = field(default_factory=dict)
     started_at: datetime | None = None
     finished_at: datetime | None = None
+    #: How many stages the full chain has, when this run was a `--only` subset.
+    #: THE DENOMINATOR, and it is here rather than left to the caller because a
+    #: summary reading "2 of 2 stages ran" after `--only score-documents` is
+    #: true and reads as a complete night (rule 7). None means the whole chain.
+    selected_of: int | None = None
+    #: What was asked for, so the summary can say why the rest is absent.
+    selection: tuple[str, ...] = ()
 
     @property
     def refused(self) -> list[str]:
@@ -151,6 +216,21 @@ class ChainRun:
             f"nightly chain: {ran} of {len(self.results)} stages ran, "
             f"{len(self.refused)} refused, {len(self.errored)} errored"
         )
+        if self.selected_of is not None:
+            # THE POPULATION, BEFORE THE COUNTS. Without this line a `--only`
+            # run reads "1 of 2 stages ran" and a reader has no way to know the
+            # chain has fourteen. The stages that were not selected are NOT
+            # refusals - nobody looked at them - so they are named here rather
+            # than given a fourth outcome, which is the mistake
+            # `retrieval_provenance` made and withdrew.
+            head = (
+                f"nightly chain, PARTIAL RUN: --only "
+                f"{','.join(self.selection)} selected "
+                f"{len(self.results)} of {self.selected_of} stages "
+                f"(the named ones and what they depend on). The other "
+                f"{self.selected_of - len(self.results)} were NOT ATTEMPTED and "
+                f"are not refusals.\n" + head
+            )
         return "\n".join([head, *lines])
 
 
@@ -427,6 +507,33 @@ def _sweep_reddit_stage(context) -> StageResult:
                     "empty one would report as nobody discussing anything",
         )
 
+    # ⚠ `--no-network` MEANT NOTHING HERE UNTIL 2026-08-31, AND THAT IS A HAZARD
+    #   WELL BEYOND ANY ONE USE. `_cmd_ops_run` withholds `context["client"]` for
+    #   `--no-network`, and this stage never read it - it builds its own, because
+    #   the registry client carries no RapidAPI headers and a Reddit request
+    #   through it would 404 at the gateway. That reasoning is correct and the
+    #   consequence was not: a flag documented as "run without an HTTP client"
+    #   left this stage issuing live requests and writing documents.
+    #
+    #   A flag that silently does not apply is worse than an absent flag,
+    #   because the caller has already decided. `--no-network` is how the
+    #   refusals get read without a server; anyone using it to inspect the chain
+    #   would have harvested Reddit as a side effect of looking.
+    #
+    #   So the CONTEXT carries the intent and every stage honours it, rather
+    #   than the intent living in one client the stages happen to share.
+    #   Checked AFTER the contract and subreddit checks above so that a
+    #   `--no-network` run still reports a missing source row or an unchosen
+    #   subreddit list - those are build defects and are worth surfacing when
+    #   somebody is reading the chain offline, which is exactly when they look.
+    if context.get("offline"):
+        return StageResult(
+            REFUSED, "--no-network: refusing to open a Reddit client",
+            starves="no Reddit documents this run. Nothing is broken - the run "
+                    "was asked not to touch the network, and this stage builds "
+                    "its own client rather than sharing the registry's",
+        )
+
     try:
         client = build_client()
     except RedditConfigError as error:
@@ -464,8 +571,57 @@ def _sweep_reddit_stage(context) -> StageResult:
     })
 
 
+def _score_documents_stage(context) -> StageResult:
+    """The five specificity components onto `document`. `collect/triage/store.py`.
+
+    WIRED 2026-08-31, AND THE COMPUTING CODE PREDATES IT BY WEEKS.
+    `collect/triage/specificity.py` counted the components, was tested and was
+    contract-backed the whole time; no path stored what it computed. Seven rows
+    of 3,061 carried values, and all seven came from
+    `scripts/export_thread_contexts.py` hand-building INSERT text for one thread
+    and one article. Same shape as `load-capabilities` above and as issue #27:
+    not a broken writer, a writer that was never called.
+
+    THIS IS A RECORDED FIELD, NOT A GATE - which is why it can be wired without
+    the ruling the rest of `triage` still needs. It writes six columns and drops
+    nothing. `document.status` and `filter_reasons` are the gating half and stay
+    with the `triage` stage below, where the missing bot list and the missing
+    language detector are decisions rather than code (rule 8: a check whose
+    error rate is unmeasured ships as a field, never as a gate).
+
+    NEEDS ONLY `preflight`. It scores STORED rows, so it is worth running on a
+    night when every sweep failed - there are 3,054 unscored documents behind it
+    - and making it depend on a sweep would skip it in exactly the state where
+    it has most to do.
+
+    IDEMPOTENT: selects rows with all six columns NULL. A second run is a no-op.
+    """
+    from collect.rawstore import RawStore
+    from collect.triage.store import score_unscored
+
+    conn = context.get("conn")
+    if conn is None:
+        return StageResult(REFUSED, "no database connection",
+                           starves="document.has_numbers and has_conditions stay "
+                                   "NULL, so judge/'s numbers rung is withheld on "
+                                   "every claim and f_specificity prices both as "
+                                   "absent")
+    store = context.get("raw_store") or RawStore()
+    run = score_unscored(conn, store)
+    return StageResult(OK, detail=run.describe(), counts={
+        "eligible": run.eligible,
+        "scored": run.scored,
+        # NAMED, not folded into a failure count. A payload absent from this
+        # machine is left NULL rather than written False, and the number is the
+        # finding: it says how much of the corpus this host cannot score.
+        "unreadable": run.unreadable,
+        "written": run.written,
+        **{f"true_{k}": v for k, v in run.true_counts.items()},
+    })
+
+
 def default_stages() -> list[Stage]:
-    """Tonight's chain: FIVE stages that run, and eight that say why they cannot.
+    """Tonight's chain: SIX stages that run, and eight that say why they cannot.
 
     THIS COUNT HAS BEEN STALE TWICE AND BOTH TIMES BY ONE. It said four-and-nine
     while `sweep-reddit` was wired, which is the same defect as that stage's own
@@ -531,11 +687,18 @@ def default_stages() -> list[Stage]:
         Stage("assemble-flatten", run=None, needs=("sweep-github",),
               starves="thread_context and offset_map — judge/ has nothing to "
                       "extract from, and offset_map cannot be built later"),
+        # THE SPECIFICITY COLUMNS, SPLIT OFF FROM `triage` 2026-08-31. They are
+        # recorded fields and the rest of triage is a gate, so they were being
+        # held back by rulings they do not need — the bot list and the language
+        # detector. `needs=("preflight",)` and not a sweep: it scores stored
+        # rows, and the night every sweep fails is the night it has most to do.
+        Stage("score-documents", run=_score_documents_stage, needs=("preflight",)),
         Stage("triage", run=None, needs=("assemble-flatten",),
-              starves="document.status and document.specificity_score, which no "
+              starves="document.status and document.filter_reasons, which no "
                       "writer sets today — so triage survival has neither a "
                       "numerator nor a denominator, and alert 2's 14-night "
-                      "burn-in cannot start counting"),
+                      "burn-in cannot start counting. NO LONGER STARVES THE "
+                      "SPECIFICITY COLUMNS: `score-documents` above writes those"),
         Stage("rollup", run=None,
               starves="the alert report and the coverage numbers, which "
                       "`ops.alerts` can already produce"),

@@ -29,6 +29,7 @@ import json
 import os
 import pathlib
 import sys
+import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -48,9 +49,15 @@ def main() -> int:
 
     import httpx
 
-    from collect.adapters.github import GitHubHarvester, QueryRun
+    from collect.adapters.github import (
+        REST_INTERVAL,
+        SEARCH_INTERVAL,
+        GitHubHarvester,
+        QueryRun,
+    )
     from collect.config import settings
     from collect.db import connect
+    from collect.limiter import HostLimiter
     from collect.rawstore import RawStore
     from collect.rawstore_reader import RawStoreReader
 
@@ -117,12 +124,24 @@ def main() -> int:
     harvester._client = client
     harvester._store = RawStore(settings().raw_store_path)
 
-    class _NoWait:
-        def wait(self, _url: str) -> None:
-            return None
-
-    harvester._rest = _NoWait()
-    harvester._search = _NoWait()
+    # ⚠ THE REAL LIMITER, NOT A NO-OP. This was a `_NoWait` stub on both
+    #   limiters, and it was defensible at 30 requests: a burst that small
+    #   finishes inside GitHub's tolerance and pacing it only costs wall clock.
+    #
+    #   IT STOPPED BEING DEFENSIBLE AT 586. The core bucket is 5,000/hour and
+    #   586 fits inside it, so the ceiling is not the risk - the SECONDARY limit
+    #   is, which GitHub applies to burst rate rather than to volume and answers
+    #   with a 403 that looks like a permission error. `REST_INTERVAL` is 0.8s
+    #   and exists for exactly this; the eight-minute estimate for this fetch was
+    #   computed FROM it, so running unpaced would have been faster than the
+    #   number we costed, which is the direction that should have been suspicious.
+    #
+    #   Same shape as the `--no-network` no-op fixed the same day: a control that
+    #   is present, correct elsewhere, and bypassed here.
+    harvester._rest = HostLimiter(min_interval=REST_INTERVAL)
+    harvester._search = HostLimiter(min_interval=SEARCH_INTERVAL)
+    harvester._sleep = time.sleep
+    harvester._epoch = time.time
 
     run = QueryRun.__new__(QueryRun)
     run.rest_calls = 0

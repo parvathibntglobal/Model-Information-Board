@@ -309,3 +309,111 @@ def test_a_zero_model_poll_is_an_error_rather_than_a_quiet_ok():
     assert result.outcome == ERROR, result
     assert "0 models" in result.detail
     assert result.starves, "an error on this stage has to say what it starves"
+
+
+# ── --only, and the denominator it has to carry ───────────────────────────
+
+
+def test_only_pulls_in_the_dependencies_rather_than_skipping_them():
+    """`score-documents` needs `preflight`, and preflight is the fixture guard.
+
+    Narrowing what is ATTEMPTED must never narrow what is CHECKED. A
+    `--only score-documents` that skipped preflight would run a write stage with
+    the build-fixture assertion bypassed - which is the thing `cli.py`'s AST
+    guard exists to prevent one layer down.
+    """
+    from collect.ops.chain import default_stages, select_stages
+
+    selected = [s.name for s in select_stages(default_stages(), ["score-documents"])]
+    assert selected == ["preflight", "score-documents"]
+
+
+def test_only_keeps_chain_order_not_the_order_asked_for():
+    """The chain's order is a dependency statement, not a preference.
+
+    `--only a,b` and `--only b,a` must be the same run, or the command line can
+    reorder a dependency graph.
+    """
+    from collect.ops.chain import default_stages, select_stages
+
+    stages = default_stages()
+    forward = [s.name for s in select_stages(stages, ["score-documents", "load-capabilities"])]
+    backward = [s.name for s in select_stages(stages, ["load-capabilities", "score-documents"])]
+    assert forward == backward
+    assert forward.index("preflight") == 0
+
+
+def test_an_unknown_stage_refuses_and_lists_what_exists():
+    """A typo that selected nothing would print a clean summary of no work."""
+    from collect.ops.chain import UnknownStage, default_stages, select_stages
+
+    with pytest.raises(UnknownStage) as raised:
+        select_stages(default_stages(), ["score-document"])
+    message = str(raised.value)
+    assert "score-document" in message
+    assert "score-documents" in message, "the refusal should name the real stage"
+
+
+def test_a_partial_run_says_how_many_stages_it_did_not_attempt():
+    """THE ASSERTION THAT MATTERS, and it is about a denominator.
+
+    "1 of 2 stages ran" is true after `--only` and reads as a complete night.
+    The stages nobody selected are not refusals - no code declined them - so
+    they cannot be counted as such, and the summary has to name them some other
+    way. Rule 7 at the reporting layer.
+    """
+    run = run_chain([Stage("preflight", run=_ok), Stage("score-documents", run=_ok)])
+    run.selected_of = 14
+    run.selection = ("score-documents",)
+
+    summary = run.summary()
+    assert "PARTIAL RUN" in summary
+    assert "2 of 14" in summary
+    assert "NOT ATTEMPTED" in summary
+    assert "are not refusals" in summary
+
+
+def test_a_full_run_summary_says_nothing_about_selection():
+    """The partial-run line must not appear when the whole chain ran."""
+    run = run_chain([Stage("preflight", run=_ok)])
+    assert "PARTIAL RUN" not in run.summary()
+
+
+# ── --no-network has to mean it ────────────────────────────────────────────
+
+
+def test_sweep_reddit_refuses_when_the_run_is_offline():
+    """A FLAG THAT SILENTLY DOES NOT APPLY IS WORSE THAN AN ABSENT ONE.
+
+    `--no-network` withholds `context["client"]`, and this stage never read it -
+    it builds its own, correctly, because the registry client carries no
+    RapidAPI headers. So the flag was a no-op for the one wired stage that
+    WRITES DOCUMENTS, and anyone using it to read the chain's refusals offline
+    would have harvested Reddit as a side effect of looking.
+
+    Asserted with no `conn` absent from the context, so the refusal under test
+    is the offline one rather than the no-database one.
+    """
+    from collect.ops.chain import _sweep_reddit_stage
+
+    result = _sweep_reddit_stage({"conn": object(), "offline": True})
+
+    assert result.outcome == REFUSED
+    assert "no-network" in result.detail
+    assert result.starves, "a refusal must say what it costs"
+    assert "Nothing is broken" in result.starves, (
+        "an offline refusal is a request being honoured, not a fault, and the "
+        "starves text is where a morning reader learns which"
+    )
+
+
+def test_offline_is_read_from_the_context_not_from_a_missing_client():
+    """The intent travels in the context, so a stage cannot miss it by not
+    reading a client it never used."""
+    from collect.ops.chain import _sweep_reddit_stage
+
+    online = _sweep_reddit_stage({"conn": None, "offline": False})
+    assert online.outcome == REFUSED
+    assert "no database connection" in online.detail, (
+        "with offline false the stage should get as far as its own checks"
+    )

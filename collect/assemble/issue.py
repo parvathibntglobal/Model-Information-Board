@@ -300,12 +300,59 @@ class IssueAssemblyReport:
 
 
 def assemble_github_documents(conn, *, store, limit: int | None = None) -> IssueAssemblyReport:
-    """Assemble every stored GitHub document that has no `thread_context` yet.
+    """Assemble every stored GitHub ISSUE BODY that has no `thread_context` yet.
 
     Selected by the ABSENCE of a context rather than by a flag on the document,
     so a re-run is a no-op and a document assembled by some other path is not
     assembled twice. `write_thread_context` is `ON CONFLICT DO NOTHING` as well,
     which makes this safe rather than merely tidy.
+
+    ⚠ `parent_id IS NULL` AND `status <> 'filtered'` ADDED 2026-08-31, AND THE
+      QUERY WAS CORRECT UNTIL THE DAY BEFORE. It selected every github document
+      without a context, which was exactly the issue bodies for as long as
+      `document` held nothing else - every github row had `parent_id IS NULL`
+      because no comment had ever been written. `write_comments` landed 148 of
+      them, and the premise expired without the query changing.
+
+      What it would have built: **148 single-comment thread_contexts, each one a
+      "thread" whose root is a reply.** 99 of those comments are already members
+      of the 30 `issue_with_comments` contexts, so the same text would reach the
+      extractor twice under two ids - and a second claim from a re-read of one
+      comment is a second VOICE from one author, which is the over-clustering
+      `collect/CLAUDE.md` calls the worse of the two failures.
+
+      **And 23 of them are bots.** `assemble_issue_thread` refuses bots as
+      members precisely so `github-actions[bot]` cannot be quoted; assembling
+      one as a ROOT would walk around that refusal from the other side.
+
+    ⚠ THE TWO CHECKS LOOK REDUNDANT AND ARE NOT. DO NOT DELETE EITHER.
+      Both would have stopped the instance that prompted them - every one of the
+      148 comments is a non-root AND 23 of them are filtered - so a reviewer
+      reading the incident finds one check doing the work twice. They guard
+      different things and each has a case the other misses:
+
+        parent_id IS NULL      a KEPT comment. 125 of the 148, none filtered.
+                               The status check passes them straight through.
+        status <> 'filtered'   a filtered ISSUE BODY. `github.py`'s comment
+                               writer is not the only thing that sets
+                               `status='filtered'`; the triage gates will, on
+                               roots, the moment that stage is wired. The parent
+                               check passes them straight through.
+
+      The overlap is a property of THIS corpus on THIS day, not of the checks.
+      Deleting the one that "did nothing" leaves a gate that is correct until a
+      filtered root exists, and `triage` is a `run=None` stage waiting to create
+      exactly those - so the redundancy expires in the direction that matters.
+
+      Recorded here because the next reader will see two conditions and one
+      incident and reasonably reach for the simplification. Both are asserted
+      separately in `tests/test_assemble_github_selection_db.py`, on inputs the
+      other check cannot catch, which is what makes the tests independent rather
+      than duplicated.
+
+    THE SHAPE, SO IT IS RECOGNISABLE NEXT TIME: correct code, correct comment,
+    and a premise that quietly stopped holding. Nothing about this function
+    changed - the corpus did.
     """
     from collect.assemble.thread import write_thread_context
     from collect.rawstore_reader import RawStoreReader
@@ -317,6 +364,12 @@ def assemble_github_documents(conn, *, store, limit: int | None = None) -> Issue
         "SELECT d.id, d.text_ref, d.engagement "
         "FROM document d "
         "WHERE d.source = 'github' "
+        # An issue BODY. A comment is a member of its issue's thread, never the
+        # root of its own - see the docstring.
+        "  AND d.parent_id IS NULL "
+        # A filtered document is one a gate rejected. Assembling it would put
+        # text the pipeline refused in front of the extractor.
+        "  AND d.status <> 'filtered' "
         "  AND NOT EXISTS (SELECT 1 FROM thread_context tc WHERE tc.thread_root_id = d.id) "
         "ORDER BY d.id"
         + (f" LIMIT {int(limit)}" if limit else "")
