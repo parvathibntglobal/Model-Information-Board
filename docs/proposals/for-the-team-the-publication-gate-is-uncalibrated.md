@@ -21,9 +21,17 @@ Measured on staging (199 claims, 96 cells, all `insufficient`):
 - Per-voice weight there: **~0.020**.
 - At 0.015/claim, a cell needs **~200 distinct voices** to publish. The best has 7.
 
-Platform is **not** the binding constraint for the cells that matter: the top two
-(6 and 7 voices) both clear the ≥2-platform rule and fail on weight alone. (It is
-a real problem for 84 of 96 single-platform cells — a separate one.)
+**Independently corroborated by E1's committed multi-platform run** (PR #193,
+`feat/model-only-sweep-and-classification`): 197 claims across three platforms,
+94 cells, **0 published**, and the same top cell to the decimal — sonnet-5 ·
+`reasoning.multistep` · n_eff **0.1409** · 7 voices · 2 platforms. Two people,
+two corpora, one number.
+
+**Platform is no longer the binding constraint — weight is, alone.** E1's run
+lifted 12 cells to two platforms (up from 1), so `PLATFORM_MINIMUM = 2` is now
+met where it matters and **all 94 cells still fail on weight**. The earlier
+"84 of 96 single-platform" framing is stale; the single blocker is the weight
+scale.
 
 ## Why it's the AGGREGATION, not the tier
 
@@ -56,6 +64,15 @@ best-corroborated cell in the entire dataset — still short of 3.0. Only changi
 the *form* of the aggregation, or lowering the bar, crosses it. That one row —
 **seven genuine voices at ~2.6** — is the finding: the gap survives every fix on
 the table except the two that change what "3.0" is measured against.
+
+**And the two tier-fix rungs may not even be reachable.** E1's PR reports *"tier
+A is unreachable by construction"* (commit `e04115e`) — the speaking-role
+classification that sets the tier can't award A to the evidence this board
+actually collects. If that holds, the top two rows of the ladder are struck out,
+and the *only* remaining levers are the aggregation form and the bar. E1's PR
+opens arguing GitHub's tier-A channel is the fix and closes conceding the tier
+can't be reached — which is the same place this doc starts. The two analyses
+converged on the aggregation.
 
 ### Why the multiplicative form, first
 
