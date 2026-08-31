@@ -1,0 +1,32 @@
+{
+ "requests_planned": 134,
+ "requests_issued": 34,
+ "stopped_on_time": true,
+ "errors": [],
+ "shape_order": [
+  "title",
+  "repro"
+ ],
+ "per_shape": {
+  "title": {
+   "requests": 34,
+   "candidates": 2368,
+   "subject_any_form": 2089,
+   "subject_prose": 1143,
+   "inserted": 1145,
+   "new_to_corpus": 1881
+  }
+ },
+ "unique_documents_by_shape": {
+  "title": 1410
+ },
+ "unique_note": "documents this shape retrieved that no EARLIER shape did, in shape-major order. Not kept-per-shape: the sweep keeps on subject and the full sieve keeps nothing here.",
+ "signal_hits_total": 0,
+ "github_documents_before": 369,
+ "github_documents_after": 1514,
+ "retrieval_provenance": {
+  "not_recorded": 176,
+  "run_recorded": 1338
+ },
+ "what_it_does_not_buy": "zero signal hits means zero claims from this sweep alone. It raises subject precision and enlarges the extraction pool."
+}

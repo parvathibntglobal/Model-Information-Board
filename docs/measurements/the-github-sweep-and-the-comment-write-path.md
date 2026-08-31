@@ -185,6 +185,23 @@ remote. Blocked, in the order it would run:
                                    column exists and it should not add a 345th
 ```
 
+> **⚠ 344 IS STALE, AND THE SHAPE OF THE STATEMENT CHANGED WITH IT. Re-counted
+> 2026-08-31: it is 1,788** — reddit 1,492, github 176, blog 120, of 4,320
+> documents. Reddit's share by fetch date: 6 on 08-20, 190 on 08-24, 853 on
+> 08-27, 223 on 08-28, 220 on 08-31.
+>
+> **It grew by 1,148 in four days, which is faster than anything is closing it.**
+> "A known gap of 344, do not add a 345th" and "a gap of 1,788 growing by ~290 a
+> day" are different claims about the same column, and only the second one is a
+> reason to act. The line above was true when written and is the kind of figure
+> that goes stale silently — nothing recounts it, and it reads as settled.
+>
+> **926 of the rows added on 2026-08-31 were ours** — 148 comment writes and 778
+> multi-shape-sweep documents, all `run_recorded` for the sweep but NULL on the
+> specificity columns, which is the sibling gap. The 220 Reddit rows that day
+> came from a hand-run that opened no `harvest_run`. Detail and the non-collision
+> check in `docs/measurements/todays-reddit-writes-carry-no-harvest-run.md`.
+
 Not blocked, and already done: the renderer arms, the sweep planner and its
 refusals, the cost model, the bot classification, the comment write path, the
 third assembly shape, and 34 tests.

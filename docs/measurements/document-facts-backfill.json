@@ -1,0 +1,44 @@
+{
+ "documents_total_at_run": 4634,
+ "populated_after_run": 3391,
+ "still_null_after_run": 1243,
+ "passes": 2,
+ "already_populated_before_run": 1955,
+ "eligible_all_six_null": 2679,
+ "scored": 1436,
+ "scored_population_note": "documents with all six specificity columns NULL whose text_ref resolves in the local raw store",
+ "unreadable_here": {
+  "github": 9,
+  "reddit": 1234
+ },
+ "unreadable_note": "payload absent from THIS machine's raw store. Left NULL - an unreadable document is not a document with no numbers (rule 6).",
+ "true_counts": {
+  "has_numbers": 626,
+  "has_error_strings": 118,
+  "has_code": 1434,
+  "names_version": 1252,
+  "has_conditions": 123
+ },
+ "has_numbers_and_has_conditions": 285,
+ "has_numbers_or_has_conditions": 1973,
+ "neither": 1418,
+ "by_source": {
+  "github": {
+   "scored": 1505,
+   "has_numbers": 684,
+   "has_conditions": 165
+  },
+  "reddit": {
+   "scored": 1765,
+   "has_numbers": 1134,
+   "has_conditions": 136
+  },
+  "blog": {
+   "scored": 121,
+   "has_numbers": 121,
+   "has_conditions": 18
+  }
+ },
+ "written": 1436,
+ "dry_run": false
+}
