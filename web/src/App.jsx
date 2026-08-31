@@ -5,6 +5,7 @@ import Footer from './components/Footer'
 import Landing from './routes/Landing'
 import Ask from './routes/Ask'
 import Board from './routes/Board'
+import Articles from './routes/Articles'
 import ModelDetail from './routes/ModelDetail'
 import Models from './routes/Models'
 import Admin from './routes/Admin'
@@ -57,6 +58,7 @@ export default function App() {
 
           <Route path="/"        element={<Require session={session}><Landing /></Require>} />
           <Route path="/ask"     element={<Require session={session}><Ask /></Require>} />
+          <Route path="/articles" element={<Require session={session}><Articles /></Require>} />
           <Route path="/board"   element={<Require session={session}><Board /></Require>} />
           <Route path="/models"     element={<Require session={session}><Models /></Require>} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
