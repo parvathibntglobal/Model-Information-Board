@@ -39,8 +39,28 @@ CONSOLE_ENCODING = "cp1252"
 
 
 def _printed_literals(tree: ast.AST):
-    """Every string constant that reaches a `print` call, with its line."""
+    """Every string constant that reaches a `print` call, or is returned to one.
+
+    ⚠ `print` ARGUMENTS ALONE WERE NOT ENOUGH, AND THIS GUARD MISSED ONE OF ITS
+      OWN. `report_rollup_delta.baseline_refusal` RETURNS its message and the
+      caller prints it - so an em-dash in the returned f-string reached a
+      console the walk had never looked at. Found by eye, in output this test
+      exists to make impossible, which is the same shape as everything else it
+      records: a check whose population is narrower than the thing it protects.
+
+      RETURNED STRINGS ARE INCLUDED, and the false-positive cost is accepted.
+      Not every returned string is printed, so this over-collects - a returned
+      literal that only ever reaches a log or a comparison is now constrained to
+      ASCII for no reason. That is the cheap direction: the alternative is
+      tracing which returns reach a stream, which needs the call graph, and a
+      guard that needs a call graph is a guard nobody maintains.
+    """
     for node in ast.walk(tree):
+        if isinstance(node, ast.Return) and node.value is not None:
+            for inner in ast.walk(node.value):
+                if isinstance(inner, ast.Constant) and isinstance(inner.value, str):
+                    yield inner.lineno, inner.value
+            continue
         if not isinstance(node, ast.Call):
             continue
         func = node.func
