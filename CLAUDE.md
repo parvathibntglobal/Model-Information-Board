@@ -250,6 +250,32 @@ These are the rules a helpful refactor will otherwise quietly violate.
   PR, immediately after merge, and announced the same day** - check the ledger
   first, because it got out of step once. Before a staging write session, say
   so, so two of us are not writing the same afternoon.
+- **A commit pushed to a branch whose PR has closed is invisible to everyone,
+  including whoever pushed it.** Twice now, and the second was three minutes
+  after the merge:
+
+  ```
+  f986e0e  feat/column-state-manifest    #166 merged 12:50, pushed 12:53
+  0e026e8  fix/column-audit-web-scan…    #207 merged 08:39Z, pushed later
+  ```
+
+  **Nothing observes that push.** CI is `on: push: branches: [main]` plus
+  `on: pull_request`, so a push to a feature branch with no open PR triggers
+  **zero workflow runs** - no run, no notification, no review, no red build.
+  Both of these surfaced in a branch audit weeks later, not from any signal.
+
+  **Something CAN signal it, and only in one place.** A `pre-push` hook is the
+  only moment anything knows both facts at once - that you are pushing, and that
+  `gh pr list --head <branch> --state open` is empty while the branch is ahead of
+  `main`. It must warn and never block: it needs `gh` auth and the network, and a
+  hook that fails offline would be worse than the defect. No hooks are installed
+  or shipped here today, so until one is, the rule is the rule:
+
+  **Before pushing to a branch you did not just create, check whether its PR is
+  still open.** `gh pr list --head "$(git branch --show-current)"` answers it.
+  Writing this down rather than trusting the habit, because both instances were
+  a follow-up commit written *because a review comment asked for it* - the moment
+  you are most sure the PR is open is right after it closed.
 
 ## Build fixtures currently in place
 
