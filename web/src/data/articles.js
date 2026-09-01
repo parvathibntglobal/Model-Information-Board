@@ -9,6 +9,7 @@
  */
 import deepseekArxiv from './deepseek-v4-pro-arxiv.json'
 import deepseekX from './deepseek-v4-pro-x.json'
+import deepseekReddit from './deepseek-v4-pro-reddit.json'
 
 export const PLATFORMS = [
   { id: 'arxiv', label: 'arXiv' },

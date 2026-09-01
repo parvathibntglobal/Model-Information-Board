@@ -116,7 +116,9 @@ function ModelView({ model, platformId, onPlatform, onBack }) {
         ? <NotCollected model={model.name} platform={PLATFORMS.find((p) => p.id === platformId)?.label} />
         : platformData.platform === 'x'
           ? <XPanel data={platformData} />
-          : <ArxivPanel data={platformData} />}
+          : platformData.platform === 'reddit'
+            ? <RedditPanel data={platformData} />
+            : <ArxivPanel data={platformData} />}
     </div>
   )
 }
@@ -268,6 +270,8 @@ const TYPE_LABEL = {
   announcement: 'Announcement',
   news_roundup: 'News roundup',
   promo: 'Promo',
+  tutorial: 'Tutorial',
+  question: 'Question',
 }
 
 const fmt = (n) =>
@@ -383,7 +387,114 @@ function PostCard({ p }) {
   )
 }
 
-/* ── Reddit — declared, not yet collected ──────────────────────────────── */
+/* ── Reddit ────────────────────────────────────────────────────────────── */
+
+function RedditPanel({ data }) {
+  const s = data.summary
+  const sweep = s.sweep || {}
+  const [active, setActive] = useState(() => [])
+  const toggle = (t) =>
+    setActive((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
+  const filtering = active.length > 0
+  const posts = filtering ? data.posts.filter((p) => active.includes(p.content_type)) : data.posts
+
+  return (
+    <div className="stack stack-3">
+      <section className="card card-flush">
+        <div className="card-head">
+          <div className="row" style={{ gap: 10 }}>
+            <IconSearch width={14} height={14} style={{ color: 'var(--text-3)' }} />
+            <span className="label">{data.source}</span>
+          </div>
+          <span className="label">
+            {filtering ? `${posts.length} of ${s.count} shown` : `${s.count} labelled posts`}
+            {s.date_from ? ` · ${s.date_from} → ${s.date_to}` : ''}
+          </span>
+        </div>
+        <div className="card-body stack stack-2">
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>{data.note}</p>
+          <div className="row" style={{ gap: 18, flexWrap: 'wrap' }}>
+            <Stat n={fmt(sweep.records)} l="records" />
+            <Stat n={fmt(sweep.literal_matches)} l="literal matches" />
+            <Stat n={fmt(sweep.subreddits)} l="subreddits" />
+            <Stat n={fmt(sweep.authors)} l="authors" />
+          </div>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {Object.entries(s.by_content_type).map(([t, n]) => (
+              <button
+                key={t}
+                type="button"
+                className={`chip${active.includes(t) ? ' chip-on' : ''}`}
+                onClick={() => toggle(t)}
+                aria-pressed={active.includes(t)}
+              >
+                {TYPE_LABEL[t] || t}<span style={{ marginLeft: 5, opacity: 0.6 }}>{n}</span>
+              </button>
+            ))}
+            {filtering && (
+              <button type="button" className="chip" style={{ opacity: 0.75 }} onClick={() => setActive([])}>
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="stack stack-2">
+        {posts.map((p, i) => (
+          <Reveal key={`${p.url || p.rank}-${i}`} delay={Math.min(i * 12, 200)}>
+            <RedditPostCard p={p} />
+          </Reveal>
+        ))}
+        {posts.length === 0 && (
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>No posts in the selected types.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function RedditPostCard({ p }) {
+  return (
+    <section className="card card-flush">
+      <div className="card-body stack stack-2">
+        <div className="row" style={{ gap: 10, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 650, fontSize: 'var(--fs-sm)', lineHeight: 1.35 }}>
+            {p.title}
+          </a>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+            <Badge tone="info">{TYPE_LABEL[p.content_type] || p.content_type}</Badge>
+            {p.subject && <Badge tone="pass">subject</Badge>}
+          </div>
+        </div>
+
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+          <span className="mono">r/{p.subreddit}</span>
+          <span className="dim">u/{p.author}</span>
+          {p.date && <span className="dim">{p.date}</span>}
+          <span className="mono">▲ {fmt(p.score)}</span>
+          {p.comments != null && <span className="mono">{fmt(p.comments)} comments</span>}
+        </div>
+
+        {p.excerpt && <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2, var(--text))' }}>{p.excerpt}</p>}
+
+        {p.why_label && (
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)', fontStyle: 'italic', borderLeft: '2px solid var(--bg-3, rgba(127,127,127,.25))', paddingLeft: 8 }}>
+            Why {TYPE_LABEL[p.content_type] || p.content_type}: {p.why_label}
+          </p>
+        )}
+
+        <div className="row">
+          <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, fontSize: 'var(--fs-xs)' }}>
+            view on Reddit <IconExternal width={11} height={11} />
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── platforms with no data yet ────────────────────────────────────────── */
 
 function NotCollected({ model, platform }) {
   return (
