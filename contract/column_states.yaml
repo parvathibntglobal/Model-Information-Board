@@ -156,7 +156,14 @@ columns:
       why: >-
         read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - the BEFORE side of the tier diff
     extractor_confidence: {state: write_only, reviewed: false}
-    extractor_model: {state: write_only, reviewed: false}
+    extractor_model:
+      state: read
+      reviewed: true
+      why: >-
+        Written by every extraction path as the tag on a claim. Now also SELECTed
+        by scripts/test_extractor_swap.py, which reads it to compare a candidate
+        extractor against the stored-baseline claims in the extractor A/B (added
+        with the 2026-09-01 gemini->deepseek-v4-flash switch).
     family: {state: write_only, reviewed: false}
     has_numbers:
       state: read
