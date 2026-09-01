@@ -8,6 +8,7 @@
  * rendering an empty list as if nothing exists.
  */
 import deepseekArxiv from './deepseek-v4-pro-arxiv.json'
+import deepseekX from './deepseek-v4-pro-x.json'
 
 export const PLATFORMS = [
   { id: 'arxiv', label: 'arXiv' },
@@ -24,7 +25,7 @@ export const MODELS = [
     // a value with `articles: []`, which would mean "collected, found nothing".
     platforms: {
       arxiv: deepseekArxiv,
-      x: null,
+      x: deepseekX,
       reddit: null,
     },
   },
