@@ -210,8 +210,17 @@ _NO_A3 = (r"\.[ \t]*{name}(?![A-Za-z0-9_])"
           r"|\[\s*[\"']{name}[\"']\s*\]")
 
 
-def _discover(schema, *, drop_a3=False, scope=None, no_lexer=False):
-    saved = (AC._ACCESS, AC._web_files, AC._code_mask)
+def _discover(schema, *, drop_a3=False, unscoped=False, no_lexer=False):
+    """One variant of the audit.
+
+    SCOPING IS NOW THE PRODUCTION PATH, so the direction of this switch flipped
+    when it landed: the variants below turn features OFF to recover a historical
+    reading, rather than on to preview one. `unscoped=True` is how the pre-#203
+    figures are reproduced, and without it every row here would silently be a
+    scoped row — which is exactly how the labels on this table went stale once
+    already.
+    """
+    saved = (AC._ACCESS, AC._code_mask, AC.web_scope)
     try:
         if drop_a3:
             AC._ACCESS = _NO_A3
@@ -220,20 +229,16 @@ def _discover(schema, *, drop_a3=False, scope=None, no_lexer=False):
                           r"|\[\s*[\"']{name}[\"']\s*\]"
                           r"|(?<![A-Za-z0-9_.]){name}\s*:")
             AC._code_mask = lambda s: bytearray(b"\x01") * len(s)
-        if scope is None:
-            return AC.discover(schema)
-        rels = {str(p.relative_to(ROOT)).replace("\\", "/"): p
-                for p in saved[1]()}
-        merged = {}
-        for tbl in schema:
-            allowed = scope.get(tbl, set())
-            AC._web_files = (lambda a=allowed: [rels[r] for r in a if r in rels])
-            f = AC.discover(schema)
-            for c in schema[tbl]:
-                merged[(tbl, c)] = f[(tbl, c)]
-        return merged
+        if unscoped:
+            # Every table sees every file. Not `{}` — an empty scope trips
+            # discover()'s own unbuildable-chain guard, which falls back to
+            # unscoped anyway but prints a warning that would be a lie here.
+            every = {str(p.relative_to(ROOT)).replace("\\", "/")
+                     for p in AC._web_files()}
+            AC.web_scope = lambda _schema, _e=every: dict.fromkeys(_schema, _e)
+        return AC.discover(schema)
     finally:
-        AC._ACCESS, AC._web_files, AC._code_mask = saved
+        AC._ACCESS, AC._code_mask, AC.web_scope = saved
 
 
 def mismatches(found, schema, decl, consistent_with):
@@ -294,16 +299,18 @@ def main() -> int:
 
     print()
     print("=" * 78)
-    print("C — WHAT EACH FIX REMOVES  (baseline: CI is green, 0 mismatches)")
+    print("C — WHAT EACH LEVER IS WORTH. Scoping is now the PRODUCTION path, so the")
+    print("    rows below turn features OFF to recover a historical reading rather")
+    print("    than on to preview one. Baseline: CI green, 0 mismatches.")
     print("=" * 78)
     cur = _discover(schema)
     base_web = {k for k, v in cur.items() if v["read_only_from_web"]}
     variants = [
-        ("before steps 1+2", dict(no_lexer=True)),
-        ("steps 1+2 (landed)", dict()),
+        ("PRODUCTION (scoped)", dict()),
+        ("unscoped", dict(unscoped=True)),
+        ("unscoped, no lexer", dict(unscoped=True, no_lexer=True)),
         ("+ drop A3 key:", dict(drop_a3=True)),
-        ("+ scoping", dict(scope=scope)),
-        ("+ drop A3 and scope", dict(drop_a3=True, scope=scope)),
+        ("unscoped + drop A3", dict(unscoped=True, drop_a3=True)),
     ]
     hdr = (f"  {'variant':<21} {'web-only':>8} {'phantom':>7} "
            f"{'diag phantom':>12} {'real lost':>9} {'CI mismatch':>11}")
