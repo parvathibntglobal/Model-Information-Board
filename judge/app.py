@@ -1047,6 +1047,14 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
         days=max(1, min(days, 90)),
     )
 
+    # ALL-TIME per-model spend. `report.by_model_usd` is TODAY only (it shares the
+    # cap window), so on a day with no calls it is empty. This cumulative total is
+    # what "usage per model" means for a Gemini-vs-DeepSeek comparison, so it is
+    # exposed separately and labelled all-time on the page.
+    by_model_total: dict[str, float] = {}
+    for call in spend_ledger.read_all():
+        by_model_total[call.model] = by_model_total.get(call.model, 0.0) + call.usd
+
     def series(buckets):
         return [
             {
@@ -1096,6 +1104,7 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
             for stage in spend_ledger.STAGES
         ],
         "by_model": {k: round(v, 6) for k, v in report.by_model_usd.items()},
+        "by_model_total": {k: round(v, 6) for k, v in by_model_total.items()},
         "rates": {
             "usd_last_hour": None
             if report.usd_per_hour_recent is None

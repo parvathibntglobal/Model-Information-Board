@@ -63,6 +63,7 @@ export default function UsagePanel() {
   if (!data) return <section className="card"><span className="label">Reading the ledger…</span></section>
 
   const { cap, today, by_stage: stages, rates, hourly, daily, ledger } = data
+  const byModel = data.by_model_total || {}
   const rapid = data.rapidapi || {}
   const everyone = data.everyone || {}
   const pct = today.fraction_used == null ? null : Math.round(today.fraction_used * 100)
@@ -86,7 +87,7 @@ export default function UsagePanel() {
       <div className="card-body stack stack-3">
         <div className="row" style={{ gap: 6 }}>
           {[
-            ['openrouter', 'OpenRouter — Gemini 2.5 Flash'],
+            ['openrouter', 'OpenRouter — extractor + ask'],
             ['rapidapi', 'RapidAPI — Reddit'],
           ].map(([key, text]) => (
             <button
@@ -212,6 +213,29 @@ export default function UsagePanel() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* PER-MODEL TOTAL — OUR recorded spend, all-time, split by the model
+            that ran. All-time on purpose: the by-stage figures above are today
+            only (they share the cap window), so a per-model total is the figure
+            that actually compares Gemini vs DeepSeek. Separate from "everyone"
+            above, which is the whole key's total from OpenRouter, not just ours. */}
+        <div className="stack stack-2">
+          <span className="label">Total recorded per model — all-time, our spend</span>
+          {Object.keys(byModel).length === 0 ? (
+            <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>
+              No model calls recorded yet.
+            </span>
+          ) : (
+            Object.entries(byModel)
+              .sort((a, b) => b[1] - a[1])
+              .map(([model, spent]) => (
+                <div key={model} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                  <span className="mono" style={{ fontSize: 'var(--fs-sm)' }}>{model}</span>
+                  <span className="tnum">{usd(spent)}</span>
+                </div>
+              ))
+          )}
         </div>
 
         <Chart title="Spend per hour, last 24h — stacked by stage" points={hourly} stages={stages} />
