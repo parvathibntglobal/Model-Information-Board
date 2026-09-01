@@ -7,8 +7,8 @@ import { IconExternal, IconQuote, IconSearch, IconAlert, IconArrow } from '../co
 /**
  * Articles — what each platform publishes about a model.
  *
- * Two levels: a list of models, and — on clicking one — that model's arXiv / X
- * / Reddit view. arXiv is wired first from a static scrape; the other two
+ * Two levels: a list of models, and — on clicking one — that model's arXiv / X /
+ * Reddit / Hacker News view. arXiv is wired first from a static scrape; the other two
  * declare themselves "not collected yet" rather than render an empty list,
  * because an empty panel must not read as "nothing exists."
  */
@@ -42,7 +42,7 @@ function ModelList({ onOpen }) {
         <h1 style={{ fontSize: 'var(--fs-display)' }}>Articles by model</h1>
         <p className="muted" style={{ maxWidth: '64ch' }}>
           What the public record says about each model, gathered per platform —
-          arXiv, X and Reddit. Open a model to see its collected articles.
+          arXiv, X, Reddit and Hacker News. Open a model to see its collected articles.
         </p>
       </div>
 
@@ -118,7 +118,9 @@ function ModelView({ model, platformId, onPlatform, onBack }) {
           ? <XPanel data={platformData} />
           : platformData.platform === 'reddit'
             ? <RedditPanel data={platformData} />
-            : <ArxivPanel data={platformData} />}
+            : platformData.platform === 'hn'
+              ? <HNPanel data={platformData} />
+              : <ArxivPanel data={platformData} />}
     </div>
   )
 }
@@ -269,6 +271,9 @@ const TYPE_LABEL = {
   promo: 'Promo',
   tutorial: 'Tutorial',
   question: 'Question',
+  cost: 'Cost & economics',
+  hardware: 'Local & hardware',
+  production: 'Production & dissent',
 }
 
 const fmt = (n) =>
@@ -482,6 +487,104 @@ function RedditPostCard({ p }) {
         <div className="row">
           <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, fontSize: 'var(--fs-xs)' }}>
             view on Reddit <IconExternal width={11} height={11} />
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── Hacker News ───────────────────────────────────────────────────────── */
+
+function HNPanel({ data }) {
+  const s = data.summary
+  const sweep = s.sweep || {}
+  const [active, setActive] = useState(null)
+  const toggle = (t) => setActive((prev) => (prev === t ? null : t))
+  const filtering = active != null
+  const posts = filtering ? data.posts.filter((p) => p.content_type === active) : data.posts
+
+  return (
+    <div className="stack stack-3">
+      <section className="card card-flush">
+        <div className="card-head">
+          <div className="row" style={{ gap: 10 }}>
+            <IconSearch width={14} height={14} style={{ color: 'var(--text-3)' }} />
+            <span className="label">{data.source}</span>
+          </div>
+          <span className="label">
+            {filtering ? `${posts.length} of ${s.count} shown` : `${s.count} analysis cases`}
+            {s.date_from ? ` · ${s.date_from} → ${s.date_to}` : ''}
+          </span>
+        </div>
+        <div className="card-body stack stack-2">
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>{data.note}</p>
+          <div className="row" style={{ gap: 18, flexWrap: 'wrap' }}>
+            <Stat n={fmt(sweep.subject_threads)} l="subject threads" />
+            <Stat n={fmt(sweep.threads_with_discussion)} l="with discussion" />
+            <Stat n={fmt(sweep.comments_fetched)} l="comments read" />
+            <Stat n={fmt(sweep.cases)} l="analysis cases" />
+          </div>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {Object.entries(s.by_content_type).map(([t, n]) => (
+              <button
+                key={t}
+                type="button"
+                className={`chip${active === t ? ' chip-on' : ''}`}
+                onClick={() => toggle(t)}
+                aria-pressed={active === t}
+              >
+                {TYPE_LABEL[t] || t}<span style={{ marginLeft: 5, opacity: 0.6 }}>{n}</span>
+              </button>
+            ))}
+            {filtering && (
+              <button type="button" className="chip" style={{ opacity: 0.75 }} onClick={() => setActive(null)}>
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="stack stack-2">
+        {posts.map((p) => (
+          <Reveal key={p.hn_id} delay={Math.min(p.rank * 12, 200)}>
+            <HNPostCard p={p} />
+          </Reveal>
+        ))}
+        {posts.length === 0 && (
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>No cases in the selected type.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function HNPostCard({ p }) {
+  return (
+    <section className="card card-flush">
+      <div className="card-body stack stack-2">
+        <div className="row" style={{ gap: 10, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <p style={{ fontWeight: 650, fontSize: 'var(--fs-sm)', lineHeight: 1.4 }}>{p.note}</p>
+          <Badge tone="info">{TYPE_LABEL[p.content_type] || p.content_type}</Badge>
+        </div>
+
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+          <span className="dim">{p.author}</span>
+          <span className="dim">in “{p.thread}”</span>
+          <span className="mono">▲ {fmt(p.points)}</span>
+          {p.date && <span className="dim">{p.date}</span>}
+        </div>
+
+        {p.quote && (
+          <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2, var(--text))', fontStyle: 'italic' }}>
+            {p.quote}
+          </p>
+        )}
+
+        <div className="row">
+          <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, fontSize: 'var(--fs-xs)' }}>
+            view on Hacker News <IconExternal width={11} height={11} />
           </a>
         </div>
       </div>

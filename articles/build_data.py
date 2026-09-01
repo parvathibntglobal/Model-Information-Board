@@ -85,7 +85,41 @@ SOURCES = [
         "md": ROOT / "articles" / "deepseek-v4-pro" / "DeepSeek-V4-Pro-Reddit-Report.md",
         "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-reddit.json",
     },
+    {
+        "model_id": "deepseek-v4-pro",
+        "display_name": "DeepSeek V4 Pro",
+        "platform": "hn",
+        "kind": "hn",
+        "source": "Hacker News via Algolia — subject-thread sweep",
+        "scraped_at": "2026-09-01T11:05:05Z",
+        "note": (
+            "Instead of matching the literal phrase, this run finds threads whose "
+            "own title is about the model and reads every comment. 167 subject "
+            "threads (75 with discussion), 4,917 comments; 34 were hand-picked as "
+            "new analytical cases, none of which the phrase sweep had caught."
+        ),
+        "sweep": {
+            "subject_threads": 167,
+            "threads_with_discussion": 75,
+            "comments_fetched": 4917,
+            "cases": 34,
+        },
+        "md": ROOT / "articles" / "deepseek-v4-pro" / "DeepSeek-V4-Pro_HN_SubjectThreads_Report.md",
+        "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-hn.json",
+    },
 ]
+
+# HN §3 case categories -> content-type keys.
+HN_TYPE = {
+    "Benchmark results and evaluation methodology": "benchmark",
+    "Cost, caching and self-hosting economics": "cost",
+    "Local inference, quantization and hardware": "hardware",
+    "First-hand production evaluation and dissent": "production",
+}
+HN_CASE = re.compile(
+    r"^\*\*\[(\d+)\]\((https?://[^)]+)\)\*\*\s*-\s*(\d{4}-\d{2}-\d{2})\s*\|\s*"
+    r"by\s+(.+?)\s*\|\s*in\s*\*(.+?)\*\s*\((\d+)\s*pts?\)"
+)
 
 # Reddit content-type sections (§6 full entries, §7 compact tables).
 REDDIT_TYPE = {
@@ -448,6 +482,61 @@ def summarise_reddit(posts: list[dict], sweep: dict) -> dict:
     }
 
 
+def parse_hn(text: str) -> list[dict]:
+    """The §3 analysis cases — a comment per entry, tagged with its category."""
+    lines = text.splitlines()
+    posts: list[dict] = []
+    cur_type: str | None = None
+
+    for i, line in enumerate(lines):
+        if line.startswith("### "):
+            name = re.sub(r"\s*\(\d+\)\s*$", "", line[4:]).strip()
+            cur_type = HN_TYPE.get(name)
+            continue
+        m = HN_CASE.match(line)
+        if not m or cur_type is None:
+            continue
+        hn_id, url, date, author, thread, pts = m.groups()
+        note, quote = None, None
+        for j in range(i + 1, min(i + 8, len(lines))):
+            s = lines[j].strip()
+            qm = re.match(r"-\s*>\s*(.+)", s)
+            if qm:
+                quote = qm.group(1).strip()
+                continue
+            nm = re.match(r"-\s+(.+)", s)
+            if nm and note is None:
+                note = nm.group(1).strip()
+                continue
+            if s.startswith("**[") or s.startswith("#"):
+                break
+        posts.append({
+            "rank": len(posts) + 1,
+            "hn_id": hn_id,
+            "url": url,
+            "date": date,
+            "author": author.strip(),
+            "thread": thread.strip(),
+            "points": int(pts),
+            "content_type": cur_type,
+            "note": note,
+            "quote": quote,
+        })
+    return posts
+
+
+def summarise_hn(posts: list[dict], sweep: dict) -> dict:
+    by_type = collections.Counter(p["content_type"] for p in posts if p["content_type"])
+    dates = sorted(p["date"] for p in posts if p["date"])
+    return {
+        "count": len(posts),
+        "date_from": dates[0] if dates else None,
+        "date_to": dates[-1] if dates else None,
+        "by_content_type": dict(by_type.most_common()),
+        "sweep": sweep,
+    }
+
+
 def main() -> None:
     meta_keys = ("model_id", "display_name", "platform", "source", "scraped_at", "note")
     for src in SOURCES:
@@ -461,6 +550,11 @@ def main() -> None:
         elif src.get("kind") == "reddit":
             items = parse_reddit(text)
             payload["summary"] = summarise_reddit(items, src["sweep"])
+            payload["posts"] = items
+            label = "posts"
+        elif src.get("kind") == "hn":
+            items = parse_hn(text)
+            payload["summary"] = summarise_hn(items, src["sweep"])
             payload["posts"] = items
             label = "posts"
         else:

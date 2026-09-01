@@ -26,7 +26,8 @@ rebuild, so the two never drift.
 | DeepSeek V4 Pro | arXiv | `deepseek-v4-pro/arxiv-report.md` | 43 papers |
 | DeepSeek V4 Pro | X | `deepseek-v4-pro/REPORT.md` | 149 posts |
 | DeepSeek V4 Pro | Reddit | `deepseek-v4-pro/DeepSeek-V4-Pro-Reddit-Report.md` | 150 posts |
+| DeepSeek V4 Pro | Hacker News | `deepseek-v4-pro/DeepSeek-V4-Pro_HN_SubjectThreads_Report.md` | 34 cases |
 
-All three platforms are collected for DeepSeek V4 Pro. A model with a platform
+All four platforms are collected for DeepSeek V4 Pro. A model with a platform
 still to collect shows a "not collected yet" notice for it rather than an empty
 list.
