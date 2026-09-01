@@ -24,6 +24,49 @@ in this database — every one is labelled where it appears*
 are carried here as reported, and marked. They should not be re-quoted without
 this line.
 
+### 0.1 · The model-name figures come from a probe that wipes its schema every run
+
+**Settled 2026-08-28 by E2, and it dissolves an earlier worry rather than
+confirming it.** The 2,239-candidate and 46-document figures came from
+`scripts/harvest_github.py`, which is the instrument rather than the pipeline:
+
+```
+scripts/harvest_github.py:200   DROP SCHEMA public CASCADE; CREATE SCHEMA public;
+                                followed by apply_schema(conn) — on EVERY invocation
+DEFAULT_DSN                     postgresql://postgres@localhost:5433/modelboard_harvest_test
+                                a third database, disposable by design, guarded by the
+                                suite's three disposability layers
+```
+
+**So those rows were never durable in any database, and the concern about
+`-Destroy` (issue #160) was aimed at a risk that did not exist.** They also
+cannot have reached the disposable `modelboard_test` instance, and the GitHub arm
+of that run kept zero candidates and inserted zero rows.
+
+**What this means for the numbers here: they can be RE-MEASURED but not
+RE-DERIVED.** There is no corpus to query — the schema they lived in was dropped
+by the next invocation. This document previously read as though 2,239 and 46 came
+from a queryable population, and they do not.
+
+**The durable record is the report series, and it should be cited as one.**
+`harvest_github.py` keeps its own docstring log for exactly this reason —
+*"kept in `scripts/` rather than thrown away after each run because the numbers
+only mean anything as a series"*:
+
+```
+2026-08-13   16-entry vocabulary      149 candidates,   0 kept
+2026-08-14   24-entry vocabulary      636 candidates,   5 keeps of 1 distinct
+             final-word stemming                        document
+2026-08-2_   model-name arm         2,239 candidates,   3 kept  <- this run,
+                                                                  not yet in the
+                                                                  series
+```
+
+The run writes `--out run.json`. **A figure quoted from this instrument should
+name the run file or the series entry, never the database** — and the series
+entry for the model-name arm has not been added, which is the one action that
+makes these figures durable.
+
 ---
 
 ## 1 · The precision comparison, corrected
