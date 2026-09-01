@@ -59,7 +59,53 @@ SOURCES = [
         "md": ROOT / "articles" / "deepseek-v4-pro" / "REPORT.md",
         "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-x.json",
     },
+    {
+        "model_id": "deepseek-v4-pro",
+        "display_name": "DeepSeek V4 Pro",
+        "platform": "reddit",
+        "kind": "reddit",
+        "source": "Reddit via RapidAPI (reddit34) — brand sweep",
+        "scraped_at": "2026-09-01T06:36:39Z",
+        "note": (
+            "1,601 posts collected across 87 queries and 40 subreddit listings; "
+            "727 matched the keyword literally in the text. 150 were hand-read "
+            "and labelled by content type. Comments were fetched but excluded "
+            "from this report by instruction. Posts-only: removed/deleted posts "
+            "are filtered upstream by the API, so their absence is a retrieval "
+            "property, not a finding."
+        ),
+        "sweep": {
+            "records": 1601,
+            "literal_matches": 727,
+            "labelled": 150,
+            "subreddits": 149,
+            "authors": 530,
+            "external_links": 4535,
+        },
+        "md": ROOT / "articles" / "deepseek-v4-pro" / "DeepSeek-V4-Pro-Reddit-Report.md",
+        "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-reddit.json",
+    },
 ]
+
+# Reddit content-type sections (§6 full entries, §7 compact tables).
+REDDIT_TYPE = {
+    "Deep Analysis": "deep_analysis",
+    "Benchmark": "benchmark",
+    "Usage Demo": "usage_demo",
+    "Workflow/Setup": "workflow",
+    "Tutorial": "tutorial",
+    "Comparison": "comparison",
+    "Opinion": "opinion",
+    "Announcement": "announcement",
+    "Promo": "promo",
+    "News Roundup": "news_roundup",
+    "Question": "question",
+}
+REDDIT_TITLE = re.compile(r"^\*\*(\d+)\.\s+(.*?)\*\*\s*$")
+REDDIT_META = re.compile(
+    r"r/(\S+)\s*·\s*u/(\S+)\s*·\s*`(t2_\w+)`\s*·\s*score\s*(-?\d+)\s*·\s*"
+    r"(\d+)\s*comments\s*·\s*(\d{4}-\d{2}-\d{2})\s*·\s*substance\s*([\d.]+)\s*·\s*(subject|mention)"
+)
 
 # Which content-type each report section maps to.
 X_SECTION_TYPE = {
@@ -279,6 +325,129 @@ def summarise_x(posts: list[dict], sweep: dict) -> dict:
     }
 
 
+def _split_cells(line: str) -> list[str]:
+    return [c.strip() for c in line.replace(r"\|", "\x00").strip().strip("|").split("|")]
+
+
+def _reddit_table_row(by_col: dict, content_type: str) -> dict | None:
+    """A §7 compact-table row, keyed by header column so both table shapes work.
+
+    The Question table drops author-id / cmts / substance; everything is looked
+    up by column name and missing columns come back None.
+    """
+    title_cell = by_col.get("title / thread") or by_col.get("title") or ""
+    tm = re.match(r"\[(.*?)\]\((https?://[^)]+)\)", title_cell)
+    sub = by_col.get("subreddit", "")
+    author = by_col.get("author", "")
+    subj = (by_col.get("subj?") or "").lower()
+    substance = by_col.get("substance") or ""
+    return {
+        "rank": int(by_col.get("#") or 0),
+        "title": tm.group(1).strip() if tm else title_cell,
+        "url": tm.group(2) if tm else None,
+        "subreddit": sub[2:] if sub.startswith("r/") else sub,
+        "author": author[2:] if author.startswith("u/") else author,
+        "author_id": (by_col.get("author id") or "").strip("`") or None,
+        "score": _num(r"(-?\d+)", by_col.get("score", "")),
+        "comments": _num(r"(\d+)", by_col.get("cmts", "")),
+        "date": None,
+        "substance": float(substance) if re.match(r"[\d.]+$", substance) else None,
+        "subject": subj == "subject",
+        "content_type": content_type,
+        "why_label": None,
+        "excerpt": (by_col.get("excerpt") or "").replace("\x00", "|").strip(),
+    }
+
+
+def parse_reddit(text: str) -> list[dict]:
+    """§6 full entries + §7 compact tables, tagged with the section's content type."""
+    lines = text.splitlines()
+    posts: list[dict] = []
+    cur_type: str | None = None
+    table_cols: list[str] | None = None
+
+    for i, line in enumerate(lines):
+        if line.startswith("### "):
+            head = re.sub(r"^###\s*\d+\.\d+\s+", "", line)
+            name = re.sub(r"\s*—.*$", "", head).strip()
+            cur_type = REDDIT_TYPE.get(name)
+            table_cols = None
+            continue
+        if line.startswith("|"):
+            cells = _split_cells(line)
+            low = [c.lower() for c in cells]
+            if "subreddit" in low:
+                table_cols = low  # header row
+                continue
+            if all(set(c) <= {"-", ":"} for c in cells if c):
+                continue  # separator row
+            if cur_type and table_cols and cells and cells[0].isdigit():
+                row = _reddit_table_row(dict(zip(table_cols, cells, strict=False)), cur_type)
+                if row:
+                    posts.append(row)
+            continue
+
+        m = REDDIT_TITLE.match(line)
+        if not m or cur_type is None:
+            continue
+        url = None
+        for j in range(i + 1, min(i + 4, len(lines))):
+            um = re.search(r"\]\((https?://[^)]+)\)", lines[j])
+            if um:
+                url = um.group(1)
+                break
+        meta = None
+        for k in range(i + 1, min(i + 6, len(lines))):
+            mm = REDDIT_META.search(lines[k])
+            if mm:
+                meta, meta_at = mm, k
+                break
+        if not meta:
+            continue
+        why_label, excerpt = None, None
+        for q in range(meta_at + 1, min(meta_at + 12, len(lines))):
+            body = lines[q].lstrip()
+            if body.startswith(">"):
+                text_q = body[1:].strip()
+                wl = re.match(r"\*\*Why this label:\*\*\s*(.*)", text_q)
+                if wl:
+                    why_label = wl.group(1).strip()
+                elif excerpt is None:
+                    excerpt = text_q
+            elif re.match(r"\*\*\d+\.", body):
+                break
+        posts.append({
+            "rank": int(m.group(1)),
+            "title": m.group(2).strip(),
+            "url": url,
+            "subreddit": meta.group(1),
+            "author": meta.group(2),
+            "author_id": meta.group(3),
+            "score": int(meta.group(4)),
+            "comments": int(meta.group(5)),
+            "date": meta.group(6),
+            "substance": float(meta.group(7)),
+            "subject": meta.group(8) == "subject",
+            "content_type": cur_type,
+            "why_label": why_label,
+            "excerpt": excerpt,
+        })
+    return posts
+
+
+def summarise_reddit(posts: list[dict], sweep: dict) -> dict:
+    by_type = collections.Counter(p["content_type"] for p in posts if p["content_type"])
+    dates = sorted(p["date"] for p in posts if p["date"])
+    return {
+        "count": len(posts),
+        "subject_count": sum(1 for p in posts if p["subject"]),
+        "date_from": dates[0] if dates else None,
+        "date_to": dates[-1] if dates else None,
+        "by_content_type": dict(by_type.most_common()),
+        "sweep": sweep,
+    }
+
+
 def main() -> None:
     meta_keys = ("model_id", "display_name", "platform", "source", "scraped_at", "note")
     for src in SOURCES:
@@ -287,6 +456,11 @@ def main() -> None:
         if src.get("kind") == "x":
             items = parse_x(text)
             payload["summary"] = summarise_x(items, src["sweep"])
+            payload["posts"] = items
+            label = "posts"
+        elif src.get("kind") == "reddit":
+            items = parse_reddit(text)
+            payload["summary"] = summarise_reddit(items, src["sweep"])
             payload["posts"] = items
             label = "posts"
         else:
