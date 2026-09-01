@@ -146,11 +146,39 @@ class TestDeclaredMatchesDiscovered:
                     continue  # the vocabulary test owns this
                 if entry.get("known_gap"):
                     continue  # declared intent, gap acknowledged
-                actual = found[(table, column)]["state"]
+                info = found[(table, column)]
+                actual = info["state"]
                 if actual not in CONSISTENT_WITH[declared]:
-                    mismatched.append(
-                        f"{table}.{column}: declared {declared!r}, discovered {actual!r}"
+                    line = (
+                        f"{table}.{column}: declared {declared!r}, "
+                        f"discovered {actual!r}"
                     )
+                    # NAME THE FILE THAT CAUSED IT, NOT JUST THE COLUMN.
+                    # A web-only read is the audit's known false-positive class
+                    # (#203): a JS builtin accessor colliding with a
+                    # single-owner column name. Three times the failure named a
+                    # backend column while the cause was a frontend token, and
+                    # the reader had 25 web files and no line number. The
+                    # evidence is already in `read_at`; printing it is the fix.
+                    evidence = info.get("read_at") or []
+                    web = info.get("web_reads") or []
+                    if info.get("read_only_from_web"):
+                        line += (
+                            "\n      the ONLY read evidence is a web-text match: "
+                            + "; ".join(web)
+                            + "\n      If that token is a JS builtin (a Set/Map/Blob"
+                            " .size, an Error .name, a CSS property in a style"
+                            "\n      object, a UI config key) then this is a FALSE"
+                            " POSITIVE in the audit — fix"
+                            "\n      scripts/audit_columns.py or scope the scan."
+                            " Do NOT edit the column's state, and do"
+                            "\n      NOT reword the web file to dodge the token."
+                        )
+                    elif evidence:
+                        line += "\n      read evidence: " + "; ".join(evidence)
+                    if info.get("written_at"):
+                        line += "\n      write evidence: " + "; ".join(info["written_at"])
+                    mismatched.append(line)
         assert not mismatched, (
             f"{len(mismatched)} column(s) are not in the state they declare:\n  "
             + "\n  ".join(mismatched[:20])
