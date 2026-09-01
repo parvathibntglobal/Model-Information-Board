@@ -262,6 +262,17 @@ class TestEncodingVersusFabrication:
         r = self._reject("Flash is great&nbsp;for bulk")  # &nbsp; -> space
         assert r.reason is VerificationFailure.ENCODING_MISMATCH
 
+    def test_an_nfkc_compatibility_form_is_encoding(self):
+        r = self._reject("Fine under ~５０k.")  # full-width 5 0 -> NFKC "50"
+        assert r.reason is VerificationFailure.ENCODING_MISMATCH
+
+    def test_the_detail_records_both_sides(self):
+        """The accept-path call needs the model's quote AND what was actually in
+        the flattened text — recorded so it can be made without a re-run."""
+        r = self._reject("fine under ~50k.")   # model's side: lowercased
+        assert "fine under ~50k." in r.detail   # model quoted
+        assert "Fine under ~50k." in r.detail   # flattened text there
+
     def test_a_genuinely_invented_quote_is_still_not_found(self):
         r = self._reject("Flash is terrible at absolutely everything")
         assert r.reason is VerificationFailure.NOT_FOUND
