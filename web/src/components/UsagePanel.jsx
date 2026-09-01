@@ -63,6 +63,7 @@ export default function UsagePanel() {
   if (!data) return <section className="card"><span className="label">Reading the ledger…</span></section>
 
   const { cap, today, by_stage: stages, rates, hourly, daily, ledger } = data
+  const byModel = data.by_model || {}
   const rapid = data.rapidapi || {}
   const everyone = data.everyone || {}
   const pct = today.fraction_used == null ? null : Math.round(today.fraction_used * 100)
@@ -86,7 +87,7 @@ export default function UsagePanel() {
       <div className="card-body stack stack-3">
         <div className="row" style={{ gap: 6 }}>
           {[
-            ['openrouter', 'OpenRouter — Gemini 2.5 Flash'],
+            ['openrouter', 'OpenRouter — extractor + ask'],
             ['rapidapi', 'RapidAPI — Reddit'],
           ].map(([key, text]) => (
             <button
@@ -212,6 +213,29 @@ export default function UsagePanel() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* WHICH MODEL SPENT IT — OUR recorded spend, split by the model that
+            ran. Separate from "everyone" above (the whole key's total, from
+            OpenRouter): this is only what this machine recorded, and only the
+            models we called. After the extractor switch, Gemini and DeepSeek
+            each appear here as their spend accrued. */}
+        <div className="stack stack-2">
+          <span className="label">Which model spent it — our recorded spend, by model</span>
+          {Object.keys(byModel).length === 0 ? (
+            <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>
+              No model calls recorded in this window yet.
+            </span>
+          ) : (
+            Object.entries(byModel)
+              .sort((a, b) => b[1] - a[1])
+              .map(([model, spent]) => (
+                <div key={model} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                  <span className="mono" style={{ fontSize: 'var(--fs-sm)' }}>{model}</span>
+                  <span className="tnum">{usd(spent)}</span>
+                </div>
+              ))
+          )}
         </div>
 
         <Chart title="Spend per hour, last 24h — stacked by stage" points={hourly} stages={stages} />
