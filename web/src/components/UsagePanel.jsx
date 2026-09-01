@@ -221,7 +221,12 @@ export default function UsagePanel() {
             that actually compares Gemini vs DeepSeek. Separate from "everyone"
             above, which is the whole key's total from OpenRouter, not just ours. */}
         <div className="stack stack-2">
-          <span className="label">Total recorded per model — all-time, our spend</span>
+          <span className="label">Per model — recorded on this machine, all-time</span>
+          <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+            A subset of the key total above: only calls this machine logged through the
+            pipeline ledger. Other machines and ad-hoc scripts spend on the same key but
+            log elsewhere, so this will not add up to the key total.
+          </span>
           {Object.keys(byModel).length === 0 ? (
             <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>
               No model calls recorded yet.
