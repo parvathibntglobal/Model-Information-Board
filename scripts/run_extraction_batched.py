@@ -144,7 +144,7 @@ def main(argv: list[str] | None = None) -> int:
         conn,
         client=OpenRouterClient.from_env(),
         capability_keys=list(capabilities().keys()),
-        extractor_model=os.getenv("EXTRACTOR_MODEL", "google/gemini-2.5-flash"),
+        extractor_model=os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
     )
 
     totals = {"verified": 0, "rejected": 0, "unclassified": 0, "stored": 0,

@@ -94,7 +94,7 @@ def main() -> int:
         conn,
         client=client,
         capability_keys=list(capabilities().keys()),
-        extractor_model=__import__("os").getenv("EXTRACTOR_MODEL", "google/gemini-2.5-flash"),
+        extractor_model=__import__("os").getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
     )
 
     rows = []
