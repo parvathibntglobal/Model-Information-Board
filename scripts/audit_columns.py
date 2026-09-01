@@ -80,11 +80,137 @@ INSERT_TABLE = re.compile(r"INSERT\s+INTO\s+([a-z_]+)", re.I)
 #: `row.reach`, `row["reach"]`, or `reach:` as an object key -- never a bare word,
 #: because column names are often ordinary English and prose then reads as a
 #: reader. See the web block in `discover` for the two columns that proved it.
+#: `\.[ \t]*` AND NOT `\.\s*`. The dot may not be followed by a newline.
+#: `foo\n  .bar` still matches — the dot is adjacent to the name there — but
+#: `...is shown as one.\n  evidence:` no longer does, and that sentence-ending
+#: period in a comment followed by a real object key on the next line was
+#: counted as a read of `author_identity_cluster.evidence`. Prose ends in
+#: full stops; member accesses do not put a line break after the dot.
 _ACCESS = (
-    r"\.\s*{name}(?![A-Za-z0-9_])"
+    r"\.[ \t]*{name}(?![A-Za-z0-9_])"
     r"|\[\s*[\"']{name}[\"']\s*\]"
     r"|(?<![A-Za-z0-9_.]){name}\s*:"
 )
+
+
+def _code_mask(src: str) -> bytearray:
+    """1 where the character is CODE, 0 where it is a comment or string content.
+
+    WHY A SCANNER AND NOT A PARSER. The web check reads raw text, so a column
+    name in a docblock or an error string counts as a read — `dedup_cluster.reach`
+    was credited to *"Cannot reach the API"*, and the workaround for the `.size`
+    case had to reword a COMMENT to keep CI green (2db0625). Stripping comments
+    and string literals is the whole requirement, and a scanner does exactly that.
+
+    A real JS parser would be better and is not available: CI installs Python
+    only — there is no `setup-node` step in `.github/workflows/ci.yml` — and
+    `web/node_modules` does not exist in a fresh checkout, so an AST via acorn or
+    babel would mean adding a toolchain to CI for one check. This is ~60 lines
+    with no dependency and it runs where the audit already runs.
+
+    WHAT IT DELIBERATELY DOES NOT DO. JSX text children (`<p>not a verdict:</p>`)
+    are not string literals and stay marked as code, so prose inside JSX is
+    still visible to the check. Measured: that is 1 of the 9 known false
+    positives, and dropping the object-key alternative is what covers it.
+    """
+    mask = bytearray(b"\x01") * len(src)
+    i, n = 0, len(src)
+    prev = ""  # last significant code char: tells a regex literal from a divide
+    while i < n:
+        c = src[i]
+        nxt = src[i + 1] if i + 1 < n else ""
+        if c == "/" and nxt == "/":
+            j = src.find("\n", i)
+            j = n if j < 0 else j
+            mask[i:j] = b"\x00" * (j - i)
+            i = j
+            continue
+        if c == "/" and nxt == "*":
+            j = src.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            mask[i:j] = b"\x00" * (j - i)
+            i = j
+            continue
+        if c in "\"'":
+            j = i + 1
+            while j < n:
+                if src[j] == "\\":
+                    j += 2
+                    continue
+                if src[j] == c:
+                    j += 1
+                    break
+                if src[j] == "\n":  # unterminated; do not swallow the file
+                    break
+                j += 1
+            j = min(j, n)
+            mask[i:j] = b"\x00" * (j - i)
+            i = j
+            continue
+        if c == "`":
+            # Template literal: the quasis are string content, `${...}` is code
+            # and nests, so it is walked rather than matched.
+            mask[i] = 0
+            j = i + 1
+            while j < n:
+                if src[j] == "\\":
+                    mask[j] = 0
+                    if j + 1 < n:
+                        mask[j + 1] = 0
+                    j += 2
+                    continue
+                if src[j] == "`":
+                    mask[j] = 0
+                    j += 1
+                    break
+                if src[j] == "$" and j + 1 < n and src[j + 1] == "{":
+                    mask[j] = mask[j + 1] = 0
+                    depth, j = 1, j + 2
+                    while j < n and depth:
+                        if src[j] == "{":
+                            depth += 1
+                        elif src[j] == "}":
+                            depth -= 1
+                            if not depth:
+                                mask[j] = 0
+                                j += 1
+                                break
+                        j += 1  # inside the substitution: leave it CODE
+                    continue
+                mask[j] = 0
+                j += 1
+            i = j
+            continue
+        if c == "/":
+            # A `/` starts a regex only where a value may start. After an
+            # identifier, `)` or `]` it is division.
+            if prev and prev not in "=(,:[!&|?{};+-*%<>~^":
+                prev = c
+                i += 1
+                continue
+            j, inclass = i + 1, False
+            while j < n:
+                if src[j] == "\\":
+                    j += 2
+                    continue
+                if src[j] == "[":
+                    inclass = True
+                elif src[j] == "]":
+                    inclass = False
+                elif src[j] == "/" and not inclass:
+                    j += 1
+                    break
+                elif src[j] == "\n":
+                    break
+                j += 1
+            j = min(j, n)
+            mask[i:j] = b"\x00" * (j - i)
+            i = j
+            continue
+        if not c.isspace():
+            prev = c
+        i += 1
+    return mask
 
 WRITTEN_READ = "written+read"
 WRITTEN_UNREAD = "written, UNREAD"
@@ -262,14 +388,33 @@ def discover(schema: dict[str, list[str]]) -> dict[tuple[str, str], dict]:
 
     web = {str(p.relative_to(ROOT)).replace("\\", "/"): p.read_text(encoding="utf-8",
            errors="replace") for p in _web_files()}
+    masks = {rel: _code_mask(text) for rel, text in web.items()}
     for (table, column), _pattern in word.items():
         if len(owners[column]) != 1:
             continue
         access = re.compile(_ACCESS.format(name=re.escape(column)))
+        hit = None
         for rel, text in web.items():
-            if access.search(text):
-                read[(table, column)].add(f"{rel}:web")
+            mask = masks[rel]
+            for m in access.finditer(text):
+                # EVERY character of the match must be code. `any()` is not
+                # enough: `...shown as one.\n  evidence:` matched `.evidence`
+                # across a comment boundary, where the dot is prose and only the
+                # name is code, and an any-char rule called that a read.
+                if not all(mask[k] for k in range(m.start(), m.end())):
+                    continue
+                hit = (rel, text[:m.start()].count("\n") + 1,
+                       m.group(0).strip()[:40])
                 break
+            if hit:
+                break
+        if hit:
+            rel, line, token = hit
+            # SELF-DESCRIBING EVIDENCE, because the failure used to name the
+            # column and nothing else. A web false positive then read as a
+            # statement about a backend column, and the person holding it had
+            # no way to know which of 25 frontend files to look at. #203.
+            read[(table, column)].add(f"{rel}:{line} web:{token!r}")
 
     out = {}
     for table, cols in schema.items():
@@ -278,10 +423,17 @@ def discover(schema: dict[str, list[str]]) -> dict[tuple[str, str], dict]:
             w, r = bool(written[key]), bool(read[key])
             state = (WRITTEN_READ if w and r else WRITTEN_UNREAD if w
                      else UNWRITTEN_READ if r else NEITHER)
+            web_reads = sorted(e for e in read[key] if " web:" in e)
             out[key] = {
                 "state": state,
                 "written_at": sorted(written[key])[:2],
                 "read_at": sorted(read[key])[:2],
+                # Computed HERE, on the full set, because `read_at` is truncated
+                # to two entries and a caller cannot tell "all the evidence is a
+                # web match" from "the two shown happen to be". The failure
+                # message keys off this to decide whether to blame the frontend.
+                "read_only_from_web": bool(web_reads) and len(web_reads) == len(read[key]),
+                "web_reads": web_reads[:3],
                 "select_star_table": table in star,
             }
     return out
