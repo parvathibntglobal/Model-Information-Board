@@ -21,9 +21,10 @@ rebuild, so the two never drift.
 
 ## Current sources
 
-| Model | Platform | Source | Papers |
+| Model | Platform | Source | Items |
 |---|---|---|---|
-| DeepSeek V4 Pro | arXiv | `deepseek-v4-pro/arxiv-report.md` | 43 |
+| DeepSeek V4 Pro | arXiv | `deepseek-v4-pro/arxiv-report.md` | 43 papers |
+| DeepSeek V4 Pro | X | `deepseek-v4-pro/REPORT.md` | 149 posts |
 
-X and Reddit are declared in the UI but not yet collected — the page shows a
-"not collected yet" notice for them rather than an empty list.
+Reddit is declared in the UI but not yet collected — the page shows a
+"not collected yet" notice for it rather than an empty list.

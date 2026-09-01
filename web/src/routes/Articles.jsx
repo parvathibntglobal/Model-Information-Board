@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { MODELS, PLATFORMS, modelById } from '../data/articles'
-import { Badge, Notice, Reveal } from '../components/ui'
+import { Badge, Notice, Reveal, Stat } from '../components/ui'
 import { IconExternal, IconQuote, IconSearch, IconAlert, IconArrow } from '../components/Icons'
 
 /**
@@ -56,7 +56,7 @@ function ModelList({ onOpen }) {
                 <span className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
                   {PLATFORMS.map((p) => {
                     const data = m.platforms[p.id]
-                    const n = data?.articles?.length
+                    const n = data?.articles?.length ?? data?.posts?.length
                     return (
                       <span key={p.id} className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
                         {p.label} {typeof n === 'number' ? n : '—'}
@@ -95,7 +95,7 @@ function ModelView({ model, platformId, onPlatform, onBack }) {
       <div className="row" style={{ gap: 8, flexWrap: 'wrap', borderBottom: '1px solid var(--bg-3, rgba(127,127,127,.18))', paddingBottom: 10 }}>
         {PLATFORMS.map((p) => {
           const data = model.platforms[p.id]
-          const count = data?.articles?.length
+          const count = data?.articles?.length ?? data?.posts?.length
           return (
             <button
               key={p.id}
@@ -112,9 +112,11 @@ function ModelView({ model, platformId, onPlatform, onBack }) {
         })}
       </div>
 
-      {platformData
-        ? <ArxivPanel data={platformData} />
-        : <NotCollected model={model.name} platform={PLATFORMS.find((p) => p.id === platformId)?.label} />}
+      {!platformData
+        ? <NotCollected model={model.name} platform={PLATFORMS.find((p) => p.id === platformId)?.label} />
+        : platformData.platform === 'x'
+          ? <XPanel data={platformData} />
+          : <ArxivPanel data={platformData} />}
     </div>
   )
 }
@@ -254,7 +256,134 @@ function PaperCard({ a }) {
   )
 }
 
-/* ── X / Reddit — declared, not yet collected ──────────────────────────── */
+/* ── X / Twitter ───────────────────────────────────────────────────────── */
+
+const TYPE_LABEL = {
+  deep_analysis: 'Deep analysis',
+  benchmark: 'Benchmark',
+  usage_demo: 'Usage demo',
+  workflow: 'Workflow',
+  comparison: 'Comparison',
+  opinion: 'Opinion',
+  announcement: 'Announcement',
+  news_roundup: 'News roundup',
+  promo: 'Promo',
+}
+
+const fmt = (n) =>
+  n == null ? '—'
+    : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M`
+      : n >= 1e3 ? `${(n / 1e3).toFixed(1)}K`
+        : String(n)
+
+function XPanel({ data }) {
+  const s = data.summary
+  const sweep = s.sweep || {}
+  // Same array-based filter as the arXiv categories (array, not a Set — see the note there).
+  const [active, setActive] = useState(() => [])
+  const toggle = (t) =>
+    setActive((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
+  const filtering = active.length > 0
+  const posts = filtering ? data.posts.filter((p) => active.includes(p.content_type)) : data.posts
+
+  return (
+    <div className="stack stack-3">
+      <section className="card card-flush">
+        <div className="card-head">
+          <div className="row" style={{ gap: 10 }}>
+            <IconSearch width={14} height={14} style={{ color: 'var(--text-3)' }} />
+            <span className="label">{data.source}</span>
+          </div>
+          <span className="label">
+            {filtering ? `${posts.length} of ${s.count} shown` : `${s.count} labelled posts`}
+            {' · '}{sweep.date_from} → {sweep.date_to}
+          </span>
+        </div>
+        <div className="card-body stack stack-2">
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>{data.note}</p>
+          <div className="row" style={{ gap: 18, flexWrap: 'wrap' }}>
+            <Stat n={fmt(sweep.keyword_posts)} l="keyword posts" />
+            <Stat n={fmt(sweep.distinct_authors)} l="authors" />
+            <Stat n={fmt(sweep.total_engagements)} l="engagements" />
+            <Stat n={fmt(sweep.total_views)} l="views" />
+          </div>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {Object.entries(s.by_content_type).map(([t, n]) => (
+              <button
+                key={t}
+                type="button"
+                className={`chip${active.includes(t) ? ' chip-on' : ''}`}
+                onClick={() => toggle(t)}
+                aria-pressed={active.includes(t)}
+              >
+                {TYPE_LABEL[t] || t}<span style={{ marginLeft: 5, opacity: 0.6 }}>{n}</span>
+              </button>
+            ))}
+            {filtering && (
+              <button type="button" className="chip" style={{ opacity: 0.75 }} onClick={() => setActive([])}>
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="stack stack-2">
+        {posts.map((p, i) => (
+          <Reveal key={`${p.status_url || p.handle}-${i}`} delay={Math.min(i * 15, 200)}>
+            <PostCard p={p} />
+          </Reveal>
+        ))}
+        {posts.length === 0 && (
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>No posts in the selected types.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function PostCard({ p }) {
+  return (
+    <section className="card card-flush">
+      <div className="card-body stack stack-2">
+        <div className="row" style={{ gap: 10, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+          <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <a href={p.profile_url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 650, fontSize: 'var(--fs-sm)' }}>
+              @{p.handle}
+            </a>
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{p.date}</span>
+            {p.followers != null && (
+              <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>· {fmt(p.followers)} followers</span>
+            )}
+            {p.language && <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{p.language}</span>}
+          </div>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+            <Badge tone="info">{TYPE_LABEL[p.content_type] || p.content_type}</Badge>
+            {p.subject && <Badge tone="pass">subject</Badge>}
+          </div>
+        </div>
+
+        <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2, var(--text))' }}>{p.quote}</p>
+
+        <div className="row" style={{ gap: 12, flexWrap: 'wrap', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+          <span className="mono">{fmt(p.engagements)} eng</span>
+          <span className="mono">{fmt(p.views)} views</span>
+          {p.likes != null && <span className="mono">{fmt(p.likes)} likes</span>}
+          {p.rt != null && <span className="mono">{fmt(p.rt)} RT</span>}
+          {p.replies != null && <span className="mono">{fmt(p.replies)} replies</span>}
+          {p.saves != null && <span className="mono">{fmt(p.saves)} saves</span>}
+          {p.status_url && (
+            <a href={p.status_url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, marginLeft: 'auto' }}>
+              view on X <IconExternal width={11} height={11} />
+            </a>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── Reddit — declared, not yet collected ──────────────────────────────── */
 
 function NotCollected({ model, platform }) {
   return (
