@@ -498,7 +498,20 @@ columns:
     price_out: {state: read, reviewed: false}
     provenance: {state: read, reviewed: false}
     provider: {state: read, reviewed: false}
-    regions: {state: read, reviewed: false}
+    # Reconciled with the #203 scoping fix, and it is the fix WORKING rather
+    # than its cost: this column's `read` rested entirely on `regions:` matching
+    # an object key in `web/src/routes/Ask.jsx:230`, which is the Ask box
+    # BUILDING ITS OUTGOING REQUEST BODY - a write going out, not a read of this
+    # column. Confirmed against the running frontend by E2 on #203. Nothing
+    # SELECTs it. If a reader lands, this goes back to `read` with the query
+    # named.
+    regions:
+      state: write_only
+      reviewed: true
+      why: >-
+        Written by the registry poller. No reader - the apparent one was the Ask
+        box naming this field in a request body it sends, which the web scan read
+        as a field access before it was scoped (#203)
     release_date: {state: read, reviewed: false}
     retirement_date: {state: read, reviewed: false}
     sources: {state: write_only, reviewed: false}
@@ -567,7 +580,25 @@ columns:
     health_status: {state: reserved, reviewed: false}
     id: {state: read, reviewed: false}
     last_yield: {state: reserved, reviewed: false}
-    platform: {state: read, reviewed: false}
+    # Reconciled with the #203 scoping fix. Its `read` rested entirely on
+    # `platform:` matching an object key in `web/src/routes/Articles.jsx:21`,
+    # which is a URL search-param on the Articles route and has nothing to do
+    # with this table - `source` has no web endpoint at all, which is why
+    # scoping drops the hit.
+    #
+    # ⚠ E2 VALIDATED THE OTHER SIX, NOT THIS ONE. Her #203 reply lists
+    # `capability.key`, `model_version.regions` and `task_profile.raw_text` as
+    # the three reconciliations; the proposal's §5 had named `source.platform`
+    # where she named `capability.key`. So this entry is the one item in the
+    # change still wanting a second pair of eyes, and it is flagged rather than
+    # counted as agreed.
+    platform:
+      state: write_only
+      reviewed: true
+      why: >-
+        Written by the source loader from contract/sources.yaml. No reader - the
+        apparent one was a URL search-param key on an unrelated route, counted by
+        the unscoped web scan (#203). PENDING E2's confirmation, see the note above
     provenance: {state: read, reviewed: false}
     terms_checked_on: {state: write_only, reviewed: false}
     terms_evidence:

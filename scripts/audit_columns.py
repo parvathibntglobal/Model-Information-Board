@@ -34,9 +34,12 @@ from __future__ import annotations
 import ast
 import collections
 import json
+import logging
 import pathlib
 import re
 import sys
+
+log = logging.getLogger(__name__)
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC_DIRS = ("collect", "judge", "scripts")
@@ -276,6 +279,161 @@ def _string_literals(path: pathlib.Path) -> list[tuple[int, str]]:
     return out
 
 
+#: `@app.get("/models")` -> the path. Read off the decorator rather than a list.
+_ROUTE_DECORATORS = ("get", "post", "put", "delete")
+
+#: `from judge import spend_ledger` names its module in the alias list, not in
+#: `.module`, so both spellings have to be read to find a handler's SQL.
+_JUDGE_SUBMODULES = ("spend_ledger", "key_usage")
+
+
+def _sql_tables_of(path: pathlib.Path, schema) -> set[str]:
+    """Which of `schema`'s tables this module's SQL literals name."""
+    found: set[str] = set()
+    for _lineno, s in _string_literals(path):
+        if SQL_VERB.search(s):
+            found |= {m.group(1).lower() for m in TABLE_REF.finditer(s)} & set(schema)
+    return found
+
+
+def _handler_modules() -> list[tuple[list[str], list[str]]]:
+    """[(endpoint paths, SQL-bearing modules imported inside the handler)].
+
+    The imports are FUNCTION-LEVEL in `judge/app.py` - `from judge.pages.roster
+    import RosterReader` sits inside the handler, not at module scope - which is
+    what makes this walkable at all: the handler that serves a path names the
+    module that holds the SQL, in its own body.
+    """
+    app = ROOT / "judge" / "app.py"
+    if not app.exists():
+        return []
+    tree = ast.parse(app.read_text(encoding="utf-8", errors="replace"))
+    out = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        paths = []
+        for dec in node.decorator_list:
+            call = dec if isinstance(dec, ast.Call) else None
+            fn = call.func if call else dec
+            if (isinstance(fn, ast.Attribute) and isinstance(fn.value, ast.Name)
+                    and fn.value.id == "app" and fn.attr in _ROUTE_DECORATORS
+                    and call and call.args
+                    and isinstance(call.args[0], ast.Constant)
+                    and isinstance(call.args[0].value, str)):
+                paths.append(call.args[0].value)
+        if not paths:
+            continue
+        mods = []
+        for sub in ast.walk(node):
+            if not isinstance(sub, ast.ImportFrom) or not sub.module:
+                continue
+            if sub.module.startswith(("judge.pages.", "judge.store.")):
+                mods.append(sub.module)
+            elif sub.module == "judge":
+                mods += [f"judge.{a.name}" for a in sub.names
+                         if a.name in _JUDGE_SUBMODULES]
+        out.append((paths, mods))
+    return out
+
+
+def _normalise_route(path: str) -> str:
+    """`/models/{id}` and `` `/models/${x}` `` both -> `/models/*`."""
+    path = re.sub(r"\$\{[^}]*\}|\{[^}]*\}", "*", path)
+    return path.split("?")[0].rstrip("/") or "/"
+
+
+def _api_exports() -> dict[str, str]:
+    """`{exported name: endpoint path}` from `web/src/api/index.js`."""
+    api = ROOT / "web" / "src" / "api" / "index.js"
+    if not api.exists():
+        return {}
+    src = api.read_text(encoding="utf-8", errors="replace")
+    out: dict[str, str] = {}
+    for pattern in (
+        r"export\s+const\s+([A-Za-z_$][\w$]*)\s*=\s*[^\n]*?"
+        r"request\(\s*[`'\"]([^`'\"]+)[`'\"]",
+        r"export\s+const\s+([A-Za-z_$][\w$]*)\s*=\s*\([^)]*\)\s*=>\s*\n\s*"
+        r"request\(\s*[`'\"]([^`'\"]+)[`'\"]",
+    ):
+        for m in re.finditer(pattern, src):
+            out.setdefault(m.group(1), m.group(2))
+    return out
+
+
+def web_scope(schema: dict[str, list[str]]) -> dict[str, set[str]]:
+    """`{table: {web files that consume an endpoint reading that table}}`.
+
+    WHY THE SCAN IS SCOPED AT ALL. The web check matches a column name against
+    the text of every web file, and column names collide with JS accessors:
+    a `Set`'s `.size` read as `dedup_cluster.size`, `Error.name` as `role.name`,
+    `cursor:` in a style object as `watermark.cursor`. Every column in the
+    `UNWRITTEN, read` bucket on web-only evidence was a false positive - 4 of 4,
+    confirmed against the running frontend by E2 on #203 - and that bucket is the
+    one the audit's own docstring calls "the DIAGNOSTIC one: somebody already
+    decided the value matters".
+
+    A file can only read a column it can actually receive, so the fix is to ask
+    which files receive it:
+
+        table   <- SQL literals in a judge/pages or judge/store module
+        module  <- a function-level import inside a @app.get handler
+        path    <- that handler's decorator argument
+        export  <- `export const NAME = ... request('/path')` in api/index.js
+        file    <- `import { NAME } from '../api'`
+
+    17 of 31 tables resolve to at least one file. The 14 that resolve to none
+    mostly HAVE no endpoint - `dedup_cluster`, `watermark`, `golden_label`,
+    `audit`, `author_identity_cluster` - which is exactly why a web hit on their
+    column names was never a read.
+
+    WHAT THIS DELIBERATELY DOES NOT DO. It resolves modules by IMPORT, not by
+    call graph, so a handler reaching a table through a helper it does not import
+    is invisible; and `/capabilities` reads its list from `contract/` YAML rather
+    than SQL, so `capability` resolves to no file. Both under-count reads, which
+    is the direction this whole method already errs in and what
+    `read_not_by_query` exists to absorb.
+
+    Measurement: `docs/measurements/column-audit-web-scan-collisions.md`.
+    """
+    modules: dict[str, set[str]] = {}
+    for directory in ("pages", "store"):
+        for path in sorted((ROOT / "judge" / directory).glob("*.py")):
+            if path.name == "__init__.py":
+                continue
+            modules[f"judge.{directory}.{path.stem}"] = _sql_tables_of(path, schema)
+    for name in _JUDGE_SUBMODULES:
+        path = ROOT / "judge" / f"{name}.py"
+        if path.exists():
+            modules[f"judge.{name}"] = _sql_tables_of(path, schema)
+
+    route_tables: dict[str, set[str]] = collections.defaultdict(set)
+    for paths, mods in _handler_modules():
+        tables = set()
+        for mod in mods:
+            tables |= modules.get(mod, set())
+        for path in paths:
+            route_tables[_normalise_route(path)] |= tables
+
+    export_tables = {
+        name: route_tables.get(_normalise_route(path), set())
+        for name, path in _api_exports().items()
+    }
+
+    scope: dict[str, set[str]] = collections.defaultdict(set)
+    for file in _web_files():
+        rel = str(file.relative_to(ROOT)).replace("\\", "/")
+        text = file.read_text(encoding="utf-8", errors="replace")
+        for m in re.finditer(
+            r"import\s*\{([^}]*)\}\s*from\s*['\"][^'\"]*api['\"]", text, re.S
+        ):
+            for part in m.group(1).split(","):
+                name = part.strip().split(" as ")[0].strip()
+                for table in export_tables.get(name, ()):
+                    scope[table].add(rel)
+    return scope
+
+
 def _dict_keys(path: pathlib.Path) -> set[str]:
     """`"col": value` keys, as write evidence in modules that insert."""
     try:
@@ -389,12 +547,38 @@ def discover(schema: dict[str, list[str]]) -> dict[tuple[str, str], dict]:
     web = {str(p.relative_to(ROOT)).replace("\\", "/"): p.read_text(encoding="utf-8",
            errors="replace") for p in _web_files()}
     masks = {rel: _code_mask(text) for rel, text in web.items()}
+
+    # SCOPED, since #203. A file can only read a column it can receive, so only
+    # the files consuming this table's endpoint are searched. See `web_scope`.
+    scope = web_scope(schema) if web else {}
+    if web and not any(scope.values()):
+        # An unbuildable chain must not read as "no web reads anywhere". That
+        # would turn every web-only read into an absence we CAUSED and reported
+        # as one we FOUND - rule 4 on the pipeline's discards. Say so and fall
+        # back to the unscoped scan, which over-counts in the direction this
+        # method already errs in.
+        message = (
+            "audit: the endpoint chain resolved no table to any web file, so "
+            "the web scan is running UNSCOPED and its reads are over-counted. "
+            "judge/app.py or web/src/api/index.js is missing or has changed "
+            "shape. See web_scope()."
+        )
+        log.warning(message)
+        # AND stderr. A logger with no handler configured is silent, and a
+        # warning nobody sees is the failure mode this repo keeps finding: the
+        # audit would quietly go back to over-counting and read as if scoped.
+        print(message, file=sys.stderr)
+        scope = None
+
     for (table, column), _pattern in word.items():
         if len(owners[column]) != 1:
             continue
+        allowed = web if scope is None else {
+            rel: text for rel, text in web.items() if rel in scope.get(table, ())
+        }
         access = re.compile(_ACCESS.format(name=re.escape(column)))
         hit = None
-        for rel, text in web.items():
+        for rel, text in allowed.items():
             mask = masks[rel]
             for m in access.finditer(text):
                 # EVERY character of the match must be code. `any()` is not
