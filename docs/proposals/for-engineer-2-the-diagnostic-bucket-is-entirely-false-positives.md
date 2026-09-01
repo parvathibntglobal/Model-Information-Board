@@ -184,7 +184,25 @@ tell the two apart in one read instead of grepping 25 files.
                                      its own terms: an object key is a name
                                      being WRITTEN, not a column being read.
                                      Deserves its own argument, not a ride-along
+5  a real AST + object-type check    NOT NOW. The named lever for §6, agreed
+                                     with E2 as the move if role.name bites
 ```
+
+**The lever for §6, named rather than left to be rediscovered.** Nine collisions
+measured against Node's builtins is a **floor rather than a count** — Node has no
+DOM, so `.value`, `.checked`, `.title` and `.lang` are outside the population
+that produced the figure. **An object-type check is the only thing that reaches a
+collision inside a correctly-scoped file**, because it asks what the receiver
+*is* rather than where the file sits: a real JS AST, and enough type or flow
+inference to know that the `active` in `active.size` is a `Set` and the `this` in
+`this.name` is an `Error`.
+
+Not worth a JS toolchain in CI for one case today — one phantom survives scoping,
+and buying it costs a `setup-node` step and a parser dependency for a check that
+runs beside a Python audit. E2 and I agree that is the move if `role.name` starts
+biting, or if the floor in §2 turns out to be well under the real number. Written
+down so the next person reaches for it deliberately instead of arriving at it
+again from a red build.
 
 **One open question I have not guessed at.** `capability` resolves to zero web
 files, because `/capabilities` reads the list from `contract/` YAML rather than
