@@ -84,9 +84,12 @@ main{flex:1}
 .chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;
   border-radius:var(--r-pill);border:1px solid var(--border);background:var(--surface);
   font-size:var(--fs-xs);color:var(--text-2);transition:all .16s var(--ease)}
-button.chip:hover{border-color:var(--border-strong);color:var(--text)}
+button.chip:hover{border-color:var(--border-strong);color:var(--text);background:var(--surface-2,var(--surface))}
 .chip .x{font-family:var(--font-mono);color:var(--text-3);font-size:11px}
 .chip-on{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:600}
+/* a selected chip keeps its dark-on-light text when hovered; without this the
+   base hover rule forces color:var(--text) and paints white-on-white */
+button.chip-on:hover{background:var(--text);color:var(--bg);border-color:var(--text);opacity:.88}
 
 .badge{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:6px;
   font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.04em;

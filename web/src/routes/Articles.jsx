@@ -127,18 +127,15 @@ function ModelView({ model, platformId, onPlatform, onBack }) {
 
 function ArxivPanel({ data }) {
   const s = data.summary
-  // Filter by primary category — matches the by_primary_category counts shown on
-  // the chips. Multi-select: an empty list means "all"; clicking toggles.
-  // Kept as an array rather than a Set on purpose: the column-state audit treats
-  // a Set's count accessor in web code as a read of the same-named dedup_cluster
-  // column and trips CI, so length/includes are used instead.
-  const [active, setActive] = useState(() => [])
-  const toggle = (cat) =>
-    setActive((prev) => (prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]))
+  // Filter by primary category — matches the by_primary_category counts on the
+  // chips. Single-select: null means "all"; clicking a chip shows only it, and
+  // clicking it again clears back to all.
+  const [active, setActive] = useState(null)
+  const toggle = (cat) => setActive((prev) => (prev === cat ? null : cat))
 
-  const filtering = active.length > 0
+  const filtering = active != null
   const filtered = filtering
-    ? data.articles.filter((a) => active.includes(a.primary_category))
+    ? data.articles.filter((a) => a.primary_category === active)
     : data.articles
 
   return (
@@ -161,9 +158,9 @@ function ArxivPanel({ data }) {
               <button
                 key={cat}
                 type="button"
-                className={`chip${active.includes(cat) ? ' chip-on' : ''}`}
+                className={`chip${active === cat ? ' chip-on' : ''}`}
                 onClick={() => toggle(cat)}
-                aria-pressed={active.includes(cat)}
+                aria-pressed={active === cat}
               >
                 {cat}<span style={{ marginLeft: 5, opacity: 0.6 }}>{n}</span>
               </button>
@@ -172,7 +169,7 @@ function ArxivPanel({ data }) {
               <button
                 type="button"
                 className="chip"
-                onClick={() => setActive([])}
+                onClick={() => setActive(null)}
                 style={{ opacity: 0.75 }}
               >
                 Clear
@@ -283,12 +280,11 @@ const fmt = (n) =>
 function XPanel({ data }) {
   const s = data.summary
   const sweep = s.sweep || {}
-  // Same array-based filter as the arXiv categories (array, not a Set — see the note there).
-  const [active, setActive] = useState(() => [])
-  const toggle = (t) =>
-    setActive((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
-  const filtering = active.length > 0
-  const posts = filtering ? data.posts.filter((p) => active.includes(p.content_type)) : data.posts
+  // Single-select content-type filter — null is "all"; clicking a chip shows only it.
+  const [active, setActive] = useState(null)
+  const toggle = (t) => setActive((prev) => (prev === t ? null : t))
+  const filtering = active != null
+  const posts = filtering ? data.posts.filter((p) => p.content_type === active) : data.posts
 
   return (
     <div className="stack stack-3">
@@ -316,15 +312,15 @@ function XPanel({ data }) {
               <button
                 key={t}
                 type="button"
-                className={`chip${active.includes(t) ? ' chip-on' : ''}`}
+                className={`chip${active === t ? ' chip-on' : ''}`}
                 onClick={() => toggle(t)}
-                aria-pressed={active.includes(t)}
+                aria-pressed={active === t}
               >
                 {TYPE_LABEL[t] || t}<span style={{ marginLeft: 5, opacity: 0.6 }}>{n}</span>
               </button>
             ))}
             {filtering && (
-              <button type="button" className="chip" style={{ opacity: 0.75 }} onClick={() => setActive([])}>
+              <button type="button" className="chip" style={{ opacity: 0.75 }} onClick={() => setActive(null)}>
                 Clear
               </button>
             )}
@@ -392,11 +388,10 @@ function PostCard({ p }) {
 function RedditPanel({ data }) {
   const s = data.summary
   const sweep = s.sweep || {}
-  const [active, setActive] = useState(() => [])
-  const toggle = (t) =>
-    setActive((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
-  const filtering = active.length > 0
-  const posts = filtering ? data.posts.filter((p) => active.includes(p.content_type)) : data.posts
+  const [active, setActive] = useState(null)
+  const toggle = (t) => setActive((prev) => (prev === t ? null : t))
+  const filtering = active != null
+  const posts = filtering ? data.posts.filter((p) => p.content_type === active) : data.posts
 
   return (
     <div className="stack stack-3">
@@ -424,15 +419,15 @@ function RedditPanel({ data }) {
               <button
                 key={t}
                 type="button"
-                className={`chip${active.includes(t) ? ' chip-on' : ''}`}
+                className={`chip${active === t ? ' chip-on' : ''}`}
                 onClick={() => toggle(t)}
-                aria-pressed={active.includes(t)}
+                aria-pressed={active === t}
               >
                 {TYPE_LABEL[t] || t}<span style={{ marginLeft: 5, opacity: 0.6 }}>{n}</span>
               </button>
             ))}
             {filtering && (
-              <button type="button" className="chip" style={{ opacity: 0.75 }} onClick={() => setActive([])}>
+              <button type="button" className="chip" style={{ opacity: 0.75 }} onClick={() => setActive(null)}>
                 Clear
               </button>
             )}
