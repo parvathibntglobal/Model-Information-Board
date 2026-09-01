@@ -54,14 +54,16 @@ from dataclasses import dataclass, field
 from judge.ask.cost import Pricing
 from judge.extract.client import Completion
 
-#: Gemini 2.5 Flash, per 1M tokens. `contract/seed_models.yaml`, sourced to
-#: Google's pricing page and retrieved 2026-08-13.
+#: DeepSeek V4 Flash (Latest), per 1M tokens, in / out. From the OpenRouter
+#: listing (`~deepseek`, 1.3M context), retrieved 2026-09-01. Set alongside the
+#: 2026-09-01 extractor switch — ~4.6x cheaper in and ~18x cheaper out than the
+#: Gemini 2.5 Flash price it replaces ($0.30 / $2.50), so a $1 daily cap now
+#: buys far more threads.
 #:
-#: A BUILD FIXTURE, like the seed registry it comes from. When the OpenRouter
-#: poller lands, prices come from `model_version` and this constant goes with
-#: it - a hardcoded price is exactly the seeded row `assert_no_fixtures` exists
-#: to refuse.
-DEFAULT_PRICING = Pricing(price_in=0.30, price_out=2.50)
+#: A BUILD FIXTURE, like the seed registry it comes from - a hardcoded price is
+#: exactly the seeded row `assert_no_fixtures` exists to refuse. When the
+#: OpenRouter poller lands, prices come from `model_version` and this goes too.
+DEFAULT_PRICING = Pricing(price_in=0.065, price_out=0.14)
 
 #: What one call is assumed to cost before it is made, in tokens.
 #:
@@ -93,6 +95,12 @@ DEFAULT_PRICING = Pricing(price_in=0.30, price_out=2.50)
 #: would restore the property is a spread over threads of differing length -
 #: until then this is the best point estimate available and knowingly not a
 #: bound.
+#:
+#: ⚠ STILL GEMINI'S TOKEN MEANS after the 2026-09-01 extractor switch. The A/B
+#: put DeepSeek V4 Flash well above these on input (~2.8x on a 2-thread sample),
+#: so this UNDER-estimates the pre-call spend for the current extractor — the
+#: gate is optimistic, though the post-call charge from reported tokens is
+#: accurate. Wants a proper DeepSeek re-measurement to replace these.
 ESTIMATED_INPUT_TOKENS = 2010
 ESTIMATED_OUTPUT_TOKENS = 589
 

@@ -1,6 +1,6 @@
 """The one place in this lane that talks to a language model.
 
-`google/gemini-2.5-flash` through OpenRouter, decided rather than selected
+`deepseek/deepseek-v4-flash` through OpenRouter, decided rather than selected
 (NFR-9). One extractor, no fallback, so a silent regression is detected rather
 than absorbed - which is why the golden set matters more here than it would
 with two.
@@ -32,7 +32,11 @@ from typing import Protocol
 
 #: NFR-9. Pinned in config so replacing it is a config change; nothing
 #: downstream knows which model produced a claim beyond `pipeline_version`.
-DEFAULT_MODEL = "google/gemini-2.5-flash"
+#: Switched from `google/gemini-2.5-flash` 2026-09-01 after an A/B on R1's
+#: threads: clean schema/tool-calls, 100% quote-verify, no fabrication —
+#: docs/measurements/extractor-ab-deepseek-v4-flash-vs-gemini.md. Undated alias;
+#: pin a dated build (…-0731) if a run needs to be exactly reproducible.
+DEFAULT_MODEL = "deepseek/deepseek-v4-flash"
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 
 #: One retry, not three. A model that violates a forced schema twice is not

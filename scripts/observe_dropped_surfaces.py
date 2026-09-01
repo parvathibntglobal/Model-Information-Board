@@ -95,7 +95,7 @@ def main() -> int:
         conn,
         client=OpenRouterClient.from_env(),
         capability_keys=list(capabilities().keys()),
-        extractor_model=os.getenv("EXTRACTOR_MODEL", "google/gemini-2.5-flash"),
+        extractor_model=os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
     )
 
     verified = stored = 0

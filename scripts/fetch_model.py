@@ -501,7 +501,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
         conn,
         client=OpenRouterClient.from_env(),
         capability_keys=list(capabilities().keys()),
-        extractor_model=os.getenv("EXTRACTOR_MODEL", "google/gemini-2.5-flash"),
+        extractor_model=os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
     ).run_all(
         threads, facts=facts, model_version_of=mvo, budget=budget,
         already_extracted=seen, driver=Driver("new-evidence"), resolve_surface=resolver,
@@ -530,7 +530,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
     if proposals and table_present:
         outcome = store_proposals(
             conn, proposals,
-            proposer_model=os.getenv("EXTRACTOR_MODEL", "google/gemini-2.5-flash"),
+            proposer_model=os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
             prompt_label="fetch-extract",
         )
         conn.commit()
