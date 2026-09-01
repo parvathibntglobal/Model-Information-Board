@@ -23,8 +23,9 @@ from judge.ask.understand import Understanding
 
 client = TestClient(app, raise_server_exceptions=False)
 
-#: One call at the seeded price: 2,010 in / 589 out -> $0.00208.
-ONE_CALL_USD = 0.00208
+#: One call at the DeepSeek V4 Flash price: 2,010 in / 589 out -> $0.000213.
+#: (Was $0.00208 at the Gemini 2.5 Flash price; the token means are unchanged.)
+ONE_CALL_USD = 0.00021311
 
 
 @pytest.fixture

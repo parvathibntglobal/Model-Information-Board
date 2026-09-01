@@ -20,7 +20,9 @@ from judge.ask import spend
 from judge.extract.budget import BudgetExhausted
 
 MODEL = "google/gemini-2.5-flash"
-#: The measured call: 2,010 in / 589 out -> $0.00208.
+#: The measured call: 2,010 in / 589 out -> $0.000213 at the DeepSeek V4 Flash
+#: price (was $0.00208 at Gemini's). Token means are the Gemini measurement,
+#: pending a DeepSeek re-measurement.
 CALL = dict(model=MODEL, input_tokens=2010, output_tokens=589)
 
 
@@ -41,10 +43,10 @@ class TestTheDollarIsSharedNotPerStage:
     def test_extraction_spend_reduces_what_the_ask_box_may_spend(self, ledger):
         spend.reset_for_test(limit_usd=1.00)
 
-        # A nightly batch burns almost the whole day's dollar. 481 calls at the
-        # measured $0.002076 is $0.99856, so the batch itself fits and the NEXT
-        # call - whichever stage makes it - does not.
-        for _ in range(481):
+        # A nightly batch burns almost the whole day's dollar. 4,692 calls at the
+        # DeepSeek per-call $0.000213 is $0.99991, so the batch itself fits and the
+        # NEXT call - whichever stage makes it - does not.
+        for _ in range(4692):
             spend_ledger.record(stage=spend_ledger.STAGE_EXTRACT, **CALL)
 
         spent = spend_ledger.spent_today()
@@ -55,7 +57,7 @@ class TestTheDollarIsSharedNotPerStage:
             spend.check_before_call()
 
     def test_the_ask_box_alone_can_still_exhaust_the_shared_cap(self, ledger):
-        spend.reset_for_test(limit_usd=0.01)
+        spend.reset_for_test(limit_usd=0.001)
         for _ in range(6):
             spend_ledger.record(stage=spend_ledger.STAGE_ASK, **CALL)
 
@@ -68,7 +70,7 @@ class TestTheDollarIsSharedNotPerStage:
         `reset_for_test` stands in for a new process - the module total is zero
         and the cap must still bind from the ledger alone.
         """
-        for _ in range(400):
+        for _ in range(2400):
             spend_ledger.record(stage=spend_ledger.STAGE_EXTRACT, **CALL)
 
         spend.reset_for_test(limit_usd=0.50)          # a brand new process
@@ -124,7 +126,7 @@ class TestBothStagesActuallyRecord:
 class TestZeroAndNeverAreDifferent:
     def test_a_stage_that_never_recorded_is_named_as_unwired(self, ledger):
         spend_ledger.record(stage=spend_ledger.STAGE_EXTRACT, **CALL)
-        report = spend_ledger.report(daily_cap_usd=1.0, estimated_call_usd=0.00208)
+        report = spend_ledger.report(daily_cap_usd=1.0, estimated_call_usd=0.00021311)
 
         assert report.unwired_stages == (spend_ledger.STAGE_ASK,)
         assert report.by_stage_usd.get(spend_ledger.STAGE_ASK, 0.0) == 0.0
@@ -134,13 +136,13 @@ class TestZeroAndNeverAreDifferent:
         spend_ledger.record(stage=spend_ledger.STAGE_EXTRACT, **CALL)
         spend_ledger.record(stage=spend_ledger.STAGE_ASK, model=MODEL,
                             input_tokens=0, output_tokens=0)
-        report = spend_ledger.report(daily_cap_usd=1.0, estimated_call_usd=0.00208)
+        report = spend_ledger.report(daily_cap_usd=1.0, estimated_call_usd=0.00021311)
 
         assert report.unwired_stages == ()
         assert report.unmetered_today == 1
 
     def test_an_empty_ledger_reports_a_partial_window_rather_than_a_clean_bill(self, ledger):
-        report = spend_ledger.report(daily_cap_usd=1.0, estimated_call_usd=0.00208)
+        report = spend_ledger.report(daily_cap_usd=1.0, estimated_call_usd=0.00021311)
 
         assert report.spent_today_usd == 0.0
         assert report.first_seen_at is None
@@ -149,13 +151,13 @@ class TestZeroAndNeverAreDifferent:
     def test_a_window_beginning_before_the_first_row_is_a_floor(self, ledger):
         now = datetime.now(UTC)
         spend_ledger.record(stage=spend_ledger.STAGE_ASK, at=now, **CALL)
-        report = spend_ledger.report(daily_cap_usd=1.0, estimated_call_usd=0.00208, now=now)
+        report = spend_ledger.report(daily_cap_usd=1.0, estimated_call_usd=0.00021311, now=now)
 
         assert report.covers_whole_window is False
 
     def test_a_rate_with_no_window_is_None_rather_than_zero(self, ledger):
         report = spend_ledger.report(
-            daily_cap_usd=1.0, estimated_call_usd=0.00208, hours=0
+            daily_cap_usd=1.0, estimated_call_usd=0.00021311, hours=0
         )
         assert report.usd_per_hour_recent is None
         assert report.hours_to_cap is None
@@ -164,7 +166,7 @@ class TestZeroAndNeverAreDifferent:
 class TestTheArithmeticAndTheBoundary:
     def test_cost_comes_from_the_seeded_price(self, ledger):
         call = spend_ledger.record(stage=spend_ledger.STAGE_ASK, **CALL)
-        assert round(call.usd, 5) == 0.00208
+        assert round(call.usd, 5) == 0.00021
 
     def test_the_day_boundary_is_UTC_and_yesterday_is_excluded(self, ledger):
         now = datetime(2026, 8, 20, 0, 30, tzinfo=UTC)
@@ -172,10 +174,10 @@ class TestTheArithmeticAndTheBoundary:
         spend_ledger.record(stage=spend_ledger.STAGE_ASK, at=now, **CALL)
 
         assert spend_ledger.day_start(now) == datetime(2026, 8, 20, tzinfo=UTC)
-        assert round(spend_ledger.spent_today(now=now), 5) == 0.00208, "yesterday leaked in"
+        assert round(spend_ledger.spent_today(now=now), 5) == 0.00021, "yesterday leaked in"
 
     def test_no_cap_configured_yields_None_remaining_not_zero(self, ledger):
-        report = spend_ledger.report(daily_cap_usd=None, estimated_call_usd=0.00208)
+        report = spend_ledger.report(daily_cap_usd=None, estimated_call_usd=0.00021311)
         assert report.remaining_usd is None
         assert report.fraction_used is None
         assert report.calls_remaining is None
@@ -193,7 +195,7 @@ class TestTheArithmeticAndTheBoundary:
         spend_ledger.record(stage=spend_ledger.STAGE_EXTRACT, at=now, **CALL)
         spend_ledger.record(stage=spend_ledger.STAGE_ASK, at=now, **CALL)
 
-        report = spend_ledger.report(daily_cap_usd=1.0, estimated_call_usd=0.00208, now=now)
+        report = spend_ledger.report(daily_cap_usd=1.0, estimated_call_usd=0.00021311, now=now)
         latest = report.hourly[-1]
         assert set(latest.by_stage) == {spend_ledger.STAGE_EXTRACT, spend_ledger.STAGE_ASK}
         assert latest.calls == 2
