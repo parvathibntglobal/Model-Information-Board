@@ -3,9 +3,10 @@
  *
  * This is the seam the workflow pivots on: the board tagged forum evidence
  * against a capability vocabulary; the Articles view collects what each PLATFORM
- * publishes ABOUT a model. arXiv is wired first (static, from a scrape); X and
- * Reddit are declared but not yet collected, and the UI says so rather than
- * rendering an empty list as if nothing exists.
+ * publishes ABOUT a model. All three platforms are wired for DeepSeek V4 Pro
+ * (static, from scrapes). A platform left `null` for a future model renders a
+ * "not collected yet" notice rather than an empty list, so its absence is
+ * visible rather than read as "nothing exists."
  */
 import deepseekArxiv from './deepseek-v4-pro-arxiv.json'
 import deepseekX from './deepseek-v4-pro-x.json'
@@ -27,7 +28,7 @@ export const MODELS = [
     platforms: {
       arxiv: deepseekArxiv,
       x: deepseekX,
-      reddit: null,
+      reddit: deepseekReddit,
     },
   },
 ]
