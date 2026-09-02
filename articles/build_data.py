@@ -177,12 +177,84 @@ SOURCES = [
         "md": ROOT / "articles" / "deepseek-v4-pro" / "DeepSeek_V4_Pro_Report_2026-09-02.md",
         "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-instagram.json",
     },
+    {
+        "model_id": "deepseek-v4-pro",
+        "display_name": "DeepSeek V4 Pro",
+        "platform": "hf",
+        "kind": "hf",
+        "source": "Hugging Face (Hub API) — retrieval sweep across four surfaces",
+        "scraped_at": "2026-09-01T09:00:00Z",
+        "note": (
+            "Three surfaces, shown together under a surface filter: 295 model "
+            "repos (4 official, 291 community re-uploads, 1.4M downloads), 281 "
+            "discussion threads, and 32 papers. Repos are vendor artefacts whose "
+            "cards are announcements — the only first-hand surface is discussions, "
+            "of which 22 carry >=2 artifacts. Repos are the 30 most-downloaded; "
+            "discussions and papers are the >=2-artifact set with their text."
+        ),
+        "sweep": {
+            "repos_found": 295,
+            "repos_official": 4,
+            "downloads_total": 1404100,
+            "discussions": 281,
+            "discussions_nonpr": 230,
+            "disc_authors": 257,
+            "papers": 32,
+            "papers_v4pro": 16,
+        },
+        "md": ROOT / "articles" / "deepseek-v4-pro" / "hf-deepseek-v4-pro-sweep.md",
+        "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-hf.json",
+    },
+    {
+        "model_id": "deepseek-v4-pro",
+        "display_name": "DeepSeek V4 Pro",
+        "platform": "hashnode",
+        "kind": "hashnode",
+        "source": "Hashnode (GraphQL search) — tag + keyword sweep",
+        "scraped_at": "2026-09-02T00:00:00Z",
+        "note": (
+            "A thin surface: 11 in-window posts (one more excluded as out-of-window), "
+            "8 authors, 8 publications. Only 6 are actually about DeepSeek V4 Pro and "
+            "only 2 are first-hand; 5 are cross-posted from a company blog. Filter by "
+            "relevance — core, adjacent (Flash/vision), or passing mention. Each card "
+            "carries the sweep's own provenance read and evidence note."
+        ),
+        "sweep": {
+            "posts": 11,
+            "authors": 8,
+            "publications": 8,
+            "core": 6,
+            "first_hand": 2,
+            "cross_posted": 5,
+            "strong_artifacts": 6,
+        },
+        "md": ROOT / "articles" / "deepseek-v4-pro"
+        / "Hashnode_DeepSeek_V4_Pro_Sweep_2026-09-02.md",
+        "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-hashnode.json",
+    },
 ]
 
 # The social report's top-post tables (§4.1 TikTok, §4.2 Instagram). Each cell's
 # post link is `[open](url)`; there is no per-post content type, so these panels
 # rank by engagement rather than filter by category.
 SOCIAL_LINK = re.compile(r"\[open\]\((https?://[^)]+)\)")
+
+# Hugging Face: one panel over three surfaces, filtered by `content_type`
+# (repo / discussion / paper). Repos are capped at the most-downloaded few;
+# discussions and papers are the >=2-artifact cut, joined to their full text.
+HF_REPO_LIMIT = 30
+
+# Hashnode filters by relevance rather than post type — the type column is too
+# freeform for clean chips, so it rides along as a display field. The §3 table
+# is joined to §4 (provenance) by URL for the full title, provenance read and
+# evidence note.
+HASHNODE_RELEVANCE = (
+    ("out of window", "out_of_window"),
+    ("anomaly", "out_of_window"),
+    ("core", "core"),
+    ("adjacent", "adjacent"),
+    ("passing", "passing"),
+)
 
 # dev.to §"usable set" Type column -> content-type keys.
 DEVTO_TYPE = {
@@ -779,6 +851,251 @@ def summarise_social(posts: list[dict], sweep: dict) -> dict:
     }
 
 
+def _hf_clean(s: str | None) -> str | None:
+    """Undo the report's LaTeX-style escapes so `\\$15` / `52.2\\%` read plainly."""
+    return re.sub(r"\\([$%_&#()])", r"\1", s) if s else s
+
+
+def _hf_licence(cell: str) -> str | None:
+    v = cell.replace("*", "").strip()
+    return None if v in ("—", "", "none") else v
+
+
+def _hf_rows(text: str, heading: str) -> list[list[str]]:
+    """Cell lists of the markdown table under an exact `## ` heading."""
+    rows: list[list[str]] = []
+    in_sec = False
+    for line in text.splitlines():
+        if not in_sec:
+            if line.strip() == heading:
+                in_sec = True
+            continue
+        if line.startswith("#"):
+            break
+        if line.startswith("|"):
+            rows.append([c.strip() for c in line.strip().strip("|").split("|")])
+    return rows
+
+
+def _hf_fulltext_excerpts(text: str, start: str, end: str, key: re.Pattern) -> dict:
+    """Map an entry key (URL or paper id) to its first substantive body line, over
+    the `### N.` entries between the `start` and `end` (h2) headings."""
+    out: dict[str, str] = {}
+    in_sec = False
+    cur: str | None = None
+    for line in text.splitlines():
+        if not in_sec:
+            if line.startswith(start):
+                in_sec = True
+            continue
+        if line.startswith(end):
+            break
+        if re.match(r"^###\s+\d+\.", line):
+            cur = None
+            continue
+        km = key.match(line)
+        if km:
+            cur = km.group(1)
+            continue
+        if cur and cur not in out and line.startswith("    "):
+            s = line.strip()
+            if len(s) >= 12 and not s.startswith("|") and not s.startswith(">"):
+                out[cur] = s[:360]
+    return out
+
+
+def parse_hf(text: str) -> list[dict]:
+    """Three surfaces merged into one list, each tagged with its `content_type`:
+    the top model repos by downloads, the >=2-artifact discussions (with body
+    text), and the >=2-artifact papers (with abstract)."""
+    disc_ex = _hf_fulltext_excerpts(
+        text, "## Full text — the 22 discussions", "## Abstracts",
+        re.compile(r"\s*-\s*\*\*URL:\*\*\s*(\S+)"),
+    )
+    paper_ex = _hf_fulltext_excerpts(
+        text, "## Abstracts — the 15 papers", "\x00never",
+        re.compile(r"\s*-\s*\*\*Paper:\*\*\s*`([^`]+)`"),
+    )
+    items: list[dict] = []
+
+    for c in _hf_rows(text, "## Model repos"):
+        if len(c) < 11 or not c[0].isdigit() or int(c[0]) > HF_REPO_LIMIT:
+            continue
+        link = DEVTO_LINK.match(c[1])
+        items.append({
+            "rank": int(c[0]),
+            "content_type": "repo",
+            "title": link.group(1) if link else c[1],
+            "url": link.group(2) if link else None,
+            "official": "Y" in c[2],
+            "downloads": _social_int(c[3]),
+            "likes": _social_int(c[4]),
+            "modified": c[5],
+            "licence": _hf_licence(c[6]),
+            "discussions": _social_int(c[10]),
+        })
+
+    for c in _hf_rows(text, "## Discussions"):
+        if len(c) < 14 or not c[0].isdigit():
+            continue
+        artifacts = _social_int(c[1]) or 0
+        if artifacts < 2:
+            continue
+        link = DEVTO_LINK.match(c[2])
+        url = link.group(2) if link else None
+        items.append({
+            "rank": int(c[0]),
+            "content_type": "discussion",
+            "title": _hf_clean(link.group(1) if link else c[2]),
+            "url": url,
+            "author": c[3].strip("`"),
+            "repo": c[4],
+            "date": c[5],
+            "status": c[6],
+            "disc_type": c[7],
+            "provenance": c[8],
+            "lang": c[9],
+            "is_pr": "Y" in c[10],
+            "vendor_reply": "Y" in c[11],
+            "comments": _social_int(c[12]),
+            "artifacts": artifacts,
+            "excerpt": _hf_clean(disc_ex.get(url)),
+        })
+
+    for c in _hf_rows(text, "## Papers"):
+        if len(c) < 9 or not c[0].isdigit():
+            continue
+        artifacts = _social_int(c[1]) or 0
+        if artifacts < 2:
+            continue
+        link = DEVTO_LINK.match(c[2])
+        paper_id = c[3].strip("`")
+        items.append({
+            "rank": int(c[0]),
+            "content_type": "paper",
+            "title": _hf_clean(link.group(1) if link else c[2]),
+            "url": link.group(2) if link else None,
+            "paper_id": paper_id,
+            "date": c[4],
+            "upvotes": _social_int(c[5]),
+            "comments": _social_int(c[6]),
+            "authors": _social_int(c[7]),
+            "names_v4pro": "Y" in c[8],
+            "artifacts": artifacts,
+            "excerpt": _hf_clean(paper_ex.get(paper_id)),
+        })
+    return items
+
+
+def summarise_hf(items: list[dict], sweep: dict) -> dict:
+    by_type = collections.Counter(i["content_type"] for i in items)
+    dates = sorted(i["date"] for i in items if i.get("date"))
+    return {
+        "count": len(items),
+        "date_from": dates[0] if dates else None,
+        "date_to": dates[-1] if dates else None,
+        "by_content_type": dict(by_type.most_common()),
+        "sweep": sweep,
+    }
+
+
+def _hashnode_author(cell: str) -> tuple[str | None, str | None]:
+    name = cell.split("<br>")[0].strip()
+    if name in ("—", "-", ""):
+        name = None
+    hm = re.search(r"`@?([^`]+)`", cell)
+    return name, (hm.group(1).strip() if hm else None)
+
+
+def _hashnode_relevance(cell: str) -> str:
+    low = cell.lower()
+    for needle, key in HASHNODE_RELEVANCE:
+        if needle in low:
+            return key
+    return low.split()[0] if low.split() else "other"
+
+
+def _hashnode_provenance(text: str) -> dict:
+    """§4 keyed by URL: the full title, the sweep's provenance read, its evidence."""
+    out: dict[str, dict] = {}
+    in_sec = False
+    cur: dict | None = None
+    for line in text.splitlines():
+        if not in_sec:
+            if line.strip().startswith("## 4."):
+                in_sec = True
+            continue
+        if line.startswith("## "):
+            break
+        hm = re.match(r"^###\s+(.+)", line)
+        if hm:
+            cur = {"title": hm.group(1).strip()}
+            continue
+        if cur is None:
+            continue
+        um = re.match(r"\s*-\s*\*\*URL:\*\*\s*(\S+)", line)
+        if um:
+            out[um.group(1)] = cur
+            continue
+        wm = re.match(r"\s*-\s*\*\*Whose result:\*\*\s*(.+)", line)
+        if wm:
+            cur["whose_result"] = wm.group(1).replace("**", "").strip()
+            continue
+        em = re.match(r"\s*-\s*\*\*Evidence:\*\*\s*(.+)", line)
+        if em:
+            cur["evidence"] = em.group(1).strip().strip('"')
+    return out
+
+
+def parse_hashnode(text: str) -> list[dict]:
+    """§3 (every post returned) joined to §4 (provenance) by URL. Filtered in the
+    UI by relevance; the freeform post type rides along as a display field."""
+    prov = _hashnode_provenance(text)
+    posts: list[dict] = []
+    for c in _hf_rows(text, "## 3. Every post returned"):
+        if len(c) < 14 or not c[0].isdigit():
+            continue
+        link = DEVTO_LINK.match(c[1])
+        url = link.group(2) if link else None
+        p = prov.get(url, {})
+        name, handle = _hashnode_author(c[2])
+        cross = c[13].replace("`", "").strip()
+        posts.append({
+            "rank": int(c[0]),
+            "title": _hf_clean(p.get("title") or (link.group(1) if link else c[1])),
+            "url": url,
+            "author": name,
+            "handle": handle,
+            "publication": c[3].replace("`", "").strip() or None,
+            "date": None if c[4].strip() in ("—", "") else c[4].strip(),
+            "read_time": c[5].strip() if re.search(r"\d", c[5]) else None,
+            "upvotes": _social_int(c[6]),
+            "comments": _social_int(c[7]),
+            "views": _social_int(c[8]),
+            "post_type": c[9].strip() or None,
+            "content_type": _hashnode_relevance(c[10]),
+            "relevance": c[10].strip(),
+            "artifacts": _social_int(c[11]),
+            "strong_artifacts": _social_int(c[12]),
+            "cross_posted": None if cross.lower() in ("no", "", "—") else cross,
+            "whose_result": p.get("whose_result"),
+            "excerpt": _hf_clean((p.get("evidence") or "")[:360]) or None,
+        })
+    return posts
+
+
+def summarise_hashnode(posts: list[dict], sweep: dict) -> dict:
+    by_type = collections.Counter(p["content_type"] for p in posts if p["content_type"])
+    dates = sorted(p["date"] for p in posts if p.get("date"))
+    return {
+        "count": len(posts),
+        "date_from": dates[0] if dates else None,
+        "date_to": dates[-1] if dates else None,
+        "by_content_type": dict(by_type.most_common()),
+        "sweep": sweep,
+    }
+
+
 def main() -> None:
     meta_keys = ("model_id", "display_name", "platform", "source", "scraped_at", "note")
     for src in SOURCES:
@@ -812,6 +1129,16 @@ def main() -> None:
         elif src.get("kind") == "instagram":
             items = parse_instagram(text)
             payload["summary"] = summarise_social(items, src["sweep"])
+            payload["posts"] = items
+            label = "posts"
+        elif src.get("kind") == "hf":
+            items = parse_hf(text)
+            payload["summary"] = summarise_hf(items, src["sweep"])
+            payload["posts"] = items
+            label = "posts"
+        elif src.get("kind") == "hashnode":
+            items = parse_hashnode(text)
+            payload["summary"] = summarise_hashnode(items, src["sweep"])
             payload["posts"] = items
             label = "posts"
         else:
