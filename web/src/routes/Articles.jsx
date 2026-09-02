@@ -124,7 +124,9 @@ function ModelView({ model, platformId, onPlatform, onBack }) {
                 ? <DevtoPanel data={platformData} />
                 : platformData.platform === 'tiktok' || platformData.platform === 'instagram'
                   ? <SocialPanel data={platformData} />
-                  : <ArxivPanel data={platformData} />}
+                  : platformData.platform === 'hf'
+                    ? <HFPanel data={platformData} />
+                    : <ArxivPanel data={platformData} />}
     </div>
   )
 }
@@ -280,6 +282,9 @@ const TYPE_LABEL = {
   production: 'Production & dissent',
   first_hand: 'First-hand analysis',
   news_summary: 'News summary',
+  repo: 'Model repo',
+  discussion: 'Discussion',
+  paper: 'Paper',
 }
 
 const fmt = (n) =>
@@ -784,6 +789,142 @@ function SocialPostCard({ p, tiktok }) {
         <div className="row">
           <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, fontSize: 'var(--fs-xs)' }}>
             {label} <IconExternal width={11} height={11} />
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── Hugging Face ──────────────────────────────────────────────────────── */
+
+// One panel over three surfaces (repo / discussion / paper), filtered by the
+// same single-select chips as the other platforms. The chip counts are what's
+// shown per surface; the sweep stats above carry the full totals.
+function HFPanel({ data }) {
+  const s = data.summary
+  const sweep = s.sweep || {}
+  const [active, setActive] = useState(null)
+  const toggle = (t) => setActive((prev) => (prev === t ? null : t))
+  const filtering = active != null
+  const posts = filtering ? data.posts.filter((p) => p.content_type === active) : data.posts
+
+  return (
+    <div className="stack stack-3">
+      <section className="card card-flush">
+        <div className="card-head">
+          <div className="row" style={{ gap: 10 }}>
+            <IconSearch width={14} height={14} style={{ color: 'var(--text-3)' }} />
+            <span className="label">{data.source}</span>
+          </div>
+          <span className="label">
+            {filtering ? `${posts.length} of ${s.count} shown` : `${s.count} items across 3 surfaces`}
+            {s.date_from ? ` · ${s.date_from} → ${s.date_to}` : ''}
+          </span>
+        </div>
+        <div className="card-body stack stack-2">
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>{data.note}</p>
+          <div className="row" style={{ gap: 18, flexWrap: 'wrap' }}>
+            <Stat n={fmt(sweep.repos_found)} l="model repos" />
+            <Stat n={fmt(sweep.downloads_total)} l="downloads" />
+            <Stat n={fmt(sweep.discussions)} l="discussions" />
+            <Stat n={fmt(sweep.papers)} l="papers" />
+          </div>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {Object.entries(s.by_content_type).map(([t, n]) => (
+              <button
+                key={t}
+                type="button"
+                className={`chip${active === t ? ' chip-on' : ''}`}
+                onClick={() => toggle(t)}
+                aria-pressed={active === t}
+              >
+                {TYPE_LABEL[t] || t}<span style={{ marginLeft: 5, opacity: 0.6 }}>{n}</span>
+              </button>
+            ))}
+            {filtering && (
+              <button type="button" className="chip" style={{ opacity: 0.75 }} onClick={() => setActive(null)}>
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="stack stack-2">
+        {posts.map((p, i) => (
+          <Reveal key={p.url || `${p.content_type}-${p.rank}`} delay={Math.min(i * 8, 200)}>
+            <HFPostCard p={p} />
+          </Reveal>
+        ))}
+        {posts.length === 0 && (
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>No items on the selected surface.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function HFPostCard({ p }) {
+  const isRepo = p.content_type === 'repo'
+  const isPaper = p.content_type === 'paper'
+  return (
+    <section className="card card-flush">
+      <div className="card-body stack stack-2">
+        <div className="row" style={{ gap: 10, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <a
+            href={p.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mono"
+            style={{ fontWeight: 650, fontSize: 'var(--fs-sm)', lineHeight: 1.4, wordBreak: 'break-word' }}
+          >
+            {p.title}
+          </a>
+          <Badge tone={isRepo ? 'mute' : 'info'}>
+            {p.official ? 'Official repo' : (TYPE_LABEL[p.content_type] || p.content_type)}
+          </Badge>
+        </div>
+
+        {isRepo ? (
+          <div className="row" style={{ gap: 12, flexWrap: 'wrap', alignItems: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+            <span className="mono">↓ {fmt(p.downloads)}</span>
+            {p.likes != null && <span className="mono">♥ {fmt(p.likes)}</span>}
+            {p.licence && <span className="dim">{p.licence}</span>}
+            {p.discussions != null && <span className="dim">{fmt(p.discussions)} discussions</span>}
+            {p.modified && <span className="dim">updated {p.modified}</span>}
+          </div>
+        ) : (
+          <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+            {isPaper ? (
+              <>
+                <span className="mono">▲ {fmt(p.upvotes)}</span>
+                {p.authors != null && <span className="dim">{fmt(p.authors)} authors</span>}
+                {p.names_v4pro && <span className="dim">names V4 Pro</span>}
+              </>
+            ) : (
+              <>
+                <span className="dim">{p.author}</span>
+                <span className="dim">in {p.repo}</span>
+                <span className="dim">{p.disc_type}</span>
+                {p.comments != null && <span className="mono">💬 {fmt(p.comments)}</span>}
+                {p.vendor_reply && <span className="dim">vendor replied</span>}
+              </>
+            )}
+            {p.date && <span className="dim">{p.date}</span>}
+            {p.artifacts != null && <span className="mono">{p.artifacts} artifact{p.artifacts === 1 ? '' : 's'}</span>}
+          </div>
+        )}
+
+        {p.excerpt && (
+          <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2, var(--text))', fontStyle: 'italic' }}>
+            {p.excerpt}
+          </p>
+        )}
+
+        <div className="row">
+          <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, fontSize: 'var(--fs-xs)' }}>
+            view on Hugging Face <IconExternal width={11} height={11} />
           </a>
         </div>
       </div>

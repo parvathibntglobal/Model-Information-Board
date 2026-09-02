@@ -177,12 +177,45 @@ SOURCES = [
         "md": ROOT / "articles" / "deepseek-v4-pro" / "DeepSeek_V4_Pro_Report_2026-09-02.md",
         "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-instagram.json",
     },
+    {
+        "model_id": "deepseek-v4-pro",
+        "display_name": "DeepSeek V4 Pro",
+        "platform": "hf",
+        "kind": "hf",
+        "source": "Hugging Face (Hub API) — retrieval sweep across four surfaces",
+        "scraped_at": "2026-09-01T09:00:00Z",
+        "note": (
+            "Three surfaces, shown together under a surface filter: 295 model "
+            "repos (4 official, 291 community re-uploads, 1.4M downloads), 281 "
+            "discussion threads, and 32 papers. Repos are vendor artefacts whose "
+            "cards are announcements — the only first-hand surface is discussions, "
+            "of which 22 carry >=2 artifacts. Repos are the 30 most-downloaded; "
+            "discussions and papers are the >=2-artifact set with their text."
+        ),
+        "sweep": {
+            "repos_found": 295,
+            "repos_official": 4,
+            "downloads_total": 1404100,
+            "discussions": 281,
+            "discussions_nonpr": 230,
+            "disc_authors": 257,
+            "papers": 32,
+            "papers_v4pro": 16,
+        },
+        "md": ROOT / "articles" / "deepseek-v4-pro" / "hf-deepseek-v4-pro-sweep.md",
+        "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-hf.json",
+    },
 ]
 
 # The social report's top-post tables (§4.1 TikTok, §4.2 Instagram). Each cell's
 # post link is `[open](url)`; there is no per-post content type, so these panels
 # rank by engagement rather than filter by category.
 SOCIAL_LINK = re.compile(r"\[open\]\((https?://[^)]+)\)")
+
+# Hugging Face: one panel over three surfaces, filtered by `content_type`
+# (repo / discussion / paper). Repos are capped at the most-downloaded few;
+# discussions and papers are the >=2-artifact cut, joined to their full text.
+HF_REPO_LIMIT = 30
 
 # dev.to §"usable set" Type column -> content-type keys.
 DEVTO_TYPE = {
@@ -779,6 +812,154 @@ def summarise_social(posts: list[dict], sweep: dict) -> dict:
     }
 
 
+def _hf_clean(s: str | None) -> str | None:
+    """Undo the report's LaTeX-style escapes so `\\$15` / `52.2\\%` read plainly."""
+    return re.sub(r"\\([$%_&#])", r"\1", s) if s else s
+
+
+def _hf_licence(cell: str) -> str | None:
+    v = cell.replace("*", "").strip()
+    return None if v in ("—", "", "none") else v
+
+
+def _hf_rows(text: str, heading: str) -> list[list[str]]:
+    """Cell lists of the markdown table under an exact `## ` heading."""
+    rows: list[list[str]] = []
+    in_sec = False
+    for line in text.splitlines():
+        if not in_sec:
+            if line.strip() == heading:
+                in_sec = True
+            continue
+        if line.startswith("#"):
+            break
+        if line.startswith("|"):
+            rows.append([c.strip() for c in line.strip().strip("|").split("|")])
+    return rows
+
+
+def _hf_fulltext_excerpts(text: str, start: str, end: str, key: re.Pattern) -> dict:
+    """Map an entry key (URL or paper id) to its first substantive body line, over
+    the `### N.` entries between the `start` and `end` (h2) headings."""
+    out: dict[str, str] = {}
+    in_sec = False
+    cur: str | None = None
+    for line in text.splitlines():
+        if not in_sec:
+            if line.startswith(start):
+                in_sec = True
+            continue
+        if line.startswith(end):
+            break
+        if re.match(r"^###\s+\d+\.", line):
+            cur = None
+            continue
+        km = key.match(line)
+        if km:
+            cur = km.group(1)
+            continue
+        if cur and cur not in out and line.startswith("    "):
+            s = line.strip()
+            if len(s) >= 12 and not s.startswith("|") and not s.startswith(">"):
+                out[cur] = s[:360]
+    return out
+
+
+def parse_hf(text: str) -> list[dict]:
+    """Three surfaces merged into one list, each tagged with its `content_type`:
+    the top model repos by downloads, the >=2-artifact discussions (with body
+    text), and the >=2-artifact papers (with abstract)."""
+    disc_ex = _hf_fulltext_excerpts(
+        text, "## Full text — the 22 discussions", "## Abstracts",
+        re.compile(r"\s*-\s*\*\*URL:\*\*\s*(\S+)"),
+    )
+    paper_ex = _hf_fulltext_excerpts(
+        text, "## Abstracts — the 15 papers", "\x00never",
+        re.compile(r"\s*-\s*\*\*Paper:\*\*\s*`([^`]+)`"),
+    )
+    items: list[dict] = []
+
+    for c in _hf_rows(text, "## Model repos"):
+        if len(c) < 11 or not c[0].isdigit() or int(c[0]) > HF_REPO_LIMIT:
+            continue
+        link = DEVTO_LINK.match(c[1])
+        items.append({
+            "rank": int(c[0]),
+            "content_type": "repo",
+            "title": link.group(1) if link else c[1],
+            "url": link.group(2) if link else None,
+            "official": "Y" in c[2],
+            "downloads": _social_int(c[3]),
+            "likes": _social_int(c[4]),
+            "modified": c[5],
+            "licence": _hf_licence(c[6]),
+            "discussions": _social_int(c[10]),
+        })
+
+    for c in _hf_rows(text, "## Discussions"):
+        if len(c) < 14 or not c[0].isdigit():
+            continue
+        artifacts = _social_int(c[1]) or 0
+        if artifacts < 2:
+            continue
+        link = DEVTO_LINK.match(c[2])
+        url = link.group(2) if link else None
+        items.append({
+            "rank": int(c[0]),
+            "content_type": "discussion",
+            "title": _hf_clean(link.group(1) if link else c[2]),
+            "url": url,
+            "author": c[3].strip("`"),
+            "repo": c[4],
+            "date": c[5],
+            "status": c[6],
+            "disc_type": c[7],
+            "provenance": c[8],
+            "lang": c[9],
+            "is_pr": "Y" in c[10],
+            "vendor_reply": "Y" in c[11],
+            "comments": _social_int(c[12]),
+            "artifacts": artifacts,
+            "excerpt": _hf_clean(disc_ex.get(url)),
+        })
+
+    for c in _hf_rows(text, "## Papers"):
+        if len(c) < 9 or not c[0].isdigit():
+            continue
+        artifacts = _social_int(c[1]) or 0
+        if artifacts < 2:
+            continue
+        link = DEVTO_LINK.match(c[2])
+        paper_id = c[3].strip("`")
+        items.append({
+            "rank": int(c[0]),
+            "content_type": "paper",
+            "title": _hf_clean(link.group(1) if link else c[2]),
+            "url": link.group(2) if link else None,
+            "paper_id": paper_id,
+            "date": c[4],
+            "upvotes": _social_int(c[5]),
+            "comments": _social_int(c[6]),
+            "authors": _social_int(c[7]),
+            "names_v4pro": "Y" in c[8],
+            "artifacts": artifacts,
+            "excerpt": _hf_clean(paper_ex.get(paper_id)),
+        })
+    return items
+
+
+def summarise_hf(items: list[dict], sweep: dict) -> dict:
+    by_type = collections.Counter(i["content_type"] for i in items)
+    dates = sorted(i["date"] for i in items if i.get("date"))
+    return {
+        "count": len(items),
+        "date_from": dates[0] if dates else None,
+        "date_to": dates[-1] if dates else None,
+        "by_content_type": dict(by_type.most_common()),
+        "sweep": sweep,
+    }
+
+
 def main() -> None:
     meta_keys = ("model_id", "display_name", "platform", "source", "scraped_at", "note")
     for src in SOURCES:
@@ -812,6 +993,11 @@ def main() -> None:
         elif src.get("kind") == "instagram":
             items = parse_instagram(text)
             payload["summary"] = summarise_social(items, src["sweep"])
+            payload["posts"] = items
+            label = "posts"
+        elif src.get("kind") == "hf":
+            items = parse_hf(text)
+            payload["summary"] = summarise_hf(items, src["sweep"])
             payload["posts"] = items
             label = "posts"
         else:
