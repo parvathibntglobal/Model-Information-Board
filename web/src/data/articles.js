@@ -3,7 +3,7 @@
  *
  * This is the seam the workflow pivots on: the board tagged forum evidence
  * against a capability vocabulary; the Articles view collects what each PLATFORM
- * publishes ABOUT a model. All four platforms are wired for DeepSeek V4 Pro
+ * publishes ABOUT a model. Every platform below is wired for DeepSeek V4 Pro
  * (static, from scrapes). A platform left `null` for a future model renders a
  * "not collected yet" notice rather than an empty list, so its absence is
  * visible rather than read as "nothing exists."
@@ -13,6 +13,8 @@ import deepseekX from './deepseek-v4-pro-x.json'
 import deepseekReddit from './deepseek-v4-pro-reddit.json'
 import deepseekHN from './deepseek-v4-pro-hn.json'
 import deepseekDevto from './deepseek-v4-pro-devto.json'
+import deepseekTikTok from './deepseek-v4-pro-tiktok.json'
+import deepseekInstagram from './deepseek-v4-pro-instagram.json'
 
 export const PLATFORMS = [
   { id: 'arxiv', label: 'arXiv' },
@@ -20,6 +22,8 @@ export const PLATFORMS = [
   { id: 'reddit', label: 'Reddit' },
   { id: 'hn', label: 'Hacker News' },
   { id: 'devto', label: 'dev.to' },
+  { id: 'tiktok', label: 'TikTok' },
+  { id: 'instagram', label: 'Instagram' },
 ]
 
 export const MODELS = [
@@ -35,6 +39,8 @@ export const MODELS = [
       reddit: deepseekReddit,
       hn: deepseekHN,
       devto: deepseekDevto,
+      tiktok: deepseekTikTok,
+      instagram: deepseekInstagram,
     },
   },
 ]

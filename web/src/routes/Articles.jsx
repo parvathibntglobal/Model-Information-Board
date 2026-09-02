@@ -122,7 +122,9 @@ function ModelView({ model, platformId, onPlatform, onBack }) {
               ? <HNPanel data={platformData} />
               : platformData.platform === 'devto'
                 ? <DevtoPanel data={platformData} />
-                : <ArxivPanel data={platformData} />}
+                : platformData.platform === 'tiktok' || platformData.platform === 'instagram'
+                  ? <SocialPanel data={platformData} />
+                  : <ArxivPanel data={platformData} />}
     </div>
   )
 }
@@ -698,6 +700,90 @@ function DevtoPostCard({ p }) {
           {p.cross_posted && p.cross_posted !== 'no' && <span className="dim">· cross-posted</span>}
           <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, marginLeft: 'auto' }}>
             view on dev.to <IconExternal width={11} height={11} />
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── TikTok & Instagram (social) ───────────────────────────────────────── */
+
+// One panel for both: ranked by engagement, no per-post category to filter on.
+// The sweep line names the count and what it was ranked by; each card leads with
+// the metrics that platform exposes (TikTok has views/shares, Instagram does not).
+function SocialPanel({ data }) {
+  const s = data.summary
+  const sweep = s.sweep || {}
+  const isTikTok = data.platform === 'tiktok'
+  const rankedBy = isTikTok ? 'views' : 'likes + comments'
+
+  return (
+    <div className="stack stack-3">
+      <section className="card card-flush">
+        <div className="card-head">
+          <div className="row" style={{ gap: 10 }}>
+            <IconSearch width={14} height={14} style={{ color: 'var(--text-3)' }} />
+            <span className="label">{data.source}</span>
+          </div>
+          <span className="label">
+            {`top ${s.count} by ${rankedBy}`}
+            {s.date_from ? ` · ${s.date_from} → ${s.date_to}` : ''}
+          </span>
+        </div>
+        <div className="card-body stack stack-2">
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>{data.note}</p>
+          <div className="row" style={{ gap: 18, flexWrap: 'wrap' }}>
+            <Stat n={fmt(sweep.posts)} l="on-target posts" />
+            {isTikTok && <Stat n={fmt(sweep.views)} l="views" />}
+            <Stat n={fmt(sweep.likes)} l={isTikTok ? 'likes' : 'likes (floor)'} />
+            <Stat n={fmt(sweep.comments)} l="comments" />
+            {isTikTok && <Stat n={fmt(sweep.shares)} l="shares" />}
+          </div>
+        </div>
+      </section>
+
+      <div className="stack stack-2">
+        {data.posts.map((p) => (
+          <Reveal key={p.rank} delay={Math.min(p.rank * 10, 200)}>
+            <SocialPostCard p={p} tiktok={isTikTok} />
+          </Reveal>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function SocialPostCard({ p, tiktok }) {
+  const label = tiktok ? 'view on TikTok' : 'view on Instagram'
+  return (
+    <section className="card card-flush">
+      <div className="card-body stack stack-2">
+        <div className="row" style={{ gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
+            <span className="mono" style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>#{p.rank}</span>
+            <span style={{ fontWeight: 650, fontSize: 'var(--fs-sm)' }}>{p.creator}</span>
+          </div>
+          {p.date && <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{p.date}</span>}
+        </div>
+
+        <div className="row" style={{ gap: 12, flexWrap: 'wrap', alignItems: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+          {tiktok && p.views != null && <span className="mono">▶ {fmt(p.views)} views</span>}
+          {p.likes != null && <span className="mono">♥ {fmt(p.likes)}</span>}
+          {p.comments != null && <span className="mono">💬 {fmt(p.comments)}</span>}
+          {tiktok && p.shares != null && <span className="mono">↗ {fmt(p.shares)}</span>}
+          {tiktok && p.engagement_rate && <span className="dim">ER {p.engagement_rate}</span>}
+        </div>
+
+        {p.caption && (
+          <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2, var(--text))' }}>
+            {p.caption}
+          </p>
+        )}
+
+        <div className="row">
+          <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, fontSize: 'var(--fs-xs)' }}>
+            {label} <IconExternal width={11} height={11} />
           </a>
         </div>
       </div>

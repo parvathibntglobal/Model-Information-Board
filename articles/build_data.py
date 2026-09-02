@@ -130,7 +130,59 @@ SOURCES = [
         "md": ROOT / "articles" / "deepseek-v4-pro" / "devto-deepseek-v4-pro.md.md",
         "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-devto.json",
     },
+    {
+        "model_id": "deepseek-v4-pro",
+        "display_name": "DeepSeek V4 Pro",
+        "platform": "tiktok",
+        "kind": "tiktok",
+        "source": "TikTok — social tracking sweep",
+        "scraped_at": "2026-09-02T00:00:00Z",
+        "note": (
+            "137 on-target V4 Pro videos, 1,719,640 views. Reach is extremely "
+            "top-heavy — the single most-viewed video is 43.7% of all on-target "
+            "TikTok reach by itself, and the median video draws 687.5 views. The "
+            "top 30 by views are shown; aggregate counts describe a handful of "
+            "breakout videos, not typical performance."
+        ),
+        "sweep": {
+            "posts": 137,
+            "views": 1719640,
+            "likes": 77302,
+            "comments": 2442,
+            "shares": 6706,
+        },
+        "md": ROOT / "articles" / "deepseek-v4-pro" / "DeepSeek_V4_Pro_Report_2026-09-02.md",
+        "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-tiktok.json",
+    },
+    {
+        "model_id": "deepseek-v4-pro",
+        "display_name": "DeepSeek V4 Pro",
+        "platform": "instagram",
+        "kind": "instagram",
+        "source": "Instagram hashtag feed — social tracking sweep",
+        "scraped_at": "2026-09-02T00:00:00Z",
+        "note": (
+            "377 on-target V4 Pro posts. Instagram's hashtag feed exposes no view, "
+            "share or save count, and a like count on only 48.8% of returned posts "
+            "(hidden, not absent, on the rest), so like totals are a floor, not a "
+            "total. The top 30 by likes + comments are shown, ranked on that "
+            "visible engagement."
+        ),
+        "sweep": {
+            "posts": 377,
+            "likes": 10943,
+            "comments": 2038,
+            "likes_visible_pct": 48.8,
+        },
+        "md": ROOT / "articles" / "deepseek-v4-pro" / "DeepSeek_V4_Pro_Report_2026-09-02.md",
+        "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-instagram.json",
+    },
 ]
+
+# The social report's top-post tables (§4.1 TikTok, §4.2 Instagram). Each cell's
+# post link is `[open](url)`; there is no per-post content type, so these panels
+# rank by engagement rather than filter by category.
+SOCIAL_LINK = re.compile(r"\[open\]\((https?://[^)]+)\)")
 
 # dev.to §"usable set" Type column -> content-type keys.
 DEVTO_TYPE = {
@@ -653,6 +705,80 @@ def summarise_devto(posts: list[dict], sweep: dict) -> dict:
     }
 
 
+def _social_rows(text: str, header: str) -> list[list[str]]:
+    """Cell lists of the markdown table under the §4.x heading containing `header`."""
+    rows: list[list[str]] = []
+    in_sec = False
+    for line in text.splitlines():
+        if not in_sec:
+            if line.startswith("### ") and header in line:
+                in_sec = True
+            continue
+        if line.startswith("#"):
+            break
+        if line.startswith("|"):
+            rows.append([c.strip() for c in line.strip().strip("|").split("|")])
+    return rows
+
+
+def _social_int(cell: str) -> int | None:
+    m = re.search(r"-?[\d,]+", cell)
+    return int(m.group().replace(",", "")) if m else None
+
+
+def parse_tiktok(text: str) -> list[dict]:
+    """§4.1 — top videos ranked by views. Columns: # Creator Date Views Likes
+    Comments Shares ER Post Caption."""
+    posts: list[dict] = []
+    for c in _social_rows(text, "TikTok (ranked by views)"):
+        if len(c) < 10 or not c[0].isdigit():
+            continue
+        link = SOCIAL_LINK.search(c[8])
+        posts.append({
+            "rank": int(c[0]),
+            "creator": c[1],
+            "date": c[2],
+            "views": _social_int(c[3]),
+            "likes": _social_int(c[4]),
+            "comments": _social_int(c[5]),
+            "shares": _social_int(c[6]),
+            "engagement_rate": c[7] or None,
+            "url": link.group(1) if link else None,
+            "caption": c[9].strip() or None,
+        })
+    return posts
+
+
+def parse_instagram(text: str) -> list[dict]:
+    """§4.2 — top posts ranked by likes + comments. Columns: # Creator Date Likes
+    Comments Post Caption. No view/share/save counts on Instagram's feed."""
+    posts: list[dict] = []
+    for c in _social_rows(text, "Instagram (ranked by likes + comments)"):
+        if len(c) < 7 or not c[0].isdigit():
+            continue
+        link = SOCIAL_LINK.search(c[5])
+        posts.append({
+            "rank": int(c[0]),
+            "creator": c[1],
+            "date": c[2],
+            "likes": _social_int(c[3]),
+            "comments": _social_int(c[4]),
+            "url": link.group(1) if link else None,
+            "caption": c[6].strip() or None,
+        })
+    return posts
+
+
+def summarise_social(posts: list[dict], sweep: dict) -> dict:
+    dates = sorted(p["date"] for p in posts if p["date"])
+    return {
+        "count": len(posts),
+        "date_from": dates[0] if dates else None,
+        "date_to": dates[-1] if dates else None,
+        "sweep": sweep,
+    }
+
+
 def main() -> None:
     meta_keys = ("model_id", "display_name", "platform", "source", "scraped_at", "note")
     for src in SOURCES:
@@ -676,6 +802,16 @@ def main() -> None:
         elif src.get("kind") == "devto":
             items = parse_devto(text)
             payload["summary"] = summarise_devto(items, src["sweep"])
+            payload["posts"] = items
+            label = "posts"
+        elif src.get("kind") == "tiktok":
+            items = parse_tiktok(text)
+            payload["summary"] = summarise_social(items, src["sweep"])
+            payload["posts"] = items
+            label = "posts"
+        elif src.get("kind") == "instagram":
+            items = parse_instagram(text)
+            payload["summary"] = summarise_social(items, src["sweep"])
             payload["posts"] = items
             label = "posts"
         else:
