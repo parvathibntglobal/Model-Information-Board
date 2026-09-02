@@ -28,7 +28,9 @@ rebuild, so the two never drift.
 | DeepSeek V4 Pro | Reddit | `deepseek-v4-pro/DeepSeek-V4-Pro-Reddit-Report.md` | 150 posts |
 | DeepSeek V4 Pro | Hacker News | `deepseek-v4-pro/DeepSeek-V4-Pro_HN_SubjectThreads_Report.md` | 34 cases |
 | DeepSeek V4 Pro | dev.to | `deepseek-v4-pro/devto-deepseek-v4-pro.md.md` | 53 articles |
+| DeepSeek V4 Pro | TikTok | `deepseek-v4-pro/DeepSeek_V4_Pro_Report_2026-09-02.md` | top 30 videos |
+| DeepSeek V4 Pro | Instagram | `deepseek-v4-pro/DeepSeek_V4_Pro_Report_2026-09-02.md` | top 30 posts |
 
-All four platforms are collected for DeepSeek V4 Pro. A model with a platform
-still to collect shows a "not collected yet" notice for it rather than an empty
-list.
+All seven platforms are collected for DeepSeek V4 Pro (TikTok and Instagram
+share one social-tracking report). A model with a platform still to collect
+shows a "not collected yet" notice for it rather than an empty list.
