@@ -128,7 +128,9 @@ function ModelView({ model, platformId, onPlatform, onBack }) {
                     ? <HFPanel data={platformData} />
                     : platformData.platform === 'hashnode'
                       ? <HashnodePanel data={platformData} />
-                      : <ArxivPanel data={platformData} />}
+                      : platformData.platform === 'wordpress'
+                        ? <WordPressPanel data={platformData} />
+                        : <ArxivPanel data={platformData} />}
     </div>
   )
 }
@@ -291,6 +293,7 @@ const TYPE_LABEL = {
   adjacent: 'Adjacent',
   passing: 'Passing mention',
   out_of_window: 'Out of window',
+  listicle: 'Listicle',
 }
 
 const fmt = (n) =>
@@ -1049,6 +1052,122 @@ function HashnodePostCard({ p }) {
           {p.cross_posted && <span className="dim">· cross-posted from {p.cross_posted}</span>}
           <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, marginLeft: 'auto' }}>
             view on Hashnode <IconExternal width={11} height={11} />
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── WordPress ─────────────────────────────────────────────────────────── */
+
+// The usable set (>=2 artifacts, non-injected), filtered by post type. The
+// provenance line is prominent because this surface is mostly relayed numbers —
+// only 3 of 73 posts are first-hand.
+function WordPressPanel({ data }) {
+  const s = data.summary
+  const sweep = s.sweep || {}
+  const [active, setActive] = useState(null)
+  const toggle = (t) => setActive((prev) => (prev === t ? null : t))
+  const filtering = active != null
+  const posts = filtering ? data.posts.filter((p) => p.content_type === active) : data.posts
+
+  return (
+    <div className="stack stack-3">
+      <section className="card card-flush">
+        <div className="card-head">
+          <div className="row" style={{ gap: 10 }}>
+            <IconSearch width={14} height={14} style={{ color: 'var(--text-3)' }} />
+            <span className="label">{data.source}</span>
+          </div>
+          <span className="label">
+            {filtering ? `${posts.length} of ${s.count} shown` : `${s.count} usable posts`}
+            {s.date_from ? ` · ${s.date_from} → ${s.date_to}` : ''}
+          </span>
+        </div>
+        <div className="card-body stack stack-2">
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>{data.note}</p>
+          <div className="row" style={{ gap: 18, flexWrap: 'wrap' }}>
+            <Stat n={fmt(sweep.in_window)} l="in-window" />
+            <Stat n={fmt(sweep.sites)} l="sites" />
+            <Stat n={fmt(sweep.first_hand)} l="first-hand" />
+            <Stat n={fmt(sweep.injected)} l="injected (excl.)" />
+          </div>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {Object.entries(s.by_content_type).map(([t, n]) => (
+              <button
+                key={t}
+                type="button"
+                className={`chip${active === t ? ' chip-on' : ''}`}
+                onClick={() => toggle(t)}
+                aria-pressed={active === t}
+              >
+                {TYPE_LABEL[t] || t}<span style={{ marginLeft: 5, opacity: 0.6 }}>{n}</span>
+              </button>
+            ))}
+            {filtering && (
+              <button type="button" className="chip" style={{ opacity: 0.75 }} onClick={() => setActive(null)}>
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="stack stack-2">
+        {posts.map((p, i) => (
+          <Reveal key={p.url || p.rank} delay={Math.min(i * 10, 200)}>
+            <WordPressPostCard p={p} />
+          </Reveal>
+        ))}
+        {posts.length === 0 && (
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>No posts of the selected type.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function WordPressPostCard({ p }) {
+  return (
+    <section className="card card-flush">
+      <div className="card-body stack stack-2">
+        <div className="row" style={{ gap: 10, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <a
+            href={p.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontWeight: 650, fontSize: 'var(--fs-sm)', lineHeight: 1.4 }}
+          >
+            {p.title}
+          </a>
+          <Badge tone="info">{TYPE_LABEL[p.content_type] || p.content_type}</Badge>
+        </div>
+
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+          {p.author && <span className="dim">{p.author}{p.is_person ? '' : ' (unverified byline)'}</span>}
+          {p.site && <span className="mono">{p.site}</span>}
+          {p.date && <span className="dim">{p.date}</span>}
+          {p.words != null && <span className="dim">{fmt(p.words)} words</span>}
+          {p.comments > 0 && <span className="mono">💬 {fmt(p.comments)}</span>}
+        </div>
+
+        {p.provenance && (
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+            Provenance: {p.provenance}
+          </p>
+        )}
+
+        {p.excerpt && (
+          <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2, var(--text))', fontStyle: 'italic' }}>
+            {p.excerpt}
+          </p>
+        )}
+
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+          {p.artifacts != null && <span className="mono">{p.artifacts} artifact{p.artifacts === 1 ? '' : 's'}</span>}
+          <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, marginLeft: 'auto' }}>
+            view on WordPress <IconExternal width={11} height={11} />
           </a>
         </div>
       </div>
