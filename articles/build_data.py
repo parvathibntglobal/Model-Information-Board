@@ -232,7 +232,46 @@ SOURCES = [
         / "Hashnode_DeepSeek_V4_Pro_Sweep_2026-09-02.md",
         "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-hashnode.json",
     },
+    {
+        "model_id": "deepseek-v4-pro",
+        "display_name": "DeepSeek V4 Pro",
+        "platform": "wordpress",
+        "kind": "wordpress",
+        "source": "WordPress.com (public API) — keyword sweep",
+        "scraped_at": "2026-09-02T00:00:00Z",
+        "note": (
+            "161 posts returned; 73 actually name DeepSeek V4 Pro in-window, across "
+            "68 sites. Only 3 are first-hand — 56% are SEO or content-farm, and 5 "
+            "were not articles but malware lures on compromised sites (excluded "
+            "here). The usable set is the 27 carrying >=2 artifacts and not "
+            "injected, but read the provenance line: almost all relay someone "
+            "else's numbers rather than the author's own."
+        ),
+        "sweep": {
+            "returned": 161,
+            "in_window": 73,
+            "sites": 68,
+            "bylines": 58,
+            "first_hand": 3,
+            "usable": 27,
+            "injected": 5,
+        },
+        "md": ROOT / "articles" / "deepseek-v4-pro" / "wp-deepseek-v4-pro-sweep.md",
+        "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-wordpress.json",
+    },
 ]
+
+# WordPress §"All 73 posts" Type column -> content-type keys. Injected (SEO
+# malware-lure) rows are dropped, not mapped — they are not articles.
+WP_TYPE = {
+    "benchmark": "benchmark",
+    "news summary": "news_summary",
+    "comparison": "comparison",
+    "tutorial": "tutorial",
+    "announcement": "announcement",
+    "listicle": "listicle",
+    "opinion": "opinion",
+}
 
 # The social report's top-post tables (§4.1 TikTok, §4.2 Instagram). Each cell's
 # post link is `[open](url)`; there is no per-post content type, so these panels
@@ -1096,6 +1135,85 @@ def summarise_hashnode(posts: list[dict], sweep: dict) -> dict:
     }
 
 
+def _wp_fulltext(text: str) -> dict:
+    """§"Full text" keyed by URL: the full title and first substantive body line."""
+    out: dict[str, dict] = {}
+    in_sec = False
+    title: str | None = None
+    url: str | None = None
+    for line in text.splitlines():
+        if not in_sec:
+            if line.startswith("## Full text — the 27 posts"):
+                in_sec = True
+            continue
+        if line.startswith("## Appendix"):
+            break
+        hm = re.match(r"^###\s+\d+\.\s+(.+)", line)
+        if hm:
+            title, url = hm.group(1).strip(), None
+            continue
+        um = re.match(r"\s*-\s*\*\*URL:\*\*\s*(\S+)", line)
+        if um:
+            url = um.group(1)
+            out[url] = {"title": title, "excerpt": None}
+            continue
+        if url and out[url]["excerpt"] is None and line.startswith("    "):
+            s = line.strip()
+            if len(s) >= 40 and not s.startswith(("-", "|", ">", "#", "*")):
+                out[url]["excerpt"] = s[:340]
+    return out
+
+
+def parse_wordpress(text: str) -> list[dict]:
+    """§"All 73 posts" filtered to the usable set — >=2 artifacts and not an
+    injected malware lure — joined to the full-text section by URL."""
+    full = _wp_fulltext(text)
+    posts: list[dict] = []
+    for c in _hf_rows(text, "## All 73 posts"):
+        if len(c) < 13 or not c[0].isdigit():
+            continue
+        artifacts = _social_int(c[1]) or 0
+        injected = "Y" in c[12] or "inject" in c[7].lower()
+        if artifacts < 2 or injected:
+            continue
+        content_type = WP_TYPE.get(c[7].lower().strip())
+        if content_type is None:
+            continue
+        link = DEVTO_LINK.match(c[2])
+        url = link.group(2) if link else None
+        meta = full.get(url, {})
+        author = c[3].strip()
+        posts.append({
+            "rank": int(c[0]),
+            "title": _hf_clean(meta.get("title") or (link.group(1) if link else c[2])),
+            "url": url,
+            "author": None if author in ("—", "-", "") else author,
+            "is_person": "Y" in c[4],
+            "site": c[5].replace("`", "").strip() or None,
+            "date": None if c[6].strip() in ("—", "") else c[6].strip(),
+            "content_type": content_type,
+            "provenance": c[8].strip() or None,
+            "artifacts": artifacts,
+            "figures": c[9].strip() or None,
+            "words": _social_int(c[10]),
+            "comments": _social_int(c[11]),
+            "excerpt": _hf_clean(meta.get("excerpt")),
+        })
+    return posts
+
+
+def summarise_wordpress(posts: list[dict], sweep: dict) -> dict:
+    by_type = collections.Counter(p["content_type"] for p in posts if p["content_type"])
+    dates = sorted(p["date"] for p in posts if p.get("date"))
+    return {
+        "count": len(posts),
+        "date_from": dates[0] if dates else None,
+        "date_to": dates[-1] if dates else None,
+        "by_content_type": dict(by_type.most_common()),
+        "sweep": sweep,
+    }
+
+
 def main() -> None:
     meta_keys = ("model_id", "display_name", "platform", "source", "scraped_at", "note")
     for src in SOURCES:
@@ -1139,6 +1257,11 @@ def main() -> None:
         elif src.get("kind") == "hashnode":
             items = parse_hashnode(text)
             payload["summary"] = summarise_hashnode(items, src["sweep"])
+            payload["posts"] = items
+            label = "posts"
+        elif src.get("kind") == "wordpress":
+            items = parse_wordpress(text)
+            payload["summary"] = summarise_wordpress(items, src["sweep"])
             payload["posts"] = items
             label = "posts"
         else:
