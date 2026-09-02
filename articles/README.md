@@ -31,9 +31,11 @@ rebuild, so the two never drift.
 | DeepSeek V4 Pro | TikTok | `deepseek-v4-pro/DeepSeek_V4_Pro_Report_2026-09-02.md` | top 30 videos |
 | DeepSeek V4 Pro | Instagram | `deepseek-v4-pro/DeepSeek_V4_Pro_Report_2026-09-02.md` | top 30 posts |
 | DeepSeek V4 Pro | Hugging Face | `deepseek-v4-pro/hf-deepseek-v4-pro-sweep.md` | 30 repos + 22 discussions + 15 papers |
+| DeepSeek V4 Pro | Hashnode | `deepseek-v4-pro/Hashnode_DeepSeek_V4_Pro_Sweep_2026-09-02.md` | 12 posts |
 
-All eight platforms are collected for DeepSeek V4 Pro (TikTok and Instagram
+All nine platforms are collected for DeepSeek V4 Pro (TikTok and Instagram
 share one social-tracking report; Hugging Face merges three surfaces — model
-repos, discussions and papers — under one surface filter). A model with a
+repos, discussions and papers — under one surface filter; Hashnode filters by
+relevance and joins each post to the sweep's provenance read). A model with a
 platform still to collect shows a "not collected yet" notice for it rather than
 an empty list.

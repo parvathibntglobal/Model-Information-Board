@@ -126,7 +126,9 @@ function ModelView({ model, platformId, onPlatform, onBack }) {
                   ? <SocialPanel data={platformData} />
                   : platformData.platform === 'hf'
                     ? <HFPanel data={platformData} />
-                    : <ArxivPanel data={platformData} />}
+                    : platformData.platform === 'hashnode'
+                      ? <HashnodePanel data={platformData} />
+                      : <ArxivPanel data={platformData} />}
     </div>
   )
 }
@@ -285,6 +287,10 @@ const TYPE_LABEL = {
   repo: 'Model repo',
   discussion: 'Discussion',
   paper: 'Paper',
+  core: 'Core',
+  adjacent: 'Adjacent',
+  passing: 'Passing mention',
+  out_of_window: 'Out of window',
 }
 
 const fmt = (n) =>
@@ -925,6 +931,124 @@ function HFPostCard({ p }) {
         <div className="row">
           <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, fontSize: 'var(--fs-xs)' }}>
             view on Hugging Face <IconExternal width={11} height={11} />
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── Hashnode ──────────────────────────────────────────────────────────── */
+
+// A thin surface, filtered by relevance (core / adjacent / passing / out of
+// window). Each card carries the sweep's own provenance read and evidence note
+// rather than a body excerpt, because that read is the point on this platform.
+function HashnodePanel({ data }) {
+  const s = data.summary
+  const sweep = s.sweep || {}
+  const [active, setActive] = useState(null)
+  const toggle = (t) => setActive((prev) => (prev === t ? null : t))
+  const filtering = active != null
+  const posts = filtering ? data.posts.filter((p) => p.content_type === active) : data.posts
+
+  return (
+    <div className="stack stack-3">
+      <section className="card card-flush">
+        <div className="card-head">
+          <div className="row" style={{ gap: 10 }}>
+            <IconSearch width={14} height={14} style={{ color: 'var(--text-3)' }} />
+            <span className="label">{data.source}</span>
+          </div>
+          <span className="label">
+            {filtering ? `${posts.length} of ${s.count} shown` : `${s.count} posts returned`}
+            {s.date_from ? ` · ${s.date_from} → ${s.date_to}` : ''}
+          </span>
+        </div>
+        <div className="card-body stack stack-2">
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>{data.note}</p>
+          <div className="row" style={{ gap: 18, flexWrap: 'wrap' }}>
+            <Stat n={fmt(sweep.posts)} l="in-window" />
+            <Stat n={fmt(sweep.core)} l="core" />
+            <Stat n={fmt(sweep.first_hand)} l="first-hand" />
+            <Stat n={fmt(sweep.authors)} l="authors" />
+          </div>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {Object.entries(s.by_content_type).map(([t, n]) => (
+              <button
+                key={t}
+                type="button"
+                className={`chip${active === t ? ' chip-on' : ''}`}
+                onClick={() => toggle(t)}
+                aria-pressed={active === t}
+              >
+                {TYPE_LABEL[t] || t}<span style={{ marginLeft: 5, opacity: 0.6 }}>{n}</span>
+              </button>
+            ))}
+            {filtering && (
+              <button type="button" className="chip" style={{ opacity: 0.75 }} onClick={() => setActive(null)}>
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="stack stack-2">
+        {posts.map((p, i) => (
+          <Reveal key={p.url || p.rank} delay={Math.min(i * 12, 200)}>
+            <HashnodePostCard p={p} />
+          </Reveal>
+        ))}
+        {posts.length === 0 && (
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>No posts at the selected relevance.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function HashnodePostCard({ p }) {
+  return (
+    <section className="card card-flush">
+      <div className="card-body stack stack-2">
+        <div className="row" style={{ gap: 10, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <a
+            href={p.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontWeight: 650, fontSize: 'var(--fs-sm)', lineHeight: 1.4 }}
+          >
+            {p.title}
+          </a>
+          <Badge tone="info">{TYPE_LABEL[p.content_type] || p.content_type}</Badge>
+        </div>
+
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+          {p.author && <span className="dim">{p.author}</span>}
+          {p.publication && <span className="mono">{p.publication}</span>}
+          {p.date && <span className="dim">{p.date}</span>}
+          {p.read_time && <span className="dim">{p.read_time} read</span>}
+          {p.views != null && <span className="mono">{fmt(p.views)} views</span>}
+          {p.post_type && <span className="dim">· {p.post_type}</span>}
+        </div>
+
+        {p.whose_result && (
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+            Whose result: {p.whose_result}
+          </p>
+        )}
+
+        {p.excerpt && (
+          <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2, var(--text))', fontStyle: 'italic' }}>
+            {p.excerpt}
+          </p>
+        )}
+
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+          {p.strong_artifacts != null && <span className="mono">{p.strong_artifacts} strong artifact{p.strong_artifacts === 1 ? '' : 's'}</span>}
+          {p.cross_posted && <span className="dim">· cross-posted from {p.cross_posted}</span>}
+          <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, marginLeft: 'auto' }}>
+            view on Hashnode <IconExternal width={11} height={11} />
           </a>
         </div>
       </div>

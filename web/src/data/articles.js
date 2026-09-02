@@ -16,6 +16,7 @@ import deepseekDevto from './deepseek-v4-pro-devto.json'
 import deepseekTikTok from './deepseek-v4-pro-tiktok.json'
 import deepseekInstagram from './deepseek-v4-pro-instagram.json'
 import deepseekHF from './deepseek-v4-pro-hf.json'
+import deepseekHashnode from './deepseek-v4-pro-hashnode.json'
 
 export const PLATFORMS = [
   { id: 'arxiv', label: 'arXiv' },
@@ -26,6 +27,7 @@ export const PLATFORMS = [
   { id: 'tiktok', label: 'TikTok' },
   { id: 'instagram', label: 'Instagram' },
   { id: 'hf', label: 'Hugging Face' },
+  { id: 'hashnode', label: 'Hashnode' },
 ]
 
 export const MODELS = [
@@ -44,6 +46,7 @@ export const MODELS = [
       tiktok: deepseekTikTok,
       instagram: deepseekInstagram,
       hf: deepseekHF,
+      hashnode: deepseekHashnode,
     },
   },
 ]
