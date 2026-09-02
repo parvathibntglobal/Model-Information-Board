@@ -12,12 +12,14 @@ import deepseekArxiv from './deepseek-v4-pro-arxiv.json'
 import deepseekX from './deepseek-v4-pro-x.json'
 import deepseekReddit from './deepseek-v4-pro-reddit.json'
 import deepseekHN from './deepseek-v4-pro-hn.json'
+import deepseekDevto from './deepseek-v4-pro-devto.json'
 
 export const PLATFORMS = [
   { id: 'arxiv', label: 'arXiv' },
   { id: 'x', label: 'X' },
   { id: 'reddit', label: 'Reddit' },
   { id: 'hn', label: 'Hacker News' },
+  { id: 'devto', label: 'dev.to' },
 ]
 
 export const MODELS = [
@@ -32,6 +34,7 @@ export const MODELS = [
       x: deepseekX,
       reddit: deepseekReddit,
       hn: deepseekHN,
+      devto: deepseekDevto,
     },
   },
 ]

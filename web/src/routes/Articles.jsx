@@ -120,7 +120,9 @@ function ModelView({ model, platformId, onPlatform, onBack }) {
             ? <RedditPanel data={platformData} />
             : platformData.platform === 'hn'
               ? <HNPanel data={platformData} />
-              : <ArxivPanel data={platformData} />}
+              : platformData.platform === 'devto'
+                ? <DevtoPanel data={platformData} />
+                : <ArxivPanel data={platformData} />}
     </div>
   )
 }
@@ -274,6 +276,8 @@ const TYPE_LABEL = {
   cost: 'Cost & economics',
   hardware: 'Local & hardware',
   production: 'Production & dissent',
+  first_hand: 'First-hand analysis',
+  news_summary: 'News summary',
 }
 
 const fmt = (n) =>
@@ -585,6 +589,115 @@ function HNPostCard({ p }) {
         <div className="row">
           <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, fontSize: 'var(--fs-xs)' }}>
             view on Hacker News <IconExternal width={11} height={11} />
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── dev.to ────────────────────────────────────────────────────────────── */
+
+function DevtoPanel({ data }) {
+  const s = data.summary
+  const sweep = s.sweep || {}
+  const [active, setActive] = useState(null)
+  const toggle = (t) => setActive((prev) => (prev === t ? null : t))
+  const filtering = active != null
+  const posts = filtering ? data.posts.filter((p) => p.content_type === active) : data.posts
+
+  return (
+    <div className="stack stack-3">
+      <section className="card card-flush">
+        <div className="card-head">
+          <div className="row" style={{ gap: 10 }}>
+            <IconSearch width={14} height={14} style={{ color: 'var(--text-3)' }} />
+            <span className="label">{data.source}</span>
+          </div>
+          <span className="label">
+            {filtering ? `${posts.length} of ${s.count} shown` : `${s.count} usable articles`}
+            {s.date_from ? ` · ${s.date_from} → ${s.date_to}` : ''}
+          </span>
+        </div>
+        <div className="card-body stack stack-2">
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>{data.note}</p>
+          <div className="row" style={{ gap: 18, flexWrap: 'wrap' }}>
+            <Stat n={fmt(sweep.posts)} l="posts fetched" />
+            <Stat n={fmt(sweep.distinct)} l="distinct" />
+            <Stat n={fmt(sweep.authors)} l="authors" />
+            <Stat n={fmt(sweep.usable)} l="usable" />
+          </div>
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {Object.entries(s.by_content_type).map(([t, n]) => (
+              <button
+                key={t}
+                type="button"
+                className={`chip${active === t ? ' chip-on' : ''}`}
+                onClick={() => toggle(t)}
+                aria-pressed={active === t}
+              >
+                {TYPE_LABEL[t] || t}<span style={{ marginLeft: 5, opacity: 0.6 }}>{n}</span>
+              </button>
+            ))}
+            {filtering && (
+              <button type="button" className="chip" style={{ opacity: 0.75 }} onClick={() => setActive(null)}>
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="stack stack-2">
+        {posts.map((p) => (
+          <Reveal key={p.rank} delay={Math.min(p.rank * 10, 200)}>
+            <DevtoPostCard p={p} />
+          </Reveal>
+        ))}
+        {posts.length === 0 && (
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>No articles in the selected type.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function DevtoPostCard({ p }) {
+  const artifacts = p.distinct_artifacts
+  return (
+    <section className="card card-flush">
+      <div className="card-body stack stack-2">
+        <div className="row" style={{ gap: 10, alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <a
+            href={p.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontWeight: 650, fontSize: 'var(--fs-sm)', lineHeight: 1.4 }}
+          >
+            {p.title}
+          </a>
+          <Badge tone="info">{TYPE_LABEL[p.content_type] || p.content_type}</Badge>
+        </div>
+
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+          <span className="dim">{p.author}</span>
+          <span className="dim">{p.stratum}</span>
+          {p.date && <span className="dim">{p.date}</span>}
+          {p.reactions > 0 && <span className="mono">♥ {fmt(p.reactions)}</span>}
+          {artifacts > 0 && <span className="mono">{artifacts} artifact{artifacts === 1 ? '' : 's'}</span>}
+        </div>
+
+        {p.excerpt && (
+          <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--text-2, var(--text))', fontStyle: 'italic' }}>
+            {p.excerpt}
+          </p>
+        )}
+
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+          <span className="dim">{p.provenance}</span>
+          {p.cross_posted && p.cross_posted !== 'no' && <span className="dim">· cross-posted</span>}
+          <a href={p.url} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 4, marginLeft: 'auto' }}>
+            view on dev.to <IconExternal width={11} height={11} />
           </a>
         </div>
       </div>

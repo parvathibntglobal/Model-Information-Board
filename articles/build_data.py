@@ -107,7 +107,40 @@ SOURCES = [
         "md": ROOT / "articles" / "deepseek-v4-pro" / "DeepSeek-V4-Pro_HN_SubjectThreads_Report.md",
         "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-hn.json",
     },
+    {
+        "model_id": "deepseek-v4-pro",
+        "display_name": "DeepSeek V4 Pro",
+        "platform": "devto",
+        "kind": "devto",
+        "source": "dev.to (Forem API) — retrieval sweep",
+        "scraped_at": "2026-09-01T12:00:00Z",
+        "note": (
+            "725 posts fetched, 620 distinct after dedupe, from 146 authors. Most "
+            "are the same launch announcement reworded. The usable set shown here "
+            "is the stricter cut: 53 articles carrying at least two non-inheritable "
+            "artifacts (a benchmark number, an error output, a conditioned "
+            "comparison), excluding probable-generated accounts."
+        ),
+        "sweep": {
+            "posts": 725,
+            "distinct": 620,
+            "authors": 146,
+            "usable": 53,
+        },
+        "md": ROOT / "articles" / "deepseek-v4-pro" / "devto-deepseek-v4-pro.md.md",
+        "out": ROOT / "web" / "src" / "data" / "deepseek-v4-pro-devto.json",
+    },
 ]
+
+# dev.to §"usable set" Type column -> content-type keys.
+DEVTO_TYPE = {
+    "benchmark": "benchmark",
+    "tutorial": "tutorial",
+    "first-hand analysis": "first_hand",
+    "news summary": "news_summary",
+    "announcement": "announcement",
+}
+DEVTO_LINK = re.compile(r"\[(.*?)\]\((https?://[^)]+)\)")
 
 # HN §3 case categories -> content-type keys.
 HN_TYPE = {
@@ -537,6 +570,89 @@ def summarise_hn(posts: list[dict], sweep: dict) -> dict:
     }
 
 
+def _devto_num(cell: str) -> int | None:
+    m = re.search(r"\d+", cell)
+    return int(m.group()) if m else None
+
+
+def parse_devto(text: str) -> list[dict]:
+    """The §"usable set" table — 53 articles, with a body excerpt matched by rank.
+
+    Metadata comes from the compact table (author, date, type, provenance,
+    artifact counts, reactions); the full title and a short excerpt come from
+    the §"Full text" section, keyed on the same `### N.` rank.
+    """
+    lines = text.splitlines()
+
+    # Pass 1: full titles + first substantive body line, keyed by rank.
+    titles: dict[int, str] = {}
+    excerpts: dict[int, str] = {}
+    cur: int | None = None
+    for line in lines:
+        hm = re.match(r"^###\s+(\d+)\.\s+(.+)", line)
+        if hm:
+            cur = int(hm.group(1))
+            titles[cur] = hm.group(2).strip()
+            continue
+        if cur is None or cur in excerpts or not line.startswith("    "):
+            continue
+        s = re.sub(r"^\s*>\s*", "", line.strip())  # drop blockquote marker
+        s = s.replace("**", "").strip()
+        if len(s) < 40 or s.startswith("|") or s.startswith("#"):
+            continue
+        if "originally published on" in s.lower():
+            continue
+        excerpts[cur] = s[:320]
+
+    # Pass 2: the usable-set table.
+    posts: list[dict] = []
+    in_table = False
+    for line in lines:
+        if line.startswith("## The usable set"):
+            in_table = True
+            continue
+        if in_table and line.startswith("## "):
+            break
+        if not in_table or not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 11 or not cells[0].isdigit():
+            continue
+        rank = int(cells[0])
+        link = DEVTO_LINK.match(cells[3])
+        content_type = DEVTO_TYPE.get(
+            cells[7].lower(), cells[7].lower().replace(" ", "_").replace("-", "_")
+        )
+        posts.append({
+            "rank": rank,
+            "title": titles.get(rank) or (link.group(1).strip() if link else cells[3]),
+            "url": link.group(2) if link else None,
+            "author": cells[4].strip("`"),
+            "stratum": "independent" if cells[5] == "ind" else "syndicated",
+            "date": cells[6],
+            "content_type": content_type,
+            "provenance": cells[8],
+            "cross_posted": cells[9],
+            "reactions": _devto_num(cells[10]) or 0,
+            "distinct_artifacts": _devto_num(cells[1]) or 0,
+            "all_artifacts": _devto_num(cells[2]) or 0,
+            "excerpt": excerpts.get(rank),
+        })
+    return posts
+
+
+def summarise_devto(posts: list[dict], sweep: dict) -> dict:
+    by_type = collections.Counter(p["content_type"] for p in posts if p["content_type"])
+    dates = sorted(p["date"] for p in posts if p["date"])
+    return {
+        "count": len(posts),
+        "date_from": dates[0] if dates else None,
+        "date_to": dates[-1] if dates else None,
+        "by_content_type": dict(by_type.most_common()),
+        "sweep": sweep,
+    }
+
+
 def main() -> None:
     meta_keys = ("model_id", "display_name", "platform", "source", "scraped_at", "note")
     for src in SOURCES:
@@ -555,6 +671,11 @@ def main() -> None:
         elif src.get("kind") == "hn":
             items = parse_hn(text)
             payload["summary"] = summarise_hn(items, src["sweep"])
+            payload["posts"] = items
+            label = "posts"
+        elif src.get("kind") == "devto":
+            items = parse_devto(text)
+            payload["summary"] = summarise_devto(items, src["sweep"])
             payload["posts"] = items
             label = "posts"
         else:
