@@ -3,9 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 import Nav from './components/Nav'
 import Footer from './components/Footer'
 import Landing from './routes/Landing'
-import Ask from './routes/Ask'
 import Board from './routes/Board'
-import Articles from './routes/Articles'
+import Blogs from './routes/Blogs'
 import ModelDetail from './routes/ModelDetail'
 import Models from './routes/Models'
 import Admin from './routes/Admin'
@@ -50,16 +49,15 @@ export default function App() {
 
       <main>
         <Routes>
-          {/* signing in drops you on the landing page; you go on to Ask from there */}
+          {/* signing in drops you on the landing page */}
           <Route
             path="/login"
             element={session ? <Navigate to="/" replace /> : <Login onSignedIn={setSession} />}
           />
 
           <Route path="/"        element={<Require session={session}><Landing /></Require>} />
-          <Route path="/ask"     element={<Require session={session}><Ask /></Require>} />
-          <Route path="/articles" element={<Require session={session}><Articles /></Require>} />
-          <Route path="/board"   element={<Require session={session}><Board /></Require>} />
+          <Route path="/board/*" element={<Require session={session}><Board /></Require>} />
+          <Route path="/blogs/*" element={<Require session={session}><Blogs /></Require>} />
           <Route path="/models"     element={<Require session={session}><Models /></Require>} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />

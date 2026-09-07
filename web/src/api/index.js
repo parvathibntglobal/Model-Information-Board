@@ -97,8 +97,40 @@ async function request(path, { method = 'GET', body, signal } = {}) {
 
 export const health = () => request('/health')
 export const listCapabilities = () => request('/capabilities')
-export const capabilityPage = (key, limit = 500, offset = 0) =>
-  request(`/capabilities/${encodeURIComponent(key)}?limit=${limit}&offset=${offset}`)
+
+// ── Tracked registry (UI-only narrowing) ─────────────────────────────────────
+// The board is tracking exactly two models for now, and shows no evidence until
+// engineer reports land for them. The shared database still holds the full
+// 342-model registry and every evidence cell — this narrows only what the UI
+// reads, and writes nothing. Delete this block (and the three overrides below)
+// to restore the live registry straight from the API.
+const TRACKED = [
+  {
+    model_version_id: 'openai/gpt-6-astra', canonical_id: 'openai/gpt-6-astra',
+    display_name: 'GPT 6 Astra', provider: 'OpenAI',
+    price_in: null, price_out: null, advertised_context: null,
+    state: 'unreported', phrases: [], conditional: false, voices: 0,
+    evidence: { cells: 0, capabilities: [], published: 0 },
+  },
+  {
+    model_version_id: 'anthropic/claude-fable-5-1', canonical_id: 'anthropic/claude-fable-5-1',
+    display_name: 'Claude Fable 5.1', provider: 'Anthropic',
+    price_in: null, price_out: null, advertised_context: null,
+    state: 'unreported', phrases: [], conditional: false, voices: 0,
+    evidence: { cells: 0, capabilities: [], published: 0 },
+  },
+]
+const TRACKED_PAGE = { has_more: false, returned: TRACKED.length, limit: 500, offset: 0 }
+
+export const capabilityPage = (key) =>
+  Promise.resolve({
+    key,
+    failure_mode: 'silent',
+    summary: 'No tracked model has reports for this capability yet.',
+    models: [],
+    count: 0,
+    page: { has_more: false, returned: 0, limit: 500, offset: 0 },
+  })
 /**
  * Model ids can contain a slash — `google/gemini-2.5-flash`. The handoff is
  * explicit that the slash must NOT be percent-encoded, so each segment is
@@ -109,7 +141,25 @@ export const capabilityPage = (key, limit = 500, offset = 0) =>
  * an `mv_…` hash with no slash in it, but the helper handles both.
  */
 export const modelPath = (id) => String(id).split('/').map(encodeURIComponent).join('/')
-export const modelPage = (id) => request(`/models/${modelPath(id)}`)
+export const modelPage = (id) => {
+  const raw = decodeURIComponent(String(id))
+  const m = TRACKED.find((x) => x.model_version_id === raw || x.canonical_id === raw)
+  return Promise.resolve({
+    model_version_id: m ? m.model_version_id : raw,
+    display_name: m ? m.display_name : raw,
+    provider: m ? m.provider : null,
+    price_in: m ? m.price_in : null,
+    price_out: m ? m.price_out : null,
+    advertised_context: m ? m.advertised_context : null,
+    tracked: Boolean(m),
+    summary: m
+      ? `${m.display_name} is tracked. No engineer reports are in the registry yet, so every capability below stays undiscussed rather than judged.`
+      : 'This model is not in the tracked set.',
+    unbound_phrases: [],
+    capabilities: [],
+    quotes: {},
+  })
+}
 
 /**
  * The registry with what each provider advertises — price, context window,
@@ -121,8 +171,14 @@ export const modelPage = (id) => request(`/models/${modelPath(id)}`)
  * here, and a page that puts price beside consensus without marking the
  * difference is the one mistake this board exists to avoid.
  */
-export const listModels = (limit = 500, offset = 0) =>
-  request(`/models?limit=${limit}&offset=${offset}`)
+export const listModels = () =>
+  Promise.resolve({
+    count: TRACKED.length,
+    priced_at: null,
+    summary: 'Two models are being tracked. Neither has engineer reports in the registry yet — capabilities stay undiscussed until someone reports one.',
+    page: TRACKED_PAGE,
+    models: TRACKED,
+  })
 
 /**
  * Every page of a list endpoint, followed to the end.
@@ -162,6 +218,8 @@ export const startFetch = (modelVersionId) =>
   request('/fetch/start', { method: 'POST', body: { model_version_id: modelVersionId } })
 export const fetchLog = (runId) =>
   request(`/fetch/log?run_id=${encodeURIComponent(runId)}`)
+export const fetchRuns = (modelVersionId) =>
+  request(`/fetch/runs?model_version_id=${encodeURIComponent(modelVersionId)}`)
 
 export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
 export const coveragePage = () => request('/coverage')

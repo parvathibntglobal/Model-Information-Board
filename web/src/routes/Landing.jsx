@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import FluidCanvas from '../components/FluidCanvas'
 import { Reveal, Stat, Badge } from '../components/ui'
-import { IconQuote, IconPeople, IconSplit, IconSilence, IconArrow } from '../components/Icons'
+import { IconQuote, IconPeople, IconSplit, IconSilence } from '../components/Icons'
 
 const ADVANTAGES = [
   {
@@ -55,10 +55,7 @@ export default function Landing() {
 
             {/* outside .hero-copy so the difference blend never touches the controls */}
             <Reveal delay={240} className="hero-cta">
-              <Link to="/ask" className="btn btn-primary btn-lg">
-                Describe a task <IconArrow width={15} height={15} />
-              </Link>
-              <Link to="/articles" className="btn btn-ghost btn-lg">Browse articles</Link>
+              <Link to="/models" className="btn btn-primary btn-lg">See the models</Link>
             </Reveal>
 
             <span className="hero-hint">move the cursor · double-click to break the surface</span>
@@ -161,22 +158,6 @@ export default function Landing() {
         </Reveal>
       </section>
 
-      {/* -------------------------------------------------------------- cta */}
-      <section className="section-tight shell">
-        <Reveal>
-          <div className="card" style={{ textAlign: 'center', padding: 'var(--s7) var(--s3)' }}>
-            <h2 style={{ fontSize: 'var(--fs-display)' }}>Find out where cheaper is safe.</h2>
-            <p className="muted" style={{ maxWidth: '48ch', margin: '14px auto 0' }}>
-              Describe one sub-agent, or paste your whole fleet config.
-            </p>
-            <div className="hero-cta">
-              <Link to="/ask" className="btn btn-primary btn-lg">
-                Describe a task <IconArrow width={15} height={15} />
-              </Link>
-            </div>
-          </div>
-        </Reveal>
-      </section>
     </>
   )
 }

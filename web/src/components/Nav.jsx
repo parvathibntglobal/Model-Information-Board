@@ -5,8 +5,8 @@ import { Badge } from './ui'
 
 const LINKS = [
   { to: '/', label: 'Home', end: true },
-  { to: '/ask', label: 'Ask' },
-  { to: '/articles', label: 'Articles' },
+  { to: '/board', label: 'Board' },
+  { to: '/blogs', label: 'Blogs' },
   { to: '/models', label: 'Models' },
   { to: '/admin', label: 'Admin' },
 ]

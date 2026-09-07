@@ -868,6 +868,55 @@ def fetch_log(run_id: str) -> dict:
     }
 
 
+@app.get("/fetch/runs")
+def fetch_runs(model_version_id: str) -> dict:
+    """Every past fetch run for one model, newest first, with a one-line summary.
+
+    Backs the fetch-log history in the admin console. The run logs ARE the store:
+    this reads the same var/fetch/<run_id>.jsonl files /fetch/log serves, and a
+    run's full log is still fetched by run_id through /fetch/log. No database.
+
+    A run id is `<flattened model id>-<8 hex>`, so runs for one model share the
+    flattened-id prefix. The 8-hex suffix is checked explicitly so a shorter
+    model id can never claim a longer one's runs.
+    """
+    mv = model_version_id.strip()
+    if not mv:
+        raise HTTPException(status_code=422, detail="model_version_id is required")
+    flat = mv.replace("/", "_")
+    _HEX = set("0123456789abcdef")
+    runs = []
+    if _FETCH_DIR.exists():
+        for path in _FETCH_DIR.glob(f"{flat}-*.jsonl"):
+            suffix = path.stem[len(flat) + 1:]
+            if len(suffix) != 8 or any(c not in _HEX for c in suffix):
+                continue
+            try:
+                records = [
+                    json.loads(line)
+                    for line in path.read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                ]
+            except (OSError, ValueError):
+                records = []
+            end = next((r for r in records if r.get("kind") == "end"), None)
+            stages = [r for r in records if r.get("kind") == "stage"]
+            docs = sum(int(s.get("documents_inserted") or 0) for s in stages)
+            runs.append({
+                "run_id": path.stem,
+                "started_at": path.stat().st_mtime,
+                "done": end is not None,
+                "status": (end or {}).get("status"),
+                "detail": (end or {}).get("detail"),
+                # distinct stage ids reached — a stage writes a running record and
+                # then a terminal one, so counting rows would double it.
+                "stages": len({s.get("id") for s in stages}),
+                "documents_inserted": docs,
+            })
+    runs.sort(key=lambda r: r["started_at"], reverse=True)
+    return {"model_version_id": mv, "runs": runs}
+
+
 @app.get("/capabilities/{capability_key}")
 def capability_page(capability_key: str, limit: int = DEFAULT_PAGE, offset: int = 0) -> dict:
     """FR-25. Every model in the registry, not every model with a cell.
