@@ -267,11 +267,10 @@ export default function Models() {
         <>
           <Reveal>
             <div className="card">
-              <div className="grid g4">
+              <div className="grid g3">
                 <Stat n={roster.length} l="models in the registry" />
                 <Stat n={priced} l="with a published price" />
                 <Stat n={withEvidence} l="with any evidence" />
-                <Stat n={`${checked}/${total}`} l="capabilities checked" />
               </div>
               {meta?.summary && (
                 <p className="dim" style={{ fontSize: 'var(--fs-xs)', marginTop: 'var(--s3)' }}>
@@ -290,13 +289,6 @@ export default function Models() {
                   be read, so the evidence column below is incomplete. A model showing
                   “no reports” here may have reports under a capability that failed to
                   load — that is a gap in this page, not a fact about the model.
-                </p>
-              )}
-              {checked === total && failed === 0 && withEvidence === 0 && (
-                <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--warn)', marginTop: 'var(--s3)' }}>
-                  All {total} capabilities checked. No model has a single published
-                  report — nobody has looked, which is not the same as nobody having
-                  complained.
                 </p>
               )}
             </div>
