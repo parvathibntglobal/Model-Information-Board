@@ -44,12 +44,12 @@ version: "1.0"
 columns:
 
   answer:
-    abstained: {state: read, reviewed: false}
-    assumptions: {state: read, reviewed: false}
+    abstained: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
+    assumptions: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
     candidates: {state: write_only, reviewed: false}
     created_at: {state: reserved, reviewed: false}
     id: {state: write_only, reviewed: false}
-    reason: {state: read, reviewed: false}
+    reason: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
     role_id: {state: write_only, reviewed: false}
 
   audit:
@@ -565,7 +565,7 @@ columns:
     error_cost: {state: write_only, reviewed: false}
     failure_mode: {state: write_only, reviewed: false}
     id: {state: write_only, reviewed: false}
-    name: {state: read, reviewed: false}
+    name: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
     runs_per_request: {state: write_only, reviewed: false}
     task_profile_id: {state: write_only, reviewed: false}
 
@@ -618,13 +618,13 @@ columns:
         a human-readable record. Its reader is a person opening the row, and rightly so
 
   task_profile:
-    complexity_tier: {state: read, reviewed: false}
+    complexity_tier: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
     created_at: {state: reserved, reviewed: false}
     error_cost: {state: write_only, reviewed: false}
     id: {state: write_only, reviewed: false}
     inferred_fields: {state: write_only, reviewed: false}
-    profile: {state: read, reviewed: false}
-    raw_text: {state: read, reviewed: false}
+    profile: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
+    raw_text: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
     requests_per_month: {state: write_only, reviewed: false}
 
   thread_context:
