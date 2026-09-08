@@ -100,6 +100,23 @@ def merged_prs(limit: int) -> list[dict]:
     return json.loads(out.stdout or "[]")
 
 
+# Named, hand-verified squash-merges onto main.
+# ---------------------------------------------
+# The repository merges with merge commits, so ancestry of `headRefOid` is the
+# sound signal (see the docstring). Two PRs predate that norm and were SQUASH-
+# merged directly onto main - base=main, not a base branch - which rewrites the
+# head SHA so ancestry can't see it, exactly the false alarm the docstring names.
+# They are excused here BY NUMBER rather than by turning on `--squash-tolerant`
+# globally, which would blind the check to the base-branch defect it exists for.
+# Each was confirmed on 2026-09-08: its merge commit is an ancestor of main and
+# its patch matches the PR head, so the content genuinely arrived.
+#   #172  merge 9bdab5f  contract+collect: withdraw the fourth value, correct 853
+#   #173  merge 1d7b59a  collect+contract: the Reddit listing sweep + denominator
+# An entry only clears a PR whose MERGE COMMIT is an ancestor of main, so it can
+# never excuse a PR whose content is actually missing.
+SQUASHED_ONTO_MAIN = {172, 173}
+
+
 def check(*, main: str, limit: int, squash_tolerant: bool) -> tuple[list[dict], list[dict]]:
     """Returns (stranded, ok). `stranded` is what fails the build."""
     stranded: list[dict] = []
@@ -110,6 +127,9 @@ def check(*, main: str, limit: int, squash_tolerant: bool) -> tuple[list[dict], 
             ok.append(pr)
             continue
         merge_commit = (pr.get("mergeCommit") or {}).get("oid") or ""
+        if pr.get("number") in SQUASHED_ONTO_MAIN and _is_ancestor(merge_commit, main):
+            ok.append(pr)
+            continue
         if squash_tolerant and _is_ancestor(merge_commit, main):
             ok.append(pr)
             continue
