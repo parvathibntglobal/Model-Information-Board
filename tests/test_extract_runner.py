@@ -56,6 +56,11 @@ def claim_json(quote: str, start: int, end: int, **overrides) -> str:
             "speaking": "own-experience",
         },
         "capability": "summarization.fidelity",
+        # REQUIRED since the classifier landed. Same enforcement as `speaking`
+        # above: an answer that omits it fails schema validation, because
+        # "which board surface does this belong on" is the classifier's job and
+        # a default would let it skip the question silently.
+        "board_sections": ["capability"],
         "polarity": "negative",
         "quote": quote,
         "quote_offset": [start, end],

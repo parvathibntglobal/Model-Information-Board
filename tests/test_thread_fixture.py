@@ -61,6 +61,10 @@ def claim_for(thread, start: int, end: int, document_id: str) -> ExtractedClaim:
                 "speaking": "own-experience",
             },
             "capability": "summarization.fidelity",
+            # REQUIRED since the classifier landed. No default to fall through
+            # to: which board surface a claim belongs on is the answer, not a
+            # field that can be skipped.
+            "board_sections": ["capability"],
             "polarity": "negative",
             "quote": thread["flattened_text"][start:end],
             "quote_offset": [start, end],

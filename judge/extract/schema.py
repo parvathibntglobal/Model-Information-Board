@@ -18,6 +18,25 @@ Relevance = Literal["central", "passing"]
 Specificity = Literal["snapshot", "version", "family"]
 EvidenceTier = Literal["A", "B", "C", "D", "E", "F"]
 
+#: Which board surface a claim informs. A LIST on the claim, never one value.
+#:
+#: The board's own copy calls these "three ways into the same evidence", and
+#: that is the reason this is not an enum-per-claim: one quote about a slow
+#: coding agent informs the metric page (the figure), the capability page
+#: (`ops.latency_ttft`) and the job page (coding agent). Forcing a single
+#: section would throw two thirds of that away and, worse, would make the
+#: choice look like a finding rather than a truncation.
+BoardSection = Literal["best_for", "capability", "metric"]
+
+#: WHERE A RECORDED FIGURE CAME FROM, and the board refuses to merge the two.
+#:
+#: `stated` is the provider's own number — a spec sheet, a docs page, a launch
+#: post. `reported` is somebody measuring it themselves. Gemini 3 Pro is 2M
+#: stated and roughly 200k reported-usable; those are different facts from
+#: different sources, and averaging them produces a number nobody measured
+#: (rule 3). So the figure carries its basis or it is not recorded.
+MetricBasis = Literal["stated", "reported"]
+
 #: WHOSE claim a quote is. Supplies `evidence_tier`; see `ModelRef.speaking`.
 #:
 #: The three values are the golden set's, not this file's. Each one is the
@@ -184,6 +203,82 @@ class ExtractedClaim(BaseModel):
     model_ref: ModelRef
     capability: str = Field(description="a key from contract/capabilities.yaml")
 
+    #: ── BOARD ROUTING ──────────────────────────────────────────────────────
+    #: `capability` above stays REQUIRED on every claim, whichever sections
+    #: this claim feeds. That is deliberate and not redundancy: the capability
+    #: is what BEHAVED (well or badly), and it is what makes two claims on two
+    #: model pages comparable. The sections below are where the claim is SHOWN.
+    #: Keeping both means the existing cell/curation path is untouched by the
+    #: classifier, and a claim can never become unfileable by being routed.
+    board_sections: list[BoardSection] = Field(
+        min_length=1,
+        description=(
+            "Which board surfaces this claim informs — one, two or all three. "
+            "NOT a single choice: the same quote often belongs on more than "
+            "one, and listing only the most obvious loses the rest.\n\n"
+            "best_for   the quote says how a model did at a TASK somebody ran "
+            "(a coding agent, RAG over their docs, extracting fields). "
+            "Requires `job_key`.\n"
+            "capability the quote says how a model BEHAVED on a named "
+            "capability. This is the default home for a behaviour claim and "
+            "needs only the `capability` field above.\n"
+            "metric     the quote states a FIGURE on a measured axis — a "
+            "price, a latency, a token count, an eval score. Requires "
+            "`metric_key`, `metric_value_verbatim` and `metric_basis`.\n\n"
+            "Worked example. \"switched our agent to Flash, ttft went from "
+            "900ms to 300ms\" is all three: best_for (job.coding_agent), "
+            "capability (ops.latency_ttft) and metric "
+            "(metric.latency_ttft = \"300ms\", reported)."
+        ),
+    )
+    job_key: str | None = Field(
+        default=None,
+        description=(
+            "REQUIRED when `board_sections` contains best_for. A key from "
+            "contract/board_surfaces.yaml `jobs`, and nothing else.\n\n"
+            "The job is what the writer was TRYING TO DO, not the quality the "
+            "model showed. If the quote does not say what they were building, "
+            "there is no job — leave this out and drop best_for from the "
+            "sections rather than inferring one from the capability."
+        ),
+    )
+    metric_key: str | None = Field(
+        default=None,
+        description=(
+            "REQUIRED when `board_sections` contains metric. A key from "
+            "contract/board_surfaces.yaml `metrics`, and nothing else."
+        ),
+    )
+    metric_value_verbatim: str | None = Field(
+        default=None,
+        description=(
+            "REQUIRED when `board_sections` contains metric. THE FIGURE EXACTLY "
+            "AS THE TEXT WRITES IT — \"300ms\", \"$0.27/M\", \"about 200k\", "
+            "\"~35 seconds\".\n\n"
+            "COPY IT, NEVER COMPUTE IT. Do not convert seconds to "
+            "milliseconds, do not normalise a unit, do not divide a total by a "
+            "count, do not average two figures, do not resolve \"about\" into a "
+            "number. A figure you calculated is a synthesised number and rule 3 "
+            "forbids it reaching a page; code converts units afterwards, from "
+            "the characters you copied. Keep the hedge if the writer hedged — "
+            "\"about 200k\" is the finding, 200000 is a claim they did not make."
+        ),
+    )
+    metric_basis: MetricBasis | None = Field(
+        default=None,
+        description=(
+            "REQUIRED when `board_sections` contains metric.\n\n"
+            "stated   the PROVIDER says so — spec sheet, docs, model card, "
+            "launch post. An advertised ceiling.\n"
+            "reported the WRITER measured it — their run, their timing, their "
+            "bill.\n\n"
+            "These are never merged, so guessing this field corrupts the one "
+            "distinction the metric pages exist to show. It usually agrees with "
+            "`model_ref.speaking`: own-experience is reported; "
+            "vendor-about-own-product is stated."
+        ),
+    )
+
     polarity: Polarity
     severity: Severity | None = Field(
         default=None,
@@ -252,6 +347,49 @@ class ExtractedClaim(BaseModel):
             raise ValueError(f"quote_offset {self.quote_offset} is not a forward range")
         return self
 
+    @model_validator(mode="after")
+    def _sections_carry_their_fields(self) -> ExtractedClaim:
+        """A routed claim must bring the fields its surface renders.
+
+        Enforced here rather than trusted from the prompt, for the reason the
+        rest of this file exists: the prompt asks and the schema guarantees. A
+        `best_for` claim with no `job_key` cannot be put on any job page, and a
+        `metric` claim with no figure is an empty row — both would validate as
+        a claim and then render as nothing, which is the silent-absence shape
+        rule 4 is about.
+
+        Deliberately NOT symmetrical: a `job_key` supplied when best_for is
+        absent is not an error. It is extra context that costs nothing, and
+        rejecting the whole batch over a harmless surplus field is how the
+        length check on `quote_offset` used to lose five claims out of six.
+        """
+        if "best_for" in self.board_sections and not self.job_key:
+            raise ValueError(
+                "board_sections contains 'best_for' but job_key is missing: a job "
+                "page cannot show a claim that does not name the job. Either give "
+                "a job.* key from contract/board_surfaces.yaml, or drop 'best_for' "
+                "from board_sections - an inferred job is worse than none."
+            )
+        if "metric" in self.board_sections:
+            missing = [
+                name
+                for name, value in (
+                    ("metric_key", self.metric_key),
+                    ("metric_value_verbatim", self.metric_value_verbatim),
+                    ("metric_basis", self.metric_basis),
+                )
+                if not value
+            ]
+            if missing:
+                raise ValueError(
+                    f"board_sections contains 'metric' but {', '.join(missing)} "
+                    "is missing: a metric row is the figure, the axis it sits on, "
+                    "and whether it was stated or measured. Without all three it "
+                    "renders as an empty cell. Drop 'metric' from board_sections "
+                    "if the quote carries no figure."
+                )
+        return self
+
     @property
     def polarity_contradicts_pain(self) -> bool:
         """A stated pain point makes the claim negative — anything else contradicts it.
@@ -301,6 +439,20 @@ class CapabilityProposal(BaseModel):
             "'output.verbosity' or 'reasoning.overthinking'. NOT one of the "
             "existing keys; if an existing key fits, this is a claim, not a proposal."
         )
+    )
+    #: WHICH VOCABULARY IS MISSING THE KEY. Defaults to `capability` because
+    #: that was the only vocabulary when this class was written, and every row
+    #: already stored is a capability proposal — so the default keeps
+    #: `store_proposals` reading old rows correctly rather than making a
+    #: missing field look like a deliberate answer (rule 6).
+    section: BoardSection = Field(
+        default="capability",
+        description=(
+            "which vocabulary lacks this key: capability, best_for (a job "
+            "nobody named) or metric (an axis nobody records). A proposed "
+            "job.* or metric.* key belongs to its own list, and saying which "
+            "one is what makes the proposal actionable."
+        ),
     )
     definition: str = Field(description="one line: what this capability measures")
     quote: str = Field(

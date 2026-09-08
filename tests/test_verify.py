@@ -76,6 +76,9 @@ def make_claim(quote: str, offset: tuple[int, int], **kw) -> ExtractedClaim:
             speaking="own-experience",
         ),
         capability="summarization.fidelity",
+        # REQUIRED since the classifier landed — same reason as `speaking`:
+        # every construction site answers which board surface the claim is for.
+        board_sections=["capability"],
         polarity="negative",
         quote=quote,
         quote_offset=offset,

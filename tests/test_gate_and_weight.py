@@ -302,6 +302,7 @@ class TestTheWeightingInputsHaveASupplier:
                 speaking="own-experience",
             ),
             capability="code.generation",
+            board_sections=["capability"],
             polarity="positive",
             quote="q",
             quote_offset=(0, 1),

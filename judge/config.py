@@ -67,6 +67,25 @@ def capabilities() -> dict[str, Capability]:
 
 
 @lru_cache(maxsize=1)
+def job_keys() -> tuple[str, ...]:
+    """The "Best for" vocabulary, from contract/board_surfaces.yaml.
+
+    A job is a task somebody runs, so these are the keys the classifier may
+    file evidence under on a job page. Separate from `capabilities()` because a
+    job and a capability answer different questions about the same quote: the
+    job is what was being attempted, the capability is what behaved well or
+    badly while attempting it.
+    """
+    return tuple(entry["key"] for entry in _read("board_surfaces.yaml")["jobs"])
+
+
+@lru_cache(maxsize=1)
+def metric_keys() -> tuple[str, ...]:
+    """The "Metrics" vocabulary, from contract/board_surfaces.yaml."""
+    return tuple(entry["key"] for entry in _read("board_surfaces.yaml")["metrics"])
+
+
+@lru_cache(maxsize=1)
 def conditions() -> dict[str, ConditionDimension]:
     raw = _read("conditions.yaml")
     return {
