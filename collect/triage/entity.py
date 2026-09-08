@@ -269,11 +269,58 @@ def normalize_with_boundaries(text: str) -> tuple[str, list[bool], list[bool]]:
     start and ends at a word end in both spellings. `saba` inside `was a bad`
     does not, because it begins mid-word.
     """
+    key, starts, ends, _sources = normalize_with_offsets(text)
+    return key, starts, ends
+
+
+def normalize_with_offsets(text: str) -> tuple[str, list[bool], list[bool], list[int]]:
+    """`normalize_with_boundaries`, plus WHERE each kept character came from.
+
+    THE ONE IMPLEMENTATION. `normalize_with_boundaries` delegates here and drops
+    the fourth value, so the two cannot describe the string differently - which
+    matters more than the duplication it saves, because a boundary mask and an
+    offset map that disagree would place a match at a position it did not occupy.
+
+    `sources[i]` is the index in the ORIGINAL `text` of normalised character
+    `i`. So a match spanning normalised `[i..j]` occupied original
+    `[sources[i] .. sources[j]]`, and `text[sources[j] + 1:]` is what FOLLOWED
+    it - the thing the caller could not previously see.
+
+    WHY THIS EXISTS, AND IT IS THE SAME REASON `offset_map` DOES
+    -------------------------------------------------------------
+    `normalize` strips every non-alphanumeric, so `fable 5.1` and `fable 51`
+    both become `fable51`. The boundary masks separate them correctly - the dot
+    is a separator, so `ends[]` is True after the `5` in the first and False in
+    the second - and that is exactly the problem: **a version dot is a word
+    boundary and is not a version boundary.** `fable 5` is therefore an
+    admissible match inside `fable 5.1`, and the resolver has no way to tell,
+    because the character that would tell it was discarded.
+
+    Measured 2026-09-08: **36 of 192** documents in a new-platform corpus and
+    **20 of 5,010** on staging resolve to a model ONLY through a surface the
+    original text continues as a version - 35 of them filed against
+    `anthropic/claude-fable-5` when the text said `Fable 5.1`. That is not a
+    miss, it is a wrong answer with nothing on the row to disagree with.
+    `docs/measurements/near-miss-misattribution-2026-09-08.json`.
+
+    **Those figures are a FLOOR and this function is why.** They were measured
+    from outside the resolver by re-locating each surface in the original with a
+    separator-flexible regex, and that cannot locate a surface which matched
+    only in normalised space - `fable5` against `"fable 5.1"`. 126 of 192 and
+    3,035 of 5,010 documents had at least one such surface and were skipped
+    rather than judged. With these offsets the question is answerable exactly,
+    inside `resolve`, for every match.
+
+    Ten lines while the string is already being walked, and impossible to
+    reconstruct afterwards - `collect/CLAUDE.md`'s first rule, about a different
+    artifact, for the same reason.
+    """
     key: list[str] = []
     starts: list[bool] = []
     ends: list[bool] = []
+    sources: list[int] = []
     at_start = True
-    for char in text.casefold():
+    for index, char in enumerate(text.casefold()):
         if _NON_ALNUM.match(char):
             at_start = True
             if ends:
@@ -282,10 +329,15 @@ def normalize_with_boundaries(text: str) -> tuple[str, list[bool], list[bool]]:
         key.append(char)
         starts.append(at_start)
         ends.append(False)
+        # THE ORIGINAL INDEX, not the normalised one. `casefold()` can change a
+        # string's LENGTH - German eszett becomes `ss` - so this is indexed
+        # against the casefolded text and the caller must casefold before using
+        # it. `_version_continues` does, and says so.
+        sources.append(index)
         at_start = False
     if ends:
         ends[-1] = True
-    return "".join(key), starts, ends
+    return "".join(key), starts, ends, sources
 
 
 @dataclass(frozen=True)
@@ -432,6 +484,141 @@ def resolve(text: str, population: SurfacePopulation) -> tuple[str, ...]:
                 break
             at = haystack.find(needle, at + 1)
     return tuple(sorted(hits, key=lambda s: (-len(normalize(s)), s)))
+
+
+#: A match is a NEAR MISS when the original text continues it as a VERSION.
+#: `.1` and `-preview` after `fable 5`; a bare digit for the same reason.
+#:
+#: DELIBERATELY NARROW, AND A DIGIT IS REQUIRED. `fable 5-preview` therefore
+#: still resolves to `fable 5`, which is a known exclusion rather than an
+#: oversight: widening to any word suffix would have to defend `gpt-4-turbo` and
+#: `opus-5-thinking`, where the suffix sometimes names a different model and
+#: sometimes a mode of the same one. The 1,641-document measurement was taken on
+#: this rule, so widening it means re-measuring rather than re-reasoning.
+#: `opus 5 turbo` also still resolves - `turbo` may be somebody's adjective.
+_VERSION_CONTINUES = re.compile(r"[.\-]\d|\d")
+
+
+def _version_continues(text: str, after: int) -> bool:
+    """Does `text` continue a version immediately after index `after`?
+
+    `after` is an index into the CASEFOLDED text, because that is what
+    `normalize_with_offsets` indexes against - `casefold()` can change a
+    string's length, so the two must agree on which string they mean.
+    """
+    return bool(_VERSION_CONTINUES.match(text[after + 1 : after + 3]))
+
+
+@dataclass(frozen=True)
+class Resolution:
+    """What the surfaces in a text resolve to, and what they nearly resolved to.
+
+    TWO FIELDS BECAUSE THEY HAVE OPPOSITE CONSEQUENCES. `hits` keeps a document
+    and attributes it; `near_misses` is a surface that matched only because the
+    text continues it as a version, and attributing on one is silent
+    misattribution.
+    """
+
+    hits: tuple[str, ...]
+    #: Surfaces whose EVERY occurrence in this text is continued as a version.
+    #: A surface appearing once as `fable 5.1` and once as `fable 5` is a HIT
+    #: and is absent here: one real mention is a mention, and this field must
+    #: never be read as "this surface is unreliable in general".
+    near_misses: tuple[str, ...] = ()
+
+    @property
+    def only_near_misses(self) -> bool:
+        """Did EVERY surface that matched do so inside a longer version string?
+
+        The condition under which attribution is certainly wrong: the model this
+        document would be filed against is not the model it discusses.
+
+        ⚠  `near_misses` IS A SUBSET OF `hits`, WHICH THE FIRST VERSION OF THIS
+           PROPERTY GOT WRONG. It read `bool(self.near_misses) and not
+           self.hits`, and `hits` is never empty when `near_misses` is not - so
+           it returned False always, including on the `Fable 5.1` document that
+           motivated the whole change. The comparison has to be between the two
+           sets, not a truthiness test on one.
+
+           Third instance in three days of the same slip: reading a SUBSET as a
+           DISJOINT SET. The other two were counting surfaces where the question
+           was models. Worth the sentence, because a property that silently
+           answers False is exactly the shape rule 4 is about.
+        """
+        return bool(self.near_misses) and set(self.near_misses) == set(self.hits)
+
+    def owners(self, population: SurfacePopulation) -> tuple[set[str], set[str]]:
+        """The models reached CLEANLY, and the models reached only by near miss.
+
+        AT THE OWNER LEVEL, because that is the level attribution happens at and
+        the level the surface counts keep getting mistaken for. One model has
+        several surfaces - `fable 5`, `fable-5`, `fable5` are one model - so a
+        count of surfaces answers a question nobody asked (rule 7).
+
+        The second set minus the first is the actionable one: models this
+        document would be filed against and should not be.
+        """
+        clean: set[str] = set()
+        near: set[str] = set()
+        near_set = set(self.near_misses)
+        for surface in self.hits:
+            target = near if surface in near_set else clean
+            target |= set(population.owners.get(surface, ()))
+        return clean, near - clean
+
+
+def resolve_with_near_misses(
+    text: str, population: SurfacePopulation
+) -> Resolution:
+    """`resolve`, plus the near misses it silently accepted.
+
+    ⚠  `hits` IS EXACTLY WHAT `resolve` RETURNS, INCLUDING THE NEAR MISSES.
+       Resolution is UNCHANGED by this function existing, deliberately: rule 8's
+       direction is one-way, so the near miss ships as a RECORDED field first
+       and becomes a refusal later on the evidence this field produces. Flipping
+       both at once would replace a measured defect (misattribution) with an
+       unmeasured one (documents refused for naming a model we do not track),
+       and only the first of those is currently counted.
+
+       When it is flipped, the change is one line here - subtract `near_misses`
+       from `hits` - and nothing else moves, because every caller that cares
+       already reads the two apart.
+
+    THE TWO WRONGS ARE NOT SYMMETRICAL, which is the argument for flipping
+    eventually. Refusing loses the document and `near-miss-not-registered`
+    counts it, so the loss is visible and carries its own fix - register the
+    model. Misattributing files the evidence on another model's cell with no
+    counter and no signal. That asymmetry, not caution, is why the destination
+    is a refusal.
+    """
+    hits = resolve(text, population)
+    if not hits:
+        return Resolution(hits=())
+
+    folded = text.casefold()
+    _key, starts, ends, sources = normalize_with_offsets(text)
+    haystack = _key
+
+    near: list[str] = []
+    for surface in hits:
+        needle = normalize(surface)
+        if not needle:
+            continue
+        occurrences = 0
+        continued = 0
+        at = haystack.find(needle)
+        while at >= 0:
+            if starts[at] and ends[at + len(needle) - 1]:
+                occurrences += 1
+                if _version_continues(folded, sources[at + len(needle) - 1]):
+                    continued += 1
+            at = haystack.find(needle, at + 1)
+        # EVERY admissible occurrence, not the first. A surface that appears
+        # once continued and once bare is a real mention of the shorter model,
+        # and calling that a near miss would refuse a document that names it.
+        if occurrences and continued == occurrences:
+            near.append(surface)
+    return Resolution(hits=hits, near_misses=tuple(near))
 
 
 def names_a_model(text: str, population: SurfacePopulation) -> bool:
