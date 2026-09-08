@@ -655,3 +655,71 @@ def test_the_baseline_alone_is_not_current_once_a_migration_exists(conn):
     assert status.ledger_present
     assert not status.is_current
     assert status.pending_filenames == [m.filename for m in M.discover()]
+
+
+# ── the transaction rule, enforced rather than documented ────────────────
+
+
+def test_no_migration_carries_transaction_control():
+    """A `BEGIN`/`COMMIT` in a migration file half-applies it.
+
+    `collect/migrate.py:migrate` wraps each file in `conn.transaction()` and
+    inserts the ledger row inside that same transaction, so a failure leaves
+    neither the change nor the claim it was made. `collect.db.connect` leaves
+    autocommit OFF, so a transaction is already open and `conn.transaction()`
+    opens a SAVEPOINT — a `COMMIT` in the file commits the OUTER transaction and
+    the savepoint release then fails.
+
+    **MEASURED COST, 2026-09-08:**
+    `20260908T1100_reddit_thread_link_prefix.sql` shipped with BEGIN/COMMIT,
+    committed all 2,840 of its UPDATEs, and failed before the ledger row. The
+    data changed and nothing recorded that it had — the exact half-state the
+    one-transaction design exists to prevent.
+
+    This is a test rather than a comment because the failure is INVISIBLE to
+    the obvious check: the migration appeared to work, the data was correct, and
+    only the ledger disagreed. Eleven of the eleven migrations before that one
+    carried no transaction control, so a reviewer comparing against neighbours
+    would have caught it — and nobody did.
+
+    A `DO $$ ... BEGIN ... END $$` block is fine and is why this matches whole
+    statements rather than the bare word: `BEGIN` inside PL/pgSQL opens a block,
+    not a transaction.
+    """
+    import re
+
+    offenders = {}
+    for migration in M.discover():
+        bad = re.findall(
+            r"^\s*(BEGIN|COMMIT|ROLLBACK|START TRANSACTION)\s*;",
+            migration.sql,
+            re.IGNORECASE | re.MULTILINE,
+        )
+        if bad:
+            offenders[migration.filename] = sorted({b.upper() for b in bad})
+
+    assert not offenders, (
+        f"{len(offenders)} migration(s) carry transaction control: {offenders}. "
+        "`migrate()` owns the transaction and inserts the ledger row inside it. "
+        "A COMMIT here commits the OUTER transaction and the savepoint release "
+        "then fails, leaving the change applied with NO LEDGER ROW - which is "
+        "what 20260908T1100 did to 2,840 rows. Remove them; the runner already "
+        "gives you all-or-nothing."
+    )
+
+
+def test_a_plpgsql_block_is_not_mistaken_for_transaction_control():
+    """The check must not forbid `DO $$ ... BEGIN ... END $$`.
+
+    Two migrations use one to assert their own postcondition inside the
+    transaction, which is the shape a data repair should have. A rule that
+    banned the word `BEGIN` would push that assertion out of the file.
+    """
+    import re
+
+    block = "DO $$\nDECLARE x integer;\nBEGIN\n  x := 1;\nEND $$;\n"
+    assert not re.findall(
+        r"^\s*(BEGIN|COMMIT|ROLLBACK|START TRANSACTION)\s*;",
+        block,
+        re.IGNORECASE | re.MULTILINE,
+    )

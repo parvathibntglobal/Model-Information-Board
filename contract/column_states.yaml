@@ -303,6 +303,11 @@ columns:
       why: >-
         written by collect/triage/store.py since 2026-08-31. judge/vet/weight.py reads it for f_specificity and judge/reweight.py reads it as the veto on a claim's self-reported has_numbers, so a NULL here withholds a tier promotion and is counted. Backfilled over the stored corpus the same day; rows whose payload is absent from the backfilling host stay NULL rather than False
     id: {state: read, reviewed: false}
+    is_self_post:
+      state: read
+      reviewed: true
+      why: >-
+        ADDED 2026-09-08 (migration 20260908T1500) so triage.gates.pure_link_post has an input for the first time - it read `Document.is_self_post` from the day it was written and no column carried it, so the gate returned NOT_APPLICABLE on all 5,010 triaged documents in the first real run. Written by collect/adapters/reddit_write.py and collect/adapters/documents.py (Hacker News drafts), and backfilled from stored payloads by scripts/backfill_is_self_post.py - 1,517 rows placed, 852 self posts and 665 link posts. SELECTed by collect/triage/run.py:_SELECT and passed to the gate, which now fires on 1,517 documents and drops 224. THREE STATES AND ALL THREE MEAN SOMETHING (rule 6): true a self/text post, false a LINK submission, NULL the platform has no such notion for this record - a blog article, a GitHub issue, and A COMMENT ON ANY PLATFORM, which is permanent rather than a gap. NO DEFAULT, deliberately: `false` is a definite claim and pure_link_post DROPS a link post with no commentary, so a default would have turned 6,502 unknowns into droppable documents. 1,482 reddit rows are still NULL for three different reasons - 1,234 payloads absent from the backfilling host, 247 present and not JSON, 1 a comment - and only the last is correct rather than fixable. The POSTER'S COMMENTARY is deliberately not a column: it is `selftext`, which text_ref already addresses, and collect/triage/run.py:_own_commentary reads it from the payload
     is_canonical_in_cluster:
       state: reserved
       reviewed: true
@@ -311,10 +316,10 @@ columns:
       known_gap: >-
         E1's lane - dedupe is unwired
     lang:
-      state: write_only
+      state: read
       reviewed: true
       why: >-
-        UN-RESERVED 2026-09-08. Written by collect/adapters/documents.py for the five new platforms; NOT read by anything yet - `triage.gates.wrong_language` needs a detector nobody has installed and no allow-list is configured, so the gate reports UNAVAILABLE whatever this column holds. THE VALUE IS THE PLATFORM'S OWN FIELD AND NEVER AN INFERENCE (dev.to's `language`, X's `lang`), which is why rule 8 makes it a recorded field rather than a gate input. Enabled at collection time because the input CANNOT BE BACK-FILLED without re-reading every stored payload: the write is free now and expensive afterwards. NULL stays NULL - a platform that declares no language gets no guess (rule 6), and 6,502 existing rows keep their NULLs
+        UN-RESERVED 2026-09-08 as write_only, and READ THE SAME DAY - the two changes landed hours apart and the discovered-state check caught the second, which is the guard doing its job twice on one column. Written by collect/adapters/documents.py for the five new platforms; SELECTed by collect/triage/run.py:_SELECT and passed to triage.gates.wrong_language. ⚠ READ IS NOT ACTED ON. That gate returns UNAVAILABLE for every document because no detector is installed and no allow-list is configured, and it returns NOT_APPLICABLE for a NULL - so the value reaches a gate that currently decides nothing, and this column is `read` by the audit's definition (a SELECT in this repository) rather than by consequence. Measured on the first triage run: wrong-language ran on 0 of 5,010 triaged. THE VALUE IS THE PLATFORM'S OWN FIELD AND NEVER AN INFERENCE (dev.to's `language`, X's `lang`), which is why rule 8 makes it a recorded field rather than a gate input. Enabled at collection time because the input CANNOT BE BACK-FILLED without re-reading every stored payload. NULL stays NULL - a platform that declares no language gets no guess (rule 6), and 6,502 existing rows keep their NULLs, which is why a detector alone would still leave this gate with no input on the stored corpus
     minhash: {state: reserved, reviewed: false}
     names_version: {state: read, reviewed: false, why: "written by collect/triage/store.py since 2026-08-31; read by assemble/thread.py's child ranking"}
     parent_id:
@@ -334,12 +339,10 @@ columns:
     text_ref: {state: read, reviewed: false}
     thread_root_id: {state: read, reviewed: false}
     triage_verdict:
-      state: unwired
+      state: read
       reviewed: true
       why: >-
-        a consumer exists; the writer is Stage('triage', run=None) in chain.py
-      known_gap: >-
-        E2's lane - triage is unwired
+        WRITTEN SINCE 2026-09-08 by collect/triage/run.py:triage_stored, called by the `triage` stage in collect/ops/chain.py and by scripts/triage_stored_corpus.py; read by scripts/corpus_inventory.py. The `why` above said "a consumer exists; the writer is Stage('triage', run=None) in chain.py" and the `known_gap` said "E2's lane - triage is unwired". BOTH WERE TRUE AND THE GAP WAS THE DANGEROUS HALF: a known_gap exempts an entry from the mismatch check, so this column could gain its first writer and nothing would notice - exactly what happened to `filter_reasons` above, one column earlier, for the same reason. The gap is removed rather than reworded. NOTE THAT `document.status` IS STILL UNWRITTEN and that is deliberate rather than pending: two of six gates cannot run, so rule 8 keeps triage a recorded field and `status` is the gate action judge/ filters on
     url: {state: read, reviewed: false}
 
   golden_label:

@@ -157,8 +157,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from collect.assemble.authors import REDDIT as REDDIT_SOURCE  # noqa: E402
 from collect.registry.propose import FAMILY_WORDS  # noqa: E402
 from collect.registry.seed import load_seed_file  # noqa: E402
+from collect.triage.bots import load_bot_list  # noqa: E402
 from collect.triage.entity import (  # noqa: E402
     SurfacePopulation,
     build_population,
@@ -391,6 +393,11 @@ class Post:
     subreddit: str | None
     created_at: str | None
     author: str | None
+    #: `author_fullname` — `t2_…`, the STABLE account id, which is what the bot
+    #: list is keyed on and what `author.external_id` holds. None where the
+    #: payload carried none (a deleted account), which makes the bot gate
+    #: NOT_APPLICABLE for that row rather than passing it.
+    author_fullname: str | None
     is_self: bool | None
     title: str
     body: str
@@ -425,6 +432,7 @@ def load_corpus(slice_dir: Path) -> list[Post]:
                     else None
                 ),
                 author=d.get("author"),
+                author_fullname=d.get("author_fullname"),
                 is_self=d.get("is_self"),
                 title=d.get("title") or "",
                 body=d.get("selftext") or "",
@@ -799,6 +807,11 @@ def load_control(control_dir: Path) -> tuple[list[tuple[str, Post]], dict]:
                         subreddit=d.get("subreddit"),
                         created_at=d.get("created_at"),
                         author=d.get("author"),
+                        # ABSENT IN OLDER EXPORTS, and left None rather than
+                        # reconstructed from the handle: `t2_` + a username is
+                        # not an id, it is a fabrication that would match the
+                        # bot list against a value no platform ever issued.
+                        author_fullname=d.get("author_fullname"),
                         is_self=(str(d.get("is_self")).casefold() == "true"),
                         title=d.get("title") or "",
                         body=d.get("selftext") or "",
@@ -928,13 +941,20 @@ class FilterRow:
     note: str = ""
 
 
-def build_filter_pool(posts, population: SurfacePopulation) -> tuple[list[FilterRow], dict]:
+def build_filter_pool(
+    posts, population: SurfacePopulation, bots=None
+) -> tuple[list[FilterRow], dict]:
     """~200 documents, whatever mix the corpus holds - proportional, not balanced.
 
     Deliberately NOT stratified, unlike the entity pool. She asked for the mix
     the corpus holds, and the filter set's job is to check the gates against
     ordinary traffic. Sampled by a stable stride so the draw is reproducible and
     is not the first 200 by id.
+
+    `bots` is the loaded `BotList`, or None. PASSED RATHER THAN LOADED HERE so
+    the pool and any other caller in one run match against the same list - and
+    so a pool built with no list is visibly built with no list, which the
+    `gates_that_did_not_run` column then reports per row.
     """
     rows: list[FilterRow] = []
     stride = max(1, len(posts) // FILTER_TARGET)
@@ -942,10 +962,15 @@ def build_filter_pool(posts, population: SurfacePopulation) -> tuple[list[Filter
         doc = Document(
             text=post.text,
             author=post.author,
+            # THE BOT GATE MATCHES ON THESE TWO, not on the handle above - a
+            # login is mutable and a list keyed on one stops matching silently
+            # after a rename. `author` is kept for the human reading the row.
+            source=REDDIT_SOURCE,
+            author_external_id=post.author_fullname,
             is_self_post=post.is_self,
             body=post.body,
         )
-        result = triage(doc, population=population)
+        result = triage(doc, population=population, bots=bots)
         rows.append(
             FilterRow(
                 external_id=post.external_id,
@@ -1040,7 +1065,11 @@ def main(argv=None) -> int:
     print(f"ambiguous surfaces from the extract: {len(ambiguous)}")
 
     entity_rows, entity_stats = build_entity_pool(posts, population, ambiguous)
-    filter_rows, filter_stats = build_filter_pool(posts, population)
+    # ONE LOAD PER RUN, passed down. The pool and anything else in this run
+    # then match against the same list, and a run with no list is visibly one:
+    # every row's `gates_that_did_not_run` carries `known-bot`.
+    bots = load_bot_list()
+    filter_rows, filter_stats = build_filter_pool(posts, population, bots=bots)
 
     control, manifests = load_control(args.control)
     if not control:

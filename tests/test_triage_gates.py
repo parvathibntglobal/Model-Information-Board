@@ -170,19 +170,95 @@ def test_language_drops_only_on_a_real_detection():
     assert wrong_language(doc("hi", lang="en-GB"), allowed=frozenset({"en"})) is False
 
 
+# ── the bot gate: FOUR answers, and it is keyed on the account id ────────
+#
+# ⚠ REWRITTEN 2026-09-07, AND THE OLD CONTRACT WAS NOT EQUIVALENT. `known_bot`
+#   used to match `doc.author`, the handle, against a `frozenset[str]`. It now
+#   takes a `BotList` and matches `(doc.source, doc.author_external_id)`.
+#
+#   The change is not a refactor: a login is mutable wherever renames exist, so
+#   a list keyed on one stops matching the day an account is renamed - with no
+#   error, no count, and a bot back in the voice pool. `author.external_id` is
+#   what `document.author_id` resolves through, so the list is now keyed on the
+#   same thing the voice count is.
+#
+#   It also splits UNAVAILABLE in two: no list at all, and a list that declares
+#   nothing for THIS platform. The second shrinks as each platform is curated,
+#   which is what UNAVAILABLE is for.
+
+
+def _bots(source="reddit", ids=(), id_space="reddit_fullname"):
+    from collect.triage.bots import BotList, BotSource
+
+    return BotList(
+        by_source={
+            source: BotSource(
+                source=source, id_space=id_space, account_ids=frozenset(ids)
+            )
+        }
+    )
+
+
+def _bot_doc(**kwargs):
+    fields = {"source": "reddit", "author_external_id": "t2_abc", "author": "somebot"}
+    fields.update(kwargs)
+    return doc("x", **fields)
+
+
 def test_the_bot_gate_is_unavailable_with_no_list():
     """No list exists in contract/. That is not an empty list."""
-    assert known_bot(doc("x", author="somebot"), bots=None) is NotRun.UNAVAILABLE
+    assert known_bot(_bot_doc(), bots=None) is NotRun.UNAVAILABLE
 
 
 def test_an_empty_bot_list_is_a_different_statement_from_no_list():
-    assert known_bot(doc("x", author="somebot"), bots=frozenset()) is False
+    """`accounts: []` on a declared source is a MEASUREMENT: somebody looked."""
+    assert known_bot(_bot_doc(), bots=_bots(ids=())) is False
 
 
-def test_the_bot_gate_is_not_applicable_when_the_author_is_unknown():
-    """`[deleted]` has no handle to test, and never will. Not a build defect."""
+def test_a_source_the_list_does_not_declare_is_unavailable_not_false():
+    """The distinction the whole loader exists for.
+
+    A platform nobody has curated is a CURATION GAP - one YAML block fixes it
+    for every document on that platform - so it is UNAVAILABLE, and the count
+    falls as each platform is read. `False` there would assert that somebody
+    checked Hacker News and found no bots, which nobody has.
+    """
     assert (
-        known_bot(doc("x", author=None), bots=frozenset({"bot"}))
+        known_bot(_bot_doc(source="hackernews"), bots=_bots(source="reddit"))
+        is NotRun.UNAVAILABLE
+    )
+
+
+def test_the_bot_gate_matches_on_the_id_and_never_on_the_handle():
+    """The rename case, which is the reason for the change.
+
+    The document's handle is in the list and its id is not. A handle-keyed gate
+    would drop it; this one keeps it, because the handle is not evidence of
+    identity - and the same asymmetry is what makes a renamed bot still match.
+    """
+    listed_by_handle = _bots(ids=("somebot",))
+    assert known_bot(_bot_doc(author="somebot"), bots=listed_by_handle) is False
+
+    listed_by_id = _bots(ids=("t2_abc",))
+    assert known_bot(_bot_doc(author="a-new-name"), bots=listed_by_id) is True
+
+
+def test_the_bot_gate_is_not_applicable_when_there_is_no_identity():
+    """A deleted account has no id to test, and never will. Not a build defect."""
+    assert (
+        known_bot(_bot_doc(author_external_id=None), bots=_bots(ids=("t2_abc",)))
+        is NotRun.NOT_APPLICABLE
+    )
+
+
+def test_an_id_without_its_platform_is_not_applicable():
+    """`author` is UNIQUE (source, external_id), so an id alone is ambiguous.
+
+    Two platforms can legitimately issue the same numeric id, and matching
+    without the source would filter a human on the other one.
+    """
+    assert (
+        known_bot(_bot_doc(source=None), bots=_bots(ids=("t2_abc",)))
         is NotRun.NOT_APPLICABLE
     )
 
@@ -425,7 +501,10 @@ def test_the_remedy_asymmetry_is_what_the_two_fields_encode():
         docs,
         population=pop,
         allowed_languages=frozenset({"en"}),
-        bots=frozenset(),
+        # A DECLARED EMPTY LIST for the platform these documents are on. An
+        # empty `BotList()` would leave the gate UNAVAILABLE, which is the
+        # distinction the loader exists for and not what this test is about.
+        bots=_bots(source="reddit", ids=()),
     )
 
     # The bot gate now runs. Language becomes NOT_APPLICABLE rather than
@@ -454,3 +533,201 @@ def test_the_two_caveats_are_stated_separately_with_different_remedies():
     assert "BUILDING THEM RESOLVES IT" in text
     assert "GATES WITH NOTHING TO RUN ON" in text
     assert "PERMANENT" in text
+
+
+# ── the thread-level subject, ruled 2026-09-08 ───────────────────────────
+#
+# THE PERMISSION IS NARROW AND EACH BOUNDARY IS A TEST. A reading rule that
+# quietly became a resolution rule, or that started DROPPING documents on an
+# inherited subject, would be the inheritance ruling reopened by accident -
+# and it would be invisible, because the evidence would be gone.
+
+
+def _comment(text: str, root: str | None, **kw) -> Document:
+    """An HN-shaped document: body here, subject in another record."""
+    return Document(text=text, thread_subject_text=root, **kw)
+
+
+def test_a_comment_naming_nothing_inherits_its_threads_subject():
+    """The 2.2% problem. Without this the comment is dropped unread."""
+    result = triage(
+        _comment(
+            "switched the router over last week and our monthly bill for the same "
+            "traffic fell by roughly a third, which nobody here expected",
+            "Claude Opus 5 pricing changed today",
+        ),
+        population=population(),
+    )
+    assert result.verdict is Verdict.KEPT
+    assert NO_ENTITY not in result.reasons
+    assert result.subject_was_inherited is True
+    assert result.inherited_surfaces
+    # The document's OWN matches stay empty. A reader asking what THIS text
+    # named gets the right answer.
+    assert result.matched_surfaces == ()
+
+
+def test_the_documents_own_text_wins_and_is_not_counted_as_inherited():
+    """`subject_was_inherited` must mean what it says on every kept document.
+
+    A comment that names the model itself is not an inherited document, however
+    clearly its root also names one - otherwise the flag inflates and the count
+    beside a survival figure stops separating the two reading units.
+    """
+    result = triage(
+        _comment(
+            "claude opus 5 dropped a tool call after 40 turns",
+            "Claude Opus 5 pricing changed today",
+        ),
+        population=population(),
+    )
+    assert result.matched_surfaces
+    assert result.inherited_surfaces == ()
+    assert result.subject_was_inherited is False
+
+
+def test_a_root_that_names_nothing_inherits_nothing():
+    """Supplying a root is not a licence to keep the document."""
+    result = triage(
+        _comment(
+            "this is the third time this week and I am losing patience with it",
+            "An Alien Mind",
+        ),
+        population=population(),
+    )
+    assert result.verdict is Verdict.DROPPED
+    assert NO_ENTITY in result.reasons
+    assert result.subject_was_inherited is False
+
+
+def test_a_platform_that_supplies_no_root_behaves_exactly_as_before():
+    """Additive, and this is the test that says so.
+
+    Reddit, GitHub and the blogs carry their subject inside the document and
+    pass `thread_subject_text=None`. Their verdicts must be byte-identical to
+    what they were before 2026-09-08, or this was a change to four platforms
+    while claiming to be a change to one.
+    """
+    text = "the router silently downgraded and I could not tell from the logs"
+    without_root = triage(doc(text), population=population())
+    assert without_root.verdict is Verdict.DROPPED
+    assert NO_ENTITY in without_root.reasons
+    assert without_root.inherited_surfaces == ()
+    assert without_root.subject_was_inherited is False
+
+
+def test_an_inherited_subject_can_never_drop_a_document_on_the_window():
+    """SCOPED TO THE SUBJECT GATE, and this is the boundary that matters.
+
+    `out_of_window` gets the document's OWN matches and never the union. A
+    comment placed outside a release window on the strength of a model named
+    only in a title is an invented definite answer (rule 6) - and it would be
+    invisible, because the document would be gone. So the window gate stays
+    NOT_APPLICABLE on an inherited document, exactly as it was when the entity
+    gate dropped that document outright.
+    """
+    pop = population()
+    # Every model in the population is out of the window, so the ONLY thing
+    # keeping this document is that the gate declines to place it.
+    everything_out = {model_id: False for model_id, _ in MODELS}
+
+    inherited = triage(
+        _comment(
+            "our monthly bill for the same traffic fell by roughly a third after "
+            "we switched the router over, which nobody here expected",
+            "Claude Opus 5 is out",
+        ),
+        population=pop,
+        in_window=everything_out,
+    )
+    assert inherited.subject_was_inherited is True
+    assert OUT_OF_WINDOW not in inherited.reasons
+    assert OUT_OF_WINDOW in inherited.not_applicable
+    assert inherited.verdict is Verdict.KEPT
+
+    # Contrast: a document that names the model ITSELF is placed, and dropped.
+    own = triage(
+        _comment(
+            "claude opus 5 cut our monthly bill for the same traffic by roughly "
+            "a third after we switched the router over, unexpectedly",
+            "Claude Opus 5 is out",
+        ),
+        population=pop,
+        in_window=everything_out,
+    )
+    assert OUT_OF_WINDOW in own.reasons
+    assert own.verdict is Verdict.DROPPED
+
+
+def test_an_inherited_subject_does_not_rescue_a_document_the_other_gates_drop():
+    """The subject gate is one of six. Inheritance answers only its question."""
+    result = triage(
+        _comment("+1", "Claude Opus 5 pricing changed today"),
+        population=population(),
+    )
+    assert result.verdict is Verdict.DROPPED
+    assert TOO_SHORT in result.reasons
+    # Kept by the subject gate, dropped by the length gate, and the flag is
+    # still set - it describes HOW the subject was reached, not the verdict.
+    assert result.subject_was_inherited is True
+
+
+def test_all_surfaces_is_the_union_own_first():
+    result = triage(
+        _comment(
+            "our monthly bill for the same traffic fell by roughly a third after "
+            "we switched the router over, which nobody here expected",
+            "Claude Opus 5 pricing changed",
+        ),
+        population=population(),
+    )
+    assert result.all_surfaces == result.matched_surfaces + result.inherited_surfaces
+    assert result.all_surfaces == result.inherited_surfaces
+
+
+def test_the_run_counts_inherited_keeps_and_refuses_to_pool_them_silently():
+    """Rule 7 on our own reading unit.
+
+    A survival figure over a mixed population is a number about how we read the
+    corpus wearing the clothes of a number about the corpus. The count exists so
+    the two can be quoted apart, and `describe` says the population is mixed.
+    """
+    pop = population()
+    docs = [
+        # own text
+        _comment("claude opus 5 dropped a tool call after 40 turns", None),
+        # inherited
+        _comment(
+            "our monthly bill for the same traffic fell by roughly a third after "
+            "we switched the router over, which nobody here expected",
+            "Claude Opus 5 pricing",
+        ),
+        _comment(
+            "same here, about a third cheaper for us as well, measured over two "
+            "full billing cycles rather than a single week of traffic",
+            "Claude Opus 5 price",
+        ),
+    ]
+    _, run = triage_all(docs, population=pop)
+
+    assert run.kept == 3
+    assert run.subject_inherited == 2
+    text = run.describe()
+    assert "SUBJECT INHERITED FROM THE THREAD ROOT" in text
+    assert "2 of 3 triaged" in text
+    assert "MIXED" in text
+
+
+def test_a_run_with_no_inheritance_says_nothing_about_it():
+    """Silence where there is nothing to report, not a `0` nobody asked for.
+
+    Every platform but Hacker News supplies no root, and a line reading
+    "0 inherited" on every blog run trains readers to skip the block that
+    matters when it is not zero.
+    """
+    _, run = triage_all(
+        [doc("claude opus 5 dropped a tool call after 40 turns")],
+        population=population(),
+    )
+    assert run.subject_inherited == 0
+    assert "SUBJECT INHERITED" not in run.describe()

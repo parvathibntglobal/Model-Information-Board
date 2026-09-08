@@ -229,6 +229,34 @@ CREATE TABLE document (
   fetched_at              timestamptz NOT NULL DEFAULT now(),
   lang                    text,
 
+  -- THE PLATFORM'S OWN LINK-POST FLAG. Added 2026-09-08 so
+  -- `triage.gates.pure_link_post` has an input: it read `Document.is_self_post`
+  -- from the day it was written and no column carried it, so the gate reported
+  -- NOT_APPLICABLE on all 5,010 triaged documents in the first real run.
+  --
+  -- THREE STATES AND ALL THREE ARE MEANINGFUL (rule 6):
+  --   true    a self/text post. The poster wrote the body.
+  --   false   a LINK submission. Dropped only if it also carries no commentary.
+  --   NULL    the platform has no such notion for this record, and never will.
+  --           A blog article, a GitHub issue, and A COMMENT ON ANY PLATFORM -
+  --           the self/link distinction is about how a SUBMISSION carries its
+  --           content, so a comment's NULL is the honest answer rather than a
+  --           gap somebody should fill.
+  --
+  -- NOT DERIVED BY US, AND THAT IS WHY IT IS A GATE INPUT RATHER THAN A WEIGHT.
+  -- reddit sends `is_self`; Hacker News is a story with `text` (true) or with a
+  -- `url` and no `text` (false). Both are the platform's own declaration, so
+  -- rule 8's error-rate question is answered by the platform and not by a
+  -- population we chose.
+  --
+  -- THE POSTER'S COMMENTARY IS DELIBERATELY NOT A COLUMN. `pure_link_post`
+  -- needs it too, and it is `selftext` / `text` - the payload's own body, which
+  -- `text_ref` already addresses. Storing it here would duplicate the payload
+  -- and put derived bytes beside a hash that identifies the original, which is
+  -- the ruling `collect/assemble/prose.py` exists to enforce. Triage reads it
+  -- from the payload it is already parsing.
+  is_self_post            boolean,
+
   -- `text_ref` LOCATES the payload; `content_hash` IDENTIFIES it. They are
   -- separate columns because NFR-6 requires the hash to outlive the bytes:
   -- "tombstone a document; its quotes vanish next run, only the content hash

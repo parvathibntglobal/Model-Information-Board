@@ -1,0 +1,42 @@
+-- `document.is_self_post`, so `pure_link_post` has an input for the first time.
+--
+-- ⚠ NEEDS E2's SIGN-OFF, per the lane rule on contract/. One nullable column,
+--   no constraint, no default, no backfill in this file (see below).
+--
+-- ⚠ NO `BEGIN`/`COMMIT` IN THIS FILE. `collect/migrate.py:migrate` wraps each
+--   migration in `conn.transaction()` and inserts the ledger row inside it, and
+--   `collect.db.connect` leaves autocommit off - so a `COMMIT` here commits the
+--   OUTER transaction and the savepoint release then fails, leaving the change
+--   applied with NO LEDGER ROW. That happened on 2026-09-08 with
+--   `20260908T1100_reddit_thread_link_prefix.sql`. See the module docstring of
+--   `collect/migrate.py`, which now carries the rule and the incident.
+--
+-- WHY THE COLUMN
+--
+-- `triage.gates.pure_link_post` has read `Document.is_self_post` since it was
+-- written and nothing ever carried it, so the gate returned NOT_APPLICABLE for
+-- every document - 5,010 of 5,010 in the first real triage run
+-- (`docs/triage-first-run-2026-09-08.md`). On the 1,297-post hand-built corpus
+-- it was the LARGEST single dropper at 144, so its absence is not a small hole.
+--
+-- NULLABLE, WITH NO DEFAULT, AND THAT IS THE WHOLE DESIGN
+--
+-- `false` would mean "a link submission" and is a definite claim. Every one of
+-- the 6,502 existing rows would acquire it the moment a DEFAULT existed, and
+-- `pure_link_post` drops a link post with no commentary - so a default would
+-- turn 6,502 unknowns into droppable link posts (rule 6, on the gate that acts
+-- on the value). NULL means the platform has no such notion for this record,
+-- which is TRUE and PERMANENT for a blog article, a GitHub issue and a comment
+-- on any platform.
+--
+-- THE BACKFILL IS A SCRIPT, NOT THIS FILE
+--
+-- `scripts/backfill_is_self_post.py`. It reads each row's payload out of the
+-- raw store and takes the platform's own field, so it cannot run inside a
+-- migration: the raw store is a filesystem this SQL has no access to, and it is
+-- PER MACHINE - 1,234 Reddit payloads are absent on the host that ran this, so
+-- a backfill leaves those NULL and says how many. A migration that appeared to
+-- backfill and silently skipped 41% of one platform would be worse than one
+-- that adds a column and stops.
+
+ALTER TABLE document ADD COLUMN is_self_post boolean;
