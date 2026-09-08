@@ -751,3 +751,69 @@ class TestProseRefusesAContainerOfManyDocuments:
 
         with pytest.raises(NotAPayload, match="LIST"):
             x_post_prose(json.dumps({"data": [{"id": "1", "text": "x"}]}))
+
+# ── x_post_prose: the shape a real payload actually has ──────────────────
+
+
+class TestXPostProse:
+    """The function read a key the payload does not have, for as long as no X
+    request had ever been made.
+
+    Found 2026-09-08 by the first real corpus: `NotAPayload` on 50 of 50 stored
+    X documents. The fixtures had been built to the same assumption as the code,
+    so nothing here could have caught it - these tests use the shapes the
+    twitter241 provider actually returned.
+    """
+
+    def test_the_text_comes_from_legacy_full_text(self):
+        from collect.assemble.prose import x_post_prose
+
+        payload = json.dumps({
+            "__typename": "Tweet", "rest_id": "1",
+            "legacy": {"full_text": "opus 5 dropped a tool call after 40 turns"},
+        })
+        assert x_post_prose(payload) == "opus 5 dropped a tool call after 40 turns"
+
+    def test_a_long_post_prefers_note_tweet_over_the_truncated_full_text(self):
+        """`legacy.full_text` is cut at 280 and `note_tweet` carries the rest.
+
+        Measured on the first corpus: 21 of 50 payloads carry a note_tweet, and
+        on those `full_text` was 190 characters against the note's 250. Reading
+        `full_text` first would cut a long post's evidence off mid-sentence, and
+        a quote of the missing half would fail rule 1's substring check while
+        the reader can plainly see it on the page.
+        """
+        from collect.assemble.prose import x_post_prose
+
+        payload = json.dumps({
+            "legacy": {"full_text": "the first half of the argument and then"},
+            "note_tweet": {"note_tweet_results": {"result": {
+                "text": "the first half of the argument and then the second half"
+            }}},
+        })
+        assert x_post_prose(payload).endswith("the second half")
+
+    def test_a_top_level_text_is_still_accepted_last(self):
+        """`SCRAPER_PROVIDER` is swappable and the ruling pins only which
+        provider was reviewed, not what its envelope looks like."""
+        from collect.assemble.prose import x_post_prose
+
+        assert x_post_prose(json.dumps({"text": "a different envelope"})) == (
+            "a different envelope"
+        )
+
+    def test_a_search_page_is_refused_rather_than_flattened(self):
+        """The refusal is the value: an envelope's text fields would let a quote
+        verify by substring against the wrong document."""
+        from collect.assemble.prose import NotAPayload, x_post_prose
+
+        page = json.dumps({"data": [{"legacy": {"full_text": "one"}},
+                                    {"legacy": {"full_text": "two"}}]})
+        with pytest.raises(NotAPayload, match="LIST"):
+            x_post_prose(page)
+
+    def test_an_empty_text_is_refused_rather_than_returned(self):
+        from collect.assemble.prose import NotAPayload, x_post_prose
+
+        with pytest.raises(NotAPayload):
+            x_post_prose(json.dumps({"legacy": {"full_text": "   "}}))

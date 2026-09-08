@@ -121,3 +121,49 @@ def test_the_walk_sees_f_strings_and_nested_calls():
         "the walk missed a literal inside an f-string or a conditional, which "
         "is where these actually appear"
     )
+
+# ── the gap the scripts-only scope left ──────────────────────────────────
+
+
+def test_the_report_objects_a_script_prints_are_encodable():
+    """A string RETURNED from `collect/` and PRINTED by a script.
+
+    THE SCOPE ABOVE IS `scripts/` on the stated grounds that collect/ and judge/
+    use the character correctly and never print it. That assumption broke on
+    2026-09-08: `collect/triage/run.py:TriageStoreRun.describe` built a line
+    beginning with U+26A0, `scripts/triage_stored_corpus.py` printed it, and the
+    first new-platform triage run died with `UnicodeEncodeError` **after** the
+    per-source table and the gate breakdown had already scrolled past - so the
+    useful half of the report was produced and then thrown away.
+
+    A static scan of `scripts/` cannot see that, because the literal lives one
+    module over. This calls the report builders instead, with every counter
+    populated so no branch is skipped, and asserts what the console will do.
+    """
+    from collect.triage.run import TriageStoreRun, gate_availability
+
+    run = TriageStoreRun(
+        eligible=200, triaged=190, kept=100, dropped=90, written=190,
+        unreadable=5, not_prose=4, unmapped_source=1,
+        by_reason={"no-resolvable-entity": 40, "too-short-no-artifact": 50},
+        never_ran={"wrong-language": 190}, not_applicable={"pure-link-post": 150},
+        by_flag={"known-bot-counted": 3},
+        subject_inherited=7, root_unresolvable=2, root_unreadable=1,
+        by_source={"hackernews": {"eligible": 190, "triaged": 190, "kept": 100,
+                                  "dropped": 90}},
+        population_fingerprint="deadbeefdeadbeef",
+    )
+    for name, text in (
+        ("describe", run.describe()),
+        ("per_source_table", run.per_source_table()),
+        ("gate_availability", gate_availability(run)),
+    ):
+        try:
+            text.encode("cp1252")
+        except UnicodeEncodeError as exc:
+            raise AssertionError(
+                f"TriageStoreRun.{name}() returns a character a cp1252 console "
+                f"cannot print: {exc.object[exc.start:exc.end]!r}. A script "
+                "prints this, so the run dies part-way through its own report. "
+                "Use ASCII in anything a report builder returns."
+            ) from None

@@ -379,7 +379,15 @@ class TriageStoreRun:
             )
         if self.root_unresolvable or self.root_unreadable:
             lines.append(
-                f"  ⚠ THREAD ROOT WANTED AND NOT AVAILABLE: "
+                # NO `⚠` IN A PRINTED STRING. `scripts/triage_stored_corpus.py`
+                # prints this, Windows consoles are cp1252, and U+26A0 raised
+                # UnicodeEncodeError mid-report on the first new-platform run -
+                # after the useful half had already scrolled past.
+                # `tests/test_script_output_is_encodable.py` scopes itself to
+                # `scripts/` because collect/ docstrings use the character
+                # correctly and are never printed; a string RETURNED from
+                # collect/ and printed by a script is the gap that left.
+                f"  !! THREAD ROOT WANTED AND NOT AVAILABLE: "
                 f"{self.root_unresolvable} thread_root_id(s) resolve to no "
                 f"stored row, {self.root_unreadable} resolve to a row whose "
                 "payload would not read. These documents faced the subject gate "
@@ -667,11 +675,15 @@ def gate_availability(run: TriageStoreRun) -> str:
             "even with a detector the gate has no input on the stored corpus"
         ),
         "known-bot": (
-            "`contract/bots.yaml` does not exist. The DETECTOR is built "
-            "(collect/triage/bots.py, 2026-09-07); the LIST is a contract "
-            "change, proposed in docs/proposals/for-engineer-2-the-bot-list.md. "
-            "Reports UNAVAILABLE per source, so this count shrinks platform by "
-            "platform as each is curated"
+            "UNAVAILABLE means THIS SOURCE is not declared in "
+            "`contract/bots.yaml`, not that the list is missing - the file "
+            "exists and declares `github` alone (26 gated, 7 counted). Each "
+            "other platform needs its own block with an `id_space` and curated "
+            "account ids: reddit `t2_` fullnames, huggingface `author._id`, "
+            "hackernews THE USERNAME (no rename feature), x `rest_id`. The "
+            "count therefore shrinks platform by platform as each is read, "
+            "rather than all at once. NOT_APPLICABLE is different and "
+            "permanent: a document with no author id has no identity to test"
         ),
         "pure-link-post": (
             "`is_self_post` and the poster's own commentary are not columns on "

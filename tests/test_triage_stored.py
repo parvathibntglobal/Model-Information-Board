@@ -258,7 +258,13 @@ def test_a_thread_root_that_resolves_to_nothing_is_counted_not_ignored(conn):
     # And the consequence is visible: the comment that named nothing is dropped,
     # so the count above is what says the drop is ours.
     assert run.dropped == 1
-    assert "⚠ THREAD ROOT WANTED AND NOT AVAILABLE" in run.describe()
+    # ASCII, deliberately. This assertion used to pin a string beginning with
+    # U+26A0 - and that string is exactly what crashed the first new-platform
+    # triage run on a cp1252 console, after the useful half of the report had
+    # already scrolled past. A test that pins an unprintable string in a
+    # PRINTED report is holding the defect in place.
+    assert "THREAD ROOT WANTED AND NOT AVAILABLE" in run.describe()
+    run.describe().encode("cp1252")  # the report must survive the console
 
 
 def test_a_root_is_not_handed_its_own_text_as_its_subject(conn):
