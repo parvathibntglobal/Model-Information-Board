@@ -67,22 +67,28 @@ def capabilities() -> dict[str, Capability]:
 
 
 @lru_cache(maxsize=1)
-def job_keys() -> tuple[str, ...]:
-    """The "Best for" vocabulary, from contract/board_surfaces.yaml.
+def board_exemplars() -> dict:
+    """Calibration samples for the board's three sections — NOT a vocabulary.
 
-    A job is a task somebody runs, so these are the keys the classifier may
-    file evidence under on a job page. Separate from `capabilities()` because a
-    job and a capability answer different questions about the same quote: the
-    job is what was being attempted, the capability is what behaved well or
-    badly while attempting it.
+    Returns `contract/board_surfaces.yaml` whole, so the caller sees the
+    `question`, the `test` and the `exemplars` for each section.
+
+    THERE IS DELIBERATELY NO `job_keys()` OR `metric_keys()` HERE. An earlier
+    version of this file had both, as closed lists the classifier had to pick
+    from, and that was the defect: the hand-designed board carries `vision`,
+    `multimodal` and `function-calling`, none of which is in
+    `capabilities.yaml`. A closed list would have dropped them or forced them
+    into the nearest ratified key, which manufactures consensus.
+
+    So the board's sections are discovered from the evidence and these entries
+    only calibrate how broad a section should be. Anything that turns this back
+    into a lookup — a `keys()` helper, a membership check on a proposed slug —
+    reintroduces the cap. The consolidation problem it looks like it solves
+    (two names for one section) is solved downstream instead, by normalising the
+    slug in code and letting a person merge the rest through the candidate
+    ruling that already exists.
     """
-    return tuple(entry["key"] for entry in _read("board_surfaces.yaml")["jobs"])
-
-
-@lru_cache(maxsize=1)
-def metric_keys() -> tuple[str, ...]:
-    """The "Metrics" vocabulary, from contract/board_surfaces.yaml."""
-    return tuple(entry["key"] for entry in _read("board_surfaces.yaml")["metrics"])
+    return _read("board_surfaces.yaml")
 
 
 @lru_cache(maxsize=1)

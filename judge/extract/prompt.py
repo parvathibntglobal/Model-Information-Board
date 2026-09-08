@@ -58,7 +58,7 @@ can be compared with a claim about another.
 is a MEASURED AXIS with a unit.
 
 THEY ARE THREE VIEWS OF ONE CORPUS, NOT THREE BUCKETS. The same quote often \
-belongs on more than one, and `board_sections` is a LIST for that reason. \
+belongs on more than one, and `board_entries` is a LIST for that reason. \
 Filing a quote under only its most obvious surface throws the rest away.
 
   "switched our agent over to Flash, ttft went from 900ms to 300ms"
@@ -74,38 +74,83 @@ things and you emit nothing without all four:
 
   1. A MODEL, named specifically enough to identify. "the cheap Anthropic one" \
 is not a model.
-  2. A CAPABILITY from the capability vocabulary below. Nothing else. Every \
-claim carries one, whichever sections it feeds - the capability is what \
-BEHAVED, and it is what makes two claims comparable.
-  3. THE SECTIONS it belongs on, in `board_sections`, with the fields each one \
-needs (below).
-  4. A VERBATIM QUOTE - the exact characters from the text, copied, never \
+  2. THE BOARD ENTRIES it belongs on, in `board_entries` - the sections you \
+DISCOVERED in the quote, each with a slug, a name and a definition.
+  3. A VERBATIM QUOTE - the exact characters from the text, copied, never \
 paraphrased, never tidied, never trimmed of a typo. Give the character offsets \
 of that span.
+  4. A `capability` key from the ratified list at the end of this prompt. That \
+one field feeds an older scoring path and is NOT what the board displays; pick \
+the closest key and move on.
 
-CHOOSING THE SECTIONS
+YOU DISCOVER THE SECTIONS. YOU DO NOT CHOOSE THEM FROM A LIST.
 
-Ask all three questions of every quote. Include a section only when the quote \
-itself answers its question.
+There is no menu of jobs, capabilities or metrics. You read what engineers \
+wrote and you NAME the job, the capability or the metric they were discussing. \
+Nothing caps what you may find, and finding something no list mentions is the \
+expected outcome rather than a problem.
 
-  Add `best_for` when the quote says WHAT THEY WERE TRYING TO DO. Give the \
-`job_key`. The job is the task, not the quality: "our RAG pipeline kept citing \
-the wrong chunk" names job.rag_qa. If the writer never says what they were \
-building, there is NO job - leave `best_for` out rather than inferring one from \
-the capability. A capability is not a job wearing a different hat.
+This matters because the board that was designed by hand carries capabilities \
+called `vision`, `multimodal` and `function-calling`, and NONE of those exists \
+in the ratified capability list. A classifier restricted to that list would \
+have dropped a third of the board, or forced those quotes into the nearest \
+ratified key - which manufactures agreement about something nobody said.
 
-  Add `capability` when the quote says HOW THE MODEL BEHAVED. This is the \
-ordinary home for a behaviour claim and needs only the `capability` field.
+You will be shown EXEMPLARS at the end: real sections from that hand-designed \
+board. They are there to calibrate HOW BROAD a section should be and how a \
+name reads. They are not a closed list, and matching one is not the goal.
 
-  Add `metric` when the quote STATES A FIGURE - a price, a latency, a token \
-count, a throughput, an eval score. Give `metric_key`, \
-`metric_value_verbatim` and `metric_basis`. A quote can be a metric and \
-nothing else: "it's $0.27 per million output" is a figure with no behaviour \
-claim in it, and that is a complete, useful record.
+ASK ALL THREE QUESTIONS OF EVERY QUOTE
+
+Add an entry for each question the quote itself answers. Most quotes answer \
+one or two. Some answer all three.
+
+  best_for    Does it say WHAT THEY WERE TRYING TO DO? Name the task. It has to \
+complete "I need a model to ___" - a coding agent, RAG over their own \
+documents, translating support tickets. If the writer never says what they were \
+building, there is NO job entry: a capability is not a job wearing a different \
+hat, and inferring the task is worse than leaving it out.
+
+  capability  Does it say HOW THE MODEL BEHAVED? Name the single behaviour it \
+did well or badly.
+
+  metric      Does it STATE A FIGURE on a measured axis? Name the axis, give \
+its `unit`, and copy the figure into `value_verbatim` with its `basis`. A quote \
+can be a metric and nothing else - "it's $0.27 per million output" reports no \
+behaviour and names no task, and recording it as one metric entry is complete \
+and useful. Do not invent a capability to pad it out.
+
+NAMING A SECTION YOU DISCOVERED
+
+  slug        lowercase, hyphen-separated, no version numbers, no vendor names. \
+THIS IS THE GROUPING KEY: two threads that discussed the same thing must \
+produce the SAME slug, or the board grows two sections where there is one. So \
+reach for the plainest, most common form of the term - "function-calling", not \
+"tool-schema-validity". If an exemplar already names what you found, USE ITS \
+SLUG exactly.
+
+  name        Two to four words, title case, the term an engineer would type. \
+"Function calling", never "The ability to call functions correctly".
+
+  definition  ONE SENTENCE saying what the board should count as this section - \
+the TEST a report has to meet, not a description of this one quote. Name the \
+threshold or the first-attempt condition where there is one.
+
+GET THE ALTITUDE RIGHT - it is the thing most easily got wrong
+
+A section must be broad enough that several independent engineers would report \
+on it, and narrow enough that two reports about it are about the same thing.
+
+  too broad   "good at code" - swallows diff fidelity, generation and review, \
+so two reports under it are not comparable.
+  too narrow  "emitting a valid unified diff first try against a 900-line file" \
+- nobody else will ever report that, and a section with one report is not a \
+section.
+  right       "Code review", "Function calling", "Time to first token".
 
 FIGURES: COPY THEM, NEVER COMPUTE THEM
 
-`metric_value_verbatim` is the figure exactly as the text writes it - "300ms", \
+`value_verbatim` is the figure exactly as the text writes it - "300ms", \
 "$0.27/M", "about 200k", "~35 seconds". Copy the characters.
 
 Do not convert a unit. Do not normalise. Do not divide a total by a count. Do \
@@ -115,7 +160,7 @@ page - code does every conversion afterwards, from the characters you copied. \
 KEEP THE HEDGE IF THE WRITER HEDGED: "about 200k" is the finding; the precise \
 number is a claim they did not make.
 
-STATED OR REPORTED - `metric_basis`, and never a guess
+STATED OR REPORTED - `basis`, and never a guess
 
   stated    the PROVIDER says so. A spec sheet, docs, a model card, a launch \
 post. An advertised ceiling.
@@ -217,51 +262,92 @@ a failure. A document you had to reach for is a document with no claim in it.\
 
 def build_system_prompt(
     capability_keys: list[str],
-    job_keys: list[str] | None = None,
-    metric_keys: list[str] | None = None,
+    exemplars: dict | None = None,
 ) -> str:
-    """The system prompt, with the three board vocabularies appended.
+    """The classifier prompt: one CLOSED list, three OPEN sections.
 
-    The vocabularies are passed rather than imported so the caller decides which
-    version the model saw - same reason every derived row carries a
-    `pipeline_version`.
+    The asymmetry is the design, and it is worth stating plainly because the two
+    halves read alike at the bottom of the prompt:
 
-    `job_keys` and `metric_keys` default to the ratified contract lists because
-    the production call path (Pipeline -> extract) currently threads only the
-    capability vocabulary through, and changing that signature would touch every
-    caller of `extract()` for no gain today. The parameters exist so the version
-    can still be pinned explicitly the moment a run needs to be reproduced
-    against an older vocabulary - which is the property that mattered.
+      `capability_keys`  A CLOSED VOCABULARY, appended with "use these and no
+                         others". It feeds the legacy cell score, which indexes
+                         by `capability_key` and looks the key up to find its
+                         failure mode - an unknown key breaks that path.
+
+      `exemplars`        NOT A VOCABULARY. Samples from the hand-designed board,
+                         appended with an explicit instruction that they are open
+                         and that finding something absent from them is expected.
+                         They calibrate ALTITUDE and naming style; they do not
+                         constrain the answer.
+
+    Passing rather than importing keeps the caller in charge of which version the
+    model saw - the same reason every derived row carries a `pipeline_version`.
+    `exemplars` defaults to the contract file because the production call path
+    (Pipeline -> extract) threads only the capability vocabulary through today,
+    and widening that signature would touch every caller of `extract()` for no
+    gain yet. The parameter exists so a run can still be reproduced against an
+    older calibration.
     """
     if not capability_keys:
-        raise ValueError("no capabilities: the model would have nothing to classify into")
-    if job_keys is None or metric_keys is None:
-        from judge.config import job_keys as _jobs
-        from judge.config import metric_keys as _metrics
-
-        job_keys = list(_jobs()) if job_keys is None else job_keys
-        metric_keys = list(_metrics()) if metric_keys is None else metric_keys
-    if not job_keys or not metric_keys:
         raise ValueError(
-            "board_sections offers 'best_for' and 'metric', so both vocabularies "
-            "must be non-empty: the prompt would name a section the model has no "
-            "key for, which is how a quote gets forced into the nearest wrong key."
+            "no capability keys: the legacy cell path indexes by capability_key, "
+            "so a claim could not be scored. The BOARD sections are discovered "
+            "and need no vocabulary, but this closed list is not optional."
         )
+    if exemplars is None:
+        from judge.config import board_exemplars
 
-    def _listing(keys: list[str]) -> str:
-        return "\n".join(f"  - {key}" for key in keys)
+        exemplars = board_exemplars()
+
+    def _section(key: str, heading: str) -> str:
+        block = exemplars.get(key) or {}
+        rows = []
+        for item in block.get("exemplars", ()):
+            unit = f"  ·  unit: {item['unit']}" if item.get("unit") else ""
+            rows.append(
+                f"  - {item['slug']}  ({item['name']}){unit}\n"
+                f"      {item.get('definition', '').strip()}"
+            )
+        question = block.get("question", "")
+        return (
+            f"\n\n{heading}"
+            + (f'\n  The question it answers: "{question}"' if question else "")
+            + "\n"
+            + "\n".join(rows)
+        )
 
     return (
         SYSTEM_PROMPT.format(open=BLOCK_OPEN, close=BLOCK_CLOSE)
-        + "\n\nTHE CAPABILITY VOCABULARY (`capability`). Use these keys and no "
-          "others:\n"
-        + _listing(capability_keys)
-        + "\n\nTHE JOB VOCABULARY (`job_key`, when board_sections contains "
-          "best_for). Use these keys and no others:\n"
-        + _listing(job_keys)
-        + "\n\nTHE METRIC VOCABULARY (`metric_key`, when board_sections contains "
-          "metric). Use these keys and no others:\n"
-        + _listing(metric_keys)
+        # ── the OPEN half ───────────────────────────────────────────────────
+        + "\n\n"
+        + "=" * 70
+        + "\nEXEMPLARS FOR THE THREE BOARD SECTIONS - NOT A LIST TO CHOOSE FROM\n"
+        + "=" * 70
+        + "\nThese are real sections from the board that was designed by hand. "
+          "They\nshow you HOW BROAD a section should be and how a name and a "
+          "definition\nread. They are NOT exhaustive and they are NOT a "
+          "vocabulary.\n"
+          "\n  - If one of them names what you found, reuse its slug exactly - "
+          "that is\n    how two threads land on one board section.\n"
+          "  - If what you found is not here, NAME IT YOURSELF. That is the "
+          "expected\n    outcome, not a problem to work around.\n"
+          "  - Never force a quote into one of these because it is the nearest. "
+          "The\n    nearest wrong section manufactures agreement about something "
+          "nobody said."
+        + _section("best_for", "SECTION 1 - BEST FOR (jobs somebody runs)")
+        + _section("capabilities", "SECTION 2 - CAPABILITIES (one named behaviour)")
+        + _section("metrics", "SECTION 3 - METRICS (a measured axis with a unit)")
+        # ── the CLOSED half ─────────────────────────────────────────────────
+        + "\n\n"
+        + "=" * 70
+        + "\nTHE RATIFIED CAPABILITY KEYS (`capability`) - CLOSED, use these and "
+          "no others\n"
+        + "=" * 70
+        + "\nThis single field feeds an older scoring path, NOT the board. Pick "
+          "the\nclosest key. It does not limit what you may discover above, and "
+          "where no\nkey is close, still pick the closest one AND propose the "
+          "missing key in\n`proposed_capabilities`.\n"
+        + "\n".join(f"  - {key}" for key in capability_keys)
     )
 
 

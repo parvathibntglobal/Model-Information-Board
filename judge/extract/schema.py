@@ -18,14 +18,18 @@ Relevance = Literal["central", "passing"]
 Specificity = Literal["snapshot", "version", "family"]
 EvidenceTier = Literal["A", "B", "C", "D", "E", "F"]
 
-#: Which board surface a claim informs. A LIST on the claim, never one value.
+#: The board's three sections, of EQUAL standing. See `BoardEntry`.
 #:
-#: The board's own copy calls these "three ways into the same evidence", and
-#: that is the reason this is not an enum-per-claim: one quote about a slow
-#: coding agent informs the metric page (the figure), the capability page
-#: (`ops.latency_ttft`) and the job page (coding agent). Forcing a single
-#: section would throw two thirds of that away and, worse, would make the
-#: choice look like a finding rather than a truncation.
+#: A claim carries a LIST of entries, never one section, because the board's own
+#: copy calls these "three ways into the same evidence": one quote about a slow
+#: coding agent answers the metric question (the figure), the capability question
+#: (how it behaved) and the job question (what they were building). Forcing a
+#: single section would discard two thirds of that and make the truncation look
+#: like a finding.
+#:
+#: What each section is NOT allowed to become is a closed vocabulary — the keys
+#: under them are discovered from the evidence. This Literal fixes the three
+#: QUESTIONS, which are a product decision, and nothing about the answers.
 BoardSection = Literal["best_for", "capability", "metric"]
 
 #: WHERE A RECORDED FIGURE CAME FROM, and the board refuses to merge the two.
@@ -189,6 +193,172 @@ class Conditions(BaseModel):
     domain: str | None = None
 
 
+class BoardEntry(BaseModel):
+    """One board section this quote belongs on, AS DISCOVERED — not as chosen.
+
+    THIS CLASS IS THE POINT OF THE CLASSIFIER. There is no closed list of jobs,
+    capabilities or metrics anywhere for it to pick from: it NAMES what the
+    evidence discussed. The demo board is why. Its capability section carries
+    `vision`, `multimodal` and `function-calling`, and none of those three
+    appears in `contract/capabilities.yaml` — so a closed vocabulary would have
+    silently dropped a third of the board that was designed by hand.
+
+    `contract/board_surfaces.yaml` still exists, and holds EXEMPLARS rather than
+    a vocabulary: samples that calibrate how broad a section should be and how a
+    name reads. Matching one is fine. Finding something absent from all of them
+    is the expected outcome, not an error.
+
+    THE THREE SECTIONS ARE EQUAL. `best_for`, `capability` and `metric` are three
+    questions of the same weight asked of the same corpus, and a quote answering
+    two of them produces two entries. Nothing here ranks them, and no entry is a
+    fallback for another.
+
+    WHAT THIS DELIBERATELY DOES NOT CARRY: no evidence state (verified /
+    contested / not discussed), no rank, no pick, no score. Those are counted
+    across independent reports, and this object describes ONE quote from ONE
+    thread — the model cannot see the denominator, so it must not appear to.
+    """
+
+    section: BoardSection = Field(
+        description=(
+            "Which of the three board sections this entry is for.\n\n"
+            "best_for   a TASK somebody runs. It must complete \"I need a model "
+            "to ___\" — a coding agent, RAG over their docs, translating.\n"
+            "capability ONE NAMED BEHAVIOUR a model does or fails at, defined "
+            "the same way for every model so two reports can be compared.\n"
+            "metric     a MEASURED AXIS WITH A UNIT, where the text states a "
+            "figure. Requires `unit`, `value_verbatim` and `basis`."
+        )
+    )
+    slug: str = Field(
+        description=(
+            "lowercase, hyphen-separated, no version numbers, no vendor names — "
+            "\"function-calling\", \"coding-agent\", \"time-to-first-token\".\n\n"
+            "THIS IS THE GROUPING KEY, and it is the whole reason an open "
+            "vocabulary can work: two threads that discussed the same thing must "
+            "reduce to the same slug or the board grows two sections where there "
+            "is one. So prefer the plainest, most common form of the term. Code "
+            "normalises case and spacing; it cannot decide that \"tool-calling\" "
+            "and \"function-calling\" were one idea."
+        )
+    )
+    name: str = Field(
+        description=(
+            "Two to four words, title case — the term an engineer would type. "
+            "\"Function calling\", never \"The ability to call functions "
+            "correctly\". This is the heading the board renders."
+        )
+    )
+    definition: str = Field(
+        description=(
+            "ONE SENTENCE stating what the board should count as this section — "
+            "the test a report has to meet, not a description of this one quote. "
+            "It is what makes a claim on one model page comparable with a claim "
+            "on another, so name the threshold or the first-attempt condition "
+            "where there is one: \"emits a valid call to a declared tool, "
+            "first attempt, with no repair pass\"."
+        )
+    )
+
+    #: ── metric-only fields ────────────────────────────────────────────────
+    unit: str | None = Field(
+        default=None,
+        description=(
+            "REQUIRED when section is metric. What the figure is measured in — "
+            "\"milliseconds\", \"USD per 1M tokens\", \"tokens\", \"percent "
+            "resolved\". An axis with no unit is not a metric."
+        ),
+    )
+    value_verbatim: str | None = Field(
+        default=None,
+        description=(
+            "REQUIRED when section is metric. THE FIGURE EXACTLY AS THE TEXT "
+            "WRITES IT — \"300ms\", \"$0.27/M\", \"about 200k\", \"~35 seconds\".\n\n"
+            "COPY IT, NEVER COMPUTE IT. Do not convert a unit, do not normalise, "
+            "do not divide a total by a count, do not average two figures, do not "
+            "resolve \"about 200k\" into a number. A figure you calculated is a "
+            "number nobody measured and rule 3 forbids it reaching a page — code "
+            "converts afterwards, from the characters you copied. KEEP THE HEDGE "
+            "IF THE WRITER HEDGED: \"about 200k\" is the finding; the precise "
+            "number is a claim they did not make."
+        ),
+    )
+    basis: MetricBasis | None = Field(
+        default=None,
+        description=(
+            "REQUIRED when section is metric.\n\n"
+            "stated   the PROVIDER says so — spec sheet, docs, model card, "
+            "launch post. An advertised ceiling.\n"
+            "reported the WRITER measured it — their run, their timing, their "
+            "bill.\n\n"
+            "Never merged, so a guess here corrupts the one distinction the "
+            "metric pages exist to show. It usually agrees with "
+            "`model_ref.speaking`: own-experience is reported, "
+            "vendor-about-own-product is stated."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _a_metric_brings_its_figure(self) -> BoardEntry:
+        """A metric entry without a unit, a figure and a basis is an empty row.
+
+        Enforced here rather than trusted from the prompt, for the reason the
+        rest of this file exists: the prompt asks and the schema guarantees. All
+        three would otherwise validate and then render as a blank cell, which is
+        the silent-absence shape rule 4 is about — and on this board a blank is
+        already meaningful, so a spurious one is not a harmless gap.
+
+        Asymmetric on purpose: a `unit` supplied on a non-metric entry is not an
+        error. It costs nothing, and rejecting a batch over a surplus field is
+        how the old length check on `quote_offset` used to lose five claims in
+        six.
+        """
+        if self.section != "metric":
+            return self
+        missing = [
+            field
+            for field, value in (
+                ("unit", self.unit),
+                ("value_verbatim", self.value_verbatim),
+                ("basis", self.basis),
+            )
+            if not value
+        ]
+        if missing:
+            raise ValueError(
+                f"a metric entry is missing {', '.join(missing)}: a metric row is "
+                "the figure, the unit it is in, the axis it sits on, and whether "
+                "it was stated or measured. Without all of them it renders as an "
+                "empty cell. If the quote names an axis but states no figure, it "
+                "is a capability entry, not a metric one."
+            )
+        return self
+
+
+#: Written once here rather than inline, because it is long and the field it
+#: describes is the classifier's entire output channel.
+_BOARD_ENTRIES_DESC = (
+    "EVERY board section this quote belongs on — DISCOVERED, not chosen from a "
+    "list. One entry per section; a quote answering two questions produces two "
+    "entries.\n\n"
+    "Ask all three questions of the quote and add an entry for each one the "
+    "quote itself answers:\n"
+    "  best_for   — does it say what they were TRYING TO DO?\n"
+    "  capability — does it say how the model BEHAVED?\n"
+    "  metric     — does it state a FIGURE on a measured axis?\n\n"
+    "Worked example. \"switched our agent to Flash, ttft went from 900ms to "
+    "300ms\" produces THREE entries: best_for/coding-agent, "
+    "capability/time-to-first-response, and metric/time-to-first-token with "
+    "value_verbatim \"300ms\" and basis reported.\n\n"
+    "A quote can legitimately produce ONE entry. \"it is $0.27 per million "
+    "output\" is a metric and nothing else — no behaviour is reported and no "
+    "task is named — and that is a complete, useful record. Do not invent a "
+    "capability to pad it out.\n\n"
+    "Never empty: a claim that belongs on no section cannot be shown, so it is "
+    "not a claim. Put its quote in `unclassified` instead."
+)
+
+
 class ExtractedClaim(BaseModel):
     """One claim, as the extractor proposes it.
 
@@ -201,82 +371,38 @@ class ExtractedClaim(BaseModel):
         description="which comment inside the flattened thread this came from"
     )
     model_ref: ModelRef
-    capability: str = Field(description="a key from contract/capabilities.yaml")
 
-    #: ── BOARD ROUTING ──────────────────────────────────────────────────────
-    #: `capability` above stays REQUIRED on every claim, whichever sections
-    #: this claim feeds. That is deliberate and not redundancy: the capability
-    #: is what BEHAVED (well or badly), and it is what makes two claims on two
-    #: model pages comparable. The sections below are where the claim is SHOWN.
-    #: Keeping both means the existing cell/curation path is untouched by the
-    #: classifier, and a claim can never become unfileable by being routed.
-    board_sections: list[BoardSection] = Field(
+    #: THE LEGACY CLOSED KEY, and it does not decide what the board shows.
+    #:
+    #: This is a key from `contract/capabilities.yaml` — the ratified twelve. It
+    #: is still required because the CELL path reads it (`judge/pipeline.py`,
+    #: `judge/store/claims.py`, `judge/vet/weight.py` all index cells by
+    #: `capability_key`, and `bucket_for` looks the key up to find its failure
+    #: mode). Removing it would break scoring for every claim, so it stays until
+    #: that path is retired.
+    #:
+    #: WHAT IT IS NOT is the board's capability section. That comes from
+    #: `board_entries` below, which is discovered and unbounded. Keeping the two
+    #: apart is what lets the board show `vision` and `multimodal` — which the
+    #: ratified twelve do not contain — without either inventing a ratified key
+    #: or dropping the evidence.
+    #:
+    #: Pick the closest ratified key. Where none is close, that is a signal
+    #: rather than a failure: say so in `proposed_capabilities`.
+    capability: str = Field(
+        description=(
+            "a key from contract/capabilities.yaml. This feeds the legacy cell "
+            "score, NOT the board's capability section - the board reads "
+            "`board_entries`. Pick the closest ratified key; if none is close, "
+            "still pick the closest AND propose the missing one in "
+            "`proposed_capabilities`."
+        )
+    )
+
+    #: ── WHAT THE BOARD ACTUALLY RENDERS ───────────────────────────────────
+    board_entries: list[BoardEntry] = Field(
         min_length=1,
-        description=(
-            "Which board surfaces this claim informs — one, two or all three. "
-            "NOT a single choice: the same quote often belongs on more than "
-            "one, and listing only the most obvious loses the rest.\n\n"
-            "best_for   the quote says how a model did at a TASK somebody ran "
-            "(a coding agent, RAG over their docs, extracting fields). "
-            "Requires `job_key`.\n"
-            "capability the quote says how a model BEHAVED on a named "
-            "capability. This is the default home for a behaviour claim and "
-            "needs only the `capability` field above.\n"
-            "metric     the quote states a FIGURE on a measured axis — a "
-            "price, a latency, a token count, an eval score. Requires "
-            "`metric_key`, `metric_value_verbatim` and `metric_basis`.\n\n"
-            "Worked example. \"switched our agent to Flash, ttft went from "
-            "900ms to 300ms\" is all three: best_for (job.coding_agent), "
-            "capability (ops.latency_ttft) and metric "
-            "(metric.latency_ttft = \"300ms\", reported)."
-        ),
-    )
-    job_key: str | None = Field(
-        default=None,
-        description=(
-            "REQUIRED when `board_sections` contains best_for. A key from "
-            "contract/board_surfaces.yaml `jobs`, and nothing else.\n\n"
-            "The job is what the writer was TRYING TO DO, not the quality the "
-            "model showed. If the quote does not say what they were building, "
-            "there is no job — leave this out and drop best_for from the "
-            "sections rather than inferring one from the capability."
-        ),
-    )
-    metric_key: str | None = Field(
-        default=None,
-        description=(
-            "REQUIRED when `board_sections` contains metric. A key from "
-            "contract/board_surfaces.yaml `metrics`, and nothing else."
-        ),
-    )
-    metric_value_verbatim: str | None = Field(
-        default=None,
-        description=(
-            "REQUIRED when `board_sections` contains metric. THE FIGURE EXACTLY "
-            "AS THE TEXT WRITES IT — \"300ms\", \"$0.27/M\", \"about 200k\", "
-            "\"~35 seconds\".\n\n"
-            "COPY IT, NEVER COMPUTE IT. Do not convert seconds to "
-            "milliseconds, do not normalise a unit, do not divide a total by a "
-            "count, do not average two figures, do not resolve \"about\" into a "
-            "number. A figure you calculated is a synthesised number and rule 3 "
-            "forbids it reaching a page; code converts units afterwards, from "
-            "the characters you copied. Keep the hedge if the writer hedged — "
-            "\"about 200k\" is the finding, 200000 is a claim they did not make."
-        ),
-    )
-    metric_basis: MetricBasis | None = Field(
-        default=None,
-        description=(
-            "REQUIRED when `board_sections` contains metric.\n\n"
-            "stated   the PROVIDER says so — spec sheet, docs, model card, "
-            "launch post. An advertised ceiling.\n"
-            "reported the WRITER measured it — their run, their timing, their "
-            "bill.\n\n"
-            "These are never merged, so guessing this field corrupts the one "
-            "distinction the metric pages exist to show. It usually agrees with "
-            "`model_ref.speaking`: own-experience is reported; "
-            "vendor-about-own-product is stated."
-        ),
+        description=_BOARD_ENTRIES_DESC,
     )
 
     polarity: Polarity
@@ -345,49 +471,6 @@ class ExtractedClaim(BaseModel):
         start, end = self.quote_offset
         if start < 0 or end <= start:
             raise ValueError(f"quote_offset {self.quote_offset} is not a forward range")
-        return self
-
-    @model_validator(mode="after")
-    def _sections_carry_their_fields(self) -> ExtractedClaim:
-        """A routed claim must bring the fields its surface renders.
-
-        Enforced here rather than trusted from the prompt, for the reason the
-        rest of this file exists: the prompt asks and the schema guarantees. A
-        `best_for` claim with no `job_key` cannot be put on any job page, and a
-        `metric` claim with no figure is an empty row — both would validate as
-        a claim and then render as nothing, which is the silent-absence shape
-        rule 4 is about.
-
-        Deliberately NOT symmetrical: a `job_key` supplied when best_for is
-        absent is not an error. It is extra context that costs nothing, and
-        rejecting the whole batch over a harmless surplus field is how the
-        length check on `quote_offset` used to lose five claims out of six.
-        """
-        if "best_for" in self.board_sections and not self.job_key:
-            raise ValueError(
-                "board_sections contains 'best_for' but job_key is missing: a job "
-                "page cannot show a claim that does not name the job. Either give "
-                "a job.* key from contract/board_surfaces.yaml, or drop 'best_for' "
-                "from board_sections - an inferred job is worse than none."
-            )
-        if "metric" in self.board_sections:
-            missing = [
-                name
-                for name, value in (
-                    ("metric_key", self.metric_key),
-                    ("metric_value_verbatim", self.metric_value_verbatim),
-                    ("metric_basis", self.metric_basis),
-                )
-                if not value
-            ]
-            if missing:
-                raise ValueError(
-                    f"board_sections contains 'metric' but {', '.join(missing)} "
-                    "is missing: a metric row is the figure, the axis it sits on, "
-                    "and whether it was stated or measured. Without all three it "
-                    "renders as an empty cell. Drop 'metric' from board_sections "
-                    "if the quote carries no figure."
-                )
         return self
 
     @property

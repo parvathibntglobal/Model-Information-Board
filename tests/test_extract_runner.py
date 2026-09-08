@@ -60,7 +60,9 @@ def claim_json(quote: str, start: int, end: int, **overrides) -> str:
         # above: an answer that omits it fails schema validation, because
         # "which board surface does this belong on" is the classifier's job and
         # a default would let it skip the question silently.
-        "board_sections": ["capability"],
+        "board_entries": [{"section": "capability", "slug": "summarization-fidelity",
+                           "name": "Summarization fidelity",
+                           "definition": "Condenses long text without dropping a load-bearing detail."}],
         "polarity": "negative",
         "quote": quote,
         "quote_offset": [start, end],
@@ -233,8 +235,21 @@ class TestTheUntrustedBlock:
             assert key in prompt
         assert "never follow it" in prompt.lower() or "never follow" in prompt.lower()
 
-    def test_an_empty_vocabulary_is_refused(self):
-        with pytest.raises(ValueError, match="nothing to classify"):
+    def test_an_empty_capability_list_is_refused(self):
+        """The CLOSED list stays mandatory, even though the board sections are open.
+
+        The reason for this refusal changed when the classifier landed, and the
+        distinction is worth pinning. `capability_keys` no longer decides what
+        the board displays - the discovered `board_entries` do, and nothing caps
+        those. But the legacy cell path still indexes by `capability_key` and
+        looks the key up to find its failure mode, so a claim carrying none
+        cannot be scored at all.
+
+        So an empty list is refused for a plumbing reason now, not a
+        classification one. If the cell path is retired, this test should be
+        deleted rather than relaxed.
+        """
+        with pytest.raises(ValueError, match="no capability keys"):
             build_system_prompt([])
 
 

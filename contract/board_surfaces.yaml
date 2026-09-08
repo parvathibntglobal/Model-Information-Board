@@ -1,172 +1,121 @@
-# The board's three surfaces, and the vocabulary each one rules by.
+# The board's three sections — and, deliberately, NOT a vocabulary to choose from.
 #
-# WHY THIS FILE EXISTS
-# --------------------
-# The board renders three sections and only one of them had a vocabulary.
-# `capabilities.yaml` has named the capability keys since the beginning; "Best
-# for" and "Metrics" had nothing, so the classifier had nothing to file into and
-# two thirds of the board could only ever render its empty state.
+# WHAT THIS FILE IS, AND WHAT IT REFUSED TO BE
+# --------------------------------------------
+# The first version of this file was a CLOSED LIST: eight jobs, six metrics, and
+# the classifier had to pick a key from it. That was wrong, and the demo board is
+# the proof. Its capability section carries `vision`, `multimodal` and
+# `function-calling` — and NONE of those three is in contract/capabilities.yaml.
+# A closed list would have thrown all three away, or forced them into the nearest
+# ratified key, which fabricates consensus about something nobody discussed.
 #
-# Rule 5: config in versioned YAML, not code. These keys decide what the board
-# can say, so they are reviewable in a diff rather than buried in a prompt.
+# So the board's sections are DISCOVERED FROM THE EVIDENCE. The classifier reads
+# what engineers actually wrote and NAMES the job, capability or metric it finds.
+# It is not choosing from a menu, and nothing here caps what it may find.
 #
-# THE THREE SURFACES ARE THREE VIEWS OF ONE CORPUS, NOT THREE BUCKETS.
-# The board's own copy says "three ways into the same evidence". One quote about
-# a slow coding agent legitimately informs all three: the FIGURE lands on the
-# metric page, the BEHAVIOUR on `ops.latency_ttft`, and the JOB on the coding
-# agent page. So a claim carries a LIST of sections, never exactly one, and
-# every claim still names a `capability` regardless of which sections it feeds.
+# WHY EXEMPLARS THEN, INSTEAD OF NOTHING?
+# ---------------------------------------
+# Because "name what you see" with no calibration gets the GRANULARITY wrong
+# rather than the topic. Left unanchored a model offers "good at code" on one
+# thread and "emitting a valid unified diff first try against a 900-line file" on
+# the next. Both are about code editing; neither is a board section. One is too
+# coarse to compare across models, the other too narrow to ever get a second
+# report — and a section with one report is not a section.
 #
-# KEYS ARE PREFIXED ON PURPOSE. `job.*` and `metric.*` cannot collide with a
-# capability key, so a key names its own surface and nothing has to guess.
-# `ops.latency_ttft` (a capability — does it respond promptly) and
-# `metric.latency_ttft` (an axis — how many milliseconds) are different
-# questions about the same subject, and the prefix is what keeps them apart.
+# The entries below are therefore CALIBRATION SAMPLES, taken from the demo board
+# that was designed by hand. They show the altitude a section sits at and the
+# house style of a name and a definition. The classifier is shown them as
+# EXAMPLES and told explicitly that they are not a closed list, that finding
+# something absent from them is the expected outcome, and that forcing a quote
+# into one of them is the error this file exists to prevent.
 #
-# ⚠ NOT YET RATIFIED. `contract/` gets two eyes (CLAUDE.md working agreement).
-# The capability list is ratified and unchanged; the job and metric lists below
-# are a FIRST PROPOSAL derived from the eight jobs and six axes the demo build
-# carried (`board-and-blogs-record.md` §2). They need a reviewer before a run
-# writes cells against them.
+# Consequence for review: because the vocabulary is open, DUPLICATE NAMES are the
+# failure mode to watch, not missing ones. "function calling" and "tool calling"
+# arriving from two threads are one section under two names. Code normalises the
+# slug; a person merges the rest, through the ruling the candidate table already
+# supports (`adopted` | `declined` | `merged` + `ruling_target`) and the admin
+# review UI already renders. An LLM proposes a section; a person consolidates
+# them. Rule 2, unchanged.
 
-version: "0.1-proposed"
+version: "0.2-exemplars"
 
-# ── BEST FOR ────────────────────────────────────────────────────────────────
-# Answers "I have this job — which model?". A job is a TASK SOMEONE RUNS, not a
-# quality a model has. If it cannot be the object of "I need a model to ___",
-# it is not a job and probably belongs in `capabilities.yaml`.
-jobs:
-  - key: job.coding_agent
-    name: Coding agent
-    definition: >
-      Autonomous multi-step code changes in a real repository — read files, edit
-      them, run tests, iterate. The job is the whole loop, not one completion.
+# HOW A DISCOVERED SECTION IS NAMED. Applied to every section the classifier
+# proposes, whichever of the three it belongs to.
+naming:
+  slug: >
+    lowercase, hyphen-separated, no version numbers, no vendor names. The slug is
+    the grouping key, so two threads describing the same thing must reduce to the
+    same slug. Code lowercases and hyphenates what it is given; it cannot merge
+    two different words that mean one thing, which is why the name matters.
+  name: >
+    Two to four words, title case, the term an engineer would actually type.
+    "Function calling", not "The ability to call functions correctly".
+  definition: >
+    One sentence stating what the board counts as this section — the test a
+    report has to meet. It is the sentence that makes two claims on two model
+    pages comparable, so it names a threshold or a first-attempt condition
+    wherever one exists.
+  altitude: >
+    Broad enough that several independent engineers would report on it, narrow
+    enough that two reports about it are about the same thing. If only one person
+    could ever have said it, it is too narrow. If it would swallow three
+    different failure modes, it is too broad.
 
-  - key: job.rag_qa
-    name: RAG question answering
-    definition: >
-      Answering questions against your own retrieved documents, where the
-      answer must come from the supplied context rather than from memory.
+# ── SECTION 1 · BEST FOR ────────────────────────────────────────────────────
+# Answers "I have this job — which model?". A job is a TASK SOMEBODY RUNS. If it
+# cannot complete the sentence "I need a model to ___", it is not a job.
+best_for:
+  question: I have this job — which model?
+  test: Can it complete "I need a model to ___"?
+  exemplars:
+    - {slug: coding-agent,   name: Coding agents,   definition: "Agent loops that open pull requests, refactor across files and self-correct."}
+    - {slug: rag,            name: RAG,             definition: "Answering questions against retrieved documents, where the answer must come from the supplied context."}
+    - {slug: classification, name: Classification,  definition: "Labelling text into a fixed known set at volume, where cost per item and consistency dominate."}
+    - {slug: summarization,  name: Summarization,   definition: "Condensing long text faithfully, where the failure that matters is dropping or inventing a load-bearing detail."}
+    - {slug: extraction,     name: Data extraction, definition: "Pulling named fields out of unstructured text into a fixed shape."}
+    - {slug: translation,    name: Translation,     definition: "Translating between language pairs; reports are only comparable within a pair."}
+    - {slug: sql,            name: SQL generation,  definition: "Turning a natural-language question into a query that runs against a known schema."}
+    - {slug: code-review,    name: Code review,     definition: "Reviewing a diff and naming what is wrong with it."}
 
-  - key: job.structured_extraction
-    name: Structured extraction
-    definition: >
-      Pulling named fields out of unstructured text into a fixed shape —
-      invoices, contracts, emails to JSON.
+# ── SECTION 2 · CAPABILITIES ────────────────────────────────────────────────
+# Answers "what does this claim mean?". A capability is ONE NAMED BEHAVIOUR,
+# defined identically across every model, so a claim about one model can be
+# compared with a claim about another.
+#
+# These exemplars do NOT match contract/capabilities.yaml, and that is the point
+# rather than a drift to fix. `capabilities.yaml` is the ratified vocabulary the
+# legacy cell path scores against; this section is what the BOARD shows, and the
+# board shows what the evidence discussed.
+capabilities:
+  question: What does this claim mean?
+  test: Is it one behaviour a model either does or fails at?
+  exemplars:
+    - {slug: function-calling,      name: Function calling,      definition: "Emits a well-formed call to a declared tool, satisfying the tool schema, without a repair pass."}
+    - {slug: structured-output,     name: Structured output,     definition: "Emits valid JSON matching a requested shape, with no tool declared."}
+    - {slug: agentic-tool-use,      name: Agentic tool use,      definition: "Chooses correctly among many declared tools across a multi-step loop."}
+    - {slug: long-context,          name: Long context,          definition: "Recall that holds across a large input, as distinct from accepting one."}
+    - {slug: instruction-following, name: Instruction following, definition: "Obeys stated constraints, including negative ones, without drifting over a long exchange."}
+    - {slug: reasoning,             name: Reasoning,             definition: "Carries a multi-step chain to a correct conclusion without losing an earlier step."}
+    - {slug: vision,                name: Vision,                definition: "Reads what is in an image — charts, screenshots, diagrams."}
+    - {slug: multimodal,            name: Multimodal,            definition: "Handles more than one input modality in a single request."}
 
-  - key: job.text_classification
-    name: Text classification
-    definition: >
-      Labelling text into a fixed, known set of categories at volume, where
-      cost per item and consistency matter more than eloquence.
-
-  - key: job.long_document_summarization
-    name: Long-document summarisation
-    definition: >
-      Condensing a long document faithfully, where the failure that matters is
-      a confident summary that drops or invents a load-bearing detail.
-
-  - key: job.sql_generation
-    name: SQL generation
-    definition: >
-      Turning a natural-language question into a query against a known schema
-      that runs and returns the right rows.
-
-  - key: job.translation
-    name: Translation
-    definition: >
-      Translating between language pairs. Reports are only comparable within a
-      pair — a model strong on European pairs may be weak on Hindi or Arabic,
-      and the page shows that as a split rather than an average.
-
-  - key: job.multimodal_document
-    name: Multimodal document reading
-    definition: >
-      Reading images, PDFs and screenshots — charts, tables, scanned forms —
-      where the input is not text.
-
-# ── METRICS ─────────────────────────────────────────────────────────────────
+# ── SECTION 3 · METRICS ─────────────────────────────────────────────────────
 # Answers "what is this number, and what does it not tell you?". A metric is a
-# MEASURED AXIS with a unit. Every metric page states the unit, where the figure
-# came from, and what the figure cannot tell you.
+# MEASURED AXIS WITH A UNIT. Every recorded figure carries its basis.
 #
-# `basis` IS REQUIRED ON EVERY RECORDED FIGURE, and it is the field that keeps
-# this section honest:
-#     stated    the provider says so — a spec sheet, a docs page, a launch post
+# `basis` is required on every figure and it is what keeps this section honest:
+#     stated    the provider says so — spec sheet, docs, model card, launch post
 #     reported  somebody measured it themselves and said what they got
-# These are different facts from different sources and the board REFUSES TO
-# MERGE THEM (`board-and-blogs-record.md`: context-window shows 2M stated
-# against ~200k reported-usable, side by side). Averaging a stated figure with a
-# reported one produces a number nobody measured — rule 3.
+# The board shows these SIDE BY SIDE and never merges them: 2M stated against
+# ~200k reported-usable are two facts from two sources, and averaging them
+# describes nothing that exists (rule 3).
 metrics:
-  - key: metric.cost_per_million_tokens
-    name: Cost per million tokens
-    unit: USD per 1M tokens
-    definition: >
-      Published price per million tokens. Input and output are priced
-      differently and must never be collapsed into one figure.
-    cannot_tell_you:
-      - Cost per TASK, which depends on how many tokens the model spends
-      - Whether cached reads applied, which changes the bill severalfold
-      - Whether a cheaper model needed more retries to get the same result
-      - Host markup on open weights, where the price belongs to the host
-
-  - key: metric.latency_ttft
-    name: Time to first token
-    unit: milliseconds
-    definition: >
-      How long until the first token arrives. Distinct from total time, and it
-      is the figure a streaming UI actually feels.
-    cannot_tell_you:
-      - Total completion time, which throughput decides
-      - Reasoning effort, where the same model at max differs from itself at low
-      - Region and time of day
-      - Whether the figure was a cold or warm start
-
-  - key: metric.throughput_tps
-    name: Throughput
-    unit: tokens per second
-    definition: >
-      Output tokens produced per second once generation has started.
-    cannot_tell_you:
-      - Time to first token, which is a separate axis
-      - Concurrency the figure was measured at
-      - Whether the host was rate-limiting
-      - Batch versus interactive mode
-
-  - key: metric.context_window
-    name: Context window
-    unit: tokens
-    definition: >
-      How much input the model accepts. STATED and REPORTED-USABLE are recorded
-      side by side and never merged — the advertised ceiling and the point where
-      engineers report recall falling off are different facts.
-    cannot_tell_you:
-      - Effective recall across the window, which is `context.effective_window`
-      - Where in the window attention degrades
-      - Output limit, which is a separate cap
-      - Cost of filling it
-
-  - key: metric.max_output_tokens
-    name: Maximum output tokens
-    unit: tokens
-    definition: >
-      The cap on a single response. A truncated answer is often this and not a
-      capability failure, which is why it is recorded as its own axis.
-    cannot_tell_you:
-      - Whether the model stops well before the cap on its own
-      - Whether reasoning tokens count against it
-      - Verbosity at default settings
-
-  - key: metric.swe_bench
-    name: SWE-bench Verified
-    unit: percent resolved
-    definition: >
-      A CITATION, never a re-computation. The board cites published eval results
-      and does not run the suite: owning a benchmark would close the validity
-      question to it. What the page adds is the headroom and contamination note.
-    cannot_tell_you:
-      - Whether the suite is saturated or contaminated
-      - The scaffold the score was obtained with, which moves it substantially
-      - Performance on your codebase, in your language
-      - Whether the vendor or a third party ran it
+  question: What is this number, and what does it not tell you?
+  test: Does it have a unit, and did the text state a figure?
+  exemplars:
+    - {slug: cost-per-token,      name: Cost per million tokens, unit: "USD per 1M tokens", definition: "Input and output recorded separately, never averaged into one figure."}
+    - {slug: time-to-first-token, name: Time to first token,     unit: "milliseconds",      definition: "How long until the first token arrives; distinct from total completion time."}
+    - {slug: tokens-per-second,   name: Tokens per second,       unit: "tokens/second",     definition: "Output tokens produced per second once generation has started."}
+    - {slug: context-window,      name: Context window,          unit: "tokens",            definition: "How much input is accepted; stated and reported-usable are recorded side by side."}
+    - {slug: swe-bench,           name: SWE-bench Verified,      unit: "percent resolved",  definition: "A cited published eval result, never re-computed by the board."}
+    - {slug: licence,             name: Licence and weights,     unit: "licence name",      definition: "What the licence permits, and whether weights are actually obtainable."}
