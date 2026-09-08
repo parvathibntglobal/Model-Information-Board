@@ -661,6 +661,95 @@ CREATE TABLE capability_candidate (
 );
 CREATE INDEX capability_candidate_key_idx ON capability_candidate (proposed_key);
 
+-- ============================================================================
+--  board_entry - WHAT THE CLASSIFIER DISCOVERED, and what the Board renders
+-- ============================================================================
+--  Ungated on purpose. `cell` publishes a VERDICT and is gated (n_eff >= 3.0,
+--  two platforms); the board's three sections are OBSERVATIONS, and gating
+--  them behind four agreeing voices would leave every section empty while the
+--  evidence sat in the database. What is still enforced: quote_verified is
+--  CHECKed true (rule 1 does not bend for a new table), a metric row carries
+--  its unit/figure/basis, and `basis` keeps stated and reported apart.
+--  `slug` has NO closed vocabulary - the sections are discovered, so the cost
+--  is duplicates rather than gaps, and `ruling`/`ruling_target` is how a
+--  person merges two names for one section. Rationale in full:
+--  contract/migrations/20260908T1700_board_entry.sql
+-- ----------------------------------------------------------------------------
+
+CREATE TABLE board_entry (
+  id                text PRIMARY KEY,   -- content hash of the natural key below
+
+  -- WHICH OF THE THREE, and they are of equal standing. No section is a
+  -- fallback for another, and one quote may produce a row in each.
+  section           text NOT NULL,      -- best_for | capability | metric
+  slug              text NOT NULL,      -- grouping key, normalised in code
+  name              text NOT NULL,      -- the heading the board renders
+  definition        text NOT NULL,      -- the test a report has to meet
+
+  -- ── metric-only ──────────────────────────────────────────────────────────
+  unit              text,               -- "milliseconds", "USD per 1M tokens"
+  value_verbatim    text,               -- THE FIGURE AS WRITTEN. Never computed.
+  basis             text,               -- stated | reported
+
+  -- ── provenance: every row traces to one verified quote ───────────────────
+  model_version_id  text REFERENCES model_version(id),
+  document_id       text NOT NULL REFERENCES document(id),
+  claim_id          text REFERENCES claim(id),
+  quote             text NOT NULL,
+  quote_verified    boolean NOT NULL,
+  polarity          text NOT NULL,      -- positive | negative | neutral
+  proposer_model    text NOT NULL,      -- which model classified it
+  pipeline_version  text NOT NULL,
+  created_at        timestamptz NOT NULL DEFAULT now(),
+
+  -- ── consolidation, not publication ───────────────────────────────────────
+  -- There is no gate here. A ruling only ever REMOVES or REDIRECTS a row that
+  -- should not stand on its own; a row with `ruling IS NULL` is shown.
+  ruling            text,               -- adopted | declined | merged
+  ruling_target     text,               -- the slug a `merged` row folds into
+  reviewed_at       timestamptz,
+
+  CONSTRAINT board_entry_section_ck
+    CHECK (section IN ('best_for', 'capability', 'metric')),
+
+  CONSTRAINT board_entry_basis_ck
+    CHECK (basis IS NULL OR basis IN ('stated', 'reported')),
+
+  CONSTRAINT board_entry_polarity_ck
+    CHECK (polarity IN ('positive', 'negative', 'neutral')),
+
+  -- A metric row is the figure, its unit, and where it came from. Any one of
+  -- them missing makes the row unrenderable, so it is refused at the boundary.
+  CONSTRAINT board_entry_metric_complete_ck CHECK (
+    CASE WHEN section = 'metric'
+         THEN unit IS NOT NULL AND value_verbatim IS NOT NULL AND basis IS NOT NULL
+         ELSE TRUE END
+  ),
+
+  -- Rule 1, restated in the schema. NO `IS NULL OR`: an unverified quote has no
+  -- business in a table the board reads.
+  CONSTRAINT board_entry_quote_verified_ck CHECK (quote_verified = true),
+
+  CONSTRAINT board_entry_ruling_ck
+    CHECK (ruling IS NULL OR ruling IN ('adopted', 'declined', 'merged')),
+  CONSTRAINT board_entry_reviewed_ck
+    CHECK ((ruling IS NULL) = (reviewed_at IS NULL)),
+  CONSTRAINT board_entry_merge_target_ck CHECK (
+    CASE WHEN ruling = 'merged' THEN ruling_target IS NOT NULL ELSE TRUE END
+  ),
+
+  -- IDEMPOTENT RE-RUNS. Re-classifying the same corpus must not double the
+  -- report count the page shows, so the natural key is the quote in its
+  -- document under this section and slug, at this pipeline version.
+  CONSTRAINT board_entry_natural_key
+    UNIQUE (document_id, section, slug, quote, pipeline_version)
+);
+
+-- The board reads by section then slug on every page load; the model pages read
+-- by model. Both are the whole access pattern.
+CREATE INDEX board_entry_section_slug_idx ON board_entry (section, slug);
+CREATE INDEX board_entry_model_idx        ON board_entry (model_version_id);
+
 CREATE TABLE claim (
   id                    text PRIMARY KEY,
   document_id           text NOT NULL REFERENCES document(id),

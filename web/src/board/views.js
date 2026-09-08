@@ -3,35 +3,50 @@
 import { DB } from './db'
 
 const byS = (arr,s) => arr.find(x=>x.slug===s);
-const ST = {v:['ev-v','verified'], c:['ev-c','contested'], n:['ev-n','not discussed']};
+const ST = {v:['ev-v','verified'], c:['ev-c','contested'], s:['ev-n','single report'],
+            n:['ev-n','not discussed']};
+// A state we were not given renders as 'not discussed' rather than throwing:
+// an unknown state is an absence, and absence is a real value on this board.
+const stOf = (k) => ST[k] || ST.n;
 
 function crumb(parts){
   return '<p class="crumb">'+parts.map(([t,h])=>h?`<a data-go="${h}">${t}</a>`:t).join('<i>/</i>')+'</p>';
 }
 function ranked(rows){
+  if(!rows || !rows.length) return '';
   return '<div class="ranked">'+rows.map((r,i)=>{
-    const [cls,lbl]=ST[r.s];
+    const [cls,lbl]=stOf(r.s);
     return `<div class="rank${r.dim?' dim':''}"><span class="n">${String(i+1).padStart(2,'0')}</span>
       <div><b>${r.m}</b><span class="vend">${r.v}</span><p>${r.d}</p></div>
       <div class="right"><span class="price">${r.p}</span><span class="st ${cls}">${r.e} · ${lbl}</span></div></div>`;
   }).join('')+'</div>';
 }
 function conds(list){
+  if(!list || !list.length) return '';
   return '<ul class="conds">'+list.map(([a,b])=>`<li><b>${a}</b><span>${b}</span></li>`).join('')+'</ul>';
 }
 function quotes(qs){
+  if(!qs || !qs.length) return '';
   return '<div class="quotes">'+qs.map(([q,who,src,c])=>
     `<div class="qb${c?' c':''}"><q>${q}</q><cite>${who} · ${src} · <u>open the source</u></cite></div>`).join('')+'</div>';
 }
 function related(list){
+  if(!list || !list.length) return '';
   return '<div class="related">'+list.map(([h,t])=>`<a data-go="${h}">${t}</a>`).join('')+'</div>';
 }
 function sec(eyebrow,h2,intro,inner){
+  // An empty `inner` means the pipeline produced nothing for this block. Render
+  // NOTHING rather than a heading over a void: the demo's `pick`, `conds`,
+  // `nots` and `lim` blocks were written by hand, and a classifier does not
+  // produce them. A fabricated pick is the synthesised claim rule 3 forbids,
+  // and an invented condition is worse than a missing one because it reads as
+  // a finding. So the block waits for an editor instead of guessing.
+  if(!inner || !String(inner).trim()) return '';
   return `<div class="shell sec"><div class="sec-h">${eyebrow?`<span class="eyebrow">${eyebrow}</span>`:''}
     ${h2?`<h2>${h2}</h2>`:''}${intro?`<p>${intro}</p>`:''}</div>${inner}</div>`;
 }
 function card(x, route){
-  const [cls,lbl]=ST[x.st];
+  const [cls,lbl]=stOf(x.st);
   return `<div class="icard" data-go="${route}:${x.slug}"><b>${x.name}</b><p>${x.card}</p>
     <div class="meta"><span class="${cls}">${x.ev} · ${lbl}</span><span>${x.vol}</span></div></div>`;
 }
@@ -71,11 +86,14 @@ function vBoard(tab){
 
 function vJob(slug){
   const j = byS(DB.jobs,slug); if(!j) return vBoard('best');
-  const [w,pr,ev,why]=j.pick;
+  // `pick` names ONE model the winner, and that is an editorial judgement no
+  // classifier makes. Absent by default, so the block below is skipped rather
+  // than filled with a guess.
+  const [w,pr,ev,why] = j.pick || [];
   return `<div class="shell phead">${crumb([['Board','board'],['Best for','board:best'],[j.name,null]])}
     <h1>${j.h1}</h1><p class="sub">${j.sub}</p></div>
-    ${sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
-      <p><b>${w}</b> at ${pr}.</p><p>${why}</p></div>`)}
+    ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
+      <p><b>${w}</b> at ${pr}.</p><p>${why}</p></div>`) : ''}
     ${sec('Every model with reports for this job','What engineers actually ran','',ranked(j.rows))}
     ${sec('Conditions that change the answer','Where the pick stops holding',
       'Most disagreements between engineers are condition mismatches rather than contradictions. These are the ones the reports keep naming.',conds(j.conds))}
@@ -86,9 +104,9 @@ function vJob(slug){
 function vCap(slug){
   const c = byS(DB.caps,slug); if(!c) return vBoard('cap');
   return `<div class="shell phead">${crumb([['Board','board'],['Capabilities','board:cap'],[c.name,null]])}
-    <h1>${c.name}</h1><p class="sub">One of eight capabilities the board rules by. This page is the
-    definition every model page resolves against, so a claim made on one can be compared with a claim
-    made on another.</p></div>
+    <h1>${c.name}</h1><p class="sub">A capability the board found engineers discussing. This page is
+    the definition every model page resolves against, so a report about one model can be compared with a
+    report about another.</p></div>
     ${sec('','','',`<div class="defbox"><div class="l">definition</div><p>${c.d1}</p><p>${c.d2}</p></div>`)}
     ${sec('What this is not','Three things filed elsewhere',
       'Capability boundaries exist so a disagreement is a disagreement rather than two people using one word for two things.',conds(c.nots))}
@@ -102,13 +120,14 @@ function vMet(slug){
   const head = m.cols.map((c,i)=>`<th${m.num[i]?' class="r"':''}>${c}</th>`).join('');
   const body = m.rows.map(r=>'<tr>'+r.map((v,i)=>`<td${m.num[i]?' class="r"':''}>${v}</td>`).join('')+'</tr>').join('');
   return `<div class="shell phead">${crumb([['Board','board'],['Metrics','board:met'],[m.name,null]])}
-    <h1>${m.name}</h1><p class="sub">One of six axes the board records on every model. This page states
-    the unit, where the figure came from, and the thing the number cannot tell you.</p></div>
+    <h1>${m.name}</h1><p class="sub">An axis the board found figures for. Every figure is shown as the
+    text wrote it, with whether it was <b>stated</b> by the provider or <b>reported</b> by somebody who
+    measured it — the two are never merged.</p></div>
     ${sec('','','',`<div class="defbox"><div class="l">unit · ${m.unit}</div><p>${m.d1}</p><p>${m.d2}</p></div>`)}
     ${sec('The number\u2019s limits','What this metric cannot tell you',
       'Four things that change the figure and never appear beside it.',conds(m.lim))}
     ${sec('Every model tracked','Recorded figures',
-      'Demo data in this build. In production each row carries its source and the date it was measured.',
+      'Each figure is copied verbatim from the evidence. A stated figure and a reported one are different facts from different sources, so they sit side by side rather than being averaged.',
       `<div class="tblwrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`)}
     ${sec('Related','','',related(m.rel))}`;
 }

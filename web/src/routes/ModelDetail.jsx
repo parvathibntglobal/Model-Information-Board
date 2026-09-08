@@ -7,7 +7,7 @@ import { IconAlert, IconArrow, IconExternal } from '../components/Icons'
 
 const STATE = {
   published:    { tone: 'pass', label: 'published' },
-  insufficient: { tone: 'warn', label: 'below the gate' },
+  insufficient: { tone: 'warn', label: 'few reports' },
   unreported:   { tone: 'mute', label: 'nobody has discussed this' },
 }
 
@@ -405,7 +405,7 @@ function ReportedStrip({ page, focus }) {
           >
             {capLabel(c.key)}
             <Badge tone={c.state === 'published' ? 'pass' : 'warn'}>
-              {c.state === 'published' ? 'published' : 'below the gate'}
+              {c.state === 'published' ? 'reported' : 'few reports'}
             </Badge>
           </a>
         ))}

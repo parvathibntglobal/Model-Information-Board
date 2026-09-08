@@ -1,0 +1,206 @@
+"""Persist what the classifier discovered, and serve the Board page from it.
+
+The classifier NAMES a job, a capability or a metric; nothing here decides one.
+Rows land in `board_entry` and the Board page groups them by slug. There is no
+publication gate, deliberately — see the table comment. `cell` publishes a
+verdict and is gated; these three sections are observations, and gating them
+behind four agreeing voices would leave the board empty while the evidence sat
+in the database.
+
+WHAT THIS MODULE IS ACTUALLY FOR, beyond the INSERT
+---------------------------------------------------
+An open vocabulary trades gaps for DUPLICATES: "function calling" and "tool
+calling" from two threads are one section under two names. Two things narrow
+that, and neither is a model deciding anything.
+
+  `normalise_slug`   mechanical only. Case, spacing, punctuation, a leading
+                     `job.`/`metric.` prefix if the model emitted one. It cannot
+                     tell that two different WORDS mean one thing, and it does
+                     not try — guessing that would be the LLM's judgement moved
+                     into code, which is the same mistake wearing a hat.
+
+  `ruling`           a person folds one slug into another (`merged` +
+                     `ruling_target`), through the same shape
+                     `capability_candidate` already uses. That is the only place
+                     a synonym is resolved.
+
+IDEMPOTENT, and that is the report count's integrity. `id` is the content hash
+of the natural key (document, section, slug, quote, pipeline_version), written
+`ON CONFLICT DO NOTHING`, so re-classifying the same corpus cannot inflate the
+number of reports the page shows.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import re
+from typing import Any
+
+from judge.store.claims import PIPELINE_VERSION
+
+SECTIONS = ("best_for", "capability", "metric")
+
+#: Anything that is not a letter, a digit or a hyphen becomes a hyphen.
+_NON_SLUG = re.compile(r"[^a-z0-9]+")
+#: A prefix the classifier is told not to emit but might: `job.rag` -> `rag`.
+_PREFIX = re.compile(r"^(job|metric|capability|cap)[._-]")
+
+
+def normalise_slug(raw: str) -> str:
+    """Mechanical slug normalisation. NO synonym resolution.
+
+    `Function Calling`, `function calling` and `function_calling` are one slug.
+    `tool-calling` is NOT folded into `function-calling` here, however obvious
+    that looks: a synonym table in code is a judgement about meaning, and the
+    moment it is wrong it silently merges two genuinely different sections. That
+    call belongs to a person, through `ruling`.
+    """
+    slug = _NON_SLUG.sub("-", raw.strip().casefold()).strip("-")
+    slug = _PREFIX.sub("", slug)
+    return slug.strip("-")
+
+
+def entry_id(
+    *, document_id: str, section: str, slug: str, quote: str, pipeline_version: str
+) -> str:
+    """Content hash of the natural key, so a re-run produces the same id."""
+    digest = hashlib.sha256(
+        "\x1f".join([document_id, section, slug, quote, pipeline_version]).encode("utf-8")
+    ).hexdigest()
+    return f"be_{digest[:24]}"
+
+
+def store_entries(
+    conn: Any,
+    entries: list[dict],
+    *,
+    proposer_model: str,
+    pipeline_version: str = PIPELINE_VERSION,
+) -> dict[str, int]:
+    """Append discovered entries. Returns {proposed, stored, skipped_unverified}.
+
+    Each dict carries: section, slug, name, definition, document_id, quote,
+    quote_verified, polarity, and optionally model_version_id, claim_id, and
+    unit/value_verbatim/basis for a metric.
+
+    AN UNVERIFIED QUOTE IS NOT STORED, and it is counted rather than dropped
+    quietly. The table CHECKs `quote_verified = true`, so passing one would
+    raise and take the whole batch with it; refusing it here keeps the rest of
+    the batch and still reports that it happened. Rule 1 has no exception for a
+    new table, and rule 4 says the refusal must be visible.
+    """
+    proposed = len(entries)
+    stored = 0
+    skipped = 0
+    with conn.cursor() as cur:
+        for e in entries:
+            if not e.get("quote_verified"):
+                skipped += 1
+                continue
+            section = e["section"]
+            if section not in SECTIONS:
+                raise ValueError(
+                    f"unknown board section {section!r}: the three sections are "
+                    f"{SECTIONS}. A new section is a product decision, not a "
+                    "value the classifier may invent - unlike the slug, which it "
+                    "may."
+                )
+            slug = normalise_slug(e["slug"])
+            if not slug:
+                skipped += 1
+                continue
+            cur.execute(
+                "INSERT INTO board_entry "
+                "(id, section, slug, name, definition, unit, value_verbatim, basis,"
+                " model_version_id, document_id, claim_id, quote, quote_verified,"
+                " polarity, proposer_model, pipeline_version) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (id) DO NOTHING",
+                (
+                    entry_id(
+                        document_id=e["document_id"], section=section, slug=slug,
+                        quote=e["quote"], pipeline_version=pipeline_version,
+                    ),
+                    section, slug, e["name"], e["definition"],
+                    e.get("unit"), e.get("value_verbatim"), e.get("basis"),
+                    e.get("model_version_id"), e["document_id"], e.get("claim_id"),
+                    e["quote"], True, e["polarity"], proposer_model, pipeline_version,
+                ),
+            )
+            stored += cur.rowcount  # 1 on insert, 0 on conflict
+    return {"proposed": proposed, "stored": stored, "skipped_unverified": skipped}
+
+
+# ── the Board page read ──────────────────────────────────────────────────────
+
+
+def board_sections(conn: Any) -> dict[str, list[dict]]:
+    """Everything the Board page renders, grouped by section then slug.
+
+    Returns {"best_for": [...], "capability": [...], "metric": [...]}, each item
+    a discovered section with its report count, the models named in it, and the
+    quotes behind it.
+
+    `declined` rows are excluded and `merged` rows are counted under their
+    target, so a person's consolidation shows up here without rewriting history
+    — the rows stay, the grouping changes.
+
+    THE REPORT COUNT IS A FLOOR, and it is labelled that way wherever it is
+    shown. An open vocabulary fragments one section across phrasings until
+    somebody merges them, so `reports` is ">= N" rather than N. Saying so is
+    rule 7: the figure travels with what it actually counted.
+    """
+    rows = conn.execute(
+        "SELECT section,"
+        "       COALESCE(ruling_target, slug) AS slug,"
+        "       name, definition, unit, value_verbatim, basis,"
+        "       model_version_id, document_id, quote, polarity, created_at "
+        "FROM board_entry "
+        "WHERE ruling IS DISTINCT FROM 'declined' "
+        "ORDER BY section, COALESCE(ruling_target, slug), created_at DESC"
+    ).fetchall()
+
+    grouped: dict[str, dict[str, dict]] = {s: {} for s in SECTIONS}
+    for (section, slug, name, definition, unit, value, basis,
+         mv_id, doc_id, quote, polarity, _created_at) in rows:
+        if section not in grouped:
+            continue
+        bucket = grouped[section].setdefault(
+            slug,
+            {
+                "slug": slug, "name": name, "definition": definition,
+                "unit": unit, "reports": 0, "models": {}, "quotes": [], "figures": [],
+            },
+        )
+        bucket["reports"] += 1
+        if mv_id:
+            bucket["models"][mv_id] = bucket["models"].get(mv_id, 0) + 1
+        # The quote list is the evidence, so it is capped for payload size rather
+        # than sampled - newest first, and the count above is the honest total.
+        if len(bucket["quotes"]) < 12:
+            bucket["quotes"].append(
+                {"quote": quote, "document_id": doc_id, "polarity": polarity,
+                 "model_version_id": mv_id}
+            )
+        if section == "metric" and value is not None:
+            bucket["figures"].append(
+                {"value": value, "basis": basis, "unit": unit,
+                 "model_version_id": mv_id, "document_id": doc_id}
+            )
+
+    out: dict[str, list[dict]] = {}
+    for section, by_slug in grouped.items():
+        items = []
+        for item in by_slug.values():
+            item["models"] = [
+                {"model_version_id": m, "reports": n}
+                for m, n in sorted(item["models"].items(), key=lambda kv: -kv[1])
+            ]
+            if section != "metric":
+                item.pop("figures", None)
+                item.pop("unit", None)
+            items.append(item)
+        # Most-reported first: the ordering is a COUNT, never a score.
+        items.sort(key=lambda i: (-i["reports"], i["slug"]))
+        out[section] = items
+    return out

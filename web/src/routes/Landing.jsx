@@ -143,7 +143,7 @@ export default function Landing() {
               <div className="stack stack-1">
                 <span className="eyebrow">One nightly run</span>
                 <p className="muted" style={{ fontSize: 'var(--fs-sm)' }}>
-                  Filters run cheapest first. Only what survives all of them is ever published.
+                  Filters run cheapest first. Only what survives all of them reaches the board.
                 </p>
               </div>
               <Badge tone="info">illustrative</Badge>
@@ -151,8 +151,8 @@ export default function Landing() {
             <div className="grid g4">
               <Stat n="10,000" l="posts harvested" />
               <Stat n="1,200" l="reach the reader" />
-              <Stat n="1,700" l="claims kept" />
-              <Stat n="96" l="cells published" />
+              <Stat n="1,700" l="quotes verified" />
+              <Stat n="96" l="board sections found" />
             </div>
           </div>
         </Reveal>

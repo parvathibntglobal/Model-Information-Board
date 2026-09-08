@@ -35,11 +35,11 @@ import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
  */
 const EVIDENCE = {
   all:         { label: 'All models',  match: () => true },
-  // ANY cell, published or not. Named for what a reader is looking for -
+  // ANY report, gated or not. Named for what a reader is looking for -
   // "which of these has somebody actually said something about" - rather than
   // for the gate status, which is a per-row fact and is shown as one.
-  evidence:    { label: 'Evidence',    match: (m) => (m.evidence?.cells || 0) > 0 },
-  unreported:  { label: 'Undiscussed', match: (m) => (m.evidence?.cells || 0) === 0 },
+  evidence:    { label: 'Evidence',    match: (m) => (m.evidence?.reports || 0) > 0 },
+  unreported:  { label: 'Undiscussed', match: (m) => (m.evidence?.reports || 0) === 0 },
 }
 
 const SORTS = {
@@ -233,8 +233,8 @@ export default function Models() {
 
   // Counted off the roster, not the filtered view — a tab that says how many
   // it holds must not change when another tab is selected.
-  const publishedCount = useMemo(
-    () => (roster || []).filter((m) => m.evidence?.published > 0).length,
+  const reportedCount = useMemo(
+    () => (roster || []).filter((m) => (m.evidence?.reports || 0) > 0).length,
     [roster]
   )
 
@@ -343,13 +343,12 @@ export default function Models() {
 
             {evidenceFilter === 'evidence' && (
               <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
-                {publishedCount > 0
-                  ? <>{publishedCount} of these have cleared the gate; the rest are below it.</>
-                  : <>Somebody has reported on each of these. <strong>None has cleared the
-                     gate yet</strong> — publishing needs roughly three independent voices
-                     across two platforms, and every one of them is at one. Below the gate
-                     is not a verdict: not “good”, not “bad”, just not enough voices to say
-                     either. Each row says which state it is in.</>}
+                {reportedCount > 0
+                  ? <>{reportedCount} of these have reports behind them. A report count is
+                     not a verdict — it says how many people spoke, not who was right.</>
+                  : <>Nobody has reported on these yet. That is an absence we found, not a
+                     judgement we made: not “good”, not “bad”, just nothing said. Each row
+                     says which state it is in.</>}
               </p>
             )}
 
@@ -514,13 +513,16 @@ function ModelRow({ m, rows, capFilter }) {
 function EvidenceBadge({ e, rows }) {
   const state = e?.state || 'unreported'
 
+  // The board has no publication gate any more, so these badges COUNT reports
+  // rather than announcing a gate verdict. A count says how many people spoke;
+  // it never says who was right.
   if (state === 'published') {
-    return <Badge tone="pass">published{rows ? ` · ${rows.length}` : ''}</Badge>
+    return <Badge tone="pass">reported{rows ? ` · ${rows.length}` : ''}</Badge>
   }
   if (state === 'insufficient') {
     return (
-      <Badge tone="warn" title="Someone has reported on this and it has not cleared the gate">
-        below the gate{e.cells ? ` · ${e.cells}` : ''}
+      <Badge tone="warn" title="Somebody has reported on this. A low count is not a verdict.">
+        few reports{e.reports ? ` · ${e.reports}` : ''}
       </Badge>
     )
   }

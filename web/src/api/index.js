@@ -110,14 +110,18 @@ const TRACKED = [
     display_name: 'GPT 6 Astra', provider: 'OpenAI',
     price_in: null, price_out: null, advertised_context: null,
     state: 'unreported', phrases: [], conditional: false, voices: 0,
-    evidence: { cells: 0, capabilities: [], published: 0 },
+    // No `cells`/`published` here: the board renders discovered board_entry rows
+    // (GET /board), and there is no cell or publication surface in the UI.
+    evidence: { reports: 0, sections: [] },
   },
   {
     model_version_id: 'anthropic/claude-fable-5-1', canonical_id: 'anthropic/claude-fable-5-1',
     display_name: 'Claude Fable 5.1', provider: 'Anthropic',
     price_in: null, price_out: null, advertised_context: null,
     state: 'unreported', phrases: [], conditional: false, voices: 0,
-    evidence: { cells: 0, capabilities: [], published: 0 },
+    // No `cells`/`published` here: the board renders discovered board_entry rows
+    // (GET /board), and there is no cell or publication surface in the UI.
+    evidence: { reports: 0, sections: [] },
   },
 ]
 const TRACKED_PAGE = { has_more: false, returned: TRACKED.length, limit: 500, offset: 0 }
@@ -222,6 +226,16 @@ export const fetchRuns = (modelVersionId) =>
   request(`/fetch/runs?model_version_id=${encodeURIComponent(modelVersionId)}`)
 
 export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
+/**
+ * The board's three sections, DISCOVERED by the classifier rather than chosen
+ * from a list. Returns { jobs, caps, mets, counts, report_counts_are_a_floor }.
+ *
+ * `reports` on each section IS A FLOOR and the UI must say so: the vocabulary
+ * is open, so one section can arrive under two names until the duplicates are
+ * merged. Rendering it as an exact total would overstate what was counted.
+ */
+export const boardPage = () => request('/board')
+
 export const coveragePage = () => request('/coverage')
 export const changelogPage = (days = 30) => request(`/changelog?days=${days}`)
 

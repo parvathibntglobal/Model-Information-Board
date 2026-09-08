@@ -998,6 +998,47 @@ def filtered_page(limit: int = 200) -> dict:
     }
 
 
+@app.get("/board")
+def board_page() -> dict:
+    """The three board sections, as the classifier DISCOVERED them.
+
+    Ungated. `cell` publishes a verdict and clears a gate first; these are
+    observations, and holding them back until four voices agreed would render
+    three empty sections while the evidence sat in the database.
+
+    `reports` IS A FLOOR AND SAYS SO. The vocabulary is open, so one section can
+    arrive under two names until somebody merges them - which means the count is
+    ">= N" rather than N. Shipping the qualifier with the number rather than
+    beside it in a docstring is rule 7: a figure travels with what it counted.
+
+    Nothing here ranks or scores. Sections are ordered by report count, which is
+    a count, and each carries the models named in it and the quotes behind it.
+    """
+    from judge.store.board_entries import board_sections
+
+    with _conn() as conn:
+        sections = board_sections(conn)
+
+    return {
+        # The demo board's three tabs, in its own order: Best for, Capabilities,
+        # Metrics. The frontend renders these keys directly.
+        "jobs": sections["best_for"],
+        "caps": sections["capability"],
+        "mets": sections["metric"],
+        "counts": {
+            "jobs": len(sections["best_for"]),
+            "caps": len(sections["capability"]),
+            "mets": len(sections["metric"]),
+        },
+        "report_counts_are_a_floor": True,
+        "summary": (
+            "Discovered from the evidence, not chosen from a list. Report counts "
+            "are a floor: an open vocabulary can name one section two ways until "
+            "the duplicates are merged."
+        ),
+    }
+
+
 @app.get("/coverage")
 def coverage_page() -> dict:
     """What the board does not know, and what it has not checked."""
