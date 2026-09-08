@@ -1,0 +1,42 @@
+{
+  "measured_at": "2026-09-08T07:21:25.748876+00:00",
+  "what": "Documents that resolve to a model ONLY through a surface the original text continues as a version - `fable 5` matched inside `fable 5.1`. Detected by re-locating each hit in the ORIGINAL text, which is not always possible: a surface can match only in normalised space, and those are counted apart.",
+  "method_limit": "`normalize_with_boundaries` returns no offsets back to the source, so a surface matching only in normalised space cannot be re-located and is SKIPPED rather than judged. That limit is the finding: the guard cannot be written inside resolve() without those offsets.",
+  "corpora": {
+    "new_platform_corpus": {
+      "documents": 192,
+      "misattributed_only_via_near_miss": 36,
+      "share": 18.75,
+      "by_source": {
+        "hackernews": 15,
+        "devto": 7,
+        "x": 14
+      },
+      "filed_against": {
+        "anthropic/claude-fable-5": 35,
+        "openai/gpt-5": 2
+      },
+      "docs_with_a_surface_not_locatable_in_the_original": 126
+    },
+    "staging_corpus": {
+      "documents": 5010,
+      "misattributed_only_via_near_miss": 20,
+      "share": 0.4,
+      "by_source": {
+        "reddit": 3,
+        "github": 17
+      },
+      "filed_against": {
+        "anthropic/claude-sonnet-4": 7,
+        "openai/gpt-4": 4,
+        "anthropic/claude-sonnet-4.5": 3,
+        "anthropic/claude-opus-4": 2,
+        "anthropic/claude-sonnet-5": 2,
+        "anthropic/claude-opus-4.6": 1,
+        "anthropic/claude-opus-4.1": 1,
+        "anthropic/claude-3-haiku": 1
+      },
+      "docs_with_a_surface_not_locatable_in_the_original": 3035
+    }
+  }
+}

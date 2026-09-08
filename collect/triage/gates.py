@@ -163,7 +163,11 @@ from datetime import date
 from enum import StrEnum
 
 from collect.triage.bots import BotList
-from collect.triage.entity import SurfacePopulation, resolve
+from collect.triage.entity import (
+    SurfacePopulation,
+    resolve,
+    resolve_with_near_misses,
+)
 from collect.triage.specificity import (
     has_code,
     has_conditions,
@@ -186,6 +190,17 @@ KNOWN_BOT = "known-bot"
 #: login are counted under this, because that judgement's error rate was
 #: measured on a population we chose by grepping our own corpus.
 KNOWN_BOT_COUNTED = "known-bot-counted"
+
+#: NOT A GATE EITHER. A flag: every surface this document resolved through was
+#: matched inside a longer VERSION string, so the model it will be filed against
+#: is not the model it discusses - `fable 5` inside `fable 5.1`.
+#:
+#: RECORDED AND NOT ACTED ON, which is rule 8's direction. Resolution is
+#: unchanged: the document is still attributed, still wrongly, and now COUNTED.
+#: The count is what a refusal would be promoted on, and it is also the registry
+#: work-list - N documents flagged on `fable 5` is the signal that says register
+#: Fable 5.1, arriving without anybody going looking.
+NEAR_MISS = "near-miss-not-registered"
 
 #: Every gate §8 names. An ORDER FOR REPORTING, not for execution - `triage`
 #: runs all six on every document, so this fixes how they are listed and nothing
@@ -345,6 +360,12 @@ class TriageResult:
     #: matched_surfaces` was right until that date: check
     #: `subject_was_inherited`, or read `all_surfaces` for the union.
     matched_surfaces: tuple[str, ...] = ()
+    #: Surfaces matched ONLY inside a longer version string - `fable 5` in
+    #: `fable 5.1`. A SUBSET of `matched_surfaces`, never disjoint from it, which
+    #: is the reading three separate counts have now got wrong: these surfaces
+    #: DID resolve and DID attribute the document. The flag `NEAR_MISS` fires
+    #: only when every matched surface is one of these.
+    near_miss_surfaces: tuple[str, ...] = ()
     #: Surfaces matched in the THREAD ROOT'S text and not in this document's.
     #: Empty unless the platform supplied a root (Hacker News alone today) and
     #: the document's own text resolved nothing.
@@ -637,7 +658,8 @@ def triage(
          gone. Where the document's own text names nothing, `out_of_window`
          still returns NOT_APPLICABLE, exactly as it did before this change.
     """
-    matched = resolve(doc.text, population)
+    resolution = resolve_with_near_misses(doc.text, population)
+    matched = resolution.hits
     inherited = (
         resolve(doc.thread_subject_text, population)
         if not matched and doc.thread_subject_text
@@ -673,7 +695,10 @@ def triage(
         not_applicable=not_applicable,
         matched_surfaces=matched,
         inherited_surfaces=inherited,
-        flags=(KNOWN_BOT_COUNTED,) if counted is True else (),
+        flags=(
+            (KNOWN_BOT_COUNTED,) if counted is True else ()
+        ) + ((NEAR_MISS,) if resolution.only_near_misses else ()),
+        near_miss_surfaces=resolution.near_misses,
         population_fingerprint=population.fingerprint,
     )
 
