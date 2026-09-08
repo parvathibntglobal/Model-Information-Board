@@ -1,0 +1,213 @@
+# ============================================================================
+#  The known-bot list. Rule 5 puts a filter rule in `contract/`, and this is it.
+#
+#  SHARED. Changes go through a PR — this file DROPS DOCUMENTS.
+#
+#  ⚠ NEEDS E2's SIGN-OFF, per the lane rule on contract/.
+#
+#  Loaded by `collect/triage/bots.py`; consumed by
+#  `collect/triage/gates.py:known_bot` (the gate) and `counted_bot` (the flag).
+#  Until this file existed the gate reported UNAVAILABLE for every document in
+#  the corpus, and every survival figure computed in that state was an upper
+#  bound. First run with it: `docs/the-three-dead-gates-2026-09-08.md`.
+#
+#  TWO LISTS PER SOURCE, AND THE SPLIT IS RULE 8
+#  ----------------------------------------------
+#      accounts:   GATED. The document is DROPPED.
+#      counted:    FLAGGED and KEPT. Recorded, never acted on.
+#
+#  Rule 8's reviewer question is *what population was this filter's error rate
+#  measured on, and did the filter, or anything upstream of it, choose that
+#  population?* The two lists below answer it differently, which is the whole
+#  reason there are two:
+#
+#    `accounts` — 26 accounts where GITHUB SAYS SO. `GET /users/{login}`
+#      returns `user.type == "Bot"`, which is the platform declaring it. We
+#      chose nothing, so there is no population of ours for an error rate to
+#      hide in. Gated.
+#
+#    `counted` — 7 accounts where WE say so. They carry `bot` in the login and
+#      `user.type == "User"`, and they were found by grepping `bot` out of the
+#      logins in an export WE gathered. That is the trap rule 8 names, and
+#      `FacultativeObligatoryBotContract` is what it looks like when it fires:
+#      almost certainly a person with a joke name, one comment. Counted, so the
+#      cost of acting on them is visible before anybody does.
+#
+#  PROMOTION IS A MOVE, NOT AN ADDITION. `_source_of` REFUSES an id present in
+#  both lists: it would be dropped and counted, and the counted figure would
+#  stop meaning "what this judgement would cost if promoted". Moving an id
+#  changes `BotList.fingerprint`, so a verdict that changed because this file
+#  changed cannot be mistaken for one that did not.
+#
+#  KEYED ON THE STABLE ACCOUNT ID, NEVER THE LOGIN
+#  ------------------------------------------------
+#  A login is mutable wherever renames exist, so a list keyed on one silently
+#  stops matching after a rename — and silence is the failure this gate exists
+#  to prevent. `login` is recorded beside each id FOR A HUMAN REVIEWING THE
+#  FILE and is never matched on; a list of bare numbers is a list nobody can
+#  re-review. `comments_in_export` is the count from the population below, kept
+#  so the busiest entries are obvious and a reviewer knows what removing one
+#  would cost.
+#
+#  NO PATTERN FIELD, ON PURPOSE. A regex over logins would filter
+#  `FacultativeObligatoryBotContract` and `releasebot` the helpful maintainer
+#  alike. `github.py:is_bot` already refuses the string heuristic and records
+#  that the `[bot]`-suffix agreement it was measured against had a denominator
+#  of two accounts.
+#
+#  THE POPULATION, STATED (rule 7)
+#  --------------------------------
+#  33 accounts carrying `bot` in the login, of 1,099 distinct accounts over
+#  2,016 comments in the GitHub comment export, read 2026-09-07 via
+#  `GET /users/{login}` one account at a time.
+#  `docs/measurements/bot-account-ids-2026-09-07.json`.
+#
+#  **THAT IS NOT A CENSUS OF BOTS ON GITHUB.** It is every account in one
+#  export whose login contains `bot`. An automated account named `deploy-helper`
+#  is not in it and would not be found by this method — so the list is a floor
+#  on what it catches, and the gate's UNAVAILABLE-per-source design is what
+#  keeps that from reading as completeness.
+#
+#  ONLY GITHUB IS DECLARED. The other four platforms are absent rather than
+#  empty, deliberately: `bots.py` reports UNAVAILABLE per source, so the
+#  count shrinks platform by platform as each is read. Writing `accounts: []`
+#  for reddit would claim somebody looked, and nobody has.
+# ============================================================================
+
+version: "1.0"
+
+sources:
+
+  github:
+    id_space: github_user_id
+    reviewed_on: 2026-09-08
+    reviewed_by: anooj
+
+    # ── GATED: the platform declares these `user.type == "Bot"` ────────────
+    # 26 accounts, 200 of the 2,016 comments in the export (9.9%).
+    # Measured effect on the stored corpus, 2026-09-08: drops 110 of the 2,860
+    # documents triage keeps, taking survival 57.1% -> 55.0%.
+    accounts:
+      - external_id: "41898282"
+        login: github-actions[bot]
+        comments_in_export: 105
+      - external_id: "218312386"
+        login: gemini-cli[bot]
+        comments_in_export: 26
+      - external_id: "122617954"
+        login: vs-code-engineering[bot]
+        comments_in_export: 10
+      - external_id: "298016966"
+        login: icsoc-2026-science-agent[bot]
+        comments_in_export: 7
+      - external_id: "222613912"
+        login: linear-code[bot]
+        comments_in_export: 6
+      - external_id: "298266582"
+        login: ppam-2026-code-agent[bot]
+        comments_in_export: 6
+      - external_id: "44709815"
+        login: linear[bot]
+        comments_in_export: 5
+      - external_id: "274271284"
+        login: clawsweeper[bot]
+        comments_in_export: 4
+      - external_id: "136622811"
+        login: coderabbitai[bot]
+        comments_in_export: 4
+      - external_id: "265913398"
+        login: llm-exe-bot[bot]
+        comments_in_export: 3
+      - external_id: "108849941"
+        login: flows-network-integration[bot]
+        comments_in_export: 2
+      - external_id: "100856346"
+        login: n8n-assistant[bot]
+        comments_in_export: 2
+      - external_id: "209825114"
+        login: claude[bot]
+        comments_in_export: 2
+      - external_id: "131922026"
+        login: dosubot[bot]
+        comments_in_export: 2
+      - external_id: "77245923"
+        login: microsoft-github-policy-service[bot]
+        comments_in_export: 2
+      - external_id: "257215752"
+        login: openclaw-barnacle[bot]
+        comments_in_export: 2
+      - external_id: "221166651"
+        login: a5c-ai[bot]
+        comments_in_export: 2
+      - external_id: "298017128"
+        login: icsoc-2026-code-agent[bot]
+        comments_in_export: 2
+      - external_id: "210226050"
+        login: gemini-ai-assistant[bot]
+        comments_in_export: 1
+      - external_id: "168289627"
+        login: ai-swe-issues-bot[bot]
+        comments_in_export: 1
+      - external_id: "273333864"
+        login: soleur-ai[bot]
+        comments_in_export: 1
+      - external_id: "208079219"
+        login: amazon-q-developer[bot]
+        comments_in_export: 1
+      - external_id: "251103656"
+        login: pydanty[bot]
+        comments_in_export: 1
+      - external_id: "282769551"
+        login: open-design-bot[bot]
+        comments_in_export: 1
+      - external_id: "266927401"
+        login: hebo-agent[bot]
+        comments_in_export: 1
+      - external_id: "249292202"
+        login: infra-vault-gh-plugin-prod[bot]
+        comments_in_export: 1
+
+    # ── COUNTED: our judgement, not the platform's ─────────────────────────
+    # 7 accounts, 42 comments in the export. `user.type == "User"` on every one
+    # of them, so GitHub does not agree these are bots — we inferred it from
+    # the login, on a population we selected ourselves.
+    #
+    # MEASURED EFFECT IF PROMOTED, 2026-09-08, AND IT IS MUCH SMALLER THAN THE
+    # ACCOUNT COUNTS SUGGEST. These 7 accounts flag 48 of the 5,010 triaged
+    # documents - but only 3 OF THOSE 48 ARE KEPT. The other 45 are already
+    # dropped by another gate. So gating them would take survival 54.2% ->
+    # 54.1%: three documents.
+    #
+    # THAT IS THE WHOLE VALUE OF COUNTING FIRST. The argument was going to be
+    # about `tenstorrent-github-bot`, 33 comments in the export and joint-top
+    # voice - and on the stored corpus it is nearly moot, because the documents
+    # it would remove are being removed anyway. A judgement worth 3 documents
+    # does not need to be made under time pressure, and nobody could have known
+    # that without the count.
+    #
+    # WHAT WOULD STILL SETTLE IT PROPERLY: read the comments. The login is not
+    # evidence and the platform has already declined to call these bots. But
+    # the 3-document figure says how much that reading is worth, which is what
+    # rule 8's "promoted only once measured" is for.
+    counted:
+      - external_id: "123498312"
+        login: tenstorrent-github-bot
+        comments_in_export: 33
+      - external_id: "74373520"
+        login: Issues-translate-bot
+        comments_in_export: 4
+      - external_id: "68011578"
+        login: raycastbot
+        comments_in_export: 1
+      - external_id: "40236765"
+        login: QAbot-zh
+        comments_in_export: 1
+      - external_id: "279372859"
+        login: doyouacceptcrypto-bot
+        comments_in_export: 1
+      - external_id: "145221046"
+        login: FacultativeObligatoryBotContract
+        comments_in_export: 1
+      - external_id: "261991208"
+        login: happier-bot
+        comments_in_export: 1

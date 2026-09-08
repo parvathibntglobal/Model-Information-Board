@@ -39,6 +39,44 @@ before this module.
 payloads: the recovery path is re-derive, not reverse, and an untested rollback
 is false comfort at the moment it is needed.
 
+⚠  WRITING A MIGRATION? TWO RULES, BOTH PAID FOR ON 2026-09-08
+---------------------------------------------------------------
+Read these before the SQL, not after. `tests/test_migrations.py` enforces the
+first; nothing can enforce the second.
+
+**A MIGRATION FILE CONTAINS NO `BEGIN` AND NO `COMMIT`.** `migrate` below wraps
+each file in `conn.transaction()` and inserts the ledger row inside that same
+transaction, deliberately, so a failure leaves neither the change nor the claim
+that it was made. `collect.db.connect` leaves autocommit OFF, so a transaction is
+already open by the time a file runs and `conn.transaction()` opens a SAVEPOINT
+— a `COMMIT` in the file commits the OUTER transaction, and the savepoint
+release then fails with `InvalidSavepointSpecification`.
+
+    WHAT THAT COST: `20260908T1100_reddit_thread_link_prefix.sql` shipped with
+    BEGIN/COMMIT, COMMITTED ALL 2,840 OF ITS UPDATES, AND FAILED BEFORE THE
+    LEDGER ROW. The data changed; nothing recorded that it had. Eleven of the
+    eleven migrations before it carried no transaction control, which was the
+    convention and was not decoration.
+
+**`migrate()` DOES NOT COMMIT. THE CALLER DOES.** That is the design — the
+caller owns the transaction and the ledger row travels with the change — and it
+is also the trap that follows from it. `collect/cli.py:db migrate` calls
+`conn.commit()` after this function; a script that calls `migrate(conn)` and
+then `conn.close()` **rolls the whole thing back**.
+
+    WHAT THAT COST: the recovery from the first mistake looked like it worked.
+    Both files reported applied, and the ledger row READ BACK SUCCESSFULLY
+    INSIDE THE SAME CONNECTION — then vanished on close. DDL is transactional
+    in Postgres, so the `ALTER TABLE` went with it.
+
+    **So: apply with `python -m collect.cli db migrate`**, which gates and
+    commits, and **verify in a FRESH connection**, never in the one that did the
+    work. A read-back inside an uncommitted transaction is not evidence.
+
+Both mistakes were mine and both were invisible to the obvious check, which is
+why they are here rather than only in the file that caused them: the next person
+to write a migration reads this module, not that file.
+
 **3. Content-hashed, and a mismatch refuses the WHOLE RUN.** An edited applied
 migration means two databases already disagree. Applying more compounds it, so
 nothing is applied — not the edited file and not the innocent ones after it.

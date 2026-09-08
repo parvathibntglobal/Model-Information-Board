@@ -571,6 +571,75 @@ def _sweep_reddit_stage(context) -> StageResult:
     })
 
 
+
+def _triage_stage(context) -> StageResult:
+    """E4's six gates over the stored corpus. `collect/triage/run.py`.
+
+    WIRED 2026-09-08, AND THE GATES PREDATED IT BY WEEKS. `collect/triage/
+    gates.py` ran six gates, was tested and was measured the whole time;
+    nothing ever ran it against the database. `document.triage_verdict` was
+    NULL on all 6,502 stored rows, and every survival figure this project has
+    quoted - the 82.8% in that module's own docstring included - came from a
+    script building `Document`s by hand off a JSONL export. Third instance of
+    the shape: `load-capabilities`, `score-documents`, and now this.
+
+    IT WRITES `triage_verdict` AND `filter_reasons` AND NOT `status`, WHICH IS
+    WHY IT CAN BE WIRED AT ALL. Two of the six gates cannot run - no language
+    detector, and `contract/bots.yaml` does not exist - so rule 8 makes this a
+    RECORDED FIELD rather than a gate: `status` is what `judge/` filters on
+    (`status = 'kept'`, with an index for that predicate), and dropping 6,502
+    rows out of its view on four gates of six would make a false positive
+    invisible. The verdict is recorded where somebody can measure its error
+    rate against the labelling pool, and promotion to `status` goes on that
+    evidence.
+
+    `dry_run=False` HERE AND `True` IN THE FUNCTION'S DEFAULT. A stage that has
+    to be asked twice does not run at night, and the default protects a person
+    at a prompt on a shared database - `score-documents` above makes the same
+    split for the same reason.
+
+    NEEDS `assemble-flatten` STILL, unchanged: triage reads the prose a
+    document's payload yields, and the flatten stage is what proves that
+    payload is assemblable. It is worth knowing that this would otherwise run
+    fine without it - the dependency is about the corpus being coherent, not
+    about a column.
+
+    IDEMPOTENT: selects `triage_verdict IS NULL` and the UPDATE re-checks it.
+    """
+    from collect.rawstore import RawStore
+    from collect.triage.run import triage_stored
+
+    conn = context.get("conn")
+    if conn is None:
+        return StageResult(REFUSED, "no database connection",
+                           starves="document.triage_verdict and filter_reasons "
+                                   "stay NULL, so triage survival has neither a "
+                                   "numerator nor a denominator and alert 2's "
+                                   "14-night burn-in cannot start counting")
+    store = context.get("raw_store") or RawStore()
+    run = triage_stored(conn, store, dry_run=False)
+    return StageResult(OK, detail=run.describe(), counts={
+        "eligible": run.eligible,
+        # THE DENOMINATOR, and it is not `eligible`. A document whose payload
+        # this host cannot read was never gated, and counting it in a survival
+        # rate reports our coverage as the corpus's quality (rule 7).
+        "triaged": run.triaged,
+        "kept": run.kept,
+        "dropped": run.dropped,
+        "written": run.written,
+        # NAMED, not folded into a failure count - and the two are DIFFERENT
+        # findings with different repairs: an absent payload may be on another
+        # machine, a present-but-not-prose payload is a provenance defect here.
+        "unreadable": run.unreadable,
+        "not_prose": run.not_prose,
+        "subject_inherited": run.subject_inherited,
+        # A thread root that resolves to nothing leaves its children facing the
+        # subject gate alone, so a drop among them is an absence WE caused.
+        "root_unresolvable": run.root_unresolvable,
+        **{f"dropped_{k}": v for k, v in run.by_reason.items()},
+        **{f"could_not_run_{k}": v for k, v in run.never_ran.items()},
+    })
+
 def _score_documents_stage(context) -> StageResult:
     """The five specificity components onto `document`. `collect/triage/store.py`.
 
@@ -693,12 +762,19 @@ def default_stages() -> list[Stage]:
         # detector. `needs=("preflight",)` and not a sweep: it scores stored
         # rows, and the night every sweep fails is the night it has most to do.
         Stage("score-documents", run=_score_documents_stage, needs=("preflight",)),
-        Stage("triage", run=None, needs=("assemble-flatten",),
-              starves="document.status and document.filter_reasons, which no "
-                      "writer sets today — so triage survival has neither a "
-                      "numerator nor a denominator, and alert 2's 14-night "
-                      "burn-in cannot start counting. NO LONGER STARVES THE "
-                      "SPECIFICITY COLUMNS: `score-documents` above writes those"),
+        # WIRED 2026-09-08. It writes `triage_verdict` and `filter_reasons`,
+        # and deliberately NOT `document.status` — two of the six gates cannot
+        # run, so rule 8 keeps this a recorded field rather than the gate that
+        # drops rows out of `judge/`'s view. `document.status` therefore still
+        # has no writer, which is the honest state and is said so below rather
+        # than left to look wired.
+        Stage("triage", run=_triage_stage, needs=("assemble-flatten",),
+              starves="document.status, which STILL has no writer — the gate "
+                      "half of triage waits on the bot list and a language "
+                      "detector (rule 8). `triage_verdict` and `filter_reasons` "
+                      "are written as of 2026-09-08, so triage survival now has "
+                      "a numerator and a denominator and alert 2's 14-night "
+                      "burn-in can start counting"),
         Stage("rollup", run=None,
               starves="the alert report and the coverage numbers, which "
                       "`ops.alerts` can already produce"),

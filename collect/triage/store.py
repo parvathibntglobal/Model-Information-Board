@@ -128,14 +128,20 @@ class ScoreRun:
         return "\n".join(lines)
 
 
-def version_aliases(conn) -> tuple[str, ...]:
-    """The surfaces `names_version` matches against. Registry-derived.
+def registry_population(conn):
+    """The `SurfacePopulation` every stored-corpus pass resolves against.
 
-    `build_population` over `model_version` plus the seed's declared surfaces -
-    the same construction `scripts/export_thread_contexts.version_aliases` uses,
-    and it is the only one MEASURED to match anything. `model_alias.normalized`
-    strips every non-alphanumeric and matched 0 of 195 comment bodies; these
-    surfaces matched 27. See that function for the incident.
+    ONE CONSTRUCTION, TWO CALLERS. `version_aliases` below wants only the
+    surfaces; `collect/triage/run.py` wants the whole population, because the
+    entity gate needs `owners` and every figure it reports needs
+    `fingerprint`. Two builders would be two chances to diverge, and a
+    `names_version` computed against a different surface set is not comparable
+    to one that was not - which is `score_document`'s own argument for taking
+    the aliases as a parameter rather than reading the registry itself.
+
+    THE FINGERPRINT IS WHY THIS RETURNS THE POPULATION AND NOT A TUPLE. Rule 7:
+    a figure travels with the population it was drawn from, and the fingerprint
+    is how a survival rate names one.
     """
     from collect.registry.seed import seed_models
     from collect.triage.entity import build_population
@@ -147,8 +153,19 @@ def version_aliases(conn) -> tuple[str, ...]:
     for model in seed_models():
         declared.append(model.aliases.surface)
         declared.extend(model.aliases.variants)
-    population = build_population([(r[0], r[1]) for r in models], declared)
-    return tuple(sorted(population.surfaces))
+    return build_population([(r[0], r[1]) for r in models], declared)
+
+
+def version_aliases(conn) -> tuple[str, ...]:
+    """The surfaces `names_version` matches against. Registry-derived.
+
+    `build_population` over `model_version` plus the seed's declared surfaces -
+    the same construction `scripts/export_thread_contexts.version_aliases` uses,
+    and it is the only one MEASURED to match anything. `model_alias.normalized`
+    strips every non-alphanumeric and matched 0 of 195 comment bodies; these
+    surfaces matched 27. See that function for the incident.
+    """
+    return tuple(sorted(registry_population(conn).surfaces))
 
 
 def score_unscored(conn, store, *, batch: int = 100, dry_run: bool = False) -> ScoreRun:

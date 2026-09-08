@@ -319,20 +319,56 @@ def huggingface_prose(blob: str) -> str:
 
 
 def x_post_prose(blob: str) -> str:
-    """An X post payload -> its text.
+    """An X post payload -> its text. THREE PLACES IT CAN BE, in one order.
 
-    One field, and the function still exists rather than callers reading it
-    themselves: the refusal is the value. A caller handed a search PAGE gets
-    `NotAPayload` here instead of silently flattening an envelope whose text
-    fields would let a quote verify by substring.
+    ⚠  THIS FUNCTION WAS WRONG UNTIL 2026-09-08 AND NOTHING COULD HAVE TOLD US.
+       It read a top-level `text` key, which the twitter241 payload does not
+       have: the real shape is a GraphQL `Tweet` whose text is under `legacy`.
+       So it raised `NotAPayload` on **50 of 50** stored X documents the first
+       time a real corpus existed - the whole platform produced no prose.
+
+       IT WAS UNTESTABLE BEFORE THAT, because no X request had ever been made
+       from the pipeline path, and the fixtures were built to the same
+       assumption as the code. `collect/adapters/x.py:_post_of` read `legacy`
+       CORRECTLY the whole time, which is the part worth recording: two readers
+       of one payload, one right and one wrong, and only the wrong one was on
+       the path that turns bytes into text. `has_artifact` records what two
+       definitions of one concept cost; this is that shape across two modules.
+
+    THE ORDER MATTERS AND IS NOT A PREFERENCE:
+
+        note_tweet…result.text   THE COMPLETE TEXT of a long post. Measured
+                                 2026-09-08: 21 of 50 payloads carry one, and
+                                 on those `legacy.full_text` is TRUNCATED -
+                                 250 characters against 190 on the first. Read
+                                 first, or a long post's evidence is cut off
+                                 mid-sentence and a quote of the missing half
+                                 fails rule 1's substring check while the
+                                 reader can plainly see it.
+        legacy.full_text         the post's text. Present on 50 of 50.
+        text                     a top-level field, for a provider shape that
+                                 offers one. Kept last rather than deleted
+                                 because `SCRAPER_PROVIDER` is swappable and
+                                 the ruling pins only which provider was
+                                 reviewed, not what its envelope looks like.
+
+    The refusal is still the value: a caller handed a search PAGE gets
+    `NotAPayload` rather than a silently flattened envelope whose text fields
+    would let a quote verify by substring against the wrong document.
     """
     payload = _loaded(blob, what="x post payload")
-    if "text" not in payload:
-        raise NotAPayload(
-            "x post payload: no `text`. A search response carries `data` as a "
-            "LIST of posts and covers many documents."
-        )
-    text = payload.get("text") or ""
-    if not text.strip():
-        raise NotAPayload("x post payload: parsed, and `text` is empty")
-    return text
+
+    note = (
+        (payload.get("note_tweet") or {}).get("note_tweet_results") or {}
+    ).get("result") or {}
+    legacy = payload.get("legacy") or {}
+    for candidate in (note.get("text"), legacy.get("full_text"), payload.get("text")):
+        if candidate and str(candidate).strip():
+            return str(candidate)
+
+    raise NotAPayload(
+        "x post payload: no text in `note_tweet.note_tweet_results.result.text`, "
+        "`legacy.full_text` or a top-level `text`. A search response carries its "
+        "posts under `data` as a LIST and covers many documents; a single post "
+        "carries `legacy`."
+    )

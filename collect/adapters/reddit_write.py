@@ -71,6 +71,7 @@ DOCUMENT_SOURCE = SOURCE_ID
 _INSERT = (
     "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
     "thread_root_id, parent_id, text_ref, content_hash, engagement, author_id, status, "
+    "is_self_post, "
     "harvest_run_id, retrieval_provenance) "
     "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
     "%(thread_root_id)s, %(parent_id)s, %(text_ref)s, %(content_hash)s, "
@@ -92,7 +93,7 @@ _INSERT = (
     # So the caller types it, with no default — a caller that has not thought
     # about it must say so rather than inherit somebody else's claim. Rule 6 on
     # our own writer.
-    "%(engagement)s, %(author_id)s, 'kept', %(harvest_run_id)s, "
+    "%(engagement)s, %(author_id)s, 'kept', %(is_self_post)s, %(harvest_run_id)s, "
     "%(retrieval_provenance)s) "
     "ON CONFLICT (source, external_id) DO NOTHING"
 )
@@ -156,6 +157,28 @@ REDDIT_PROVENANCE: tuple[str, ...] = (
 )
 
 
+def _document_ref(fullname: str | None) -> str | None:
+    """A Reddit fullname as a `document.id`, or None. IDEMPOTENT.
+
+    NULL STAYS NULL. A post is its own root and `document_row` writes both
+    columns NULL for one, so None here must not become the string "reddit:None"
+    - which would be a definite value invented from an absent one (rule 6) and
+    would dangle forever, since no row can ever carry that id.
+
+    ALREADY-PREFIXED VALUES PASS THROUGH UNCHANGED, so this is safe to apply to
+    a value that has been through it before. That matters for the same reason
+    the migration's WHERE clause is `NOT LIKE 'reddit:%'`: a repair that
+    double-prefixes on a second run turns 1,420 dangling references into 1,420
+    differently-dangling references, and the second state is harder to
+    recognise than the first.
+    """
+    if fullname is None:
+        return None
+    if fullname.startswith(f"{DOCUMENT_SOURCE}:"):
+        return fullname
+    return reddit_document_id(fullname)
+
+
 def document_row(
     item: Any,
     *,
@@ -204,8 +227,29 @@ def document_row(
             f"because a provenance claim with nothing behind it is worse than an "
             f"absent one."
         )
-    root = getattr(item, "thread_root_id", None)
-    parent = getattr(item, "parent_id", None)
+    # ⚠ THROUGH `reddit_document_id`, AND THEY WERE NOT UNTIL 2026-09-08.
+    #
+    # `id` below has always been `reddit:<fullname>` and these two were written
+    # as the BARE fullname - `t3_1v6a104` where the row it names is
+    # `reddit:t3_1v6a104`. So every linkage this writer produced pointed at
+    # nothing: 1,420 `thread_root_id` and 1,420 `parent_id` on staging, 2,840
+    # references, ALL of them dangling, and prefixing them resolves 100% with
+    # zero left over.
+    #
+    # IT WAS INVISIBLE BECAUSE NOTHING JOINED ON THEM. `thread_root_id` carries
+    # no foreign key, deliberately - `hackernews.drafts` records why: a comment
+    # must be storable before its root is fetched, and a dangling root is a
+    # COVERAGE fact rather than a lost document. That decision is right and it
+    # is also what let a systematic break sit unnoticed, because a constraint
+    # would have rejected the very first row. The first thing to join on these
+    # columns was `collect/triage/run.py` on 2026-09-08, and it found all 1,420.
+    #
+    # Repaired in `contract/migrations/20260908T1100_reddit_thread_link_prefix.sql`.
+    # This is the FORWARD half: without it the next sweep re-breaks what the
+    # migration repaired, which is the shape where a backfill gets run twice and
+    # nobody understands why.
+    root = _document_ref(getattr(item, "thread_root_id", None))
+    parent = _document_ref(getattr(item, "parent_id", None))
     created = getattr(item, "created_at", None)
     engagement = getattr(item, "engagement", None)
     return {
@@ -214,6 +258,11 @@ def document_row(
         "external_id": item.external_id,
         "url": getattr(item, "url", None),
         "created_at": created,
+        # THE PLATFORM'S OWN FLAG, and None for a comment - which is permanent
+        # rather than missing. `getattr` because this writer discriminates on
+        # FIELDS and not on class (see the docstring): a backfill object, a
+        # re-parse or a later comment type must not take a different branch.
+        "is_self_post": getattr(item, "is_self_post", None),
         "thread_root_id": root,
         "parent_id": parent,
         "text_ref": text_ref,

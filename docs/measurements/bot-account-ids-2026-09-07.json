@@ -1,0 +1,305 @@
+{
+  "measured_at": "2026-09-07",
+  "population": "33 accounts carrying 'bot' in the login, out of 1099 distinct accounts over 2016 comments in _github_comments.json. That export is the GitHub COMMENT fetch and not the 6,502-document corpus, so these are not corpus-wide figures.",
+  "method": "GET /users/{login}, one per account, 2026-09-07",
+  "type_and_suffix_disagreements": 0,
+  "accounts": [
+    {
+      "login": "github-actions[bot]",
+      "comments": 105,
+      "http_status": 200,
+      "user_id": "41898282",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2018-07-30T09:30:16Z"
+    },
+    {
+      "login": "tenstorrent-github-bot",
+      "comments": 33,
+      "http_status": 200,
+      "user_id": "123498312",
+      "user_type": "User",
+      "suffix_says_bot": false,
+      "created_at": "2023-01-24T18:19:46Z"
+    },
+    {
+      "login": "gemini-cli[bot]",
+      "comments": 26,
+      "http_status": 200,
+      "user_id": "218312386",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2025-06-27T22:47:47Z"
+    },
+    {
+      "login": "vs-code-engineering[bot]",
+      "comments": 10,
+      "http_status": 200,
+      "user_id": "122617954",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2023-01-13T13:34:40Z"
+    },
+    {
+      "login": "icsoc-2026-science-agent[bot]",
+      "comments": 7,
+      "http_status": 200,
+      "user_id": "298016966",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2026-06-29T19:10:35Z"
+    },
+    {
+      "login": "linear-code[bot]",
+      "comments": 6,
+      "http_status": 200,
+      "user_id": "222613912",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2025-07-24T11:29:06Z"
+    },
+    {
+      "login": "ppam-2026-code-agent[bot]",
+      "comments": 6,
+      "http_status": 200,
+      "user_id": "298266582",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2026-06-30T12:12:47Z"
+    },
+    {
+      "login": "linear[bot]",
+      "comments": 5,
+      "http_status": 200,
+      "user_id": "44709815",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2018-11-02T18:07:23Z"
+    },
+    {
+      "login": "clawsweeper[bot]",
+      "comments": 4,
+      "http_status": 200,
+      "user_id": "274271284",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2026-04-07T15:46:16Z"
+    },
+    {
+      "login": "Issues-translate-bot",
+      "comments": 4,
+      "http_status": 200,
+      "user_id": "74373520",
+      "user_type": "User",
+      "suffix_says_bot": false,
+      "created_at": "2020-11-12T17:29:41Z"
+    },
+    {
+      "login": "coderabbitai[bot]",
+      "comments": 4,
+      "http_status": 200,
+      "user_id": "136622811",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2023-06-14T15:47:27Z"
+    },
+    {
+      "login": "llm-exe-bot[bot]",
+      "comments": 3,
+      "http_status": 200,
+      "user_id": "265913398",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2026-03-05T21:27:01Z"
+    },
+    {
+      "login": "flows-network-integration[bot]",
+      "comments": 2,
+      "http_status": 200,
+      "user_id": "108849941",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2022-07-07T03:15:33Z"
+    },
+    {
+      "login": "n8n-assistant[bot]",
+      "comments": 2,
+      "http_status": 200,
+      "user_id": "100856346",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2022-03-03T14:49:02Z"
+    },
+    {
+      "login": "claude[bot]",
+      "comments": 2,
+      "http_status": 200,
+      "user_id": "209825114",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2025-04-30T17:54:24Z"
+    },
+    {
+      "login": "dosubot[bot]",
+      "comments": 2,
+      "http_status": 200,
+      "user_id": "131922026",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2023-04-26T22:14:43Z"
+    },
+    {
+      "login": "microsoft-github-policy-service[bot]",
+      "comments": 2,
+      "http_status": 200,
+      "user_id": "77245923",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2021-01-10T19:27:33Z"
+    },
+    {
+      "login": "openclaw-barnacle[bot]",
+      "comments": 2,
+      "http_status": 200,
+      "user_id": "257215752",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2026-01-26T03:12:03Z"
+    },
+    {
+      "login": "a5c-ai[bot]",
+      "comments": 2,
+      "http_status": 200,
+      "user_id": "221166651",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2025-07-16T15:50:18Z"
+    },
+    {
+      "login": "icsoc-2026-code-agent[bot]",
+      "comments": 2,
+      "http_status": 200,
+      "user_id": "298017128",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2026-06-29T19:11:27Z"
+    },
+    {
+      "login": "gemini-ai-assistant[bot]",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "210226050",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2025-05-04T08:21:25Z"
+    },
+    {
+      "login": "ai-swe-issues-bot[bot]",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "168289627",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2024-04-27T15:27:47Z"
+    },
+    {
+      "login": "raycastbot",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "68011578",
+      "user_type": "User",
+      "suffix_says_bot": false,
+      "created_at": "2020-07-08T11:44:25Z"
+    },
+    {
+      "login": "QAbot-zh",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "40236765",
+      "user_type": "User",
+      "suffix_says_bot": false,
+      "created_at": "2018-06-13T12:10:03Z"
+    },
+    {
+      "login": "soleur-ai[bot]",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "273333864",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2026-04-03T10:36:24Z"
+    },
+    {
+      "login": "doyouacceptcrypto-bot",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "279372859",
+      "user_type": "User",
+      "suffix_says_bot": false,
+      "created_at": "2026-04-26T02:33:51Z"
+    },
+    {
+      "login": "amazon-q-developer[bot]",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "208079219",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2025-04-17T20:53:40Z"
+    },
+    {
+      "login": "FacultativeObligatoryBotContract",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "145221046",
+      "user_type": "User",
+      "suffix_says_bot": false,
+      "created_at": "2023-09-16T17:12:50Z"
+    },
+    {
+      "login": "pydanty[bot]",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "251103656",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2025-12-23T04:30:09Z"
+    },
+    {
+      "login": "open-design-bot[bot]",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "282769551",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2026-05-08T03:54:43Z"
+    },
+    {
+      "login": "hebo-agent[bot]",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "266927401",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2026-03-10T04:54:04Z"
+    },
+    {
+      "login": "happier-bot",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "261991208",
+      "user_type": "User",
+      "suffix_says_bot": false,
+      "created_at": "2026-02-16T19:13:03Z"
+    },
+    {
+      "login": "infra-vault-gh-plugin-prod[bot]",
+      "comments": 1,
+      "http_status": 200,
+      "user_id": "249292202",
+      "user_type": "Bot",
+      "suffix_says_bot": true,
+      "created_at": "2025-12-12T13:19:04Z"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "ran_at": "2026-09-08T05:57:45.708826+00:00",
+  "what": "document.is_self_post from stored payloads - the platform's own field, never an inference. Fills the input pure_link_post has needed since it was written.",
+  "wrote": true,
+  "scope": "reddit and hackernews only. Absent from DERIVERS means the platform has NO self/link notion (blog, github, arxiv, devto, huggingface, x) - a fact about the platform, so those rows stay NULL forever.",
+  "raw_store_caveat": "The raw store is per machine. Rows whose payload is absent on this host stay NULL and are counted under `unreadable`.",
+  "eligible": 2999,
+  "placed": 1517,
+  "self_posts": 852,
+  "link_posts": 665,
+  "left_null": {
+    "no_such_notion_a_comment": 1,
+    "payload_absent_from_this_host": 1234,
+    "payload_present_and_not_json": 247
+  },
+  "written": 1517,
+  "by_source": {
+    "reddit": {
+      "eligible": 2999,
+      "unreadable": 1234,
+      "not_json": 247,
+      "no_such_notion": 1,
+      "link_post": 665,
+      "self_post": 852
+    }
+  }
+}

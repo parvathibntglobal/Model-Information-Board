@@ -27,12 +27,94 @@ WHAT IS NOT BUILT, AND WHY IT IS NOT A STUB
                      `pyproject.toml`. Adding one is a dependency decision, not
                      a line of code, and a `lang == "en"` check against a NULL
                      column would silently pass every document.
+
+                     ⚠ RULED 2026-09-08: THIS STAYS A RECORDED FIELD, AND A
+                     GATE IS NOT PROPOSED UNTIL A DISTRIBUTION IS PUBLISHED.
+                     Measured that day: NO PLATFORM IN THE STORED CORPUS
+                     DECLARES A LANGUAGE - no `lang`, `language`, `locale` or
+                     `content_language` in any reddit or github payload - so
+                     `document.lang` is NULL on 6,502 of 6,502 rows and there
+                     is nothing to backfill FROM. `document.lang` was
+                     un-reserved the same day and helps only NEW documents on
+                     the two platforms that do declare one (dev.to's
+                     `language`, X's `lang`), neither of which has a stored
+                     corpus.
+
+                     So on this corpus the value could only come from a
+                     DETECTOR, which is an inference - and rule 8 makes an
+                     inference a weight, a flag or a recorded field, never a
+                     gate, until its error rate is measured against a
+                     population it did not choose. A wrong language gate is the
+                     worst of the three to get wrong, because its false
+                     positives are invisible: it drops the document, and
+                     code-switched English is the register most of this corpus
+                     is written in and the one a detector misreads.
+
+                     THE ORDER IS FIXED, NOT PREFERRED: install a detector,
+                     write its output as a recorded field, run it over the
+                     corpus, PUBLISH THE DISTRIBUTION. Only then is a gate a
+                     proposal anybody can argue with. Nobody should put a
+                     number on this gate's effect before that, and this
+                     docstring deliberately does not.
+                     See `docs/the-three-dead-gates-2026-09-08.md`.
     known-bot list   Rule 5 puts a filter rule in `contract/`, and the list does
                      not exist there. `ClaudeAI-mod-bot` is already in the top
                      five authors of the 1,297-post corpus, so this is a real
                      gap and not a theoretical one.
+
+                     ⚠ THE DETECTOR IS BUILT, AS OF 2026-09-07. This gate now
+                     loads `contract/bots.yaml` through
+                     `collect/triage/bots.py` and reports UNAVAILABLE
+                     PER SOURCE until that file declares one - so the count
+                     shrinks platform by platform instead of being all-or-
+                     nothing. What is still missing is the LIST, which is a
+                     `contract/` change and is proposed in
+                     `docs/proposals/for-engineer-2-the-bot-list.md`.
+                     Measured there: 7 GitHub accounts carry `bot` in the login
+                     with NO `[bot]` suffix, the busiest at 33 comments - joint
+                     top voice in a 2,016-comment export.
     out of window    Implemented, but only where a surface resolves to exactly
                      one model. See `out_of_window`.
+
+THE SUBJECT GATE READS THE THREAD ROOT WHERE THE PLATFORM PUTS IT THERE
+------------------------------------------------------------------------
+RULED 2026-09-08. Every platform in this corpus but one carries its subject
+INSIDE the document the gate reads:
+
+    Reddit post    `title` + `selftext`      the title, in the document
+    GitHub issue   `title` + `body`          the title, in the document
+    blog article   the extracted article     headline and lede, in the document
+    HN comment     the comment body alone    THE STORY, IN A DIFFERENT RECORD
+
+So Hacker News was being asked a question the other three are never asked, and
+it answered the way you would expect: the entity gate resolved **11 of 511
+comments - 2.2% - across the two HN subject threads the 2026-09-07 smoke run
+stored** (`docs/measurements/entity-gate-on-hn-threads-2026-09-07.json`; two
+threads, from stored payloads, and NOT a sample of Hacker News). The standalone
+sweep found a thread that was a bare GitHub link at 678 points whose evidence -
+a quoted price, the pricing URL, an expiry date - was entirely in comments that
+never repeat the model's name.
+
+`Document.thread_subject_text` carries the root's text. **`collect/triage/run.py`
+is what supplies it**, by joining `document.thread_root_id` to the root's own row
+and reading that row's `text_ref` - so no new column and no new storage - and it
+does so only for the platforms in `run.SUBJECT_FROM_THREAD_ROOT`, which is
+Hacker News. A caller that builds `Document`s by hand (every script in
+`scripts/`) passes None and gates exactly as it did before.
+
+Three constraints make this a reading rule rather than inheritance by another
+name, and all three are enforced in `triage` rather than remembered:
+
+  1. the document's own text is resolved FIRST and wins;
+  2. the root is consulted only where the document resolved NOTHING;
+  3. `out_of_window` is given the document's OWN matches and never the union -
+     an inherited subject may KEEP a document and may never DROP one.
+
+`TriageResult.subject_was_inherited` is set on every inherited document and
+`TriageRun.subject_inherited` counts them, so a survival figure can never pool
+two reading units silently. Resolution is a separate question at a later stage:
+`judge/pipeline.py:subject_was_inherited` answers it, and subject inheritance as
+a RESOLUTION rule remains refused.
 
 A stub returning True for any of these would be indistinguishable from a gate
 that ran, which is the class of defect this lane has now produced nine times.
@@ -54,6 +136,21 @@ for exactly what the entity gate tests, and two of the six gates did not run.
 It ranks the gates against each other and calibrates nothing. Calibration needs
 an unfiltered sweep, which nobody has fetched.
 
+⚠  AND IT IS NOT A FIGURE ABOUT THE STORED CORPUS EITHER, which is the part
+   this docstring did not say until 2026-09-08. That population was BUILT BY A
+   SCRIPT off a JSONL export - `scripts/labelling_pools.py` - and nothing had
+   ever run these gates against the database: `Stage('triage')` was `run=None`
+   and `document.triage_verdict` was NULL on all 6,502 rows.
+
+   The first run against the corpus is `docs/triage-first-run-2026-09-08.md`:
+   **2,860 kept of 5,010 triaged = 57.1%**, per source github 42.9% / reddit
+   89.8% / blog 42.5%, with 1,492 of 6,502 rows NEVER GATED because their
+   payload is absent from that host's raw store or is not prose. That figure is
+   also an upper bound and for the same reason as this one - `wrong-language`
+   and `known-bot` ran on nothing - so the two are comparable in their caveat
+   and in nothing else. Quote whichever one answers the question being asked,
+   and say which population it came from.
+
 NO MODEL PARTICIPATES.
 """
 
@@ -65,6 +162,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from enum import StrEnum
 
+from collect.triage.bots import BotList
 from collect.triage.entity import SurfacePopulation, resolve
 from collect.triage.specificity import (
     has_code,
@@ -80,6 +178,14 @@ NO_ENTITY = "no-resolvable-entity"
 OUT_OF_WINDOW = "out-of-window"
 PURE_LINK = "pure-link-post"
 KNOWN_BOT = "known-bot"
+
+#: NOT A GATE, AND NOT IN `GATE_ORDER`. A flag on `TriageResult.flags`: the
+#: document is KEPT and the hit is recorded. Rule 8's one-way direction in one
+#: name - the 26 GitHub accounts the platform itself declares `user.type ==
+#: "Bot"` are gated under `KNOWN_BOT`; the 7 that merely carry `bot` in the
+#: login are counted under this, because that judgement's error rate was
+#: measured on a population we chose by grepping our own corpus.
+KNOWN_BOT_COUNTED = "known-bot-counted"
 
 #: Every gate §8 names. An ORDER FOR REPORTING, not for execution - `triage`
 #: runs all six on every document, so this fixes how they are listed and nothing
@@ -161,6 +267,9 @@ class Document:
 
     text: str
     created_at: date | None = None
+    #: The handle. FOR A HUMAN READING A POOL ROW, and no gate matches on it -
+    #: see `author_external_id`. Kept because a filter row showing a bare
+    #: account id is a row nobody can review.
     author: str | None = None
     lang: str | None = None
     #: False for a link post. None where the platform did not say - blogs and
@@ -168,6 +277,52 @@ class Document:
     is_self_post: bool | None = None
     #: Commentary the poster wrote themselves, where the platform separates it.
     body: str | None = None
+
+    #: `document.source`, and `author.external_id`. BOTH ARE NEEDED TOGETHER
+    #: and neither is optional for the bot gate: `author` is `UNIQUE (source,
+    #: external_id)`, so an id without its platform is ambiguous - two
+    #: platforms can legitimately issue the same numeric id, and a bot list
+    #: matched without the source would filter a human on the other platform.
+    #:
+    #: Added 2026-09-07 with the bot list. `known_bot` used to match on
+    #: `author`, the handle, which is mutable on every platform that has
+    #: renames - so a list keyed on it stops matching the day an account is
+    #: renamed, silently, which is the failure this gate exists to prevent.
+    source: str | None = None
+    author_external_id: str | None = None
+
+    #: THE THREAD ROOT'S TEXT, FOR THE SUBJECT GATE AND NOTHING ELSE.
+    #:
+    #: Ruled 2026-09-08. Hacker News is the first platform in this corpus that
+    #: puts the subject line in a SEPARATE RECORD: on Reddit the subject is in
+    #: the post's own `title`, on GitHub in the issue's own `title`, in a blog
+    #: in its own headline - and in an HN comment it is the story, 12 bytes away
+    #: in another row. That is a platform-shape fact, not a claim about
+    #: aboutness, and it was costing the platform almost everything: the entity
+    #: gate resolved 11 of 511 comments, 2.2%, across the two HN subject threads
+    #: the 2026-09-07 smoke run stored
+    #: (`docs/measurements/entity-gate-on-hn-threads-2026-09-07.json`; that
+    #: population is 2 threads read from stored payloads and is NOT a sample of
+    #: Hacker News).
+    #:
+    #: ⚠ THIS IS A READING RULE AND NOT A RESOLUTION RULE, and the distinction
+    #:   is the whole permission. It changes what text the SUBJECT GATE reads.
+    #:   It does not license a claim to be filed against a model named outside
+    #:   its own quote - subject inheritance as a RESOLUTION rule was refused
+    #:   (`docs/proposals/for-engineer-2-inherited-subjects-and-family-claims
+    #:   .md`) and that ruling stands. `judge/pipeline.py:subject_was_inherited`
+    #:   derives the resolution answer separately, in code, and
+    #:   `quote_subject_verdict` returns QUOTE_NAMES_NOTHING for exactly this
+    #:   case.
+    #:
+    #: ⚠ SCOPED TO THE SUBJECT GATE. `out_of_window` is given the document's
+    #:   OWN matches only and never the inherited ones - see `triage`. An
+    #:   inherited subject may KEEP a document and may never DROP one.
+    #:
+    #: None on every platform whose subject is inside the document, which is
+    #: every platform but Hacker News today. Hugging Face discussions are the
+    #: next on the same argument and are not wired.
+    thread_subject_text: str | None = None
 
 
 @dataclass(frozen=True)
@@ -182,12 +337,57 @@ class TriageResult:
     #: Gates with NOTHING TO RUN ON for this document. Permanent, and not a
     #: defect: a blog article has no link-post flag and never will.
     not_applicable: tuple[str, ...] = ()
-    #: Surfaces the entity gate matched, most specific first. Empty when the gate
-    #: dropped it, and empty when the gate did not run - `unavailable` separates
-    #: those two, never this field.
+    #: Surfaces the entity gate matched IN THE DOCUMENT'S OWN TEXT, most
+    #: specific first. Empty when the gate dropped it, empty when the gate did
+    #: not run - `unavailable` separates those two, never this field - and, since
+    #: 2026-09-08, EMPTY ON A DOCUMENT KEPT BY AN INHERITED SUBJECT. That third
+    #: case is named here because a reader who assumes `kept implies
+    #: matched_surfaces` was right until that date: check
+    #: `subject_was_inherited`, or read `all_surfaces` for the union.
     matched_surfaces: tuple[str, ...] = ()
+    #: Surfaces matched in the THREAD ROOT'S text and not in this document's.
+    #: Empty unless the platform supplied a root (Hacker News alone today) and
+    #: the document's own text resolved nothing.
+    inherited_surfaces: tuple[str, ...] = ()
+    #: NON-DROPPING OBSERVATIONS, by name. A check that KEPT the document and
+    #: recorded something about it - rule 8's "weight, flag or recorded field",
+    #: which is what an unmeasured check ships as.
+    #:
+    #: DELIBERATELY NOT `reasons`. A reader of `filter_reasons` is reading why a
+    #: document was dropped, and putting a non-dropping observation there would
+    #: make a kept document carry a drop reason - unfalsifiable from the row,
+    #: and the exact confusion the two-field split in `unavailable` /
+    #: `not_applicable` exists to prevent one field over.
+    flags: tuple[str, ...] = ()
     #: Rule 7 and reproducibility: which surface population produced the above.
     population_fingerprint: str | None = None
+
+    @property
+    def subject_was_inherited(self) -> bool:
+        """Did this document reach the subject gate on its THREAD'S subject?
+
+        SET ON EVERY INHERITED DOCUMENT, which is the condition the 2026-09-08
+        ruling attaches to the permission. A survival figure that pools
+        inherited and own-text keeps is a figure about two different reading
+        units, so this is what lets a caller separate them - and
+        `TriageRun.subject_inherited` counts it for exactly that reason.
+
+        DERIVED, never stored as a flag anybody can set independently: it is
+        true when the root resolved and the document itself did not. Same shape
+        as `judge/pipeline.py:subject_was_inherited`, which answers the
+        RESOLUTION question about a claim - a different question at a later
+        stage, deliberately named the same so the two are found together.
+        """
+        return bool(self.inherited_surfaces) and not self.matched_surfaces
+
+    @property
+    def all_surfaces(self) -> tuple[str, ...]:
+        """Own matches then inherited ones. For a caller that wants the union.
+
+        Ordered own-first so the more specific evidence about THIS document
+        comes first, which is what `matched_surfaces`'s own ordering promises.
+        """
+        return self.matched_surfaces + self.inherited_surfaces
 
     @property
     def kept(self) -> bool:
@@ -317,23 +517,82 @@ def out_of_window(
     return not any(verdicts)
 
 
-def known_bot(doc: Document, *, bots: frozenset[str] | None) -> bool | NotRun:
-    """True drops. Both kinds of nothing occur here, which is why the split.
+def known_bot(doc: Document, *, bots: BotList | None) -> bool | NotRun:
+    """True drops. FOUR answers, and three of them are not `False`.
 
-        bots is None        UNAVAILABLE. Rule 5 puts a filter rule in
-                            `contract/` and there is no bot list there. Writing
-                            one fixes every document at once. An empty
-                            frozenset is a different statement - "the list
-                            exists and is empty" - so the two are not merged.
+        bots is None            UNAVAILABLE. Rule 5 puts a filter rule in
+                                `contract/` and there is no bot list there.
+                                `collect/triage/bots.py:load_bot_list` returns
+                                None for an absent file rather than an empty
+                                list, because "nothing is curated" and "the
+                                list declares no bots" are different claims.
 
-        doc.author is None  NOT_APPLICABLE. `[deleted]` has no handle to test
-                            against any list, and never will.
+        the source is not
+        declared in the list    UNAVAILABLE, for THIS document. A platform
+                                nobody has read is a curation gap - fixable
+                                once, for everyone - so the count SHRINKS as
+                                each platform is curated. That is what makes it
+                                UNAVAILABLE and not NOT_APPLICABLE, which is
+                                permanent.
+
+        no source or no
+        author id on the row    NOT_APPLICABLE. A deleted account has no
+                                identity to test against any list, and never
+                                will.
+
+        otherwise               a real verdict, and `accounts: []` on a
+                                declared source makes it `False` - somebody
+                                looked and found none, which is a measurement.
+
+    ⚠  MATCHED ON THE STABLE ACCOUNT ID, NOT THE HANDLE, and the handle is not
+       consulted at all. This changed on 2026-09-07 and the old behaviour was
+       not equivalent: a login is mutable wherever renames exist, so a list
+       keyed on one stops matching after a rename with no error and no count.
+       `author.external_id` is what `document.author_id` resolves through, so
+       the list is keyed on the same thing the voice count is.
+
+       The one platform where the id IS a username is Hacker News, which has no
+       rename feature - declared as an `id_space` in the list rather than left
+       to look like a mistake.
     """
     if bots is None:
         return NotRun.UNAVAILABLE
-    if doc.author is None:
+    if doc.source is None or doc.author_external_id is None:
         return NotRun.NOT_APPLICABLE
-    return doc.author.casefold() in bots
+    if not bots.declares(doc.source):
+        return NotRun.UNAVAILABLE
+    return bots.contains(doc.source, doc.author_external_id)
+
+
+def counted_bot(doc: Document, *, bots: BotList | None) -> bool | NotRun:
+    """True FLAGS, and never drops. The weight half of the bot list.
+
+    Same four answers as `known_bot` and the same inputs, and the difference is
+    entirely in what the caller does with True: `triage` puts this on
+    `TriageResult.flags` and leaves the verdict alone.
+
+    WHY IT IS A SEPARATE LIST AND NOT A SEVERITY ON ONE. Rule 8's reviewer
+    question is *what population was this filter's error rate measured on, and
+    did the filter, or anything upstream of it, choose that population?* For the
+    26 accounts under `known_bot` the answer is the platform's own: `user.type
+    == "Bot"` is GitHub declaring it, and we chose nothing. For the 7 here the
+    answer is that we grepped `bot` out of the logins in an export we gathered -
+    which is the trap the rule names, and `FacultativeObligatoryBotContract` is
+    what it looks like when it fires: almost certainly a person with a joke
+    name, and one comment.
+
+    So these are counted where somebody can see the cost of acting on them, and
+    they are promoted by MOVING the id from `counted` to `accounts` in
+    `contract/bots.yaml` - which changes the list's fingerprint, so a verdict
+    that moved cannot be mistaken for one that did not.
+    """
+    if bots is None:
+        return NotRun.UNAVAILABLE
+    if doc.source is None or doc.author_external_id is None:
+        return NotRun.NOT_APPLICABLE
+    if not bots.declares(doc.source):
+        return NotRun.UNAVAILABLE
+    return bots.counts(doc.source, doc.author_external_id)
 
 
 def triage(
@@ -341,7 +600,7 @@ def triage(
     *,
     population: SurfacePopulation,
     allowed_languages: frozenset[str] | None = None,
-    bots: frozenset[str] | None = None,
+    bots: BotList | None = None,
     in_window: Mapping[str, bool] | None = None,
 ) -> TriageResult:
     """Run EVERY gate. No short-circuit, and that is deliberate.
@@ -357,20 +616,49 @@ def triage(
 
     It also gives `/filtered` every trigger a document hit rather than the
     earliest one, which is what "sorted by how close it came to passing" needs.
+
+    THE SUBJECT GATE READS THE THREAD ROOT WHERE ONE IS SUPPLIED (2026-09-08).
+    `doc.thread_subject_text` carries it, and only for a platform whose subject
+    line is a separate record - Hacker News alone today. The order below is the
+    permission's whole scope, so it is worth reading as three separate facts:
+
+      1. THE DOCUMENT'S OWN TEXT IS RESOLVED FIRST and wins. A comment that
+         names a model itself is not an inherited document and is not counted
+         as one, however clearly its thread root also names one.
+      2. THE ROOT IS RESOLVED ONLY IF THE DOCUMENT RESOLVED NOTHING. This is
+         what makes it a fallback rather than an expansion of the match set,
+         and it is why `inherited_surfaces` and `matched_surfaces` can never
+         both be populated.
+      3. `out_of_window` IS GIVEN `matched` AND NEVER THE UNION. An inherited
+         subject may KEEP a document and may never DROP one - a comment placed
+         outside a release window on the strength of a model named only in a
+         title three replies up is precisely the invented definite answer rule
+         6 forbids, and it would be invisible, because the document would be
+         gone. Where the document's own text names nothing, `out_of_window`
+         still returns NOT_APPLICABLE, exactly as it did before this change.
     """
     matched = resolve(doc.text, population)
+    inherited = (
+        resolve(doc.thread_subject_text, population)
+        if not matched and doc.thread_subject_text
+        else ()
+    )
 
     outcomes: list[tuple[str, bool | NotRun]] = [
         (LANGUAGE, wrong_language(doc, allowed=allowed_languages)),
         (PURE_LINK, pure_link_post(doc)),
         (TOO_SHORT, too_short(doc)),
-        (NO_ENTITY, not matched),
+        (NO_ENTITY, not (matched or inherited)),
         (
+            # `matched`, NOT the union. See point 3 above.
             OUT_OF_WINDOW,
             out_of_window(matched, population=population, in_window=in_window or {}),
         ),
         (KNOWN_BOT, known_bot(doc, bots=bots)),
     ]
+    # NOT IN `outcomes`, because everything in that list can drop the document.
+    # A flag is computed beside the gates and cannot reach `reasons`.
+    counted = counted_bot(doc, bots=bots)
 
     reasons = tuple(name for name, out in outcomes if out is True)
     unavailable = tuple(name for name, out in outcomes if out is NotRun.UNAVAILABLE)
@@ -384,6 +672,8 @@ def triage(
         unavailable=unavailable,
         not_applicable=not_applicable,
         matched_surfaces=matched,
+        inherited_surfaces=inherited,
+        flags=(KNOWN_BOT_COUNTED,) if counted is True else (),
         population_fingerprint=population.fingerprint,
     )
 
@@ -402,6 +692,16 @@ class TriageRun:
     #: not a regression: every blog article adds one. Kept apart from
     #: `never_ran` for exactly that reason.
     not_applicable: dict[str, int] = field(default_factory=dict)
+    #: Non-dropping observations, by name. THE NUMBER THAT DECIDES WHETHER A
+    #: JUDGEMENT SHOULD BECOME A GATE: it is what the check WOULD have dropped,
+    #: measured on documents it did not drop. Rule 8's evidence, in a counter.
+    by_flag: dict[str, int] = field(default_factory=dict)
+    #: Documents the subject gate kept on their THREAD'S subject rather than
+    #: their own text. Counted separately because they were triaged at a
+    #: DIFFERENT READING UNIT, and a survival rate that pools two units is a
+    #: figure about our reading rather than about the corpus (rule 7). Zero on
+    #: every platform whose subject sits inside the document.
+    subject_inherited: int = 0
     population_fingerprint: str | None = None
 
     @property
@@ -445,6 +745,25 @@ class TriageRun:
                 "a PERMANENT one - these documents lack the input, so no amount "
                 "of building changes the figure."
             )
+        for flag, count in sorted(self.by_flag.items(), key=lambda kv: -kv[1]):
+            lines.append(
+                f"  FLAGGED, NOT DROPPED: {flag} on {count} of {self.total} "
+                f"triaged ({100 * count / self.total:.1f}%). These documents "
+                "were KEPT. This is what promoting the check to a gate would "
+                "cost, measured on the documents it did not drop - which is "
+                "the evidence rule 8 asks for before a weight becomes a gate."
+            )
+        if self.subject_inherited:
+            share = 100 * self.subject_inherited / self.total
+            lines.append(
+                f"  SUBJECT INHERITED FROM THE THREAD ROOT: "
+                f"{self.subject_inherited} of {self.total} triaged "
+                f"({share:.1f}%), which is {self.subject_inherited} of "
+                f"{self.kept} kept. THESE WERE TRIAGED AT A DIFFERENT READING "
+                "UNIT - the subject came from the thread root and not from the "
+                "document - so this survival figure is over a MIXED "
+                "population. Quote the two apart, or say they are pooled."
+            )
         return "\n".join(lines)
 
 
@@ -463,4 +782,8 @@ def triage_all(documents, **kwargs) -> tuple[list[TriageResult], TriageRun]:
             run.never_ran[gate] = run.never_ran.get(gate, 0) + 1
         for gate in r.not_applicable:
             run.not_applicable[gate] = run.not_applicable.get(gate, 0) + 1
+        for flag in r.flags:
+            run.by_flag[flag] = run.by_flag.get(flag, 0) + 1
+        if r.subject_was_inherited:
+            run.subject_inherited += 1
     return results, run
