@@ -126,3 +126,213 @@ def github_issue_prose(blob: str) -> str:
     if not text.strip():
         raise NotAPayload("github issue payload: parsed, and title and body are empty")
     return text
+
+
+# ── the five platforms added 2026-09-07 ──────────────────────────────────
+#
+# Same arrangement, one function per payload shape. These exist because the
+# adapters store CONTAINERS by ruling, so without a prose function a stored
+# payload can never become text - and the failure would be silent in the worst
+# direction: `assemble_*` would flatten the container, a quote would verify
+# against a FIELD VALUE by substring, and `quote_verified` would report true.
+# That is rule 1 returning true for the wrong reason, which this module exists
+# to prevent, and it has already happened twice on two platforms.
+#
+# WHY ONE FUNCTION PER SHAPE RATHER THAN ONE THAT SNIFFS THE KEYS. A sniffer
+# would have to guess, and a guess that lands on the wrong branch produces prose
+# rather than a refusal - so the failure would be text nobody can attribute
+# instead of a `NotAPayload` somebody counts. `reddit_prose` already carries two
+# shapes and says why: one sweep stores posts and another stores comments, and
+# both are `source = 'reddit'`. The same is true here for Hacker News (a comment
+# or its story) and Hugging Face (a discussion or one of its comment events), so
+# those two functions handle both of their own shapes and nothing else.
+
+
+def arxiv_paper_prose(blob: str) -> str:
+    """An arXiv single-entry Atom feed -> title plus abstract.
+
+    XML, not JSON, so `_loaded` does not apply - and the refusal has to be
+    explicit for the same reason it is there: passing the raw feed through would
+    flatten markup into the extractor's input and let a quote verify against a
+    tag.
+
+    A MULTI-ENTRY FEED IS REFUSED RATHER THAN SLICED. A caller reaching here
+    with a search page has the wrong `text_ref`, which is the artifact-choice
+    defect the content_hash ruling exists to catch - not something to paper over
+    by taking the first entry.
+    """
+    from xml.etree import ElementTree
+
+    if not blob or not blob.strip():
+        raise NotAPayload("arxiv payload: empty input")
+    try:
+        feed = ElementTree.fromstring(blob)
+    except ElementTree.ParseError as exc:
+        raise NotAPayload(f"arxiv payload: not XML ({exc})") from exc
+
+    atom = "{http://www.w3.org/2005/Atom}"
+    entries = feed.findall(f"{atom}entry")
+    if not entries:
+        raise NotAPayload(
+            "arxiv payload: no <entry>. A query that matched nothing returns a "
+            "feed with none, and that is not a document."
+        )
+    if len(entries) > 1:
+        raise NotAPayload(
+            f"arxiv payload: {len(entries)} entries. `text_ref` must name a "
+            "single-entry id_list response, not a search page - one search "
+            "response covers a hundred papers and cannot identify one document."
+        )
+    entry = entries[0]
+    title = " ".join((entry.findtext(f"{atom}title") or "").split())
+    summary = (entry.findtext(f"{atom}summary") or "").strip()
+    text = f"{title}{TITLE_SEPARATOR}{summary}"
+    if not text.strip():
+        raise NotAPayload("arxiv payload: parsed, and title and summary are empty")
+    return text
+
+
+def devto_article_prose(blob: str) -> str:
+    """A dev.to article payload -> title plus `body_markdown`.
+
+    `body_markdown` AND NOT `body_html`, because the extractor is shown prose
+    and markdown is the closer of the two - and not `description`, which is a
+    truncated blurb: an article assembled from its description would be a
+    150-character teaser that extraction reports on normally.
+    """
+    payload = _loaded(blob, what="devto article payload")
+    if "body_markdown" not in payload and "title" not in payload:
+        raise NotAPayload(
+            "devto article payload: no `title` or `body_markdown`. A search "
+            "response is a LIST and carries neither - `body_markdown` appears "
+            "only on the single-article response."
+        )
+    title = payload.get("title") or ""
+    body = payload.get("body_markdown") or ""
+    if not body.strip() and payload.get("body_html"):
+        # NAMED RATHER THAN SUBSTITUTED. An article with HTML and no markdown is
+        # a real dev.to state (a crosspost), and falling back silently would mix
+        # two text sources in one column with nothing recording which is which.
+        raise NotAPayload(
+            "devto article payload: `body_markdown` is empty and `body_html` is "
+            "not. That is a crosspost, and choosing between the two is a "
+            "decision for whoever needs it, not a fallback."
+        )
+    text = f"{title}{TITLE_SEPARATOR}{body}"
+    if not text.strip():
+        raise NotAPayload("devto article payload: parsed, and every text field is empty")
+    return text
+
+
+def hackernews_prose(blob: str) -> str:
+    """A Hacker News item payload -> the text a human wrote.
+
+    A COMMENT is `text`; a STORY is `title` plus `text`, where `text` is the
+    self-post body and is absent for a link submission. Both shapes are handled
+    for the reason `reddit_prose` handles two: this adapter writes comments as
+    evidence AND their stories as subject anchors, and both are
+    `source = 'hackernews'`.
+
+    HTML ENTITIES AND `<p>` TAGS ARE UNESCAPED HERE, AT ASSEMBLY, AND NOWHERE
+    ELSE. The API returns the text HTML-escaped with `<p>` between paragraphs,
+    so a quote of what a reader can see would fail verification against the raw
+    field while the text plainly contains it - rule 1 failing for the wrong
+    reason, the mirror of the defect this module was built for.
+
+    It happens here rather than in the fetcher because a transformation before
+    the hash would put derived bytes under `content_hash`.
+    """
+    import html as html_module
+    import re as re_module
+
+    payload = _loaded(blob, what="hackernews payload")
+    if "text" not in payload and "title" not in payload:
+        raise NotAPayload(
+            "hackernews payload: no `title` or `text`. A search response carries "
+            "`hits` and covers many items."
+        )
+    title = payload.get("title") or ""
+    body = payload.get("text") or ""
+    text = f"{title}{TITLE_SEPARATOR}{body}" if title else body
+
+    # HN's paragraph separator has no closing tag. Turned into two newlines
+    # BEFORE tags are stripped, so paragraphs do not run together into one line
+    # - which would change where a quote's whitespace falls.
+    text = re_module.sub(r"<p>\s*", "\n\n", text)
+    text = re_module.sub(r"<[^>]+>", "", text)
+    text = html_module.unescape(text)
+
+    if not text.strip():
+        raise NotAPayload(
+            "hackernews payload: parsed, and there is no text. A dead or flagged "
+            "comment keeps its record and loses its text, which is a real state - "
+            "the adapter stores those as status='filtered'."
+        )
+    return text
+
+
+def huggingface_prose(blob: str) -> str:
+    """A Hugging Face discussion or comment-event payload -> the markdown written.
+
+    TWO SHAPES, one function, for the reason `reddit_prose` has two:
+
+        a comment event   the `data.latest.raw` markdown one person wrote
+        a discussion      the THREAD ROOT, whose own text is its title plus its
+                          FIRST comment, because that is what the person who
+                          opened it wrote
+
+    `data.latest.raw` and not the rendered HTML: the raw markdown is what the
+    author typed, and `latest` rather than an earlier revision because an edited
+    comment's current text is the text that is public.
+    """
+    payload = _loaded(blob, what="huggingface payload")
+
+    if payload.get("type") == "comment" or "data" in payload:
+        raw = ((payload.get("data") or {}).get("latest") or {}).get("raw")
+        if not raw or not str(raw).strip():
+            raise NotAPayload(
+                "huggingface comment event: `data.latest.raw` is empty. A hidden "
+                "comment keeps its event and loses its text; the adapter stores "
+                "those as status='filtered'."
+            )
+        return str(raw)
+
+    if "events" in payload or "title" in payload:
+        title = payload.get("title") or ""
+        first = ""
+        for event in payload.get("events") or ():
+            if isinstance(event, dict) and event.get("type") == "comment":
+                first = ((event.get("data") or {}).get("latest") or {}).get("raw") or ""
+                break
+        text = f"{title}{TITLE_SEPARATOR}{first}"
+        if not text.strip():
+            raise NotAPayload(
+                "huggingface discussion: no title and no first comment text"
+            )
+        return text
+
+    raise NotAPayload(
+        "huggingface payload: neither a comment event nor a discussion. A "
+        "discussions LIST has `discussions` at its top level and is not one "
+        "document."
+    )
+
+
+def x_post_prose(blob: str) -> str:
+    """An X post payload -> its text.
+
+    One field, and the function still exists rather than callers reading it
+    themselves: the refusal is the value. A caller handed a search PAGE gets
+    `NotAPayload` here instead of silently flattening an envelope whose text
+    fields would let a quote verify by substring.
+    """
+    payload = _loaded(blob, what="x post payload")
+    if "text" not in payload:
+        raise NotAPayload(
+            "x post payload: no `text`. A search response carries `data` as a "
+            "LIST of posts and covers many documents."
+        )
+    text = payload.get("text") or ""
+    if not text.strip():
+        raise NotAPayload("x post payload: parsed, and `text` is empty")
+    return text

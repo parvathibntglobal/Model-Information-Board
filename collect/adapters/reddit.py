@@ -226,6 +226,10 @@ from typing import Any
 
 import httpx
 
+from collect.adapters.basis import (
+    INTERNAL_DEVELOPMENT_ONLY as INTERNAL_DEVELOPMENT_ONLY,  # noqa: PLC0414
+)
+from collect.adapters.basis import observe_use_basis
 from collect.adapters.queries.sieve import SieveVerdict, SieveYield, tally
 from collect.config import settings
 from collect.ids import stable_id
@@ -1087,6 +1091,42 @@ def build_client(**kwargs) -> httpx.Client:
     return _build(headers=headers, **kwargs)
 
 
+def is_self_post_of(payload: dict[str, Any]) -> bool | None:
+    """`is_self_post` from a STORED Reddit payload. The platform's own field.
+
+    Same shape and same purpose as `hackernews.is_self_post_of`: the gates run
+    over STORED rows, so a projection built from `document.text_ref` reads a
+    payload rather than a `RedditPost`, and the derivation has to live in one
+    named place or the two drift - `has_artifact` records what two definitions
+    of one concept cost.
+
+    THREE ANSWERS, AND THE THIRD IS THE ONE WORTH SPELLING OUT:
+
+        True    `is_self` is true. A text post.
+        False   `is_self` is false. A link submission.
+        None    THE FIELD IS ABSENT, which on Reddit means this payload is a
+                COMMENT. The self/link distinction is about how a SUBMISSION
+                carries its content, so a comment has no answer and never will
+                - the same permanent None a blog article gets, for the same
+                reason. `pure_link_post` reads None as NOT_APPLICABLE.
+
+    IDENTIFIED BY THE FIELD'S ABSENCE AND NOT BY `kind`, which is the opposite
+    of what `hackernews.is_self_post_of` does, and the difference is the data:
+    HN gives a comment and a link post the same emptiness (`text` absent on
+    both), so it must read `type`. Reddit puts `is_self` on posts only, so its
+    presence IS the discriminator and no second field is needed. Recorded here
+    because "why do these two functions test different things" is the obvious
+    question.
+    """
+    data = payload.get("data", payload) if isinstance(payload, dict) else {}
+    if not isinstance(data, dict) or "is_self" not in data:
+        return None
+    value = data["is_self"]
+    # A non-boolean is not coerced. `bool("false")` is True, and a platform that
+    # started sending strings would silently make every post a self post.
+    return value if isinstance(value, bool) else None
+
+
 def reddit_document_id(external_id: str) -> str:
     """`document.id` for a Reddit post or comment. THE convention, one place.
 
@@ -1099,10 +1139,6 @@ def reddit_document_id(external_id: str) -> str:
     return f"reddit:{external_id}"
 
 
-#: The basis `reddit-via-rapidapi` rests on, as the ruling names it.
-INTERNAL_DEVELOPMENT_ONLY = "internal-development-only"
-
-
 def observe_reddit_use() -> dict[str, object]:
     """This run's live observations for the terms gate.
 
@@ -1110,6 +1146,15 @@ def observe_reddit_use() -> dict[str, object]:
     is a fact about the DEPLOYMENT rather than about the request, so it is
     observed here and re-read on every run — the ruling then stops applying when
     the deployment changes, rather than when somebody remembers to revisit it.
+
+    ⚠  THE OBSERVATION MOVED TO `collect/adapters/basis.py` ON 2026-09-08 and
+       this function delegates. Two more rulings now rest on the same basis —
+       `arxiv-api-terms` and `x-via-rapidapi-scraper`, both ratified that day —
+       and three copies of one check drift: a basis read as
+       `internal-development-only` by two adapters and something else by the
+       third refuses one platform and passes two on the same deployment, which
+       reads as a platform problem. `INTERNAL_DEVELOPMENT_ONLY` is re-exported
+       here because callers and tests import it from this module.
 
     IT IS A PROXY, AND THE GAP IS THE POINT OF SAYING SO. `ENVIRONMENT` is the
     only signal the process actually has. It catches the case that matters most
@@ -1119,17 +1164,14 @@ def observe_reddit_use() -> dict[str, object]:
     honour, which is exactly why the ruling records them as unresolved instead of
     treating them as handled.
 
+    IN PARTICULAR IT OBSERVES NOTHING ABOUT PUBLICATION, which is the condition
+    the ruling actually turns on. `contract/sources.yaml`'s ENFORCEMENT block
+    states that gap in full rather than leaving this proxy to imply a guard.
+
     A basis is therefore a shorter fuse than `review_valid_days`, not a
     substitute for reading the terms again.
     """
-    environment = settings().environment
-    return {
-        "use_basis": (
-            INTERNAL_DEVELOPMENT_ONLY
-            if environment != "production"
-            else f"not-internal (ENVIRONMENT={environment})"
-        )
-    }
+    return observe_use_basis()
 
 
 def harvester_for_source(source, *, rulings=None, **kwargs) -> RedditHarvester:

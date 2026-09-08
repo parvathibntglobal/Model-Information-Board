@@ -310,7 +310,11 @@ columns:
         as dedup_cluster_id
       known_gap: >-
         E1's lane - dedupe is unwired
-    lang: {state: reserved, reviewed: false}
+    lang:
+      state: write_only
+      reviewed: true
+      why: >-
+        UN-RESERVED 2026-09-08. Written by collect/adapters/documents.py for the five new platforms; NOT read by anything yet - `triage.gates.wrong_language` needs a detector nobody has installed and no allow-list is configured, so the gate reports UNAVAILABLE whatever this column holds. THE VALUE IS THE PLATFORM'S OWN FIELD AND NEVER AN INFERENCE (dev.to's `language`, X's `lang`), which is why rule 8 makes it a recorded field rather than a gate input. Enabled at collection time because the input CANNOT BE BACK-FILLED without re-reading every stored payload: the write is free now and expensive afterwards. NULL stays NULL - a platform that declares no language gets no guess (rule 6), and 6,502 existing rows keep their NULLs
     minhash: {state: reserved, reviewed: false}
     names_version: {state: read, reviewed: false, why: "written by collect/triage/store.py since 2026-08-31; read by assemble/thread.py's child ranking"}
     parent_id:

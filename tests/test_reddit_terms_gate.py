@@ -165,18 +165,57 @@ def test_the_gate_is_not_in_the_constructor(reddit_row):
 
 
 def test_the_observation_reports_the_basis_outside_production(monkeypatch):
-    from collect import config
+    """PATCHED ON `collect.adapters.basis`, WHICH IS WHERE THE READ MOVED.
 
-    monkeypatch.setattr(config, "settings", lambda: _settings("staging"))
-    monkeypatch.setattr("collect.adapters.reddit.settings", lambda: _settings("staging"))
+    `observe_reddit_use` delegated to `collect/adapters/basis.py` on 2026-09-08,
+    when `arxiv-api-terms` and `x-via-rapidapi-scraper` were ratified on the
+    same basis and three adapters needed the same observation. Patching
+    `collect.adapters.reddit.settings` no longer reaches the read - and the
+    failure was one-sided, which is the part worth recording: the staging case
+    still PASSED, because an unpatched read in a development checkout returns
+    the same answer. Only the production case failed. A test that patches the
+    wrong module and still passes is the shape this repository keeps finding.
+    """
+    monkeypatch.setattr("collect.adapters.basis.settings", lambda: _settings("staging"))
     assert observe_reddit_use()["use_basis"] == INTERNAL_DEVELOPMENT_ONLY
 
 
 def test_the_observation_reports_production_as_not_internal(monkeypatch):
     monkeypatch.setattr(
-        "collect.adapters.reddit.settings", lambda: _settings("production")
+        "collect.adapters.basis.settings", lambda: _settings("production")
     )
-    assert observe_reddit_use()["use_basis"] != INTERNAL_DEVELOPMENT_ONLY
+    basis = observe_reddit_use()["use_basis"]
+    assert basis != INTERNAL_DEVELOPMENT_ONLY
+    # NAMED, not merely different. The gate's refusal quotes the observed value,
+    # so it has to say which deployment it refused.
+    assert "production" in basis
+
+
+def test_all_three_platforms_on_this_basis_observe_it_identically(monkeypatch):
+    """The property `collect/adapters/basis.py` exists for.
+
+    Three rulings rest on `internal-development-only` - Reddit's, arXiv's and
+    X's - and three copies of one check drift. A basis read as internal by two
+    adapters and not by the third would refuse one platform and pass two on the
+    SAME deployment, which reads as a platform problem rather than as a config
+    one. So this asserts they agree, in both directions, rather than asserting
+    each separately.
+    """
+    from collect.adapters.arxiv import observe_arxiv_use
+    from collect.adapters.x import observe_x_use
+
+    for environment, expected_internal in (("staging", True), ("production", False)):
+        monkeypatch.setattr(
+            "collect.adapters.basis.settings", lambda e=environment: _settings(e)
+        )
+        observed = {
+            "reddit": observe_reddit_use()["use_basis"],
+            "arxiv": observe_arxiv_use()["use_basis"],
+            "x": observe_x_use()["use_basis"],
+        }
+        assert len(set(observed.values())) == 1, observed
+        internal = next(iter(observed.values())) == INTERNAL_DEVELOPMENT_ONLY
+        assert internal is expected_internal, observed
 
 
 def _settings(environment: str):
@@ -192,5 +231,14 @@ def _settings(environment: str):
         reddit_client_secret=None,
         rapidapi_key=None,
         rapidapi_host=None,
+        # Added 2026-09-07 with the X adapter. LISTED RATHER THAN DEFAULTED:
+        # `Settings` has no defaults, deliberately, so a new setting shows up in
+        # every construction of it and nobody inherits an empty string that
+        # reads as "configured with nothing" (rule 6, on our own config).
+        #
+        # The X route is a RapidAPI provider, so the CREDENTIAL is
+        # `rapidapi_key` above - already listed - and this only names which
+        # provider fronts it.
+        scraper_provider=None,
         pipeline_version="test",
     )

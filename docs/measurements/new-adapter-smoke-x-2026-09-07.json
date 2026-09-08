@@ -1,0 +1,28 @@
+{
+  "ran_at": "2026-09-07T12:54:09.765813+00:00",
+  "query": "Fable 5.1",
+  "max_per_platform": 2,
+  "database": "disposable local instance (localhost)",
+  "rulings": "UNRATIFIED DRAFT \u2014 docs/proposals/new-platform-sources.draft.yaml",
+  "source_rows": {
+    "seen": 1,
+    "inserted": 0
+  },
+  "platforms": [
+    {
+      "platform": "x",
+      "query": "Fable 5.1",
+      "requests_issued": 0,
+      "candidates": 0,
+      "documents_stored": 0,
+      "documents_inserted": 0,
+      "text_refs_resolved": 0,
+      "http_errors": 0,
+      "outcome": "refused",
+      "notes": [
+        "TermsNotReviewedError: Refusing to harvest: 1 source(s) failed the NFR-5 terms check (x):"
+      ],
+      "refusal": "Refusing to harvest: 1 source(s) failed the NFR-5 terms check (x):\n  - x: ruling x-via-rapidapi-scraper requires scraper_provider to be one of ['twitter241']; observed None.\nNFR-5 requires the terms be reviewed and recorded per source before any request is made, and this check additionally requires that the ruling has not expired and that its preconditions still hold on this run. Record what the terms say in contract/sources.yaml, re-measure the evidence, and re-run."
+    }
+  ]
+}

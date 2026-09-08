@@ -49,6 +49,29 @@ class Settings:
     #: The BARE HOST, e.g. `reddit34.p.rapidapi.com`. RapidAPI routes on the
     #: `x-rapidapi-host` header, so a full URL here silently addresses nothing.
     rapidapi_host: str | None
+
+    #: WHICH RAPIDAPI PROVIDER FRONTS X. `twitter241` today, and the host is
+    #: DERIVED from it - `collect/adapters/x.py:host_for` turns it into
+    #: `<provider>.p.rapidapi.com`. Moving provider is then an environment
+    #: change rather than a code change.
+    #:
+    #: NOT DEFAULTED. An unconfigured process must not quietly call one
+    #: particular vendor, so `host_for` raises rather than assuming (rule 6:
+    #: a missing value is never silently converted into a definite one).
+    #:
+    #: There is NO `x_bearer_token`, deliberately. The X route is a RapidAPI
+    #: scraper provider and not X's own API, so the credential is
+    #: `rapidapi_key` above - the same key the Reddit path uses, billing the
+    #: same subscription.
+    #:
+    #: ⚠ A KEY IS NOT A CLEARANCE, AND THIS VALUE IS PINNED BY THE RULING.
+    #: `contract/sources.yaml:x-via-rapidapi-scraper` (ratified 2026-09-08)
+    #: names `twitter241` as a LIVE PRECONDITION, so setting this to anything
+    #: else refuses at the terms gate rather than silently parsing a different
+    #: provider's response envelope and reporting the platform as quiet. The
+    #: ruling permits internal development only, while nothing is published
+    #: externally - it clears none of the four conditions it records.
+    scraper_provider: str | None
     pipeline_version: str
 
     @property
@@ -104,5 +127,6 @@ def settings() -> Settings:
         # endpoint URL, and a host header carrying a URL matches no route.
         # Normalised here so one bad paste does not read as "the API is down".
         rapidapi_host=_bare_host(os.getenv("RAPIDAPI_HOST")),
+        scraper_provider=os.getenv("SCRAPER_PROVIDER") or None,
         pipeline_version=os.getenv("PIPELINE_VERSION", PIPELINE_VERSION),
     )

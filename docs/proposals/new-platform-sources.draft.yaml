@@ -1,0 +1,296 @@
+# ============================================================================
+#  DRAFT source rows and terms rulings — THREE PLATFORMS, DOWN FROM FIVE.
+#
+#  ⚠  THIS FILE IS NOT contract/. IT IS A PROPOSAL, AND IT IS LOAD-BEARING
+#     NOWHERE.
+#
+#  ⚠  arXiv AND X LEFT THIS FILE ON 2026-09-08, RATIFIED. They are now in
+#     `contract/sources.yaml` - `arxiv-api-terms` and `x-via-rapidapi-scraper`,
+#     both `reviewed_by: anooj`, both on an internal-development-only basis
+#     whose condition that file states and whose enforcement gap it also
+#     states. THEY WERE REMOVED FROM HERE RATHER THAN LEFT AS A COPY: two
+#     files declaring one ruling id is the defect this project already wrote up
+#     once (`docs/defect-two-names-for-one-database.md`), and the copy that
+#     rots is always the one nobody is reading.
+#
+#     What they were ratified ON is narrower than a clearance, and the reason
+#     for that lives in contract/ rather than here: the robots reading was
+#     UNCHANGED by the ruling. `export.arxiv.org` still answers `Disallow: /`
+#     on the host serving its documented API, and the position rests on the
+#     condition instead - internal development only, while nothing is
+#     published externally.
+#
+#  THE THREE STILL HERE - dev.to, Hacker News and Hugging Face - are unchanged
+#  and unratified. This file exists for them, for two reasons and only two:
+#
+#    1. `contract/sources.yaml` is the agreement between two people and gets
+#       two eyes (CLAUDE.md).
+#
+#    2. The test run of 2026-09-07 had to exercise the REAL terms gate rather
+#       than skip it, because a fetch that bypasses the gate is exactly how a
+#       1,297-post Reddit corpus was gathered with the gate never asked. The
+#       gate takes `rulings=` and a source row; passing these makes the check
+#       genuinely run against a dated, inspectable ruling that is visibly
+#       unratified.
+#
+#  `reviewed_by: UNRATIFIED-DRAFT` in every ruling below is the marker. No
+#  ruling here has been read and signed by a person. Nothing in the nightly
+#  chain loads this file, and `registry load-sources` reads contract/ only.
+#
+#  TO RATIFY: read the terms documents each ruling names, replace
+#  `reviewed_by`, and MOVE the blocks into `contract/sources.yaml` - move, not
+#  copy, as arXiv and X were moved. The prose in
+#  `docs/proposals/for-engineer-2-five-new-platform-sources.md` says what each
+#  one is asking you to agree to.
+# ============================================================================
+
+version: "2.0-draft"
+review_marker: "REVIEW REQUIRED"
+
+terms_rulings:
+
+  # ── dev.to (Forem) ───────────────────────────────────────────────────────
+  - id: devto-forem-api-terms
+    class: null
+    party: platform
+    platform_host: dev.to
+    reviewed_on: 2026-09-07
+    reviewed_by: UNRATIFIED-DRAFT
+    basis: internal-development-only
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    summary: >-
+      DRAFT, 2026-09-07, NOT RATIFIED. Access is the public Forem API v1 at
+      dev.to/api, unauthenticated, never the HTML.
+
+      WHAT WAS ACTUALLY CHECKED. robots.txt read 2026-09-07: 200, and no rule
+      matches /api/articles/search or /api/articles/{id} - so the API paths are
+      permitted by the site's own stated crawl policy, which is the one
+      platform of the five where that is true of the API host. Response shapes
+      verified. Forem publishes rate limits for WRITE endpoints and none for
+      these reads, so no read limit has been read and none is written down.
+
+      NO TERMS DOCUMENT HAS BEEN READ. dev.to's Terms of Use and its API
+      documentation are the two to read. Deferred and recorded.
+
+      UNRESOLVED, DELIBERATELY RECORDED:
+        - Article text is the author's, licensed to Forem under their terms.
+          Whether short quotation with attribution is permitted has not been
+          established from the document.
+        - `GET /api/articles?q=` ACCEPTS AND IGNORES `q` (measured 2026-09-07).
+          Not a terms condition, and recorded here anyway because a sweep built
+          on that endpoint would retrieve the site's front page for every model
+          and report it as coverage - and the volume of requests that produces
+          is a politeness question as well as a data one.
+
+      CURRENT USE: internal development and testing.
+    live_preconditions:
+      access_path: [api]
+      # ⚠ THE ENDPOINT IS A PRECONDITION, NOT A DETAIL. `/articles` answers 200
+      # and ignores `q`; `/articles/search` filters. A run that drifted to the
+      # first would be a calendar wearing a corpus's clothes, so the adapter
+      # re-declares which endpoint it will call on every run.
+      search_endpoint: ["/articles/search"]
+    recorded_evidence:
+      republication_claimed: [false]
+      terms_document_read: [false]
+      robots_api_paths_allowed: [true]
+
+  # ── Hacker News, via Algolia ─────────────────────────────────────────────
+  #
+  # ⚠  hn.algolia.com HAS NO robots.txt (404, measured 2026-09-07), and
+  #    `contract/sources.yaml`'s own 404 CAVEAT applies: the absence of a crawl
+  #    policy is not consent. news.ycombinator.com does have one - 200, no rule
+  #    matching /item, Crawl-delay: 30 - and we do not fetch it at all.
+  - id: hackernews-algolia-api
+    class: null
+    party: platform
+    platform_host: news.ycombinator.com
+    reviewed_on: 2026-09-07
+    reviewed_by: UNRATIFIED-DRAFT
+    basis: internal-development-only
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    summary: >-
+      DRAFT, 2026-09-07, NOT RATIFIED. Access is the Algolia-hosted HN Search
+      API (hn.algolia.com/api/v1), unauthenticated, plus its item endpoint.
+      news.ycombinator.com's HTML is never fetched.
+
+      WHAT WAS ACTUALLY CHECKED. robots.txt read on both hosts:
+      hn.algolia.com 404 (no rules), news.ycombinator.com 200 with Crawl-delay
+      30 and no rule matching /item. Response shapes verified, including two
+      traps that fail silently and are handled in the adapter: token
+      prefix-matching (so `nbHits` is not a match count) and a 1,000-hit
+      pagination cap that truncates with no error.
+
+      NO TERMS DOCUMENT HAS BEEN READ. Y Combinator's terms, HN's own guidance
+      on automated access, and Algolia's terms for this hosted index are the
+      three to read. None has been.
+
+      UNRESOLVED, DELIBERATELY RECORDED:
+        - The index is operated by Algolia on HN's behalf, so there are two
+          parties and it is not established which one's terms govern our use.
+          This is the Medium-shaped question `contract/sources.yaml` already
+          answers for blogs - the platform is the party speaking, not the
+          publisher - and it has not been answered here.
+        - A 404 robots.txt on the API host is the absence of a crawl policy and
+          not consent (THE 404 CAVEAT).
+        - `scripts/fetch_hackernews_articles.py` has ALREADY fetched this
+          platform for the Articles page and says in its own docstring that the
+          gate did not run and that the data is not admissible to the pipeline.
+          That data stays inadmissible; this ruling is about the pipeline path.
+
+      CURRENT USE: internal development and testing.
+    live_preconditions:
+      access_path: [api]
+    recorded_evidence:
+      republication_claimed: [false]
+      terms_document_read: [false]
+
+  # ── Hugging Face Hub ─────────────────────────────────────────────────────
+  - id: huggingface-hub-api
+    class: null
+    party: platform
+    platform_host: huggingface.co
+    reviewed_on: 2026-09-07
+    reviewed_by: UNRATIFIED-DRAFT
+    basis: internal-development-only
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    summary: >-
+      DRAFT, 2026-09-07, NOT RATIFIED. Access is the public Hub API at
+      huggingface.co/api, unauthenticated: model search, the per-repo
+      discussions list, and one discussion at a time.
+
+      WHAT WAS ACTUALLY CHECKED. robots.txt read 2026-09-07: 200, and
+      `Allow: /` is the most specific match for the /api paths used. Response
+      shapes verified, including the absence of any full-text search over
+      discussions - which is why discovery is repo-scoped and why an empty
+      result on this platform is structural rather than silence.
+
+      NO TERMS DOCUMENT HAS BEEN READ. Hugging Face's Terms of Service and its
+      Content Policy are the two to read. Neither has been.
+
+      UNRESOLVED, DELIBERATELY RECORDED:
+        - Discussion text is user content under HF's terms; short quotation
+          with attribution has not been established from the document.
+        - `author.type` is declared as `user` or `org` and has NO bot value, so
+          nothing on this platform declares whether an account is automated.
+          A bot filter cannot be derived from its own fields.
+
+      CURRENT USE: internal development and testing.
+    live_preconditions:
+      access_path: [api]
+    recorded_evidence:
+      republication_claimed: [false]
+      terms_document_read: [false]
+      robots_api_paths_allowed: [true]
+
+# ============================================================================
+#  PLATFORM ROWS
+#
+#  `base_trust` IS A WEIGHT AND EVERY VALUE BELOW IS A GUESS, WHICH IS WHY THIS
+#  FILE IS A PROPOSAL RATHER THAN AN EDIT.
+#
+#  The three existing weights were argued from what each channel structurally
+#  contains: github 0.95 because it is the failure channel and nobody opens an
+#  issue to report that something worked; blogs 0.90 because it is the only
+#  positive-evidence channel; reddit 0.85. Nothing has calibrated any of them.
+#
+#  So the numbers here come with the argument rather than instead of it, and
+#  the argument is the part to disagree with:
+#
+#    hackernews 0.85  practitioner comment threads, same shape as reddit -
+#                     unverified identity, high signal in replies. Given
+#                     reddit's weight because it IS reddit's shape.
+#    devto      0.75  a write-up with a byline, which is blog-shaped - but
+#                     unmoderated and, on the one model measured, "most are the
+#                     same launch announcement reworded". Below blogs for that
+#                     reason: syndication is what `dedup_cluster` exists for and
+#                     it has not run here.
+#    huggingface 0.80 discussions are practitioner reports against a specific
+#                     build, which is high signal; the population is skewed to
+#                     deployment problems on re-uploads rather than to the
+#                     vendor's own release.
+#    arxiv      0.70  the lowest of the five, and NOT because papers are less
+#                     rigorous. An abstract is a third-party benchmark of
+#                     somebody else's model - not own-experience - and every
+#                     arxiv document is unattributable to a single voice
+#                     (see collect/adapters/arxiv.py:author_external_id). It
+#                     can corroborate the platform half of the publication gate
+#                     and never the voice half.
+#    x          0.60  the lowest, and this one is a stance rather than an
+#                     observation: the Articles-page sweep found 573 keyword
+#                     posts across 46 queries of which the substantive ones had
+#                     to be separated by hand from announcements, roundups and
+#                     promo. Until a filter does that, the channel is mostly
+#                     marketing.
+# ============================================================================
+
+sources:
+  - id: devto
+    platform: devto
+    endpoint: https://dev.to/api
+    base_trust: 0.75
+    provenance: seed
+    terms_ruling: devto-forem-api-terms
+    terms_evidence:
+      checked_on: 2026-09-07
+      access_path: api
+      search_endpoint: /articles/search
+      republication_claimed: false
+      terms_document_read: false
+      robots_api_paths_allowed: true
+    tos_notes: >-
+      DRAFT ruling devto-forem-api-terms, 2026-09-07, NOT RATIFIED. Access is
+      the public Forem API v1, unauthenticated. robots.txt permits the API
+      paths (read 2026-09-07). No read rate limit is published, so the adapter
+      paces at this lane's default politeness rather than against a figure
+      somebody wrote down. `GET /api/articles?q=` accepts and IGNORES `q`; the
+      adapter uses `/api/articles/search` and re-declares that endpoint as a
+      live precondition on every run. No terms document has been read.
+
+  - id: hackernews
+    platform: hackernews
+    endpoint: https://hn.algolia.com/api/v1
+    base_trust: 0.85
+    provenance: seed
+    terms_ruling: hackernews-algolia-api
+    terms_evidence:
+      checked_on: 2026-09-07
+      access_path: api
+      republication_claimed: false
+      terms_document_read: false
+    tos_notes: >-
+      DRAFT ruling hackernews-algolia-api, 2026-09-07, NOT RATIFIED. Access is
+      the Algolia HN Search API and its item endpoint; news.ycombinator.com's
+      HTML is never fetched. hn.algolia.com has no robots.txt (404) and the 404
+      caveat applies - absence of a crawl policy is not consent. Two silent
+      traps are handled in the adapter: token prefix-matching, so `nbHits` is a
+      retrieval total and not a mention count, and a 1,000-hit pagination cap
+      that truncates without an error. Two parties (HN and Algolia) and it is
+      not established which one's terms govern. No terms document has been read.
+
+  - id: huggingface
+    platform: huggingface
+    endpoint: https://huggingface.co/api
+    base_trust: 0.80
+    provenance: seed
+    terms_ruling: huggingface-hub-api
+    terms_evidence:
+      checked_on: 2026-09-07
+      access_path: api
+      republication_claimed: false
+      terms_document_read: false
+      robots_api_paths_allowed: true
+    tos_notes: >-
+      DRAFT ruling huggingface-hub-api, 2026-09-07, NOT RATIFIED. Access is the
+      public Hub API, unauthenticated: model search, per-repo discussions list,
+      one discussion at a time. robots.txt permits the API paths (read
+      2026-09-07). THERE IS NO FULL-TEXT SEARCH OVER DISCUSSIONS, so discovery
+      is repo-scoped and a model with no HF repo has no discussion surface at
+      all - zero documents there is structural, not silence. No terms document
+      has been read.

@@ -1,0 +1,49 @@
+{
+  "ran_at": "2026-09-07T12:22:07.203608+00:00",
+  "query": "DeepSeek-R1",
+  "max_per_platform": 2,
+  "database": "disposable local instance (localhost)",
+  "rulings": "UNRATIFIED DRAFT \u2014 docs/proposals/new-platform-sources.draft.yaml",
+  "source_rows": {
+    "seen": 1,
+    "inserted": 0
+  },
+  "platforms": [
+    {
+      "platform": "huggingface",
+      "query": "DeepSeek-R1",
+      "requests_issued": 7,
+      "candidates": 4,
+      "documents_stored": 8,
+      "documents_inserted": 8,
+      "text_refs_resolved": 8,
+      "http_errors": 0,
+      "outcome": "ok",
+      "notes": [
+        "discovery is REPO-SCOPED: 20 repo(s) matched, 2 walked, 100 discussion(s) listed",
+        "2 event(s) were state changes rather than comments and are not documents",
+        "1 comment event(s) carried no text at all and are stored as status='filtered' \u2014 a different state from hidden"
+      ],
+      "surface_present_in_candidates": 0,
+      "harvest_run_id": "hr_20e5e5e8a14a7523",
+      "write_report": "huggingface: 8 inserted of 8 seen; 4 distinct authors, 0 document(s) with no stable author id, 0 with no platform date, 0 carrying a platform-declared language that document.lang does not yet store, 1 written as status='filtered'",
+      "distinct_authors": 4,
+      "documents_without_author": 0,
+      "documents_without_created_at": 0,
+      "lang_declared_by_platform": 0,
+      "text_ref_missing": 0,
+      "content_hash_mismatched": 0,
+      "resolved_to_a_container": 8,
+      "prose_derived": 7,
+      "prose_refused": 1,
+      "prose_still_a_container": 0,
+      "prose_samples": [
+        "Upload winrar-x64-723.exe um teste",
+        "Update README.md"
+      ],
+      "prose_failures": [
+        "6a659813837fa6e782e4bec8: huggingface comment event: `data.latest.raw` is empty. A hidden comment keeps its event and loses its text; the adapter stores those as status='filtered'."
+      ]
+    }
+  ]
+}
