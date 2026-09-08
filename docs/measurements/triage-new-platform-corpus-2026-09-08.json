@@ -1,0 +1,147 @@
+{
+  "ran_at": "2026-09-08T06:51:58.149374+00:00",
+  "what": "E4's six gates over every stored document with no triage_verdict. THE FIRST RUN OF TRIAGE AGAINST THE DATABASE: the stage was run=None and triage_verdict was NULL on every row.",
+  "wrote": false,
+  "columns_written": [],
+  "columns_deliberately_not_written": [
+    "status"
+  ],
+  "why_not_status": "Two of six gates cannot run (no language detector installed, contract/bots.yaml absent), so rule 8 keeps this a recorded field rather than a gate. `status` is what judge/ filters on.",
+  "population_fingerprint": "b5744297e9210497",
+  "subject_from_thread_root": [
+    "hackernews"
+  ],
+  "is_counterfactual": false,
+  "ruling_scope": [
+    "hackernews"
+  ],
+  "eligible": 192,
+  "triaged": 192,
+  "kept": 121,
+  "dropped": 71,
+  "written": 0,
+  "survival_over_triaged": 0.6302,
+  "denominator_note": "Every rate is over TRIAGED, never over eligible. A document whose payload this host could not read, or whose payload is not prose, was never gated - putting it in a survival denominator reports our coverage as the corpus's quality (rule 7).",
+  "not_gated": {
+    "unreadable_payload": 0,
+    "present_but_not_prose": 0,
+    "unmapped_source": 0
+  },
+  "dropped_by_gate": {
+    "no-resolvable-entity": 64,
+    "pure-link-post": 20,
+    "too-short-no-artifact": 31
+  },
+  "flagged_not_dropped": {},
+  "gates_that_could_not_run": {
+    "wrong-language": 192,
+    "known-bot": 174
+  },
+  "gates_with_nothing_to_run_on": {
+    "pure-link-post": 164,
+    "known-bot": 18,
+    "out-of-window": 65
+  },
+  "subject_inherited": 0,
+  "root_unresolvable": 1,
+  "root_unreadable": 0,
+  "by_source": {
+    "arxiv": {
+      "eligible": 18,
+      "triaged": 18,
+      "kept": 17,
+      "dropped": 1,
+      "reason:no-resolvable-entity": 1
+    },
+    "devto": {
+      "eligible": 40,
+      "triaged": 40,
+      "kept": 36,
+      "dropped": 4,
+      "reason:no-resolvable-entity": 4
+    },
+    "hackernews": {
+      "eligible": 77,
+      "triaged": 77,
+      "dropped": 39,
+      "reason:pure-link-post": 20,
+      "reason:too-short-no-artifact": 23,
+      "reason:no-resolvable-entity": 33,
+      "kept": 38,
+      "root_unresolvable": 1
+    },
+    "huggingface": {
+      "eligible": 7,
+      "triaged": 7,
+      "dropped": 6,
+      "reason:too-short-no-artifact": 5,
+      "reason:no-resolvable-entity": 6,
+      "kept": 1
+    },
+    "x": {
+      "eligible": 50,
+      "triaged": 50,
+      "kept": 29,
+      "dropped": 21,
+      "reason:no-resolvable-entity": 20,
+      "reason:too-short-no-artifact": 3
+    }
+  },
+  "thread_root_reachability": [
+    {
+      "source": "hackernews",
+      "documents": 77,
+      "children": 49,
+      "thread_root_id_set": 49,
+      "root_row_resolves": 48,
+      "root_dangling": 1,
+      "distinct_roots": 29,
+      "reads_per_child": 0.592,
+      "in_subject_ruling": true
+    },
+    {
+      "source": "x",
+      "documents": 50,
+      "children": 0,
+      "thread_root_id_set": 0,
+      "root_row_resolves": 0,
+      "root_dangling": 0,
+      "distinct_roots": 50,
+      "reads_per_child": null,
+      "in_subject_ruling": false
+    },
+    {
+      "source": "devto",
+      "documents": 40,
+      "children": 0,
+      "thread_root_id_set": 0,
+      "root_row_resolves": 0,
+      "root_dangling": 0,
+      "distinct_roots": 0,
+      "reads_per_child": null,
+      "in_subject_ruling": false
+    },
+    {
+      "source": "arxiv",
+      "documents": 18,
+      "children": 0,
+      "thread_root_id_set": 0,
+      "root_row_resolves": 0,
+      "root_dangling": 0,
+      "distinct_roots": 0,
+      "reads_per_child": null,
+      "in_subject_ruling": false
+    },
+    {
+      "source": "huggingface",
+      "documents": 7,
+      "children": 4,
+      "thread_root_id_set": 4,
+      "root_row_resolves": 4,
+      "root_dangling": 0,
+      "distinct_roots": 3,
+      "reads_per_child": 0.75,
+      "in_subject_ruling": false
+    }
+  ]
+}
