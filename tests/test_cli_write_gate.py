@@ -34,6 +34,13 @@ READ_ONLY = {
     "_cmd_registry_aliases",
     "_cmd_registry_propose_aliases",
     "_cmd_triage_population",
+    # Reads `contract/bots.yaml` and prints it. NO DATABASE AT ALL - not a
+    # connection, not a row - which is the point of the command: "is the bot
+    # list loaded, and which platforms does it cover" is the question somebody
+    # asks while diagnosing a survival figure, and the gate's own docstring says
+    # the state these checks refuse is exactly the state somebody needs a
+    # diagnostic in.
+    "_cmd_triage_bots",
     # Reads a surface extract and SELECTs the registry; prints the curve and the
     # set. Writes nothing at all — not a row, and unlike `propose-aliases`, not
     # even a file. So it is classified rather than gated, which is the whole

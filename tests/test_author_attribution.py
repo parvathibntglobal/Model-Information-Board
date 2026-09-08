@@ -207,12 +207,27 @@ class TestNoAuthorMeansNoRow:
 class TestTheDocumentRow:
     def test_a_comment_carries_its_thread_and_parent(self):
         """Discriminated on the fields. An earlier `isinstance(item,
-        RedditComment)` wrote NULL linkage for anything of another type."""
+        RedditComment)` wrote NULL linkage for anything of another type.
+
+        ⚠ THIS TEST PINNED A BUG UNTIL 2026-09-08. It asserted the links were
+        the BARE fullname (`t3_root`) while asserting three lines down that `id`
+        is `reddit:t1_abc` — so the disagreement the defect consisted of was
+        written into an assertion and passing. 2,840 stored references named no
+        row because of it.
+
+        A green test over two columns that must agree, checked separately and
+        never against each other, is why the invariant now lives in
+        `tests/test_reddit_thread_link_prefix.py` as a shape rule rather than as
+        two literals.
+        """
         row = document_row(FakeComment(), retrieval_provenance=LISTING)
-        assert row["thread_root_id"] == "t3_root"
-        assert row["parent_id"] == "t3_root"
+        assert row["thread_root_id"] == "reddit:t3_root"
+        assert row["parent_id"] == "reddit:t3_root"
         assert row["source"] == "reddit"
         assert row["id"] == "reddit:t1_abc"
+        # The point of the correction: a link names a row this writer could have
+        # written, and that is checkable without repeating either literal.
+        assert row["thread_root_id"].startswith("reddit:")
 
     def test_absent_refs_stay_null_rather_than_becoming_empty_strings(self):
         row = document_row(FakeComment(), retrieval_provenance=LISTING)

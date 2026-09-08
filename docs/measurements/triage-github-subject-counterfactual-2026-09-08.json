@@ -1,0 +1,95 @@
+{
+  "ran_at": "2026-09-08T04:47:43.223649+00:00",
+  "what": "E4's six gates over every stored document with no triage_verdict. THE FIRST RUN OF TRIAGE AGAINST THE DATABASE: the stage was run=None and triage_verdict was NULL on every row.",
+  "wrote": false,
+  "columns_written": [],
+  "columns_deliberately_not_written": [
+    "status"
+  ],
+  "why_not_status": "Two of six gates cannot run (no language detector installed, contract/bots.yaml absent), so rule 8 keeps this a recorded field rather than a gate. `status` is what judge/ filters on.",
+  "population_fingerprint": "b5744297e9210497",
+  "subject_from_thread_root": [
+    "github",
+    "hackernews"
+  ],
+  "is_counterfactual": true,
+  "ruling_scope": [
+    "hackernews"
+  ],
+  "eligible": 3382,
+  "triaged": 3373,
+  "kept": 2497,
+  "dropped": 876,
+  "written": 0,
+  "survival_over_triaged": 0.7403,
+  "denominator_note": "Every rate is over TRIAGED, never over eligible. A document whose payload this host could not read, or whose payload is not prose, was never gated - putting it in a survival denominator reports our coverage as the corpus's quality (rule 7).",
+  "not_gated": {
+    "unreadable_payload": 9,
+    "present_but_not_prose": 0,
+    "unmapped_source": 0
+  },
+  "dropped_by_gate": {
+    "no-resolvable-entity": 123,
+    "out-of-window": 343,
+    "too-short-no-artifact": 464
+  },
+  "gates_that_could_not_run": {
+    "wrong-language": 3373,
+    "known-bot": 3373
+  },
+  "gates_with_nothing_to_run_on": {
+    "pure-link-post": 3373,
+    "out-of-window": 1530
+  },
+  "subject_inherited": 1388,
+  "root_unresolvable": 0,
+  "root_unreadable": 0,
+  "by_source": {
+    "github": {
+      "eligible": 3382,
+      "triaged": 3373,
+      "kept": 2497,
+      "subject_inherited": 1388,
+      "dropped": 876,
+      "reason:no-resolvable-entity": 123,
+      "reason:out-of-window": 343,
+      "reason:too-short-no-artifact": 464,
+      "unreadable": 9
+    }
+  },
+  "thread_root_reachability": [
+    {
+      "source": "github",
+      "documents": 3382,
+      "children": 2016,
+      "thread_root_id_set": 2016,
+      "root_row_resolves": 2016,
+      "root_dangling": 0,
+      "distinct_roots": 584,
+      "reads_per_child": 0.29,
+      "in_subject_ruling": false
+    },
+    {
+      "source": "reddit",
+      "documents": 2999,
+      "children": 1420,
+      "thread_root_id_set": 1420,
+      "root_row_resolves": 0,
+      "root_dangling": 1420,
+      "distinct_roots": 24,
+      "reads_per_child": 0.017,
+      "in_subject_ruling": false
+    },
+    {
+      "source": "blog",
+      "documents": 121,
+      "children": 0,
+      "thread_root_id_set": 0,
+      "root_row_resolves": 0,
+      "root_dangling": 0,
+      "distinct_roots": 0,
+      "reads_per_child": null,
+      "in_subject_ruling": false
+    }
+  ]
+}

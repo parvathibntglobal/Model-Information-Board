@@ -510,6 +510,68 @@ def _cmd_registry_tracked_set(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_triage_bots(args: argparse.Namespace) -> int:
+    """Print the bot list the known-bot gate would match against.
+
+    NEEDS NO DATABASE AND NO NETWORK, which is the point: "is the list loaded,
+    and which platforms does it cover" is the question somebody asks while
+    diagnosing a survival figure, and it should not require a connection to
+    answer.
+
+    Prints the fingerprint for the reason `triage population` prints one: a
+    verdict is reproducible from (document, population), and this population
+    changes when somebody edits a YAML file. A document dropped last week and
+    kept today with no code change is otherwise unexplainable.
+
+    Exits 0 with the gap named when there is no list. That is a real state to
+    report, not a failure: the gate reports UNAVAILABLE and every survival
+    figure computed meanwhile is an upper bound.
+    """
+    from collect.triage.bots import load_bot_list
+
+    bots = load_bot_list()
+    if bots is None:
+        print(
+            "no bot list: contract/bots.yaml does not exist, so the known-bot "
+            "gate reports UNAVAILABLE for EVERY document and every triage "
+            "survival figure is an upper bound.\n"
+            "The detector is built and wired; the list is a contract/ change - "
+            "proposed in docs/proposals/for-engineer-2-the-bot-list.md."
+        )
+        return 0
+
+    print(bots.basis())
+    for name, block in sorted(bots.by_source.items()):
+        reviewed = (
+            f"reviewed {block.reviewed_on} by {block.reviewed_by}"
+            if block.reviewed_on
+            else "NO REVIEW DATE - an undated list cannot be told from a stale one"
+        )
+        print(f"\n  {name}  ({block.id_space}, {reviewed})")
+        if not block.account_ids:
+            # A DECLARED EMPTY LIST IS A MEASUREMENT and reads differently from
+            # a source nobody curated, which does not appear here at all.
+            print("    accounts: [] - somebody looked and found none")
+            continue
+        for account in sorted(block.account_ids):
+            login = block.logins.get(account)
+            print(f"    {account:<26} {login or '(login not recorded)'}")
+
+    from collect.registry.sources import load_sources
+
+    harvested = {row["id"] for row in load_sources().platforms}
+    # NAMED, NOT COUNTED. A platform with rows in `document` and no block here
+    # is the gate reporting UNAVAILABLE for that platform's whole corpus, and
+    # the fix is one YAML block rather than any code.
+    uncurated = sorted(harvested - set(bots.by_source) - {"blogs"})
+    if uncurated:
+        print(
+            f"\n  UNAVAILABLE for {len(uncurated)} harvested source(s) nobody "
+            f"has curated: {', '.join(uncurated)}"
+        )
+    return 0
+
+
 def _cmd_triage_population(args: argparse.Namespace) -> int:
     """Print the surface population the entity gate would resolve against.
 
@@ -1360,6 +1422,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     pop.add_argument("-v", "--verbose", action="store_true", help="list every surface")
     pop.set_defaults(func=_cmd_triage_population)
+
+    bots = triage_sub.add_parser(
+        "bots",
+        help="the bot list the known-bot gate matches against, and its "
+        "fingerprint. Needs no database.",
+    )
+    bots.set_defaults(func=_cmd_triage_bots)
 
     return parser
 

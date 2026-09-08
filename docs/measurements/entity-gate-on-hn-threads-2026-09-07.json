@@ -1,0 +1,30 @@
+{
+  "measured_at": "2026-09-07T12:27:49.693997+00:00",
+  "what": "the entity gate and the length gate applied to every comment of the Hacker News subject threads the 2026-09-07 smoke run stored",
+  "population": "511 comments across 2 threads, read from stored item payloads. No new requests. NOT a sample of Hacker News, and NOT comparable to a keyword-search population, which names the model by construction.",
+  "surfaces": "342 model_version rows from the shared database plus the declared seed surfaces; population fingerprint b5744297e9210497",
+  "threads": [
+    {
+      "story_id": "49587217",
+      "title": "Research acceleration: The view inside OpenAI",
+      "comments_in_thread": 135,
+      "entity_resolves": 4,
+      "entity_resolves_pct": 3.0,
+      "too_short_would_drop": 23,
+      "kept_by_both": 4,
+      "tokens_median": 33
+    },
+    {
+      "story_id": "49588080",
+      "title": "An Alien Mind",
+      "comments_in_thread": 376,
+      "entity_resolves": 7,
+      "entity_resolves_pct": 1.9,
+      "too_short_would_drop": 56,
+      "kept_by_both": 7,
+      "tokens_median": 37
+    }
+  ],
+  "entity_resolves_total": 11,
+  "entity_resolves_total_pct": 2.2
+}
