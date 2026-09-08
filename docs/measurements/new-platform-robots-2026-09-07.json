@@ -1,0 +1,107 @@
+{
+  "measured_at": "2026-09-07T12:14:58.825827+00:00",
+  "user_agent": "modelboard/0.1 (+https://github.com/parvathibntglobal/Model-Information-Board)",
+  "platforms": {
+    "arxiv": [
+      {
+        "url": "https://export.arxiv.org/api/query",
+        "allowed": false,
+        "robots_status": "rules",
+        "robots_http": 200,
+        "crawl_delay": null,
+        "reason": "disallowed by the most specific match, Disallow: '/'"
+      },
+      {
+        "url": "https://arxiv.org/abs/2609.03450v1",
+        "allowed": true,
+        "robots_status": "rules",
+        "robots_http": 200,
+        "crawl_delay": 15.0,
+        "reason": "allowed by the most specific match, Allow: '/abs'"
+      }
+    ],
+    "devto": [
+      {
+        "url": "https://dev.to/api/articles/search",
+        "allowed": true,
+        "robots_status": "rules",
+        "robots_http": 200,
+        "crawl_delay": null,
+        "reason": "allowed: no rule matches this path"
+      },
+      {
+        "url": "https://dev.to/api/articles/4589859",
+        "allowed": true,
+        "robots_status": "rules",
+        "robots_http": 200,
+        "crawl_delay": null,
+        "reason": "allowed: no rule matches this path"
+      }
+    ],
+    "hackernews": [
+      {
+        "url": "https://hn.algolia.com/api/v1/search",
+        "allowed": true,
+        "robots_status": "no-rules",
+        "robots_http": 404,
+        "crawl_delay": null,
+        "reason": "no robots.txt: no rules to break"
+      },
+      {
+        "url": "https://hn.algolia.com/api/v1/items/49593453",
+        "allowed": true,
+        "robots_status": "no-rules",
+        "robots_http": 404,
+        "crawl_delay": null,
+        "reason": "no robots.txt: no rules to break"
+      },
+      {
+        "url": "https://news.ycombinator.com/item?id=49593453",
+        "allowed": true,
+        "robots_status": "rules",
+        "robots_http": 200,
+        "crawl_delay": 30.0,
+        "reason": "allowed: no rule matches this path"
+      }
+    ],
+    "huggingface": [
+      {
+        "url": "https://huggingface.co/api/models",
+        "allowed": true,
+        "robots_status": "rules",
+        "robots_http": 200,
+        "crawl_delay": null,
+        "reason": "allowed by the most specific match, Allow: '/'"
+      },
+      {
+        "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1/discussions",
+        "allowed": true,
+        "robots_status": "rules",
+        "robots_http": 200,
+        "crawl_delay": null,
+        "reason": "allowed by the most specific match, Allow: '/'"
+      }
+    ],
+    "x": [
+      {
+        "url": "https://api.x.com/2/tweets/search/recent",
+        "allowed": false,
+        "robots_status": "rules",
+        "robots_http": 200,
+        "crawl_delay": null,
+        "reason": "disallowed by the most specific match, Disallow: '/'",
+        "note": "X's OWN API. Read before the route was corrected; the X adapter does not call this host."
+      },
+      {
+        "url": "https://twitter241.p.rapidapi.com/search-v2",
+        "allowed": false,
+        "robots_status": "rules",
+        "robots_http": 200,
+        "crawl_delay": null,
+        "reason": "disallowed by the most specific match, Disallow: '/'",
+        "note": "THE HOST THE X ADAPTER ACTUALLY CALLS, derived from SCRAPER_PROVIDER=twitter241. Same reading as reddit34.p.rapidapi.com, which this project already harvests under a ruling that turns on the access path."
+      }
+    ]
+  },
+  "corrected_at": "2026-09-07 \u2014 X route corrected from api.x.com to a RapidAPI provider"
+}

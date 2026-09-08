@@ -1,0 +1,154 @@
+{
+  "ran_at": "2026-09-07T12:55:33.600341+00:00",
+  "query": "Fable 5.1",
+  "max_per_platform": 2,
+  "database": "disposable local instance (localhost)",
+  "rulings": "UNRATIFIED DRAFT \u2014 docs/proposals/new-platform-sources.draft.yaml",
+  "source_rows": {
+    "seen": 5,
+    "inserted": 0
+  },
+  "platforms": [
+    {
+      "platform": "arxiv",
+      "query": "Fable 5.1",
+      "requests_issued": 2,
+      "candidates": 1,
+      "documents_stored": 1,
+      "documents_inserted": 1,
+      "text_refs_resolved": 1,
+      "http_errors": 0,
+      "outcome": "ok",
+      "notes": [
+        "opensearch:totalResults = 1"
+      ],
+      "surface_present_in_candidates": 1,
+      "harvest_run_id": "hr_e4a697a7e1f2ea8d",
+      "write_report": "arxiv: 1 inserted of 1 seen; 0 distinct authors, 1 document(s) with no stable author id, 0 with no platform date, 0 carrying a platform-declared language that document.lang does not yet store, 0 written as status='filtered'",
+      "distinct_authors": 0,
+      "documents_without_author": 1,
+      "documents_without_created_at": 0,
+      "lang_declared_by_platform": 0,
+      "text_ref_missing": 0,
+      "content_hash_mismatched": 0,
+      "resolved_to_a_container": 1,
+      "prose_derived": 1,
+      "prose_refused": 0,
+      "prose_still_a_container": 0,
+      "prose_samples": [
+        "Plan Pointers and Record-Directive Form in Budgeted Verification of Inherited Agent Memory An agent that inherits six one-line memories may pull at most one archived source record before acting; a directive written into "
+      ],
+      "prose_failures": []
+    },
+    {
+      "platform": "devto",
+      "query": "Fable 5.1",
+      "requests_issued": 3,
+      "candidates": 30,
+      "documents_stored": 2,
+      "documents_inserted": 2,
+      "text_refs_resolved": 2,
+      "http_errors": 0,
+      "outcome": "ok",
+      "notes": [
+        "candidates are RETRIEVAL hits from a loose full-text search, not mentions \u2014 the sieve is what counts mentions"
+      ],
+      "surface_present_in_candidates": 12,
+      "harvest_run_id": "hr_5338dca77686b41c",
+      "write_report": "devto: 2 inserted of 2 seen; 2 distinct authors, 0 document(s) with no stable author id, 0 with no platform date, 2 carrying a platform-declared language that document.lang does not yet store, 0 written as status='filtered'",
+      "distinct_authors": 2,
+      "documents_without_author": 0,
+      "documents_without_created_at": 0,
+      "lang_declared_by_platform": 2,
+      "text_ref_missing": 0,
+      "content_hash_mismatched": 0,
+      "resolved_to_a_container": 2,
+      "prose_derived": 2,
+      "prose_refused": 0,
+      "prose_still_a_container": 0,
+      "prose_samples": [
+        "Claude Formalized Fermat in 11 Days. The Math Isn't New. Anthropic says Claude formalized Fermat's Last Theorem in 11 days, working largely autonomously through the Prove2Me platform. The run generated 13 million lines o",
+        "Anthropic deleted 80% of Claude Code's system prompt. Here is what I changed in my setup. Are you burning tokens in Claude Code and getting worse results than you should? Your old habits might be the reason. Anthropic re"
+      ],
+      "prose_failures": []
+    },
+    {
+      "platform": "hackernews",
+      "query": "Fable 5.1",
+      "requests_issued": 5,
+      "candidates": 50,
+      "documents_stored": 4,
+      "documents_inserted": 4,
+      "text_refs_resolved": 4,
+      "http_errors": 0,
+      "outcome": "ok",
+      "notes": [
+        "the document unit is the COMMENT; story rows are subject anchors and are counted apart (2 stored)",
+        "nbHits = 966, which is a prefix-matched RETRIEVAL total and not a mention count"
+      ],
+      "surface_present_in_candidates": 49,
+      "harvest_run_id": "hr_16b9188c5eb211c5",
+      "write_report": "hackernews: 4 inserted of 4 seen; 4 distinct authors, 0 document(s) with no stable author id, 0 with no platform date, 0 carrying a platform-declared language that document.lang does not yet store, 0 written as status='filtered'",
+      "distinct_authors": 4,
+      "documents_without_author": 0,
+      "documents_without_created_at": 0,
+      "lang_declared_by_platform": 0,
+      "text_ref_missing": 0,
+      "content_hash_mismatched": 0,
+      "resolved_to_a_container": 4,
+      "prose_derived": 4,
+      "prose_refused": 0,
+      "prose_still_a_container": 0,
+      "prose_samples": [
+        "Research acceleration: The view inside OpenAI",
+        "An Alien Mind"
+      ],
+      "prose_failures": []
+    },
+    {
+      "platform": "huggingface",
+      "query": "Fable 5.1",
+      "requests_issued": 1,
+      "candidates": 0,
+      "documents_stored": 0,
+      "documents_inserted": 0,
+      "text_refs_resolved": 0,
+      "http_errors": 0,
+      "outcome": "ok",
+      "notes": [
+        "discovery is REPO-SCOPED: 0 repo(s) matched, 0 walked, 0 discussion(s) listed",
+        "no repo matched, so this platform has NO discussion surface for this surface \u2014 a structural absence, not silence about the model"
+      ],
+      "surface_present_in_candidates": 0,
+      "harvest_run_id": "hr_a83793addcbd2250",
+      "write_report": ": 0 inserted of 0 seen; 0 distinct authors, 0 document(s) with no stable author id, 0 with no platform date, 0 carrying a platform-declared language that document.lang does not yet store, 0 written as status='filtered'",
+      "distinct_authors": 0,
+      "documents_without_author": 0,
+      "documents_without_created_at": 0,
+      "lang_declared_by_platform": 0,
+      "text_ref_missing": 0,
+      "content_hash_mismatched": 0,
+      "resolved_to_a_container": 0,
+      "prose_derived": 0,
+      "prose_refused": 0,
+      "prose_still_a_container": 0,
+      "prose_samples": [],
+      "prose_failures": []
+    },
+    {
+      "platform": "x",
+      "query": "Fable 5.1",
+      "requests_issued": 0,
+      "candidates": 0,
+      "documents_stored": 0,
+      "documents_inserted": 0,
+      "text_refs_resolved": 0,
+      "http_errors": 0,
+      "outcome": "refused",
+      "notes": [
+        "TermsNotReviewedError: Refusing to harvest: 1 source(s) failed the NFR-5 terms check (x):"
+      ],
+      "refusal": "Refusing to harvest: 1 source(s) failed the NFR-5 terms check (x):\n  - x: ruling x-via-rapidapi-scraper requires scraper_provider to be one of ['twitter241']; observed None.\nNFR-5 requires the terms be reviewed and recorded per source before any request is made, and this check additionally requires that the ruling has not expired and that its preconditions still hold on this run. Record what the terms say in contract/sources.yaml, re-measure the evidence, and re-run."
+    }
+  ]
+}
