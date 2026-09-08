@@ -431,6 +431,340 @@ terms_rulings:
 
 
 # ============================================================================
+#  WHAT COUNTS AS PUBLICATION — the trigger three rulings turn on
+#
+#  RULED 2026-09-08 by anooj. `reddit-via-rapidapi` has carried
+#  "RE-REVIEW REQUIRED BEFORE: any external publication" since 2026-08-18 and
+#  never said what publication meant. An untriggered trigger and an undefined
+#  one look identical from inside the repository, and the two new rulings below
+#  rest on the same condition, so it is defined once here rather than three
+#  times differently.
+#
+#  THE DEFINITION, and it is deliberately not "launch":
+#
+#      A QUOTE FROM A PLATFORM, SHOWN WITH A LINK, TO SOMEBODY OUTSIDE THE
+#      TEAM.
+#
+#  Three parts, and each is doing work:
+#
+#    a quote        the platform's own words, reproduced. An aggregate over
+#                   those words is not one — "7 voices, 2 platforms" is a count
+#                   and publishes nothing quotable.
+#    with a link    the form BUILD-PLAN commits to (quote + attribution +
+#                   link). Naming a source is what makes the display a use of
+#                   that platform's content rather than a statement of ours.
+#    outside the
+#    team           one reader who is not one of us is enough. NOT a launch,
+#                   NOT an announcement, NOT a domain. A demo to a prospective
+#                   user, a screenshot in a deck, a link to a deployed build,
+#                   a shared PDF of a board page — each one trips this.
+#
+#  WHY THE BAR IS ONE READER RATHER THAN A LAUNCH. A launch is an event we
+#  would schedule and therefore remember. Every instance of this trigger that
+#  has nearly happened so far would have been an afternoon's decision by one
+#  person — which is exactly the class of thing a recorded condition has to
+#  cover, because nobody would have thought to re-read a ruling first.
+#
+#  WHERE THE BOARD STANDS AGAINST IT TODAY, MEASURED 2026-09-08 rather than
+#  assumed — AND IT IS CLOSER THAN THE WORD "DEMO" SUGGESTS:
+#
+#    NOT TRIPPED, AND THE REASON IS THE AUDIENCE, NOT THE DATA. The one page
+#    carrying an `illustrative` badge is Landing's throughput panel
+#    (`web/src/routes/Landing.jsx`: 10,000 / 1,200 / 1,700 / 96), which is
+#    invented and labelled as such. THE ARTICLES PAGES ARE NOT ILLUSTRATIVE.
+#    `web/src/data/articles.js` imports ten static platform files for
+#    DeepSeek V4 Pro and they carry REAL verbatim quotes, REAL handles and REAL
+#    permalinks, at this size:
+#
+#        deepseek-v4-pro-x.json        149 posts     handle, profile_url,
+#                                                    status_url, quote
+#        deepseek-v4-pro-reddit.json   150 posts     author, url, excerpt
+#        deepseek-v4-pro-hn.json        34 posts     author, url, quote
+#        deepseek-v4-pro-devto.json     53 posts     author, url, excerpt
+#        deepseek-v4-pro-arxiv.json     43 articles  authors, abs_url
+#
+#    So what holds the trigger off is that nothing is served to anybody
+#    outside the team — NOT that the quotes are stand-ins. Recording the
+#    difference matters because "it is only a demo" is how this gets tripped:
+#    the sentence is true about the AUDIENCE and false about the CONTENT, and
+#    the audience is the half that changes with one URL.
+#
+#    ⚠ THE SIGN-IN DOES NOT NARROW THIS. `web/src/App.jsx` guards every route
+#      with `<Require session>`, which is a CLIENT-SIDE guard, and
+#      `web/src/auth.js` says so in its own words: "A guard in the client
+#      protects the view. It never protected the data." Those ten JSON files
+#      are imported into the bundle, so the quotes ship inside the built
+#      JavaScript and are readable without signing in. A deployed build is
+#      published under this definition whether or not anyone logs in.
+#
+#      THE DEPLOYMENT DECISION IS NOT THIS FILE'S, and it is not a pipeline
+#      question. It sits with whoever ships the frontend, as issue #225 with
+#      three options, and in
+#      `docs/for-the-frontend-owner-the-bundle-is-the-access-boundary.md`.
+#      Stated here only because the trigger above turns on it.
+#
+#  NOTHING IN THE PIPELINE ENFORCES THIS. See ENFORCEMENT, below the two
+#  rulings, which says exactly what is checked and what is not.
+# ============================================================================
+
+
+  # ── arXiv ────────────────────────────────────────────────────────────────
+  #
+  # RATIFIED 2026-09-08 ON THE SAME FOOTING AS REDDIT, AND THE ROBOTS QUESTION
+  # IS NOT ANSWERED BY DOING SO. It is answered-for-now by the CONDITION: while
+  # nothing is published externally (see the definition above), arXiv proceeds;
+  # the moment anything is, this ruling stops applying and the API Terms of Use
+  # have to be read first. That is a narrower claim than "the API terms beat
+  # robots" and it is the only one the evidence supports.
+  #
+  # THE EVIDENCE IS THE MEASUREMENT AND IT STAYS AS MEASURED, not as read
+  # favourably (docs/measurements/new-platform-robots-2026-09-07.json):
+  #
+  #     export.arxiv.org/api/query   200, Disallow: /   THE HOST WE CALL
+  #     arxiv.org/abs/…              200, allowed, Crawl-delay: 15
+  #
+  # So the host serving arXiv's documented Atom API disallows crawling it,
+  # WHILE arXiv publishes request-rate guidance for that same API — one request
+  # every three seconds, one connection, honoured in
+  # `collect/adapters/arxiv.py:MIN_INTERVAL_SECONDS`. Those two facts point
+  # opposite ways. GitHub's ruling did not have to settle it (api.github.com
+  # serves no robots.txt at all, 404), so THERE IS NO PRECEDENT TO INHERIT
+  # HERE — which is why this is the internal-only footing and not a clearance.
+  - id: arxiv-api-terms
+    party: platform
+    platform_host: arxiv.org
+    reviewed_on: 2026-09-08
+    reviewed_by: anooj
+    basis: internal-development-only
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    summary: >-
+      RULED 2026-09-08. Access is the Atom API at export.arxiv.org and never
+      arxiv.org's HTML or the PDFs.
+
+      THE RULING, IN ONE SENTENCE: arXiv proceeds on an
+      internal-development-only footing, and THAT POSITION HOLDS ONLY WHILE
+      NOTHING IS PUBLISHED EXTERNALLY - a quote from this platform, shown with
+      a link, to anybody outside the team. See "WHAT COUNTS AS PUBLICATION"
+      above this ruling for the definition, which is a trigger and not a
+      launch.
+
+      WHAT WAS ACTUALLY CHECKED, AND IT IS NOT THE TERMS. robots.txt read on
+      both hosts 2026-09-07 and recorded per source; the API's published
+      request-rate guidance is honoured as given; the response shape was
+      verified to be the documented Atom feed.
+
+      NO TERMS DOCUMENT HAS BEEN READ. arXiv's API Terms of Use and its
+      Licences page are the two to read, and neither has been. This ruling
+      records the deferral rather than leaving it as an absence somebody later
+      reads as a clearance - the same treatment, and the same wording, as
+      `blog-class-a-self-hosted`, which states that no terms page has been read
+      for any of the nine feeds.
+
+      UNRESOLVED, DELIBERATELY RECORDED:
+        - export.arxiv.org/robots.txt is `Disallow: /`, on the host that serves
+          the documented API, while arXiv publishes rate guidance for that same
+          API. Whether the API terms govern the API path is UNANSWERED. There
+          is no precedent to inherit: api.github.com serves no robots.txt at
+          all, so `github-api-terms` never had to say what an explicit
+          `Disallow: /` on an API host means.
+        - Abstracts are third-party text under a mix of licences. No licence
+          page has been read to confirm that short quotation is permitted for
+          each.
+        - An arXiv abstract is a THIRD-PARTY measurement of somebody else's
+          model rather than own-experience. A weighting question for `judge/`,
+          not a terms question, and recorded here because this is where a
+          reader decides whether to admit the platform.
+
+      CURRENT USE: internal development and testing. Not published, no
+      external users, not monetized.
+
+      RE-REVIEW REQUIRED BEFORE: any external publication as defined above,
+      any external user, any monetization, or fetching arxiv.org's HTML or
+      PDFs rather than the API.
+    # THE BASIS IS A LIVE PRECONDITION, NOT A SENTENCE. `TermsRuling.basis`
+    # says it: "Where a basis is named it should also be a `live_precondition`,
+    # so the fuse is checked rather than remembered."
+    # `collect/adapters/arxiv.py:observe_arxiv_use` supplies both facts on
+    # every run. READ THE ENFORCEMENT BLOCK BELOW BEFORE TRUSTING THAT — what
+    # `use_basis` observes is ENVIRONMENT, which is a proxy for the deployment
+    # and NOT an observation of whether anything has been published.
+    live_preconditions:
+      access_path: [api]
+      use_basis: [internal-development-only]
+    recorded_evidence:
+      republication_claimed: [false]
+      terms_document_read: [false]
+      robots_api_host_disallows: [true]   # measured, and recorded as measured
+
+  # ── X, via a RapidAPI scraper provider ───────────────────────────────────
+  #
+  # RATIFIED 2026-09-08, INHERITING THE REDDIT PRECEDENT, because it is not an
+  # analogy — it is the same gateway, the same `RAPIDAPI_KEY`, the same billed
+  # subscription and the same robots reading:
+  #
+  #     reddit34.p.rapidapi.com     200, Disallow: /    harvested today under
+  #                                                     reddit-via-rapidapi
+  #     twitter241.p.rapidapi.com   200, Disallow: /    this ruling
+  #
+  # `reddit-via-rapidapi`'s live precondition is the ACCESS PATH and not
+  # robots, so X was never a new question about robots. It is the existing
+  # Reddit question one platform wider, and it is escalated WITH Reddit's
+  # rather than separately, because it is one question about one gateway.
+  #
+  # ⚠ api.x.com WAS ALSO READ (200, `Disallow: /`) AND IS NOT THE HOST WE CALL.
+  #   That reading is about the API we are NOT using, and it is kept in the
+  #   measurement file with a note saying so rather than dropped, because a
+  #   deleted reading looks like a reading nobody took.
+  #
+  # ⚠ THE SUBSCRIPTION IS SHARED. An X sweep spends Reddit's quota: 1,000,000
+  #   requests over a 23.893-day window as read 2026-08-18, BILLED TIER STILL
+  #   UNVERIFIED, and nothing has re-read it since. See the `reddit` row.
+  - id: x-via-rapidapi-scraper
+    party: platform
+    platform_host: x.com
+    reviewed_on: 2026-09-08
+    reviewed_by: anooj
+    basis: internal-development-only
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    summary: >-
+      RULED 2026-09-08, INHERITING `reddit-via-rapidapi`. Access is a RapidAPI
+      scraper provider selected by `SCRAPER_PROVIDER` (`twitter241` today), NOT
+      X's own API - the same gateway, the same `RAPIDAPI_KEY` and the same
+      billed subscription as the Reddit path.
+
+      THE RULING, IN ONE SENTENCE: X proceeds on an internal-development-only
+      footing, and THAT POSITION HOLDS ONLY WHILE NOTHING IS PUBLISHED
+      EXTERNALLY - a quote from this platform, shown with a link, to anybody
+      outside the team. See "WHAT COUNTS AS PUBLICATION" above.
+
+      THIS IS A PERMISSION, NOT A CLEARANCE, and it is the same one Reddit
+      holds. A reseller route does not use credentials issued by X, which is
+      the condition Reddit's Data API Terms 2.8 records as unresolved
+      REGARDLESS OF USE. An internal-development basis does not clear it and
+      is not claimed to.
+
+      WHAT WAS ACTUALLY CHECKED, AND IT IS NOT THE TERMS. robots.txt read
+      2026-09-07 on the host the adapter derives from `SCRAPER_PROVIDER`,
+      `twitter241.p.rapidapi.com`: 200, `Disallow: /` - the same reading as
+      `reddit34.p.rapidapi.com`, which this project harvests today under a
+      ruling whose live precondition is the access path. The parser was
+      verified against recorded fixtures. NO REQUEST HAS EVER BEEN MADE FROM
+      THIS REPOSITORY'S PIPELINE PATH.
+
+      NO TERMS DOCUMENT HAS BEEN READ. Three, not one, and that is the point of
+      a reseller route: X's Developer Agreement and Policy, RapidAPI's terms,
+      and the provider's own listing terms. None has been read.
+
+      UNRESOLVED, DELIBERATELY RECORDED - and the first three are Reddit's,
+      one platform over:
+        - Credentials are not issued by X (Reddit's 2.8). NOT cleared by an
+          internal-development basis.
+        - Display requirements naming the author, against `author.handle_hash`
+          (Reddit's 5.2). Surfaces when a publish path is built -
+          `collect/assemble/authors.py`.
+        - Deletion obligations against an immutable raw store, NFR-4
+          (Reddit's 3.2). Surfaces in `collect/rawstore.py:evict`.
+        - What the read allowance is. A property of the subscription, shared
+          with Reddit, and no request settles it - the figure would come from
+          the party whose figure is in doubt.
+
+      CURRENT USE: internal development and testing. Nothing has run yet.
+
+      RE-REVIEW REQUIRED BEFORE: any external publication as defined above,
+      any external user, any monetization, a switch to a direct X key, or a
+      change of `SCRAPER_PROVIDER`.
+      Escalated to the MD WITH Reddit's on 2026-09-08, as one question about
+      one gateway.
+
+    # THE PROVIDER IS A PRECONDITION, NOT A DETAIL. A ruling is a reading of one
+    # party's terms, and swapping `SCRAPER_PROVIDER` swaps the party - as well
+    # as the response envelope the parser reads. Pinning it here means a swap
+    # REFUSES at the gate rather than silently parsing nothing and reporting the
+    # platform as quiet, which is rule 4 one stage earlier.
+    #
+    # `credential_present: [true]` is kept as a precondition and it is NOT a
+    # clearance — the gate runs BEFORE the credential check in
+    # `collect/adapters/x.py:harvester_for_source`, deliberately, so the answer
+    # to "why can't I harvest X" is never "you need a key" when the real answer
+    # is that a term has not been read.
+    live_preconditions:
+      access_path: [rapidapi-reseller]
+      scraper_provider: [twitter241]
+      credential_present: [true]
+      use_basis: [internal-development-only]
+    recorded_evidence:
+      republication_claimed: [false]
+      terms_document_read: [false]
+      credentials_issued_by_platform: [false]   # the 2.8-shaped condition
+      legal_review_completed: [false]
+
+
+# ============================================================================
+#  ENFORCEMENT — what actually notices, and what does not
+#
+#  WRITTEN 2026-09-08 BECAUSE AN INTERNAL-ONLY RULING THAT NOTHING ENFORCES IS
+#  A NOTE, NOT A CONTROL, and three rulings in this file now rest on one.
+#  Stating what is checked without stating what is not would make this file the
+#  fourth instance of the shape CLAUDE.md's `assert_no_fixtures` entry has
+#  already been wrong about three times: a claim about wiring, read as a
+#  guarantee.
+#
+#  WHAT IS ENFORCED, on `reddit-via-rapidapi`, `arxiv-api-terms` and
+#  `x-via-rapidapi-scraper` alike:
+#
+#    use_basis   re-read on every run. `observe_reddit_use`,
+#                `observe_arxiv_use` and `observe_x_use` each return
+#                `internal-development-only` unless `ENVIRONMENT=production`,
+#                in which case `assert_terms_reviewed` refuses the source and
+#                the harvest stops. That is real and it fires.
+#
+#  WHAT IS NOT ENFORCED, AND THE HONEST ANSWER IS NO:
+#
+#    ⚠  NOTHING IN THE PIPELINE WOULD NOTICE IF THE PUBLICATION CONDITION WERE
+#       BREACHED. There is no check, anywhere, that observes whether a quote
+#       has been shown with a link to somebody outside the team. Not a gate,
+#       not a weight, not a counter. If a build were deployed tomorrow with
+#       those 149 X quotes and 150 Reddit quotes in the bundle, every terms
+#       assertion in this repository would still pass.
+#
+#  THREE REASONS IT CANNOT NOTICE, and they are structural rather than missing
+#  work, which is why this is a recorded gap and not a TODO:
+#
+#    1. THE GATE IS ON THE FETCH PATH AND PUBLICATION IS ON THE SERVE PATH.
+#       `assert_terms_reviewed` has exactly the callers CLAUDE.md's Conventions
+#       list, plus one `harvester_for_source` per adapter — every one of them a
+#       fetch. `judge/app.py`, `judge/gate.py` and the web bundle consult no
+#       ruling and reference none. A breach therefore stops the NEXT HARVEST at
+#       worst, and never the page.
+#
+#    2. `use_basis` OBSERVES `ENVIRONMENT`, WHICH IS A DIFFERENT FACT.
+#       `observe_reddit_use` says so in its own docstring: it is a proxy that
+#       catches a production deployment silently inheriting a
+#       development-only ruling, and does NOT catch a staging instance that has
+#       acquired external users. Publication is a property of WHO IS LOOKING.
+#       No environment variable knows that.
+#
+#    3. THE ARTICLES DATA IS STATIC AND ALREADY BUILT. Those ten JSON files are
+#       imported by `web/src/data/articles.js` into the bundle. Nothing
+#       re-derives them at serve time, so there is no moment at which any code
+#       could be asked to check a ruling.
+#
+#  SO THE CONTROL IS A PERSON, AND SAYING SO IS THE POINT. The condition is
+#  honoured by whoever is about to show the board to somebody, and the only
+#  thing this file contributes is that they can find out what the condition is
+#  before they do it, rather than after. A reader who wanted a guard here
+#  should read this as the argument for building one — the cheapest candidate is
+#  a serve-path check that refuses to render a quote whose source row's ruling
+#  rests on `internal-development-only`, which does not exist and is not
+#  scheduled.
+# ============================================================================
+
+
+# ============================================================================
 #  PLATFORM ROWS — the trust weights, and one row per platform.
 # ============================================================================
 
@@ -545,6 +879,107 @@ sources:
       closes on somebody opening the RapidAPI subscription page. A browser, not
       a call. Same folklore shape as the "60/min" above, caught the same way.
       See docs/measurements/reddit-rate-and-quota.md §1.4.
+
+  - id: arxiv
+    platform: arxiv
+    endpoint: https://export.arxiv.org/api/query
+    base_trust: 0.70
+    provenance: seed
+    # RULED 2026-09-08, INTERNAL DEVELOPMENT ONLY, on the same footing as
+    # `reddit`. See `arxiv-api-terms` above for the condition it rests on and,
+    # more importantly, for what it does NOT clear — no arXiv terms document
+    # has been read.
+    #
+    # `base_trust` 0.70 IS THE LOWEST OF THE FIVE NEW PLATFORMS AND IT IS A
+    # GUESS, like the other five weights in this file — nothing has calibrated
+    # any of them. The argument, which is the part to disagree with: an
+    # abstract is a THIRD-PARTY benchmark of somebody else's model rather than
+    # own-experience, and every arXiv document is unattributable to a single
+    # voice (`collect/adapters/arxiv.py:author_external_id`), so it can
+    # corroborate the platform half of the publication gate and never the
+    # voice half. That is a structural ceiling, not a comment on rigour.
+    terms_ruling: arxiv-api-terms
+    terms_evidence:
+      checked_on: 2026-09-07
+      access_path: api
+      republication_claimed: false
+      terms_document_read: false
+      robots_api_host_disallows: true
+    tos_notes: >-
+      Ruling arxiv-api-terms, 2026-09-08. Access is the Atom API at
+      export.arxiv.org; arxiv.org's HTML and the PDFs are never fetched.
+      Request rate honoured as arXiv publishes it: one per three seconds, one
+      connection.
+
+      PERMITTED TODAY: internal development and testing only, and the position
+      HOLDS ONLY WHILE NOTHING IS PUBLISHED EXTERNALLY — a quote shown with a
+      link to anybody outside the team. See "WHAT COUNTS AS PUBLICATION" in
+      this file for the definition.
+
+      robots.txt on the API host is `Disallow: /` (read 2026-09-07) while arXiv
+      publishes request-rate guidance for that same API. THE API-VERSUS-ROBOTS
+      QUESTION IS UNRESOLVED and is recorded as such rather than resolved by
+      the ruling; there is no precedent to inherit, because api.github.com
+      serves no robots.txt at all. No terms document has been read — arXiv's
+      API Terms of Use and its Licences page are the two to read.
+
+  - id: x
+    platform: x
+    endpoint: https://twitter241.p.rapidapi.com
+    base_trust: 0.60
+    provenance: seed
+    # RULED 2026-09-08, INTERNAL DEVELOPMENT ONLY, INHERITING THE REDDIT
+    # PRECEDENT. `twitter241.p.rapidapi.com` and `reddit34.p.rapidapi.com` are
+    # the same case: one gateway, one key, one billed subscription, and the
+    # same `Disallow: /`. See `x-via-rapidapi-scraper` above for the four
+    # conditions it does NOT clear.
+    #
+    # `base_trust` 0.60 IS THE LOWEST WEIGHT IN THIS FILE and it is a STANCE
+    # rather than an observation: the Articles-page sweep found 573 keyword
+    # posts across 46 queries for one model, of which the substantive ones had
+    # to be separated by hand from announcements, roundups and promo. Until a
+    # filter does that separation, the channel is mostly marketing. Say so here
+    # rather than in a commit message, because a weight nobody can argue with
+    # is a weight nobody will fix.
+    terms_ruling: x-via-rapidapi-scraper
+    terms_evidence:
+      checked_on: 2026-09-07
+      access_path: rapidapi-reseller
+      republication_claimed: false
+      terms_document_read: false
+      credentials_issued_by_platform: false
+      legal_review_completed: false
+    tos_notes: >-
+      Ruling x-via-rapidapi-scraper, 2026-09-08. Access is a RapidAPI scraper
+      provider selected by `SCRAPER_PROVIDER` (`twitter241` today), NOT X's own
+      API — the same gateway and the same `RAPIDAPI_KEY` as the Reddit path, so
+      an X sweep spends the Reddit quota.
+
+      PERMITTED TODAY: internal development and testing only, and the position
+      HOLDS ONLY WHILE NOTHING IS PUBLISHED EXTERNALLY — a quote shown with a
+      link to anybody outside the team. See "WHAT COUNTS AS PUBLICATION" in
+      this file.
+
+      NOT CLEARED, and escalated to the MD with Reddit's on 2026-09-08 as one
+      question about one gateway: credentials are not issued by X (Reddit's
+      Data API Terms 2.8, which an internal-development basis does not clear),
+      display requirements naming the author against our `handle_hash` design
+      (Reddit's 5.2), and deletion obligations against NFR-4's immutable store
+      (Reddit's 3.2). No terms document has been read, and there are THREE on a
+      reseller route rather than one: X's Developer Agreement and Policy,
+      RapidAPI's terms, and the provider's own listing terms.
+
+      `endpoint` above is the host the provider name DERIVES to
+      (`collect/adapters/x.py:host_for`), not a value the adapter reads. The
+      adapter follows `SCRAPER_PROVIDER`; this row records which provider the
+      ruling was made for, and the ruling's `scraper_provider` precondition
+      makes a swap REFUSE rather than silently parse a different envelope and
+      report the platform as quiet.
+
+      NOTHING HAS RUN. No X request has ever been made from this repository's
+      pipeline path. The terms gate now passes, so the remaining stop is the
+      credential — `RAPIDAPI_KEY`, checked after the gate and not before it.
+
 
 
 # ============================================================================

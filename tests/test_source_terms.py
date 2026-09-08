@@ -61,15 +61,39 @@ def test_the_contract_file_exists():
     assert SOURCES_YAML.exists()
 
 
-def test_all_three_platforms_are_declared():
+def test_all_five_platforms_are_declared():
+    """Three until 2026-09-08, when arXiv and X were ratified.
+
+    THE SET, NOT THE COUNT. `>= 3` would pass on a file that had lost `reddit`
+    and gained two others, which is the change worth catching - a platform
+    silently leaving the contract renders as an absence, and rule 4 is about
+    exactly that.
+    """
     ids = {s["id"] for s in _contract()["sources"]}
-    assert ids == {"github", "blogs", "reddit"}
+    assert ids == {"github", "blogs", "reddit", "arxiv", "x"}
 
 
 def test_base_trust_matches_the_documented_weights():
-    """github 0.95 / blog 0.90 / reddit 0.85 — weights, so rule 5 puts them here."""
+    """Weights, so rule 5 puts them here rather than in code.
+
+    EVERY ONE OF THESE FIVE IS A GUESS and nothing has calibrated any of them;
+    `contract/sources.yaml` carries the argument for each beside the number.
+    This test pins them so a change is deliberate, and says nothing about
+    whether they are right.
+
+    arxiv 0.70 and x 0.60 arrived 2026-09-08 as the two lowest: an arXiv
+    abstract is third-party rather than own-experience and is unattributable to
+    one voice, and X is mostly marketing until a filter separates the
+    substantive posts from the announcements.
+    """
     trust = {s["id"]: s["base_trust"] for s in _contract()["sources"]}
-    assert trust == {"github": 0.95, "blogs": 0.90, "reddit": 0.85}
+    assert trust == {
+        "github": 0.95,
+        "blogs": 0.90,
+        "reddit": 0.85,
+        "arxiv": 0.70,
+        "x": 0.60,
+    }
 
 
 def test_every_source_and_feed_has_tos_notes():
@@ -236,7 +260,7 @@ def test_every_feed_becomes_a_source_row():
     """Seeded in contract/, ordinary rows at runtime — seed_models' pattern."""
     contract = load_sources()
     rows = {row["id"]: row for row in contract.source_rows()}
-    assert len(rows) == 12  # three platforms + nine feeds
+    assert len(rows) == 14  # five platforms + nine feeds; was 12 before 2026-09-08
     assert rows["blog:simonwillison.net"]["provenance"] == "seed"
     assert rows["blog:simonwillison.net"]["terms_checked_on"] == REVIEWED_ON
     assert all(row["base_trust"] for row in rows.values())

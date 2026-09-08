@@ -5,8 +5,9 @@ hand-built mappings. That proves the logic and not the wiring: a column that
 does not round-trip, an evidence blob that comes back as strings, a NOT NULL
 nobody can satisfy. All three are invisible until rows go through Postgres.
 
-So this file inserts the twelve and then asks the four gates to do their job
-against what came back out.
+So this file inserts the fourteen and then asks the four gates to do their job
+against what came back out. (Twelve until 2026-09-08, when arXiv and X were
+ratified into `contract/sources.yaml`.)
 
     pwsh scripts/dev-postgres.ps1
     .venv\\Scripts\\python.exe -m pytest tests/test_source_load_db.py -q
@@ -59,27 +60,35 @@ def _rows(connection):
 # ── writing ───────────────────────────────────────────────────────────────
 
 
-def test_the_twelve_rows_land(conn):
+def test_the_fourteen_rows_land(conn):
+    """Twelve until 2026-09-08, then arXiv and X.
+
+    THE PLATFORM SET IS ASSERTED AS A SET, not counted. A count passes on a
+    file that lost `reddit` and gained two others, and a platform leaving the
+    contract renders as an absence rather than as an error (rule 4).
+    """
     report = load_source_rows(conn)
-    assert (report.inserted, report.updated, report.unchanged) == (12, 0, 0)
+    assert (report.inserted, report.updated, report.unchanged) == (14, 0, 0)
 
     rows = _rows(conn)
-    assert len(rows) == 12
-    assert {r["platform"] for r in rows.values()} == {"github", "blog", "reddit"}
+    assert len(rows) == 14
+    assert {r["platform"] for r in rows.values()} == {
+        "github", "blog", "reddit", "arxiv", "x",
+    }
     assert sum(1 for r in rows.values() if r["platform"] == "blog") == 10  # 9 + umbrella
 
 
 def test_a_second_load_changes_nothing(conn):
     """Idempotent, like load_seed. `source` is re-seeded on every ruling change.
 
-    A loader that reported twelve updates every time would make the one row
+    A loader that reported fourteen updates every time would make the one row
     that genuinely moved impossible to see in the report.
     """
     load_source_rows(conn)
     conn.commit()
 
     again = load_source_rows(conn)
-    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 12)
+    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 14)
     assert again.changed_columns == {}
 
 
@@ -92,7 +101,7 @@ def test_a_changed_ruling_shows_up_as_one_updated_row(conn):
     conn.commit()
 
     report = load_source_rows(conn)
-    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 11)
+    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 13)
     assert report.changed_columns == {"blog:hamel.dev": ["tos_notes"]}
 
 
