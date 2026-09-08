@@ -1,0 +1,77 @@
+# ============================================================================
+#  Every merged PR's commits must be in `main`.
+#
+#  WHY THIS EXISTS, AND IT IS A SPECIFIC INCIDENT
+#
+#  2026-09-08: four PRs were opened as a stack, each based on the one below.
+#  All four merged. #227 merged into `main` carrying only its own commit; #228
+#  and #229 merged into their BASE BRANCHES, and those branches were never
+#  merged onward. Both PRs closed, both said merged, and `collect/triage/run.py`,
+#  `contract/bots.yaml`, both migrations and the arXiv/X terms rulings were not
+#  on `main`.
+#
+#  Nothing was lost - it sat on a branch - but nothing said so either. It was
+#  found by hand, by trying to push to a closed PR and reading the rejection.
+#
+#  Same shape as the orphaned-commit pattern CLAUDE.md records, by a new door:
+#  there, a commit was pushed to a branch whose PR had closed and no workflow
+#  observed it. Here, a PR closed as merged and no workflow observed that its
+#  content never arrived. Both times the repository knew and nobody asked.
+#
+#  WHY IT RUNS ON `main` AND ON A SCHEDULE, NOT ON `pull_request`
+#
+#  The defect is not IN a pull request - it is in what happened after one was
+#  merged, and the merge that strands a PR is a merge of a DIFFERENT PR. So the
+#  moment to ask is when `main` moves, and again on a timer, because a stack can
+#  be stranded by a merge that touches `main` at all.
+#
+#  IT IS ITS OWN WORKFLOW RATHER THAN A STEP IN `ci.yml`, because it needs the
+#  GitHub API and the full history and `ci.yml` needs neither. Folding it in
+#  would make every lint run fetch the whole repo.
+#
+#  ⚠ IT ASSUMES MERGE COMMITS. A squash or rebase merge rewrites the head
+#    commit, so its SHA is not an ancestor of `main` even when the content
+#    arrived. Verified over the last twelve merged PRs on 2026-09-08: all twelve
+#    are merge commits and all twelve are ancestors. If squash merging is turned
+#    on, this check becomes wrong rather than the repository, and the failure
+#    message says so and names the fix. Do not delete it; point it at
+#    `mergeCommit`.
+# ============================================================================
+
+name: Merged PRs reached main
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Daily. A stack can be stranded by a merge that landed while nobody was
+    # looking, and the push trigger only fires for the merge that CAUSED it -
+    # which may have been a legitimate one.
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  ancestry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # LOAD-BEARING. `git merge-base --is-ancestor` cannot answer on a
+          # shallow clone, and every PR would look stranded. The script refuses
+          # rather than reporting that false alarm, so this is what makes the
+          # answer meaningful rather than merely available.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check that every merged PR's head is an ancestor of main
+        env:
+          # `gh` is preinstalled on the runner and needs a token to list PRs.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/check_merged_prs_reached_main.py --main origin/main
