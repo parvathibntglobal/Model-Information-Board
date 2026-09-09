@@ -675,6 +675,22 @@ def triage_stage(conn, prog: Progress) -> None:
     # found" and "we cannot look for bots" are different facts about the corpus.
     if run.never_ran:
         detail += " | unavailable: " + ", ".join(sorted(run.never_ran))
+    # PER SOURCE, in the detail line and not only in an object field the panel
+    # cannot render. This is the number that says whether the gates are tuned for
+    # a platform or merely running on it: `too_short` was calibrated on Reddit
+    # comments, and an arXiv abstract or a Hugging Face model card is a different
+    # shape entirely. A single corpus-wide "5888 dropped" hides which source paid.
+    if run.by_source:
+        per = []
+        for src in sorted(run.by_source):
+            counts = run.by_source[src] or {}
+            kept, triaged = counts.get("kept", 0), counts.get("triaged", 0)
+            # kept / TRIAGED, which is the survival rate the triage module itself
+            # reports. kept/(kept+dropped) would silently exclude the rows that
+            # were never gated at all, and those are the ones worth seeing on a
+            # platform whose prose extractor is new.
+            per.append(f"{src} {kept}/{triaged}" if triaged else f"{src} none gated")
+        detail += " | survived by source: " + ", ".join(per)
     prog.stage("E4", "Triage", "ok", eligible=run.eligible, triaged=run.triaged,
                kept=run.kept, dropped=run.dropped, written=run.written,
                by_reason=dict(run.by_reason), by_source=dict(run.by_source),
