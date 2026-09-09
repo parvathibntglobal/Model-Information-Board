@@ -304,6 +304,124 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
     return inserted
 
 
+def _gated_harvester(platform_id: str, factory, **kwargs):
+    """Build a harvester through the adapter's OWN gate. Returns (h, why-not).
+
+    EVERY ADAPTER PUBLISHES `harvester_for_source`, and it is the entry point
+    anything that fetches must use. This lane learned that the expensive way:
+    the Reddit path once had no such entry point, a 1,297-post corpus was
+    gathered without the gate ever being asked, and the gate had been refusing
+    Reddit correctly the whole time — nothing consulted it.
+
+    So this does NOT call `assert_terms_reviewed` itself. It cannot: each ruling
+    names its own live preconditions — `use_basis` for arXiv, and for X also
+    `scraper_provider`, `credential_present` and an `access_path` of
+    `rapidapi-reseller` — and only the adapter can observe them. A generic
+    observation passed from here would be an observation NOBODY MADE wearing the
+    costume of one that passed, which is precisely what rule 6 refuses.
+
+    A platform absent from `contract/sources.yaml` is UNASSESSED, not refused,
+    and the two must not render alike.
+    """
+    contract = load_sources()
+    source = next((s for s in contract.platforms if s.get("id") == platform_id), None)
+    if source is None:
+        return None, (
+            f"{platform_id} has no entry in contract/sources.yaml, so its terms have "
+            "never been reviewed. Not refused — unassessed. Adding one is a contract "
+            "change (two eyes), never something a fetch may assume for itself."
+        )
+    try:
+        return factory(source, rulings=contract.rulings, **kwargs), ""
+    except Exception as exc:
+        return None, str(exc).splitlines()[0][:180]
+
+
+def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int) -> int:
+    """E2 harvest — arXiv search for this model, appended to `document`.
+
+    Papers are the one source here that is CITED rather than reported. An author
+    writing about a model is not an engineer reporting their own run, so what
+    lands extracts as `relayed-from-elsewhere` and is weighted accordingly. It is
+    harvested anyway because a paper naming a measurement is exactly the figure
+    the metric pages want, and it arrives with a citation attached.
+    """
+    from collect.adapters.arxiv import harvester_for_source
+
+    harvester, why = _gated_harvester(
+        "arxiv", harvester_for_source,
+        client=build_client(timeout=30.0),
+        store=RawStore(Path(settings().raw_store_path)),
+        max_pages=1,
+    )
+    if harvester is None:
+        prog.stage("E2A", "Harvest · arXiv", "skipped", detail=why)
+        return 0
+
+    queries = variants[:max_queries]
+    prog.stage("E2A", "Harvest · arXiv", "running", queries=len(queries),
+               detail=f"arXiv search for {len(queries)} name variant(s)")
+    inserted = papers = 0
+    for variant in queries:
+        run = harvester.search(variant)
+        for paper in list(getattr(run, "papers", []) or [])[:5]:
+            harvester.fetch_paper(paper, run)
+        papers += len(getattr(run, "stored", []) or [])
+        wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
+        conn.commit()
+        inserted += int(getattr(wrote, "inserted", 0) or 0)
+    prog.stage("E2A", "Harvest · arXiv", "ok", papers=papers, documents_inserted=inserted,
+               detail=f"{papers} paper(s) stored, {inserted} document(s) appended")
+    return inserted
+
+
+def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) -> int:
+    """E2 harvest — X search for this model, appended to `document`.
+
+    IT SHARES THE RAPIDAPI KEY, AND THEREFORE THE QUOTA, WITH REDDIT. Running
+    both arms in one fetch spends one budget twice, which is why this is capped
+    harder than the Reddit arm and why the admin usage panel shows the two paths
+    against a single remaining figure rather than two independent ones.
+
+    `harvester_for_source` runs the ToS gate and THEN the credential, so a
+    missing `RAPIDAPI_KEY` arrives here as a refusal to build rather than as a
+    request that fails midway. Both are reported as `skipped` with the reason:
+    neither is a fault of this run, and an error badge would say it was.
+    """
+    from collect.adapters.x import harvester_for_source
+
+    harvester, why = _gated_harvester(
+        "x", harvester_for_source,
+        client=build_client(timeout=30.0),
+        store=RawStore(Path(settings().raw_store_path)),
+        max_pages=1,
+    )
+    if harvester is None:
+        prog.stage("E2X", "Harvest · X", "skipped", detail=why)
+        return 0
+
+    queries = variants[:max_queries]
+    prog.stage("E2X", "Harvest · X", "running", queries=len(queries),
+               detail=f"X search for {len(queries)} variant(s) — shares the Reddit quota")
+    inserted = posts = 0
+    for variant in queries:
+        run = harvester.search(variant)
+        posts += len(getattr(run, "posts", []) or [])
+        wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
+        conn.commit()
+        inserted += int(getattr(wrote, "inserted", 0) or 0)
+    prog.stage("E2X", "Harvest · X", "ok", posts=posts, documents_inserted=inserted,
+               detail=f"{posts} post(s) seen, {inserted} document(s) appended")
+    return inserted
+
+
+#: Platforms whose ADAPTER EXISTS but whose TERMS HAVE NEVER BEEN ASSESSED, so
+#: no fetch may read them. Named here, and named on the run log, because a source
+#: silently absent from a harvest produces a smaller corpus that reads as a
+#: complete one — rule 4, applied to what the pipeline did not do.
+UNASSESSED_PLATFORMS = ("devto", "hackernews", "huggingface")
+
+
 def assemble_stage(conn, prog: Progress) -> None:
     """E3 — flatten this fetch's new documents into thread_context rows.
 
@@ -611,11 +729,31 @@ def main(argv: list[str] | None = None) -> int:
             prog.stage("E2R", "Harvest · Reddit", "error",
                        detail=str(exc).splitlines()[0][:200])
 
+        try:
+            harvest_arxiv(conn, prog, variants, max_queries=2)
+        except Exception as exc:
+            prog.stage("E2A", "Harvest · arXiv", "error", detail=str(exc).splitlines()[0][:200])
+        try:
+            harvest_x(conn, prog, variants, max_queries=2)
+        except Exception as exc:
+            prog.stage("E2X", "Harvest · X", "error", detail=str(exc).splitlines()[0][:200])
+
         # Blogs have no per-model search — they are RSS/feed-based, harvested
         # wholesale, so a model-name query cannot target them (rule 7: say what
         # the run did NOT do rather than let its absence read as coverage).
         prog.stage("E2B", "Harvest · Blogs", "skipped",
                    detail="blogs are feed-based — no per-model search; not run for one model")
+
+        # THE THREE THAT COULD NOT RUN, said rather than left absent. Their
+        # adapters exist and work; what is missing is a terms ruling in
+        # contract/sources.yaml, and that is a contract change rather than a
+        # decision a fetch may make for itself. Without this line the corpus
+        # would simply be smaller and nothing would say why.
+        prog.stage("E2U", "Harvest · unassessed", "skipped",
+                   platforms=list(UNASSESSED_PLATFORMS),
+                   detail="dev.to, Hacker News and Hugging Face have working adapters "
+                          "but NO entry in contract/sources.yaml, so their terms have "
+                          "never been reviewed. Not refused — unassessed. Not read.")
 
         try:
             assemble_stage(conn, prog)
