@@ -61,16 +61,23 @@ def test_the_contract_file_exists():
     assert SOURCES_YAML.exists()
 
 
-def test_all_five_platforms_are_declared():
-    """Three until 2026-09-08, when arXiv and X were ratified.
+def test_every_declared_platform_is_the_expected_one():
+    """Three until 2026-09-08, five after arXiv and X, eight after 2026-09-09.
 
     THE SET, NOT THE COUNT. `>= 3` would pass on a file that had lost `reddit`
     and gained two others, which is the change worth catching - a platform
     silently leaving the contract renders as an absence, and rule 4 is about
-    exactly that.
+    exactly that. The name says "expected" rather than a number so the next
+    addition edits one list instead of also renaming the test.
+
+    dev.to, Hacker News and Hugging Face arrived 2026-09-09. Each is ruled on an
+    internal-development-only basis with NO TERMS DOCUMENT READ, recorded in the
+    ruling rather than left as an absence - the arXiv precedent. A passing gate
+    here means the preconditions hold, never that the terms were cleared.
     """
     ids = {s["id"] for s in _contract()["sources"]}
-    assert ids == {"github", "blogs", "reddit", "arxiv", "x"}
+    assert ids == {"github", "blogs", "reddit", "arxiv", "x",
+                   "devto", "hackernews", "huggingface"}
 
 
 def test_base_trust_matches_the_documented_weights():
@@ -85,14 +92,31 @@ def test_base_trust_matches_the_documented_weights():
     abstract is third-party rather than own-experience and is unattributable to
     one voice, and X is mostly marketing until a filter separates the
     substantive posts from the announcements.
+
+    THE THREE ADDED 2026-09-09, placed against that ladder and not beside each
+    other:
+      hackernews 0.80  substantive engineer commentary, attributable to a
+                       handle, but shorter and more opinion-dense than a GitHub
+                       issue carrying a repro - so below reddit, well above X.
+      huggingface 0.75 mixed by construction. Repo discussions are practitioners
+                       reporting real failures; model cards on the same platform
+                       are the vendor describing its own product. One number
+                       cannot separate them, so it sits between the two and the
+                       `speaking` field does the separating at extraction.
+      devto 0.60       user-authored, and the platform is dense with tutorial and
+                       SEO filler. Level with X for the same reason: the signal
+                       is there and the ratio is poor.
     """
     trust = {s["id"]: s["base_trust"] for s in _contract()["sources"]}
     assert trust == {
         "github": 0.95,
         "blogs": 0.90,
         "reddit": 0.85,
+        "hackernews": 0.80,
+        "huggingface": 0.75,
         "arxiv": 0.70,
         "x": 0.60,
+        "devto": 0.60,
     }
 
 
@@ -260,7 +284,8 @@ def test_every_feed_becomes_a_source_row():
     """Seeded in contract/, ordinary rows at runtime — seed_models' pattern."""
     contract = load_sources()
     rows = {row["id"]: row for row in contract.source_rows()}
-    assert len(rows) == 14  # five platforms + nine feeds; was 12 before 2026-09-08
+    assert len(rows) == 17  # eight platforms + nine feeds. 12 before 2026-09-08,
+    #                        14 after arXiv and X, 17 after dev.to / HN / Hugging Face
     assert rows["blog:simonwillison.net"]["provenance"] == "seed"
     assert rows["blog:simonwillison.net"]["terms_checked_on"] == REVIEWED_ON
     assert all(row["base_trust"] for row in rows.values())

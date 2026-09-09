@@ -415,11 +415,75 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
     return inserted
 
 
-#: Platforms whose ADAPTER EXISTS but whose TERMS HAVE NEVER BEEN ASSESSED, so
-#: no fetch may read them. Named here, and named on the run log, because a source
-#: silently absent from a harvest produces a smaller corpus that reads as a
-#: complete one — rule 4, applied to what the pipeline did not do.
-UNASSESSED_PLATFORMS = ("devto", "hackernews", "huggingface")
+#: The platforms that share one harvest shape: gate through
+#: `harvester_for_source`, run `harvest(query, terms)` end to end, then
+#: `write_documents`. Kept as data because the loop below is identical for each,
+#: and three copies of one loop is three places to apply the next change twice.
+#:
+#: `stage` ids are distinct so the fetch log reads as a list of sources rather
+#: than one repeated line, and `cap` is per-platform because their costs differ:
+#: a Hugging Face harvest walks repos then discussions then comments, so it is
+#: bounded hardest.
+UNIFORM_PLATFORMS = (
+    ("devto",       "E2D", "Harvest · dev.to",       2),
+    ("hackernews",  "E2H", "Harvest · Hacker News",  2),
+    ("huggingface", "E2F", "Harvest · Hugging Face", 1),
+)
+
+
+def _harvester_factory(platform_id: str):
+    """The adapter's own gate-and-build entry point, imported lazily.
+
+    Lazy because importing every adapter costs a fetch that skips them nothing,
+    and because an adapter that fails to import must not take the whole run down
+    with it - it is one source, and the others are still readable.
+    """
+    if platform_id == "devto":
+        from collect.adapters.devto import harvester_for_source
+    elif platform_id == "hackernews":
+        from collect.adapters.hackernews import harvester_for_source
+    elif platform_id == "huggingface":
+        from collect.adapters.huggingface import harvester_for_source
+    else:
+        raise ValueError(f"no uniform factory for {platform_id!r}")
+    return harvester_for_source
+
+
+def harvest_uniform(conn, prog: Progress, variants: list[str], *,
+                    platform_id: str, stage_id: str, stage_name: str,
+                    max_queries: int) -> int:
+    """E2 harvest for one of the uniform platforms, appended to `document`.
+
+    The terms gate is the ADAPTER'S, never this script's. Each ruling names its
+    own live preconditions and only the adapter observes them; a guessed
+    observation passed from here would be an observation nobody made wearing the
+    costume of one that passed, which is what the check exists to refuse.
+
+    A platform missing from `contract/sources.yaml` is UNASSESSED rather than
+    refused, and says so - those are different states and must not render alike
+    (rule 6).
+    """
+    harvester, why = _gated_harvester(
+        platform_id, _harvester_factory(platform_id),
+        client=build_client(timeout=30.0),
+        store=RawStore(Path(settings().raw_store_path)),
+    )
+    if harvester is None:
+        prog.stage(stage_id, stage_name, "skipped", detail=why)
+        return 0
+
+    queries = variants[:max_queries]
+    prog.stage(stage_id, stage_name, "running", queries=len(queries),
+               detail=f"{platform_id} search for {len(queries)} name variant(s)")
+    inserted = 0
+    for variant in queries:
+        run = harvester.harvest(variant)
+        wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
+        conn.commit()
+        inserted += int(getattr(wrote, "inserted", 0) or 0)
+    prog.stage(stage_id, stage_name, "ok", documents_inserted=inserted,
+               detail=f"{inserted} document(s) appended from {len(queries)} query(ies)")
+    return inserted
 
 
 def assemble_stage(conn, prog: Progress) -> None:
@@ -744,16 +808,16 @@ def main(argv: list[str] | None = None) -> int:
         prog.stage("E2B", "Harvest · Blogs", "skipped",
                    detail="blogs are feed-based — no per-model search; not run for one model")
 
-        # THE THREE THAT COULD NOT RUN, said rather than left absent. Their
-        # adapters exist and work; what is missing is a terms ruling in
-        # contract/sources.yaml, and that is a contract change rather than a
-        # decision a fetch may make for itself. Without this line the corpus
-        # would simply be smaller and nothing would say why.
-        prog.stage("E2U", "Harvest · unassessed", "skipped",
-                   platforms=list(UNASSESSED_PLATFORMS),
-                   detail="dev.to, Hacker News and Hugging Face have working adapters "
-                          "but NO entry in contract/sources.yaml, so their terms have "
-                          "never been reviewed. Not refused — unassessed. Not read.")
+        # dev.to, Hacker News and Hugging Face. Ruled on 2026-09-09, so they run
+        # now; each still gates itself, and a ruling that lapses or whose
+        # preconditions stop holding turns the arm back into a named skip rather
+        # than a silent absence.
+        for _pid, _sid, _sname, _cap in UNIFORM_PLATFORMS:
+            try:
+                harvest_uniform(conn, prog, variants, platform_id=_pid,
+                                stage_id=_sid, stage_name=_sname, max_queries=_cap)
+            except Exception as exc:
+                prog.stage(_sid, _sname, "error", detail=str(exc).splitlines()[0][:200])
 
         try:
             assemble_stage(conn, prog)
