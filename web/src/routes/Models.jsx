@@ -272,13 +272,38 @@ export default function Models() {
 
   return (
     <div className="shell section-tight stack stack-4">
-      <div className="stack stack-1">
-        <span className="eyebrow">Models</span>
-        <h1 style={{ fontSize: 'var(--fs-display)' }}>The registry</h1>
-        <p className="muted" style={{ maxWidth: '66ch' }}>
-          Every model the board tracks, not only the ones people post about —
-          a list of only the discussed ones would rank popularity, not capability.
-        </p>
+      <div className="row-between" style={{ alignItems: 'flex-start', gap: 'var(--s4)' }}>
+        <div className="stack stack-1">
+          <span className="eyebrow">Models</span>
+          <h1 style={{ fontSize: 'var(--fs-display)' }}>The registry</h1>
+          <p className="muted" style={{ maxWidth: '66ch' }}>
+            Every model the board tracks, not only the ones people post about —
+            a list of only the discussed ones would rank popularity, not capability.
+          </p>
+        </div>
+
+        {/* TOP RIGHT, AND ALWAYS PRESENT. The sticky bar at the foot of the
+            list only appears once something is ticked, so until then nothing
+            on the page said comparison existed — a column of bare checkboxes
+            does not explain itself. Disabled with a reason is the right shape:
+            it tells the reader the feature is there and what it needs, which is
+            the opposite of the usual objection to a disabled control. */}
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={picked.length < 2}
+          onClick={() => navigate(`/compare?ids=${encodeURIComponent(picked.join(','))}`)}
+          title={
+            picked.length === 0
+              ? `Tick 2–${COMPARE_MAX} models to compare what providers advertise against what engineers reported`
+              : picked.length === 1
+                ? 'Tick one more — a single model is its own page, not a comparison'
+                : `Compare ${picked.length} models side by side`
+          }
+          style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+        >
+          {picked.length === 0 ? 'Compare models' : `Compare (${picked.length}) →`}
+        </button>
       </div>
 
       {unreadable && <Unreadable detail={unreadable} />}
@@ -483,6 +508,10 @@ export default function Models() {
                 <button type="button" className="chip" onClick={() => setPicked([])}>
                   Clear
                 </button>
+                {/* Kept here too, not for symmetry: the list is 200 rows and
+                    the header button is off-screen by the time the second
+                    model is ticked. Two copies of one action is the cost of a
+                    long list, and it is cheaper than scrolling back up. */}
                 <button
                   type="button"
                   className="btn btn-primary"

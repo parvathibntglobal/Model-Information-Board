@@ -26,10 +26,33 @@ from judge.config import evidence_platforms, faq
 
 
 class TestTheCopyLivesInTheContract:
-    def test_all_eleven_questions_from_the_demo_are_present(self):
-        # The demo's FAQ had eleven. Fewer would mean one was dropped in the
-        # copy; the count is the cheapest possible check on that.
-        assert len(faq()["questions"]) == 11
+    def test_all_eleven_of_the_demos_questions_are_accounted_for(self):
+        # Eight served, three withheld. Eleven in total either way: a question
+        # that vanished from both lists was dropped in a copy rather than
+        # decided about.
+        doc = faq()
+        assert len(doc["questions"]) == 8
+        assert len(doc["withheld"]) == 3
+
+    def test_the_withheld_three_are_the_model_claim_questions(self):
+        # They ask about MODELS rather than about the board, and the board
+        # cannot answer them from evidence yet.
+        assert {w["id"] for w in faq()["withheld"]} == {
+            "best-for-coding", "cheapest-per-token", "swe-bench-saturated",
+        }
+
+    def test_every_withheld_entry_says_what_would_bring_it_back(self):
+        # Without this a withheld question is indistinguishable from an
+        # abandoned one, and nobody knows when to restore it.
+        for w in faq()["withheld"]:
+            assert w.get("needs"), w["id"]
+            assert len(w["needs"]) > 40, w["id"]
+
+    def test_the_demo_wording_survives_as_the_audit_trail(self):
+        # It records that the mock-up answered "$0.14 in and $0.28 out" from
+        # demo data, and that those figures were deliberately not shipped.
+        for w in faq()["withheld"]:
+            assert w.get("demo_answer"), w["id"]
 
     def test_every_entry_carries_a_basis(self):
         # `policy` describes how the board WORKS and is safe as static copy.
@@ -39,7 +62,9 @@ class TestTheCopyLivesInTheContract:
             assert entry.get("basis") in {"policy", "live"}, entry.get("id")
 
     def test_every_live_entry_names_what_it_claims_and_what_to_say_instead(self):
-        for entry in faq()["questions"]:
+        # Nothing served is `live` today. The check stays because the machinery
+        # does: a live question added back must bring its claims with it.
+        for entry in faq()["questions"] + faq()["withheld"]:
             if entry.get("basis") != "live":
                 continue
             assert entry.get("claims"), f"{entry['id']} claims nothing explicitly"
@@ -55,11 +80,15 @@ class TestTheDemosFiguresNeverReachThePage:
     def served(cls):
         return faq_page()
 
-    def test_three_answers_are_marked_unestablished(self, served):
-        unestablished = [q for q in served["questions"] if not q["established"]]
-        assert {q["id"] for q in unestablished} == {
-            "best-for-coding", "cheapest-per-token", "swe-bench-saturated",
-        }
+    def test_nothing_served_is_unestablished(self, served):
+        # The three that were are off the page now. A page of answers should
+        # answer: three "not yet established" shrugs plus a paragraph
+        # explaining the shrugs was worse than eight questions that stand.
+        assert [q["id"] for q in served["questions"] if not q["established"]] == []
+
+    def test_the_withheld_questions_are_not_served(self, served):
+        ids = {q["id"] for q in served["questions"]}
+        assert not ids & {"best-for-coding", "cheapest-per-token", "swe-bench-saturated"}
 
     def test_no_served_answer_carries_the_demos_price(self, served):
         # The exact string from the demo. If this ever appears again, somebody
@@ -69,11 +98,12 @@ class TestTheDemosFiguresNeverReachThePage:
             assert "$0.28" not in q["answer"]
 
     def test_no_served_answer_names_a_model_the_corpus_has_not_reported(self, served):
+        # Now that the three are withheld this holds over EVERY served answer,
+        # not only the unestablished ones.
         for q in served["questions"]:
-            if q["established"]:
-                continue
             assert "Claude Opus 5" not in q["answer"]
             assert "DeepSeek V4 Pro" not in q["answer"]
+            assert "DeepSeek V4 Flash" not in q["answer"]
 
     def test_the_demo_wording_is_not_shipped_to_the_client(self, served):
         # It stays in the YAML for a reviewer. Sending it would let a frontend

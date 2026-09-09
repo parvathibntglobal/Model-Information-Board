@@ -700,10 +700,17 @@ def faq_page() -> dict:
         "schema_type": doc.get("schema_type", "FAQPage"),
         "platforms": list(platforms),
         "questions": out,
+        # THE SUMMARY MUST READ CORRECTLY AT ZERO. "0 of them ask something the
+        # board cannot answer, and say so instead of answering" is a sentence
+        # about nothing, and the withheld case is the normal case now.
         "summary": (
-            f"{len(out)} questions from contract/faq.yaml. "
-            f"{sum(1 for q in out if not q['established'])} of them ask something the "
-            f"board cannot yet answer from evidence, and say so instead of answering."
+            f"{len(out)} questions from contract/faq.yaml"
+            + (f", {unestablished} of which ask something the board cannot yet answer "
+               f"from evidence and say so instead of answering."
+               if (unestablished := sum(1 for q in out if not q["established"]))
+               else ". Every one describes how the board works, so every one is "
+                    "answerable without consulting the corpus. The three that asked "
+                    "about models are withheld — see `withheld` in contract/faq.yaml.")
         ),
     }
 

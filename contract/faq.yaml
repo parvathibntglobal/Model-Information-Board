@@ -1,4 +1,4 @@
-# The FAQ page — the eleven questions, verbatim from the landing demo.
+# The FAQ page — from the landing demo's eleven questions, eight of them served.
 #
 # WHY THIS IS CONFIG AND NOT JSX. Rule 5: config lives in versioned YAML, not in
 # code. An FAQ is editorial copy that changes without a deploy, gets reviewed by
@@ -18,15 +18,13 @@
 #                     evidence corpus, and rules 1 and 3 apply: no claim without
 #                     a code-verified quote, no synthesised number on a page.
 #
-#                     So a `live` answer ships with `claims`, naming exactly
-#                     what it asserts, and the endpoint marks it
-#                     `established: false` until something in the database
-#                     supports it. The frontend then renders the question with
-#                     the honest answer - "nobody has reported enough for the
-#                     board to name one yet" - instead of the demo's figures.
-#                     The demo text is KEPT in `demo_answer` so nothing is lost
-#                     and the difference is auditable, but it is never served as
-#                     though it were current.
+#                     All three of those are currently WITHHELD - see the block
+#                     at the foot of this file. Serving them as "not yet
+#                     established" put three shrugs on a page whose job is to
+#                     explain, so they wait until the corpus can answer them.
+#                     The `basis: live` path in judge/app.py stays, tested,
+#                     because the next live question would otherwise be written
+#                     straight onto the page with no guard on it.
 #
 # The alternative was to paste all eleven answers as static copy. That would put
 # "$0.14 in and $0.28 out" on a live page with no row behind it, which is the
@@ -35,7 +33,7 @@
 
 version: 1
 updated: 2026-09-09
-source: model-board-landing-demo.html (FAQ section, 11 questions)
+source: model-board-landing-demo.html (FAQ section, 11 questions — 8 served, 3 withheld)
 
 # Rendered into schema.org FAQPage JSON-LD as well as onto the page. Only
 # answers that are actually served get into the structured data: telling an
@@ -83,50 +81,6 @@ questions:
       and where a platform was assessed and ruled out, the reason is published
       rather than hidden.
 
-  - id: best-for-coding
-    basis: live
-    q: What is the best AI model for coding?
-    claims:
-      - a model most reported for multi-file refactors and long agent loops
-      - a cheaper model reported at near-frontier coding quality
-    # Served while nothing in the corpus supports a named model. It answers the
-    # question rather than dodging it: the shape of the answer is the finding.
-    unestablished_answer: >-
-      It depends on the job inside the job — hard multi-file refactors, a cheap
-      coding agent and a code-review pass on every pull request are three
-      different purchases. The board will not name a model here until engineers
-      have reported one for that specific job: it reads the public record rather
-      than holding an opinion, and on coding it has not yet collected enough
-      first-hand reports to name anyone. When it has, this answer will name the
-      model and link to the quotes behind it.
-    demo_answer: >-
-      It depends on the job inside the job. For hard multi-file refactors and
-      long agent loops, engineers most often report Claude Opus 5. For a cheap
-      AI coding agent at near-frontier quality, DeepSeek V4 Pro; and for a
-      code-review LLM running on every pull request, something cheaper again.
-
-  - id: cheapest-per-token
-    basis: live
-    q: Which AI model is cheapest per token?
-    claims:
-      - the cheapest input price among models with enough first-hand reports to rank
-    # The registry HAS prices, so this one can be answered the moment any model
-    # carries reports. `cheapest_priced` is computed by the endpoint from
-    # `model_version.price_in` - a measured figure, not a synthesised one - and
-    # is only offered where that model also has reports behind it.
-    unestablished_answer: >-
-      The registry knows what every provider charges, and the board can sort by
-      it — but "cheapest" on its own is not an answer worth giving. The cheapest
-      LLM API is not the same as the cheapest one that works, so the board only
-      names a cheapest model among those with enough first-hand reports to rank,
-      and it does not have those reports yet. Until then the price column is
-      advertised rates, honestly labelled as such.
-    demo_answer: >-
-      Among models with enough first-hand reports to rank, DeepSeek V4 Flash at
-      $0.14 in and $0.28 out. The cheapest LLM API is not the same as the
-      cheapest one that works, which is why every price sits beside the
-      capability engineers vouch for at that price.
-
   - id: free-and-open
     basis: policy
     # The demo's version named a licence beside every model. The registry has no
@@ -155,23 +109,6 @@ questions:
       reporting the same change independently, so the board collects those
       reports per model and shows the date each one landed.
 
-  - id: swe-bench-saturated
-    basis: live
-    q: Is SWE-bench saturated?
-    claims:
-      - how much headroom is left on SWE-bench
-      - that a two-point MMLU-Pro difference has stopped meaning anything
-    unestablished_answer: >-
-      Saturation is a claim about a benchmark's remaining headroom, and the
-      board only makes it from figures somebody published with their working. It
-      does not yet hold benchmark-headroom data, so it will not tell you either
-      way — what it will do, once it does, is publish the caveat beside the
-      number rather than under it.
-    demo_answer: >-
-      Not yet — the board publishes how much headroom is left. MMLU-Pro is the
-      one where a two-point difference has stopped meaning anything, and the
-      board publishes that caveat beside the number rather than under it.
-
   - id: how-current
     basis: policy
     q: How current is it, and who maintains it?
@@ -196,3 +133,87 @@ questions:
       Yes. The board publishes what it finds and links to the source, so
       anything on it can be checked without an account. It sells no model and
       takes no placement, which is why it can say a cheaper option holds up.
+
+# ── WITHHELD FROM THE PAGE ──────────────────────────────────────────────────
+#
+# `/faq` does not read this list. These three ask about MODELS rather than about
+# the board, and the board cannot answer them from evidence yet - so rather than
+# publishing three "not yet established" shrugs and a paragraph explaining the
+# shrugs, they are off the page until there is something to say.
+#
+# WHAT WOULD BRING EACH ONE BACK is the condition in its `needs` line. Move the
+# entry back under `questions:` when that holds; the wording is already written
+# and the `basis: live` path in judge/app.py still handles it.
+#
+# `demo_answer` stays as the audit trail: it records what the landing mock-up
+# asserted from demo data - "$0.14 in and $0.28 out", "engineers most often
+# report Claude Opus 5" - and that those figures were considered and
+# deliberately not shipped. Deleting these blocks would delete that record.
+withheld:
+  - id: best-for-coding
+    needs: >-
+      a best_for section on the board naming a model for a coding job, with two or more independent reports behind it
+    basis: live
+    q: What is the best AI model for coding?
+    claims:
+      - a model most reported for multi-file refactors and long agent loops
+      - a cheaper model reported at near-frontier coding quality
+    # Served while nothing in the corpus supports a named model. It answers the
+    # question rather than dodging it: the shape of the answer is the finding.
+    unestablished_answer: >-
+      It depends on the job inside the job — hard multi-file refactors, a cheap
+      coding agent and a code-review pass on every pull request are three
+      different purchases. The board will not name a model here until engineers
+      have reported one for that specific job: it reads the public record rather
+      than holding an opinion, and on coding it has not yet collected enough
+      first-hand reports to name anyone. When it has, this answer will name the
+      model and link to the quotes behind it.
+    demo_answer: >-
+      It depends on the job inside the job. For hard multi-file refactors and
+      long agent loops, engineers most often report Claude Opus 5. For a cheap
+      AI coding agent at near-frontier quality, DeepSeek V4 Pro; and for a
+      code-review LLM running on every pull request, something cheaper again.
+
+  - id: cheapest-per-token
+    needs: >-
+      at least one priced model carrying reports, so 'cheapest' can be said of a model somebody has actually used rather than of a price list
+    basis: live
+    q: Which AI model is cheapest per token?
+    claims:
+      - the cheapest input price among models with enough first-hand reports to rank
+    # The registry HAS prices, so this one can be answered the moment any model
+    # carries reports. `cheapest_priced` is computed by the endpoint from
+    # `model_version.price_in` - a measured figure, not a synthesised one - and
+    # is only offered where that model also has reports behind it.
+    unestablished_answer: >-
+      The registry knows what every provider charges, and the board can sort by
+      it — but "cheapest" on its own is not an answer worth giving. The cheapest
+      LLM API is not the same as the cheapest one that works, so the board only
+      names a cheapest model among those with enough first-hand reports to rank,
+      and it does not have those reports yet. Until then the price column is
+      advertised rates, honestly labelled as such.
+    demo_answer: >-
+      Among models with enough first-hand reports to rank, DeepSeek V4 Flash at
+      $0.14 in and $0.28 out. The cheapest LLM API is not the same as the
+      cheapest one that works, which is why every price sits beside the
+      capability engineers vouch for at that price.
+
+  - id: swe-bench-saturated
+    needs: >-
+      benchmark headroom figures in the corpus, published by somebody with their working - the board computes no benchmark standing of its own
+    basis: live
+    q: Is SWE-bench saturated?
+    claims:
+      - how much headroom is left on SWE-bench
+      - that a two-point MMLU-Pro difference has stopped meaning anything
+    unestablished_answer: >-
+      Saturation is a claim about a benchmark's remaining headroom, and the
+      board only makes it from figures somebody published with their working. It
+      does not yet hold benchmark-headroom data, so it will not tell you either
+      way — what it will do, once it does, is publish the caveat beside the
+      number rather than under it.
+    demo_answer: >-
+      Not yet — the board publishes how much headroom is left. MMLU-Pro is the
+      one where a two-point difference has stopped meaning anything, and the
+      board publishes that caveat beside the number rather than under it.
+
