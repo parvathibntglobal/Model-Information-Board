@@ -136,6 +136,11 @@ def assemble_platform_documents(
         "SELECT d.id, d.external_id, d.url, d.text_ref, d.engagement "
         "FROM document d "
         "WHERE d.source = %s "
+        # ONLY WHAT E4 PASSED. A stage receives what the previous one let
+        # through, so a document triage dropped is never flattened - and a
+        # re-run cannot resurrect one, because this reads the verdict rather
+        # than relying on triage having run first.
+        "  AND d.status = 'kept' "
         "  AND d.thread_root_id IS NULL "
         "  AND NOT EXISTS (SELECT 1 FROM thread_context tc WHERE tc.thread_root_id = d.id) "
         "ORDER BY d.id"
@@ -171,7 +176,10 @@ def assemble_platform_documents(
         # turn every thread into a single.
         child_rows = conn.execute(
             "SELECT id, external_id, text_ref, engagement FROM document "
-            "WHERE source = %s AND thread_root_id = %s ORDER BY id",
+            # Children are gated too: a bot reply inside a good thread is still
+            # a bot reply, and flattening it puts it in front of the model.
+            "WHERE source = %s AND thread_root_id = %s AND status = 'kept' "
+            "ORDER BY id",
             (source, root_id),
         ).fetchall()
 

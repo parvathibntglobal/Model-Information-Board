@@ -310,6 +310,10 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
         "SELECT d.id, d.external_id, d.text_ref, d.engagement "
         "FROM document d "
         "WHERE d.source = %s "
+        # ONLY WHAT E4 PASSED — added when triage was wired ahead of assembly.
+        # GitHub's driver has filtered since 2026-08-31; this one had not, so a
+        # gated Reddit post was still being flattened.
+        "  AND d.status = 'kept' "
         "  AND d.thread_root_id IS NULL "
         "  AND NOT EXISTS (SELECT 1 FROM thread_context tc WHERE tc.thread_root_id = d.id) "
         "ORDER BY d.id"
@@ -346,7 +350,7 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
         comment_rows = conn.execute(
             "SELECT external_id, text_ref, engagement "
             "FROM document "
-            "WHERE source = %s AND thread_root_id = %s "
+            "WHERE source = %s AND thread_root_id = %s AND status = 'kept' "
             "ORDER BY external_id",
             (REDDIT_SOURCE, root_external_id),
         ).fetchall()

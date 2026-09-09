@@ -924,17 +924,25 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as exc:
                 prog.stage(_sid, _sname, "error", detail=str(exc).splitlines()[0][:200])
 
-        try:
-            assemble_stage(conn, prog)
-        except Exception as exc:
-            conn.rollback()
-            prog.stage("E3", "Assemble", "error", detail=str(exc).splitlines()[0][:200])
-
+        # ── TRIAGE BEFORE ASSEMBLE, and the order is the point ───────────────
+        # A stage must only receive what the previous one passed. Triage judges
+        # DOCUMENTS and needs no thread_context - it reads `document`, `author`
+        # and the raw payload - so running it first means assembly never
+        # flattens a bot post, a bare link or a pre-release thread. Running it
+        # second worked, because the verdict still gated extraction, but it paid
+        # to flatten rows it had already decided to drop and left `thread_context`
+        # holding contexts for evidence that had failed.
         try:
             triage_stage(conn, prog)
         except Exception as exc:
             conn.rollback()
             prog.stage("E4", "Triage", "error", detail=str(exc).splitlines()[0][:200])
+
+        try:
+            assemble_stage(conn, prog)
+        except Exception as exc:
+            conn.rollback()
+            prog.stage("E3", "Assemble", "error", detail=str(exc).splitlines()[0][:200])
 
         try:
             extract_and_curate(conn, prog, release_date=release_date)
