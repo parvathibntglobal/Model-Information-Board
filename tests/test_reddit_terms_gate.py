@@ -240,5 +240,11 @@ def _settings(environment: str):
         # `rapidapi_key` above - already listed - and this only names which
         # provider fronts it.
         scraper_provider=None,
+        # Added 2026-09-09, for the same reason and after the failure that
+        # reason predicts. Reddit and X both read `rapidapi_host`, .env declared
+        # it twice, and the last declaration won - so Reddit's paths went to X's
+        # host and RapidAPI answered 404 to every search. One variable cannot
+        # address two vendors, so Reddit derives its host from this instead.
+        reddit_provider=None,
         pipeline_version="test",
     )

@@ -356,34 +356,25 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int)
 
 def _write_rapidapi_quota(remaining: int | None, limit: int | None, run_id: str,
                           *, read_on: str) -> None:
-    """Persist the latest RapidAPI quota HEADER reading for the admin page.
+    """Persist the latest RapidAPI quota reading. Delegates to `collect.usage`.
 
-    RapidAPI bills the Reddit path as a request quota, and the remaining/limit
-    arrive in `x-ratelimit-*` response headers. This writes the RAW reading, not
-    a recompute, so the admin page shows the provider's OWN number cached with
-    its date rather than a second source of truth. It is shown 'as of' that date,
-    because the quota moves only when a fetch runs and a dated reading on a live
-    dashboard would otherwise read as current.
+    KEPT AS A THIN WRAPPER RATHER THAN DELETED. The adapters now record every
+    metered response themselves, so by the time an arm finishes, the file
+    already holds a reading at least as fresh as this one. This call adds the
+    `run_id`, which the adapter does not know - it is what ties a reading to
+    the run that spent it - and it is harmless when the adapter has already
+    written a later value with a null run.
 
-    Written from this per-model fetch. The nightly Reddit sweep can write the
-    same file with one line so the figure also moves without a manual fetch.
-
-    `read_on` NAMES THE PATH THAT TOOK THE READING, and it exists because one
-    key meters two consumers. Until 2026-09-09 only the Reddit arm wrote this
-    file, so the admin panel's X tab showed a Reddit reading under an X label —
-    the same number with a different heading. The value cannot be split by path
-    (RapidAPI meters the key, not the endpoint), so the honest fix is not a
-    per-path figure but saying WHOSE fetch last read the shared one.
+    Two writers, one file, and that is fine because both go through
+    `record_rapidapi_quota`: the write is atomic and the last one wins, which
+    for a monotonically-decreasing quota is the correct rule.
     """
-    if remaining is None and limit is None:
-        return  # nothing was read; do not overwrite a good reading with a blank
-    path = ROOT / "var" / "rapidapi-quota.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    rec = {"quota_remaining": remaining, "quota_limit": limit,
-           "at": _now(), "source_run_id": run_id, "read_on": read_on}
-    tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(rec), encoding="utf-8")
-    tmp.replace(path)  # atomic, so a concurrent read never sees a half-written file
+    from collect.usage import record_rapidapi_quota
+
+    record_rapidapi_quota(
+        remaining=remaining, limit=limit, read_on=read_on,
+        read_by="harvest", run_id=run_id,
+    )
 
 
 def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: int,

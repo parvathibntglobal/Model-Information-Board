@@ -153,6 +153,7 @@ from collect.config import settings
 from collect.ids import stable_id
 from collect.limiter import HostLimiter
 from collect.rawstore import RAW, RawStore
+from collect.usage import record_rapidapi_quota
 
 log = logging.getLogger(__name__)
 
@@ -505,6 +506,16 @@ class XHarvester:
                 setattr(run, attribute, int(value))
         if run.quota_remaining is not None and run.quota_remaining <= 0:
             run.quota_exhausted = True
+
+        # Same key as Reddit, so the same file - and `read_on` names which arm
+        # took it, because the gateway meters the KEY and the figure cannot be
+        # split per endpoint. Until this existed, an X-only run left the panel
+        # showing an older Reddit number as though nothing had been spent.
+        record_rapidapi_quota(
+            remaining=run.quota_remaining,
+            limit=run.quota_limit,
+            read_on=SOURCE_ID,
+        )
 
         if response.status_code == 429:
             run.truncated_by = "rate-limit"
