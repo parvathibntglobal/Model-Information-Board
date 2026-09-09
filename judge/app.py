@@ -1039,6 +1039,30 @@ def board_page() -> dict:
     }
 
 
+@app.get("/models/{model_version_id:path}/evidence")
+def model_evidence(model_version_id: str) -> dict:
+    """What has actually been said about ONE model, grouped by discovered section.
+
+    The model page's half of the same corpus the board reads. The board groups by
+    section and asks who has been reported doing this; this groups by model and
+    asks what has been said about it. Same rows, different question — and neither
+    is derived from the other, so a change to how the board sorts cannot move
+    what a model page shows.
+
+    Quotes come back in full because they ARE the page. Every one is verified by
+    exact substring against the text the extractor was shown — the table CHECKs
+    it — so what a reader sees is what an engineer wrote.
+
+    AN EMPTY RESULT IS A REAL ANSWER. A tracked model nobody has discussed
+    returns three empty sections, and that is a finding rather than a failure to
+    load: absence is a state this board renders rather than hides.
+    """
+    from judge.store.board_entries import evidence_for_model
+
+    with _conn() as conn:
+        return evidence_for_model(conn, model_version_id)
+
+
 @app.get("/coverage")
 def coverage_page() -> dict:
     """What the board does not know, and what it has not checked."""

@@ -457,6 +457,11 @@ class PipelineResult:
 
     extraction: ExtractionRun
     stored_claim_ids: list[str] = field(default_factory=list)
+    #: How many `board_entry` rows this thread produced. Counted rather
+    #: than inferred from the claims: one claim can inform three board
+    #: sections, so the two numbers are legitimately different and a
+    #: reader comparing them should see why.
+    board_entries_stored: int = 0
     cells: list[CellOutcome] = field(default_factory=list)
     extractor_disagreements: list[str] = field(default_factory=list)
     #: Claims whose subject came from outside their own quote. DERIVED in code,
@@ -635,6 +640,7 @@ class Pipeline:
         # exists. Moving it earlier is a real optimisation and a separate change.
         rejected = self._vet(result, facts, release_dates or {})
 
+        board_rows: list[dict] = []
         for claim, quote in result.extraction.verified:
             if quote.document_id in rejected:
                 continue
@@ -796,6 +802,55 @@ class Pipeline:
                 extractor_model=self._extractor_model,
             )
             result.stored_claim_ids.append(self._claims.write(stored))
+
+            # ── THE BOARD ────────────────────────────────────────────────────
+            # What the classifier DISCOVERED about this quote, written where the
+            # claim is written so the two can never disagree about provenance.
+            #
+            # A claim can be stored and produce NO board entry: `board_entries`
+            # is required by the schema, so an empty list cannot arrive, but a
+            # claim whose model did not resolve has no `model_version_id` and its
+            # section would be unattributable. That is recorded as an entry with
+            # a NULL model rather than dropped - the section was discussed, and
+            # which model it was about is a separate fact that may be absent
+            # (rule 6: absent stays absent, it does not become false).
+            #
+            # `quote_verified=True` is not optimism: this loop runs over
+            # `extraction.verified`, which is what survived the substring check
+            # against the text the model was shown. The table CHECKs it true, so
+            # an unverified quote could not be written here even by mistake.
+            for _entry in claim.board_entries:
+                board_rows.append({
+                    "section": _entry.section,
+                    "slug": _entry.slug,
+                    "name": _entry.name,
+                    "definition": _entry.definition,
+                    "unit": _entry.unit,
+                    "value_verbatim": _entry.value_verbatim,
+                    "basis": _entry.basis,
+                    "model_version_id": model_version_id,
+                    "document_id": quote.document_id,
+                    "claim_id": result.stored_claim_ids[-1],
+                    "quote": quote.display_text,
+                    "quote_verified": True,
+                    "polarity": claim.polarity,
+                })
+
+        if board_rows:
+            # Append-only and idempotent (`ON CONFLICT DO NOTHING` on a content
+            # hash), so re-running the pipeline over the same corpus cannot
+            # inflate the report count the board shows.
+            from judge.store.board_entries import store_entries
+
+            outcome = store_entries(
+                self._conn, board_rows, proposer_model=self._extractor_model
+            )
+            result.board_entries_stored = outcome["stored"]
+            log.info(
+                "thread %s: %d board entr(ies) proposed, %d stored, %d skipped",
+                thread.thread_context_id, outcome["proposed"],
+                outcome["stored"], outcome["skipped_unverified"],
+            )
 
         if result.stored_claim_ids and rebuild_cells:
             # Whole-table, for the reason in cells.py: a cell is a view of the

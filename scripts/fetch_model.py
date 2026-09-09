@@ -495,12 +495,24 @@ def assemble_stage(conn, prog: Progress) -> None:
     they are what actually get flattened. Append-only.
     """
     from collect.assemble.issue import assemble_github_documents
+    from collect.assemble.platforms import PLATFORMS, assemble_platform_documents
     from collect.assemble.reddit import assemble_reddit_documents
 
     store = RawStore(Path(settings().raw_store_path))
     prog.stage("E3", "Assemble", "running", detail="flattening new documents into threads")
     notes = []
-    for name, fn in (("github", assemble_github_documents), ("reddit", assemble_reddit_documents)):
+    # GitHub and Reddit keep their own drivers; the five newer platforms share
+    # one. Without this the newer harvests wrote `document` rows that never
+    # became a `thread_context`, so extraction never saw them and every stage
+    # still reported success — the harvest cost requests and could not reach
+    # the board.
+    stages = [("github", assemble_github_documents), ("reddit", assemble_reddit_documents)]
+    stages += [
+        (src, (lambda conn_, *, store, limit=None, _s=src:
+               assemble_platform_documents(conn_, source=_s, store=store, limit=limit)))
+        for src in PLATFORMS
+    ]
+    for name, fn in stages:
         try:
             report = fn(conn, store=store, limit=200)
             conn.commit()

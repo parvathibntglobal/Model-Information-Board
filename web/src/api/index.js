@@ -296,6 +296,18 @@ export const pipelineStatus = () => request('/admin/pipeline')
  * because an open vocabulary produces duplicates - one section arriving under
  * two slugs - and only a person can decide two words mean one thing.
  */
+/**
+ * What has been said about ONE model, grouped by discovered section.
+ *
+ * Not a slice of the board payload: the board groups by section and this groups
+ * by model, so deriving one from the other would make a model page move whenever
+ * the board changed how it sorts. Same rows, asked a different question.
+ *
+ * Three empty sections is a real answer — a tracked model nobody has discussed —
+ * and the page renders it as an absence rather than a spinner that never ends.
+ */
+export const modelEvidence = (id) => request(`/models/${modelPath(id)}/evidence`)
+
 export const boardEntries = () => request('/admin/board-entries')
 
 export const ruleBoardEntry = (section, slug, ruling, ruling_target = null) =>

@@ -309,3 +309,70 @@ def unrule_entries(conn, *, section: str, slug: str) -> int:
         (section, slug),
     )
     return cur.rowcount
+
+
+def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict:
+    """Every discovered section this model was named in, with the quotes.
+
+    THE MODEL PAGE'S HALF OF THE SAME CORPUS. The board groups by section and
+    asks "who has been reported doing this"; a model page groups by model and
+    asks "what has been said about it". One table, two questions, and neither is
+    derived from the other — so this reads `board_entry` directly rather than
+    filtering the board payload, which would make the model page depend on how
+    the board happens to sort.
+
+    `declined` rows are excluded and `merged` rows report under their target, so
+    a reviewer consolidating two slugs changes what this returns without any
+    evidence being rewritten.
+
+    Quotes are the point of the page and are returned in full. They are already
+    verified — the table CHECKs `quote_verified` — so what reaches the reader is
+    what the engineer wrote, resolved back to the raw span.
+    """
+    rows = conn.execute(
+        "SELECT section, COALESCE(ruling_target, slug) AS slug, name, definition,"
+        "       unit, value_verbatim, basis, quote, polarity, document_id, created_at "
+        "FROM board_entry "
+        "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined' "
+        "ORDER BY section, COALESCE(ruling_target, slug), created_at DESC "
+        "LIMIT %s",
+        (model_version_id, limit),
+    ).fetchall()
+
+    sections: dict[str, dict[str, dict]] = {s: {} for s in SECTIONS}
+    for (section, slug, name, definition, unit, value, basis,
+         quote, polarity, doc_id, _created) in rows:
+        if section not in sections:
+            continue
+        bucket = sections[section].setdefault(slug, {
+            "slug": slug, "name": name, "definition": definition,
+            "unit": unit, "reports": 0, "quotes": [], "figures": [],
+        })
+        bucket["reports"] += 1
+        bucket["quotes"].append(
+            {"quote": quote, "polarity": polarity, "document_id": doc_id}
+        )
+        if section == "metric" and value is not None:
+            # stated and reported stay side by side here too. A model page that
+            # averaged an advertised ceiling with a measured figure would be
+            # describing a number nobody produced.
+            bucket["figures"].append({"value": value, "basis": basis, "unit": unit})
+
+    out = {}
+    for section, by_slug in sections.items():
+        items = sorted(by_slug.values(), key=lambda i: (-i["reports"], i["slug"]))
+        if section != "metric":
+            for i in items:
+                i.pop("figures", None)
+                i.pop("unit", None)
+        out[section] = items
+    return {
+        "model_version_id": model_version_id,
+        "best_for": out["best_for"],
+        "capabilities": out["capability"],
+        "metrics": out["metric"],
+        "totals": {
+            "sections": sum(len(v) for v in out.values()),
+            "quotes": sum(len(i["quotes"]) for v in out.values() for i in v),
+        },
+    }
