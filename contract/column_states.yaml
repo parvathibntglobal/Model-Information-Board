@@ -140,7 +140,15 @@ columns:
       why: >
         Part of the natural key, so a re-run at a new version appends rather
         than colliding. Same role as on `claim` and `thread_extraction`.
-    created_at: {state: read, reviewed: true}
+    created_at:
+      state: defaulted
+      reviewed: true
+      why: >
+        DEFAULT now(), never written by us - the INSERT does not name it - and
+        read by board_sections and evidence_for_model to order newest-first.
+        Declared `read` at first, which the audit correctly refused: `read`
+        asserts written-and-read, and the discovered state was UNWRITTEN, read.
+        Same shape and same declaration as capability_candidate.created_at.
     ruling: {state: read, reviewed: true}
     ruling_target: {state: read, reviewed: true}
     reviewed_at: {state: read, reviewed: true}

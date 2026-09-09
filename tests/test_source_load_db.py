@@ -71,9 +71,12 @@ def test_every_source_row_lands(conn):
     assert (report.inserted, report.updated, report.unchanged) == (17, 0, 0)
 
     rows = _rows(conn)
-    assert len(rows) == 14
+    assert len(rows) == 17
+    # THE SET, which the docstring says is the assertion that matters. A count
+    # passes on a file that lost `reddit` and gained two others; this does not.
     assert {r["platform"] for r in rows.values()} == {
         "github", "blog", "reddit", "arxiv", "x",
+        "devto", "hackernews", "huggingface",
     }
     assert sum(1 for r in rows.values() if r["platform"] == "blog") == 10  # 9 + umbrella
 
