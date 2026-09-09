@@ -146,7 +146,14 @@ def assemble_platform_documents(
         # filters on and what carries the index; promotion of the verdict to a
         # gate goes on measured evidence, not on it being available.
         "  AND d.status = 'kept' "
-        "  AND d.thread_root_id IS NULL "
+        # A ROOT IS EITHER UNPARENTED OR ITS OWN PARENT, and the second form is
+        # not a curiosity - it is what Hacker News writes. Reddit and dev.to
+        # leave a root's `thread_root_id` NULL; the HN adapter sets a story's
+        # thread root to the story itself, so a first real run harvested 127 HN
+        # documents and assembled 0 of them. Nothing failed: the query asked for
+        # NULL, found none, and reported "0/0 assembled" - a shape that reads
+        # exactly like a platform nobody had posted on.
+        "  AND (d.thread_root_id IS NULL OR d.thread_root_id = d.id) "
         "  AND NOT EXISTS (SELECT 1 FROM thread_context tc WHERE tc.thread_root_id = d.id) "
         "ORDER BY d.id"
         + (f" LIMIT {int(limit)}" if limit else ""),
@@ -185,9 +192,15 @@ def assemble_platform_documents(
             # already filtered is still a bot comment, and flattening it puts it
             # in front of the model. Doing it HERE keeps the offset_map honest,
             # since the map is built over exactly what gets flattened.
-            "WHERE source = %s AND thread_root_id = %s AND status = 'kept' "
+            # `id <> %s` EXCLUDES THE ROOT FROM ITS OWN CHILDREN. Needed only
+            # because of the self-referential form above: without it an HN story
+            # would be flattened twice, once as the root and once as a child of
+            # itself, and the same text would reach the model under two ids -
+            # one author counted as two voices.
+            "WHERE source = %s AND thread_root_id = %s AND id <> %s "
+            "  AND status = 'kept' "
             "ORDER BY id",
-            (source, root_id),
+            (source, root_id, root_id),
         ).fetchall()
 
         members: list[_Member] = []

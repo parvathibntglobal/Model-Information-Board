@@ -668,6 +668,59 @@ def _thread_latest_dates(conn, thread_ids: list[str]) -> dict:
     return {tc_id: latest for tc_id, latest in rows}
 
 
+def score_stage(conn, prog: Progress) -> None:
+    """E3b — the six document signals, without which weighting refuses.
+
+    `collect/adapters/documents.py` writes NULL into `has_numbers`,
+    `has_error_strings`, `has_code`, `has_conditions`, `names_version` and
+    `specificity_score` on purpose: `score_document` needs the version-alias
+    population, and building it in five adapters is five chances to diverge.
+    The columns are filled here instead, once, from one registry read.
+
+    NOT OPTIONAL, AND THE FIRST REAL RUN PROVED IT. Without this stage
+    `document.has_conditions` stays NULL, `_document_facts` reads NULL, and
+    `weight.compute()` refuses - "a weighting input may not have a silent
+    default". That refusal is correct: an absent condition is not a stated
+    absence, and defaulting it to False would price every unscored document as
+    though somebody had checked and found nothing.
+
+    BETWEEN ASSEMBLE AND TRIAGE, forced from both sides. Scoring reads the prose
+    a payload yields, so flatten must already have proven the payload readable.
+    And triage's `has_artifact` gate reads `has_error_strings` and `has_code`,
+    two of the six columns written here - gating before scoring would gate on
+    NULLs and drop documents for lacking a signal nobody had computed.
+    """
+    from collect.triage.store import score_unscored
+
+    store = RawStore(Path(settings().raw_store_path))
+    prog.stage("E3b", "Score · document signals", "running",
+               detail="filling the six signal columns weighting and triage read")
+    run = score_unscored(conn, store, dry_run=False)
+    conn.commit()
+
+    # The real ScoreRun fields: eligible, scored, written, unreadable,
+    # unreadable_by_source, true_counts.
+    parts = [f"{run.scored} of {run.eligible} scored", f"{run.written} written"]
+    # COULD-NOT-READ IS NOT SCORED-AS-ABSENT. A payload this host cannot read
+    # was never scored, so its six columns stay NULL and weighting will refuse
+    # its claims later. Naming it here beats letting it surface three stages on
+    # as an unexplained refusal - and it is per-source, because a whole platform
+    # being unreadable is a different problem from a few missing payloads.
+    if run.unreadable:
+        by = ", ".join(f"{k} {v}" for k, v in sorted(run.unreadable_by_source.items()))
+        parts.append(f"{run.unreadable} unreadable ({by})" if by
+                     else f"{run.unreadable} unreadable")
+    # WHICH signals came back true, which is the only way to see a scorer that
+    # ran and found nothing versus one that never ran.
+    if run.true_counts:
+        parts.append("true: " + ", ".join(
+            f"{k} {v}" for k, v in sorted(run.true_counts.items())))
+    prog.stage("E3b", "Score · document signals", "ok",
+               eligible=run.eligible, scored=run.scored, written=run.written,
+               unreadable=run.unreadable, true_counts=dict(run.true_counts),
+               detail="; ".join(parts))
+
+
 def triage_stage(conn, prog: Progress) -> None:
     """E4 — the hard gates, over every platform this fetch harvested.
 
@@ -1022,6 +1075,15 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as exc:
             conn.rollback()
             prog.stage("E3", "Assemble", "error", detail=str(exc).splitlines()[0][:200])
+
+        # E3b BEFORE E4. Triage's `has_artifact` gate reads two of the six
+        # columns this writes, so gating first would gate on NULLs.
+        try:
+            score_stage(conn, prog)
+        except Exception as exc:
+            conn.rollback()
+            prog.stage("E3b", "Score · document signals", "error",
+                       detail=str(exc).splitlines()[0][:200])
 
         try:
             triage_stage(conn, prog)
