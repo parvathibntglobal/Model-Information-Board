@@ -128,7 +128,57 @@ def _variants_for(conn, model_version_id: str, canonical_id: str) -> list[str]:
             for r in alias_rows(seed):
                 if r.search_eligible:
                     variants.update(r.variants)
-    return sorted(variants)
+    return _order_variants(variants)
+
+
+def _order_variants(variants) -> list[str]:
+    """DISTINCT SURFACES FIRST, then extra spellings of each.
+
+    This was `sorted(variants)` and the caps made that expensive. Every platform
+    arm searches only the first 1-3 variants - arXiv, X, dev.to and Hacker News
+    take two - and alphabetical order put "Claude Fable 5.1" and
+    "Claude-Fable-5.1" first: two spellings of ONE surface, spending the whole
+    budget without ever trying "Fable 5.1", which is the form the corpus shows
+    people actually write.
+
+    So variants are grouped by their normalised key - one key IS one surface -
+    and the shortest spelling of each key goes first, because the short form is
+    what somebody types. Only once every distinct surface has had a query do the
+    alternate spellings follow.
+
+    Ordering matters MORE than breadth here: a wider alias list that never gets
+    queried past position two is not wider at all.
+    """
+    from collect.registry.aliases import normalize
+
+    by_key: dict[str, list[str]] = {}
+    for v in variants:
+        by_key.setdefault(normalize(v), []).append(v)
+    def rendering_rank(spelling: str) -> tuple:
+        """SPACED first, then hyphenated, then concatenated.
+
+        Length was the wrong ranking and it chose the worst query: the shortest
+        spelling of a key is the CONCATENATION - "fable51", "gpt6" - which is
+        precisely what nobody types into a search box. A search API has no fuzzy
+        operator, so the query has to be the form a human wrote, and that is the
+        spaced one. The concatenation is kept as a later query because it does
+        occasionally appear in a slug or a hashtag.
+        """
+        spaced = " " in spelling
+        hyphenated = "-" in spelling
+        tier = 0 if spaced else (1 if hyphenated else 2)
+        return (tier, len(spelling), spelling)
+
+    for spellings in by_key.values():
+        spellings.sort(key=rendering_rank)
+    # Keys ordered by their own BEST spelling, so both "Fable 5.1" and "Claude
+    # Fable 5.1" get a query inside a two-query cap rather than two spellings of
+    # one of them.
+    keys = sorted(by_key, key=lambda k: rendering_rank(by_key[k][0]))
+    ordered: list[str] = [by_key[k][0] for k in keys]          # one per surface
+    for k in keys:                                            # then the rest
+        ordered.extend(by_key[k][1:])
+    return ordered
 
 
 def _ensure_github_source(conn) -> None:
