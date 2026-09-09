@@ -60,9 +60,12 @@ def claim_json(quote: str, start: int, end: int, **overrides) -> str:
         # above: an answer that omits it fails schema validation, because
         # "which board surface does this belong on" is the classifier's job and
         # a default would let it skip the question silently.
-        "board_entries": [{"section": "capability", "slug": "summarization-fidelity",
-                           "name": "Summarization fidelity",
-                           "definition": "Condenses long text without dropping a load-bearing detail."}],
+        "board_entries": [{
+            "section": "capability",
+            "slug": "summarization-fidelity",
+            "name": "Summarization fidelity",
+            "definition": "Condenses long text without dropping a detail.",
+        }],
         "polarity": "negative",
         "quote": quote,
         "quote_offset": [start, end],
