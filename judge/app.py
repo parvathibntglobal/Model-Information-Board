@@ -678,6 +678,34 @@ def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0) -> dict:
 # separator and every real model page 404s, which is what the first live check
 # against a database found. A URL-encoded %2F does not help: the ASGI server
 # decodes before routing, so the slash is back by the time the path is matched.
+# ⚠ REGISTERED BEFORE `/models/{model_version_id:path}`, AND IT MUST STAY THERE.
+# FastAPI matches in registration order and `:path` is greedy, so the route
+# below would swallow "openai/gpt-6-astra/evidence" as a model id and answer
+# 404 for a model that exists. Found by calling it, not by reading it.
+@app.get("/models/{model_version_id:path}/evidence")
+def model_evidence(model_version_id: str) -> dict:
+    """What has actually been said about ONE model, grouped by discovered section.
+
+    The model page's half of the same corpus the board reads. The board groups by
+    section and asks who has been reported doing this; this groups by model and
+    asks what has been said about it. Same rows, different question — and neither
+    is derived from the other, so a change to how the board sorts cannot move
+    what a model page shows.
+
+    Quotes come back in full because they ARE the page. Every one is verified by
+    exact substring against the text the extractor was shown — the table CHECKs
+    it — so what a reader sees is what an engineer wrote.
+
+    AN EMPTY RESULT IS A REAL ANSWER. A tracked model nobody has discussed
+    returns three empty sections, and that is a finding rather than a failure to
+    load: absence is a state this board renders rather than hides.
+    """
+    from judge.store.board_entries import evidence_for_model
+
+    with _conn() as conn:
+        return evidence_for_model(conn, model_version_id)
+
+
 @app.get("/models/{model_version_id:path}")
 def model_page(model_version_id: str) -> dict:
     """FR-23 to FR-26. The full capability list, not the evidenced part.
@@ -1037,30 +1065,6 @@ def board_page() -> dict:
             "the duplicates are merged."
         ),
     }
-
-
-@app.get("/models/{model_version_id:path}/evidence")
-def model_evidence(model_version_id: str) -> dict:
-    """What has actually been said about ONE model, grouped by discovered section.
-
-    The model page's half of the same corpus the board reads. The board groups by
-    section and asks who has been reported doing this; this groups by model and
-    asks what has been said about it. Same rows, different question — and neither
-    is derived from the other, so a change to how the board sorts cannot move
-    what a model page shows.
-
-    Quotes come back in full because they ARE the page. Every one is verified by
-    exact substring against the text the extractor was shown — the table CHECKs
-    it — so what a reader sees is what an engineer wrote.
-
-    AN EMPTY RESULT IS A REAL ANSWER. A tracked model nobody has discussed
-    returns three empty sections, and that is a finding rather than a failure to
-    load: absence is a state this board renders rather than hides.
-    """
-    from judge.store.board_entries import evidence_for_model
-
-    with _conn() as conn:
-        return evidence_for_model(conn, model_version_id)
 
 
 @app.get("/coverage")
