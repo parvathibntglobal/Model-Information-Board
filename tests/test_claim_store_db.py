@@ -119,6 +119,18 @@ def a_claim(capability="summarization.fidelity", start=0) -> ExtractedClaim:
                 # has a database, is what found the other three.
                 "speaking": "own-experience",
             },
+            # REQUIRED since the classifier landed. Same lesson as `speaking`
+            # right above, and it repeated for the same reason: the local runs
+            # exclude every `_db` test, so a construction site here is invisible
+            # until CI reaches it with a database.
+            "board_entries": [
+                {
+                    "section": "capability",
+                    "slug": "summarization-fidelity",
+                    "name": "Summarization fidelity",
+                    "definition": "Condenses without dropping a detail.",
+                }
+            ],
             "capability": capability,
             "polarity": "negative",
             "quote": QUOTE,

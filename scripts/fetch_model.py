@@ -128,7 +128,57 @@ def _variants_for(conn, model_version_id: str, canonical_id: str) -> list[str]:
             for r in alias_rows(seed):
                 if r.search_eligible:
                     variants.update(r.variants)
-    return sorted(variants)
+    return _order_variants(variants)
+
+
+def _order_variants(variants) -> list[str]:
+    """DISTINCT SURFACES FIRST, then extra spellings of each.
+
+    This was `sorted(variants)` and the caps made that expensive. Every platform
+    arm searches only the first 1-3 variants - arXiv, X, dev.to and Hacker News
+    take two - and alphabetical order put "Claude Fable 5.1" and
+    "Claude-Fable-5.1" first: two spellings of ONE surface, spending the whole
+    budget without ever trying "Fable 5.1", which is the form the corpus shows
+    people actually write.
+
+    So variants are grouped by their normalised key - one key IS one surface -
+    and the shortest spelling of each key goes first, because the short form is
+    what somebody types. Only once every distinct surface has had a query do the
+    alternate spellings follow.
+
+    Ordering matters MORE than breadth here: a wider alias list that never gets
+    queried past position two is not wider at all.
+    """
+    from collect.registry.aliases import normalize
+
+    by_key: dict[str, list[str]] = {}
+    for v in variants:
+        by_key.setdefault(normalize(v), []).append(v)
+    def rendering_rank(spelling: str) -> tuple:
+        """SPACED first, then hyphenated, then concatenated.
+
+        Length was the wrong ranking and it chose the worst query: the shortest
+        spelling of a key is the CONCATENATION - "fable51", "gpt6" - which is
+        precisely what nobody types into a search box. A search API has no fuzzy
+        operator, so the query has to be the form a human wrote, and that is the
+        spaced one. The concatenation is kept as a later query because it does
+        occasionally appear in a slug or a hashtag.
+        """
+        spaced = " " in spelling
+        hyphenated = "-" in spelling
+        tier = 0 if spaced else (1 if hyphenated else 2)
+        return (tier, len(spelling), spelling)
+
+    for spellings in by_key.values():
+        spellings.sort(key=rendering_rank)
+    # Keys ordered by their own BEST spelling, so both "Fable 5.1" and "Claude
+    # Fable 5.1" get a query inside a two-query cap rather than two spellings of
+    # one of them.
+    keys = sorted(by_key, key=lambda k: rendering_rank(by_key[k][0]))
+    ordered: list[str] = [by_key[k][0] for k in keys]          # one per surface
+    for k in keys:                                            # then the rest
+        ordered.extend(by_key[k][1:])
+    return ordered
 
 
 def _ensure_github_source(conn) -> None:
@@ -304,6 +354,188 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
     return inserted
 
 
+def _gated_harvester(platform_id: str, factory, **kwargs):
+    """Build a harvester through the adapter's OWN gate. Returns (h, why-not).
+
+    EVERY ADAPTER PUBLISHES `harvester_for_source`, and it is the entry point
+    anything that fetches must use. This lane learned that the expensive way:
+    the Reddit path once had no such entry point, a 1,297-post corpus was
+    gathered without the gate ever being asked, and the gate had been refusing
+    Reddit correctly the whole time — nothing consulted it.
+
+    So this does NOT call `assert_terms_reviewed` itself. It cannot: each ruling
+    names its own live preconditions — `use_basis` for arXiv, and for X also
+    `scraper_provider`, `credential_present` and an `access_path` of
+    `rapidapi-reseller` — and only the adapter can observe them. A generic
+    observation passed from here would be an observation NOBODY MADE wearing the
+    costume of one that passed, which is precisely what rule 6 refuses.
+
+    A platform absent from `contract/sources.yaml` is UNASSESSED, not refused,
+    and the two must not render alike.
+    """
+    contract = load_sources()
+    source = next((s for s in contract.platforms if s.get("id") == platform_id), None)
+    if source is None:
+        return None, (
+            f"{platform_id} has no entry in contract/sources.yaml, so its terms have "
+            "never been reviewed. Not refused — unassessed. Adding one is a contract "
+            "change (two eyes), never something a fetch may assume for itself."
+        )
+    try:
+        return factory(source, rulings=contract.rulings, **kwargs), ""
+    except Exception as exc:
+        return None, str(exc).splitlines()[0][:180]
+
+
+def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int) -> int:
+    """E2 harvest — arXiv search for this model, appended to `document`.
+
+    Papers are the one source here that is CITED rather than reported. An author
+    writing about a model is not an engineer reporting their own run, so what
+    lands extracts as `relayed-from-elsewhere` and is weighted accordingly. It is
+    harvested anyway because a paper naming a measurement is exactly the figure
+    the metric pages want, and it arrives with a citation attached.
+    """
+    from collect.adapters.arxiv import harvester_for_source
+
+    harvester, why = _gated_harvester(
+        "arxiv", harvester_for_source,
+        client=build_client(timeout=30.0),
+        store=RawStore(Path(settings().raw_store_path)),
+        max_pages=1,
+    )
+    if harvester is None:
+        prog.stage("E2A", "Harvest · arXiv", "skipped", detail=why)
+        return 0
+
+    queries = variants[:max_queries]
+    prog.stage("E2A", "Harvest · arXiv", "running", queries=len(queries),
+               detail=f"arXiv search for {len(queries)} name variant(s)")
+    inserted = papers = 0
+    for variant in queries:
+        run = harvester.search(variant)
+        for paper in list(getattr(run, "papers", []) or [])[:5]:
+            harvester.fetch_paper(paper, run)
+        papers += len(getattr(run, "stored", []) or [])
+        wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
+        conn.commit()
+        inserted += int(getattr(wrote, "inserted", 0) or 0)
+    prog.stage("E2A", "Harvest · arXiv", "ok", papers=papers, documents_inserted=inserted,
+               detail=f"{papers} paper(s) stored, {inserted} document(s) appended")
+    return inserted
+
+
+def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) -> int:
+    """E2 harvest — X search for this model, appended to `document`.
+
+    IT SHARES THE RAPIDAPI KEY, AND THEREFORE THE QUOTA, WITH REDDIT. Running
+    both arms in one fetch spends one budget twice, which is why this is capped
+    harder than the Reddit arm and why the admin usage panel shows the two paths
+    against a single remaining figure rather than two independent ones.
+
+    `harvester_for_source` runs the ToS gate and THEN the credential, so a
+    missing `RAPIDAPI_KEY` arrives here as a refusal to build rather than as a
+    request that fails midway. Both are reported as `skipped` with the reason:
+    neither is a fault of this run, and an error badge would say it was.
+    """
+    from collect.adapters.x import harvester_for_source
+
+    harvester, why = _gated_harvester(
+        "x", harvester_for_source,
+        client=build_client(timeout=30.0),
+        store=RawStore(Path(settings().raw_store_path)),
+        max_pages=1,
+    )
+    if harvester is None:
+        prog.stage("E2X", "Harvest · X", "skipped", detail=why)
+        return 0
+
+    queries = variants[:max_queries]
+    prog.stage("E2X", "Harvest · X", "running", queries=len(queries),
+               detail=f"X search for {len(queries)} variant(s) — shares the Reddit quota")
+    inserted = posts = 0
+    for variant in queries:
+        run = harvester.search(variant)
+        posts += len(getattr(run, "posts", []) or [])
+        wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
+        conn.commit()
+        inserted += int(getattr(wrote, "inserted", 0) or 0)
+    prog.stage("E2X", "Harvest · X", "ok", posts=posts, documents_inserted=inserted,
+               detail=f"{posts} post(s) seen, {inserted} document(s) appended")
+    return inserted
+
+
+#: The platforms that share one harvest shape: gate through
+#: `harvester_for_source`, run `harvest(query, terms)` end to end, then
+#: `write_documents`. Kept as data because the loop below is identical for each,
+#: and three copies of one loop is three places to apply the next change twice.
+#:
+#: `stage` ids are distinct so the fetch log reads as a list of sources rather
+#: than one repeated line, and `cap` is per-platform because their costs differ:
+#: a Hugging Face harvest walks repos then discussions then comments, so it is
+#: bounded hardest.
+UNIFORM_PLATFORMS = (
+    ("devto",       "E2D", "Harvest · dev.to",       2),
+    ("hackernews",  "E2H", "Harvest · Hacker News",  2),
+    ("huggingface", "E2F", "Harvest · Hugging Face", 1),
+)
+
+
+def _harvester_factory(platform_id: str):
+    """The adapter's own gate-and-build entry point, imported lazily.
+
+    Lazy because importing every adapter costs a fetch that skips them nothing,
+    and because an adapter that fails to import must not take the whole run down
+    with it - it is one source, and the others are still readable.
+    """
+    if platform_id == "devto":
+        from collect.adapters.devto import harvester_for_source
+    elif platform_id == "hackernews":
+        from collect.adapters.hackernews import harvester_for_source
+    elif platform_id == "huggingface":
+        from collect.adapters.huggingface import harvester_for_source
+    else:
+        raise ValueError(f"no uniform factory for {platform_id!r}")
+    return harvester_for_source
+
+
+def harvest_uniform(conn, prog: Progress, variants: list[str], *,
+                    platform_id: str, stage_id: str, stage_name: str,
+                    max_queries: int) -> int:
+    """E2 harvest for one of the uniform platforms, appended to `document`.
+
+    The terms gate is the ADAPTER'S, never this script's. Each ruling names its
+    own live preconditions and only the adapter observes them; a guessed
+    observation passed from here would be an observation nobody made wearing the
+    costume of one that passed, which is what the check exists to refuse.
+
+    A platform missing from `contract/sources.yaml` is UNASSESSED rather than
+    refused, and says so - those are different states and must not render alike
+    (rule 6).
+    """
+    harvester, why = _gated_harvester(
+        platform_id, _harvester_factory(platform_id),
+        client=build_client(timeout=30.0),
+        store=RawStore(Path(settings().raw_store_path)),
+    )
+    if harvester is None:
+        prog.stage(stage_id, stage_name, "skipped", detail=why)
+        return 0
+
+    queries = variants[:max_queries]
+    prog.stage(stage_id, stage_name, "running", queries=len(queries),
+               detail=f"{platform_id} search for {len(queries)} name variant(s)")
+    inserted = 0
+    for variant in queries:
+        run = harvester.harvest(variant)
+        wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
+        conn.commit()
+        inserted += int(getattr(wrote, "inserted", 0) or 0)
+    prog.stage(stage_id, stage_name, "ok", documents_inserted=inserted,
+               detail=f"{inserted} document(s) appended from {len(queries)} query(ies)")
+    return inserted
+
+
 def assemble_stage(conn, prog: Progress) -> None:
     """E3 — flatten this fetch's new documents into thread_context rows.
 
@@ -313,12 +545,24 @@ def assemble_stage(conn, prog: Progress) -> None:
     they are what actually get flattened. Append-only.
     """
     from collect.assemble.issue import assemble_github_documents
+    from collect.assemble.platforms import PLATFORMS, assemble_platform_documents
     from collect.assemble.reddit import assemble_reddit_documents
 
     store = RawStore(Path(settings().raw_store_path))
     prog.stage("E3", "Assemble", "running", detail="flattening new documents into threads")
     notes = []
-    for name, fn in (("github", assemble_github_documents), ("reddit", assemble_reddit_documents)):
+    # GitHub and Reddit keep their own drivers; the five newer platforms share
+    # one. Without this the newer harvests wrote `document` rows that never
+    # became a `thread_context`, so extraction never saw them and every stage
+    # still reported success — the harvest cost requests and could not reach
+    # the board.
+    stages = [("github", assemble_github_documents), ("reddit", assemble_reddit_documents)]
+    stages += [
+        (src, (lambda conn_, *, store, limit=None, _s=src:
+               assemble_platform_documents(conn_, source=_s, store=store, limit=limit)))
+        for src in PLATFORMS
+    ]
+    for name, fn in stages:
         try:
             report = fn(conn, store=store, limit=200)
             conn.commit()
@@ -326,7 +570,19 @@ def assemble_stage(conn, prog: Progress) -> None:
         except Exception as exc:
             conn.rollback()
             notes.append(f"{name}: skipped ({str(exc).splitlines()[0][:80]})")
-    prog.stage("E3", "Assemble", "ok", detail=" · ".join(notes))
+    # HOW MUCH OF THE CORPUS E4 HAS NEVER JUDGED. Reported here and not used as
+    # a filter: assembly gates on `status`, so an unjudged document is still
+    # assembled. The number matters anyway, because every survival figure this
+    # project quotes is computed over judged rows, and a large unjudged
+    # remainder means those figures describe a fraction of the corpus (rule 7 -
+    # a figure travels with its denominator).
+    unjudged = conn.execute(
+        "SELECT count(*) FROM document WHERE triage_verdict IS NULL"
+    ).fetchone()[0]
+    if unjudged:
+        notes.append(f"{unjudged} document(s) still carry no triage verdict")
+    prog.stage("E3", "Assemble", "ok", unjudged_documents=unjudged,
+               detail=" · ".join(notes))
 
 
 def build_thread_inputs(conn, seen, *, limit: int):
@@ -342,11 +598,34 @@ def build_thread_inputs(conn, seen, *, limit: int):
     from judge.extract.verify import OffsetMapping
 
     store = RawStore(Path(settings().raw_store_path))
+    # ── THE TRIAGE VERDICT HAS TO BITE HERE OR IT IS DECORATIVE ──────────────
+    # This query used to read every thread_context regardless of what E4 decided,
+    # so a document could be gated as a bot post, a bare link or too short, have
+    # its verdict written to `document.status`, and still be handed to the LLM.
+    # The gates ran and changed nothing.
+    #
+    # A thread survives if ANY member survived. Per-MEMBER exclusion - dropping
+    # one filtered comment and keeping the thread - is deliberately not done
+    # here: the offset_map is built over the whole flattening, so removing a
+    # member means rebuilding it, and a stale map silently resolves quotes to the
+    # wrong document. That is the same refinement the pre-LLM screen defers, and
+    # it must be done in the assembler or not at all.
     rows = conn.execute(
-        "SELECT id, flattened_text_ref, offset_map, member_document_ids "
-        "FROM thread_context ORDER BY assembled_at DESC LIMIT %s",
+        "SELECT tc.id, tc.flattened_text_ref, tc.offset_map, tc.member_document_ids "
+        "FROM thread_context tc "
+        "WHERE EXISTS (SELECT 1 FROM document d "
+        "              WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept') "
+        "ORDER BY tc.assembled_at DESC LIMIT %s",
         (limit,),
     ).fetchall()
+    # What the verdict cost, counted rather than inferred: a thread with no
+    # surviving member is one E4 removed, and a run that cannot say how many did
+    # not survive cannot tell a strict gate from an empty harvest.
+    gated_out = conn.execute(
+        "SELECT count(*) FROM thread_context tc "
+        "WHERE NOT EXISTS (SELECT 1 FROM document d "
+        "                  WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept')"
+    ).fetchone()[0]
 
     inputs = []
     doc_ids: set[str] = set()
@@ -373,7 +652,7 @@ def build_thread_inputs(conn, seen, *, limit: int):
             offset_map=offset_map, raw_text_of=raw_text_of,
         ))
         doc_ids.update(members)
-    return inputs, doc_ids
+    return inputs, doc_ids, gated_out
 
 
 def _thread_latest_dates(conn, thread_ids: list[str]) -> dict:
@@ -387,6 +666,84 @@ def _thread_latest_dates(conn, thread_ids: list[str]) -> dict:
         (thread_ids,),
     ).fetchall()
     return {tc_id: latest for tc_id, latest in rows}
+
+
+def triage_stage(conn, prog: Progress) -> None:
+    """E4 — the hard gates, over every platform this fetch harvested.
+
+    THIS USED TO BE A NO-OP AND THAT WAS THE EXPENSIVE KIND. Every document went
+    to the extractor whatever it was: a bot post, a bare link with no commentary,
+    a forty-character "same here", a thread written before the model existed. The
+    gates were built and tested and simply never asked, so nothing failed - the
+    LLM read junk, and junk that survives extraction reaches the board carrying a
+    verified quote, which is exactly the shape nobody catches downstream.
+
+    All eight platforms are gated, not the original three: `_prose_by_source()`
+    maps arXiv, dev.to, Hacker News, Hugging Face and X to their own prose
+    extractors. That matters more than it looks - the alternative to a real
+    extractor is flattening a raw payload, and a payload flattened verbatim lets
+    a quote verify against a JSON FIELD VALUE while `quote_verified` says true.
+
+    `dry_run=False`, said explicitly. The default is True because triage writes a
+    verdict over thousands of rows on a shared database and the convention is
+    that a caller wanting the write asks for it. A per-model fetch is scoped and
+    user-initiated, so it asks.
+
+    A GATE THAT COULD NOT RUN IS REPORTED AS UNAVAILABLE, never as a pass.
+    `wrong_language` has no detector installed and `known_bot` needs a curated
+    list; both come back UNAVAILABLE rather than silently counting as clean, and
+    the stage line says which, because "no bots found" and "we cannot look for
+    bots" are different facts about the corpus.
+    """
+    from collect.triage.run import gate_availability, triage_stored
+
+    store = RawStore(Path(settings().raw_store_path))
+    prog.stage("E4", "Triage", "running",
+               detail="running the hard gates over every unjudged document")
+    run = triage_stored(conn, store, dry_run=False)
+    conn.commit()
+
+    # The REAL fields off TriageStoreRun, and the denominators with them. A
+    # triage that reports "412 dropped" without saying by which gate is a number
+    # nobody can act on, and the usual cause of a sudden drop is a broken parser
+    # rather than a quiet corpus.
+    detail = f"{run.triaged} of {run.eligible} judged; {run.kept} kept, {run.dropped} dropped"
+    if run.by_reason:
+        detail += " - " + ", ".join(f"{n} {g}" for g, n in sorted(run.by_reason.items()))
+    # COULD-NOT-READ IS NOT COULD-NOT-PASS. A payload that did not resolve, or
+    # that its extractor refused as not-prose, was never gated at all - counting
+    # those as clean would be the silent-absence failure one stage earlier.
+    unread = run.unreadable + run.not_prose + run.unmapped_source
+    if unread:
+        detail += (f" | {unread} never gated ({run.unreadable} unreadable, "
+                   f"{run.not_prose} not prose, {run.unmapped_source} unmapped source)")
+    # A GATE THAT COULD NOT RUN REPORTS UNAVAILABLE, NEVER A PASS. `wrong_language`
+    # has no detector installed and `known_bot` needs a curated list; "no bots
+    # found" and "we cannot look for bots" are different facts about the corpus.
+    if run.never_ran:
+        detail += " | unavailable: " + ", ".join(sorted(run.never_ran))
+    # PER SOURCE, in the detail line and not only in an object field the panel
+    # cannot render. This is the number that says whether the gates are tuned for
+    # a platform or merely running on it: `too_short` was calibrated on Reddit
+    # comments, and an arXiv abstract or a Hugging Face model card is a different
+    # shape entirely. A single corpus-wide "5888 dropped" hides which source paid.
+    if run.by_source:
+        per = []
+        for src in sorted(run.by_source):
+            counts = run.by_source[src] or {}
+            kept, triaged = counts.get("kept", 0), counts.get("triaged", 0)
+            # kept / TRIAGED, which is the survival rate the triage module itself
+            # reports. kept/(kept+dropped) would silently exclude the rows that
+            # were never gated at all, and those are the ones worth seeing on a
+            # platform whose prose extractor is new.
+            per.append(f"{src} {kept}/{triaged}" if triaged else f"{src} none gated")
+        detail += " | survived by source: " + ", ".join(per)
+    prog.stage("E4", "Triage", "ok", eligible=run.eligible, triaged=run.triaged,
+               kept=run.kept, dropped=run.dropped, written=run.written,
+               by_reason=dict(run.by_reason), by_source=dict(run.by_source),
+               never_ran=dict(run.never_ran), not_prose=run.not_prose,
+               unreadable=run.unreadable, availability=gate_availability(run),
+               detail=detail)
 
 
 def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
@@ -415,7 +772,15 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
 
     ledger = ExtractionLedger(conn)
     seen = ledger.already_extracted()
-    threads, doc_ids = build_thread_inputs(conn, seen, limit=200)
+    threads, doc_ids, gated_out = build_thread_inputs(conn, seen, limit=200)
+    if gated_out:
+        # Said, not implied. A smaller corpus reaching the LLM because the gates
+        # worked reads identically to a smaller corpus because the harvest was
+        # thin, and only one of those is good news.
+        prog.stage("E4b", "Screen · pre-LLM", "running",
+                   threads_gated_out=gated_out,
+                   detail=f"{gated_out} thread(s) held back by E4 - no member survived "
+                          "the hard gates, so they never reach the model")
 
     # Defer pathologically large threads to the nightly batch so a click cannot
     # become a many-minute call. Generous cap: most threads still read now.
@@ -611,23 +976,58 @@ def main(argv: list[str] | None = None) -> int:
             prog.stage("E2R", "Harvest · Reddit", "error",
                        detail=str(exc).splitlines()[0][:200])
 
+        try:
+            harvest_arxiv(conn, prog, variants, max_queries=2)
+        except Exception as exc:
+            prog.stage("E2A", "Harvest · arXiv", "error", detail=str(exc).splitlines()[0][:200])
+        try:
+            harvest_x(conn, prog, variants, max_queries=2)
+        except Exception as exc:
+            prog.stage("E2X", "Harvest · X", "error", detail=str(exc).splitlines()[0][:200])
+
         # Blogs have no per-model search — they are RSS/feed-based, harvested
         # wholesale, so a model-name query cannot target them (rule 7: say what
         # the run did NOT do rather than let its absence read as coverage).
         prog.stage("E2B", "Harvest · Blogs", "skipped",
                    detail="blogs are feed-based — no per-model search; not run for one model")
 
+        # dev.to, Hacker News and Hugging Face. Ruled on 2026-09-09, so they run
+        # now; each still gates itself, and a ruling that lapses or whose
+        # preconditions stop holding turns the arm back into a named skip rather
+        # than a silent absence.
+        for _pid, _sid, _sname, _cap in UNIFORM_PLATFORMS:
+            try:
+                harvest_uniform(conn, prog, variants, platform_id=_pid,
+                                stage_id=_sid, stage_name=_sname, max_queries=_cap)
+            except Exception as exc:
+                prog.stage(_sid, _sname, "error", detail=str(exc).splitlines()[0][:200])
+
+        # ── ASSEMBLE THEN TRIAGE, matching the nightly chain ─────────────────
+        # I had these the other way round, reasoning that a stage should only
+        # receive what the previous one passed. That is right in general and
+        # wrong here, for two reasons the chain states outright.
+        #
+        # `collect/ops/chain.py` records that triage NEEDS the flatten stage:
+        # it reads the prose a payload yields, and flatten is what proves that
+        # payload is assemblable. The dependency is about the corpus being
+        # coherent rather than about a column.
+        #
+        # And triage is NOT A GATE. It writes `triage_verdict` as a RECORDED
+        # FIELD, because two of its six checks cannot run and its error rate has
+        # never been measured - rule 8. So there is nothing for assembly to
+        # receive from it, and ordering triage first bought nothing while
+        # breaking the dependency.
         try:
             assemble_stage(conn, prog)
         except Exception as exc:
             conn.rollback()
             prog.stage("E3", "Assemble", "error", detail=str(exc).splitlines()[0][:200])
 
-        # E4 triage: harvested documents default to status 'kept', and the
-        # filter-persist path is not wired, so nothing is downgraded here (rule 4:
-        # said, not silently implied to have run).
-        prog.stage("E4", "Triage", "skipped",
-                   detail="documents default to 'kept'; filter-persist not wired")
+        try:
+            triage_stage(conn, prog)
+        except Exception as exc:
+            conn.rollback()
+            prog.stage("E4", "Triage", "error", detail=str(exc).splitlines()[0][:200])
 
         try:
             extract_and_curate(conn, prog, release_date=release_date)

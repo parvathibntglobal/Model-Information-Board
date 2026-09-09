@@ -768,6 +768,166 @@ terms_rulings:
 #  PLATFORM ROWS — the trust weights, and one row per platform.
 # ============================================================================
 
+  # ── dev.to ────────────────────────────────────────────────────────────────
+  - id: devto-api-terms
+    party: platform
+    platform_host: dev.to
+    reviewed_on: 2026-09-09
+    reviewed_by: parvathi
+    basis: internal-development-only
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    live_preconditions:
+      access_path: [api]
+      search_endpoint: ["/articles/search"]
+    recorded_evidence:
+      republication_claimed: [false]
+      terms_document_read: [false]
+      robots_checked: [false]
+      legal_review_completed: [false]
+    summary: |
+      RULED 2026-09-09. Access is the documented public API at dev.to/api and
+      never the site HTML. The search endpoint needs no credential, which is a
+      fact about the route and NOT a statement about permission.
+
+      THE RULING, IN ONE SENTENCE: dev.to proceeds on an internal-development-only
+      footing, and THAT POSITION HOLDS ONLY WHILE NOTHING IS PUBLISHED EXTERNALLY
+      - a quote from this platform, shown with a link, to anybody outside the
+      team. See "WHAT COUNTS AS PUBLICATION" above; it is a trigger, not a launch.
+
+      WHAT WAS ACTUALLY CHECKED, AND IT IS NOT THE TERMS. That the adapter calls
+      the documented JSON API, that the search path is /articles/search, and that
+      no credential is sent. That is the whole list.
+
+      NO TERMS DOCUMENT HAS BEEN READ, and robots.txt has not been fetched for
+      dev.to. Both are recorded rather than left absent, on the same footing as
+      `blog-class-a-self-hosted` and `arxiv-api-terms`.
+
+      UNRESOLVED, DELIBERATELY RECORDED:
+        - Articles are USER-AUTHORED and carry per-post licences. dev.to's own
+          terms and the default article licence have not been read, so whether
+          short quotation is permitted per article is UNANSWERED.
+        - dev.to publishes no documented rate limit for this endpoint. The
+          adapter is polite by construction; that is our restraint, not their
+          stated allowance, and it must not be recorded as one.
+
+      CURRENT USE: internal development and testing. Not published, no external
+      users, not monetized.
+      RE-REVIEW REQUIRED BEFORE: any external publication as defined above, any
+      external user, any monetization, or fetching dev.to HTML rather than the API.
+
+  # ── Hacker News, via Algolia ──────────────────────────────────────────────
+  - id: hackernews-algolia-terms
+    party: platform
+    platform_host: news.ycombinator.com
+    reviewed_on: 2026-09-09
+    reviewed_by: parvathi
+    basis: internal-development-only
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    live_preconditions:
+      access_path: [api]
+    recorded_evidence:
+      republication_claimed: [false]
+      terms_document_read: [false]
+      third_party_route: [true]
+      credentials_issued_by_platform: [false]
+      legal_review_completed: [false]
+    summary: |
+      RULED 2026-09-09. Access is the Algolia-hosted HN Search API at
+      hn.algolia.com/api/v1, never scraped HTML.
+
+      TWO PARTIES, NOT ONE, AND THAT IS THE POINT OF THIS RULING. The route is a
+      THIRD PARTY serving somebody else's content: Algolia operates the search
+      service, Y Combinator owns Hacker News, and the comments are written by
+      neither of them. So there are three sets of terms in play and this ruling
+      has read NONE of them. Same shape as `reddit-via-rapidapi` and
+      `x-via-rapidapi-scraper`, where the route is also not the platform, and
+      recorded here for the same reason: a reader must not mistake "the API
+      answered" for "the platform permitted".
+
+      THE RULING, IN ONE SENTENCE: Hacker News proceeds on an
+      internal-development-only footing, and THAT POSITION HOLDS ONLY WHILE
+      NOTHING IS PUBLISHED EXTERNALLY - a quote shown with a link to anybody
+      outside the team.
+
+      WHAT WAS ACTUALLY CHECKED, AND IT IS NOT THE TERMS. That the adapter calls
+      the documented Algolia endpoints, that no credential is sent, and that item
+      text comes back as JSON rather than as scraped markup.
+
+      NO TERMS DOCUMENT HAS BEEN READ - not Algolia's terms of service for the
+      free HN index, not Y Combinator's, and not any statement about comment
+      licensing. Nothing here settles who may quote an HN comment.
+
+      UNRESOLVED, DELIBERATELY RECORDED:
+        - Algolia serves this index as a free public service to the HN
+          community. Whether OUR use is within that intent is UNANSWERED, and
+          "it is unauthenticated" is not an answer to it.
+        - HN comments are third-party text with no stated licence. Quotation
+          rights per comment are UNANSWERED.
+
+      CURRENT USE: internal development and testing. Not published, no external
+      users, not monetized.
+      RE-REVIEW REQUIRED BEFORE: any external publication as defined above, any
+      external user, any monetization, or fetching news.ycombinator.com HTML.
+
+  # ── Hugging Face ──────────────────────────────────────────────────────────
+  - id: huggingface-api-terms
+    party: platform
+    platform_host: huggingface.co
+    reviewed_on: 2026-09-09
+    reviewed_by: parvathi
+    basis: internal-development-only
+    review_valid_days: 90
+    evidence_valid_days: 90
+    fetch_articles: true
+    live_preconditions:
+      access_path: [api]
+    recorded_evidence:
+      republication_claimed: [false]
+      terms_document_read: [false]
+      robots_checked: [false]
+      legal_review_completed: [false]
+    summary: |
+      RULED 2026-09-09. Access is the documented public API at huggingface.co/api
+      - repo search and the discussions endpoints - never the site HTML and never
+      model weights.
+
+      THE RULING, IN ONE SENTENCE: Hugging Face proceeds on an
+      internal-development-only footing, and THAT POSITION HOLDS ONLY WHILE
+      NOTHING IS PUBLISHED EXTERNALLY - a quote shown with a link to anybody
+      outside the team.
+
+      WHAT WAS ACTUALLY CHECKED, AND IT IS NOT THE TERMS. That the adapter calls
+      the documented JSON API under /api, that it reads discussions rather than
+      downloading weights, and that no credential is sent.
+
+      NO TERMS DOCUMENT HAS BEEN READ, and robots.txt has not been fetched.
+      Hugging Face publishes a Terms of Service and a Content Policy; neither has
+      been read, and this ruling records the deferral rather than leaving an
+      absence that later reads as a clearance.
+
+      UNRESOLVED, DELIBERATELY RECORDED:
+        - Discussion comments are USER-AUTHORED third-party text with no stated
+          licence. Quotation rights are UNANSWERED.
+        - A model card is frequently the VENDOR describing its own model. That is
+          `vendor-about-own-product` at extraction and must not be weighted as
+          own-experience - a weighting question for judge/ rather than a terms
+          question, recorded here because this is where a reader decides whether
+          to admit the platform at all.
+        - No documented rate limit was read for the unauthenticated API. The
+          adapter is polite by construction; that is our restraint, not their
+          stated allowance.
+
+      CURRENT USE: internal development and testing. Not published, no external
+      users, not monetized.
+      RE-REVIEW REQUIRED BEFORE: any external publication as defined above, any
+      external user, any monetization, downloading weights, or fetching
+      huggingface.co HTML rather than the API.
+
+
 sources:
 
   - id: github
@@ -1037,6 +1197,69 @@ sources:
 #                   to collapse to. Stays unresolved. It is not silently
 #                   assigned to the domain owner (rule 6).
 # ============================================================================
+
+  - id: devto
+    platform: devto
+    endpoint: https://dev.to/api/articles/search
+    base_trust: 0.60
+    provenance: seed
+    terms_ruling: devto-api-terms
+    terms_evidence:
+      checked_on: 2026-09-09
+      access_path: api
+      search_endpoint: "/articles/search"
+      republication_claimed: false
+      terms_document_read: false
+      robots_checked: false
+      legal_review_completed: false
+    tos_notes: >
+      Ruling devto-api-terms, 2026-09-09. Documented public JSON API; site HTML is
+      never fetched. NO terms document has been read and robots.txt has not been
+      checked - both recorded, neither resolved. Articles are user-authored under
+      per-post licences that have not been read. Internal development only; any
+      external publication requires re-review first.
+
+  - id: hackernews
+    platform: hackernews
+    endpoint: https://hn.algolia.com/api/v1/search
+    base_trust: 0.80
+    provenance: seed
+    terms_ruling: hackernews-algolia-terms
+    terms_evidence:
+      checked_on: 2026-09-09
+      access_path: api
+      republication_claimed: false
+      terms_document_read: false
+      third_party_route: true
+      credentials_issued_by_platform: false
+      legal_review_completed: false
+    tos_notes: >
+      Ruling hackernews-algolia-terms, 2026-09-09. The route is Algolia's HN
+      Search API - a THIRD PARTY serving Y Combinator's platform, carrying text
+      written by neither. None of the three sets of terms has been read. The API
+      answering is not the platform permitting. Internal development only; any
+      external publication requires re-review first.
+
+  - id: huggingface
+    platform: huggingface
+    endpoint: https://huggingface.co/api
+    base_trust: 0.75
+    provenance: seed
+    terms_ruling: huggingface-api-terms
+    terms_evidence:
+      checked_on: 2026-09-09
+      access_path: api
+      republication_claimed: false
+      terms_document_read: false
+      robots_checked: false
+      legal_review_completed: false
+    tos_notes: >
+      Ruling huggingface-api-terms, 2026-09-09. Documented public JSON API under
+      /api; discussions are read, weights are never downloaded, site HTML is never
+      fetched. NO terms document has been read. Model cards are frequently the
+      vendor describing its own model and must extract as vendor-about-own-product.
+      Internal development only; any external publication requires re-review first.
+
 
 feeds:
 

@@ -87,6 +87,72 @@ columns:
   # The table exists; nothing writes it yet. The classifier's DB write is the
   # next wire-up, at which point these flip from `reserved` to `write_only` (and
   # the review path adds the reads). Reserved until then, deliberately.
+  # board_entry — what the classifier DISCOVERED, and what the board renders.
+  # Read by judge/store/board_entries.py (board_sections, list_for_review,
+  # evidence_for_model), served by GET /board, /admin/board-entries and
+  # /models/{id}/evidence.
+  board_entry:
+    id:
+      state: write_only
+      reviewed: true
+      why: >
+        The primary key, and the ON CONFLICT target that makes a re-run
+        idempotent. Never selected back: every reader groups by section and
+        slug, because a board section is a group of entries rather than a row.
+    section: {state: read, reviewed: true}
+    slug: {state: read, reviewed: true}
+    name: {state: read, reviewed: true}
+    definition: {state: read, reviewed: true}
+    unit: {state: read, reviewed: true}
+    value_verbatim: {state: read, reviewed: true}
+    basis: {state: read, reviewed: true}
+    model_version_id: {state: read, reviewed: true}
+    document_id: {state: read, reviewed: true}
+    claim_id:
+      state: write_only
+      reviewed: true
+      why: >
+        Written so an entry can be traced back to the claim it came from, and
+        read by nothing yet. Kept because the trace is the point: without it a
+        board section could not be walked back to the weighted claim behind it.
+        A reader will want it the first time somebody asks why a section ranks
+        where it does.
+    quote: {state: read, reviewed: true}
+    quote_verified:
+      state: write_only
+      reviewed: true
+      why: >
+        CHECKed true by the table and never selected. The column exists so the
+        database refuses an unverified quote rather than trusting the writer -
+        rule 1 restated in the schema. Nothing reads it because nothing may:
+        every row that exists has already satisfied it.
+    polarity: {state: read, reviewed: true}
+    proposer_model:
+      state: write_only
+      reviewed: true
+      why: >
+        Which model classified the row, for when the extractor changes and a
+        board section needs attributing to one or the other. Recorded now
+        because it cannot be reconstructed later.
+    pipeline_version:
+      state: write_only
+      reviewed: true
+      why: >
+        Part of the natural key, so a re-run at a new version appends rather
+        than colliding. Same role as on `claim` and `thread_extraction`.
+    created_at:
+      state: defaulted
+      reviewed: true
+      why: >
+        DEFAULT now(), never written by us - the INSERT does not name it - and
+        read by board_sections and evidence_for_model to order newest-first.
+        Declared `read` at first, which the audit correctly refused: `read`
+        asserts written-and-read, and the discovered state was UNWRITTEN, read.
+        Same shape and same declaration as capability_candidate.created_at.
+    ruling: {state: read, reviewed: true}
+    ruling_target: {state: read, reviewed: true}
+    reviewed_at: {state: read, reviewed: true}
+
   capability_candidate:
     created_at:
       state: defaulted

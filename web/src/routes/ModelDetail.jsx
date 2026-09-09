@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
 import { modelPage, listModels, fetchAll, capLabel, fmtPrice, fmtTokens, fmtInt, BoardUnreadable } from '../api'
 import FetchPanel from '../components/FetchPanel'
+import ModelEvidence from '../components/ModelEvidence'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconExternal } from '../components/Icons'
 
 const STATE = {
   published:    { tone: 'pass', label: 'published' },
-  insufficient: { tone: 'warn', label: 'below the gate' },
+  insufficient: { tone: 'warn', label: 'few reports' },
   unreported:   { tone: 'mute', label: 'nobody has discussed this' },
 }
 
@@ -67,6 +68,13 @@ export default function ModelDetail() {
       {spec && <SpecPanel s={spec} />}
 
       <FetchPanel modelVersionId={id} onDone={() => modelPage(id).then(setPage).catch(() => {})} />
+
+      {/* What was actually said about this model, grouped by the sections the
+          classifier discovered. Placed directly under Fetch so the button and
+          the evidence it produces are read together — clicking Fetch and then
+          scrolling past six panels to find what changed is how a reader
+          concludes nothing happened. */}
+      <ModelEvidence modelVersionId={id} />
 
       {page && <ReportedStrip page={page} focus={state?.focus} />}
 
@@ -405,7 +413,7 @@ function ReportedStrip({ page, focus }) {
           >
             {capLabel(c.key)}
             <Badge tone={c.state === 'published' ? 'pass' : 'warn'}>
-              {c.state === 'published' ? 'published' : 'below the gate'}
+              {c.state === 'published' ? 'reported' : 'few reports'}
             </Badge>
           </a>
         ))}

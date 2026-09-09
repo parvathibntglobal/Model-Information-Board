@@ -110,14 +110,18 @@ const TRACKED = [
     display_name: 'GPT 6 Astra', provider: 'OpenAI',
     price_in: null, price_out: null, advertised_context: null,
     state: 'unreported', phrases: [], conditional: false, voices: 0,
-    evidence: { cells: 0, capabilities: [], published: 0 },
+    // No `cells`/`published` here: the board renders discovered board_entry rows
+    // (GET /board), and there is no cell or publication surface in the UI.
+    evidence: { reports: 0, sections: [] },
   },
   {
     model_version_id: 'anthropic/claude-fable-5-1', canonical_id: 'anthropic/claude-fable-5-1',
     display_name: 'Claude Fable 5.1', provider: 'Anthropic',
     price_in: null, price_out: null, advertised_context: null,
     state: 'unreported', phrases: [], conditional: false, voices: 0,
-    evidence: { cells: 0, capabilities: [], published: 0 },
+    // No `cells`/`published` here: the board renders discovered board_entry rows
+    // (GET /board), and there is no cell or publication surface in the UI.
+    evidence: { reports: 0, sections: [] },
   },
 ]
 const TRACKED_PAGE = { has_more: false, returned: TRACKED.length, limit: 500, offset: 0 }
@@ -222,6 +226,16 @@ export const fetchRuns = (modelVersionId) =>
   request(`/fetch/runs?model_version_id=${encodeURIComponent(modelVersionId)}`)
 
 export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
+/**
+ * The board's three sections, DISCOVERED by the classifier rather than chosen
+ * from a list. Returns { jobs, caps, mets, counts, report_counts_are_a_floor }.
+ *
+ * `reports` on each section IS A FLOOR and the UI must say so: the vocabulary
+ * is open, so one section can arrive under two names until the duplicates are
+ * merged. Rendering it as an exact total would overstate what was counted.
+ */
+export const boardPage = () => request('/board')
+
 export const coveragePage = () => request('/coverage')
 export const changelogPage = (days = 30) => request(`/changelog?days=${days}`)
 
@@ -274,6 +288,40 @@ export const pipelineStatus = () => request('/admin/pipeline')
  * model proposes, an admin rules. Adopting one is a contract/capabilities.yaml
  * PR, never a write here — these record the decision and its evidence.
  */
+/**
+ * Discovered board sections awaiting CONSOLIDATION, not publication.
+ *
+ * The distinction matters at the call site: an unruled row here is ALREADY on
+ * the board, so this list is not a queue of things waiting to appear. It exists
+ * because an open vocabulary produces duplicates - one section arriving under
+ * two slugs - and only a person can decide two words mean one thing.
+ */
+/**
+ * What has been said about ONE model, grouped by discovered section.
+ *
+ * Not a slice of the board payload: the board groups by section and this groups
+ * by model, so deriving one from the other would make a model page move whenever
+ * the board changed how it sorts. Same rows, asked a different question.
+ *
+ * Three empty sections is a real answer — a tracked model nobody has discussed —
+ * and the page renders it as an absence rather than a spinner that never ends.
+ */
+export const modelEvidence = (id) => request(`/models/${modelPath(id)}/evidence`)
+
+export const boardEntries = () => request('/admin/board-entries')
+
+export const ruleBoardEntry = (section, slug, ruling, ruling_target = null) =>
+  request('/admin/board-entries/rule', {
+    method: 'POST',
+    body: { section, slug, ruling, ruling_target },
+  })
+
+export const unruleBoardEntry = (section, slug) =>
+  request('/admin/board-entries/unrule', {
+    method: 'POST',
+    body: { section, slug, ruling: 'adopted' },
+  })
+
 export const capabilityCandidates = () => request('/admin/capability-candidates')
 export const ruleCapability = (proposed_key, ruling, ruling_target = null) =>
   request('/admin/capability-candidates/rule', {
