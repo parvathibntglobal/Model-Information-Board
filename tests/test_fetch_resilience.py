@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import httpx
 import pytest
+
 import scripts.fetch_model as fm
 from collect.http import DEFAULT_CONNECT_RETRIES, build_client
 
