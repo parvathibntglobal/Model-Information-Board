@@ -7,6 +7,7 @@ import Board from './routes/Board'
 import Blogs from './routes/Blogs'
 import ModelDetail from './routes/ModelDetail'
 import Models from './routes/Models'
+import Compare from './routes/Compare'
 import Admin from './routes/Admin'
 import Login from './routes/Login'
 import { getSession, signOut } from './auth'
@@ -59,6 +60,12 @@ export default function App() {
           <Route path="/board/*" element={<Require session={session}><Board /></Require>} />
           <Route path="/blogs/*" element={<Require session={session}><Blogs /></Require>} />
           <Route path="/models"     element={<Require session={session}><Models /></Require>} />
+          {/* BEFORE `/models/*`, and outside it. The comparison is entered from
+              the models list, but its own URL is `/compare?ids=…`: a model id
+              contains a slash (`anthropic/claude-fable-5-1`), so a path segment
+              could not carry two of them, and the SEO plan's comparison
+              keywords all target /compare. */}
+          <Route path="/compare"    element={<Require session={session}><Compare /></Require>} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
 

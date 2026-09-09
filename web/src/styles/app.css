@@ -587,3 +587,91 @@ tbody tr:hover{background:var(--surface-2)}
 @media (prefers-reduced-motion:reduce){
   .caprow-focus{animation:none}
 }
+
+/* ── FAQ ────────────────────────────────────────────────────────────────────
+   A native <details>, styled. Not a JS accordion: the answers must be in the
+   DOM and findable by ctrl-F whether or not a panel is open, and an answer
+   engine reading the page should not need to run our JavaScript to see them.
+   The marker is drawn by us because the default triangle sits on the baseline
+   and pulls the question off its own line. */
+.faq-item{
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  background:var(--surface);
+  padding:0;
+  overflow:hidden;
+}
+.faq-item + .faq-item{margin-top:-1px}          /* one shared rule between rows */
+.faq-item > summary{
+  cursor:pointer;
+  list-style:none;
+  padding:14px 16px 14px 40px;
+  position:relative;
+  font-size:var(--fs-sm);
+  font-weight:600;
+  color:var(--text);
+  transition:background var(--t-fast) var(--ease);
+}
+.faq-item > summary::-webkit-details-marker{display:none}
+.faq-item > summary:hover{background:var(--surface-2)}
+.faq-item > summary:focus-visible{outline:2px solid var(--info);outline-offset:-2px}
+/* the marker: a chevron that rotates, drawn with borders so it needs no asset */
+.faq-item > summary::before{
+  content:'';
+  position:absolute;
+  left:16px; top:50%;
+  width:6px; height:6px;
+  border-right:1.5px solid var(--text-3);
+  border-bottom:1.5px solid var(--text-3);
+  transform:translateY(-70%) rotate(-45deg);
+  transition:transform var(--t-fast) var(--ease);
+}
+.faq-item[open] > summary::before{transform:translateY(-50%) rotate(45deg)}
+.faq-item[open] > summary{background:var(--surface-2)}
+.faq-item > p{padding:2px 16px 16px 40px;margin:0}
+@media (prefers-reduced-motion:reduce){
+  .faq-item > summary,.faq-item > summary::before{transition:none}
+}
+
+/* ── compare: row selection + the sticky bar + the table ────────────────────
+   The checkbox lives OUTSIDE the row's link (a checkbox inside an anchor is
+   invalid and every tick would navigate), so the row becomes a wrapper with the
+   control beside the link rather than in it. */
+.mrow-wrap{display:flex;align-items:stretch;gap:0}
+.mrow-wrap > .mrow{flex:1;min-width:0}
+.mrow-pick{
+  display:flex;align-items:center;justify-content:center;
+  padding:0 10px 0 4px;
+  border-radius:var(--r-sm) 0 0 var(--r-sm);
+  cursor:pointer;
+}
+.mrow-pick input{width:15px;height:15px;accent-color:var(--info);cursor:pointer}
+.mrow-pick input:disabled{cursor:not-allowed;opacity:.35}
+.mrow-picked{background:var(--info-dim);border-radius:var(--r-sm)}
+
+/* Sticky, because the list runs to 200 rows and a button at the top of the page
+   is unreachable by the time the second model is ticked. */
+.cmp-bar{
+  position:sticky;bottom:12px;z-index:5;
+  display:flex;align-items:center;justify-content:space-between;gap:var(--s4);
+  margin-top:var(--s3);padding:12px 14px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  box-shadow:0 6px 24px rgba(0,0,0,.28);
+}
+
+/* Models across the top, facts down the side: a reader compares one fact at a
+   time, scanning a row. Wrapped in an overflow-x container by the component, so
+   a narrow screen scrolls the TABLE and never the page. */
+.cmp-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.cmp-table th,.cmp-table td{
+  border:1px solid var(--border);
+  padding:10px 12px;text-align:left;vertical-align:top;
+}
+.cmp-table thead th{background:var(--surface-2);font-size:var(--fs-sm)}
+.cmp-table thead th:first-child{background:transparent;border:0}
+.cmp-table tbody th{
+  background:var(--surface-2);font-weight:600;color:var(--text-1);
+  white-space:nowrap;width:1%;
+}
+.cmp-table td .dim{color:var(--text-3)}

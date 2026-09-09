@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import FluidCanvas from '../components/FluidCanvas'
+import Faq from '../components/Faq'
 import { Reveal, Stat, Badge } from '../components/ui'
 import { IconQuote, IconPeople, IconSplit, IconSilence } from '../components/Icons'
 
@@ -157,6 +158,12 @@ export default function Landing() {
           </div>
         </Reveal>
       </section>
+
+      {/* FAQ, last on the page as in the landing demo. It is the one section
+          that renders when the board cannot be read: `/faq` touches no
+          database, and half of what it explains is why an empty board is a
+          real state. */}
+      <Faq />
 
     </>
   )

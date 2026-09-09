@@ -8,6 +8,11 @@ const LINKS = [
   { to: '/board', label: 'Board' },
   { to: '/blogs', label: 'Blogs' },
   { to: '/models', label: 'Models' },
+  // The FAQ is a SECTION of the landing page, not a route — same as the demo,
+  // where the nav links to #faq. Kept as an anchor so the eleven answers are
+  // in the landing page's own DOM: that is where the FAQPage structured data
+  // belongs, and it is what an answer engine reads.
+  { to: '/#faq', label: 'FAQ', anchor: true },
   { to: '/admin', label: 'Admin' },
 ]
 
@@ -31,6 +36,12 @@ export default function Nav({ session, onSignOut }) {
 
         <nav className="nav-links">
           {session && LINKS.map((l) => (
+            l.anchor ? (
+              // A PLAIN ANCHOR, not a NavLink. `to="/#faq"` matches the route
+              // `/`, so NavLink would light up Home and FAQ at once — and the
+              // browser needs a real href to jump to a section anyway.
+              <a key={l.to} href={l.to} className="nav-link">{l.label}</a>
+            ) : (
             <NavLink
               key={l.to}
               to={l.to}
@@ -39,6 +50,7 @@ export default function Nav({ session, onSignOut }) {
             >
               {l.label}
             </NavLink>
+            )
           ))}
         </nav>
 

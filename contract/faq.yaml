@@ -1,0 +1,198 @@
+# The FAQ page — the eleven questions, verbatim from the landing demo.
+#
+# WHY THIS IS CONFIG AND NOT JSX. Rule 5: config lives in versioned YAML, not in
+# code. An FAQ is editorial copy that changes without a deploy, gets reviewed by
+# somebody who does not read React, and is served to an answer engine as
+# structured data. All three of those want one reviewable file.
+#
+# TWO KINDS OF ANSWER HERE, AND THE DIFFERENCE MATTERS MORE THAN IT LOOKS.
+#
+#   basis: policy     The answer describes how the board WORKS. It is true
+#                     because of how the code is built, so it is safe as static
+#                     copy and stays correct until the design changes.
+#
+#   basis: live       The answer asserts something about MODELS - which is
+#                     cheapest, which engineers report for coding. In the demo
+#                     those were hand-written from demo data. In the real
+#                     product they are claims about the registry and the
+#                     evidence corpus, and rules 1 and 3 apply: no claim without
+#                     a code-verified quote, no synthesised number on a page.
+#
+#                     So a `live` answer ships with `claims`, naming exactly
+#                     what it asserts, and the endpoint marks it
+#                     `established: false` until something in the database
+#                     supports it. The frontend then renders the question with
+#                     the honest answer - "nobody has reported enough for the
+#                     board to name one yet" - instead of the demo's figures.
+#                     The demo text is KEPT in `demo_answer` so nothing is lost
+#                     and the difference is auditable, but it is never served as
+#                     though it were current.
+#
+# The alternative was to paste all eleven answers as static copy. That would put
+# "$0.14 in and $0.28 out" on a live page with no row behind it, which is the
+# exact failure rule 3 exists to stop - and it would be invisible, because the
+# sentence reads like every other sentence on the page.
+
+version: 1
+updated: 2026-09-09
+source: model-board-landing-demo.html (FAQ section, 11 questions)
+
+# Rendered into schema.org FAQPage JSON-LD as well as onto the page. Only
+# answers that are actually served get into the structured data: telling an
+# answer engine something we are not telling a reader is cloaking.
+schema_type: FAQPage
+
+questions:
+  - id: not-a-leaderboard
+    basis: policy
+    open: true                    # the demo had this one expanded
+    q: Is the Model Information Board an LLM leaderboard?
+    a: >-
+      No, and that is the point. An AI leaderboard ranks models by an invented
+      score on curated tasks. The board ranks fit for *your* task by cost, and
+      backs every recommendation with verbatim reports from engineers who ran
+      the model in production.
+
+  - id: how-ranked
+    basis: policy
+    q: How is the ranking decided?
+    a: >-
+      By counted evidence for one capability, never a score we invent. A model's
+      position reflects how many independent engineers report it doing that job,
+      and at what cost. Where reports disagree the board says contested rather
+      than averaging them into a number that describes nobody's experience.
+
+  - id: where-evidence
+    basis: policy
+    # THE COUNT IS READ FROM contract/sources.yaml, NOT WRITTEN HERE. The demo
+    # said "ten public platforms" and named ten. The real contract holds eight
+    # with a terms ruling, and TikTok, Instagram, Hashnode and WordPress are not
+    # among them. A hardcoded ten would be a claim about coverage that the
+    # sources file contradicts, so the endpoint substitutes the real platforms
+    # and the real count into `{platforms}` and `{n}`.
+    a_template: >-
+      {n} public platforms — {platforms}. Every claim carries a verbatim quote,
+      verified in code against its source, with a link back — and where a
+      platform was assessed and ruled out, the reason is published rather than
+      hidden.
+    q: Where does the evidence come from?
+    demo_answer: >-
+      Ten public platforms — arXiv, Reddit, Hacker News, dev.to, Hugging Face,
+      X, TikTok, Instagram, Hashnode and WordPress. Every claim carries a
+      verbatim quote, verified in code against its source, with a link back —
+      and where a platform was assessed and ruled out, the reason is published
+      rather than hidden.
+
+  - id: best-for-coding
+    basis: live
+    q: What is the best AI model for coding?
+    claims:
+      - a model most reported for multi-file refactors and long agent loops
+      - a cheaper model reported at near-frontier coding quality
+    # Served while nothing in the corpus supports a named model. It answers the
+    # question rather than dodging it: the shape of the answer is the finding.
+    unestablished_answer: >-
+      It depends on the job inside the job — hard multi-file refactors, a cheap
+      coding agent and a code-review pass on every pull request are three
+      different purchases. The board will not name a model here until engineers
+      have reported one for that specific job: it reads the public record rather
+      than holding an opinion, and on coding it has not yet collected enough
+      first-hand reports to name anyone. When it has, this answer will name the
+      model and link to the quotes behind it.
+    demo_answer: >-
+      It depends on the job inside the job. For hard multi-file refactors and
+      long agent loops, engineers most often report Claude Opus 5. For a cheap
+      AI coding agent at near-frontier quality, DeepSeek V4 Pro; and for a
+      code-review LLM running on every pull request, something cheaper again.
+
+  - id: cheapest-per-token
+    basis: live
+    q: Which AI model is cheapest per token?
+    claims:
+      - the cheapest input price among models with enough first-hand reports to rank
+    # The registry HAS prices, so this one can be answered the moment any model
+    # carries reports. `cheapest_priced` is computed by the endpoint from
+    # `model_version.price_in` - a measured figure, not a synthesised one - and
+    # is only offered where that model also has reports behind it.
+    unestablished_answer: >-
+      The registry knows what every provider charges, and the board can sort by
+      it — but "cheapest" on its own is not an answer worth giving. The cheapest
+      LLM API is not the same as the cheapest one that works, so the board only
+      names a cheapest model among those with enough first-hand reports to rank,
+      and it does not have those reports yet. Until then the price column is
+      advertised rates, honestly labelled as such.
+    demo_answer: >-
+      Among models with enough first-hand reports to rank, DeepSeek V4 Flash at
+      $0.14 in and $0.28 out. The cheapest LLM API is not the same as the
+      cheapest one that works, which is why every price sits beside the
+      capability engineers vouch for at that price.
+
+  - id: free-and-open
+    basis: policy
+    # The demo's version named a licence beside every model. The registry has no
+    # licence column, so that sentence is dropped rather than softened - see
+    # `docs` note in the endpoint. Everything else here is policy and stands.
+    q: Is there a good free or open source LLM?
+    a: >-
+      Several open-weight models hold up on specific tasks. The best open source
+      LLM for coding is not the one for long context, and open weights versus
+      open source are different licences with different commercial terms. The
+      board says where a local LLM is reported to be enough — and where a
+      licence has not been recorded, it says that rather than guessing at one.
+    demo_answer: >-
+      Several open-weight models hold up on specific tasks. The best open source
+      LLM for coding is not the one for long context, and open weights vs open
+      source are different licences with different commercial terms. The board
+      names the licence beside every model, and says where a local LLM is
+      reported to be enough.
+
+  - id: did-it-get-worse
+    basis: policy
+    q: Did Claude get worse, or is it just me?
+    a: >-
+      Nobody can answer that from one person's experience, which is the whole
+      difficulty. LLM drift is only ever established by several engineers
+      reporting the same change independently, so the board collects those
+      reports per model and shows the date each one landed.
+
+  - id: swe-bench-saturated
+    basis: live
+    q: Is SWE-bench saturated?
+    claims:
+      - how much headroom is left on SWE-bench
+      - that a two-point MMLU-Pro difference has stopped meaning anything
+    unestablished_answer: >-
+      Saturation is a claim about a benchmark's remaining headroom, and the
+      board only makes it from figures somebody published with their working. It
+      does not yet hold benchmark-headroom data, so it will not tell you either
+      way — what it will do, once it does, is publish the caveat beside the
+      number rather than under it.
+    demo_answer: >-
+      Not yet — the board publishes how much headroom is left. MMLU-Pro is the
+      one where a two-point difference has stopped meaning anything, and the
+      board publishes that caveat beside the number rather than under it.
+
+  - id: how-current
+    basis: policy
+    q: How current is it, and who maintains it?
+    a: >-
+      Models change faster than any review cycle, so the board re-reads the
+      public record and dates every claim it keeps. A report from March sits
+      beside its date rather than being folded into a running average — and a
+      deprecated model is a date somebody has to plan around.
+
+  - id: not-discussed
+    basis: policy
+    q: What does “not discussed” mean on the board?
+    a: >-
+      That nobody has publicly reported using that model for that capability
+      yet. It is not a low score and not a criticism. A model with three reports
+      is a model nobody has checked, not a model that failed.
+
+  - id: is-it-free
+    basis: policy
+    q: Is it free to use?
+    a: >-
+      Yes. The board publishes what it finds and links to the source, so
+      anything on it can be checked without an account. It sells no model and
+      takes no placement, which is why it can say a cheaper option holds up.
