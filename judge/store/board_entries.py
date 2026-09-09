@@ -204,3 +204,108 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         items.sort(key=lambda i: (-i["reports"], i["slug"]))
         out[section] = items
     return out
+
+
+# ── the admin review surface ─────────────────────────────────────────────────
+#
+# An open vocabulary means DUPLICATES are the failure mode, not gaps: "function
+# calling" and "tool calling" arriving from two threads are one board section
+# under two names. Nothing in code can decide they are the same - that is a
+# judgement about meaning, and a wrong synonym table silently merges two real
+# sections. So a person rules, through the columns the table already has.
+#
+# A ruling is CONSOLIDATION, NOT PUBLICATION. There is no gate here: an unruled
+# entry is already on the board. `declined` removes one, `merged` folds it into
+# another slug, `adopted` marks it reviewed and changes nothing. That is the
+# opposite of `capability_candidate`, where a ruling ADMITS a key - and the
+# difference is deliberate, because holding these back until review would leave
+# the board empty for exactly as long as nobody looked at it.
+
+RULINGS = ("adopted", "declined", "merged")
+
+
+def list_for_review(conn) -> list[dict]:
+    """Discovered sections grouped by slug, newest evidence first.
+
+    An admin rules on a SECTION, so this groups by (section, slug) rather than
+    returning one row per quote: merging "tool-calling" into "function-calling"
+    is one decision about a word, not nine about nine quotes. The document count
+    behind it is the evidence for that decision, so it is shown.
+    """
+    rows = conn.execute(
+        "SELECT section, slug, min(name) AS name, min(definition) AS definition,"
+        "       count(*) AS entries, count(DISTINCT document_id) AS documents,"
+        "       count(DISTINCT model_version_id) AS models,"
+        "       max(created_at) AS newest,"
+        "       max(ruling) AS ruling, max(ruling_target) AS ruling_target,"
+        "       max(reviewed_at) AS reviewed_at "
+        "FROM board_entry GROUP BY section, slug "
+        "ORDER BY section, count(*) DESC, slug"
+    ).fetchall()
+    out = []
+    for (section, slug, name, definition, entries, documents, models,
+         newest, ruling, ruling_target, reviewed_at) in rows:
+        quotes = conn.execute(
+            "SELECT quote, polarity, model_version_id, document_id "
+            "FROM board_entry WHERE section = %s AND slug = %s "
+            "ORDER BY created_at DESC LIMIT 5",
+            (section, slug),
+        ).fetchall()
+        out.append({
+            "section": section, "slug": slug, "name": name, "definition": definition,
+            "entries": entries, "documents": documents, "models": models,
+            "newest": newest.isoformat() if newest else None,
+            "ruling": ruling, "ruling_target": ruling_target,
+            "reviewed_at": reviewed_at.isoformat() if reviewed_at else None,
+            "quotes": [
+                {"quote": q, "polarity": p, "model_version_id": m, "document_id": d}
+                for q, p, m, d in quotes
+            ],
+        })
+    return out
+
+
+def rule_entries(conn, *, section: str, slug: str, ruling: str,
+                 ruling_target: str | None = None) -> int:
+    """Rule every entry under one slug. Returns rows ruled.
+
+    `ruling_target` is NORMALISED like any other slug, so a reviewer typing
+    "Function Calling" folds into the same bucket the classifier produced. The
+    alternative - trusting free text - is how a merge silently creates a third
+    section instead of removing one.
+
+    Re-ruling is allowed and is not an error: a person changing their mind is
+    the point of a review surface, and the row keeps its evidence either way.
+    """
+    if ruling not in RULINGS:
+        raise ValueError(f"ruling must be one of {RULINGS}, not {ruling!r}")
+    if ruling == "merged" and not (ruling_target or "").strip():
+        raise ValueError(
+            "a merge needs a ruling_target: the slug this one folds into. Without "
+            "it the rows would be hidden rather than merged, which loses the "
+            "evidence instead of consolidating it."
+        )
+    target = normalise_slug(ruling_target) if ruling_target else None
+    if ruling == "merged" and target == normalise_slug(slug):
+        raise ValueError("cannot merge a slug into itself")
+    cur = conn.execute(
+        "UPDATE board_entry SET ruling = %s, ruling_target = %s, reviewed_at = now() "
+        "WHERE section = %s AND slug = %s",
+        (ruling, target, section, slug),
+    )
+    return cur.rowcount
+
+
+def unrule_entries(conn, *, section: str, slug: str) -> int:
+    """Undo a ruling, putting the section back on the board.
+
+    Present because `reviewed_at` and `ruling` are CHECKed to move together, so
+    clearing one by hand would violate the constraint - and a review surface a
+    person cannot back out of is one they will hesitate to use.
+    """
+    cur = conn.execute(
+        "UPDATE board_entry SET ruling = NULL, ruling_target = NULL, reviewed_at = NULL "
+        "WHERE section = %s AND slug = %s",
+        (section, slug),
+    )
+    return cur.rowcount

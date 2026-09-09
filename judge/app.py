@@ -1290,6 +1290,25 @@ class CandidateRuleRequest(BaseModel):
     )
 
 
+class BoardEntryRuleRequest(BaseModel):
+    """Rule every discovered entry under one slug.
+
+    Deliberately NOT the same shape as CandidateRuleRequest, because the two
+    rulings mean opposite things. A capability ruling ADMITS a key to the
+    vocabulary; a board ruling CONSOLIDATES a section that is already showing.
+    So `ruling_target` is required only for `merged` here, where
+    CandidateRuleRequest also demands it for `adopted` - an adopted board
+    section became nothing, it simply stays.
+    """
+
+    section: str = Field(description="best_for | capability | metric")
+    slug: str
+    ruling: str = Field(description="adopted | declined | merged")
+    ruling_target: str | None = Field(
+        default=None, description="the slug it folds into; required for merged"
+    )
+
+
 class CandidateEditRequest(BaseModel):
     proposed_key: str
     new_key: str | None = None
@@ -1329,6 +1348,99 @@ def admin_capability_candidates() -> dict:
             "clustered, so a capability proposed several ways is under-counted."
         ),
     }
+
+
+@app.get("/admin/board-entries")
+def admin_board_entries() -> dict:
+    """Discovered board sections awaiting consolidation, grouped by slug.
+
+    THIS IS A CONSOLIDATION SURFACE, NOT A PUBLICATION GATE, and the difference
+    from the capability review beside it is the whole point. A capability
+    candidate is waiting OUTSIDE the vocabulary until somebody admits it. These
+    are already on the board - the classifier discovered them and the board
+    shows them - so an unruled row is live, not pending.
+
+    What review is for is the failure mode an open vocabulary actually has:
+    DUPLICATES. "function calling" and "tool calling" from two threads are one
+    section under two names, and no code can decide that without a synonym table
+    that silently merges two real sections the day it is wrong. So a person
+    merges, and `documents` is the evidence they rule on.
+    """
+    from judge.store.board_entries import list_for_review
+
+    with _conn() as conn:
+        groups = list_for_review(conn)
+    unruled = [g for g in groups if g["ruling"] is None]
+    return {
+        "groups": groups,
+        "summary": {
+            "sections": len(groups),
+            "unruled": len(unruled),
+            "entries": sum(g["entries"] for g in groups),
+            "by_section": {
+                s: sum(1 for g in groups if g["section"] == s)
+                for s in ("best_for", "capability", "metric")
+            },
+        },
+        "note": (
+            "Unruled sections are ALREADY on the board - ruling consolidates, it "
+            "does not publish. Counts are a floor: one section can arrive under "
+            "two slugs until they are merged."
+        ),
+    }
+
+
+@app.post("/admin/board-entries/rule")
+def admin_rule_board_entry(req: BoardEntryRuleRequest) -> dict:
+    """Adopt / decline / merge every entry under one slug."""
+    from judge.store.board_entries import RULINGS, SECTIONS, rule_entries
+
+    # Validated before a connection is opened, so a bad request fails fast and
+    # without a database. Stated here AND in the store, so neither is the only
+    # guard - the store is reachable from the pipeline too.
+    if req.section not in SECTIONS:
+        raise HTTPException(status_code=422, detail=f"section must be one of {SECTIONS}")
+    if not req.slug.strip():
+        raise HTTPException(status_code=422, detail="slug is required")
+    if req.ruling not in RULINGS:
+        raise HTTPException(status_code=422, detail=f"ruling must be one of {RULINGS}")
+    if req.ruling == "merged" and not (req.ruling_target or "").strip():
+        raise HTTPException(
+            status_code=422,
+            detail="merged requires a ruling_target: the slug this one folds into. "
+                   "Without it the rows would be hidden rather than merged, which "
+                   "loses the evidence instead of consolidating it.",
+        )
+    try:
+        with _conn() as conn:
+            ruled = rule_entries(
+                conn, section=req.section, slug=req.slug,
+                ruling=req.ruling, ruling_target=req.ruling_target,
+            )
+            conn.commit()
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"section": req.section, "slug": req.slug, "ruling": req.ruling,
+            "ruling_target": req.ruling_target, "rows_ruled": ruled}
+
+
+@app.post("/admin/board-entries/unrule")
+def admin_unrule_board_entry(req: BoardEntryRuleRequest) -> dict:
+    """Undo a ruling, putting the section back on the board unchanged.
+
+    `ruling` and `reviewed_at` are CHECKed to move together, so a reviewer
+    cannot clear one by hand without violating the constraint. A review surface
+    somebody cannot back out of is one they hesitate to use, which is how a
+    board fills with rulings nobody was sure about.
+    """
+    from judge.store.board_entries import SECTIONS, unrule_entries
+
+    if req.section not in SECTIONS:
+        raise HTTPException(status_code=422, detail=f"section must be one of {SECTIONS}")
+    with _conn() as conn:
+        cleared = unrule_entries(conn, section=req.section, slug=req.slug)
+        conn.commit()
+    return {"section": req.section, "slug": req.slug, "rows_cleared": cleared}
 
 
 @app.post("/admin/capability-candidates/rule")

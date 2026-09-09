@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { health, coveragePage, changelogPage, listModels, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
+import BoardReview from '../components/BoardReview'
 import CapabilityReview from '../components/CapabilityReview'
 import FetchPanel from '../components/FetchPanel'
 import { IconAlert, IconGauge } from '../components/Icons'
@@ -119,6 +120,15 @@ export default function Admin() {
           fetch-log history. This is where a model gets swept on demand. */}
       <Reveal>
         <CollectEvidence />
+      </Reveal>
+
+      {/* board sections the classifier discovered. Placed ABOVE the capability
+          review because it is the surface that now decides what the board shows,
+          and because the two are easily confused: these are already live and are
+          being consolidated, those are waiting outside the vocabulary to be let
+          in. Adjacent so the difference is visible rather than assumed. */}
+      <Reveal>
+        <BoardReview />
       </Reveal>
 
       {/* capability discovery review — the extractor's proposed keys, awaiting a

@@ -288,6 +288,28 @@ export const pipelineStatus = () => request('/admin/pipeline')
  * model proposes, an admin rules. Adopting one is a contract/capabilities.yaml
  * PR, never a write here — these record the decision and its evidence.
  */
+/**
+ * Discovered board sections awaiting CONSOLIDATION, not publication.
+ *
+ * The distinction matters at the call site: an unruled row here is ALREADY on
+ * the board, so this list is not a queue of things waiting to appear. It exists
+ * because an open vocabulary produces duplicates - one section arriving under
+ * two slugs - and only a person can decide two words mean one thing.
+ */
+export const boardEntries = () => request('/admin/board-entries')
+
+export const ruleBoardEntry = (section, slug, ruling, ruling_target = null) =>
+  request('/admin/board-entries/rule', {
+    method: 'POST',
+    body: { section, slug, ruling, ruling_target },
+  })
+
+export const unruleBoardEntry = (section, slug) =>
+  request('/admin/board-entries/unrule', {
+    method: 'POST',
+    body: { section, slug, ruling: 'adopted' },
+  })
+
 export const capabilityCandidates = () => request('/admin/capability-candidates')
 export const ruleCapability = (proposed_key, ruling, ruling_target = null) =>
   request('/admin/capability-candidates/rule', {
