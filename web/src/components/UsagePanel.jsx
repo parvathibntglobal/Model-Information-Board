@@ -117,7 +117,13 @@ export default function UsagePanel() {
 
         {onRapid
           ? <RapidApiTab rapid={rapid} which={tab === 'rapidapi_x' ? 'X' : 'Reddit'} />
-          : <OpenRouterTab everyone={everyone} today={today} byModel={byModel} />}
+          : <OpenRouterTab
+              everyone={everyone}
+              today={today}
+              byModel={byModel}
+              byTokens={data.by_model_tokens || {}}
+              unpriced={data.unpriced_models || []}
+            />}
       </div>
     </section>
   )
@@ -130,7 +136,7 @@ export default function UsagePanel() {
  * Usage to date ran on Gemini 2.5 Flash; the extractor is now DeepSeek V4 Flash, so the
  * two accrue under different rows and the switch is legible instead of averaged.
  */
-function OpenRouterTab({ everyone, today, byModel }) {
+function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced }) {
   const rows = Object.entries(byModel)
     .map(([model, spent]) => [model, MODEL_SPEND_OVERRIDE[model] ?? spent])
     .sort((a, b) => b[1] - a[1])
@@ -182,9 +188,33 @@ function OpenRouterTab({ everyone, today, byModel }) {
               <strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(model)}</strong>{' '}
               <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{model}</span>
             </span>
-            <span className="tnum">{usd(spent)}</span>
+            <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
+              <span className="tnum">
+                {(unpriced || []).includes(model) ? 'no published rate' : usd(spent)}
+              </span>
+              {/* TOKENS ARE THE MEASUREMENT. Shown beside the dollars because a
+                  model with no rate records $0.00, and money alone would read
+                  as free — the one wrong conclusion available here. */}
+              {byTokens?.[model] > 0 && (
+                <span className="dim" style={{ fontSize: 10 }}>
+                  {byTokens[model].toLocaleString()} tokens
+                </span>
+              )}
+            </span>
           </div>
         ))
+      )}
+
+      {(unpriced || []).length > 0 && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch' }}>
+          <strong style={{ color: 'var(--text)' }}>
+            {(unpriced || []).length} model{(unpriced || []).length === 1 ? '' : 's'} recorded
+            tokens with no published rate
+          </strong>{' '}
+          — {(unpriced || []).join(', ')}. Their tokens are measured; the price is not held in{' '}
+          <span className="mono">judge/extract/budget.py</span>, so no dollar figure is computed
+          for them rather than one being computed at another model's rate.
+        </span>
       )}
 
       {/* The current extractor, listed BELOW the previous one so the switch
@@ -259,13 +289,13 @@ function RapidApiTab({ rapid, which }) {
   }
   const used = rapid.requests_used
   const limit = rapid.quota_limit
-  const share =
-    typeof used === 'number' && typeof limit === 'number' && limit > 0
-      ? (used / limit) * 100
-      : null
+  const remaining = rapid.quota_remaining
+  const knownLimit = typeof limit === 'number' && limit > 0
+  const share = knownLimit && typeof used === 'number' ? (used / limit) * 100 : null
   // Whose fetch took the reading. `null` is a record written before the field
   // existed — unrecorded, which is not the same as "this tab's path".
   const readOn = rapid.read_on || null
+  const readBy = rapid.read_by || null
   const mine = readOn === (which === 'X' ? 'x' : 'reddit')
 
   return (
@@ -273,19 +303,43 @@ function RapidApiTab({ rapid, which }) {
       <span className="label">
         Spend on this key — {which} path, billed in requests
       </span>
-      <div className="grid g3">
-        <Stat n={n(used)} l="requests spent" />
-        <Stat n={share == null ? '—' : `${share.toFixed(2)}%`} l="of the quota" />
-        <Stat n={n(rapid.quota_remaining)} l="left" />
-      </div>
+      {/* WHICHEVER HALF WE ACTUALLY HAVE LEADS. With both, spent-of-limit is
+          the natural frame. With only `remaining` — which is the current
+          reading — a "spent" figure cannot be derived at all, so showing it as
+          a dash three times would bury the one measured number on the tab. */}
+      {knownLimit ? (
+        <div className="grid g3">
+          <Stat n={n(used)} l="requests spent" />
+          <Stat n={share == null ? '—' : `${share.toFixed(2)}%`} l="of the quota" />
+          <Stat n={n(remaining)} l="left" />
+        </div>
+      ) : (
+        <div className="grid g2">
+          <Stat n={n(remaining)} l="requests remaining — measured" />
+          <Stat n="not established" l="monthly limit" />
+        </div>
+      )}
+
+      {!knownLimit && rapid.limit_unknown_why && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
+          <strong style={{ color: 'var(--text)' }}>
+            The limit is not known, so neither is the percentage.
+          </strong>{' '}
+          {rapid.limit_unknown_why}
+        </span>
+      )}
+
       <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
         <strong style={{ color: 'var(--text)' }}>No dollar amount, deliberately.</strong>{' '}
         RapidAPI sells this as a request quota and the per-request price is not in
         our config, so a dollar figure would be invented rather than measured.{' '}
-        {n(used)} of {n(limit)} requests is the spend.
+        {knownLimit
+          ? `${n(used)} of ${n(limit)} requests is the spend.`
+          : `${n(remaining)} requests remaining is what the gateway last reported.`}
       </span>
       <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-        As of {rapid.as_of || 'the last fetch'}, read on{' '}
+        As of {rapid.as_of || 'the last fetch'}
+        {readBy ? ` (recorded by a ${readBy})` : ''}, read on{' '}
         {readOn ? (
           <strong style={{ color: 'var(--text)' }}>
             the {readOn === 'x' ? 'X' : 'Reddit'} fetch
@@ -298,12 +352,12 @@ function RapidApiTab({ rapid, which }) {
           ? `This tab's own path took the reading.`
           : `One key meters both paths, so the figure is the ${which} spend too — but it was last read on a ${readOn ? (readOn === 'x' ? 'X' : 'Reddit') : 'different'} fetch, so any ${which} requests since then are already spent and not yet in it.`}
       </span>
-      <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-        Two things the denominator does not say: the window is{' '}
-        <strong>23.9 days, not a month</strong>, and the billed tier is{' '}
-        <strong>unverified</strong> — the gateway header says {n(limit)} while the
-        plan page says 500,000, and only opening the RapidAPI subscription page
-        settles it. On the smaller tier the cut-off arrives at half the figure above.
+      <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
+        And the window is <strong>23.9 days, not a month</strong>, so anything costed
+        as a share of a month against this quota is a third too low.{' '}
+        {knownLimit
+          ? `The billed tier remains unverified: the gateway header says ${n(limit)} and the plan page says 500,000. Only the RapidAPI subscription page settles it.`
+          : 'The billed tier has never been verified either — the plan page said 500,000, an older header said 1,000,000, and this reading fits neither. One look at the RapidAPI subscription page settles it, and no request can.'}
       </span>
     </div>
   )

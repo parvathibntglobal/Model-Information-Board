@@ -196,6 +196,22 @@ class OpenRouterClient:
         usage = body.get("usage") or {}
         calls = body["choices"][0]["message"].get("tool_calls") or []
         arguments = calls[0]["function"]["arguments"] if calls else ""
+
+        # RECORDED HERE, BECAUSE THIS IS WHERE THE USAGE IS. E5 has been calling
+        # a paid model since August and writing nothing to the ledger - the only
+        # caller of `spend_ledger.record` was the Ask box - which is why the
+        # usage panel showed one model and had to derive the other from the
+        # provider's key total minus what it knew. Next to the response is the
+        # only place that cannot forget, and `record` swallows write failures so
+        # a full disk cannot end a corpus run.
+        from judge import spend_ledger
+
+        spend_ledger.record(
+            stage=spend_ledger.STAGE_EXTRACT,
+            model=body.get("model", self.model),
+            input_tokens=usage.get("prompt_tokens", 0),
+            output_tokens=usage.get("completion_tokens", 0),
+        )
         return Completion(
             raw_arguments=arguments,
             input_tokens=usage.get("prompt_tokens", 0),

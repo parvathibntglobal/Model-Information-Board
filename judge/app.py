@@ -1383,8 +1383,19 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
     # what "usage per model" means for a Gemini-vs-DeepSeek comparison, so it is
     # exposed separately and labelled all-time on the page.
     by_model_total: dict[str, float] = {}
+    # TOKENS BESIDE THE DOLLARS, because a model with no published rate records
+    # its tokens and $0.00 (`unpriced`). Shown as money alone it reads as free,
+    # which is the one wrong conclusion available. Tokens are the measurement;
+    # dollars are a multiplication that needs a multiplier we may not hold.
+    by_model_tokens: dict[str, int] = {}
+    unpriced_models: set[str] = set()
     for call in spend_ledger.read_all():
         by_model_total[call.model] = by_model_total.get(call.model, 0.0) + call.usd
+        by_model_tokens[call.model] = (
+            by_model_tokens.get(call.model, 0) + call.input_tokens + call.output_tokens
+        )
+        if call.unpriced:
+            unpriced_models.add(call.model)
 
     def series(buckets):
         return [
@@ -1436,6 +1447,11 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
         ],
         "by_model": {k: round(v, 6) for k, v in report.by_model_usd.items()},
         "by_model_total": {k: round(v, 6) for k, v in by_model_total.items()},
+        "by_model_tokens": dict(by_model_tokens),
+        # Models whose tokens are recorded and whose price is not held here, so
+        # their $0.00 means "no rate", never "no cost". `judge/extract/budget.py`
+        # is where a rate is added.
+        "unpriced_models": sorted(unpriced_models),
         "rates": {
             "usd_last_hour": None
             if report.usd_per_hour_recent is None
@@ -1836,6 +1852,13 @@ def _rapidapi_quota() -> dict:
         }
     limit = rec.get("quota_limit")
     remaining = rec.get("quota_remaining")
+    # USED IS ONLY COMPUTABLE WITH BOTH HALVES, and this is now the common case
+    # to get wrong. The reading of 2026-09-09 carries `remaining` and no
+    # `limit`, so "requests used" cannot be derived — and the previous stored
+    # limit must not stand in for it: 998,076 of 1,000,000 on 2026-08-31
+    # against 99,870 nine days later is a difference of 900k requests nobody
+    # made, so the tier changed and the old denominator is simply the wrong
+    # one. `None` here, and the page says which figure is missing (rules 6, 7).
     used = limit - remaining if isinstance(limit, int) and isinstance(remaining, int) else None
     return {
         **base,
@@ -1844,6 +1867,22 @@ def _rapidapi_quota() -> dict:
         "quota_remaining": remaining,
         "requests_used": used,
         "as_of": rec.get("at"),
+        # WHAT KIND OF CALLER TOOK IT. `harvest`, `sweep` or `probe` — a probe's
+        # reading is as real as a fetch's, and saying which stops "a fetch must
+        # have run" being inferred from a number that moved.
+        "read_by": rec.get("read_by"),
+        # WHY THE DENOMINATOR IS ABSENT, in the payload rather than as a
+        # frontend guess. Only set when it is.
+        "limit_unknown_why": (
+            None if isinstance(limit, int) else
+            "this reading carried x-ratelimit-requests-remaining without "
+            "x-ratelimit-requests-limit. The last limit header read 1,000,000 on "
+            "2026-08-31 with 998,076 remaining; this reading says 99,870 remaining, "
+            "and ~130 requests were made between them. Both cannot be true, so the "
+            "billed tier changed and the old limit is not this figure's "
+            "denominator. It fills in on the next metered call that carries the "
+            "header — nothing here will guess it."
+        ),
         # WHICH PATH TOOK THIS READING. One key meters both the Reddit and the X
         # harvest, so the figure is shared and cannot be split by endpoint - the
         # gateway meters the key. Naming the reader is the honest substitute:
@@ -1852,9 +1891,10 @@ def _rapidapi_quota() -> dict:
         # path is UNRECORDED and not that nothing read it.
         "read_on": rec.get("read_on"),
         "headline": (
-            "RapidAPI's own quota headers, read on the last Reddit fetch and "
-            "cached with that timestamp - so read it as of the time shown, not "
-            "as a live figure."
+            "RapidAPI's own quota headers, recorded by whichever metered call last "
+            "saw them and cached with that timestamp - so read it as of the time "
+            "shown, not as a live figure. Every Reddit and X request now records "
+            "its reading, so a sweep or a failed arm no longer leaves this stale."
         ),
     }
 

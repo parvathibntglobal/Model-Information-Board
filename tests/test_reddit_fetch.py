@@ -372,6 +372,15 @@ def test_the_quota_sink_forwards_every_field_get_writes(tmp_path):
 
 
 def test_an_unset_host_refuses_rather_than_guessing(tmp_path, monkeypatch):
+    """UNCONFIGURED NOW MEANS BOTH VARIABLES, and that is the fix, not a leak.
+
+    This used to empty `RAPIDAPI_HOST` alone, because that was the only setting
+    Reddit read. It is not any more: `REDDIT_PROVIDER` supplies the host, added
+    after .env declared `RAPIDAPI_HOST` twice - once per provider - and the last
+    declaration won, sending Reddit's paths to X's host for a 404 on every
+    search. Emptying one of two sources no longer leaves the arm unconfigured,
+    so the test empties both.
+    """
     from collect import config
     from collect.adapters.reddit import RedditConfigError
 
@@ -380,8 +389,27 @@ def test_an_unset_host_refuses_rather_than_guessing(tmp_path, monkeypatch):
     # would let the real .env value back in and the test would pass for the
     # wrong reason.
     monkeypatch.setenv("RAPIDAPI_HOST", "")
+    monkeypatch.setenv("REDDIT_PROVIDER", "")
     config.settings.cache_clear()
-    with pytest.raises(RedditConfigError, match="bare host"):
+    with pytest.raises(RedditConfigError, match="REDDIT_PROVIDER"):
+        harvester(responder(page([])), tmp_path)
+    config.settings.cache_clear()
+
+
+def test_the_shared_host_variable_is_refused_when_it_names_another_vendor(tmp_path, monkeypatch):
+    """The 404 that read as a moved endpoint.
+
+    Both hosts are real and both answer, so no response could distinguish "the
+    Reddit API changed" from "we asked X's host for Reddit's path". The refusal
+    is what makes the difference visible without a request.
+    """
+    from collect import config
+    from collect.adapters.reddit import RedditConfigError
+
+    monkeypatch.setenv("REDDIT_PROVIDER", "")
+    monkeypatch.setenv("RAPIDAPI_HOST", "twitter241.p.rapidapi.com")
+    config.settings.cache_clear()
+    with pytest.raises(RedditConfigError, match="404"):
         harvester(responder(page([])), tmp_path)
     config.settings.cache_clear()
 

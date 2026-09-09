@@ -235,10 +235,63 @@ from collect.config import settings
 from collect.ids import stable_id
 from collect.limiter import HostLimiter
 from collect.rawstore import RAW, RawStore
+from collect.usage import record_rapidapi_quota
 
 log = logging.getLogger(__name__)
 
 SOURCE_ID = "reddit"
+
+#: The provider this project has used for Reddit. Named, not defaulted into
+#: `host_for` - see below.
+DEFAULT_REDDIT_PROVIDER = "reddit34"
+
+
+def host_for(provider: str | None = None) -> str:
+    """`reddit34` -> `reddit34.p.rapidapi.com`. The only place Reddit's host is made.
+
+    THIS EXISTS BECAUSE OF A 404 THAT LOOKED LIKE A MOVED ENDPOINT. `.env`
+    declared `RAPIDAPI_HOST` twice, for Reddit and for X, and the last
+    declaration won - so this adapter built `https://twitter241.p.rapidapi.com`
+    and asked it for `/getSearchPosts`. RapidAPI answered 404 to every search,
+    which reads exactly like the platform having changed its API.
+
+    Resolution order, and the refusal is the important part:
+
+      1. `REDDIT_PROVIDER`, mirroring `SCRAPER_PROVIDER` for X.
+      2. `RAPIDAPI_HOST`, but ONLY when it names a Reddit provider. If it names
+         somebody else's, this RAISES with the collision spelled out rather
+         than sending Reddit's paths to a stranger's host.
+      3. Nothing configured: raise. An unconfigured process must not quietly
+         call one particular vendor (rule 6, the same reasoning `x.py` gives).
+    """
+    config = settings()
+    name = provider if provider is not None else config.reddit_provider
+    if name and str(name).strip():
+        return f"{str(name).strip()}.p.rapidapi.com"
+
+    shared = (config.rapidapi_host or "").strip()
+    if shared:
+        if "reddit" in shared.lower():
+            return shared
+        raise RedditConfigError(
+            f"RAPIDAPI_HOST is {shared!r}, which is not a Reddit provider - so it "
+            f"belongs to another arm and Reddit's paths would 404 against it. That "
+            f"is exactly what happened: .env declared RAPIDAPI_HOST twice, once "
+            f"for Reddit and once for X, and the last declaration won. Set "
+            f"REDDIT_PROVIDER (the provider this project has used is "
+            f"{DEFAULT_REDDIT_PROVIDER!r}) and leave RAPIDAPI_HOST to whichever "
+            f"arm still needs it. Refusing rather than sending Reddit's routes to "
+            f"{shared!r}, because a wrong host that answers 404 looks like the "
+            f"platform changed."
+        )
+    raise RedditConfigError(
+        "Neither REDDIT_PROVIDER nor RAPIDAPI_HOST is set, so no Reddit host can "
+        f"be derived and no request can be made. Set REDDIT_PROVIDER; the provider "
+        f"this project has used is {DEFAULT_REDDIT_PROVIDER!r}, which resolves to "
+        f"{DEFAULT_REDDIT_PROVIDER}.p.rapidapi.com. Not defaulted here on purpose."
+    )
+
+
 SEARCH_PATH = "/getSearchPosts"
 COMMENTS_PATH = "/getPostComments"
 
@@ -618,7 +671,7 @@ class RedditHarvester:
         self._max_pages = max_pages
         self._clock = clock
         self._sleep = sleeper
-        self._host = host if host is not None else settings().rapidapi_host
+        self._host = host if host is not None else host_for()
         if not self._host:
             raise RedditConfigError(
                 "RAPIDAPI_HOST is not set. It must be a bare host such as "
@@ -646,6 +699,18 @@ class RedditHarvester:
                 continue
             with suppress(ValueError):
                 setattr(run, attribute, int(value))
+
+        # PERSISTED HERE, not at the end of a harvest arm. This is the only
+        # place that has the response, so it is the only place that cannot
+        # forget the reading - and it means a sweep, a probe, or an arm that
+        # errors halfway still records what it spent. Never raises: the request
+        # is already paid for, and failing on an unwritable file would lose the
+        # harvest as well as the number.
+        record_rapidapi_quota(
+            remaining=run.quota_remaining,
+            limit=run.quota_limit,
+            read_on=SOURCE_ID,
+        )
 
         if response.status_code == 429:
             # No Retry-After is sent, so the wait is assumed. Counted rather
@@ -1080,12 +1145,13 @@ def build_client(**kwargs) -> httpx.Client:
             "RAPIDAPI_KEY is not set, so no Reddit request can be made. It is "
             "not in .env.example yet — that edit is pending the terms ruling."
         )
-    if not config.rapidapi_host:
-        raise RedditConfigError("RAPIDAPI_HOST is not set.")
-
+    # THE HEADER AND THE BASE URL MUST NAME THE SAME HOST. RapidAPI routes on
+    # the header, so a client whose header says one provider and whose URL says
+    # another reaches whichever the header names - silently, and with the
+    # other's paths. `host_for` is the single source for both.
     headers = {
         "x-rapidapi-key": config.rapidapi_key,
-        "x-rapidapi-host": config.rapidapi_host,
+        "x-rapidapi-host": host_for(),
     }
     headers.update(kwargs.pop("headers", {}))
     return _build(headers=headers, **kwargs)

@@ -65,6 +65,32 @@ from judge.extract.client import Completion
 #: OpenRouter poller lands, prices come from `model_version` and this goes too.
 DEFAULT_PRICING = Pricing(price_in=0.065, price_out=0.14)
 
+#: PER-MODEL RATES, USD PER MILLION TOKENS, as the provider publishes them.
+#:
+#: THERE USED TO BE ONE RATE FOR EVERY MODEL and it was Gemini 2.5 Flash's. The
+#: extractor moved to DeepSeek V4 Flash and the constant did not, so any spend
+#: recorded for it would have been DeepSeek's measured tokens multiplied by
+#: Gemini's price - a figure that looks measured and is not (rule 3).
+#:
+#: A model absent from this map is NOT priced at the default. It records its
+#: tokens and reports zero dollars, flagged `unpriced`, because a wrong
+#: multiplier is worse than a missing product: the tokens are still true, and a
+#: total that quietly used the wrong rate cannot be spotted downstream.
+MODEL_PRICING: dict[str, Pricing] = {
+    "google/gemini-2.5-flash": Pricing(price_in=0.065, price_out=0.14),
+    "deepseek/deepseek-v4-flash": Pricing(price_in=0.14, price_out=0.28),
+}
+
+
+def pricing_for(model: str) -> Pricing | None:
+    """The published rate for `model`, or None when we do not hold one.
+
+    None rather than a fallback, and the caller must handle it. A default rate
+    applied to an unknown model is the same class of error as a synthesised
+    number: it produces a plausible total nobody can audit.
+    """
+    return MODEL_PRICING.get((model or "").strip())
+
 #: What one call is assumed to cost before it is made, in tokens.
 #:
 #: **MEASURED 2026-08-19, on the first live extraction run.** Both figures are

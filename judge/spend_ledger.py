@@ -82,6 +82,13 @@ class Call:
     #: so a total containing them is a floor - why `Budget.unmetered_calls` exists.
     unmetered: bool
 
+    #: NO PUBLISHED RATE FOR THIS MODEL, so `usd` is 0.0 and the tokens are the
+    #: only real figure on the row. Distinct from `unmetered`, which is the
+    #: provider reporting no tokens: here the tokens are known and the PRICE is
+    #: not. Both make a dollar total a floor, and for different reasons a reader
+    #: would want to tell apart.
+    unpriced: bool = False
+
     def as_row(self) -> str:
         return json.dumps(
             {
@@ -91,6 +98,7 @@ class Call:
                 "in": self.input_tokens,
                 "out": self.output_tokens,
                 "usd": round(self.usd, 8),
+                "unpriced": self.unpriced,
             },
             separators=(",", ":"),
         )
@@ -106,23 +114,36 @@ def record(
     model: str,
     input_tokens: int,
     output_tokens: int,
-    pricing: Pricing = DEFAULT_PRICING,
+    pricing: Pricing | None = None,
     at: datetime | None = None,
     path: Path | None = None,
 ) -> Call:
     """Append one call. A write failure is swallowed: telemetry that kills the
-    process when its disk fills is worse than a lost row."""
+    process when its disk fills is worse than a lost row.
+
+    `pricing` DEFAULTS TO THE MODEL'S OWN PUBLISHED RATE rather than to one
+    constant. It used to default to Gemini 2.5 Flash's, which was correct while
+    Gemini was the only model either stage called and became wrong the moment
+    the extractor moved to DeepSeek. A model with no rate in `MODEL_PRICING`
+    records its tokens with `usd: 0.0` and `unpriced: True` - the tokens are
+    measured, the product is not available, and pretending otherwise puts an
+    unauditable total on the page (rule 3).
+    """
+    from judge.extract.budget import pricing_for
+
     if stage not in STAGES:
         raise ValueError(f"{stage!r} is not one of the two stages permitted to call a model")
 
+    rate = pricing if pricing is not None else pricing_for(model)
     call = Call(
         at=at or datetime.now(UTC),
         stage=stage,
         model=model,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
-        usd=cost_of(input_tokens, output_tokens, pricing),
+        usd=cost_of(input_tokens, output_tokens, rate) if rate is not None else 0.0,
         unmetered=input_tokens == 0 and output_tokens == 0,
+        unpriced=rate is None,
     )
     target = path or ledger_path()
     try:
@@ -159,6 +180,10 @@ def read_all(path: Path | None = None) -> list[Call]:
                         input_tokens=inp,
                         output_tokens=out,
                         usd=float(row["usd"]),
+                        # Absent on rows written before per-model pricing. False
+                        # is right for those: they were all priced, at the one
+                        # rate that then existed.
+                        unpriced=bool(row.get("unpriced", False)),
                         unmetered=inp == 0 and out == 0,
                     )
                 )

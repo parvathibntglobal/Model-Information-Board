@@ -48,7 +48,18 @@ class Settings:
     rapidapi_key: str | None
     #: The BARE HOST, e.g. `reddit34.p.rapidapi.com`. RapidAPI routes on the
     #: `x-rapidapi-host` header, so a full URL here silently addresses nothing.
+    #:
+    #: ⚠ SHARED, AND THAT WAS A DEFECT. `.env` declared this twice - once for
+    #: Reddit and once for X - and the last one won, so the Reddit adapter
+    #: addressed X's host and got 404 on every search. It is still read, but
+    #: `reddit.py` now refuses it when it names a non-Reddit provider, and
+    #: `reddit_provider` below is the setting that actually decides.
     rapidapi_host: str | None
+
+    #: WHICH RAPIDAPI PROVIDER FRONTS REDDIT. Mirrors `scraper_provider` for X,
+    #: for the same reason and after the same failure: one variable cannot
+    #: address two vendors. `reddit34` is the provider this project has used.
+    reddit_provider: str | None
 
     #: WHICH RAPIDAPI PROVIDER FRONTS X. `twitter241` today, and the host is
     #: DERIVED from it - `collect/adapters/x.py:host_for` turns it into
@@ -127,6 +138,7 @@ def settings() -> Settings:
         # endpoint URL, and a host header carrying a URL matches no route.
         # Normalised here so one bad paste does not read as "the API is down".
         rapidapi_host=_bare_host(os.getenv("RAPIDAPI_HOST")),
+        reddit_provider=os.getenv("REDDIT_PROVIDER") or None,
         scraper_provider=os.getenv("SCRAPER_PROVIDER") or None,
         pipeline_version=os.getenv("PIPELINE_VERSION", PIPELINE_VERSION),
     )
