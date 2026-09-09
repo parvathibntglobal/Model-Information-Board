@@ -38,6 +38,25 @@ def schema_sql() -> str:
 #: not sit for minutes per attempt while the window it was scheduled in closes.
 CONNECT_TIMEOUT_SECONDS = 10
 
+#: TCP keepalives, because a fetch holds ONE connection across a harvest phase
+#: that is minutes of HTTP and no SQL at all.
+#:
+#: MEASURED, NOT PRECAUTIONARY. The 2026-09-09 fetch run harvested seven
+#: platforms and then died at E3 with `psycopg.OperationalError: the connection
+#: is lost` - the server (or something between us and it) had dropped an idle
+#: socket while the run was busy elsewhere, and nothing found out until the
+#: next query. libpq's keepalives are off by default, so the socket had no way
+#: to prove it was alive.
+#:
+#: 30s idle then a probe every 10s, five probes: a drop is discovered inside a
+#: minute rather than at the next query, whenever that comes.
+KEEPALIVE_PARAMS = {
+    "keepalives": 1,
+    "keepalives_idle": 30,
+    "keepalives_interval": 10,
+    "keepalives_count": 5,
+}
+
 
 def connect(
     url: str | None = None, *, connect_timeout: int | None = None
@@ -45,7 +64,9 @@ def connect(
     """Open a connection. Caller owns the transaction.
 
     A DSN that already states `connect_timeout` keeps its own value: the caller
-    said what they wanted and this is not the place to overrule it.
+    said what they wanted and this is not the place to overrule it. Same for
+    keepalives - a DSN that sets any of them is left alone entirely, so this
+    cannot half-override somebody's deliberate tuning.
     """
     import psycopg
 
@@ -54,13 +75,15 @@ def connect(
         raise DatabaseNotConfigured(
             "DATABASE_URL is not set. Copy .env.example to .env and fill it in."
         )
+    keepalives = {} if "keepalives" in dsn else dict(KEEPALIVE_PARAMS)
     if "connect_timeout" in dsn:
-        return psycopg.connect(dsn)
+        return psycopg.connect(dsn, **keepalives)
     return psycopg.connect(
         dsn,
         connect_timeout=(
             CONNECT_TIMEOUT_SECONDS if connect_timeout is None else connect_timeout
         ),
+        **keepalives,
     )
 
 

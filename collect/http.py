@@ -22,6 +22,21 @@ import httpx
 
 from collect.config import settings
 
+#: Retries for a connection that never got made. NOT retries of a request.
+#:
+#: TWO FETCH RUNS DIED ON `[Errno 11001] getaddrinfo failed` AGAINST
+#: `reddit34.p.rapidapi.com`, and both times the host resolved fine seconds
+#: later from the same machine (12/12 lookups, 0.09s). A resolver that fails
+#: one lookup in some dozens is ordinary; a harvest arm that throws away a
+#: whole platform because of one is not.
+#:
+#: `httpx.HTTPTransport(retries=…)` retries ONLY connection establishment —
+#: DNS resolution and the TCP/TLS handshake. A request that reached the server
+#: is never re-sent, so this cannot double-charge a metered API or double-post
+#: anything: a lookup that failed spent no quota. That distinction is the whole
+#: reason this is safe to make the default for every adapter.
+DEFAULT_CONNECT_RETRIES = 2
+
 #: Substrings that mean somebody shipped the template rather than a value.
 #: A contact URL that does not resolve is worse than none at all, because it
 #: looks like diligence.
@@ -89,6 +104,12 @@ def build_client(
     Every adapter goes through here. Constructing `httpx.Client` directly
     anywhere in this lane is the bug this function exists to make visible,
     and `tests/test_lane_boundary.py` checks for it.
+
+    Carries `DEFAULT_CONNECT_RETRIES` for connection failures, because one
+    unlucky DNS lookup should cost a retry rather than a platform. A caller
+    that passes its own `transport` keeps it untouched — that is how the tests
+    inject `httpx.MockTransport`, and a default that overrode it would silently
+    put the real network back under a test.
     """
     agent = user_agent if user_agent is not None else settings().user_agent
     assert_identifying_user_agent(agent)
@@ -96,4 +117,5 @@ def build_client(
     merged = {"User-Agent": agent}
     if headers:
         merged.update(headers)
+    kwargs.setdefault("transport", httpx.HTTPTransport(retries=DEFAULT_CONNECT_RETRIES))
     return httpx.Client(headers=merged, timeout=timeout, **kwargs)

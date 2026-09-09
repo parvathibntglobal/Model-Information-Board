@@ -101,6 +101,80 @@ def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def _safe_rollback(conn) -> None:
+    """Roll back if the connection still can. Never raise.
+
+    THIS IS WHAT ENDED THE 2026-09-09 RUN. E3 raised `the connection is lost`,
+    its handler called `conn.rollback()` to clean up, and the rollback raised
+    the same error on the same dead socket - out of the handler, past E3b, E4
+    and E5, into the outer catch. The log showed `? · fetch · error` and E3
+    stuck on "running", so the one stage that failed was the one stage with no
+    verdict, and the three that never ran left no trace at all.
+
+    A recovery path that can fail is not a recovery path.
+    """
+    with contextlib.suppress(Exception):
+        conn.rollback()
+
+
+class _Db:
+    """The run's connection, re-opened when the server drops it.
+
+    A fetch holds ONE connection for its whole life, and the harvest phase is
+    minutes of HTTP with no SQL in it. Cloud Postgres and the boxes in front of
+    it reap idle sockets, so the connection that E1 read the registry on is not
+    always the connection E3 needs - and libpq only finds out at the next query.
+
+    Two halves to the fix and both are needed. `collect/db.py` now sets TCP
+    keepalives, so an idle socket proves it is alive rather than hoping. This
+    is the other half: before each stage the connection is PROVEN with a
+    `SELECT 1`, and re-opened if that fails. Cheap - one round trip per stage
+    against stages that take seconds to minutes.
+
+    A reconnect is REPORTED as its own stage row rather than done quietly. A run
+    that silently reconnected four times looks identical in the log to one that
+    never lost the database, and those are different afternoons.
+    """
+
+    def __init__(self, dsn: str) -> None:
+        self._dsn = dsn
+        self._conn = connect(dsn)
+        self.reconnects = 0
+
+    @property
+    def raw(self):
+        """The connection as-is, unchecked. For use right after opening."""
+        return self._conn
+
+    def live(self, prog: Progress | None = None):
+        """The connection, proven live this instant.
+
+        The rollback first is deliberate: a stage that failed may have left the
+        transaction aborted, in which case every later query raises
+        `InFailedSqlTransaction` and the connection looks dead when it is only
+        dirty. Every stage here commits its own writes, so there is never
+        anything at a stage boundary a rollback could throw away.
+        """
+        conn = self._conn
+        try:
+            if conn.closed:
+                raise RuntimeError("connection is closed")
+            conn.rollback()
+            conn.execute("SELECT 1").fetchone()
+            return conn
+        except Exception as exc:
+            with contextlib.suppress(Exception):
+                conn.close()
+            self._conn = connect(self._dsn)
+            self.reconnects += 1
+            if prog is not None:
+                prog.stage("DB", "Database · reconnect", "ok",
+                           reconnects=self.reconnects,
+                           detail=f"the connection was gone ({str(exc).splitlines()[0][:80]}) "
+                                  f"and was re-opened; reconnect #{self.reconnects} this run")
+            return self._conn
+
+
 def _variants_for(conn, model_version_id: str, canonical_id: str) -> list[str]:
     """Search variants for this model, from the append-only `model_alias` table.
 
@@ -249,11 +323,34 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int)
         inserted += wrote["inserted"]
         kept += run.sieve_yield.kept
         candidates += run.sieve_yield.candidates
-    prog.stage("E2", "Harvest", "ok",
-               requests_spent=fetched, sieve_kept=kept, sieve_candidates=candidates,
+
+    # THE HARVESTER'S OWN LEDGER, NOT THE LOOP'S RUNNING TOTALS. The loop
+    # counted `rest_calls` only - issue fetches - so a run whose 48 SEARCHES all
+    # failed reported "0 requests spent" and signed off `ok`. The adapter keeps
+    # `search_calls` and `http_errors` in a ledger precisely because summing
+    # over what a caller happened to hold under-reported its own failures once
+    # already (github.py:375). Read it here rather than recount.
+    totals = harvester.totals()
+    searches = int(totals.get("search_calls") or 0)
+    errors = int(totals.get("http_errors") or 0)
+    throttled = int(totals.get("rate_limited_queries") or 0)
+    parts = [f"{inserted} new document(s) appended",
+             f"{kept} of {candidates} passed the sieve",
+             f"{searches} search + {fetched} fetch call(s)"]
+    if errors:
+        parts.append(f"{errors} HTTP error(s)")
+    if throttled:
+        parts.append(f"{throttled} query(ies) throttled")
+    # NOTHING CAME BACK AND REQUESTS FAILED: that is not a quiet platform, and
+    # the two must not render alike. An empty result set with no errors stays
+    # `ok` - GitHub genuinely may hold nothing about a model released last week.
+    status = "error" if errors and not candidates else "ok"
+    prog.stage("E2", "Harvest", status,
+               requests_spent=fetched, search_calls=searches, http_errors=errors,
+               rate_limited_queries=throttled,
+               sieve_kept=kept, sieve_candidates=candidates,
                documents_inserted=inserted,
-               detail=f"{inserted} new document(s) appended; "
-                      f"{kept} of {candidates} passed the sieve")
+               detail="; ".join(parts))
     return inserted
 
 
@@ -300,6 +397,8 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
     thread assembles. Bounded on BOTH axes because Reddit 429s at ~32 rapid
     calls: roughly max_searches + max_threads requests total. Append-only.
     """
+    import httpx
+
     from collect.adapters.reddit import build_client, harvester_for_source
     from collect.adapters.reddit_write import write_documents as reddit_write
     from collect.ids import content_hash
@@ -312,14 +411,28 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                detail=f"RapidAPI search for {len(queries)} variant(s), then comments "
                       f"for up to {max_threads} thread(s)")
 
-    inserted = hits = threads = 0
+    inserted = hits = threads = errors = 0
+    failures: list[str] = []
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
     with build_client() as client:
         searcher = harvester_for_source(reddit_src, client=client, store=store)
         for variant in queries:
             if threads >= max_threads:
                 break
-            run = searcher.search(variant)
+            # ONE FAILED LOOKUP USED TO COST THE WHOLE PLATFORM. Reddit's `_get`
+            # deliberately does not catch transport errors - it is the only
+            # adapter that lets them out, which is the honest choice - so a
+            # single `getaddrinfo` failure on the first variant propagated past
+            # every remaining variant and ended the arm. Twice, on 2026-09-09.
+            # Caught per QUERY: the failure is still counted and named, but the
+            # other variants are still asked. The client also retries the
+            # connection twice before it ever gets here (collect/http.py).
+            try:
+                run = searcher.search(variant)
+            except httpx.HTTPError as exc:
+                errors += 1
+                failures.append(f"{variant}: {type(exc).__name__} {str(exc)[:60]}")
+                continue
             if run.quota_remaining is not None:
                 q_remaining = run.quota_remaining
             if run.quota_limit is not None:
@@ -328,7 +441,12 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
             for post in run.posts:
                 if threads >= max_threads:
                     break
-                fetch = searcher.fetch_comments(post)
+                try:
+                    fetch = searcher.fetch_comments(post)
+                except httpx.HTTPError as exc:
+                    errors += 1
+                    failures.append(f"comments {post.external_id}: {type(exc).__name__}")
+                    continue
                 # A comment fetch is a metered call, so its quota reading is as
                 # fresh as a search's — take the latest either reports.
                 if getattr(fetch, "quota_remaining", None) is not None:
@@ -355,10 +473,15 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                 inserted += int(wrote.get("documents_inserted", 0) or 0)
                 threads += 1
     _write_rapidapi_quota(q_remaining, q_limit, prog.run_id, read_on="reddit")
-    prog.stage("E2R", "Harvest · Reddit", "ok",
+    detail = (f"{threads} thread(s) with comments fetched, "
+              f"{inserted} document(s) appended")
+    if errors:
+        detail += f" — {errors} request(s) failed: " + "; ".join(failures[:3])
+    prog.stage("E2R", "Harvest · Reddit", _harvest_verdict(errors, hits),
                search_hits=hits, threads_fetched=threads, documents_inserted=inserted,
+               http_errors=errors,
                quota_remaining=q_remaining, quota_limit=q_limit,
-               detail=f"{threads} thread(s) with comments fetched, {inserted} document(s) appended")
+               detail=detail)
     return inserted
 
 
@@ -395,6 +518,24 @@ def _gated_harvester(platform_id: str, factory, **kwargs):
         return None, str(exc).splitlines()[0][:180]
 
 
+def _harvest_verdict(errors: int, produced: int) -> str:
+    """`error` when requests failed and nothing came back. Otherwise `ok`.
+
+    EVERY ADAPTER HERE SWALLOWS `httpx.HTTPError` INTO A COUNTER and returns an
+    empty run - which is right, because one failed query should not abandon the
+    others. What was wrong was the stage above it: it reported `ok · 0 post(s)
+    seen` whether the platform had been asked and answered nothing or asked and
+    never connected. The 2026-09-09 log showed `E2X · ok · 0 post(s) seen` for
+    two X queries that had failed to resolve DNS, one line below the Reddit arm
+    reporting the same failure as an error.
+
+    An empty result set with no errors stays `ok`, and that is not leniency: a
+    model released last week genuinely has nothing written about it yet, and
+    calling that a failure would make the log cry wolf on the normal case.
+    """
+    return "error" if errors and not produced else "ok"
+
+
 def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int) -> int:
     """E2 harvest — arXiv search for this model, appended to `document`.
 
@@ -419,17 +560,23 @@ def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int
     queries = variants[:max_queries]
     prog.stage("E2A", "Harvest · arXiv", "running", queries=len(queries),
                detail=f"arXiv search for {len(queries)} name variant(s)")
-    inserted = papers = 0
+    inserted = papers = errors = found = 0
     for variant in queries:
         run = harvester.search(variant)
+        found += len(getattr(run, "papers", []) or [])
         for paper in list(getattr(run, "papers", []) or [])[:5]:
             harvester.fetch_paper(paper, run)
         papers += len(getattr(run, "stored", []) or [])
+        errors += int(getattr(run, "http_errors", 0) or 0)
         wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
         conn.commit()
         inserted += int(getattr(wrote, "inserted", 0) or 0)
-    prog.stage("E2A", "Harvest · arXiv", "ok", papers=papers, documents_inserted=inserted,
-               detail=f"{papers} paper(s) stored, {inserted} document(s) appended")
+    detail = f"{papers} paper(s) stored, {inserted} document(s) appended"
+    if errors:
+        detail += f" — {errors} request(s) failed"
+    prog.stage("E2A", "Harvest · arXiv", _harvest_verdict(errors, found),
+               papers=papers, documents_inserted=inserted, http_errors=errors,
+               detail=detail)
     return inserted
 
 
@@ -461,10 +608,11 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
     queries = variants[:max_queries]
     prog.stage("E2X", "Harvest · X", "running", queries=len(queries),
                detail=f"X search for {len(queries)} variant(s) — shares the Reddit quota")
-    inserted = posts = 0
+    inserted = posts = errors = 0
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
     for variant in queries:
         run = harvester.search(variant)
+        errors += int(getattr(run, "http_errors", 0) or 0)
         # THE X ARM SPENDS THE SHARED QUOTA, SO IT MUST ALSO RECORD IT. The
         # adapter has parsed these headers since it was written and nothing read
         # them, so an X-only fetch left the panel showing Reddit's older number
@@ -478,9 +626,17 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
         conn.commit()
         inserted += int(getattr(wrote, "inserted", 0) or 0)
     _write_rapidapi_quota(q_remaining, q_limit, prog.run_id, read_on="x")
-    prog.stage("E2X", "Harvest · X", "ok", posts=posts, documents_inserted=inserted,
+    detail = f"{posts} post(s) seen, {inserted} document(s) appended"
+    if errors:
+        # THE ONE THE LOG GOT WRONG. `_get` catches every `httpx.HTTPError`,
+        # DNS failures included, and returns None - so two searches that never
+        # reached the gateway rendered as `ok · 0 post(s) seen`, directly under
+        # the Reddit arm reporting the identical failure as an error.
+        detail += f" — {errors} request(s) failed before returning anything"
+    prog.stage("E2X", "Harvest · X", _harvest_verdict(errors, posts),
+               posts=posts, documents_inserted=inserted, http_errors=errors,
                quota_remaining=q_remaining, quota_limit=q_limit,
-               detail=f"{posts} post(s) seen, {inserted} document(s) appended")
+               detail=detail)
     return inserted
 
 
@@ -544,14 +700,26 @@ def harvest_uniform(conn, prog: Progress, variants: list[str], *,
     queries = variants[:max_queries]
     prog.stage(stage_id, stage_name, "running", queries=len(queries),
                detail=f"{platform_id} search for {len(queries)} name variant(s)")
-    inserted = 0
+    inserted = errors = items = 0
     for variant in queries:
         run = harvester.harvest(variant)
+        errors += int(getattr(run, "http_errors", 0) or 0)
+        # `items_fetched` where the adapter has it — what the platform actually
+        # returned, which is the figure that separates "asked and empty" from
+        # "never got through".
+        items += int(getattr(run, "items_fetched", 0) or 0)
         wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
         conn.commit()
         inserted += int(getattr(wrote, "inserted", 0) or 0)
-    prog.stage(stage_id, stage_name, "ok", documents_inserted=inserted,
-               detail=f"{inserted} document(s) appended from {len(queries)} query(ies)")
+    detail = f"{inserted} document(s) appended from {len(queries)} query(ies)"
+    if errors:
+        detail += f" — {errors} request(s) failed"
+    # `items or inserted`: all three adapters expose `items_fetched` today, but
+    # a fourth that does not must not be reported as failed for a harvest that
+    # demonstrably wrote rows.
+    prog.stage(stage_id, stage_name, _harvest_verdict(errors, items or inserted),
+               documents_inserted=inserted, items_fetched=items, http_errors=errors,
+               detail=detail)
     return inserted
 
 
@@ -581,14 +749,31 @@ def assemble_stage(conn, prog: Progress) -> None:
                assemble_platform_documents(conn_, source=_s, store=store, limit=limit)))
         for src in PLATFORMS
     ]
+    ran = failed = 0
     for name, fn in stages:
         try:
             report = fn(conn, store=store, limit=200)
             conn.commit()
+            ran += 1
             notes.append(f"{name}: {report.summary()}")
         except Exception as exc:
-            conn.rollback()
-            notes.append(f"{name}: skipped ({str(exc).splitlines()[0][:80]})")
+            # `_safe_rollback`, not `conn.rollback()`: one assembler failing
+            # because the connection died must not stop the other six from
+            # being TRIED, and a bare rollback on a dead socket raises.
+            _safe_rollback(conn)
+            failed += 1
+            notes.append(f"{name}: FAILED ({str(exc).splitlines()[0][:80]})")
+
+    # SEVEN FAILURES USED TO RENDER AS `ok`. Each assembler's exception became a
+    # note and the stage signed off regardless, so a dead connection - which
+    # fails all seven - looked the same in the log as a quiet corpus with
+    # nothing to flatten. If none of them got through, the stage did not
+    # succeed, and it now says so.
+    if failed and not ran:
+        prog.stage("E3", "Assemble", "error",
+                   assemblers_failed=failed,
+                   detail="every assembler failed · " + " · ".join(notes))
+        return
     # HOW MUCH OF THE CORPUS E4 HAS NEVER JUDGED. Reported here and not used as
     # a filter: assembly gates on `status`, so an unjudged document is still
     # assembled. The number matters anyway, because every survival figure this
@@ -601,7 +786,9 @@ def assemble_stage(conn, prog: Progress) -> None:
     if unjudged:
         notes.append(f"{unjudged} document(s) still carry no triage verdict")
     prog.stage("E3", "Assemble", "ok", unjudged_documents=unjudged,
-               detail=" · ".join(notes))
+               assemblers_ran=ran, assemblers_failed=failed,
+               detail=(f"{failed} of {ran + failed} assembler(s) failed · " if failed else "")
+                      + " · ".join(notes))
 
 
 def build_thread_inputs(conn, seen, *, limit: int):
@@ -1014,7 +1201,8 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     try:
-        conn = connect(dsn)  # NO drop, NO disposability wipe — append-only
+        db = _Db(dsn)  # NO drop, NO disposability wipe — append-only
+        conn = db.raw
         row = conn.execute(
             "SELECT canonical_id, display_name, release_date FROM model_version WHERE id = %s",
             (args.model_version_id,),
@@ -1039,21 +1227,21 @@ def main(argv: list[str] | None = None) -> int:
         # Each platform in its own guard: a Reddit quota error or a stale terms
         # ruling must not throw away a GitHub harvest that already succeeded.
         try:
-            harvest_github(conn, prog, variants, fetch_cap=args.fetch_cap)
+            harvest_github(db.live(prog), prog, variants, fetch_cap=args.fetch_cap)
         except Exception as exc:
             prog.stage("E2", "Harvest", "error", detail=str(exc).splitlines()[0][:200])
         try:
-            harvest_reddit(conn, prog, variants, max_searches=3, max_threads=5)
+            harvest_reddit(db.live(prog), prog, variants, max_searches=3, max_threads=5)
         except Exception as exc:
             prog.stage("E2R", "Harvest · Reddit", "error",
                        detail=str(exc).splitlines()[0][:200])
 
         try:
-            harvest_arxiv(conn, prog, variants, max_queries=2)
+            harvest_arxiv(db.live(prog), prog, variants, max_queries=2)
         except Exception as exc:
             prog.stage("E2A", "Harvest · arXiv", "error", detail=str(exc).splitlines()[0][:200])
         try:
-            harvest_x(conn, prog, variants, max_queries=2)
+            harvest_x(db.live(prog), prog, variants, max_queries=2)
         except Exception as exc:
             prog.stage("E2X", "Harvest · X", "error", detail=str(exc).splitlines()[0][:200])
 
@@ -1069,7 +1257,7 @@ def main(argv: list[str] | None = None) -> int:
         # than a silent absence.
         for _pid, _sid, _sname, _cap in UNIFORM_PLATFORMS:
             try:
-                harvest_uniform(conn, prog, variants, platform_id=_pid,
+                harvest_uniform(db.live(prog), prog, variants, platform_id=_pid,
                                 stage_id=_sid, stage_name=_sname, max_queries=_cap)
             except Exception as exc:
                 prog.stage(_sid, _sname, "error", detail=str(exc).splitlines()[0][:200])
@@ -1089,31 +1277,35 @@ def main(argv: list[str] | None = None) -> int:
         # never been measured - rule 8. So there is nothing for assembly to
         # receive from it, and ordering triage first bought nothing while
         # breaking the dependency.
+        # EVERY DB STAGE STARTS ON A PROVEN CONNECTION, and every handler rolls
+        # back through `_safe_rollback`. Both halves come from the same run: the
+        # socket died during harvest, E3 found out, and its cleanup rollback
+        # raised on the dead socket and took E3b, E4 and E5 down with it.
         try:
-            assemble_stage(conn, prog)
+            assemble_stage(db.live(prog), prog)
         except Exception as exc:
-            conn.rollback()
+            _safe_rollback(db.raw)
             prog.stage("E3", "Assemble", "error", detail=str(exc).splitlines()[0][:200])
 
         # E3b BEFORE E4. Triage's `has_artifact` gate reads two of the six
         # columns this writes, so gating first would gate on NULLs.
         try:
-            score_stage(conn, prog)
+            score_stage(db.live(prog), prog)
         except Exception as exc:
-            conn.rollback()
+            _safe_rollback(db.raw)
             prog.stage("E3b", "Score · document signals", "error",
                        detail=str(exc).splitlines()[0][:200])
 
         try:
-            triage_stage(conn, prog)
+            triage_stage(db.live(prog), prog)
         except Exception as exc:
-            conn.rollback()
+            _safe_rollback(db.raw)
             prog.stage("E4", "Triage", "error", detail=str(exc).splitlines()[0][:200])
 
         try:
-            extract_and_curate(conn, prog, release_date=release_date)
+            extract_and_curate(db.live(prog), prog, release_date=release_date)
         except Exception as exc:
-            conn.rollback()
+            _safe_rollback(db.raw)
             prog.stage("E5", "Extract", "error", detail=str(exc).splitlines()[0][:200])
 
         prog.done("ok", "fetch complete")
