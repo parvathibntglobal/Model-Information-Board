@@ -1627,6 +1627,13 @@ def _rapidapi_quota() -> dict:
         "quota_remaining": remaining,
         "requests_used": used,
         "as_of": rec.get("at"),
+        # WHICH PATH TOOK THIS READING. One key meters both the Reddit and the X
+        # harvest, so the figure is shared and cannot be split by endpoint - the
+        # gateway meters the key. Naming the reader is the honest substitute:
+        # without it the X tab showed a Reddit reading under an X heading. A
+        # record written before this field existed reports None, which means the
+        # path is UNRECORDED and not that nothing read it.
+        "read_on": rec.get("read_on"),
         "headline": (
             "RapidAPI's own quota headers, read on the last Reddit fetch and "
             "cached with that timestamp - so read it as of the time shown, not "

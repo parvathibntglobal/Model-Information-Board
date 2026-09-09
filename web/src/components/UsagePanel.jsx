@@ -41,6 +41,11 @@ const MODEL_SPEND_OVERRIDE = {
   'google/gemini-2.5-flash': 2.478,
 }
 
+// The extractor running now. Kept beside the names above so a switch is one
+// edit in one file — and it must match `EXTRACTOR_MODEL` in the backend, which
+// is what actually spends the money.
+const CURRENT_EXTRACTOR = 'deepseek/deepseek-v4-flash'
+
 export default function UsagePanel() {
   const [tab, setTab] = useState('openrouter')
   const [data, setData] = useState(null)
@@ -84,9 +89,9 @@ export default function UsagePanel() {
       <div className="card-head">
         <span className="eyebrow"><IconGauge width={14} height={14} /> API usage — our cap</span>
         {onRapid ? (
-          <Badge tone={rapid.instrumented ? 'mute' : 'bad'}>{rapid.instrumented ? 'requests' : 'no reading'}</Badge>
+          <Badge tone={rapid.instrumented ? 'mute' : 'fail'}>{rapid.instrumented ? 'requests' : 'no reading'}</Badge>
         ) : (
-          <Badge tone={pct != null && pct >= 80 ? 'bad' : 'mute'}>
+          <Badge tone={pct != null && pct >= 80 ? 'fail' : 'mute'}>
             {cap.daily_usd == null ? 'no cap set' : `${pct ?? 0}% of ${usd(cap.daily_usd, 2)}/day`}
           </Badge>
         )}
@@ -129,6 +134,31 @@ function OpenRouterTab({ everyone, today, byModel }) {
   const rows = Object.entries(byModel)
     .map(([model, spent]) => [model, MODEL_SPEND_OVERRIDE[model] ?? spent])
     .sort((a, b) => b[1] - a[1])
+
+  // ── THE CURRENT EXTRACTOR'S SPEND, which the ledger does not have ─────────
+  //
+  // `by_model_total` is THIS MACHINE'S ledger, and it holds one row: Gemini.
+  // DeepSeek has spent real money on the key — the provider reports
+  // $2.48266 total against Gemini's corrected $2.4780 — and none of it reached
+  // the ledger, because the runs that spent it errored before the write.
+  //
+  // So the figure comes from the PROVIDER instead, two ways that must agree:
+  //   today_usd   what the provider says was spent today
+  //   remainder   key total minus every model the ledger does know about
+  // Both are arithmetic on measured figures, never an estimate. They are shown
+  // as one row only when they CORROBORATE each other; if they diverge, the
+  // attribution is not safe and the row says so rather than picking one.
+  const ledgerKnown = rows.reduce((sum, [, spent]) => sum + spent, 0)
+  const remainder = everyone.available ? (everyone.total_usd ?? 0) - ledgerKnown : null
+  const todayOnKey = everyone.today_usd ?? null
+  const CENT = 0.005 // half a cent: below this the two figures are the same number
+  const corroborated =
+    remainder != null && todayOnKey != null && Math.abs(remainder - todayOnKey) < CENT
+  // Only shown when there IS unledgered spend. A zero row would imply we had
+  // checked and DeepSeek had cost nothing, which is a different claim.
+  const currentSpend = remainder != null && remainder > 0.00005 ? remainder : null
+  const alreadyListed = rows.some(([m]) => m === CURRENT_EXTRACTOR)
+
   return (
     <div className="stack stack-2">
       <div className="grid g3">
@@ -156,17 +186,64 @@ function OpenRouterTab({ everyone, today, byModel }) {
           </div>
         ))
       )}
+
+      {/* The current extractor, listed BELOW the previous one so the switch
+          reads in order. Its figure is the provider's, not the ledger's, and
+          the row says which — a number whose source is not stated is not
+          evidence (rule 7). */}
+      {currentSpend != null && !alreadyListed && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+          <span>
+            <strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(CURRENT_EXTRACTOR)}</strong>{' '}
+            <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{CURRENT_EXTRACTOR}</span>{' '}
+            <Badge tone={corroborated ? 'mute' : 'warn'}>
+              {corroborated ? 'from the provider' : 'unattributed'}
+            </Badge>
+          </span>
+          <span className="tnum">{usd(currentSpend)}</span>
+        </div>
+      )}
+
       <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-        Spend to date ran on <strong>Gemini 2.5 Flash</strong>; the extractor is now <strong>DeepSeek V4 Flash</strong>, so new spend accrues under it — the two stay separated above.
+        Spend to date ran on <strong>Gemini 2.5 Flash</strong>; the extractor is now{' '}
+        <strong>DeepSeek V4 Flash</strong>, so new spend accrues under it — the two stay
+        separated above.
       </span>
+      {currentSpend != null && !alreadyListed && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+          {corroborated ? (
+            <>
+              The DeepSeek figure is <strong>the provider&apos;s</strong>, not this machine&apos;s
+              ledger — the runs that spent it errored before the ledger write. It is the key
+              total minus every model the ledger knows, and it matches what the provider
+              reports for today ({usd(todayOnKey)}), which is why it is attributed rather
+              than left as a gap.
+            </>
+          ) : (
+            <>
+              <strong style={{ color: 'var(--text)' }}>Unattributed.</strong> {usd(currentSpend)}{' '}
+              is on the key and not in this machine&apos;s ledger, but it does not match what
+              the provider reports for today ({usd(todayOnKey)}) — so it may not all be
+              DeepSeek. Shown rather than hidden, and not assigned.
+            </>
+          )}
+        </span>
+      )}
     </div>
   )
 }
 
 /**
- * RapidAPI request quota — one shared key metering the X and Reddit harvest
- * paths, billed in requests not dollars. The number is RapidAPI's own header
- * value cached with its date (moves only when a metered fetch runs), never live.
+ * RapidAPI spend — one shared key metering the X and Reddit harvest paths.
+ *
+ * THE SPEND ON THIS KEY IS REQUESTS, NOT DOLLARS, and that is not a gap in the
+ * panel: the plan's per-request price is in nobody's config, so a dollar figure
+ * here would be one this code invented (rule 3). Requests used IS the spend —
+ * `limit − remaining`, both the gateway's own header values.
+ *
+ * The number is RapidAPI's own reading cached with its date; it moves only when
+ * a metered fetch runs, never live. `read_on` names the path whose fetch took
+ * it, because one key cannot be split by endpoint — the gateway meters the key.
  */
 function RapidApiTab({ rapid, which }) {
   const n = (v) => (typeof v === 'number' ? v.toLocaleString() : '—')
@@ -180,16 +257,53 @@ function RapidApiTab({ rapid, which }) {
       </div>
     )
   }
+  const used = rapid.requests_used
+  const limit = rapid.quota_limit
+  const share =
+    typeof used === 'number' && typeof limit === 'number' && limit > 0
+      ? (used / limit) * 100
+      : null
+  // Whose fetch took the reading. `null` is a record written before the field
+  // existed — unrecorded, which is not the same as "this tab's path".
+  const readOn = rapid.read_on || null
+  const mine = readOn === (which === 'X' ? 'x' : 'reddit')
+
   return (
     <div className="stack stack-2">
-      <span className="label">Requests used — {which} path (shared RapidAPI key)</span>
+      <span className="label">
+        Spend on this key — {which} path, billed in requests
+      </span>
       <div className="grid g3">
-        <Stat n={n(rapid.requests_used)} l="requests used" />
-        <Stat n={n(rapid.quota_limit)} l="quota limit" />
-        <Stat n={n(rapid.quota_remaining)} l="remaining" />
+        <Stat n={n(used)} l="requests spent" />
+        <Stat n={share == null ? '—' : `${share.toFixed(2)}%`} l="of the quota" />
+        <Stat n={n(rapid.quota_remaining)} l="left" />
       </div>
       <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-        As of {rapid.as_of || 'the last fetch'}. One key meters both X and Reddit — it moves only when a metered fetch runs.
+        <strong style={{ color: 'var(--text)' }}>No dollar amount, deliberately.</strong>{' '}
+        RapidAPI sells this as a request quota and the per-request price is not in
+        our config, so a dollar figure would be invented rather than measured.{' '}
+        {n(used)} of {n(limit)} requests is the spend.
+      </span>
+      <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+        As of {rapid.as_of || 'the last fetch'}, read on{' '}
+        {readOn ? (
+          <strong style={{ color: 'var(--text)' }}>
+            the {readOn === 'x' ? 'X' : 'Reddit'} fetch
+          </strong>
+        ) : (
+          'a fetch that did not record which path'
+        )}
+        .{' '}
+        {mine
+          ? `This tab's own path took the reading.`
+          : `One key meters both paths, so the figure is the ${which} spend too — but it was last read on a ${readOn ? (readOn === 'x' ? 'X' : 'Reddit') : 'different'} fetch, so any ${which} requests since then are already spent and not yet in it.`}
+      </span>
+      <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+        Two things the denominator does not say: the window is{' '}
+        <strong>23.9 days, not a month</strong>, and the billed tier is{' '}
+        <strong>unverified</strong> — the gateway header says {n(limit)} while the
+        plan page says 500,000, and only opening the RapidAPI subscription page
+        settles it. On the smaller tier the cut-off arrives at half the figure above.
       </span>
     </div>
   )

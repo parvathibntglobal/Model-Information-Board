@@ -257,7 +257,8 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int)
     return inserted
 
 
-def _write_rapidapi_quota(remaining: int | None, limit: int | None, run_id: str) -> None:
+def _write_rapidapi_quota(remaining: int | None, limit: int | None, run_id: str,
+                          *, read_on: str) -> None:
     """Persist the latest RapidAPI quota HEADER reading for the admin page.
 
     RapidAPI bills the Reddit path as a request quota, and the remaining/limit
@@ -269,13 +270,20 @@ def _write_rapidapi_quota(remaining: int | None, limit: int | None, run_id: str)
 
     Written from this per-model fetch. The nightly Reddit sweep can write the
     same file with one line so the figure also moves without a manual fetch.
+
+    `read_on` NAMES THE PATH THAT TOOK THE READING, and it exists because one
+    key meters two consumers. Until 2026-09-09 only the Reddit arm wrote this
+    file, so the admin panel's X tab showed a Reddit reading under an X label —
+    the same number with a different heading. The value cannot be split by path
+    (RapidAPI meters the key, not the endpoint), so the honest fix is not a
+    per-path figure but saying WHOSE fetch last read the shared one.
     """
     if remaining is None and limit is None:
         return  # nothing was read; do not overwrite a good reading with a blank
     path = ROOT / "var" / "rapidapi-quota.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     rec = {"quota_remaining": remaining, "quota_limit": limit,
-           "at": _now(), "source_run_id": run_id}
+           "at": _now(), "source_run_id": run_id, "read_on": read_on}
     tmp = path.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(rec), encoding="utf-8")
     tmp.replace(path)  # atomic, so a concurrent read never sees a half-written file
@@ -346,7 +354,7 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                 conn.commit()
                 inserted += int(wrote.get("documents_inserted", 0) or 0)
                 threads += 1
-    _write_rapidapi_quota(q_remaining, q_limit, prog.run_id)
+    _write_rapidapi_quota(q_remaining, q_limit, prog.run_id, read_on="reddit")
     prog.stage("E2R", "Harvest · Reddit", "ok",
                search_hits=hits, threads_fetched=threads, documents_inserted=inserted,
                quota_remaining=q_remaining, quota_limit=q_limit,
@@ -454,13 +462,24 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
     prog.stage("E2X", "Harvest · X", "running", queries=len(queries),
                detail=f"X search for {len(queries)} variant(s) — shares the Reddit quota")
     inserted = posts = 0
+    q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
     for variant in queries:
         run = harvester.search(variant)
+        # THE X ARM SPENDS THE SHARED QUOTA, SO IT MUST ALSO RECORD IT. The
+        # adapter has parsed these headers since it was written and nothing read
+        # them, so an X-only fetch left the panel showing Reddit's older number
+        # as though nothing had been spent.
+        if getattr(run, "quota_remaining", None) is not None:
+            q_remaining = run.quota_remaining
+        if getattr(run, "quota_limit", None) is not None:
+            q_limit = run.quota_limit
         posts += len(getattr(run, "posts", []) or [])
         wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
         conn.commit()
         inserted += int(getattr(wrote, "inserted", 0) or 0)
+    _write_rapidapi_quota(q_remaining, q_limit, prog.run_id, read_on="x")
     prog.stage("E2X", "Harvest · X", "ok", posts=posts, documents_inserted=inserted,
+               quota_remaining=q_remaining, quota_limit=q_limit,
                detail=f"{posts} post(s) seen, {inserted} document(s) appended")
     return inserted
 
