@@ -520,7 +520,20 @@ def assemble_stage(conn, prog: Progress) -> None:
         except Exception as exc:
             conn.rollback()
             notes.append(f"{name}: skipped ({str(exc).splitlines()[0][:80]})")
-    prog.stage("E3", "Assemble", "ok", detail=" · ".join(notes))
+    # WHAT ASSEMBLY DID NOT SEE, counted rather than inferred. A NULL verdict
+    # excludes a document (unjudged is not passed), so a triage that failed
+    # halfway would quietly shrink the corpus and the only visible symptom would
+    # be a smaller number here. Naming it makes the cause readable.
+    unjudged = conn.execute(
+        "SELECT count(*) FROM document WHERE triage_verdict IS NULL"
+    ).fetchone()[0]
+    if unjudged:
+        notes.append(
+            f"{unjudged} document(s) NOT assembled: no triage verdict yet, and "
+            "unjudged is not passed"
+        )
+    prog.stage("E3", "Assemble", "ok", unjudged_documents=unjudged,
+               detail=" · ".join(notes))
 
 
 def build_thread_inputs(conn, seen, *, limit: int):
@@ -552,7 +565,8 @@ def build_thread_inputs(conn, seen, *, limit: int):
         "SELECT tc.id, tc.flattened_text_ref, tc.offset_map, tc.member_document_ids "
         "FROM thread_context tc "
         "WHERE EXISTS (SELECT 1 FROM document d "
-        "              WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept') "
+        "              WHERE d.id = ANY(tc.member_document_ids) "
+        "                AND d.status = 'kept' AND d.triage_verdict = 'kept') "
         "ORDER BY tc.assembled_at DESC LIMIT %s",
         (limit,),
     ).fetchall()
@@ -562,7 +576,8 @@ def build_thread_inputs(conn, seen, *, limit: int):
     gated_out = conn.execute(
         "SELECT count(*) FROM thread_context tc "
         "WHERE NOT EXISTS (SELECT 1 FROM document d "
-        "                  WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept')"
+        "                  WHERE d.id = ANY(tc.member_document_ids) "
+        "                    AND d.status = 'kept' AND d.triage_verdict = 'kept')"
     ).fetchone()[0]
 
     inputs = []

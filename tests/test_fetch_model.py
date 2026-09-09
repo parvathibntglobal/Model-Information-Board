@@ -120,10 +120,14 @@ class _Conn:
         if "count(*)" in sql and "NOT EXISTS" in sql:
             return _Cursor([(self._gated_out,)])
         if "FROM thread_context" in sql:
-            assert "status = 'kept'" in sql, (
-                "the thread query must require a surviving member, or E4's verdict "
-                "is written and never read - the gates would run and change nothing"
+            assert "d.triage_verdict = 'kept'" in sql, (
+                "the thread query must require E4's VERDICT, not just the adapter's "
+                "`status`. Those are two independent judgements: `status` is the "
+                "adapter's cheap sieve at harvest, `triage_verdict` is the hard "
+                "gates over stored prose. Reading only the first is how triage "
+                "ran, wrote a verdict over the whole corpus, and changed nothing."
             )
+            assert "status = 'kept'" in sql, "the adapter sieve must still apply"
             return _Cursor(self._threads)
         if "FROM document" in sql:
             members = params[0]

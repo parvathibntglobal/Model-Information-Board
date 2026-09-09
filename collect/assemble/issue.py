@@ -369,7 +369,11 @@ def assemble_github_documents(conn, *, store, limit: int | None = None) -> Issue
         "  AND d.parent_id IS NULL "
         # A filtered document is one a gate rejected. Assembling it would put
         # text the pipeline refused in front of the extractor.
+        # E4's VERDICT, added alongside the pre-existing status filter. The
+        # status check has been here since 2026-08-31 and reads the adapter's
+        # sieve; it says nothing about whether the hard gates passed the row.
         "  AND d.status <> 'filtered' "
+        "  AND d.triage_verdict = 'kept' "
         "  AND NOT EXISTS (SELECT 1 FROM thread_context tc WHERE tc.thread_root_id = d.id) "
         "ORDER BY d.id"
         + (f" LIMIT {int(limit)}" if limit else "")
