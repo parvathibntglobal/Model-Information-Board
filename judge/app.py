@@ -634,6 +634,223 @@ def _conn():
     return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
 
 
+@app.get("/faq")
+def faq_page() -> dict:
+    """The landing page's FAQ, from `contract/faq.yaml`, resolved against reality.
+
+    NEEDS NO DATABASE, and that is deliberate: the FAQ is the one surface a
+    visitor should still get when the board cannot be read, because half of
+    what it explains is why an empty board is a real state.
+
+    THREE OF THE ELEVEN ANSWERS ARE CLAIMS ABOUT MODELS, not descriptions of
+    how the board works, and the landing demo answered them from demo data -
+    "DeepSeek V4 Flash at $0.14 in and $0.28 out", "engineers most often report
+    Claude Opus 5", "SWE-bench is not yet saturated". Pasting those onto a live
+    page would put figures in front of a reader with no row behind them, which
+    is rule 3, and it would be invisible because they read like every other
+    sentence.
+
+    So an entry marked `basis: live` is served with its `unestablished_answer`
+    and `established: false` until something supports it. The demo wording rides
+    along in `demo_answer` so the difference is auditable rather than lost - the
+    frontend does not render it, and it is excluded from the JSON-LD, because
+    telling an answer engine something we are not telling a reader is cloaking.
+
+    The platform count is substituted rather than typed: see
+    `judge.config.evidence_platforms`.
+    """
+    from judge.config import evidence_platforms, faq
+
+    doc = faq()
+    platforms = evidence_platforms()
+    listed = ", ".join(platforms[:-1]) + f" and {platforms[-1]}" if len(platforms) > 1 \
+        else (platforms[0] if platforms else "no platform")
+
+    out = []
+    for entry in doc.get("questions") or []:
+        answer = entry.get("a")
+        established = True
+        if entry.get("a_template"):
+            answer = entry["a_template"].format(n=len(platforms), platforms=listed)
+        elif entry.get("basis") == "live":
+            # NOTHING IS CONSULTED HERE YET, and the answer says so in words
+            # rather than by omission. Wiring this to the corpus is a query per
+            # claim - cheapest priced model that also carries reports, the
+            # best-for section with the most reports - and each needs its own
+            # ruling about what "enough reports to rank" means. Until that
+            # ruling exists, `established: false` is the honest state, and it
+            # is a state the page renders rather than hides.
+            answer = entry.get("unestablished_answer") or entry.get("a") or ""
+            established = False
+        out.append({
+            "id": entry.get("id"),
+            "question": entry.get("q"),
+            "answer": (answer or "").strip(),
+            "basis": entry.get("basis", "policy"),
+            "open": bool(entry.get("open")),
+            "established": established,
+            # What the demo asserted, named rather than silently dropped. A
+            # reader never sees this; a reviewer comparing the two does.
+            "claims": list(entry.get("claims") or ()),
+        })
+
+    return {
+        "version": doc.get("version"),
+        "updated": str(doc.get("updated") or ""),
+        "schema_type": doc.get("schema_type", "FAQPage"),
+        "platforms": list(platforms),
+        "questions": out,
+        # THE SUMMARY MUST READ CORRECTLY AT ZERO. "0 of them ask something the
+        # board cannot answer, and say so instead of answering" is a sentence
+        # about nothing, and the withheld case is the normal case now.
+        "summary": (
+            f"{len(out)} questions from contract/faq.yaml"
+            + (f", {unestablished} of which ask something the board cannot yet answer "
+               f"from evidence and say so instead of answering."
+               if (unestablished := sum(1 for q in out if not q["established"]))
+               else ". Every one describes how the board works, so every one is "
+                    "answerable without consulting the corpus. The three that asked "
+                    "about models are withheld — see `withheld` in contract/faq.yaml.")
+        ),
+    }
+
+
+#: Comparison rows the landing demo showed that this board has NO SOURCE for.
+#: Returned by name so the page can say why a column is missing, which is the
+#: whole difference between an honest gap and a quietly shorter table.
+COMPARE_UNSOURCED = {
+    "licence": (
+        "the registry has no licence column, so open-weight versus proprietary "
+        "cannot be stated per model without inventing it"
+    ),
+    "benchmark_standing": (
+        "no benchmark figures are stored, and a standing derived from reports "
+        "would be a score this board does not compute"
+    ),
+    "one_line": (
+        "the demo's blurb and differentiation lines were written by hand; a "
+        "classifier does not produce them and this endpoint will not invent them"
+    ),
+}
+
+#: How many models may be compared at once. The demo capped at three and the
+#: reason is presentational rather than arbitrary: a fourth column stops fitting
+#: and the table starts scrolling sideways, which is where a comparison stops
+#: being read.
+COMPARE_MAX = 3
+
+
+@app.get("/compare")
+def compare_page(ids: str = "") -> dict:
+    """Two or three models side by side — registry facts and counted evidence.
+
+    THE DEMO'S TABLE HAD NINE ROWS AND THIS ONE CANNOT HAVE ALL NINE. Verdict,
+    best-for, cost, context and report counts all have a source. Licence,
+    benchmark standing, the one-line blurb and the differentiation line do not:
+    they were written by hand for the mock-up. They are returned in
+    `unsourced` with the reason, so the page shows a shorter table AND says
+    what is missing - rather than omitting rows and letting the reader assume
+    the board compared everything it could.
+    """
+    from judge.pages.roster import RosterReader
+    from judge.store.board_entries import evidence_for_model
+
+    wanted = [i.strip() for i in ids.split(",") if i.strip()]
+    if len(wanted) < 2:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "a comparison needs at least two model ids in `ids`, "
+                "comma-separated. One model is its own page, not a comparison."
+            ),
+        )
+    if len(wanted) > COMPARE_MAX:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"{len(wanted)} models asked for; {COMPARE_MAX} is the maximum. A "
+                f"fourth column makes the table scroll sideways, which is where a "
+                f"comparison stops being read."
+            ),
+        )
+
+    with _conn() as conn:
+        roster = {m["model_version_id"]: m for m in RosterReader(conn).all().models}
+        # UNKNOWN IDS ARE NAMED, NOT DROPPED. A comparison that silently
+        # renders two of the three asked for is a different comparison, and
+        # the reader has no way to tell.
+        missing = [i for i in wanted if i not in roster]
+        found = [roster[i] for i in wanted if i in roster]
+        evidence = {m["model_version_id"]: evidence_for_model(conn, m["model_version_id"])
+                    for m in found}
+
+    if len(found) < 2:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"{missing!r} not in the registry, leaving fewer than two models to "
+                f"compare. Refused rather than rendered: a one-column comparison "
+                f"reads as a verdict on the model that is there."
+            ),
+        )
+
+    models = []
+    for m in found:
+        ev = evidence.get(m["model_version_id"], {})
+        # `evidence_for_model` returns the three discovered sections at the top
+        # level - `best_for`, `capabilities`, `metrics` - not under a `sections`
+        # key. Each item carries its own `reports` count and its quotes.
+        best_for = [
+            {"name": s.get("name") or s.get("slug"), "slug": s.get("slug"),
+             "reports": s.get("reports", 0)}
+            for s in (ev.get("best_for") or [])
+        ]
+        models.append({
+            "model_version_id": m["model_version_id"],
+            "display_name": m["display_name"],
+            "provider": m["provider"],
+            # ADVERTISED. Kept under its own key so no client can fold it in
+            # beside a reported figure and lose which kind of claim it is.
+            "advertised": {
+                "price_in": m["price_in"],
+                "price_out": m["price_out"],
+                "price_cached_read": m["price_cached_read"],
+                "context": m["advertised_context"],
+                "max_output_tokens": m["max_output_tokens"],
+                "tools": m["supports_tools"],
+                "vision": m["supports_vision"],
+                "structured_output": m["supports_structured_output"],
+                "caching": m["supports_caching"],
+                "lifecycle": m["lifecycle"],
+            },
+            # REPORTED. Counts of what people said, never a score.
+            "reported": {
+                "state": (m.get("evidence") or {}).get("state", "unreported"),
+                "reports": (m.get("evidence") or {}).get("reports", 0),
+                "capabilities": list((m.get("evidence") or {}).get("capabilities") or ()),
+                "best_for": best_for,
+                # The discovered sections in full, so the compare page can show
+                # a metric figure with its basis rather than a bare number.
+                "discovered": {
+                    "best_for": ev.get("best_for") or [],
+                    "capabilities": ev.get("capabilities") or [],
+                    "metrics": ev.get("metrics") or [],
+                },
+            },
+        })
+
+    return {
+        "models": models,
+        "missing": missing,
+        "unsourced": [{"row": k, "why": v} for k, v in COMPARE_UNSOURCED.items()],
+        "summary": (
+            f"{len(models)} models compared on advertised specification and counted "
+            f"reports. Nothing here is a score: where every model has 0 reports the "
+            f"comparison is a spec sheet, and it says so rather than ranking them."
+        ),
+    }
+
+
 @app.get("/models")
 def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0) -> dict:
     """The registry as a list, with what the provider advertises.

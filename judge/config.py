@@ -91,6 +91,64 @@ def board_exemplars() -> dict:
     return _read("board_surfaces.yaml")
 
 
+#: How a platform id is written for a reader. Only the ones that need it: the
+#: rest title-case correctly on their own.
+_PLATFORM_LABELS = {
+    "arxiv": "arXiv",
+    "hackernews": "Hacker News",
+    "devto": "dev.to",
+    "huggingface": "Hugging Face",
+    "github": "GitHub",
+    "x": "X",
+    "reddit": "Reddit",
+    "blog": "engineering blogs",
+}
+
+
+@lru_cache(maxsize=1)
+def evidence_platforms() -> tuple[str, ...]:
+    """The platforms the board harvests, read from `contract/sources.yaml`.
+
+    THE FAQ MUST NOT COUNT THESE ITSELF. The landing demo's answer said "ten
+    public platforms" and listed TikTok, Instagram, Hashnode and WordPress —
+    none of which has a terms ruling in the contract, so none of which is
+    harvested. A number typed into copy is a coverage claim that nothing
+    checks, and it was already wrong by four.
+
+    Read from the contract instead, so the sentence changes when the sources
+    change. `judge/` reads the shared contract file directly rather than
+    importing `collect.registry.sources`: the lane boundary is about code
+    flowing between the two halves, and `contract/` belongs to both.
+    """
+    rows = _read("sources.yaml").get("sources") or []
+    seen: list[str] = []
+    for row in rows:
+        platform = row.get("platform")
+        if platform and platform not in seen:
+            seen.append(platform)
+    return tuple(_PLATFORM_LABELS.get(p, p) for p in seen)
+
+
+@lru_cache(maxsize=1)
+def faq() -> dict:
+    """`contract/faq.yaml` whole — the FAQ page's questions and answers.
+
+    Returned unresolved on purpose. Three of the eleven entries carry no `a` at
+    all: they hold `unestablished_answer` plus a `claims` list naming exactly
+    what the demo's version asserted about models, and one holds an
+    `a_template` whose platform count must come from `sources.yaml` rather than
+    from a number typed here.
+
+    Resolving that is `judge/app.py`'s job, because it is the layer with a
+    database and a source contract to check against. This function's
+    contribution is to keep the copy in one reviewable file (rule 5) and to
+    keep the demo wording as `demo_answer` beside the served one, so the
+    difference between "what the mock-up said" and "what the board can support"
+    stays auditable instead of being lost in a rewrite.
+    """
+    return _read("faq.yaml")
+
+
 @lru_cache(maxsize=1)
 def conditions() -> dict[str, ConditionDimension]:
     raw = _read("conditions.yaml")

@@ -239,6 +239,33 @@ export const boardPage = () => request('/board')
 export const coveragePage = () => request('/coverage')
 export const changelogPage = (days = 30) => request(`/changelog?days=${days}`)
 
+/**
+ * The landing page's FAQ, from `contract/faq.yaml`.
+ *
+ * NEEDS NO DATABASE, which is why the FAQ renders even when the board cannot
+ * be read — half of what it explains is why an empty board is a real state.
+ *
+ * Each question carries `established`. Three of the eleven ask something about
+ * MODELS rather than about how the board works, and the landing demo answered
+ * those from demo data ("$0.14 in and $0.28 out"). Those arrive
+ * `established: false` with an answer that says what the board cannot yet
+ * support, and the page must render that answer rather than the demo's.
+ */
+export const faqPage = () => request('/faq')
+
+/**
+ * Two or three models side by side. `ids` is an array of model_version_ids.
+ *
+ * The response splits `advertised` from `reported` and never merges them: a
+ * price is the vendor's claim about itself, a report count is what somebody
+ * found. It also returns `unsourced` — the rows the landing demo showed that
+ * this board has no source for (licence, benchmark standing, the hand-written
+ * blurb) — so the page can say what is missing instead of quietly showing a
+ * shorter table.
+ */
+export const comparePage = (ids) =>
+  request(`/compare?ids=${encodeURIComponent((ids || []).join(','))}`)
+
 /* ------------------------------------------------------------------ ask */
 
 /**

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { listModels, listCapabilities, capabilityPage, fetchAll, capLabel, fmtPrice, fmtTokens, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
@@ -41,6 +41,13 @@ const EVIDENCE = {
   evidence:    { label: 'Evidence',    match: (m) => (m.evidence?.reports || 0) > 0 },
   unreported:  { label: 'Undiscussed', match: (m) => (m.evidence?.reports || 0) === 0 },
 }
+
+//: How many models may be compared at once. Three, matching the backend's own
+//: cap, and the reason is presentational rather than arbitrary: a fourth column
+//: makes the table scroll sideways, which is where a comparison stops being
+//: read. The backend refuses a fourth independently - this is not the only
+//: guard, it is the one that explains itself before the request.
+const COMPARE_MAX = 3
 
 const SORTS = {
   name:     { label: 'Name',            fn: (a, b) => (a.display_name || '').localeCompare(b.display_name || '') },
@@ -121,6 +128,21 @@ export default function Models() {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('name')
   const [freeOnly, setFreeOnly] = useState(false)
+
+  // ── COMPARE SELECTION ────────────────────────────────────────────────────
+  // Held here rather than in a URL param: it is a transient choice being made,
+  // not a view worth linking to. The comparison itself IS a URL — /compare
+  // carries the ids — so what is shareable is the finished comparison and not
+  // a half-made selection.
+  const navigate = useNavigate()
+  const [picked, setPicked] = useState([])
+  const togglePick = (id) =>
+    setPicked((cur) => cur.includes(id)
+      ? cur.filter((x) => x !== id)
+      // The cap is also enforced on the checkbox (disabled past three) and
+      // again in the backend. This is the last of the three, and the one that
+      // makes a stray click a no-op rather than a silent truncation.
+      : cur.length >= COMPARE_MAX ? cur : [...cur, id])
   const [evidenceFilter, setEvidenceFilter] = useState('all')
   const [capFilter, setCapFilter] = useState('any')
   const [caps, setCaps] = useState(null)   // the vocabulary, for the capability filter
@@ -250,13 +272,38 @@ export default function Models() {
 
   return (
     <div className="shell section-tight stack stack-4">
-      <div className="stack stack-1">
-        <span className="eyebrow">Models</span>
-        <h1 style={{ fontSize: 'var(--fs-display)' }}>The registry</h1>
-        <p className="muted" style={{ maxWidth: '66ch' }}>
-          Every model the board tracks, not only the ones people post about —
-          a list of only the discussed ones would rank popularity, not capability.
-        </p>
+      <div className="row-between" style={{ alignItems: 'flex-start', gap: 'var(--s4)' }}>
+        <div className="stack stack-1">
+          <span className="eyebrow">Models</span>
+          <h1 style={{ fontSize: 'var(--fs-display)' }}>The registry</h1>
+          <p className="muted" style={{ maxWidth: '66ch' }}>
+            Every model the board tracks, not only the ones people post about —
+            a list of only the discussed ones would rank popularity, not capability.
+          </p>
+        </div>
+
+        {/* TOP RIGHT, AND ALWAYS PRESENT. The sticky bar at the foot of the
+            list only appears once something is ticked, so until then nothing
+            on the page said comparison existed — a column of bare checkboxes
+            does not explain itself. Disabled with a reason is the right shape:
+            it tells the reader the feature is there and what it needs, which is
+            the opposite of the usual objection to a disabled control. */}
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={picked.length < 2}
+          onClick={() => navigate(`/compare?ids=${encodeURIComponent(picked.join(','))}`)}
+          title={
+            picked.length === 0
+              ? `Tick 2–${COMPARE_MAX} models to compare what providers advertise against what engineers reported`
+              : picked.length === 1
+                ? 'Tick one more — a single model is its own page, not a comparison'
+                : `Compare ${picked.length} models side by side`
+          }
+          style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+        >
+          {picked.length === 0 ? 'Compare models' : `Compare (${picked.length}) →`}
+        </button>
       </div>
 
       {unreadable && <Unreadable detail={unreadable} />}
@@ -420,7 +467,15 @@ export default function Models() {
 
           <div className="stack stack-1">
             {shown.slice(0, 200).map((m) => (
-              <ModelRow key={m.model_version_id} m={m} rows={evidence[m.model_version_id]} capFilter={capFilter} />
+              <ModelRow
+                key={m.model_version_id}
+                m={m}
+                rows={evidence[m.model_version_id]}
+                capFilter={capFilter}
+                picked={picked.includes(m.model_version_id)}
+                onPick={togglePick}
+                atCap={picked.length >= COMPARE_MAX}
+              />
             ))}
             {shown.length > 200 && (
               <p className="dim" style={{ fontSize: 'var(--fs-xs)', padding: '10px 2px' }}>
@@ -432,16 +487,67 @@ export default function Models() {
               <p className="dim" style={{ fontSize: 'var(--fs-sm)' }}>Nothing matches “{query}”.</p>
             )}
           </div>
+
+          {/* THE COMPARE BAR, sticky because the list is 200 rows long and a
+              button at the top is unreachable by the time you have picked your
+              second model. Absent entirely at zero: an always-visible bar
+              reading "Compare (0)" is a disabled control explaining nothing. */}
+          {picked.length > 0 && (
+            <div className="cmp-bar">
+              <span className="stack stack-1" style={{ gap: 2, minWidth: 0 }}>
+                <strong style={{ fontSize: 'var(--fs-sm)' }}>
+                  {picked.length} selected
+                </strong>
+                <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+                  {picked.length === 1
+                    ? 'Tick one more — a single model is its own page, not a comparison.'
+                    : `Up to ${COMPARE_MAX}. Advertised specification and counted reports, side by side.`}
+                </span>
+              </span>
+              <span className="row" style={{ gap: 8 }}>
+                <button type="button" className="chip" onClick={() => setPicked([])}>
+                  Clear
+                </button>
+                {/* Kept here too, not for symmetry: the list is 200 rows and
+                    the header button is off-screen by the time the second
+                    model is ticked. Two copies of one action is the cost of a
+                    long list, and it is cheaper than scrolling back up. */}
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={picked.length < 2}
+                  onClick={() => navigate(`/compare?ids=${encodeURIComponent(picked.join(','))}`)}
+                >
+                  Compare ({picked.length}) →
+                </button>
+              </span>
+            </div>
+          )}
         </>
       )}
     </div>
   )
 }
 
-function ModelRow({ m, rows, capFilter }) {
+function ModelRow({ m, rows, capFilter, picked, onPick, atCap }) {
   const unpriced = m.price_in == null
 
   return (
+    <div className={`mrow-wrap${picked ? ' mrow-picked' : ''}`}>
+      {/* OUTSIDE THE LINK. A checkbox inside an anchor is invalid HTML and
+          unusable — every tick would navigate to the model page. */}
+      <label className="mrow-pick" onClick={(e) => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={picked}
+          disabled={!picked && atCap}
+          onChange={() => onPick(m.model_version_id)}
+          aria-label={`Select ${m.display_name || m.model_version_id} to compare`}
+          title={!picked && atCap
+            ? `${COMPARE_MAX} is the maximum — a fourth column makes the table scroll sideways`
+            : 'Compare this model'}
+        />
+      </label>
     <Link
       to={`/models/${m.model_version_id}`}
       // `focus` carries WHICH capability the reader was looking at when they
@@ -498,6 +604,7 @@ function ModelRow({ m, rows, capFilter }) {
         <IconArrow width={13} height={13} style={{ opacity: .5 }} />
       </span>
     </Link>
+    </div>
   )
 }
 
