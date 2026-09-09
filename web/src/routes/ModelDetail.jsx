@@ -76,57 +76,80 @@ export default function ModelDetail() {
           concludes nothing happened. */}
       <ModelEvidence modelVersionId={id} />
 
-      {page && <ReportedStrip page={page} focus={state?.focus} />}
-
       {unreadable && <Unreadable detail={unreadable} />}
       {err && <Notice icon={<IconAlert />}>{err}</Notice>}
-      {!page && !err && !unreadable && <div className="skel" style={{ height: 280 }} />}
+      {!page && !err && !unreadable && <div className="skel" style={{ height: 120 }} />}
 
+      {/* NOT TRACKED stays in the open, outside the disclosure below.
+          `tracked: false` is a fact about the MODEL — nobody has ever swept it —
+          rather than a fact about capabilities, and it is the one silence on
+          this page a reader can act on. Rule 4 is about not letting "we did not
+          look" read like "nothing was found"; collapsing an actionable absence
+          would be the same mistake with an extra click in front of it. */}
+      {page?.tracked === false && (
+        <div className="notice" style={{ borderColor: 'var(--warn)', background: 'var(--warn-dim, rgba(224,175,104,.1))' }}>
+          <IconAlert style={{ flex: 'none', marginTop: 2, color: 'var(--warn)' }} />
+          <div>
+            <strong style={{ color: 'var(--text)' }}>Not tracked yet.</strong>{' '}
+            This model has never been swept for evidence — nobody has looked at it.
+            An empty evidence panel above means <em>we have not asked</em>, not that
+            engineers reported no problems. That is different from a tracked model
+            with no evidence, and you can change it by asking for this model to be
+            tracked.
+          </div>
+        </div>
+      )}
+
+      {/* ── THE CLOSED-VOCABULARY VIEW, FOLDED ────────────────────────────────
+          Everything below this line is keyed to the ratified twelve
+          capabilities, and the evidence panel above is keyed to nothing — it
+          shows the sections the classifier discovered in the evidence itself.
+          Both are real; only one is the board's vocabulary.
+
+          It used to be four panels to that one, so the closed list won the page
+          by volume and the page read as though the board tracked twelve things.
+          Folded rather than deleted: the `cell` rows behind it still answer the
+          Ask box, which refuses to recommend a model from unpublished cells. So
+          this data is live, and it is secondary — which is what a labelled
+          disclosure says and what deleting it would not. */}
       {page && (
-        <>
-          {/* #33 Q2 — the THIRD silence, rendered distinctly. `tracked: false`
-              means we have never swept this model, so the empty capabilities are
-              "we have not looked", not "nobody reported problems". Rule 4 says
-              those must not look the same, so this is a distinct warn banner
-              rather than just a line in the summary. It is also the only silence
-              a reader can act on — they can ask for the model to be tracked. */}
-          {page.tracked === false && (
-            <div className="notice" style={{ borderColor: 'var(--warn)', background: 'var(--warn-dim, rgba(224,175,104,.1))' }}>
-              <IconAlert style={{ flex: 'none', marginTop: 2, color: 'var(--warn)' }} />
-              <div>
-                <strong style={{ color: 'var(--text)' }}>Not tracked yet.</strong>{' '}
-                This model has never been swept for evidence — nobody has looked at
-                it. The capabilities below are empty because <em>we have not asked</em>,
-                not because engineers reported no problems. That is different from a
-                tracked model with no evidence, and you can change it by asking for
-                this model to be tracked.
+        <details className="legacy-cells">
+          <summary>
+            <strong>Capability cards</strong> — the older view, keyed to the twelve
+            ratified capabilities
+            <span className="dim" style={{ display: 'block', fontSize: 'var(--fs-xs)', fontWeight: 400, marginTop: 4 }}>
+              A closed list, so a capability engineers discussed that is not one of the
+              twelve cannot appear here — it appears in the evidence above instead. These
+              cards and their publication gate are what the Ask box reads; the board does
+              not use them.
+            </span>
+          </summary>
+
+          <div className="stack stack-3" style={{ marginTop: 'var(--s3)' }}>
+            <Notice>{page.summary}</Notice>
+
+            <ReportedStrip page={page} focus={state?.focus} />
+
+            {page.unbound_phrases.length > 0 && (
+              <div className="notice" style={{ borderColor: 'var(--fail)', background: 'var(--fail-dim)' }}>
+                <IconAlert style={{ flex: 'none', marginTop: 2, color: 'var(--fail)' }} />
+                <div>
+                  <strong style={{ color: 'var(--text)' }}>Phrases with no evidence behind them</strong>
+                  <p style={{ marginTop: 4 }}>
+                    {page.unbound_phrases.join(', ')}
+                  </p>
+                  <p style={{ marginTop: 6 }}>
+                    These are <strong>not rendered below</strong>. A published phrase with no
+                    quote ids is an unfalsifiable claim, and showing it anyway would make a
+                    backend defect permanent.
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <Notice>{page.summary}</Notice>
-
-          {page.unbound_phrases.length > 0 && (
-            <div className="notice" style={{ borderColor: 'var(--fail)', background: 'var(--fail-dim)' }}>
-              <IconAlert style={{ flex: 'none', marginTop: 2, color: 'var(--fail)' }} />
-              <div>
-                <strong style={{ color: 'var(--text)' }}>Phrases with no evidence behind them</strong>
-                <p style={{ marginTop: 4 }}>
-                  {page.unbound_phrases.join(', ')}
-                </p>
-                <p style={{ marginTop: 6 }}>
-                  These are <strong>not rendered below</strong>. A published phrase with no
-                  quote ids is an unfalsifiable claim, and showing it anyway would make a
-                  backend defect permanent.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <Reveal>
             <CapabilitiesSection page={page} focus={state?.focus} />
-          </Reveal>
-        </>
+          </div>
+        </details>
       )}
     </div>
   )

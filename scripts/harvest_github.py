@@ -73,6 +73,17 @@ from collect.registry.seed import seed_models
 from collect.registry.sources import load_sources
 from collect.triage.specificity import alias_match_count
 
+#: WHICH MODEL TO HARVEST EVIDENCE **ABOUT** - a seed model's `canonical_id`,
+#: resolved through `seed_models()` below to get its search aliases. It is NOT
+#: the extractor, and harvesting calls no language model at all: NFR-8 allows
+#: exactly two stages to do that and `tests/test_lane_boundary.py` enforces that
+#: `collect/` never imports a model client.
+#:
+#: ⚠ I POINTED THIS AT `EXTRACTOR_MODEL` ON 2026-09-09 AND THAT WAS WRONG. The
+#: name collision is the trap: `--model` here is the SUBJECT of the research,
+#: while `EXTRACTOR_MODEL` is the tool doing the reading. Reading the extractor
+#: setting into it would crash on `StopIteration` the moment somebody set the
+#: extractor to something that is not a seed model - `…-v4-flash:free`, say.
 DEFAULT_MODEL = "google/gemini-2.5-flash"
 DEFAULT_CAPABILITIES = (
     "tool_calling.schema_accuracy",

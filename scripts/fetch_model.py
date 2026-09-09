@@ -1002,7 +1002,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
     Spends (capped) OpenRouter money and writes claims + cells. Scoped to the
     threads this fetch produced (build_thread_inputs skips anything not local).
     The surface resolver is wired here — the composition root's job — so a
-    claim's SURFACE ("gemini flash") maps to a model_version. Curation is the
+    claim's SURFACE ("fable 5.1") maps to a model_version. Curation is the
     pipeline's own step; it runs inside one transaction, so it is atomic.
 
     `release_date` is the fetched model's release date. On a model-name harvest
@@ -1027,7 +1027,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
         # Said, not implied. A smaller corpus reaching the LLM because the gates
         # worked reads identically to a smaller corpus because the harvest was
         # thin, and only one of those is good news.
-        prog.stage("E4b", "Screen · pre-LLM", "running",
+        prog.stage("E4b", "Vet · pre-LLM (same rules, thread level)", "running",
                    threads_gated_out=gated_out,
                    detail=f"{gated_out} thread(s) held back by E4 - no member survived "
                           "the hard gates, so they never reach the model")
@@ -1077,12 +1077,12 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
     if dropped:
         by_trigger = Counter(trig for _, trig in dropped)
         summary = ", ".join(f"{n} {trig}" for trig, n in by_trigger.most_common())
-        prog.stage("E4b", "Screen · pre-LLM", "ok", dropped=len(dropped),
+        prog.stage("E4b", "Vet · pre-LLM (same rules, thread level)", "ok", dropped=len(dropped),
                    by_trigger=dict(by_trigger),
                    detail=f"{len(dropped)} thread(s) dropped before the LLM ({summary}); "
                           f"{len(threads)} pass to extract")
     else:
-        prog.stage("E4b", "Screen · pre-LLM", "ok",
+        prog.stage("E4b", "Vet · pre-LLM (same rules, thread level)", "ok",
                    detail=f"all {len(threads)} thread(s) passed the pre-LLM screen")
 
     prog.stage("E5", "Extract", "running",
@@ -1136,6 +1136,57 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
     # re-fetch cannot inflate the count.
     from judge.store.capability_candidates import store_proposals
     proposals = [p for r in results for p in r.extraction.proposed_capabilities]
+
+    # WHAT THE BOARD ACTUALLY DISCOVERED, counted by section and reported FIRST.
+    #
+    # This is the discovery that matters and it had no line in the log. E5b
+    # reported `capability_candidate` proposals - the narrow, legacy thing:
+    # candidate keys against the ratified twelve, which exist only to feed the
+    # cell score. So the log read as though the fetch were discovering
+    # capabilities from a list of twelve, when what it was actually doing is
+    # naming three OPEN vocabularies from the evidence with no seed list at all.
+    from collections import Counter as _Counter
+
+    _sections = _Counter(
+        e.section
+        for r in results
+        for claim, _q in r.extraction.verified
+        for e in claim.board_entries
+    )
+    _slugs = {
+        (e.section, e.slug)
+        for r in results
+        for claim, _q in r.extraction.verified
+        for e in claim.board_entries
+    }
+    _stored_entries = sum(r.board_entries_stored for r in results)
+    if _slugs:
+        prog.stage(
+            "E5c", "Board sections discovered", "ok",
+            best_for=_sections.get("best_for", 0),
+            capability=_sections.get("capability", 0),
+            metric=_sections.get("metric", 0),
+            distinct_slugs=len(_slugs),
+            rows_stored=_stored_entries,
+            detail=(
+                f"{len(_slugs)} distinct section(s) named across "
+                f"{sum(_sections.values())} entr(ies): "
+                f"{_sections.get('best_for', 0)} best-for, "
+                f"{_sections.get('capability', 0)} capability, "
+                f"{_sections.get('metric', 0)} metric. "
+                f"{_stored_entries} row(s) appended to board_entry - discovered "
+                f"from the evidence, not chosen from a list. Duplicates are "
+                f"merged by a person at /admin/board-entries, never here."
+            ),
+        )
+    else:
+        # NOT THE SAME AS "no capabilities proposed", which is what this used to
+        # say. Nothing was named on ANY of the three sections.
+        prog.stage(
+            "E5c", "Board sections discovered", "ok",
+            detail=("no section named on any of the three surfaces - the quotes "
+                    "that verified described no job, no behaviour and no figure"),
+        )
     # The store must never break a fetch. If the migration has not reached this
     # database yet, the proposals are named in the log and dropped for this run
     # rather than crashing extraction on a missing table.
@@ -1149,27 +1200,38 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
             prompt_label="fetch-extract",
         )
         conn.commit()
-        prog.stage("E5b", "Discover", "ok",
+        prog.stage("E5b", "Capability keys (legacy cell score)", "ok",
                    proposed=outcome["proposed"], stored=outcome["stored"],
                    unattributed=outcome["unattributed"],
-                   detail=f"{outcome['proposed']} capability proposal(s); "
-                          f"{outcome['stored']} new candidate(s) stored for review"
+                   detail=f"{outcome['proposed']} proposal(s) against the ratified twelve; "
+                          f"{outcome['stored']} new candidate(s) stored for review. "
+                          f"SEPARATE from the board's sections above: this feeds the "
+                          f"legacy cell score, which is keyed to a closed vocabulary"
                           + (f", {outcome['unattributed']} unattributable"
                              if outcome["unattributed"] else ""))
     elif proposals and not table_present:
-        prog.stage("E5b", "Discover", "skipped", proposed=len(proposals),
+        prog.stage("E5b", "Capability keys (legacy cell score)", "skipped",
+                   proposed=len(proposals),
                    keys=sorted({p.proposed_key for p in proposals}),
                    detail=f"{len(proposals)} capability proposal(s) NOT stored: the "
                           "capability_candidate table is not on this database yet "
                           "(migration unapplied). Proposed keys: "
                           + ", ".join(sorted({p.proposed_key for p in proposals})[:8]))
     else:
-        prog.stage("E5b", "Discover", "ok",
-                   detail="no new capabilities proposed — every claim fit an existing key")
+        prog.stage("E5b", "Capability keys (legacy cell score)", "ok",
+                   detail="no new key proposed — every claim fitted one of the ratified "
+                          "twelve. Says nothing about the board, which discovered its "
+                          "sections above without a list")
 
-    prog.stage("E6", "Vet", "ok", detail="promotional/sarcastic/contradictory dropped in-run")
+    prog.stage("E6", "Vet", "ok",
+               detail="hard rejection ran over every document: promotional, affiliate and "
+                      "pre-release claims dropped, and their board entries with them. The "
+                      "WEIGHTING half (tier, n_eff) prices cells only - the board counts "
+                      "reports instead of scoring them")
     prog.stage("E7", "Curate", "ok",
-               detail=f"{cells} cell(s) computed — capability cards refresh from these")
+               detail=f"{cells} cell(s) computed for the legacy capability cards. The board "
+                      f"is NOT curated here: its sections render from board_entry as soon as "
+                      f"one report exists, with the count shown and no publication gate")
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -675,3 +675,47 @@ tbody tr:hover{background:var(--surface-2)}
   white-space:nowrap;width:1%;
 }
 .cmp-table td .dim{color:var(--text-3)}
+
+/* ── the closed-vocabulary view, folded ─────────────────────────────────────
+   Quieter than a card on purpose. The evidence panel above it is the page; this
+   is the older capability-keyed view kept because the Ask box still reads its
+   cells. It should look secondary when closed and read normally when open —
+   a disclosure, not a hidden feature. */
+.legacy-cells{
+  border:1px dashed var(--border);
+  border-radius:var(--r-sm);
+  background:transparent;
+  padding:0;
+}
+.legacy-cells > summary{
+  cursor:pointer;
+  list-style:none;
+  padding:14px 16px 14px 38px;
+  position:relative;
+  font-size:var(--fs-sm);
+  color:var(--text-2);
+  transition:color var(--t-fast) var(--ease);
+}
+.legacy-cells > summary::-webkit-details-marker{display:none}
+.legacy-cells > summary:hover{color:var(--text)}
+.legacy-cells > summary:focus-visible{outline:2px solid var(--info);outline-offset:-2px}
+.legacy-cells > summary::before{
+  content:'';
+  position:absolute;
+  left:16px; top:20px;
+  width:6px; height:6px;
+  border-right:1.5px solid var(--text-3);
+  border-bottom:1.5px solid var(--text-3);
+  transform:rotate(-45deg);
+  transition:transform var(--t-fast) var(--ease);
+}
+.legacy-cells[open] > summary::before{transform:rotate(45deg)}
+.legacy-cells[open]{border-style:solid;background:var(--surface)}
+.legacy-cells[open] > summary{
+  border-bottom:1px solid var(--border);
+  color:var(--text);
+}
+.legacy-cells > .stack{padding:0 16px 16px}
+@media (prefers-reduced-motion:reduce){
+  .legacy-cells > summary,.legacy-cells > summary::before{transition:none}
+}
