@@ -536,11 +536,34 @@ def build_thread_inputs(conn, seen, *, limit: int):
     from judge.extract.verify import OffsetMapping
 
     store = RawStore(Path(settings().raw_store_path))
+    # ── THE TRIAGE VERDICT HAS TO BITE HERE OR IT IS DECORATIVE ──────────────
+    # This query used to read every thread_context regardless of what E4 decided,
+    # so a document could be gated as a bot post, a bare link or too short, have
+    # its verdict written to `document.status`, and still be handed to the LLM.
+    # The gates ran and changed nothing.
+    #
+    # A thread survives if ANY member survived. Per-MEMBER exclusion - dropping
+    # one filtered comment and keeping the thread - is deliberately not done
+    # here: the offset_map is built over the whole flattening, so removing a
+    # member means rebuilding it, and a stale map silently resolves quotes to the
+    # wrong document. That is the same refinement the pre-LLM screen defers, and
+    # it must be done in the assembler or not at all.
     rows = conn.execute(
-        "SELECT id, flattened_text_ref, offset_map, member_document_ids "
-        "FROM thread_context ORDER BY assembled_at DESC LIMIT %s",
+        "SELECT tc.id, tc.flattened_text_ref, tc.offset_map, tc.member_document_ids "
+        "FROM thread_context tc "
+        "WHERE EXISTS (SELECT 1 FROM document d "
+        "              WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept') "
+        "ORDER BY tc.assembled_at DESC LIMIT %s",
         (limit,),
     ).fetchall()
+    # What the verdict cost, counted rather than inferred: a thread with no
+    # surviving member is one E4 removed, and a run that cannot say how many did
+    # not survive cannot tell a strict gate from an empty harvest.
+    gated_out = conn.execute(
+        "SELECT count(*) FROM thread_context tc "
+        "WHERE NOT EXISTS (SELECT 1 FROM document d "
+        "                  WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept')"
+    ).fetchone()[0]
 
     inputs = []
     doc_ids: set[str] = set()
@@ -567,7 +590,7 @@ def build_thread_inputs(conn, seen, *, limit: int):
             offset_map=offset_map, raw_text_of=raw_text_of,
         ))
         doc_ids.update(members)
-    return inputs, doc_ids
+    return inputs, doc_ids, gated_out
 
 
 def _thread_latest_dates(conn, thread_ids: list[str]) -> dict:
@@ -581,6 +604,68 @@ def _thread_latest_dates(conn, thread_ids: list[str]) -> dict:
         (thread_ids,),
     ).fetchall()
     return {tc_id: latest for tc_id, latest in rows}
+
+
+def triage_stage(conn, prog: Progress) -> None:
+    """E4 — the hard gates, over every platform this fetch harvested.
+
+    THIS USED TO BE A NO-OP AND THAT WAS THE EXPENSIVE KIND. Every document went
+    to the extractor whatever it was: a bot post, a bare link with no commentary,
+    a forty-character "same here", a thread written before the model existed. The
+    gates were built and tested and simply never asked, so nothing failed - the
+    LLM read junk, and junk that survives extraction reaches the board carrying a
+    verified quote, which is exactly the shape nobody catches downstream.
+
+    All eight platforms are gated, not the original three: `_prose_by_source()`
+    maps arXiv, dev.to, Hacker News, Hugging Face and X to their own prose
+    extractors. That matters more than it looks - the alternative to a real
+    extractor is flattening a raw payload, and a payload flattened verbatim lets
+    a quote verify against a JSON FIELD VALUE while `quote_verified` says true.
+
+    `dry_run=False`, said explicitly. The default is True because triage writes a
+    verdict over thousands of rows on a shared database and the convention is
+    that a caller wanting the write asks for it. A per-model fetch is scoped and
+    user-initiated, so it asks.
+
+    A GATE THAT COULD NOT RUN IS REPORTED AS UNAVAILABLE, never as a pass.
+    `wrong_language` has no detector installed and `known_bot` needs a curated
+    list; both come back UNAVAILABLE rather than silently counting as clean, and
+    the stage line says which, because "no bots found" and "we cannot look for
+    bots" are different facts about the corpus.
+    """
+    from collect.triage.run import gate_availability, triage_stored
+
+    store = RawStore(Path(settings().raw_store_path))
+    prog.stage("E4", "Triage", "running",
+               detail="running the hard gates over every unjudged document")
+    run = triage_stored(conn, store, dry_run=False)
+    conn.commit()
+
+    # The REAL fields off TriageStoreRun, and the denominators with them. A
+    # triage that reports "412 dropped" without saying by which gate is a number
+    # nobody can act on, and the usual cause of a sudden drop is a broken parser
+    # rather than a quiet corpus.
+    detail = f"{run.triaged} of {run.eligible} judged; {run.kept} kept, {run.dropped} dropped"
+    if run.by_reason:
+        detail += " - " + ", ".join(f"{n} {g}" for g, n in sorted(run.by_reason.items()))
+    # COULD-NOT-READ IS NOT COULD-NOT-PASS. A payload that did not resolve, or
+    # that its extractor refused as not-prose, was never gated at all - counting
+    # those as clean would be the silent-absence failure one stage earlier.
+    unread = run.unreadable + run.not_prose + run.unmapped_source
+    if unread:
+        detail += (f" | {unread} never gated ({run.unreadable} unreadable, "
+                   f"{run.not_prose} not prose, {run.unmapped_source} unmapped source)")
+    # A GATE THAT COULD NOT RUN REPORTS UNAVAILABLE, NEVER A PASS. `wrong_language`
+    # has no detector installed and `known_bot` needs a curated list; "no bots
+    # found" and "we cannot look for bots" are different facts about the corpus.
+    if run.never_ran:
+        detail += " | unavailable: " + ", ".join(sorted(run.never_ran))
+    prog.stage("E4", "Triage", "ok", eligible=run.eligible, triaged=run.triaged,
+               kept=run.kept, dropped=run.dropped, written=run.written,
+               by_reason=dict(run.by_reason), by_source=dict(run.by_source),
+               never_ran=dict(run.never_ran), not_prose=run.not_prose,
+               unreadable=run.unreadable, availability=gate_availability(run),
+               detail=detail)
 
 
 def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
@@ -609,7 +694,15 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
 
     ledger = ExtractionLedger(conn)
     seen = ledger.already_extracted()
-    threads, doc_ids = build_thread_inputs(conn, seen, limit=200)
+    threads, doc_ids, gated_out = build_thread_inputs(conn, seen, limit=200)
+    if gated_out:
+        # Said, not implied. A smaller corpus reaching the LLM because the gates
+        # worked reads identically to a smaller corpus because the harvest was
+        # thin, and only one of those is good news.
+        prog.stage("E4b", "Screen · pre-LLM", "running",
+                   threads_gated_out=gated_out,
+                   detail=f"{gated_out} thread(s) held back by E4 - no member survived "
+                          "the hard gates, so they never reach the model")
 
     # Defer pathologically large threads to the nightly batch so a click cannot
     # become a many-minute call. Generous cap: most threads still read now.
@@ -837,11 +930,11 @@ def main(argv: list[str] | None = None) -> int:
             conn.rollback()
             prog.stage("E3", "Assemble", "error", detail=str(exc).splitlines()[0][:200])
 
-        # E4 triage: harvested documents default to status 'kept', and the
-        # filter-persist path is not wired, so nothing is downgraded here (rule 4:
-        # said, not silently implied to have run).
-        prog.stage("E4", "Triage", "skipped",
-                   detail="documents default to 'kept'; filter-persist not wired")
+        try:
+            triage_stage(conn, prog)
+        except Exception as exc:
+            conn.rollback()
+            prog.stage("E4", "Triage", "error", detail=str(exc).splitlines()[0][:200])
 
         try:
             extract_and_curate(conn, prog, release_date=release_date)

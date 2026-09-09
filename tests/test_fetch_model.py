@@ -92,16 +92,38 @@ class _Cursor:
     def fetchall(self):
         return self._rows
 
+    def fetchone(self):
+        """Needed since the gated-out COUNT arrived. Returns None on no rows,
+        like psycopg, rather than raising - a fake that is stricter than the
+        real driver fails tests for the wrong reason."""
+        return self._rows[0] if self._rows else None
+
 
 class _Conn:
-    """Answers the two queries build_thread_inputs makes, and nothing else."""
+    """Answers the three queries build_thread_inputs makes, and nothing else.
 
-    def __init__(self, thread_rows, doc_text_refs):
+    The third arrived with the triage gate: the thread query now asks only for
+    contexts with a surviving member, and a second counts the ones held back.
+    Both are answered here rather than stubbed loosely, because the ORDER of the
+    checks matters - the count query also selects `FROM thread_context`, so a
+    fake that matched on that substring alone would answer the wrong one.
+    """
+
+    def __init__(self, thread_rows, doc_text_refs, gated_out=0):
         self._threads = thread_rows
         self._docs = doc_text_refs  # document_id -> text_ref
+        self._gated_out = gated_out
 
     def execute(self, sql, params=()):
+        # Checked FIRST: the gated-out count is also a thread_context query, and
+        # it is distinguished by counting rather than by selecting columns.
+        if "count(*)" in sql and "NOT EXISTS" in sql:
+            return _Cursor([(self._gated_out,)])
         if "FROM thread_context" in sql:
+            assert "status = 'kept'" in sql, (
+                "the thread query must require a surviving member, or E4's verdict "
+                "is written and never read - the gates would run and change nothing"
+            )
             return _Cursor(self._threads)
         if "FROM document" in sql:
             members = params[0]
@@ -144,7 +166,13 @@ def test_build_thread_inputs_keeps_only_locally_resolvable_unseen_threads(monkey
     monkeypatch.setattr(fetch_model, "settings", lambda: SimpleNamespace(raw_store_path="unused"))
 
     conn = _Conn(thread_rows, doc_text_refs)
-    inputs, doc_ids = fetch_model.build_thread_inputs(conn, seen={"tcC"}, limit=200)
+    inputs, doc_ids, gated_out = fetch_model.build_thread_inputs(
+        conn, seen={"tcC"}, limit=200
+    )
+    # The gate's cost is reported, not inferred: a thin corpus because the
+    # gates worked and a thin corpus because the harvest was thin read the
+    # same downstream, and only one of them is good news.
+    assert gated_out == 0
 
     assert [ti.thread_context_id for ti in inputs] == ["tcA"]
     assert doc_ids == {"dA"}
@@ -159,7 +187,7 @@ def test_build_thread_inputs_is_empty_when_nothing_resolves(monkeypatch):
     monkeypatch.setattr(fetch_model, "RawStore", _fake_store({}))  # store has nothing
     monkeypatch.setattr(fetch_model, "settings", lambda: SimpleNamespace(raw_store_path="unused"))
 
-    inputs, doc_ids = fetch_model.build_thread_inputs(
+    inputs, doc_ids, _gated = fetch_model.build_thread_inputs(
         _Conn(thread_rows, {"dB": "rawB"}), seen=set(), limit=200
     )
     assert inputs == [] and doc_ids == set()
