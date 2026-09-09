@@ -59,6 +59,22 @@ export default function ModelEvidence({ modelVersionId }) {
         )}
       </div>
 
+      {/* THE DISTINCTION THIS PANEL EXISTS FOR, said once at the top. Below it
+          on this page sit capability cards keyed to a closed list of twelve;
+          these sections are keyed to nothing at all — the classifier reads the
+          evidence and names the job, the behaviour or the figure it discusses.
+          A reader cannot tell those two apart from a heading reading
+          "Evidence". */}
+      <div style={{ padding: '0 var(--s4)' }}>
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0 }}>
+          Three ways into the same evidence, and the sections are{' '}
+          <strong style={{ color: 'var(--text-1)' }}>discovered, not chosen from a list</strong>{' '}
+          — whatever engineers actually discussed gets named here, whether or not it
+          matches anything the board already tracks. Counts are a floor: one section can
+          arrive under two names until somebody merges them.
+        </p>
+      </div>
+
       <div className="card-body stack stack-3">
         {unreadable && <Unreadable detail={unreadable} compact />}
         {err && <Notice icon={<IconAlert />}>{err}</Notice>}
@@ -68,13 +84,30 @@ export default function ModelEvidence({ modelVersionId }) {
           <p className="dim" style={{ fontSize: 'var(--fs-sm)', maxWidth: '70ch', lineHeight: 1.6 }}>
             <strong style={{ color: 'var(--text)' }}>Nobody has discussed this model yet.</strong>{' '}
             That is an absence we found, not a verdict we reached — not “good”, not
-            “bad”, just nothing said. It will fill as evidence is collected.
+            “bad”, just nothing said. <strong style={{ color: 'var(--text)' }}>Fetch</strong>{' '}
+            above searches eight platforms for it and fills this panel with whatever
+            comes back; an empty result after a run is itself a finding.
           </p>
         )}
 
-        {data && SECTIONS.map(([key, title, blurb]) => {
+        {/* ALL THREE, ALWAYS. Omitting an empty section made "nothing said
+            about jobs yet" indistinguishable from "this board has no jobs
+            section" — rule 4 applied to the page's own structure. An empty one
+            is listed and says so. Skipped entirely only when the model has
+            nothing at all, where the message above covers it. */}
+        {data && totals.sections > 0 && SECTIONS.map(([key, title, blurb]) => {
           const items = data[key] || []
-          if (!items.length) return null
+          if (!items.length) {
+            return (
+              <div key={key} className="stack stack-1">
+                <span className="label">{title}</span>
+                <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0, maxWidth: '70ch' }}>
+                  Nothing named here yet. {blurb} Other sections below carry evidence, so
+                  this one is an absence rather than a gap in what the board looks for.
+                </p>
+              </div>
+            )
+          }
           return (
             <div key={key} className="stack stack-2">
               <div className="stack stack-1">
