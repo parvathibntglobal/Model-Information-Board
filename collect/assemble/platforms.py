@@ -136,13 +136,16 @@ def assemble_platform_documents(
         "SELECT d.id, d.external_id, d.url, d.text_ref, d.engagement "
         "FROM document d "
         "WHERE d.source = %s "
-        # ONLY WHAT E4 PASSED, and that means the VERDICT and not the
-        # adapter's sieve. `status` is written at harvest by the adapter's cheap
-        # pre-filter; `triage_verdict` is E4's ruling over the stored prose. They
-        # are different judgements and neither implies the other, so both are
-        # required. A NULL verdict is not a pass: a document E4 has not judged
-        # has not passed it, and an absent value must not become a definite one.
-        "  AND d.status = 'kept' AND d.triage_verdict = 'kept' "
+        # `status`, NOT `triage_verdict`. E4 writes the verdict as a RECORDED
+        # FIELD and not a gate, deliberately: two of its six checks cannot run
+        # (no language detector, no contract/bots.yaml) and its error rate has
+        # never been measured against a pool it did not choose. Rule 8 - an
+        # unmeasured check ships as a weight, never a gate - because a wrong
+        # gate's false positives are invisible: it drops the document, and an
+        # absence we caused reads as one we found. `status` is what judge/
+        # filters on and what carries the index; promotion of the verdict to a
+        # gate goes on measured evidence, not on it being available.
+        "  AND d.status = 'kept' "
         "  AND d.thread_root_id IS NULL "
         "  AND NOT EXISTS (SELECT 1 FROM thread_context tc WHERE tc.thread_root_id = d.id) "
         "ORDER BY d.id"
@@ -178,13 +181,11 @@ def assemble_platform_documents(
         # turn every thread into a single.
         child_rows = conn.execute(
             "SELECT id, external_id, text_ref, engagement FROM document "
-            # Children are gated on the verdict too: a bot reply inside a
-            # good thread is still a bot reply, and flattening it puts it in
-            # front of the model. Excluding it HERE is what keeps the offset_map
-            # honest - the map is built over what gets flattened, so a member
-            # dropped after assembly could not be removed without rebuilding it.
-            "WHERE source = %s AND thread_root_id = %s "
-            "  AND status = 'kept' AND triage_verdict = 'kept' "
+            # Children are gated on `status` too: a bot comment the ADAPTER
+            # already filtered is still a bot comment, and flattening it puts it
+            # in front of the model. Doing it HERE keeps the offset_map honest,
+            # since the map is built over exactly what gets flattened.
+            "WHERE source = %s AND thread_root_id = %s AND status = 'kept' "
             "ORDER BY id",
             (source, root_id),
         ).fetchall()

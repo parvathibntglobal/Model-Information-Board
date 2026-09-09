@@ -570,18 +570,17 @@ def assemble_stage(conn, prog: Progress) -> None:
         except Exception as exc:
             conn.rollback()
             notes.append(f"{name}: skipped ({str(exc).splitlines()[0][:80]})")
-    # WHAT ASSEMBLY DID NOT SEE, counted rather than inferred. A NULL verdict
-    # excludes a document (unjudged is not passed), so a triage that failed
-    # halfway would quietly shrink the corpus and the only visible symptom would
-    # be a smaller number here. Naming it makes the cause readable.
+    # HOW MUCH OF THE CORPUS E4 HAS NEVER JUDGED. Reported here and not used as
+    # a filter: assembly gates on `status`, so an unjudged document is still
+    # assembled. The number matters anyway, because every survival figure this
+    # project quotes is computed over judged rows, and a large unjudged
+    # remainder means those figures describe a fraction of the corpus (rule 7 -
+    # a figure travels with its denominator).
     unjudged = conn.execute(
         "SELECT count(*) FROM document WHERE triage_verdict IS NULL"
     ).fetchone()[0]
     if unjudged:
-        notes.append(
-            f"{unjudged} document(s) NOT assembled: no triage verdict yet, and "
-            "unjudged is not passed"
-        )
+        notes.append(f"{unjudged} document(s) still carry no triage verdict")
     prog.stage("E3", "Assemble", "ok", unjudged_documents=unjudged,
                detail=" · ".join(notes))
 
@@ -615,8 +614,7 @@ def build_thread_inputs(conn, seen, *, limit: int):
         "SELECT tc.id, tc.flattened_text_ref, tc.offset_map, tc.member_document_ids "
         "FROM thread_context tc "
         "WHERE EXISTS (SELECT 1 FROM document d "
-        "              WHERE d.id = ANY(tc.member_document_ids) "
-        "                AND d.status = 'kept' AND d.triage_verdict = 'kept') "
+        "              WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept') "
         "ORDER BY tc.assembled_at DESC LIMIT %s",
         (limit,),
     ).fetchall()
@@ -626,8 +624,7 @@ def build_thread_inputs(conn, seen, *, limit: int):
     gated_out = conn.execute(
         "SELECT count(*) FROM thread_context tc "
         "WHERE NOT EXISTS (SELECT 1 FROM document d "
-        "                  WHERE d.id = ANY(tc.member_document_ids) "
-        "                    AND d.status = 'kept' AND d.triage_verdict = 'kept')"
+        "                  WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept')"
     ).fetchone()[0]
 
     inputs = []
@@ -1005,25 +1002,32 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as exc:
                 prog.stage(_sid, _sname, "error", detail=str(exc).splitlines()[0][:200])
 
-        # ── TRIAGE BEFORE ASSEMBLE, and the order is the point ───────────────
-        # A stage must only receive what the previous one passed. Triage judges
-        # DOCUMENTS and needs no thread_context - it reads `document`, `author`
-        # and the raw payload - so running it first means assembly never
-        # flattens a bot post, a bare link or a pre-release thread. Running it
-        # second worked, because the verdict still gated extraction, but it paid
-        # to flatten rows it had already decided to drop and left `thread_context`
-        # holding contexts for evidence that had failed.
-        try:
-            triage_stage(conn, prog)
-        except Exception as exc:
-            conn.rollback()
-            prog.stage("E4", "Triage", "error", detail=str(exc).splitlines()[0][:200])
-
+        # ── ASSEMBLE THEN TRIAGE, matching the nightly chain ─────────────────
+        # I had these the other way round, reasoning that a stage should only
+        # receive what the previous one passed. That is right in general and
+        # wrong here, for two reasons the chain states outright.
+        #
+        # `collect/ops/chain.py` records that triage NEEDS the flatten stage:
+        # it reads the prose a payload yields, and flatten is what proves that
+        # payload is assemblable. The dependency is about the corpus being
+        # coherent rather than about a column.
+        #
+        # And triage is NOT A GATE. It writes `triage_verdict` as a RECORDED
+        # FIELD, because two of its six checks cannot run and its error rate has
+        # never been measured - rule 8. So there is nothing for assembly to
+        # receive from it, and ordering triage first bought nothing while
+        # breaking the dependency.
         try:
             assemble_stage(conn, prog)
         except Exception as exc:
             conn.rollback()
             prog.stage("E3", "Assemble", "error", detail=str(exc).splitlines()[0][:200])
+
+        try:
+            triage_stage(conn, prog)
+        except Exception as exc:
+            conn.rollback()
+            prog.stage("E4", "Triage", "error", detail=str(exc).splitlines()[0][:200])
 
         try:
             extract_and_curate(conn, prog, release_date=release_date)

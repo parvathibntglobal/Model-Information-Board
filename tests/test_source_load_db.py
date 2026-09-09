@@ -60,15 +60,15 @@ def _rows(connection):
 # ── writing ───────────────────────────────────────────────────────────────
 
 
-def test_the_fourteen_rows_land(conn):
-    """Twelve until 2026-09-08, then arXiv and X.
+def test_every_source_row_lands(conn):
+    """Twelve until 2026-09-08, then arXiv and X, then dev.to / HN / Hugging Face.
 
     THE PLATFORM SET IS ASSERTED AS A SET, not counted. A count passes on a
     file that lost `reddit` and gained two others, and a platform leaving the
     contract renders as an absence rather than as an error (rule 4).
     """
     report = load_source_rows(conn)
-    assert (report.inserted, report.updated, report.unchanged) == (14, 0, 0)
+    assert (report.inserted, report.updated, report.unchanged) == (17, 0, 0)
 
     rows = _rows(conn)
     assert len(rows) == 14
@@ -81,14 +81,14 @@ def test_the_fourteen_rows_land(conn):
 def test_a_second_load_changes_nothing(conn):
     """Idempotent, like load_seed. `source` is re-seeded on every ruling change.
 
-    A loader that reported fourteen updates every time would make the one row
+    A loader that reported seventeen updates every time would make the one row
     that genuinely moved impossible to see in the report.
     """
     load_source_rows(conn)
     conn.commit()
 
     again = load_source_rows(conn)
-    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 14)
+    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 17)
     assert again.changed_columns == {}
 
 
@@ -101,7 +101,7 @@ def test_a_changed_ruling_shows_up_as_one_updated_row(conn):
     conn.commit()
 
     report = load_source_rows(conn)
-    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 13)
+    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 16)
     assert report.changed_columns == {"blog:hamel.dev": ["tos_notes"]}
 
 

@@ -310,11 +310,11 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
         "SELECT d.id, d.external_id, d.text_ref, d.engagement "
         "FROM document d "
         "WHERE d.source = %s "
-        # ONLY WHAT E4 PASSED — the VERDICT, not the adapter's sieve. GitHub's
-        # driver has excluded `status='filtered'` since 2026-08-31 and this one
-        # had no filter at all; both were reading the wrong column for E4's
-        # ruling, which lives in `triage_verdict`.
-        "  AND d.status = 'kept' AND d.triage_verdict = 'kept' "
+        # `status = 'kept'`, added when the gates were wired. GitHub's driver
+        # has excluded `status='filtered'` since 2026-08-31 and this one had no
+        # filter at all, so an adapter-filtered Reddit post was still flattened.
+        # NOT `triage_verdict`: that is a recorded field, not a gate (rule 8).
+        "  AND d.status = 'kept' "
         "  AND d.thread_root_id IS NULL "
         "  AND NOT EXISTS (SELECT 1 FROM thread_context tc WHERE tc.thread_root_id = d.id) "
         "ORDER BY d.id"
@@ -351,8 +351,7 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
         comment_rows = conn.execute(
             "SELECT external_id, text_ref, engagement "
             "FROM document "
-            "WHERE source = %s AND thread_root_id = %s "
-            "  AND status = 'kept' AND triage_verdict = 'kept' "
+            "WHERE source = %s AND thread_root_id = %s AND status = 'kept' "
             "ORDER BY external_id",
             (REDDIT_SOURCE, root_external_id),
         ).fetchall()
