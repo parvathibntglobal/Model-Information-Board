@@ -78,24 +78,19 @@ def record_rapidapi_quota(
       "the two arms share one key" was inherited from `.env.example`'s "THERE
       IS NO SECOND KEY" and is false on this project's own `.env`. Measured
       2026-09-10, four requests: the Reddit key returns 200 on `reddit34` and
-      403 on `twitter241`; the X key does the exact reverse. Two accounts, two
+      403 on `twitter241`; the X key does the reverse. Two accounts, two
       meters, two limits — Reddit 1,000,000 and X 100,000, both read off
       `x-ratelimit-requests-limit` that day.
 
-      That also RETIRES THE PARADOX this docstring rested on. It read the
-      998,076-of-1,000,000 and 99,870 readings as "mutually inconsistent";
-      they were never one meter — the second was `read_on="x"`, against a
-      limit of 100,000. The arithmetic was right and the conclusion wrong,
-      because the denominator's IDENTITY was missing (rule 7).
-      Non-inheritance is still correct, for the stronger reason: an inherited
-      limit may be another meter's.
+      That also RETIRES THE PARADOX this docstring used to rest on. It read the
+      998,076-of-1,000,000 and 99,870 readings as "mutually inconsistent"; they
+      were never one meter — the second was `read_on="x"`, against a limit of
+      100,000. The arithmetic was right and the conclusion wrong, because the
+      denominator's IDENTITY was missing (rule 7). Non-inheritance is still
+      correct, for the stronger reason: an inherited limit may be another
+      meter's.
 
-    ⚠ AND THE STORE IS STILL ONE SLOT. This function writes ONE record, so a
-      Reddit reading and an X reading overwrite each other and the panel shows
-      whichever landed last. `read_on` identifies the meter; it does not
-      separate the storage. Keying by arm is a separate change.
-
-      `docs/measurements/quota-headers.jsonl` holds the readings.
+      `docs/measurements/quota-headers.jsonl` holds all of it.
 
     Args:
         remaining: `x-ratelimit-requests-remaining`, as read. None if absent.
@@ -122,6 +117,23 @@ def record_rapidapi_quota(
         "read_by": read_by,
         "source_run_id": run_id,
     }
+    # ONE RECORD PER METER, KEYED BY ARM. Until 2026-09-10 this file held ONE
+    # record and every arm overwrote it, so a Reddit reading and an X reading
+    # replaced one another and the panel rendered whichever landed last. That
+    # was survivable while the arms were believed to share one key; they do
+    # not - measured that day, Reddit's limit is 1,000,000 and X's is 100,000 -
+    # so a single slot means one meter's figure is displayed under the other's
+    # heading. `read_on` could say which; it could not stop it.
+    #
+    # ⚠ THE MERGE IS READ-MODIFY-WRITE AND IS NOT PROCESS-SAFE. Two arms
+    #   writing in the same instant can lose one arm's record - the file stays
+    #   valid, one arm's entry is simply the older one. Named rather than
+    #   locked: the loss is self-healing on that arm's next metered call, and a
+    #   lock file in a path that "never raises" would be a new failure mode in
+    #   the one function that must not have any. The single-slot version lost a
+    #   record on EVERY interleaving; this loses one on a collision.
+    meters = read_rapidapi_meters(target)
+    meters[read_on] = record
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
         # Atomic: a concurrent reader never sees half a file. `NamedTemporaryFile`
@@ -129,7 +141,7 @@ def record_rapidapi_quota(
         with tempfile.NamedTemporaryFile(
             "w", dir=str(target.parent), delete=False, encoding="utf-8", suffix=".tmp"
         ) as fh:
-            json.dump(record, fh)
+            json.dump({"meters": meters}, fh)
             tmp = fh.name
         os.replace(tmp, target)
         return True
@@ -139,9 +151,52 @@ def record_rapidapi_quota(
         return False
 
 
-def read_rapidapi_quota(path: Path | None = None) -> dict | None:
-    """The last reading, or None. Never raises on a corrupt or absent file."""
+def read_rapidapi_meters(path: Path | None = None) -> dict[str, dict]:
+    """Every arm's latest reading, keyed by `read_on`. `{}` when there is none.
+
+    Never raises on a corrupt or absent file - same contract as the writer, and
+    for the same reason: this is instrumentation, and instrumentation that can
+    break a harvest is worse than none.
+
+    IT NORMALISES THE OLD ONE-RECORD SHAPE rather than discarding it. A file
+    written before 2026-09-10 is a bare record, and its `read_on` says which
+    arm it belongs to - so it is filed under that arm. A record older than
+    `read_on` itself has no arm to file it under and lands under
+    `"unrecorded"`, which is honest: it means nobody recorded the path, NOT
+    that no arm read it (rule 6, on our own instrumentation).
+    """
     try:
-        return json.loads((path or QUOTA_PATH).read_text(encoding="utf-8"))
+        raw = json.loads((path or QUOTA_PATH).read_text(encoding="utf-8"))
     except (OSError, ValueError):
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    meters = raw.get("meters")
+    if isinstance(meters, dict):
+        return {k: v for k, v in meters.items() if isinstance(v, dict)}
+    if "quota_remaining" in raw or "quota_limit" in raw:
+        return {raw.get("read_on") or "unrecorded": raw}
+    return {}
+
+
+def read_rapidapi_quota(
+    path: Path | None = None, *, read_on: str | None = None
+) -> dict | None:
+    """One arm's last reading, or None.
+
+    `read_on` names the arm. WITHOUT IT this returns the most recent reading
+    across arms, which is what the single-slot file used to mean and is kept so
+    existing callers do not change behaviour - but it is the wrong thing to ask
+    for now that the arms are separately metered, because "the latest reading"
+    is not "this arm's reading". Prefer `read_rapidapi_meters()`, or pass
+    `read_on`.
+    """
+    meters = read_rapidapi_meters(path)
+    if not meters:
         return None
+    if read_on is not None:
+        return meters.get(read_on)
+    # `at` is an ISO-8601 UTC string with a fixed width, so lexical order is
+    # chronological order. A record missing `at` sorts first rather than
+    # crashing the comparison.
+    return max(meters.values(), key=lambda r: r.get("at") or "")

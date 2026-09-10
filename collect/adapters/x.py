@@ -555,18 +555,18 @@ class XHarvester:
         if run.quota_remaining is not None and run.quota_remaining <= 0:
             run.quota_exhausted = True
 
-        # `read_on` NAMES THE METER. This said "same key as Reddit, so the
-        # same file"; measured 2026-09-10, it is NOT the same key - the two arms
-        # are separate RapidAPI subscriptions with separate limits (X 100,000,
-        # Reddit 1,000,000), each returning 403 on the other's provider.
+        # `read_on` NAMES THE METER, and that is now the point rather than a
+        # courtesy. This comment used to say "same key as Reddit, so the same
+        # file"; measured 2026-09-10, it is not the same key - the two arms are
+        # separate RapidAPI subscriptions with separate limits (X 100,000,
+        # Reddit 1,000,000), each 403 on the other's provider.
         #
-        # ⚠ WHICH MAKES THE SHARED FILE WRONG RATHER THAN MERELY COARSE, AND
-        #   THIS CHANGE DOES NOT FIX IT. `var/rapidapi-quota.json` holds ONE
-        #   record, so this X reading overwrites the last Reddit one and vice
-        #   versa, and the panel renders whichever landed last - under either
-        #   heading. `read_on` lets a reader tell which; it cannot stop the
-        #   overwrite. Keying the store by arm is a separate change, because it
-        #   moves a file format and a rendered panel with it.
+        # ⚠ SO THE SHARED FILE IS NOW WRONG, not merely coarse. One record means
+        #   this X reading overwrites the last Reddit one and vice versa, and
+        #   the panel renders whichever landed last. `read_on` lets a reader
+        #   tell which - it does not stop the overwrite. Keying the store by
+        #   arm is the fix; `judge/app.py:_rapidapi_quota` carries the same
+        #   warning at the read end.
         #
         # Until this existed, an X-only run left the panel showing an older
         # Reddit number as though nothing had been spent.

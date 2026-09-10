@@ -1476,7 +1476,10 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
             "rows": report.total_rows,
             "unwired_stages": list(report.unwired_stages),
         },
-        "rapidapi": _rapidapi_quota(),
+        # ONE PANEL PER METER. Both tabs used to read `rapidapi`, so an X-only
+        # sweep's reading rendered as Reddit's spend and vice versa.
+        "rapidapi": _rapidapi_quota("reddit"),
+        "rapidapi_x": _rapidapi_quota("x"),
         "everyone": _whole_key_spend(),
     }
 
@@ -1807,13 +1810,57 @@ def _whole_key_spend() -> dict:
     }
 
 
-def _rapidapi_quota() -> dict:
-    """The other paid API - Reddit via RapidAPI, billed as a REQUEST quota.
+def _rapidapi_meters() -> dict[str, dict]:
+    """Every arm's latest quota reading, keyed by `read_on`. `{}` when none.
 
-    Shows the latest quota HEADER reading a Reddit fetch persisted
+    ⚠ THIS DUPLICATES `collect/usage.py:read_rapidapi_meters` AND MUST. `judge/`
+      may not import `collect/` - the lane boundary is one-directional and an
+      AST test enforces it - so the file's shape is described twice, which is
+      exactly the "two descriptions of one thing" this project has paid for
+      four times. The mitigation is that this is the READER: it tolerates every
+      shape the writer has ever produced and invents nothing, so a writer change
+      degrades to "no reading" rather than to a wrong one.
+
+      Both shapes are handled. `{"meters": {...}}` since 2026-09-10; a bare
+      single record before that, filed under its own `read_on`, or under
+      `"unrecorded"` when it predates that field - which means the path was not
+      recorded, not that no arm read it.
+    """
+    store = _REPO_ROOT / "var" / "rapidapi-quota.json"
+    try:
+        raw = json.loads(store.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    meters = raw.get("meters")
+    if isinstance(meters, dict):
+        return {k: v for k, v in meters.items() if isinstance(v, dict)}
+    if "quota_remaining" in raw or "quota_limit" in raw:
+        return {raw.get("read_on") or "unrecorded": raw}
+    return {}
+
+
+def _rapidapi_quota(read_on: str = "reddit") -> dict:
+    """ONE ARM's RapidAPI quota panel - `reddit` or `x`, billed in REQUESTS.
+
+    Shows the latest quota HEADER reading that arm persisted
     (`var/rapidapi-quota.json`), with WHEN it was read. RapidAPI cannot share an
     axis with the LLM cap: one is dollars per day against a limit we set, the
     other is requests against a limit somebody sells us. Same page, separate tab.
+
+    ⚠ IT TAKES AN ARM BECAUSE THE ARMS ARE SEPARATELY METERED, AND UNTIL
+      2026-09-10 IT DID NOT. This returned one dict, and `UsagePanel.jsx` fed it
+      to BOTH the Reddit tab and the X tab with only the heading changed - so
+      whichever arm read last was displayed as the other's spend. The X tab told
+      the reader "one key meters both paths, so the figure is the X spend too",
+      which was the inherited premise and is false: measured that day, the two
+      keys are separate subscriptions with limits of 1,000,000 and 100,000, each
+      403 on the other's provider.
+
+      An arm with no reading now returns `instrumented: False` - "this arm has
+      not been read" - instead of borrowing the other's number. That is rule 4
+      at the panel: an absence must not render as a measurement.
 
     Two things this deliberately gets right, from the review that reverted an
     earlier attempt:
@@ -1829,40 +1876,71 @@ def _rapidapi_quota() -> dict:
     dollar figure would be invented (rule 6). Requests USED is the spend on the
     key - `limit - remaining`.
     """
+    arm_label = "X" if read_on == "x" else "Reddit"
+    # "an X" / "a Reddit" - the article follows the label, not the code.
+    arm_article = "an" if read_on == "x" else "a"
     base = {
         "unit": "requests",
+        "arm": read_on,
         "limits_status": (
-            "RapidAPI sells the Reddit path as a monthly request quota. This is "
-            "the last quota header a Reddit fetch saw; it moves only when a fetch "
-            "runs, not on a schedule."
+            f"RapidAPI sells the {arm_label} path as a monthly request quota. "
+            f"This is the last quota header {arm_article} {arm_label} fetch saw; it "
+            f"moves "
+            "only when a fetch runs, not on a schedule. The Reddit and X arms "
+            "are metered separately - this figure is this arm's alone."
         ),
         "source_of_record": (
-            "var/rapidapi-quota.json, written by a Reddit fetch from RapidAPI's "
-            "x-ratelimit-* headers - the provider's own number, cached with its date"
+            f"var/rapidapi-quota.json, meters['{read_on}'], written by "
+            f"{arm_article} {arm_label} fetch from RapidAPI's x-ratelimit-* headers - the "
+            "provider's own number, cached with its date"
         ),
     }
-    store = _REPO_ROOT / "var" / "rapidapi-quota.json"
-    try:
-        rec = json.loads(store.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    meters = _rapidapi_meters()
+    rec = meters.get(read_on)
+    if not rec:
+        # AN UNATTRIBUTED READING IS SURFACED, NOT DROPPED. A record written
+        # before `read_on` existed is filed under `unrecorded`, and it is a real
+        # header reading - so reporting this arm as simply "not read" would
+        # convert evidence we HAVE into an absence, which is rule 4 pointed the
+        # other way. It is also not attributable to this arm, so it must not be
+        # displayed as this arm's figure. Both facts, stated: the arm is not
+        # instrumented, AND an unattributed reading exists.
+        orphan = meters.get("unrecorded")
         return {
             **base,
             "instrumented": False,
+            "unattributed_reading": (
+                None if not orphan else {
+                    "quota_remaining": orphan.get("quota_remaining"),
+                    "quota_limit": orphan.get("quota_limit"),
+                    "as_of": orphan.get("at"),
+                    "why_not_shown": (
+                        "this reading predates the field that records which arm "
+                        "took it, so it cannot be attributed to the Reddit or "
+                        "the X meter. The two are separate subscriptions with "
+                        "different limits, so showing it under either heading "
+                        "would assert a path nobody recorded."
+                    ),
+                }
+            ),
             "headline": (
-                "No quota reading recorded yet. RapidAPI's usage arrives in "
-                "response headers, so this fills in after the first Reddit fetch "
-                "and updates on each one - it is not live."
+                f"No quota reading recorded for the {arm_label} arm yet. "
+                "RapidAPI's usage arrives in response headers, so this fills in "
+                f"after the first {arm_label} fetch and updates on each one - it "
+                "is not live. The other arm's reading is NOT shown here: the two "
+                "are separate subscriptions with different limits, so borrowing "
+                "it would put one meter's number under the other's heading."
             ),
         }
     limit = rec.get("quota_limit")
     remaining = rec.get("quota_remaining")
-    # USED IS ONLY COMPUTABLE WITH BOTH HALVES. A reading carrying `remaining`
-    # and no `limit` cannot yield "requests used", and the previous stored limit
-    # must not stand in for it - not because the tier moves, but because THE
-    # PREVIOUS READING MAY BE A DIFFERENT METER. `None` here, and the page says
-    # which figure is missing (rules 6, 7).
+    # USED IS ONLY COMPUTABLE WITH BOTH HALVES. A reading that carries
+    # `remaining` and no `limit` cannot yield "requests used", and the previous
+    # stored limit must not stand in for it - not because the tier moves, but
+    # because THE PREVIOUS READING MAY BE A DIFFERENT METER (see below).
+    # `None` here, and the page says which figure is missing (rules 6, 7).
     #
-    # ⚠ THIS COMMENT CONCLUDED "the tier changed", AND IT WAS WRONG.
+    # ⚠ THIS COMMENT USED TO CONCLUDE "the tier changed", AND IT WAS WRONG.
     #   It read 998,076-of-1,000,000 on 2026-08-31 against 99,870 nine days
     #   later, found the 900k gap impossible, and inferred a tier change. The
     #   two figures were never one meter: the second was `read_on="x"`.
@@ -1871,12 +1949,12 @@ def _rapidapi_quota() -> dict:
     #   either. The premise that made the inference look necessary was "one key
     #   meters both arms", asserted in `.env.example` and copied here; it is
     #   false on this project's own `.env`, where the two keys are separate
-    #   subscriptions that each return 403 on the other's provider.
+    #   subscriptions that each 403 on the other's provider.
     #
-    #   Recorded rather than quietly deleted, because the arithmetic was CORRECT
-    #   and the conclusion still wrong - the gap really is impossible for one
-    #   meter. What was missing was the denominator's IDENTITY, which is rule 7
-    #   on a figure that had already survived inspection twice.
+    #   Recorded rather than quietly deleted, because the arithmetic was
+    #   CORRECT and the conclusion still wrong - the gap really is impossible
+    #   for one meter. What was missing was the denominator's IDENTITY, which
+    #   is rule 7 on a figure that had already survived inspection twice.
     used = limit - remaining if isinstance(limit, int) and isinstance(remaining, int) else None
     return {
         **base,
@@ -1902,26 +1980,25 @@ def _rapidapi_quota() -> dict:
             "denominator unless read_on matches. It fills in on the next "
             "metered call on THIS arm that carries the header."
         ),
-        # WHICH PATH TOOK THIS READING, AND IT IS LOAD-BEARING RATHER THAN
+        # WHICH PATH TOOK THIS READING, AND IT IS NOW LOAD-BEARING RATHER THAN
         # COURTESY. This said "one key meters both the Reddit and the X harvest,
         # so the figure is shared and cannot be split by endpoint". The premise
-        # came from `.env.example` and is false here: measured 2026-09-10, the
-        # two RapidAPI keys are separate subscriptions with separate limits
-        # (1,000,000 and 100,000), each returning 403 on the other's provider.
+        # was inherited from `.env.example` and is false here: measured
+        # 2026-09-10, this project's two RapidAPI keys are separate
+        # subscriptions with separate limits (1,000,000 and 100,000), and each
+        # returns 403 on the other's provider.
         #
         # So `read_on` does not merely label the reader - it identifies WHICH
         # METER the figure belongs to, and a reading is meaningless without it.
         # The gateway meters the key; there are two keys.
         #
-        # ⚠ THE STORE IS STILL ONE SLOT, AND THIS CHANGE DOES NOT FIX IT.
-        #   `var/rapidapi-quota.json` holds ONE record, so a Reddit reading and
-        #   an X reading overwrite each other and this panel renders whichever
-        #   landed last - under both the Reddit and the X heading, because
-        #   `UsagePanel.jsx` feeds both tabs this same object. `read_on` lets a
-        #   reader tell which arm it came from; it does not separate them.
-        #   Keying the store by arm, and giving each tab its own meter, is a
-        #   separate change. UNTIL THEN: read this field before quoting the
-        #   number.
+        # ⚠ AND THE STORE IS STILL ONE SLOT, which is the defect this field now
+        #   exposes rather than fixes. `var/rapidapi-quota.json` holds ONE
+        #   record, so a Reddit reading and an X reading overwrite each other
+        #   and the page shows whichever landed last under a heading that reads
+        #   as "the quota". Keying the store by `read_on` is the fix; until it
+        #   lands, treat this panel as one arm's reading and check this field
+        #   before quoting the number.
         #
         # A record written before this field existed reports None, which means
         # the path is UNRECORDED and not that nothing read it.
@@ -1931,9 +2008,8 @@ def _rapidapi_quota() -> dict:
             "saw them and cached with that timestamp - so read it as of the time "
             "shown, not as a live figure. Every Reddit and X request now records "
             "its reading, so a sweep or a failed arm no longer leaves this stale. "
-            "The Reddit and X arms are metered separately, and this panel holds "
-            "ONE reading - check 'read_on' for which arm it belongs to before "
-            "reading it as this tab's quota."
+            "The two arms are metered separately: check 'read_on' to see which "
+            "one this reading belongs to."
         ),
     }
 
