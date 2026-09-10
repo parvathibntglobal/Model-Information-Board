@@ -67,22 +67,43 @@ def record_rapidapi_quota(
     and blanking a good reading with it would be rule 6 in the one place the
     number is supposed to be trustworthy.
 
-    `remaining` ALONE IS STILL WORTH RECORDING, and this is the case that
-    matters now: the two arms share one key, and a response can carry
+    `remaining` ALONE IS STILL WORTH RECORDING: a response can carry
     `-remaining` without `-limit`. Writing remaining with `limit: null` says
     "this much is left, against a denominator this reading did not state" —
     which is honest, and is what rule 7 asks for when only half a figure
-    arrives. It does NOT inherit the previous limit: the last two readings are
-    mutually inconsistent (998,076 of 1,000,000, then 99,870 nine days later
-    after ~130 requests), so an inherited denominator would be the wrong one
-    carried forward silently.
+    arrives. It does NOT inherit the previous limit, and the reason is now
+    sharper than when this was written.
+
+    ⚠ THE TWO ARMS DO NOT SHARE ONE KEY, AND THIS DOCSTRING SAID THEY DID.
+      "the two arms share one key" was inherited from `.env.example`'s "THERE
+      IS NO SECOND KEY" and is false on this project's own `.env`. Measured
+      2026-09-10, four requests: the Reddit key returns 200 on `reddit34` and
+      403 on `twitter241`; the X key does the exact reverse. Two accounts, two
+      meters, two limits — Reddit 1,000,000 and X 100,000, both read off
+      `x-ratelimit-requests-limit` that day.
+
+      That also RETIRES THE PARADOX this docstring rested on. It read the
+      998,076-of-1,000,000 and 99,870 readings as "mutually inconsistent";
+      they were never one meter — the second was `read_on="x"`, against a
+      limit of 100,000. The arithmetic was right and the conclusion wrong,
+      because the denominator's IDENTITY was missing (rule 7).
+      Non-inheritance is still correct, for the stronger reason: an inherited
+      limit may be another meter's.
+
+    ⚠ AND THE STORE IS STILL ONE SLOT. This function writes ONE record, so a
+      Reddit reading and an X reading overwrite each other and the panel shows
+      whichever landed last. `read_on` identifies the meter; it does not
+      separate the storage. Keying by arm is a separate change.
+
+      `docs/measurements/quota-headers.jsonl` holds the readings.
 
     Args:
         remaining: `x-ratelimit-requests-remaining`, as read. None if absent.
         limit: `x-ratelimit-requests-limit`, as read. None if absent.
-        read_on: which arm took the reading — `reddit` or `x`. One key meters
-            both, so the figure cannot be split per path; naming the reader is
-            the honest substitute.
+        read_on: which arm took the reading — `reddit` or `x`. NOT a courtesy
+            label: the arms are separately metered, so this identifies WHICH
+            METER the figure belongs to and a reading is not interpretable
+            without it.
         read_by: what kind of caller. `harvest`, `sweep` or `probe`. A reading
             taken by a probe is as real as one taken by a fetch, and saying
             which prevents "the fetch must have run" being inferred from it.

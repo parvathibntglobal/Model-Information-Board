@@ -41,8 +41,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from collect.adapters.reddit import build_client, observe_reddit_use  # noqa: E402
-from collect.config import settings  # noqa: E402
+from collect.adapters.reddit import build_client, host_for, observe_reddit_use  # noqa: E402
 from collect.registry.assertions import assert_terms_reviewed  # noqa: E402
 from collect.registry.sources import load_sources  # noqa: E402
 
@@ -68,7 +67,14 @@ def probe(note: str) -> int:
     print(f"terms gate : passed, {row['terms_ruling']} "
           f"({observations['reddit']['use_basis']})")
 
-    host = settings().rapidapi_host
+    # `host_for()`, NOT `settings().rapidapi_host`. RapidAPI routes on the
+    # `x-rapidapi-host` HEADER, which `build_client()` derives from
+    # `host_for()`; a URL built from the raw variable can name a different
+    # provider, and the request then reaches whichever the HEADER named while
+    # this script reports the URL's. That mismatch is the defect #238 fixed in
+    # the adapter on 2026-09-09 - and this script was not part of it, so it
+    # kept the shape until 2026-09-10.
+    host = host_for()
     with build_client() as client:
         response = client.get(
             f"https://{host}{PATH}",

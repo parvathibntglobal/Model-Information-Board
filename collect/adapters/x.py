@@ -247,6 +247,41 @@ def host_for(provider: str | None = None) -> str:
     return f"{cleaned}.p.rapidapi.com"
 
 
+def key_for() -> tuple[str | None, str]:
+    """X's RapidAPI key, and THE NAME OF THE VARIABLE IT CAME FROM.
+
+    `X_RAPIDAPI_KEY` first, `RAPIDAPI_KEY` second. Returns `(key, source)` where
+    `source` is the variable name, or `"unset"` when neither is set.
+
+    WHY IT RETURNS THE SOURCE AND `host_for` DOES NOT
+    -------------------------------------------------
+    `host_for` can refuse a wrong value: `twitter241.p.rapidapi.com` visibly is
+    not Reddit's host, so `reddit.py:host_for` raises on it and names the
+    collision. **A key affords no such check.** It is 50 opaque characters, and
+    the wrong one comes back as a gateway 403 - which `.env.example` already
+    records as "a credential problem that looks like the platform refusing us".
+
+    So this cannot validate, and it does not pretend to. It reports which
+    variable supplied the key, so a 403 can say *"X_RAPIDAPI_KEY was used"* and
+    the reader can check that one rather than guessing between two. Same move as
+    `record_rapidapi_quota`'s `read_on`: when a value cannot be verified, name
+    where it came from.
+
+    THE FALLBACK IS DELIBERATE AND IS NOT THE OLD ASSUMPTION. One RapidAPI
+    account subscribed to both providers has one key that works for both, and
+    that setup must keep working. What was wrong before was not the sharing - it
+    was asserting the sharing as a fact. Measured 2026-09-10 on this project's
+    own `.env`: the two keys are different subscriptions, each 403 on the
+    other's provider. `docs/measurements/quota-headers.jsonl`.
+    """
+    config = settings()
+    if config.x_rapidapi_key:
+        return config.x_rapidapi_key, "X_RAPIDAPI_KEY"
+    if config.rapidapi_key:
+        return config.rapidapi_key, "RAPIDAPI_KEY"
+    return None, "unset"
+
+
 @dataclass(frozen=True)
 class XPost:
     """One post from a search page."""
@@ -415,15 +450,24 @@ class XHarvester:
         clock=lambda: datetime.now(UTC),
         sleeper=time.sleep,
     ) -> None:
-        key = api_key if api_key is not None else settings().rapidapi_key
+        if api_key is not None:
+            key, key_source = api_key, "argument"
+        else:
+            key, key_source = key_for()
         if not key:
             raise XCredentialMissing(
-                "RAPIDAPI_KEY is not set, so no X request can be made. The X "
-                "route is a RapidAPI scraper provider (SCRAPER_PROVIDER, "
-                f"default {DEFAULT_PROVIDER!r}) and NOT X's own API, so the "
-                "credential is a RapidAPI key - the same one the Reddit path "
-                "uses, billing the same subscription. Set RAPIDAPI_KEY in .env; "
-                "see .env.example.\n"
+                "Neither X_RAPIDAPI_KEY nor RAPIDAPI_KEY is set, so no X request "
+                "can be made. The X route is a RapidAPI scraper provider "
+                f"(SCRAPER_PROVIDER, default {DEFAULT_PROVIDER!r}) and NOT X's "
+                "own API, so the credential is a RapidAPI key.\n"
+                "SET X_RAPIDAPI_KEY. It used to say the credential was 'the same "
+                "one the Reddit path uses, billing the same subscription' - that "
+                "was an assumption, and it is false here: measured 2026-09-10, "
+                "this project's Reddit key returns 403 on twitter241 and its X "
+                "key returns 403 on reddit34. Two accounts, two meters. "
+                "RAPIDAPI_KEY is still accepted as a fallback, because one "
+                "account subscribed to both providers is a real setup - but it "
+                "is a fallback and not the same thing.\n"
                 "A KEY IS NOT A CLEARANCE. contract/sources.yaml's ruling "
                 "x-via-rapidapi-scraper permits internal development and "
                 "testing ONLY, and only while nothing is published externally; "
@@ -432,6 +476,10 @@ class XHarvester:
                 "the first sweep, not after."
             )
         self._key = key
+        #: WHICH VARIABLE SUPPLIED THE KEY. Carried so a 403 names it - the one
+        #: thing that separates "wrong key" from "provider refusing us", which
+        #: the gateway's response cannot.
+        self._key_source = key_source
         # Raises XConfigError when SCRAPER_PROVIDER is unset, which is a
         # different failure from a missing key and says so.
         self._host = host_for(provider)
@@ -507,10 +555,21 @@ class XHarvester:
         if run.quota_remaining is not None and run.quota_remaining <= 0:
             run.quota_exhausted = True
 
-        # Same key as Reddit, so the same file - and `read_on` names which arm
-        # took it, because the gateway meters the KEY and the figure cannot be
-        # split per endpoint. Until this existed, an X-only run left the panel
-        # showing an older Reddit number as though nothing had been spent.
+        # `read_on` NAMES THE METER. This said "same key as Reddit, so the
+        # same file"; measured 2026-09-10, it is NOT the same key - the two arms
+        # are separate RapidAPI subscriptions with separate limits (X 100,000,
+        # Reddit 1,000,000), each returning 403 on the other's provider.
+        #
+        # ⚠ WHICH MAKES THE SHARED FILE WRONG RATHER THAN MERELY COARSE, AND
+        #   THIS CHANGE DOES NOT FIX IT. `var/rapidapi-quota.json` holds ONE
+        #   record, so this X reading overwrites the last Reddit one and vice
+        #   versa, and the panel renders whichever landed last - under either
+        #   heading. `read_on` lets a reader tell which; it cannot stop the
+        #   overwrite. Keying the store by arm is a separate change, because it
+        #   moves a file format and a rendered panel with it.
+        #
+        # Until this existed, an X-only run left the panel showing an older
+        # Reddit number as though nothing had been spent.
         record_rapidapi_quota(
             remaining=run.quota_remaining,
             limit=run.quota_limit,
@@ -535,6 +594,30 @@ class XHarvester:
                 "This is a wrong endpoint for provider %r, NOT an empty result "
                 "set. Check the provider's RapidAPI docs and correct "
                 "SEARCH_PATH.", path, self._host, settings().scraper_provider,
+            )
+            return None
+        if response.status_code in (401, 403):
+            # NAMED FOR THE SAME REASON AS THE 404 ABOVE, and it is the failure
+            # this project actually had. A gateway 401/403 is a CREDENTIAL
+            # problem wearing a refusal's clothes: it looks like the provider
+            # declining us, and it is usually the wrong key reaching the right
+            # host. Nothing in the response says which - `x-rapidapi-proxy-
+            # response: true` marks it as the gateway's answer and not the
+            # provider's, and that is all it marks.
+            #
+            # So the log names the VARIABLE. Measured 2026-09-10: this project's
+            # two RapidAPI keys are different subscriptions, and each returns
+            # 403 on the other's provider - the exact shape below.
+            run.http_errors += 1
+            log.error(
+                "x: HTTP %s on %s at host %s, key from %s. A gateway 401/403 is "
+                "a CREDENTIAL failure that reads as the provider refusing us. "
+                "Check that %s holds a key subscribed to %r - RapidAPI keys are "
+                "per-account and a key valid for another provider 403s here. "
+                "proxy-response=%s",
+                response.status_code, path, self._host, self._key_source,
+                self._key_source, settings().scraper_provider,
+                response.headers.get("x-rapidapi-proxy-response"),
             )
             return None
         if response.status_code != 200:
@@ -923,7 +1006,12 @@ def observe_x_use() -> dict[str, object]:
     return {
         "access_path": "rapidapi-reseller",
         "scraper_provider": config.scraper_provider,
-        "credential_present": bool(config.rapidapi_key),
+        # WHICH VARIABLE, not just whether one exists. `bool(rapidapi_key)` read
+        # True while X's arm was 403ing on a Reddit key, because a key WAS
+        # present - just not one subscribed to this provider. Presence was never
+        # the question; provenance is.
+        "credential_present": bool(key_for()[0]),
+        "credential_source": key_for()[1],
         **observe_use_basis(),
     }
 

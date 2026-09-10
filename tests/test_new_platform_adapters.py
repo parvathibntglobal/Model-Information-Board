@@ -507,14 +507,32 @@ class TestXIsBuiltAgainstRapidApi:
         assert observed["access_path"] == "rapidapi-reseller"
         assert observed["scraper_provider"] == "twitter241"
         assert observed["credential_present"] is True
+        # WHICH VARIABLE, not just that one exists. `credential_present` read
+        # True throughout the fortnight X was 403ing on a key subscribed to
+        # Reddit only - a key was present, just not one for this provider.
+        assert observed["credential_source"] == "RAPIDAPI_KEY"
+
+        monkeypatch.setattr(
+            x_module,
+            "settings",
+            lambda: _FakeSettings(provider="twitter241", key="k", x_key="xk"),
+        )
+        assert x_module.observe_x_use()["credential_source"] == "X_RAPIDAPI_KEY"
 
 
 class _FakeSettings:
-    """Just the two fields `observe_x_use` reads."""
+    """Just the fields `observe_x_use` reads - now via `key_for`.
 
-    def __init__(self, *, provider, key):
+    `x_rapidapi_key` joined the two on 2026-09-10. It defaults to None so this
+    helper exercises the FALLBACK path (X_RAPIDAPI_KEY unset, RAPIDAPI_KEY
+    used), which is the setup the assertion below was written against; pass it
+    explicitly to cover the two-key case.
+    """
+
+    def __init__(self, *, provider, key, x_key=None):
         self.scraper_provider = provider
         self.rapidapi_key = key
+        self.x_rapidapi_key = x_key
 
 
 class TestXParsing:
