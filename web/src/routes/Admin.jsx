@@ -101,9 +101,19 @@ export default function Admin() {
           </div>
           {hp.err && <Notice icon={<IconAlert />}>{hp.err}</Notice>}
           {hp.data && (
-            <div className="grid g3">
+            <div className="grid g2">
+              {/* `capabilities_loaded` REMOVED — and the comment lives INSIDE
+                  the div because `{cond && ( ... )}` takes ONE child, so a
+                  comment beside the element is a second one and the build
+                  refuses it.
+
+                  It counted the ratified twelve: the closed vocabulary feeding
+                  the legacy cell score, not the board's sections, which are
+                  discovered from the evidence and unbounded. On a health panel
+                  it read as "the board tracks 12 things", which is the one
+                  thing it does not mean. `/health` still returns the figure;
+                  nothing renders it as health. */}
               <Stat n={hp.data.environment} l="environment" />
-              <Stat n={hp.data.capabilities_loaded} l="capabilities loaded" />
               <Stat n={cov.data ? 'yes' : 'no'} l="database readable" />
             </div>
           )}
