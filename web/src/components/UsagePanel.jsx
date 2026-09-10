@@ -275,7 +275,7 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced }) {
 }
 
 /**
- * RapidAPI spend — one shared key metering the X and Reddit harvest paths.
+ * RapidAPI spend for ONE arm — Reddit and X are metered separately.
  *
  * THE SPEND ON THIS KEY IS REQUESTS, NOT DOLLARS, and that is not a gap in the
  * panel: the plan's per-request price is in nobody's config, so a dollar figure
@@ -283,17 +283,66 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced }) {
  * `limit − remaining`, both the gateway's own header values.
  *
  * The number is RapidAPI's own reading cached with its date; it moves only when
- * a metered fetch runs, never live. `read_on` names the path whose fetch took
- * it, because one key cannot be split by endpoint — the gateway meters the key.
+ * a metered fetch runs, never live.
+ *
+ * ⚠ THIS DOCSTRING SAID "one shared key metering the X and Reddit harvest
+ *   paths" and that `read_on` exists "because one key cannot be split by
+ *   endpoint". The module docstring above was corrected in #243 and this one
+ *   was missed, which is the third copy of the same false premise in this
+ *   repository. Measured 2026-09-10: two RapidAPI subscriptions, limits of
+ *   1,000,000 and 100,000, each returning 403 on the other's provider.
+ *   `read_on` identifies WHICH METER a reading belongs to.
  */
 function RapidApiTab({ rapid, which }) {
   const n = (v) => (typeof v === 'number' ? v.toLocaleString() : '—')
   if (!rapid.instrumented) {
+    // AN UNATTRIBUTED READING IS RENDERED, NOT JUST CARRIED. `_rapidapi_quota`
+    // publishes `unattributed_reading` when the store holds a record written
+    // before `read_on` existed: it belongs to no arm, so it cannot be shown AS
+    // this arm's figure - and saying only "no reading yet" hides a measurement
+    // we actually hold. #243 added the field and never displayed it, so the
+    // payload told the truth and the page understated it.
+    const orphan = rapid.unattributed_reading
     return (
       <div className="stack stack-2">
         <Notice icon={<IconAlert />}>
-          <strong style={{ color: 'var(--text)' }}>No reading yet.</strong> {rapid.headline}
+          <strong style={{ color: 'var(--text)' }}>
+            {orphan ? `No reading for the ${which} arm.` : 'No reading yet.'}
+          </strong>{' '}
+          {rapid.headline}
         </Notice>
+        {orphan && (
+          <div className="stack stack-1">
+            <span className="label">
+              One older reading exists and cannot be attributed to either arm
+            </span>
+            {/* NOT a <Stat>. A Stat is how this panel renders a figure it is
+                standing behind, and standing behind this one is exactly what
+                cannot be done - it is shown so it is not lost, captioned so it
+                is not mistaken for this tab's quota. */}
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
+              <strong style={{ color: 'var(--text)' }}>
+                {n(orphan.quota_remaining)} requests remaining
+              </strong>
+              {typeof orphan.quota_limit === 'number'
+                ? ` of ${n(orphan.quota_limit)}`
+                : ', against a limit this reading did not carry'}
+              , read {orphan.as_of || 'at an unrecorded time'}.
+            </span>
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
+              <strong style={{ color: 'var(--text)' }}>Why it is not shown above:</strong>{' '}
+              {orphan.why_not_shown}
+            </span>
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
+              It resolves itself: the next metered fetch on either arm records a
+              reading that names its own path, and this one stops being the most
+              recent thing we know. <strong style={{ color: 'var(--text)' }}>Do not
+              delete <code>var/rapidapi-quota.json</code> to clear this</strong> — it
+              is a real header reading, and deleting it discards a measurement to
+              make the page look tidy.
+            </span>
+          </div>
+        )}
         <span className="label" style={{ opacity: 0.7 }}>Source: {rapid.source_of_record}</span>
       </div>
     )
