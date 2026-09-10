@@ -27,6 +27,25 @@ const SECTIONS = [
   ['metrics', 'Metrics', 'Figures, copied as written. Stated and reported are never merged.'],
 ]
 
+/**
+ * A harvested URL is untrusted, and JSX does not vet an href.
+ *
+ * React escapes text nodes, so a quote cannot inject markup here the way it
+ * could through the board's `dangerouslySetInnerHTML`. An href is different:
+ * `javascript:alert(1)` in a JSX href executes, and no amount of escaping
+ * changes that. So the SCHEME is checked and only http(s) is allowed.
+ *
+ * Returns null when there is nothing usable, and the caller then renders plain
+ * text — no link is better than a dead or dangerous one.
+ */
+function safeHref(u) {
+  if (!u) return null
+  try {
+    const parsed = new URL(String(u))
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : null
+  } catch { return null }
+}
+
 export default function ModelEvidence({ modelVersionId }) {
   const [state, setState] = useState({ data: null, err: null, unreadable: null })
 
@@ -151,6 +170,26 @@ export default function ModelEvidence({ modelVersionId }) {
                         : q.polarity === 'positive' ? 'pass' : 'mute'}>{q.polarity}</Badge>
                       <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-2)' }}>
                         “{q.quote}”
+                        {/* THE SOURCE, LINKED. The payload used to carry only a
+                            document id, so the quote could not be checked
+                            against what the person actually wrote — which is
+                            the one thing this panel is for. */}
+                        {safeHref(q.url) ? (
+                          <>
+                            {' '}
+                            <a
+                              href={safeHref(q.url)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mb-link"
+                              style={{ whiteSpace: 'nowrap' }}
+                            >
+                              open the source ↗
+                            </a>
+                          </>
+                        ) : (
+                          <span className="dim" style={{ fontSize: 10 }}> · no link recorded</span>
+                        )}
                       </span>
                     </div>
                   ))}

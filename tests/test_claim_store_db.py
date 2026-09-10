@@ -193,15 +193,52 @@ class TestTheTwoProperties:
         A claim with no weight contributes to no count and would present weeks
         later as a cell that will not publish, rather than as a write that
         failed.
+
+        THE TRIGGER CHANGED ON 2026-09-10 AND THE PROPERTY DID NOT. This used
+        `capability="not.a.capability"` to force the failure, and that is no
+        longer a failure: an unratified key records as NULL, because
+        `claim.capability_key` is the closed twelve and the board's capability
+        section is discovered and unbounded. Six of the eight sections on the
+        reference board have no ratified key, so a NOT NULL column forced every
+        one of them to name a neighbour — and one FK violation cost every board
+        entry in the batch.
+
+        So the failure is forced with a document that does not exist instead. It
+        exercises the same thing this test is about: an insert that fails
+        partway must leave nothing behind.
         """
         store = ClaimStore(seeded)
         with pytest.raises(psycopg.errors.Error), seeded.transaction():
             store.write(a_stored())
-            # a capability that violates the foreign key, after the claim insert
-            store.write(a_stored(claim=a_claim(capability="not.a.capability")))
+            # A thread_context_id with no row. It has to be a field the claim
+            # ID HASHES, or the second write is an `ON CONFLICT DO UPDATE` whose
+            # SET list does not include the bad column and nothing violates
+            # anything — which is why `document_id` does not work here and the
+            # old `capability` trigger did: the id covers thread, comment,
+            # capability, offset and version.
+            store.write(a_stored(thread_context_id="no-such-thread"))
 
         seeded.rollback()
         assert store.count_for_thread("tc1") == 0
+
+    def test_an_unratified_capability_records_as_null_rather_than_failing(self, seeded):
+        """The behaviour that replaced the old trigger, asserted directly.
+
+        `vision` is a real section on the reference board and is not one of the
+        ratified twelve. Before this it was an FK violation that ended a whole
+        fetch run; now the claim stores with a NULL key and the discovered
+        section reaches `board_entry` regardless. NULL means "no ratified key
+        fits", never "no capability".
+        """
+        store = ClaimStore(seeded)
+        claim_id = store.write(a_stored(claim=a_claim(capability="vision")))
+        seeded.commit()
+
+        key = seeded.execute(
+            "SELECT capability_key FROM claim WHERE id = %s", (claim_id,)
+        ).fetchone()[0]
+        assert key is None
+        assert store.count_for_thread("tc1") == 1
 
     def test_re_running_extraction_does_not_add_a_second_voice(self, seeded):
         """The worst failure this table could have.

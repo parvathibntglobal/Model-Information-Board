@@ -164,16 +164,19 @@ def _prose_by_source() -> dict[str, tuple[object, bool]]:
     #: undecoded. Carried in the table rather than sniffed at the call site,
     #: because the first run silently refused every blog document by getting
     #: this wrong in the direction that looks like a corpus finding.
-    return {
-        "github": (prose.github_issue_prose, False),
-        "reddit": (prose.reddit_prose, False),
-        "blog": (_blog, True),
-        "arxiv": (prose.arxiv_paper_prose, False),
-        "devto": (prose.devto_article_prose, False),
-        "hackernews": (prose.hackernews_prose, False),
-        "huggingface": (prose.huggingface_prose, False),
-        "x": (prose.x_post_prose, False),
-    }
+    # BUILT FROM `prose.PROSE_BY_SOURCE`, not restated. This dict and
+    # `collect/assemble/platforms.py` were two separate answers to "which
+    # extractor for which source" - and platforms.py's answer was "none", which
+    # is how five platforms came to flatten their payloads verbatim while
+    # triage read them correctly. One map means a new platform is wired once.
+    #
+    # `blog` is added HERE and not there: its extractor needs `trafilatura`,
+    # which `tests/test_lane_boundary.py` confines to one importer, and it takes
+    # BYTES where every other extractor takes str - which is what the
+    # `wants_bytes` flag carries.
+    mapped = {source: (fn, False) for source, fn in prose.PROSE_BY_SOURCE.items()}
+    mapped["blog"] = (_blog, True)
+    return mapped
 
 
 def _own_commentary(source: str, blob) -> str | None:

@@ -673,7 +673,18 @@ CREATE TABLE claim (
   specificity           text NOT NULL,   -- snapshot | version | family
   resolution_confidence real,
 
-  capability_key        text NOT NULL REFERENCES capability(key),
+  -- NULLABLE SINCE 2026-09-10, and the nullability is the point. The board's
+  -- capability section is DISCOVERED from the evidence and unbounded; this
+  -- column is the closed twelve, and it feeds the legacy cell score only. Six
+  -- of the eight capability sections on the reference board have no ratified
+  -- key, so NOT NULL forced every one of them to name a neighbour - which
+  -- manufactures agreement about something nobody said, and gated the open
+  -- vocabulary behind the closed one.
+  --
+  -- NULL means "no ratified key fits", never "no capability": the discovered
+  -- section is on `board_entry`, and the unratified key the classifier
+  -- proposed is on `capability_candidate` for a person to rule on.
+  capability_key        text REFERENCES capability(key),
   taxonomy_version      text NOT NULL,
   condition_bucket      text NOT NULL,   -- e.g. tools:6-15
   conditions            jsonb,

@@ -372,3 +372,35 @@ def x_post_prose(blob: str) -> str:
         "posts under `data` as a LIST and covers many documents; a single post "
         "carries `legacy`."
     )
+
+#: source -> the extractor that turns its payload into what a human wrote.
+#:
+#: ONE MAP, BECAUSE TWO WOULD DIVERGE. `collect/triage/run.py` had its own
+#: `_prose_by_source()` and `collect/assemble/platforms.py` had none at all -
+#: which is how five platforms came to flatten their payloads verbatim while
+#: triage read them correctly. A single map means a new platform is wired once
+#: and cannot be half-wired.
+#:
+#: `blog` IS ABSENT ON PURPOSE. Its extractor needs `trafilatura` and takes
+#: BYTES rather than str, and `tests/test_lane_boundary.py` confines that import
+#: to one module. Triage adds it locally; assembly never sees a blog document,
+#: because blogs have no thread to flatten.
+PROSE_BY_SOURCE = {
+    "github": github_issue_prose,
+    "reddit": reddit_prose,
+    "arxiv": arxiv_paper_prose,
+    "devto": devto_article_prose,
+    "hackernews": hackernews_prose,
+    "huggingface": huggingface_prose,
+    "x": x_post_prose,
+}
+
+
+def for_source(source: str):
+    """The extractor for `source`, or None when none is mapped.
+
+    None rather than a passthrough. A passthrough is exactly the defect this
+    module exists to prevent: a payload flattened verbatim lets a quote verify
+    against a JSON field value while `quote_verified` reports true.
+    """
+    return PROSE_BY_SOURCE.get(source)

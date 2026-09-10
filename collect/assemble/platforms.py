@@ -68,7 +68,17 @@ class _Coverage:
 
     observed_children: int = 0
     hidden_children_min: int = 0
-    hidden_branches_unsized: bool = True
+    #: A COUNT of branches whose size is unknown, not a flag. The column is
+    #: `int` and Reddit's `ThreadCoverage` declares it `int` for a reason the
+    #: module docstring gives: it lets a cell say "at least 340 hidden across
+    #: 126 branches, PLUS 126 branches of unknown size" rather than collapsing a
+    #: measurement and a floor into one number.
+    #:
+    #: Declared `bool` here, which made every Hacker News and Hugging Face
+    #: assembly fail with `column "hidden_branches_unsized" is of type integer
+    #: but expression is of type boolean` — 162 of 200 documents on the
+    #: 2026-09-10 run never became a thread_context.
+    hidden_branches_unsized: int = 1
 
 
 @dataclass
@@ -125,6 +135,7 @@ def assemble_platform_documents(
     and `write_thread_context` is `ON CONFLICT DO NOTHING`, which makes that safe
     rather than merely tidy.
     """
+    from collect.assemble import prose
     from collect.assemble.article import ArticleInput, assemble_article
     from collect.assemble.thread import assemble, write_thread_context
     from collect.rawstore_reader import RawStoreReader
@@ -180,7 +191,40 @@ def assemble_platform_documents(
                 "store, so a missing payload is a missing document."
             )
             continue
-        root_text = root_outcome.require()
+
+        # PROSE, NOT THE PAYLOAD. This file flattened `reader.resolve(...)`
+        # VERBATIM and had no reference to `prose` at all, so every
+        # thread_context it built held raw JSON - `{"author":"...","children":
+        # [{...,"text":"..."}]}` - and the classifier read field names, ids and
+        # HTML entities as if they were what somebody wrote. A quote of a
+        # `"text"` field value then verifies by exact substring, so
+        # `quote_verified` reports TRUE for the wrong reason: rule 1 satisfied
+        # with no symptom anywhere.
+        #
+        # `assemble/issue.py` documents this happening once already, to 80
+        # github contexts, and `assemble/reddit.py` carries the same fix with
+        # the note that it must RAISE rather than fall back - "that fallback is
+        # the defect this line exists to fix".
+        extract = prose.for_source(source)
+        if extract is None:
+            report.refusals.append(
+                f"{root_id}: no prose extractor is mapped for source {source!r}. "
+                "Refused rather than flattened verbatim, which would let a quote "
+                "verify against a JSON field value."
+            )
+            continue
+        try:
+            root_body = extract(root_outcome.require())
+        except Exception as exc:
+            report.refusals.append(
+                f"{root_id}: root payload refused by the {source} prose extractor "
+                f"({str(exc).splitlines()[0][:120]}); the thread was not built."
+            )
+            continue
+        # THE EXTRACTED PROSE, not the payload. `root_text` feeds the
+        # single-document path and the thread's first member, so a payload here
+        # is a payload in front of the model.
+        root_text = root_body
 
         # Children are keyed by the ROOT'S DOCUMENT ID, because the shared writer
         # converts the platform's thread-root id into a document id before it
@@ -217,9 +261,22 @@ def assemble_platform_documents(
                     f"resolve ({body_outcome.outcome}); excluded from flattening."
                 )
                 continue
+            # Same extraction as the root, and the same refusal. A member whose
+            # payload its own extractor rejects is EXCLUDED and named - it is a
+            # comment we can count but not read, which is a different fact from
+            # one that is not there.
+            try:
+                child_body = extract(body_outcome.require())
+            except Exception as exc:
+                report.refusals.append(
+                    f"{root_id}: child {external_id} payload refused by the "
+                    f"{source} prose extractor "
+                    f"({str(exc).splitlines()[0][:120]}); excluded from flattening."
+                )
+                continue
             score = (engagement or {}).get("score")
             members.append(
-                _Member(external_id=external_id, body=body_outcome.require(),
+                _Member(external_id=external_id, body=child_body,
                         score=int(score) if isinstance(score, (int, float)) else None)
             )
             child_ids[external_id] = child_id
@@ -238,7 +295,11 @@ def assemble_platform_documents(
                         coverage=_Coverage(
                             observed_children=len(members),
                             hidden_children_min=max(0, stated - len(members)),
-                            hidden_branches_unsized=stated <= 0,
+                            # THESE PLATFORMS HAVE NO BRANCH STRUCTURE - a flat
+                            # member list, not a tree. So the count is 1 when the
+                            # platform stated no total (the thread is itself one
+                            # branch of unknown size) and 0 when it did.
+                            hidden_branches_unsized=1 if stated <= 0 else 0,
                         ),
                     ),
                     root_text=root_text,

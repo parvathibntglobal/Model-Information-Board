@@ -63,12 +63,18 @@ function commonFields(item) {
       s: st,
       dim: false,
     })),
-    // [quote, who, source, contested] — the shape views.js renders.
+    // [quote, who, document_id, contested, url] — the shape views.js renders.
+    //
+    // `url` IS THE FIFTH ELEMENT AND IT IS NEW. "open the source" was
+    // underlined text pointing nowhere because this tuple carried only the
+    // document id; `board_sections` now joins `document` for its url, and
+    // views.js turns it into an anchor when the scheme is http(s).
     qs: (item.quotes || []).map((q) => [
       q.quote,
       shortModel(q.model_version_id) || 'unattributed',
       q.document_id,
       q.polarity === 'negative',
+      q.url || null,
     ]),
     rel: [],
   }

@@ -151,18 +151,24 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     rule 7: the figure travels with what it actually counted.
     """
     rows = conn.execute(
-        "SELECT section,"
-        "       COALESCE(ruling_target, slug) AS slug,"
-        "       name, definition, unit, value_verbatim, basis,"
-        "       model_version_id, document_id, quote, polarity, created_at "
-        "FROM board_entry "
-        "WHERE ruling IS DISTINCT FROM 'declined' "
-        "ORDER BY section, COALESCE(ruling_target, slug), created_at DESC"
+        # LEFT JOIN, not JOIN. `document_id` is NOT NULL and references
+        # `document`, so a row without one cannot exist - but an inner join
+        # would still make the board's contents depend on the join succeeding,
+        # and a quote whose document row was somehow missing would vanish from
+        # the board rather than appear without a link. Absent stays absent.
+        "SELECT be.section,"
+        "       COALESCE(be.ruling_target, be.slug) AS slug,"
+        "       be.name, be.definition, be.unit, be.value_verbatim, be.basis,"
+        "       be.model_version_id, be.document_id, be.quote, be.polarity,"
+        "       be.created_at, d.url "
+        "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
+        "WHERE be.ruling IS DISTINCT FROM 'declined' "
+        "ORDER BY be.section, COALESCE(be.ruling_target, be.slug), be.created_at DESC"
     ).fetchall()
 
     grouped: dict[str, dict[str, dict]] = {s: {} for s in SECTIONS}
     for (section, slug, name, definition, unit, value, basis,
-         mv_id, doc_id, quote, polarity, _created_at) in rows:
+         mv_id, doc_id, quote, polarity, _created_at, url) in rows:
         if section not in grouped:
             continue
         bucket = grouped[section].setdefault(
@@ -179,7 +185,8 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         # than sampled - newest first, and the count above is the honest total.
         if len(bucket["quotes"]) < 12:
             bucket["quotes"].append(
-                {"quote": quote, "document_id": doc_id, "polarity": polarity,
+                {"quote": quote, "document_id": doc_id, "url": url,
+                 "polarity": polarity,
                  "model_version_id": mv_id}
             )
         if section == "metric" and value is not None:
@@ -330,18 +337,19 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
     what the engineer wrote, resolved back to the raw span.
     """
     rows = conn.execute(
-        "SELECT section, COALESCE(ruling_target, slug) AS slug, name, definition,"
-        "       unit, value_verbatim, basis, quote, polarity, document_id, created_at "
-        "FROM board_entry "
-        "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined' "
-        "ORDER BY section, COALESCE(ruling_target, slug), created_at DESC "
+        "SELECT be.section, COALESCE(be.ruling_target, be.slug) AS slug, be.name,"
+        "       be.definition, be.unit, be.value_verbatim, be.basis, be.quote,"
+        "       be.polarity, be.document_id, be.created_at, d.url "
+        "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
+        "WHERE be.model_version_id = %s AND be.ruling IS DISTINCT FROM 'declined' "
+        "ORDER BY be.section, COALESCE(be.ruling_target, be.slug), be.created_at DESC "
         "LIMIT %s",
         (model_version_id, limit),
     ).fetchall()
 
     sections: dict[str, dict[str, dict]] = {s: {} for s in SECTIONS}
     for (section, slug, name, definition, unit, value, basis,
-         quote, polarity, doc_id, _created) in rows:
+         quote, polarity, doc_id, _created, url) in rows:
         if section not in sections:
             continue
         bucket = sections[section].setdefault(slug, {
@@ -350,7 +358,7 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
         })
         bucket["reports"] += 1
         bucket["quotes"].append(
-            {"quote": quote, "polarity": polarity, "document_id": doc_id}
+            {"quote": quote, "polarity": polarity, "document_id": doc_id, "url": url}
         )
         if section == "metric" and value is not None:
             # stated and reported stay side by side here too. A model page that

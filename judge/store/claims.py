@@ -207,6 +207,33 @@ class ClaimStore:
     def __init__(self, conn: psycopg.Connection[Any]) -> None:
         self._conn = conn
 
+    def _ratified_or_none(self, key: str | None) -> str | None:
+        """A key from `contract/capabilities.yaml`, or None when none fits.
+
+        NULLABILITY ALONE DOES NOT FIX THE FK. `capability_key` became nullable
+        on 2026-09-10 so the board's discovered vocabulary would stop being
+        gated behind the ratified twelve - but a NON-NULL key that is not in
+        `capability` still violates the foreign key, which is precisely how the
+        2026-09-10 fetch died: `insert or update on table "claim" violates
+        foreign key constraint "claim_capability_key_fkey"`.
+
+        So a key this vocabulary does not contain is recorded as NULL. That is
+        not data loss: the classifier's proposal is already on its way to
+        `capability_candidate` through `proposed_capabilities`, where a person
+        rules on it. What NULL says is "no ratified key fits", which is true and
+        is the honest alternative to picking a neighbour.
+
+        Read from the contract rather than the database on purpose. The file is
+        the vocabulary; a table that has not been loaded is an empty table, and
+        coercing every key to NULL because nobody ran the loader would hide a
+        setup mistake as a modelling outcome.
+        """
+        if not key:
+            return None
+        from judge.config import capabilities
+
+        return key if key in capabilities() else None
+
     def write(self, stored: StoredClaim) -> str:
         """One claim and its weight. Returns the id.
 
@@ -267,7 +294,7 @@ class ClaimStore:
                 # migration 20260821T1600_claim_speaking.sql.
                 "speaking": claim.model_ref.speaking,
                 "resolution_confidence": claim.model_ref.resolution_confidence,
-                "capability_key": claim.capability,
+                "capability_key": self._ratified_or_none(claim.capability),
                 "taxonomy_version": stored.taxonomy_version,
                 "condition_bucket": stored.condition_bucket,
                 "conditions": Json(claim.conditions.model_dump(exclude_none=True)),

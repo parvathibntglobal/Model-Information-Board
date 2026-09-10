@@ -2,6 +2,40 @@
 // They return HTML strings; BoardView renders them and wires clicks to the router.
 import { DB } from './db'
 
+// ── ESCAPING, WHICH THIS FILE DID NOT HAVE ─────────────────────────────────
+// Every builder below returns an HTML STRING and BoardView renders it through
+// `dangerouslySetInnerHTML`. That makes this file an HTML sink, and until now
+// all 59 interpolations went in raw — the landing demo this was ported from has
+// an `esc()` and the port dropped it.
+//
+// It stopped being theoretical when the board got data: the 2026-09-10 run
+// stored 716 Reddit comments and 35 Hacker News threads of arbitrary text, and
+// a comment containing `<img src=x onerror=...>` would otherwise execute.
+//
+// `String(x ?? '')` rather than `x.replace(...)`: a null definition or a numeric
+// count would throw, and a board that crashes on a missing value is worse than
+// one that renders an empty cell.
+const esc = (x) => String(x ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+// A HARVESTED URL IS UNTRUSTED, AND ESCAPING DOES NOT MAKE AN HREF SAFE.
+// `javascript:alert(1)` is well-formed and survives escaping intact, so the
+// SCHEME is what has to be checked. http and https only; anything else — a
+// javascript:, data: or file: URL, or a value that will not parse — returns
+// null and the caller renders plain text instead of a link.
+//
+// Relative URLs are rejected too. Every source here is an external platform
+// permalink, so a relative href would point back at the board and read as a
+// citation to ourselves.
+function safeHref(u){
+  if(!u) return null;
+  try {
+    const parsed = new URL(String(u));
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') ? parsed.href : null;
+  } catch { return null; }
+}
+
 const byS = (arr,s) => arr.find(x=>x.slug===s);
 const ST = {v:['ev-v','verified'], c:['ev-c','contested'], s:['ev-n','single report'],
             n:['ev-n','not discussed']};
@@ -10,29 +44,40 @@ const ST = {v:['ev-v','verified'], c:['ev-c','contested'], s:['ev-n','single rep
 const stOf = (k) => ST[k] || ST.n;
 
 function crumb(parts){
-  return '<p class="crumb">'+parts.map(([t,h])=>h?`<a data-go="${h}">${t}</a>`:t).join('<i>/</i>')+'</p>';
+  return '<p class="crumb">'+parts.map(([t,h])=>h?`<a data-go="${esc(h)}">${esc(t)}</a>`:t).join('<i>/</i>')+'</p>';
 }
 function ranked(rows){
   if(!rows || !rows.length) return '';
   return '<div class="ranked">'+rows.map((r,i)=>{
     const [cls,lbl]=stOf(r.s);
     return `<div class="rank${r.dim?' dim':''}"><span class="n">${String(i+1).padStart(2,'0')}</span>
-      <div><b>${r.m}</b><span class="vend">${r.v}</span><p>${r.d}</p></div>
-      <div class="right"><span class="price">${r.p}</span><span class="st ${cls}">${r.e} · ${lbl}</span></div></div>`;
+      <div><b>${esc(r.m)}</b><span class="vend">${esc(r.v)}</span><p>${esc(r.d)}</p></div>
+      <div class="right"><span class="price">${esc(r.p)}</span><span class="st ${cls}">${esc(r.e)} · ${esc(lbl)}</span></div></div>`;
   }).join('')+'</div>';
 }
 function conds(list){
   if(!list || !list.length) return '';
-  return '<ul class="conds">'+list.map(([a,b])=>`<li><b>${a}</b><span>${b}</span></li>`).join('')+'</ul>';
+  return '<ul class="conds">'+list.map(([a,b])=>`<li><b>${esc(a)}</b><span>${esc(b)}</span></li>`).join('')+'</ul>';
 }
 function quotes(qs){
   if(!qs || !qs.length) return '';
-  return '<div class="quotes">'+qs.map(([q,who,src,c])=>
-    `<div class="qb${c?' c':''}"><q>${q}</q><cite>${who} · ${src} · <u>open the source</u></cite></div>`).join('')+'</div>';
+  // [quote, who, document_id, contested, url] — `url` is new: the payload used
+  // to carry only the document id, which is why "open the source" was
+  // underlined text pointing nowhere.
+  return '<div class="quotes">'+qs.map(([q,who,src,c,url])=>{
+    const href = safeHref(url);
+    // NO LINK IS BETTER THAN A DEAD ONE. A quote whose document row carries no
+    // usable URL says so, rather than offering an underline that does nothing —
+    // which is what the whole board did until now.
+    const cite = href
+      ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">open the source</a>`
+      : '<span class="nosrc" title="This quote\'s document has no usable link.">no link recorded</span>';
+    return `<div class="qb${c?' c':''}"><q>${esc(q)}</q><cite>${esc(who)} · ${esc(src)} · ${cite}</cite></div>`;
+  }).join('')+'</div>';
 }
 function related(list){
   if(!list || !list.length) return '';
-  return '<div class="related">'+list.map(([h,t])=>`<a data-go="${h}">${t}</a>`).join('')+'</div>';
+  return '<div class="related">'+list.map(([h,t])=>`<a data-go="${esc(h)}">${esc(t)}</a>`).join('')+'</div>';
 }
 function sec(eyebrow,h2,intro,inner){
   // An empty `inner` means the pipeline produced nothing for this block. Render
@@ -47,12 +92,12 @@ function sec(eyebrow,h2,intro,inner){
 }
 function card(x, route){
   const [cls,lbl]=stOf(x.st);
-  return `<div class="icard" data-go="${route}:${x.slug}"><b>${x.name}</b><p>${x.card}</p>
-    <div class="meta"><span class="${cls}">${x.ev} · ${lbl}</span><span>${x.vol}</span></div></div>`;
+  return `<div class="icard" data-go="${route}:${esc(x.slug)}"><b>${esc(x.name)}</b><p>${esc(x.card)}</p>
+    <div class="meta"><span class="${cls}">${esc(x.ev)} · ${esc(lbl)}</span><span>${esc(x.vol)}</span></div></div>`;
 }
 function mcard(x){
-  return `<div class="icard" data-go="metric:${x.slug}"><b>${x.name}</b><p>${x.card}</p>
-    <div class="meta"><span>unit · ${x.unit}</span><span>${x.vol}</span></div></div>`;
+  return `<div class="icard" data-go="metric:${esc(x.slug)}"><b>${esc(x.name)}</b><p>${esc(x.card)}</p>
+    <div class="meta"><span>unit · ${esc(x.unit)}</span><span>${esc(x.vol)}</span></div></div>`;
 }
 
 /* ---------- views ---------- */
@@ -91,9 +136,9 @@ function vJob(slug){
   // than filled with a guess.
   const [w,pr,ev,why] = j.pick || [];
   return `<div class="shell phead">${crumb([['Board','board'],['Best for','board:best'],[j.name,null]])}
-    <h1>${j.h1}</h1><p class="sub">${j.sub}</p></div>
+    <h1>${esc(j.h1)}</h1><p class="sub">${esc(j.sub)}</p></div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
-      <p><b>${w}</b> at ${pr}.</p><p>${why}</p></div>`) : ''}
+      <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
     ${sec('Every model with reports for this job','What engineers actually ran','',ranked(j.rows))}
     ${sec('Conditions that change the answer','Where the pick stops holding',
       'Most disagreements between engineers are condition mismatches rather than contradictions. These are the ones the reports keep naming.',conds(j.conds))}
@@ -104,10 +149,10 @@ function vJob(slug){
 function vCap(slug){
   const c = byS(DB.caps,slug); if(!c) return vBoard('cap');
   return `<div class="shell phead">${crumb([['Board','board'],['Capabilities','board:cap'],[c.name,null]])}
-    <h1>${c.name}</h1><p class="sub">A capability the board found engineers discussing. This page is
+    <h1>${esc(c.name)}</h1><p class="sub">A capability the board found engineers discussing. This page is
     the definition every model page resolves against, so a report about one model can be compared with a
     report about another.</p></div>
-    ${sec('','','',`<div class="defbox"><div class="l">definition</div><p>${c.d1}</p><p>${c.d2}</p></div>`)}
+    ${sec('','','',`<div class="defbox"><div class="l">definition</div><p>${esc(c.d1)}</p><p>${esc(c.d2)}</p></div>`)}
     ${sec('What this is not','Three things filed elsewhere',
       'Capability boundaries exist so a disagreement is a disagreement rather than two people using one word for two things.',conds(c.nots))}
     ${sec('Models with evidence','Who has been reported doing this','',ranked(c.rows))}
@@ -117,13 +162,13 @@ function vCap(slug){
 
 function vMet(slug){
   const m = byS(DB.mets,slug); if(!m) return vBoard('met');
-  const head = m.cols.map((c,i)=>`<th${m.num[i]?' class="r"':''}>${c}</th>`).join('');
-  const body = m.rows.map(r=>'<tr>'+r.map((v,i)=>`<td${m.num[i]?' class="r"':''}>${v}</td>`).join('')+'</tr>').join('');
+  const head = m.cols.map((c,i)=>`<th${m.num[i]?' class="r"':''}>${esc(c)}</th>`).join('');
+  const body = m.rows.map(r=>'<tr>'+r.map((v,i)=>`<td${m.num[i]?' class="r"':''}>${esc(v)}</td>`).join('')+'</tr>').join('');
   return `<div class="shell phead">${crumb([['Board','board'],['Metrics','board:met'],[m.name,null]])}
-    <h1>${m.name}</h1><p class="sub">An axis the board found figures for. Every figure is shown as the
+    <h1>${esc(m.name)}</h1><p class="sub">An axis the board found figures for. Every figure is shown as the
     text wrote it, with whether it was <b>stated</b> by the provider or <b>reported</b> by somebody who
     measured it — the two are never merged.</p></div>
-    ${sec('','','',`<div class="defbox"><div class="l">unit · ${m.unit}</div><p>${m.d1}</p><p>${m.d2}</p></div>`)}
+    ${sec('','','',`<div class="defbox"><div class="l">unit · ${esc(m.unit)}</div><p>${esc(m.d1)}</p><p>${esc(m.d2)}</p></div>`)}
     ${sec('The number\u2019s limits','What this metric cannot tell you',
       'Four things that change the figure and never appear beside it.',conds(m.lim))}
     ${sec('Every model tracked','Recorded figures',
@@ -139,8 +184,8 @@ function vBlogs(){
     what the measurements said, and where our own assumptions turned out to be wrong. Every figure carries
     the population it was measured on, and every claim links to the evidence behind it.</p></div>
     <div class="shell sec"><div class="postlist">${DB.posts.length ? DB.posts.map(p=>
-      `<div class="pcard${p.feat?' feat':''}" data-go="post:${p.slug}"><span class="tag">${p.tag}</span>
-        <h3>${p.title}</h3><p>${p.dek}</p><p class="by">${p.by}</p></div>`).join('') : '<p class="muted" style="padding:8px 0">No posts yet.</p>'}</div>
+      `<div class="pcard${p.feat?' feat':''}" data-go="post:${esc(p.slug)}"><span class="tag">${esc(p.tag)}</span>
+        <h3>${esc(p.title)}</h3><p>${esc(p.dek)}</p><p class="by">${esc(p.by)}</p></div>`).join('') : '<p class="muted" style="padding:8px 0">No posts yet.</p>'}</div>
       <p class="muted" style="margin-top:24px;max-width:70ch;line-height:1.6;font-size:.94rem">Posts are
       written against the board's own corpus. A post may cover one model, several, a job, a capability, or a
       change somebody noticed before a vendor announced it — and every figure in one is a bookmark into the
@@ -150,15 +195,15 @@ function vBlogs(){
 function vPost(slug){
   const p = byS(DB.posts,slug); if(!p) return vBlogs();
   const body = p.body.map(([t,v])=>{
-    if(t==='h2') return `<h2>${v}</h2>`;
-    if(t==='ul') return '<ul>'+v.map(li=>`<li>${li}</li>`).join('')+'</ul>';
-    if(t==='quote') return `<blockquote>${v}</blockquote>`;
-    return '<p>'+String(v).replace(/\{E(\d+)\}/g,(m,n)=>`<span class="bm" data-ev="${n}">E${n}</span>`)+'</p>';
+    if(t==='h2') return `<h2>${esc(v)}</h2>`;
+    if(t==='ul') return '<ul>'+v.map(li=>`<li>${esc(li)}</li>`).join('')+'</ul>';
+    if(t==='quote') return `<blockquote>${esc(v)}</blockquote>`;
+    return '<p>'+esc(v).replace(/\{E(\d+)\}/g,(m,n)=>`<span class="bm" data-ev="${n}">E${n}</span>`)+'</p>';
   }).join('');
   const ev = p.ev.map(([n,q,src])=>`<div class="evrow" id="ev${n}"><span class="id">E${n}</span>
-    <div><q>${q}</q><span class="src">${src}</span></div><u>open evidence →</u></div>`).join('');
+    <div><q>${esc(q)}</q><span class="src">${esc(src)}</span></div><u>open evidence →</u></div>`).join('');
   return `<div class="shell phead">${crumb([['Blogs','blogs'],[p.title.slice(0,42)+'…',null]])}
-    <h1>${p.title}</h1></div>
+    <h1>${esc(p.title)}</h1></div>
     <div class="shell"><div class="artmeta">${p.meta.map(m=>`<span>${m}</span>`).join('')}</div>
       <article class="article"><p class="lead">${p.lead}</p>${body}</article>
       <div class="evpanel" id="evidence"><h3>Evidence behind this post</h3>

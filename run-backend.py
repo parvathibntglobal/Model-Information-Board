@@ -54,6 +54,7 @@ sys.path.insert(0, str(ROOT))
 
 import uvicorn  # noqa: E402  (imported after the environment is in place)
 
+
 # ── THE GUARD IS LOAD-BEARING ON WINDOWS, AND ONLY AROUND THIS CALL ──────────
 #
 # `--reload` was advertised in the docstring above and crashed on Windows.
@@ -73,5 +74,58 @@ import uvicorn  # noqa: E402  (imported after the environment is in place)
 #
 # In the child `__name__` is `"__mp_main__"`, so the import runs and the call
 # does not.
+def _wire_source_text_reader() -> bool:
+    """Give `judge/app.py` a way to read a payload, without either lane importing the other.
+
+    THIS FILE IS THE COMPOSITION ROOT and is the only place allowed to touch
+    both: `collect/rawstore.py` is the only reader of the payload store,
+    `collect/assemble/prose.py` is the only thing that turns a payload into what
+    a human wrote, and `tests/test_lane_boundary.py` enforces that `judge/`
+    imports neither.
+
+    Returns whether it wired - reported at startup rather than assumed, because
+    an unwired reader makes `/documents/{id}/source` answer "unwired", and a
+    silent failure there would read as "this document has no text".
+    """
+    from pathlib import Path as _Path
+
+    import judge.app as app_module
+    from collect.assemble import prose
+    from collect.config import settings as collect_settings
+    from collect.rawstore import RawStore
+
+    store = RawStore(_Path(collect_settings().raw_store_path))
+
+    def read(source: str, text_ref: str) -> str:
+        extract = prose.for_source(source)
+        if extract is None:
+            # NOT a passthrough. A payload flattened verbatim lets a quote
+            # verify against a JSON field value - the defect `prose.py` exists
+            # to prevent, and the one that put raw JSON in front of the
+            # classifier on 2026-09-10.
+            raise ValueError(
+                f"no prose extractor is mapped for source {source!r}; refusing "
+                f"to serve the payload verbatim"
+            )
+        return extract(store.get_text(text_ref))
+
+    app_module.SOURCE_TEXT_READER = read
+    return True
+
+
 if __name__ == "__main__":
-    uvicorn.run("judge.app:app", host="127.0.0.1", port=8000, reload="--reload" in sys.argv)
+    reload = "--reload" in sys.argv
+    # THE APP OBJECT WHEN NOT RELOADING, so the injected reader survives.
+    # uvicorn's string form imports the app itself, and under --reload it does so
+    # in a spawned child - either way the injection this process made would be in
+    # the wrong interpreter. Passing the object keeps them together; with
+    # --reload the string is required and the endpoint reports itself unwired,
+    # which is why that is a real state rather than an error.
+    if reload:
+        print("--reload: /documents/{id}/source will report itself unwired")
+        uvicorn.run("judge.app:app", host="127.0.0.1", port=8000, reload=True)
+    else:
+        print(f"source-text reader wired: {_wire_source_text_reader()}")
+        import judge.app
+
+        uvicorn.run(judge.app.app, host="127.0.0.1", port=8000)
