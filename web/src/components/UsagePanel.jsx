@@ -8,8 +8,13 @@ import { IconAlert, IconGauge } from './Icons'
  *
  * OpenRouter bills dollars against a limit we set; RapidAPI bills requests
  * against a limit somebody sells us. Different units, so tabs, not one chart.
- * One RapidAPI key meters both the X and Reddit harvest paths — the Reddit and
- * X tabs show that one shared request quota.
+ * THE REDDIT AND X ARMS ARE METERED SEPARATELY. This said "one RapidAPI key
+ * meters both the X and Reddit harvest paths — the Reddit and X tabs show that
+ * one shared request quota", and both tabs were fed the same object. Measured
+ * 2026-09-10: they are two RapidAPI subscriptions with two limits (1,000,000
+ * and 100,000), each returning 403 on the other's provider. Each tab now reads
+ * its own meter, and an arm with no reading says so instead of borrowing the
+ * other's number.
  *
  * OpenRouter spend is split by the extractor MODEL, because the extractor moved
  * from Gemini 2.5 Flash to DeepSeek V4 Flash — keeping the two separated shows the old
@@ -79,10 +84,16 @@ export default function UsagePanel() {
 
   const { cap, today } = data
   const byModel = data.by_model_total || {}
-  const rapid = data.rapidapi || {}
+  // ONE OBJECT PER METER. Both tabs used to read `data.rapidapi`, so the X
+  // tab rendered Reddit's reading under an X heading — the arms are separate
+  // RapidAPI subscriptions with different limits (measured 2026-09-10:
+  // 1,000,000 and 100,000), so a borrowed figure is the wrong meter.
+  const rapidReddit = data.rapidapi || {}
+  const rapidX = data.rapidapi_x || {}
   const everyone = data.everyone || {}
   const pct = today.fraction_used == null ? null : Math.round(today.fraction_used * 100)
   const onRapid = tab !== 'openrouter'
+  const rapid = tab === 'rapidapi_x' ? rapidX : rapidReddit
 
   return (
     <section className="card card-flush">
@@ -350,11 +361,22 @@ function RapidApiTab({ rapid, which }) {
         .{' '}
         {mine
           ? `This tab's own path took the reading.`
-          : `One key meters both paths, so the figure is the ${which} spend too — but it was last read on a ${readOn ? (readOn === 'x' ? 'X' : 'Reddit') : 'different'} fetch, so any ${which} requests since then are already spent and not yet in it.`}
+          : `⚠ This reading was taken on a ${readOn ? (readOn === 'x' ? 'X' : 'Reddit') : 'different'} fetch, and the two arms are metered separately — so it is NOT this tab's quota. Read it as the other arm's figure, filed here only because no ${which} reading has been recorded.`}
       </span>
       <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
-        And the window is <strong>23.9 days, not a month</strong>, so anything costed
-        as a share of a month against this quota is a third too low.{' '}
+        {which === 'Reddit' ? (
+          <>
+            And the window is <strong>23.9 days, not a month</strong> (measured
+            2026-08-18), so anything costed as a share of a month against this
+            quota is a third too low.{' '}
+          </>
+        ) : (
+          <>
+            The window is <strong>not a month</strong> either: this arm's
+            <code> x-ratelimit-requests-reset</code> read ~19 days on 2026-09-10.
+            The 23.9-day figure belongs to the Reddit arm and is not this one's.{' '}
+          </>
+        )}
         {knownLimit
           ? `The billed tier remains unverified: the gateway header says ${n(limit)} and the plan page says 500,000. Only the RapidAPI subscription page settles it.`
           : 'The billed tier has never been verified either — the plan page said 500,000, an older header said 1,000,000, and this reading fits neither. One look at the RapidAPI subscription page settles it, and no request can.'}

@@ -785,3 +785,47 @@ def _isolate_spend_ledger(tmp_path, monkeypatch):
     from judge import spend_ledger
 
     monkeypatch.setenv(spend_ledger.LEDGER_PATH_ENV, str(tmp_path / "spend-ledger.jsonl"))
+
+
+@pytest.fixture(autouse=True)
+def _isolate_rapidapi_quota(tmp_path, monkeypatch):
+    """Point the RapidAPI quota store at a per-test file.
+
+    THE SIBLING OF `_isolate_spend_ledger` ABOVE, AND IT IS HERE BECAUSE THE
+    SUITE HAD ALREADY POLLUTED THE REAL FILE. Found 2026-09-10 in
+    `var/rapidapi-quota.json`:
+
+        {"quota_remaining": 998660, "quota_limit": null,
+         "at": "2026-09-10T05:41:36Z", "read_on": "reddit"}
+
+    998,660 is a FIXTURE VALUE from `test_reddit_fetch.py` - the 2026-08-18
+    reading, hardcoded as a header in two tests there. The timestamp is real
+    and it is today. So the admin panel rendered "998,660 requests remaining,
+    as of today" when the live figure that morning was 996,207: a test
+    fixture, freshly dated, displayed as a measurement. Rules 3 and 7 on a
+    number that reached a page.
+
+    IT ARRIVED WITH A CORRECT FIX. `collect/usage.py` moved the write INTO
+    `_get` on 2026-09-09, deliberately, because that is "the only place that
+    cannot forget" a reading. Which is right - and it also means every test
+    that drives a harvester through a mock transport now writes the real
+    store, since `_get` takes no path and the tests had no reason to pass one.
+    `record_rapidapi_quota(path=...)` exists for tests, and the tests that
+    call it directly do use it; the leak is via the tests that never mention
+    quota at all.
+
+    So the guard belongs HERE rather than in those tests. An opt-in override
+    is exactly what a test about post parsing will not remember to set, and
+    the file it corrupts is one nobody looks at until a figure on a page is
+    wrong.
+
+    ⚠ THIS PATCHES THE WRITER ONLY. `judge/app.py:_rapidapi_quota` builds
+      `_REPO_ROOT / "var" / "rapidapi-quota.json"` itself rather than reading
+      `collect.usage.QUOTA_PATH`, so a panel test still reads the real file -
+      two descriptions of one path, which is the defect this project has
+      recorded four times. Naming it rather than reaching across the lane
+      boundary to patch it: `judge/` may not import `collect/`.
+    """
+    from collect import usage
+
+    monkeypatch.setattr(usage, "QUOTA_PATH", tmp_path / "rapidapi-quota.json")

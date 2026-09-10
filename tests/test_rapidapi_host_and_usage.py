@@ -24,7 +24,11 @@ from collect.adapters.reddit import (
     RedditConfigError,
     host_for,
 )
-from collect.usage import read_rapidapi_quota, record_rapidapi_quota
+from collect.usage import (
+    read_rapidapi_meters,
+    read_rapidapi_quota,
+    record_rapidapi_quota,
+)
 
 
 class _Settings:
@@ -95,27 +99,55 @@ class TestEveryMeteredResponseRecordsItsReading:
         assert record_rapidapi_quota(
             remaining=500, limit=1000, read_on="reddit", read_by="sweep", path=path
         )
-        rec = json.loads(path.read_text(encoding="utf-8"))
+        rec = read_rapidapi_quota(path, read_on="reddit")
         assert rec["quota_remaining"] == 500 and rec["quota_limit"] == 1000
-        # One key meters both arms, so the figure cannot be split by endpoint.
-        # Naming the reader is the honest substitute.
+        # `read_on` IDENTIFIES THE METER, and since 2026-09-10 it is also the
+        # store's key. The arms are separate RapidAPI subscriptions with
+        # separate limits, so a reading is not interpretable without it.
         assert rec["read_on"] == "reddit"
         # A probe's reading is as real as a fetch's; saying which stops "a fetch
         # must have run" being inferred from a number that moved.
         assert rec["read_by"] == "sweep"
         assert rec["at"]
+        # On disk it is filed under its arm, not at the top level.
+        assert set(json.loads(path.read_text(encoding="utf-8"))["meters"]) == {"reddit"}
 
-    def test_remaining_without_a_limit_is_recorded_and_does_not_inherit_one(self, tmp_path):
-        # THE CURRENT CASE. The last two real readings are mutually
-        # inconsistent — 998,076 of 1,000,000, then 99,870 nine days and ~130
-        # requests later — so carrying the old denominator forward would put a
-        # wrong limit on a right figure (rules 6 and 7).
+    def test_one_arms_reading_does_not_overwrite_the_others(self, tmp_path):
+        """THE DEFECT THE PER-METER STORE EXISTS FOR.
+
+        Until 2026-09-10 this file held ONE record and every arm overwrote it,
+        so the panel rendered whichever arm read last - under both headings.
+        That was survivable while the arms were believed to share one key. They
+        do not: measured that day, Reddit's limit is 1,000,000 and X's is
+        100,000, and each key returns 403 on the other's provider. A single
+        slot therefore displayed one meter's figure as the other's spend.
+        """
+        path = tmp_path / "q.json"
+        record_rapidapi_quota(remaining=996207, limit=1000000, read_on="reddit", path=path)
+        record_rapidapi_quota(remaining=99868, limit=100000, read_on="x", path=path)
+
+        assert read_rapidapi_quota(path, read_on="reddit")["quota_limit"] == 1000000
+        assert read_rapidapi_quota(path, read_on="x")["quota_limit"] == 100000
+        assert read_rapidapi_meters(path).keys() == {"reddit", "x"}
+
+    def test_remaining_without_a_limit_does_not_inherit_the_other_arms(self, tmp_path):
+        """Rule 6 and rule 7, and the failure that made this concrete.
+
+        A reading can carry `-remaining` and no `-limit`. Inheriting the last
+        stored limit was already wrong; with two meters it is wrong in a way
+        that produced a false claim ON A PAGE - `judge/app.py` told the reader
+        a billed tier had changed, when what had happened was that Reddit's
+        1,000,000 and X's 99,870 were being compared as one meter.
+        """
         path = tmp_path / "q.json"
         record_rapidapi_quota(remaining=999, limit=1000, read_on="reddit", path=path)
         record_rapidapi_quota(remaining=99870, limit=None, read_on="x", path=path)
-        rec = json.loads(path.read_text(encoding="utf-8"))
-        assert rec["quota_remaining"] == 99870
-        assert rec["quota_limit"] is None
+
+        x = read_rapidapi_quota(path, read_on="x")
+        assert x["quota_remaining"] == 99870
+        assert x["quota_limit"] is None, "X must not inherit Reddit's denominator"
+        # And Reddit's own reading is untouched by X's write.
+        assert read_rapidapi_quota(path, read_on="reddit")["quota_limit"] == 1000
 
     def test_a_blank_reading_does_not_clobber_a_good_one(self, tmp_path):
         path = tmp_path / "q.json"
@@ -123,7 +155,32 @@ class TestEveryMeteredResponseRecordsItsReading:
         assert record_rapidapi_quota(
             remaining=None, limit=None, read_on="x", path=path
         ) is False
-        assert json.loads(path.read_text(encoding="utf-8"))["quota_remaining"] == 500
+        assert read_rapidapi_quota(path, read_on="reddit")["quota_remaining"] == 500
+        # And it wrote no empty `x` entry - an arm with no reading must render
+        # as "not read", never as a reading of nothing (rule 4).
+        assert read_rapidapi_meters(path).keys() == {"reddit"}
+
+    def test_a_legacy_single_record_is_filed_under_its_own_arm(self, tmp_path):
+        """The old shape still reads, and lands on the arm it names.
+
+        A file written before 2026-09-10 is a bare record. Discarding it would
+        turn a real reading into an absence, and filing it under a guessed arm
+        would attribute one meter's figure to another. Its own `read_on` is the
+        only honest answer; a record predating that field has no arm and lands
+        under `unrecorded` - the path was not recorded, which is not the same
+        as no arm having read it.
+        """
+        path = tmp_path / "q.json"
+        path.write_text(json.dumps({
+            "quota_remaining": 998660, "quota_limit": None,
+            "at": "2026-08-18T12:19:15Z", "read_on": "reddit",
+        }), encoding="utf-8")
+        assert read_rapidapi_quota(path, read_on="reddit")["quota_remaining"] == 998660
+        assert read_rapidapi_quota(path, read_on="x") is None
+
+        path.write_text(json.dumps({"quota_remaining": 1, "quota_limit": 2}),
+                        encoding="utf-8")
+        assert read_rapidapi_meters(path).keys() == {"unrecorded"}
 
     def test_an_unwritable_path_is_silent_rather_than_fatal(self, tmp_path):
         # It is called from inside a request path. The request is already spent
