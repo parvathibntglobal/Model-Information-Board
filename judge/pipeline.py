@@ -457,6 +457,12 @@ class PipelineResult:
 
     extraction: ExtractionRun
     stored_claim_ids: list[str] = field(default_factory=list)
+
+    #: (document_id, error) for claims that could not be written. NOT silent:
+    #: a claim lost to a schema constraint is a finding about our own
+    #: machinery, and the board entries for that quote still landed - so a run
+    #: with failures here is NOT a run that produced nothing.
+    claim_write_failures: list[tuple[str, str]] = field(default_factory=list)
     #: How many `board_entry` rows this thread produced. Counted rather
     #: than inferred from the claims: one claim can inform three board
     #: sections, so the two numbers are legitimately different and a
@@ -801,7 +807,37 @@ class Pipeline:
                 claim_date=document.created_at,
                 extractor_model=self._extractor_model,
             )
-            result.stored_claim_ids.append(self._claims.write(stored))
+            # CAPTURED PER ITERATION, not read back off the tail of the list.
+            # The board rows below used `stored_claim_ids[-1]`, which is the
+            # LAST id written by any iteration - so a quote whose own claim
+            # failed would have attached the PREVIOUS quote's claim id, quietly
+            # mis-attributing the evidence. `None` is the honest value, and
+            # `board_entry.claim_id` is nullable for exactly this.
+            _claim_id: str | None = None
+            try:
+                # A SAVEPOINT, NOT JUST A try/except. A failed INSERT ABORTS THE
+                # WHOLE TRANSACTION in Postgres - every later statement on this
+                # connection then fails with `InFailedSqlTransaction`, including
+                # the board_entry insert this fix exists to protect. Catching
+                # the exception without rolling back to a savepoint would move
+                # the failure one statement later and lose the board anyway.
+                #
+                # `conn.transaction()` opens a SAVEPOINT when a transaction is
+                # already open, which it is: the caller owns the outer one and
+                # commits after the loop.
+                with self._conn.transaction():
+                    _claim_id = self._claims.write(stored)
+                result.stored_claim_ids.append(_claim_id)
+            except Exception as exc:
+                _claim_id = None
+                # A CLAIM FAILING MUST NOT COST THE BOARD. `board_entry` was
+                # built to stand alone - its `claim_id` is nullable - and the
+                # 2026-09-10 run lost every board entry in the batch to one FK
+                # violation on the legacy capability column. The cell is lost;
+                # the discovered section is not.
+                result.claim_write_failures.append(
+                    (quote.document_id, str(exc).splitlines()[0][:180])
+                )
 
             # ── THE BOARD ────────────────────────────────────────────────────
             # What the classifier DISCOVERED about this quote, written where the
@@ -830,7 +866,7 @@ class Pipeline:
                     "basis": _entry.basis,
                     "model_version_id": model_version_id,
                     "document_id": quote.document_id,
-                    "claim_id": result.stored_claim_ids[-1],
+                    "claim_id": _claim_id,
                     "quote": quote.display_text,
                     "quote_verified": True,
                     "polarity": claim.polarity,
