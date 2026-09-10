@@ -61,9 +61,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from collect.adapters.reddit import (  # noqa: E402
     _QUOTA_HEADERS,
     build_client,
+    host_for,
     observe_reddit_use,
 )
-from collect.config import settings  # noqa: E402
 from collect.registry.assertions import assert_terms_reviewed  # noqa: E402
 from collect.registry.sources import load_sources  # noqa: E402
 
@@ -115,7 +115,11 @@ def sweep(out_dir: Path, subreddits, pages: int, population: str = "sample") -> 
     posts_file = (out_dir / "posts.jsonl").open("w", encoding="utf-8")
     calls_file = (out_dir / "calls.jsonl").open("w", encoding="utf-8")
 
-    host = settings().rapidapi_host
+    # `host_for()`, not the raw variable - see quota_probe.py for the whole
+    # reasoning. The header decides which provider answers, and it comes from
+    # `host_for()`; a URL built from `rapidapi_host` can disagree with it
+    # silently.
+    host = host_for()
     seen: set[str] = set()
     calls = 0
     quota: int | None = None

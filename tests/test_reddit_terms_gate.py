@@ -246,5 +246,12 @@ def _settings(environment: str):
         # host and RapidAPI answered 404 to every search. One variable cannot
         # address two vendors, so Reddit derives its host from this instead.
         reddit_provider=None,
+        # Added 2026-09-10, and it is the HOST defect one variable over. The
+        # comment above on `scraper_provider` says the X credential "is
+        # `rapidapi_key` above - already listed". That was an assumption, and
+        # measuring it settled it the other way: this project's two RapidAPI
+        # keys are different subscriptions, each 403 on the other's provider.
+        # X gets its own variable for the same reason it got its own host.
+        x_rapidapi_key=None,
         pipeline_version="test",
     )

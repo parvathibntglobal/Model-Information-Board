@@ -1856,13 +1856,27 @@ def _rapidapi_quota() -> dict:
         }
     limit = rec.get("quota_limit")
     remaining = rec.get("quota_remaining")
-    # USED IS ONLY COMPUTABLE WITH BOTH HALVES, and this is now the common case
-    # to get wrong. The reading of 2026-09-09 carries `remaining` and no
-    # `limit`, so "requests used" cannot be derived — and the previous stored
-    # limit must not stand in for it: 998,076 of 1,000,000 on 2026-08-31
-    # against 99,870 nine days later is a difference of 900k requests nobody
-    # made, so the tier changed and the old denominator is simply the wrong
-    # one. `None` here, and the page says which figure is missing (rules 6, 7).
+    # USED IS ONLY COMPUTABLE WITH BOTH HALVES. A reading carrying `remaining`
+    # and no `limit` cannot yield "requests used", and the previous stored limit
+    # must not stand in for it - not because the tier moves, but because THE
+    # PREVIOUS READING MAY BE A DIFFERENT METER. `None` here, and the page says
+    # which figure is missing (rules 6, 7).
+    #
+    # ⚠ THIS COMMENT CONCLUDED "the tier changed", AND IT WAS WRONG.
+    #   It read 998,076-of-1,000,000 on 2026-08-31 against 99,870 nine days
+    #   later, found the 900k gap impossible, and inferred a tier change. The
+    #   two figures were never one meter: the second was `read_on="x"`.
+    #   Measured 2026-09-10 - Reddit's key reads limit=1,000,000 with 996,207
+    #   remaining, and X's reads limit=100,000 with 99,868. No tier changed on
+    #   either. The premise that made the inference look necessary was "one key
+    #   meters both arms", asserted in `.env.example` and copied here; it is
+    #   false on this project's own `.env`, where the two keys are separate
+    #   subscriptions that each return 403 on the other's provider.
+    #
+    #   Recorded rather than quietly deleted, because the arithmetic was CORRECT
+    #   and the conclusion still wrong - the gap really is impossible for one
+    #   meter. What was missing was the denominator's IDENTITY, which is rule 7
+    #   on a figure that had already survived inspection twice.
     used = limit - remaining if isinstance(limit, int) and isinstance(remaining, int) else None
     return {
         **base,
@@ -1880,25 +1894,46 @@ def _rapidapi_quota() -> dict:
         "limit_unknown_why": (
             None if isinstance(limit, int) else
             "this reading carried x-ratelimit-requests-remaining without "
-            "x-ratelimit-requests-limit. The last limit header read 1,000,000 on "
-            "2026-08-31 with 998,076 remaining; this reading says 99,870 remaining, "
-            "and ~130 requests were made between them. Both cannot be true, so the "
-            "billed tier changed and the old limit is not this figure's "
-            "denominator. It fills in on the next metered call that carries the "
-            "header — nothing here will guess it."
+            "x-ratelimit-requests-limit, so requests-used has no denominator "
+            "and nothing here will supply one. An earlier stored limit is not "
+            "it: the Reddit and X arms are metered SEPARATELY — measured "
+            "2026-09-10, Reddit's key reads a limit of 1,000,000 and X's reads "
+            "100,000 — so a limit read on one arm is not this figure's "
+            "denominator unless read_on matches. It fills in on the next "
+            "metered call on THIS arm that carries the header."
         ),
-        # WHICH PATH TOOK THIS READING. One key meters both the Reddit and the X
-        # harvest, so the figure is shared and cannot be split by endpoint - the
-        # gateway meters the key. Naming the reader is the honest substitute:
-        # without it the X tab showed a Reddit reading under an X heading. A
-        # record written before this field existed reports None, which means the
-        # path is UNRECORDED and not that nothing read it.
+        # WHICH PATH TOOK THIS READING, AND IT IS LOAD-BEARING RATHER THAN
+        # COURTESY. This said "one key meters both the Reddit and the X harvest,
+        # so the figure is shared and cannot be split by endpoint". The premise
+        # came from `.env.example` and is false here: measured 2026-09-10, the
+        # two RapidAPI keys are separate subscriptions with separate limits
+        # (1,000,000 and 100,000), each returning 403 on the other's provider.
+        #
+        # So `read_on` does not merely label the reader - it identifies WHICH
+        # METER the figure belongs to, and a reading is meaningless without it.
+        # The gateway meters the key; there are two keys.
+        #
+        # ⚠ THE STORE IS STILL ONE SLOT, AND THIS CHANGE DOES NOT FIX IT.
+        #   `var/rapidapi-quota.json` holds ONE record, so a Reddit reading and
+        #   an X reading overwrite each other and this panel renders whichever
+        #   landed last - under both the Reddit and the X heading, because
+        #   `UsagePanel.jsx` feeds both tabs this same object. `read_on` lets a
+        #   reader tell which arm it came from; it does not separate them.
+        #   Keying the store by arm, and giving each tab its own meter, is a
+        #   separate change. UNTIL THEN: read this field before quoting the
+        #   number.
+        #
+        # A record written before this field existed reports None, which means
+        # the path is UNRECORDED and not that nothing read it.
         "read_on": rec.get("read_on"),
         "headline": (
             "RapidAPI's own quota headers, recorded by whichever metered call last "
             "saw them and cached with that timestamp - so read it as of the time "
             "shown, not as a live figure. Every Reddit and X request now records "
-            "its reading, so a sweep or a failed arm no longer leaves this stale."
+            "its reading, so a sweep or a failed arm no longer leaves this stale. "
+            "The Reddit and X arms are metered separately, and this panel holds "
+            "ONE reading - check 'read_on' for which arm it belongs to before "
+            "reading it as this tab's quota."
         ),
     }
 

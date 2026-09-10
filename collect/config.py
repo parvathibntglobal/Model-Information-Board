@@ -71,9 +71,18 @@ class Settings:
     #: a missing value is never silently converted into a definite one).
     #:
     #: There is NO `x_bearer_token`, deliberately. The X route is a RapidAPI
-    #: scraper provider and not X's own API, so the credential is
-    #: `rapidapi_key` above - the same key the Reddit path uses, billing the
-    #: same subscription.
+    #: scraper provider and not X's own API, so the credential is a RapidAPI
+    #: key - `x_rapidapi_key` below, falling back to `rapidapi_key`.
+    #:
+    #: ⚠ IT IS NOT NECESSARILY THE SAME KEY AS REDDIT'S, AND THIS COMMENT SAID
+    #: IT WAS. "the same key the Reddit path uses, billing the same
+    #: subscription" was asserted here, in `.env.example` and in
+    #: `judge/app.py`, and it is false on this project's own `.env`. Measured
+    #: 2026-09-10, four requests: the Reddit key returns 200 on
+    #: `reddit34` and 403 on `twitter241`; the X key does the exact reverse.
+    #: Two accounts, two meters, two limits - 1,000,000 and 100,000, both read
+    #: off `x-ratelimit-requests-limit` the same day.
+    #: `docs/measurements/quota-headers.jsonl`.
     #:
     #: ⚠ A KEY IS NOT A CLEARANCE, AND THIS VALUE IS PINNED BY THE RULING.
     #: `contract/sources.yaml:x-via-rapidapi-scraper` (ratified 2026-09-08)
@@ -83,6 +92,24 @@ class Settings:
     #: ruling permits internal development only, while nothing is published
     #: externally - it clears none of the four conditions it records.
     scraper_provider: str | None
+
+    #: X's OWN RAPIDAPI KEY. Mirrors `reddit_provider` for the host: one arm,
+    #: one variable, after the same failure one variable over.
+    #:
+    #: ⚠ A KEY CANNOT BE VALIDATED BY INSPECTION, WHICH IS WHY THIS IS NOT
+    #: SHAPED LIKE `host_for`. `reddit.py:host_for` can refuse a wrong host
+    #: because `twitter241.p.rapidapi.com` visibly is not Reddit's. A key is
+    #: 50 opaque characters, so nothing here can tell whose it is, and a wrong
+    #: one comes back as a gateway 403 - indistinguishable from the platform
+    #: refusing us, which is the failure `.env.example` already records.
+    #:
+    #: So the fallback to `rapidapi_key` is KEPT - a single RapidAPI account
+    #: subscribed to both providers is a legitimate setup and was the assumed
+    #: one - and `x.py:key_for` returns the VARIABLE NAME alongside the key so
+    #: every refusal and every status line can say which was used. Naming the
+    #: source is the honest substitute for a validation that cannot exist.
+    x_rapidapi_key: str | None
+
     pipeline_version: str
 
     @property
@@ -140,5 +167,6 @@ def settings() -> Settings:
         rapidapi_host=_bare_host(os.getenv("RAPIDAPI_HOST")),
         reddit_provider=os.getenv("REDDIT_PROVIDER") or None,
         scraper_provider=os.getenv("SCRAPER_PROVIDER") or None,
+        x_rapidapi_key=os.getenv("X_RAPIDAPI_KEY") or None,
         pipeline_version=os.getenv("PIPELINE_VERSION", PIPELINE_VERSION),
     )
