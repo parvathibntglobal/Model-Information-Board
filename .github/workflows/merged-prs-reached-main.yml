@@ -43,6 +43,13 @@ name: Merged PRs reached main
 on:
   push:
     branches: [main]
+  # ADDED 2026-09-10, FOR THE SECOND JOB ONLY. The `ancestry` job stays off
+  # this event - see the block above on why the merged-PR question does not
+  # belong on `pull_request`, which is unchanged and still right. What DOES
+  # belong here is the open-PR question: "is this PR stacked, and has its base
+  # already landed" is a fact about the pull request in front of you, and the
+  # only moment it can be acted on cheaply is while it is open.
+  pull_request:
   schedule:
     # Daily. A stack can be stranded by a merge that landed while nobody was
     # looking, and the push trigger only fires for the merge that CAUSED it -
@@ -56,6 +63,11 @@ permissions:
 
 jobs:
   ancestry:
+    # NOT ON `pull_request`. The defect this job looks for is not IN a pull
+    # request - it is in what happened after one merged, and the merge that
+    # strands a PR is a merge of a DIFFERENT PR. Running it per-PR would make
+    # every PR's build depend on the state of every other one.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,4 +86,55 @@ jobs:
         env:
           # `gh` is preinstalled on the runner and needs a token to list PRs.
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python scripts/check_merged_prs_reached_main.py --main origin/main
+        # `--limit 0` MEANS ALL, AND IT USED TO MEAN THE MOST RECENT 60.
+        # The default was 60 while 218 PRs were merged, so a PR stranded more
+        # than 60 merges ago was invisible and the output said "checked 60"
+        # without saying 60 of what - rule 7 on the check itself. The script
+        # now also warns when a run comes back AT its limit, so a truncated
+        # population can never again read as a clean repository.
+        run: python scripts/check_merged_prs_reached_main.py --main origin/main --limit 0
+
+  # ════════════════════════════════════════════════════════════════════════
+  #  THE SAME QUESTION, FIFTEEN SECONDS EARLIER.
+  #
+  #  The job above is REACTIVE by design and works: on 2026-09-10 it caught
+  #  #243 twenty-five seconds after the strand, named it, and #245 fixed it.
+  #  But it can only fire once a merge has already stranded something, and the
+  #  window it cannot see is the one that matters:
+  #
+  #      06:48:51Z  #242 merged to main
+  #      06:49:06Z  #243 merged into #242's branch  <- 15 seconds, unwatched
+  #      06:49:19Z  #244 merged to main
+  #      06:49:31Z  this workflow failed, naming #243
+  #
+  #  Fifteen seconds is not a window anybody reviews. So this job asks, on
+  #  every pull request, whether any OPEN PR is stacked - and flags the sharp
+  #  case, a base branch that is ALREADY an ancestor of main, which is exactly
+  #  the state #243 was in when it was merged.
+  #
+  #  ⚠ IT NEVER FAILS THE BUILD, AND THAT IS RULE 8 RATHER THAN TIMIDITY.
+  #    A base that has landed is not by itself a defect - #245 resolved this
+  #    very state by re-merging the base branch, which is correct. So the
+  #    condition is "needs a follow-up action", not "is wrong", and its
+  #    false-positive rate against real stacks has never been measured. It
+  #    ships as a warning annotation on the PR, where the person who can act on
+  #    it is looking, and becomes a gate only once measured.
+  # ════════════════════════════════════════════════════════════════════════
+  stacked-open-prs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Same reason as above: ancestry of a BASE BRANCH cannot be computed
+          # on a shallow clone, and every base would look unmerged - which for
+          # this job is the quiet direction, so it would report nothing at all.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Report open PRs stacked on a branch rather than on main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/check_merged_prs_reached_main.py --main origin/main --limit 0 --open-prs
