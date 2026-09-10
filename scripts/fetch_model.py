@@ -72,6 +72,32 @@ FETCH_DIR = ROOT / "var" / "fetch"
 #: is generous, so only pathologically large threads are held back.
 MAX_FETCH_THREAD_CHARS = 30_000
 
+#: How many threads ONE fetch may send to the language model.
+#:
+#: The daily budget caps the money; this caps the WAIT. Extraction ran at
+#: roughly 15 seconds per thread on 2026-08-31, so the old limit of 200 was
+#: close to an hour of a click that looks hung - and a first run does not need
+#: the whole corpus to show the classifier works.
+#:
+#: SMALL IS SAFE BECAUSE THE PIPELINE RESUMES. `already_extracted()` skips
+#: threads already read at this pipeline version, so the next click continues
+#: from here instead of re-reading. This is a pause, not a ceiling on what can
+#: ever be extracted.
+MAX_FETCH_THREADS = int(os.getenv("FETCH_MAX_THREADS", "25"))
+
+#: A RUNAWAY GUARD on GitHub search calls, not a budget. GitHub is free; this
+#: exists because `--fetch-cap` bounds only `rest_calls` (the per-issue fetches)
+#: and the searches were counted by nothing at all.
+#:
+#: SET ABOVE WHAT A REAL RUN SPENDS, DELIBERATELY. The 2026-09-09 run issued 48
+#: searches - 11 variants x 6 capability queries - in 107 seconds with no
+#: throttling, so a cap of 12 was set on a 429 that never happened and would
+#: have cut coverage by three quarters on the one platform that costs nothing.
+#: 60 sits above the observed 48, so it does not bite in normal operation and
+#: still stops an unbounded cross-product if the variant or capability list
+#: grows: 20 variants x 6 queries is 120 searches nobody asked for.
+MAX_GITHUB_SEARCHES = int(os.getenv("FETCH_MAX_GITHUB_SEARCHES", "60"))
+
 
 class Progress:
     """One run's per-stage log. Append-only JSONL the fetch view tails."""
@@ -314,7 +340,21 @@ def harvest_github(conn, prog: Progress, variants: list[str], *, fetch_cap: int)
     for req in plan.requests:
         if fetched >= fetch_cap:
             prog.stage("E2", "Harvest", "running",
-                       detail=f"fetch cap of {fetch_cap} requests reached, stopping")
+                       detail=f"fetch cap of {fetch_cap} issue-fetch call(s) reached, stopping")
+            break
+        # THE SEARCH CALLS, WHICH `fetch_cap` DOES NOT COUNT. It bounds
+        # `rest_calls` - the per-issue fetches - and 48 searches went out
+        # unbounded on 2026-09-09 against a 30-a-minute limit. Read from the
+        # harvester's own ledger rather than recounted here, for the reason
+        # github.py:375 gives: a total summed over what the caller happened to
+        # keep under-reported its own failures once already.
+        spent_searches = int(harvester.totals().get("search_calls") or 0)
+        if spent_searches >= MAX_GITHUB_SEARCHES:
+            prog.stage("E2", "Harvest", "running",
+                       search_calls=spent_searches,
+                       detail=f"search cap of {MAX_GITHUB_SEARCHES} reached after "
+                              f"{spent_searches} search(es) — stopping before GitHub "
+                              f"throttles and the platform reads as empty")
             break
         run = harvester.harvest(req)
         wrote = harvester.write_documents(conn, run)
@@ -447,11 +487,29 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                 if getattr(fetch, "not_a_thread", False) or not getattr(fetch, "comments", None):
                     continue  # a post with no comments will not assemble
                 items = [post, *fetch.comments]
-                refs = {post.external_id:
-                        (store.put(post.sieve_text).ref, content_hash(post.sieve_text))}
-                for c in fetch.comments:
-                    body = getattr(c, "body", "") or ""
-                    refs[c.external_id] = (store.put(body).ref, content_hash(body))
+                # THE PAYLOAD, NOT THE PROSE. This stored `sieve_text` for the
+                # post and `body` for each comment - already-flattened TEXT -
+                # and Reddit is the only platform that did. Both readers parse
+                # JSON: `collect/assemble/reddit.py` refuses a non-JSON payload
+                # ("REFUSED reddit payload: not JSON") and
+                # `collect/assemble/prose.py:reddit_prose` needs `title` /
+                # `selftext` / `body` keys. The 2026-09-10 run lost 716 of 718
+                # documents to it, and `assemble/reddit.py` had already written
+                # down the remedy: "store the raw getPostComments payload".
+                #
+                # `.raw` is the original `data` dict, kept on both types on
+                # purpose (`_comment_of` ends with `raw=inner`), so this is the
+                # payload as the platform sent it - not an envelope rebuilt here.
+                #
+                # `content_hash` moves onto the same bytes, so the hash keeps
+                # identifying what is stored rather than something adjacent.
+                def _payload(obj) -> str:
+                    return json.dumps(getattr(obj, "raw", None) or {}, sort_keys=True)
+
+                refs = {}
+                for obj in items:
+                    blob = _payload(obj)
+                    refs[obj.external_id] = (store.put(blob).ref, content_hash(blob))
                 # This is the model-name SEARCH arm: a query was issued but no
                 # harvest_run row was opened, so `not_recorded` is the honest
                 # provenance — reddit_write.py:147 names this exact caller. The
@@ -812,8 +870,23 @@ def build_thread_inputs(conn, seen, *, limit: int):
         "FROM thread_context tc "
         "WHERE EXISTS (SELECT 1 FROM document d "
         "              WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept') "
+        # OVER-FETCH, BECAUSE THE FILTERS RUN AFTER THIS. The oversized-thread
+        # ceiling and the payload-readability checks are applied in Python
+        # below, so a bare `LIMIT limit` spends its slots on candidates that are
+        # then discarded. Measured on the 2026-09-10 run: 25 selected, 19 over
+        # the 30,000-char ceiling, 6 reached the model - a cap of 25 delivering
+        # 6. Fetching a wider pool and taking the first `limit` USABLE threads
+        # makes the cap mean what it says.
+        #
+        # `ORDER BY assembled_at DESC` is kept and is the other half of that
+        # run's story: dev.to assembled 37 minutes before Hacker News, so all
+        # 38 of its threads fell outside a 25-row window and none was ever
+        # considered. A wider pool reaches them.
         "ORDER BY tc.assembled_at DESC LIMIT %s",
-        (limit,),
+        # 8x the cap, floored at 200 so a small cap still sees a real pool.
+        # Bounded rather than unbounded: this reads a payload per candidate, and
+        # an unbounded pool would read the whole corpus off disk to fill 25 slots.
+        (max(limit * 8, 200),),
     ).fetchall()
     # What the verdict cost, counted rather than inferred: a thread with no
     # surviving member is one E4 removed, and a run that cannot say how many did
@@ -826,6 +899,10 @@ def build_thread_inputs(conn, seen, *, limit: int):
 
     inputs = []
     doc_ids: set[str] = set()
+    #: Threads skipped for size. Returned rather than counted, so the caller can
+    #: name them - "deferred to the nightly batch" is only honest if somebody
+    #: can see WHICH threads are waiting.
+    oversized: list[str] = []
     for tc_id, flat_ref, omap, members in rows:
         if tc_id in seen:
             continue  # already extracted at this pipeline version
@@ -844,12 +921,22 @@ def build_thread_inputs(conn, seen, *, limit: int):
                     raw_text_of[did] = store.get_text(tref)
         if not raw_text_of:
             continue  # step 3 renders the raw span; without it, unrenderable
+        # THE OVERSIZED CEILING, APPLIED HERE rather than in the caller. It used
+        # to run after selection, so an oversized thread consumed one of the
+        # cap's slots and was then dropped - 19 of 25 on the 2026-09-10 run.
+        # Skipping them during selection means `limit` counts threads the model
+        # will actually read.
+        if len(flattened) > MAX_FETCH_THREAD_CHARS:
+            oversized.append(tc_id)
+            continue
         inputs.append(ThreadInput(
             thread_context_id=tc_id, flattened_text=flattened,
             offset_map=offset_map, raw_text_of=raw_text_of,
         ))
         doc_ids.update(members)
-    return inputs, doc_ids, gated_out
+        if len(inputs) >= limit:
+            break
+    return inputs, doc_ids, gated_out, oversized
 
 
 def _thread_latest_dates(conn, thread_ids: list[str]) -> dict:
@@ -1022,7 +1109,8 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
 
     ledger = ExtractionLedger(conn)
     seen = ledger.already_extracted()
-    threads, doc_ids, gated_out = build_thread_inputs(conn, seen, limit=200)
+    threads, doc_ids, gated_out, oversized = build_thread_inputs(
+        conn, seen, limit=MAX_FETCH_THREADS)
     if gated_out:
         # Said, not implied. A smaller corpus reaching the LLM because the gates
         # worked reads identically to a smaller corpus because the harvest was
@@ -1032,10 +1120,10 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
                    detail=f"{gated_out} thread(s) held back by E4 - no member survived "
                           "the hard gates, so they never reach the model")
 
-    # Defer pathologically large threads to the nightly batch so a click cannot
-    # become a many-minute call. Generous cap: most threads still read now.
-    oversized = [t for t in threads if len(t.flattened_text) > MAX_FETCH_THREAD_CHARS]
-    threads = [t for t in threads if len(t.flattened_text) <= MAX_FETCH_THREAD_CHARS]
+    # The size ceiling now runs INSIDE selection (see build_thread_inputs), so
+    # `threads` already excludes oversized ones and `MAX_FETCH_THREADS` counts
+    # threads the model will actually read. Filtering here as well was what made
+    # a cap of 25 deliver 6.
     if oversized:
         prog.stage("E5", "Extract", "running",
                    detail=f"{len(oversized)} oversized thread(s) deferred to the nightly "

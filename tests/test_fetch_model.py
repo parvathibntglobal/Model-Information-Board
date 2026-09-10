@@ -178,7 +178,11 @@ def test_build_thread_inputs_keeps_only_locally_resolvable_unseen_threads(monkey
     monkeypatch.setattr(fetch_model, "settings", lambda: SimpleNamespace(raw_store_path="unused"))
 
     conn = _Conn(thread_rows, doc_text_refs)
-    inputs, doc_ids, gated_out = fetch_model.build_thread_inputs(
+    # 4-tuple since 2026-09-10: the oversized list is RETURNED rather than
+    # recomputed by the caller, because the size ceiling now runs inside
+    # selection - a cap that counted threads it then discarded delivered 6
+    # of 25.
+    inputs, doc_ids, gated_out, _oversized = fetch_model.build_thread_inputs(
         conn, seen={"tcC"}, limit=200
     )
     # The gate's cost is reported, not inferred: a thin corpus because the
@@ -199,7 +203,7 @@ def test_build_thread_inputs_is_empty_when_nothing_resolves(monkeypatch):
     monkeypatch.setattr(fetch_model, "RawStore", _fake_store({}))  # store has nothing
     monkeypatch.setattr(fetch_model, "settings", lambda: SimpleNamespace(raw_store_path="unused"))
 
-    inputs, doc_ids, _gated = fetch_model.build_thread_inputs(
+    inputs, doc_ids, _gated, _oversized = fetch_model.build_thread_inputs(
         _Conn(thread_rows, {"dB": "rawB"}), seen=set(), limit=200
     )
     assert inputs == [] and doc_ids == set()

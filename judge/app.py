@@ -851,6 +851,101 @@ def compare_page(ids: str = "") -> dict:
     }
 
 
+#: HOW THE SOURCE TEXT IS READ, filled by the composition root.
+#:
+#: `judge/` may not import `collect/` - `tests/test_lane_boundary.py` enforces
+#: it - and `collect/rawstore.py` is the only reader of the payload store while
+#: `collect/assemble/prose.py` is the only thing that turns a payload into what
+#: a human wrote. So the reader is INJECTED: `run-backend.py`, which is outside
+#: both lanes, fills this in at startup.
+#:
+#: Signature: `(source: str, text_ref: str) -> str`, raising on refusal.
+#:
+#: `None` MEANS UNWIRED, NOT EMPTY. A default that returned nothing would let a
+#: process that forgot to wire a reader answer "no source text" for every quote
+#: - indistinguishable from a corpus whose payloads are elsewhere, which is the
+#: substitution `RefusingResolver` was written to stop.
+SOURCE_TEXT_READER = None
+
+
+@app.get("/documents/{document_id:path}/source")
+def document_source(document_id: str) -> dict:
+    """The text a quote was verified against, for one document.
+
+    THE BOARD'S WHOLE CLAIM IS CHECKABILITY, and until now a reader could see a
+    quote and a permalink but not the passage it came from. This serves the
+    stored payload as prose - the same text the classifier was shown and the
+    same text `verify` matched the quote against.
+
+    THREE OUTCOMES, AND THEY ARE NOT THE SAME FACT:
+
+      readable      the payload resolved and yielded prose.
+      not_local     `text_ref` points at a payload this machine does not hold.
+                    Documents harvested elsewhere are the normal case for a
+                    shared corpus - it is an absence, not a corruption.
+      not_prose     the payload resolved and its extractor refused it. This is
+                    what the 2026-09-10 Reddit rows are: text stored where JSON
+                    was expected. Saying which is how a reader learns the
+                    difference between "we cannot reach it" and "we stored the
+                    wrong thing".
+
+    `quote` is echoed back when given, with `quote_found` saying whether it
+    appears in the text verbatim. That is a live re-check of the verification
+    claim rather than a restatement of it - and a false here is a finding worth
+    surfacing, not an error to hide.
+    """
+    ref_row = None
+    with _conn() as conn:
+        ref_row = conn.execute(
+            "SELECT source, url, text_ref FROM document WHERE id = %s",
+            (document_id,),
+        ).fetchone()
+
+    if ref_row is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"{document_id!r} is not a document in this database. Refused "
+                f"rather than answered empty: an unknown id and a document with "
+                f"no readable payload are different facts."
+            ),
+        )
+    source, url, text_ref = ref_row
+
+    base = {"document_id": document_id, "source": source, "url": url}
+    if not text_ref:
+        return {**base, "state": "not_local", "text": None,
+                "why": "this document row carries no text_ref, so no payload was ever stored"}
+
+    # THE INJECTED READER. `judge/` may not import `collect/`, so the thing that
+    # knows the store's layout and the source's prose extractor is filled in by
+    # the composition root - see SOURCE_TEXT_READER above.
+    reader = SOURCE_TEXT_READER
+    if reader is None:
+        return {**base, "state": "unwired", "text": None,
+                "why": ("no source-text reader is wired into this process, so the "
+                        "payload cannot be read here. This is a wiring gap, NOT a "
+                        "document without text - `run-backend.py` fills it at "
+                        "startup, and a --reload worker re-imports the app without "
+                        "it.")}
+    try:
+        text = reader(source, text_ref)
+    except FileNotFoundError as exc:
+        return {**base, "state": "not_local", "text": None,
+                "why": (f"the payload at {text_ref} is not in this machine's store "
+                        f"({exc}). A document harvested on another machine is the "
+                        f"normal case for a shared corpus.")}
+    except Exception as exc:
+        # The extractor refused it. This is what the 2026-09-10 Reddit rows are:
+        # text stored where JSON was expected.
+        return {**base, "state": "not_prose", "text": None,
+                "why": (f"{source} payload refused by its own prose extractor: "
+                        f"{str(exc).splitlines()[0][:160]}")}
+
+    return {**base, "state": "readable", "text": text, "why": None,
+            "characters": len(text)}
+
+
 @app.get("/models")
 def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0) -> dict:
     """The registry as a list, with what the provider advertises.
