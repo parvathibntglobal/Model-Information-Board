@@ -1,16 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
-import { modelPage, listModels, fetchAll, capLabel, fmtPrice, fmtTokens, fmtInt, BoardUnreadable } from '../api'
+import { modelPage, listModels, fetchAll, fmtPrice, fmtTokens, fmtInt, BoardUnreadable } from '../api'
 import FetchPanel from '../components/FetchPanel'
 import ModelEvidence from '../components/ModelEvidence'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
-import { IconAlert, IconArrow, IconExternal } from '../components/Icons'
-
-const STATE = {
-  published:    { tone: 'pass', label: 'published' },
-  insufficient: { tone: 'warn', label: 'few reports' },
-  unreported:   { tone: 'mute', label: 'nobody has discussed this' },
-}
+import { IconAlert, IconArrow } from '../components/Icons'
 
 export default function ModelDetail() {
   // `/models/*` rather than `/models/:id`, because an id can contain a
@@ -100,153 +94,24 @@ export default function ModelDetail() {
         </div>
       )}
 
-      {/* ── THE CLOSED-VOCABULARY VIEW, FOLDED ────────────────────────────────
-          Everything below this line is keyed to the ratified twelve
-          capabilities, and the evidence panel above is keyed to nothing — it
-          shows the sections the classifier discovered in the evidence itself.
-          Both are real; only one is the board's vocabulary.
+      {/* THE CAPABILITY CARDS ARE GONE FROM THIS PAGE.
+          They showed the ratified twelve - a closed vocabulary feeding the
+          legacy cell score - underneath an evidence panel keyed to nothing at
+          all. Folding them into a disclosure said "secondary"; removing them
+          says "not this page's job", which is truer: six of the eight
+          capability sections on the reference board have no ratified key and
+          could never have appeared here.
 
-          It used to be four panels to that one, so the closed list won the page
-          by volume and the page read as though the board tracked twelve things.
-          Folded rather than deleted: the `cell` rows behind it still answer the
-          Ask box, which refuses to recommend a model from unpublished cells. So
-          this data is live, and it is secondary — which is what a labelled
-          disclosure says and what deleting it would not. */}
-      {page && (
-        <details className="legacy-cells">
-          <summary>
-            <strong>Capability cards</strong> — the older view, keyed to the twelve
-            ratified capabilities
-            <span className="dim" style={{ display: 'block', fontSize: 'var(--fs-xs)', fontWeight: 400, marginTop: 4 }}>
-              A closed list, so a capability engineers discussed that is not one of the
-              twelve cannot appear here — it appears in the evidence above instead. These
-              cards and their publication gate are what the Ask box reads; the board does
-              not use them.
-            </span>
-          </summary>
-
-          <div className="stack stack-3" style={{ marginTop: 'var(--s3)' }}>
-            <Notice>{page.summary}</Notice>
-
-            <ReportedStrip page={page} focus={state?.focus} />
-
-            {page.unbound_phrases.length > 0 && (
-              <div className="notice" style={{ borderColor: 'var(--fail)', background: 'var(--fail-dim)' }}>
-                <IconAlert style={{ flex: 'none', marginTop: 2, color: 'var(--fail)' }} />
-                <div>
-                  <strong style={{ color: 'var(--text)' }}>Phrases with no evidence behind them</strong>
-                  <p style={{ marginTop: 4 }}>
-                    {page.unbound_phrases.join(', ')}
-                  </p>
-                  <p style={{ marginTop: 6 }}>
-                    These are <strong>not rendered below</strong>. A published phrase with no
-                    quote ids is an unfalsifiable claim, and showing it anyway would make a
-                    backend defect permanent.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <CapabilitiesSection page={page} focus={state?.focus} />
-          </div>
-        </details>
-      )}
+          UI ONLY, AND NOTHING IS DESTROYED. E7 still writes `cell` on every
+          fetch, the Ask box still refuses to recommend a model without a
+          published one, and the models list still counts them for its evidence
+          badge. `GET /models/{id}` still returns `capabilities`; this page
+          stops rendering them. */}
     </div>
   )
 }
 
-/**
- * Capabilities, evidenced first. The undiscussed ones are COLLAPSED, not
- * dropped — hiding them would erase the board's core distinction, because a
- * capability engineers tested and found fine and one nobody ever mentioned
- * would then look identical (rule 4), and for a silent-failure capability that
- * blank reads as "safe" when it means "unknown".
- *
- * The count is framed as "tracked", never as a fixed universe: the capability
- * taxonomy grows as new ones are found in the evidence, so the twelve here are
- * what we track TODAY, not all there are. Presenting them as the denominator
- * would be the rule-7 mistake this framing exists to avoid.
- */
-function CapabilitiesSection({ page, focus }) {
-  const visible = page.capabilities.filter((c) => !page.unbound_phrases.includes(c.key))
-  const evidenced = visible.filter((c) => c.state !== 'unreported')
-  const undiscussed = visible.filter((c) => c.state === 'unreported')
 
-  return (
-    <section className="card card-flush">
-      <div className="card-head">
-        <span className="label">What engineers have reported</span>
-        <span className="label">{evidenced.length} of {visible.length} tracked capabilities</span>
-      </div>
-      <div className="card-body stack stack-3">
-        {evidenced.length === 0 && (
-          <p className="muted" style={{ fontSize: 'var(--fs-sm)' }}>
-            No capability has evidence yet — nobody has reported on this model’s behaviour.
-            That is an absence of reports, not a clean bill of health.
-          </p>
-        )}
-        {evidenced.map((c) => (
-          <CapRow key={c.key} c={c} page={page} focus={focus} />
-        ))}
-
-        {undiscussed.length > 0 && (
-          <details>
-            <summary className="label" style={{ cursor: 'pointer' }}>
-              {undiscussed.length} tracked capabilit{undiscussed.length === 1 ? 'y has' : 'ies have'}{' '}
-              no evidence yet — show {undiscussed.length === 1 ? 'it' : 'them'}
-            </summary>
-            <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: '8px 0 10px' }}>
-              These are the capabilities we track <em>today</em>, not all there are — the
-              taxonomy grows as new ones are found in the evidence. “Nobody has discussed
-              this” is an absence of reports; for a silent-failure capability it is not
-              reassurance, because a failure there produces no complaint to find.
-            </p>
-            <div className="stack stack-3">
-              {undiscussed.map((c) => (
-                <CapRow key={c.key} c={c} page={page} focus={focus} />
-              ))}
-            </div>
-          </details>
-        )}
-      </div>
-    </section>
-  )
-}
-
-/** One capability row — the same card whether it is evidenced or undiscussed. */
-function CapRow({ c, page, focus }) {
-  const st = STATE[c.state] || STATE.unreported
-  return (
-    <div id={`cap-${c.key}`} className={`caprow${c.key === focus ? ' caprow-focus' : ''}`}>
-      <div className="stack" style={{ gap: 5 }}>
-        <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-          <strong style={{ fontSize: 'var(--fs-sm)' }}>{capLabel(c.key)}</strong>
-          <Badge tone={st.tone}>{st.label}</Badge>
-          {c.needs_positive_consensus && <Badge tone="warn">needs positive consensus</Badge>}
-        </div>
-        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{c.headline}</span>
-
-        {c.conditions.map((s) => (
-          <div key={s.bucket} className="slice">
-            <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{s.bucket}</span>
-            <span style={{ fontSize: 'var(--fs-xs)' }}>{s.phrase || s.status}</span>
-            <span className="label">
-              {s.voices} {s.voices === 1 ? 'voice' : 'voices'} · {s.platforms}pf
-            </span>
-            {s.note && <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{s.note}</span>}
-            {s.quote_ids.length > 0 && (
-              <div className="wrapf" style={{ marginTop: 4 }}>
-                {s.quote_ids.map((qid) => (
-                  <Quote key={qid} q={page.quotes[qid]} id={qid} />
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 /**
  * What the provider advertises. Kept visually separate from everything below
@@ -317,135 +182,6 @@ function SpecPanel({ s }) {
   )
 }
 
-function Quote({ q, id }) {
-  if (!q) return <span className="badge badge-fail">missing quote {id}</span>
-  // Published content is quote + attribution + link. Some documents have no
-  // URL yet, and an unattributed quote is worse than no quote.
-  if (!q.permalink) {
-    return <span className="badge badge-warn">quote withheld — no source link</span>
-  }
-  return (
-    <blockquote className="mcard-quote" style={{ width: '100%' }}>
-      {/* PRAISE vs CRITICISM, read straight from the claim — never inferred in
-          the browser. A disputed sign (marked positive while naming a problem)
-          is flagged rather than shown as a green "praise", because for this
-          board a criticism read as praise is the dangerous direction. */}
-      <PolarityTag polarity={q.polarity} disputed={q.sign_disputed} />
-      “{q.text}”
-      <cite className="mcard-cite">
-        {q.platform} · {q.claimed_at} ·{' '}
-        <a href={q.permalink} target="_blank" rel="noreferrer" style={{ color: 'var(--text-2)' }}>
-          open <IconExternal width={10} height={10} />
-        </a>
-      </cite>
-    </blockquote>
-  )
-}
-
-function PolarityTag({ polarity, disputed }) {
-  if (disputed) {
-    return (
-      <span
-        className="badge badge-fail"
-        title="Marked as praise by the extractor, but it also names a problem — the sign contradicts itself and is flagged for review rather than trusted."
-        style={{ marginRight: 8 }}
-      >
-        sign disputed
-      </span>
-    )
-  }
-  if (polarity === 'positive') {
-    return <span className="badge badge-pass" style={{ marginRight: 8 }}>praise</span>
-  }
-  if (polarity === 'negative') {
-    return <span className="badge badge-warn" style={{ marginRight: 8 }}>criticism</span>
-  }
-  if (polarity === 'neutral') {
-    return (
-      <span
-        className="badge badge-mute"
-        title="A factual observation with no praise or criticism. Counts as a voice discussing this capability, but toward neither positive nor negative."
-        style={{ marginRight: 8 }}
-      >
-        neutral
-      </span>
-    )
-  }
-  return null
-}
 
 
-/**
- * The capabilities somebody has actually reported on, above the full list.
- *
- * THE UNDISCUSSED CAPABILITIES STAY, COLLAPSED. FR-24 and rule 4 are why they
- * are not dropped — a page showing only what it has evidence for renders
- * "nobody has looked" and "no problems found" identically, as nothing. So the
- * evidenced ones show, and the rest sit one click away behind a disclosure in
- * CapabilitiesSection, still present and still distinct.
- *
- * This strip is a jump list over the evidenced rows, which are always rendered
- * (never inside the collapse), so every chip resolves. It earns its place
- * because even an evidenced-first list can bury the one capability the reader
- * arrived from the Evidence filter to see.
- */
-function ReportedStrip({ page, focus }) {
-  const reported = page.capabilities.filter(
-    (c) => c.state !== 'unreported' && !page.unbound_phrases.includes(c.key)
-  )
 
-  useEffect(() => {
-    if (!focus) return
-    const el = document.getElementById(`cap-${focus}`)
-    if (!el) return
-    // rAF so the scroll happens after this render has painted, not against
-    // the previous layout.
-    const id = requestAnimationFrame(() =>
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    )
-    return () => cancelAnimationFrame(id)
-  }, [focus, page])
-
-  if (!reported.length) {
-    return (
-      <Notice icon={<IconAlert />}>
-        <strong style={{ color: 'var(--text)' }}>Nobody has reported on this model.</strong>{' '}
-        Every capability below reads “nobody has discussed this”. That is an absence of
-        evidence and not a finding about the model — it may be excellent and simply
-        unwritten-about.
-      </Notice>
-    )
-  }
-
-  return (
-    <div className="card stack stack-2">
-      <span className="eyebrow">
-        Reported on {reported.length} of {page.capabilities.length} capabilities
-      </span>
-      <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-        {reported.map((c) => (
-          <a
-            key={c.key}
-            href={`#cap-${c.key}`}
-            className={`chip${c.key === focus ? ' chip-on' : ''}`}
-            onClick={(e) => {
-              e.preventDefault()
-              document.getElementById(`cap-${c.key}`)
-                ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            }}
-          >
-            {capLabel(c.key)}
-            <Badge tone={c.state === 'published' ? 'pass' : 'warn'}>
-              {c.state === 'published' ? 'reported' : 'few reports'}
-            </Badge>
-          </a>
-        ))}
-      </div>
-      <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-        These are the ones with something behind them. The{' '}
-        {page.capabilities.length - reported.length} nobody has discussed are collapsed
-        below, one click away — kept, not hidden, because an absence is a finding too.
-      </p>
-    </div>
-  )
-}
