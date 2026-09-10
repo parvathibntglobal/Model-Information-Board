@@ -10,6 +10,89 @@ want to.
 
 ---
 
+## ⚑ RESOLVED 2026-09-10 — THIS IS THE ARCHITECTURE, NOT DATA LOSS
+
+**We carried this as possible data loss for two days. It is not.** §1 asked the
+right question — *"does anyone else's `raw_store/` have these objects?"* — and
+treated it as unanswerable from here. It was answerable from here, by reading
+the writer instead of the store.
+
+**The mechanism.** `collect/rawstore.py` says **"NO OBJECT STORE YET"**: the raw
+store is a plain directory at `RAW_STORE_PATH`, per-machine and gitignored. The
+**database is shared** and the **payload store is not**. So a row written on one
+laptop carries a ref that is correct everywhere and an object that exists in one
+place. That is not a bug; it is a deferral `BUILD-PLAN.md` records and
+`rawstore.py` argues for.
+
+**The writer, and it predicted this exact symptom in its own docstring.**
+`scripts/write_reddit_thread.py` writes *every* comment in a thread as a
+`document` and `store.put`s each body locally:
+
+> *"Each body is `store.put`, so `text_ref` is the hash of the bytes. **That ref
+> is correct on every host; whether the BLOB is present is a separate fact about
+> a particular store.** The six pre-existing reddit rows carry refs whose blobs
+> are absent from this machine — **that is the store being host-specific, not
+> the refs being wrong.**"*
+
+It was describing six rows. The same sentence covers 1,177.
+
+**The evidence fits that and nothing else.** Measured 2026-09-10 against this
+host's store and the committed hash list:
+
+| | posts | comments |
+|---|---:|---:|
+| absent (§1's 1,234) | 57 | **1,177** |
+| of those, blob present here by ref | 0 | 0 |
+| platform payload here under another sweep's hash | 26 | 0 |
+| **resolve to prose here (§3's 248)** | **248** | **0** |
+
+Three things make it decisive, and it is the **asymmetry** rather than any count:
+
+1. **Every one of the 248 rows that resolve is a post. Not one is a comment.**
+   Those were written by `fetch_model.py`'s Reddit arm, which stores post *and*
+   comment objects in the same loop — so had that arm written the comments here,
+   their objects would be here too. Posts here, comments not: two writers, two
+   machines.
+2. **The 1,177 comments span 23 distinct threads** — the shape of a per-thread
+   script run by hand, which is exactly what `write_reddit_thread.py` is and
+   exactly why its provenance is `not_recorded`.
+3. **The correlation §2 called total is the same fact, one layer down.**
+   `run_recorded` means a `harvest_run` row was opened, which the nightly chain
+   does and a hand-run script does not. It was never a property of the writer's
+   *correctness* — it is a marker for *"run by hand"*, and run-by-hand is what
+   puts objects on one machine.
+
+**So nothing is lost, and the fix is a file copy.** The refs in the shared
+database already point at the objects; only the bytes need to travel. NFR-4
+holds — this is the third time it has covered a case it was written for.
+
+**One command, on Parvathi's machine**, and it replaces §5.1's paragraph:
+
+```
+py -3 scripts/check_absent_payloads.py
+```
+
+It reads the committed hash list, asks the filesystem, and prints a count. **A
+non-zero count confirms the copy path.** This host reports `0 of 1,234`, which
+is the expected reading for a machine that never ran the script.
+
+**What is NOT settled, stated so it is not read as settled** (rule 7 — the
+population here is one machine): I have not seen her store. The architecture
+explains the whole pattern and predicts the objects are there; it does not prove
+it. If her store also reports zero, the bytes really are gone and re-fetching 23
+threads becomes a `reddit-via-rapidapi` decision — §5.3's question, unchanged.
+
+**§3's 248 prose-as-payload rows are untouched by this** and remain a real
+defect: `content_hash` there fingerprints bytes we assembled, so it moves when
+the extractor does. Different problem, different fix, still open.
+
+*The rest of this document is as written on 2026-09-08 and is left intact. §1's
+scoping was right; its conclusion that the question could not be answered from
+here was wrong, and the reason is worth keeping: I went looking in the store and
+not in the writer.*
+
+---
+
 ## 1 · What is actually established, and what is not
 
 **Established:** 1,234 of 2,999 Reddit `document` rows — **41.1%** — point at a
