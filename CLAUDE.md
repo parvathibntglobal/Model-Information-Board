@@ -173,6 +173,48 @@ These are the rules a helpful refactor will otherwise quietly violate.
    than a precedent.
    Argument and both instances in `docs/weight-before-drop.md`.
 
+9. **A produced value has a named consumer, or a declared reason it has
+   none.** Any value this pipeline computes, extracts, pays a model for, or
+   persists must either have a reader named at a file and line, or be
+   **declared unconsumed** - with its intended reader and why that reader
+   cannot read it yet. Never neither. A value with no reader is not
+   necessarily waste; a value with no reader *and no statement about it* is
+   always a defect, because the next person cannot tell those two apart.
+
+   **Declaration, not deletion.** Three of the four instances below should
+   stay: two have real intended readers and one is a field we want and already
+   pay for. `contract/column_states.yaml` is the worked example - it declares a
+   state for all 340 columns and **150 of them are not currently read**, which
+   is a strength rather than a backlog.
+
+   **And it stops at the schema boundary, which is where this rule earns its
+   place.** All seven of that file's states describe *columns*. Three of the
+   four instances are not columns - a field in an LLM tool schema, a field in
+   an API payload, an adapter field dropped before the database - so the audit
+   cannot see them, and the most expensive one is the furthest outside it.
+
+   No test can catch this, for the same reason as rules 7 and 8: the absence of
+   a reader is not a behaviour, it is a silence, and a suite passing over a
+   silence looks exactly like one passing over a correct answer. So it is a
+   **reviewer question**: **what reads this, and where - file and line?** If
+   the answer is "nothing yet", the follow-up is not "delete it", it is "then
+   declare that".
+
+   Four instances, one week, and the shape is what makes it a rule:
+   `comparison_target` extracted from a paid model call and dropped before any
+   column; `unattributed_reading` published by the API and never rendered -
+   **added by the fix for the first shape and creating the second**;
+   `specificity_score` written and declared `write_only` with its blocked
+   reader named; `quota_exhausted` computed and dropped by name with its fix in
+   a numbered PR. The last two are what compliance looks like.
+
+   The cost is of two kinds and they argue differently: unread *information* is
+   recoverable whenever a reader is written, unread *spend* is not.
+   `comparison_target` is tokens paid on input and output, per thread, on every
+   re-run, invisible on any invoice because it is a fraction of a call nobody
+   itemises.
+   Argument and all four instances in `docs/produced-and-never-consumed.md`.
+
 ## Stack decisions already made - do not relitigate
 
 - Python 3.11+. Postgres plus an object store. `httpx` for fetching.
