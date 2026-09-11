@@ -521,11 +521,19 @@ class Pipeline:
         client: ExtractionClient,
         capability_keys: list[str],
         extractor_model: str,
+        # WHICH MODEL THIS RUN IS FOR, so a board entry can say whether
+        # its model was SEARCHED FOR or merely MENTIONED in a thread
+        # retrieved for a different one. Optional and defaulting to None
+        # on purpose: a caller that does not know must produce NULL
+        # rather than a guess, and the nightly chain (which sweeps rather
+        # than fetching one model) genuinely has no subject to name.
+        searched_model_version_id: str | None = None,
     ) -> None:
         self._conn = conn
         self._client = client
         self._capabilities = capability_keys
         self._extractor_model = extractor_model
+        self._searched_model_version_id = searched_model_version_id
         self._claims = ClaimStore(conn)
         self._ledger = ExtractionLedger(conn)
         self._cells = CellStore(conn)
@@ -879,7 +887,9 @@ class Pipeline:
             from judge.store.board_entries import store_entries
 
             outcome = store_entries(
-                self._conn, board_rows, proposer_model=self._extractor_model
+                self._conn, board_rows,
+                proposer_model=self._extractor_model,
+                searched_model_version_id=self._searched_model_version_id,
             )
             result.board_entries_stored = outcome["stored"]
             log.info(

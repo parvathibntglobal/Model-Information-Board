@@ -85,9 +85,19 @@ class TestTheCountIsSourcesNotRows:
 
     def test_per_model_counts_are_also_distinct_documents(self):
         # Otherwise the models list inherits the same inflation one level down.
+        #
+        # ⚠ THE LITERAL MOVED, THE PROPERTY DID NOT. The map is now keyed by
+        #   `(mv_id, label)` rather than `mv_id`, because `board_entry.
+        #   model_version_id` holds two id shapes and `web/src/board/db.js`
+        #   renders the internal `mv_…` key raw where a model name belongs.
+        #   Keying by the label ALONE would have emitted a name under the
+        #   `model_version_id` field, so both are carried. What is asserted
+        #   here is unchanged: the SET holds doc_ids, so the count is
+        #   distinct documents rather than rows.
         src = self._src()
-        assert 'bucket["_models"].setdefault(mv_id, set()).add(doc_id)' in src
-        assert '{"model_version_id": m, "reports": len(docs)}' in src
+        assert 'bucket["_models"].setdefault((mv_id, label), set()).add(doc_id)' in src
+        assert '"reports": len(docs)' in src
+        assert '"model_version_id": mid, "model_label": lbl' in src
 
     def test_the_docstring_corrects_the_floor_claim(self):
         # The floor argument is about undercounting. This bug overcounted, and

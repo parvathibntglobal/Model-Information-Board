@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Iterable
 from typing import Any
 
 from judge.store.claims import PIPELINE_VERSION
@@ -70,11 +71,44 @@ def entry_id(
     return f"be_{digest[:24]}"
 
 
+def _scope_of(entry: dict, searched: frozenset[str]) -> str | None:
+    """`searched` | `mentioned` | None, for one entry.
+
+    None WHEN THE CALLER DID NOT SAY. A run that does not pass its own
+    subject cannot have its rows labelled, and defaulting them to
+    `mentioned` would assert a population nobody recorded - the same
+    shape as reading an absent flag as `false` (rule 6). The column is
+    nullable for exactly this.
+
+    `searched` IS A SET OF IDS, NOT ONE, and that is load-bearing. The
+    column it compares holds BOTH shapes for the same model - the
+    canonical id when a run names its own subject, the internal `mv_`
+    key when the entry was resolved out of the text through
+    `model_alias`. Comparing against a single form would label the
+    searched model's own rows `mentioned` whenever they happened to
+    arrive by the other route, which is the failure this column exists
+    to end rather than reproduce.
+
+    An explicit `model_scope` on the entry wins, so a caller that
+    already knows is never second-guessed.
+    """
+    given = entry.get("model_scope")
+    if given in ("searched", "mentioned"):
+        return given
+    if not searched:
+        return None
+    mv = entry.get("model_version_id")
+    if not mv:
+        return None
+    return "searched" if mv in searched else "mentioned"
+
+
 def store_entries(
     conn: Any,
     entries: list[dict],
     *,
     proposer_model: str,
+    searched_model_version_id: str | Iterable[str] | None = None,
     pipeline_version: str = PIPELINE_VERSION,
 ) -> dict[str, int]:
     """Append discovered entries. Returns {proposed, stored, skipped_unverified}.
@@ -89,6 +123,16 @@ def store_entries(
     the batch and still reports that it happened. Rule 1 has no exception for a
     new table, and rule 4 says the refusal must be visible.
     """
+    # ONE ID OR SEVERAL, normalised once. A caller knowing only the
+    # canonical id may pass a string; one that has resolved both shapes
+    # should pass both, and more forms can only make the match better.
+    if searched_model_version_id is None:
+        searched: frozenset[str] = frozenset()
+    elif isinstance(searched_model_version_id, str):
+        searched = frozenset({searched_model_version_id})
+    else:
+        searched = frozenset(x for x in searched_model_version_id if x)
+
     proposed = len(entries)
     stored = 0
     skipped = 0
@@ -113,8 +157,8 @@ def store_entries(
                 "INSERT INTO board_entry "
                 "(id, section, slug, name, definition, unit, value_verbatim, basis,"
                 " model_version_id, document_id, claim_id, quote, quote_verified,"
-                " polarity, proposer_model, pipeline_version) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                " polarity, proposer_model, model_scope, pipeline_version) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                 "ON CONFLICT (id) DO NOTHING",
                 (
                     entry_id(
@@ -124,7 +168,9 @@ def store_entries(
                     section, slug, e["name"], e["definition"],
                     e.get("unit"), e.get("value_verbatim"), e.get("basis"),
                     e.get("model_version_id"), e["document_id"], e.get("claim_id"),
-                    e["quote"], True, e["polarity"], proposer_model, pipeline_version,
+                    e["quote"], True, e["polarity"], proposer_model,
+                    _scope_of(e, searched),
+                    pipeline_version,
                 ),
             )
             stored += cur.rowcount  # 1 on insert, 0 on conflict
@@ -220,8 +266,23 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         "       COALESCE(be.ruling_target, be.slug) AS slug,"
         "       be.name, be.definition, be.unit, be.value_verbatim, be.basis,"
         "       be.model_version_id, be.document_id, be.quote, be.polarity,"
-        "       be.created_at, d.url, d.author_id "
+        "       be.created_at, d.url, d.author_id,"
+        # THE MODEL NAME, JOINED. `board_entry.model_version_id` holds TWO
+        # shapes: a run names its own subject with the canonical id
+        # (`anthropic/claude-fable-5-1`), while a model resolved out of a
+        # thread through `model_alias` is stored as the internal key
+        # (`mv_4247e801b…`). `web/src/board/db.js` shortens an id by
+        # splitting on "/", so the first became `claude-fable-5-1` and the
+        # second rendered raw where a model name belongs. Measured
+        # 2026-09-11: 45 of 58 rows carried the internal key.
+        #
+        # Resolved HERE rather than in the frontend because this is the
+        # layer that can see the registry, and matched on EITHER shape so
+        # it does not depend on the two writers agreeing first.
+        "       v.canonical_id, v.display_name "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
+        "LEFT JOIN model_version v "
+        "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
         "WHERE be.ruling IS DISTINCT FROM 'declined' "
         # See the docstring. `best_for` claims suitability, so a negative
         # report cannot fill it. Written as NOT(...) rather than a polarity
@@ -235,7 +296,12 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
 
     grouped: dict[str, dict[str, dict]] = {s: {} for s in SECTIONS}
     for (section, slug, name, definition, unit, value, basis,
-         mv_id, doc_id, quote, polarity, _created_at, url, author_id) in rows:
+         mv_id, doc_id, quote, polarity, _created_at, url, author_id,
+         canonical, display) in rows:
+        # Falls back to the raw id rather than to None: an id nobody can
+        # resolve is still better than a blank where a model name belongs,
+        # and it names the row to go and look at.
+        label = display or canonical or mv_id
         if section not in grouped:
             continue
         bucket = grouped[section].setdefault(
@@ -258,19 +324,25 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         if mv_id:
             # Per model, also DISTINCT DOCUMENTS rather than rows, or the
             # models list inherits exactly the same inflation.
-            bucket["_models"].setdefault(mv_id, set()).add(doc_id)
+            # Keyed by (id, label) so the list can carry BOTH. Keying by
+            # the label alone would have emitted a name under the
+            # `model_version_id` field, which is the kind of quiet
+            # substitution this whole change exists to stop. Distinct
+            # documents, as above.
+            bucket["_models"].setdefault((mv_id, label), set()).add(doc_id)
         # The quote list is the evidence, so it is capped for payload size rather
         # than sampled - newest first, and the count above is the honest total.
         if len(bucket["quotes"]) < 12:
             bucket["quotes"].append(
                 {"quote": quote, "document_id": doc_id, "url": url,
                  "polarity": polarity,
-                 "model_version_id": mv_id}
+                 "model_version_id": mv_id, "model_label": label}
             )
         if section == "metric" and value is not None:
             bucket["figures"].append(
                 {"value": value, "basis": basis, "unit": unit,
-                 "model_version_id": mv_id, "document_id": doc_id}
+                 "model_version_id": mv_id, "model_label": label,
+                 "document_id": doc_id}
             )
 
     out: dict[str, list[dict]] = {}
@@ -287,8 +359,9 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             item["voices"] = len(item.pop("_voices"))
             item["quote_count"] = len(item["quotes"])
             item["models"] = [
-                {"model_version_id": m, "reports": len(docs)}
-                for m, docs in sorted(
+                {"model_version_id": mid, "model_label": lbl,
+                 "reports": len(docs)}
+                for (mid, lbl), docs in sorted(
                     item.pop("_models").items(), key=lambda kv: -len(kv[1])
                 )
             ]
@@ -430,10 +503,22 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
         "       be.definition, be.unit, be.value_verbatim, be.basis, be.quote,"
         "       be.polarity, be.document_id, be.created_at, d.url, d.author_id "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
-        "WHERE be.model_version_id = %s AND be.ruling IS DISTINCT FROM 'declined' "
+        "LEFT JOIN model_version v "
+        "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
+        # ⚠ MATCHED ON EITHER SHAPE, AND IT WAS NOT. This was an exact
+        # match against a column holding TWO id shapes - the canonical id
+        # when a run names its own subject, the internal `mv_` key when the
+        # entry was resolved out of a thread. So a page asked for by
+        # canonical id returned none of that model's `mv_` rows and
+        # rendered "nobody has discussed this": an absence we CAUSED,
+        # presented as one we found - rule 4 on the page the rule was
+        # written for. Measured 2026-09-11: deepseek-v4-pro returned 0
+        # quotes against 6 rows that existed.
+        "WHERE (be.model_version_id = %s OR v.id = %s OR v.canonical_id = %s) "
+        "  AND be.ruling IS DISTINCT FROM 'declined' "
         "ORDER BY be.section, COALESCE(be.ruling_target, be.slug), be.created_at DESC "
         "LIMIT %s",
-        (model_version_id, limit),
+        (model_version_id, model_version_id, model_version_id, limit),
     ).fetchall()
 
     sections: dict[str, dict[str, dict]] = {s: {} for s in SECTIONS}
