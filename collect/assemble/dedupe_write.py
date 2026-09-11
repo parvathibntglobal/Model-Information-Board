@@ -99,6 +99,36 @@ def _texts(
     reader = RawStoreReader(store)
     extract = prose.for_source(source)
 
+    # ── A MISSING PAYLOAD IS EXPECTED HERE, AND ONLY HERE ────────────────────
+    #
+    # `rawstore` logs a missing ref at ERROR with NFR-4 in the text, because on
+    # a single machine a missing payload IS corruption - the store is the only
+    # copy and rebuild-from-raw is void without it. That reasoning is right and
+    # the message stays.
+    #
+    # It stops being right for THIS pass. The database is shared and the raw
+    # store is not: 5,210 of 7,479 documents were harvested on somebody else's
+    # machine, so their payloads are legitimately absent here. Rehearsed
+    # against staging, this pass produced 815 NFR-4 errors in 15 seconds and
+    # would have buried the fetch log under them.
+    #
+    # So the CALLER declares that it expects misses, rather than the store
+    # being taught to doubt itself. They are not swallowed: every one is
+    # counted into `report.unreadable` and reported on the stage line, which is
+    # what stops "0 clusters" reading as "nothing was duplicated" when it means
+    # "most of the corpus was not on this disk".
+    store_log = logging.getLogger("collect.rawstore")
+    previous = store_log.level
+    store_log.setLevel(logging.CRITICAL)
+    try:
+        return _read_texts(conn, source, reader, extract, report, limit)
+    finally:
+        store_log.setLevel(previous)
+
+
+def _read_texts(conn, source, reader, extract, report, limit):
+    """The read itself. Split out so the log level is restored on every path."""
+
     rows = conn.execute(
         "SELECT id, text_ref, created_at FROM document "
         "WHERE source = %s AND text_ref IS NOT NULL "
