@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
-import { health, coveragePage, changelogPage, listModels, BoardUnreadable } from '../api'
-import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
+import { health, coveragePage, listModels, BoardUnreadable } from '../api'
+import { Badge, Notice, Reveal, Stat } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
 import BoardReview from '../components/BoardReview'
-import CapabilityReview from '../components/CapabilityReview'
 import FetchPanel from '../components/FetchPanel'
 import { IconAlert, IconGauge } from '../components/Icons'
 
@@ -90,7 +89,6 @@ function CollectEvidence() {
 export default function Admin() {
   const hp = useSurface(health)
   const cov = useSurface(coveragePage)
-  const chg = useSurface(() => changelogPage(30))
 
   return (
     <div className="shell section-tight stack stack-4">
@@ -154,46 +152,7 @@ export default function Admin() {
         <BoardReview />
       </Reveal>
 
-      {/* capability discovery review — the extractor's proposed keys, awaiting a
-          ruling. A decision the run produces, not a health signal. */}
-      <Reveal>
-        <CapabilityReview />
-      </Reveal>
 
-      {/* changelog */}
-      <Reveal>
-        <section className="card card-flush">
-          <div className="card-head">
-            <span className="label">Changelog — us, or the world</span>
-            {chg.data && <span className="label">{chg.data.total_labels} labels · {chg.data.window_days}d</span>}
-          </div>
-          <div className="card-body stack stack-2">
-            {chg.unreadable && <Unreadable detail={chg.unreadable} compact />}
-            {chg.err && <Notice icon={<IconAlert />}>{chg.err}</Notice>}
-            {!chg.data && !chg.err && !chg.unreadable && <div className="skel" style={{ height: 120 }} />}
-            {chg.data && (
-              <>
-                <p className="muted" style={{ fontSize: 'var(--fs-sm)' }}>{chg.data.summary}</p>
-                {Object.entries(chg.data.by_driver).length === 0 && (
-                  <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>No label changes in the window.</p>
-                )}
-                {Object.entries(chg.data.by_driver).map(([driver, changes]) => (
-                  <div key={driver} className="stack" style={{ gap: 6 }}>
-                    <span className="label">{driver} · {changes.length}</span>
-                    {changes.slice(0, 6).map((c) => (
-                      <div key={c.change_id} className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-                        <Badge tone={c.direction === 'gained' ? 'pass' : 'fail'}>{c.direction}</Badge>
-                        <span style={{ fontSize: 'var(--fs-xs)' }}>{c.headline}</span>
-                        {!c.evidenced && <Badge tone="warn">unevidenced</Badge>}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        </section>
-      </Reveal>
     </div>
   )
 }
