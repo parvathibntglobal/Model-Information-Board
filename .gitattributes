@@ -1,1 +1,8 @@
 ﻿* text=auto
+# Shell scripts must be LF even in a Windows working copy. `text=auto` above
+# normalises to LF in the repository but converts to CRLF on checkout when
+# core.autocrlf is true, and `#!/bin/sh` is not an interpreter - a git hook
+# that arrives with CRLF simply stops running, which is the one failure mode a
+# guard must not have.
+scripts/hooks/** text eol=lf
+*.sh text eol=lf
