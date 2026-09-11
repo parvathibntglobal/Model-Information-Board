@@ -60,15 +60,28 @@ function CollectEvidence() {
       {models && models.length === 0 && (
         <p className="dim" style={{ fontSize: 'var(--fs-sm)' }}>No models tracked yet.</p>
       )}
+      {/* ONE FOLD PER MODEL. Each row carries a whole FetchPanel - the button,
+          the live stage list and the run history - so with more than a couple
+          of models the page becomes a column of panels and the one you came to
+          run is somewhere in it. Folded, the list is a list again.
+
+          NOT folded into a single "Models" panel: the thing a reader is
+          choosing between IS the models, so each needs to stay individually
+          visible and individually clickable.
+
+          Native <details>, same as the FAQ and the other folds: the panels
+          stay in the DOM whether or not they are open. */}
       {models && models.map((m) => (
-        <div key={m.model_version_id} className="stack stack-1">
-          <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'baseline' }}>
-            <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.display_name || m.model_version_id}</strong>
-            <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{m.model_version_id}</span>
+        <details key={m.model_version_id} className="disc">
+          <summary>
+            {m.display_name || m.model_version_id}
+            <span className="n">{m.model_version_id}</span>
             {m.provider && <Badge tone="mute">{m.provider}</Badge>}
+          </summary>
+          <div className="disc-body">
+            <FetchPanel modelVersionId={m.model_version_id} />
           </div>
-          <FetchPanel modelVersionId={m.model_version_id} />
-        </div>
+        </details>
       ))}
     </div>
   )
