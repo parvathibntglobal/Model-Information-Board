@@ -290,8 +290,52 @@ These are the rules a helpful refactor will otherwise quietly violate.
   append-only (`ON CONFLICT DO NOTHING`); never a global rebuild against
   staging. Migrations apply **once, in order, by whoever merges the migration
   PR, immediately after merge, and announced the same day** - check the ledger
-  first, because it got out of step once. Before a staging write session, say
+  first, because it got out of step TWICE. Before a staging write session, say
   so, so two of us are not writing the same afternoon.
+
+  **WHEN THE RUNNER IS BLOCKED AND A MIGRATION HAS TO GO IN NOW.** This has
+  happened twice and both times the runner was routed around:
+  `20260910T1300_claim_capability_key_nullable.sql` applied by hand to unblock
+  an E5 foreign-key violation, and `20260911T1000_shared_telemetry.sql` the
+  next day. Neither reached `schema_migration`, because nothing asked it to.
+
+  The runner refusing everything on one mismatch is the guard working. But a
+  guard that blocks all traffic until somebody investigates is a guard people
+  step around under pressure, and then the ledger is wronger than before - so
+  **hand-application is ALLOWED and recording it is NOT OPTIONAL**:
+
+    1. Apply the SQL and INSERT the ledger row **in one transaction**. If the
+       DDL commits and the row does not, you have created exactly the state
+       this rule exists to prevent.
+    2. The hash comes from `collect.migrate.content_hash` on the file, never
+       typed by hand and never copied from another row.
+    3. `applied_at` is when it was APPLIED. `schema_migration` has no
+       `recorded_at`, so a backfilled row cannot carry both facts - say in the
+       commit message that the timestamp was reconstructed and from what. That
+       is weaker than an observed one and the weakness should be visible.
+    4. Announce it the same day, like any other migration.
+
+  **RESOLVING A MISMATCH IS AN INVESTIGATION, NOT A RE-HASH.** A stored hash
+  that matches no encoding of the file on disk usually means the file was
+  applied from a draft and revised before commit - `git log --follow` showing a
+  single commit does not rule that out, it is the signature of it. Before
+  re-hashing:
+
+    - Search the whole object database, not the file's history:
+      `git cat-file --batch-all-objects` and hash every plausible blob. A
+      recovered draft turns a judgement call into a diff.
+    - If it is unrecoverable, verify the migration's STATEMENTS against the
+      live schema instead of its text - each `WHERE` clause as a `SELECT
+      count(*)`, and any post-condition the file asserts. A migration whose
+      statements would change zero rows and raise nothing is safe to re-hash
+      whatever its prose used to say.
+    - Say which of the two you did. **Never re-hash on the grounds that it is
+      probably fine** - the hash is the only thing standing between a revised
+      migration and a database nobody can reason about.
+
+  Worked example, 2026-09-11: 132 of 160 lines were comment, the two `UPDATE`s
+  were idempotent by their own `NOT LIKE` guards, all four predicates counted
+  zero, and 99 candidate blobs in the object database hashed to none of it.
 - **A commit pushed to a branch whose PR has closed is invisible to everyone,
   including whoever pushed it.** Twice now, and the second was three minutes
   after the merge:
