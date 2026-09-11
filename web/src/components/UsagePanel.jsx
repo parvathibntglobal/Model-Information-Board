@@ -438,6 +438,39 @@ function RapidApiTab({ rapid, which }) {
           ? `${n(used)} of ${n(limit)} requests is the spend.`
           : `${n(remaining)} requests remaining is what the gateway last reported.`}
       </span>
+      {/* WHICH MACHINE AND WHICH STORE. The subscription is shared and the
+          local file is a cache, so the freshest reading is often somebody
+          else's. Until 2026-09-11 the caption named this machine's file
+          unconditionally while `_rapidapi_meters` had already merged the
+          shared table in — so another laptop's figure rendered under a line
+          claiming it was local. */}
+      <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+        Showing the{' '}
+        <strong style={{ color: 'var(--text)' }}>
+          {rapid.reading_source === 'shared table'
+            ? 'shared table'
+            : "this machine's"}
+        </strong>{' '}
+        reading, taken on{' '}
+        <strong style={{ color: 'var(--text)' }}>
+          {rapid.reading_machine || 'an unrecorded machine'}
+        </strong>{' '}
+        at {rapid.as_of || 'an unrecorded time'}.
+        {rapid.also_held ? (
+          <>
+            {' '}The other store holds{' '}
+            {n(rapid.also_held.quota_remaining)} remaining from{' '}
+            {rapid.also_held.machine || 'an unrecorded machine'} at{' '}
+            {rapid.also_held.as_of || 'an unrecorded time'} — older, and shown
+            because a stale local reading beside a fresher shared one is the
+            normal case on a shared subscription, not a disagreement to resolve.
+          </>
+        ) : rapid.reading_source === 'shared table' ? (
+          <> This machine has no reading of its own for this meter.</>
+        ) : (
+          <> No other machine has recorded this meter.</>
+        )}
+      </span>
       <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
         As of {rapid.as_of || 'the last fetch'}
         {readBy ? ` (recorded by a ${readBy})` : ''}, read on{' '}

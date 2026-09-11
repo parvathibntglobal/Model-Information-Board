@@ -36,7 +36,7 @@ E2's to make.
 from __future__ import annotations
 
 import os
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 #: Hosts that cannot be somebody else's database.
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "0.0.0.0", ""})
@@ -113,3 +113,54 @@ def check(url: str | None, *, command: str) -> None:
         f"call preflight()), so it turns this guard off without turning another "
         f"one on."
     )
+
+
+def describe(url: str | None) -> str:
+    """`host:port/dbname` for a log line. NEVER the credentials, NEVER raises.
+
+    A DSN carries a password, so the string itself may not be logged — and
+    "connected to the database" is not checkable by a reader without the host,
+    the port and the name, which is why all three are here and nothing else is.
+
+    THE THREE UNHAPPY ANSWERS ARE DISTINCT, because collapsing them is the
+    defect this exists to prevent. `unset` means nothing was configured,
+    `unparseable` means something was and it is not a postgres DSN, and a
+    missing hostname means a unix socket on this box. A single "unknown" for
+    all three would reproduce, in the log, exactly the ambiguity that made the
+    original failure invisible.
+    """
+    if not url or not url.strip():
+        return "unset"
+    try:
+        parsed = urlparse(url)
+        if (parsed.scheme or "").strip().lower() not in POSTGRES_SCHEMES:
+            return "unparseable (not a postgresql:// DSN)"
+        # `.port` is a property and raises ValueError on a non-numeric port,
+        # which is why it is inside the try rather than beside the return.
+        host = parsed.hostname or "(unix socket, this machine)"
+        port = parsed.port or 5432
+        name = (parsed.path or "").lstrip("/") or "(no database named)"
+    except ValueError:
+        return "unparseable"
+    return f"{host}:{port}/{name}"
+
+
+#: What `run-backend.py --staging` appends to the DSN, after unquoting. Named
+#: here rather than spelled inline at each reader: it is written in one place
+#: (that script) and read in two (the startup log, and any future guard), and a
+#: typo in a substring test fails OPEN — it would report a read-write session as
+#: read-only, which is the direction that matters.
+READ_ONLY_MARKER = "default_transaction_read_only=on"
+
+
+def is_read_only_dsn(url: str | None) -> bool:
+    """True when the DSN itself forces the session read-only.
+
+    A STATEMENT ABOUT THE DSN, NOT ABOUT THE SERVER. The connection options are
+    what this can see; a server-side default, a role setting or a later `SET`
+    are not, and none of them is claimed. It answers "did we ask for read-only",
+    which is the half a log line can honestly report.
+    """
+    if not url:
+        return False
+    return READ_ONLY_MARKER in unquote(url)
