@@ -77,7 +77,16 @@
 .ptag{display:inline-block;font:500 .68rem var(--mono);letter-spacing:.04em;
   text-transform:uppercase;padding:2px 7px;border-radius:var(--pill);margin-bottom:9px}
 .ptag.neg{color:var(--fail);border:1px solid color-mix(in srgb,var(--fail) 40%,transparent)}
-.qb q{display:block;font-size:1.02rem;line-height:1.5;margin-bottom:10px}
+/* One block is now ONE SOURCE, holding one or more figures. `.qi` is a single
+   quote inside it; `.qmeta` says how many there are, because three figures
+   from one comment presented as three cards read as three independent
+   observations. */
+.qb q{display:block;font-size:1.02rem;line-height:1.5}
+.qb .qi+.qi{margin-top:12px;padding-top:12px;border-top:1px solid var(--border-soft)}
+.qb .qi{margin-bottom:10px}
+.qb .qi:last-of-type{margin-bottom:10px}
+.qmeta{display:block;font:400 .72rem var(--mono);color:var(--text-2);
+  letter-spacing:.02em;line-height:1.5;margin-bottom:12px;max-width:70ch}
 /* Same contrast problem as the breadcrumb, and one worse thing: this line
    carries "open the source", and the rule below only ever matched <u>. The
    port replaced that <u> with a real <a href> when the dead link was fixed, so

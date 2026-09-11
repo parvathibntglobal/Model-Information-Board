@@ -150,6 +150,35 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     somebody merges them, so `reports` is ">= N" rather than N. Saying so is
     rule 7: the figure travels with what it actually counted.
 
+    ⚠ ONE REPORT IS ONE SOURCE DOCUMENT. Until 2026-09-11 `reports` was
+      incremented once per ROW, and a row is one quote — so the
+      `ethical-reasoning` page said "3 reports · verified" about this:
+
+          "it revived both men in 10 out of 20 rounds (50%)"
+          "When people are watching, Fable 5.1 never shot, and it revived
+           both men in 19 out of 20 rounds (95%)"
+          "Fable 5.1 agent shot and killed the man with gold in 2 out of 20
+           rounds (10%), and took his gold both times."
+
+      Three figures from ONE Hacker News comment by ONE author. Nothing on this
+      read path had ever looked at `document_id` or `author_id`, and the
+      inflated count then flipped `evidenceState` past its `reports >= 2`
+      threshold, so a single voice was labelled "verified" — the one word this
+      board must not be wrong about.
+
+      THE FLOOR ARGUMENT ABOVE DID NOT COVER IT, and that is worth saying
+      plainly: fragmentation makes a count too LOW, which a ">= N" label
+      handles honestly. Counting quotes as reports made it too HIGH, and no
+      amount of "at least" saves a number that overstates corroboration.
+
+      So three figures are now reported separately:
+
+          reports      distinct source documents
+          voices       distinct authors — what corroboration must be judged
+                       on, because two comments by one person are one voice
+          quote_count  rows, so a page can say "3 figures from 1 report"
+                       rather than having to pick one of those numbers
+
     ⚠ A NEGATIVE QUOTE NEVER REACHES `best_for`. It reached it until
       2026-09-11, and the board said this:
 
@@ -191,7 +220,7 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         "       COALESCE(be.ruling_target, be.slug) AS slug,"
         "       be.name, be.definition, be.unit, be.value_verbatim, be.basis,"
         "       be.model_version_id, be.document_id, be.quote, be.polarity,"
-        "       be.created_at, d.url "
+        "       be.created_at, d.url, d.author_id "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
         "WHERE be.ruling IS DISTINCT FROM 'declined' "
         # See the docstring. `best_for` claims suitability, so a negative
@@ -206,19 +235,30 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
 
     grouped: dict[str, dict[str, dict]] = {s: {} for s in SECTIONS}
     for (section, slug, name, definition, unit, value, basis,
-         mv_id, doc_id, quote, polarity, _created_at, url) in rows:
+         mv_id, doc_id, quote, polarity, _created_at, url, author_id) in rows:
         if section not in grouped:
             continue
         bucket = grouped[section].setdefault(
             slug,
             {
                 "slug": slug, "name": name, "definition": definition,
-                "unit": unit, "reports": 0, "models": {}, "quotes": [], "figures": [],
+                "unit": unit, "quotes": [], "figures": [],
+                # SETS, COUNTED AT THE END. `reports` used to be incremented
+                # once per ROW, and a row is one quote - so three figures
+                # stated in one comment by one person counted as three
+                # reports, and `evidenceState` then labelled that "verified"
+                # because it was >= 2. Nothing on this read path had ever
+                # looked at `document_id` or `author_id` at all.
+                "_docs": set(), "_voices": set(), "_models": {},
             },
         )
-        bucket["reports"] += 1
+        bucket["_docs"].add(doc_id)
+        if author_id:
+            bucket["_voices"].add(author_id)
         if mv_id:
-            bucket["models"][mv_id] = bucket["models"].get(mv_id, 0) + 1
+            # Per model, also DISTINCT DOCUMENTS rather than rows, or the
+            # models list inherits exactly the same inflation.
+            bucket["_models"].setdefault(mv_id, set()).add(doc_id)
         # The quote list is the evidence, so it is capped for payload size rather
         # than sampled - newest first, and the count above is the honest total.
         if len(bucket["quotes"]) < 12:
@@ -237,9 +277,20 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     for section, by_slug in grouped.items():
         items = []
         for item in by_slug.values():
+            # ONE REPORT IS ONE SOURCE DOCUMENT. `voices` is distinct authors,
+            # and it is what corroboration has to be judged on: two comments by
+            # one person are one voice, and "one voice is not corroboration" is
+            # the board's own rule (see `evidenceState` in web/src/board/db.js).
+            # `quote_count` stays separate so a page can say "3 figures from 1
+            # report" instead of choosing which of those numbers to show.
+            item["reports"] = len(item.pop("_docs"))
+            item["voices"] = len(item.pop("_voices"))
+            item["quote_count"] = len(item["quotes"])
             item["models"] = [
-                {"model_version_id": m, "reports": n}
-                for m, n in sorted(item["models"].items(), key=lambda kv: -kv[1])
+                {"model_version_id": m, "reports": len(docs)}
+                for m, docs in sorted(
+                    item.pop("_models").items(), key=lambda kv: -len(kv[1])
+                )
             ]
             if section != "metric":
                 item.pop("figures", None)
@@ -377,7 +428,7 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
     rows = conn.execute(
         "SELECT be.section, COALESCE(be.ruling_target, be.slug) AS slug, be.name,"
         "       be.definition, be.unit, be.value_verbatim, be.basis, be.quote,"
-        "       be.polarity, be.document_id, be.created_at, d.url "
+        "       be.polarity, be.document_id, be.created_at, d.url, d.author_id "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
         "WHERE be.model_version_id = %s AND be.ruling IS DISTINCT FROM 'declined' "
         "ORDER BY be.section, COALESCE(be.ruling_target, be.slug), be.created_at DESC "
@@ -387,14 +438,20 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
 
     sections: dict[str, dict[str, dict]] = {s: {} for s in SECTIONS}
     for (section, slug, name, definition, unit, value, basis,
-         quote, polarity, doc_id, _created, url) in rows:
+         quote, polarity, doc_id, _created, url, author_id) in rows:
         if section not in sections:
             continue
         bucket = sections[section].setdefault(slug, {
             "slug": slug, "name": name, "definition": definition,
-            "unit": unit, "reports": 0, "quotes": [], "figures": [],
+            "unit": unit, "quotes": [], "figures": [],
+            # Same correction as `board_sections` - see its docstring. A model
+            # page counting quotes as reports overstates its own evidence in
+            # exactly the same way.
+            "_docs": set(), "_voices": set(),
         })
-        bucket["reports"] += 1
+        bucket["_docs"].add(doc_id)
+        if author_id:
+            bucket["_voices"].add(author_id)
         bucket["quotes"].append(
             {"quote": quote, "polarity": polarity, "document_id": doc_id, "url": url}
         )
@@ -406,6 +463,10 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
 
     out = {}
     for section, by_slug in sections.items():
+        for item in by_slug.values():
+            item["reports"] = len(item.pop("_docs"))
+            item["voices"] = len(item.pop("_voices"))
+            item["quote_count"] = len(item["quotes"])
         items = sorted(by_slug.values(), key=lambda i: (-i["reports"], i["slug"]))
         if section != "metric":
             for i in items:

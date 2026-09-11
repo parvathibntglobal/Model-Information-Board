@@ -30,26 +30,50 @@ const shortModel = (id) => String(id || '').split('/').pop()
  *
  *   contested  both praise and criticism are present. A real disagreement, and
  *              it is shown as a split rather than averaged into a middle.
- *   verified   two or more reports and no disagreement among them. This counts
- *              REPORTS; it is not a quality judgement and not a gate verdict.
- *   single     exactly one report. Its own state on purpose: one voice is not
+ *   verified   two or more VOICES and no disagreement among them. This counts
+ *              PEOPLE; it is not a quality judgement and not a gate verdict.
+ *   single     one voice. Its own state on purpose: one voice is not
  *              corroboration, and calling it "not discussed" would be false.
  *   none       nothing at all.
+ *
+ * IT COUNTS VOICES, NOT QUOTES, AND THAT IS THE WHOLE CORRECTION. It used to
+ * take `reports`, which the API incremented once per QUOTE - so the
+ * ethical-reasoning page read "3 reports · verified" from three figures stated
+ * in ONE Hacker News comment by ONE author. The threshold was working
+ * correctly on a number that was wrong, and the word it produced - "verified" -
+ * is the one this board must never be wrong about.
+ *
+ * `voices` is distinct authors. Two comments by one person are one voice,
+ * which is the only reading under which this function's own docstring ("one
+ * voice is not corroboration") is true.
  */
-function evidenceState(reports, quotes) {
-  if (!reports) return 'n'
+function evidenceState(voices, quotes) {
+  if (!voices) return 'n'
   const pol = new Set((quotes || []).map((q) => q.polarity))
   if (pol.has('positive') && pol.has('negative')) return 'c'
-  return reports >= 2 ? 'v' : 's'
+  return voices >= 2 ? 'v' : 's'
+}
+
+/** "1 report · 3 figures" — never one number standing for both. */
+function evidenceLabel(item) {
+  const reports = item.reports || 0
+  const quotes = item.quote_count ?? (item.quotes || []).length
+  const r = `${reports} report${reports === 1 ? '' : 's'}`
+  // Only said when the two differ. "1 report · 1 figure" is noise, and a
+  // reader seeing "3 reports" where three quotes came from one comment is
+  // exactly what this is here to prevent.
+  return quotes > reports ? `${r} · ${quotes} figures` : r
 }
 
 function commonFields(item) {
-  const st = evidenceState(item.reports, item.quotes)
+  // VOICES, not reports. An absent `voices` falls back to `reports` so an
+  // older payload degrades to the previous behaviour rather than to 'none'.
+  const st = evidenceState(item.voices ?? item.reports, item.quotes)
   return {
     slug: item.slug,
     name: item.name,
     card: item.definition,
-    ev: String(item.reports),
+    ev: evidenceLabel(item),
     st,
     vol: '', // search volume is editorial, and absent is honest
     // One row per model named in this section. `d` and `p` stay empty: a

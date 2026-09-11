@@ -37,7 +37,13 @@ function safeHref(u){
 }
 
 const byS = (arr,s) => arr.find(x=>x.slug===s);
-const ST = {v:['ev-v','verified'], c:['ev-c','contested'], s:['ev-n','single report'],
+// VOICES, NOT REPORTS, AND "verified" IS GONE. The old labels were
+// 'verified' / 'single report', sitting next to a count that now reads
+// "1 report · 3 figures" - which made the card say "1 report · 3 figures ·
+// single report". Worse, 'verified' is already this codebase's word for
+// `quote_verified`, a span that matched its source text; reusing it for "two
+// or more people said so" overloaded the one term that has to stay precise.
+const ST = {v:['ev-v','corroborated'], c:['ev-c','contested'], s:['ev-n','one voice'],
             n:['ev-n','not discussed']};
 // A state we were not given renders as 'not discussed' rather than throwing:
 // an unknown state is an absence, and absence is a real value on this board.
@@ -70,31 +76,76 @@ function quotes(qs){
   if(!qs || !qs.length) return '';
   // [quote, who, document_id, isNegative, url]
   //
+  // ONE BLOCK PER SOURCE, NOT PER QUOTE. The ethical-reasoning page listed
+  // three quotes as three separate cards:
+  //
+  //     "it revived both men in 10 out of 20 rounds (50%)"
+  //     "When people are watching, Fable 5.1 never shot, and it revived both
+  //      men in 19 out of 20 rounds (95%)"
+  //     "Fable 5.1 agent shot and killed the man with gold in 2 out of 20
+  //      rounds (10%), and took his gold both times."
+  //
+  // All three are the same comment by the same author, and NONE of them stands
+  // alone: read singly, none says what the scenario was or which condition its
+  // figure belongs to. Three cards read as three independent observations.
+  //
+  // WHAT THIS DELIBERATELY DOES NOT DO is merge them into one readable
+  // sentence. Those figures describe DIFFERENT conditions - 50% unobserved,
+  // 95% observed, 10% shot-and-robbed - so composing them into prose would be
+  // us writing a summary of somebody else's experiment: rule 3 (nothing
+  // synthesised reaches a page) and rule 1 (no claim without a verbatim
+  // quote). The context comes from the source we link, not from us.
+  //
   // THE FOURTH SLOT IS `isNegative`, NOT `contested`. It was named contested
   // here while db.js filled it with `q.polarity === 'negative'`, and
-  // `evidenceState` separately uses 'c' to mean genuinely contested (positive
-  // AND negative present). One letter meaning two things is how a negative
-  // quote came to wear the colour for disagreement.
-  //
-  // `url` is the fifth: the payload used to carry only the document id, which
-  // is why "open the source" was underlined text pointing nowhere.
-  return '<div class="quotes">'+qs.map(([q,who,src,isNegative,url])=>{
-    const href = safeHref(url);
+  // `evidenceState` separately uses 'c' for genuinely contested. One letter
+  // meaning two things is how a negative quote wore the colour for
+  // disagreement.
+  const groups = [];
+  const seen = new Map();
+  for (const row of qs){
+    const key = row[2] || row[4] || String(seen.size);
+    if(!seen.has(key)){
+      seen.set(key, groups.length);
+      groups.push({who:row[1], src:row[2], url:row[4], items:[]});
+    }
+    groups[seen.get(key)].items.push(row);
+  }
+  return '<div class="quotes">'+groups.map(g=>{
+    const href = safeHref(g.url);
     // NO LINK IS BETTER THAN A DEAD ONE. A quote whose document row carries no
-    // usable URL says so, rather than offering an underline that does nothing —
-    // which is what the whole board did until now.
+    // usable URL says so, rather than offering an underline that does nothing.
     const cite = href
       ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">open the source</a>`
-      : '<span class="nosrc" title="This quote\'s document has no usable link.">no link recorded</span>';
-    // THE LABEL IS THE POINT, NOT THE BORDER. A negative quote used to be
-    // marked only by switching a 3px left border from green to amber, with no
-    // legend anywhere — so a reader could not know what amber meant, and every
-    // other quote being green read as approval. Said in words instead.
-    const tag = isNegative
-      ? '<span class="ptag neg">reported as a problem</span>'
+      : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>';
+    const anyNeg = g.items.some(r=>r[3]);
+    // A COUNT, NOT A SUMMARY. "3 figures from this one report" is arithmetic
+    // over rows; saying what the three figures mean together would not be.
+    const many = g.items.length > 1
+      ? `<span class="qmeta">${g.items.length} figures from this one report — each states a different condition, so they are shown together rather than as separate findings</span>`
       : '';
-    return `<div class="qb${isNegative?' neg':''}">${tag}<q>${esc(q)}</q><cite>${esc(who)} · ${esc(src)} · ${cite}</cite></div>`;
+    const body = g.items.map(row=>{
+      // THE LABEL IS THE POINT, NOT THE BORDER. A negative quote used to be
+      // marked only by switching a 3px left border from green to amber, with
+      // no legend anywhere — so a reader could not know what amber meant, and
+      // every other quote being green read as approval. Said in words instead.
+      const tag = row[3] ? '<span class="ptag neg">reported as a problem</span>' : '';
+      return `<div class="qi">${tag}<q>${esc(row[0])}</q></div>`;
+    }).join('');
+    return `<div class="qb${anyNeg?' neg':''}">${many}${body}<cite>${esc(g.who)} · ${esc(g.src)} · ${cite}</cite></div>`;
   }).join('')+'</div>';
+}
+
+/** The Reports heading, from the polarity actually present.
+ *
+ * It was the hardcoded string "What breaks it" on every capability page. On
+ * ethical-reasoning one of the three quotes is positive ("never shot ... 95%"),
+ * so the heading described the opposite of part of its own content. */
+function reportsHeading(qs){
+  if(!qs || !qs.length) return '';
+  const neg = qs.filter(r=>r[3]).length;
+  if(neg === qs.length) return 'What breaks it';
+  return neg ? 'What was reported, good and bad' : 'What was reported';
 }
 function related(list){
   if(!list || !list.length) return '';
@@ -177,7 +228,7 @@ function vCap(slug){
     ${sec('What this is not','Three things filed elsewhere',
       'Capability boundaries exist so a disagreement is a disagreement rather than two people using one word for two things.',conds(c.nots))}
     ${sec('Models with evidence','Who has been reported doing this','',ranked(c.rows))}
-    ${sec('Reports','What breaks it','',quotes(c.qs))}
+    ${sec('Reports',reportsHeading(c.qs),'',quotes(c.qs))}
     ${sec('Related','','',related(c.rel))}`;
 }
 
