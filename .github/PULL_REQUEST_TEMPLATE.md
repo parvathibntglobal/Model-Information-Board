@@ -26,6 +26,30 @@ ones that do and answer them. An unchecked box is a fine answer if you say why.
 - [ ] **Staging writes coordinated** if this touches the shared DB: append-only,
       no global rebuild, migrations applied once/in-order/announced same day.
 
+## Migration in this PR?
+
+<!-- Delete this whole section if `contract/migrations/` is untouched. -->
+
+- [ ] The body says **who runs `db migrate`, and when**.
+- [ ] That person is **whoever merges this PR**, immediately after merge.
+- [ ] It is **announced the same day**, as a comment on this PR, with the
+      `db check` output before and after.
+
+> ⚠ **A MIGRATION DOES NOT APPLY ON MERGE.** Merging ships the FILE. A
+> person runs the runner. The writer that depends on the new column ships
+> as CODE and takes effect the moment somebody pulls — so between the merge
+> and the migrate, every other machine has a writer for a schema it does
+> not have.
+>
+> Do not write *"applies on merge"*, *"lands with this"*, or *"the ledger
+> is clean so it will apply"*. All three read as **no action required**.
+>
+> The third of those was written in #260 and cost a run: the writer merged
+> at 11:16Z and reached the other machine on a pull; the migration reached
+> it as a file nobody had run; E5 died on `column "model_scope" of relation
+> "board_entry" does not exist` and spent three extract calls doing it.
+> Applied at 13:13Z, two hours later.
+
 ## Measurements
 
 <!-- If this PR is backed by a measurement, put the number and its population
