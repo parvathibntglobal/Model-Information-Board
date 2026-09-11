@@ -1,0 +1,62 @@
+#!/bin/sh
+# Refuse a commit made while HEAD is the trunk.
+#
+# WHY THIS EXISTS. On 2026-09-11 two commits landed directly on `main` against
+# the working agreement, and not because anyone decided to. The sequence, from
+# the reflog:
+#
+#     HEAD@{5}  commit on feat/shared-telemetry-tables          fine
+#     HEAD@{4}  checkout: moving from feat/... to main          another terminal
+#     HEAD@{3}  pull --tags origin main: Fast-forward           a PR being merged
+#     HEAD@{2}  commit                                          ON MAIN
+#     HEAD@{1}  pull --tags origin main: Fast-forward
+#     HEAD@{0}  commit                                          ON MAIN
+#
+# One person merged a PR in their own shell while work continued in the same
+# working copy. Nobody typed `git checkout main` intending to commit there; the
+# branch moved underneath, `git status` looked clean, `git log -1` showed the
+# expected commit, and both pushes went to the trunk.
+#
+# The lesson is that "remember to check the branch" does not survive a working
+# copy two people share. A check that runs on every commit does.
+#
+# THE OVERRIDE IS DELIBERATE AND NAMED. Reverting on the trunk is legitimate,
+# and so is a one-line fix somebody has decided to make directly. A guard with
+# no way past it gets disabled wholesale, and then it protects nothing:
+#
+#     ALLOW_COMMIT_ON_MAIN=1 git commit -m "revert the thing"
+#
+# `git merge` does not run pre-commit, so merging a PR locally is unaffected.
+
+branch=$(git symbolic-ref --short HEAD 2>/dev/null) || exit 0   # detached: not our business
+
+case "$branch" in
+  main|master)
+    if [ -n "$ALLOW_COMMIT_ON_MAIN" ]; then
+      echo "pre-commit: committing on '$branch' because ALLOW_COMMIT_ON_MAIN is set." >&2
+      exit 0
+    fi
+    cat >&2 <<EOF
+
+  REFUSING: you are on '$branch'.
+
+  Work goes on a branch and reaches the trunk through a pull request. If you
+  did not mean to be here, the branch probably moved under you - a merge or a
+  checkout in another shell sharing this working copy. That is exactly how two
+  commits reached main on 2026-09-11.
+
+  Your changes are still staged. To put them on a branch:
+
+      git switch -c <branch-name>
+      git commit ...
+
+  If you genuinely mean to commit on '$branch' - a revert, say:
+
+      ALLOW_COMMIT_ON_MAIN=1 git commit ...
+
+EOF
+    exit 1
+    ;;
+esac
+
+exit 0
