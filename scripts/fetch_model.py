@@ -101,6 +101,23 @@ MAX_FETCH_THREADS = int(os.getenv("FETCH_MAX_THREADS", "25"))
 MAX_GITHUB_SEARCHES = int(os.getenv("FETCH_MAX_GITHUB_SEARCHES", "60"))
 
 
+class RunStopped(BaseException):
+    """A person pressed Stop. NOT an `Exception`, deliberately.
+
+    Every harvest arm and every later stage in `main` is wrapped in
+    `except Exception` that turns a failure into a stage row reading `error`.
+    A stop request travelling through those would be RECORDED AS THE ARM
+    FAILING - the run would report "Harvest · Reddit · error" when nothing
+    about Reddit went wrong, and the log is the only account anybody has of
+    what a run did.
+
+    Deriving from BaseException is the same choice the standard library makes
+    for `KeyboardInterrupt`: this is not a fault in the code it passes
+    through, so it passes through untouched. `with` blocks still run their
+    `__exit__`, so the database connection and the HTTP client close normally.
+    """
+
+
 class Progress:
     """One run's per-stage log. Append-only JSONL the fetch view tails.
 
@@ -120,6 +137,19 @@ class Progress:
     def __init__(self, run_id: str, model_version_id: str) -> None:
         FETCH_DIR.mkdir(parents=True, exist_ok=True)
         self.path = FETCH_DIR / f"{run_id}.jsonl"
+        #: A STOP REQUEST IS A FILE, beside the log and for the same reason the
+        #: log is one: it has to work when the database does not. `POST
+        #: /fetch/stop` creates it, this process notices at its next stage
+        #: boundary. No signal, no PID, nothing that breaks when the backend
+        #: restarts between the request and the run noticing it.
+        self.stop_path = FETCH_DIR / f"{run_id}.stop"
+        #: RAISED AT MOST ONCE. `main`'s RunStopped handler writes a STOP stage
+        #: row before it writes the end record, and that row goes through
+        #: `stage()` like any other - so without this latch the handler's own
+        #: line raised RunStopped again, escaped `main` entirely, and
+        #: `prog.done()` never ran. The log then had no `end` record and the UI
+        #: polled that run forever. Measured, not imagined.
+        self._stop_raised = False
         self.run_id = run_id
         self.model_version_id = model_version_id
         self._seq = 0
@@ -141,13 +171,45 @@ class Progress:
                 model_version_id=self.model_version_id,
             )
 
+    def stop_requested(self) -> bool:
+        """Has somebody asked this run to stop? Never raises."""
+        try:
+            return self.stop_path.exists()
+        except OSError:
+            # An unreadable var/ must not stop a run that was going fine.
+            return False
+
+    def checkpoint(self) -> None:
+        """Raise `RunStopped` if a stop has been asked for.
+
+        CALLED FROM `stage()`, WHICH IS WHY ONE CHECK COVERS EVERYTHING. Every
+        transition in the pipeline goes through `stage()` - including the
+        per-query updates inside the harvest arms - so the run notices a stop
+        at the next thing it was going to report, rather than only between the
+        big stages. A check placed in `main` instead would have sat behind
+        whichever arm was running, and the arms are the slow part.
+        """
+        if self._stop_raised:
+            # Already unwinding. Raising again would only break the recording
+            # of the stop, which is the one thing that still has to happen.
+            return
+        if self.stop_requested():
+            self._stop_raised = True
+            raise RunStopped
+
     def stage(self, id_: str, name: str, status: str, **fields) -> None:
         # status: running | ok | skipped | error. Counts and detail ride along
         # so the log line is a finding, not just a heartbeat.
         self._write({"kind": "stage", "id": id_, "name": name,
                      "status": status, "at": _now(), **fields})
+        # AFTER the write, never before: the stage that just finished is a real
+        # finding and belongs in the log whether or not the run continues.
+        self.checkpoint()
 
     def done(self, status: str, detail: str = "") -> None:
+        """The run's last line. NEVER checkpoints - this is how a stop is
+        recorded, and a `done` that could raise `RunStopped` would leave the
+        run with no end record and the UI polling a run that had finished."""
         self._write({"kind": "end", "status": status, "detail": detail, "at": _now()})
 
 
@@ -1565,6 +1627,19 @@ def main(argv: list[str] | None = None) -> int:
 
         prog.done("ok", "fetch complete")
         return 0
+    except RunStopped:
+        # A DELIBERATE HALT IS NOT A FAILURE, and the log must not call it one.
+        # `stopped` is its own end status so the history reads "stopped" rather
+        # than "error", which is the difference between "we chose to abandon
+        # this run" and "something broke" - and rule 4 says a caused absence
+        # has to say it was caused. Whatever did not run is genuinely absent,
+        # not empty.
+        prog.stage("STOP", "Stopped by request", "skipped",
+                   detail="no further stage was started; rows already written "
+                          "are kept, because every write in this pipeline is "
+                          "an append")
+        prog.done("stopped", "stopped by request")
+        return 2
     except Exception as exc:  # a failed stage is a finding, logged, not a silent crash
         prog.stage("?", "fetch", "error", detail=str(exc).splitlines()[0][:200])
         prog.done("error", traceback.format_exc().splitlines()[-1][:200])

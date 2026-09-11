@@ -220,6 +220,20 @@ export const fetchAll = async (fetchPage, key = 'models') => {
  */
 export const startFetch = (modelVersionId) =>
   request('/fetch/start', { method: 'POST', body: { model_version_id: modelVersionId } })
+/**
+ * Ask a running fetch to stop at its next stage boundary.
+ *
+ * COOPERATIVE, NOT A KILL. The backend writes a stop-request file the
+ * subprocess notices in `Progress.stage()`, so the run ends between things it
+ * was going to report and writes its own `stopped` end record rather than
+ * vanishing. Nothing is undone: every write in the pipeline is an append, so a
+ * stopped run holds LESS evidence, never wrong evidence.
+ *
+ * `was_running` comes back false when the run had already finished, so the UI
+ * can stop saying "stopping…" over a run that ended a minute ago.
+ */
+export const stopFetch = (runId) =>
+  request('/fetch/stop', { method: 'POST', body: { run_id: runId } })
 export const fetchLog = (runId) =>
   request(`/fetch/log?run_id=${encodeURIComponent(runId)}`)
 export const fetchRuns = (modelVersionId) =>
