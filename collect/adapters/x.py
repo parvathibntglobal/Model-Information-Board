@@ -143,7 +143,7 @@ import time
 from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, NamedTuple
 
 import httpx
 
@@ -184,6 +184,89 @@ SEARCH_TYPES = ("Top", "Latest")
 #: Observed, not documented: 2 pages returned 32-40 posts. Requested per page.
 COUNT_PER_PAGE = 20
 DEFAULT_MAX_PAGES = 1
+
+#: How many of a model's surfaces go into one `"a" OR "b"` query.
+#:
+#: MEASURED BEFORE IT WAS BUILT, 2026-09-11, because an ignored operator looks
+#: exactly like a working one. `docs/measurements/x-boolean-operator-probe.json`:
+#: `"fable 5.1" OR "opus 5"` returned 11 of 20 posts matching ONLY the
+#: right-hand surface, which nothing but a real disjunction explains - the
+#: left-hand-only control shared 1 post with the right-hand-only control. The
+#: nested pair alone could NOT have shown this, and that is why two pairs ran.
+#:
+#: WHY A CAP AT ALL. X's search takes a bounded query string and a long
+#: disjunction comes back truncated rather than refused, which would silently
+#: drop the surfaces at the end of the list - a narrower query reported as a
+#: wider one. Six covers every alias set in `contract/seed_models.yaml` (the
+#: longest is five) with room, and anything over the cap is REPORTED rather
+#: than trimmed quietly. See `club_surfaces`.
+MAX_CLUBBED_SURFACES = 6
+
+#: Characters of query the disjunction may occupy. Not a documented limit -
+#: X's own search has historically accepted ~512 - so this is deliberately
+#: under it and the overflow is named, never silent.
+MAX_QUERY_CHARS = 480
+
+
+class ClubbedQuery(NamedTuple):
+    """One OR query over several surfaces, and what did not fit.
+
+    `dropped` IS THE POINT OF THE TYPE. Returning a bare string would make a
+    truncated disjunction indistinguishable from a complete one, and the
+    caller writes `query_key` from this - so a harvest_run row would state a
+    denominator that was not the one searched (rule 7). The caller reports
+    `dropped`; it is never discarded here.
+    """
+
+    query: str
+    used: tuple[str, ...]
+    dropped: tuple[str, ...]
+
+
+def club_surfaces(
+    surfaces,
+    *,
+    limit: int = MAX_CLUBBED_SURFACES,
+    max_chars: int = MAX_QUERY_CHARS,
+) -> ClubbedQuery:
+    """`['opus 5', 'opus5']` -> `"opus 5" OR "opus5"`, with what was left out.
+
+    EACH SURFACE IS QUOTED, and that is not cosmetic: unquoted, `claude opus`
+    is two tokens the index may match apart, and the disjunction would widen
+    to every post containing either word. Quoting is what keeps a surface a
+    surface. (It is NOT a phrase guarantee - measured the same day, `"opus 5"`
+    returned 18 of 20 posts containing that literal and `"claude-opus-5"`
+    returned 0 of 20, so the local sieve still does the deciding. Quoting
+    narrows retrieval; it does not replace the sieve.)
+
+    A surface carrying a double quote is skipped rather than escaped: X has no
+    documented escape inside a quoted phrase, and a half-escaped query is a
+    different query. Skipped surfaces come back in `dropped`.
+    """
+    clean, dropped = [], []
+    for raw in surfaces:
+        surface = (str(raw) or "").strip()
+        if not surface or '"' in surface:
+            dropped.append(str(raw))
+            continue
+        clean.append(surface)
+
+    used: list[str] = []
+    for surface in clean:
+        if len(used) >= limit:
+            dropped.append(surface)
+            continue
+        candidate = used + [surface]
+        if len(" OR ".join(f'"{s}"' for s in candidate)) > max_chars:
+            dropped.append(surface)
+            continue
+        used.append(surface)
+
+    return ClubbedQuery(
+        query=" OR ".join(f'"{s}"' for s in used),
+        used=tuple(used),
+        dropped=tuple(dropped),
+    )
 
 #: ⚠ NOT A MEASURED LIMIT FOR THIS PROVIDER. Reddit's RapidAPI route 429s at
 #: the 32nd rapid call (measured 2026-08-14, working figure 25/min); this is the
