@@ -704,17 +704,43 @@ def harvest_arxiv(conn, prog: Progress, variants: list[str], *, max_queries: int
 def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) -> int:
     """E2 harvest — X search for this model, appended to `document`.
 
-    IT SHARES THE RAPIDAPI KEY, AND THEREFORE THE QUOTA, WITH REDDIT. Running
-    both arms in one fetch spends one budget twice, which is why this is capped
-    harder than the Reddit arm and why the admin usage panel shows the two paths
-    against a single remaining figure rather than two independent ones.
+    ONE REQUEST, ALL SURFACES, SINCE 2026-09-11. This issued one search PER
+    VARIANT and took the first `max_queries` of them, so a model with five
+    alias variants was searched on two and the other three were never asked.
+    The surfaces are now clubbed into a single `"a" OR "b"` query.
+
+    ⚠ IT DOES NOT SHARE REDDIT'S KEY OR QUOTA, and this docstring said it did.
+      Measured 2026-09-10: two RapidAPI accounts, two meters, each 403 on the
+      other's provider. X's ceiling is 100,000 a month against Reddit's
+      1,000,000 - a TENTH, not a share - which is what makes the request
+      saving below worth having rather than a tidy-up.
+
+    MEASURED, NOT ASSUMED, on `opus 5`'s five variants
+    (`docs/measurements/x-clubbed-surfaces.json`):
+
+        today, 2 separate surfaces   2 requests -> 30 distinct   15.0 /request
+        all 5 separate surfaces      5 requests -> 71 distinct   14.2 /request
+        clubbed, 1 page              1 request  -> 20 distinct   20.0 /request
+
+    Separate queries overlap and the platform charges for the duplicates - S1
+    and S2 shared 10 of their 40 returns. A clubbed query cannot return the
+    same post twice, so every one of its 20 is new. **Halving the requests
+    per model while covering five surfaces instead of two.**
+
+    WHAT IT COSTS, STATED BECAUSE THE SAVING IS NOT FREE. A page is 20 posts
+    whatever the query, so one clubbed request retrieves 20 distinct where two
+    separate ones retrieved 30. Depth is the lever if that matters: at the
+    SAME 2-request budget, two clubbed pages returned 40 distinct against the
+    old shape's 30. Left at one page here because page 1 is also the cleanest
+    - 85% of its posts carried a variant literally, against 68% over three
+    pages - and the sieve pays for the rest.
 
     `harvester_for_source` runs the ToS gate and THEN the credential, so a
     missing `RAPIDAPI_KEY` arrives here as a refusal to build rather than as a
     request that fails midway. Both are reported as `skipped` with the reason:
     neither is a fault of this run, and an error badge would say it was.
     """
-    from collect.adapters.x import harvester_for_source
+    from collect.adapters.x import club_surfaces, harvester_for_source
 
     harvester, why = _gated_harvester(
         "x", harvester_for_source,
@@ -726,12 +752,25 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
         prog.stage("E2X", "Harvest · X", "skipped", detail=why)
         return 0
 
-    queries = variants[:max_queries]
-    prog.stage("E2X", "Harvest · X", "running", queries=len(queries),
-               detail=f"X search for {len(queries)} variant(s) — shares the Reddit quota")
+    # `max_queries` is now a SURFACE cap, not a request count: all of them go
+    # into one request. Kept under its old name because the call site passes it
+    # positionally by keyword and renaming it is a change to a signature two
+    # other branches also call; what it bounds is named in the stage detail.
+    clubbed = club_surfaces(variants, limit=max_queries)
+    if not clubbed.query:
+        prog.stage("E2X", "Harvest · X", "skipped",
+                   detail="no usable search surface for this model")
+        return 0
+    detail = (f"one X search clubbing {len(clubbed.used)} surface(s) into "
+              f"`{clubbed.query[:80]}`")
+    if clubbed.dropped:
+        # NAMED, NEVER SILENT. A dropped surface narrows the query, and a
+        # narrower query reported as a wider one is a denominator that lies.
+        detail += f" — {len(clubbed.dropped)} surface(s) did not fit: {list(clubbed.dropped)[:3]}"
+    prog.stage("E2X", "Harvest · X", "running", queries=1, detail=detail)
     inserted = posts = errors = 0
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
-    for variant in queries:
+    for variant in [clubbed.query]:
         run = harvester.search(variant)
         errors += int(getattr(run, "http_errors", 0) or 0)
         # THE X ARM SPENDS THE SHARED QUOTA, SO IT MUST ALSO RECORD IT. The
@@ -1454,7 +1493,10 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as exc:
             prog.stage("E2A", "Harvest · arXiv", "error", detail=str(exc).splitlines()[0][:200])
         try:
-            harvest_x(db.live(prog), prog, variants, max_queries=2)
+            # ALL the surfaces, in ONE request - `max_queries` bounds how many
+            # are clubbed, not how many requests are spent. 6 is the adapter's
+            # MAX_CLUBBED_SURFACES and covers every alias set in seed_models.
+            harvest_x(db.live(prog), prog, variants, max_queries=6)
         except Exception as exc:
             prog.stage("E2X", "Harvest · X", "error", detail=str(exc).splitlines()[0][:200])
 
