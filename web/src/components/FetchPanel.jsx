@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
-import { startFetch, fetchLog, fetchRuns } from '../api'
+import { startFetch, stopFetch, fetchLog, fetchRuns } from '../api'
 import { Badge, Notice } from './ui'
 import { IconAlert } from './Icons'
 
-const FETCH_TONE = { ok: 'pass', running: 'mute', skipped: 'mute', error: 'fail' }
+// `stopped` is deliberately NOT 'fail'. A run somebody chose to abandon and a
+// run that broke are different facts, and colouring them the same loses the
+// distinction the end record went to the trouble of recording.
+const FETCH_TONE = { ok: 'pass', running: 'mute', skipped: 'mute', error: 'fail',
+                     stopped: 'warn' }
 
 function runTone(r) {
   if (!r.done) return 'mute'
-  return r.status === 'ok' ? 'pass' : r.status === 'error' ? 'fail' : 'mute'
+  if (r.status === 'ok') return 'pass'
+  if (r.status === 'error') return 'fail'
+  if (r.status === 'stopped') return 'warn'
+  return 'mute'
 }
 
 // Fields carried on a stage record that are bookkeeping, not "what happened".
@@ -77,6 +84,7 @@ export default function FetchPanel({ modelVersionId, onDone }) {
   const [records, setRecords] = useState([])
   const [running, setRunning] = useState(false)
   const [err, setErr] = useState(null)
+  const [stopping, setStopping] = useState(false)
   const [runs, setRuns] = useState(null)       // history summaries
   const [openRun, setOpenRun] = useState(null) // { run_id, records } of an expanded past run
 
@@ -96,7 +104,10 @@ export default function FetchPanel({ modelVersionId, onDone }) {
         const res = await fetchLog(runId)
         if (!alive) return
         setRecords(res.records || [])
-        if (res.done) { setRunning(false); clearInterval(timer); onDone?.(); loadHistory() }
+        if (res.done) {
+          setRunning(false); setStopping(false)
+          clearInterval(timer); onDone?.(); loadHistory()
+        }
       } catch (e) {
         if (alive) { setErr(e.message); setRunning(false); clearInterval(timer) }
       }
@@ -107,12 +118,33 @@ export default function FetchPanel({ modelVersionId, onDone }) {
   }, [runId])   // eslint-disable-line react-hooks/exhaustive-deps
 
   async function start() {
-    setErr(null); setRecords([]); setRunning(true); setOpenRun(null)
+    setErr(null); setRecords([]); setRunning(true); setStopping(false); setOpenRun(null)
     try {
       const res = await startFetch(modelVersionId)
       setRunId(res.run_id)
     } catch (e) {
       setErr(e.message); setRunning(false)
+    }
+  }
+
+  /**
+   * Ask the run to stop. It ends at its next stage boundary.
+   *
+   * `running` IS NOT CLEARED HERE, on purpose. The run is still going until it
+   * writes its `stopped` end record, and the poll above is what notices that.
+   * Flipping the UI to "not running" on the click would claim the run had
+   * ended while its next stage was still writing rows — the same
+   * absence-as-fact mistake the pipeline is careful about everywhere else.
+   */
+  async function stop() {
+    setStopping(true)
+    try {
+      const res = await stopFetch(runId)
+      // The run had already finished, so nothing will read the request. Say so
+      // rather than sitting on "Stopping…" over a run that ended a minute ago.
+      if (res && res.was_running === false) { setStopping(false); setRunning(false); loadHistory() }
+    } catch (e) {
+      setErr(e.message); setStopping(false)
     }
   }
 
@@ -136,9 +168,27 @@ export default function FetchPanel({ modelVersionId, onDone }) {
             Append-only — it adds new rows, never changes existing ones.
           </span>
         </div>
-        <button className="btn btn-primary" type="button" onClick={start} disabled={running}>
-          {running ? <><span className="spin" /> Fetching…</> : 'Fetch'}
-        </button>
+        <div className="row" style={{ gap: 8 }}>
+          <button className="btn btn-primary" type="button" onClick={start} disabled={running}>
+            {running ? <><span className="spin" /> Fetching…</> : 'Fetch'}
+          </button>
+          {/* SHOWN ONLY WHILE A RUN IS LIVE, and only once it has a run id -
+              there is nothing to stop before /fetch/start has answered. A
+              permanently visible Stop over an idle panel would be a control
+              that does nothing, which is how a reader learns to distrust the
+              others. */}
+          {running && runId && (
+            <button
+              className="btn"
+              type="button"
+              onClick={stop}
+              disabled={stopping}
+              title="Stops at the next stage boundary. Rows already written are kept — every write here is an append."
+            >
+              {stopping ? 'Stopping…' : 'Stop'}
+            </button>
+          )}
+        </div>
       </div>
 
       {err && <Notice icon={<IconAlert />}>{err}</Notice>}
@@ -148,6 +198,13 @@ export default function FetchPanel({ modelVersionId, onDone }) {
           <span className="label">Current run</span>
           {records.length === 0 && !err && (
             <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>Starting…</span>
+          )}
+          {stopping && (
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+              Stop requested — the run finishes its current stage and then ends.
+              Rows already written are kept: every write in this pipeline is an
+              append, so a stopped run holds less evidence, never wrong evidence.
+            </span>
           )}
           <StageList records={records} />
         </div>

@@ -17,6 +17,7 @@ import os
 import subprocess
 import sys
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import NamedTuple
 
@@ -1180,6 +1181,82 @@ def start_fetch(req: FetchRequest) -> dict:
         stderr=subprocess.DEVNULL,
     )
     return {"run_id": run_id, "model_version_id": mv}
+
+
+class StopFetchRequest(BaseModel):
+    run_id: str
+
+
+@app.post("/fetch/stop")
+def stop_fetch(req: StopFetchRequest) -> dict:
+    """Ask a running fetch to stop at its next stage boundary.
+
+    COOPERATIVE, NOT A KILL, and that is the whole design. The request is a
+    file - `var/fetch/<run_id>.stop` - which the subprocess notices in
+    `Progress.stage()`, so it stops between things it was going to report,
+    writes its own `stopped` end record, and closes its database connection
+    and HTTP client on the way out.
+
+    WHY NOT SIGNAL THE PROCESS. Three reasons, each of which has already cost
+    this project a run:
+
+      * a metered request already spent is recorded by `record_rapidapi_quota`
+        inside `_get`. Killing mid-request spends the quota and loses the
+        reading, which is precisely the gap `collect/usage.py` exists to close.
+      * a kill mid-transaction leaves the rollback to libpq's timeout rather
+        than to `_safe_rollback`, and a half-finished `INSERT ... SELECT` is
+        how the 2026-09-09 run ended.
+      * the PID is not ours to hold. `start_fetch` discards the `Popen` handle
+        and the backend restarts freely; a file survives both, so Stop works
+        on a run this process never started.
+
+    WHAT STOPPING DOES NOT DO IS UNDO. Every write in the pipeline is an
+    append, so rows already stored stay stored - a stopped run leaves less
+    evidence than a finished one, never wrong evidence. The end record says
+    `stopped` rather than `error`, because abandoning a run deliberately and a
+    run breaking are different facts (rule 4: a caused absence must say it was
+    caused).
+
+    Idempotent, and honest about a run that has already finished: the file is
+    written either way, and `was_running` says whether anything will read it.
+    """
+    run_id = req.run_id.strip()
+    if not run_id or "/" in run_id or "\\" in run_id or ".." in run_id:
+        raise HTTPException(status_code=422, detail="bad run id")
+
+    log = _FETCH_DIR / f"{run_id}.jsonl"
+    already_ended = False
+    if log.exists():
+        already_ended = any(
+            '"kind": "end"' in line or '"kind":"end"' in line
+            for line in log.read_text(encoding="utf-8").splitlines()
+        )
+    try:
+        _FETCH_DIR.mkdir(parents=True, exist_ok=True)
+        (_FETCH_DIR / f"{run_id}.stop").write_text(
+            datetime.now(UTC).isoformat(), encoding="utf-8"
+        )
+    except OSError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"could not record the stop request: {exc}. The run is still "
+                   "going; nothing was changed.",
+        ) from exc
+
+    return {
+        "run_id": run_id,
+        "stop_requested": True,
+        # False means the run had already written its end record, so the
+        # request will never be read. Said rather than implied, so the UI does
+        # not show "stopping..." forever over a run that finished a minute ago.
+        "was_running": bool(log.exists() and not already_ended),
+        "note": (
+            "the run stops at its next stage boundary and writes a `stopped` "
+            "end record. Rows already written are kept - every write here is "
+            "an append, so a stopped run holds less evidence, never wrong "
+            "evidence."
+        ),
+    }
 
 
 @app.get("/fetch/log")
