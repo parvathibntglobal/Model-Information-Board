@@ -230,6 +230,20 @@ def _telemetry_connection(url: str | None):
         return None
 
 
+def telemetry_connection(url: str | None = None):
+    """The guarded, short-timeout connection every telemetry mirror must use.
+
+    PUBLIC BECAUSE `scripts/fetch_model.py` NEEDS IT, and the day it reached for
+    `collect.db.transaction()` instead is the day the fetch-log mirror escaped
+    the test guard: a full suite run wrote 11 fixture lines into the shared
+    table. That went unnoticed for one verification because the lines were
+    already there from an earlier run and `on conflict do nothing` kept the row
+    count flat — idempotence hid the leak. Every mirror goes through here so
+    there is one place to guard rather than three to remember.
+    """
+    return _telemetry_connection(url)
+
+
 def reset_telemetry_backoff() -> None:
     """Forget a past failure. For tests, and for a caller with reason to think
     the database is back — a backoff nobody can clear is a cache."""

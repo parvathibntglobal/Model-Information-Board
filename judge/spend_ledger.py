@@ -533,7 +533,7 @@ class Report:
         return (
             not self.db_readable
             or not self.covers_whole_window
-            or any(m for m in self.by_model_usd) and self.unpriced_today > 0
+            or self.unpriced_today > 0
         )
 
     #: Calls today whose model has no published rate. Their TOKENS are real and

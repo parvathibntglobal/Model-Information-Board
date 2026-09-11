@@ -38,7 +38,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from collect import db, usage  # noqa: E402
+from collect import usage  # noqa: E402
 from collect.adapters.github import GitHubHarvester  # noqa: E402
 from collect.adapters.queries import load_queries, plan_searches  # noqa: E402
 from collect.config import settings  # noqa: E402
@@ -175,14 +175,25 @@ def _mirror_fetch_line(
         line_id = "fl_" + hashlib.sha256(
             f"{run_id}|{seq}|{payload}".encode()
         ).hexdigest()[:24]
-        with db.transaction() as conn:
-            conn.execute(
-                "insert into fetch_log "
-                "(id, run_id, seq, at, machine, payload, kind, model_version_id) "
-                "values (%s,%s,%s,%s,%s,%s,%s,%s) on conflict (id) do nothing",
-                (line_id, run_id, seq, rec.get("at"), usage.machine(),
-                 payload, rec.get("kind"), model_version_id),
-            )
+        # THE GUARDED CONNECTION, not `db.transaction()`. The latter reads
+        # DATABASE_URL with no test guard and no short timeout, which is how
+        # this mirror wrote fixture lines into the shared table during a suite
+        # run — and `on conflict do nothing` kept the row count flat, so the
+        # first check for it came back clean.
+        conn = usage.telemetry_connection()
+        if conn is None:
+            return False
+        try:
+            with conn:
+                conn.execute(
+                    "insert into fetch_log "
+                    "(id, run_id, seq, at, machine, payload, kind, model_version_id) "
+                    "values (%s,%s,%s,%s,%s,%s,%s,%s) on conflict (id) do nothing",
+                    (line_id, run_id, seq, rec.get("at"), usage.machine(),
+                     payload, rec.get("kind"), model_version_id),
+                )
+        finally:
+            conn.close()
         return True
     except Exception:
         return False

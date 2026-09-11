@@ -31,6 +31,10 @@ from judge import spend_ledger
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
+#: Two blank lines — the gap between top-level definitions, used to cut one
+#: function's body out of a source file without parsing it.
+BLANK = "\n\n\n"
+
 
 def _call(**kw) -> spend_ledger.Call:
     base = dict(
@@ -103,6 +107,28 @@ class TestAnUnreachableDatabaseIsNotAnEmptyOne:
         )
         assert report.db_readable is False
         assert report.total_is_a_floor is True
+
+    def test_an_unpriced_call_alone_makes_the_total_a_floor(self):
+        # The third reason, independent of the database. A model with no
+        # published rate records real TOKENS and $0.00, so a dollar total
+        # containing one understates the spend — and reads as free.
+        from judge.spend_ledger import Report
+
+        complete = Report(
+            daily_cap_usd=1.0, spent_today_usd=0.0, calls_today=1,
+            unmetered_today=0, hourly=[], daily=[], by_stage_usd={},
+            by_stage_calls={}, by_model_usd={}, stages_ever_recorded=("extract",),
+            pricing_in_per_million=0.0, pricing_out_per_million=0.0,
+            estimated_call_usd=0.0,
+            first_seen_at=datetime(2026, 9, 1, tzinfo=UTC),
+            total_rows=1, day_starts_at=datetime(2026, 9, 11, tzinfo=UTC),
+            db_readable=True, machines=("host-a",), unpriced_today=0,
+        )
+        assert complete.total_is_a_floor is False
+
+        from dataclasses import replace
+
+        assert replace(complete, unpriced_today=1).total_is_a_floor is True
 
 
 class TestTheFileRemainsTheSurvivor:
@@ -240,6 +266,28 @@ class TestATestCannotWriteToTheSharedDatabase:
             assert 'os.getenv("PYTEST_CURRENT_TEST")' in src, name
             assert "MODELBOARD_ALLOW_TEST_TELEMETRY" in src, name
 
+    def test_every_mirror_uses_the_guarded_connection(self):
+        """The gap idempotence hid.
+
+        `_mirror_fetch_line` used `collect.db.transaction()` — no test guard,
+        no short timeout — so a full suite run wrote 11 fixture lines into the
+        shared fetch_log. The first check for it came back clean because those
+        lines were ALREADY there from an earlier run, and `on conflict do
+        nothing` kept the row count flat. A count is not a leak detector when
+        the write is idempotent; the call site is.
+        """
+        src = (ROOT / "scripts" / "fetch_model.py").read_text(encoding="utf-8")
+        body = src[src.index("def _mirror_fetch_line("):]
+        body = body[: body.index(BLANK)] if BLANK in body else body
+        assert "usage.telemetry_connection()" in body
+        # The CALL form, not the phrase: the comment above it names
+        # `db.transaction()` to explain why it is not used, and a test that
+        # cannot tell a mention from a call fails on its own documentation.
+        assert "with db.transaction()" not in body, (
+            "an unguarded connection here escapes both the pytest refusal and "
+            "the backoff"
+        )
+
     def test_a_test_that_means_it_can_still_opt_in(self, monkeypatch):
         # Otherwise the mirror becomes untestable, and an untestable write path
         # is one nobody checks.
@@ -372,7 +420,6 @@ class TestTheTotalTravelsWithItsPopulation:
 
     def test_an_incomplete_total_says_it_is_a_floor(self):
         src = (ROOT / "judge" / "app.py").read_text(encoding="utf-8")
-        assert "THIS \n" not in src  # guard against a stray edit
         assert "is a floor" in src
 
     def test_per_model_totals_cover_the_same_population_as_the_headline(self):
