@@ -251,7 +251,6 @@ export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
 export const boardPage = () => request('/board')
 
 export const coveragePage = () => request('/coverage')
-export const changelogPage = (days = 30) => request(`/changelog?days=${days}`)
 
 /**
  * The landing page's FAQ, from `contract/faq.yaml`.

@@ -21,26 +21,6 @@ import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
  * ordering 342 unevidenced models by price and putting the cheapest on top is
  * a recommendation, and this board does not make one without evidence.
  */
-/**
- * The evidence filter, and it is three-valued rather than a checkbox.
- *
- * "Has evidence" sounds binary and is not. 3 of 342 models have a cell and NONE
- * has a published one — every cell is `insufficient`, n_eff 0.012 against a
- * gate of 3.0. A checkbox has to pick: "has evidence = has a cell" shows three
- * models that did not clear the gate to someone who asked for evidence, and
- * "has evidence = published" shows an empty list that reads as a broken filter.
- *
- * So all three states are offered, with counts, and the empty one is legible
- * because the populated ones sit beside it. Rule 4 as a control.
- */
-const EVIDENCE = {
-  all:         { label: 'All models',  match: () => true },
-  // ANY report, gated or not. Named for what a reader is looking for -
-  // "which of these has somebody actually said something about" - rather than
-  // for the gate status, which is a per-row fact and is shown as one.
-  evidence:    { label: 'Evidence',    match: (m) => (m.evidence?.reports || 0) > 0 },
-  unreported:  { label: 'Undiscussed', match: (m) => (m.evidence?.reports || 0) === 0 },
-}
 
 //: How many models may be compared at once. Three, matching the backend's own
 //: cap, and the reason is presentational rather than arbitrary: a fourth column
@@ -143,7 +123,6 @@ export default function Models() {
       // again in the backend. This is the last of the three, and the one that
       // makes a stray click a no-op rather than a silent truncation.
       : cur.length >= COMPARE_MAX ? cur : [...cur, id])
-  const [evidenceFilter, setEvidenceFilter] = useState('all')
   const [capFilter, setCapFilter] = useState('any')
   const [caps, setCaps] = useState(null)   // the vocabulary, for the capability filter
   const [meta, setMeta] = useState(null)      // summary + priced_at, straight from the API
@@ -229,12 +208,11 @@ export default function Models() {
     let out = matches(roster, query)
     // `=== 0` and not falsy: null is "no published rate", not free.
     if (freeOnly) out = out.filter((m) => m.price_in === 0 && m.price_out === 0)
-    out = out.filter(EVIDENCE[evidenceFilter].match)
     if (capFilter !== 'any') {
       out = out.filter((m) => (m.evidence?.capabilities || []).includes(capFilter))
     }
     return [...out].sort(SORTS[sort].fn)
-  }, [roster, query, sort, freeOnly, evidenceFilter, capFilter])
+  }, [roster, query, sort, freeOnly, capFilter])
 
   /**
    * How many models have been discussed under each capability.
@@ -251,20 +229,6 @@ export default function Models() {
       for (const k of m.evidence?.capabilities || []) counts[k] = (counts[k] || 0) + 1
     }
     return counts
-  }, [roster])
-
-  // Counted off the roster, not the filtered view — a tab that says how many
-  // it holds must not change when another tab is selected.
-  const reportedCount = useMemo(
-    () => (roster || []).filter((m) => (m.evidence?.reports || 0) > 0).length,
-    [roster]
-  )
-
-  const evidenceCounts = useMemo(() => {
-    if (!roster) return {}
-    return Object.fromEntries(
-      Object.entries(EVIDENCE).map(([k, v]) => [k, roster.filter(v.match).length])
-    )
   }, [roster])
 
   const withEvidence = Object.keys(evidence).length
@@ -365,46 +329,7 @@ export default function Models() {
             </p>
           )}
 
-          {/* EVIDENCE, on its own row and above the sorts. It answers a
-              different question from "how should these be ordered" — it says
-              which of them the board can speak about at all — and every option
-              carries its count so an empty one reads as a finding rather than
-              as a filter that broke. */}
           <div className="stack stack-1">
-            <span className="label">What the board knows about them</span>
-            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-              {Object.entries(EVIDENCE).map(([k, e]) => (
-                <button
-                  key={k}
-                  className={`chip${evidenceFilter === k ? ' chip-on' : ''}`}
-                  aria-pressed={evidenceFilter === k}
-                  onClick={() => setEvidenceFilter(k)}
-                >
-                  {e.label}
-                  <span className="tnum" style={{ opacity: .6, marginLeft: 6 }}>
-                    {evidenceCounts[k] ?? '—'}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            {evidenceFilter === 'evidence' && (
-              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
-                {reportedCount > 0
-                  ? <>{reportedCount} of these have reports behind them. A report count is
-                     not a verdict — it says how many people spoke, not who was right.</>
-                  : <>Nobody has reported on these yet. That is an absence we found, not a
-                     judgement we made: not “good”, not “bad”, just nothing said. Each row
-                     says which state it is in.</>}
-              </p>
-            )}
-
-            {evidenceFilter === 'unreported' && (
-              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
-                Nobody has discussed these. An absence of evidence, not evidence of a
-                problem — a model here may be excellent and simply unwritten-about.
-              </p>
-            )}
 
             {/* WHICH capability, which is the question people actually arrive
                 with. Every capability is listed, including the ones at zero:
