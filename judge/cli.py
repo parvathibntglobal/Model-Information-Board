@@ -204,7 +204,8 @@ def _document_facts(
         return {}, set()
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id, source, created_at, author_id, has_numbers, has_conditions "
+            "SELECT id, source, created_at, author_id, has_numbers, has_conditions, "
+            "       dedup_cluster_id, is_canonical_in_cluster "
             "FROM document WHERE id = ANY(%s)",
             (list(document_ids),),
         )
@@ -212,7 +213,8 @@ def _document_facts(
 
     facts: dict[str, Any] = {}
     undatable: list[str] = []
-    for doc_id, source, created_at, author_id, has_numbers, has_conditions in rows:
+    for (doc_id, source, created_at, author_id, has_numbers, has_conditions,
+         dedup_cluster_id, is_canonical_in_cluster) in rows:
         if created_at is None:
             undatable.append(doc_id)
             # OMITTED, NOT DATED FROM A DEFAULT. `recency_factor` subtracts this
@@ -235,6 +237,27 @@ def _document_facts(
             # voices. NULL stays NULL — an unknown author becomes the anonymous
             # per-platform fallback in cells.py, never an invented identity.
             author_id=author_id,
+            # ⚠ READ SINCE 2026-09-11, AND THE SECOND HALF OF THE SAME GAP.
+            #   `judge/vet/reject.py:check` has always taken these and defaulted
+            #   to "not clustered, is canonical" — so a syndicated copy counted
+            #   as an independent voice. Wiring the WRITER
+            #   (`collect/assemble/dedupe_write.py`) was not enough on its own:
+            #   this SELECT did not read the columns, so `DocumentFacts` kept
+            #   its dataclass defaults and the check still saw every copy as
+            #   canonical. A writer and a reader, or neither does anything.
+            #
+            #   `contract/column_states.yaml` is what caught it — the columns
+            #   were "written, UNREAD" and the manifest refused the claim that
+            #   anything read them.
+            dedup_cluster_id=dedup_cluster_id,
+            # NULL means "clustering has not looked at this document", not "it
+            # is an original". True is the right reading of an unclustered
+            # document and the wrong reading of an unexamined one; they are
+            # only distinguishable through `dedup_cluster_id` being NULL too,
+            # which is why both travel together.
+            is_canonical_in_cluster=(
+                True if is_canonical_in_cluster is None else is_canonical_in_cluster
+            ),
             # THE EXTRACTOR PROPOSES THESE AND THE COUNT DECIDES (pipeline.py:161).
             #
             # ⚠ READ FROM THE TABLE SINCE 2026-08-30. These were literal `None`,
