@@ -120,7 +120,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from collect.adapters.blog.parse import extract_article_text  # noqa: E402
 from collect.adapters.reddit import reddit_document_id  # noqa: E402
 from collect.adapters.reddit_comments import parse_thread  # noqa: E402
 from collect.assemble.article import (  # noqa: E402
@@ -382,6 +381,12 @@ def build_blogs(store: RawStore, limit: int) -> list[tuple[dict, list[dict], str
         if url is None:
             skipped_no_url += 1
             continue
+        # IMPORTED AT THE POINT OF USE, for the reason triage's `_blog` is:
+        # this call sits behind an HTML-only branch, so a run over a corpus
+        # with no article payloads never needs trafilatura - but a
+        # module-level import made every run need it.
+        from collect.adapters.blog.parse import extract_article_text
+
         text = extract_article_text(data, url=url)
         if not text or len(text) < 1200:
             continue

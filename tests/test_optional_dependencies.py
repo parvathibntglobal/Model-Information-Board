@@ -80,6 +80,12 @@ def run_without_feed_libraries(body: str) -> subprocess.CompletedProcess:
         ("blog-package-attr", "import collect.adapters.blog as b; b.RobotsGate"),
         ("registry-sources", "from collect.registry.sources import load_sources; load_sources()"),
         ("http", "from collect.http import build_client"),
+        # TRIAGE. It does no blog work - it runs entity and specificity
+        # gates over stored documents - but it reads each source's prose
+        # through one map, and `blog`'s extractor needs trafilatura.
+        ("triage-module", "import collect.triage.run"),
+        ("triage-store", "import collect.triage.store"),
+        ("triage-gates", "from collect.triage.gates import triage"),
     ],
 )
 def test_it_imports_without_the_feed_libraries(label, statement):
@@ -162,3 +168,80 @@ def test_the_type_checking_block_and_the_exports_agree():
 
     for name in blog.__all__:
         assert getattr(blog, name) is not None, name
+
+# ── the map, not just the module ─────────────────────────────────────────────
+#
+# Importing `collect.triage.run` always worked; the defect was one level in.
+# `_prose_by_source()` imported `extract_article_text` at FUNCTION scope, which
+# reads as lazy and is not - the function is called on every run, so every run
+# required trafilatura whether or not a blog document was anywhere near it.
+#
+# On 2026-09-11 a UI-triggered fetch of 663 documents - reddit, hackernews and
+# devto, not one blog row - died there, and all 663 went untriaged. Triage has
+# still never completed on a UI fetch.
+#
+# So the test is not "does the module import". It is "does the thing triage
+# actually calls work", and it has to BUILD THE MAP and USE a non-blog entry.
+
+
+def test_the_prose_map_builds_without_a_feed_parser():
+    """`_prose_by_source()` runs, and the seven non-blog extractors work.
+
+    The blog entry is still in the map - it is a closure, and building a
+    closure imports nothing. What must not happen is the import firing while
+    the map is assembled.
+    """
+    result = run_without_feed_libraries(
+        """
+        from collect.triage.run import _prose_by_source
+
+        mapped = _prose_by_source()
+        assert "blog" in mapped, "the blog entry must still be offered"
+        assert len(mapped) > 1, "the other sources must still be mapped"
+
+        # A non-blog extractor, actually called.
+        fn, wants_bytes = mapped["hackernews"]
+        assert wants_bytes is False
+        print("OK", len(mapped))
+        """
+    )
+    assert result.returncode == 0, (
+        "triage's prose map could not be built without feedparser/trafilatura: "
+        f"{result.stderr}"
+    )
+    assert "OK" in result.stdout
+
+
+def test_the_blog_entry_still_refuses_and_names_the_library():
+    """Deferring the import must not become a silent fallback.
+
+    A blog document with no trafilatura has to fail, loudly and by name. The
+    alternative - returning no text - is the shape FR-10 alarms on, and it
+    would be alarming about a missing wheel rather than about a corpus.
+    """
+    result = run_without_feed_libraries(
+        """
+        from collect.triage.run import _prose_by_source
+
+        fn, wants_bytes = _prose_by_source()["blog"]
+        assert wants_bytes is True
+        try:
+            fn(b"<html><body><p>some article</p></body></html>")
+        except ModuleNotFoundError as exc:
+            print("REFUSED", exc.name)
+        else:
+            raise AssertionError("the blog extractor returned without trafilatura")
+        """
+    )
+    assert result.returncode == 0, result.stderr
+    # EITHER LIBRARY. `parse.py` imports feedparser before trafilatura, so
+    # that is the one named first - but which of the two fails is an
+    # implementation detail of that module's import order, and pinning it
+    # would make this test fail the day somebody reorders two imports
+    # without changing anything this test is about. The property is that a
+    # blog payload FAILS and NAMES a missing library.
+    assert ("REFUSED trafilatura" in result.stdout
+            or "REFUSED feedparser" in result.stdout), (
+        "a blog payload must still fail by NAME when the parser is absent, "
+        f"rather than quietly yielding nothing. Got: {result.stdout!r}"
+    )

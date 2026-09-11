@@ -119,10 +119,25 @@ SUBJECT_FROM_THREAD_ROOT = frozenset({"hackernews"})
 def _prose_by_source() -> dict[str, tuple[object, bool]]:
     """source -> (the function that turns its payload into prose, wants_bytes).
 
-    IMPORTED LAZILY, because `blog` needs `trafilatura` and the other seven do
-    not - a module-level import would make every triage run depend on a parser
-    library that `tests/test_lane_boundary.py` deliberately confines to one
-    importer.
+    ⚠ THE BLOG IMPORT IS DEFERRED TO `_blog` ITSELF, NOT TO THIS FUNCTION.
+      It used to sit here, described as lazy - and it was, in the sense that
+      it was not at module scope. But THIS FUNCTION IS CALLED ON EVERY RUN,
+      so the import happened on every run, so triage required `trafilatura`
+      whether or not the corpus held a single blog document. It held none on
+      2026-09-11 and the run still died on it, taking 663 documents
+      untriaged with it.
+
+      Lazy-at-definition is not lazy-at-use when the definition always
+      runs. The import is inside `_blog` now, which is reached only for a
+      document whose source IS `blog`.
+
+    WHY DEFER RATHER THAN MOVE THE FUNCTION OUT, which is what
+    `collect/limiter.py` did for the same class of problem. The limiter was
+    dependency-FREE code trapped behind a dependency-heavy package, so
+    moving it removed the cost entirely. `extract_article_text` is not that:
+    it needs trafilatura by nature, and relocating it would move the
+    dependency rather than remove it. What can be removed is paying for it
+    when no blog document is in front of you.
 
     NO FALLBACK, AND NO SNIFFER. An unmapped source raises rather than passing
     the payload through: `collect/assemble/prose.py` exists because a raw
@@ -130,7 +145,6 @@ def _prose_by_source() -> dict[str, tuple[object, bool]]:
     `quote_verified` reported true. The same passthrough here would make the
     entity gate resolve model names out of JSON keys and URLs.
     """
-    from collect.adapters.blog.parse import extract_article_text
     from collect.assemble import prose
 
     def _blog(blob: bytes) -> str:
@@ -151,6 +165,11 @@ def _prose_by_source() -> dict[str, tuple[object, bool]]:
         in `not_prose`, where it is counted rather than gated as a short
         document with no artifact.
         """
+        # HERE, not in the enclosing function: see its docstring. This line
+        # is the only thing in triage that needs a feed parser, and it runs
+        # only for a blog document.
+        from collect.adapters.blog.parse import extract_article_text
+
         text = extract_article_text(blob)
         if text is None:
             raise prose.NotAPayload(
