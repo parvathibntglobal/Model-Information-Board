@@ -105,11 +105,33 @@ ASK ALL THREE QUESTIONS OF EVERY QUOTE
 Add an entry for each question the quote itself answers. Most quotes answer \
 one or two. Some answer all three.
 
-  best_for    Does it say WHAT THEY WERE TRYING TO DO? Name the task. It has to \
-complete "I need a model to ___" - a coding agent, RAG over their own \
+  best_for    TWO THINGS MUST BOTH BE TRUE, not one.
+
+              (1) The writer says WHAT THEY WERE TRYING TO DO. Name the task. \
+It has to complete "I need a model to ___" - a coding agent, RAG over their own \
 documents, translating support tickets. If the writer never says what they were \
 building, there is NO job entry: a capability is not a job wearing a different \
 hat, and inferring the task is worse than leaving it out.
+
+              (2) The writer says THE MODEL ACTUALLY WORKED for it. This \
+section renders on the board as "BEST FOR <job>" - a recommendation a reader \
+acts on - so only a POSITIVE report can fill it. If they name the job and then \
+describe a problem, DO NOT emit a best_for entry. Emit the `capability` entry \
+instead: that is where a bad result belongs, and it is evidence of exactly the \
+same standing as a good one.
+
+              This was got wrong, and here is what it produced. A Hacker News \
+writer building a coding agent said "it has created 20+ bugs". The task was \
+named, so a best_for entry was emitted with `polarity: negative` - and the \
+board rendered "Best for / Coding agents", ranked that model 01, and captioned \
+the complaint "the quotes behind the ranking". One person's bug report became \
+the top recommendation for the job. The polarity label was right; emitting the \
+entry at all was wrong.
+
+              A negative experience is never lost by this rule. The job is \
+still named inside the quote, the behaviour becomes a `capability` entry, and \
+the model's own page shows every report with its polarity. What must not happen \
+is a surface that promises suitability being filled by evidence of the opposite.
 
   capability  Does it say HOW THE MODEL BEHAVED? Name the single behaviour it \
 did well or badly.
@@ -185,6 +207,11 @@ the writer did not express.
 
 If the writer names a PAIN POINT, the claim is `negative`. A pain point is not \
 compatible with `positive` or `neutral` - do not record both.
+
+A `negative` claim MUST NOT carry a `best_for` entry. See SECTION 1: that \
+surface recommends a model for a job, and a problem report cannot recommend \
+anything. The job stays visible in the quote and the behaviour goes to \
+`capability`.
 
 `pain_points` - the specific problems the writer raised, as short lowercase \
 tags ("security", "verbosity", "latency"). Empty when they raised none. If you \

@@ -48,9 +48,16 @@ function crumb(parts){
 }
 function ranked(rows){
   if(!rows || !rows.length) return '';
-  return '<div class="ranked">'+rows.map((r,i)=>{
+  // NO RANK NUMERAL. This printed 01, 02, 03 from the array index, and the
+  // heading above it said "the quotes behind the ranking" — so a list ordered
+  // by REPORT COUNT read as a merit ranking, and a model with one complaint
+  // read as the best choice for the job. There is no score anywhere in this
+  // path: `board_sections` sorts by count and says so ("the ordering is a
+  // COUNT, never a score"). The count is already on the right of every row,
+  // which is the honest version of what the numeral was pretending to be.
+  return '<div class="ranked">'+rows.map((r)=>{
     const [cls,lbl]=stOf(r.s);
-    return `<div class="rank${r.dim?' dim':''}"><span class="n">${String(i+1).padStart(2,'0')}</span>
+    return `<div class="rank${r.dim?' dim':''}"><span class="n">·</span>
       <div><b>${esc(r.m)}</b><span class="vend">${esc(r.v)}</span><p>${esc(r.d)}</p></div>
       <div class="right"><span class="price">${esc(r.p)}</span><span class="st ${cls}">${esc(r.e)} · ${esc(lbl)}</span></div></div>`;
   }).join('')+'</div>';
@@ -61,10 +68,17 @@ function conds(list){
 }
 function quotes(qs){
   if(!qs || !qs.length) return '';
-  // [quote, who, document_id, contested, url] — `url` is new: the payload used
-  // to carry only the document id, which is why "open the source" was
-  // underlined text pointing nowhere.
-  return '<div class="quotes">'+qs.map(([q,who,src,c,url])=>{
+  // [quote, who, document_id, isNegative, url]
+  //
+  // THE FOURTH SLOT IS `isNegative`, NOT `contested`. It was named contested
+  // here while db.js filled it with `q.polarity === 'negative'`, and
+  // `evidenceState` separately uses 'c' to mean genuinely contested (positive
+  // AND negative present). One letter meaning two things is how a negative
+  // quote came to wear the colour for disagreement.
+  //
+  // `url` is the fifth: the payload used to carry only the document id, which
+  // is why "open the source" was underlined text pointing nowhere.
+  return '<div class="quotes">'+qs.map(([q,who,src,isNegative,url])=>{
     const href = safeHref(url);
     // NO LINK IS BETTER THAN A DEAD ONE. A quote whose document row carries no
     // usable URL says so, rather than offering an underline that does nothing —
@@ -72,7 +86,14 @@ function quotes(qs){
     const cite = href
       ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">open the source</a>`
       : '<span class="nosrc" title="This quote\'s document has no usable link.">no link recorded</span>';
-    return `<div class="qb${c?' c':''}"><q>${esc(q)}</q><cite>${esc(who)} · ${esc(src)} · ${cite}</cite></div>`;
+    // THE LABEL IS THE POINT, NOT THE BORDER. A negative quote used to be
+    // marked only by switching a 3px left border from green to amber, with no
+    // legend anywhere — so a reader could not know what amber meant, and every
+    // other quote being green read as approval. Said in words instead.
+    const tag = isNegative
+      ? '<span class="ptag neg">reported as a problem</span>'
+      : '';
+    return `<div class="qb${isNegative?' neg':''}">${tag}<q>${esc(q)}</q><cite>${esc(who)} · ${esc(src)} · ${cite}</cite></div>`;
   }).join('')+'</div>';
 }
 function related(list){
@@ -139,10 +160,10 @@ function vJob(slug){
     <h1>${esc(j.h1)}</h1><p class="sub">${esc(j.sub)}</p></div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
       <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
-    ${sec('Every model with reports for this job','What engineers actually ran','',ranked(j.rows))}
+    ${sec('Every model reported working for this job','Who got this working','',ranked(j.rows))}
     ${sec('Conditions that change the answer','Where the pick stops holding',
       'Most disagreements between engineers are condition mismatches rather than contradictions. These are the ones the reports keep naming.',conds(j.conds))}
-    ${sec('The quotes behind the ranking','What they said, verbatim','',quotes(j.qs))}
+    ${sec('The reports this list is built from','What they said, verbatim','',quotes(j.qs))}
     ${sec('Related','','',related(j.rel))}`;
 }
 

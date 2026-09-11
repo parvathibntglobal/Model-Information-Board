@@ -149,6 +149,37 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     shown. An open vocabulary fragments one section across phrasings until
     somebody merges them, so `reports` is ">= N" rather than N. Saying so is
     rule 7: the figure travels with what it actually counted.
+
+    ⚠ A NEGATIVE QUOTE NEVER REACHES `best_for`. It reached it until
+      2026-09-11, and the board said this:
+
+          Board / Best for / Coding agents
+          What engineers actually ran        01  claude-fable-5-1
+          The quotes behind the ranking      "it has created 20+ bugs"
+
+      One complaint, rendered as the top recommendation for the job. The
+      pipeline was not wrong - it recorded `polarity: negative` correctly - the
+      SURFACE was, because `best_for` means "evidence this model SUITS this
+      job" and only a positive report can say that. A problem report names the
+      job it happened on; it does not recommend it.
+
+      `capability` and `metric` are NOT filtered, and the difference is the
+      point. Those sections describe BEHAVIOUR and FIGURES, where a bad result
+      is evidence of exactly the same standing as a good one - "it has failed
+      to test the fixes" is a real finding about code-testing. Only "best for"
+      makes a claim of suitability, so only "best for" needs the evidence to
+      support one.
+
+      THE ROWS ARE NOT DELETED AND NOT REFUSED AT WRITE TIME. They stay, and
+      the model page still shows them with their polarity badge, because the
+      finding is real and losing it would be the caused absence rule 4 forbids.
+      What changes is that a surface promising suitability stops being filled
+      by evidence of the opposite.
+
+      This is a rule WE state, not one the classifier infers - the LLM only
+      supplies the polarity label (rule 2: it may propose, it may never
+      decide). `judge/extract/prompt.py` now also declines to propose these, so
+      this filter is the second line rather than the only one.
     """
     rows = conn.execute(
         # LEFT JOIN, not JOIN. `document_id` is NOT NULL and references
@@ -163,6 +194,13 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         "       be.created_at, d.url "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
         "WHERE be.ruling IS DISTINCT FROM 'declined' "
+        # See the docstring. `best_for` claims suitability, so a negative
+        # report cannot fill it. Written as NOT(...) rather than a polarity
+        # allow-list on purpose: a row whose polarity is NULL or an unseen
+        # value stays VISIBLE, because "we could not tell" must not silently
+        # delete a finding (rule 6). Only an explicit `negative` is excluded,
+        # and only from this one section.
+        "  AND NOT (be.section = 'best_for' AND be.polarity = 'negative') "
         "ORDER BY be.section, COALESCE(be.ruling_target, be.slug), be.created_at DESC"
     ).fetchall()
 

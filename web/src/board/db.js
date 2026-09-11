@@ -63,7 +63,7 @@ function commonFields(item) {
       s: st,
       dim: false,
     })),
-    // [quote, who, document_id, contested, url] — the shape views.js renders.
+    // [quote, who, document_id, isNegative, url] — the shape views.js renders.
     //
     // `url` IS THE FIFTH ELEMENT AND IT IS NEW. "open the source" was
     // underlined text pointing nowhere because this tuple carried only the
