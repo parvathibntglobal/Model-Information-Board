@@ -2,9 +2,19 @@
 :root{ --r:var(--r-card); --pill:var(--r-pill); --sans:var(--font-sans); --mono:var(--font-mono) }
 
 /* ===== board + blogs views ===== */
-.crumb{font:400 .74rem var(--mono);color:var(--text-3);letter-spacing:.04em;margin-bottom:14px}
-.crumb a{cursor:pointer}.crumb a:hover{color:var(--text-2)}
-.crumb i{margin:0 8px;opacity:.45;font-style:normal}
+/* The breadcrumb was --text-3 (#71717A) on the near-black page: about 4:1,
+   which is under the 4.5:1 minimum for text this small and read as barely
+   there. --text-2 (#A1A1AA) is ~7:1 at the same size.
+
+   The trail is also NAVIGATION, and every part of it was one colour, so a
+   clickable ancestor looked identical to the page you are already on. The
+   links now carry --info (the colour links use elsewhere on the board) and the
+   current page keeps the plain text colour, which is what makes the trail
+   usable rather than decorative. */
+.crumb{font:400 .74rem var(--mono);color:var(--text-2);letter-spacing:.04em;margin-bottom:14px}
+.crumb a{cursor:pointer;color:var(--info)}
+.crumb a:hover{text-decoration:underline}
+.crumb i{margin:0 8px;opacity:.7;font-style:normal}
 .phead{padding:34px 0 6px}
 .phead h1{font-size:clamp(1.85rem,3.3vw,2.6rem);letter-spacing:-.03em;line-height:1.08;margin-bottom:14px;max-width:23ch}
 .phead .sub{color:var(--text-2);font-size:1.02rem;line-height:1.62;max-width:66ch}
@@ -59,9 +69,18 @@
   border-radius:0 var(--r) var(--r) 0;padding:17px 20px}
 .qb.c{border-left-color:var(--warn)}
 .qb q{display:block;font-size:1.02rem;line-height:1.5;margin-bottom:10px}
-.qb cite{font:400 .74rem var(--mono);color:var(--text-3);font-style:normal;letter-spacing:.02em}
-.qb cite u{color:var(--info);text-decoration:none;cursor:pointer}
-.qb cite u:hover{text-decoration:underline}
+/* Same contrast problem as the breadcrumb, and one worse thing: this line
+   carries "open the source", and the rule below only ever matched <u>. The
+   port replaced that <u> with a real <a href> when the dead link was fixed, so
+   the LINK STYLING HAS MATCHED NOTHING SINCE — the only working link on the
+   page rendered as dim grey text indistinguishable from the citation around
+   it. Both selectors are kept: <u> is still what the older blog views emit. */
+.qb cite{font:400 .74rem var(--mono);color:var(--text-2);font-style:normal;letter-spacing:.02em}
+.qb cite a,.qb cite u{color:var(--info);text-decoration:none;cursor:pointer}
+.qb cite a:hover,.qb cite u:hover{text-decoration:underline}
+/* A link the eye can find before it hovers. */
+.qb cite a{text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--info) 45%,transparent);text-underline-offset:2px}
+.qb .nosrc{color:var(--text-3);font-style:italic}
 
 .tblwrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
 .bv table{width:100%;border-collapse:collapse;font-size:.94rem;min-width:620px}
