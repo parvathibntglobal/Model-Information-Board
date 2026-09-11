@@ -126,15 +126,14 @@ columns:
     model_scope:
       reviewed: true
       state: write_only
-      why: 'searched | mentioned | NULL. Written by judge/store/board_entries.py:store_entries
-        from the run''s own subject; read by nothing yet. DECLARED RATHER THAN DEFERRED (rule 9):
-        the intended reader is the board itself, which should say which population a section''s
-        counts were drawn from - a model searched exhaustively and one mentioned once in a
-        comparison currently contribute to the same figure with nothing distinguishing them
-        (rule 7). It cannot read it yet because that is a change to what the page MEANS and is
-        a product decision, not a query change. Recorded now because the distinction used to
-        live in the id SHAPE by accident and stopped being visible on 2026-09-11 when the read
-        path learned to resolve both shapes to one name.
+      why: 'searched | mentioned | NULL. Written by judge/store/board_entries.py:store_entries from the
+        run''s own subject; read by nothing yet. DECLARED RATHER THAN DEFERRED (rule 9): the intended
+        reader is the board itself, which should say which population a section''s counts were drawn from
+        - a model searched exhaustively and one mentioned once in a comparison currently contribute to
+        the same figure with nothing distinguishing them (rule 7). It cannot read it yet because that
+        is a change to what the page MEANS and is a product decision, not a query change. Recorded now
+        because the distinction used to live in the id SHAPE by accident and stopped being visible on
+        2026-09-11 when the read path learned to resolve both shapes to one name.
 
         '
     model_version_id:
@@ -493,20 +492,31 @@ columns:
       state: unwired
   dedup_cluster:
     canonical_document_id:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: write_only
+      why: the EARLIEST original of the group. Written, and read today only through document.is_canonical_in_cluster;
+        the row exists so an audit can ask which document the others amplify
     first_seen_at:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: defaulted
+      why: DEFAULT now(). Nothing reads it; it records when a grouping was first observed, which a re-run
+        must not move - the upsert updates size and reach and deliberately leaves this alone
     id:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: write_only
+      why: 'written by collect/assemble/dedupe_write.py, derived from the canonical document so a re-run
+        reuses the grouping. Nothing reads the table yet: the consumer is document.dedup_cluster_id, which
+        carries the same id'
     reach:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: write_only
+      why: copies beyond the canonical. Deliberately unread - the schema comment says 'amplifications
+        contribute to REACH, never to WEIGHT', and a test asserts nothing in dedupe exposes an attribute
+        a weighting pass would pick up
     size:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: write_only
+      why: members including the canonical. Written for audit; the gate reads voices, never this
   document:
     author_id:
       reviewed: false
@@ -519,10 +529,10 @@ columns:
       reviewed: false
       state: read
     dedup_cluster_id:
-      known_gap: E1's lane - dedupe is unwired
       reviewed: true
-      state: reserved
-      why: dedupe output; Stage('assemble-dedupe', run=None)
+      state: read
+      why: written by collect/assemble/dedupe_write.py since 2026-09-11 and read by judge/vet/reject.py:check,
+        which had always taken it and defaulted to 'not clustered'
     engagement:
       reviewed: false
       state: read
@@ -571,10 +581,10 @@ columns:
       reviewed: false
       state: read
     is_canonical_in_cluster:
-      known_gap: E1's lane - dedupe is unwired
       reviewed: true
-      state: reserved
-      why: as dedup_cluster_id
+      state: read
+      why: written by the same pass and read by the same check. False marks an amplification, which is
+        what stops a syndicated copy counting as an independent voice
     is_self_post:
       reviewed: true
       state: read

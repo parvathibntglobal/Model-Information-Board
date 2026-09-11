@@ -74,6 +74,10 @@ FETCH_DIR = ROOT / "var" / "fetch"
 #: is generous, so only pathologically large threads are held back.
 MAX_FETCH_THREAD_CHARS = 30_000
 
+#: Sources dedupe runs over. Every one has a prose extractor; a source
+#: without one is refused by `dedupe_write` rather than signed raw.
+DEDUPE_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "huggingface")
+
 #: How many threads ONE fetch may send to the language model.
 #:
 #: The daily budget caps the money; this caps the WAIT. Extraction ran at
@@ -1125,6 +1129,58 @@ def _thread_latest_dates(conn, thread_ids: list[str]) -> dict:
     return {tc_id: latest for tc_id, latest in rows}
 
 
+def dedupe_stage(conn, prog: Progress) -> None:
+    """E3d — cluster near-duplicates, so a syndicated copy stops being a voice.
+
+    WIRED 2026-09-11. `collect/assemble/dedupe.py` and `signature.py` were both
+    complete and neither had a caller: `collect/ops/chain.py` declared
+    `Stage("assemble-dedupe", run=None)` and the four columns were populated on
+    0 of 7,479 documents. `judge/vet/reject.py:check` already TOOK
+    `dedup_cluster_id` and `is_canonical_in_cluster` and defaulted to
+    "canonical", so every syndicated copy counted as an independent voice - the
+    condition the publication gate exists to test, inverted.
+
+    AFTER ASSEMBLE, NOT BEFORE. Clustering signs PROSE, and prose comes from the
+    same extractors the assembler uses; running it first would sign whatever the
+    adapter stored, which on 2026-09-10 was a JSON envelope every document of a
+    platform shares.
+
+    NEVER FATAL. A clustering failure must not lose an assembled corpus: the
+    documents are stored, the threads are built, and a missing grouping costs
+    precision on voice counts rather than the run.
+    """
+    from collect.assemble.dedupe_write import run as run_dedupe
+
+    store = RawStore(Path(settings().raw_store_path))
+    prog.stage("E3d", "Dedupe · count people, not posts", "running",
+               detail="clustering near-duplicates so a syndicated copy is reach, not weight")
+    try:
+        reports = run_dedupe(conn, store=store, sources=DEDUPE_SOURCES, limit=500)
+        conn.commit()
+    except Exception as exc:
+        _safe_rollback(conn)
+        prog.stage("E3d", "Dedupe · count people, not posts", "error",
+                   detail=str(exc).splitlines()[0][:200])
+        return
+
+    clusters = sum(r.clusters_written for r in reports)
+    amps = sum(r.amplifications for r in reports)
+    signed = sum(r.signed for r in reports)
+    unreadable = sum(r.unreadable for r in reports)
+    refused = sum(r.refused for r in reports)
+    # A ZERO HERE IS A FINDING, NOT A FAILURE. Most comments are below the
+    # measured 200-token floor, so no signature is computed for them at all -
+    # `signature.py` found neither method separates duplicates from strangers
+    # below it. Saying "0 clusters" beside "how many could even be compared" is
+    # the difference between "nothing was duplicated" and "nothing was checked".
+    prog.stage("E3d", "Dedupe · count people, not posts", "ok",
+               clusters=clusters, amplifications=amps, signed=signed,
+               unreadable=unreadable, refused=refused,
+               detail=(f"{clusters} cluster(s), {amps} amplification(s) from "
+                       f"{signed} signable document(s); {unreadable} payload(s) not on "
+                       f"this machine, {refused} unsignable"))
+
+
 def score_stage(conn, prog: Progress) -> None:
     """E3b — the six document signals, without which weighting refuses.
 
@@ -1631,6 +1687,13 @@ def main(argv: list[str] | None = None) -> int:
 
         # E3b BEFORE E4. Triage's `has_artifact` gate reads two of the six
         # columns this writes, so gating first would gate on NULLs.
+        try:
+            dedupe_stage(db.live(prog), prog)
+        except Exception as exc:
+            _safe_rollback(db.raw)
+            prog.stage("E3d", "Dedupe · count people, not posts", "error",
+                       detail=str(exc).splitlines()[0][:200])
+
         try:
             score_stage(db.live(prog), prog)
         except Exception as exc:
