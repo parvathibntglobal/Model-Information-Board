@@ -293,6 +293,23 @@ These are the rules a helpful refactor will otherwise quietly violate.
   first, because it got out of step TWICE. Before a staging write session, say
   so, so two of us are not writing the same afternoon.
 
+  **A MIGRATION PR'S BODY MUST SAY WHO RUNS IT, AND WHEN.** Merging ships the
+  FILE; a person runs the runner. The writer that needs the new column ships as
+  CODE and takes effect the moment anyone pulls - so between the merge and the
+  migrate, every other machine holds a writer for a schema it does not have.
+
+  That gap is not theoretical. #260 merged at 11:16Z on 2026-09-11 with the
+  `board_entry.model_scope` column, its migration and its writer. The writer
+  reached the other machine on a pull; the migration reached it as a file
+  nobody had run; E5 died on *"column model_scope of relation board_entry does
+  not exist"* and spent three extract calls doing it. Applied 13:13Z.
+
+  **The sentence that caused it was in the PR body**: *"the migration is the
+  only pending one and the ledger is clean, so it applies on merge."* It does
+  not apply on merge. Nor does *"lands with this"*, nor *"will apply"* - all
+  three read as **no action required**, which is why the PR template now names
+  them and refuses them by name rather than asking for care.
+
   **WHEN THE RUNNER IS BLOCKED AND A MIGRATION HAS TO GO IN NOW.** This has
   happened twice and both times the runner was routed around:
   `20260910T1300_claim_capability_key_nullable.sql` applied by hand to unblock
