@@ -35,6 +35,10 @@ import { IconAlert, IconLayers } from './Icons'
  * rulings nobody was sure about.
  */
 
+//: Best for first because it is the surface that makes a recommendation, so a
+//: wrong slug there costs the most. Same order as the board itself.
+const SECTION_ORDER = ['best_for', 'capability', 'metric']
+
 const SECTION_LABEL = {
   best_for: 'Best for',
   capability: 'Capabilities',
@@ -113,14 +117,39 @@ export default function BoardReview() {
           </p>
         )}
 
-        {groups.map((g) => {
+        {/* GROUPED BY SECTION AND FOLDED. This was one flat list of every
+            discovered slug, which grows with every fetch and buries the reason
+            to look. Duplicates can only occur WITHIN a section - "function
+            calling" and "tool calling" are both capabilities, never a
+            capability and a metric - so grouping by section is not just tidier,
+            it puts the comparison a reader is actually making side by side.
+
+            The summary carries the count AND how many still need a ruling, so a
+            folded panel says whether there is anything to do inside it. Native
+            <details>, same as the FAQ: the rows stay in the DOM for ctrl-F and
+            for a screen reader whether or not the panel is open. */}
+        {SECTION_ORDER.filter((sec) => groups.some((g) => g.section === sec)).map((sec) => {
+          const inSection = groups.filter((g) => g.section === sec)
+          const unruled = inSection.filter((g) => !g.ruling).length
+          return (
+            <details key={sec} className="disc">
+              <summary>
+                {SECTION_LABEL[sec] || sec}
+                <span className="n">
+                  {inSection.length} section{inSection.length === 1 ? '' : 's'}
+                  {unruled > 0
+                    ? ` · ${unruled} awaiting a ruling`
+                    : ' · all ruled'}
+                </span>
+              </summary>
+              <div className="disc-body stack stack-3">
+        {inSection.map((g) => {
           const key = `${g.section}:${g.slug}`
           const ruled = Boolean(g.ruling)
           return (
             <div key={key} className="stack stack-1"
                  style={{ opacity: g.ruling === 'declined' ? 0.55 : 1 }}>
               <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
-                <Badge tone="mute">{SECTION_LABEL[g.section] || g.section}</Badge>
                 <strong style={{ fontSize: 'var(--fs-sm)' }}>{g.name || g.slug}</strong>
                 <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{g.slug}</span>
                 <span className="label">
@@ -185,6 +214,10 @@ export default function BoardReview() {
                 )}
               </div>
             </div>
+          )
+        })}
+              </div>
+            </details>
           )
         })}
       </div>

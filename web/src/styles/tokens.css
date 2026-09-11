@@ -15,7 +15,17 @@
 
   --text:          #FFFFFF;
   --text-2:        #A1A1AA;
-  --text-3:        #71717A;
+  /* WAS #71717A, WHICH FAILED ON EVERY SURFACE THIS PROJECT HAS.
+     Measured against the five backgrounds in this file:
+
+         bg 4.04   bg-elev 3.96   surface 3.67   surface-2 3.48   surface-3 3.24
+
+     all below the 4.5:1 minimum for body text, and it is used 43 times across
+     app.css and board.css - evidence citations, meta lines, table headers,
+     timestamps. #8B8B94 clears it everywhere (worst case 4.64:1 on
+     surface-3) while staying a visible step below --text-2 (1.32:1 between
+     them), which is the whole point of having a third tier rather than two. */
+  --text-3:        #8B8B94;
   --accent:        #FFFFFF;
 
   /* semantic — state, kept deliberately separate from the accent */

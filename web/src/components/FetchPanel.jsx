@@ -210,8 +210,23 @@ export default function FetchPanel({ modelVersionId, onDone }) {
         </div>
       )}
 
-      <div className="stack stack-2">
-        <span className="label">Fetch history</span>
+      {/* FOLDED BY DEFAULT. The history grows by one row per run and pushes the
+          thing a reader came for - the current run, and the Fetch button - off
+          the screen. The COUNT is in the summary so a closed panel is not
+          hiding an unknown quantity, and "no runs yet" still shows without
+          opening it, because an empty history is a real answer rather than a
+          reason to make somebody click. Native <details>: the rows stay in the
+          DOM for ctrl-F and for a screen reader whether or not it is open. */}
+      <details className="disc">
+        <summary>
+          Fetch history
+          <span className="n">
+            {runs === null ? 'loading…'
+              : runs.length === 0 ? 'no runs yet'
+              : `${runs.length} run${runs.length === 1 ? '' : 's'}`}
+          </span>
+        </summary>
+        <div className="disc-body stack stack-2">
         {runs === null && <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>Loading…</span>}
         {runs && runs.length === 0 && (
           <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>No runs yet.</span>
@@ -239,7 +254,8 @@ export default function FetchPanel({ modelVersionId, onDone }) {
             )}
           </div>
         ))}
-      </div>
+        </div>
+      </details>
     </section>
   )
 }
