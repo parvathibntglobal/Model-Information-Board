@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import json
 import os
 import sys
@@ -37,6 +38,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from collect import usage  # noqa: E402
 from collect.adapters.github import GitHubHarvester  # noqa: E402
 from collect.adapters.queries import load_queries, plan_searches  # noqa: E402
 from collect.config import settings  # noqa: E402
@@ -100,18 +102,44 @@ MAX_GITHUB_SEARCHES = int(os.getenv("FETCH_MAX_GITHUB_SEARCHES", "60"))
 
 
 class Progress:
-    """One run's per-stage log. Append-only JSONL the fetch view tails."""
+    """One run's per-stage log. Append-only JSONL the fetch view tails.
+
+    THE FILE IS THE SURVIVOR AND THE TABLE IS THE SHARED VIEW. Every line is
+    written to disk first and mirrored into `fetch_log` best-effort, because
+    the whole reason this log is a file is that a run which dies BECAUSE THE
+    DATABASE IS UNREACHABLE must still be able to say so. That is not
+    hypothetical: it is how the 2026-09-09 and 2026-09-10 runs were diagnosed,
+    the second of them while the shared database was down for a day. A log that
+    needs the database to record the database being unreachable records
+    nothing, exactly when it matters most.
+
+    So the mirror never raises and never blocks: a failed insert costs the
+    shared view of one line, not the line and not the run.
+    """
 
     def __init__(self, run_id: str, model_version_id: str) -> None:
         FETCH_DIR.mkdir(parents=True, exist_ok=True)
         self.path = FETCH_DIR / f"{run_id}.jsonl"
         self.run_id = run_id
+        self.model_version_id = model_version_id
+        self._seq = 0
+        #: Stop trying after the first failure. A database that is down stays
+        #: down for the length of a run, and re-attempting a connection on
+        #: every stage line turns a quiet mirror into a per-line timeout.
+        self._mirror = True
         self._write({"kind": "run", "run_id": run_id,
                      "model_version_id": model_version_id, "at": _now()})
 
     def _write(self, rec: dict) -> None:
+        seq = self._seq
+        self._seq += 1
         with self.path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(rec) + "\n")
+        if self._mirror:
+            self._mirror = _mirror_fetch_line(
+                run_id=self.run_id, seq=seq, rec=rec,
+                model_version_id=self.model_version_id,
+            )
 
     def stage(self, id_: str, name: str, status: str, **fields) -> None:
         # status: running | ok | skipped | error. Counts and detail ride along
@@ -125,6 +153,50 @@ class Progress:
 
 def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def _mirror_fetch_line(
+    *, run_id: str, seq: int, rec: dict, model_version_id: str
+) -> bool:
+    """Copy one log line into `fetch_log`. Returns whether to keep mirroring.
+
+    NEVER RAISES. See `Progress` — the file has already taken the line, and an
+    exception here would mean the database going down takes the run's own
+    account of it down too.
+
+    The id hashes run and position, so replaying a run's file into the table is
+    idempotent and the backfill of the 18 existing logs can be re-run freely.
+    `seq` is stored because the log is a SEQUENCE: timestamps here are
+    second-resolution and several stages share one, so ordering by time alone
+    scrambles the order in which things actually happened.
+    """
+    try:
+        payload = json.dumps(rec, sort_keys=True)
+        line_id = "fl_" + hashlib.sha256(
+            f"{run_id}|{seq}|{payload}".encode()
+        ).hexdigest()[:24]
+        # THE GUARDED CONNECTION, not `db.transaction()`. The latter reads
+        # DATABASE_URL with no test guard and no short timeout, which is how
+        # this mirror wrote fixture lines into the shared table during a suite
+        # run — and `on conflict do nothing` kept the row count flat, so the
+        # first check for it came back clean.
+        conn = usage.telemetry_connection()
+        if conn is None:
+            return False
+        try:
+            with conn:
+                conn.execute(
+                    "insert into fetch_log "
+                    "(id, run_id, seq, at, machine, payload, kind, model_version_id) "
+                    "values (%s,%s,%s,%s,%s,%s,%s,%s) on conflict (id) do nothing",
+                    (line_id, run_id, seq, rec.get("at"), usage.machine(),
+                     payload, rec.get("kind"), model_version_id),
+                )
+        finally:
+            conn.close()
+        return True
+    except Exception:
+        return False
 
 
 def _safe_rollback(conn) -> None:
