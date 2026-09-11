@@ -14,8 +14,20 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from collect.adapters.blog.write import write_blog_run
-from collect.rawstore import RawStore
+from tests.conftest import require_feed_libraries
+
+# Above the imports it guards. See tests/conftest.py:require_feed_libraries.
+#
+# THE FIFTH MODULE, and it was missed. conftest's note says "the four test
+# modules that genuinely parse feeds" - this is a fifth, `write_blog_run`
+# reaches `parse.py` the same way, and without the guard its COLLECTION
+# error interrupted the whole suite. That is the exact failure the other
+# four were given this guard to stop: on 2026-09-11 a full run reported
+# `Interrupted: 1 error during collection` and nothing executed.
+require_feed_libraries()
+
+from collect.adapters.blog.write import write_blog_run  # noqa: E402
+from collect.rawstore import RawStore  # noqa: E402
 
 SCHEMA = Path(__file__).resolve().parents[1] / "contract" / "tables.sql"
 

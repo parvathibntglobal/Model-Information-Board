@@ -298,6 +298,13 @@ def test_gate_three_the_stored_umbrella_row_refuses_as_a_fetch_target(conn, tmp_
 
     import httpx
 
+    # THE BLOG FETCH PATH NEEDS THE FEED LIBRARIES, and these two tests are
+    # about the SOURCE GATE rather than about parsing anything - they only
+    # reach `fetcher_for_source` to prove it refuses. Skipped rather than
+    # failed when the parser is absent, for the reason
+    # `tests/conftest.py:require_feed_libraries` gives: a missing optional
+    # dependency should cost the tests that need it and nothing else.
+    pytest.importorskip('trafilatura', reason='the blog fetch path needs it')
     from collect.adapters.blog.fetch import NotAFetchTargetError, fetcher_for_source
     from collect.adapters.blog.robots import RobotsGate
     from collect.http import build_client
@@ -329,6 +336,7 @@ def test_gate_four_a_stored_medium_row_permits_the_feed_and_refuses_articles(
 
     import httpx
 
+    pytest.importorskip('trafilatura', reason='the blog fetch path needs it')
     from collect.adapters.blog.fetch import FeedOnlyError, fetcher_for_source
     from collect.adapters.blog.robots import RobotsGate
     from collect.http import build_client
