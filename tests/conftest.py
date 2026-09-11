@@ -829,3 +829,52 @@ def _isolate_rapidapi_quota(tmp_path, monkeypatch):
     from collect import usage
 
     monkeypatch.setattr(usage, "QUOTA_PATH", tmp_path / "rapidapi-quota.json")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_shared_telemetry(monkeypatch):
+    """Telemetry reads no real database unless a test asks it to.
+
+    THE SAME LEAK AS `_isolate_auth_env`, one layer down. Since 2026-09-11 the
+    spend ledger, the fetch log and the RapidAPI quota mirror into shared
+    tables, and their readers merge the table with the local var/ file. A
+    developer `.env` points `DATABASE_URL` at the REAL shared database, so
+    `tests/test_rapidapi_usage.py` — which isolates the file by pointing
+    `_REPO_ROOT` at a tmp_path and then asserts "no reading yet" — saw the
+    team's live Reddit reading and failed. Eight tests, all correct, all
+    testing a reader whose second source they had no way to control.
+
+    CI would have been spared, because its DATABASE_URL is a disposable test
+    database with empty telemetry tables. That is luck, not isolation, and it
+    is the same luck `_isolate_auth_env` exists to stop relying on.
+
+    So the mirror is off by default and a test opts in:
+
+        spend_ledger.reset_telemetry_backoff()   # then a real DSN works
+
+    which is the honest default for a unit test — a function with two sources
+    should have both of them pinned, not one pinned and one ambient.
+    """
+    import sys
+    import time
+
+    from collect import usage
+    from judge import spend_ledger
+
+    # Far enough ahead that no test outlives it; cleared by the opt-in call.
+    deadline = time.monotonic() + 86_400
+    monkeypatch.setattr(spend_ledger, "_unreachable_until", deadline, raising=False)
+    monkeypatch.setattr(usage, "_unreachable_until", deadline, raising=False)
+    # `judge/app.py` reads the quota table through the board's own connection
+    # rather than the telemetry one, so it needs stubbing rather than backing off.
+    #
+    # ONLY IF IT IS ALREADY IMPORTED. Importing it here would build the FastAPI
+    # app for all ~3000 tests, including the great majority that never touch a
+    # route - measured at roughly ninety seconds across the suite. Tests import
+    # their modules at module scope, which runs before any fixture, so a test
+    # that can reach this function has already put it in sys.modules.
+    app_module = sys.modules.get("judge.app")
+    if app_module is not None:
+        monkeypatch.setattr(
+            app_module, "_rapidapi_meters_from_db", lambda: None, raising=False
+        )

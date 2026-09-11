@@ -1,754 +1,1389 @@
-# Declared state of every schema column.
-#
-# ⚠ contract/ IS SHARED. Adding a column means adding a line here, and that is
-#   the point: the state is DECLARED rather than DISCOVERED.
-#
-# THE PROPERTY THIS GUARDS
-#
-# Not "every column is read" - write_only is often correct, and five columns
-# below are deliberately so. The property is that somebody wrote down which,
-# and why. 138 of 306 columns were in a state nobody had declared when this
-# file was generated (docs/measurements/column-audit-306-columns.md).
-#
-# tests/test_column_states.py asserts:
-#   1. every column in the live schema has an entry here   <- fails on the 307th
-#   2. the discovered state matches the declared one, unless `known_gap` says
-#      why it does not
-#
-# Step 1 is the value. A snapshot of today's 306 passes forever and says nothing
-# about the next column. Same arrangement as cli.py's AST guard, where read-only
-# commands must be listed explicitly so an unclassified one fails rather than
-# running unguarded - and for the reason that guard records: a behavioural test
-# cannot see a path that never had a check.
-#
-# STATES
-#
-#   read               written, and read by a SELECT in this repository
-#   read_not_by_query  READ, by something the static audit cannot see - YAML,
-#                      config, a person reading the row. Requires `why` naming
-#                      the reader. This exists so reads-through-YAML are a
-#                      declared state rather than a growing exception list
-#   write_only         written deliberately and not read. Requires `why`
-#   generated          a GENERATED column. Never written by us
-#   defaulted          a DB DEFAULT supplies it. Never written by us
-#   unwired            a reader exists and the writer is a known missing stage.
-#                      Requires `known_gap` naming what is missing
-#   reserved           neither written nor read, deliberately, awaiting a stage
-#
-# `reviewed: false` means THIS ENTRY IS A SNAPSHOT, not a decision - the state
-# was discovered by the audit and nobody has ruled on it. It is not a pass. The
-# count of them is the remaining debt and the test prints it.
-
-version: "1.0"
-
 columns:
-
   answer:
-    abstained: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
-    assumptions: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
-    candidates: {state: write_only, reviewed: false}
-    created_at: {state: reserved, reviewed: false}
-    id: {state: write_only, reviewed: false}
-    reason: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
-    role_id: {state: write_only, reviewed: false}
-
-  audit:
-    audited_at: {state: reserved, reviewed: false}
-    auditor: {state: reserved, reviewed: false}
-    claim_id: {state: reserved, reviewed: false}
-    id: {state: reserved, reviewed: false}
-    notes: {state: reserved, reviewed: false}
-    verdict: {state: unwired, reviewed: false}
-
-  author:
-    account_created_at: {state: write_only, reviewed: false}
-    external_id: {state: read, reviewed: false}
-    first_seen_at: {state: reserved, reviewed: false}
-    handle_hash: {state: write_only, reviewed: false}
-    id: {state: read, reviewed: false}
-    identity_cluster_id: {state: write_only, reviewed: false}
-    karma: {state: write_only, reviewed: false}
-    source: {state: read, reviewed: false}
-    technical_history_score: {state: reserved, reviewed: false}
-
-  author_identity_cluster:
-    evidence: {state: unwired, reviewed: false}
-    id: {state: reserved, reviewed: false}
-    member_author_ids: {state: reserved, reviewed: false}
-    merged_at: {state: reserved, reviewed: false}
-
-  capability:
-    active: {state: reserved, reviewed: false}
-    description: {state: read, reviewed: false}
-    failure_mode: {state: read, reviewed: false}
-    key: {state: read, reviewed: false}
-    version: {state: read, reviewed: false}
-
-  # The table exists; nothing writes it yet. The classifier's DB write is the
-  # next wire-up, at which point these flip from `reserved` to `write_only` (and
-  # the review path adds the reads). Reserved until then, deliberately.
-  # board_entry — what the classifier DISCOVERED, and what the board renders.
-  # Read by judge/store/board_entries.py (board_sections, list_for_review,
-  # evidence_for_model), served by GET /board, /admin/board-entries and
-  # /models/{id}/evidence.
-  board_entry:
-    id:
-      state: write_only
+    abstained:
       reviewed: true
-      why: >
-        The primary key, and the ON CONFLICT target that makes a re-run
-        idempotent. Never selected back: every reader groups by section and
-        slug, because a board section is a group of entries rather than a row.
-    section: {state: read, reviewed: true}
-    slug: {state: read, reviewed: true}
-    name: {state: read, reviewed: true}
-    definition: {state: read, reviewed: true}
-    unit: {state: read, reviewed: true}
-    value_verbatim: {state: read, reviewed: true}
-    basis: {state: read, reviewed: true}
-    model_version_id: {state: read, reviewed: true}
-    document_id: {state: read, reviewed: true}
-    claim_id:
       state: write_only
+      why: only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired;
+        judge/store/answers.py still writes it, nothing reads it back
+    assumptions:
       reviewed: true
-      why: >
-        Written so an entry can be traced back to the claim it came from, and
-        read by nothing yet. Kept because the trace is the point: without it a
-        board section could not be walked back to the weighted claim behind it.
-        A reader will want it the first time somebody asks why a section ranks
-        where it does.
-    quote: {state: read, reviewed: true}
-    quote_verified:
       state: write_only
-      reviewed: true
-      why: >
-        CHECKed true by the table and never selected. The column exists so the
-        database refuses an unverified quote rather than trusting the writer -
-        rule 1 restated in the schema. Nothing reads it because nothing may:
-        every row that exists has already satisfied it.
-    polarity: {state: read, reviewed: true}
-    proposer_model:
+      why: only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired;
+        judge/store/answers.py still writes it, nothing reads it back
+    candidates:
+      reviewed: false
       state: write_only
-      reviewed: true
-      why: >
-        Which model classified the row, for when the extractor changes and a
-        board section needs attributing to one or the other. Recorded now
-        because it cannot be reconstructed later.
-    pipeline_version:
-      state: write_only
-      reviewed: true
-      why: >
-        Part of the natural key, so a re-run at a new version appends rather
-        than colliding. Same role as on `claim` and `thread_extraction`.
     created_at:
-      state: defaulted
+      reviewed: false
+      state: reserved
+    id:
+      reviewed: false
+      state: write_only
+    reason:
       reviewed: true
-      why: >
-        DEFAULT now(), never written by us - the INSERT does not name it - and
-        read by board_sections and evidence_for_model to order newest-first.
-        Declared `read` at first, which the audit correctly refused: `read`
-        asserts written-and-read, and the discovered state was UNWRITTEN, read.
-        Same shape and same declaration as capability_candidate.created_at.
-    ruling: {state: read, reviewed: true}
-    ruling_target: {state: read, reviewed: true}
-    reviewed_at: {state: read, reviewed: true}
+      state: write_only
+      why: only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired;
+        judge/store/answers.py still writes it, nothing reads it back
+    role_id:
+      reviewed: false
+      state: write_only
+  audit:
+    audited_at:
+      reviewed: false
+      state: reserved
+    auditor:
+      reviewed: false
+      state: reserved
+    claim_id:
+      reviewed: false
+      state: reserved
+    id:
+      reviewed: false
+      state: reserved
+    notes:
+      reviewed: false
+      state: reserved
+    verdict:
+      reviewed: false
+      state: unwired
+  author:
+    account_created_at:
+      reviewed: false
+      state: write_only
+    external_id:
+      reviewed: false
+      state: read
+    first_seen_at:
+      reviewed: false
+      state: reserved
+    handle_hash:
+      reviewed: false
+      state: write_only
+    id:
+      reviewed: false
+      state: read
+    identity_cluster_id:
+      reviewed: false
+      state: write_only
+    karma:
+      reviewed: false
+      state: write_only
+    source:
+      reviewed: false
+      state: read
+    technical_history_score:
+      reviewed: false
+      state: reserved
+  author_identity_cluster:
+    evidence:
+      reviewed: false
+      state: unwired
+    id:
+      reviewed: false
+      state: reserved
+    member_author_ids:
+      reviewed: false
+      state: reserved
+    merged_at:
+      reviewed: false
+      state: reserved
+  board_entry:
+    basis:
+      reviewed: true
+      state: read
+    claim_id:
+      reviewed: true
+      state: write_only
+      why: 'Written so an entry can be traced back to the claim it came from, and read by nothing yet.
+        Kept because the trace is the point: without it a board section could not be walked back to the
+        weighted claim behind it. A reader will want it the first time somebody asks why a section ranks
+        where it does.
 
+        '
+    created_at:
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(), never written by us - the INSERT does not name it - and read by board_sections
+        and evidence_for_model to order newest-first. Declared `read` at first, which the audit correctly
+        refused: `read` asserts written-and-read, and the discovered state was UNWRITTEN, read. Same shape
+        and same declaration as capability_candidate.created_at.
+
+        '
+    definition:
+      reviewed: true
+      state: read
+    document_id:
+      reviewed: true
+      state: read
+    id:
+      reviewed: true
+      state: write_only
+      why: 'The primary key, and the ON CONFLICT target that makes a re-run idempotent. Never selected
+        back: every reader groups by section and slug, because a board section is a group of entries rather
+        than a row.
+
+        '
+    model_version_id:
+      reviewed: true
+      state: read
+    name:
+      reviewed: true
+      state: read
+    pipeline_version:
+      reviewed: true
+      state: write_only
+      why: 'Part of the natural key, so a re-run at a new version appends rather than colliding. Same
+        role as on `claim` and `thread_extraction`.
+
+        '
+    polarity:
+      reviewed: true
+      state: read
+    proposer_model:
+      reviewed: true
+      state: write_only
+      why: 'Which model classified the row, for when the extractor changes and a board section needs attributing
+        to one or the other. Recorded now because it cannot be reconstructed later.
+
+        '
+    quote:
+      reviewed: true
+      state: read
+    quote_verified:
+      reviewed: true
+      state: write_only
+      why: 'CHECKed true by the table and never selected. The column exists so the database refuses an
+        unverified quote rather than trusting the writer - rule 1 restated in the schema. Nothing reads
+        it because nothing may: every row that exists has already satisfied it.
+
+        '
+    reviewed_at:
+      reviewed: true
+      state: read
+    ruling:
+      reviewed: true
+      state: read
+    ruling_target:
+      reviewed: true
+      state: read
+    section:
+      reviewed: true
+      state: read
+    slug:
+      reviewed: true
+      state: read
+    unit:
+      reviewed: true
+      state: read
+    value_verbatim:
+      reviewed: true
+      state: read
+  capability:
+    active:
+      reviewed: false
+      state: reserved
+    description:
+      reviewed: false
+      state: read
+    failure_mode:
+      reviewed: false
+      state: read
+    key:
+      reviewed: false
+      state: read
+    version:
+      reviewed: false
+      state: read
   capability_candidate:
     created_at:
+      reviewed: true
       state: defaulted
+      why: DEFAULT now(). Never written by us
+    definition:
       reviewed: true
-      why: >-
-        DEFAULT now(). Never written by us
-    # Wired 2026-08-31: discovery store + admin review UI. Written by
-    # judge/store/capability_candidates.py, read by list_candidates and the
-    # admin surface. prompt_label/pipeline_version are written but not selected
-    # back (provenance, not display).
-    definition: {state: read, reviewed: true}
-    document_id: {state: read, reviewed: true}
-    id: {state: read, reviewed: true}
-    pipeline_version: {state: write_only, reviewed: true}
-    prompt_label: {state: write_only, reviewed: true}
-    proposed_key: {state: read, reviewed: true}
-    proposer_model: {state: read, reviewed: true}
-    quote: {state: read, reviewed: true}
-    quote_verified: {state: read, reviewed: true}
-    reviewed_at: {state: read, reviewed: true}
-    ruling: {state: read, reviewed: true}
-    ruling_target: {state: read, reviewed: true}
-
-  cell:
-    capability_key: {state: read, reviewed: false}
-    computed_at: {state: write_only, reviewed: false}
-    condition_bucket: {state: read, reviewed: false}
-    conditional_note: {state: read, reviewed: false}
-    consensus_phrase: {state: read, reviewed: false}
-    freshest_at: {state: write_only, reviewed: false}
-    independent_voices: {state: read, reviewed: false}
-    max_author_share:
       state: read
-      reviewed: false
-      why: >-
-        read by scripts/report_rollup_delta.py, which re-checks the stored gate inputs against judge/curate/gate.py's thresholds. It is not a second opinion about the cell - it can only disagree with `status` if the thresholds moved since the rollup, which is the thing worth knowing
-    median_age: {state: write_only, reviewed: false}
-    model_version_id: {state: read, reviewed: false}
-    n_eff:
-      state: read
-      reviewed: false
-      why: >-
-        read by scripts/capture_rollup_baseline.py and scripts/report_rollup_delta.py. `cell` is keyed WITHOUT pipeline_version, so a rebuild overwrites these rows and the before-state is unrecoverable after the fact - the baseline exists so the board getting QUIETER is visible, which is the direction nobody checks
-    negative: {state: read, reviewed: false}
-    pipeline_version: {state: write_only, reviewed: false}
-    platform_count: {state: read, reviewed: false}
-    positive: {state: read, reviewed: false}
-    provenance: {state: read, reviewed: false}
-    quote_ids: {state: read, reviewed: false}
-    status: {state: read, reviewed: false}
-
-  claim:
-    author_id: {state: read, reviewed: false}
-    capability_key: {state: read, reviewed: false}
-    comparison_target_id: {state: reserved, reviewed: false}
-    condition_bucket: {state: read, reviewed: false}
-    conditions: {state: read, reviewed: false}
-    created_at:
-      state: defaulted
+    document_id:
       reviewed: true
-      why: >-
-        DEFAULT now(). Never written by us
-    document_id: {state: read, reviewed: false}
-    evidence_tier:
       state: read
+    id:
       reviewed: true
-      why: >-
-        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - the BEFORE side of the tier diff
-    extractor_confidence: {state: write_only, reviewed: false}
-    extractor_model:
       state: read
-      reviewed: true
-      why: >-
-        Written by every extraction path as the tag on a claim. Now also SELECTed
-        by scripts/test_extractor_swap.py, which reads it to compare a candidate
-        extractor against the stored-baseline claims in the extractor A/B (added
-        with the 2026-09-01 gemini->deepseek-v4-flash switch).
-    family: {state: write_only, reviewed: false}
-    has_numbers:
-      state: read
-      reviewed: true
-      why: >-
-        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute(), and since 2026-08-30 it proposes an evidence_tier promotion that document.has_numbers may veto
-    has_repro_steps:
-      state: read
-      reviewed: true
-      why: >-
-        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute(), and since 2026-08-30 it also keys evidence_tier
-    id: {state: read, reviewed: false}
-    is_sarcastic: {state: write_only, reviewed: false}
-    model_version_id: {state: read, reviewed: false}
-    pain_points: {state: read, reviewed: false}
     pipeline_version:
-      state: read
       reviewed: true
-      why: >-
-        diffability - every derived row carries it so a scoring change is re-runnable (CLAUDE.md conventions). READ BY CODE since 2026-08-30, not only by a person diffing runs: PIPELINE_VERSION is hashed into claim_id_for, so a bump forks the table, and judge/store/cells.py filters on this column so n_eff aggregates one version rather than each voice's best weight across two
-    polarity: {state: read, reviewed: false}
-    quote: {state: read, reviewed: false}
-    quote_flat_offset:
-      state: read
-      reviewed: true
-      why: >-
-        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - the span is hashed into the new claim id
-    quote_raw_offset: {state: write_only, reviewed: false}
-    quote_verified: {state: read, reviewed: false}
-    relevance:
-      state: read
-      reviewed: true
-      why: >-
-        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute()
-    resolution_confidence: {state: write_only, reviewed: false}
-    severity: {state: read, reviewed: false}
-    source_comment_id:
-      state: read
-      reviewed: true
-      why: >-
-        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - the re-weight needs it to derive the new claim id
-    speaking:
-      state: read
-      reviewed: true
-      why: >-
-        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute() - it keys evidence_tier
-    specificity:
-      state: read
-      reviewed: true
-      why: >-
-        read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version without calling a model. It was write-only while judge/pipeline.py was the only thing that had ever called weight.compute()
-    taxonomy_version: {state: write_only, reviewed: false}
-    thread_context_id: {state: read, reviewed: false}
-
-  claim_weight:
-    claim_id: {state: read, reviewed: false}
-    computed_at: {state: reserved, reviewed: false}
-    f_evidence: {state: read, reviewed: false}
-    f_fuzziness: {state: read, reviewed: false}
-    f_launch: {state: read, reviewed: false}
-    f_platform: {state: read, reviewed: false}
-    f_recency: {state: read, reviewed: false}
-    f_relevance: {state: read, reviewed: false}
-    f_specificity: {state: read, reviewed: false}
-    pipeline_version: {state: write_only, reviewed: false}
-    w_final: {state: read, reviewed: false}
-
-  coverage_gap:
-    detail: {state: reserved, reviewed: false}
-    id: {state: reserved, reviewed: false}
-    kind: {state: read, reviewed: false}
-    observed_at: {state: unwired, reviewed: false}
-    pipeline_version: {state: read, reviewed: false}
-    subject: {state: unwired, reviewed: false}
-
-  dedup_cluster:
-    canonical_document_id: {state: reserved, reviewed: false}
-    first_seen_at: {state: reserved, reviewed: false}
-    id: {state: reserved, reviewed: false}
-    reach: {state: reserved, reviewed: false}
-    size: {state: reserved, reviewed: false}
-
-  document:
-    author_id: {state: read, reviewed: false}
-    content_hash:
       state: write_only
+    prompt_label:
       reviewed: true
-      why: >-
-        content addressing - matched on, never selected
-    created_at: {state: read, reviewed: false}
-    dedup_cluster_id:
-      state: reserved
+      state: write_only
+    proposed_key:
       reviewed: true
-      why: >-
-        dedupe output; Stage('assemble-dedupe', run=None)
-      known_gap: >-
-        E1's lane - dedupe is unwired
-    engagement: {state: read, reviewed: false}
-    external_id: {state: read, reviewed: false}
-    fetched_at: {state: read, reviewed: false}
-    filter_reasons:
       state: read
+    proposer_model:
       reviewed: true
-      why: >-
-        WRITTEN SINCE 2026-08-30 by collect/adapters/github.py write_comments, which
-        stores a bot-authored issue comment as status='filtered' with
-        filter_reasons ['bot_author'] rather than dropping it - so judge/pages/filtered.py
-        can name the rule that excluded it. Was 'unwired' with the gap 'E2's lane -
-        triage is unwired', which is STILL TRUE OF TRIAGE and stopped being true of
-        the column: a known_gap exempts an entry from the mismatch check, so leaving
-        it would have hidden the first writer this column ever had behind a gap
-        statement about a different stage
-    harvest_run_id:
       state: read
+    quote:
       reviewed: true
-      why: >-
-        the join to harvest_run. Its reader is the provenance display, not yet built
-      known_gap: >-
-        no reader yet - the coverage page is where it belongs
-    # ⚠ THE FIVE COMPONENTS AND specificity_score GAINED A WRITER 2026-08-31 -
-    #   collect/triage/store.py:score_unscored, called by the `score-documents`
-    #   stage in collect/ops/chain.py and by scripts/backfill_document_facts.py.
-    #   `reviewed: false` on all six: E1 recorded the discovered state so the
-    #   `known_gap` texts below would stop asserting "nothing writes the column",
-    #   which stopped being true that day. The STATE is a fact; whether these
-    #   belong at `written+read` is E2's to confirm. Two eyes on contract/.
-    has_code: {state: read, reviewed: false, why: "written by collect/triage/store.py; read by triage/gates.py:has_artifact"}
-    has_conditions:
       state: read
+    quote_verified:
+      reviewed: true
+      state: read
+    reviewed_at:
+      reviewed: true
+      state: read
+    ruling:
+      reviewed: true
+      state: read
+    ruling_target:
+      reviewed: true
+      state: read
+  cell:
+    capability_key:
       reviewed: false
-      why: >-
-        written by collect/triage/store.py since 2026-08-31. judge/vet/weight.py reads it for f_specificity's has_conditions argument. It does NOT key evidence_tier - contract/harvest.yaml's C rung is one_of_the_two over (has_repro_steps, has_numbers), so writing this changes a weight and not a tier
-    has_error_strings: {state: read, reviewed: false, why: "written by collect/triage/store.py; read by triage/gates.py:has_artifact"}
+      state: read
+    computed_at:
+      reviewed: false
+      state: write_only
+    condition_bucket:
+      reviewed: false
+      state: read
+    conditional_note:
+      reviewed: false
+      state: read
+    consensus_phrase:
+      reviewed: false
+      state: read
+    freshest_at:
+      reviewed: false
+      state: write_only
+    independent_voices:
+      reviewed: false
+      state: read
+    max_author_share:
+      reviewed: false
+      state: read
+      why: read by scripts/report_rollup_delta.py, which re-checks the stored gate inputs against judge/curate/gate.py's
+        thresholds. It is not a second opinion about the cell - it can only disagree with `status` if
+        the thresholds moved since the rollup, which is the thing worth knowing
+    median_age:
+      reviewed: false
+      state: write_only
+    model_version_id:
+      reviewed: false
+      state: read
+    n_eff:
+      reviewed: false
+      state: read
+      why: read by scripts/capture_rollup_baseline.py and scripts/report_rollup_delta.py. `cell` is keyed
+        WITHOUT pipeline_version, so a rebuild overwrites these rows and the before-state is unrecoverable
+        after the fact - the baseline exists so the board getting QUIETER is visible, which is the direction
+        nobody checks
+    negative:
+      reviewed: false
+      state: read
+    pipeline_version:
+      reviewed: false
+      state: write_only
+    platform_count:
+      reviewed: false
+      state: read
+    positive:
+      reviewed: false
+      state: read
+    provenance:
+      reviewed: false
+      state: read
+    quote_ids:
+      reviewed: false
+      state: read
+    status:
+      reviewed: false
+      state: read
+  claim:
+    author_id:
+      reviewed: false
+      state: read
+    capability_key:
+      reviewed: false
+      state: read
+    comparison_target_id:
+      reviewed: false
+      state: reserved
+    condition_bucket:
+      reviewed: false
+      state: read
+    conditions:
+      reviewed: false
+      state: read
+    created_at:
+      reviewed: true
+      state: defaulted
+      why: DEFAULT now(). Never written by us
+    document_id:
+      reviewed: false
+      state: read
+    evidence_tier:
+      reviewed: true
+      state: read
+      why: read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version
+        without calling a model. It was write-only while judge/pipeline.py was the only thing that had
+        ever called weight.compute() - the BEFORE side of the tier diff
+    extractor_confidence:
+      reviewed: false
+      state: write_only
+    extractor_model:
+      reviewed: true
+      state: read
+      why: Written by every extraction path as the tag on a claim. Now also SELECTed by scripts/test_extractor_swap.py,
+        which reads it to compare a candidate extractor against the stored-baseline claims in the extractor
+        A/B (added with the 2026-09-01 gemini->deepseek-v4-flash switch).
+    family:
+      reviewed: false
+      state: write_only
     has_numbers:
+      reviewed: true
       state: read
+      why: read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version
+        without calling a model. It was write-only while judge/pipeline.py was the only thing that had
+        ever called weight.compute(), and since 2026-08-30 it proposes an evidence_tier promotion that
+        document.has_numbers may veto
+    has_repro_steps:
+      reviewed: true
+      state: read
+      why: read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version
+        without calling a model. It was write-only while judge/pipeline.py was the only thing that had
+        ever called weight.compute(), and since 2026-08-30 it also keys evidence_tier
+    id:
       reviewed: false
-      why: >-
-        written by collect/triage/store.py since 2026-08-31. judge/vet/weight.py reads it for f_specificity and judge/reweight.py reads it as the veto on a claim's self-reported has_numbers, so a NULL here withholds a tier promotion and is counted. Backfilled over the stored corpus the same day; rows whose payload is absent from the backfilling host stay NULL rather than False
-    id: {state: read, reviewed: false}
-    is_self_post:
       state: read
-      reviewed: true
-      why: >-
-        ADDED 2026-09-08 (migration 20260908T1500) so triage.gates.pure_link_post has an input for the first time - it read `Document.is_self_post` from the day it was written and no column carried it, so the gate returned NOT_APPLICABLE on all 5,010 triaged documents in the first real run. Written by collect/adapters/reddit_write.py and collect/adapters/documents.py (Hacker News drafts), and backfilled from stored payloads by scripts/backfill_is_self_post.py - 1,517 rows placed, 852 self posts and 665 link posts. SELECTed by collect/triage/run.py:_SELECT and passed to the gate, which now fires on 1,517 documents and drops 224. THREE STATES AND ALL THREE MEAN SOMETHING (rule 6): true a self/text post, false a LINK submission, NULL the platform has no such notion for this record - a blog article, a GitHub issue, and A COMMENT ON ANY PLATFORM, which is permanent rather than a gap. NO DEFAULT, deliberately: `false` is a definite claim and pure_link_post DROPS a link post with no commentary, so a default would have turned 6,502 unknowns into droppable documents. 1,482 reddit rows are still NULL for three different reasons - 1,234 payloads absent from the backfilling host, 247 present and not JSON, 1 a comment - and only the last is correct rather than fixable. The POSTER'S COMMENTARY is deliberately not a column: it is `selftext`, which text_ref already addresses, and collect/triage/run.py:_own_commentary reads it from the payload
-    is_canonical_in_cluster:
-      state: reserved
-      reviewed: true
-      why: >-
-        as dedup_cluster_id
-      known_gap: >-
-        E1's lane - dedupe is unwired
-    lang:
-      state: read
-      reviewed: true
-      why: >-
-        UN-RESERVED 2026-09-08 as write_only, and READ THE SAME DAY - the two changes landed hours apart and the discovered-state check caught the second, which is the guard doing its job twice on one column. Written by collect/adapters/documents.py for the five new platforms; SELECTed by collect/triage/run.py:_SELECT and passed to triage.gates.wrong_language. ⚠ READ IS NOT ACTED ON. That gate returns UNAVAILABLE for every document because no detector is installed and no allow-list is configured, and it returns NOT_APPLICABLE for a NULL - so the value reaches a gate that currently decides nothing, and this column is `read` by the audit's definition (a SELECT in this repository) rather than by consequence. Measured on the first triage run: wrong-language ran on 0 of 5,010 triaged. THE VALUE IS THE PLATFORM'S OWN FIELD AND NEVER AN INFERENCE (dev.to's `language`, X's `lang`), which is why rule 8 makes it a recorded field rather than a gate input. Enabled at collection time because the input CANNOT BE BACK-FILLED without re-reading every stored payload. NULL stays NULL - a platform that declares no language gets no guess (rule 6), and 6,502 existing rows keep their NULLs, which is why a detector alone would still leave this gate with no input on the stored corpus
-    minhash: {state: reserved, reviewed: false}
-    names_version: {state: read, reviewed: false, why: "written by collect/triage/store.py since 2026-08-31; read by assemble/thread.py's child ranking"}
-    parent_id:
-      state: read
+    is_sarcastic:
       reviewed: false
-      why: >-
-        read by collect/assemble/issue.py:assemble_github_documents since 2026-08-31. `parent_id IS NULL` is what separates an issue BODY from a comment, and the query had no such clause until comments existed - it would have assembled 148 comments as their own single-comment threads, putting the same text in front of the extractor twice under two ids
-    retrieval_provenance: {state: read, reviewed: false}
-    simhash: {state: reserved, reviewed: false}
-    source: {state: read, reviewed: false}
-    specificity_score:
       state: write_only
+    model_version_id:
       reviewed: false
-      why: >-
-        written by collect/triage/store.py since 2026-08-31. STILL WRITE-ONLY, and deliberately: E3's child ranking is the intended reader and is blocked on comment fetching, and the column is COMPARABLE WITHIN A SOURCE ONLY (see contract/tables.sql) - github means 0.527 against blogs 0.286, so a cross-source sort on it sorts by platform. The five component columns carry no such restriction. NO `known_gap` ON PURPOSE: that key makes the discovered-state check skip the column, and this one should start failing the day something reads it
-    status: {state: read, reviewed: false}
-    text_ref: {state: read, reviewed: false}
-    thread_root_id: {state: read, reviewed: false}
-    triage_verdict:
       state: read
+    pain_points:
+      reviewed: false
+      state: read
+    pipeline_version:
       reviewed: true
-      why: >-
-        WRITTEN SINCE 2026-09-08 by collect/triage/run.py:triage_stored, called by the `triage` stage in collect/ops/chain.py and by scripts/triage_stored_corpus.py; read by scripts/corpus_inventory.py. The `why` above said "a consumer exists; the writer is Stage('triage', run=None) in chain.py" and the `known_gap` said "E2's lane - triage is unwired". BOTH WERE TRUE AND THE GAP WAS THE DANGEROUS HALF: a known_gap exempts an entry from the mismatch check, so this column could gain its first writer and nothing would notice - exactly what happened to `filter_reasons` above, one column earlier, for the same reason. The gap is removed rather than reworded. NOTE THAT `document.status` IS STILL UNWRITTEN and that is deliberate rather than pending: two of six gates cannot run, so rule 8 keeps triage a recorded field and `status` is the gate action judge/ filters on
-    url: {state: read, reviewed: false}
-
+      state: read
+      why: 'diffability - every derived row carries it so a scoring change is re-runnable (CLAUDE.md conventions).
+        READ BY CODE since 2026-08-30, not only by a person diffing runs: PIPELINE_VERSION is hashed into
+        claim_id_for, so a bump forks the table, and judge/store/cells.py filters on this column so n_eff
+        aggregates one version rather than each voice''s best weight across two'
+    polarity:
+      reviewed: false
+      state: read
+    quote:
+      reviewed: false
+      state: read
+    quote_flat_offset:
+      reviewed: true
+      state: read
+      why: read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version
+        without calling a model. It was write-only while judge/pipeline.py was the only thing that had
+        ever called weight.compute() - the span is hashed into the new claim id
+    quote_raw_offset:
+      reviewed: false
+      state: write_only
+    quote_verified:
+      reviewed: false
+      state: read
+    relevance:
+      reviewed: true
+      state: read
+      why: read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version
+        without calling a model. It was write-only while judge/pipeline.py was the only thing that had
+        ever called weight.compute()
+    resolution_confidence:
+      reviewed: false
+      state: write_only
+    severity:
+      reviewed: false
+      state: read
+    source_comment_id:
+      reviewed: true
+      state: read
+      why: read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version
+        without calling a model. It was write-only while judge/pipeline.py was the only thing that had
+        ever called weight.compute() - the re-weight needs it to derive the new claim id
+    speaking:
+      reviewed: true
+      state: read
+      why: read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version
+        without calling a model. It was write-only while judge/pipeline.py was the only thing that had
+        ever called weight.compute() - it keys evidence_tier
+    specificity:
+      reviewed: true
+      state: read
+      why: read back by judge/reweight.py, which re-prices stored claims under a new pipeline_version
+        without calling a model. It was write-only while judge/pipeline.py was the only thing that had
+        ever called weight.compute()
+    taxonomy_version:
+      reviewed: false
+      state: write_only
+    thread_context_id:
+      reviewed: false
+      state: read
+  claim_weight:
+    claim_id:
+      reviewed: false
+      state: read
+    computed_at:
+      reviewed: false
+      state: reserved
+    f_evidence:
+      reviewed: false
+      state: read
+    f_fuzziness:
+      reviewed: false
+      state: read
+    f_launch:
+      reviewed: false
+      state: read
+    f_platform:
+      reviewed: false
+      state: read
+    f_recency:
+      reviewed: false
+      state: read
+    f_relevance:
+      reviewed: false
+      state: read
+    f_specificity:
+      reviewed: false
+      state: read
+    pipeline_version:
+      reviewed: false
+      state: write_only
+    w_final:
+      reviewed: false
+      state: read
+  coverage_gap:
+    detail:
+      reviewed: false
+      state: reserved
+    id:
+      reviewed: false
+      state: reserved
+    kind:
+      reviewed: false
+      state: read
+    observed_at:
+      reviewed: false
+      state: unwired
+    pipeline_version:
+      reviewed: false
+      state: read
+    subject:
+      reviewed: false
+      state: unwired
+  dedup_cluster:
+    canonical_document_id:
+      reviewed: false
+      state: reserved
+    first_seen_at:
+      reviewed: false
+      state: reserved
+    id:
+      reviewed: false
+      state: reserved
+    reach:
+      reviewed: false
+      state: reserved
+    size:
+      reviewed: false
+      state: reserved
+  document:
+    author_id:
+      reviewed: false
+      state: read
+    content_hash:
+      reviewed: true
+      state: write_only
+      why: content addressing - matched on, never selected
+    created_at:
+      reviewed: false
+      state: read
+    dedup_cluster_id:
+      known_gap: E1's lane - dedupe is unwired
+      reviewed: true
+      state: reserved
+      why: dedupe output; Stage('assemble-dedupe', run=None)
+    engagement:
+      reviewed: false
+      state: read
+    external_id:
+      reviewed: false
+      state: read
+    fetched_at:
+      reviewed: false
+      state: read
+    filter_reasons:
+      reviewed: true
+      state: read
+      why: 'WRITTEN SINCE 2026-08-30 by collect/adapters/github.py write_comments, which stores a bot-authored
+        issue comment as status=''filtered'' with filter_reasons [''bot_author''] rather than dropping
+        it - so judge/pages/filtered.py can name the rule that excluded it. Was ''unwired'' with the gap
+        ''E2''s lane - triage is unwired'', which is STILL TRUE OF TRIAGE and stopped being true of the
+        column: a known_gap exempts an entry from the mismatch check, so leaving it would have hidden
+        the first writer this column ever had behind a gap statement about a different stage'
+    harvest_run_id:
+      known_gap: no reader yet - the coverage page is where it belongs
+      reviewed: true
+      state: read
+      why: the join to harvest_run. Its reader is the provenance display, not yet built
+    has_code:
+      reviewed: false
+      state: read
+      why: written by collect/triage/store.py; read by triage/gates.py:has_artifact
+    has_conditions:
+      reviewed: false
+      state: read
+      why: written by collect/triage/store.py since 2026-08-31. judge/vet/weight.py reads it for f_specificity's
+        has_conditions argument. It does NOT key evidence_tier - contract/harvest.yaml's C rung is one_of_the_two
+        over (has_repro_steps, has_numbers), so writing this changes a weight and not a tier
+    has_error_strings:
+      reviewed: false
+      state: read
+      why: written by collect/triage/store.py; read by triage/gates.py:has_artifact
+    has_numbers:
+      reviewed: false
+      state: read
+      why: written by collect/triage/store.py since 2026-08-31. judge/vet/weight.py reads it for f_specificity
+        and judge/reweight.py reads it as the veto on a claim's self-reported has_numbers, so a NULL here
+        withholds a tier promotion and is counted. Backfilled over the stored corpus the same day; rows
+        whose payload is absent from the backfilling host stay NULL rather than False
+    id:
+      reviewed: false
+      state: read
+    is_canonical_in_cluster:
+      known_gap: E1's lane - dedupe is unwired
+      reviewed: true
+      state: reserved
+      why: as dedup_cluster_id
+    is_self_post:
+      reviewed: true
+      state: read
+      why: 'ADDED 2026-09-08 (migration 20260908T1500) so triage.gates.pure_link_post has an input for
+        the first time - it read `Document.is_self_post` from the day it was written and no column carried
+        it, so the gate returned NOT_APPLICABLE on all 5,010 triaged documents in the first real run.
+        Written by collect/adapters/reddit_write.py and collect/adapters/documents.py (Hacker News drafts),
+        and backfilled from stored payloads by scripts/backfill_is_self_post.py - 1,517 rows placed, 852
+        self posts and 665 link posts. SELECTed by collect/triage/run.py:_SELECT and passed to the gate,
+        which now fires on 1,517 documents and drops 224. THREE STATES AND ALL THREE MEAN SOMETHING (rule
+        6): true a self/text post, false a LINK submission, NULL the platform has no such notion for this
+        record - a blog article, a GitHub issue, and A COMMENT ON ANY PLATFORM, which is permanent rather
+        than a gap. NO DEFAULT, deliberately: `false` is a definite claim and pure_link_post DROPS a link
+        post with no commentary, so a default would have turned 6,502 unknowns into droppable documents.
+        1,482 reddit rows are still NULL for three different reasons - 1,234 payloads absent from the
+        backfilling host, 247 present and not JSON, 1 a comment - and only the last is correct rather
+        than fixable. The POSTER''S COMMENTARY is deliberately not a column: it is `selftext`, which text_ref
+        already addresses, and collect/triage/run.py:_own_commentary reads it from the payload'
+    lang:
+      reviewed: true
+      state: read
+      why: 'UN-RESERVED 2026-09-08 as write_only, and READ THE SAME DAY - the two changes landed hours
+        apart and the discovered-state check caught the second, which is the guard doing its job twice
+        on one column. Written by collect/adapters/documents.py for the five new platforms; SELECTed by
+        collect/triage/run.py:_SELECT and passed to triage.gates.wrong_language. ⚠ READ IS NOT ACTED ON.
+        That gate returns UNAVAILABLE for every document because no detector is installed and no allow-list
+        is configured, and it returns NOT_APPLICABLE for a NULL - so the value reaches a gate that currently
+        decides nothing, and this column is `read` by the audit''s definition (a SELECT in this repository)
+        rather than by consequence. Measured on the first triage run: wrong-language ran on 0 of 5,010
+        triaged. THE VALUE IS THE PLATFORM''S OWN FIELD AND NEVER AN INFERENCE (dev.to''s `language`,
+        X''s `lang`), which is why rule 8 makes it a recorded field rather than a gate input. Enabled
+        at collection time because the input CANNOT BE BACK-FILLED without re-reading every stored payload.
+        NULL stays NULL - a platform that declares no language gets no guess (rule 6), and 6,502 existing
+        rows keep their NULLs, which is why a detector alone would still leave this gate with no input
+        on the stored corpus'
+    minhash:
+      reviewed: false
+      state: reserved
+    names_version:
+      reviewed: false
+      state: read
+      why: written by collect/triage/store.py since 2026-08-31; read by assemble/thread.py's child ranking
+    parent_id:
+      reviewed: false
+      state: read
+      why: read by collect/assemble/issue.py:assemble_github_documents since 2026-08-31. `parent_id IS
+        NULL` is what separates an issue BODY from a comment, and the query had no such clause until comments
+        existed - it would have assembled 148 comments as their own single-comment threads, putting the
+        same text in front of the extractor twice under two ids
+    retrieval_provenance:
+      reviewed: false
+      state: read
+    simhash:
+      reviewed: false
+      state: reserved
+    source:
+      reviewed: false
+      state: read
+    specificity_score:
+      reviewed: false
+      state: write_only
+      why: 'written by collect/triage/store.py since 2026-08-31. STILL WRITE-ONLY, and deliberately: E3''s
+        child ranking is the intended reader and is blocked on comment fetching, and the column is COMPARABLE
+        WITHIN A SOURCE ONLY (see contract/tables.sql) - github means 0.527 against blogs 0.286, so a
+        cross-source sort on it sorts by platform. The five component columns carry no such restriction.
+        NO `known_gap` ON PURPOSE: that key makes the discovered-state check skip the column, and this
+        one should start failing the day something reads it'
+    status:
+      reviewed: false
+      state: read
+    text_ref:
+      reviewed: false
+      state: read
+    thread_root_id:
+      reviewed: false
+      state: read
+    triage_verdict:
+      reviewed: true
+      state: read
+      why: 'WRITTEN SINCE 2026-09-08 by collect/triage/run.py:triage_stored, called by the `triage` stage
+        in collect/ops/chain.py and by scripts/triage_stored_corpus.py; read by scripts/corpus_inventory.py.
+        The `why` above said "a consumer exists; the writer is Stage(''triage'', run=None) in chain.py"
+        and the `known_gap` said "E2''s lane - triage is unwired". BOTH WERE TRUE AND THE GAP WAS THE
+        DANGEROUS HALF: a known_gap exempts an entry from the mismatch check, so this column could gain
+        its first writer and nothing would notice - exactly what happened to `filter_reasons` above, one
+        column earlier, for the same reason. The gap is removed rather than reworded. NOTE THAT `document.status`
+        IS STILL UNWRITTEN and that is deliberate rather than pending: two of six gates cannot run, so
+        rule 8 keeps triage a recorded field and `status` is the gate action judge/ filters on'
+    url:
+      reviewed: false
+      state: read
+  fetch_log:
+    at:
+      reviewed: true
+      state: write_only
+      why: the line's own timestamp is inside `payload` and is read from there; this column is the lifted
+        copy and no query reads it yet
+    id:
+      reviewed: true
+      state: read
+      why: content id; `on conflict (id) do nothing` in both the live mirror and the backfill, which is
+        what makes replaying a run's file free
+    kind:
+      reviewed: true
+      state: write_only
+      why: lifted from the payload so a run could be summarised without reading every line; the summary
+        currently reads the payload instead, so nothing queries this
+    machine:
+      reviewed: true
+      state: read
+      why: selected; names whose laptop ran a fetch this machine has no files for
+    model_version_id:
+      reviewed: true
+      state: write_only
+      why: lifted for the same reason and likewise unqueried — /fetch/runs matches on the run_id prefix,
+        not this
+    payload:
+      reviewed: true
+      state: read
+      why: selected — the line verbatim, which is what the fetch view renders
+    recorded_at:
+      reviewed: true
+      state: defaulted
+      why: DEFAULT now(). Nothing reads it; it separates when a line was WRITTEN from when it was MIRRORED,
+        which a backfill makes differ
+    run_id:
+      reviewed: true
+      state: read
+      why: judge/app.py:_fetch_log_from_db selects on it, and _fetch_runs_from_db LIKE-matches the model
+        prefix
+    seq:
+      reviewed: true
+      state: read
+      why: '`order by seq` — the log is a SEQUENCE and its timestamps are second-resolution, so ordering
+        by time scrambles a run'
   golden_label:
-    document_id: {state: reserved, reviewed: false}
-    label: {state: unwired, reviewed: false}
-    label_type: {state: reserved, reviewed: false}
-    labeled_at: {state: reserved, reviewed: false}
-    labeler: {state: reserved, reviewed: false}
-
+    document_id:
+      reviewed: false
+      state: reserved
+    label:
+      reviewed: false
+      state: unwired
+    label_type:
+      reviewed: false
+      state: reserved
+    labeled_at:
+      reviewed: false
+      state: reserved
+    labeler:
+      reviewed: false
+      state: reserved
   harvest_run:
     exhausted:
-      state: write_only
       reviewed: true
-      why: >-
-        distinguishes 'no more results' from 'we stopped'
-    finished_at: {state: write_only, reviewed: false}
+      state: write_only
+      why: distinguishes 'no more results' from 'we stopped'
+    finished_at:
+      reviewed: false
+      state: write_only
     http_errors:
-      state: write_only
       reviewed: true
-      why: >-
-        per-run diagnostic, read by a person reading the row
+      state: write_only
+      why: per-run diagnostic, read by a person reading the row
     id:
-      state: read
       reviewed: true
-      why: >-
-        the two-phase ledger mints it before the fetch and the SWEEPS CARRY IT
-        ONTO THE DOCUMENTS - ops/sweep_reddit.py and scripts/model_only_sweep.py
-        pass opened.id to reddit_write.write_documents, and document.harvest_run_id
-        is a foreign key to it. It was write_only until 2026-08-28, when a listing
-        sweep first opened a run row whose id a document could point at. Second
-        time this guard caught drift from another branch rather than a state I had
-        mislabelled; the first was thread_context.assembled_at.
+      state: read
+      why: the two-phase ledger mints it before the fetch and the SWEEPS CARRY IT ONTO THE DOCUMENTS -
+        ops/sweep_reddit.py and scripts/model_only_sweep.py pass opened.id to reddit_write.write_documents,
+        and document.harvest_run_id is a foreign key to it. It was write_only until 2026-08-28, when a
+        listing sweep first opened a run row whose id a document could point at. Second time this guard
+        caught drift from another branch rather than a state I had mislabelled; the first was thread_context.assembled_at.
     items_fetched:
-      state: read
+      known_gap: no reader yet - same
       reviewed: true
-      why: >-
-        the candidate denominator for every sieve rate
-      known_gap: >-
-        no reader yet - same
+      state: read
+      why: the candidate denominator for every sieve rate
     items_kept:
-      state: read
+      known_gap: no reader yet - same
       reviewed: true
-      why: >-
-        the numerator for every sieve rate
-      known_gap: >-
-        no reader yet - same
-    outcome: {state: write_only, reviewed: false}
+      state: read
+      why: the numerator for every sieve rate
+    outcome:
+      reviewed: false
+      state: write_only
     pages_fetched:
-      state: write_only
+      known_gap: github.py does not populate it and every row is github's - 0 of 1,019 populated
       reviewed: true
-      why: >-
-        re-sieve provenance: 'this run stored page 1 of 4'
-      known_gap: >-
-        github.py does not populate it and every row is github's - 0 of 1,019 populated
+      state: write_only
+      why: 're-sieve provenance: ''this run stored page 1 of 4'''
     pages_stored:
-      state: write_only
+      known_gap: github.py does not populate it - 0 of 1,019 populated
       reviewed: true
-      why: >-
-        as pages_fetched
-      known_gap: >-
-        github.py does not populate it - 0 of 1,019 populated
-    pipeline_version: {state: write_only, reviewed: false}
+      state: write_only
+      why: as pages_fetched
+    pipeline_version:
+      reviewed: false
+      state: write_only
     query_key:
-      state: read
+      known_gap: no reader yet - same
       reviewed: true
-      why: >-
-        what was actually searched for; the join that names what retrieved a document
-      known_gap: >-
-        no reader yet - same
+      state: read
+      why: what was actually searched for; the join that names what retrieved a document
     sieve_pass_rate:
-      state: write_only
       reviewed: true
-      why: >-
-        a per-run convenience; the POOLED rate is computed from items_kept/items_fetched, and averaging this column is the mean-of-ratios error
+      state: write_only
+      why: a per-run convenience; the POOLED rate is computed from items_kept/items_fetched, and averaging
+        this column is the mean-of-ratios error
     source_id:
-      state: read
+      known_gap: no reader yet - same
       reviewed: true
-      why: >-
-        which platform a run belongs to
-      known_gap: >-
-        no reader yet - same
-    started_at: {state: write_only, reviewed: false}
+      state: read
+      why: which platform a run belongs to
+    started_at:
+      reviewed: false
+      state: write_only
     truncated_by:
+      known_gap: no reader yet - docs/measurements/column-audit-306-columns.md section 2
+      reviewed: true
       state: read
-      reviewed: true
-      why: >-
-        every retrieval rate must be quoted with its truncation share beside it; the column already holds result-ceiling on 126 of 1,019 runs
-      known_gap: >-
-        no reader yet - docs/measurements/column-audit-306-columns.md section 2
-
+      why: every retrieval rate must be quoted with its truncation share beside it; the column already
+        holds result-ceiling on 126 of 1,019 runs
   job_run:
-    detail: {state: write_only, reviewed: false}
-    finished_at: {state: read, reviewed: false}
-    id: {state: read, reviewed: false}
-    items_in: {state: read, reviewed: false}
-    items_out: {state: read, reviewed: false}
-    outcome: {state: read, reviewed: false}
-    pipeline_version: {state: read, reviewed: false}
-    stage: {state: read, reviewed: false}
-    started_at: {state: read, reviewed: false}
-
+    detail:
+      reviewed: false
+      state: write_only
+    finished_at:
+      reviewed: false
+      state: read
+    id:
+      reviewed: false
+      state: read
+    items_in:
+      reviewed: false
+      state: read
+    items_out:
+      reviewed: false
+      state: read
+    outcome:
+      reviewed: false
+      state: read
+    pipeline_version:
+      reviewed: false
+      state: read
+    stage:
+      reviewed: false
+      state: read
+    started_at:
+      reviewed: false
+      state: read
   label:
-    capability_key: {state: read, reviewed: false}
-    earned_by_quote_ids: {state: read, reviewed: false}
-    first_seen_at: {state: write_only, reviewed: false}
-    id: {state: read, reviewed: false}
-    kind: {state: read, reviewed: false}
-    last_confirmed_at: {state: write_only, reviewed: false}
-    model_version_id: {state: read, reviewed: false}
-    state: {state: read, reviewed: false}
-
+    capability_key:
+      reviewed: false
+      state: read
+    earned_by_quote_ids:
+      reviewed: false
+      state: read
+    first_seen_at:
+      reviewed: false
+      state: write_only
+    id:
+      reviewed: false
+      state: read
+    kind:
+      reviewed: false
+      state: read
+    last_confirmed_at:
+      reviewed: false
+      state: write_only
+    model_version_id:
+      reviewed: false
+      state: read
+    state:
+      reviewed: false
+      state: read
   label_change:
-    direction: {state: read, reviewed: false}
-    driver: {state: read, reviewed: false}
-    id: {state: read, reviewed: false}
-    label_id: {state: read, reviewed: false}
-    occurred_at: {state: unwired, reviewed: false}
-    quote_ids: {state: read, reviewed: false}
-
+    direction:
+      reviewed: false
+      state: read
+    driver:
+      reviewed: false
+      state: read
+    id:
+      reviewed: false
+      state: read
+    label_id:
+      reviewed: false
+      state: read
+    occurred_at:
+      reviewed: false
+      state: unwired
+    quote_ids:
+      reviewed: false
+      state: read
   model_alias:
-    confidence: {state: write_only, reviewed: false}
-    created_at: {state: reserved, reviewed: false}
-    family: {state: write_only, reviewed: false}
-    id: {state: read, reviewed: false}
-    model_version_id: {state: read, reviewed: false}
-    normalized: {state: read, reviewed: false}
-    provider_hint: {state: write_only, reviewed: false}
-    specificity: {state: read, reviewed: false}
-    surface: {state: read, reviewed: false}
-    valid_from: {state: write_only, reviewed: false}
-    valid_until: {state: read, reviewed: false}
-    variants: {state: read, reviewed: false}
-
+    confidence:
+      reviewed: false
+      state: write_only
+    created_at:
+      reviewed: false
+      state: reserved
+    family:
+      reviewed: false
+      state: write_only
+    id:
+      reviewed: false
+      state: read
+    model_version_id:
+      reviewed: false
+      state: read
+    normalized:
+      reviewed: false
+      state: read
+    provider_hint:
+      reviewed: false
+      state: write_only
+    specificity:
+      reviewed: false
+      state: read
+    surface:
+      reviewed: false
+      state: read
+    valid_from:
+      reviewed: false
+      state: write_only
+    valid_until:
+      reviewed: false
+      state: read
+    variants:
+      reviewed: false
+      state: read
   model_event:
-    detected_at: {state: reserved, reviewed: false}
-    id: {state: write_only, reviewed: false}
-    model_version_id: {state: write_only, reviewed: false}
-    occurred_at: {state: write_only, reviewed: false}
-    payload: {state: write_only, reviewed: false}
-    source_url: {state: reserved, reviewed: false}
-    type: {state: write_only, reviewed: false}
-
+    detected_at:
+      reviewed: false
+      state: reserved
+    id:
+      reviewed: false
+      state: write_only
+    model_version_id:
+      reviewed: false
+      state: write_only
+    occurred_at:
+      reviewed: false
+      state: write_only
+    payload:
+      reviewed: false
+      state: write_only
+    source_url:
+      reviewed: false
+      state: reserved
+    type:
+      reviewed: false
+      state: write_only
   model_version:
-    advertised_context: {state: read, reviewed: false}
-    batch_discount: {state: write_only, reviewed: false}
-    canonical_id: {state: read, reviewed: false}
-    deprecation_date: {state: write_only, reviewed: false}
-    display_name: {state: read, reviewed: false}
-    family: {state: read, reviewed: false}
-    first_seen_at: {state: reserved, reviewed: false}
-    id: {state: read, reviewed: false}
-    in_window: {state: read, reviewed: false}
-    knowledge_cutoff: {state: write_only, reviewed: false}
-    last_swept_at: {state: read, reviewed: false}
-    lifecycle: {state: read, reviewed: false}
-    max_output_tokens: {state: read, reviewed: false}
-    possibly_changed: {state: reserved, reviewed: false}
-    price_cached_read: {state: read, reviewed: false}
-    price_in: {state: read, reviewed: false}
-    price_out: {state: read, reviewed: false}
-    provenance: {state: read, reviewed: false}
-    provider: {state: read, reviewed: false}
-    # Reconciled with the #203 scoping fix, and it is the fix WORKING rather
-    # than its cost: this column's `read` rested entirely on `regions:` matching
-    # an object key in `web/src/routes/Ask.jsx:230`, which is the Ask box
-    # BUILDING ITS OUTGOING REQUEST BODY - a write going out, not a read of this
-    # column. Confirmed against the running frontend by E2 on #203. Nothing
-    # SELECTs it. If a reader lands, this goes back to `read` with the query
-    # named.
+    advertised_context:
+      reviewed: false
+      state: read
+    batch_discount:
+      reviewed: false
+      state: write_only
+    canonical_id:
+      reviewed: false
+      state: read
+    deprecation_date:
+      reviewed: false
+      state: write_only
+    display_name:
+      reviewed: false
+      state: read
+    family:
+      reviewed: false
+      state: read
+    first_seen_at:
+      reviewed: false
+      state: reserved
+    id:
+      reviewed: false
+      state: read
+    in_window:
+      reviewed: false
+      state: read
+    knowledge_cutoff:
+      reviewed: false
+      state: write_only
+    last_swept_at:
+      reviewed: false
+      state: read
+    lifecycle:
+      reviewed: false
+      state: read
+    max_output_tokens:
+      reviewed: false
+      state: read
+    possibly_changed:
+      reviewed: false
+      state: reserved
+    price_cached_read:
+      reviewed: false
+      state: read
+    price_in:
+      reviewed: false
+      state: read
+    price_out:
+      reviewed: false
+      state: read
+    provenance:
+      reviewed: false
+      state: read
+    provider:
+      reviewed: false
+      state: read
     regions:
-      state: write_only
       reviewed: true
-      why: >-
-        Written by the registry poller. No reader - the apparent one was the Ask
-        box naming this field in a request body it sends, which the web scan read
-        as a field access before it was scoped (#203)
-    release_date: {state: read, reviewed: false}
-    retirement_date: {state: read, reviewed: false}
-    sources: {state: write_only, reviewed: false}
-    supports_batch: {state: write_only, reviewed: false}
-    supports_caching: {state: read, reviewed: false}
-    supports_structured_output: {state: read, reviewed: false}
-    supports_tools: {state: read, reviewed: false}
-    supports_vision: {state: read, reviewed: false}
-    updated_at: {state: read, reviewed: false}
-
+      state: write_only
+      why: Written by the registry poller. No reader - the apparent one was the Ask box naming this field
+        in a request body it sends, which the web scan read as a field access before it was scoped (#203)
+    release_date:
+      reviewed: false
+      state: read
+    retirement_date:
+      reviewed: false
+      state: read
+    sources:
+      reviewed: false
+      state: write_only
+    supports_batch:
+      reviewed: false
+      state: write_only
+    supports_caching:
+      reviewed: false
+      state: read
+    supports_structured_output:
+      reviewed: false
+      state: read
+    supports_tools:
+      reviewed: false
+      state: read
+    supports_vision:
+      reviewed: false
+      state: read
+    updated_at:
+      reviewed: false
+      state: read
   outcome:
-    adopted: {state: read, reviewed: false}
-    answer_id: {state: write_only, reviewed: false}
-    cost_usd: {state: write_only, reviewed: false}
-    failure_kind: {state: write_only, reviewed: false}
-    latency_ms: {state: write_only, reviewed: false}
-    model_version_id: {state: write_only, reviewed: false}
-    reported_at: {state: reserved, reviewed: false}
-    retries: {state: write_only, reviewed: false}
-    success: {state: read, reviewed: false}
-    what_happened: {state: write_only, reviewed: false}
-
-  price_tier:
-    dimension: {state: write_only, reviewed: false}
-    max_tokens: {state: write_only, reviewed: false}
-    min_tokens: {state: write_only, reviewed: false}
-    model_version_id: {state: write_only, reviewed: false}
-    price: {state: write_only, reviewed: false}
-    price_cached_read: {state: write_only, reviewed: false}
-    sources: {state: write_only, reviewed: false}
-
-  pricing_history:
-    model_version_id: {state: read, reviewed: false}
-    observed_at: {state: read, reviewed: false}
-    price_cached_read: {state: read, reviewed: false}
-    price_in: {state: read, reviewed: false}
-    price_out: {state: read, reviewed: false}
-
-  reported_context:
-    advertised: {state: read, reviewed: false}
-    computed_at: {state: write_only, reviewed: false}
-    model_version_id: {state: read, reviewed: false}
-    provenance: {state: read, reviewed: false}
-    quote_ids: {state: read, reviewed: false}
-    reported_high: {state: read, reviewed: false}
-    reported_low: {state: read, reviewed: false}
-
-  role:
-    capability_needs: {state: write_only, reviewed: false}
-    dependents: {state: write_only, reviewed: false}
-    error_cost: {state: write_only, reviewed: false}
-    failure_mode: {state: write_only, reviewed: false}
-    id: {state: write_only, reviewed: false}
-    name: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
-    runs_per_request: {state: write_only, reviewed: false}
-    task_profile_id: {state: write_only, reviewed: false}
-
-  schema_migration:
-    applied_at: {state: reserved, reviewed: false}
-    content_hash: {state: reserved, reviewed: false}
-    filename: {state: reserved, reviewed: false}
-
-  source:
-    base_trust: {state: write_only, reviewed: false}
-    endpoint: {state: write_only, reviewed: false}
-    health_status: {state: reserved, reviewed: false}
-    id: {state: read, reviewed: false}
-    last_yield: {state: reserved, reviewed: false}
-    # Reconciled with the #203 scoping fix. Its `read` rested entirely on
-    # `platform:` matching an object key in `web/src/routes/Articles.jsx:21`,
-    # which is a URL search-param on the Articles route and has nothing to do
-    # with this table - `source` has no web endpoint at all, which is why
-    # scoping drops the hit.
-    #
-    # ⚠ E2 VALIDATED THE OTHER SIX, NOT THIS ONE. Her #203 reply lists
-    # `capability.key`, `model_version.regions` and `task_profile.raw_text` as
-    # the three reconciliations; the proposal's §5 had named `source.platform`
-    # where she named `capability.key`. So this entry is the one item in the
-    # change still wanting a second pair of eyes, and it is flagged rather than
-    # counted as agreed.
-    platform:
+    adopted:
+      reviewed: false
+      state: read
+    answer_id:
+      reviewed: false
       state: write_only
+    cost_usd:
+      reviewed: false
+      state: write_only
+    failure_kind:
+      reviewed: false
+      state: write_only
+    latency_ms:
+      reviewed: false
+      state: write_only
+    model_version_id:
+      reviewed: false
+      state: write_only
+    reported_at:
+      reviewed: false
+      state: reserved
+    retries:
+      reviewed: false
+      state: write_only
+    success:
+      reviewed: false
+      state: read
+    what_happened:
+      reviewed: false
+      state: write_only
+  price_tier:
+    dimension:
+      reviewed: false
+      state: write_only
+    max_tokens:
+      reviewed: false
+      state: write_only
+    min_tokens:
+      reviewed: false
+      state: write_only
+    model_version_id:
+      reviewed: false
+      state: write_only
+    price:
+      reviewed: false
+      state: write_only
+    price_cached_read:
+      reviewed: false
+      state: write_only
+    sources:
+      reviewed: false
+      state: write_only
+  pricing_history:
+    model_version_id:
+      reviewed: false
+      state: read
+    observed_at:
+      reviewed: false
+      state: read
+    price_cached_read:
+      reviewed: false
+      state: read
+    price_in:
+      reviewed: false
+      state: read
+    price_out:
+      reviewed: false
+      state: read
+  rapidapi_quota:
+    machine:
       reviewed: true
-      why: >-
-        Written by the source loader from contract/sources.yaml. No reader - the
-        apparent one was a URL search-param key on an unrelated route, counted by
-        the unscoped web scan (#203). PENDING E2's confirmation, see the note above
-    provenance: {state: read, reviewed: false}
-    terms_checked_on: {state: write_only, reviewed: false}
+      state: read
+      why: selected; which host took the reading
+    meter:
+      reviewed: true
+      state: read
+      why: primary key and the conflict target; one row per separately-metered arm, because Reddit and
+        X are different subscriptions with different limits
+    quota_limit:
+      reviewed: true
+      state: read
+      why: selected; the denominator, and NULL when the reading did not state one — never inherited
+    quota_remaining:
+      reviewed: true
+      state: read
+      why: selected; the numerator on the RapidAPI tab
+    read_at:
+      reviewed: true
+      state: read
+      why: selected, and compared in the upsert's WHERE so the newest READING wins rather than the newest
+        write
+    read_by:
+      reviewed: true
+      state: read
+      why: selected; says whether a harvest, a sweep or a probe took the reading
+    recorded_at:
+      reviewed: true
+      state: write_only
+      why: written explicitly - the upsert's DO UPDATE sets recorded_at = now(), so a re-read of an existing
+        meter refreshes it rather than leaving the DEFAULT from the first insert. Nothing reads it back;
+        it exists to separate when the reading was TAKEN (read_at) from when it reached the table, which
+        a backfill makes differ by days
+    source_run_id:
+      reviewed: true
+      state: read
+      why: selected; the run that spent it, where there was one
+  reported_context:
+    advertised:
+      reviewed: false
+      state: read
+    computed_at:
+      reviewed: false
+      state: write_only
+    model_version_id:
+      reviewed: false
+      state: read
+    provenance:
+      reviewed: false
+      state: read
+    quote_ids:
+      reviewed: false
+      state: read
+    reported_high:
+      reviewed: false
+      state: read
+    reported_low:
+      reviewed: false
+      state: read
+  role:
+    capability_needs:
+      reviewed: false
+      state: write_only
+    dependents:
+      reviewed: false
+      state: write_only
+    error_cost:
+      reviewed: false
+      state: write_only
+    failure_mode:
+      reviewed: false
+      state: write_only
+    id:
+      reviewed: false
+      state: write_only
+    name:
+      reviewed: true
+      state: write_only
+      why: only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired;
+        judge/store/answers.py still writes it, nothing reads it back
+    runs_per_request:
+      reviewed: false
+      state: write_only
+    task_profile_id:
+      reviewed: false
+      state: write_only
+  schema_migration:
+    applied_at:
+      reviewed: false
+      state: reserved
+    content_hash:
+      reviewed: false
+      state: reserved
+    filename:
+      reviewed: false
+      state: reserved
+  source:
+    base_trust:
+      reviewed: false
+      state: write_only
+    endpoint:
+      reviewed: false
+      state: write_only
+    health_status:
+      reviewed: false
+      state: reserved
+    id:
+      reviewed: false
+      state: read
+    last_yield:
+      reviewed: false
+      state: reserved
+    platform:
+      reviewed: true
+      state: write_only
+      why: Written by the source loader from contract/sources.yaml. No reader - the apparent one was a
+        URL search-param key on an unrelated route, counted by the unscoped web scan (#203). PENDING E2's
+        confirmation, see the note above
+    provenance:
+      reviewed: false
+      state: read
+    terms_checked_on:
+      reviewed: false
+      state: write_only
     terms_evidence:
-      state: read_not_by_query
       reviewed: true
-      why: >-
-        re-verified every run by assert_terms_reviewed against this run's live observations, through the YAML rather than the column
+      state: read_not_by_query
+      why: re-verified every run by assert_terms_reviewed against this run's live observations, through
+        the YAML rather than the column
     terms_ruling:
-      state: read_not_by_query
       reviewed: true
-      why: >-
-        READ, and not by a SELECT: assert_terms_reviewed resolves it through contract/sources.yaml. The audit under-counts it for that reason, which is why this state exists rather than an exception list
+      state: read_not_by_query
+      why: 'READ, and not by a SELECT: assert_terms_reviewed resolves it through contract/sources.yaml.
+        The audit under-counts it for that reason, which is why this state exists rather than an exception
+        list'
     tos_notes:
-      state: read_not_by_query
       reviewed: true
-      why: >-
-        a human-readable record. Its reader is a person opening the row, and rightly so
-
+      state: read_not_by_query
+      why: a human-readable record. Its reader is a person opening the row, and rightly so
+  spend_ledger:
+    at:
+      reviewed: true
+      state: read
+      why: judge/spend_ledger.py:read_database selects it; it is what the daily cap window is cut on
+    id:
+      reviewed: true
+      state: read
+      why: the content id the append-only merge turns on — `on conflict (id) do nothing` in judge/spend_ledger.py
+        and `where id = any(...)` in scripts/backfill_telemetry.py
+    input_tokens:
+      reviewed: true
+      state: read
+      why: selected; the tokens are the measurement when a model has no published rate
+    machine:
+      reviewed: true
+      state: read
+      why: selected; the population the total covers, reported as `basis.machines`
+    model:
+      reviewed: true
+      state: read
+      why: selected; drives the per-model rows on the usage panel
+    output_tokens:
+      reviewed: true
+      state: read
+      why: selected, same reason
+    recorded_at:
+      reviewed: true
+      state: defaulted
+      why: DEFAULT now(). Nothing reads it. Kept because `at` is when the CALL happened and this is when
+        the row ARRIVED, and a backfilled row makes those differ by weeks — the only way to tell a late
+        mirror from a late call
+    run_id:
+      reviewed: true
+      state: read
+      why: selected; ties spend to the fetch that caused it
+    stage:
+      reviewed: true
+      state: read
+      why: selected, and split out per stage on the usage panel — one cap, two spenders
+    unpriced:
+      reviewed: true
+      state: read
+      why: selected; marks a row whose dollars are 0.0 because no rate is published, so the total is a
+        floor
+    usd:
+      reviewed: true
+      state: read
+      why: selected; summed into the team total and checked against the daily cap
   task_profile:
-    complexity_tier: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
-    created_at: {state: reserved, reviewed: false}
-    error_cost: {state: write_only, reviewed: false}
-    id: {state: write_only, reviewed: false}
-    inferred_fields: {state: write_only, reviewed: false}
-    profile: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
-    raw_text: {state: write_only, reviewed: true, why: "only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired; judge/store/answers.py still writes it, nothing reads it back"}
-    requests_per_month: {state: write_only, reviewed: false}
-
+    complexity_tier:
+      reviewed: true
+      state: write_only
+      why: only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired;
+        judge/store/answers.py still writes it, nothing reads it back
+    created_at:
+      reviewed: false
+      state: reserved
+    error_cost:
+      reviewed: false
+      state: write_only
+    id:
+      reviewed: false
+      state: write_only
+    inferred_fields:
+      reviewed: false
+      state: write_only
+    profile:
+      reviewed: true
+      state: write_only
+      why: only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired;
+        judge/store/answers.py still writes it, nothing reads it back
+    raw_text:
+      reviewed: true
+      state: write_only
+      why: only reader was the Ask answer UI (web/src/routes/Ask.jsx), removed when the Ask page was retired;
+        judge/store/answers.py still writes it, nothing reads it back
+    requests_per_month:
+      reviewed: false
+      state: write_only
   thread_context:
     assembled_at:
-      state: read
       reviewed: true
-      why: >-
-        ORDER BY assembled_at DESC in scripts/fetch_model.py:295, taking the most
-        recently assembled contexts for an on-demand extraction. It was write_only
-        until #163 landed that reader, and this entry is where the guard caught its
-        first real drift - a state changed by another branch rather than one I had
-        mislabelled. Promoted to reviewed because a snapshot that flips does not
-        record why it flipped, and that reason is the whole point of this file.
-    child_count: {state: write_only, reviewed: false}
-    coverage_ratio:
-      state: generated
-      reviewed: true
-      why: >-
-        GENERATED from observed + hidden_children_min. Never written by us, and a NULL is the honest empty-tree answer
-    flattened_text_ref: {state: read, reviewed: false}
-    hidden_branches_unsized: {state: write_only, reviewed: false}
-    hidden_children_min: {state: read, reviewed: false}
-    id: {state: read, reviewed: false}
-    member_document_ids: {state: read, reviewed: false}
-    observed_children: {state: read, reviewed: false}
-    offset_map: {state: read, reviewed: false}
-    pipeline_version:
       state: read
+      why: 'ORDER BY assembled_at DESC in scripts/fetch_model.py:295, taking the most recently assembled
+        contexts for an on-demand extraction. It was write_only until #163 landed that reader, and this
+        entry is where the guard caught its first real drift - a state changed by another branch rather
+        than one I had mislabelled. Promoted to reviewed because a snapshot that flips does not record
+        why it flipped, and that reason is the whole point of this file.'
+    child_count:
       reviewed: false
-      why: >-
-        read by scripts/export_contexts_for_extract.py --pipeline-version since 2026-08-31. 584 GitHub issues hold both an issue_body_only context at collect-0.1.0 and an issue_with_comments fork at collect-0.2.0-issue-comments; neither has a thread_extraction row, so selecting on "not yet extracted" alone takes both and the same issue body reaches the extractor twice - one author counted as two voices
-    selection_method: {state: read, reviewed: false}
-    thread_root_id: {state: read, reviewed: false}
-
-  thread_extraction:
-    claims_written: {state: read, reviewed: false}
-    content_fingerprint: {state: read, reviewed: false}
-    extracted_at:
       state: write_only
+    coverage_ratio:
       reviewed: true
-      why: >-
-        ledger. 'We read it and found nothing' is the whole point of the row
-    input_tokens: {state: read, reviewed: false}
-    output_tokens: {state: read, reviewed: false}
-    pipeline_version: {state: read, reviewed: false}
-    schema_retries: {state: write_only, reviewed: false}
-    thread_context_id: {state: read, reviewed: false}
-
+      state: generated
+      why: GENERATED from observed + hidden_children_min. Never written by us, and a NULL is the honest
+        empty-tree answer
+    flattened_text_ref:
+      reviewed: false
+      state: read
+    hidden_branches_unsized:
+      reviewed: false
+      state: write_only
+    hidden_children_min:
+      reviewed: false
+      state: read
+    id:
+      reviewed: false
+      state: read
+    member_document_ids:
+      reviewed: false
+      state: read
+    observed_children:
+      reviewed: false
+      state: read
+    offset_map:
+      reviewed: false
+      state: read
+    pipeline_version:
+      reviewed: false
+      state: read
+      why: read by scripts/export_contexts_for_extract.py --pipeline-version since 2026-08-31. 584 GitHub
+        issues hold both an issue_body_only context at collect-0.1.0 and an issue_with_comments fork at
+        collect-0.2.0-issue-comments; neither has a thread_extraction row, so selecting on "not yet extracted"
+        alone takes both and the same issue body reaches the extractor twice - one author counted as two
+        voices
+    selection_method:
+      reviewed: false
+      state: read
+    thread_root_id:
+      reviewed: false
+      state: read
+  thread_extraction:
+    claims_written:
+      reviewed: false
+      state: read
+    content_fingerprint:
+      reviewed: false
+      state: read
+    extracted_at:
+      reviewed: true
+      state: write_only
+      why: ledger. 'We read it and found nothing' is the whole point of the row
+    input_tokens:
+      reviewed: false
+      state: read
+    output_tokens:
+      reviewed: false
+      state: read
+    pipeline_version:
+      reviewed: false
+      state: read
+    schema_retries:
+      reviewed: false
+      state: write_only
+    thread_context_id:
+      reviewed: false
+      state: read
   watermark:
-    cursor: {state: unwired, reviewed: false}
-    exhausted: {state: reserved, reviewed: false}
-    last_run_at: {state: reserved, reviewed: false}
-    query_key: {state: reserved, reviewed: false}
-    source_id: {state: reserved, reviewed: false}
+    cursor:
+      reviewed: false
+      state: unwired
+    exhausted:
+      reviewed: false
+      state: reserved
+    last_run_at:
+      reviewed: false
+      state: reserved
+    query_key:
+      reviewed: false
+      state: reserved
+    source_id:
+      reviewed: false
+      state: reserved
+version: '1.0'

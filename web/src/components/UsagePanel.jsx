@@ -134,6 +134,7 @@ export default function UsagePanel() {
               byModel={byModel}
               byTokens={data.by_model_tokens || {}}
               unpriced={data.unpriced_models || []}
+              basis={data.basis || null}
             />}
       </div>
     </section>
@@ -147,14 +148,15 @@ export default function UsagePanel() {
  * Usage to date ran on Gemini 2.5 Flash; the extractor is now DeepSeek V4 Flash, so the
  * two accrue under different rows and the switch is legible instead of averaged.
  */
-function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced }) {
+function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis }) {
   const rows = Object.entries(byModel)
     .map(([model, spent]) => [model, MODEL_SPEND_OVERRIDE[model] ?? spent])
     .sort((a, b) => b[1] - a[1])
 
   // ── THE CURRENT EXTRACTOR'S SPEND, which the ledger does not have ─────────
   //
-  // `by_model_total` is THIS MACHINE'S ledger, and it holds one row: Gemini.
+  // `by_model_total` is the SHARED ledger since 2026-09-11 (every machine
+  // that has recorded), and it holds one row so far: Gemini.
   // DeepSeek has spent real money on the key — the provider reports
   // $2.48266 total against Gemini's corrected $2.4780 — and none of it reached
   // the ledger, because the runs that spent it errored before the write.
@@ -186,6 +188,45 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced }) {
       {!everyone.available && (
         <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
           Key total across all machines unavailable — the figure above is this machine only.
+        </span>
+      )}
+
+      {/* WHOSE SPEND THIS IS. A dollar total means nothing without the
+          population it covers, and that population is variable: every machine
+          that has recorded when the shared table is readable, one laptop when
+          it is not. An incomplete total is named a FLOOR rather than shown in
+          the same type as a whole one — the same reason report counts on the
+          board say so. */}
+      {basis && (
+        <span
+          className="dim"
+          style={{ fontSize: 'var(--fs-xs)' }}
+        >
+          {basis.complete ? (
+            <>
+              Ledger totals cover{' '}
+              <strong>
+                {basis.machine_count === 1
+                  ? '1 machine'
+                  : `all ${basis.machine_count} machines`}
+              </strong>
+              {basis.machines?.length ? ` (${basis.machines.join(', ')})` : ''}.
+            </>
+          ) : (
+            <>
+              <strong>This machine only ({basis.this_machine}).</strong> The shared
+              ledger could not be read, so every figure here is a floor — other
+              machines&rsquo; spend is missing from it, not absent.
+            </>
+          )}
+          {basis.unpriced_calls_today > 0 && (
+            <>
+              {' '}
+              {basis.unpriced_calls_today} call
+              {basis.unpriced_calls_today === 1 ? '' : 's'} today used a model with no
+              published rate, so its tokens are counted and its dollars are not.
+            </>
+          )}
         </span>
       )}
 

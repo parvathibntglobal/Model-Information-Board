@@ -1189,23 +1189,71 @@ def fetch_log(run_id: str) -> dict:
     Polled by the model page. `done` flips true when the run writes its end
     record — that is how the UI knows to stop polling. An absent file means the
     run has not written its first line yet, which is not an error.
+
+    THE LOCAL FILE FIRST, THE SHARED TABLE SECOND. A run started on THIS machine
+    is on this disk and is read from there — no database round trip on a poll
+    that fires every second, and no dependence on a database to watch a run that
+    may be failing because of the database. A run id this machine has never seen
+    belongs to somebody else's laptop, and `fetch_log` is where it can be read
+    from; `source` says which happened, because "not started yet" and "ran
+    elsewhere" are different answers and the UI must not conflate them.
     """
     if "/" in run_id or "\\" in run_id or ".." in run_id:
         raise HTTPException(status_code=422, detail="bad run id")
     path = _FETCH_DIR / f"{run_id}.jsonl"
-    if not path.exists():
-        return {"run_id": run_id, "records": [], "done": False, "started": False}
-    records = [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
-    return {
-        "run_id": run_id,
-        "records": records,
-        "started": True,
-        "done": any(r.get("kind") == "end" for r in records),
-    }
+    if path.exists():
+        records = [
+            json.loads(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        return {
+            "run_id": run_id,
+            "records": records,
+            "started": True,
+            "done": any(r.get("kind") == "end" for r in records),
+            "source": "local file",
+        }
+    shared = _fetch_log_from_db(run_id)
+    if shared:
+        return {
+            "run_id": run_id,
+            "records": [r for r, _ in shared],
+            "started": True,
+            "done": any(r.get("kind") == "end" for r, _ in shared),
+            "source": "shared table",
+            "machine": shared[0][1],
+        }
+    return {"run_id": run_id, "records": [], "done": False, "started": False,
+            "source": None}
+
+
+def _fetch_log_from_db(run_id: str) -> list[tuple[dict, str]]:
+    """One run's lines from `fetch_log`, in the order they were written.
+
+    ORDERED BY `seq`, NOT BY `at`. The log is a sequence — "E3 running" before
+    "E3 error" is the entire meaning — and its timestamps are second-resolution,
+    so several lines routinely share one. Ordering by time would scramble any
+    run that moved faster than a second, which is most of them.
+
+    Returns `[]` on any failure, because a log that cannot be read and a run
+    that never happened are the same to this endpoint's caller; the caller
+    distinguishes them through `source`.
+    """
+    try:
+        with _conn() as conn:
+            rows = conn.execute(
+                "select payload, machine from fetch_log where run_id = %s "
+                "order by seq",
+                (run_id,),
+            ).fetchall()
+    except Exception:
+        return []
+    out: list[tuple[dict, str]] = []
+    for payload, mach in rows:
+        rec = payload if isinstance(payload, dict) else json.loads(payload)
+        out.append((rec, str(mach)))
+    return out
 
 
 @app.get("/fetch/runs")
@@ -1252,9 +1300,77 @@ def fetch_runs(model_version_id: str) -> dict:
                 # then a terminal one, so counting rows would double it.
                 "stages": len({s.get("id") for s in stages}),
                 "documents_inserted": docs,
+                "machine": None,   # this machine; see the note below
             })
-    runs.sort(key=lambda r: r["started_at"], reverse=True)
+
+    # RUNS FROM EVERY OTHER MACHINE, from `fetch_log`. Local files win on a
+    # collision: they are the same run, and the local copy is the one that is
+    # still being appended to while the run is live.
+    seen = {r["run_id"] for r in runs}
+    for run_id, machine_name, records in _fetch_runs_from_db(flat, _HEX):
+        if run_id in seen:
+            continue
+        end = next((r for r in records if r.get("kind") == "end"), None)
+        stages = [r for r in records if r.get("kind") == "stage"]
+        first_at = next((r.get("at") for r in records if r.get("at")), None)
+        runs.append({
+            "run_id": run_id,
+            # An ISO string, not an mtime float. Sorting mixes the two, so both
+            # are normalised to a float below rather than compared as-is.
+            "started_at": _epoch_of(first_at),
+            "done": end is not None,
+            "status": (end or {}).get("status"),
+            "detail": (end or {}).get("detail"),
+            "stages": len({s.get("id") for s in stages}),
+            "documents_inserted": sum(
+                int(s.get("documents_inserted") or 0) for s in stages
+            ),
+            # NAMED, because "a run you cannot see the files for" is a
+            # different thing to a reader than one of their own.
+            "machine": machine_name,
+        })
+    runs.sort(key=lambda r: r["started_at"] or 0, reverse=True)
     return {"model_version_id": mv, "runs": runs}
+
+
+def _epoch_of(when: str | None) -> float | None:
+    """An ISO-8601 stamp as epoch seconds, or None. Never raises.
+
+    None rather than 0.0 for an unparseable date: 0.0 is 1970 and would sort a
+    run to the bottom as though it were the oldest, which is a definite claim
+    about when it ran (rule 6). The sort treats None as unknown instead.
+    """
+    if not when:
+        return None
+    try:
+        from datetime import datetime
+        return datetime.fromisoformat(str(when).replace("Z", "+00:00")).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+def _fetch_runs_from_db(flat: str, hex_chars: set[str]) -> list[tuple[str, str, list[dict]]]:
+    """Other machines' runs for one model. `[]` when the table cannot be read."""
+    try:
+        with _conn() as conn:
+            rows = conn.execute(
+                "select run_id, machine, payload from fetch_log "
+                "where run_id like %s order by run_id, seq",
+                (f"{flat}-%",),
+            ).fetchall()
+    except Exception:
+        return []
+    grouped: dict[str, tuple[str, list[dict]]] = {}
+    for run_id, machine_name, payload in rows:
+        suffix = str(run_id)[len(flat) + 1:]
+        # The same guard the file path uses: a shorter model id must never
+        # claim a longer one's runs through a LIKE prefix.
+        if len(suffix) != 8 or any(c not in hex_chars for c in suffix):
+            continue
+        rec = payload if isinstance(payload, dict) else json.loads(payload)
+        entry = grouped.setdefault(str(run_id), (str(machine_name), []))
+        entry[1].append(rec)
+    return [(rid, mach, recs) for rid, (mach, recs) in grouped.items()]
 
 
 @app.get("/capabilities/{capability_key}")
@@ -1488,7 +1604,11 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
     # dollars are a multiplication that needs a multiplier we may not hold.
     by_model_tokens: dict[str, int] = {}
     unpriced_models: set[str] = set()
-    for call in spend_ledger.read_all():
+    # EVERY MACHINE, not this one. `read_all()` is the local file; the all-time
+    # per-model figure beside a team total must cover the same population, or
+    # the two numbers on one page disagree for a reason nothing states.
+    all_calls, _ = spend_ledger.read_everywhere()
+    for call in all_calls:
         by_model_total[call.model] = by_model_total.get(call.model, 0.0) + call.usd
         by_model_tokens[call.model] = (
             by_model_tokens.get(call.model, 0) + call.input_tokens + call.output_tokens
@@ -1510,6 +1630,25 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
 
     return {
         "summary": _usage_summary(report),
+        # WHOSE SPEND THIS IS. A dollar total is meaningless without the
+        # population it covers (rule 7), and that population is now variable:
+        # every machine when the table is readable, one laptop when it is not.
+        # `complete` false means the number is a FLOOR and the page must say so
+        # rather than render a smaller figure in the same type as a whole one.
+        "basis": {
+            "complete": report.db_readable,
+            "machines": list(report.machines),
+            "machine_count": len(report.machines),
+            "this_machine": spend_ledger.machine(),
+            "note": (
+                f"every machine that has recorded — {len(report.machines)} so far"
+                if report.db_readable
+                else "the shared table could not be read, so this covers THIS "
+                     "MACHINE ONLY and is a floor. Other machines' spend is "
+                     "missing from it, not absent from the world."
+            ),
+            "unpriced_calls_today": report.unpriced_today,
+        },
         "cap": {
             "daily_usd": report.daily_cap_usd,
             "shared_by": list(spend_ledger.STAGES),
@@ -1922,18 +2061,57 @@ def _rapidapi_meters() -> dict[str, dict]:
       recorded, not that no arm read it.
     """
     store = _REPO_ROOT / "var" / "rapidapi-quota.json"
+    local: dict[str, dict] = {}
     try:
         raw = json.loads(store.read_text(encoding="utf-8"))
+        if isinstance(raw, dict):
+            meters = raw.get("meters")
+            if isinstance(meters, dict):
+                local = {k: v for k, v in meters.items() if isinstance(v, dict)}
+            elif "quota_remaining" in raw or "quota_limit" in raw:
+                local = {raw.get("read_on") or "unrecorded": raw}
     except (OSError, ValueError):
-        return {}
-    if not isinstance(raw, dict):
-        return {}
-    meters = raw.get("meters")
-    if isinstance(meters, dict):
-        return {k: v for k, v in meters.items() if isinstance(v, dict)}
-    if "quota_remaining" in raw or "quota_limit" in raw:
-        return {raw.get("read_on") or "unrecorded": raw}
-    return {}
+        local = {}
+
+    # THE SHARED TABLE, MERGED IN BY NEWEST *READING*. The quota is a counter
+    # the whole team draws down, so this machine's file is one view of it and
+    # usually not the freshest. `at` is a fixed-width ISO-8601 UTC string, so
+    # lexical order is chronological order - the same property the file reader
+    # already relies on to pick a latest record.
+    for meter, row in (_rapidapi_meters_from_db() or {}).items():
+        held = local.get(meter)
+        if held is None or str(row.get("at") or "") > str(held.get("at") or ""):
+            local[meter] = row
+    return local
+
+
+def _rapidapi_meters_from_db() -> dict[str, dict] | None:
+    """Every machine's latest reading, or None when the table cannot be read.
+
+    None rather than `{}`: an unreachable database and a meter nobody has read
+    are different facts, and only one of them means the panel is showing one
+    laptop's view of a shared counter.
+    """
+    try:
+        with _conn() as conn:
+            rows = conn.execute(
+                "select meter, quota_remaining, quota_limit, read_at, read_by, "
+                "       source_run_id, machine from rapidapi_quota"
+            ).fetchall()
+    except Exception:
+        return None
+    return {
+        str(m): {
+            "quota_remaining": rem,
+            "quota_limit": lim,
+            "at": at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "read_on": str(m),
+            "read_by": str(by),
+            "source_run_id": run,
+            "machine": str(mach),
+        }
+        for m, rem, lim, at, by, run, mach in rows
+    }
 
 
 def _rapidapi_quota(read_on: str = "reddit") -> dict:

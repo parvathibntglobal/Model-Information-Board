@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 import tempfile
 import time
 from pathlib import Path
@@ -40,6 +41,23 @@ _ROOT = Path(__file__).resolve().parent.parent
 
 #: Where the reading lives. `judge/app.py:_rapidapi_quota` reads exactly this.
 QUOTA_PATH = _ROOT / "var" / "rapidapi-quota.json"
+
+#: Same variable `judge/spend_ledger.py` reads, deliberately duplicated rather
+#: than shared: `collect/` may not import `judge/` (enforced by
+#: `tests/test_lane_boundary.py`), and four lines of hostname lookup is a
+#: smaller price than a boundary that only holds when nobody needs it.
+MACHINE_ENV = "MODELBOARD_MACHINE"
+
+
+def machine() -> str:
+    """Which host took the reading. NOT which person — there is one account."""
+    named = os.getenv(MACHINE_ENV)
+    if named and named.strip():
+        return named.strip()
+    try:
+        return socket.gethostname() or "unknown-host"
+    except OSError:
+        return "unknown-host"
 
 
 def _now() -> str:
@@ -144,11 +162,160 @@ def record_rapidapi_quota(
             json.dump({"meters": meters}, fh)
             tmp = fh.name
         os.replace(tmp, target)
-        return True
+        wrote = True
     except OSError:
         # Deliberately silent. See the docstring: the request is already spent,
         # and raising here would turn an unwritable file into a failed harvest.
+        wrote = False
+
+    # THE FILE FIRST, THE TABLE AFTER, both best-effort. The table is what makes
+    # the figure a team figure; the file is what this machine still has when the
+    # database is unreachable, which is the condition a quota reading is most
+    # worth having in.
+    _record_to_database(
+        meter=read_on, remaining=remaining, limit=limit,
+        read_at=record["at"], read_by=read_by, run_id=run_id,
+    )
+    return wrote
+
+
+#: The same two constants and the same reasoning as
+#: `judge/spend_ledger.py`'s, duplicated because the lane boundary forbids the
+#: import. `record_rapidapi_quota` is called from inside `_get`, on EVERY
+#: metered request, so an unreachable database without a backoff would add a
+#: connect timeout to every harvest call — turning an outage into a latency tax
+#: on the one path that must stay fast.
+TELEMETRY_CONNECT_TIMEOUT = 2.0
+TELEMETRY_RETRY_AFTER_SECONDS = 30.0
+
+_unreachable_until = 0.0
+
+
+def _telemetry_connection(url: str | None):
+    """A short-timeout connection, or None while the backoff is in force."""
+    global _unreachable_until
+    import psycopg
+
+    # ⚠ NEVER MIRROR TO A REAL DATABASE FROM A TEST. This is why the guard is
+    #   in the WRITER and not only in conftest.
+    #
+    #   Every other table in this repo is protected by the suite's disposable-
+    #   database fixtures (`assert_safe_target`, `assert_disposable`, and the
+    #   DROP SCHEMA each test runs). These writers bypassed all of it by reading
+    #   DATABASE_URL straight from the environment — and a developer .env points
+    #   that at the SHARED database. The first full run after they were wired
+    #   put 110 test spend rows worth $0.30 into the team's ledger, 11 lines
+    #   into its fetch log, and overwrote a genuine Reddit quota reading with a
+    #   fixture's.
+    #
+    #   The conftest fixture that now backs telemetry off is a second layer, not
+    #   this one: it can be cleared by any test that wants a real connection,
+    #   and then the next person to write one repeats the whole thing. A test
+    #   that genuinely means to exercise the mirror sets
+    #   MODELBOARD_ALLOW_TEST_TELEMETRY and points DATABASE_URL at a disposable
+    #   database itself.
+    if os.getenv("PYTEST_CURRENT_TEST") and not os.getenv(
+        "MODELBOARD_ALLOW_TEST_TELEMETRY"
+    ):
+        return None
+    if time.monotonic() < _unreachable_until:
+        return None
+    dsn = url or os.getenv("DATABASE_URL")
+    if not dsn:
+        return None
+    try:
+        return psycopg.connect(dsn, connect_timeout=TELEMETRY_CONNECT_TIMEOUT)
+    except Exception:
+        _unreachable_until = time.monotonic() + TELEMETRY_RETRY_AFTER_SECONDS
+        return None
+
+
+def reset_telemetry_backoff() -> None:
+    """Forget a past failure. For tests, and for a caller with reason to think
+    the database is back — a backoff nobody can clear is a cache."""
+    global _unreachable_until
+    _unreachable_until = 0.0
+
+
+def _record_to_database(
+    *, meter: str, remaining: int | None, limit: int | None,
+    read_at: str, read_by: str, run_id: str | None, url: str | None = None,
+) -> bool:
+    """Upsert one meter's reading. NEVER raises — same contract as the file write.
+
+    NEWEST *READING* WINS, NOT NEWEST WRITE. Two machines reading a decreasing
+    counter will race, and the row that arrives second can easily carry the
+    figure that was read first — a later write with an older reading. Comparing
+    `read_at` in the DO UPDATE clause is what stops the shared number walking
+    backwards; comparing arrival order would not.
+
+    THE LIMIT IS STILL NOT INHERITED. The upsert writes `excluded.quota_limit`
+    verbatim, NULL included. A COALESCE here would quietly restore the exact
+    behaviour the file writer refuses — and the arms are separately metered, so
+    an inherited limit may belong to another meter entirely.
+    """
+    if remaining is None and limit is None:
         return False
+    conn = _telemetry_connection(url)
+    if conn is None:
+        return False
+    try:
+        with conn:
+            conn.execute(
+                "insert into rapidapi_quota "
+                "(meter, quota_remaining, quota_limit, read_at, read_by, "
+                " source_run_id, machine) "
+                "values (%s,%s,%s,%s,%s,%s,%s) "
+                "on conflict (meter) do update set "
+                "  quota_remaining = excluded.quota_remaining, "
+                "  quota_limit     = excluded.quota_limit, "
+                "  read_at         = excluded.read_at, "
+                "  read_by         = excluded.read_by, "
+                "  source_run_id   = excluded.source_run_id, "
+                "  machine         = excluded.machine, "
+                "  recorded_at     = now() "
+                "where excluded.read_at > rapidapi_quota.read_at",
+                (meter, remaining, limit, read_at, read_by, run_id, machine()),
+            )
+        return True
+    except Exception:
+        return False
+    finally:
+        conn.close()
+
+
+def read_database_meters(url: str | None = None) -> dict[str, dict] | None:
+    """Every machine's latest reading per meter, or None when unreadable.
+
+    NONE IS NOT "NO READINGS". An unreachable database and a meter nobody has
+    ever read produce the same empty mapping, and only one of them means the
+    panel's figure is complete.
+    """
+    conn = _telemetry_connection(url)
+    if conn is None:
+        return None
+    try:
+        with conn:
+            rows = conn.execute(
+                "select meter, quota_remaining, quota_limit, read_at, read_by, "
+                "       source_run_id, machine from rapidapi_quota"
+            ).fetchall()
+    except Exception:
+        return None
+    finally:
+        conn.close()
+    return {
+        str(m): {
+            "quota_remaining": rem,
+            "quota_limit": lim,
+            "at": at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "read_on": str(m),
+            "read_by": str(by),
+            "source_run_id": run,
+            "machine": str(mach),
+        }
+        for m, rem, lim, at, by, run, mach in rows
+    }
 
 
 def read_rapidapi_meters(path: Path | None = None) -> dict[str, dict]:
