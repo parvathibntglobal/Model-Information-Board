@@ -13,10 +13,12 @@ degrades this surface.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 import sys
 import uuid
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import NamedTuple
@@ -36,6 +38,7 @@ from judge.ask.understand import (
 from judge.config import capabilities
 from judge.extract.client import OpenRouterClient
 from judge.gate import auth_state, rate_limit_ask, rate_limit_login, require_token
+from judge.writeguard import describe, is_read_only_dsn
 
 #: How many rows a list endpoint returns when the caller does not say.
 #:
@@ -85,12 +88,74 @@ def _page(rows: list, *, limit: int, offset: int) -> _Page:
     )
 
 
+#: Startup and refusal lines go to uvicorn's own logger rather than to
+#: `logging.getLogger(__name__)`, and the NAME is the whole point.
+#:
+#: uvicorn configures handlers for `uvicorn`, `uvicorn.error` and
+#: `uvicorn.access`, and configures NOTHING on the root logger. A module logger
+#: therefore propagates to a root with no handler, falls through to
+#: `logging.lastResort`, and is DROPPED below WARNING - so an `info` line
+#: naming the database would never have reached the terminal that needed it.
+#: Borrowing uvicorn's logger puts these lines in the same stream, at the same
+#: level, as `Application startup complete`.
+#:
+#: Outside uvicorn - the tests import this module - the logger has no handler
+#: and these calls are inert, which is the right behaviour there.
+log = logging.getLogger("uvicorn.error")
+
+
+def _log_database_target() -> None:
+    """Say which database this process will read, once, at startup.
+
+    WHAT THIS WOULD HAVE SAVED, 2026-09-11. A backend started as
+    `uvicorn judge.app:app` rather than through `run-backend.py` has no
+    DATABASE_URL at all, because that script is the only thing that loads
+    `.env`. Every database-backed route then answers 503, the frontend renders
+    "no database connection", and that message names nothing: it is the
+    frontend's rendering of a failure it did not cause. Diagnosing it took
+    process inspection and a timing measurement. One line here answers it
+    before the first request arrives.
+
+    THE CREDENTIALS ARE NOT LOGGED. `describe` returns host, port and database
+    name and nothing else - the DSN itself never reaches a log record, here or
+    in `_conn`.
+    """
+    url = os.getenv("DATABASE_URL")
+    if not url:
+        log.warning(
+            "DATABASE_URL is not set in this process. Every database-backed "
+            "route will answer 503 and NO connection will be attempted. `.env` "
+            "is loaded by run-backend.py, not by this module, so a server "
+            "started directly with `uvicorn judge.app:app` sees none of it."
+        )
+        return
+    log.info(
+        "database: %s - %s",
+        describe(url),
+        "sessions forced READ ONLY by the DSN"
+        if is_read_only_dsn(url)
+        else "READ-WRITE session",
+    )
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    """Startup and shutdown. It exists for the one startup line above.
+
+    `@app.on_event("startup")` would do the same and is deprecated in FastAPI
+    0.139, which is what is installed here.
+    """
+    _log_database_target()
+    yield
+
+
 app = FastAPI(
     title="Model Information Board",
     description=(
         "What engineers actually say about AI models, and which cheaper one is safe for your task."
     ),
     version="0.1.0",
+    lifespan=_lifespan,
     # EVERY ROUTE, rather than a decorator per handler. An app-wide dependency
     # cannot be forgotten on the next endpoint somebody adds, and forgetting one
     # is the whole failure mode here - the gap this closes was not a weak check,
@@ -613,6 +678,18 @@ def _conn():
     the request, and a page that cannot be read is different from a page with
     nothing on it - which is the same distinction every one of these modules
     is built around.
+
+    AND IT SAYS SO IN THE LOG, SINCE 2026-09-11. This used to refuse in
+    silence: the only trace of a board with no database was one uvicorn access
+    line reading `503 Service Unavailable` - no DSN, no connection attempt, no
+    traceback. Diagnosing it meant noticing that an error was ABSENT, and an
+    absence we caused reading as a fact about the world is the shape this
+    project keeps paying for.
+
+    THE TWO SHAPES ARE LOGGED SEPARATELY BECAUSE THEY HAVE DIFFERENT FIXES.
+    "no DSN" is a process that never loaded `.env`; "cannot connect" is a DSN
+    pointed at something that is not answering. The first dials nothing, so it
+    is instant - which is itself how the two were told apart by hand.
     """
     import os
 
@@ -625,6 +702,12 @@ def _conn():
     # serving a database nobody meant to expose.
     url = os.getenv("DATABASE_URL")
     if not url:
+        log.error(
+            "refusing to read the board: DATABASE_URL is not set in this "
+            "process, so nothing was dialled. If `.env` holds a DSN, this "
+            "process did not load it - run-backend.py is what loads `.env`, "
+            "and `uvicorn judge.app:app` started directly does not."
+        )
         raise HTTPException(
             status_code=503,
             detail=(
@@ -632,7 +715,23 @@ def _conn():
                 "not the same as a board with nothing on it."
             ),
         )
-    return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
+    try:
+        return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
+    except psycopg.OperationalError as error:
+        # LOGGED AND RE-RAISED, NOT CONVERTED. An unreachable database may well
+        # deserve the same 503 as an unconfigured one, but that is a change to
+        # what the API answers and it is not this change - the request still
+        # fails exactly as it did, with a traceback, and now also with a line
+        # naming the target and the timeout it waited out.
+        first = str(error).strip().splitlines()
+        log.error(
+            "cannot connect to %s after %ss: %s: %s",
+            describe(url),
+            CONNECT_TIMEOUT_SECONDS,
+            type(error).__name__,
+            first[0] if first else "(no message)",
+        )
+        raise
 
 
 @app.get("/faq")
@@ -2150,15 +2249,37 @@ def _rapidapi_meters() -> dict[str, dict]:
     except (OSError, ValueError):
         local = {}
 
+    # EVERY LOCAL READING IS STAMPED BEFORE THE MERGE, so the winner can say
+    # where it came from. The file records no machine - it never needed to,
+    # being one host's private note - so this supplies the one fact it is
+    # missing and the shared rows already carry.
+    from judge.spend_ledger import machine as _this_machine
+
+    here = _this_machine()
+    for row in local.values():
+        row.setdefault("source", "this machine")
+        row.setdefault("machine", here)
+
     # THE SHARED TABLE, MERGED IN BY NEWEST *READING*. The quota is a counter
     # the whole team draws down, so this machine's file is one view of it and
     # usually not the freshest. `at` is a fixed-width ISO-8601 UTC string, so
     # lexical order is chronological order - the same property the file reader
     # already relies on to pick a latest record.
+    #
+    # THE LOSER IS KEPT, NOT DISCARDED, under `also_held`. A stale local
+    # reading beside a fresher shared one is the NORMAL case on a shared
+    # subscription, and dropping it would make "this machine has never
+    # fetched" and "this machine fetched earlier" render identically - which
+    # is the same collapse rule 4 forbids one layer up.
     for meter, row in (_rapidapi_meters_from_db() or {}).items():
+        row = {**row, "source": "shared table"}
         held = local.get(meter)
-        if held is None or str(row.get("at") or "") > str(held.get("at") or ""):
+        if held is None:
             local[meter] = row
+        elif str(row.get("at") or "") > str(held.get("at") or ""):
+            local[meter] = {**row, "also_held": held}
+        else:
+            local[meter] = {**held, "also_held": row}
     return local
 
 
@@ -2239,12 +2360,13 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
             "only when a fetch runs, not on a schedule. The Reddit and X arms "
             "are metered separately - this figure is this arm's alone."
         ),
-        "source_of_record": (
-            f"var/rapidapi-quota.json, meters['{read_on}'], written by "
-            f"{arm_article} {arm_label} fetch from RapidAPI's x-ratelimit-* headers - the "
-            "provider's own number, cached with its date"
-        ),
     }
+    # ⚠ `source_of_record` IS COMPUTED BELOW, NOT SET HERE, AND THAT IS THE FIX.
+    #   It was the constant "var/rapidapi-quota.json, meters[...]" while
+    #   `_rapidapi_meters` had already merged the shared table in - so a
+    #   reading taken on ANOTHER machine could render under a caption naming
+    #   this one's file. The panel then said, in one line, both that the
+    #   subscription is shared and that the figure is local.
     meters = _rapidapi_meters()
     rec = meters.get(read_on)
     if not rec:
@@ -2258,6 +2380,10 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
         orphan = meters.get("unrecorded")
         return {
             **base,
+            "source_of_record": (
+                "no reading for this arm, in this machine's "
+                "var/rapidapi-quota.json or in the shared rapidapi_quota table"
+            ),
             "instrumented": False,
             "unattributed_reading": (
                 None if not orphan else {
@@ -2306,8 +2432,42 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
     #   for one meter. What was missing was the denominator's IDENTITY, which
     #   is rule 7 on a figure that had already survived inspection twice.
     used = limit - remaining if isinstance(limit, int) and isinstance(remaining, int) else None
+    other = rec.get("also_held")
+    source = str(rec.get("source") or "this machine")
+    taken_on = str(rec.get("machine") or "an unrecorded machine")
+    shared = source == "shared table"
     return {
         **base,
+        "source_of_record": (
+            (f"the shared `rapidapi_quota` table, meter '{read_on}', last written "
+             f"from {taken_on}"
+             if shared else
+             f"this machine's var/rapidapi-quota.json, meters['{read_on}'], "
+             f"written on {taken_on}")
+            + " from RapidAPI's x-ratelimit-* headers - the provider's own "
+              "number, shown with the date it was taken"
+        ),
+        "reading_source": source,
+        "reading_machine": taken_on,
+        # THE READING THIS ONE BEAT, kept rather than dropped. On a shared
+        # subscription a stale local figure beside a fresher shared one is the
+        # NORMAL case and not an error; the panel names both so a reader can
+        # see that this machine has fetched, just not most recently.
+        "also_held": (
+            None if not isinstance(other, dict) else {
+                "quota_remaining": other.get("quota_remaining"),
+                "quota_limit": other.get("quota_limit"),
+                "as_of": other.get("at"),
+                "source": other.get("source"),
+                "machine": other.get("machine"),
+                "why_not_shown": (
+                    "an older reading of the same meter. The quota only "
+                    "decreases, so the newest reading is the truest one - this "
+                    "is here to show the other side has also fetched, not as a "
+                    "second figure to compare."
+                ),
+            }
+        ),
         "instrumented": True,
         "quota_limit": limit,
         "quota_remaining": remaining,
