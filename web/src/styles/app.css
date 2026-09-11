@@ -264,7 +264,12 @@ tbody tr:hover{background:var(--surface-2)}
 .hero-hint{
   position:absolute;bottom:16px;left:0;right:0;z-index:5;text-align:center;
   font-family:var(--font-mono);font-size:.68rem;letter-spacing:.13em;
-  text-transform:uppercase;color:var(--text-3);opacity:.55;pointer-events:none;
+  /* NO OPACITY. --text-3 at .55 computed to #444449 on the hero - 2.02:1,
+     the worst contrast on the site, and opacity multiplies against a
+     token that is already the dimmest one. The token dims it; stacking
+     a second dimming on top is how text becomes unreadable without
+     anybody choosing an unreadable colour. */
+  text-transform:uppercase;color:var(--text-3);pointer-events:none;
 }
 @media (hover:none){ .hero-hint{content:none;visibility:hidden} }
 
@@ -718,4 +723,62 @@ tbody tr:hover{background:var(--surface-2)}
 .legacy-cells > .stack{padding:0 16px 16px}
 @media (prefers-reduced-motion:reduce){
   .legacy-cells > summary,.legacy-cells > summary::before{transition:none}
+}
+
+/* ── DISCLOSURE ─────────────────────────────────────────────────────────────
+   A reusable native <details>, same reasoning as `.faq-item` above and
+   deliberately the same mechanism: the content stays in the DOM whether or not
+   the panel is open, so ctrl-F finds it, a screen reader can reach it, and no
+   JavaScript has to run for it to exist. A JS accordion would fail all three.
+
+   Used for the fetch-log history on the model and admin pages, and for the
+   board sections on the admin page. Those are long, rarely-read blocks that
+   push the thing a reader came for off the screen — folded by default, one
+   click to open, and the summary always says HOW MUCH is inside so closing it
+   is not hiding an unknown quantity. */
+.disc{
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  background:var(--surface);
+  overflow:hidden;
+}
+.disc + .disc{margin-top:8px}
+.disc > summary{
+  cursor:pointer;
+  list-style:none;
+  padding:11px 14px 11px 34px;
+  position:relative;
+  font-size:var(--fs-sm);
+  font-weight:600;
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  transition:background var(--t-fast) var(--ease);
+}
+.disc > summary::-webkit-details-marker{display:none}
+.disc > summary:hover{background:var(--surface-2)}
+.disc > summary:focus-visible{outline:2px solid var(--info);outline-offset:-2px}
+.disc > summary::before{
+  content:'';
+  position:absolute;
+  left:14px; top:50%;
+  width:6px; height:6px;
+  border-right:1.5px solid var(--text-3);
+  border-bottom:1.5px solid var(--text-3);
+  transform:translateY(-70%) rotate(-45deg);
+  transition:transform var(--t-fast) var(--ease);
+}
+.disc[open] > summary::before{transform:translateY(-50%) rotate(45deg)}
+.disc[open] > summary{background:var(--surface-2);border-bottom:1px solid var(--border)}
+/* The count that makes a closed panel honest about what it holds. */
+.disc > summary .n{
+  font:400 var(--fs-xs)/1 var(--font-mono);
+  color:var(--text-3);
+  letter-spacing:.03em;
+}
+.disc-body{padding:14px}
+@media (prefers-reduced-motion:reduce){
+  .disc > summary,.disc > summary::before{transition:none}
 }
