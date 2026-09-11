@@ -123,6 +123,20 @@ columns:
         than a row.
 
         '
+    model_scope:
+      reviewed: true
+      state: write_only
+      why: 'searched | mentioned | NULL. Written by judge/store/board_entries.py:store_entries
+        from the run''s own subject; read by nothing yet. DECLARED RATHER THAN DEFERRED (rule 9):
+        the intended reader is the board itself, which should say which population a section''s
+        counts were drawn from - a model searched exhaustively and one mentioned once in a
+        comparison currently contribute to the same figure with nothing distinguishing them
+        (rule 7). It cannot read it yet because that is a change to what the page MEANS and is
+        a product decision, not a query change. Recorded now because the distinction used to
+        live in the id SHAPE by accident and stopped being visible on 2026-09-11 when the read
+        path learned to resolve both shapes to one name.
+
+        '
     model_version_id:
       reviewed: true
       state: read

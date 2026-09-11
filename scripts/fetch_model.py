@@ -1256,6 +1256,26 @@ def triage_stage(conn, prog: Progress) -> None:
                detail=detail)
 
 
+def _subject_ids(conn, given: str) -> frozenset[str]:
+    """Every id shape that means "the model this run is for".
+
+    The CLI is invoked with either form - `model_page` accepts both and
+    the UI passes the canonical id - and `board_entry.model_version_id`
+    stores both. Returning the pair is what lets `model_scope` be
+    correct regardless of which route an entry arrived by. A lookup
+    that finds nothing yields just what was given: labelling on one
+    known form beats refusing to label at all.
+    """
+    ids = {given}
+    row = conn.execute(
+        "SELECT id, canonical_id FROM model_version WHERE id = %s OR canonical_id = %s",
+        (given, given),
+    ).fetchone()
+    if row:
+        ids.update(x for x in row if x)
+    return frozenset(ids)
+
+
 def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
     """E5–E7 — extract claims from this fetch's threads, vet, and curate cells.
 
@@ -1378,6 +1398,11 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
         client=OpenRouterClient.from_env(),
         capability_keys=list(capabilities().keys()),
         extractor_model=os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
+        # BOTH ID SHAPES for this run's subject. `board_entry.model_version_id`
+        # holds the canonical id when a run names its own model and the
+        # internal `mv_` key when the entry came out of a thread, so a single
+        # form would mislabel the searched model's own rows as `mentioned`.
+        searched_model_version_id=_subject_ids(conn, prog.model_version_id),
     ).run_all(
         threads, facts=facts, model_version_of=mvo, budget=budget,
         already_extracted=seen, driver=Driver("new-evidence"), resolve_surface=resolver,

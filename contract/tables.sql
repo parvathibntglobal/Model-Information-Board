@@ -888,6 +888,20 @@ CREATE TABLE board_entry (
   quote_verified    boolean NOT NULL,
   polarity          text NOT NULL,      -- positive | negative | neutral
   proposer_model    text NOT NULL,      -- which model classified it
+
+  -- searched | mentioned | NULL. WHICH POPULATION THIS ROW CAME FROM: the
+  -- model the run was FOR, or a model merely named inside a thread
+  -- retrieved for a different one. A run for one model produces claims
+  -- about every model its threads compared against - 2 of 40 were about
+  -- the searched model on 2026-09-11 - and the comparisons are kept on
+  -- purpose. Without this, a section's counts silently mix a model
+  -- searched exhaustively with one mentioned once (rule 7).
+  --
+  -- The distinction used to live in the ID SHAPE by accident (canonical
+  -- for searched, internal `mv_` for mentioned) and stopped being visible
+  -- when the read path learned to resolve both. NULL is not backfilled:
+  -- guessing from the old shape would bake an accident in as a decision.
+  model_scope       text,
   pipeline_version  text NOT NULL,
   created_at        timestamptz NOT NULL DEFAULT now(),
 
@@ -898,6 +912,8 @@ CREATE TABLE board_entry (
   ruling_target     text,               -- the slug a `merged` row folds into
   reviewed_at       timestamptz,
 
+  CONSTRAINT board_entry_model_scope_ck
+    CHECK (model_scope IS NULL OR model_scope IN ('searched', 'mentioned')),
   CONSTRAINT board_entry_section_ck
     CHECK (section IN ('best_for', 'capability', 'metric')),
 
