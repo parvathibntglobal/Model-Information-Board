@@ -10,6 +10,7 @@ database, while it was still writing to it.
 """
 from __future__ import annotations
 
+import contextlib
 import datetime
 import json
 import pathlib
@@ -250,8 +251,9 @@ class TestItWillNotWriteFromATestRun:
         from judge import app as judge_app
 
         monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: None)
-        try:
+        # The route may fail here for reasons unrelated to the guard (no
+        # database, no registry row). The write is the assertion, so anything
+        # else it does is not this test's business.
+        with contextlib.suppress(Exception):
             judge_app.start_fetch(judge_app.FetchRequest(model_version_id="x/y"))
-        except Exception:
-            pass  # the route may fail for unrelated reasons here; the write is the assertion
         assert calls == []
