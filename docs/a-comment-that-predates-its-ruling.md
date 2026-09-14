@@ -131,10 +131,11 @@ ruling quoted in the message. Three details worth keeping:
   a `SyntaxError`, which is the same hole one level up — the injection broke
   `sweep_reddit.py`, the file dropped out of the scan, and every assertion about
   it passed by absence. Found only because a separate count assertion noticed.
-- **It scans tracked files only.** An untracked broken scratch script
-  (`scripts/measure_key_constraint.py`, today) would otherwise turn the guard
-  red locally, and a guard that is red for unrelated reasons gets skipped, then
-  deleted.
+- **It scans tracked files only.** An untracked scratch script that will not
+  parse would otherwise turn the guard red locally, and a guard that is red for
+  unrelated reasons gets skipped, then deleted. (The example when this was
+  written was `scripts/measure_key_constraint.py`, repaired later the same day —
+  §5a. The reasoning does not depend on that file and the rule stays.)
 
 The test also pins the `json.dumps` spelling, which caught a second live defect:
 `scripts/fetch_model.py:_payload` omitted `ensure_ascii=False`, so the same post
@@ -191,10 +192,10 @@ also finds the answer to it.
 
 ---
 
-## 5 · Related, and the reason this is filed separately
+## 5 · Related instances, and the reason they are filed here
 
-The same fortnight produced a **second** stale artefact in the same direction,
-and it is worth naming because it shows the class is not a one-off:
+The same fortnight produced two more stale artefacts in the same direction,
+and they are worth naming because they show the class is not a one-off:
 
 `scripts/restore_reddit_payload_refs.py` — the ruling's own repair tool — ends
 by printing:
@@ -207,6 +208,66 @@ sentence has been false for seventeen days and it prints on every run, including
 the repair run of 2026-09-14. Harmless here, and exactly the same mechanism:
 **a true statement about a moment, written in the present tense, in a file
 nobody reopened.**
+
+### 5a · The third instance, and it is the expensive shape
+
+`scripts/measure_key_constraint.py` carried this argument:
+
+```python
+ap.add_argument(
+    "--model", default="google/gemini-2.5-flash",
+    help="PINNED, and pairing depends on it. The 2026-08-28 run used "
+         "google/gemini-2.5-flash; EXTRACTOR_MODEL in .env is a different "
+         "model today, and taking that default silently unpairs the "
+         "comparison - which it did on the first run of this script.")
+```
+
+…and then, 46 lines later:
+
+```python
+client = OpenRouterClient.from_env()     # reads EXTRACTOR_MODEL. args.model
+                                         # is never read, anywhere.
+```
+
+**The help text is a correct, specific, hard-won account of a hazard the file
+still had.** It even names the incident. `--variant` was dead in the same file
+in the same way: `system_prompt(withhold_keys=True)` with `args.variant`
+ignored, so `--variant argued` ran the withheld prompt and labelled the output
+`argued`.
+
+The cost was a result nobody could read. `key-constraint-rerun-2026-09-11.json`
+reports 134 proposals → 0, which looks like a decisive fix and is not a
+comparison at all: `before` is `google/gemini-2.5-flash` and `after` is
+`deepseek/deepseek-v4-flash`. Two variables moved, and the one that was supposed
+to be held fixed was held fixed *in prose only*. I then repeated that result in
+conversation as though it stood.
+
+**Why this belongs here rather than in its own document.** §1 is a comment that
+lost a ruling; this is a flag that lost its wiring. Different surface, one
+mechanism: **an explanation and the thing it explains drift apart, and the
+explanation is the half a reader trusts**, because it is the half addressed to
+them. A comment is checked against nothing. An argparse `help` is checked
+against nothing. Both read as documentation of current behaviour, and neither
+is.
+
+And it is the more expensive form, for two reasons:
+
+- **It produces a number.** A stale comment misleads whoever reads the file; a
+  dead flag mislabels an artefact that travels — into a JSON on disk, a summary,
+  a decision. §1 cost fourteen days of bad rows. This cost a measurement that
+  argued for a prompt change on evidence that was not evidence.
+- **The care is the camouflage.** Nobody writes four lines about why pinning
+  matters unless they have just been bitten by it. The thoroughness of the
+  explanation is exactly what stops the next reader checking whether the code
+  does it.
+
+**What catches it, and it is cheaper than §3's list.** A dead argparse argument
+is `args.<dest>` appearing exactly once in the file — at its definition. That is
+a grep, and for the same reason as `tests/test_writers_store_the_payload.py` it
+is syntax rather than silence, so a scanner can see it without anybody opening
+the file. Not built here; recorded as the obvious next guard, and rule 9's
+reviewer question is already the right words for it — **what reads this, and
+where, file and line?** — asked of a flag rather than a column.
 
 *Incident detail and the measured populations:
 `docs/for-the-team-reddit-text-ref-decision-2026-09-11.md`.*
