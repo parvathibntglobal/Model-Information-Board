@@ -2057,6 +2057,17 @@ class BoardEntryRuleRequest(BaseModel):
     ruling_target: str | None = Field(
         default=None, description="the slug it folds into; required for merged"
     )
+    #: WHICH ENTRIES, when the reviewer meant some of them rather than all.
+    #:
+    #: `None` is "the whole slug" and an EMPTY LIST IS AN ERROR, not a synonym
+    #: for it. Those are different intents and only one of them is safe to guess
+    #: at: a caller that sent [] believed it had a selection, and treating that
+    #: as "all" would decline a whole section on a misclick. The store refuses
+    #: it for the same reason.
+    entry_ids: list[str] | None = Field(
+        default=None,
+        description="board_entry ids to rule; omit to rule the whole slug",
+    )
 
 
 class CandidateEditRequest(BaseModel):
@@ -2143,7 +2154,12 @@ def admin_board_entries() -> dict:
 @app.post("/admin/board-entries/rule")
 def admin_rule_board_entry(req: BoardEntryRuleRequest) -> dict:
     """Adopt / decline / merge every entry under one slug."""
-    from judge.store.board_entries import RULINGS, SECTIONS, rule_entries
+    from judge.store.board_entries import (
+        RULINGS,
+        SECTIONS,
+        rule_entries,
+        rule_entry_ids,
+    )
 
     # Validated before a connection is opened, so a bad request fails fast and
     # without a database. Stated here AND in the store, so neither is the only
@@ -2161,12 +2177,29 @@ def admin_rule_board_entry(req: BoardEntryRuleRequest) -> dict:
                    "Without it the rows would be hidden rather than merged, which "
                    "loses the evidence instead of consolidating it.",
         )
+    # AN EMPTY SELECTION IS REFUSED RATHER THAN WIDENED. `None` means the
+    # reviewer asked for the section; `[]` means they thought they had ticked
+    # something. Reading the second as the first is how one misclick declines a
+    # capability, and the difference is invisible on the button.
+    if req.entry_ids is not None and not req.entry_ids:
+        raise HTTPException(
+            status_code=422,
+            detail="entry_ids was empty. To rule the whole section, omit the "
+                   "field entirely - that is a different decision and has to be "
+                   "asked for rather than fallen into.",
+        )
     try:
         with _conn() as conn:
-            ruled = rule_entries(
-                conn, section=req.section, slug=req.slug,
-                ruling=req.ruling, ruling_target=req.ruling_target,
-            )
+            if req.entry_ids:
+                ruled = rule_entry_ids(
+                    conn, ids=req.entry_ids,
+                    ruling=req.ruling, ruling_target=req.ruling_target,
+                )
+            else:
+                ruled = rule_entries(
+                    conn, section=req.section, slug=req.slug,
+                    ruling=req.ruling, ruling_target=req.ruling_target,
+                )
             conn.commit()
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -2183,14 +2216,27 @@ def admin_unrule_board_entry(req: BoardEntryRuleRequest) -> dict:
     somebody cannot back out of is one they hesitate to use, which is how a
     board fills with rulings nobody was sure about.
     """
-    from judge.store.board_entries import SECTIONS, unrule_entries
+    from judge.store.board_entries import SECTIONS, unrule_entries, unrule_entry_ids
 
     if req.section not in SECTIONS:
         raise HTTPException(status_code=422, detail=f"section must be one of {SECTIONS}")
+    # UNDO IS PER-QUOTE TOO, and it has to be. A per-quote decline whose only
+    # undo was per-slug would be worse than no undo at all: backing out one
+    # mistake would un-decline every other quote in the section, including the
+    # ones somebody meant.
+    if req.entry_ids is not None and not req.entry_ids:
+        raise HTTPException(
+            status_code=422,
+            detail="entry_ids was empty. Omit the field to clear the whole section.",
+        )
     with _conn() as conn:
-        cleared = unrule_entries(conn, section=req.section, slug=req.slug)
+        if req.entry_ids:
+            cleared = unrule_entry_ids(conn, ids=req.entry_ids)
+        else:
+            cleared = unrule_entries(conn, section=req.section, slug=req.slug)
         conn.commit()
-    return {"section": req.section, "slug": req.slug, "rows_cleared": cleared}
+    return {"section": req.section, "slug": req.slug, "rows_cleared": cleared,
+            "scope": "entries" if req.entry_ids else "section"}
 
 
 @app.post("/admin/capability-candidates/rule")

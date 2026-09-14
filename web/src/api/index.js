@@ -350,16 +350,23 @@ export const modelEvidence = (id) => request(`/models/${modelPath(id)}/evidence`
 
 export const boardEntries = () => request('/admin/board-entries')
 
-export const ruleBoardEntry = (section, slug, ruling, ruling_target = null) =>
+// `entry_ids` IS OMITTED, NOT EMPTIED, when the whole section is meant.
+//
+// The backend treats `null` as "the whole slug" and `[]` as a mistake, because
+// those are different intents and only one is safe to guess at: a caller that
+// sent [] believed it had a selection. Sending `[]` here would turn "I ticked
+// nothing yet" into "decline this capability", so the distinction is preserved
+// across the wire rather than flattened in the client.
+export const ruleBoardEntry = (section, slug, ruling, ruling_target = null, entry_ids = null) =>
   request('/admin/board-entries/rule', {
     method: 'POST',
-    body: { section, slug, ruling, ruling_target },
+    body: { section, slug, ruling, ruling_target, entry_ids: entry_ids?.length ? entry_ids : null },
   })
 
-export const unruleBoardEntry = (section, slug) =>
+export const unruleBoardEntry = (section, slug, entry_ids = null) =>
   request('/admin/board-entries/unrule', {
     method: 'POST',
-    body: { section, slug, ruling: 'adopted' },
+    body: { section, slug, ruling: 'adopted', entry_ids: entry_ids?.length ? entry_ids : null },
   })
 
 export const capabilityCandidates = () => request('/admin/capability-candidates')

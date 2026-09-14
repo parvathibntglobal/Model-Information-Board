@@ -425,21 +425,45 @@ def list_for_review(conn) -> list[dict]:
     out = []
     for (section, slug, name, definition, entries, documents, models,
          newest, ruling, ruling_target, reviewed_at) in rows:
+        # `id` AND `ruling` PER QUOTE. The id is the handle a reviewer needs to
+        # rule one row rather than the whole slug, and the ruling is how the page
+        # shows which rows are already decided - without it a declined quote and
+        # a live one look identical in this list.
         quotes = conn.execute(
-            "SELECT quote, polarity, model_version_id, document_id "
+            "SELECT id, quote, polarity, model_version_id, document_id, ruling "
             "FROM board_entry WHERE section = %s AND slug = %s "
             "ORDER BY created_at DESC LIMIT 5",
             (section, slug),
         ).fetchall()
+        # HOW MANY ROWS CARRY EACH RULING, because `max(ruling)` above stops
+        # meaning anything the moment two quotes under one slug can differ. It
+        # returns whichever word sorts highest - 'merged' over 'declined' over
+        # 'adopted' - so a section with eight adopted quotes and one merged would
+        # read as "merged". A count says what is actually true, and lets the page
+        # say "3 of 9 declined" instead of picking a word for the group.
+        by_ruling = dict(
+            conn.execute(
+                "SELECT coalesce(ruling, 'unruled'), count(*) FROM board_entry "
+                "WHERE section = %s AND slug = %s GROUP BY 1",
+                (section, slug),
+            ).fetchall()
+        )
         out.append({
             "section": section, "slug": slug, "name": name, "definition": definition,
             "entries": entries, "documents": documents, "models": models,
             "newest": newest.isoformat() if newest else None,
-            "ruling": ruling, "ruling_target": ruling_target,
+            # KEPT, and now only true when the whole slug agrees. A mixed slug
+            # reports None here and the counts below carry the real answer, so a
+            # reader is never told the section was declined when most of it
+            # was not.
+            "ruling": ruling if len(by_ruling) == 1 else None,
+            "ruling_target": ruling_target,
             "reviewed_at": reviewed_at.isoformat() if reviewed_at else None,
+            "ruling_counts": by_ruling,
             "quotes": [
-                {"quote": q, "polarity": p, "model_version_id": m, "document_id": d}
-                for q, p, m, d in quotes
+                {"id": i, "quote": q, "polarity": p, "model_version_id": m,
+                 "document_id": d, "ruling": r}
+                for i, q, p, m, d, r in quotes
             ],
         })
     return out
@@ -472,6 +496,75 @@ def rule_entries(conn, *, section: str, slug: str, ruling: str,
         "UPDATE board_entry SET ruling = %s, ruling_target = %s, reviewed_at = now() "
         "WHERE section = %s AND slug = %s",
         (ruling, target, section, slug),
+    )
+    return cur.rowcount
+
+
+def rule_entry_ids(conn, *, ids: list[str], ruling: str,
+                   ruling_target: str | None = None) -> int:
+    """Rule the named entries and nothing else. Returns rows ruled.
+
+    WHY A SECOND WRITE PATH RATHER THAN A NARROWER FIRST ONE.
+
+    `board_entry.ruling` has always been a PER-ROW column; only the writer was
+    per-slug. That gap had a cost: on #279, six of twenty-one slugs held broken
+    AND good rows, so declining the bad quotes would have taken twenty-one sound
+    ones off the board with them. The tombstone route was rejected for exactly
+    that and the rows were repaired instead - a script, two hosts and a day,
+    where a reviewer ticking four boxes would have done.
+
+    The slug-level `rule_entries` stays, because it is still the right shape for
+    the decision it was built for: merging "tool-calling" into "function-calling"
+    is one judgement about a word, not nine about nine quotes. Which of the two a
+    reviewer wants is a question about their intent, and the UI asks it by making
+    the button name its own scope rather than by inferring it from an empty
+    selection.
+
+    A MERGE IS STILL ALLOWED HERE, and it means something narrower than the
+    slug-level one: this quote was filed under the wrong section, move it. The
+    slug it leaves keeps its other quotes.
+    """
+    if ruling not in RULINGS:
+        raise ValueError(f"ruling must be one of {RULINGS}, not {ruling!r}")
+    if not ids:
+        # NOT A NO-OP RETURNING 0. An empty list reaching here means a caller
+        # believed it had a selection and did not, and silently ruling nothing
+        # would look identical to ruling everything a moment before the page
+        # refreshes. The UI must not be able to express "rule these" and mean
+        # "rule all", which is the whole reason this refuses.
+        raise ValueError(
+            "no entry ids given. Ruling a whole section is `rule_entries`, and "
+            "it is a different decision that has to be asked for by name."
+        )
+    if ruling == "merged" and not (ruling_target or "").strip():
+        raise ValueError(
+            "a merge needs a ruling_target: the slug these fold into. Without it "
+            "the rows would be hidden rather than merged, which loses the "
+            "evidence instead of consolidating it."
+        )
+    target = normalise_slug(ruling_target) if ruling_target else None
+    cur = conn.execute(
+        "UPDATE board_entry SET ruling = %s, ruling_target = %s, reviewed_at = now() "
+        "WHERE id = ANY(%s)",
+        (ruling, target, list(ids)),
+    )
+    return cur.rowcount
+
+
+def unrule_entry_ids(conn, *, ids: list[str]) -> int:
+    """Undo a ruling on the named entries.
+
+    Present for the same reason `unrule_entries` is: `ruling` and `reviewed_at`
+    are CHECKed to move together, so a person cannot clear one by hand. And a
+    per-quote decline whose only undo was per-SLUG would be worse than no undo -
+    backing out one mistake would un-decline every other quote in the section.
+    """
+    if not ids:
+        raise ValueError("no entry ids given")
+    cur = conn.execute(
+        "UPDATE board_entry SET ruling = NULL, ruling_target = NULL, reviewed_at = NULL "
+        "WHERE id = ANY(%s)",
+        (list(ids),),
     )
     return cur.rowcount
 
