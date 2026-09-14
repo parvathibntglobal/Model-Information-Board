@@ -152,20 +152,53 @@ function groupFigures(m) {
   for (const f of m.figures || []) {
     const model = modelName(f)
     const unit = f.unit || m.unit || ''
-    const key = [model, f.value, f.basis, unit].join('')
+    // THE KEY IS THE FIGURE, AND `basis` IS NOT IN IT.
+    //
+    // It was, and the page still repeated a model: Claude Fable 5.1 appeared
+    // twice on SWE-bench with the SAME 38.8%, once `stated` and once
+    // `reported`. Two lines, one number, and it read as duplication.
+    //
+    // It is the opposite of duplication. A provider claiming 38.8% and somebody
+    // who measured it independently arriving at 38.8% is the strongest evidence
+    // this board can hold, and splitting it across two rows buried that.
+    //
+    // ⚠ THIS IS NOT THE MERGE THE PAGE FORBIDS. "the two are never merged"
+    //   guards against AVERAGING - "2M advertised against ~200k reported-usable
+    //   are two facts from two sources; averaging them would describe nothing
+    //   that exists". Nothing is averaged here and nothing is dropped: the key
+    //   still contains the VALUE, so two different figures stay two rows and a
+    //   disagreement stays visible. Only an exact agreement collapses, and the
+    //   row then names both bases rather than picking one.
+    const key = [model, f.value, unit].join('\u001f')
     if (!byKey.has(key)) {
-      byKey.set(key, { model, value: f.value, basis: f.basis, unit, sources: [] })
+      byKey.set(key, { model, value: f.value, unit, bases: [], sources: [] })
     }
     const group = byKey.get(key)
+    if (f.basis && !group.bases.includes(f.basis)) group.bases.push(f.basis)
     const id = f.document_id || ''
-    // ONE ENTRY PER DOCUMENT. A second quote from the same article adds no
-    // report, so it must not add a source line either — that is the whole
-    // inflation this grouping exists to stop.
-    if (!group.sources.some((s) => s.id === id)) {
-      group.sources.push({ id, url: f.url || null })
+    // ONE ENTRY PER DOCUMENT, and it carries which basis it supports so the
+    // mapping survives the grouping — a reader can still see which report was
+    // the vendor's statement and which was the measurement.
+    const seen = group.sources.find((s) => s.id === id)
+    if (seen) {
+      if (f.basis && !seen.bases.includes(f.basis)) seen.bases.push(f.basis)
+    } else {
+      group.sources.push({ id, url: f.url || null, bases: f.basis ? [f.basis] : [] })
     }
   }
-  return [...byKey.values()]
+  // `basis` stays on the group for the table cell: one word when there is one,
+  // both when a figure is claimed and confirmed.
+  //
+  // ORDERED, not first-seen. Left to arrival order the same pair rendered
+  // "stated · reported" on one row and "reported · stated" on the next, which
+  // reads as a difference between the rows when there is none. The claim comes
+  // before the confirmation because that is the order the two happen in.
+  const ORDER = ['stated', 'reported']
+  const rank = (b) => { const i = ORDER.indexOf(b); return i === -1 ? ORDER.length : i }
+  return [...byKey.values()].map((g) => ({
+    ...g,
+    basis: [...g.bases].sort((a, b) => rank(a) - rank(b)).join(' · '),
+  }))
 }
 
 /** Populate `DB` from the `/board` payload. Called once, before the views render. */

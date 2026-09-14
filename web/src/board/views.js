@@ -271,16 +271,29 @@ function vMet(slug){
     // KEPT IN `title`, not discarded. Hovering still names the document, so the
     // trace from a published figure back to its stored row survives without
     // being printed at a reader who did not ask for it.
+    // WHICH REPORT WAS WHICH, when a figure is both claimed and confirmed.
+    // The rows group on the FIGURE now, so one row can hold a provider's
+    // statement and an independent measurement. Labelling each source keeps
+    // that mapping rather than leaving two identical links.
+    const mixed = new Set(list.flatMap(s => s.bases || [])).size > 1;
     const one = (s) => {
       const href = safeHref(s.url);
       const ref = s.id ? ` title="${esc(s.id)}"` : '';
-      return href
+      const tag = mixed && (s.bases || []).length
+        ? `<span class="qmeta">${esc(s.bases.join(' · '))}</span> `
+        : '';
+      return tag + (href
         ? `<a href="${esc(href)}"${ref} target="_blank" rel="noopener noreferrer">open the source</a>`
-        : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>';
+        : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>');
     };
-    const many = list.length > 1
-      ? `<span class="qmeta">${list.length} reports state this figure</span>`
-      : '';
+    // AGREEMENT IS THE FINDING, so it is named rather than counted. A provider
+    // claiming a number and somebody who measured it arriving at the same one
+    // is the strongest thing this board holds; "2 reports" undersold it.
+    const many = mixed
+      ? '<span class="qmeta">claimed by the provider and confirmed by a measurement</span>'
+      : list.length > 1
+        ? `<span class="qmeta">${list.length} reports state this figure</span>`
+        : '';
     const cell = !srcs.length ? ''
       : `<td>${many}${list.map(s=>`<div>${one(s)}</div>`).join('')}</td>`;
     return '<tr>'+r.map((v,j)=>`<td${m.num[j]?' class="r"':''}>${esc(v)}</td>`).join('')+cell+'</tr>';
