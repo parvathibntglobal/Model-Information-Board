@@ -703,3 +703,81 @@ proposals:
       - glm-5.3                       # mechanical, unattested
       - glm5.3                        # mechanical, unattested
     incomplete: [family_surface, attested_surfaces]
+
+# ── THREE ENTRIES ADDED AND REVIEWED BY HAND, 2026-09-14 ─────────────────────
+#
+# Added here rather than by regenerating: `--out` refuses to overwrite a
+# reviewed artifact, and it is right to — this file carries rulings the
+# generator cannot reproduce. These three were reviewed individually.
+#
+# THE MENTION COUNTS BELOW ARE A DIFFERENT MEASUREMENT FROM EVERY OTHER ENTRY'S,
+# AND SAYING SO IS RULE 7. Entries above carry MENTIONS from the surface extract,
+# split by source. These carry DOCUMENTS — the number of stored documents whose
+# payload contains the form at least once, counted over **7,144 documents whose
+# payload is readable on this machine, of 9,532 holding a text_ref; the other
+# 2,367 payloads live on another machine and were not read.** A document
+# mentioning a surface nine times counts once here and nine times above, so
+# these numbers are NOT comparable with the ones above and must not be summed
+# with them or read against the mention floor.
+
+  - canonical_id: google/gemini-3.1-flash-image
+    status: attested-surface-declined
+    # `launch-window` IS THE PROVISIONAL STATE and that is what this is, but the
+    # header's floor did NOT produce it: these three entries were added by hand
+    # and no policy cut them. It reads here as "the seated surface is derived,
+    # nothing attests it" - which is exactly true - rather than "below the
+    # floor". Said because `seated_by` is a two-value vocabulary the seating
+    # check keys on, and a third ground is a decision about that check rather
+    # than an annotation (tests/test_tracked_set_seating.py).
+    seated_by: launch-window          # hand-added 2026-09-14; the attested surface was declined, so every form below is derived
+    # THE ONLY ATTESTED SURFACE WAS DECLINED, AND THAT IS A RULING, NOT A GAP.
+    # `nano banana 2` is the vendor label of THREE models in the 356-model
+    # OpenRouter feed: this one, `google/gemini-3.1-flash-image-preview`, and
+    # `google/gemini-3.1-flash-lite-image` ("Nano Banana 2 Lite"). Seating it
+    # here attributes the other two's discussion to this model; seating it on
+    # several makes `RegistrySurfaceResolver` return None and drops every claim.
+    # Demonstrated rather than feared: BOTH of the 2 corpus documents matching
+    # `nano banana 2` are about Nano Banana 2 Lite.
+    # The cost is stated: recall for this model is now close to zero, because
+    # the declined nickname is the only form the corpus attests.
+    surface: gemini 3.1 flash image   # mechanical, 0 documents — recall unmeasured, not zero
+    variants:
+      - gemini-3.1-flash-image        # mechanical, 0 documents
+      - gemini3.1flashimage           # mechanical, 0 documents
+    incomplete: [family_surface]
+
+  - canonical_id: minimax/minimax-m3
+    status: attested
+    seated_by: attested               # hand-added 2026-09-14, not cut by the header's floor; the corpus attests this model
+    surface: minimax m3        # attested 15 documents [github 8, reddit 7]
+    variants:
+      - minimax-m3                    # mechanical, folded into the same normalized key
+      - minimaxm3                     # mechanical, folded into the same normalized key
+    # THE BARE FAMILY WORD IS DELIBERATELY ABSENT. `minimax` is attested in 38
+    # documents and MiniMax ships eight models in the feed (01, M1, M2, M2-her,
+    # M2.1, M2.5, M2.7, M3), so it is attributable to none of them — the same
+    # ruling the header gives for every family surface.
+    # `minimax h3` (2 documents, both Reddit) is NOT a spelling of this model.
+    # It is MiniMax's video model, real and discussed, absent from the
+    # OpenRouter feed, and therefore absent from `model_version` — unseatable
+    # rather than unseated. It must not be folded in here.
+    incomplete: [family_surface]
+
+  - canonical_id: deepseek/deepseek-v4-pro
+    status: attested
+    seated_by: attested               # hand-added 2026-09-14, not cut by the header's floor; the corpus attests this model
+    surface: deepseek v4 pro        # attested 33 documents [reddit 20, github 10, blog 2, hackernews 1]
+    variants:
+      - deepseek-v4-pro               # mechanical, folded into the same normalized key
+      - deepseekv4pro                 # mechanical, folded into the same normalized key
+    # A NAMED ONE-WAY OVERLAP, SEATED ANYWAY AND RECORDED SO IT IS ARGUABLE.
+    # `deepseek v4 pro` is a literal prefix of `deepseek v4 pro 0813`, which is
+    # a DIFFERENT registry model (`deepseek/deepseek-v4-pro-0813`, unseated),
+    # so 3 of these 33 documents are about that snapshot — 9%. Kept because a
+    # dated snapshot is a more specific form of this base version, not a
+    # different product, which is what `specificity` exists to carry; contrast
+    # the gemini-3.1-flash-image entry above, where the colliding models are
+    # separate products sharing one label.
+    # The bare `deepseek v4` is deliberately absent: 87 documents, and it does
+    # not distinguish pro from flash.
+    incomplete: [family_surface]
