@@ -130,6 +130,10 @@ const TRACKED_IDS = new Set([
   // are listed rather than assuming the page will only ever use one.
   'mv_b3508133423993d7',
   'minimax/minimax-m3',
+  // deepseek/deepseek-v4-pro - seated 2026-09-14. Longer in the corpus than
+  // the other three, so its evidence predates today's runs.
+  'mv_4247e801b57d22e3',
+  'deepseek/deepseek-v4-pro',
 ])
 
 const tracked = (m) =>
