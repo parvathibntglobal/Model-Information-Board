@@ -133,8 +133,35 @@ class OpenRouterClient:
     #: The comment below on `timeout=` promises "a read that goes idle past the
     #: window raises rather than hanging the batch"; that intent needs this bound
     #: to be true, because idleness and elapsed time are different measurements.
+    #:
+    #: 1200s, AND THE FIRST NUMBER WAS WRONG. This shipped at 300s, chosen
+    #: against "the 26 threads before the hang averaged 46 seconds" - one run,
+    #: and an average. @anoojntglobal-sudo then measured the distribution over
+    #: 161 consecutive-thread intervals across 6 fetch logs, every one of them a
+    #: thread that COMPLETED:
+    #:
+    #:     min 9s   p50 14s   mean 44s   p90 70s   max 917s
+    #:     exceeding 300s: 4 of 161 (2.5%) - 337s, 580s, 843s, 917s
+    #:
+    #: So 300s sat INSIDE the distribution of success and would have abandoned
+    #: four calls that did come back, the largest at 3x the cap. A ceiling
+    #: belongs above the successes, not among them.
+    #:
+    #: ⚠ IT DOES NOT SEPARATE HANGS FROM SUCCESSES, and saying otherwise would
+    #:   overclaim. The second hang was "silent >15 min, killed by pid" - a
+    #:   LOWER BOUND, not a duration, because nobody waited to see how long it
+    #:   would have gone. Against a 917s success that bound overlaps. What 1200s
+    #:   does is clear every success ever measured here and still bound the one
+    #:   hang that was measured, which ran 39 minutes.
+    #:
+    #: WHY GENEROUS IS NOW AFFORDABLE. The cap used to be the only thing that
+    #: could end a wedged call. It is not any more: `on_progress` carries
+    #: `checkpoint` into the response loop, so Stop reaches inside a call and a
+    #: person watching a run does not wait for this at all. The cap is the
+    #: backstop for a run nobody is watching, and a backstop that fires on 2.5%
+    #: of healthy calls is worse than one that fires late.
     total_timeout_seconds: float = float(
-        os.getenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", "300")
+        os.getenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", "1200")
     )
     #: Called while a response is arriving. MAY RAISE, and raising is the point.
     #:
