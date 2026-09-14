@@ -37,11 +37,15 @@ is `author`, `document`, and every denominator downstream of them.
 REFS ARE CONTENT ADDRESSES, NOT LOCATIONS
 -----------------------------------------
 
-Each body is `store.put`, so `text_ref` is the hash of the bytes. That ref is
-correct on every host; whether the BLOB is present is a separate fact about a
-particular store. The six pre-existing reddit rows carry refs whose blobs are
-absent from this machine — that is the store being host-specific, not the refs
-being wrong.
+Each PAYLOAD is `store.put`, so `text_ref` is the hash of the bytes Reddit
+published. That ref is correct on every host; whether the BLOB is present is a
+separate fact about a particular store. The six pre-existing reddit rows carry
+refs whose blobs are absent from this machine — that is the store being
+host-specific, not the refs being wrong.
+
+**This said "each BODY" and did what it said until 2026-09-14**, which put prose
+behind `text_ref` for every row this script ever wrote and left 264 of them
+unassemblable with no payload to point back at. See `load()`.
 """
 
 from __future__ import annotations
@@ -93,7 +97,6 @@ def load() -> tuple[RootPost, list[Any], dict[str, str], Any]:
     thread = parse_thread(payload, url=THREAD_URL)
     root = payload["data"][0]["data"]["children"][0]["data"]
 
-    root_text = (root.get("title", "") + "\n\n" + (root.get("selftext") or "")).strip()
     created = (
         datetime.fromtimestamp(float(root["created_utc"]), tz=UTC)
         if root.get("created_utc") is not None
@@ -111,10 +114,21 @@ def load() -> tuple[RootPost, list[Any], dict[str, str], Any]:
             "upvote_ratio": root.get("upvote_ratio"),
         },
     )
-    texts = {post.external_id: root_text}
+    # THE PAYLOAD, NOT THE PROSE, per the ruling in
+    # `docs/engineer-1/ruling-what-content-hash-identifies.md`. This stored
+    # `root_text` for the post and `c.body` for each comment until 2026-09-14,
+    # so `text_ref` pointed at prose and `content_hash` fingerprinted a string
+    # WE assembled rather than the bytes Reddit published - NFR-6 - while the
+    # row stopped naming any raw artifact to reprocess from - NFR-4.
+    #
+    # It is also why those rows cannot be repaired in place: the payload was
+    # never stored, so `restore_reddit_payload_refs.py` finds nothing to point
+    # them back at and they need a re-fetch. `root` is the post's own payload
+    # dict and `c.raw` is each comment's, so both are to hand here.
+    payloads = {post.external_id: json.dumps(root, ensure_ascii=False, sort_keys=True)}
     for c in thread.comments:
-        texts[c.external_id] = c.body
-    return post, list(thread.comments), texts, thread.coverage
+        payloads[c.external_id] = json.dumps(c.raw, ensure_ascii=False, sort_keys=True)
+    return post, list(thread.comments), payloads, thread.coverage
 
 
 def census(conn) -> dict[str, Any]:
@@ -145,7 +159,7 @@ def main(argv=None) -> int:
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
 
-    post, comments, texts, coverage = load()
+    post, comments, payloads, coverage = load()
     items = [post, *comments]
 
     print(f"payload   {PAYLOAD.relative_to(ROOT)}")
@@ -179,7 +193,7 @@ def main(argv=None) -> int:
 
     store = RawStore()
     refs = {}
-    for external_id, text in texts.items():
+    for external_id, text in payloads.items():
         refs[external_id] = (store.put(text).ref, content_hash(text))
 
     counts = write_documents(conn, items, refs=refs)

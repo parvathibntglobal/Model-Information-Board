@@ -44,6 +44,7 @@ NO MODEL PARTICIPATES.
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
 
@@ -375,19 +376,38 @@ def sweep_reddit(
         # writer starved of input looks like a writer that works.
         refs = {}
         for post in run.survivors:
-            # THE DOCUMENT'S TEXT, NOT ITS PAYLOAD. `document.text_ref` is where
-            # the document's TEXT lives; the API payload lives in the `raw`
-            # namespace and the listing page already holds it, so nothing is lost
-            # by not storing it twice.
+            # THE PAYLOAD, NOT THE PROSE, per the ruling in
+            # `docs/engineer-1/ruling-what-content-hash-identifies.md`:
             #
-            # This stored `json.dumps(post.raw)` until 2026-08-28, which made
-            # `text_ref` point at a JSON envelope. `assemble_*` passes that
-            # straight to `flatten`, so a thread_context would have held JSON -
-            # and a quote would then verify against a field VALUE, which is worse
-            # than failing to verify: it is rule 1 returning true for the wrong
-            # reason.
-            text = (post.title or "") + "\n\n" + (post.selftext or "")
-            stored = harvester_store.put(text.encode("utf-8"), namespace=RAW)
+            #     content_hash    the hash of the BYTES THE PLATFORM GAVE US.
+            #     text_ref        the location of those same bytes.
+            #     prose           DERIVED AT ASSEMBLY, never stored in place
+            #                     of the payload.
+            #
+            # READ THE HISTORY BEFORE CHANGING THIS BACK. This line stored
+            # prose from 2026-08-28 until 2026-09-14, under a comment arguing
+            # that a stored envelope lets a quote verify against a field VALUE.
+            # That hazard is real and it is not answered here - it is answered
+            # at assembly by `collect/assemble/prose.py`, which extracts prose
+            # from the payload and REFUSES bytes that are not one. The comment
+            # that used to sit here was written three hours BEFORE the ruling
+            # that overruled it, and because nothing touched this file
+            # afterwards it read as dissent for fourteen days while 264 rows
+            # accumulated that no assembler can use.
+            #
+            # Storing prose breaks two NFRs, neither about verification:
+            #   NFR-6  `content_hash` must fingerprint what the AUTHOR
+            #          published. Prose fingerprints a string WE assembled, so
+            #          it moves whenever the extractor does.
+            #   NFR-4  "reprocess from raw rather than re-fetching" needs the
+            #          row to name its raw artifact. Prose names nothing, and
+            #          on Reddit there is no re-fetch for an old thread.
+            #
+            # `sort_keys=True, ensure_ascii=False` is the house spelling
+            # (`github.py:703`, `huggingface.py:710`, `x.py:1044`) so the same
+            # post re-fetched hashes identically and the store deduplicates it.
+            payload = json.dumps(post.raw, ensure_ascii=False, sort_keys=True)
+            stored = harvester_store.put(payload.encode("utf-8"), namespace=RAW)
             refs[post.external_id] = (stored.ref, stored.content_hash)
 
         # THE RUN ID REACHES THE DOCUMENTS. `opened` is minted before the fetch

@@ -641,8 +641,34 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
                 #
                 # `content_hash` moves onto the same bytes, so the hash keeps
                 # identifying what is stored rather than something adjacent.
+                # `ensure_ascii=False` IS LOAD-BEARING, NOT COSMETIC. It is the
+                # house spelling - `github.py:703`, `huggingface.py:710`,
+                # `x.py:1044`, and both Reddit sweeps - and this call site was
+                # the only one missing it. `json.dumps` escapes every non-ASCII
+                # character to `\uXXXX` without it, so THE SAME POST fetched by
+                # this arm and by `collect/ops/sweep_reddit.py` produced two
+                # different byte strings, two hashes and two stored objects
+                # whenever its text was not pure ASCII - which on a corpus of
+                # people quoting model output is most of it.
+                #
+                # That is not just wasted bytes. The store is content-addressed,
+                # and `scripts/restore_reddit_payload_refs.py` repairs a broken
+                # row by finding the SAME post's payload under some other
+                # sweep's hash. Two spellings mean two hashes mean a payload the
+                # repair cannot recognise as the one it is looking for - so a
+                # divergent spelling silently removes rows from the set that can
+                # ever be repaired. 264 rows were recovered that way on
+                # 2026-09-14 and this defect was upstream of all of them.
+                #
+                # Existing refs stay valid: their objects are still in the store
+                # under the old hash. What changes is that a re-fetch from here
+                # now lands on the same object the other writers produce.
                 def _payload(obj) -> str:
-                    return json.dumps(getattr(obj, "raw", None) or {}, sort_keys=True)
+                    return json.dumps(
+                        getattr(obj, "raw", None) or {},
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
 
                 refs = {}
                 for obj in items:
