@@ -1,5 +1,30 @@
 """Export `thread_context` rows plus everything the extractor path reads.
 
+⚠ THE `document.text_ref` THIS EMITS HOLDS PROSE, WHICH A RULING FORBIDS
+------------------------------------------------------------------------
+`build_reddit` stores `by_id[member].body` and points `text_ref` at it (line
+~322). `docs/engineer-1/ruling-what-content-hash-identifies.md`, in force since
+2026-08-28, says `text_ref` locates the bytes the PLATFORM gave us and prose is
+derived at assembly. Three other writers carrying this same defect were reverted
+on 2026-09-14 (`collect/ops/sweep_reddit.py`, `scripts/model_only_sweep.py`,
+`scripts/write_reddit_thread.py`) and produced 264 documents that no assembler
+can use and that CANNOT be repaired in place, because the payload was never
+stored.
+
+**THIS FILE WAS DELIBERATELY LEFT UNCHANGED, AND THAT IS NOT THE SAME AS SAFE.**
+It differs from those three in one way only: it does not execute SQL, it prints
+`INSERT` text into `load.sql` for a human to read first. That is a smaller blast
+radius, not a different defect — **the moment anybody pastes the generated
+`load.sql` into a database, the rows it writes are the same broken shape**, and
+whoever does that is not necessarily whoever read this docstring.
+
+So, before running this: either fix the write below to store the payload
+(`by_id[member].raw`, as `write_reddit_thread.load()` now does), or know that the
+`document` rows in the `load.sql` you are about to apply are not reassemblable
+and are not evidence of anything a quote can be verified against. Recorded here
+rather than left as a judgement call in a PR thread, because the judgement was
+"a reviewer will notice" and a reviewer is exactly who will not.
+
 FOR ENGINEER 2, TO LOAD INTO A LOCAL POSTGRES
 ---------------------------------------------
 Two artifacts per thread, because the extract path and the cell path need
@@ -319,6 +344,10 @@ def build_reddit(store: RawStore) -> tuple[dict, list[dict], str]:
             "url": (comment.url if comment else
                     f"https://www.reddit.com{root.get('permalink', '/')}"),
             "created_at": when,
+            # ⚠ PROSE, NOT THE PAYLOAD - see the warning at the top of this
+            # file. Left as-is on 2026-09-14 because this script emits SQL for
+            # review rather than executing it, NOT because the shape is right.
+            # `by_id[member].raw` is the payload and is already to hand.
             "text_ref": store.put(text).ref,
             "content_hash": content_hash(text),
             "author_id": None,

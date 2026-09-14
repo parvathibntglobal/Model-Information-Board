@@ -110,13 +110,38 @@ is triggered by somebody touching something.**
 Ordered by cost. The first is cheap and narrow; the last is the one that
 generalises.
 
-**3a · Invert the existing class test.** `test_assembly_prose.py` asks whether
-flattened text is JSON. Ask the mirror question of the *writers*' output: does
-`document.text_ref` for a payload-bearing source resolve to something that
-parses as a payload? That is a two-line assertion over the corpus and it would
-have failed on 2026-08-28, every day since. **This is the one to do**, and the
-reason to state the mirror explicitly is that the original test's author had
-just fixed one direction and had no reason to think of the other.
+**3a · Invert the existing class test. ✅ DONE 2026-09-14 —
+`tests/test_writers_store_the_payload.py`.** `test_assembly_prose.py` asks
+whether flattened text is JSON. The mirror asks of the *writers*: does anything
+store derived text where the payload belongs? It is an AST scan over every
+tracked `put()` call in `collect/` and `scripts/`, because the offending
+expressions sit inline in functions needing a network, a contract and a database
+to reach — a behavioural test would have covered the writers it could drive and
+skipped the ones it could not, and the defect lived in exactly the hard ones.
+Same reasoning as `cli.py`'s gate test.
+
+**It was verified by reintroducing both defects**, not by passing on the fixed
+code. `sweep_reddit.py:410` and `write_reddit_thread.py:197` each fail with the
+ruling quoted in the message. Three details worth keeping:
+
+- **An unclassifiable argument FAILS rather than skips.** The preflight lesson:
+  `registry load-seed` ran unguarded for weeks because nothing forced an
+  unclassified path to declare itself.
+- **A file that will not parse fails loudly.** The first draft did `continue` on
+  a `SyntaxError`, which is the same hole one level up — the injection broke
+  `sweep_reddit.py`, the file dropped out of the scan, and every assertion about
+  it passed by absence. Found only because a separate count assertion noticed.
+- **It scans tracked files only.** An untracked broken scratch script
+  (`scripts/measure_key_constraint.py`, today) would otherwise turn the guard
+  red locally, and a guard that is red for unrelated reasons gets skipped, then
+  deleted.
+
+The test also pins the `json.dumps` spelling, which caught a second live defect:
+`scripts/fetch_model.py:_payload` omitted `ensure_ascii=False`, so the same post
+fetched by two arms stored as two objects on any non-ASCII text — and since
+`restore_reddit_payload_refs.py` repairs a row by finding the same post's payload
+under another sweep's hash, a divergent spelling silently shrinks the set of rows
+that can ever be repaired.
 
 **3b · Make a ruling name its dependents.** The ruling is cited by 12 files, all
 of which had to be found by `grep`. If a ruling carried a list of the call sites
@@ -130,12 +155,22 @@ when a ruling lands, `git log --since` over its cited files answers *"which of
 these did the ruling not reach?"* in one command, on the day, when the reasoning
 is still loaded.
 
-**None of these is a test that runs every night**, and that is the honest
-finding rather than a shortfall in the list. The defect is a *silence* — a file
-nobody opened — and a suite passing over a silence looks exactly like a suite
-passing over a correct answer. That is the same argument rules 7, 8 and 9 each
-make about themselves, and it lands here in a new place: **not on a value nobody
-reads, but on a reason nobody re-reads.**
+**3a turned out to be a test that runs every night, and the first draft of this
+section said no such test was possible.** That was wrong, and the correction is
+worth keeping because it was an error of framing rather than of fact: I reasoned
+that the defect is a *silence* — a file nobody opened — and that a suite passing
+over a silence is indistinguishable from one passing over a correct answer.
+
+True of the **reason**, false of the **code**. The stale comment is
+undetectable; the line it justifies is an AST node, present in the tree whether
+or not anybody reads it. **A guard that reads the code does not need anyone to
+touch the file.** Rules 7, 8 and 9 are genuinely reviewer questions because what
+they check has no syntactic form — an unstated denominator, an unmeasured error
+rate, an absent reader. This one does, and I nearly filed it alongside them on
+the strength of the resemblance.
+
+So 3b and 3c remain process, and they cover the part a scanner cannot see:
+**the comment, and who has to be told.**
 
 ---
 
