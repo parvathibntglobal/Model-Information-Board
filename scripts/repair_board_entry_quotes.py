@@ -194,7 +194,8 @@ def main() -> int:
         conn.close()
         return 0
 
-    backup = ROOT / "var" / f"board-entry-quotes-before-{datetime.datetime.now():%Y%m%dT%H%M%S}.json"
+    stamp = f"{datetime.datetime.now():%Y%m%dT%H%M%S}"
+    backup = ROOT / "var" / f"board-entry-quotes-before-{stamp}.json"
     backup.parent.mkdir(parents=True, exist_ok=True)
     backup.write_text(
         json.dumps({"statement": _UPDATE, "before": before,
