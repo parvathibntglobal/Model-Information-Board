@@ -87,7 +87,7 @@ def find_abandoned(
     READ ONLY. Split from the write so the set can be inspected before anything
     is appended, and so a caller can report "nothing to do" honestly.
     """
-    now = now or datetime.datetime.now(datetime.timezone.utc)
+    now = now or datetime.datetime.now(datetime.UTC)
     cutoff = now - silent_for
     rows = conn.execute(
         "SELECT run_id, max(at) AS last_at, max(machine) AS machine "
@@ -133,7 +133,7 @@ def reap(
     recorded. A reaper that takes down the thing it was cleaning up for is worse
     than a stale row.
     """
-    now = now or datetime.datetime.now(datetime.timezone.utc)
+    now = now or datetime.datetime.now(datetime.UTC)
     dead = find_abandoned(conn, now=now, silent_for=silent_for)
     if dry_run or not dead:
         return dead

@@ -20,7 +20,7 @@ import pytest
 from judge import fetch_reaper
 
 SCHEMA = pathlib.Path(__file__).resolve().parents[1] / "contract" / "tables.sql"
-NOW = datetime.datetime(2026, 9, 14, 12, 0, tzinfo=datetime.timezone.utc)
+NOW = datetime.datetime(2026, 9, 14, 12, 0, tzinfo=datetime.UTC)
 
 
 @pytest.fixture
