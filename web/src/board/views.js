@@ -243,32 +243,44 @@ function vMet(slug){
   // quotes 120 lines up in this file; figures could not have it because the API
   // sent no url. Both halves are fixed — the url now travels with the figure.
   const head = m.cols.map((c,i)=>`<th${m.num[i]?' class="r"':''}>${esc(c)}</th>`).join('')
-    + (srcs.length ? '<th>Source</th>' : '');
-  // SAME FIGURE, SAME BASIS, SAME DOCUMENT = ONE REPORT SAYING IT TWICE.
-  // Counted rather than collapsed: the rows are distinct verified quotes and
-  // deleting one would be a caused absence. What must not survive is a reader
-  // counting them as separate corroboration, so they are marked instead.
-  const key = (r,i)=>[r[0],r[1],r[2],(srcs[i]||{}).id].join('');
-  const tally = new Map();
-  m.rows.forEach((r,i)=>tally.set(key(r,i),(tally.get(key(r,i))||0)+1));
-  const repeated = [...tally.values()].filter(n=>n>1).reduce((a,n)=>a+n,0);
+    + (srcs.length ? '<th>Reported by</th>' : '');
+  // ONE ROW PER FIGURE, LISTING EVERY REPORT THAT STATES IT.
+  //
+  // `db.js` groups on model + figure + basis + unit, so the repeats are gone
+  // before they reach here and what arrives is a LIST of sources per row.
+  // Marking them was the first attempt and it was the weaker half: it told a
+  // reader two lines were one report and still made them read two lines.
+  //
+  // A row with two sources is CORROBORATION and says so. A row with one says
+  // nothing extra, because "1 report" on every line is noise. The count is
+  // distinct DOCUMENTS, de-duplicated upstream - an article stating a figure
+  // twice contributes one entry, which is the whole reason this counts reports
+  // rather than rows.
+  const corroborated = srcs.filter(s => (s || []).length > 1).length;
   const body = m.rows.map((r,i)=>{
-    const s = srcs[i] || {};
-    const href = safeHref(s.url);
-    // NO LINK IS BETTER THAN A DEAD ONE — the same rule the quotes view states.
+    const list = srcs[i] || [];
+    // NO LINK IS BETTER THAN A DEAD ONE - the rule the quotes view states.
+    const one = (s) => {
+      const href = safeHref(s.url);
+      const id = s.id ? `<span class="mono">${esc(s.id)}</span>` : '';
+      return href
+        ? `${id} <a href="${esc(href)}" target="_blank" rel="noopener noreferrer">open the source</a>`
+        : `${id} <span class="nosrc" title="This document has no usable link.">no link recorded</span>`;
+    };
+    const many = list.length > 1
+      ? `<span class="qmeta">${list.length} reports state this figure</span>`
+      : '';
     const cell = !srcs.length ? ''
-      : `<td>${s.id ? `<span class="mono">${esc(s.id)}</span> ` : ''}${
-          href
-            ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">open the source</a>`
-            : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>'
-        }${tally.get(key(r,i))>1 ? '<span class="qmeta"> · same report as another row below</span>' : ''}</td>`;
+      : `<td>${many}${list.map(s=>`<div>${one(s)}</div>`).join('')}</td>`;
     return '<tr>'+r.map((v,j)=>`<td${m.num[j]?' class="r"':''}>${esc(v)}</td>`).join('')+cell+'</tr>';
   }).join('');
-  const dupNote = repeated
-    ? `<p class="muted" style="margin-top:10px;max-width:76ch;font-size:.9rem">${repeated} of these
-       rows repeat a figure this board already has from the same report — the same article stating it
-       more than once. They are kept because each is its own verified quote, and marked because
-       ${repeated} rows from one report is still <b>one</b> report, not ${repeated}.</p>`
+  // SAID ONLY WHEN IT IS TRUE OF SOMETHING. A line explaining corroboration on a
+  // page where nothing is corroborated would be a caveat about nothing.
+  const dupNote = corroborated
+    ? `<p class="muted" style="margin-top:10px;max-width:76ch;font-size:.9rem">${corroborated}
+       figure${corroborated===1?' is':'s are'} stated by more than one report. Each row is one figure,
+       and the reports beneath it are <b>distinct articles</b> - an article stating the same figure
+       twice is counted once, because two quotes from one report are one report.</p>`
     : '';
   return `<div class="shell phead">${crumb([['Board','board'],['Metrics','board:met'],[m.name,null]])}
     <h1>${esc(m.name)}</h1><p class="sub">An axis the board found figures for. Every figure is shown as the
