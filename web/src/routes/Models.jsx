@@ -123,8 +123,6 @@ export default function Models() {
       // again in the backend. This is the last of the three, and the one that
       // makes a stray click a no-op rather than a silent truncation.
       : cur.length >= COMPARE_MAX ? cur : [...cur, id])
-  const [capFilter, setCapFilter] = useState('any')
-  const [caps, setCaps] = useState(null)   // the vocabulary, for the capability filter
   const [meta, setMeta] = useState(null)      // summary + priced_at, straight from the API
   const searchRef = useRef(null)
 
@@ -166,7 +164,6 @@ export default function Models() {
         vocabulary = await listCapabilities()
       } catch { return }
       if (!alive) return
-      setCaps(vocabulary)
       setTotal(vocabulary.length)
 
       for (const key of vocabulary.map((c) => c.key)) {
@@ -208,28 +205,8 @@ export default function Models() {
     let out = matches(roster, query)
     // `=== 0` and not falsy: null is "no published rate", not free.
     if (freeOnly) out = out.filter((m) => m.price_in === 0 && m.price_out === 0)
-    if (capFilter !== 'any') {
-      out = out.filter((m) => (m.evidence?.capabilities || []).includes(capFilter))
-    }
     return [...out].sort(SORTS[sort].fn)
-  }, [roster, query, sort, freeOnly, capFilter])
-
-  /**
-   * How many models have been discussed under each capability.
-   *
-   * Counted off the whole roster and listing EVERY capability, including the
-   * ones at zero. Offering only the eight that have something would hide that
-   * four of the twelve have never been discussed at all — and "no option for
-   * it" reads as "not a thing we track" rather than "nobody has looked", which
-   * is rule 4 moved into a dropdown.
-   */
-  const capCounts = useMemo(() => {
-    const counts = {}
-    for (const m of roster || []) {
-      for (const k of m.evidence?.capabilities || []) counts[k] = (counts[k] || 0) + 1
-    }
-    return counts
-  }, [roster])
+  }, [roster, query, sort, freeOnly])
 
   const withEvidence = Object.keys(evidence).length
   const priced = roster ? roster.filter((m) => m.price_in != null).length : 0
@@ -329,39 +306,6 @@ export default function Models() {
             </p>
           )}
 
-          <div className="stack stack-1">
-
-            {/* WHICH capability, which is the question people actually arrive
-                with. Every capability is listed, including the ones at zero:
-                omitting them would read as "not tracked" rather than "nobody
-                has looked", and those are opposite claims. */}
-            {caps && (
-              <label className="field field-inline" style={{ marginTop: 4 }}>
-                <span className="field-label">Discussed under</span>
-                <select
-                  value={capFilter}
-                  onChange={(e) => setCapFilter(e.target.value)}
-                  aria-label="Filter by capability"
-                >
-                  <option value="any">Any capability</option>
-                  {caps.map((c) => (
-                    <option key={c.key} value={c.key}>
-                      {capLabel(c.key)} — {capCounts[c.key] || 0}
-                      {c.requires_positive_consensus ? ' · fails silently' : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            {capFilter !== 'any' && (capCounts[capFilter] || 0) === 0 && (
-              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '70ch' }}>
-                No model has been discussed under <strong>{capLabel(capFilter)}</strong> yet.
-                Nobody has looked — which is not the same as every model being fine at it.
-              </p>
-            )}
-          </div>
-
           <div className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
             <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
               {Object.entries(SORTS).map(([k, s]) => (
@@ -396,7 +340,6 @@ export default function Models() {
                 key={m.model_version_id}
                 m={m}
                 rows={evidence[m.model_version_id]}
-                capFilter={capFilter}
                 picked={picked.includes(m.model_version_id)}
                 onPick={togglePick}
                 atCap={picked.length >= COMPARE_MAX}
@@ -454,7 +397,7 @@ export default function Models() {
   )
 }
 
-function ModelRow({ m, rows, capFilter, picked, onPick, atCap }) {
+function ModelRow({ m, rows, picked, onPick, atCap }) {
   const unpriced = m.price_in == null
 
   return (
@@ -475,14 +418,15 @@ function ModelRow({ m, rows, capFilter, picked, onPick, atCap }) {
       </label>
     <Link
       to={`/models/${m.model_version_id}`}
-      // `focus` carries WHICH capability the reader was looking at when they
-      // clicked. Without it the model page opens on twelve capabilities, eleven
-      // of them empty, and the one they filtered for is somewhere below the
-      // fold with nothing marking it.
+      // `focus` carries which capability to open the model page on. It used to
+      // prefer whichever one the reader had filtered by; the "Discussed under"
+      // filter is gone, so the first capability this model has evidence for is
+      // the only answer left - and `null` when it has none, rather than a
+      // capability picked because it happened to sort first.
       state={{
         from: '/models',
         name: m.display_name,
-        focus: capFilter !== 'any' ? capFilter : (m.evidence?.capabilities?.[0] || null),
+        focus: m.evidence?.capabilities?.[0] || null,
       }}
       className="mrow"
     >
