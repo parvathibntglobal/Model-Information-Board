@@ -259,13 +259,24 @@ function vMet(slug){
   const corroborated = srcs.filter(s => (s || []).length > 1).length;
   const body = m.rows.map((r,i)=>{
     const list = srcs[i] || [];
-    // NO LINK IS BETTER THAN A DEAD ONE - the rule the quotes view states.
+    // THE LINK, AND NOT THE INTERNAL ID.
+    //
+    // This printed `devto:4646093` beside every link. That is a row key from
+    // our own database - it identifies the document to US and means nothing to
+    // a reader, who wants the article and not its filing reference. It is the
+    // same mistake as `mv_a2b4f7fc3fa679c2` appearing where a model name
+    // belongs (#278): an internal identifier reaching a page because it was
+    // convenient to the code that had it.
+    //
+    // KEPT IN `title`, not discarded. Hovering still names the document, so the
+    // trace from a published figure back to its stored row survives without
+    // being printed at a reader who did not ask for it.
     const one = (s) => {
       const href = safeHref(s.url);
-      const id = s.id ? `<span class="mono">${esc(s.id)}</span>` : '';
+      const ref = s.id ? ` title="${esc(s.id)}"` : '';
       return href
-        ? `${id} <a href="${esc(href)}" target="_blank" rel="noopener noreferrer">open the source</a>`
-        : `${id} <span class="nosrc" title="This document has no usable link.">no link recorded</span>`;
+        ? `<a href="${esc(href)}"${ref} target="_blank" rel="noopener noreferrer">open the source</a>`
+        : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>';
     };
     const many = list.length > 1
       ? `<span class="qmeta">${list.length} reports state this figure</span>`
