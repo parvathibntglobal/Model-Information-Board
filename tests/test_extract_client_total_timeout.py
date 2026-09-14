@@ -212,3 +212,39 @@ class TestAStopReachesInsideTheCall:
         assert client.complete(
             system="s", user="u", tool_schema=SCHEMA
         ).raw_arguments == '{"claims": []}'
+
+
+class TestTheCapSitsAboveTheSuccesses:
+    """A ceiling among the successes is a ceiling that fires on healthy calls.
+
+    This shipped at 300s, picked against one run's average. @anoojntglobal-sudo
+    measured the distribution over 161 consecutive-thread intervals across 6
+    fetch logs — every one a thread that COMPLETED:
+
+        min 9s   p50 14s   mean 44s   p90 70s   max 917s
+        exceeding 300s: 4 of 161 (2.5%) — 337s, 580s, 843s, 917s
+
+    So 300s would have abandoned four calls that did come back, the largest at
+    three times the cap. Pinned here so the number cannot drift back under the
+    evidence without a test saying why.
+    """
+
+    #: The four successful calls that the old default would have killed.
+    OBSERVED_SLOW_SUCCESSES = (337, 580, 843, 917)
+
+    def test_the_default_clears_every_success_ever_measured(self):
+        cap = OpenRouterClient(api_key="k").total_timeout_seconds
+
+        assert cap > max(self.OBSERVED_SLOW_SUCCESSES), (
+            f"a cap of {cap}s would abandon a call measured at "
+            f"{max(self.OBSERVED_SLOW_SUCCESSES)}s that returned normally"
+        )
+
+    def test_it_still_bounds_the_hang_that_was_measured(self):
+        """39 minutes, thread 27 of 71, killed by pid."""
+        cap = OpenRouterClient(api_key="k").total_timeout_seconds
+
+        assert cap < 39 * 60, (
+            f"a cap of {cap}s would not have ended the one hang whose duration "
+            f"is actually known"
+        )
