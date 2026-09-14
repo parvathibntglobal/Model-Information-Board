@@ -109,10 +109,14 @@ class _Conn:
     fake that matched on that substring alone would answer the wrong one.
     """
 
-    def __init__(self, thread_rows, doc_text_refs, gated_out=0):
+    def __init__(self, thread_rows, doc_text_refs, gated_out=0, doc_sources=None):
         self._threads = thread_rows
         self._docs = doc_text_refs  # document_id -> text_ref
         self._gated_out = gated_out
+        #: document_id -> source. The document query started selecting it on
+        #: 2026-09-14: `raw_text_of` must hold the PROSE the offset map indexes,
+        #: and picking the prose extractor needs to know the platform.
+        self._sources = doc_sources or {}
 
     def execute(self, sql, params=()):
         # Checked FIRST: the gated-out count is also a thread_context query, and
@@ -138,8 +142,20 @@ class _Conn:
             )
             return _Cursor(self._threads)
         if "FROM document" in sql:
+            assert "source" in sql, (
+                "the document query must select `source`. `raw_text_of` feeds "
+                "verify() step 3, which renders raw[raw_start:raw_end] as the "
+                "PUBLISHED quote, and those offsets index the prose the "
+                "assembler flattened - so the payload has to be run through "
+                "that platform's prose extractor, and choosing it needs the "
+                "source. Reading text_ref verbatim published a slice of a JSON "
+                "envelope as somebody's sentence on ten of ten claims."
+            )
             members = params[0]
-            return _Cursor([(did, self._docs.get(did)) for did in members])
+            return _Cursor([
+                (did, self._docs.get(did), self._sources.get(did, "reddit"))
+                for did in members
+            ])
         raise AssertionError(f"unexpected query: {sql}")
 
 
@@ -172,7 +188,12 @@ def test_build_thread_inputs_keeps_only_locally_resolvable_unseen_threads(monkey
         ("tcD", "flatD", None, ["dD"]),
     ]
     doc_text_refs = {"dA": "rawA", "dB": "rawB", "dD": "rawD"}  # note: no "flatB"/"rawD" in store
-    store_texts = {"flatA": "flattened A", "flatD": "flattened D", "rawA": "raw A"}
+    # `rawA` IS A PAYLOAD, because `document.text_ref` has pointed at the
+    # payload since the ruling of 2026-08-28. `raw_text_of` must carry the
+    # PROSE extracted from it - what the offset map indexes and what step 3
+    # publishes - so the fixture stores what the store really holds.
+    raw_a_payload = json.dumps({"title": "Opus 4.8 truncates", "selftext": "Reproduced twice."})
+    store_texts = {"flatA": "flattened A", "flatD": "flattened D", "rawA": raw_a_payload}
 
     monkeypatch.setattr(fetch_model, "RawStore", _fake_store(store_texts))
     monkeypatch.setattr(fetch_model, "settings", lambda: SimpleNamespace(raw_store_path="unused"))
@@ -194,7 +215,13 @@ def test_build_thread_inputs_keeps_only_locally_resolvable_unseen_threads(monkey
     assert doc_ids == {"dA"}
     kept = inputs[0]
     assert kept.flattened_text == "flattened A"
-    assert kept.raw_text_of == {"dA": "raw A"}
+    # THE PROSE, NOT THE PAYLOAD. `verify()` step 3 renders this as the quote a
+    # reader sees, so an envelope here is an envelope on the board — which is
+    # what happened on 2026-09-14 to ten of ten claims, each with
+    # `quote_verified = true`, because the check ran on the flattened prose and
+    # the display step then sliced something else.
+    assert kept.raw_text_of == {"dA": "Opus 4.8 truncates\n\nReproduced twice."}
+    assert "selftext" not in kept.raw_text_of["dA"], "the envelope reached the display text"
     assert kept.offset_map == ()   # empty offset_map round-trips to an empty tuple
 
 
@@ -207,3 +234,80 @@ def test_build_thread_inputs_is_empty_when_nothing_resolves(monkeypatch):
         _Conn(thread_rows, {"dB": "rawB"}), seen=set(), limit=200
     )
     assert inputs == [] and doc_ids == set()
+
+
+class TestTheArtifactGuard:
+    """`raw_text_of` must be the artifact `offset_map` indexes, checked not assumed.
+
+    2026-09-14. Pointing the loader at the prose fixes the artifact; it does not
+    PROVE it, and this defect was invisible for exactly that reason. `verify()`
+    step 3 slices `raw[raw_start:raw_end]` and its only check is
+    `raw_end > len(raw)` - the payload is LONGER than the prose it wraps, so
+    every offset fitted and the slice landed silently in the wrong place, on ten
+    of ten claims, each with `quote_verified = true`.
+
+    So the check is on the artifact, before any model call, and it costs one
+    subtraction per member.
+    """
+
+    @staticmethod
+    def _inputs(monkeypatch, member_text, raw_end):
+        """One thread, one member, an offset_map claiming `raw_end` characters."""
+        payload = json.dumps({"title": "", "selftext": member_text})
+        thread_rows = [("tc", "flat", [{
+            "flat_start": 0, "flat_end": raw_end,
+            "raw_start": 0, "raw_end": raw_end,
+            "document_id": "dA",
+        }], ["dA"])]
+        monkeypatch.setattr(
+            fetch_model, "RawStore",
+            _fake_store({"flat": "flattened", "rawA": payload}),
+        )
+        monkeypatch.setattr(
+            fetch_model, "settings", lambda: SimpleNamespace(raw_store_path="unused")
+        )
+        conn = _Conn(thread_rows, {"dA": "rawA"})
+        inputs, _docs, _gated, _over = fetch_model.build_thread_inputs(
+            conn, seen=set(), limit=200
+        )
+        return inputs
+
+    def test_a_member_matching_its_map_is_kept(self, monkeypatch):
+        body = "x" * 100
+        # reddit_prose returns title + "\n\n" + selftext, and the title is empty.
+        expected = len("" + "\n\n" + body)
+        inputs = self._inputs(monkeypatch, body, expected)
+        assert inputs, "a member whose prose matches its map must be kept"
+        assert inputs[0].raw_text_of["dA"].endswith(body)
+
+    def test_the_github_two_character_drift_is_tolerated(self, monkeypatch):
+        """1,285 real documents drift by +2 and every one of them is fine.
+
+        `github_issue_prose` joins title and body with a separator the assembled
+        text did not carry. Equality here would refuse them all - which is why
+        the guard has a tolerance and why that tolerance is measured rather than
+        chosen.
+        """
+        body = "y" * 100
+        expected = len("\n\n" + body) - 2
+        inputs = self._inputs(monkeypatch, body, expected)
+        assert inputs and "dA" in inputs[0].raw_text_of
+
+    def test_the_payload_sized_gap_is_refused(self, monkeypatch):
+        """The real one: the map said 749 and the payload was 1,988.
+
+        The thread is dropped here rather than the member, because this fixture
+        has exactly one member - which is the existing "no raw_text_of, so step 3
+        could not render" path, reached for a new reason.
+        """
+        body = "z" * 2000
+        inputs = self._inputs(monkeypatch, body, 749)
+        assert inputs == [], (
+            "a member whose prose is 1,200 characters longer than its offset map "
+            "describes must not be sliced; that is the 2026-09-14 defect"
+        )
+
+    def test_the_tolerance_is_small_enough_to_be_worth_having(self):
+        # A guard that tolerates a large gap catches nothing. The smallest real
+        # failure measured was +1,239; the largest benign drift was +2.
+        assert fetch_model._MAX_PROSE_DRIFT <= 10

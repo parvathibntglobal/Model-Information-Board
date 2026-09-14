@@ -396,8 +396,15 @@ columns:
         without calling a model. It was write-only while judge/pipeline.py was the only thing that had
         ever called weight.compute() - the span is hashed into the new claim id
     quote_raw_offset:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: read by scripts/repair_quotes_sliced_from_payloads.py, which re-slices claim.quote
+        for claims whose published quote was cut from the payload envelope instead of the prose.
+        It was genuinely write_only before 2026-09-14 - verify() computes the span, claims.py
+        stores it, and nothing looked at it again - and that is why the defect stayed invisible.
+        The column recording WHERE a quote came from was never read back against WHAT was
+        published. The offsets themselves were sound (they reproduce the stored quote on 148 of
+        148 checkable claims); only the artifact they were applied to was wrong
     quote_verified:
       reviewed: false
       state: read
