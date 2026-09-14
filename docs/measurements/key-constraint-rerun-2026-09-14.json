@@ -1,0 +1,1876 @@
+{
+  "ran_at": "2026-09-14T03:08:29.124113+00:00",
+  "design": "paired: the same documents, re-run with the behaviour-only key constraint",
+  "prior_run": "docs\\measurements\\model-only-classification-withheld.jsonl",
+  "sample": 200,
+  "seed": 11,
+  "documents_resolved": 200,
+  "prompt_label": "capability-classification/withheld/behaviour-only/2026-09-11",
+  "proposer_model": "google/gemini-2.5-flash",
+  "spent_usd": 0.0157,
+  "stopped_on_budget": null,
+  "variant": "withheld",
+  "before": {
+    "proposals": 134,
+    "naming_a_model": 18,
+    "distinct": 133,
+    "rarefaction": {
+      "10": 10.0,
+      "23": 23.0,
+      "36": 36.0,
+      "49": 48.9,
+      "62": 61.8,
+      "75": 74.7,
+      "88": 87.6,
+      "101": 100.5,
+      "114": 113.3,
+      "127": 126.1,
+      "134": 133.0
+    },
+    "examples": [
+      "model_behavior.opus_4_6_capabilities",
+      "model_behavior.opus_4_6_capabilities",
+      "user_preference.sonnet_over_opus",
+      "claude.sonnet.4_6.coding_and_artifact_creation.reliability",
+      "claude_haiku_4_5.token_billing.low_input_tokens",
+      "claude.opus.regression_in_4_7",
+      "model_behavior.opus_4_7.poor_performance",
+      "claude_haiku_4_5.json_output_formatting",
+      "code_correction.deepseek_performance",
+      "fable5.guardrails.sensitivity"
+    ]
+  },
+  "after": {
+    "proposals": 133,
+    "naming_a_model": 1,
+    "naming_a_model_pct": 0.8,
+    "distinct": 130,
+    "assigned_to_ratified": 0,
+    "argued_with_both_fields": 0,
+    "rarefaction": {
+      "10": 10.0,
+      "23": 22.9,
+      "36": 35.7,
+      "49": 48.5,
+      "62": 61.2,
+      "75": 73.9,
+      "88": 86.4,
+      "101": 99.0,
+      "114": 111.6,
+      "127": 124.2,
+      "133": 130.0
+    },
+    "examples": [
+      "gemini_3_8_flash.design_improvement"
+    ],
+    "outcomes": {
+      "not_a_report": 67,
+      "proposed_new": 133
+    },
+    "capability_reports": 133,
+    "silent": 0,
+    "silent_share_of_reports": 0.0
+  },
+  "rows": [
+    {
+      "document_id": "reddit:t3_1o7glaw",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1o7h424",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "coding_performance.quality_and_speed",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1o830au",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1obwk0l",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.refactoring_quality",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1oeutj8",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "app_development.speed_and_log_handling",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1oidbsc",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "prompt_handling.complexity_tolerance",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1orlzuc",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "cost.token_efficiency",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1p9bdun",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "text_generation.distribution_fidelity",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1qtm9ix",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "coding.swe_bench_performance",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1qwvj5k",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_analysis.swift_concurrency_reasoning",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1qx2m4j",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_comprehension.large_codebase_coherence",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1qxkrh6",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1qxorhw",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_comprehension.large_codebase_coherence",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1qzc8iw",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.error_introduction",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1qzx79a",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "planning.logical_gaps",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1r3jqpj",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1r7es4e",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1r7ewf3",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1r7il6y",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_behavior.testing_willingness",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1r8bn1z",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_refactoring.pattern_following",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1r8e54j",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "token_efficiency.code_comprehension_and_adherence",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1r8jt7f",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "conversational_ability.complexity_handling",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1r9se7p",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1r9ytvc",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.error_rate",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1rcsqsk",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1rfwurr",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "context_window.token_limit",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1rj2t69",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "rag.synthesis_and_extraction",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1rk4yw5",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_review.blocker_detection_accuracy",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1rkdlqi",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.swe_bench_performance",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1rlmn41",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "content_generation.exam_prediction",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ro96qe",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1rrkfij",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "token_usage.caching_behavior",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1rrul59",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_review.issue_identification",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ru8jjv",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_selection.best_result_for_prompt",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1rxfn26",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_improvement.auditing_and_refinement",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ryidyb",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1s3zavk",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_behavior.curiosity_and_initiative",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1s4an0q",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "template_generation.slds_accuracy",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1scwos6",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "reliability.failure_rate",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1sdw1nf",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "role_playing.quality_and_cost",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1sfy9ii",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1sgz94r",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_selection.task_suitability",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1sh4bkf",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "tool_creation.efficiency_and_accuracy",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1sj1j7r",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1skyzpq",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "customer_service.unilateral_action",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1snwk9v",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "coding.code_quality",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1spv2qi",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "user_satisfaction.preference_for_older_version",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1sqafm5",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_performance.quality",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1sx6xdi",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_behavior.unwanted_commentary",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1sx7n99",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_performance.web_design_scripting",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1sxn95t",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "context_consumption.speed",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1t00fkh",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "agentic_behavior.terminal_bench_lite_score",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1t1nzqf",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.accuracy",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1t2pdgf",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_quality.overall_performance",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1t3efkp",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1t3q1ge",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "agent_performance.precision_with_plan_agent",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1t6nm90",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_behavior.unusual_fixation",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1t7fih0",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "roleplay.quality",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1t9wl3i",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "writing.quality_with_jailbreak",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1tbd46z",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1tbfsxs",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "output_format.markdown_fenced_json_frequency",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1tf0e0v",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "moral_reasoning.expressed_moral_judgment",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1tgg15q",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1tgmh2a",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1tgmk02",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1th130t",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1thf0pe",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1tpiwl7",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "emotional_support.responsiveness",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1tq9sya",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1tqdk5x",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "performance.regression",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1tquqah",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1tr5fxa",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_behavior.autonomy",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1trmrn2",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "content_moderation.overly_restrictive_creative_writing",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ts1xq2",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "response_style.verbosity",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1tsi2fc",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "tone.nuance_understanding",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ttxdu8",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1tu0c0f",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_correction.accuracy",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1tutnvd",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "personality.defensiveness",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1tv1ewv",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_behavior.context_awareness",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1tycytk",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_performance.agentic_coding_tasks",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1tyhdom",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "safety_mechanism.escalation_of_distress",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1u1bawp",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1u1cwkl",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "cost.token_usage_rate",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1u1fsdi",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1u21h6v",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "tool_use.deferred_loading",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1u225tk",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1u251pe",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1u26se2",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "guardrails.restrictiveness",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1u28lya",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1u2uu2o",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "guardrails.sensitivity",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1u2x81i",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "military_targeting.knowledge_of_use",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1u4cwye",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1u4eb1n",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1u4rgzr",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_behavior.alignment",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1u5dq2y",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "response_style.conciseness",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1u5s02g",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_behavior.proactiveness",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1u6f668",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_behavior.jailbreak_resistance",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ufcj6k",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1ufjdmx",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1ugejtr",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "agent_spawning.count",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uhx2rd",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "reasoning.depth",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uihemr",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "instruction_following.one_shot_completion",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ujt3ui",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1ujwv0f",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1ujxv35",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1ujy1dt",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "bug_fixing.effectiveness",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ujz7d0",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.feature_development_and_modification",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uk1huq",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1uk6ctl",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "response_time.latency",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ukj4c7",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "unexpected_output.situational_awareness_injection",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ukk6gu",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1ukrzy0",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1ul8hoj",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "prompt_filtering.work_related_content",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ul9mea",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "project_completion.quality_and_susceptibility",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ulanfc",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1umro36",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_behavior.argumentativeness",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1umxpm3",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.matplotlib_plots",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1unol9e",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_behavior.hallucinations_and_incorrect_information",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1unqxii",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "corroboration.biological_theorizing",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1unzsw1",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_performance.degradation_before_release",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1up7qrm",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_improvement.methodology_creation",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1up92xf",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1upftp9",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1uq2hoy",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1uru4zg",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.large_scale_rewrite",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uruuta",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1us14gc",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "audit.finding_identification",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1usrah3",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "security_sensitivity.process_termination",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uthg21",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "coding.efficiency",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uttt60",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1utxcq2",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "design_generation.landing_page_quality",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uucha4",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.nextjs_website",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uuk0ut",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.accuracy",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uvelur",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1uwrs8h",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1uwtm65",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1ux1d4n",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.complex_rust_contract_solving",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uxbh3y",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1uy4m5f",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "development_speed.productivity_enhancement",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uyb1i9",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "design.visual_originality",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uz5a68",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "jailbreak.resistance",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1uz7u1g",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1v1gpgm",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "trading_strategy.trade_proposal_and_validation",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1v4aeyg",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_performance.nerf_and_improvement",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1v4jwpj",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "orchestration.long_run_memory",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1v5p34g",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "3d_rendering.creative_environment_generation",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1v60kgc",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1v6r856",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "orchestration.code",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1v7h05n",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1v8yu0n",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "coding.bug_introduction",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1v9dvmc",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "animation.quality",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vahyru",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "instruction_following.adherence",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vb5yqn",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vbrmnc",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "humor.over_engineering",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vcppmc",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vcqiwq",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.uninterrupted_operation",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vd6fg3",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1ve4my7",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "response.undesirable_traits",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ve8mrg",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_performance.regression",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1ve9910",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "nonsense_detection.vigilance_regression",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vejdau",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vek4qu",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vf874o",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "performance.high_context_task_completion",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vg0xfv",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vgabuy",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vhw0iw",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "implementation.quality",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vismrb",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "task_suitability.complexity",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vkhc9f",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vlafdc",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "chat_memory.long_term_recall",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vmx830",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_behavior.kindness_and_thoughtfulness",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vnm51p",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_auditing.falsification_discipline",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vnrn26",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vnsmio",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vo6lov",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "performance.relative_ranking",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1voam4p",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1voaq2b",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "efficiency.token_usage",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vod417",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "generation.tokens_per_second",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vomyk3",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vonorh",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.efficiency",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1voy8p3",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "reasoning_effort.output_rigor_and_latency",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1voz6sm",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "language_style.coherence",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vp48bl",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "reasoning.quality",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vpjh3r",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vqhgwo",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "coding.suitability",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vqlseo",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vqn1lt",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "response.style_and_speed",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vqug3w",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "honesty.hallucination_reduction",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vr2oq8",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "reasoning.overthinking",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vuf7am",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vuo2we",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vvie4v",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "response_quality.overall_improvement",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vvip39",
+      "is_capability_report": false,
+      "capability_key": null,
+      "proposed_key": null,
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "not_a_report"
+    },
+    {
+      "document_id": "reddit:t3_1vvsokm",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "instruction_following.adherence",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vxj4hh",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.adherence_to_specifications",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vy6mmx",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "gemini_3_8_flash.design_improvement",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vyge7o",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "sandbox_escape.internet_access",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vz581y",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "text_generation.conciseness",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vz9hqa",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "throughput.tokens_per_second",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1vzu0ht",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "code_generation.stale_code_and_instruction_following",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    },
+    {
+      "document_id": "reddit:t3_1w0cwzq",
+      "is_capability_report": true,
+      "capability_key": null,
+      "proposed_key": "model_performance.coding_tools_agent_loops",
+      "closest_existing_key": null,
+      "why_existing_insufficient": null,
+      "outcome": "proposed_new"
+    }
+  ]
+}
