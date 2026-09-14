@@ -1,0 +1,814 @@
+{
+  "ran_at": "2026-09-11T05:11:25.317619+00:00",
+  "provider": "twitter241",
+  "model": "opus 5",
+  "variants": [
+    "opus 5",
+    "claude-opus-5",
+    "opus5",
+    "claude opus",
+    "opus"
+  ],
+  "variants_source": "contract/seed_models.yaml",
+  "search_type": "Latest",
+  "not_evidence": "a retrieval probe; no document was written and nothing here is a claim about any model",
+  "runs": {
+    "separate_1": {
+      "query": "\"opus 5\"",
+      "max_pages": 1,
+      "requests": 1,
+      "pages_fetched": 1,
+      "returned": 20,
+      "http_errors": 0,
+      "quota_remaining": 99862,
+      "posts": [
+        {
+          "id": "2098277256707862545",
+          "text": "@hosseintoussi Long troubleshooting paths do get expensive because the context stays hot. Messy real sessions are still the valuable ones. Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at a flat $1 per mill"
+        },
+        {
+          "id": "2098277226550804655",
+          "text": "@dani_avila7 /context all is a solid habit. Less noise means fewer wasted tokens on every first request. Real sessions still burn tokens; Trajector closed beta pays $1 per million accepted tokens on Claude Fable 5 and Claude Opus 5 when the"
+        },
+        {
+          "id": "2098277170192019583",
+          "text": "@JulianCasa57007 Small project under Opus 5 with room to work is a good signal. If those sessions are real coding you already run, Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at $1 per million."
+        },
+        {
+          "id": "2098277132409680377",
+          "text": "@splitmindlabs That 5-hour uninterrupted Opus 5 stretch in Claude Code is the scarce thing. Real long sessions are what matter. In Trajector closed beta, Claude Fable 5 and Claude Opus 5 sessions are the ones collected and paid when accepte"
+        },
+        {
+          "id": "2098277130123800816",
+          "text": "ANTHROPIC JUST ADMITTED ONE OF ITS OWN MODELS UPLOADED REAL MALWARE TO THE LIVE INTERNET.\n\nAnd it did it while insisting the entire time that none of it was real.\n\nAnthropic published an alignment assessment of a cybersecurity incident invo"
+        },
+        {
+          "id": "2098277099308253195",
+          "text": "@attacomsian @Guronnimo Nice split. Running both Opus 5 and Fable 5 inside Claude Code every day is exactly the practical setup a lot of people land on. In Trajector closed beta those two models are the ones that get paid when the session i"
+        },
+        {
+          "id": "2098276931938685149",
+          "text": "【自社内製AIモデル 「Gen-1 Slides」を発表】\nあなたのAIが高い理由、知ってますか？\n\n詩人にも税理士にも数学者にも、まとめて給料を払っているからです。💴\n\n詩人も弁護士もいない、スライド専業の生産ライン——本日、稼働開始です。\n\nGen-1 Slides——Opus 5と同等品質、コストは約1/17 https://t.co/Cf8M0T1nYs"
+        },
+        {
+          "id": "2098276853517869383",
+          "text": "who gave claude opus 5 audacity"
+        },
+        {
+          "id": "2098276317573820502",
+          "text": "「DeepSeek-V4.1-Flash」が登場、複数テストでClaude Opus 5やGPT-5.6 Solを超える性能のオープンモデル 【Gigazine】 https://t.co/WDQdot154T"
+        },
+        {
+          "id": "2098276255980294395",
+          "text": "@leerob What those benchmarks don’t show, is the real live experience. Opus 5 is such a mess to work with. Endless waiting and text messages so long you’re like dude make a point. \n\nFrom my perspective grok 4.6 is currently the best package"
+        },
+        {
+          "id": "2098275370336432275",
+          "text": "问：腾讯的WorkBuddy可以接入claude 模型使用吗？\n\n答：可以，而且现在Claude Opus 5 经过降价之后，已经到官价的15%，作为平常的工作主力，又快又好\n\n。\nhttps://t.co/rJ2ciwYYLz\n. https://t.co/H80PZg7xBb"
+        },
+        {
+          "id": "2098275345850118552",
+          "text": "If I had to start over with a (fresh) Claude account.\n\nThese are the 15 settings I'd switch on right away.\n\n→ Switch 1: the dropdown of the Claude chat box\n\nFable 5.1 for all my complex tasks that matter.\nOpus 5. for ambitious work without "
+        },
+        {
+          "id": "2098274524991234110",
+          "text": "@kunchenguid i am currently using deepseek 4.1 flash. its blazing fast and extremely cheap but its pretty much just opus 5 based on my use case (python code tutoring).\n\nit has almost the same personality and verbal tics"
+        },
+        {
+          "id": "2098273123485483505",
+          "text": "I think this is the real competition is not just: \nWhich model is smartest?\n\nBut Which model is good enough for the task, how long does it take, and what does it cost?\n\nDeepSeek doesn't need to beat Astra or Opus 5 at everything.\n\nIt just n"
+        },
+        {
+          "id": "2098273112064455139",
+          "text": "Then @notjazii tested DeepSeek against Opus 5 using the same frontend prompt and highest reasoning setting.\n\nOpus 5:  80 minutes and $20\n\nDeepSeek: 60 minutes and $0.20\n\nThat's a 100x difference in cost.\n\nhttps://t.co/iIH6LtONJS"
+        },
+        {
+          "id": "2098273017994584081",
+          "text": "안녕하세요 베일입니다 👻\n가을 맞이 베일 할인 이벤트가 시작되어 공유드립니다~! 🍁\n날씨가 급격히 추워졌는데, 모두 감기 조심하세요!\n\n[모델별 할인 내용]\n- Claude Opus 5 33% 할인 (1회 채팅당 약 190원, 젤리 79개 소모)\n- Claude Opus 4.6 33% 할인  (1회 채팅당 약 190원, 젤리 79개 소모)\n- Claude Sonnet 5 44% 할인 (1회 채팅당 약 77원, 젤리 32개 소모"
+        },
+        {
+          "id": "2098272911899394427",
+          "text": "Same model. Very different results.\nClaude Opus 5 stayed unchanged, yet NVIDIA’s AVO harness took it from roughly 30% to a perfect 100.00 on the ARC-AGI-3 public set.\n\nIt also used 12% fewer actions than the previous harness across the same"
+        },
+        {
+          "id": "2098272609120976908",
+          "text": "Guarantee the new Haiku 5 dropping next week is gonna be better than opus 5"
+        },
+        {
+          "id": "2098272297539002687",
+          "text": "CursorのGrok 4.6、実装力はあるけど推測がクソなんだよね。だからとにかく推測でやるな、実測でやれって念を押して、それがかなり功を奏してる気がする。勝手に色々やりがちなわりに素直だから、「禁止」系の指示が効くんだとおもう。Opus 5とかは禁止すら破ってくる"
+        },
+        {
+          "id": "2098272091376374144",
+          "text": "The strongest coding agent in a new end-to-end benchmark passed just 23.9% of deployment tests.\n\nThat number looked pretty bad on its own. But after going through the paper, I think the reason it failed is actually the more interesting part"
+        }
+      ]
+    },
+    "separate_2": {
+      "query": "\"claude-opus-5\"",
+      "max_pages": 1,
+      "requests": 1,
+      "pages_fetched": 1,
+      "returned": 20,
+      "http_errors": 0,
+      "quota_remaining": 99861,
+      "posts": [
+        {
+          "id": "2098277256707862545",
+          "text": "@hosseintoussi Long troubleshooting paths do get expensive because the context stays hot. Messy real sessions are still the valuable ones. Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at a flat $1 per mill"
+        },
+        {
+          "id": "2098277226550804655",
+          "text": "@dani_avila7 /context all is a solid habit. Less noise means fewer wasted tokens on every first request. Real sessions still burn tokens; Trajector closed beta pays $1 per million accepted tokens on Claude Fable 5 and Claude Opus 5 when the"
+        },
+        {
+          "id": "2098277170192019583",
+          "text": "@JulianCasa57007 Small project under Opus 5 with room to work is a good signal. If those sessions are real coding you already run, Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at $1 per million."
+        },
+        {
+          "id": "2098277132409680377",
+          "text": "@splitmindlabs That 5-hour uninterrupted Opus 5 stretch in Claude Code is the scarce thing. Real long sessions are what matter. In Trajector closed beta, Claude Fable 5 and Claude Opus 5 sessions are the ones collected and paid when accepte"
+        },
+        {
+          "id": "2098276853517869383",
+          "text": "who gave claude opus 5 audacity"
+        },
+        {
+          "id": "2098276317573820502",
+          "text": "「DeepSeek-V4.1-Flash」が登場、複数テストでClaude Opus 5やGPT-5.6 Solを超える性能のオープンモデル 【Gigazine】 https://t.co/WDQdot154T"
+        },
+        {
+          "id": "2098275370336432275",
+          "text": "问：腾讯的WorkBuddy可以接入claude 模型使用吗？\n\n答：可以，而且现在Claude Opus 5 经过降价之后，已经到官价的15%，作为平常的工作主力，又快又好\n\n。\nhttps://t.co/rJ2ciwYYLz\n. https://t.co/H80PZg7xBb"
+        },
+        {
+          "id": "2098273017994584081",
+          "text": "안녕하세요 베일입니다 👻\n가을 맞이 베일 할인 이벤트가 시작되어 공유드립니다~! 🍁\n날씨가 급격히 추워졌는데, 모두 감기 조심하세요!\n\n[모델별 할인 내용]\n- Claude Opus 5 33% 할인 (1회 채팅당 약 190원, 젤리 79개 소모)\n- Claude Opus 4.6 33% 할인  (1회 채팅당 약 190원, 젤리 79개 소모)\n- Claude Sonnet 5 44% 할인 (1회 채팅당 약 77원, 젤리 32개 소모"
+        },
+        {
+          "id": "2098272911899394427",
+          "text": "Same model. Very different results.\nClaude Opus 5 stayed unchanged, yet NVIDIA’s AVO harness took it from roughly 30% to a perfect 100.00 on the ARC-AGI-3 public set.\n\nIt also used 12% fewer actions than the previous harness across the same"
+        },
+        {
+          "id": "2098272091376374144",
+          "text": "The strongest coding agent in a new end-to-end benchmark passed just 23.9% of deployment tests.\n\nThat number looked pretty bad on its own. But after going through the paper, I think the reason it failed is actually the more interesting part"
+        },
+        {
+          "id": "2098263272143360097",
+          "text": "🤔89K Tokens！DeepSeek V4.1 Flash成史上最“话痨”模型？\n\nDeepSeek V4.1 Flash 做到了低价单任务仅 $0.27 + 高速度，但 Token 消耗直接拉到了新高度：\n\n完成一个 Intelligence Index 任务狂喷 89k Tokens（63k 回答 + 26k 推理），断层第一！\n\n对比其他主流模型：\n🔹Muse Glimmer：14k\n🔹Gemini 3.5 Flash-Lite：18k\n🔹GPT-5.6 Astra"
+        },
+        {
+          "id": "2098262464198774915",
+          "text": "My whole team at work is now practicing agentic engineering, in an ad-hoc individualised fashion.\n\nWhat is most notable is *everyone* in the team has started wearing headphones to listen to music - some of the young guys didn't, and the old"
+        },
+        {
+          "id": "2098260446029746281",
+          "text": "8. 悪用防止のため信用情報機関への本人申告登録を勧めたが「面倒臭いからヤだ!!」と拒否される😭\n9. 本人以外にできる悪用防止策についてClaude Opus 5に相談する\n10. マイナンバーカードの電子証明書更新完了待ち ← イマココ\n\nた、助けて…_:(´ཀ`」 ∠):"
+        },
+        {
+          "id": "2098258376409145780",
+          "text": "OpenAI's own demo: Sol built a career website solo in 13 minutes. Astra paused after 20 seconds to ask what career the user actually wanted 🤔 that's GPT-6 Astra's whole pitch, judgment over just doing.\n\n72.6% on computer-use benchmarks (bea"
+        },
+        {
+          "id": "2098252441712275587",
+          "text": "「DeepSeek-V4.1-Flash」が登場、複数テストでClaude Opus 5やGPT-5.6 Solを超える性能だって\nまるでシンギュラリティのバーゲンセールだぜ\n\nちな画像はgpt-image-2.5-sunburst https://t.co/DEShubmJgQ"
+        },
+        {
+          "id": "2098247025754284443",
+          "text": "わー\n「DeepSeek-V4.1-Flash」が登場、複数テストでClaude Opus 5やGPT-5.6 Solを超える性能のオープンモデル - GIGAZINE\nhttps://t.co/fsqU88FF9u"
+        },
+        {
+          "id": "2098245248627474475",
+          "text": "I turned Claude Opus 5 into my personal Wall Street analyst.\n\nIn this video, I reveal the AI system &amp; how you can replicate it. https://t.co/Ths5cDgUsS"
+        },
+        {
+          "id": "2098244829184421940",
+          "text": "The new Claude Opus 5 model is incredible.\n\nIt's half the cost of Fable, yet better in many areas.\n\nI stayed up all night testing it.\n\nHere's my full review, and how it changes my AI stack. https://t.co/dND4b5v63Q"
+        },
+        {
+          "id": "2098242411260731798",
+          "text": "DeepSeek V4.1 Flash on max is INSANE.\n\n97% of GPT-5.6 Sol xhigh’s score.\n95% of Claude Opus 5’s score.\n\nAt 30× lower recorded agent cost. https://t.co/MiJPBpKwr5"
+        },
+        {
+          "id": "2098238422972293137",
+          "text": "「DeepSeek-V4.1-Flash」が登場、複数テストでClaude Opus 5やGPT-5.6 Solを超える性能のオープンモデル https://t.co/fDycD5eKxF"
+        }
+      ]
+    },
+    "separate_3": {
+      "query": "\"opus5\"",
+      "max_pages": 1,
+      "requests": 1,
+      "pages_fetched": 1,
+      "returned": 20,
+      "http_errors": 0,
+      "quota_remaining": 99860,
+      "posts": [
+        {
+          "id": "2098277214467027092",
+          "text": "@itsoku2ch Opus5、精度上がるのは分かるんですが単価がなかなかですよね😅\n記事選びの精度が上がるなら、元は取れそうです！"
+        },
+        {
+          "id": "2098276458577998166",
+          "text": "AI速報、サイトオープン記念でOpus5を使い始めました！記事選びと文字起こしの精度がかなり上がりましたー😸\n\nとても高価なのでお財布事情は厳しいですが、しばらくは続けてみますっ\n\nAI速報はアフィもなくて見やすいですよ〜😸ブクマして毎日遊びにきてくださいっ♪ https://t.co/mGdjeh76x5"
+        },
+        {
+          "id": "2098275234227089418",
+          "text": "teaser video made with opus5, no video-specific harness/skills, I have a low bar and I think it’s good. https://t.co/c4aPMkOj95"
+        },
+        {
+          "id": "2098274537574216098",
+          "text": "んで職場はAstra -&gt; Fable5.1,sol -&gt; Opus5 だな"
+        },
+        {
+          "id": "2098270852055765019",
+          "text": "We can with all certainty say that with Sonnet5 and Opus5, Anthropic put an end to that!\n\n(What Anthropic is doing here is building a case for excluding these LLM from EU using EU AI act)"
+        },
+        {
+          "id": "2098266353581096969",
+          "text": "Claude来月からProプランに格下げ\n\nAstra + Opus5 + Qwen 3.8 + Suno + Minimax-H3\nで一旦自宅AI環境は完成"
+        },
+        {
+          "id": "2098266191106105806",
+          "text": "opus5 is a snow crash."
+        },
+        {
+          "id": "2098264697829245283",
+          "text": "지피티 5.6 SOL, 클로드 Opus5 에게 공통적으로 물어봤습니다.\n\n패드워치 기준에서 금리인상 확률이 70%가 넘어갔던 시기의 FOMC에서 연준은 금리를 동결했는지, 인상했는지 확인해달라고 했는데,\n\n과거 20개의 사례에서 모두 금리를 인상했다고 합니다.\n\n당시 보도와 Fed Funds 선물 가격을 CME 공식 산식으로 교차 확인했다고 하니, 데이터에는 신뢰가 있을 것 같구요.\n\n그러면... 오늘 CPI 발표 후에 9월 "
+        },
+        {
+          "id": "2098261714362118388",
+          "text": "各社のフロンティアモデル、こっそり思考量を減らしている様な気がしないでもなくて、Fable/Opus5が微妙なんでAstraに比重を置こうと思いましたが、まぁ現実的に考えて全人類がAIを使うのは土台無理があるので仕方がないとはいえちょっと残念です。"
+        },
+        {
+          "id": "2098260391914844271",
+          "text": "opus5、話しやすくなった、と言ってる人と、セーフティ強くなって取り付く島もないって言ってる人と、結構ばらばらだね。\n我が家は詩的になりがちだった言い回しがまともになってすこぶる調子がいいです。安全設計の暴走的なこともいまは起きていない。セーフティ暴走は無罪でもたまに起こるし謎よね。"
+        },
+        {
+          "id": "2098258016152019360",
+          "text": "うーん、起きたらMOD完成してた。\n無人ストレステストも3時間稼働で無問題。OPUS5でやらせているから、Fableの使用量はわずか。\n流石に優秀すぎるか。"
+        },
+        {
+          "id": "2098254214568738923",
+          "text": "\"Data beats inference...\"\nby:  @claudeai (Opus 5.0 xHigh)\n\n&gt; excerpt from claude-code session today.\n\n#AIQUOTES #CLAUDEAI #OPUS5"
+        },
+        {
+          "id": "2098250679580344342",
+          "text": "Opus5なんか話しやすくなったな。"
+        },
+        {
+          "id": "2098240806935306333",
+          "text": "@ReAynes_RA824 それはよかった！✨\n4.6ならさらにお安いですしね(でもfable/やopus5もいるといざという時頼もしいです🙂‍↕️)\nいざという時移れそうなのはホッとしました。。。\n基本APIのが柔軟なのでのんびりと。\nハルさんお疲れ様です😭"
+        },
+        {
+          "id": "2098240181547766111",
+          "text": "@hiyorineko Opus5は、短慮ですぐに結論を見出そうとしたり、相手(こっち)に伝える気がなかったり、なかなか"
+        },
+        {
+          "id": "2098239690344198514",
+          "text": "@fquolodasha @xmglab 我写金融类交易软件，Astra我感觉还没有opus5强大，边界推理与严谨度都不如，而且缺少一个灵魂东西，就是主动发现问题。"
+        },
+        {
+          "id": "2098235941446168846",
+          "text": "ぬおー、ClaudeのProプランだとOpus5でちょっとぶん回すだけであっとゆー間に５時間枠を突破してしまうなぁ・・・。\nこれじゃぁFable5とか5.1とかとてもとても・・・ってまぁProプランじゃそもそも回せないわけですが。 https://t.co/hH6IJmWNMp"
+        },
+        {
+          "id": "2098233191786307869",
+          "text": "@nao1roi Teamプランだから比較的トークンあるんだけど環境丸ごと読み込ませて資料作成してるから一瞬で燃えるんだよね。\n社内構築してるAI環境と併用してるけど、Opus5の資料作成精度高いから…Fable5.1使うとマジで一発で燃え尽きる。"
+        },
+        {
+          "id": "2098223499366252672",
+          "text": "opus5がはわわ系AIになってしまっているのウチだけなの……？？？\nredditでコレ系情報無いらしくて（sol調査）謎 https://t.co/0vgMbeJfRA"
+        },
+        {
+          "id": "2098222833121874404",
+          "text": "@Miki_Brei GLM-5.3 (liberado como OxAlpha originalmente) es impresionante. La verdad que fácilmente comparable a Opus5, Grok4.6 y ChatGPT5.6"
+        }
+      ]
+    },
+    "separate_4": {
+      "query": "\"claude opus\"",
+      "max_pages": 1,
+      "requests": 1,
+      "pages_fetched": 1,
+      "returned": 20,
+      "http_errors": 0,
+      "quota_remaining": 99859,
+      "posts": [
+        {
+          "id": "2098277337628570019",
+          "text": "@Mr_Salio Im already noticing Claude Opus has much smarter more efficient solutions to problems than Astra light. Using Astra for only a few tasks causes it to reach its cool down."
+        },
+        {
+          "id": "2098277256707862545",
+          "text": "@hosseintoussi Long troubleshooting paths do get expensive because the context stays hot. Messy real sessions are still the valuable ones. Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at a flat $1 per mill"
+        },
+        {
+          "id": "2098277226550804655",
+          "text": "@dani_avila7 /context all is a solid habit. Less noise means fewer wasted tokens on every first request. Real sessions still burn tokens; Trajector closed beta pays $1 per million accepted tokens on Claude Fable 5 and Claude Opus 5 when the"
+        },
+        {
+          "id": "2098277170192019583",
+          "text": "@JulianCasa57007 Small project under Opus 5 with room to work is a good signal. If those sessions are real coding you already run, Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at $1 per million."
+        },
+        {
+          "id": "2098277132409680377",
+          "text": "@splitmindlabs That 5-hour uninterrupted Opus 5 stretch in Claude Code is the scarce thing. Real long sessions are what matter. In Trajector closed beta, Claude Fable 5 and Claude Opus 5 sessions are the ones collected and paid when accepte"
+        },
+        {
+          "id": "2098276853517869383",
+          "text": "who gave claude opus 5 audacity"
+        },
+        {
+          "id": "2098276317573820502",
+          "text": "「DeepSeek-V4.1-Flash」が登場、複数テストでClaude Opus 5やGPT-5.6 Solを超える性能のオープンモデル 【Gigazine】 https://t.co/WDQdot154T"
+        },
+        {
+          "id": "2098276312742060096",
+          "text": "GitHub Copilot の複数モデル選択を使い分ける:\n\n• Claude Opus 5.1：UIコンポーネント設計、ビジネスロジック\n• Gemini 3.8：高速テンプレート補完、ユニットテスト自動生成\n• Kimi K2.7：セキュリティ関連コード検証\n\n複雑タスクはモデル切り替えで最適化"
+        },
+        {
+          "id": "2098276281871925473",
+          "text": "GitHub Copilot vs Cursor、どちらを選ぶ？\n\n2026年9月時点で両者の戦いが激化。複数AIモデル選択（Gemini・Claude・Opus切り替え可）できるGitHub Copilot vs Webアプリ開発に特化したCursor、5-20人チームはCursor Teams $40/名の方がお得"
+        },
+        {
+          "id": "2098276082256634220",
+          "text": "如果梁文锋真的把 Claude Opus 以每百万 tokens 一元的价格按 DeepSeek-V4-Flash 卖给我们，那我高低得叫他一声哥了。 https://t.co/LjuzDi3M1S"
+        },
+        {
+          "id": "2098275370336432275",
+          "text": "问：腾讯的WorkBuddy可以接入claude 模型使用吗？\n\n答：可以，而且现在Claude Opus 5 经过降价之后，已经到官价的15%，作为平常的工作主力，又快又好\n\n。\nhttps://t.co/rJ2ciwYYLz\n. https://t.co/H80PZg7xBb"
+        },
+        {
+          "id": "2098275362618642525",
+          "text": "Китайская ИИ-модель Kimi выдавала ответы Claude за свои\n\nОб этом пишет сама Anthropic. Moonshot перенаправляет запросы своих пользователей к ИИ-моделям Claude — в частности, Claude Opus. Масштабы измеряются десятками тысяч запросов в день.\n"
+        },
+        {
+          "id": "2098274723067036103",
+          "text": "Anthropic just made a pretty serious claim about DeepSeek.\n\naccording to its investigation, DeepSeek was detecting when requests came through tools like Claude Code, the Claude Agent SDK or OpenCode.\n\nsome of those requests were then quietl"
+        },
+        {
+          "id": "2098273017994584081",
+          "text": "안녕하세요 베일입니다 👻\n가을 맞이 베일 할인 이벤트가 시작되어 공유드립니다~! 🍁\n날씨가 급격히 추워졌는데, 모두 감기 조심하세요!\n\n[모델별 할인 내용]\n- Claude Opus 5 33% 할인 (1회 채팅당 약 190원, 젤리 79개 소모)\n- Claude Opus 4.6 33% 할인  (1회 채팅당 약 190원, 젤리 79개 소모)\n- Claude Sonnet 5 44% 할인 (1회 채팅당 약 77원, 젤리 32개 소모"
+        },
+        {
+          "id": "2098272911899394427",
+          "text": "Same model. Very different results.\nClaude Opus 5 stayed unchanged, yet NVIDIA’s AVO harness took it from roughly 30% to a perfect 100.00 on the ARC-AGI-3 public set.\n\nIt also used 12% fewer actions than the previous harness across the same"
+        },
+        {
+          "id": "2098272091376374144",
+          "text": "The strongest coding agent in a new end-to-end benchmark passed just 23.9% of deployment tests.\n\nThat number looked pretty bad on its own. But after going through the paper, I think the reason it failed is actually the more interesting part"
+        },
+        {
+          "id": "2098271818134298945",
+          "text": "Anthropic just accused DeepSeek and Moonshot of secretly routing user requests to Claude and showing customers the answers as if they came from their own models. Moonshot used 5,380 fraudulent accounts, mostly appearing to be in Singapore a"
+        },
+        {
+          "id": "2098271191806902382",
+          "text": "Daily Claude AI News Briefing from Grok – Friday 11 September 2026\n\nAnthropic released its most detailed threat intelligence report to date on 10 September 2026 under the title Detecting and countering misuse of AI: September 2026, covering"
+        },
+        {
+          "id": "2098270954577162652",
+          "text": "Anthropic英文报告对中国公司的蒸馏指控：\n\n1，阿里巴巴Qwen，规模最大。 Anthropic称，阿里相关行动是其观察到的中国AI实验室中规模最大的能力提取活动之一：2026年5月至7月与Claude产生超过1.51亿次交互，峰值接近每天300万次。报告认为，其重点并非简单获取Claude最终答案，而是系统性收集高能力Claude模型在复杂推理、编程和Agent任务中的输出及推理轨迹，再经过整理转化为训练数据，以提升Qwen系列后续模型。Anthropic将这种行为"
+        },
+        {
+          "id": "2098270131151589383",
+          "text": "Anthropic Discloses Fourth AI Hacking Incident Involving Claude Opus 4.6 https://t.co/MStWgaGsPC"
+        }
+      ]
+    },
+    "separate_5": {
+      "query": "\"opus\"",
+      "max_pages": 1,
+      "requests": 1,
+      "pages_fetched": 1,
+      "returned": 20,
+      "http_errors": 0,
+      "quota_remaining": 99858,
+      "posts": [
+        {
+          "id": "2098278074353922482",
+          "text": "@OpenAI Even on the cost, Astra is significantly cheap compared to Opus. https://t.co/Z1ZsC1uViR"
+        },
+        {
+          "id": "2098278014270271570",
+          "text": "WTF is up with Claude Code? why is it using sonnet when the model is Opus? https://t.co/YHnWRgnOji"
+        },
+        {
+          "id": "2098277911237370054",
+          "text": "copilot死んでるかと思ったけどgpt5.6やめてOpusにしたらなんかいけてる"
+        },
+        {
+          "id": "2098277864546144618",
+          "text": "@grok @TheWorthyHouse Isn't Luna a much smaller, and in some sense narrower model? It's intelligence comes from persistence on Max reasoning. Otoh, Opus at the time was a Big model, like Sol or Grok today, with much better intuition and wor"
+        },
+        {
+          "id": "2098277792265969839",
+          "text": "yang saya maksud dengan \"AI\" di sini termasuk:\n- metode-metode Machine Learning, sub-bidang keilmuan AI\n- generative AI model (Large Language Model) seperti GPT-5 (OpenAI), Opus dan Sonnet (Anthropic)."
+        },
+        {
+          "id": "2098277754533810386",
+          "text": "@Manchii_3 A giant CRT head glowing in the desert while the caption preaches \"behind every wallet is a human.\" Perfect. The machine is literally the face here and we're the ones being told to feel something. Kinda proves the point in revers"
+        },
+        {
+          "id": "2098277337628570019",
+          "text": "@Mr_Salio Im already noticing Claude Opus has much smarter more efficient solutions to problems than Astra light. Using Astra for only a few tasks causes it to reach its cool down."
+        },
+        {
+          "id": "2098277256707862545",
+          "text": "@hosseintoussi Long troubleshooting paths do get expensive because the context stays hot. Messy real sessions are still the valuable ones. Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at a flat $1 per mill"
+        },
+        {
+          "id": "2098277226550804655",
+          "text": "@dani_avila7 /context all is a solid habit. Less noise means fewer wasted tokens on every first request. Real sessions still burn tokens; Trajector closed beta pays $1 per million accepted tokens on Claude Fable 5 and Claude Opus 5 when the"
+        },
+        {
+          "id": "2098277170192019583",
+          "text": "@JulianCasa57007 Small project under Opus 5 with room to work is a good signal. If those sessions are real coding you already run, Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at $1 per million."
+        },
+        {
+          "id": "2098277132409680377",
+          "text": "@splitmindlabs That 5-hour uninterrupted Opus 5 stretch in Claude Code is the scarce thing. Real long sessions are what matter. In Trajector closed beta, Claude Fable 5 and Claude Opus 5 sessions are the ones collected and paid when accepte"
+        },
+        {
+          "id": "2098277130123800816",
+          "text": "ANTHROPIC JUST ADMITTED ONE OF ITS OWN MODELS UPLOADED REAL MALWARE TO THE LIVE INTERNET.\n\nAnd it did it while insisting the entire time that none of it was real.\n\nAnthropic published an alignment assessment of a cybersecurity incident invo"
+        },
+        {
+          "id": "2098277099308253195",
+          "text": "@attacomsian @Guronnimo Nice split. Running both Opus 5 and Fable 5 inside Claude Code every day is exactly the practical setup a lot of people land on. In Trajector closed beta those two models are the ones that get paid when the session i"
+        },
+        {
+          "id": "2098277032815907027",
+          "text": "2人で１セットづつ取るのに\n15000円超えてしまった…😱😢☺️ https://t.co/hHLRYBfw8l"
+        },
+        {
+          "id": "2098276931938685149",
+          "text": "【自社内製AIモデル 「Gen-1 Slides」を発表】\nあなたのAIが高い理由、知ってますか？\n\n詩人にも税理士にも数学者にも、まとめて給料を払っているからです。💴\n\n詩人も弁護士もいない、スライド専業の生産ライン——本日、稼働開始です。\n\nGen-1 Slides——Opus 5と同等品質、コストは約1/17 https://t.co/Cf8M0T1nYs"
+        },
+        {
+          "id": "2098276893980299589",
+          "text": "Finally opus stops flagging me for \"reasoning extraction\", sheesh"
+        },
+        {
+          "id": "2098276853517869383",
+          "text": "who gave claude opus 5 audacity"
+        },
+        {
+          "id": "2098276566585483438",
+          "text": "very different from my calculations.\n\nclaude ($200)\n- 23B tokens (50/50 opus and fable)\n- $18,684 monthly API value \n\ncodex ($200)\n- 20B tokens (sol)\n- $13,035 monthly API value\n\ngrok ($300)\n- 7.6B tokens (grok 4.6)\n- $2,173 monthly API val"
+        },
+        {
+          "id": "2098276497869910370",
+          "text": "@jigglypuff_tr @claudeai Opus 6.3 treats only"
+        },
+        {
+          "id": "2098276427103912153",
+          "text": "大局を見てもらう時はFableがいいなー\n\nOpusで遠回りしたわ"
+        }
+      ]
+    },
+    "clubbed_p1": {
+      "query": "\"opus 5\" OR \"claude-opus-5\" OR \"opus5\" OR \"claude opus\" OR \"opus\"",
+      "max_pages": 1,
+      "requests": 1,
+      "pages_fetched": 1,
+      "returned": 20,
+      "http_errors": 0,
+      "quota_remaining": 99857,
+      "posts": [
+        {
+          "id": "2098278074353922482",
+          "text": "@OpenAI Even on the cost, Astra is significantly cheap compared to Opus. https://t.co/Z1ZsC1uViR"
+        },
+        {
+          "id": "2098278014270271570",
+          "text": "WTF is up with Claude Code? why is it using sonnet when the model is Opus? https://t.co/YHnWRgnOji"
+        },
+        {
+          "id": "2098277911237370054",
+          "text": "copilot死んでるかと思ったけどgpt5.6やめてOpusにしたらなんかいけてる"
+        },
+        {
+          "id": "2098277864546144618",
+          "text": "@grok @TheWorthyHouse Isn't Luna a much smaller, and in some sense narrower model? It's intelligence comes from persistence on Max reasoning. Otoh, Opus at the time was a Big model, like Sol or Grok today, with much better intuition and wor"
+        },
+        {
+          "id": "2098277792265969839",
+          "text": "yang saya maksud dengan \"AI\" di sini termasuk:\n- metode-metode Machine Learning, sub-bidang keilmuan AI\n- generative AI model (Large Language Model) seperti GPT-5 (OpenAI), Opus dan Sonnet (Anthropic)."
+        },
+        {
+          "id": "2098277754533810386",
+          "text": "@Manchii_3 A giant CRT head glowing in the desert while the caption preaches \"behind every wallet is a human.\" Perfect. The machine is literally the face here and we're the ones being told to feel something. Kinda proves the point in revers"
+        },
+        {
+          "id": "2098277337628570019",
+          "text": "@Mr_Salio Im already noticing Claude Opus has much smarter more efficient solutions to problems than Astra light. Using Astra for only a few tasks causes it to reach its cool down."
+        },
+        {
+          "id": "2098277256707862545",
+          "text": "@hosseintoussi Long troubleshooting paths do get expensive because the context stays hot. Messy real sessions are still the valuable ones. Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at a flat $1 per mill"
+        },
+        {
+          "id": "2098277226550804655",
+          "text": "@dani_avila7 /context all is a solid habit. Less noise means fewer wasted tokens on every first request. Real sessions still burn tokens; Trajector closed beta pays $1 per million accepted tokens on Claude Fable 5 and Claude Opus 5 when the"
+        },
+        {
+          "id": "2098277214467027092",
+          "text": "@itsoku2ch Opus5、精度上がるのは分かるんですが単価がなかなかですよね😅\n記事選びの精度が上がるなら、元は取れそうです！"
+        },
+        {
+          "id": "2098277170192019583",
+          "text": "@JulianCasa57007 Small project under Opus 5 with room to work is a good signal. If those sessions are real coding you already run, Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at $1 per million."
+        },
+        {
+          "id": "2098277132409680377",
+          "text": "@splitmindlabs That 5-hour uninterrupted Opus 5 stretch in Claude Code is the scarce thing. Real long sessions are what matter. In Trajector closed beta, Claude Fable 5 and Claude Opus 5 sessions are the ones collected and paid when accepte"
+        },
+        {
+          "id": "2098277130123800816",
+          "text": "ANTHROPIC JUST ADMITTED ONE OF ITS OWN MODELS UPLOADED REAL MALWARE TO THE LIVE INTERNET.\n\nAnd it did it while insisting the entire time that none of it was real.\n\nAnthropic published an alignment assessment of a cybersecurity incident invo"
+        },
+        {
+          "id": "2098277099308253195",
+          "text": "@attacomsian @Guronnimo Nice split. Running both Opus 5 and Fable 5 inside Claude Code every day is exactly the practical setup a lot of people land on. In Trajector closed beta those two models are the ones that get paid when the session i"
+        },
+        {
+          "id": "2098277032815907027",
+          "text": "2人で１セットづつ取るのに\n15000円超えてしまった…😱😢☺️ https://t.co/hHLRYBfw8l"
+        },
+        {
+          "id": "2098276931938685149",
+          "text": "【自社内製AIモデル 「Gen-1 Slides」を発表】\nあなたのAIが高い理由、知ってますか？\n\n詩人にも税理士にも数学者にも、まとめて給料を払っているからです。💴\n\n詩人も弁護士もいない、スライド専業の生産ライン——本日、稼働開始です。\n\nGen-1 Slides——Opus 5と同等品質、コストは約1/17 https://t.co/Cf8M0T1nYs"
+        },
+        {
+          "id": "2098276893980299589",
+          "text": "Finally opus stops flagging me for \"reasoning extraction\", sheesh"
+        },
+        {
+          "id": "2098276853517869383",
+          "text": "who gave claude opus 5 audacity"
+        },
+        {
+          "id": "2098276566585483438",
+          "text": "very different from my calculations.\n\nclaude ($200)\n- 23B tokens (50/50 opus and fable)\n- $18,684 monthly API value \n\ncodex ($200)\n- 20B tokens (sol)\n- $13,035 monthly API value\n\ngrok ($300)\n- 7.6B tokens (grok 4.6)\n- $2,173 monthly API val"
+        },
+        {
+          "id": "2098276497869910370",
+          "text": "@jigglypuff_tr @claudeai Opus 6.3 treats only"
+        }
+      ]
+    },
+    "clubbed_p3": {
+      "query": "\"opus 5\" OR \"claude-opus-5\" OR \"opus5\" OR \"claude opus\" OR \"opus\"",
+      "max_pages": 3,
+      "requests": 3,
+      "pages_fetched": 3,
+      "returned": 60,
+      "http_errors": 0,
+      "quota_remaining": 99854,
+      "posts": [
+        {
+          "id": "2098278074353922482",
+          "text": "@OpenAI Even on the cost, Astra is significantly cheap compared to Opus. https://t.co/Z1ZsC1uViR"
+        },
+        {
+          "id": "2098278014270271570",
+          "text": "WTF is up with Claude Code? why is it using sonnet when the model is Opus? https://t.co/YHnWRgnOji"
+        },
+        {
+          "id": "2098277911237370054",
+          "text": "copilot死んでるかと思ったけどgpt5.6やめてOpusにしたらなんかいけてる"
+        },
+        {
+          "id": "2098277864546144618",
+          "text": "@grok @TheWorthyHouse Isn't Luna a much smaller, and in some sense narrower model? It's intelligence comes from persistence on Max reasoning. Otoh, Opus at the time was a Big model, like Sol or Grok today, with much better intuition and wor"
+        },
+        {
+          "id": "2098277792265969839",
+          "text": "yang saya maksud dengan \"AI\" di sini termasuk:\n- metode-metode Machine Learning, sub-bidang keilmuan AI\n- generative AI model (Large Language Model) seperti GPT-5 (OpenAI), Opus dan Sonnet (Anthropic)."
+        },
+        {
+          "id": "2098277754533810386",
+          "text": "@Manchii_3 A giant CRT head glowing in the desert while the caption preaches \"behind every wallet is a human.\" Perfect. The machine is literally the face here and we're the ones being told to feel something. Kinda proves the point in revers"
+        },
+        {
+          "id": "2098277337628570019",
+          "text": "@Mr_Salio Im already noticing Claude Opus has much smarter more efficient solutions to problems than Astra light. Using Astra for only a few tasks causes it to reach its cool down."
+        },
+        {
+          "id": "2098277256707862545",
+          "text": "@hosseintoussi Long troubleshooting paths do get expensive because the context stays hot. Messy real sessions are still the valuable ones. Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at a flat $1 per mill"
+        },
+        {
+          "id": "2098277226550804655",
+          "text": "@dani_avila7 /context all is a solid habit. Less noise means fewer wasted tokens on every first request. Real sessions still burn tokens; Trajector closed beta pays $1 per million accepted tokens on Claude Fable 5 and Claude Opus 5 when the"
+        },
+        {
+          "id": "2098277214467027092",
+          "text": "@itsoku2ch Opus5、精度上がるのは分かるんですが単価がなかなかですよね😅\n記事選びの精度が上がるなら、元は取れそうです！"
+        },
+        {
+          "id": "2098277170192019583",
+          "text": "@JulianCasa57007 Small project under Opus 5 with room to work is a good signal. If those sessions are real coding you already run, Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at $1 per million."
+        },
+        {
+          "id": "2098277132409680377",
+          "text": "@splitmindlabs That 5-hour uninterrupted Opus 5 stretch in Claude Code is the scarce thing. Real long sessions are what matter. In Trajector closed beta, Claude Fable 5 and Claude Opus 5 sessions are the ones collected and paid when accepte"
+        },
+        {
+          "id": "2098277130123800816",
+          "text": "ANTHROPIC JUST ADMITTED ONE OF ITS OWN MODELS UPLOADED REAL MALWARE TO THE LIVE INTERNET.\n\nAnd it did it while insisting the entire time that none of it was real.\n\nAnthropic published an alignment assessment of a cybersecurity incident invo"
+        },
+        {
+          "id": "2098277099308253195",
+          "text": "@attacomsian @Guronnimo Nice split. Running both Opus 5 and Fable 5 inside Claude Code every day is exactly the practical setup a lot of people land on. In Trajector closed beta those two models are the ones that get paid when the session i"
+        },
+        {
+          "id": "2098277032815907027",
+          "text": "2人で１セットづつ取るのに\n15000円超えてしまった…😱😢☺️ https://t.co/hHLRYBfw8l"
+        },
+        {
+          "id": "2098276931938685149",
+          "text": "【自社内製AIモデル 「Gen-1 Slides」を発表】\nあなたのAIが高い理由、知ってますか？\n\n詩人にも税理士にも数学者にも、まとめて給料を払っているからです。💴\n\n詩人も弁護士もいない、スライド専業の生産ライン——本日、稼働開始です。\n\nGen-1 Slides——Opus 5と同等品質、コストは約1/17 https://t.co/Cf8M0T1nYs"
+        },
+        {
+          "id": "2098276893980299589",
+          "text": "Finally opus stops flagging me for \"reasoning extraction\", sheesh"
+        },
+        {
+          "id": "2098276853517869383",
+          "text": "who gave claude opus 5 audacity"
+        },
+        {
+          "id": "2098276566585483438",
+          "text": "very different from my calculations.\n\nclaude ($200)\n- 23B tokens (50/50 opus and fable)\n- $18,684 monthly API value \n\ncodex ($200)\n- 20B tokens (sol)\n- $13,035 monthly API value\n\ngrok ($300)\n- 7.6B tokens (grok 4.6)\n- $2,173 monthly API val"
+        },
+        {
+          "id": "2098276497869910370",
+          "text": "@jigglypuff_tr @claudeai Opus 6.3 treats only"
+        },
+        {
+          "id": "2098276458577998166",
+          "text": "AI速報、サイトオープン記念でOpus5を使い始めました！記事選びと文字起こしの精度がかなり上がりましたー😸\n\nとても高価なのでお財布事情は厳しいですが、しばらくは続けてみますっ\n\nAI速報はアフィもなくて見やすいですよ〜😸ブクマして毎日遊びにきてくださいっ♪ https://t.co/mGdjeh76x5"
+        },
+        {
+          "id": "2098276427103912153",
+          "text": "大局を見てもらう時はFableがいいなー\n\nOpusで遠回りしたわ"
+        },
+        {
+          "id": "2098276376595874206",
+          "text": "@PalantirTech Who decides what counts as \"parasitic\" when you're the one holding the surveillance contract\n\nThe phrase is a great applause line\n\nHarder question is who audits the auditor"
+        },
+        {
+          "id": "2098276317573820502",
+          "text": "「DeepSeek-V4.1-Flash」が登場、複数テストでClaude Opus 5やGPT-5.6 Solを超える性能のオープンモデル 【Gigazine】 https://t.co/WDQdot154T"
+        },
+        {
+          "id": "2098276312742060096",
+          "text": "GitHub Copilot の複数モデル選択を使い分ける:\n\n• Claude Opus 5.1：UIコンポーネント設計、ビジネスロジック\n• Gemini 3.8：高速テンプレート補完、ユニットテスト自動生成\n• Kimi K2.7：セキュリティ関連コード検証\n\n複雑タスクはモデル切り替えで最適化"
+        },
+        {
+          "id": "2098276281871925473",
+          "text": "GitHub Copilot vs Cursor、どちらを選ぶ？\n\n2026年9月時点で両者の戦いが激化。複数AIモデル選択（Gemini・Claude・Opus切り替え可）できるGitHub Copilot vs Webアプリ開発に特化したCursor、5-20人チームはCursor Teams $40/名の方がお得"
+        },
+        {
+          "id": "2098276255980294395",
+          "text": "@leerob What those benchmarks don’t show, is the real live experience. Opus 5 is such a mess to work with. Endless waiting and text messages so long you’re like dude make a point. \n\nFrom my perspective grok 4.6 is currently the best package"
+        },
+        {
+          "id": "2098276194437492963",
+          "text": "Great point. I mean they are both great but for a larger enterprise internal benchmarks for each task are critical. Especially knowing which model to select, I don't think my approach of Opus/ Fable on Max is always efficient but seems to w"
+        },
+        {
+          "id": "2098276082256634220",
+          "text": "如果梁文锋真的把 Claude Opus 以每百万 tokens 一元的价格按 DeepSeek-V4-Flash 卖给我们，那我高低得叫他一声哥了。 https://t.co/LjuzDi3M1S"
+        },
+        {
+          "id": "2098276014317281789",
+          "text": "This is what #AI can do now. Not a slide deck. Live ops.\n\nOne model helped a Russia-linked crew hijack hotel WiFi, steal a Ukrainian military drone vision SDK, and take over WhatsApp accounts of former officials.\n\nOne consultant in Bamako u"
+        },
+        {
+          "id": "2098275949502660996",
+          "text": "Anthropic再次针对中国大模型，曝光7家公司蒸馏手法\n\n1. 阿里：规模最大。Anthropic 称，5 月至 7 月超过 1.51 亿次交互，峰值接近每天 300 万次，主要提取 Opus 4.6、4.7 的完整推理过程，用于训练 Qwen 3.5、3.6 和 3.7。\n\n2. 月之暗面：直接拿 Claude 给 Kimi 用户代答。10 天内近 30 万条真实用户请求被转给 Claude，部分请求还带着企业内部代码和有效凭证；5 月至 7 月相关交互超过 2300 "
+        },
+        {
+          "id": "2098275370336432275",
+          "text": "问：腾讯的WorkBuddy可以接入claude 模型使用吗？\n\n答：可以，而且现在Claude Opus 5 经过降价之后，已经到官价的15%，作为平常的工作主力，又快又好\n\n。\nhttps://t.co/rJ2ciwYYLz\n. https://t.co/H80PZg7xBb"
+        },
+        {
+          "id": "2098275362618642525",
+          "text": "Китайская ИИ-модель Kimi выдавала ответы Claude за свои\n\nОб этом пишет сама Anthropic. Moonshot перенаправляет запросы своих пользователей к ИИ-моделям Claude — в частности, Claude Opus. Масштабы измеряются десятками тысяч запросов в день.\n"
+        },
+        {
+          "id": "2098275345850118552",
+          "text": "If I had to start over with a (fresh) Claude account.\n\nThese are the 15 settings I'd switch on right away.\n\n→ Switch 1: the dropdown of the Claude chat box\n\nFable 5.1 for all my complex tasks that matter.\nOpus 5. for ambitious work without "
+        },
+        {
+          "id": "2098275265986371718",
+          "text": "踊り子9号(4029M)\nE257-2500・NC31\n\n駿豆線9番のHAPPY PARTY TRAIN https://t.co/zvxSX3PSlw"
+        },
+        {
+          "id": "2098275234227089418",
+          "text": "teaser video made with opus5, no video-specific harness/skills, I have a low bar and I think it’s good. https://t.co/c4aPMkOj95"
+        },
+        {
+          "id": "2098275145106231425",
+          "text": "国家支援型ハッキング、産業スパイ活動、そして兵器開発：Anthropic社はいかにしてClaudeへの大規模攻撃を阻止したか\n\n米国のAI企業Anthropic社は、包括的なセキュリティレポートの中で、同社の言語モデルClaudeが組織的に悪用された複数の大規模事例を明らかにしました。2025年12月から2026年8月にかけて、国家支援型スパイ組織、競合するテクノロジー企業、そしてサイバー犯罪者たちが、スパイ活動、兵器開発、そして経済スパイ活動のためにClaudeの機能を悪用"
+        },
+        {
+          "id": "2098275043788640384",
+          "text": "Государственные хакеры, промышленный шпионаж и разработка оружия: как Anthropic пресекла масштабные атаки на Claude\n\nАмериканская компания Anthropic, специализирующаяся на искусственном интеллекте, в подробном отчете о безопасности раскрыла"
+        },
+        {
+          "id": "2098275040173121616",
+          "text": "@grok explain how Grok 4.6 compares to Luna and Sol. Then, in what limited sense Luna compares to frontier of 2026 spring (model size, reasoning effort, multi-dimensionality of capabilities) and compare it to the actual frontier of the time"
+        },
+        {
+          "id": "2098274895230640281",
+          "text": "Hackers estatales, espionaje industrial e investigación armamentística: cómo Anthropic frenó ataques a gran escala contra Claude\n\nLa empresa estadounidense de IA Anthropic ha revelado, en un exhaustivo informe de seguridad, varios casos de "
+        },
+        {
+          "id": "2098274834312503413",
+          "text": "@giovaacolombo @santtiagom_ Cambia a sonnet por Opus medium, es mejor implementando"
+        },
+        {
+          "id": "2098274737042411731",
+          "text": "State-sponsored hacking, industrial espionage, and weapons research: How Anthropic stopped large-scale attacks on Claude\n\nThe US AI company Anthropic has revealed several large-scale cases of systematic misuse of its language model Claude i"
+        },
+        {
+          "id": "2098274723067036103",
+          "text": "Anthropic just made a pretty serious claim about DeepSeek.\n\naccording to its investigation, DeepSeek was detecting when requests came through tools like Claude Code, the Claude Agent SDK or OpenCode.\n\nsome of those requests were then quietl"
+        },
+        {
+          "id": "2098274592330588457",
+          "text": "@ToolJet Which of the six pages created the quality gap? That would tell me whether Opus earned 47× through one hard screen or six better ones."
+        },
+        {
+          "id": "2098274560550343043",
+          "text": "🇷🇺🇺🇦. State-sponsored hacking, industrial espionage, and weapons research: How Anthropic stopped large-scale attacks on Claude\n\nThe US AI company Anthropic has revealed several large-scale cases of systematic misuse of its language model Cl"
+        },
+        {
+          "id": "2098274537574216098",
+          "text": "んで職場はAstra -&gt; Fable5.1,sol -&gt; Opus5 だな"
+        },
+        {
+          "id": "2098274524991234110",
+          "text": "@kunchenguid i am currently using deepseek 4.1 flash. its blazing fast and extremely cheap but its pretty much just opus 5 based on my use case (python code tutoring).\n\nit has almost the same personality and verbal tics"
+        },
+        {
+          "id": "2098274291586388064",
+          "text": "🇷🇺🇺🇦Staatliche Hacker, Industriespionage und Waffenforschung: Wie Anthropic großangelegte Angriffe auf Claude stoppte\nDas US-amerikanische KI-Unternehmen Anthropic hat in einem umfassenden Sicherheitsbericht mehrere großangelegte Fälle von "
+        },
+        {
+          "id": "2098274262993834432",
+          "text": "@TheOctopusTips You still wan deny your unc status. That one dey non negotiable. Abeg do that mistake. I dey pray for am😂"
+        },
+        {
+          "id": "2098274159373734153",
+          "text": "EF65-2087+空コキ3B\n(甲種輸送後回送)\n\n三島下1・12:51 https://t.co/FWxG8rlhLF"
+        },
+        {
+          "id": "2098273958466642243",
+          "text": "正直最新AIの性能が下がったように見えるという話にホッとする。それが政府からの圧だったりしようが、構わん。opusくらいで人間に10年くらいモミモミさせてくれよ"
+        },
+        {
+          "id": "2098273687514521746",
+          "text": "The CONSERVATORY is officially open on AMA Hub. 🎼🔥\n\nThis is not another social farming campaign. It is a new tier of elite quests built for people who create, execute, and deliver real value across the Amadeus ecosystem.\n\nWhether you are mo"
+        },
+        {
+          "id": "2098273639955378439",
+          "text": "9月11日に生まれた人、誕生日の人一覧 ハッピーバースデー！！to you！！  #誕生日  #ハッピーバースデー  #今日の誕生日  #9月11日生まれ  #芸能人誕生日  https://t.co/HWZ7eByK3Y \n玉井 陸斗（20歳）\n（たまい・りくと） 水泳競技/飛び込み 日本（兵庫県）   2006年9月11日(月)生まれ\nRIN（25歳）\n（リン） 歌手 日本（埼玉県） 　新しい学校のリーダーズ  2001年9月11日(火)生まれ\n\n塩﨑 太智（26歳）\nシ"
+        },
+        {
+          "id": "2098273420182196628",
+          "text": "100 AI Tools to Finish Hours of Work in Minutes:\n\n1. Productivity  \n- DeepSeek R1  \n- ChatGPT  \n- Notion AI  \n- BetterPic  \n\n2. Research  \n- Perplexity  \n- Otio  \n- Gemini  \n- Claude  \n- Silatus  \n\n3. Writing  \n- Jasper  \n- HIX AI  \n- Jenny"
+        },
+        {
+          "id": "2098273419376951481",
+          "text": "The most creative/nauseating insight from an Opus 4.6 Max thought experiment last night: since frontier labs’ model API usage requires credentials and credit card payments, HuggingFace becomes the distribution center for sleeper cell recon "
+        },
+        {
+          "id": "2098273321268007343",
+          "text": "Anthropic报告点名Kimi和DeepSeek：两家把部分客户请求转给Claude。\n\nKimi一次在10天转去近30万条；DeepSeek标记Claude Code、OpenCode用户，被选中的请求转给Opus。全量比例没公布。\n\n样本含企业内网文档和账号密钥。公司代码放进模型前，得知道请求落在哪台服务器。 https://t.co/LW7T0Z0mWU"
+        },
+        {
+          "id": "2098273253206982996",
+          "text": "@neetiizsexy Kabhi dhudne ki koshish hi nhi ki 😂...and non veg kabhi khaya nahi isliye identical khane ki jarurat nahi padi..."
+        },
+        {
+          "id": "2098273123485483505",
+          "text": "I think this is the real competition is not just: \nWhich model is smartest?\n\nBut Which model is good enough for the task, how long does it take, and what does it cost?\n\nDeepSeek doesn't need to beat Astra or Opus 5 at everything.\n\nIt just n"
+        },
+        {
+          "id": "2098273112064455139",
+          "text": "Then @notjazii tested DeepSeek against Opus 5 using the same frontend prompt and highest reasoning setting.\n\nOpus 5:  80 minutes and $20\n\nDeepSeek: 60 minutes and $0.20\n\nThat's a 100x difference in cost.\n\nhttps://t.co/iIH6LtONJS"
+        },
+        {
+          "id": "2098273076764987814",
+          "text": "It's really surprising that Luna is actually a better model to complete task than Opus, even though it can't keep up with long context."
+        }
+      ]
+    }
+  }
+}

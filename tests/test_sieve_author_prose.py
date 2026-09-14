@@ -103,10 +103,24 @@ def test_neither_false_positive_yields_a_positive_summarisation_claim(name):
     Pinned terms. Against the live contract this passes for the wrong reason —
     `accurate` was removed, so there is no signal to find and the exclusion is
     never exercised at all.
+
+    ⚠ THESE TWO NOW PASS THE SIEVE, and that is the demotion working rather
+      than the exclusion failing. Signal stopped gating on 2026-09-11
+      (`sieve.GATING_GROUPS`), so a document clean on subject and topic is
+      kept whatever the exclusion decides. What the exclusion still governs is
+      the SCORE: `signal_score` is 0 on both, which is the statement the fix
+      was really making - *nobody claimed it summarised well* - and it is now
+      carried forward as a weight instead of thrown away as a refusal.
+
+      The false positive this file is named for was a positive CLAIM, and no
+      claim is produced here. Whether these reach extraction is now a
+      throughput question, costed in
+      `docs/measurements/signal-as-weight-2026-09-11.md`.
     """
     verdict = sieve(incident_terms(), fixture(name))
-    assert not verdict.passed
-    assert "signal" in verdict.missing
+    assert verdict.passed, "subject and topic are both genuinely present"
+    assert "signal" in verdict.missing, "still recorded, just no longer a veto"
+    assert verdict.signal_score == 0, "and the weight it carries forward is zero"
 
 
 @pytest.mark.parametrize(
@@ -141,8 +155,13 @@ def test_a_quoted_signal_and_an_absent_signal_are_distinguishable():
         f"We put {ALIAS} behind the digest job. It summarises tickets nightly.",
     )
 
-    assert quoted.passed is absent.passed is False
+    # Both now PASS - neither is refused on signal any more - and the pair is
+    # still distinguishable, which is the whole point of the test. The
+    # distinction moved from `passed` to `signal_in_excluded`, and it had to
+    # survive the demotion or the vocabulary feedback would have gone with it.
+    assert quoted.passed is absent.passed is True
     assert quoted.missing == absent.missing == ("signal",)
+    assert quoted.signal_score == absent.signal_score == 0
     assert quoted.signal_in_excluded == ("accurate",)
     assert absent.signal_in_excluded == ()
 
@@ -166,8 +185,11 @@ def test_the_exclusion_still_works_against_the_live_vocabulary():
     )
     verdict = sieve(terms, document)
 
-    assert not verdict.passed
+    # NOT `assert not verdict.passed` any more. Signal does not gate, so the
+    # document is kept; the property under test was never about the gate, it
+    # was about whether a borrowed term counts as the author speaking.
     assert verdict.signal == (), "a blockquote is not the author speaking"
+    assert verdict.signal_score == 0, "so it contributes no weight either"
     assert borrowed in verdict.signal_in_excluded, (
         "the term is present and was found in an excluded container — that "
         "distinction is the vocabulary feedback, and losing it makes a quoted "

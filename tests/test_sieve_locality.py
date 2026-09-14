@@ -168,8 +168,11 @@ def test_signal_still_has_to_be_the_authors_own_words():
     text = document(subject_at=100, topic_at=1_000, signal_at=1_200)
     quoted = text.replace(" held up ", " `held up` ")
     verdict = sieve(TERMS, quoted)
-    assert not verdict.passed
+    # Kept, since 2026-09-11: signal does not gate. The containment property
+    # this test is named for is unchanged and is now read off the score.
+    assert verdict.passed
     assert "signal" in verdict.missing
+    assert verdict.signal_score == 0, "a fenced term is not the author's own words"
     assert "held up" in verdict.signal_in_excluded
 
 

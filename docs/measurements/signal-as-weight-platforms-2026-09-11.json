@@ -1,0 +1,38 @@
+{
+  "ran_at": "2026-09-11T06:43:29.059411+00:00",
+  "entries": 24,
+  "surfaces": 49,
+  "cost_model": "input=2683+0.6016*chars, output=636, $0.30/$2.50 per 1M (seeded price)",
+  "sources": {
+    "github": {
+      "documents": 3382,
+      "unresolved": 9,
+      "empty_text": 0,
+      "kept_gate": 8,
+      "kept_weight": 218,
+      "rate_gate": 0.237,
+      "rate_weight": 6.446,
+      "multiple": 27.25,
+      "kept_with_signal": 8,
+      "median_chars_kept": 1041,
+      "cost_gate_usd": 0.0327,
+      "cost_weight_usd": 0.6003,
+      "cost_delta_usd": 0.5676
+    },
+    "blog": {
+      "documents": 121,
+      "unresolved": 1,
+      "empty_text": 0,
+      "kept_gate": 0,
+      "kept_weight": 12,
+      "rate_gate": 0.0,
+      "rate_weight": 9.917,
+      "multiple": null,
+      "kept_with_signal": 0,
+      "median_chars_kept": 18046,
+      "cost_gate_usd": 0,
+      "cost_weight_usd": 0.1175,
+      "cost_delta_usd": 0.1175
+    }
+  }
+}

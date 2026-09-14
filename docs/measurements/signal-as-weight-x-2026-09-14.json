@@ -1,0 +1,16 @@
+{
+  "ran_at": "2026-09-14T02:27:37.740397+00:00",
+  "population": "every post captured by the two 2026-09-11 X retrieval probes; NOT a sample of X and no rate here is an X retrieval rate",
+  "sources_read": [
+    "x-clubbed-surfaces.json",
+    "x-boolean-operator-probe.json"
+  ],
+  "x_rows_in_document_table": 0,
+  "posts": 127,
+  "posts_naming_a_seeded_surface": 72,
+  "entries": 24,
+  "surfaces": 49,
+  "kept_gate": 0,
+  "kept_weight": 6,
+  "kept_with_signal_score": 0
+}
