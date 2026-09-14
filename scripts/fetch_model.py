@@ -28,6 +28,7 @@ import argparse
 import contextlib
 import hashlib
 import json
+import logging
 import os
 import sys
 import time
@@ -41,6 +42,9 @@ sys.path.insert(0, str(ROOT))
 from collect import usage  # noqa: E402
 from collect.adapters.github import GitHubHarvester  # noqa: E402
 from collect.adapters.queries import load_queries, plan_searches  # noqa: E402
+from collect.assemble import prose  # noqa: E402
+
+log = logging.getLogger(__name__)
 from collect.config import settings  # noqa: E402
 from collect.db import connect  # noqa: E402
 from collect.http import build_client  # noqa: E402
@@ -90,6 +94,20 @@ DEDUPE_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "hugg
 #: from here instead of re-reading. This is a pause, not a ceiling on what can
 #: ever be extracted.
 MAX_FETCH_THREADS = int(os.getenv("FETCH_MAX_THREADS", "25"))
+
+#: How far `len(prose(payload))` may differ from what `thread_context.offset_map`
+#: says that member was, before the member is dropped rather than sliced.
+#:
+#: NOT A ROUND NUMBER. Measured over 4,525 documents on 2026-09-14: the largest
+#: benign drift is +2, on github, where `github_issue_prose` joins title and body
+#: with a separator the assembled text did not carry. The smallest real failure -
+#: the payload loaded in place of the prose - is +1,239. Eight is four times the
+#: former and two orders of magnitude below the latter.
+#:
+#: Widening this past ~10 stops it catching anything. If the github +2 is ever
+#: fixed at its source this should go back to a much smaller number, because the
+#: whole value of the check is that the gap it tolerates is tiny.
+_MAX_PROSE_DRIFT = 8
 
 #: A RUNAWAY GUARD on GitHub search calls, not a budget. GitHub is free; this
 #: exists because `--fetch-cap` bounds only `rest_calls` (the per-issue fetches)
@@ -1114,14 +1132,113 @@ def build_thread_inputs(conn, seen, *, limit: int):
         except Exception:
             continue  # payload not on this machine — not this fetch's thread
         offset_map = tuple(OffsetMapping(**span) for span in (omap or ()))
+        # THE DOCUMENT'S PROSE, NOT ITS PAYLOAD, AND THE OFFSET MAP DECIDES THAT.
+        #
+        # `verify()` step 3 renders `raw_text_of[document_id][raw_start:raw_end]`
+        # and that string is what `claim.quote` stores and the board publishes.
+        # The offsets come from `thread_context.offset_map`, whose raw side is
+        # built by `collect/assemble/flatten.py` against the text the assembler
+        # was given - and `collect/assemble/platforms.py` gives it
+        # `prose.for_source(source)(payload)`. So the artifact indexed by
+        # `raw_start`/`raw_end` is the PROSE, and nothing else.
+        #
+        # THIS READ `store.get_text(tref)` FROM 2026-08-27 UNTIL 2026-09-14 AND
+        # WAS CORRECT WHEN WRITTEN. `document.text_ref` pointed at prose then.
+        # The ruling of 2026-08-28 17:55 made it point at the PAYLOAD - "the
+        # bytes the platform gave us" - and every writer was corrected while
+        # this reader, two stages away, kept the old meaning. The result is a
+        # slice of a JSON envelope rendered as somebody's sentence, on a claim
+        # whose `quote_verified` is true, because verification checked the
+        # MODEL's quote against the flattened prose and step 3 then substituted
+        # a different string from a different artifact.
+        #
+        # It was invisible for the ordinary reason: the payload is LONGER than
+        # the prose, so `raw_end > len(raw)` never trips and the slice lands
+        # silently in the wrong place. Ten of ten claims on the 2026-09-14 run.
+        #
+        # A payload that will not yield prose is SKIPPED AND NAMED, not passed
+        # through. Falling back to the payload is the defect this comment exists
+        # to describe.
         raw_text_of = {}
+        unreadable: list[str] = []
         drows = conn.execute(
-            "SELECT id, text_ref FROM document WHERE id = ANY(%s)", (list(members),)
+            "SELECT id, text_ref, source FROM document WHERE id = ANY(%s)",
+            (list(members),),
         ).fetchall()
-        for did, tref in drows:
-            if tref:
-                with contextlib.suppress(Exception):
-                    raw_text_of[did] = store.get_text(tref)
+        for did, tref, dsource in drows:
+            if not tref:
+                continue
+            try:
+                payload = store.get_text(tref)
+            except Exception:  # noqa: BLE001 - payload not on this machine
+                continue
+            extract_prose = prose.for_source(dsource)
+            if extract_prose is None:
+                unreadable.append(f"{did}: no prose extractor for source {dsource!r}")
+                continue
+            try:
+                raw_text_of[did] = extract_prose(payload)
+            except Exception as exc:  # noqa: BLE001 - NotAPayload and friends
+                unreadable.append(f"{did}: {type(exc).__name__}: {str(exc)[:80]}")
+        # ── THE ARTIFACT GUARD, AND IT RUNS BEFORE ANY MODEL CALL ────────────
+        #
+        # Pointing `raw_text_of` at the prose fixes the artifact. It does not
+        # PROVE the artifact, and this defect was invisible for exactly that
+        # reason: `verify()` step 3 slices `raw[raw_start:raw_end]` and its only
+        # check is `raw_end > len(raw)`. The payload is LONGER than the prose it
+        # wraps, so every offset fitted and the slice landed silently in the
+        # wrong place. Had the wrong artifact been the smaller one this would
+        # have failed loudly on the first claim.
+        #
+        # So the check is on the artifact rather than on the quote: the offset
+        # map already records how long each member's text was when the assembler
+        # flattened it, and comparing that to what we just loaded costs one
+        # subtraction per member. On the row that started this:
+        #
+        #     offset_map says hackernews:49682189 is   749 chars
+        #     prose(payload)                           749   PASS
+        #     payload (what this used to load)       1,988   FAIL
+        #
+        # A MEMBER THAT FAILS IS DROPPED, NOT THE WHOLE THREAD. The other
+        # members' offsets are still good, and a quote attributed to a dropped
+        # member comes back from `verify()` as RAW_TEXT_MISSING - a named
+        # rejection rather than a wrong quote. If that empties `raw_text_of` the
+        # existing guard below skips the thread.
+        #
+        # WHY A TOLERANCE AND NOT EQUALITY, measured over 4,525 documents:
+        #
+        #     drift +0   3,202 documents
+        #     drift +2   1,285 documents   all github - `github_issue_prose`
+        #                                  joins title and body with a separator
+        #                                  the assembled text did not carry
+        #     drift +1       4 documents
+        #     large -ve      6 documents   hackernews; the map does not describe
+        #                                  this text at all, and these SHOULD be
+        #                                  refused
+        #
+        # So equality would refuse 1,289 good documents. 8 is four times the
+        # largest benign drift and two orders of magnitude below the smallest
+        # real failure (+1,239 on the row above). The github +2 is a real if
+        # small inconsistency - prose() today is not byte-identical to what the
+        # assembler flattened - and it is named here rather than fixed here.
+        for did, text in list(raw_text_of.items()):
+            spans = [s.raw_end for s in offset_map if s.document_id == did]
+            if not spans:
+                continue                      # no segment claims this member
+            expected = max(spans)
+            drift = len(text) - expected
+            if abs(drift) > _MAX_PROSE_DRIFT:
+                unreadable.append(
+                    f"{did}: offset_map describes {expected} chars, the prose is "
+                    f"{len(text)} ({drift:+d}); dropped rather than sliced"
+                )
+                del raw_text_of[did]
+        if unreadable:
+            log.warning(
+                "thread %s: %d member(s) yielded no usable prose, so their quotes "
+                "could not be rendered: %s",
+                tc_id, len(unreadable), "; ".join(unreadable[:3]),
+            )
         if not raw_text_of:
             continue  # step 3 renders the raw span; without it, unrenderable
         # THE OVERSIZED CEILING, APPLIED HERE rather than in the caller. It used
