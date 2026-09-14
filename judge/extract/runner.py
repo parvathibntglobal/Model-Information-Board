@@ -257,7 +257,10 @@ def extract(
         raise ExtractionRefused(str(exc)) from exc
 
     system = build_system_prompt(capability_keys)
-    schema = tool_schema_for(ExtractionResult)
+    # THE SAME LIST REACHES BOTH, which is the point. It used to reach only the
+    # prompt, so "CLOSED, use these and no others" was an instruction with no
+    # enforcement anywhere until E6 - and E6's refusal killed the batch.
+    schema = tool_schema_for(ExtractionResult, capability_keys=capability_keys)
 
     result, completions, retries = _call_with_one_retry(
         client, system=system, user=user_message, schema=schema

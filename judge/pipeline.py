@@ -451,6 +451,15 @@ class SurfaceResolver(Protocol):
     # a clean merge and a passing import did not.
 
 
+class _CellRefused(Exception):
+    """The cell half already refused this claim and recorded why.
+
+    A sentinel rather than a flag check, so the claim write and the "nothing was
+    attempted" case leave through the same door and the board write below is
+    reached by exactly one path. Never raised outside this module.
+    """
+
+
 @dataclass
 class PipelineResult:
     """What one thread produced, all the way through."""
@@ -463,6 +472,22 @@ class PipelineResult:
     #: machinery, and the board entries for that quote still landed - so a run
     #: with failures here is NOT a run that produced nothing.
     claim_write_failures: list[tuple[str, str]] = field(default_factory=list)
+
+    #: (document_id, capability_key, error) for claims the LEGACY CELL PATH
+    #: refused before anything was attempted against the database.
+    #:
+    #: DISTINCT FROM `claim_write_failures` ON PURPOSE. That one is "the write
+    #: was attempted and the database said no". This is "the cell could not be
+    #: built at all" - `compute()` or `bucket_for()` rejecting a capability key
+    #: outside the ratified twelve. Folding them together would hide which of
+    #: the two is happening, and they have different fixes: one is a schema
+    #: constraint, the other is a vocabulary the extractor did not honour.
+    #:
+    #: A NON-EMPTY LIST HERE IS NOT A LOST BATCH. Before 2026-09-14 either
+    #: refusal escaped the loop and took every remaining claim AND every
+    #: remaining board entry with it. Now the board entry for the same quote is
+    #: still written, so a run reporting cell refusals still produced evidence.
+    cell_refusals: list[tuple[str, str, str]] = field(default_factory=list)
     #: How many `board_entry` rows this thread produced. Counted rather
     #: than inferred from the claims: one claim can inform three board
     #: sections, so the two numbers are legitimately different and a
@@ -774,47 +799,88 @@ class Pipeline:
             for signal in verdict.unconfirmed:
                 result.tier_signals_unconfirmed[signal] += 1
 
-            weights = compute(
-                evidence_tier=evidence_tier,
-                platform=document.platform,
-                capability_key=claim.capability,
-                relevance=claim.relevance,
-                specificity=claim.model_ref.specificity,
-                claim_date=document.created_at,
-                release_date=(release_dates or {}).get(model_version_id),
-                as_of=as_of,
-                # DERIVED FROM THE CLAIM, not read from the document.
-                # `DocumentFacts` has exactly one constructor in the repository
-                # and it is a test, so this was a required argument supplied
-                # from a dataclass default. See the module docstring.
-                version_named=claim.model_ref.specificity in ("snapshot", "version"),
-                # NOT DERIVED, DELIBERATELY. See the module docstring: there is
-                # no honest claim-side source for this one, and a wrong
-                # derivation is worse than a missing input.
-                has_conditions=document.has_conditions,
-                has_numbers=document.has_numbers,
-                has_repro_steps=claim.has_repro_steps,
-            )
+            # ── THE CELL HALF, GUARDED AS ONE REGION ─────────────────────────
+            #
+            # TWO SITES READ THE LEGACY CLOSED KEY AND BOTH RAISE ON ONE IT DOES
+            # NOT KNOW, and until 2026-09-14 neither was guarded:
+            #
+            #   compute()     ValueError "unknown capability 'vision' - it must
+            #                 exist in contract/capabilities.yaml"
+            #   bucket_for()  KeyError 'vision', from a bare dict lookup on
+            #                 `dominant_dimension()`. The worse of the two: its
+            #                 message is the key and nothing else.
+            #
+            # `capability` is a closed vocabulary enforced in the tool schema
+            # since 2026-09-14 (`tool_schema_for(..., capability_keys=...)`), so
+            # a non-compliant key should no longer arrive. Should is not a
+            # guarantee - providers differ on whether they validate an enum, the
+            # lesson `prefixItems` already taught this codebase - so the
+            # assertion stays and is now survivable.
+            #
+            # WRAPPING `compute()` ALONE WOULD NOT HAVE BEEN ENOUGH, and neither
+            # would `try: ... continue`. `continue` skips the board write below,
+            # which is exactly what the 2026-09-10 fix exists to prevent: "A
+            # CLAIM FAILING MUST NOT COST THE BOARD." So this sets the cell
+            # aside and falls THROUGH to the board, which is the same shape that
+            # fix chose one statement later.
+            stored: StoredClaim | None = None
+            try:
+                weights = compute(
+                    evidence_tier=evidence_tier,
+                    platform=document.platform,
+                    capability_key=claim.capability,
+                    relevance=claim.relevance,
+                    specificity=claim.model_ref.specificity,
+                    claim_date=document.created_at,
+                    release_date=(release_dates or {}).get(model_version_id),
+                    as_of=as_of,
+                    # DERIVED FROM THE CLAIM, not read from the document.
+                    # `DocumentFacts` has exactly one constructor in the repository
+                    # and it is a test, so this was a required argument supplied
+                    # from a dataclass default. See the module docstring.
+                    version_named=claim.model_ref.specificity in ("snapshot", "version"),
+                    # NOT DERIVED, DELIBERATELY. See the module docstring: there is
+                    # no honest claim-side source for this one, and a wrong
+                    # derivation is worse than a missing input.
+                    has_conditions=document.has_conditions,
+                    has_numbers=document.has_numbers,
+                    has_repro_steps=claim.has_repro_steps,
+                )
 
-            stored = StoredClaim(
-                claim=claim,
-                quote=quote,
-                weights=weights,
-                document_id=quote.document_id,
-                # From the RESOLVED document (verify step 2 picked which comment),
-                # so a Reddit thread's claims carry the author of the comment the
-                # quote came from — distinct people, distinct voices. Without this
-                # every claim was one anonymous voice and no cell could publish.
-                author_id=document.author_id,
-                thread_context_id=thread.thread_context_id,
-                model_version_id=model_version_id,
-                condition_bucket=bucket_for(
-                    claim.capability, claim.conditions.model_dump(exclude_none=True)
-                ),
-                evidence_tier=evidence_tier,
-                claim_date=document.created_at,
-                extractor_model=self._extractor_model,
-            )
+                stored = StoredClaim(
+                    claim=claim,
+                    quote=quote,
+                    weights=weights,
+                    document_id=quote.document_id,
+                    # From the RESOLVED document (verify step 2 picked which comment),
+                    # so a Reddit thread's claims carry the author of the comment the
+                    # quote came from — distinct people, distinct voices. Without this
+                    # every claim was one anonymous voice and no cell could publish.
+                    author_id=document.author_id,
+                    thread_context_id=thread.thread_context_id,
+                    model_version_id=model_version_id,
+                    condition_bucket=bucket_for(
+                        claim.capability, claim.conditions.model_dump(exclude_none=True)
+                    ),
+                    evidence_tier=evidence_tier,
+                    claim_date=document.created_at,
+                    extractor_model=self._extractor_model,
+                )
+            except (ValueError, KeyError, LookupError) as exc:
+                # NAMED, NOT COUNTED. A bare tally would say "3 claims lost" and
+                # leave nobody able to tell an unratified capability from a
+                # missing tier - rule 4 on what the pipeline discards. `KeyError`
+                # stringifies to just the key, so the type is carried too.
+                result.cell_refusals.append(
+                    (quote.document_id, claim.capability,
+                     f"{type(exc).__name__}: {str(exc).splitlines()[0][:160]}")
+                )
+                log.warning(
+                    "claim on %r refused by the legacy cell path (%s: %s); the "
+                    "board entry is still written",
+                    claim.capability, type(exc).__name__,
+                    str(exc).splitlines()[0][:120],
+                )
             # CAPTURED PER ITERATION, not read back off the tail of the list.
             # The board rows below used `stored_claim_ids[-1]`, which is the
             # LAST id written by any iteration - so a quote whose own claim
@@ -822,7 +888,12 @@ class Pipeline:
             # mis-attributing the evidence. `None` is the honest value, and
             # `board_entry.claim_id` is nullable for exactly this.
             _claim_id: str | None = None
+            # `None` MEANS THE CELL HALF ALREADY REFUSED, above, and said why.
+            # Not an error here and not silence either: it is recorded in
+            # `cell_refusals`, and falling through to the board is the point.
             try:
+                if stored is None:
+                    raise _CellRefused
                 # A SAVEPOINT, NOT JUST A try/except. A failed INSERT ABORTS THE
                 # WHOLE TRANSACTION in Postgres - every later statement on this
                 # connection then fails with `InFailedSqlTransaction`, including
@@ -836,6 +907,12 @@ class Pipeline:
                 with self._conn.transaction():
                     _claim_id = self._claims.write(stored)
                 result.stored_claim_ids.append(_claim_id)
+            except _CellRefused:
+                # Already recorded in `cell_refusals` with its reason. Not added
+                # to `claim_write_failures` as well, because nothing was
+                # attempted and double-counting one loss in two tallies is how a
+                # denominator stops meaning anything (rule 7).
+                _claim_id = None
             except Exception as exc:
                 _claim_id = None
                 # A CLAIM FAILING MUST NOT COST THE BOARD. `board_entry` was

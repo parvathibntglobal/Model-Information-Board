@@ -167,3 +167,124 @@ def test_the_reference_board_sections_the_twelve_cannot_express(slug):
     assert slug not in ratified and slug not in tails, (
         f"{slug} now HAS a ratified key — delete it from this list"
     )
+
+
+class TestTheClosedVocabularyIsInTheSchemaNotOnlyThePrompt:
+    """2026-09-14. `vision` reached `claim.capability` and ended a second run.
+
+    The 09-10 fix above made the FK survivable. It did not stop the key
+    ARRIVING, because `capability` is a bare `str` in the pydantic model and the
+    closure was one line of system prompt - "CLOSED, use these and no others".
+    An instruction a model may decline is not a constraint, and it declined.
+    """
+
+    @staticmethod
+    def _schema(keys=None):
+        from judge.extract.client import tool_schema_for
+        from judge.extract.schema import ExtractionResult
+
+        if keys is None:
+            from judge.config import capabilities
+
+            keys = list(capabilities())
+        return tool_schema_for(ExtractionResult, capability_keys=keys)
+
+    def test_the_capability_field_carries_the_ratified_keys_as_an_enum(self):
+        from judge.config import capabilities
+
+        node = self._schema()["properties"]["claims"]["items"]["properties"]["capability"]
+        assert node.get("enum") == list(capabilities()), (
+            "the closed vocabulary must reach the provider as an enum, not only "
+            "as prose in the system prompt"
+        )
+
+    def test_an_unratified_key_is_not_in_the_enum(self):
+        node = self._schema()["properties"]["claims"]["items"]["properties"]["capability"]
+        for slug in ("vision", "multimodal", "long-context"):
+            assert slug not in node["enum"]
+
+    def test_the_extractor_passes_the_same_list_to_prompt_and_schema(self):
+        # One list, two consumers. Passing the vocabulary to `build_system_prompt`
+        # and NOT to the schema is the defect this closes, and it reads as fixed
+        # from either call site alone.
+        src = pathlib.Path("judge/extract/runner.py").read_text(encoding="utf-8")
+        assert "build_system_prompt(capability_keys)" in src
+        assert "tool_schema_for(ExtractionResult, capability_keys=capability_keys)" in src
+
+    def test_a_moved_schema_shape_refuses_rather_than_silently_not_closing(self):
+        # The injection walks to a known path. If the model changes shape, an
+        # unclosed schema that LOOKS closed is worse than no change at all.
+        from judge.extract.client import _close_capability
+
+        with pytest.raises(ValueError, match="exactly one string `capability`"):
+            _close_capability({"properties": {}}, ["a.b"])
+
+    def test_an_empty_vocabulary_is_refused(self):
+        from judge.extract.client import _close_capability
+
+        with pytest.raises(ValueError, match="no capability keys"):
+            _close_capability({"properties": {}}, [])
+
+
+class TestAnUnratifiedKeyCostsOneCellNotTheBatch:
+    """The second half: the enum prevents it, this makes it survivable.
+
+    Both sites that read the legacy closed key raise on one they do not know,
+    and before 2026-09-14 neither was guarded - so one non-compliant claim took
+    every remaining claim AND every remaining board entry in the thread.
+    """
+
+    def test_both_readers_of_the_closed_key_still_raise(self):
+        """The guard is needed because these two genuinely refuse. Not a mock."""
+        from judge.config import bucket_for
+
+        with pytest.raises(KeyError):
+            bucket_for("vision", {})
+
+        src = pathlib.Path("judge/vet/weight.py").read_text(encoding="utf-8")
+        assert "unknown capability" in src, "compute() still asserts the vocabulary"
+
+    def test_the_cell_half_is_guarded_as_one_region(self):
+        # Wrapping `compute()` alone would leave `bucket_for` - called inside the
+        # StoredClaim construction - to raise KeyError two statements later.
+        src = pathlib.Path("judge/pipeline.py").read_text(encoding="utf-8")
+        guard = src.index("stored: StoredClaim | None = None")
+        compute_at = src.index("weights = compute(")
+        bucket_at = src.index("condition_bucket=bucket_for(")
+        handler = src.index("except (ValueError, KeyError, LookupError) as exc:")
+        assert guard < compute_at < bucket_at < handler, (
+            "compute() and bucket_for() must be inside ONE guarded region; "
+            "guarding only the first leaves the second to end the batch"
+        )
+
+    def test_the_guard_does_not_skip_the_board(self):
+        # `continue` here would reintroduce 2026-09-10 in a new place: the cell
+        # is lost AND the board entry with it. Control must fall through.
+        src = pathlib.Path("judge/pipeline.py").read_text(encoding="utf-8")
+        handler = src.index("except (ValueError, KeyError, LookupError) as exc:")
+        board = src.index("for _entry in claim.board_entries:")
+        between = src[handler:board]
+        assert "continue" not in between, (
+            "the cell refusal must fall through to the board write, not skip it"
+        )
+
+    def test_a_cell_refusal_is_named_not_counted(self):
+        from judge.pipeline import PipelineResult
+
+        assert "cell_refusals" in PipelineResult.__dataclass_fields__
+        # Three parts: which document, which key, and why. A bare count cannot
+        # tell an unratified capability from a missing tier.
+        src = pathlib.Path("judge/pipeline.py").read_text(encoding="utf-8")
+        assert "result.cell_refusals.append(" in src
+        assert "claim.capability," in src[src.index("result.cell_refusals.append("):][:400]
+
+    def test_a_refusal_is_not_double_counted_in_both_tallies(self):
+        # One loss in two denominators is how a denominator stops meaning
+        # anything. `_CellRefused` leaves through its own handler.
+        src = pathlib.Path("judge/pipeline.py").read_text(encoding="utf-8")
+        assert "except _CellRefused:" in src
+        block = src[src.index("except _CellRefused:"):]
+        block = block[:block.index("except Exception as exc:")]
+        # The CALL, not the word - the handler's comment names the other tally
+        # to explain why it is not used, and matching prose would fail on that.
+        assert "result.claim_write_failures.append(" not in block

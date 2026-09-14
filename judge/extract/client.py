@@ -220,7 +220,82 @@ class OpenRouterClient:
         )
 
 
-def tool_schema_for(model_cls: type) -> dict[str, object]:
+#: Where the closed capability vocabulary lives in the generated schema.
+#:
+#: Exactly one node, asserted rather than assumed — see `_close_capability`.
+_CAPABILITY_PATH = ("properties", "claims", "items", "properties", "capability")
+
+
+def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
+    """Put the ratified keys in the schema as an `enum`, not only in the prompt.
+
+    THE CLOSURE WAS PROSE UNTIL 2026-09-14 AND IT COST TWO RUNS. The field is a
+    bare `capability: str`, and the only thing that said "closed" was a line of
+    system prompt - "THE RATIFIED CAPABILITY KEYS (`capability`) - CLOSED, use
+    these and no others". So the vocabulary was an instruction the model could
+    decline, and it did: a claim came back with `capability='vision'`, a key the
+    ratified twelve deliberately do not contain because `vision` is a BOARD
+    section (`judge/extract/schema.py` names it in exactly those words).
+
+    Nothing noticed until `judge/vet/weight.py:compute()` refused it at E6 -
+    after the extraction was paid for, and outside the savepoint, so one
+    non-compliant claim took the whole batch with it.
+
+    An enum moves the constraint to where the provider can enforce it. It is
+    NOT a guarantee: providers differ on whether they validate enums, which is
+    the same lesson `prefixItems` taught this function - a schema rule some
+    backends enforce and others ignore presents as an intermittent failure. So
+    this is prevention, and `compute()`'s check stays as the assertion.
+
+    THE PATH IS ASSERTED. A silently-missed injection would leave the closure
+    exactly as weak as it was while looking fixed, which is worse than not
+    doing it - so a schema whose shape has moved raises here rather than
+    returning an unclosed schema.
+    """
+    if not capability_keys:
+        raise ValueError(
+            "no capability keys to close the schema with. `build_system_prompt` "
+            "already refuses an empty list; refusing here too, because an empty "
+            "enum would be a schema that admits nothing rather than one that "
+            "admits the ratified set."
+        )
+
+    found = []
+
+    def walk(node: object, path: tuple[str, ...] = ()) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "capability" and isinstance(value, dict) \
+                        and value.get("type") == "string":
+                    found.append(path + (key,))
+                walk(value, path + (key,))
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                walk(value, path + (str(index),))
+
+    walk(schema)
+    if found != [_CAPABILITY_PATH]:
+        raise ValueError(
+            f"expected exactly one string `capability` property at "
+            f"{'.'.join(_CAPABILITY_PATH)}, found {[('.'.join(p)) for p in found]}. "
+            "The schema shape moved, so the closed vocabulary was NOT applied. "
+            "Refusing rather than returning a schema that looks closed and is not."
+        )
+
+    node = schema
+    for step in _CAPABILITY_PATH:
+        node = node[step]
+    node["enum"] = list(capability_keys)
+    # The description still carries the instruction, because an enum tells the
+    # model WHAT is allowed and not what to do when nothing fits. The answer to
+    # that - pick the closest and propose the missing one - is the part that
+    # keeps discovery working, and it only exists in prose.
+    return schema
+
+
+def tool_schema_for(
+    model_cls: type, *, capability_keys: list[str] | None = None
+) -> dict[str, object]:
     """A pydantic model's JSON schema with every `$ref` INLINED.
 
     This renamed `$defs` to `definitions` and rewrote the refs to match, which
@@ -336,4 +411,7 @@ def tool_schema_for(model_cls: type) -> dict[str, object]:
             return [widen_tuples(v) for v in node]
         return node
 
-    return widen_tuples(inline(schema))
+    flattened = widen_tuples(inline(schema))
+    if capability_keys is not None:
+        flattened = _close_capability(flattened, capability_keys)
+    return flattened
