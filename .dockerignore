@@ -1,0 +1,58 @@
+# WITHOUT THIS FILE THE BUILD CONTEXT IS ~700 MB OF HARVESTED PAYLOADS.
+# Measured on this host 2026-09-14: raw_store 257 MB, _sweep_store 383 MB.
+# Both are read from a mounted volume at runtime and neither belongs in a
+# layer - an image that carries them is an image that is stale the moment the
+# next sweep runs.
+
+# ── the object stores ────────────────────────────────────────────────────────
+raw_store/
+_sweep_store/
+_harvest_store/
+_substitution_slice/
+_unfiltered_sweep/
+_unfiltered_sweep_v2/
+_control_sweep/
+_blog_so_sweep/
+_handoff/
+handoff.zip
+data/raw/
+*.warc
+*.warc.gz
+
+# ── run state and backups ────────────────────────────────────────────────────
+# `var/fetch/` is per-container by design; `var/` also holds the repair backups
+# written before a staging write, which must never travel in an image.
+var/
+
+# ── secrets ──────────────────────────────────────────────────────────────────
+# `serve.py` loads `.env` if present for local container runs; on Railway the
+# variables come from the platform. Baking one into the image would put a
+# database password in a layer anyone who pulls it can read.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ── the frontend, which is the other service ─────────────────────────────────
+web/node_modules/
+web/dist/
+web/dist-single/
+
+# ── python and tooling ───────────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# ── vcs and local noise ──────────────────────────────────────────────────────
+.git/
+.github/
+.gitignore
+*.log

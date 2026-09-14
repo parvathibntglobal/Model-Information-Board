@@ -165,6 +165,62 @@ app = FastAPI(
 )
 
 
+# ── CORS: off by default, and never `*` ───────────────────────────────────────
+#
+# THERE WAS NO CORS MIDDLEWARE HERE AT ALL, AND THAT WAS CORRECT UNTIL NOW.
+# `web/vite.config.js` says why: "The backend runs no CORS middleware, so in dev
+# we proxy rather than ask them to add one." One origin needs no header, and a
+# header nobody needs is a door nobody is watching.
+#
+# A two-service deployment is two origins, and the browser refuses the call
+# before this process ever sees it - so the failure is a console message on
+# somebody else's machine and a board that renders empty. That is the "breaks
+# silently" case, and it is why this is configured rather than discovered.
+#
+# `ALLOWED_ORIGINS` IS A LIST, NOT A WILDCARD, and the middleware is not
+# installed at all when it is unset:
+#
+#   unset            no middleware. Same-origin deployments and local dev are
+#                    unchanged, and nothing is loosened by accident.
+#   a comma list     exactly those origins, credentials allowed.
+#   "*"             REFUSED at startup, below.
+#
+# `*` is refused rather than warned about because it cannot do what a reader
+# would assume: the CORS spec forbids `*` with credentials, so a wildcard here
+# silently turns the credentialed requests OFF rather than opening them up. A
+# setting whose effect is the opposite of its appearance is worse than no
+# setting, and this API carries a bearer token on every route that is not
+# `/health` or `/auth/login`.
+_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in (os.getenv("ALLOWED_ORIGINS") or "").split(",")
+    if origin.strip()
+]
+if "*" in _ALLOWED_ORIGINS:
+    raise RuntimeError(
+        "ALLOWED_ORIGINS contains '*'. The CORS spec forbids a wildcard origin "
+        "with credentials, so this would disable the credentialed requests it "
+        "looks like it is enabling - and every route here except /health and "
+        "/auth/login carries a bearer token. Name the frontend's origin "
+        "instead, e.g. https://<service>.up.railway.app (scheme and host, no "
+        "trailing slash)."
+    )
+if _ALLOWED_ORIGINS:
+    from fastapi.middleware.cors import CORSMiddleware
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_ALLOWED_ORIGINS,
+        # The session token rides in an `Authorization` header, not a cookie,
+        # so this is not strictly required today. It is set because
+        # `judge/login.py` may move to a cookie and the failure if it does
+        # would be a login that succeeds and a board that 401s.
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
+
+
 class AskRequest(BaseModel):
     """What the user typed, plus anything they chose to pin down.
 

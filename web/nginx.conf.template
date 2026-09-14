@@ -1,0 +1,46 @@
+# Static hosting for the built SPA. `$PORT` is substituted at container start
+# by nginx:alpine's own envsubst pass over /etc/nginx/templates/.
+
+server {
+    listen       ${PORT};
+    server_name  _;
+    root         /usr/share/nginx/html;
+    index        index.html;
+
+    # THE SPA FALLBACK, AND IT IS NOT COSMETIC. `react-router-dom` owns
+    # /models/<id> and every other path in the app. A reload or a pasted link
+    # asks nginx for a file that was never built, and without this line the
+    # answer is 404 on every route except `/` - which reads as "the deploy is
+    # broken" rather than "the server does not know about client routing".
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Hashed assets are immutable by construction - Vite puts the content hash
+    # in the filename - so they can be cached hard. `index.html` deliberately is
+    # NOT, below, because it is the file that names the current hashes.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location = /index.html {
+        # A cached index.html points at the PREVIOUS build's asset hashes, which
+        # no longer exist - so a browser holding one gets a white page after
+        # every deploy until it hard-reloads. Cheap to serve, expensive to cache.
+        add_header Cache-Control "no-cache";
+    }
+
+    # A liveness target that does not depend on the app booting. Railway's
+    # healthcheck can point here; the backend's own /health is a different
+    # thing and says whether the API is open.
+    location = /healthz {
+        access_log off;
+        return 200 "ok\n";
+        add_header Content-Type text/plain;
+    }
+
+    gzip              on;
+    gzip_types        text/css application/javascript application/json image/svg+xml;
+    gzip_min_length   1024;
+}
