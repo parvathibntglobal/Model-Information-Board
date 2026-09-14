@@ -234,8 +234,42 @@ function vCap(slug){
 
 function vMet(slug){
   const m = byS(DB.mets,slug); if(!m) return vBoard('met');
-  const head = m.cols.map((c,i)=>`<th${m.num[i]?' class="r"':''}>${esc(c)}</th>`).join('');
-  const body = m.rows.map(r=>'<tr>'+r.map((v,i)=>`<td${m.num[i]?' class="r"':''}>${esc(v)}</td>`).join('')+'</tr>').join('');
+  const srcs = m.srcs || [];
+  // EVERY FIGURE NAMES THE REPORT IT CAME FROM, AND LINKS IT.
+  //
+  // The table rendered Model/Figure/Basis/Unit and nothing else, so thirteen
+  // SWE-bench figures drawn from THREE articles read as thirteen findings, and
+  // a reader could not open any of them. `open the source` already exists for
+  // quotes 120 lines up in this file; figures could not have it because the API
+  // sent no url. Both halves are fixed — the url now travels with the figure.
+  const head = m.cols.map((c,i)=>`<th${m.num[i]?' class="r"':''}>${esc(c)}</th>`).join('')
+    + (srcs.length ? '<th>Source</th>' : '');
+  // SAME FIGURE, SAME BASIS, SAME DOCUMENT = ONE REPORT SAYING IT TWICE.
+  // Counted rather than collapsed: the rows are distinct verified quotes and
+  // deleting one would be a caused absence. What must not survive is a reader
+  // counting them as separate corroboration, so they are marked instead.
+  const key = (r,i)=>[r[0],r[1],r[2],(srcs[i]||{}).id].join('');
+  const tally = new Map();
+  m.rows.forEach((r,i)=>tally.set(key(r,i),(tally.get(key(r,i))||0)+1));
+  const repeated = [...tally.values()].filter(n=>n>1).reduce((a,n)=>a+n,0);
+  const body = m.rows.map((r,i)=>{
+    const s = srcs[i] || {};
+    const href = safeHref(s.url);
+    // NO LINK IS BETTER THAN A DEAD ONE — the same rule the quotes view states.
+    const cell = !srcs.length ? ''
+      : `<td>${s.id ? `<span class="mono">${esc(s.id)}</span> ` : ''}${
+          href
+            ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">open the source</a>`
+            : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>'
+        }${tally.get(key(r,i))>1 ? '<span class="qmeta"> · same report as another row below</span>' : ''}</td>`;
+    return '<tr>'+r.map((v,j)=>`<td${m.num[j]?' class="r"':''}>${esc(v)}</td>`).join('')+cell+'</tr>';
+  }).join('');
+  const dupNote = repeated
+    ? `<p class="muted" style="margin-top:10px;max-width:76ch;font-size:.9rem">${repeated} of these
+       rows repeat a figure this board already has from the same report — the same article stating it
+       more than once. They are kept because each is its own verified quote, and marked because
+       ${repeated} rows from one report is still <b>one</b> report, not ${repeated}.</p>`
+    : '';
   return `<div class="shell phead">${crumb([['Board','board'],['Metrics','board:met'],[m.name,null]])}
     <h1>${esc(m.name)}</h1><p class="sub">An axis the board found figures for. Every figure is shown as the
     text wrote it, with whether it was <b>stated</b> by the provider or <b>reported</b> by somebody who
@@ -244,8 +278,8 @@ function vMet(slug){
     ${sec('The number\u2019s limits','What this metric cannot tell you',
       'Four things that change the figure and never appear beside it.',conds(m.lim))}
     ${sec('Every model tracked','Recorded figures',
-      'Each figure is copied verbatim from the evidence. A stated figure and a reported one are different facts from different sources, so they sit side by side rather than being averaged.',
-      `<div class="tblwrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`)}
+      'Each figure is copied verbatim from the evidence and names the report it came from. A stated figure and a reported one are different facts from different sources, so they sit side by side rather than being averaged — and two rows citing one report are one report, not two.',
+      `<div class="tblwrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${dupNote}`)}
     ${sec('Related','','',related(m.rel))}`;
 }
 

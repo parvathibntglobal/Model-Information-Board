@@ -26,7 +26,7 @@ from typing import NamedTuple
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from judge import login
+from judge import fetch_reaper, login
 from judge.ask import requirements, spend
 from judge.ask.profile import Assumption, RoleRequirement
 from judge.ask.rank import guard_for
@@ -1324,6 +1324,23 @@ def start_fetch(req: FetchRequest) -> dict:
     mv = req.model_version_id.strip()
     if not mv:
         raise HTTPException(status_code=422, detail="model_version_id is required")
+
+    # TIDY THE CORPSES BEFORE ADDING A LIVE ONE. A run whose process ended
+    # without writing its end record reads as running forever - one had done so
+    # for 70.5 hours when this was written - and the history is unreadable while
+    # "running" means either "working now" or "died at some point since Friday".
+    #
+    # Here rather than on a schedule because it needs no scheduler and the
+    # moment is exactly right: somebody is about to watch this page, and the
+    # rows that would confuse them are about to be joined by a real one. It
+    # never raises and never blocks the start - see `reap`.
+    reaped: list[str] = []
+    try:
+        with _conn() as conn:
+            reaped = [r.run_id for r in fetch_reaper.reap(conn)]
+    except Exception:  # noqa: BLE001 - a tidy-up must not stop a fetch
+        log.warning("could not reap abandoned runs before starting", exc_info=True)
+
     run_id = f"{mv.replace('/', '_')}-{uuid.uuid4().hex[:8]}"
     script = _REPO_ROOT / "scripts" / "fetch_model.py"
     # Detached: we do not wait. env carries DATABASE_URL / GITHUB_TOKEN etc.,
@@ -1335,7 +1352,10 @@ def start_fetch(req: FetchRequest) -> dict:
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    return {"run_id": run_id, "model_version_id": mv}
+    # NAMED IN THE RESPONSE, not done quietly. Marking another machine's run
+    # dead is a visible change to shared history, and a caller that can see it
+    # happened can disagree with it.
+    return {"run_id": run_id, "model_version_id": mv, "reaped_runs": reaped}
 
 
 class StopFetchRequest(BaseModel):

@@ -6,8 +6,15 @@ import { IconAlert } from './Icons'
 // `stopped` is deliberately NOT 'fail'. A run somebody chose to abandon and a
 // run that broke are different facts, and colouring them the same loses the
 // distinction the end record went to the trouble of recording.
+//
+// `abandoned` is a THIRD fact and gets its own row for the same reason: nobody
+// chose it and nothing reported a break — the run simply stopped writing, and
+// the reaper noticed. Calling that 'error' would assert a failure nobody
+// observed; calling it 'stopped' would credit a decision nobody made. It is
+// muted rather than warned because an abandoned run is a gap in the record, not
+// a problem with the board — the thing to look at is the run, not this row.
 const FETCH_TONE = { ok: 'pass', running: 'mute', skipped: 'mute', error: 'fail',
-                     stopped: 'warn' }
+                     stopped: 'warn', abandoned: 'mute' }
 
 function runTone(r) {
   if (!r.done) return 'mute'

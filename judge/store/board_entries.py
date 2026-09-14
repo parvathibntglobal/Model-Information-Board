@@ -339,10 +339,21 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
                  "model_version_id": mv_id, "model_label": label}
             )
         if section == "metric" and value is not None:
+            # `url` TRAVELS WITH THE FIGURE, for the same reason it travels with
+            # the quote directly above. A figure is the most checkable thing on
+            # this board and it was the only evidence a reader could not open:
+            # `document_id` was sent and `url` was not, so the metric table had
+            # no link to render and every published figure was unverifiable.
+            #
+            # `document_id` is kept as well as the url, and it is the one that
+            # matters for honesty rather than convenience: without it the table
+            # cannot tell two figures from one article apart from two articles
+            # agreeing, which is the `reports`-vs-`quote_count` inflation this
+            # file's docstring already describes, arriving by a second route.
             bucket["figures"].append(
                 {"value": value, "basis": basis, "unit": unit,
                  "model_version_id": mv_id, "model_label": label,
-                 "document_id": doc_id}
+                 "document_id": doc_id, "url": url}
             )
 
     out: dict[str, list[dict]] = {}
@@ -544,7 +555,16 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
             # stated and reported stay side by side here too. A model page that
             # averaged an advertised ceiling with a measured figure would be
             # describing a number nobody produced.
-            bucket["figures"].append({"value": value, "basis": basis, "unit": unit})
+            #
+            # AND THE SOURCE COMES WITH THEM. This carried neither `document_id`
+            # nor `url` - less than `board_sections` sent, so the model page's
+            # figures were doubly unattributable: no link to open and no way to
+            # see that two rows came from one article. Same three fields as the
+            # quote above, because a figure is evidence on the same terms.
+            bucket["figures"].append(
+                {"value": value, "basis": basis, "unit": unit,
+                 "document_id": doc_id, "url": url}
+            )
 
     out = {}
     for section, by_slug in sections.items():

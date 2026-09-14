@@ -266,3 +266,88 @@ class TestTheButton:
     def test_the_panel_says_what_stopping_costs(self):
         js = self._jsx()
         assert "Rows already written are kept" in js
+
+
+class TestTheRunSaysItIsAlive:
+    """Silence and death are different things, and only one should be reaped.
+
+    @anoojntglobal-sudo caught this on #285: a run wedged inside one call is
+    silent AND alive. The reaper keys on silence, so without a heartbeat it
+    would assert `abandoned` about a process still holding its connection — a
+    missing value becoming a definite one, which is what the record exists to
+    avoid.
+
+    Stage lines say what a run is DOING and stop when it wedges. The heartbeat
+    says it EXISTS and keeps going.
+    """
+
+    def _progress(self, tmp_path, monkeypatch, *, every=0.01):
+        import scripts.fetch_model as fm
+
+        monkeypatch.setattr(fm, "FETCH_DIR", tmp_path)
+        monkeypatch.setattr(fm.Progress, "HEARTBEAT_SECONDS", every)
+        # The mirror is a database write; this test is about the file.
+        monkeypatch.setattr(fm, "_mirror_fetch_line", lambda **k: False)
+        return fm
+
+    def _lines(self, path):
+        import json
+
+        return [json.loads(x) for x in path.read_text(encoding="utf-8").splitlines() if x]
+
+    def test_it_beats_while_nothing_else_is_happening(self, tmp_path, monkeypatch):
+        import time
+
+        fm = self._progress(tmp_path, monkeypatch)
+        prog = fm.Progress("run-1", "m/v")
+        try:
+            time.sleep(0.2)          # no stages, no progress — a wedged run
+            beats = [r for r in self._lines(prog.path) if r.get("kind") == "alive"]
+        finally:
+            prog.done("ok")
+
+        assert beats, "a run that is wedged but alive must still say it exists"
+
+    def test_the_last_line_is_never_a_beat(self, tmp_path, monkeypatch):
+        """A run whose final line is `alive` reads as one that came back."""
+        import time
+
+        fm = self._progress(tmp_path, monkeypatch)
+        prog = fm.Progress("run-2", "m/v")
+        time.sleep(0.1)
+        prog.done("ok")
+        time.sleep(0.1)              # the thread would beat again if not stopped
+
+        lines = self._lines(prog.path)
+        assert lines[-1]["kind"] == "end"
+        assert lines[-1]["status"] == "ok"
+
+    def test_beats_do_not_disturb_the_sequence(self, tmp_path, monkeypatch):
+        """Two threads write now, so seq must stay unique and contiguous."""
+        import time
+
+        fm = self._progress(tmp_path, monkeypatch)
+        prog = fm.Progress("run-3", "m/v")
+        for i in range(20):
+            prog.stage(f"E{i}", "n", "ok")
+        time.sleep(0.1)
+        prog.done("ok")
+
+        lines = self._lines(prog.path)
+        assert len(lines) == len({id(x) for x in lines})
+        # `_seq` is the authority the mirror uses; it must have counted every
+        # line exactly once, beats included.
+        assert prog._seq == len(lines)
+
+    def test_a_beat_is_not_a_stage_so_the_page_never_shows_it(self, tmp_path, monkeypatch):
+        import time
+
+        fm = self._progress(tmp_path, monkeypatch)
+        prog = fm.Progress("run-4", "m/v")
+        time.sleep(0.1)
+        prog.done("ok")
+
+        beats = [r for r in self._lines(prog.path) if r.get("kind") == "alive"]
+        assert beats
+        # collapseStages() in FetchPanel.jsx keeps only kind === 'stage'.
+        assert all(r.get("kind") != "stage" for r in beats)

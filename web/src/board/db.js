@@ -170,6 +170,25 @@ export function setBoardData(payload) {
         f.basis,
         f.unit || m.unit || '',
       ]),
+      // THE SOURCE, PARALLEL TO `rows` RATHER THAN INSIDE IT.
+      //
+      // `document_id` has always been on every figure and this file dropped it,
+      // so the only thing distinguishing two rows was discarded before render.
+      // Thirteen SWE-bench figures from THREE articles rendered as thirteen
+      // unattributed lines, and two of them were the same article twice — which
+      // reads as corroboration and is one report. That is the same inflation
+      // `board_entries.py` fixed for `reports` on 2026-09-11, reaching the page
+      // by a second route.
+      //
+      // Kept OUT of `rows` deliberately: views.js escapes every cell of `rows`
+      // with esc(), which is what makes that loop safe to render. A cell that
+      // had to carry an anchor would make the cells polymorphic and put an
+      // un-escaped branch inside the generic table. One controlled column
+      // instead, built here and rendered explicitly there.
+      srcs: (m.figures || []).map((f) => ({
+        id: f.document_id || '',
+        url: f.url || null,
+      })),
     }
   })
 

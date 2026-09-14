@@ -411,3 +411,93 @@ class TestAccumulation:
         assert world.execute("SELECT count(*) FROM cell").fetchone()[0] == 1
         status = world.execute("SELECT status FROM cell").fetchone()[0]
         assert status == CellStatus.INSUFFICIENT.value
+
+
+class TestAThreadIsKeptAsSoonAsItIsDone:
+    """A run that dies mid-batch used to discard every thread that had finished.
+
+    `run_all` committed once, after the loop, so a stop or a crash at thread 20
+    of 24 rolled back all 19 — up to 13.8 minutes of measured extraction, already
+    paid for at the provider, with nothing recording that it happened. The Stop
+    button made this reachable deliberately rather than by accident: it exists so
+    a person can halt a run they can see going wrong.
+
+    ⚠ EVERY TEST HERE OPENS THE OUTER TRANSACTION FIRST, and the first draft did
+      not. Without that these tests pass for a reason that has nothing to do with
+      the fix: `conn.transaction()` is a SAVEPOINT only when a transaction is
+      already open, and when one is not it opens a real transaction and COMMITS
+      on exit. Measured on this database:
+
+          no statement since the last commit -> transaction(); rollback() -> row SURVIVES
+          one statement first                -> transaction(); rollback() -> row GONE
+
+      `scripts/fetch_model.py` has executed many statements by the time E5 runs,
+      so production is always the second case — which is what `pipeline.py:906`
+      means by "the caller owns the outer one". A fixture that commits and then
+      calls `run_all` is the first case, so it would have shown a thread
+      surviving a rollback with the hook removed, and the test would have been
+      green and meaningless.
+    """
+
+    def _args(self, fixture):
+        return dict(
+            facts=facts_for(fixture),
+            model_version_of={"google/gemini-2.5-flash": MODEL},
+            already_extracted={},
+        )
+
+    @staticmethod
+    def _as_production_does(world):
+        """Open the outer transaction, the way a real run already has."""
+        world.execute("SELECT 1")
+
+    def test_a_finished_thread_survives_the_run_dying(self, world, fixture):
+        document_id = fixture["member_document_ids"][0]
+        pipeline = pipeline_for(world, scripted(fixture, document_id))
+        self._as_production_does(world)
+
+        pipeline.run_all(
+            [thread_input(fixture)], after_thread=world.commit, **self._args(fixture)
+        )
+        # The run dies here: no outer commit ever happens.
+        world.rollback()
+
+        assert world.execute("SELECT count(*) FROM claim").fetchone()[0] == 1, (
+            "the thread finished, so its claims must outlive the run that was "
+            "reading the next one"
+        )
+
+    def test_without_the_hook_the_same_death_loses_it(self, world, fixture):
+        """The defect, pinned. This is what makes the test above mean something.
+
+        Also today's behaviour for `cli.py` and `run_extraction_batched.py`, and
+        not a complaint about them — a nightly batch nobody is watching has no
+        Stop button and a different trade-off. Pinned so the difference stays a
+        decision somebody made rather than an accident.
+        """
+        document_id = fixture["member_document_ids"][0]
+        pipeline = pipeline_for(world, scripted(fixture, document_id))
+        self._as_production_does(world)
+
+        pipeline.run_all([thread_input(fixture)], **self._args(fixture))
+        world.rollback()
+
+        assert world.execute("SELECT count(*) FROM claim").fetchone()[0] == 0
+
+    def test_the_hook_fires_after_the_claim_is_written(self, world, fixture):
+        document_id = fixture["member_document_ids"][0]
+        pipeline = pipeline_for(world, scripted(fixture, document_id))
+        self._as_production_does(world)
+        seen = []
+
+        pipeline.run_all(
+            [thread_input(fixture)],
+            after_thread=lambda: seen.append(
+                world.execute("SELECT count(*) FROM claim").fetchone()[0]
+            ),
+            **self._args(fixture),
+        )
+
+        # Once, and AFTER the write. A hook firing before it would commit an
+        # empty transaction and lose the thread just as completely.
+        assert seen == [1]
