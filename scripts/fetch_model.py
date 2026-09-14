@@ -31,6 +31,7 @@ import json
 import logging
 import os
 import sys
+import threading
 import time
 import traceback
 import uuid
@@ -179,15 +180,72 @@ class Progress:
         #: down for the length of a run, and re-attempting a connection on
         #: every stage line turns a quiet mirror into a per-line timeout.
         self._mirror = True
+        #: TWO THREADS WRITE NOW, so `_seq` and the file append need one. The
+        #: heartbeat below runs off the main thread on purpose — that is the
+        #: whole point of it — and two unsynchronised appends would interleave a
+        #: line and hand the same seq to both.
+        self._lock = threading.Lock()
+        self._stop_beating = threading.Event()
         self._write({"kind": "run", "run_id": run_id,
                      "model_version_id": model_version_id, "at": _now()})
+        self._start_heartbeat()
+
+    # ── the heartbeat ────────────────────────────────────────────────────────
+    #
+    # WHY A RUN HAS TO SAY IT IS ALIVE, SEPARATELY FROM SAYING WHAT IT IS DOING.
+    #
+    # The reaper marks a run abandoned when it has written nothing for 45
+    # minutes, and that is the only signal available across machines: the
+    # database is shared, the process is not, so "is it still running" cannot be
+    # asked of a pid on somebody else's laptop.
+    #
+    # But silence and death are different things, and @anoojntglobal-sudo caught
+    # the gap on #285: a run wedged inside one call is silent AND alive. Reaping
+    # it would assert `abandoned` about a process still holding its connection
+    # and still able to write threads 28+ if the call returned — a missing value
+    # becoming a definite one, which is the exact shape the record was written to
+    # avoid.
+    #
+    # A heartbeat off the main thread closes it. Stage lines say what a run is
+    # DOING and stop when it wedges; this says it EXISTS and keeps going, so:
+    #
+    #     no heartbeat        the process is gone            -> reap
+    #     heartbeat, no stage the process is wedged          -> a person looks
+    #
+    # The reaper needs no change: it keys on `max(at)` over every line, so a
+    # heartbeat simply makes silence honest. And `collapseStages` in
+    # FetchPanel.jsx skips anything that is not `kind: "stage"`, so these never
+    # reach the page.
+    HEARTBEAT_SECONDS = float(os.getenv("FETCH_HEARTBEAT_SECONDS", "60"))
+
+    def _start_heartbeat(self) -> None:
+        def beat() -> None:
+            # `wait` rather than `sleep`: `done()` sets the event and the thread
+            # leaves immediately instead of holding the process open for up to a
+            # minute after the run has finished.
+            while not self._stop_beating.wait(self.HEARTBEAT_SECONDS):
+                with contextlib.suppress(Exception):
+                    # NEVER RAISES. A heartbeat that could end a run would be a
+                    # liveness check that kills the patient.
+                    self._write({"kind": "alive", "at": _now()})
+
+        self._heart = threading.Thread(
+            target=beat, name=f"heartbeat-{self.run_id}", daemon=True
+        )
+        self._heart.start()
 
     def _write(self, rec: dict) -> None:
-        seq = self._seq
-        self._seq += 1
-        with self.path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(rec) + "\n")
-        if self._mirror:
+        with self._lock:
+            seq = self._seq
+            self._seq += 1
+            with self.path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(rec) + "\n")
+            mirror = self._mirror
+        if mirror:
+            # OUTSIDE THE LOCK. The mirror opens a connection and can wait on the
+            # network; holding the lock across it would let a slow database stall
+            # the main thread behind a heartbeat, which is the opposite of what
+            # this is for.
             self._mirror = _mirror_fetch_line(
                 run_id=self.run_id, seq=seq, rec=rec,
                 model_version_id=self.model_version_id,
@@ -232,6 +290,10 @@ class Progress:
         """The run's last line. NEVER checkpoints - this is how a stop is
         recorded, and a `done` that could raise `RunStopped` would leave the
         run with no end record and the UI polling a run that had finished."""
+        # THE HEARTBEAT STOPS FIRST. A beat written after the end record would
+        # sort after it, and a run whose last line is `alive` reads as one that
+        # came back from the dead.
+        self._stop_beating.set()
         self._write({"kind": "end", "status": status, "detail": detail, "at": _now()})
 
 
@@ -1592,9 +1654,24 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
         prog.stage("E5", "Extract", "running",
                    detail=f"reading thread {counter['n']}/{total} (LLM) — {tc_id}")
 
+    # THE STOP BUTTON REACHES INSIDE A THREAD, WHICH IT DID NOT.
+    #
+    # `checkpoint()` is called from `stage()`, so during E5 the next check is the
+    # progress line for the NEXT thread. A call that hangs never gets there.
+    # Measured 2026-09-14: `POST /fetch/stop` returned `stop_requested: true,
+    # was_running: true` — both true, the note accurate — and the run carried on
+    # for 39 minutes until it was killed by pid. The button reported success and
+    # did nothing, in the one situation anybody presses it.
+    #
+    # The client calls this about once a second while a response is arriving. It
+    # does not know what it is calling; `checkpoint` raises `RunStopped`, which
+    # unwinds to the same handler that records any other stop.
+    extractor = OpenRouterClient.from_env()
+    extractor.on_progress = prog.checkpoint
+
     results = Pipeline(
         conn,
-        client=OpenRouterClient.from_env(),
+        client=extractor,
         capability_keys=list(capabilities().keys()),
         extractor_model=os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
         # BOTH ID SHAPES for this run's subject. `board_entry.model_version_id`
