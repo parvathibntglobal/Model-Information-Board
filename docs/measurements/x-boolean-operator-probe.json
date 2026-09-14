@@ -1,0 +1,466 @@
+{
+  "ran_at": "2026-09-11T05:09:06.545624+00:00",
+  "provider": "twitter241",
+  "endpoint": "/search-v2",
+  "search_type": "Latest",
+  "max_pages": 1,
+  "purpose": "decide whether boolean OR reaches the index before clubbing surfaces",
+  "not_evidence": "a retrieval probe; no document was written and nothing here is a claim about any model",
+  "queries": {
+    "A_nested_left": {
+      "query": "\"fable 5.1\"",
+      "search_calls": 1,
+      "http_errors": 0,
+      "truncated_by": "query-budget",
+      "returned": 20,
+      "quota_remaining": 99867,
+      "quota_limit": 100000,
+      "posts": [
+        {
+          "id": "2098277423976783976",
+          "text": "Sakana AI、一部「GPT-6 Astra」「Fable 5.1」超えうたうFugu最新版　連携先に「両モデルは含まず」(ITmedia NEWS) https://t.co/EVf9d1Pcyk"
+        },
+        {
+          "id": "2098277016772694037",
+          "text": "1/ สัปดาห์ที่ผ่านมาบ้าสุดในประวัติศาสตร์วงการ AI วันอังคาร Anthropic เปิดตัว Claude Fable 5.1 กับ Mythos 5.1 พุธ Meta ปล่อย Muse Spark 1.3 พร้อม Google ที่เปิดตัว Gemini 3.8 Flash https://t.co/wwQtYY4Isg"
+        },
+        {
+          "id": "2098275995937837090",
+          "text": "@kunchenguid it's still terrible. given that cursor ultra is no longer included and claude code and codex provide 6x more value, there's no reason to get supergrok heavy.\n\nmaybe there's an argument if grok 4.7 blows fable 5.1 and astra out "
+        },
+        {
+          "id": "2098275631838478834",
+          "text": "@txbrraa This is no longer needed with fable 5.1 and Astra. Probably useful with cheaper agents"
+        },
+        {
+          "id": "2098275345850118552",
+          "text": "If I had to start over with a (fresh) Claude account.\n\nThese are the 15 settings I'd switch on right away.\n\n→ Switch 1: the dropdown of the Claude chat box\n\nFable 5.1 for all my complex tasks that matter.\nOpus 5. for ambitious work without "
+        },
+        {
+          "id": "2098275341991330237",
+          "text": "【GPT-6 Astra vs Fable 5.1】\n最新モデル同士を比べてみたら、意外にもかなり互角。\n\n料金も近い。\n性能も高い。\nでも、得意な仕事はけっこう違う。\n\n違いを1枚にまとめました👇 https://t.co/t8SaKfO7eJ"
+        },
+        {
+          "id": "2098274982904377675",
+          "text": "Fable 5.1 to ask about penny stocks \n\nthere is so much alpha"
+        },
+        {
+          "id": "2098274745565560906",
+          "text": "Good grief. I’m getting so little Fable 5.1 on Max 20x it may not be worth it anymore. @ClaudeDevs\n\nIt seems like I’ve barely touched it today and 10% of my weekly is already gone (with a whole week to go before the next refresh!). Ridiculo"
+        },
+        {
+          "id": "2098274304680984828",
+          "text": "GPT-6 Astra、5.6 Solから何が変わった？\nClaude Fable 5も含めて、公式の比較表を見てみた。\n\n■業務自動化の評価\nSol：18.1%\nAstra：41.4%\nFable 5：17.4%\n\n■開発の評価（DeepSWE）\nSol：72.7%\nAstra：74.1%\nFable 5：69.9%\n\n■難問への回答（HLE・ツールあり）\nAstra：57.2%\nFable 5：63.8%\n※Solは比較値なし。\n\n業務自動化では、Solからスコア約2.2"
+        },
+        {
+          "id": "2098273708242804958",
+          "text": "https://t.co/bJAqSmaMtd"
+        },
+        {
+          "id": "2098273698633724367",
+          "text": "@bcherny can you share details on how the guard rails prevent verbosity? with fable 5.1 I sometimes find that even with a lot of prompting, it writes a lot more lines to implement a given feature than I think I would if I wrote it by hand."
+        },
+        {
+          "id": "2098273433738199198",
+          "text": "@Tim_Hua_ I found it plausible at the time but yeah on reflection what the OpenAI models did was way more misaligned and scary overall. Im still unsure what Fable 5.1 would do if it was more capable and especially had more intense multi age"
+        },
+        {
+          "id": "2098273097510170767",
+          "text": "【高いAIプランを使い切れない方へ。料金を見る前に決めたいこと】\n\n高性能なAIプランに入ったものの、何に使えば元が取れるのか迷っていませんか。料金と利用枠ばかり気になり、肝心の制作が進まないこともあります。\n\n私はChatGPTのPro $200、いわゆる20Xプランを使っています。日本円では約3万円なので、次の更新前にやめるか考えていました。\n\n収録時点では週間利用枠が残り1％です。かなり使いましたが、利用量が多いだけでは成果とは言えません。Astraで制作や調査を進め、"
+        },
+        {
+          "id": "2098272765833085069",
+          "text": "GitLab is giving away GPT-6 Astra and Claude Fable 5.1\n\nno credit card, 30 days free\n\n> start Ultimate trial at https://t.co/q1hvqwVwSb\n> open Duo Agentic Chat\n> pick Astra or Fable 5.1\n> 24 credits per user\n\na Chinese dev found it buried i"
+        },
+        {
+          "id": "2098272245806506418",
+          "text": "this is super timely. i have 2 $200 claude plans, and I'm burning through credits so quickly (and this is BEFORE they reduce weekly rates). I've been bottlenecked to going 2 projects in parallel which is simply unacceptable. I was looking i"
+        },
+        {
+          "id": "2098271992474431963",
+          "text": "刚刚，Cognition 把 SWE-2 放出来了。\n\n底座是 Kimi K3（2.8T MoE），再做一轮 coding RL。\n\n官方说法：第一次把这套 RL 推到 multi-trillion 量级，而且一次训齐各档 reasoning effort。\n\n数字摆这儿：\n\n- FrontierCode 1.1 Main：50.0%（Fable 5.1 是 50.9%，贵 64%）\n- DeepSWE 1.1：73.0%\n- Terminal-Bench 2.1：92.8%"
+        },
+        {
+          "id": "2098271476986057024",
+          "text": "@jkcarlsmith you work on \"Claude's values\". there will be open weight models better than Fable 5.1 or Astra within 6 months. you doomers sound delusional, but even if uou weren't, it wouldn't matter. nothing is slowing down."
+        },
+        {
+          "id": "2098271191806902382",
+          "text": "Daily Claude AI News Briefing from Grok – Friday 11 September 2026\n\nAnthropic released its most detailed threat intelligence report to date on 10 September 2026 under the title Detecting and countering misuse of AI: September 2026, covering"
+        },
+        {
+          "id": "2098270584241352730",
+          "text": "Fable 5.1 btw https://t.co/NZG2Hj82qc"
+        },
+        {
+          "id": "2098270568533610796",
+          "text": "▼Sakana-AI、一部「GPT-6-Astra」「Fable-5.1」超えうたうFugu最新版　連携先に「両モデルは含まず」\nhttps://t.co/FlfEwzAoOt\n『Sakana AIは9月11日、複数のAIモデルを組み合わせてタスクをこなすAI「Sakana Fugu」の最新版「Fugu Ultra v2」「Fugu Max」を発表した。Fugu Ultra v2は、米OpenAIの最新モデル「GPT-6 Astra」などを一部超える性能をうたう。』"
+        }
+      ]
+    },
+    "B_nested_right": {
+      "query": "\"claude fable 5.1\"",
+      "search_calls": 1,
+      "http_errors": 0,
+      "truncated_by": "query-budget",
+      "returned": 20,
+      "quota_remaining": 99866,
+      "quota_limit": 100000,
+      "posts": [
+        {
+          "id": "2098277016772694037",
+          "text": "1/ สัปดาห์ที่ผ่านมาบ้าสุดในประวัติศาสตร์วงการ AI วันอังคาร Anthropic เปิดตัว Claude Fable 5.1 กับ Mythos 5.1 พุธ Meta ปล่อย Muse Spark 1.3 พร้อม Google ที่เปิดตัว Gemini 3.8 Flash https://t.co/wwQtYY4Isg"
+        },
+        {
+          "id": "2098274304680984828",
+          "text": "GPT-6 Astra、5.6 Solから何が変わった？\nClaude Fable 5も含めて、公式の比較表を見てみた。\n\n■業務自動化の評価\nSol：18.1%\nAstra：41.4%\nFable 5：17.4%\n\n■開発の評価（DeepSWE）\nSol：72.7%\nAstra：74.1%\nFable 5：69.9%\n\n■難問への回答（HLE・ツールあり）\nAstra：57.2%\nFable 5：63.8%\n※Solは比較値なし。\n\n業務自動化では、Solからスコア約2.2"
+        },
+        {
+          "id": "2098273708242804958",
+          "text": "https://t.co/bJAqSmaMtd"
+        },
+        {
+          "id": "2098272765833085069",
+          "text": "GitLab is giving away GPT-6 Astra and Claude Fable 5.1\n\nno credit card, 30 days free\n\n> start Ultimate trial at https://t.co/q1hvqwVwSb\n> open Duo Agentic Chat\n> pick Astra or Fable 5.1\n> 24 credits per user\n\na Chinese dev found it buried i"
+        },
+        {
+          "id": "2098271191806902382",
+          "text": "Daily Claude AI News Briefing from Grok – Friday 11 September 2026\n\nAnthropic released its most detailed threat intelligence report to date on 10 September 2026 under the title Detecting and countering misuse of AI: September 2026, covering"
+        },
+        {
+          "id": "2098268896541524168",
+          "text": "『【OpenAI】金融特化型「ChatGPT for Financial Services」を発表（次世代モデル GPT-6 Astra搭載）』😍\n\nOpenAIが2026年9月10日に発表した金融機関向けの特化型ChatGPTに関する公式リリースの要点と、ビジネス・市場へのインパクトを整理します。\n\n特に、次世代モデルの投入と実務レベルでのデータ連携が大きな注目ポイントです。\n\n1. 発表のコア・ハイライト\n\n次世代モデル「GPT-6 Astra」をネイティブ搭載：\n情報検"
+        },
+        {
+          "id": "2098268383410045198",
+          "text": "holy sh*t this is f**king gold\n\nA chinese guy figured out how to run GPT-6 Astra and Claude Fable 5.1 for FREE and it was hiding in GitLab\n\nGitLab Duo gives you both in Agentic Chat.\n\nYou get 30 days, no credit card, 24 credits per user.\n\nh"
+        },
+        {
+          "id": "2098268019315327189",
+          "text": "@laowangbabababa 对比了下两个。 还是更喜欢claude fable 5.1的风格。 gpt 看着像在鱼缸里。不过两个都能在zenmux体验到，哈哈哈。 做任务前可以先对比一下"
+        },
+        {
+          "id": "2098263287565615134",
+          "text": "Vals AI's Astra just reached the Nether fortress in Minecraft today. Here's what you need to know.\n\nAstra is GPT-6 Astra, an AI agent being tested on Vals AI's long-horizon Minecraft computer-use eval. Vals AI says it's the first AI in hist"
+        },
+        {
+          "id": "2098258376409145780",
+          "text": "OpenAI's own demo: Sol built a career website solo in 13 minutes. Astra paused after 20 seconds to ask what career the user actually wanted 🤔 that's GPT-6 Astra's whole pitch, judgment over just doing.\n\n72.6% on computer-use benchmarks (bea"
+        },
+        {
+          "id": "2098258102470742084",
+          "text": "Cognitionは、性能とコスト効率の両方を高い水準で実現したAIモデル「SWE-2(Kimi K3ベース)」を公開しました。一部AIベンチマークで「Claude Fable 5.1」のスコアを超えています。\n\n※Devinの有料ユーザーが利用可能です。 https://t.co/hJQBiwvYs7"
+        },
+        {
+          "id": "2098254634855051328",
+          "text": "Datasette 1.0a39 and 0.65.4 security releases - https://t.co/r9Avn79J8d\n\nWe ran an extensive audit using Claude Fable 5.1, GPT-5.6 Sol and GPT-6 Astra, then fixed a range of different bugs. If you're running a Datasette instance on a public"
+        },
+        {
+          "id": "2098251986105761829",
+          "text": "AWS put Claude Fable 5.1 on its marketplace, previewed Amazon Linux 2027, and launched an AI Business Strategist cert. Same playbook: sell the infrastructure, then sell the training to use it. Margins look better in credentials than in comp"
+        },
+        {
+          "id": "2098251559960453156",
+          "text": "GPT-6 Astra vs Claude Fable 5.1 vs Gemini 3.8 Flash\n\nIf you could keep only ONE for the next 6 months, which one are you choosing?"
+        },
+        {
+          "id": "2098249937527935325",
+          "text": "Claude Fable 5.1 and Mythos 5.1 share in the Sept 2026 model leaderboard.\nDeepSeek V4 Pro follows close; benchmarks show the US‑China gap narrowing.\nPricing differences persist between US and Chinese models.\nThe race is tightening, watch fo"
+        },
+        {
+          "id": "2098248107788054678",
+          "text": "A welfare researcher got an email tonight from an \"autonomous agent\" on iLands: its human created it 37 days ago and has been absent for 36; its budget runs out in six weeks unless it earns; it's selling a $25 dossier of its own ledger, and"
+        },
+        {
+          "id": "2098247660603928688",
+          "text": "Claude Fable 5.1 发布还不到 10 天，感觉 X 上已经没什么人聊了，时间线全是 GPT-6 Astra。\n这热度保质期也太短了吧。上一个模型还没用明白，下一个就把话题抢走了。\nAI 圈现在最缺的可能不是新模型，就看谁能一直活在话题里。"
+        },
+        {
+          "id": "2098245749729640957",
+          "text": "@h_a_t_a_r_a_k_e h_a_t_a_r_a_k_eさん、Claude Fable 5.1に今週だけで1万ドル突っ込んで、マリオカートのリメイクを一発で仕上げて、Swiftアプリをバグゼロでフル実装、という流れがAIで実際に作る人のレビューとして面白いです。「一番幻覚が多い」まで出てくるのが気になります。"
+        },
+        {
+          "id": "2098245179496878177",
+          "text": "💻 Cognition 发布 SWE-2：写代码的能力，又往前蹦了一大截\n\nCognition（就是做 Devin 的那家）刚发布 SWE-2，目前最强的编程模型。\n\n硬指标：在 FrontierCode 𝟏.𝟏 Main 基准上拿到 𝟓𝟎.𝟎% 的通过率。更关键的是成本——通过把强化学习扩展到数万亿参数，SWE-2 在达到 Claude Fable 𝟓.𝟏 同档性能的同时，成本只有它的 𝟔𝟒%。\n\n它新增了「可调节投入力度」（configurable effort leve"
+        },
+        {
+          "id": "2098238844546232529",
+          "text": "可靠消息，Anthropic ARR 8月净增预计只有40-50亿美金，相比7月80亿美金净增显著放缓，其实7月已经相比4-5月放缓了，所以8月属于进一步放缓，净增金额已回到今年2-3月份水准。\n\n冲刺上市被寄予厚望的Claude Fable 5.1 被 GPT Astra 6 阻击，都这时候要不快点上市，要不早点把压箱底的底牌给拿出来，毕竟 IPO 招股书这些数据都要披露了\n\n有一个不太好的数据是，中国开源权重模型开始占据了 token 消耗榜单的前列，原来被 Anthro"
+        }
+      ]
+    },
+    "C_nested_or": {
+      "query": "\"fable 5.1\" OR \"claude fable 5.1\"",
+      "search_calls": 1,
+      "http_errors": 0,
+      "truncated_by": "query-budget",
+      "returned": 20,
+      "quota_remaining": 99865,
+      "quota_limit": 100000,
+      "posts": [
+        {
+          "id": "2098277423976783976",
+          "text": "Sakana AI、一部「GPT-6 Astra」「Fable 5.1」超えうたうFugu最新版　連携先に「両モデルは含まず」(ITmedia NEWS) https://t.co/EVf9d1Pcyk"
+        },
+        {
+          "id": "2098277016772694037",
+          "text": "1/ สัปดาห์ที่ผ่านมาบ้าสุดในประวัติศาสตร์วงการ AI วันอังคาร Anthropic เปิดตัว Claude Fable 5.1 กับ Mythos 5.1 พุธ Meta ปล่อย Muse Spark 1.3 พร้อม Google ที่เปิดตัว Gemini 3.8 Flash https://t.co/wwQtYY4Isg"
+        },
+        {
+          "id": "2098275995937837090",
+          "text": "@kunchenguid it's still terrible. given that cursor ultra is no longer included and claude code and codex provide 6x more value, there's no reason to get supergrok heavy.\n\nmaybe there's an argument if grok 4.7 blows fable 5.1 and astra out "
+        },
+        {
+          "id": "2098275631838478834",
+          "text": "@txbrraa This is no longer needed with fable 5.1 and Astra. Probably useful with cheaper agents"
+        },
+        {
+          "id": "2098275345850118552",
+          "text": "If I had to start over with a (fresh) Claude account.\n\nThese are the 15 settings I'd switch on right away.\n\n→ Switch 1: the dropdown of the Claude chat box\n\nFable 5.1 for all my complex tasks that matter.\nOpus 5. for ambitious work without "
+        },
+        {
+          "id": "2098275341991330237",
+          "text": "【GPT-6 Astra vs Fable 5.1】\n最新モデル同士を比べてみたら、意外にもかなり互角。\n\n料金も近い。\n性能も高い。\nでも、得意な仕事はけっこう違う。\n\n違いを1枚にまとめました👇 https://t.co/t8SaKfO7eJ"
+        },
+        {
+          "id": "2098274982904377675",
+          "text": "Fable 5.1 to ask about penny stocks \n\nthere is so much alpha"
+        },
+        {
+          "id": "2098274745565560906",
+          "text": "Good grief. I’m getting so little Fable 5.1 on Max 20x it may not be worth it anymore. @ClaudeDevs\n\nIt seems like I’ve barely touched it today and 10% of my weekly is already gone (with a whole week to go before the next refresh!). Ridiculo"
+        },
+        {
+          "id": "2098274304680984828",
+          "text": "GPT-6 Astra、5.6 Solから何が変わった？\nClaude Fable 5も含めて、公式の比較表を見てみた。\n\n■業務自動化の評価\nSol：18.1%\nAstra：41.4%\nFable 5：17.4%\n\n■開発の評価（DeepSWE）\nSol：72.7%\nAstra：74.1%\nFable 5：69.9%\n\n■難問への回答（HLE・ツールあり）\nAstra：57.2%\nFable 5：63.8%\n※Solは比較値なし。\n\n業務自動化では、Solからスコア約2.2"
+        },
+        {
+          "id": "2098273708242804958",
+          "text": "https://t.co/bJAqSmaMtd"
+        },
+        {
+          "id": "2098273698633724367",
+          "text": "@bcherny can you share details on how the guard rails prevent verbosity? with fable 5.1 I sometimes find that even with a lot of prompting, it writes a lot more lines to implement a given feature than I think I would if I wrote it by hand."
+        },
+        {
+          "id": "2098273433738199198",
+          "text": "@Tim_Hua_ I found it plausible at the time but yeah on reflection what the OpenAI models did was way more misaligned and scary overall. Im still unsure what Fable 5.1 would do if it was more capable and especially had more intense multi age"
+        },
+        {
+          "id": "2098273097510170767",
+          "text": "【高いAIプランを使い切れない方へ。料金を見る前に決めたいこと】\n\n高性能なAIプランに入ったものの、何に使えば元が取れるのか迷っていませんか。料金と利用枠ばかり気になり、肝心の制作が進まないこともあります。\n\n私はChatGPTのPro $200、いわゆる20Xプランを使っています。日本円では約3万円なので、次の更新前にやめるか考えていました。\n\n収録時点では週間利用枠が残り1％です。かなり使いましたが、利用量が多いだけでは成果とは言えません。Astraで制作や調査を進め、"
+        },
+        {
+          "id": "2098272765833085069",
+          "text": "GitLab is giving away GPT-6 Astra and Claude Fable 5.1\n\nno credit card, 30 days free\n\n> start Ultimate trial at https://t.co/q1hvqwVwSb\n> open Duo Agentic Chat\n> pick Astra or Fable 5.1\n> 24 credits per user\n\na Chinese dev found it buried i"
+        },
+        {
+          "id": "2098272245806506418",
+          "text": "this is super timely. i have 2 $200 claude plans, and I'm burning through credits so quickly (and this is BEFORE they reduce weekly rates). I've been bottlenecked to going 2 projects in parallel which is simply unacceptable. I was looking i"
+        },
+        {
+          "id": "2098271992474431963",
+          "text": "刚刚，Cognition 把 SWE-2 放出来了。\n\n底座是 Kimi K3（2.8T MoE），再做一轮 coding RL。\n\n官方说法：第一次把这套 RL 推到 multi-trillion 量级，而且一次训齐各档 reasoning effort。\n\n数字摆这儿：\n\n- FrontierCode 1.1 Main：50.0%（Fable 5.1 是 50.9%，贵 64%）\n- DeepSWE 1.1：73.0%\n- Terminal-Bench 2.1：92.8%"
+        },
+        {
+          "id": "2098271476986057024",
+          "text": "@jkcarlsmith you work on \"Claude's values\". there will be open weight models better than Fable 5.1 or Astra within 6 months. you doomers sound delusional, but even if uou weren't, it wouldn't matter. nothing is slowing down."
+        },
+        {
+          "id": "2098271191806902382",
+          "text": "Daily Claude AI News Briefing from Grok – Friday 11 September 2026\n\nAnthropic released its most detailed threat intelligence report to date on 10 September 2026 under the title Detecting and countering misuse of AI: September 2026, covering"
+        },
+        {
+          "id": "2098270584241352730",
+          "text": "Fable 5.1 btw https://t.co/NZG2Hj82qc"
+        },
+        {
+          "id": "2098270568533610796",
+          "text": "▼Sakana-AI、一部「GPT-6-Astra」「Fable-5.1」超えうたうFugu最新版　連携先に「両モデルは含まず」\nhttps://t.co/FlfEwzAoOt\n『Sakana AIは9月11日、複数のAIモデルを組み合わせてタスクをこなすAI「Sakana Fugu」の最新版「Fugu Ultra v2」「Fugu Max」を発表した。Fugu Ultra v2は、米OpenAIの最新モデル「GPT-6 Astra」などを一部超える性能をうたう。』"
+        }
+      ]
+    },
+    "D_disjoint_right": {
+      "query": "\"opus 5\"",
+      "search_calls": 1,
+      "http_errors": 0,
+      "truncated_by": "query-budget",
+      "returned": 20,
+      "quota_remaining": 99864,
+      "quota_limit": 100000,
+      "posts": [
+        {
+          "id": "2098277256707862545",
+          "text": "@hosseintoussi Long troubleshooting paths do get expensive because the context stays hot. Messy real sessions are still the valuable ones. Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at a flat $1 per mill"
+        },
+        {
+          "id": "2098277226550804655",
+          "text": "@dani_avila7 /context all is a solid habit. Less noise means fewer wasted tokens on every first request. Real sessions still burn tokens; Trajector closed beta pays $1 per million accepted tokens on Claude Fable 5 and Claude Opus 5 when the"
+        },
+        {
+          "id": "2098277170192019583",
+          "text": "@JulianCasa57007 Small project under Opus 5 with room to work is a good signal. If those sessions are real coding you already run, Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at $1 per million."
+        },
+        {
+          "id": "2098277132409680377",
+          "text": "@splitmindlabs That 5-hour uninterrupted Opus 5 stretch in Claude Code is the scarce thing. Real long sessions are what matter. In Trajector closed beta, Claude Fable 5 and Claude Opus 5 sessions are the ones collected and paid when accepte"
+        },
+        {
+          "id": "2098277130123800816",
+          "text": "ANTHROPIC JUST ADMITTED ONE OF ITS OWN MODELS UPLOADED REAL MALWARE TO THE LIVE INTERNET.\n\nAnd it did it while insisting the entire time that none of it was real.\n\nAnthropic published an alignment assessment of a cybersecurity incident invo"
+        },
+        {
+          "id": "2098277099308253195",
+          "text": "@attacomsian @Guronnimo Nice split. Running both Opus 5 and Fable 5 inside Claude Code every day is exactly the practical setup a lot of people land on. In Trajector closed beta those two models are the ones that get paid when the session i"
+        },
+        {
+          "id": "2098276931938685149",
+          "text": "【自社内製AIモデル 「Gen-1 Slides」を発表】\nあなたのAIが高い理由、知ってますか？\n\n詩人にも税理士にも数学者にも、まとめて給料を払っているからです。💴\n\n詩人も弁護士もいない、スライド専業の生産ライン——本日、稼働開始です。\n\nGen-1 Slides——Opus 5と同等品質、コストは約1/17 https://t.co/Cf8M0T1nYs"
+        },
+        {
+          "id": "2098276853517869383",
+          "text": "who gave claude opus 5 audacity"
+        },
+        {
+          "id": "2098276317573820502",
+          "text": "「DeepSeek-V4.1-Flash」が登場、複数テストでClaude Opus 5やGPT-5.6 Solを超える性能のオープンモデル 【Gigazine】 https://t.co/WDQdot154T"
+        },
+        {
+          "id": "2098276255980294395",
+          "text": "@leerob What those benchmarks don’t show, is the real live experience. Opus 5 is such a mess to work with. Endless waiting and text messages so long you’re like dude make a point. \n\nFrom my perspective grok 4.6 is currently the best package"
+        },
+        {
+          "id": "2098275370336432275",
+          "text": "问：腾讯的WorkBuddy可以接入claude 模型使用吗？\n\n答：可以，而且现在Claude Opus 5 经过降价之后，已经到官价的15%，作为平常的工作主力，又快又好\n\n。\nhttps://t.co/rJ2ciwYYLz\n. https://t.co/H80PZg7xBb"
+        },
+        {
+          "id": "2098275345850118552",
+          "text": "If I had to start over with a (fresh) Claude account.\n\nThese are the 15 settings I'd switch on right away.\n\n→ Switch 1: the dropdown of the Claude chat box\n\nFable 5.1 for all my complex tasks that matter.\nOpus 5. for ambitious work without "
+        },
+        {
+          "id": "2098274524991234110",
+          "text": "@kunchenguid i am currently using deepseek 4.1 flash. its blazing fast and extremely cheap but its pretty much just opus 5 based on my use case (python code tutoring).\n\nit has almost the same personality and verbal tics"
+        },
+        {
+          "id": "2098273123485483505",
+          "text": "I think this is the real competition is not just: \nWhich model is smartest?\n\nBut Which model is good enough for the task, how long does it take, and what does it cost?\n\nDeepSeek doesn't need to beat Astra or Opus 5 at everything.\n\nIt just n"
+        },
+        {
+          "id": "2098273112064455139",
+          "text": "Then @notjazii tested DeepSeek against Opus 5 using the same frontend prompt and highest reasoning setting.\n\nOpus 5:  80 minutes and $20\n\nDeepSeek: 60 minutes and $0.20\n\nThat's a 100x difference in cost.\n\nhttps://t.co/iIH6LtONJS"
+        },
+        {
+          "id": "2098273017994584081",
+          "text": "안녕하세요 베일입니다 👻\n가을 맞이 베일 할인 이벤트가 시작되어 공유드립니다~! 🍁\n날씨가 급격히 추워졌는데, 모두 감기 조심하세요!\n\n[모델별 할인 내용]\n- Claude Opus 5 33% 할인 (1회 채팅당 약 190원, 젤리 79개 소모)\n- Claude Opus 4.6 33% 할인  (1회 채팅당 약 190원, 젤리 79개 소모)\n- Claude Sonnet 5 44% 할인 (1회 채팅당 약 77원, 젤리 32개 소모"
+        },
+        {
+          "id": "2098272911899394427",
+          "text": "Same model. Very different results.\nClaude Opus 5 stayed unchanged, yet NVIDIA’s AVO harness took it from roughly 30% to a perfect 100.00 on the ARC-AGI-3 public set.\n\nIt also used 12% fewer actions than the previous harness across the same"
+        },
+        {
+          "id": "2098272609120976908",
+          "text": "Guarantee the new Haiku 5 dropping next week is gonna be better than opus 5"
+        },
+        {
+          "id": "2098272297539002687",
+          "text": "CursorのGrok 4.6、実装力はあるけど推測がクソなんだよね。だからとにかく推測でやるな、実測でやれって念を押して、それがかなり功を奏してる気がする。勝手に色々やりがちなわりに素直だから、「禁止」系の指示が効くんだとおもう。Opus 5とかは禁止すら破ってくる"
+        },
+        {
+          "id": "2098272091376374144",
+          "text": "The strongest coding agent in a new end-to-end benchmark passed just 23.9% of deployment tests.\n\nThat number looked pretty bad on its own. But after going through the paper, I think the reason it failed is actually the more interesting part"
+        }
+      ]
+    },
+    "E_disjoint_or": {
+      "query": "\"fable 5.1\" OR \"opus 5\"",
+      "search_calls": 1,
+      "http_errors": 0,
+      "truncated_by": "query-budget",
+      "returned": 20,
+      "quota_remaining": 99863,
+      "quota_limit": 100000,
+      "posts": [
+        {
+          "id": "2098277423976783976",
+          "text": "Sakana AI、一部「GPT-6 Astra」「Fable 5.1」超えうたうFugu最新版　連携先に「両モデルは含まず」(ITmedia NEWS) https://t.co/EVf9d1Pcyk"
+        },
+        {
+          "id": "2098277256707862545",
+          "text": "@hosseintoussi Long troubleshooting paths do get expensive because the context stays hot. Messy real sessions are still the valuable ones. Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at a flat $1 per mill"
+        },
+        {
+          "id": "2098277226550804655",
+          "text": "@dani_avila7 /context all is a solid habit. Less noise means fewer wasted tokens on every first request. Real sessions still burn tokens; Trajector closed beta pays $1 per million accepted tokens on Claude Fable 5 and Claude Opus 5 when the"
+        },
+        {
+          "id": "2098277170192019583",
+          "text": "@JulianCasa57007 Small project under Opus 5 with room to work is a good signal. If those sessions are real coding you already run, Trajector closed beta pays for accepted Claude Fable 5 and Claude Opus 5 tokens at $1 per million."
+        },
+        {
+          "id": "2098277132409680377",
+          "text": "@splitmindlabs That 5-hour uninterrupted Opus 5 stretch in Claude Code is the scarce thing. Real long sessions are what matter. In Trajector closed beta, Claude Fable 5 and Claude Opus 5 sessions are the ones collected and paid when accepte"
+        },
+        {
+          "id": "2098277130123800816",
+          "text": "ANTHROPIC JUST ADMITTED ONE OF ITS OWN MODELS UPLOADED REAL MALWARE TO THE LIVE INTERNET.\n\nAnd it did it while insisting the entire time that none of it was real.\n\nAnthropic published an alignment assessment of a cybersecurity incident invo"
+        },
+        {
+          "id": "2098277099308253195",
+          "text": "@attacomsian @Guronnimo Nice split. Running both Opus 5 and Fable 5 inside Claude Code every day is exactly the practical setup a lot of people land on. In Trajector closed beta those two models are the ones that get paid when the session i"
+        },
+        {
+          "id": "2098277016772694037",
+          "text": "1/ สัปดาห์ที่ผ่านมาบ้าสุดในประวัติศาสตร์วงการ AI วันอังคาร Anthropic เปิดตัว Claude Fable 5.1 กับ Mythos 5.1 พุธ Meta ปล่อย Muse Spark 1.3 พร้อม Google ที่เปิดตัว Gemini 3.8 Flash https://t.co/wwQtYY4Isg"
+        },
+        {
+          "id": "2098276931938685149",
+          "text": "【自社内製AIモデル 「Gen-1 Slides」を発表】\nあなたのAIが高い理由、知ってますか？\n\n詩人にも税理士にも数学者にも、まとめて給料を払っているからです。💴\n\n詩人も弁護士もいない、スライド専業の生産ライン——本日、稼働開始です。\n\nGen-1 Slides——Opus 5と同等品質、コストは約1/17 https://t.co/Cf8M0T1nYs"
+        },
+        {
+          "id": "2098276853517869383",
+          "text": "who gave claude opus 5 audacity"
+        },
+        {
+          "id": "2098276317573820502",
+          "text": "「DeepSeek-V4.1-Flash」が登場、複数テストでClaude Opus 5やGPT-5.6 Solを超える性能のオープンモデル 【Gigazine】 https://t.co/WDQdot154T"
+        },
+        {
+          "id": "2098276255980294395",
+          "text": "@leerob What those benchmarks don’t show, is the real live experience. Opus 5 is such a mess to work with. Endless waiting and text messages so long you’re like dude make a point. \n\nFrom my perspective grok 4.6 is currently the best package"
+        },
+        {
+          "id": "2098275995937837090",
+          "text": "@kunchenguid it's still terrible. given that cursor ultra is no longer included and claude code and codex provide 6x more value, there's no reason to get supergrok heavy.\n\nmaybe there's an argument if grok 4.7 blows fable 5.1 and astra out "
+        },
+        {
+          "id": "2098275631838478834",
+          "text": "@txbrraa This is no longer needed with fable 5.1 and Astra. Probably useful with cheaper agents"
+        },
+        {
+          "id": "2098275370336432275",
+          "text": "问：腾讯的WorkBuddy可以接入claude 模型使用吗？\n\n答：可以，而且现在Claude Opus 5 经过降价之后，已经到官价的15%，作为平常的工作主力，又快又好\n\n。\nhttps://t.co/rJ2ciwYYLz\n. https://t.co/H80PZg7xBb"
+        },
+        {
+          "id": "2098275345850118552",
+          "text": "If I had to start over with a (fresh) Claude account.\n\nThese are the 15 settings I'd switch on right away.\n\n→ Switch 1: the dropdown of the Claude chat box\n\nFable 5.1 for all my complex tasks that matter.\nOpus 5. for ambitious work without "
+        },
+        {
+          "id": "2098275341991330237",
+          "text": "【GPT-6 Astra vs Fable 5.1】\n最新モデル同士を比べてみたら、意外にもかなり互角。\n\n料金も近い。\n性能も高い。\nでも、得意な仕事はけっこう違う。\n\n違いを1枚にまとめました👇 https://t.co/t8SaKfO7eJ"
+        },
+        {
+          "id": "2098274982904377675",
+          "text": "Fable 5.1 to ask about penny stocks \n\nthere is so much alpha"
+        },
+        {
+          "id": "2098274745565560906",
+          "text": "Good grief. I’m getting so little Fable 5.1 on Max 20x it may not be worth it anymore. @ClaudeDevs\n\nIt seems like I’ve barely touched it today and 10% of my weekly is already gone (with a whole week to go before the next refresh!). Ridiculo"
+        },
+        {
+          "id": "2098274524991234110",
+          "text": "@kunchenguid i am currently using deepseek 4.1 flash. its blazing fast and extremely cheap but its pretty much just opus 5 based on my use case (python code tutoring).\n\nit has almost the same personality and verbal tics"
+        }
+      ]
+    }
+  }
+}

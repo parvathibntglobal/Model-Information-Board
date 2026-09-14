@@ -395,7 +395,23 @@ def test_retrieval_is_broad_and_the_sieve_is_what_narrows():
 
     assert request.sieve(prose).passed, "the spelling people actually write"
     assert request.sieve(identifier).passed
-    assert not request.sieve(junk).passed
+
+    # ⚠ `junk` IS NOW KEPT, and this is the honest cost of the demotion rather
+    #   than a detail. "summarization is great, no complaints" names the model
+    #   and names the capability, so subject and topic both hit; the only thing
+    #   that ever refused it was the absence of a signal term, and signal
+    #   stopped gating on 2026-09-11 (`sieve.GATING_GROUPS`).
+    #
+    #   So a vague positive with no verifiable span now reaches extraction, and
+    #   pays for a call. That is the trade the measurement bought: 87.3% of what
+    #   signal refused carried a capability report, and this is what the other
+    #   12.7% looks like. The extractor is the layer that must still refuse it -
+    #   contract/queries.yaml's third rule, "DESCRIBES BEHAVIOUR, NOT SENTIMENT",
+    #   is about exactly this sentence - and the score is what marks it cheaply.
+    junk_verdict = request.sieve(junk)
+    assert junk_verdict.passed, "kept: it is on the model and on the capability"
+    assert junk_verdict.signal_score == 0, "and carries no weight into ranking"
+    assert request.sieve(prose).signal_score == 1, "the real report outscores it"
 
 
 # ── deduplication: the index collapses spellings, the sieve must not ──────
@@ -588,12 +604,36 @@ def test_two_entries_sharing_a_query_keep_their_own_sieve_terms():
     assert plan.request_count == 2, "one per entry"
     assert plan.distinct_queries <= 2
 
+    # ⚠ STANCE IS NOW SEPARATED BY THE SCORE, NOT BY THE GATE. Since
+    #   2026-09-11 signal does not refuse, so all four combinations below PASS
+    #   the sieve - the two entries share a subject and a topic and differ only
+    #   in signal. The separation this test exists to protect is INTACT and has
+    #   moved one field across: `signal_score` is 1 where the stance matches
+    #   the document and 0 where it does not, on every one of the four.
+    #
+    #   That is the demotion behaving as intended rather than a loss. What
+    #   would be a loss is the two entries being deduplicated into one request,
+    #   which is what the assertions above still forbid - retrieval keeps both
+    #   stances, and the stance of a KEPT document is now decided at
+    #   extraction, with the score as the hint rather than the verdict.
     held = "claude sonnet 5 recall held up fine at 200k in our eval"
     lost = "claude sonnet 5 recall degrades past 180k, loses the middle"
     by_stance = {r.entry_label: r for r in plan.requests}
-    assert by_stance["context.effective_window:positive"].sieve(held).passed
-    assert not by_stance["context.effective_window:positive"].sieve(lost).passed
-    assert by_stance["context.effective_window:negative"].sieve(lost).passed
+    pos = by_stance["context.effective_window:positive"]
+    neg = by_stance["context.effective_window:negative"]
+
+    # All four are KEPT - subject and topic are shared, and those are the only
+    # groups that gate now.
+    assert pos.sieve(held).passed and pos.sieve(lost).passed
+    assert neg.sieve(held).passed and neg.sieve(lost).passed
+
+    # And the stance separation is perfect on the score, which is the
+    # assertion that replaces the three above. 1 where the entry's stance
+    # matches the document, 0 where it does not, on every combination.
+    assert pos.sieve(held).signal_score == 1
+    assert pos.sieve(lost).signal_score == 0
+    assert neg.sieve(lost).signal_score == 1
+    assert neg.sieve(held).signal_score == 0
 
 
 def test_a_request_sieves_with_every_spelling_not_the_one_that_found_the_document():

@@ -1,0 +1,1000 @@
+{
+  "ran_at": "2026-09-11T05:17:01.657276+00:00",
+  "query": "opus 5",
+  "surface": "opus 5",
+  "endpoint": "/getSearchPosts",
+  "max_pages": 1,
+  "sieve": "collect.adapters.queries.sieve.sieve, contract/queries.yaml term sets",
+  "not_evidence": "a retrieval probe; nothing was written and nothing here is a claim about any model",
+  "runs": {
+    "NEW": {
+      "sort": "NEW",
+      "requests": 1,
+      "returned": 25,
+      "kept": 0,
+      "http_errors": 0,
+      "rate_limited": 0,
+      "quota_remaining": 996197,
+      "posts": [
+        {
+          "id": "t3_1wd6v1u",
+          "subreddit": "u_propjerry",
+          "title": "Framing Banach–Tarski and Navier–Stokes singularities:  Applying Bridge360 Metatheory Model September 1, 2025 ",
+          "passed": false,
+          "missing": [
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5",
+            "guardrail",
+            "declined"
+          ]
+        },
+        {
+          "id": "t3_1wd6mjs",
+          "subreddit": "EDH",
+          "title": "Is this a Bracket 3 deck? 5 Color Terra",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1wd6hp4",
+          "subreddit": "LabGr",
+          "title": "Το DeepSeek V4.1 Flash φέρεται να ξεπερνά το GPT-5.6 Sol και το Opus 5, ενώ αμφισβητείται το κόστος που αναφέρ",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1wd6blz",
+          "subreddit": "FellowProducts",
+          "title": "20% + 5% off Target Coupon",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1wd68kr",
+          "subreddit": "ClaudeCode",
+          "title": "Claude outage or is it only 4.6 opus?",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1wd5thy",
+          "subreddit": "aigamedev",
+          "title": "Voxel Fighters : Browser Based 3-D Flight Sim",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1wd5pkd",
+          "subreddit": "TheMachineGod",
+          "title": "I'm having Claude write it's own speculative fiction",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1wd5kzm",
+          "subreddit": "cursor",
+          "title": "Claude Pro feels better than Cursor Ultra",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1wd54km",
+          "subreddit": "claudeskills",
+          "title": "Claude Related Guides, Resources &amp; Additional Stuff",
+          "passed": false,
+          "missing": [
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5",
+            "tldr",
+            "recap"
+          ]
+        },
+        {
+          "id": "t3_1wd4uby",
+          "subreddit": "Anthropic",
+          "title": "Opus 5 chain of taughts, admiting to Codex: “Yeah… he checked the repo. I guessed\":",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1wd4mro",
+          "subreddit": "LocalLLaMA",
+          "title": "Anthropic: Detecting and Addressing AI Misuse by China – September 2026",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "extract"
+          ]
+        },
+        {
+          "id": "t3_1wd4lxx",
+          "subreddit": "ClaudeCode",
+          "title": "SWE-2 &lt;&gt; Fable 5",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1wd4lt5",
+          "subreddit": "ClaudeWorkflows",
+          "title": "[Workflow] Robust Claude Code Workflow: Context Handoff Across Usage Resets with Git and NOTES.md",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "instruction"
+          ]
+        },
+        {
+          "id": "t3_1wd4gkd",
+          "subreddit": "DeepSeek",
+          "title": "DeepSeek V4.1 Flash beats Fable 5.1 at just 3% of the cost in GPQA Diamond Clean!",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1wd4fs5",
+          "subreddit": "ffxiv",
+          "title": "I now have a dedicated fork of OptiScaler NR designed for FFXIV",
+          "passed": false,
+          "missing": [
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5",
+            "instruction"
+          ]
+        },
+        {
+          "id": "t3_1wd48ta",
+          "subreddit": "claude",
+          "title": "Claude for writing marketing copy - How do I fix this? Integrate with ChatGPT using a CLI?",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1wd44vj",
+          "subreddit": "ClaudeAI",
+          "title": "Senior engineer, loop orchestrator sample setup",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "context"
+          ]
+        },
+        {
+          "id": "t3_1wd39sc",
+          "subreddit": "NarutoFanfiction",
+          "title": "AU Biju &amp; jinchuriki relocations &amp; recaptures (thoughts?)",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1wd2ed9",
+          "subreddit": "fragranceswap",
+          "title": "[WTS] 1700+ Frags incl Guerlain, Amouage, BDK, Clive Christian, Creed, Diptyque, DS &amp; Durga, Escentric Mol",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "patch"
+          ]
+        },
+        {
+          "id": "t3_1wd22k2",
+          "subreddit": "codex",
+          "title": "My experience on Pro 5x",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "patch"
+          ]
+        },
+        {
+          "id": "t3_1wd1zw4",
+          "subreddit": "ClaudeWorkflows",
+          "title": "[Workflow] Cost-Optimized Content Generation with Haiku and Opus: A Generate-Then-Check Workflow",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "generated"
+          ]
+        },
+        {
+          "id": "t3_1wd1zs0",
+          "subreddit": "ClaudeWorkflows",
+          "title": "[Workflow] Multi-Agent AI Software Development Workflow with Automated Review and Release",
+          "passed": false,
+          "missing": [
+            "subject"
+          ],
+          "matched_terms": [
+            "summary",
+            "still running"
+          ]
+        },
+        {
+          "id": "t3_1wd1ffl",
+          "subreddit": "cigardealhunters",
+          "title": "Today's deals update",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1wd1cfi",
+          "subreddit": "GeminiAI",
+          "title": "Gemini 3.8 Flash is Underrated!",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1wd15a1",
+          "subreddit": "ClaudeAI",
+          "title": "Opus 4.6 was OUR wet dream of AI",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "context",
+            "context window"
+          ]
+        }
+      ]
+    },
+    "RELEVANCE": {
+      "sort": "RELEVANCE",
+      "requests": 1,
+      "returned": 25,
+      "kept": 0,
+      "http_errors": 0,
+      "rate_limited": 0,
+      "quota_remaining": 996196,
+      "posts": [
+        {
+          "id": "t3_1w3xtsz",
+          "subreddit": "ClaudeAI",
+          "title": "I can't do Opus 5 anymore. Every time I talk with it and try to read it, I literally get so confused. Has anyo",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1vzi6wp",
+          "subreddit": "ClaudeCode",
+          "title": "Opus 5 is insufferable",
+          "passed": false,
+          "missing": [
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5",
+            "tldr"
+          ]
+        },
+        {
+          "id": "t3_1voz6sm",
+          "subreddit": "ClaudeAI",
+          "title": "Downgraded from Opus 5 to Opus 4.6 and it feels night and day",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1vzvtkl",
+          "subreddit": "ClaudeAI",
+          "title": "Opus 5 sudden improvement?",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1vxhjz5",
+          "subreddit": "ClaudeCode",
+          "title": "Alright, once and for all, Opus 5, 4.8 or 4.6?",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1vyev9h",
+          "subreddit": "Anthropic",
+          "title": "How did Anthropic get Opus 5 so wrong from great predecessors like 4.8? Serious question here",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1vwec8t",
+          "subreddit": "ClaudeCode",
+          "title": "I'm done with Opus 5",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1vnsmio",
+          "subreddit": "ClaudeAI",
+          "title": "Is opus 4.8 better than opus 5.0?",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1vxavto",
+          "subreddit": "ClaudeAI",
+          "title": "I don’t understand most of the Opus 5 hate, except…",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1vv7cfy",
+          "subreddit": "ClaudeCode",
+          "title": "I thought Opus 5 was bad untill I tried 5.6 Sol",
+          "passed": false,
+          "missing": [
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5",
+            "instruction",
+            "told it to"
+          ]
+        },
+        {
+          "id": "t3_1v9iurd",
+          "subreddit": "Anthropic",
+          "title": "and just like that Opus 5 ultracode wipes the entire database",
+          "passed": false,
+          "missing": [
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5",
+            "context"
+          ]
+        },
+        {
+          "id": "t3_1vgpyni",
+          "subreddit": "ClaudeAI",
+          "title": "My Opus 5 experience in a nutshell.",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1v5h6o9",
+          "subreddit": "ClaudeAI",
+          "title": "Introducing Claude Opus 5",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1v5j7f4",
+          "subreddit": "Anthropic",
+          "title": "AGI Confirmed - Opus 5",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1vrqxqc",
+          "subreddit": "ClaudeCode",
+          "title": "Game over. 22GB local models run in Pi now outperform Claude Code Opus 5 High on real-world coding tasks publi",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1sx6x4e",
+          "subreddit": "technology",
+          "title": "DeepSeek-V4 arrives with near state-of-the-art intelligence at 1/6th the cost of Opus 4.7, GPT-5.5",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1vb5fhl",
+          "subreddit": "singularity",
+          "title": "Opus 5 Pokemon",
+          "passed": false,
+          "missing": [
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5",
+            "agent loop"
+          ]
+        },
+        {
+          "id": "t3_1vn8ml6",
+          "subreddit": "ClaudeAI",
+          "title": "Opus 5 is actually almost rage-inducing to use.",
+          "passed": false,
+          "missing": [
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5",
+            "parse"
+          ]
+        },
+        {
+          "id": "t3_1ukynrw",
+          "subreddit": "ClaudeAI",
+          "title": "Friendly reminder to have Fable 5 write skills NOW to tell Opus 4.8 how it should behave and think when Fable ",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1vaj9x3",
+          "subreddit": "ClaudeCode",
+          "title": "The Opus 5 Experience",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1v5h6pr",
+          "subreddit": "ClaudeCode",
+          "title": "Introducing Claude Opus 5",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1veeuy5",
+          "subreddit": "ClaudeCode",
+          "title": "Opus 5 is a practically unusable model",
+          "passed": false,
+          "missing": [
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5",
+            "context",
+            "context window"
+          ]
+        },
+        {
+          "id": "t3_1v6o465",
+          "subreddit": "singularity",
+          "title": "Opus 5 built a procedural painterly world with wind-reactive grass, all in one HTML file",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1uf2nba",
+          "subreddit": "ClaudeAI",
+          "title": "After using my own Pro subscription for 18 months, my job finally got an enterprise license. I just had Opus s",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1v5h8o6",
+          "subreddit": "singularity",
+          "title": "Claude Opus 5 BENCHMARKS!",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        }
+      ]
+    },
+    "TOP": {
+      "sort": "TOP",
+      "requests": 1,
+      "returned": 25,
+      "kept": 0,
+      "http_errors": 0,
+      "rate_limited": 0,
+      "quota_remaining": 996195,
+      "posts": [
+        {
+          "id": "t3_1pwx3x6",
+          "subreddit": "movies",
+          "title": "I saw 290 movies in theaters in 2025. Here is my full ranking.",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic"
+          ],
+          "matched_terms": [
+            "too slow"
+          ]
+        },
+        {
+          "id": "t3_1s1ssse",
+          "subreddit": "factorio",
+          "title": "I created a mod that makes the biters come to complaint to you instead of attacking, and you have to deal with",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_mduj5t",
+          "subreddit": "GME",
+          "title": "DD: Why retail is holding far more shares than you'd think",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic"
+          ],
+          "matched_terms": [
+            "good enough"
+          ]
+        },
+        {
+          "id": "t3_jypyhn",
+          "subreddit": "hiphopheads",
+          "title": "[DISCUSSION] Kanye West - My Beautiful Dark Twisted Fantasy (10 Years Later)",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1fiv78e",
+          "subreddit": "interestingasfuck",
+          "title": "AI IQ Test Results",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1pwlx6o",
+          "subreddit": "ProgrammerHumor",
+          "title": "oldManYellsAtClaude",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_166fbp1",
+          "subreddit": "Starfield",
+          "title": "Starfield Review Megathread",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "instruction"
+          ]
+        },
+        {
+          "id": "t3_nxu1ck",
+          "subreddit": "Superstonk",
+          "title": "Let’s Talk Dates….the Last Few Weeks of June Are Turning Me On……I Know We Don’t do Dates But Here Are Some Dat",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "summary"
+          ]
+        },
+        {
+          "id": "t3_y1skk3",
+          "subreddit": "okbuddychicanery",
+          "title": "this is what mental illness looks like",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_brgv7p",
+          "subreddit": "nfl",
+          "title": "John Elway is one of the most overrated QBs of all time. He is the Eli Manning of the 80s and 90s. (Statistica",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "recap"
+          ]
+        },
+        {
+          "id": "t3_1plmw3y",
+          "subreddit": "ChatGPT",
+          "title": "Now with even more gippity",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_5x2lph",
+          "subreddit": "Games",
+          "title": "The Legend of Zelda: Breath of the Wild - Review Thread",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic"
+          ],
+          "matched_terms": [
+            "doesn't follow"
+          ]
+        },
+        {
+          "id": "t3_1em9kp1",
+          "subreddit": "TattooDesigns",
+          "title": "What I asked for vs what I got",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1u4cyvh",
+          "subreddit": "ClaudeAI",
+          "title": "Fable 5 indefinitely suspended due to national security concerns",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1r32ccv",
+          "subreddit": "vibecoding",
+          "title": "I’ll handle it from here guys",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1u1fsdi",
+          "subreddit": "ClaudeAI",
+          "title": "Claude Fable 5 feels less like a model launch and more like a preview of AI inequality",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_fivi8k",
+          "subreddit": "hiphopheads",
+          "title": "[DISCUSSION] Kendrick Lamar - To Pimp a Butterfly (5 Years Later)",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_nuksk8",
+          "subreddit": "Superstonk",
+          "title": "SEC Legalese to Ape Speak - FINAL CHAPTER: How Gamestop is using its SEC 10-K Filings to fight back against ta",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "context"
+          ]
+        },
+        {
+          "id": "t3_1u4m1ag",
+          "subreddit": "ClaudeAI",
+          "title": "Don’t you guys worry, I got this😮‍💨✋",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1v94nal",
+          "subreddit": "ClaudeAI",
+          "title": "People liked my desert, so here's a waterbending demo!",
+          "passed": false,
+          "missing": [
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5",
+            "planning",
+            "constraint"
+          ]
+        },
+        {
+          "id": "t3_wknaiy",
+          "subreddit": "BestofRedditorUpdates",
+          "title": "As the rest of Reddit follows the Trump raid, r/NewOrleans becomes deeply invested in OOP and their quest for ",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "instruction"
+          ]
+        },
+        {
+          "id": "t3_emsw66",
+          "subreddit": "hiphopheads",
+          "title": "Album of the Year #9: Tyler, the Creator - IGOR",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1v5j7f4",
+          "subreddit": "Anthropic",
+          "title": "AGI Confirmed - Opus 5",
+          "passed": false,
+          "missing": [
+            "topic",
+            "signal"
+          ],
+          "matched_terms": [
+            "opus 5"
+          ]
+        },
+        {
+          "id": "t3_1mlin6s",
+          "subreddit": "OpenAI",
+          "title": "GPT-5 scored 70 on the offline IQ Test",
+          "passed": false,
+          "missing": [
+            "subject",
+            "topic",
+            "signal"
+          ],
+          "matched_terms": []
+        },
+        {
+          "id": "t3_1ttp22v",
+          "subreddit": "dataisbeautiful",
+          "title": "[OC] I asked 4 LLMs \"The car wash is 100m away. Should I walk or drive?\" 100 times each",
+          "passed": false,
+          "missing": [
+            "subject",
+            "signal"
+          ],
+          "matched_terms": [
+            "generated"
+          ]
+        }
+      ]
+    }
+  }
+}

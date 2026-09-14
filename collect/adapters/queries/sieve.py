@@ -382,12 +382,102 @@ class SieveVerdict:
     def matched_terms(self) -> tuple[str, ...]:
         return self.subject + self.topic + self.signal
 
+    @property
+    def signal_score(self) -> int:
+        """How many distinct signal terms fired in the author's own prose.
+
+        A COUNT, NOT A SYNTHESISED SCORE, and the name is the only misleading
+        thing about it - kept because that is what the demotion called for.
+        Rule 3 allows a figure that is counted and forbids one that is
+        composed; this is the former, and it must stay the former. Nothing may
+        scale, weight or blend it into a 0-100 anywhere on its way to a page.
+
+        0 is a MEASUREMENT here, not an absence: the document was sieved and
+        carried none of this entry's signal terms. That is different from a
+        document nobody sieved, which has no verdict at all.
+
+        Counted on `prose` rather than the raw text, like `signal` itself, so a
+        term inside quoted or fenced material does not inflate it -
+        `signal_in_excluded` carries those separately and deliberately does not
+        add to this.
+        """
+        return len(self.signal)
+
+    @property
+    def signal_present(self) -> bool:
+        """Whether signal fired at all. Recorded, no longer grounds to refuse."""
+        return bool(self.signal)
+
+    def describe(self) -> str:
+        """One line a person can read, with the signal verdict still in it.
+
+        The demotion removed signal's power to refuse and deliberately NOT its
+        visibility. A weight nobody can see is a weight nobody can check, and
+        the whole argument for demoting it rests on its hits being inspectable
+        against what a discovery pass finds in the same document.
+        """
+        parts = [
+            "PASS" if self.passed else "DROP",
+            f"subject={len(self.subject)}",
+            f"topic={len(self.topic)}",
+            f"signal={self.signal_score}",
+        ]
+        if self.signal_in_excluded:
+            parts.append(f"signal_quoted_only={len(self.signal_in_excluded)}")
+        if self.missing:
+            gating = [m for m in self.missing if m in GATING_GROUPS]
+            noted = [m for m in self.missing if m not in GATING_GROUPS]
+            if gating:
+                parts.append(f"refused_on={'+'.join(gating)}")
+            if noted:
+                # Named as NOTED rather than missing, so a reader does not read
+                # a recorded absence as the reason the document was dropped.
+                parts.append(f"absent_but_not_gating={'+'.join(noted)}")
+        return " ".join(parts)
+
+
+#: The groups that may REFUSE a document. `signal` is deliberately absent.
+#:
+#: DEMOTED FROM A GATE TO A WEIGHT, 2026-09-11, on measurement rather than
+#: taste. Among documents already clean on subject and topic, signal was not
+#: discriminating capability reports from non-reports at all:
+#:
+#:     sieve kept (subject+topic+signal)   32 posts, 29 capability reports  90.6%
+#:     signal refused (subject+topic ok)  291 posts, 254 capability reports 87.3%
+#:     Fisher exact, two-tailed                                        p = 0.78
+#:
+#: against a base rate of 87.6% on that population - so its precision was
+#: three points above answering "yes" to everything, and it bought that by
+#: discarding 254 of the 283 reports a capability-discovery pass found (89.8%).
+#: The classifier is `google/gemini-2.5-flash`, it PROPOSES and decides
+#: nothing, and 183 of the 254 carried quotes verified by exact substring;
+#: restricted to those, signal still refused 183 against the 24 it kept.
+#:
+#: THE DIRECTION IS THE ONLY ONE RULE 8 PERMITS. "An unmeasured check ships as
+#: a weight, not a gate... the direction is one-way, weight first and gate
+#: later on evidence, never the reverse." Signal was gating on a vocabulary
+#: last edited 2026-08-14, calibrated against the twelve fixed capability keys
+#: and never re-fitted after capability DISCOVERY existed. A wrong gate's
+#: false positives are invisible - it drops the document, and an absence we
+#: caused reads as one we found, which is rule 4 one stage upstream of the
+#: page.
+#:
+#: WHAT IS NOT CLAIMED. That signal is worthless. A term that fires is still
+#: evidence of something, which is why the vocabulary is untouched, the hits
+#: are still recorded, `missing` still names signal when it is absent, and
+#: `signal_score` carries the count forward for weighting. It is no longer
+#: grounds for REFUSAL.
+#:
+#: `docs/measurements/signal-as-weight-2026-09-11.md`.
+GATING_GROUPS: tuple[str, ...] = ("subject", "topic", "locality")
+
 
 def sieve(terms, text: str, *, window: int | None = _UNSET) -> SieveVerdict:
     """Apply one rendered term set to one document.
 
     `subject` is ALL-OF, `topic` and `signal` are ANY-OF — the contract's
-    semantics, not this module's choice.
+    semantics, not this module's choice. **Only subject and topic GATE**; see
+    `GATING_GROUPS` for the measurement that demoted signal.
 
     An empty `topic` or `signal` group would make that group vacuously true and
     turn the query into its subject alone, which is the collapsed state issue #4
@@ -431,14 +521,19 @@ def sieve(terms, text: str, *, window: int | None = _UNSET) -> SieveVerdict:
     if not terms.signal or not signal_hits:
         missing.append("signal")
 
-    # Checked only when both groups matched: "topic and signal are too far
-    # apart" is a different statement from "one of them is absent", and
-    # collapsing them would lose the distinction `missing` exists to carry.
+    # Checked only when all three groups matched, unchanged: locality measures
+    # the distance from a topic hit to a SIGNAL hit, so with no signal there is
+    # no distance to measure and no proximity claim to refuse. A document that
+    # now passes on subject+topic alone is simply not making that claim.
     if not missing and window is not None and not _within_window(terms, text, window):
         missing.append("locality")
 
+    # `missing` STILL NAMES SIGNAL. It is the diagnostic - `tally` counts it,
+    # `sieve_any` ranks on it, and `scripts/harvest_github.py` reports it - and
+    # losing that would trade one silence for another. What changed is only
+    # which entries in it can refuse.
     return SieveVerdict(
-        passed=not missing,
+        passed=not [m for m in missing if m in GATING_GROUPS],
         subject=subject_hits,
         topic=topic_hits,
         signal=signal_hits,
@@ -499,6 +594,25 @@ class SieveYield:
     missing_subject: int = 0
     missing_topic: int = 0
     missing_signal: int = 0
+
+    #: Of the candidates KEPT, how many carried at least one signal term.
+    #:
+    #: THE FIGURE THE DEMOTION MADE NECESSARY. Signal stopped gating on
+    #: 2026-09-11, so `kept` now includes documents with no signal at all and
+    #: `missing_signal` no longer describes anything that was refused. Without
+    #: this, the two numbers together cannot answer "how much of what we keep
+    #: is signal-bearing" - which is exactly the question a weight has to
+    #: answer and a gate never had to.
+    #:
+    #: ⚠ DECLARED UNCONSUMED (rule 9). Nothing reads it yet. The intended
+    #:   reader is `judge/vet/weight.py`, and it cannot read it today because
+    #:   this is a per-QUERY aggregate in `collect/` while weighting is
+    #:   per-CLAIM in `judge/`, and the value would have to cross the boundary
+    #:   on a column that does not exist. `scripts/harvest_github.py` already
+    #:   reports `missing_signal` and is the cheap first reader. Named here
+    #:   rather than deleted, because a value with no reader AND no statement
+    #:   about it is the defect; a value with a named blocked reader is not.
+    kept_with_signal: int = 0
 
     #: THE THIRD NUMBER. How many candidates actually contain the phrase the
     #: query quoted.
@@ -582,6 +696,7 @@ def tally(query_key: str, verdicts, *, phrase_present: int | None = None) -> Sie
         missing_subject=sum(1 for v in verdicts if "subject" in v.missing),
         missing_topic=sum(1 for v in verdicts if "topic" in v.missing),
         missing_signal=sum(1 for v in verdicts if "signal" in v.missing),
+        kept_with_signal=sum(1 for v in verdicts if v.passed and v.signal_present),
         phrase_present=phrase_present,
     )
 
