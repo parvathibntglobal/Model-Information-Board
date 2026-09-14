@@ -6,9 +6,13 @@ export function Badge({ tone = 'mute', children, ...rest }) {
   return <span className={`badge badge-${tone}`} {...rest}>{children}</span>
 }
 
-export function Stat({ n, l }) {
+export function Stat({ n, l, title }) {
+  // `title` IS OPTIONAL AND CARRIES THE POPULATION. A figure's denominator has
+  // to be reachable (rule 7), but printing it under every stat on every render
+  // turns a caveat into wallpaper. On hover it stays available without being
+  // recited - see UsagePanel's machine list, which used to be a sentence.
   return (
-    <div className="stat">
+    <div className="stat" title={title || undefined}>
       <span className="stat-n tnum">{n}</span>
       <span className="stat-l">{l}</span>
     </div>
