@@ -11,6 +11,20 @@ natural key (document, proposed_key, prompt_label, pipeline_version), written
 cannot double the number the review page reads. The count is still a FLOOR —
 free-text keys fragment one capability across phrasings — so any figure shown
 from it reads ">= N" until clustering lands (see the table comment).
+
+⚠ THE FRAGMENTATION NOW HAS NUMBERS, AND THEY ARE LARGER THAN THE WORD
+  "floor" SUGGESTS. Measured 2026-09-11 on the withheld-keys discovery run
+  (774 Reddit documents): **528 distinct proposed keys from 552 proposals** —
+  1.045 proposals per key, 20 keys used more than once — against the twelve
+  in `contract/capabilities.yaml`. 20.5% of proposals share a final segment
+  with a differently-prefixed key, and **15.4% name a MODEL inside the key**
+  (`claude_haiku.instruction_following`, `gpt_5_2.response_time`), which is
+  not a clustering problem at all: a key naming a model has folded the subject
+  into the axis and has to be rejected or rewritten, not merged.
+
+  READ BEFORE SIZING THE REVIEW QUEUE. The row count is not the candidate
+  count, and the work is merging rather than ruling.
+  `docs/capability-key-normalisation-2026-09-11.md`.
 """
 
 from __future__ import annotations

@@ -111,6 +111,7 @@ def tool_schema(withhold_keys: bool = False) -> dict:
     filled `capability_key` and proposed nothing, from a prompt that had shown it
     no keys at all. A forced tool schema is instruction, not just validation.
     """
+
     if not withhold_keys:
         return TOOL_SCHEMA
     schema = copy.deepcopy(TOOL_SCHEMA)
@@ -143,6 +144,15 @@ def tool_schema(withhold_keys: bool = False) -> dict:
 
 def system_prompt(withhold_keys: bool = False) -> str:
     """The twelve keys with definitions. No signal vocabulary — see the module.
+
+    THE KEY MUST NAME A BEHAVIOUR, and that line is in BOTH branches since
+    2026-09-11. Measured on the 774-document withheld run: **85 of 552
+    proposals (15.4%) folded the model into the axis** - `gpt_5_2.response_time`,
+    `claude_haiku.instruction_following`, `model_behavior.opus_4_6_capabilities`.
+    No clustering recovers those. A capability is the dimension models are
+    compared ON, so merging them yields a capability called "Claude", which is
+    worse than 85 scattered rows because it looks finished.
+    `docs/capability-key-normalisation-2026-09-11.md`.
 
     `withhold_keys` removes the list entirely and asks for the capability in the
     model's own words. THE CONTROL FOR PROMPT ANCHORING: the first pass returned
@@ -177,9 +187,15 @@ def system_prompt(withhold_keys: bool = False) -> str:
             "what it measures — for example `area.specific_thing`. Leave "
             "`capability_key` null: there is no list to choose from.",
             "",
+            "THE KEY NAMES A BEHAVIOUR, NEVER A MODEL, A VENDOR OR A VERSION: "
+            "write `response_time.latency`, not `gpt_5_2.response_time`, and not "
+            "`model_behavior.opus_4_6_capabilities` - which model it was is "
+            "recorded separately and must not appear in the key.",
+            "",
             "Always give a verbatim quote when is_capability_report is true. Copy "
             "the span exactly from the document; do not paraphrase or shorten it.",
         ])
+
     lines = [
         "You are reading one post from a public forum about AI models.",
         "",
@@ -209,6 +225,11 @@ def system_prompt(withhold_keys: bool = False) -> str:
         "leave capability_key null and fill proposed_key instead: a dotted name in "
         "the same style, and a one-line definition of what it measures. Propose "
         "sparingly — only when no listed key fits.",
+        "",
+        "THE KEY NAMES A BEHAVIOUR, NEVER A MODEL, A VENDOR OR A VERSION: "
+        "write `response_time.latency`, not `gpt_5_2.response_time`, and not "
+        "`model_behavior.opus_4_6_capabilities` - which model it was is "
+        "recorded separately and must not appear in the key.",
         "",
         "Always give a verbatim quote when is_capability_report is true. Copy the "
         "span exactly from the document; do not paraphrase, correct or shorten it.",
