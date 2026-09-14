@@ -1,0 +1,14 @@
+# `node_modules` is reinstalled by `npm ci` from the committed lockfile, and a
+# host copy would be the wrong platform's binaries. `dist` is rebuilt.
+node_modules/
+dist/
+dist-single/
+
+# The repo-root `.env` is deliberately NOT in this context - see web/Dockerfile.
+# These cover a stray local one.
+.env
+.env.*
+!.env.example
+
+*.log
+.DS_Store

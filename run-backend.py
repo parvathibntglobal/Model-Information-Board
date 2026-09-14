@@ -149,42 +149,20 @@ import uvicorn  # noqa: E402  (imported after the environment is in place)
 # In the child `__name__` is `"__mp_main__"`, so the import runs and the call
 # does not.
 def _wire_source_text_reader() -> bool:
-    """Give `judge/app.py` a way to read a payload, without either lane importing the other.
+    """Delegates to `composition.wire_source_text_reader`. See that module.
 
-    THIS FILE IS THE COMPOSITION ROOT and is the only place allowed to touch
-    both: `collect/rawstore.py` is the only reader of the payload store,
-    `collect/assemble/prose.py` is the only thing that turns a payload into what
-    a human wrote, and `tests/test_lane_boundary.py` enforces that `judge/`
-    imports neither.
+    MOVED OUT 2026-09-14, NOT REWRITTEN. `serve.py` needs the identical wiring
+    and could not borrow it from here: the refusal above runs at MODULE level,
+    so importing this file to reuse one function printed "name the database you
+    mean" and exited. The body now lives in `composition.py`, beside this file
+    and outside both lanes, and both entry points call the same code.
 
-    Returns whether it wired - reported at startup rather than assumed, because
-    an unwired reader makes `/documents/{id}/source` answer "unwired", and a
-    silent failure there would read as "this document has no text".
+    Kept as a name here because this file's startup line prints its result, and
+    a reader following that would otherwise find nothing.
     """
-    from pathlib import Path as _Path
+    from composition import wire_source_text_reader
 
-    import judge.app as app_module
-    from collect.assemble import prose
-    from collect.config import settings as collect_settings
-    from collect.rawstore import RawStore
-
-    store = RawStore(_Path(collect_settings().raw_store_path))
-
-    def read(source: str, text_ref: str) -> str:
-        extract = prose.for_source(source)
-        if extract is None:
-            # NOT a passthrough. A payload flattened verbatim lets a quote
-            # verify against a JSON field value - the defect `prose.py` exists
-            # to prevent, and the one that put raw JSON in front of the
-            # classifier on 2026-09-10.
-            raise ValueError(
-                f"no prose extractor is mapped for source {source!r}; refusing "
-                f"to serve the payload verbatim"
-            )
-        return extract(store.get_text(text_ref))
-
-    app_module.SOURCE_TEXT_READER = read
-    return True
+    return wire_source_text_reader()
 
 
 if __name__ == "__main__":
