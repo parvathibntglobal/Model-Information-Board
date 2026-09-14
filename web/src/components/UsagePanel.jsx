@@ -214,7 +214,19 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
   return (
     <div className="stack stack-2">
       <div className="grid g3">
-        <Stat n={everyone.available ? usd(everyone.total_usd) : usd(today.spent_usd)} l={totalLabel} />
+        <Stat
+          n={everyone.available ? usd(everyone.total_usd) : usd(today.spent_usd)}
+          l={totalLabel}
+          // The population this figure was drawn from, on hover rather than in
+          // prose. It was a sentence under the panel saying "nothing is
+          // missing" on every healthy render.
+          title={
+            basis?.complete && basis.machines?.length
+              ? `Ledger totals cover ${basis.machines.length} machine${
+                  basis.machines.length === 1 ? '' : 's'}: ${basis.machines.join(', ')}`
+              : undefined
+          }
+        />
         <Stat n={usd(today.remaining_usd)} l="left before today's cap" />
         <Stat
           n={today.calls}
@@ -285,36 +297,35 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
           it is not. An incomplete total is named a FLOOR rather than shown in
           the same type as a whole one — the same reason report counts on the
           board say so. */}
-      {basis && (
-        <span
-          className="dim"
-          style={{ fontSize: 'var(--fs-xs)' }}
-        >
-          {basis.complete ? (
-            <>
-              Ledger totals cover{' '}
-              <strong>
-                {basis.machine_count === 1
-                  ? '1 machine'
-                  : `all ${basis.machine_count} machines`}
-              </strong>
-              {basis.machines?.length ? ` (${basis.machines.join(', ')})` : ''}.
-            </>
-          ) : (
-            <>
-              <strong>This machine only ({basis.this_machine}).</strong> The shared
-              ledger could not be read, so every figure here is a floor — other
-              machines&rsquo; spend is missing from it, not absent.
-            </>
-          )}
-          {basis.unpriced_calls_today > 0 && (
-            <>
-              {' '}
-              {basis.unpriced_calls_today} call
-              {basis.unpriced_calls_today === 1 ? '' : 's'} today used a model with no
-              published rate, so its tokens are counted and its dollars are not.
-            </>
-          )}
+      {/* THE POPULATION IS NAMED ONLY WHEN IT QUALIFIES SOMETHING.
+      
+          This printed "Ledger totals cover all 2 machines (ANOOJ, LenovoPB)."
+          on every render of a healthy panel - a sentence whose entire content
+          is "nothing is missing", which is what a reader already assumes. A
+          caveat that is always on screen stops being read, and then the one
+          time it says something different it is in the same grey as the
+          hundred times it did not.
+      
+          RULE 7 IS NOT WAIVED, IT IS RELOCATED. The figure still travels with
+          its population - the machine list moved to the `title` of the stat
+          above, so it is one hover away and nothing is unknowable. What went
+          is the prose, not the fact.
+      
+          The INCOMPLETE branch stays exactly as it was, because that one is a
+          real caveat: a floor reported as a total is the error this whole
+          panel is built to avoid. */}
+      {basis && !basis.complete && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+          <strong>This machine only ({basis.this_machine}).</strong> The shared
+          ledger could not be read, so every figure here is a floor &mdash; other
+          machines&rsquo; spend is missing from it, not absent.
+        </span>
+      )}
+      {basis?.unpriced_calls_today > 0 && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+          {basis.unpriced_calls_today} call
+          {basis.unpriced_calls_today === 1 ? '' : 's'} today used a model with no
+          published rate, so its tokens are counted and its dollars are not.
         </span>
       )}
 
