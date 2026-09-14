@@ -135,6 +135,8 @@ export default function UsagePanel() {
               byTokens={data.by_model_tokens || {}}
               unpriced={data.unpriced_models || []}
               basis={data.basis || null}
+              ledger={data.ledger || null}
+              byStage={data.by_stage || []}
             />}
       </div>
     </section>
@@ -147,8 +149,21 @@ export default function UsagePanel() {
  * Kept to a total plus the per-model rows, the same shape as the RapidAPI tab.
  * Usage to date ran on Gemini 2.5 Flash; the extractor is now DeepSeek V4 Flash, so the
  * two accrue under different rows and the switch is legible instead of averaged.
+ *
+ * `ledger` AND `byStage` ARE READ HERE BECAUSE THE FIGURE ABOVE IS NOT ALWAYS A
+ * TOTAL. /admin/usage has always sent three qualifiers on it and this panel read
+ * none of them, so the word "total" was unconditional while the backend knew
+ * when it was not one. judge/app.py:1805 states the rule this violated:
+ *
+ *   "`covers_whole_window` is false when the ledger began after today did, in
+ *    which case today's total is a floor rather than a total; `unwired_stages`
+ *    names any stage that has never recorded at all, which is a wiring failure
+ *    and not a quiet day. A page rendering either of those as a plain zero
+ *    would be stating the most reassuring of two readings."
+ *
+ * The producer did its half. This is the consumer's.
  */
-function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis }) {
+function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, ledger, byStage }) {
   const rows = Object.entries(byModel)
     .map(([model, spent]) => [model, MODEL_SPEND_OVERRIDE[model] ?? spent])
     .sort((a, b) => b[1] - a[1])
@@ -178,13 +193,73 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis }) 
   const currentSpend = remainder != null && remainder > 0.00005 ? remainder : null
   const alreadyListed = rows.some(([m]) => m === CURRENT_EXTRACTOR)
 
+  // ── THE THREE QUALIFIERS ON TODAY'S FIGURE ────────────────────────────────
+  //
+  // Each is sent by /admin/usage and each was unread until 2026-09-14. They are
+  // separate conditions and the page must not merge them: a floor because the
+  // ledger started late is a different fact from a stage that has never
+  // recorded, and both are different from a call whose tokens never arrived.
+  const isFloor = today.is_a_floor_not_a_total === true
+  const unwired = (ledger?.unwired_stages) || []
+  const unmetered = today.unmetered_calls || 0
+  // The key total is a provider figure and is whole regardless; only the
+  // LEDGER's own figure inherits the floor. So the qualifier attaches to the
+  // label only when the ledger's number is the one being shown.
+  const showingLedgerToday = !everyone.available
+  const totalLabel =
+    isFloor && showingLedgerToday
+      ? 'recorded on this key today — a floor, not a total'
+      : 'total spent on this key'
+
   return (
     <div className="stack stack-2">
       <div className="grid g3">
-        <Stat n={everyone.available ? usd(everyone.total_usd) : usd(today.spent_usd)} l="total spent on this key" />
+        <Stat n={everyone.available ? usd(everyone.total_usd) : usd(today.spent_usd)} l={totalLabel} />
         <Stat n={usd(today.remaining_usd)} l="left before today's cap" />
-        <Stat n={today.calls} l="calls today" />
+        <Stat
+          n={today.calls}
+          l={unmetered > 0 ? `calls today — ${unmetered} unmetered` : 'calls today'}
+        />
       </div>
+
+      {/* A FLOOR SAYS WHY IT IS ONE. `counting_since` is the whole explanation:
+          the ledger began after today did, so calls made before it started are
+          missing from the figure rather than absent from the day. */}
+      {isFloor && (
+        <Notice icon={<IconAlert />}>
+          The ledger began recording at{' '}
+          <strong>{ledger?.counting_since ? new Date(ledger.counting_since).toLocaleString() : 'an unrecorded time'}</strong>
+          , which is after today started. Spend before that is missing from
+          today&rsquo;s figure, not absent from the day — so the number above is
+          a floor.
+        </Notice>
+      )}
+
+      {/* A STAGE THAT HAS NEVER RECORDED IS A WIRING FAULT, NOT A QUIET DAY.
+          Without this the stage simply reads $0.00, which is the more
+          reassuring of the two available readings. */}
+      {unwired.length > 0 && (
+        <Notice icon={<IconAlert />}>
+          <strong>
+            {unwired.length === 1 ? 'One stage has' : `${unwired.length} stages have`} never
+            recorded a call: {unwired.join(', ')}.
+          </strong>{' '}
+          That is a stage not wired to the ledger, not a stage that has cost
+          nothing — anything it spends is missing from every figure here.
+        </Notice>
+      )}
+
+      {/* TOKENS ARE THE MEASUREMENT, so a call that reported none cannot be
+          priced at all. Distinct from `unpriced_calls_today` below, which is a
+          model with no published RATE: there the tokens are known and the
+          dollars are not. Here neither is. */}
+      {unmetered > 0 && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+          {unmetered} call{unmetered === 1 ? '' : 's'} today reported no token usage
+          at all, so {unmetered === 1 ? 'it contributes' : 'they contribute'} nothing
+          to the dollar figure. Counted above, uncosted.
+        </span>
+      )}
       {!everyone.available && (
         <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
           Key total across all machines unavailable — the figure above is this machine only.
@@ -228,6 +303,33 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis }) 
             </>
           )}
         </span>
+      )}
+
+      {/* WHERE THE ONE CAP WENT. The backend splits every figure by stage
+          precisely so a reader can see which of the two consumed the day
+          "without the split implying two budgets" (judge/app.py:1800), and
+          nothing rendered it. A stage that has never recorded is shown as such
+          rather than as $0.00 — those are different claims, and only one of
+          them is reassuring. */}
+      {byStage.length > 0 && (
+        <>
+          <span className="label">Where today&rsquo;s spend went — one cap, split by stage</span>
+          {byStage.map((s) => (
+            <div key={s.stage} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+              <span style={{ fontSize: 'var(--fs-sm)' }}>{s.label || s.stage}</span>
+              <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
+                <span className="tnum">
+                  {s.ever_recorded ? usd(s.spent_usd) : 'never recorded'}
+                </span>
+                {s.ever_recorded && (
+                  <span className="dim" style={{ fontSize: 10 }}>
+                    {s.calls} call{s.calls === 1 ? '' : 's'} today
+                  </span>
+                )}
+              </span>
+            </div>
+          ))}
+        </>
       )}
 
       <span className="label">By extractor model — Gemini 2.5 Flash (used so far) → DeepSeek V4 Flash (current)</span>
