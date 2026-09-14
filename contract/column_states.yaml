@@ -93,11 +93,14 @@ columns:
       state: read
     claim_id:
       reviewed: true
-      state: write_only
-      why: 'Written so an entry can be traced back to the claim it came from, and read by nothing yet.
-        Kept because the trace is the point: without it a board section could not be walked back to the
-        weighted claim behind it. A reader will want it the first time somebody asks why a section ranks
-        where it does.
+      state: read
+      why: 'Written so an entry can be traced back to the claim it came from. It was write_only until
+        2026-09-14, when the reader it was kept for finally arrived: scripts/repair_board_entry_quotes.py
+        joins through it to reach claim.quote_raw_offset, because the board''s copy of the quote carries
+        no offset of its own and the span that re-slices it lives on the claim. "A reader will want it
+        the first time somebody asks why a section ranks where it does" was the stated expectation; the
+        actual first reader asked something narrower - where in the source this quote was cut from - and
+        the trace was there because it had been kept.
 
         '
     created_at:
@@ -117,10 +120,16 @@ columns:
       state: read
     id:
       reviewed: true
-      state: write_only
-      why: 'The primary key, and the ON CONFLICT target that makes a re-run idempotent. Never selected
-        back: every reader groups by section and slug, because a board section is a group of entries rather
-        than a row.
+      state: read
+      why: 'The primary key, and the ON CONFLICT target that makes a re-run idempotent. No PAGE selects
+        it back - every page reader groups by section and slug, because a board section is a group of
+        entries rather than a row - but it stopped being write_only on 2026-09-14.
+        scripts/repair_board_entry_quotes.py both reads and rewrites it, and the reason is the property
+        this column has that a surrogate key would not: `entry_id()` hashes the quote INTO the id, so a
+        repaired quote belongs under a different id. Leaving the id alone would have left a key that no
+        longer describes its content, and the next correct run would have computed the right hash, missed
+        the ON CONFLICT, and appended a second row beside the repaired one. The script verifies the
+        derivation reproduces the stored id on every planned row before it rewrites any.
 
         '
     model_scope:
@@ -144,9 +153,12 @@ columns:
       state: read
     pipeline_version:
       reviewed: true
-      state: write_only
+      state: read
       why: 'Part of the natural key, so a re-run at a new version appends rather than colliding. Same
-        role as on `claim` and `thread_extraction`.
+        role as on `claim` and `thread_extraction`. Read since 2026-09-14 by
+        scripts/repair_board_entry_quotes.py, which must feed the row''s OWN stored version back into
+        `entry_id()` to recompute a key - using today''s version would silently rekey an old row into a
+        new generation and break exactly the idempotence this column exists to provide.
 
         '
     polarity:
@@ -164,10 +176,15 @@ columns:
       state: read
     quote_verified:
       reviewed: true
-      state: write_only
-      why: 'CHECKed true by the table and never selected. The column exists so the database refuses an
-        unverified quote rather than trusting the writer - rule 1 restated in the schema. Nothing reads
-        it because nothing may: every row that exists has already satisfied it.
+      state: read
+      why: 'CHECKed true by the table. The column exists so the database refuses an unverified quote
+        rather than trusting the writer - rule 1 restated in the schema - and no page selects it, because
+        every row that exists has already satisfied it. Read since 2026-09-14 by
+        scripts/repair_board_entry_quotes.py, and read there for the opposite purpose to a page''s: it
+        counts the true rows before and after its UPDATE and rolls back if the number moves. A repair
+        that alters what "verified" covers would be a worse defect than the one it repairs, so the
+        invariant is checked rather than assumed. That is a read of the column as an ASSERTION, not as
+        data - the distinction #275 is about.
 
         '
     reviewed_at:
