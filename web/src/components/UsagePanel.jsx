@@ -249,15 +249,28 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
         </Notice>
       )}
 
-      {/* TOKENS ARE THE MEASUREMENT, so a call that reported none cannot be
-          priced at all. Distinct from `unpriced_calls_today` below, which is a
-          model with no published RATE: there the tokens are known and the
-          dollars are not. Here neither is. */}
+      {/* UNMETERED IS NOT UNPRICED, AND THE PAGE MUST SAY WHICH.
+          `spend_ledger.py:124-127` keeps them apart deliberately — "Both make a
+          dollar total a floor, and for different reasons a reader would want to
+          tell apart" — and the panel already shows `unpriced_calls_today` in
+          the basis line below. Two dim sentences each saying "n calls were not
+          counted" would be true of both and tell a reader neither, so this one
+          names the contrast rather than restating the shape:
+
+            unpriced    tokens known, RATE missing        -> publish the rate
+            unmetered   the provider reported NO tokens   -> ask the provider
+
+          They want different repairs, which is the test of whether the
+          distinction survived into the UI rather than living only in the code. */}
       {unmetered > 0 && (
-        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-          {unmetered} call{unmetered === 1 ? '' : 's'} today reported no token usage
-          at all, so {unmetered === 1 ? 'it contributes' : 'they contribute'} nothing
-          to the dollar figure. Counted above, uncosted.
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch' }}>
+          <strong style={{ color: 'var(--text)' }}>
+            {unmetered} call{unmetered === 1 ? '' : 's'} today reported no token usage at all.
+          </strong>{' '}
+          Not a missing price — a missing measurement. An unpriced call has known
+          tokens and no published rate; {unmetered === 1 ? 'this one has' : 'these have'}{' '}
+          neither, so {unmetered === 1 ? 'it is' : 'they are'} counted in the call
+          figure and absent from the dollar one.
         </span>
       )}
       {!everyone.available && (
