@@ -283,19 +283,20 @@ def main() -> int:
 
             refs = {}
             for post in keep:
-                # THE DOCUMENT'S TEXT, NOT ITS PAYLOAD. `document.text_ref` is
-                # where the document's TEXT lives; the API payload lives in the
-                # `raw` namespace and the search page already holds it, so
-                # nothing is lost by not storing it twice.
+                # THE PAYLOAD, NOT THE PROSE, per the ruling in
+                # `docs/engineer-1/ruling-what-content-hash-identifies.md`.
+                # `text_ref` locates the bytes the platform gave us and
+                # `content_hash` identifies them; prose is derived at assembly
+                # by `collect/assemble/prose.py`, which refuses bytes that are
+                # not a payload.
                 #
-                # This stored `json.dumps(post.raw)` until 2026-08-28, which made
-                # `text_ref` point at a JSON envelope. `assemble_*` passes that
-                # straight to `flatten`, so the thread_context would have held
-                # JSON - and a quote would then verify against a field VALUE,
-                # which is worse than failing to verify: it is rule 1 returning
-                # true for the wrong reason.
-                text = (post.title or "") + chr(10) * 2 + (post.selftext or "")
-                stored = store.put(text.encode("utf-8"), namespace=RAW)
+                # This is the twin of `collect/ops/sweep_reddit.py` and carried
+                # the same pre-ruling comment arguing the losing side. See that
+                # file for why the verification hazard the old comment named is
+                # answered at assembly rather than here, and for the two NFRs
+                # that storing prose breaks.
+                payload = json.dumps(post.raw, ensure_ascii=False, sort_keys=True)
+                stored = store.put(payload.encode("utf-8"), namespace=RAW)
                 refs[post.external_id] = (stored.ref, stored.content_hash)
             wrote = write_documents(
                 conn, keep,

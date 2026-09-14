@@ -1,0 +1,23 @@
+{
+  "taken_at": "2026-09-11T19:16:02",
+  "host_store": "./raw_store",
+  "database": "shared staging (DATABASE_URL)",
+  "reddit_rows": 5281,
+  "classification": {
+    "payload_absent_on_this_host": 2280,
+    "payload_is_json_and_yields_prose": 2737,
+    "text_ref_points_at_prose": 264
+  },
+  "prose_rows_by_fetch_day": {
+    "2026-08-20 root": 5,
+    "2026-08-24 child": 190,
+    "2026-08-27 child": 38,
+    "2026-08-28 child": 13,
+    "2026-08-31 child": 2,
+    "2026-09-10 child": 16
+  },
+  "contexts_containing_a_prose_row": 8,
+  "thread_contexts_total": 3821,
+  "claims_total": 211,
+  "reddit_roots_kept_without_a_context": 41
+}
