@@ -23,7 +23,34 @@ export const DB = { jobs: [], caps: [], mets: [], posts: [] }
 /** Was the board read at all? Distinguishes "nothing found" from "never asked". */
 export let boardLoaded = false
 
-const shortModel = (id) => String(id || '').split('/').pop()
+/**
+ * What to call a model on the board: the registry's name, or the id if there
+ * is none.
+ *
+ * THIS DERIVED A NAME FROM THE ID AND IGNORED THE ONE IT WAS SENT. The previous
+ * version was `String(id || '').split('/').pop()`, which reads well on a slug —
+ * `anthropic/claude-fable-5-1` becomes `claude-fable-5-1` — and returns the
+ * whole string on an id with no slash. Polled registry rows are `mv_` hashes,
+ * so **29 of 64 board rows (45%), across 11 models, named their model with a
+ * hash**: `mv_a2b4f7fc3fa679c2` where the page should read `Anthropic: Claude
+ * Opus 4.8`.
+ *
+ * `model_label` has been in the payload since #260 — `board_sections()` puts it
+ * on every entry in `models[]`, `quotes[]` and `figures[]`, and `judge/app.py`
+ * returns those dicts unchanged. Nothing needed fetching; this file needed to
+ * read a field it was already being handed. A producer sent it, no consumer
+ * read it, and nothing tested that a consumer existed — the API-side form of
+ * #275.
+ *
+ * THE FALLBACK IS THE POINT, and `web/src/routes/Admin.jsx:76` had the pattern
+ * right all along: `m.display_name || m.model_version_id`. An absent label is
+ * not a reason to render nothing, and deriving from the id is still the best
+ * available answer when there is no name — it just must not be the FIRST
+ * answer. Rule 6, on a display: a missing value stays missing rather than
+ * becoming a definite one, and the id is the honest stand-in.
+ */
+const modelName = (m) =>
+  (m && m.model_label) || String((m && m.model_version_id) || '').split('/').pop()
 
 /**
  * Evidence state, COUNTED and never scored.
@@ -79,7 +106,7 @@ function commonFields(item) {
     // One row per model named in this section. `d` and `p` stay empty: a
     // description and a price are facts from the registry, not from this quote.
     rows: (item.models || []).map((m) => ({
-      m: shortModel(m.model_version_id),
+      m: modelName(m),
       v: '',
       d: '',
       p: '',
@@ -95,7 +122,7 @@ function commonFields(item) {
     // views.js turns it into an anchor when the scheme is http(s).
     qs: (item.quotes || []).map((q) => [
       q.quote,
-      shortModel(q.model_version_id) || 'unattributed',
+      modelName(q) || 'unattributed',
       q.document_id,
       q.polarity === 'negative',
       q.url || null,
@@ -138,7 +165,7 @@ export function setBoardData(payload) {
       cols: ['Model', 'Figure', 'Basis', 'Unit'],
       num: [false, true, false, false],
       rows: (m.figures || []).map((f) => [
-        shortModel(f.model_version_id),
+        modelName(f),
         f.value,
         f.basis,
         f.unit || m.unit || '',
