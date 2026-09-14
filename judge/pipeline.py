@@ -1016,6 +1016,7 @@ class Pipeline:
         resolve_surface: SurfaceResolver | None = None,
         find_surfaces: SurfaceFinder | None = None,
         on_thread: Callable[[str], None] | None = None,
+        after_thread: Callable[[], None] | None = None,
     ) -> list[PipelineResult]:
         """A batch. A refused thread is skipped, never fatal.
 
@@ -1102,6 +1103,26 @@ class Pipeline:
                 input_tokens=result.extraction.input_tokens or 0,
                 output_tokens=result.extraction.output_tokens or 0,
             )
+            # THE THREAD IS NOW COMPLETE AND CONSISTENT, AND THE CALLER MAY SAY SO.
+            #
+            # This is the last statement of the iteration on purpose: the claims,
+            # the board entries and the ledger row above are all written, and the
+            # ledger row is the one that must never outlive them — see its own
+            # comment, a ledger row surviving a rolled-back extraction marks a
+            # thread read that produced nothing and the next run skips it. So a
+            # commit is safe HERE and nowhere earlier.
+            #
+            # WHY A HOOK RATHER THAN `self._conn.commit()`. The caller owns the
+            # outer transaction (see the savepoint note above) and nothing here
+            # should take that ownership away: `cli.py` and
+            # `run_extraction_batched.py` pass nothing and keep today's single
+            # commit after the batch. The on-demand fetch passes `conn.commit`,
+            # because a run a person is watching can be stopped or killed
+            # mid-batch, and without this every completed thread was discarded -
+            # up to 13.8 minutes of extraction measured, already paid for, rolled
+            # back with nothing recording that it happened.
+            if after_thread is not None:
+                after_thread()
         # ── ONE board rebuild for the whole batch ───────────────────────────
         #
         # Was inside `run`, so a batch rebuilt every cell once per claim-bearing

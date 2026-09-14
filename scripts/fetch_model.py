@@ -1606,7 +1606,21 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
         threads, facts=facts, model_version_of=mvo, budget=budget,
         already_extracted=seen, driver=Driver("new-evidence"), resolve_surface=resolver,
         on_thread=_on_thread,
+        # COMMIT EACH THREAD AS IT LANDS. This batch used to commit once, after
+        # every thread, so a run that was stopped or died at thread 20 of 24
+        # discarded all 19 that had finished — measured E5 durations reach 13.8
+        # minutes, and the model calls behind them are already paid for and
+        # cannot be refunded. Nothing recorded that either, so the loss was
+        # invisible as well as total.
+        #
+        # The Stop button made this reachable on purpose rather than by
+        # accident: it exists so a person can halt a run they can see going
+        # wrong, and until now using it threw away everything the run had
+        # correctly extracted.
+        after_thread=conn.commit,
     )
+    # Still needed, and not redundant: the whole-board cell rebuild happens
+    # after the loop and belongs to no thread, so it has nothing to ride on.
     conn.commit()
 
     verified = sum(len(r.extraction.verified) for r in results)
