@@ -173,14 +173,29 @@ class TestThePipelineUsesIt:
 
     def test_the_ledger_row_is_written_beside_the_claims(self):
         """A ledger row surviving a rolled-back extraction would mark a thread
-        read that produced nothing readable, and the next run would skip it."""
+        read that produced nothing readable, and the next run would skip it.
+
+        ⚠ MATCHES THE CALL, NOT THE WORD. This read `"commit" not in source` and
+          went red the moment `run_all` grew a comment explaining why it does not
+          commit — the prose was the match, and the assertion had drifted from
+          "this code does not commit" to "nobody may write the word down". That
+          is the sixth time a check in this suite has matched a mention rather
+          than a use, so: comments are stripped, and the test looks for the CALL.
+        """
         import inspect
+        import re
 
         from judge.pipeline import Pipeline
 
         source = inspect.getsource(Pipeline.run_all)
-        assert "self._ledger.record(" in source
-        assert "commit" not in source, "the batch must not commit; the caller owns that"
+        code = "\n".join(
+            re.sub(r"#.*$", "", line) for line in source.splitlines()
+        )
+        assert "self._ledger.record(" in code
+        assert ".commit(" not in code, (
+            "the batch must not commit; the caller owns the transaction. A caller "
+            "that wants a commit per thread passes `after_thread`."
+        )
 
 
 class TestTheIdDoesNotIdentifyTheText:

@@ -703,9 +703,13 @@ columns:
   fetch_log:
     at:
       reviewed: true
-      state: write_only
-      why: the line's own timestamp is inside `payload` and is read from there; this column is the lifted
-        copy and no query reads it yet
+      state: read
+      why: 'the line''s own timestamp is inside `payload` too, and the fetch view still renders it from
+        there. This lifted copy stopped being unread on 2026-09-14: judge/fetch_reaper.py groups the
+        whole table by run and takes max(at) to find runs that have gone silent, which is a per-run
+        aggregate the payload copy cannot answer without opening every line''s JSON. The column was
+        lifted so a run could be summarised cheaply and this is the first query that actually needed
+        that.'
     id:
       reviewed: true
       state: read
@@ -713,18 +717,24 @@ columns:
         what makes replaying a run's file free
     kind:
       reviewed: true
-      state: write_only
-      why: lifted from the payload so a run could be summarised without reading every line; the summary
-        currently reads the payload instead, so nothing queries this
+      state: read
+      why: 'lifted from the payload so a run could be summarised without reading every line, and for a
+        year nothing did. judge/fetch_reaper.py now does exactly that: `HAVING bool_or(kind = ''end'')
+        = false` is how a run with no end record is found, over the whole table, without opening a
+        single payload. Checked before relying on it - `kind` and `payload->>''kind''` disagree on 0
+        rows - because a lifted copy that had drifted from its source would make the reaper miss
+        finished runs and mark them abandoned.'
     machine:
       reviewed: true
       state: read
       why: selected; names whose laptop ran a fetch this machine has no files for
     model_version_id:
       reviewed: true
-      state: write_only
-      why: lifted for the same reason and likewise unqueried — /fetch/runs matches on the run_id prefix,
-        not this
+      state: read
+      why: lifted for the same reason, and /fetch/runs still matches on the run_id prefix rather than
+        this. Read since 2026-09-14 by judge/fetch_reaper.py, which carries the run's own value onto the
+        end record it appends - the reaper writes a line ABOUT a run rather than one of its own, so
+        every lifted column on that row has to come from the run rather than from the reaper.
     payload:
       reviewed: true
       state: read

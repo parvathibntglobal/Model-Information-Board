@@ -27,6 +27,7 @@ schema violation, and it is bounded at one.
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -122,6 +123,34 @@ class OpenRouterClient:
     base_url: str = DEFAULT_BASE_URL
     api_key: str = ""
     timeout_seconds: float = 60.0
+    #: A CEILING ON THE WHOLE CALL, which `timeout_seconds` is not.
+    #:
+    #: `httpx.Timeout` bounds IDLE time per phase. A response that trickles bytes
+    #: never goes idle for the full read window, so it never expires — measured
+    #: 2026-09-14 on a live run: one call ran 39 MINUTES and raised nothing, on a
+    #: run whose previous 26 threads averaged 46 seconds.
+    #:
+    #: The comment below on `timeout=` promises "a read that goes idle past the
+    #: window raises rather than hanging the batch"; that intent needs this bound
+    #: to be true, because idleness and elapsed time are different measurements.
+    total_timeout_seconds: float = float(
+        os.getenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", "300")
+    )
+    #: Called while a response is arriving. MAY RAISE, and raising is the point.
+    #:
+    #: `Progress.checkpoint()` raises `RunStopped` when somebody has pressed
+    #: Stop, and it is called from `stage()` - so during E5 the next check is the
+    #: progress line for the NEXT thread. A hang INSIDE a thread never reaches
+    #: one. Measured 2026-09-14: `POST /fetch/stop` answered
+    #: `{"stop_requested": true, "was_running": true}`, both true, and the run
+    #: continued for 39 minutes until it was killed by pid. A control that
+    #: reports success and does nothing is worse than one that is absent, and
+    #: the case it could not serve is the only case anyone presses it in.
+    #:
+    #: This client knows nothing about runs or stops. It calls a hook; whoever
+    #: supplies it decides what raising means. `scripts/fetch_model.py` supplies
+    #: `prog.checkpoint`.
+    on_progress: Callable[[], None] | None = None
 
     @classmethod
     def from_env(cls) -> OpenRouterClient:
@@ -139,9 +168,28 @@ class OpenRouterClient:
         )
 
     def complete(self, *, system: str, user: str, tool_schema: dict[str, object]) -> Completion:
+        import json as _json
+        import time
+
         import httpx
 
-        response = httpx.post(
+        # STREAMED SO THE CLOCK CAN BE CHECKED WHILE THE BODY ARRIVES.
+        #
+        # `httpx.post` returns only when the response is complete, so there is no
+        # moment at which elapsed time can be examined - which is why a 39-minute
+        # call was possible under a 60-second timeout. Reading the body in chunks
+        # gives a point to check a deadline against, and it is the only way to
+        # bound a response that is technically still arriving.
+        #
+        # WHAT THIS BOUNDS, EXACTLY. The deadline covers waiting for the body.
+        # Waiting for the HEADERS is still bounded by the read window instead, so
+        # the true worst case is `timeout_seconds + total_timeout_seconds` rather
+        # than the latter alone. Stated rather than rounded off, because a
+        # ceiling that is quietly 60s higher than it claims is the same species
+        # of defect as the one this fixes.
+        deadline = time.monotonic() + self.total_timeout_seconds
+        with httpx.stream(
+            "POST",
             f"{self.base_url}/chat/completions",
             # Explicit phases rather than one float: a stalled CONNECT fails fast
             # (10s) while a legitimately slow generation still gets the full read
@@ -172,9 +220,46 @@ class OpenRouterClient:
                 "tool_choice": {"type": "function", "function": {"name": TOOL_NAME}},
                 "temperature": 0,
             },
-        )
+        ) as response:
+            chunks: list[bytes] = []
+            # THROTTLED, because `checkpoint()` reads a file. A chunk can be a
+            # few bytes, so calling it per chunk would stat the disk thousands
+            # of times for one response. Once a second is far faster than a
+            # person can regret pressing Stop, and costs nothing.
+            next_check = 0.0
+            for chunk in response.iter_bytes():
+                chunks.append(chunk)
+                now = time.monotonic()
+                if self.on_progress is not None and now >= next_check:
+                    next_check = now + 1.0
+                    # Deliberately NOT wrapped: this is how a stop leaves the
+                    # call, and swallowing it here would restore the defect.
+                    self.on_progress()
+                if now > deadline:
+                    # NAMES WHAT WAS MEASURED, not a guess at the cause. The
+                    # provider may be slow, wedged, or streaming something
+                    # enormous; this call cannot tell which and does not say.
+                    # `ExtractorUnavailable` because the run must end here rather
+                    # than continue against a provider that is not answering -
+                    # and with the per-thread commit, ending here keeps every
+                    # thread already read instead of discarding the batch.
+                    raise ExtractorUnavailable(
+                        f"the provider was still sending after "
+                        f"{self.total_timeout_seconds:.0f}s "
+                        f"({len(b''.join(chunks))} bytes received); abandoned so the "
+                        f"batch is not held open by one call. Idle-time timeouts "
+                        f"do not catch this: a response that keeps trickling never "
+                        f"goes idle."
+                    )
+            raw = b"".join(chunks)
         response.raise_for_status()
-        body = response.json()
+        try:
+            body = _json.loads(raw)
+        except ValueError as exc:
+            raise ExtractorUnavailable(
+                f"the provider returned HTTP {response.status_code} with a body "
+                f"that is not JSON ({len(raw)} bytes): {raw[:200]!r}"
+            ) from exc
 
         # A PROVIDER ERROR ARRIVES AS HTTP 200, so `raise_for_status` passes and
         # the body has no `choices`. This used to be a bare `KeyError: 'choices'`
