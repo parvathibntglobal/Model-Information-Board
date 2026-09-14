@@ -45,10 +45,26 @@ const SECTION_LABEL = {
   metric: 'Metrics',
 }
 
+// One shared empty set, so `picked[key] || EMPTY` does not allocate per render.
+const EMPTY = new Set()
+
 export default function BoardReview() {
   const [state, setState] = useState({ data: null, err: null, unreadable: null })
   const [busy, setBusy] = useState(null)
   const [mergeInto, setMergeInto] = useState({})
+  // Which quotes are ticked, per group. An ABSENT or EMPTY set means the
+  // reviewer has not chosen any - it does NOT mean "all of them". The buttons
+  // below say which of the two they are about to do, so the difference is on
+  // screen rather than inferred from state nobody can see.
+  const [picked, setPicked] = useState({})
+
+  const togglePicked = (key, id) =>
+    setPicked((p) => {
+      const next = new Set(p[key] || [])
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return { ...p, [key]: next }
+    })
 
   const load = useCallback(() => {
     boardEntries()
@@ -146,6 +162,8 @@ export default function BoardReview() {
         {inSection.map((g) => {
           const key = `${g.section}:${g.slug}`
           const ruled = Boolean(g.ruling)
+            // The ticked ids for this group, as an array the api client can send.
+            const chosen = [...(picked[key] || EMPTY)]
           return (
             <div key={key} className="stack stack-1"
                  style={{ opacity: g.ruling === 'declined' ? 0.55 : 1 }}>
@@ -172,25 +190,70 @@ export default function BoardReview() {
               {/* The quotes ARE the evidence being ruled on, so they are shown
                   rather than linked — a decision made without reading them is
                   the one this panel exists to prevent. */}
-              {(g.quotes || []).slice(0, 3).map((q, i) => (
-                <div key={i} className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+              {(g.quotes || []).map((q) => (
+                <label key={q.id} className="row"
+                       style={{ gap: 8, alignItems: 'flex-start', cursor: 'pointer',
+                                opacity: q.ruling === 'declined' ? 0.5 : 1 }}>
+                  {/* ONE BOX PER QUOTE, because a section is not the unit a
+                      reviewer disagrees with. On #279 six of twenty-one slugs
+                      held broken AND sound quotes, and the only ruling
+                      available took all of them off the board together. */}
+                  <input
+                    type="checkbox"
+                    checked={(picked[key] || EMPTY).has(q.id)}
+                    onChange={() => togglePicked(key, q.id)}
+                    aria-label={`Select this quote: ${q.quote.slice(0, 60)}`}
+                    style={{ marginTop: 3, flex: 'none' }}
+                  />
                   <Badge tone={q.polarity === 'negative' ? 'fail' : 'mute'}>{q.polarity}</Badge>
                   <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-2)' }}>
                     “{q.quote}”
                   </span>
-                </div>
+                  {/* A quote already ruled says so. Without this a declined
+                      quote and a live one look identical in this list. */}
+                  {q.ruling && (
+                    <Badge tone={q.ruling === 'declined' ? 'fail' : 'pass'}>{q.ruling}</Badge>
+                  )}
+                </label>
               ))}
+              {/* THE LIST IS CAPPED AT FIVE AND THE SECTION CAN HOLD MORE, so a
+                  reviewer pressing "decline all 15" would be ruling on ten quotes
+                  they were never shown. Naming the gap is the difference between a
+                  decision and a guess - rule 7, in a review surface: the figure on
+                  the button travels with what it was drawn from. */}
+              {g.entries > (g.quotes || []).length && (
+                <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+                  Showing {(g.quotes || []).length} of {g.entries} quotes. A
+                  section-wide ruling covers all {g.entries}, including the
+                  {' '}{g.entries - (g.quotes || []).length} not listed here.
+                </span>
+              )}
 
               <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
                 {!ruled && (
                   <>
+                    {/* THE BUTTON NAMES ITS OWN SCOPE, and that is the whole
+                        safety argument. An empty selection is ambiguous - it
+                        means both "all of them" and "I have not ticked anything
+                        yet" - so the broadest action must never be the DEFAULT
+                        reading of it. The label changes with the selection, so
+                        the control always states what it is about to do and
+                        there is nothing invisible to get wrong. The api client
+                        sends `null` rather than `[]` when nothing is ticked,
+                        and the backend refuses `[]` outright. */}
                     <button type="button" className="chip" disabled={busy === key}
-                      onClick={() => act(() => ruleBoardEntry(g.section, g.slug, 'adopted'), key)}>
-                      adopt
+                      onClick={() => act(
+                        () => ruleBoardEntry(g.section, g.slug, 'adopted', null, chosen), key)}>
+                      {chosen.length
+                        ? `adopt ${chosen.length} quote${chosen.length === 1 ? '' : 's'}`
+                        : `adopt all ${g.entries}`}
                     </button>
                     <button type="button" className="chip" disabled={busy === key}
-                      onClick={() => act(() => ruleBoardEntry(g.section, g.slug, 'declined'), key)}>
-                      decline
+                      onClick={() => act(
+                        () => ruleBoardEntry(g.section, g.slug, 'declined', null, chosen), key)}>
+                      {chosen.length
+                        ? `decline ${chosen.length} quote${chosen.length === 1 ? '' : 's'}`
+                        : `decline all ${g.entries}`}
                     </button>
                     <input
                       className="input"
@@ -199,17 +262,36 @@ export default function BoardReview() {
                       value={mergeInto[key] || ''}
                       onChange={(e) => setMergeInto((m) => ({ ...m, [key]: e.target.value }))}
                     />
+                    {/* MERGE FOLLOWS THE SELECTION TOO. Folding a whole slug
+                        into another is one judgement about a word; moving a
+                        single quote is "this was filed under the wrong
+                        section". Both are real, and the label says which. */}
                     <button type="button" className="chip" disabled={busy === key || !(mergeInto[key] || '').trim()}
                       onClick={() => act(
-                        () => ruleBoardEntry(g.section, g.slug, 'merged', mergeInto[key]), key)}>
-                      merge
+                        () => ruleBoardEntry(g.section, g.slug, 'merged', mergeInto[key], chosen), key)}>
+                      {chosen.length ? `move ${chosen.length}` : 'merge'}
                     </button>
                   </>
                 )}
-                {ruled && (
+                {/* UNDO HAS TO REACH A QUOTE TOO, and this is the case that would
+                    otherwise have no way back. `g.ruling` is now set only when the
+                    WHOLE slug agrees, so a section with one declined quote reports
+                    none - and a per-quote decline whose only undo was per-slug would
+                    un-decline everything else in the section to fix one mistake.
+                
+                    Ticked quotes clear themselves; the section-wide undo stays for a
+                    section-wide ruling. Same rule as above: the button says which. */}
+                {chosen.length > 0 && (
+                  <button type="button" className="chip" disabled={busy === key}
+                    onClick={() => act(
+                      () => unruleBoardEntry(g.section, g.slug, chosen), key)}>
+                    undo on {chosen.length} quote{chosen.length === 1 ? '' : 's'}
+                  </button>
+                )}
+                {ruled && chosen.length === 0 && (
                   <button type="button" className="chip" disabled={busy === key}
                     onClick={() => act(() => unruleBoardEntry(g.section, g.slug), key)}>
-                    undo ruling
+                    undo ruling on all {g.entries}
                   </button>
                 )}
               </div>
