@@ -23,6 +23,19 @@ SCHEMA = pathlib.Path(__file__).resolve().parents[1] / "contract" / "tables.sql"
 NOW = datetime.datetime(2026, 9, 14, 12, 0, tzinfo=datetime.UTC)
 
 
+@pytest.fixture(autouse=True)
+def _allow_the_write(monkeypatch):
+    """These tests DO mean to exercise the write, against a disposable database.
+
+    `reap` refuses to write under pytest unless this is set, because
+    `/fetch/start` calls it with a connection to DATABASE_URL and
+    `test_fetch_endpoints.py` posts to `/fetch/start` — which put five real
+    records into the SHARED database on 2026-09-14. The opt-in is per-test and
+    explicit, so the default stays "a test does not write to production".
+    """
+    monkeypatch.setenv("MODELBOARD_ALLOW_TEST_TELEMETRY", "1")
+
+
 @pytest.fixture
 def conn(test_dsn):
     with psycopg.connect(test_dsn, connect_timeout=10) as connection:
@@ -193,3 +206,52 @@ class TestTheThresholdIsTheWholeDesign:
         )
 
         assert bool(marked) is reaped
+
+
+class TestItWillNotWriteFromATestRun:
+    """The guard that was missing, and the path that proved it was missing.
+
+    `/fetch/start` calls `reap` with `judge.app._conn()`, which reads
+    DATABASE_URL. `tests/test_fetch_endpoints.py` posts to `/fetch/start`. So
+    `pytest tests/` put five real `abandoned` records into the SHARED database
+    on 2026-09-14, one of them onto another machine's run.
+
+    Second time a writer here has reached production from a test run — see the
+    same guard in `spend_ledger.telemetry_connection`, added after the suite
+    wrote 110 rows. Both belong in the WRITER, because a conftest fixture can be
+    cleared by any test that wants a real connection.
+    """
+
+    def test_refuses_to_write_without_the_explicit_opt_in(self, conn, monkeypatch):
+        monkeypatch.delenv("MODELBOARD_ALLOW_TEST_TELEMETRY", raising=False)
+        _line(conn, "dead-run", 0, minutes_ago=4200)
+
+        marked = fetch_reaper.reap(conn, now=NOW)
+
+        assert marked == []
+        assert _end_records(conn, "dead-run") == [], (
+            "a test run must not append to whatever DATABASE_URL happens to name"
+        )
+
+    def test_the_fetch_start_endpoint_writes_nothing_under_pytest(self, monkeypatch):
+        """The actual route, not a stand-in for it."""
+        monkeypatch.delenv("MODELBOARD_ALLOW_TEST_TELEMETRY", raising=False)
+        calls = []
+
+        def _explode(*a, **k):
+            calls.append(a)
+            raise AssertionError("the endpoint reached the reaper's write path")
+
+        monkeypatch.setattr(fetch_reaper, "_append", _explode)
+        # `find_abandoned` is a read; the guard sits between it and `_append`,
+        # so patching the write is what proves the guard and not the query.
+        import subprocess
+
+        from judge import app as judge_app
+
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: None)
+        try:
+            judge_app.start_fetch(judge_app.FetchRequest(model_version_id="x/y"))
+        except Exception:
+            pass  # the route may fail for unrelated reasons here; the write is the assertion
+        assert calls == []

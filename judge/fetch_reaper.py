@@ -132,11 +132,40 @@ def reap(
     about to render, and neither should fail because a tidy-up could not be
     recorded. A reaper that takes down the thing it was cleaning up for is worse
     than a stale row.
+
+    ⚠ REFUSES TO WRITE UNDER PYTEST, AND THIS IS NOT BELT-AND-BRACES — IT IS A
+      REPEAT. `/fetch/start` calls this with `judge.app._conn()`, which reads
+      DATABASE_URL, and `tests/test_fetch_endpoints.py` posts to `/fetch/start`.
+      So `pytest tests/` wrote five real `abandoned` records into the SHARED
+      database at 2026-09-14T10:54:50Z, including one onto another machine's run.
+
+      The records were correct and the live run was spared — the reaper worked.
+      But nobody asked for them, and a write to shared state that nobody asked
+      for is #267 exactly, which is the issue where somebody found rows they
+      could not attribute.
+
+      It is the SECOND time a writer in this repo has reached the shared database
+      from a test run: `spend_ledger.telemetry_connection` has the same guard,
+      added after the suite wrote 110 rows. Its comment explains why the guard
+      belongs in the WRITER and not only in conftest — a conftest fixture can be
+      cleared by any test that wants a real connection, and then the next writer
+      repeats the whole thing. It was right, and this is the proof: the fixture
+      was in place and did not cover a path that connects for itself.
     """
     now = now or datetime.datetime.now(datetime.UTC)
     dead = find_abandoned(conn, now=now, silent_for=silent_for)
     if dry_run or not dead:
         return dead
+    if os.getenv("PYTEST_CURRENT_TEST") and not os.getenv("MODELBOARD_ALLOW_TEST_TELEMETRY"):
+        # Reported, not silent: a caller that meant to exercise this should see
+        # why nothing happened. A test that genuinely means to sets
+        # MODELBOARD_ALLOW_TEST_TELEMETRY and points at a disposable database.
+        log.warning(
+            "refusing to mark %d run(s) abandoned: running under pytest and "
+            "MODELBOARD_ALLOW_TEST_TELEMETRY is not set",
+            len(dead),
+        )
+        return []
     marked: list[ReapedRun] = []
     for run in dead:
         minutes = run.silent_for.total_seconds() / 60
