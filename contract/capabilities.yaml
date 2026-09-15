@@ -164,6 +164,51 @@ capabilities:
       - "fast enough for chat"
       - "times out under load"
 
+  # ── Cost, proposed 2026-09-15 ────────────────────────────────────────────
+  #
+  # DISCOVERED FROM EVIDENCE, which is what §2 below asks for. Both keys were
+  # PROPOSED BY THE EXTRACTOR and are sitting in `capability_candidate`
+  # awaiting a person; neither was decreed. The accumulation §2 describes is
+  # measurable: 36 of 336 claims carry a price figure in their quote and every
+  # one is filed under a key about something else, because the closed enum
+  # offers nothing closer.
+  #
+  # `failure_mode: loud` IS THE FIELD TO ARGUE WITH. Cost behaves like
+  # `ops.latency_ttft` - an operational property you observe directly, with a
+  # real mitigation (change model) - so `loud` is the closer of the two. The
+  # counter-argument is real and belongs here rather than in a PR comment: per
+  # task spend inside an agent loop accumulates without anybody watching, and
+  # "you find out at the end of the month" is not "you find out in seconds".
+  # If that reading wins, `cost.per_task` is `silent` and demands positive
+  # consensus, and `cost.efficiency` probably follows it.
+
+  - key: cost.efficiency
+    failure_mode: loud
+    description: >
+      Price per unit of useful work, as engineers actually compare it —
+      list price against what a task really consumed. A property of the
+      PROVIDER and the tier, not of the weights, and it moves whenever a
+      vendor reprices.
+    sounds_like:
+      - "cheaper per token"
+      - "not worth the price"
+      - "best value for the money"
+      - "75% price reduction"
+
+  - key: cost.per_task
+    failure_mode: loud
+    description: >
+      What one real job cost end to end — a month of agent runs, a single
+      refactor, a batch. Distinct from `cost.efficiency` because a model with
+      the better rate can still cost more per task by taking more steps, and
+      that inversion is exactly what engineers report.
+    sounds_like:
+      - "cost $28 for the month"
+      - "3x cheaper in cost per task"
+      - "burns more tokens to finish"
+      - "612.9 million tokens for $28.35"
+
+
 
 # ----------------------------------------------------------------------------
 #  Growing the vocabulary

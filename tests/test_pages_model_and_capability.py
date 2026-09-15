@@ -68,11 +68,11 @@ class TestSilenceRendersDistinctlyFromCriticism:
     def test_every_tracked_capability_appears_even_with_no_cells(self):
         page = ModelPageReader(Conn()).build("mv1")
 
-        assert len(page.capabilities) == len(capabilities()) == 12, (
+        assert len(page.capabilities) == len(capabilities()) == 14, (
             "the page enumerates the rows it got back rather than the contract, "
             "so a capability nobody discussed cannot appear at all"
         )
-        assert len(page.unreported) == 12
+        assert len(page.unreported) == 14
 
     def test_unreported_and_insufficient_are_different_states(self):
         unreported = CapabilityView(key="k", failure_mode="loud")
@@ -109,7 +109,7 @@ class TestSilenceRendersDistinctlyFromCriticism:
         page = ModelPageReader(Conn(total=swept)).build("mv1")
 
         assert page.tracked
-        assert "0 of 12 tracked capabilities" in page.summary
+        assert "0 of 14 tracked capabilities" in page.summary
         assert "fail silently" in page.summary
         assert "not evidence of safety" in page.summary
 
