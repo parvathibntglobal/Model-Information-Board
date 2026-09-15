@@ -219,8 +219,25 @@ capabilities:
 #     tagged `unclassified` and left to accumulate. A growing unclassified
 #     cluster is the signal that engineers are discussing something we do
 #     not track — and the trigger to add it.
-#  3. Adding one BACKFILLS: re-read from the immutable raw store. Costs
-#     nothing, because collect/ already paid for it.
+#  3. Adding one BACKFILLS, and it is NOT free. This said "Costs nothing,
+#     because collect/ already paid for it", which is true of COLLECTION and
+#     false of the only paid stage. Measured 2026-09-15 while proposing
+#     `cost.*`:
+#
+#       - Extraction is re-run, not re-read. `claim.capability_key` is written
+#         by the model, so an existing claim cannot be refiled by adding a key.
+#       - `claim_id_for` hashes `pipeline_version`, so a bump FORKS the claim
+#         table rather than replacing it. Old claims stay; `CellStore` defaults
+#         to the current version so the board renders one generation.
+#       - `already_extracted()` is version-scoped, so a bump re-reads THE WHOLE
+#         CORPUS - not the threads behind the affected claims. For `cost.*`
+#         that was 20 threads' worth of benefit against a full-corpus cost.
+#       - And the raw store is not guaranteed to hold it. 4 flattened blobs of
+#         those 20 threads' are missing with no tombstone, which the store
+#         itself calls corruption rather than a takedown.
+#
+#     So the backfill question to ask before proposing a key is "what does
+#     re-extracting the corpus cost today", not "is the text still there".
 #
 #  Capabilities worth tracking now were not worth tracking eighteen months
 #  ago — computer use, thinking-budget control, prompt-cache effectiveness.
