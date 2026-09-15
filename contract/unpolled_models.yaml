@@ -1,0 +1,67 @@
+# Models the registry must hold and the poll will never bring.
+#
+# WHY THIS IS NOT `seed_models.yaml`
+#
+# That file calls itself a build fixture, and the loader enforces the claim:
+# `_refuse_provenance_downgrade` refuses any load that would turn a `polled` row
+# back into a `seed` one, because *"seeded models are a build fixture that
+# polling replaces; reversing that would make assert_no_fixtures refuse to
+# start."*
+#
+# Seven of its eleven entries have since been polled, so that file cannot be
+# loaded against this database at all any more — and that is the mechanism
+# working, not a bug. It also means the file is the wrong home for these three:
+# they are not a fixture awaiting replacement, because nothing will ever replace
+# them. The OpenRouter poll carries language models and the image generation the
+# big LLM providers sell; it does not carry Recraft, ElevenLabs, or Qwen's Omni
+# speech line, and no future poll will.
+#
+# Same shape, same loader, same validation — a different claim about where the
+# rows come from and how long we are responsible for them.
+#
+# ⚠ EVERY FIGURE IS ABSENT AND MUST STAY ABSENT.
+#
+#   `load_seed` refuses "any field that asserts a value without citing where it
+#   came from" (FR-2). A null asserts nothing, so these need no sources — and
+#   they have none to give. Their real prices are per image, per second and per
+#   character; `model_version.price_in` is USD per 1M TOKENS. Any number written
+#   here would be one nobody measured, in a unit that does not apply.
+#
+#   If a price ever belongs on these, it needs a unit-carrying column first, the
+#   way `board_entry` carries `unit` beside `value_verbatim`.
+#
+# `aliases` is REQUIRED — the loader refuses a model that cannot be found by one
+# of the three renderings people write. These are `query_variants` output, the
+# project's own mechanical speller, with one exception named below.
+
+version: "1.0"
+provenance: seed
+
+models:
+  - canonical_id: 'recraft/recraft-v4.1-pro'
+    provider: 'recraft'
+    family: 'recraft'
+    display_name: 'Recraft V4.1 Pro'
+    aliases:
+      surface: 'recraft v4.1 pro'
+      variants: ['recraft-v4.1-pro', 'recraftv4.1pro', 'recraftv41pro']
+
+  - canonical_id: 'elevenlabs/eleven-v3'
+    provider: 'elevenlabs'
+    family: 'eleven'
+    display_name: 'ElevenLabs v3'
+    aliases:
+      surface: 'eleven v3'
+      # `elevenlabs v3` is the one hand-added form in this file. The product is
+      # written both ways and the generator only sees the surface it is given,
+      # so this is a person's spelling rather than a derivation — named here
+      # because it is the single judgement call in the set.
+      variants: ['eleven-v3', 'elevenv3', 'elevenlabs v3']
+
+  - canonical_id: 'qwen/qwen3.5-omni-flash'
+    provider: 'qwen'
+    family: 'qwen'
+    display_name: 'Qwen3.5 Omni Flash'
+    aliases:
+      surface: 'qwen3.5 omni flash'
+      variants: ['qwen3.5-omni-flash', 'qwen3.5omniflash', 'qwen35omniflash']
