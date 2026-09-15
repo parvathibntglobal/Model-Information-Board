@@ -45,10 +45,17 @@ const COMPARE_MAX = 3
 // `Free only` went - a filter whose criterion is invisible.
 //
 // `Largest context` stays, because the context window is still on the row.
-const SORTS = {
-  name:     { label: 'Name',            fn: (a, b) => (a.display_name || '').localeCompare(b.display_name || '') },
-  context:  { label: 'Largest context', fn: (a, b) => (b.advertised_context || 0) - (a.advertised_context || 0) },
-}
+// NO SORT CONTROL, AND SO NO SORT.
+//
+// `Name` and `Largest context` were the last two, after the price sorts went
+// with the price column. Removing the control without removing the sort would
+// have left the list silently ordered by whichever happened to be the default -
+// a choice nobody can see or change.
+//
+// The rows now arrive in the order `contract/tracked_models.yaml` lists them,
+// and that order is deliberate: the models a fetch has actually run against
+// lead the page. Re-sorting alphabetically in the browser would have thrown
+// that away for no reason a reader asked for.
 
 
 /* ------------------------------------------------------------------ search */
@@ -113,7 +120,6 @@ export default function Models() {
   const [err, setErr] = useState(null)
   const [unreadable, setUnreadable] = useState(null)
   const [query, setQuery] = useState('')
-  const [sort, setSort] = useState('name')
 
   // ── COMPARE SELECTION ────────────────────────────────────────────────────
   // Held here rather than in a URL param: it is a transient choice being made,
@@ -129,7 +135,6 @@ export default function Models() {
       // again in the backend. This is the last of the three, and the one that
       // makes a stray click a no-op rather than a silent truncation.
       : cur.length >= COMPARE_MAX ? cur : [...cur, id])
-  const [meta, setMeta] = useState(null)      // the API's own summary line
   const searchRef = useRef(null)
 
   // "/" jumps to the search box, the convention on any page that is mostly a
@@ -155,7 +160,6 @@ export default function Models() {
         const list = await fetchAll((l, o) => listModels(l, o))
         if (!alive) return
         setRoster(list.models)
-        setMeta({ summary: list.summary })
       } catch (e) {
         if (!alive) return
         if (e instanceof BoardUnreadable) setUnreadable(e.message)
@@ -209,10 +213,9 @@ export default function Models() {
   const shown = useMemo(() => {
     if (!roster) return []
     let out = matches(roster, query)
-    return [...out].sort(SORTS[sort].fn)
-  }, [roster, query, sort])
+    return out
+  }, [roster, query])
 
-  const withEvidence = Object.keys(evidence).length
 
   return (
     <div className="shell section-tight stack stack-4">
@@ -220,10 +223,6 @@ export default function Models() {
         <div className="stack stack-1">
           <span className="eyebrow">Models</span>
           <h1 style={{ fontSize: 'var(--fs-display)' }}>The registry</h1>
-          <p className="muted" style={{ maxWidth: '66ch' }}>
-            Every model the board tracks, not only the ones people post about —
-            a list of only the discussed ones would rank popularity, not capability.
-          </p>
         </div>
 
         {/* TOP RIGHT, AND ALWAYS PRESENT. The sticky bar at the foot of the
@@ -256,32 +255,30 @@ export default function Models() {
 
       {roster && (
         <>
-          <Reveal>
-            <div className="card">
-              <div className="grid g3">
-                <Stat n={roster.length} l="models tracked" />
-                <Stat n={withEvidence} l="with any evidence" />
+          {/* ONLY WHEN IT HAS SOMETHING TO SAY. This card used to hold two stats
+              and a summary, so it always had content. With those gone it is two
+              conditional notices and nothing else, and an unconditional wrapper
+              renders an empty box whenever neither fires - which is most of the
+              time. */}
+          {(checked + failed < total || failed > 0) && (
+            <Reveal>
+              <div className="card">
+                {checked + failed < total && (
+                  <p className="dim" style={{ fontSize: 'var(--fs-xs)', marginTop: 'var(--s3)' }}>
+                    Still reading capability pages — the evidence column fills in as they land.
+                  </p>
+                )}
+                {failed > 0 && (
+                  <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--warn)', marginTop: 'var(--s3)' }}>
+                    {failed} of {total} capability {failed === 1 ? 'page' : 'pages'} could not
+                    be read, so the evidence column below is incomplete. A model showing
+                    “no reports” here may have reports under a capability that failed to
+                    load — that is a gap in this page, not a fact about the model.
+                  </p>
+                )}
               </div>
-              {meta?.summary && (
-                <p className="dim" style={{ fontSize: 'var(--fs-xs)', marginTop: 'var(--s3)' }}>
-                  {meta.summary}
-                </p>
-              )}
-              {checked + failed < total && (
-                <p className="dim" style={{ fontSize: 'var(--fs-xs)', marginTop: 'var(--s3)' }}>
-                  Still reading capability pages — the evidence column fills in as they land.
-                </p>
-              )}
-              {failed > 0 && (
-                <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--warn)', marginTop: 'var(--s3)' }}>
-                  {failed} of {total} capability {failed === 1 ? 'page' : 'pages'} could not
-                  be read, so the evidence column below is incomplete. A model showing
-                  “no reports” here may have reports under a capability that failed to
-                  load — that is a gap in this page, not a fact about the model.
-                </p>
-              )}
-            </div>
-          </Reveal>
+            </Reveal>
+          )}
 
           <label className="searchbar">
             <IconSearch width={15} height={15} />
@@ -308,18 +305,8 @@ export default function Models() {
           )}
 
           <div className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-              {Object.entries(SORTS).map(([k, s]) => (
-                <button
-                  key={k}
-                  className={`chip${sort === k ? ' chip-on' : ''}`}
-                  aria-pressed={sort === k}
-                  onClick={() => setSort(k)}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
+            {/* The sort chips were here. With no control the count is the only
+                child of this row, and `space-between` puts it where it was. */}
 
             <span className="label">
               {shown.length === roster.length
