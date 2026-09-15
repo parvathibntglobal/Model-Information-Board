@@ -13,6 +13,7 @@ indistinguishable from no gate.
 from __future__ import annotations
 
 from datetime import date, timedelta
+from pathlib import Path
 
 import pytest
 import yaml
@@ -208,6 +209,8 @@ def _undertaking(monkeypatch, **overrides):
         "asserted_by": "tester",
         "asserted_on": date.today(),
         "review_valid_days": 30,
+        "required_conditions": {"auth_walled": True, "external_users": False,
+                                "publicly_linked": False, "monetized": False},
         "conditions": {"auth_walled": True, "external_users": False,
                        "publicly_linked": False, "monetized": False},
     }
@@ -286,6 +289,103 @@ def test_conditions_beat_the_asserts_line(monkeypatch):
     assert basis != INTERNAL_DEVELOPMENT_ONLY
     assert "void" in basis
     assert "external_users" in basis
+
+
+class TestConditionsAreAClosedContract:
+    """#314: the checker read four keys it knew and ignored the rest.
+
+    Measured on main 2026-09-15, with the block SIGNED and two conditions added:
+
+        conditions:
+          auth_walled: true
+          external_users: false
+          publicly_linked: false
+          monetized: false
+          indexed_by_search_engines: true      <- added
+          shared_with_client: true             <- added
+
+        observe_use_basis() -> {'use_basis': 'internal-development-only'}
+
+    An undertaking asserting the board is indexed and shared with a client read
+    as internal-development-only, because `_undertaking_basis` looped a
+    hardcoded four-tuple and never looked at anything else.
+
+    The question it asked was "do the four conditions I know about hold". The
+    honest question is "is there anything here that does not hold".
+    """
+
+    def test_an_unknown_condition_voids_rather_than_being_ignored(self, monkeypatch):
+        """THE DEFECT, as the test that would have caught it.
+
+        Somebody adding a condition is telling us something. Being overruled by
+        silence is the worst available response.
+        """
+        _undertaking(monkeypatch, conditions={"indexed_by_search_engines": True})
+        basis = observe_reddit_use()["use_basis"]
+        assert basis != INTERNAL_DEVELOPMENT_ONLY
+        assert "not a known condition" in basis
+        assert "indexed_by_search_engines" in basis
+
+    def test_an_unknown_condition_voids_even_when_it_looks_harmless(self, monkeypatch):
+        """`indexed: false` is not a reason to ignore it either.
+
+        The checker cannot know which way an unrecognised key cuts, and a
+        `false` that happens to be reassuring is still a fact nobody modelled.
+        """
+        _undertaking(monkeypatch, conditions={"some_new_condition": False})
+        assert observe_reddit_use()["use_basis"] != INTERNAL_DEVELOPMENT_ONLY
+
+    def test_a_missing_required_condition_is_not_a_pass(self, monkeypatch):
+        """Rule 6, which is the argument the whole undertaking rests on."""
+        block = _undertaking(monkeypatch)
+        block["conditions"].pop("monetized")
+        basis = observe_reddit_use()["use_basis"]
+        assert basis != INTERNAL_DEVELOPMENT_ONLY
+        assert "required and not asserted" in basis
+
+    def test_a_wrong_value_still_voids(self, monkeypatch):
+        _undertaking(monkeypatch, conditions={"external_users": True})
+        basis = observe_reddit_use()["use_basis"]
+        assert "external_users" in basis and "must be False" in basis
+
+    def test_every_fault_is_named_rather_than_the_first(self, monkeypatch):
+        """The gate quotes the observed value, so it has to say all of it.
+
+        Reporting one fault turns fixing an undertaking into a guessing loop.
+        """
+        block = _undertaking(monkeypatch, conditions={"shared_with_client": True})
+        block["conditions"]["auth_walled"] = False
+        basis = observe_reddit_use()["use_basis"]
+        assert "shared_with_client" in basis
+        assert "auth_walled" in basis
+
+    def test_a_missing_contract_voids_rather_than_passing(self, monkeypatch):
+        """A checker that cannot find its contract has not passed anything."""
+        block = _undertaking(monkeypatch)
+        block.pop("required_conditions")
+        basis = observe_reddit_use()["use_basis"]
+        assert basis != INTERNAL_DEVELOPMENT_ONLY
+        assert "required_conditions" in basis
+
+    def test_the_contract_is_read_from_the_file_not_carried_in_code(self):
+        """The fix that stops this recurring: one source of truth for the set.
+
+        A hardcoded copy in `basis.py` is what made #314 possible - the YAML
+        already stated the conditions and the code stated them again, so adding
+        one in the obvious place changed nothing.
+        """
+        from collect.registry.sources import load_sources
+
+        load_sources.cache_clear()
+        block = load_sources().use_basis_undertaking
+        assert block["required_conditions"], (
+            "contract/sources.yaml must state what the conditions may be"
+        )
+        source = Path("collect/adapters/basis.py").read_text(encoding="utf-8")
+        assert '("auth_walled", True)' not in source, (
+            "the required set is back in code as well as in the contract, which "
+            "is exactly how #314 happened"
+        )
 
 
 def test_all_platforms_on_this_basis_observe_it_identically(monkeypatch):

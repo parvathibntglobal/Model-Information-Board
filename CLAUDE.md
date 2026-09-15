@@ -228,6 +228,27 @@ These are the rules a helpful refactor will otherwise quietly violate.
 
 ## Conventions
 
+- **A RED CHECK IS `UNSTABLE`, NOT `DIRTY`, UNTIL `gh` SAYS OTHERWISE.** Read
+  the state before reading the X. Three times in a row a red PR was described as
+  having conflicts and had none — #300, #301's sibling, #310 and #300 again:
+
+  ```
+  gh pr view <n> --json mergeable,mergeStateStatus --jq '.mergeable+" / "+.mergeStateStatus'
+
+    MERGEABLE / UNSTABLE   a CHECK is failing. Nothing to resolve.
+    CONFLICTING / DIRTY    a real conflict. Rebase.
+  ```
+
+  Only ONE of those four was a genuine conflict (#301, against #299's rewrite of
+  the same file). **The cost each time is a rebase nobody needed** — and on a
+  shared file like `contract/sources.yaml` an unnecessary rebase is not free,
+  because it invites resolving a conflict that was never there.
+
+  The tell is cheap and it is one command. `UNSTABLE` means go read the failing
+  job; `DIRTY` means go rebase. And when it IS `DIRTY`, check whether the branch
+  even touches the contested file before assuming the worst: #300 was assumed to
+  clash with `contract/sources.yaml` and does not touch it at all.
+
 - **A CHECK IS SCOPED TO WHAT CI RUNS, NEVER TO WHAT LOOKS RELATED.** This has
   now produced a wrong "it passes" claim twice in one day, on two different
   checks, and the second happened after the first was understood.
