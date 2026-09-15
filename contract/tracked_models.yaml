@@ -42,6 +42,13 @@
 #   `unit` beside `value_verbatim`. Recorded here so the next reader knows it was
 #   decided rather than missed.
 #
+#   ⚠ AND IT IS NOT "THE REGISTRY HAS NO IMAGE MODELS", which is what an earlier
+#     draft of this note said. `google/gemini-3.1-flash-image` is in the poll and
+#     priced, because OpenRouter carries image GENERATION from the big LLM
+#     providers and those are billed per million tokens like their text siblings.
+#     What is absent is the standalone image, video and speech VENDORS. The line
+#     is the billing unit, not the medium.
+#
 # `kind` says which of those a row is, so the page can say why a rate is absent
 # instead of leaving a reader to assume the model is free.
 #
@@ -111,14 +118,18 @@ models:
     absent_because: not carried by the OpenRouter poll
 
   # ── image ────────────────────────────────────────────────────────────────
+  # THE ONE IMAGE MODEL THE POLL DOES CARRY, and it is why the note above is
+  # worded the way it is. OpenRouter lists image GENERATION from the big LLM
+  # providers - this one is priced per million tokens like its text siblings -
+  # while the standalone image, video and speech vendors are absent entirely.
+  # So "the registry does not carry image models" would have been too strong.
+  - name: Nano Banana 2
+    registry: google/gemini-3.1-flash-image
+    kind: image
   - name: Recraft V4.1 Pro
     registry: null
     kind: image
 
-  # ── video ────────────────────────────────────────────────────────────────
-  - name: Wan 3.0
-    registry: null
-    kind: video
 
   # ── speech ───────────────────────────────────────────────────────────────
   - name: ElevenLabs v3
