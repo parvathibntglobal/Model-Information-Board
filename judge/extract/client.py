@@ -77,6 +77,75 @@ class Completion:
     input_tokens: int = 0
     output_tokens: int = 0
     model: str = DEFAULT_MODEL
+    #: The provider's own word for why generation stopped - `stop`, `length`,
+    #: `tool_calls`, or None when nothing said.
+    #:
+    #: RECORDED BECAUSE A LENGTH STOP IS AN ABSENCE WE CAUSE. Measured
+    #: 2026-09-14 on `devto:4586450`: one draw emitted 65,536 completion tokens
+    #: - exactly the provider's 2**16 ceiling, because `max_tokens` was unset -
+    #: and returned `{}` as its tool call. That is indistinguishable, in
+    #: everything downstream, from a document the model read and found nothing
+    #: in. Rule 4 is about not letting an absence read as a finding; this is the
+    #: same rule one stage earlier, on an absence the extractor created.
+    #:
+    #: `None` is NOT "stop". A provider that says nothing has not said the
+    #: generation completed (rule 6), and `stopped_at_ceiling` answers False for
+    #: it rather than True.
+    finish_reason: str | None = None
+
+    #: ⚠ THIS FIELD EXISTS BECAUSE `finish_reason` LIED, AND IT WAS MEASURED.
+    #:
+    #: OpenRouter NORMALISES `finish_reason` to `"tool_calls"` whenever the
+    #: answer is a tool call, and puts the upstream's own word here. Captured
+    #: 2026-09-15 by forcing `max_tokens: 50` on `devto:4586450`:
+    #:
+    #:     "finish_reason": "tool_calls",  "native_finish_reason": "length"
+    #:
+    #: Reading `finish_reason` alone therefore reported a clean stop on a
+    #: response that had been cut off mid-answer — and the first version of
+    #: this fix did exactly that, so a 16,384-token truncation was retried and
+    #: labelled `unsalvaged`. Since `tool_choice` is FORCED here, every
+    #: successful extraction call is a tool call, which means `finish_reason`
+    #: can never say `"length"` on this path. The check that looked right could
+    #: not fire at all.
+    native_finish_reason: str | None = None
+
+    #: What we asked for, so `stopped_at_ceiling` can do arithmetic rather than
+    #: trust a label. None when no bound was set.
+    ceiling_tokens: int | None = None
+
+    @property
+    def stopped_at_ceiling(self) -> bool:
+        """The provider cut generation off at `max_tokens`.
+
+        THREE SIGNALS, ANY OF WHICH IS ENOUGH, because the two label-based ones
+        are each known to be absent on some path:
+
+          1. `native_finish_reason == "length"`  the upstream's own word, and
+             the only label that fires on this project's forced-tool-call path.
+          2. `finish_reason == "length"`         what a provider that does not
+             normalise would say. Kept so this is not DeepInfra-specific.
+          3. `output_tokens >= ceiling_tokens`   arithmetic, needing no
+             cooperation from anybody. We asked for at most N and got N.
+
+        (3) IS THE ONE THAT CANNOT SILENTLY STOP WORKING, which is why it is
+        here even though (1) covers today's provider. A label is a promise from
+        a vendor; a token count is a measurement. A model that legitimately
+        emits exactly N and stops is indistinguishable from one that was cut at
+        N — and calling that truncated is the conservative direction, because
+        the cost of a false "we may have cut this" is a caveat, and the cost of
+        a false "complete" is rule 4.
+
+        Read by `_call_with_one_retry`, which must NOT retry this: a second call
+        under the same ceiling buys the same truncation and a second bill.
+        """
+        if self.native_finish_reason == "length" or self.finish_reason == "length":
+            return True
+        return bool(
+            self.ceiling_tokens
+            and self.output_tokens
+            and self.output_tokens >= self.ceiling_tokens
+        )
 
     @property
     def is_empty(self) -> bool:
@@ -163,6 +232,30 @@ class OpenRouterClient:
     total_timeout_seconds: float = float(
         os.getenv("EXTRACT_TOTAL_TIMEOUT_SECONDS", "1200")
     )
+    #: A CEILING ON OUTPUT, which is the thing that actually costs time.
+    #:
+    #: MEASURED, not chosen for roundness. Two draws of the same request against
+    #: `devto:4586450`, same text, temperature 0, twenty minutes apart:
+    #:
+    #:     draw A     90.4s    8,963 completion tokens   40 claims   $0.00186
+    #:     draw B    670.6s   65,536 completion tokens   `{}`        $0.01204
+    #:
+    #: 65,536 is 2**16 - the provider's own ceiling, reached because nothing
+    #: here set one. The generation RATE was the same in both (102 and 98
+    #: tok/s), so duration is output tokens over a constant and nothing else.
+    #: The model is never slow; it either answers in ~9k tokens or runs to the
+    #: ceiling and answers nothing.
+    #:
+    #: 16,384 is 1.8x the observed good answer. At the measured rate that bounds
+    #: a degenerate call at ~170s and ~$0.003 instead of ~670s and ~$0.012.
+    #:
+    #: IT IS A BOUND, NOT A GATE (rule 8). Nothing is dropped for hitting it:
+    #: the completion comes back with `finish_reason="length"`, the runner
+    #: records `ZERO_TRUNCATED`, and the stage line names the count. Whether
+    #: 16,384 is too low is a question the recorded field can answer after some
+    #: runs - which is the direction rule 8 requires, the field first and any
+    #: gate later on evidence.
+    max_output_tokens: int = int(os.getenv("EXTRACT_MAX_OUTPUT_TOKENS", "16384"))
     #: Called while a response is arriving. MAY RAISE, and raising is the point.
     #:
     #: `Progress.checkpoint()` raises `RunStopped` when somebody has pressed
@@ -200,13 +293,23 @@ class OpenRouterClient:
 
         import httpx
 
-        # STREAMED SO THE CLOCK CAN BE CHECKED WHILE THE BODY ARRIVES.
+        # STREAMED AT THE PROTOCOL LEVEL, WHICH IT WAS NOT UNTIL 2026-09-15.
         #
-        # `httpx.post` returns only when the response is complete, so there is no
-        # moment at which elapsed time can be examined - which is why a 39-minute
-        # call was possible under a 60-second timeout. Reading the body in chunks
-        # gives a point to check a deadline against, and it is the only way to
-        # bound a response that is technically still arriving.
+        # `httpx.stream` was already used here, and it bought the deadline check
+        # below and nothing else, because the REQUEST did not ask for a stream.
+        # A non-streamed OpenRouter response is one buffered JSON body, so the
+        # only thing arriving during generation was keep-alive padding: eleven
+        # bytes of whitespace every three seconds. Measured - that is the whole
+        # content of the "1111 bytes received" in the two abandoned calls of
+        # 2026-09-14, and 1111 is 101 x 11, the 101st beat landing at 302.8s.
+        # The byte count was a reading of the clock, not of the answer.
+        #
+        # WHAT `stream: true` BUYS, AND IT IS NOT THE TIMEOUT. The deadline
+        # already worked. It is that a degenerate loop and a long correct answer
+        # are INDISTINGUISHABLE while a call is running, and repeated identical
+        # fragments are obvious within seconds once tokens actually arrive. The
+        # 65,536-token draw on `devto:4586450` looked exactly like the 8,963-
+        # token draw that produced 40 claims, for eleven minutes.
         #
         # WHAT THIS BOUNDS, EXACTLY. The deadline covers waiting for the body.
         # Waiting for the HEADERS is still bounded by the read window instead, so
@@ -214,6 +317,12 @@ class OpenRouterClient:
         # than the latter alone. Stated rather than rounded off, because a
         # ceiling that is quietly 60s higher than it claims is the same species
         # of defect as the one this fixes.
+        #
+        # THE DEADLINE IS NOW A BACKSTOP, NOT THE RATION. `max_output_tokens`
+        # bounds generation at ~170s at the measured rate, so anything reaching
+        # 300s is the provider misbehaving rather than a long document - which
+        # is the state this was always meant to catch and could not, while it
+        # was also the only thing standing between us and a 2**16-token bill.
         deadline = time.monotonic() + self.total_timeout_seconds
         with httpx.stream(
             "POST",
@@ -246,16 +355,41 @@ class OpenRouterClient:
                 # unable to produce output that acts on anything.
                 "tool_choice": {"type": "function", "function": {"name": TOOL_NAME}},
                 "temperature": 0,
+                "max_tokens": self.max_output_tokens,
+                "stream": True,
+                # WITHOUT THIS THE LEDGER SILENTLY RECORDS ZEROS. A streamed
+                # response carries no `usage` block unless it is asked for, and
+                # `usage.get("prompt_tokens", 0)` below would then write 0 for
+                # every call - a missing measurement converted into a definite
+                # one, in the flattering direction, in the only place this
+                # project records what it spends (rule 6).
+                "stream_options": {"include_usage": True},
             },
         ) as response:
-            chunks: list[bytes] = []
-            # THROTTLED, because `checkpoint()` reads a file. A chunk can be a
-            # few bytes, so calling it per chunk would stat the disk thousands
-            # of times for one response. Once a second is far faster than a
-            # person can regret pressing Stop, and costs nothing.
+            # THE STATUS IS CHECKED BEFORE THE STREAM IS READ. An error response
+            # is a short JSON body, not an SSE stream, and iterating it as lines
+            # would yield nothing recognisable and report the failure as an empty
+            # answer.
+            if response.status_code != 200:
+                response.read()
+                raise ExtractorUnavailable(
+                    f"the provider returned HTTP {response.status_code}: "
+                    f"{response.text[:300]!r}"
+                )
+
+            fragments: list[str] = []
+            finish_reason: str | None = None
+            native_finish: str | None = None
+            usage: dict = {}
+            model_name: str | None = None
+            stream_error: object = None
+            # THROTTLED, because `checkpoint()` reads a file. A streamed answer
+            # arrives as hundreds of small deltas, so calling it per delta would
+            # stat the disk thousands of times for one response. Once a second is
+            # far faster than a person can regret pressing Stop, and costs
+            # nothing.
             next_check = 0.0
-            for chunk in response.iter_bytes():
-                chunks.append(chunk)
+            for line in response.iter_lines():
                 now = time.monotonic()
                 if self.on_progress is not None and now >= next_check:
                     next_check = now + 1.0
@@ -263,51 +397,62 @@ class OpenRouterClient:
                     # call, and swallowing it here would restore the defect.
                     self.on_progress()
                 if now > deadline:
-                    # NAMES WHAT WAS MEASURED, not a guess at the cause. The
-                    # provider may be slow, wedged, or streaming something
-                    # enormous; this call cannot tell which and does not say.
-                    # `ExtractorUnavailable` because the run must end here rather
-                    # than continue against a provider that is not answering -
-                    # and with the per-thread commit, ending here keeps every
-                    # thread already read instead of discarding the batch.
+                    # NAMES WHAT WAS MEASURED, not a guess at the cause. With
+                    # `max_tokens` set, reaching this is no longer "a long
+                    # document" - so the message says how much answer had
+                    # arrived, which is the number that separates a provider
+                    # that stopped sending from one that is still working.
                     raise ExtractorUnavailable(
                         f"the provider was still sending after "
                         f"{self.total_timeout_seconds:.0f}s "
-                        f"({len(b''.join(chunks))} bytes received); abandoned so the "
-                        f"batch is not held open by one call. Idle-time timeouts "
-                        f"do not catch this: a response that keeps trickling never "
-                        f"goes idle."
+                        f"({sum(len(f) for f in fragments)} chars of tool-call "
+                        f"arguments received); abandoned so the batch is not held "
+                        f"open by one call. `max_tokens` is "
+                        f"{self.max_output_tokens}, which bounds a legitimate "
+                        f"answer well inside this window, so this is the provider "
+                        f"rather than the document."
                     )
-            raw = b"".join(chunks)
-        response.raise_for_status()
-        try:
-            body = _json.loads(raw)
-        except ValueError as exc:
-            raise ExtractorUnavailable(
-                f"the provider returned HTTP {response.status_code} with a body "
-                f"that is not JSON ({len(raw)} bytes): {raw[:200]!r}"
-            ) from exc
+                if not line or line.startswith(":"):
+                    continue          # SSE comment / keep-alive
+                if not line.startswith("data:"):
+                    continue
+                data = line[len("data:"):].strip()
+                if data == "[DONE]":
+                    break
+                try:
+                    event = _json.loads(data)
+                except ValueError:
+                    continue          # a partial frame; the next one carries it
+                # A PROVIDER ERROR ARRIVES INSIDE THE STREAM, as an event with
+                # no `choices`. Recorded and raised after the loop rather than
+                # here, so whatever already arrived is still counted.
+                if "error" in event and not event.get("choices"):
+                    stream_error = event["error"]
+                    continue
+                if event.get("model"):
+                    model_name = event["model"]
+                if event.get("usage"):
+                    usage = event["usage"]
+                for choice in event.get("choices") or []:
+                    if choice.get("finish_reason"):
+                        finish_reason = choice["finish_reason"]
+                    # The upstream's own word, which OpenRouter overwrites in
+                    # the field above. See `Completion.native_finish_reason`.
+                    if choice.get("native_finish_reason"):
+                        native_finish = choice["native_finish_reason"]
+                    delta = choice.get("delta") or {}
+                    for call in delta.get("tool_calls") or []:
+                        piece = (call.get("function") or {}).get("arguments")
+                        if piece:
+                            fragments.append(piece)
 
-        # A PROVIDER ERROR ARRIVES AS HTTP 200, so `raise_for_status` passes and
-        # the body has no `choices`. This used to be a bare `KeyError: 'choices'`
-        # raised out of the middle of a corpus run — measured 2026-08-21, on
-        # document 21 of 75, which ended the run and took the twenty completed
-        # documents with it because nothing had been written yet.
-        #
-        # A KeyError is the wrong shape twice: it names a dict key rather than
-        # the upstream failure, and it is indistinguishable from a schema change
-        # on our side. Raised as itself, with whatever the provider said, so a
-        # caller can record a provider failure as one.
-        if "choices" not in body:
-            detail = body.get("error") or body
+        if stream_error is not None:
             raise ExtractorUnavailable(
-                f"the provider returned HTTP {response.status_code} with no "
-                f"`choices`: {detail!r}"
+                f"the provider reported an error mid-stream: {stream_error!r}"
             )
 
-        usage = body.get("usage") or {}
-        calls = body["choices"][0]["message"].get("tool_calls") or []
-        arguments = calls[0]["function"]["arguments"] if calls else ""
+        arguments = "".join(fragments)
+        model_name = model_name or self.model
 
         # RECORDED HERE, BECAUSE THIS IS WHERE THE USAGE IS. E5 has been calling
         # a paid model since August and writing nothing to the ledger - the only
@@ -316,11 +461,17 @@ class OpenRouterClient:
         # provider's key total minus what it knew. Next to the response is the
         # only place that cannot forget, and `record` swallows write failures so
         # a full disk cannot end a corpus run.
+        #
+        # A TRUNCATED ANSWER IS STILL BILLED, so it is recorded here too, before
+        # any of the truncation handling downstream. The two abandoned calls of
+        # 2026-09-14 wrote no ledger row at all, because the old code reached
+        # this line only on success - roughly 30,000 generated tokens each,
+        # invisible in our own figures.
         from judge import spend_ledger
 
         spend_ledger.record(
             stage=spend_ledger.STAGE_EXTRACT,
-            model=body.get("model", self.model),
+            model=model_name,
             input_tokens=usage.get("prompt_tokens", 0),
             output_tokens=usage.get("completion_tokens", 0),
         )
@@ -328,7 +479,10 @@ class OpenRouterClient:
             raw_arguments=arguments,
             input_tokens=usage.get("prompt_tokens", 0),
             output_tokens=usage.get("completion_tokens", 0),
-            model=body.get("model", self.model),
+            model=model_name,
+            finish_reason=finish_reason,
+            native_finish_reason=native_finish,
+            ceiling_tokens=self.max_output_tokens,
         )
 
 
