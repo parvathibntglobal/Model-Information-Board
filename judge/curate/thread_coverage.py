@@ -59,6 +59,17 @@ from judge.curate.gate import N_EFF_MINIMUM
 #: anything measured says quality falls off there. Nothing does.
 MOSTLY_UNREAD = 0.5
 
+#: The `selection_method` prefixes under which children were actually RANKED.
+#:
+#: Matched by prefix because the Reddit value carries an `@observed` suffix
+#: asserting what the ranking ranked over, and a new suffix on the same method
+#: must not silently become "not ranked". `issue_with_comments` ranks too -
+#: `collect/assemble/issue.py` ranks an issue's replies without votes.
+#:
+#: EVERY OTHER METHOD FETCHED NO CHILDREN, so there is nothing a ranking could
+#: have been applied to.
+RANKED_METHODS = ("specificity_x_log_engagement", "issue_with_comments")
+
 #: How much margin over the publication gate counts as comfortable.
 #:
 #: ENGINEER 1'S CORRECTION, ADOPTED. The first version keyed the caveat's
@@ -71,12 +82,17 @@ MOSTLY_UNREAD = 0.5
 #:
 #: AND THE LIMIT OF THAT, WHICH NEITHER OF US HAD RAISED. Margin protects
 #: against SAMPLING NOISE - the risk that a small read sample happened to
-#: over-represent one view. It does NOT protect against SELECTION BIAS, and
-#: our gap is a biased gap by construction: `selection_method` is
-#: `specificity_x_log_engagement@observed`, so the comments we read are the
+#: over-represent one view. It does NOT protect against SELECTION BIAS, and our
+#: gap is a biased gap by construction - though NOT always in the way this
+#: comment used to say. Where `selection_method` is
+#: `specificity_x_log_engagement@observed`, the comments we read are the
 #: high-engagement, high-specificity ones and the 623 we did not are
-#: systematically the quieter ones. No amount of `n_eff` cures that, because
-#: every voice in it was drawn from the same ranked top slice.
+#: systematically the quieter ones; no amount of `n_eff` cures that, because
+#: every voice in it was drawn from the same ranked top slice. Where it is
+#: `post_body_only` or `issue_body_only` the bias is larger and of a different
+#: kind: no comment was fetched at all, so every voice counted is the ROOT
+#: AUTHOR and the discussion is absent entire. `_not_a_random_sample` says
+#: which, per cell.
 #:
 #: So margin softens the wording and never removes the caveat, and every
 #: low-coverage caveat says the unread part is not a random sample. A cell that
@@ -97,9 +113,39 @@ class ThreadCoverage:
     observed_children: int | None
     hidden_children_min: int | None
 
+    #: `thread_context.selection_method`, because the caveat below said WHY the
+    #: unread part is not a random sample and was wrong about it for four
+    #: contexts in five.
+    #:
+    #: Only `specificity_x_log_engagement@observed` ranks anything. The other
+    #: methods fetched no children at all, so there was no ranking and no
+    #: remainder - the unread part is the WHOLE discussion. Counted 2026-09-15:
+    #:
+    #:     post_body_only                          1,536   nothing ranked
+    #:     issue_body_only                         1,360   nothing ranked
+    #:     issue_with_comments                       584   ranked
+    #:     whole_document                            318   nothing to rank
+    #:     specificity_x_log_engagement@observed      232   ranked
+    #:
+    #: None where the method was not read, which `ranked` treats as unknown
+    #: rather than as either answer (rule 6).
+    selection_method: str | None = None
+
     @property
     def measured(self) -> bool:
         return self.ratio is not None
+
+    @property
+    def ranked(self) -> bool | None:
+        """Were the comments we DID read chosen by a ranking?
+
+        True, False, or None for "the method was not recorded". Three states
+        rather than two, because the caveat says a different sentence for each
+        of the first two and must say neither on a guess.
+        """
+        if self.selection_method is None:
+            return None
+        return self.selection_method.startswith(RANKED_METHODS)
 
     @property
     def population(self) -> str:
@@ -112,6 +158,79 @@ class ThreadCoverage:
             return "population not recorded"
         total = self.observed_children + self.hidden_children_min
         return f"{self.observed_children} of at least {total} comments"
+
+
+#: The claim these two sentences share, and the only one both can make.
+_NOT_EVERYONE = (
+    "The counts are of people we read, not of everyone who spoke, and the part "
+    "we did not read is not a random sample"
+)
+
+
+def _not_a_random_sample(threads) -> str:
+    """WHY the unread part is not a random sample — which differs by method.
+
+    THIS SENTENCE WAS WRONG ON FOUR CONTEXTS IN FIVE AND IT WAS ON A PAGE.
+    It read, for every thread:
+
+        "...comments were ranked before selection, so the unread ones are the
+         quieter ones."
+
+    True of `specificity_x_log_engagement@observed` and `issue_with_comments`.
+    FALSE of `post_body_only`, `issue_body_only` and `whole_document` — 3,214 of
+    4,030 contexts counted 2026-09-15 — where NOTHING WAS RANKED because nothing
+    was fetched. There is no remainder in those; the unread part is the entire
+    discussion, which for 2,077 contexts is known to exist upstream
+    (`hidden_children_min > 0`).
+
+    The conclusion survived either way and the REASON did not, which is the
+    thing worth naming: a caveat that gives a false mechanism is not a softer
+    version of a true one. A reader who believes we ranked and skipped the
+    quiet comments will picture a thread we sampled; the truth on a
+    `post_body_only` row is a thread we did not open. Those imply different
+    follow-up work, and the second is rule 7's shape — a true statement
+    answering a question it was not asked.
+
+    So: one sentence per case, and a third that claims neither when
+    `selection_method` was not recorded (rule 6 — not measured is not a licence
+    to pick the likelier one).
+    """
+    kinds = {t.ranked for t in threads}
+
+    if kinds == {True}:
+        return (
+            f"{_NOT_EVERYONE}: comments were ranked before selection, so the "
+            f"unread ones are the quieter ones."
+        )
+    if kinds == {False}:
+        return (
+            f"{_NOT_EVERYONE}: no comments were fetched for these threads at "
+            f"all, so what is missing is the discussion itself rather than its "
+            f"quieter half."
+        )
+    if kinds == {None}:
+        return (
+            f"{_NOT_EVERYONE}, and how the part we read was chosen is not "
+            f"recorded for these threads."
+        )
+    # MIXED, OR PARTLY UNRECORDED. Naming both is the honest form: collapsing to
+    # whichever is commoner would put one of the two false sentences back on the
+    # page, which is the defect this function exists for.
+    said = []
+    if True in kinds:
+        said.append(
+            "on some, comments were ranked and the unread ones are the quieter ones"
+        )
+    if False in kinds:
+        said.append(
+            "on others, no comments were fetched at all, so the discussion itself "
+            "is missing"
+        )
+    if None in kinds:
+        said.append(
+            "and on the rest it is not recorded which of those applies"
+        )
+    return f"{_NOT_EVERYONE}: " + "; ".join(said) + "."
 
 
 @dataclass(frozen=True)
@@ -192,12 +311,7 @@ class CellCoverage:
             # systematically the quieter ones rather than a random remainder -
             # and no number of voices drawn from the same top slice corrects
             # for that.
-            parts.append(
-                "The counts are of people we read, not of everyone who spoke, "
-                "and the part we did not read is not a random sample: comments "
-                "were ranked before selection, so the unread ones are the "
-                "quieter ones."
-            )
+            parts.append(_not_a_random_sample(self.measured))
         if self.unmeasured:
             n = len(self.unmeasured)
             parts.append(
@@ -222,7 +336,8 @@ class CoverageReader:
         rows = self._conn.execute(
             """
             SELECT DISTINCT tc.id, tc.coverage_ratio,
-                   tc.observed_children, tc.hidden_children_min
+                   tc.observed_children, tc.hidden_children_min,
+                   tc.selection_method
             FROM claim c
             JOIN thread_context tc ON tc.id = c.thread_context_id
             WHERE c.model_version_id = %s
@@ -239,6 +354,7 @@ class CoverageReader:
                     ratio=r[1],
                     observed_children=r[2],
                     hidden_children_min=r[3],
+                    selection_method=r[4],
                 )
                 for r in rows
             )
