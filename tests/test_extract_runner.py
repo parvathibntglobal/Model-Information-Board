@@ -445,3 +445,56 @@ class TestTheToolSchemaIsReadableByAStrictValidator:
         # integer. No such field exists today; this fires if one is added.
         with pytest.raises(ValueError, match="disagree on type"):
             tool_schema_for(Mixed)
+
+
+class TestADefinitionIsAScopeNotAVerdict:
+    """The board rendered a section definition as though it were a finding.
+
+    `board_entry.definition` is "the test a report has to meet"
+    (contract/tables.sql:876) - the SECTION's scope. Written in the achieving
+    voice and rendered above the quotes, it read as the board's own assessment:
+
+        Japanese TTS                                          1 report
+        Correctly reads Japanese text aloud, including correct kanji readings.
+        NEGATIVE  "They are all really bad (more than 1/3 the expressions had
+                   an error in them somewhere)."
+
+    The quote is good evidence. The LINE above it was the defect: the board
+    appeared to assert the model reads kanji correctly, then quote somebody
+    saying it does not.
+
+    Measured on the shared board: 27 of 125 distinct definitions open with an
+    adverb or verb of success, so this is a systemic voice problem rather than
+    one bad row.
+    """
+
+    def test_the_prompt_forbids_the_achieving_voice(self):
+        prompt = build_system_prompt(CAPABILITIES)
+        assert "SCOPE, NEVER AS A VERDICT" in prompt, (
+            "the definition instruction must rule on VOICE; asking for 'the "
+            "test a report has to meet' did not, and produced 27 verdicts"
+        )
+
+    def test_it_says_why_rather_than_only_what(self):
+        """A rule with no reason is one the next prompt edit drops."""
+        prompt = build_system_prompt(CAPABILITIES)
+        assert "POSITIVE OR NEGATIVE" in prompt, (
+            "the reason is that the quotes underneath may contradict it - "
+            "without that, 'write it as a scope' reads as a style preference"
+        )
+
+    def test_it_carries_the_real_failure_as_its_example(self):
+        prompt = build_system_prompt(CAPABILITIES)
+        assert "kanji" in prompt, (
+            "the bad example should be the one that actually shipped, not an "
+            "invented one - it is the only example known to fool a reader"
+        )
+
+    def test_it_names_the_tell_so_the_rule_is_checkable(self):
+        prompt = build_system_prompt(CAPABILITIES)
+        for adverb in ("correctly", "accurately", "reliably", "successfully"):
+            assert adverb in prompt.lower(), (
+                f"{adverb!r} is one of the success adverbs that signal a "
+                "verdict; naming them makes the rule something a model can "
+                "check its own output against"
+            )

@@ -143,8 +143,33 @@ export default function ModelEvidence({ modelVersionId }) {
                       {it.reports} report{it.reports === 1 ? '' : 's'}
                     </span>
                   </div>
+                  {/* ⚠ LABELLED, BECAUSE UNLABELLED IT READ AS A VERDICT.
+                      `board_entry.definition` is "the test a report has to
+                      meet" (contract/tables.sql:876) — the SECTION's scope, not
+                      a finding about this model. Rendered bare it sat directly
+                      above the quotes and was read as the board's own
+                      assessment:
+
+                        Japanese TTS                      1 report
+                        Correctly reads Japanese text aloud, including
+                        correct kanji readings.
+                        NEGATIVE  "They are all really bad (more than 1/3 the
+                                   expressions had an error in them somewhere)."
+
+                      The board appeared to assert the model reads kanji
+                      correctly, then quote someone saying it does not.
+
+                      27 of the 125 distinct definitions on the board are in
+                      that achieving voice, so this is not one bad row. The
+                      prompt now asks for a scope rather than a verdict
+                      (judge/extract/prompt.py) — but that only fixes rows
+                      written from here on, and `board_entry` rows are not
+                      rewritten. This label is what fixes the 27 already
+                      stored, and it costs nothing for the 98 that were already
+                      neutral. */}
                   {it.definition && (
                     <p className="muted" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
+                      <span className="label" style={{ marginRight: 6 }}>what counts here</span>
                       {it.definition}
                     </p>
                   )}

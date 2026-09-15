@@ -181,8 +181,15 @@ export default function BoardReview() {
                 )}
               </div>
 
+              {/* Labelled for the same reason as ModelEvidence.jsx — see the
+                  note there. This panel is worse if anything: the definition
+                  sits above the very quotes a reviewer is ruling on, so a
+                  definition in the achieving voice is an assertion placed
+                  beside evidence that may contradict it, at the moment somebody
+                  is deciding whether to publish that evidence. */}
               {g.definition && (
                 <p className="muted" style={{ fontSize: 'var(--fs-xs)', maxWidth: '74ch' }}>
+                  <span className="label" style={{ marginRight: 6 }}>what counts here</span>
                   {g.definition}
                 </p>
               )}
