@@ -117,27 +117,17 @@ export const listCapabilities = () => request('/capabilities')
 // count - figures with no source, which go stale the moment anything is
 // fetched (rule 3: a displayed number is counted or measured). Filtering the
 // live roster keeps the narrowing and removes the invention.
-//: The models the UI lists. Matched against BOTH `model_version_id` and
-//: `canonical_id`, because they are not the same thing for every row: the two
-//: originals are rows whose id IS their canonical id, while every polled model
-//: carries an `mv_...` hash and its canonical id separately. Matching one field
-//: only would silently drop whichever kind was not anticipated.
-const TRACKED_IDS = new Set([
-  'openai/gpt-6-astra',
-  'anthropic/claude-fable-5-1',
-  // minimax/minimax-m3 - seated 2026-09-14, 13 board entries and 13 claims.
-  // Its `mv_` id is what /fetch/start needs (`model_version.id`), so both forms
-  // are listed rather than assuming the page will only ever use one.
-  'mv_b3508133423993d7',
-  'minimax/minimax-m3',
-  // deepseek/deepseek-v4-pro - seated 2026-09-14. Longer in the corpus than
-  // the other three, so its evidence predates today's runs.
-  'mv_4247e801b57d22e3',
-  'deepseek/deepseek-v4-pro',
-])
-
-const tracked = (m) =>
-  TRACKED_IDS.has(m.model_version_id) || TRACKED_IDS.has(m.canonical_id)
+// The tracked set moved to `contract/tracked_models.yaml`.
+//
+// It was a Set here, matched against both `model_version_id` and `canonical_id`
+// - correct, and the right size for four models. Thirty needs three things a
+// Set cannot hold: a model the registry does not carry at all, WHY its rate is
+// absent, and the order the page shows them in. All three now come from the
+// contract, and the backend joins them to the registry row.
+//
+// The dual-id matching it did is not lost: the backend indexes by both fields
+// for exactly the reason recorded here - a polled model carries an `mv_` id and
+// its canonical id separately, and matching one field would drop the other kind.
 
 export const capabilityPage = (key) =>
   Promise.resolve({
@@ -179,22 +169,35 @@ export const modelPage = (id) => request(`/models/${modelPath(id)}`)
  * here, and a page that puts price beside consensus without marking the
  * difference is the one mistake this board exists to avoid.
  */
-export const listModels = async (limit = 500, offset = 0) => {
-  const data = await request(`/models?limit=${limit}&offset=${offset}`)
-  const models = (data.models || []).filter(tracked)
-  return {
-    ...data,
-    models,
-    // `count` is what the page prints as "models in the registry", so it is the
-    // size of what is SHOWN. Printing the registry's 344 beside three rows
-    // would be a figure answering a question nobody asked (rule 7).
-    count: models.length,
-    summary:
-      `${models.length} model(s) shown; the registry holds ${data.count}. ` +
-      `Price and context are advertised by the provider, not measured by us, ` +
-      `and are not evidence of anything.`,
-  }
-}
+/**
+ * The tracked set, chosen by `contract/tracked_models.yaml` and joined to the
+ * registry by the backend.
+ *
+ * WHAT CHANGED AND WHY, because #292 had just replaced a hardcoded array with
+ * this client-side filter and the filter was the right shape for four models.
+ * It does not carry thirty. Three things the set could not express:
+ *
+ *   - A MODEL THE REGISTRY DOES NOT HOLD. 17 of the 30 are image, video and
+ *     speech models; the OpenRouter poll carries none of them, so a filter over
+ *     `/models` drops them silently and the page is shorter than the list it is
+ *     built from. A missing row reads as "not tracked" rather than "no rate is
+ *     published for this kind", and those are opposite claims (rule 6).
+ *   - WHY a rate is absent. `no rate` on a text model means the provider has not
+ *     published one; on an image model it means the column is in the wrong unit.
+ *     `tracked_kind` carries that distinction.
+ *   - The ORDER. The four the board holds evidence for lead the page, and that
+ *     is editorial.
+ *
+ * And the set lived in the frontend, which is where rule 5 says configuration
+ * does not go: `contract/` is versioned and reviewable, a constant in a bundle
+ * is neither - which is exactly how the hosted build and the local one came to
+ * disagree about how many models existed.
+ *
+ * `?tracked=1` is ADDITIVE on the backend. Plain `/models` still returns all
+ * 344, so nothing that wanted the catalogue lost it.
+ */
+export const listModels = async (limit = 100, offset = 0) =>
+  request(`/models?tracked=1&limit=${limit}&offset=${offset}`)
 
 /**
  * Every page of a list endpoint, followed to the end.
