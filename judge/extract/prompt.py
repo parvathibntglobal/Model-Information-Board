@@ -158,6 +158,25 @@ SLUG exactly.
 the TEST a report has to meet, not a description of this one quote. Name the \
 threshold or the first-attempt condition where there is one.
 
+              WRITE IT AS A SCOPE, NEVER AS A VERDICT. The board renders this \
+line directly above quotes that may be POSITIVE OR NEGATIVE, so a definition \
+in the achieving voice becomes a claim the evidence underneath then \
+contradicts. Name the behaviour being reported on; do not say the model does \
+it well.
+
+                good  "Whether Japanese text is read aloud with correct kanji \
+readings."
+                good  "Reading Chinese text from screenshots and scanned \
+documents."
+                bad   "Correctly reads Japanese text aloud, including correct \
+kanji readings."
+                      - this sat above "they are all really bad (more than 1/3 \
+the expressions had an error)" and read as the board agreeing it was correct.
+
+              A gerund ("Reading...", "Generating...") or a "Whether..." clause \
+both work. An adverb of success - correctly, accurately, reliably, \
+successfully - is the tell that you have written a verdict.
+
 GET THE ALTITUDE RIGHT - it is the thing most easily got wrong
 
 A section must be broad enough that several independent engineers would report \
