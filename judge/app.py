@@ -1185,11 +1185,20 @@ def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0, tracked: bool = Fal
         # IT DOES NOT MENTION PRICE, because the page no longer shows one. A
         # summary naming a figure that is not on the page sends a reader looking
         # for a column that is not there.
+        # COUNTED, NOT CHARACTERISED. This used to end "the rest are image,
+        # video and speech models it does not carry", which was true of one set
+        # of rows and stopped being true the moment the set changed: there are
+        # no video models left, and `google/gemini-3.1-flash-image` IS carried
+        # and IS an image model. A sentence describing the rows is a sentence
+        # that goes stale silently; a count cannot.
+        absent = len(models) - evidenced
         summary = (
             f"{len(models)} models are tracked, chosen in "
-            f"contract/tracked_models.yaml. {evidenced} of them have a row in the "
-            f"registry the board polls; the rest are image, video and speech "
-            f"models it does not carry."
+            f"contract/tracked_models.yaml. "
+            + ("All have a row in the registry the board polls."
+               if absent == 0 else
+               f"{evidenced} have a row in the registry the board polls; "
+               f"{absent} {'is' if absent == 1 else 'are'} not in it.")
         )
 
     page = _page(models, limit=limit, offset=offset)
