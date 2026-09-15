@@ -15,18 +15,25 @@ from judge.curate.thread_coverage import (
 )
 
 
-def thread(tc_id="tc1", ratio=None, observed=None, hidden=None) -> ThreadCoverage:
+def thread(tc_id="tc1", ratio=None, observed=None, hidden=None, method=None) -> ThreadCoverage:
     return ThreadCoverage(
         thread_context_id=tc_id,
         ratio=ratio,
         observed_children=observed,
         hidden_children_min=hidden,
+        selection_method=method,
     )
 
 
 #: Engineer 1's first real row, verbatim. Coverage work that only ever runs
 #: against invented numbers tends to be correct about invented numbers.
-REAL_ROW = thread("tc:1u1b22l", ratio=0.2383863, observed=195, hidden=623)
+#:
+#: `method` is the real one for that row: it is a Reddit tree, so its children
+#: WERE ranked and the "quieter ones" sentence is true of it. It is not true of
+#: `post_body_only`, which is four fifths of the corpus - see
+#: `TestTheReasonMatchesTheMethod`.
+REAL_ROW = thread("tc:1u1b22l", ratio=0.2383863, observed=195, hidden=623,
+                  method="specificity_x_log_engagement@observed")
 
 
 class TestNotMeasuredIsNotZero:
@@ -141,7 +148,8 @@ class TestTheQuery:
                 class R:
                     @staticmethod
                     def fetchall():
-                        return [("tc:1u1b22l", 0.2383863, 195, 623)]
+                        return [("tc:1u1b22l", 0.2383863, 195, 623,
+                                 "specificity_x_log_engagement@observed")]
 
                 return R()
 
@@ -156,6 +164,11 @@ class TestTheQuery:
         assert conn.sql[0].strip().upper().startswith("SELECT")
         assert coverage.threads[0].ratio == 0.2383863
         assert coverage.threads[0].population == "195 of at least 818 comments"
+        # SELECTED, not defaulted. The caveat says a different sentence per
+        # method, so a query that forgets the column would silently give every
+        # cell the "not recorded" wording.
+        assert "selection_method" in conn.sql[0]
+        assert coverage.threads[0].ranked is True
 
 
 class TestItIsActuallyCalled:
@@ -199,7 +212,8 @@ class TestItIsActuallyCalled:
                     )
                     for i, platform in enumerate(("reddit", "github", "reddit", "blog"))
                 ]
-                coverage_rows = [("tc:1u1b22l", 0.2383863, 195, 623)]
+                coverage_rows = [("tc:1u1b22l", 0.2383863, 195, 623,
+                                  "specificity_x_log_engagement@observed")]
                 rows = coverage_rows if "thread_context" in sql else claim_rows
 
                 class R:
@@ -255,8 +269,9 @@ class TestItIsActuallyCalled:
                 )
             )
 
-        thin = outcome_with([("tc1", 0.05, 5, 95)])
-        full = outcome_with([("tc1", 1.0, 100, 0)])
+        ranked = "specificity_x_log_engagement@observed"
+        thin = outcome_with([("tc1", 0.05, 5, 95, ranked)])
+        full = outcome_with([("tc1", 1.0, 100, 0, ranked)])
 
         assert thin.status is full.status
         assert thin.publishes == full.publishes
@@ -272,9 +287,11 @@ class TestMarginSoftensTheWordingAndNeverRemovesIt:
     voices beats 80% with two. So strength keys to margin over the gate.
 
     The limit is selection bias. Margin protects against sampling NOISE; our
-    gap is a biased gap by construction, because `selection_method` is
-    `specificity_x_log_engagement@observed`. Every voice counted came from the
-    same ranked top slice, so more of them does not cure it.
+    gap is a biased gap by construction. On `REAL_ROW`, whose
+    `selection_method` is `specificity_x_log_engagement@observed`, every voice
+    counted came from the same ranked top slice, so more of them does not cure
+    it. On a `post_body_only` row the bias is larger and different, which is
+    `TestTheReasonMatchesTheMethod` below.
     """
 
     def test_a_cell_scraping_the_gate_gets_the_strong_form(self):
@@ -319,3 +336,89 @@ class TestMarginSoftensTheWordingAndNeverRemovesIt:
         assert below is not None and at is not None
         assert "barely more evidence" in below
         assert "barely more evidence" not in at
+
+
+class TestTheReasonMatchesTheMethod:
+    """The caveat said WHY, and the why was false on four contexts in five.
+
+    It read, for every thread: *"comments were ranked before selection, so the
+    unread ones are the quieter ones."* True of a Reddit tree and of an issue
+    with comments. FALSE of `post_body_only`, `issue_body_only` and
+    `whole_document` - 3,214 of 4,030 contexts counted 2026-09-15 - where
+    nothing was ranked because nothing was fetched.
+
+    The CONCLUSION was right in both cases and only the reason was wrong, which
+    is why this went unnoticed and why it still matters: a reader who believes
+    we ranked and skipped the quiet comments pictures a thread we sampled. On a
+    `post_body_only` row the truth is a thread we did not open, and for 2,077 of
+    them the discussion is known to exist upstream. Those imply different
+    follow-up work.
+    """
+
+    RANKED = thread("tc-r", ratio=0.24, observed=195, hidden=623,
+                    method="specificity_x_log_engagement@observed")
+    UNFETCHED = thread("tc-p", ratio=0.0, observed=0, hidden=47,
+                       method="post_body_only")
+    UNRECORDED = thread("tc-u", ratio=0.1, observed=5, hidden=45, method=None)
+
+    def test_a_ranked_thread_still_says_the_quieter_ones(self):
+        caveat = CellCoverage(threads=(self.RANKED,)).caveat(n_eff=3.1)
+        assert caveat is not None
+        assert "ranked before selection" in caveat
+        assert "quieter ones" in caveat
+
+    def test_an_unfetched_thread_does_not_claim_a_ranking(self):
+        """The defect, stated as the test that would have caught it."""
+        caveat = CellCoverage(threads=(self.UNFETCHED,)).caveat(n_eff=3.1)
+        assert caveat is not None
+        assert "ranked before selection" not in caveat, (
+            "no comment was fetched for this thread, so nothing was ranked and "
+            "there is no quieter remainder to describe"
+        )
+        assert "no comments were fetched" in caveat
+        assert "the discussion itself" in caveat
+
+    def test_both_keep_the_claim_that_is_true_either_way(self):
+        for row in (self.RANKED, self.UNFETCHED, self.UNRECORDED):
+            caveat = CellCoverage(threads=(row,)).caveat(n_eff=3.1)
+            assert caveat is not None
+            assert "not of everyone who spoke" in caveat, row.thread_context_id
+            assert "not a random sample" in caveat, row.thread_context_id
+
+    def test_an_unrecorded_method_claims_neither(self):
+        """Rule 6. Not measured is not a licence to pick the likelier one."""
+        caveat = CellCoverage(threads=(self.UNRECORDED,)).caveat(n_eff=3.1)
+        assert caveat is not None
+        assert "ranked before selection" not in caveat
+        assert "no comments were fetched" not in caveat
+        assert "not recorded" in caveat
+
+    def test_a_mixed_cell_names_both_rather_than_the_commoner_one(self):
+        """Collapsing would put one of the two false sentences back on a page."""
+        caveat = CellCoverage(threads=(self.RANKED, self.UNFETCHED)).caveat(n_eff=3.1)
+        assert caveat is not None
+        assert "on some, comments were ranked" in caveat
+        assert "on others, no comments were fetched" in caveat
+
+    def test_the_issue_thread_method_counts_as_ranked(self):
+        """`assemble_issue_thread` ranks replies without votes - still a ranking."""
+        row = thread("tc-i", ratio=0.3, observed=3, hidden=7,
+                     method="issue_with_comments")
+        assert row.ranked is True
+
+    def test_a_new_suffix_on_a_ranked_method_stays_ranked(self):
+        """Matched by prefix, so `@something-else` does not silently flip it."""
+        row = thread("tc-s", ratio=0.3, observed=3, hidden=7,
+                     method="specificity_x_log_engagement@some_future_suffix")
+        assert row.ranked is True
+
+    def test_every_method_the_corpus_actually_holds_is_classified(self):
+        """The five in `thread_context` today, so a new one is a visible gap."""
+        from judge.curate.thread_coverage import RANKED_METHODS
+
+        assert thread(method="post_body_only").ranked is False
+        assert thread(method="issue_body_only").ranked is False
+        assert thread(method="whole_document").ranked is False
+        assert thread(method="issue_with_comments").ranked is True
+        assert thread(method="specificity_x_log_engagement@observed").ranked is True
+        assert RANKED_METHODS == ("specificity_x_log_engagement", "issue_with_comments")
