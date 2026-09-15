@@ -23,7 +23,6 @@ from collect.registry.capabilities import (
     parse_capabilities,
 )
 
-
 #: How many keys `contract/capabilities.yaml` ratifies.
 #:
 #: 12 until 2026-09-15, when `cost.efficiency` and `cost.per_task` were
