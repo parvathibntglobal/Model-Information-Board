@@ -1103,7 +1103,7 @@ def document_source(document_id: str) -> dict:
 
 
 @app.get("/models")
-def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0) -> dict:
+def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0, tracked: bool = False) -> dict:
     """The registry as a list, with what the provider advertises.
 
     ADDITIVE. Every other read surface in this file answers "what did people
@@ -1128,14 +1128,78 @@ def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0) -> dict:
     with _conn() as conn:
         roster = RosterReader(conn).all()
 
-    page = _page(roster.models, limit=limit, offset=offset)
+    models = roster.models
+    summary = roster.summary
+    if tracked:
+        # THE PAGE'S LIST, NOT THE REGISTRY'S. `model_version` holds 344 rows
+        # because a router carries 344 models; the registry page answers "which
+        # models does this board have opinions about", and a catalogue is not
+        # that answer. The set lives in contract/tracked_models.yaml (rule 5)
+        # rather than in the frontend, where it was a hardcoded array of two
+        # that never called this endpoint at all.
+        #
+        # EVERY FIGURE STILL COMES FROM THE REGISTRY ROW. The contract names
+        # WHICH models; it carries no price, no context and no flags, because a
+        # price written into a config file has no provenance and cannot go
+        # stale visibly.
+        from judge.config import tracked_models
+
+        by_id = {}
+        for m in roster.models:
+            by_id[m["canonical_id"]] = m
+            by_id[m["model_version_id"]] = m
+        models = []
+        for want in tracked_models():
+            found = by_id.get(want.registry) if want.registry else None
+            if found is not None:
+                # `tracked_kind` rides along so the page can say WHY a rate is
+                # absent instead of leaving a reader to read "no rate" as free.
+                models.append({**found, "tracked_kind": want.kind})
+                continue
+            # NOT IN THE REGISTRY, AND SHOWN ANYWAY. Dropping it would make the
+            # page silently shorter than the list it is built from, and a
+            # missing row reads as "not tracked" rather than "no rate is
+            # published for this kind of model" - opposite claims (rule 6).
+            # Every figure stays None; nothing is invented to fill the columns.
+            models.append({
+                "model_version_id": want.name,
+                "display_name": want.name,
+                "provider": None,
+                "canonical_id": None,
+                "price_in": None,
+                "price_out": None,
+                "price_cached_read": None,
+                "advertised_context": None,
+                "max_output_tokens": None,
+                "supports_tools": None,
+                "supports_vision": None,
+                "tracked_kind": want.kind,
+                "in_registry": False,
+                "absent_because": want.absent_because,
+            })
+        evidenced = sum(1 for m in models if m.get("in_registry") is not False)
+        # THE SUMMARY IS ARITHMETIC OVER THE ROWS, never a sentence about them.
+        # The string it replaces ("Two models are being tracked") was hardcoded
+        # in the frontend and had been wrong since the second model was added.
+        #
+        # IT DOES NOT MENTION PRICE, because the page no longer shows one. A
+        # summary naming a figure that is not on the page sends a reader looking
+        # for a column that is not there.
+        summary = (
+            f"{len(models)} models are tracked, chosen in "
+            f"contract/tracked_models.yaml. {evidenced} of them have a row in the "
+            f"registry the board polls; the rest are image, video and speech "
+            f"models it does not carry."
+        )
+
+    page = _page(models, limit=limit, offset=offset)
     return {
         # `count` is the FULL registry size and always was. A page that reported
         # its own length here would answer "how many models are there" with "how
         # many did you ask for", which is rule 7 with the denominator swapped.
-        "count": len(roster.models),
+        "count": len(models),
         "priced_at": roster.priced_at,
-        "summary": roster.summary,
+        "summary": summary,
         "page": page.meta,
         "models": page.items,
     }
