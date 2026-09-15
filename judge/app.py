@@ -1195,9 +1195,14 @@ def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0, tracked: bool = Fal
         summary = (
             f"{len(models)} models are tracked, chosen in "
             f"contract/tracked_models.yaml. "
-            + ("All have a row in the registry the board polls."
+            # "the registry the board polls" was true while every row came from
+            # the poll. Three were seeded from contract/unpolled_models.yaml on
+            # 2026-09-15 precisely because the poll will never carry them, so
+            # that phrase described the registry by the one route that did not
+            # supply them.
+            + ("All have a registry row."
                if absent == 0 else
-               f"{evidenced} have a row in the registry the board polls; "
+               f"{evidenced} have a registry row; "
                f"{absent} {'is' if absent == 1 else 'are'} not in it.")
         )
 

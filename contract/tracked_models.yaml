@@ -24,7 +24,14 @@
 #   for. An entry with `registry: null` shows "no rate", and that is the honest
 #   state rather than a gap to be filled in by hand.
 #
-# ⚠ WHY FIVE OF THESE HAVE NO REGISTRY ROW, AND WHY THAT IS NOT A TODO.
+# ⚠ WHY TWO OF THESE HAVE NO REGISTRY ROW, AND WHY THAT IS NOT A TODO.
+#
+#   Three of the five were seated on 2026-09-15 from contract/unpolled_models.yaml
+#   so the page could link them - Recraft V4.1 Pro, ElevenLabs v3, Qwen3.5 Omni
+#   Flash. They have a registry ROW and still no PRICE, and that is the honest
+#   end state rather than a half-finished one: the row gives them an identity
+#   and a model page, and the columns below stay empty because the unit does
+#   not fit. Seating a model is not the same as pricing one.
 #
 #   `model_version.price_in` is USD PER 1M TOKENS (contract/tables.sql:39; the
 #   page labels it "PER MTOK · IN / OUT"). That unit fits a language model. It
@@ -127,14 +134,14 @@ models:
     registry: google/gemini-3.1-flash-image
     kind: image
   - name: Recraft V4.1 Pro
-    registry: null
+    registry: recraft/recraft-v4.1-pro
     kind: image
 
 
   # ── speech ───────────────────────────────────────────────────────────────
   - name: ElevenLabs v3
-    registry: null
+    registry: elevenlabs/eleven-v3
     kind: speech
   - name: Qwen3.5 Omni Flash
-    registry: null
+    registry: qwen/qwen3.5-omni-flash
     kind: speech
