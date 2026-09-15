@@ -20,6 +20,7 @@ from datetime import date
 import psycopg
 import pytest
 
+from collect.adapters.basis import INTERNAL_DEVELOPMENT_ONLY
 from collect.registry.assertions import TermsNotReviewedError, assert_terms_reviewed
 from collect.registry.sources import (
     SourceProvenanceConflictError,
@@ -267,6 +268,13 @@ def test_gate_one_every_stored_feed_is_cleared_to_harvest(signed_undertaking, co
             "endpoint_is_null": False,
             "robots_status": row["terms_evidence"]["robots_status"],
             "feed_path_allowed": True,
+            # ⚠ ADDED 2026-09-15. Both blog rulings now ENFORCE the basis they
+            # name; until then they named it and checked nothing, and this
+            # hand-built observation modelled that gap faithfully. The
+            # `signed_undertaking` fixture cannot supply it - this test builds
+            # its own observations rather than going through the adapter, which
+            # is exactly why the fixture alone did not fix it.
+            "use_basis": INTERNAL_DEVELOPMENT_ONLY,
         }
         for row in feeds
     }
