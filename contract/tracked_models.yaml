@@ -24,7 +24,7 @@
 #   for. An entry with `registry: null` shows "no rate", and that is the honest
 #   state rather than a gap to be filled in by hand.
 #
-# ⚠ WHY EIGHTEEN OF THESE HAVE NO REGISTRY ROW, AND WHY THAT IS NOT A TODO.
+# ⚠ WHY FIVE OF THESE HAVE NO REGISTRY ROW, AND WHY THAT IS NOT A TODO.
 #
 #   `model_version.price_in` is USD PER 1M TOKENS (contract/tables.sql:39; the
 #   page labels it "PER MTOK · IN / OUT"). That unit fits a language model. It
@@ -45,12 +45,23 @@
 # `kind` says which of those a row is, so the page can say why a rate is absent
 # instead of leaving a reader to assume the model is free.
 #
-# THIRTY, AND THREE FROM THE SOURCE LIST ARE NOT HERE. `OPS-Agentic-Search` is
-# described by that list itself as "System Architecture" - an agent ensemble
-# rather than a model, so it has no rate of its own to show. `Zonos2 8B / Kokoro
-# 82M` and `Realtime TTS-2 / Luna TTS` each named two different products joined
-# by a slash, and picking one of a pair would have been a guess at which was
-# meant. Left out rather than chosen arbitrarily; say which and either goes in.
+# FIFTEEN, DOWN FROM THIRTY ON 2026-09-15. Parvathi named fifteen to drop after
+# seeing them on the page. They were not chosen by a rule - eleven were image,
+# video and speech models, but two were language models the registry prices
+# perfectly well (Gemini 3.1 Pro, Qwen3.6 27B) - so this list is editorial and
+# the file is the only record of it. That is the point of it being config.
+#
+# ⚠ FIVE OF THE FIFTEEN THAT STAYED ARE ALSO UNDISCUSSED: GPT-5.5 Codex,
+#   Recraft V4.1 Pro, Wan 3.0, ElevenLabs v3, Qwen3.5 Omni Flash. They read
+#   "nobody has discussed this" exactly like the ones that went, so if the
+#   intent was "remove everything with no evidence" they were missed rather
+#   than kept. Recorded rather than acted on, because guessing at an editorial
+#   intent is how a list quietly becomes something nobody chose.
+#
+# THREE FROM THE SOURCE LIST WERE NEVER HERE. `OPS-Agentic-Search` is described
+# by that list itself as "System Architecture" - an agent ensemble rather than a
+# model. `Zonos2 8B / Kokoro 82M` and `Realtime TTS-2 / Luna TTS` each named two
+# products joined by a slash, and picking one would have been a guess.
 
 version: 1
 
@@ -82,9 +93,6 @@ models:
   - name: Grok 4.6
     registry: x-ai/grok-4.6
     kind: text
-  - name: Gemini 3.1 Pro
-    registry: google/gemini-3.1-pro-preview
-    kind: text
   - name: GLM 5.3
     registry: z-ai/glm-5.3
     kind: text
@@ -94,12 +102,6 @@ models:
   - name: Kimi K3
     registry: moonshotai/kimi-k3
     kind: text
-  - name: Qwen3.6 27B
-    registry: qwen/qwen3.6-27b
-    kind: text
-  - name: DeepSeek V4 Flash
-    registry: deepseek/deepseek-v4-flash
-    kind: text
 
   # Named on the source list, absent from the router's catalogue. `registry:
   # null` is a measurement, not a gap: the poll has run and these are not in it.
@@ -107,56 +109,19 @@ models:
     registry: null
     kind: text
     absent_because: not carried by the OpenRouter poll
-  - name: GLM 5.3 Flash
-    registry: null
-    kind: text
-    absent_because: not carried by the OpenRouter poll
 
   # ── image ────────────────────────────────────────────────────────────────
-  - name: GPT Image 2
-    registry: null
-    kind: image
-  - name: MAI Image 2.6 Preview
-    registry: null
-    kind: image
-  - name: Ideogram 4.0
-    registry: null
-    kind: image
   - name: Recraft V4.1 Pro
-    registry: null
-    kind: image
-  - name: FLUX.2 Max
-    registry: null
-    kind: image
-  - name: NVIDIA Cosmos 3 Super
     registry: null
     kind: image
 
   # ── video ────────────────────────────────────────────────────────────────
-  - name: Gemini Omni 1.1 Flash
-    registry: null
-    kind: video
   - name: Wan 3.0
-    registry: null
-    kind: video
-  - name: Kling 3.0
-    registry: null
-    kind: video
-  - name: MiniMax H3 Max
-    registry: null
-    kind: video
-  - name: Dreamina Seedance 2.0
     registry: null
     kind: video
 
   # ── speech ───────────────────────────────────────────────────────────────
-  - name: Cartesia Sonic 3.6
-    registry: null
-    kind: speech
   - name: ElevenLabs v3
-    registry: null
-    kind: speech
-  - name: Fish Audio S2.1 Pro
     registry: null
     kind: speech
   - name: Qwen3.5 Omni Flash
