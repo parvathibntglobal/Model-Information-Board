@@ -196,8 +196,34 @@ export const modelPage = (id) => request(`/models/${modelPath(id)}`)
  * `?tracked=1` is ADDITIVE on the backend. Plain `/models` still returns all
  * 344, so nothing that wanted the catalogue lost it.
  */
-export const listModels = async (limit = 100, offset = 0) =>
-  request(`/models?tracked=1&limit=${limit}&offset=${offset}`)
+export const listModels = async (limit = 100, offset = 0) => {
+  const data = await request(`/models?tracked=1&limit=${limit}&offset=${offset}`)
+  // ⚠ A BACKEND THAT IGNORES `tracked` MUST NOT LOOK LIKE ONE THAT HONOURED IT.
+  //
+  // FastAPI drops unknown query parameters silently, so a server older than the
+  // parameter answers `?tracked=1` with the WHOLE REGISTRY and a 200. That
+  // happened: the page rendered 344 rows and nothing anywhere said the filter
+  // had not been applied - it simply looked like the tracked set had grown by
+  // 314. The previous version filtered client-side and so could not fail this
+  // way; moving the filter to the server removed a check nobody had noticed was
+  // one.
+  //
+  // `tracked_kind` is the tell. The tracked endpoint puts it on every row and
+  // the plain roster puts it on none, so its absence across the whole page
+  // means the flag did not land. Refusing is rule 4: a filter that silently did
+  // not happen is worse than a page that says it could not.
+  const models = data.models || []
+  const honoured = models.length === 0 || models.some((m) => m.tracked_kind)
+  if (!honoured) {
+    throw new Error(
+      `The registry page asked for the tracked models and the server returned ` +
+      `all ${data.count} instead, which means it does not know the \`tracked\` ` +
+      `parameter yet. Showing the whole registry here would misread as the ` +
+      `tracked set having grown. Restart the backend so it picks up the change.`
+    )
+  }
+  return data
+}
 
 /**
  * Every page of a list endpoint, followed to the end.
