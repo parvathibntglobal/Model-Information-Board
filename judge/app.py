@@ -1177,14 +1177,19 @@ def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0, tracked: bool = Fal
                 "in_registry": False,
                 "absent_because": want.absent_because,
             })
-        priced = sum(1 for m in models if m.get("price_in") is not None)
+        evidenced = sum(1 for m in models if m.get("in_registry") is not False)
         # THE SUMMARY IS ARITHMETIC OVER THE ROWS, never a sentence about them.
         # The string it replaces ("Two models are being tracked") was hardcoded
         # in the frontend and had been wrong since the second model was added.
+        #
+        # IT DOES NOT MENTION PRICE, because the page no longer shows one. A
+        # summary naming a figure that is not on the page sends a reader looking
+        # for a column that is not there.
         summary = (
-            f"{len(models)} models are tracked. {priced} carry a published rate; "
-            f"the rest are image, video or speech models, which the registry's "
-            f"per-million-tokens columns cannot express."
+            f"{len(models)} models are tracked, chosen in "
+            f"contract/tracked_models.yaml. {evidenced} of them have a row in the "
+            f"registry the board polls; the rest are image, video and speech "
+            f"models it does not carry."
         )
 
     page = _page(models, limit=limit, offset=offset)

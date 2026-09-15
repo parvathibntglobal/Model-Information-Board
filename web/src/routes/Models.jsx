@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { listModels, listCapabilities, capabilityPage, fetchAll, capLabel, fmtPrice, fmtTokens, BoardUnreadable } from '../api'
+import { listModels, listCapabilities, capabilityPage, fetchAll, capLabel, fmtTokens, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 
@@ -9,17 +9,25 @@ import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
  *
  * TWO KINDS OF FACT ON ONE PAGE, and they are not interchangeable.
  *
- *   advertised  price, context, feature flags — the vendor's claim about
- *               itself, from GET /models. True, and evidence of nothing.
+ *   advertised  context and feature flags — the vendor's claim about itself,
+ *               from GET /models?tracked=1. True, and evidence of nothing.
  *   reported    voices and phrases — from the capability pages, gated.
  *
  * The roster arrives in one call. The twelve capability pages then load in the
  * background and fold in evidence, so the page is useful immediately and gets
  * more complete rather than blocking on twelve round trips.
  *
- * Sorting defaults to name. Cost is offered as a sort, never as the default —
- * ordering 342 unevidenced models by price and putting the cheapest on top is
- * a recommendation, and this board does not make one without evidence.
+ * Sorting defaults to name, and cost is no longer a sort at all. It was offered
+ * but never defaulted, on the grounds that putting the cheapest model on top is
+ * a recommendation and this board does not make one without evidence. The price
+ * COLUMN then went too: seventeen of the thirty tracked models are image, video
+ * and speech models, priced per image, per second and per character, and a
+ * column headed PER MTOK cannot hold any of them. More than half the page was a
+ * unit that did not apply wearing the label of the half that did.
+ *
+ * WHICH thirty is config — contract/tracked_models.yaml — not a constant in
+ * this bundle. `model_version` holds 344 because a router carries 344; that is
+ * what the registry HOLDS, not what this page is for.
  */
 
 //: How many models may be compared at once. Three, matching the backend's own
@@ -29,20 +37,19 @@ import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 //: guard, it is the one that explains itself before the request.
 const COMPARE_MAX = 3
 
+// PRICE IS NOT SHOWN ON THIS PAGE, SO IT DOES NOT SORT IT EITHER.
+//
+// `Cheapest input` and `Dearest input` went with the price column. A control
+// that orders rows by a figure the reader cannot see is worse than no control:
+// the list visibly rearranges and nothing on screen says what by. Same reason
+// `Free only` went - a filter whose criterion is invisible.
+//
+// `Largest context` stays, because the context window is still on the row.
 const SORTS = {
   name:     { label: 'Name',            fn: (a, b) => (a.display_name || '').localeCompare(b.display_name || '') },
-  cheapest: { label: 'Cheapest input',  fn: (a, b) => nullsLast(a.price_in, b.price_in) },
-  dearest:  { label: 'Dearest input',   fn: (a, b) => nullsLast(b.price_in, a.price_in) },
   context:  { label: 'Largest context', fn: (a, b) => (b.advertised_context || 0) - (a.advertised_context || 0) },
 }
 
-/** A model with no published rate sorts to the end rather than to £0. */
-function nullsLast(x, y) {
-  if (x == null && y == null) return 0
-  if (x == null) return 1
-  if (y == null) return -1
-  return x - y
-}
 
 /* ------------------------------------------------------------------ search */
 
@@ -107,7 +114,6 @@ export default function Models() {
   const [unreadable, setUnreadable] = useState(null)
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('name')
-  const [freeOnly, setFreeOnly] = useState(false)
 
   // ── COMPARE SELECTION ────────────────────────────────────────────────────
   // Held here rather than in a URL param: it is a transient choice being made,
@@ -123,7 +129,7 @@ export default function Models() {
       // again in the backend. This is the last of the three, and the one that
       // makes a stray click a no-op rather than a silent truncation.
       : cur.length >= COMPARE_MAX ? cur : [...cur, id])
-  const [meta, setMeta] = useState(null)      // summary + priced_at, straight from the API
+  const [meta, setMeta] = useState(null)      // the API's own summary line
   const searchRef = useRef(null)
 
   // "/" jumps to the search box, the convention on any page that is mostly a
@@ -149,7 +155,7 @@ export default function Models() {
         const list = await fetchAll((l, o) => listModels(l, o))
         if (!alive) return
         setRoster(list.models)
-        setMeta({ summary: list.summary, priced_at: list.priced_at })
+        setMeta({ summary: list.summary })
       } catch (e) {
         if (!alive) return
         if (e instanceof BoardUnreadable) setUnreadable(e.message)
@@ -203,13 +209,10 @@ export default function Models() {
   const shown = useMemo(() => {
     if (!roster) return []
     let out = matches(roster, query)
-    // `=== 0` and not falsy: null is "no published rate", not free.
-    if (freeOnly) out = out.filter((m) => m.price_in === 0 && m.price_out === 0)
     return [...out].sort(SORTS[sort].fn)
-  }, [roster, query, sort, freeOnly])
+  }, [roster, query, sort])
 
   const withEvidence = Object.keys(evidence).length
-  const priced = roster ? roster.filter((m) => m.price_in != null).length : 0
 
   return (
     <div className="shell section-tight stack stack-4">
@@ -256,14 +259,12 @@ export default function Models() {
           <Reveal>
             <div className="card">
               <div className="grid g3">
-                <Stat n={roster.length} l="models in the registry" />
-                <Stat n={priced} l="with a published price" />
+                <Stat n={roster.length} l="models tracked" />
                 <Stat n={withEvidence} l="with any evidence" />
               </div>
               {meta?.summary && (
                 <p className="dim" style={{ fontSize: 'var(--fs-xs)', marginTop: 'var(--s3)' }}>
                   {meta.summary}
-                  {meta.priced_at && ` Prices as advertised on ${new Date(meta.priced_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.`}
                 </p>
               )}
               {checked + failed < total && (
@@ -318,13 +319,6 @@ export default function Models() {
                   {s.label}
                 </button>
               ))}
-              <button
-                className={`chip${freeOnly ? ' chip-on' : ''}`}
-                aria-pressed={freeOnly}
-                onClick={() => setFreeOnly((v) => !v)}
-              >
-                Free only
-              </button>
             </div>
 
             <span className="label">
@@ -398,7 +392,6 @@ export default function Models() {
 }
 
 function ModelRow({ m, rows, picked, onPick, atCap }) {
-  const unpriced = m.price_in == null
 
   return (
     <div className={`mrow-wrap${picked ? ' mrow-picked' : ''}`}>
@@ -450,21 +443,13 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
       </span>
 
       <span className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-        {/* Advertised, not measured — the price block is deliberately quiet
-            next to the evidence badge, which is the figure that decides
-            anything. A router shows "no rate", never a zero. */}
-        <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
-          <span
-            className="mono"
-            style={{ fontSize: 'var(--fs-sm)', color: unpriced ? 'var(--text-3)' : 'var(--text-1)' }}
-            title={unpriced ? 'This model routes to others and publishes no rate of its own' : 'USD per million tokens, in / out'}
-          >
-            {unpriced ? 'no rate' : `${fmtPrice(m.price_in)} / ${fmtPrice(m.price_out)}`}
-          </span>
-          {!unpriced && (
-            <span className="dim" style={{ fontSize: 10, letterSpacing: '.04em' }}>PER MTOK · IN / OUT</span>
-          )}
-        </span>
+        {/* THE PRICE BLOCK IS GONE. It read `$1.60 / $3.20 PER MTOK` for the
+            thirteen models the OpenRouter poll carries and `no rate` for the
+            seventeen it does not - and those seventeen are image, video and
+            speech models, which are priced per image, per second and per
+            character. A column headed PER MTOK cannot hold any of them, so more
+            than half the page was a unit that did not apply, wearing the same
+            label as the half that did. Removed rather than half-filled. */}
 
         {/* From the roster's own `evidence`, not from the capability sweep.
             The sweep takes 26 seconds and can fail per-page; this arrives with
