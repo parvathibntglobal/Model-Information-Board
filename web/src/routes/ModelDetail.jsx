@@ -59,7 +59,14 @@ export default function ModelDetail() {
         {spec?.provider && <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>{spec.provider}</span>}
       </div>
 
-      {spec && <SpecPanel s={spec} />}
+      {/* NOT RENDERED FOR A MODEL THE REGISTRY DOES NOT HOLD. `in_registry`
+          false means the OpenRouter poll has never seen it - Recraft,
+          ElevenLabs, Qwen3.5 Omni Flash - so every figure in this panel would
+          be a dash and the caveat underneath would be a sentence about
+          routing, which is false about all three. An absent panel says "we
+          have nothing here"; a panel of dashes says "we looked and it is
+          nothing", and those are different claims. */}
+      {spec && spec.in_registry !== false && <SpecPanel s={spec} />}
 
       <FetchPanel modelVersionId={id} onDone={() => modelPage(id).then(setPage).catch(() => {})} />
 
@@ -144,11 +151,18 @@ function SpecPanel({ s }) {
           <Stat n={s.max_output_tokens ? fmtTokens(s.max_output_tokens) : '—'} l="max output" />
         </div>
 
+        {/* ⚠ THIS SAID "it routes requests to other models" FOR ANY NULL PRICE.
+            A router is one REASON a registry row has no rate; it is not the
+            only one, and a null cannot tell you which. The panel now only
+            renders for models the registry holds, where a missing rate does
+            mean a router - but the sentence no longer derives the reason from
+            the absence, because the next null with a different cause would
+            inherit the explanation. */}
         {unpriced && (
           <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-            This model publishes no rate of its own — it routes requests to other
-            models, and you are billed at whichever one it picks. That is not the
-            same as free.
+            The registry holds this model but no rate for it. On this feed that
+            is what a router looks like — it dispatches to other models and you
+            are billed at whichever it picks. Either way it is not free.
           </p>
         )}
 

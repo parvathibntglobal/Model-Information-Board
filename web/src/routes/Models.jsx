@@ -396,55 +396,105 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
             : 'Compare this model'}
         />
       </label>
-    <Link
-      to={`/models/${m.model_version_id}`}
-      // `focus` carries which capability to open the model page on. It used to
-      // prefer whichever one the reader had filtered by; the "Discussed under"
-      // filter is gone, so the first capability this model has evidence for is
-      // the only answer left - and `null` when it has none, rather than a
-      // capability picked because it happened to sort first.
-      state={{
-        from: '/models',
-        name: m.display_name,
-        focus: m.evidence?.capabilities?.[0] || null,
-      }}
-      className="mrow"
-    >
-      <span className="stack" style={{ gap: 3, minWidth: 0 }}>
-        <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.display_name || m.model_version_id}</strong>
-        <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-          {m.provider}
-          {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
-        </span>
-        {/* Which capability, from the roster row itself — so it is on screen
-            the moment the list is, rather than 26 seconds later when the
-            capability sweep lands. `rows` upgrades it with voice counts if and
-            when that finishes. */}
-        {m.evidence?.capabilities?.length > 0 && (
+    {/* A ROW IS ONLY A LINK IF THERE IS A PAGE BEHIND IT.
+    
+        `/models/{id}` refuses an id the registry does not hold, and it is
+        right to: its own 404 says an unknown id would read "nobody has
+        reported on this model", which is indistinguishable from a model
+        in the registry nobody has discussed. But four tracked models have
+        no registry row at all, so linking them sent a reader to that
+        refusal - a dead end reached by clicking something that looked
+        live. The row still renders; it just does not pretend to go
+        somewhere. */}
+    {m.in_registry === false ? (
+      <div className="mrow" style={{ cursor: 'default' }}
+           title="Not in the registry the board polls, so there is no model page for it yet">
+        <span className="stack" style={{ gap: 3, minWidth: 0 }}>
+          <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.display_name || m.model_version_id}</strong>
           <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-            {rows
-              ? rows.map((r) => `${capLabel(r.capability)} · ${r.voices} ${r.voices === 1 ? 'voice' : 'voices'}`).join('  ·  ')
-              : m.evidence.capabilities.map(capLabel).join('  ·  ')}
+            {m.provider}
+            {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
           </span>
-        )}
-      </span>
+          {/* Which capability, from the roster row itself — so it is on screen
+              the moment the list is, rather than 26 seconds later when the
+              capability sweep lands. `rows` upgrades it with voice counts if and
+              when that finishes. */}
+          {m.evidence?.capabilities?.length > 0 && (
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+              {rows
+                ? rows.map((r) => `${capLabel(r.capability)} · ${r.voices} ${r.voices === 1 ? 'voice' : 'voices'}`).join('  ·  ')
+                : m.evidence.capabilities.map(capLabel).join('  ·  ')}
+            </span>
+          )}
+        </span>
 
-      <span className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-        {/* THE PRICE BLOCK IS GONE. It read `$1.60 / $3.20 PER MTOK` for the
-            thirteen models the OpenRouter poll carries and `no rate` for the
-            seventeen it does not - and those seventeen are image, video and
-            speech models, which are priced per image, per second and per
-            character. A column headed PER MTOK cannot hold any of them, so more
-            than half the page was a unit that did not apply, wearing the same
-            label as the half that did. Removed rather than half-filled. */}
+        <span className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {/* THE PRICE BLOCK IS GONE. It read `$1.60 / $3.20 PER MTOK` for the
+              thirteen models the OpenRouter poll carries and `no rate` for the
+              seventeen it does not - and those seventeen are image, video and
+              speech models, which are priced per image, per second and per
+              character. A column headed PER MTOK cannot hold any of them, so more
+              than half the page was a unit that did not apply, wearing the same
+              label as the half that did. Removed rather than half-filled. */}
 
-        {/* From the roster's own `evidence`, not from the capability sweep.
-            The sweep takes 26 seconds and can fail per-page; this arrives with
-            the row. `rows` still supplies WHICH capability once it lands. */}
-        <EvidenceBadge e={m.evidence} rows={rows} />
-        <IconArrow width={13} height={13} style={{ opacity: .5 }} />
-      </span>
-    </Link>
+          {/* From the roster's own `evidence`, not from the capability sweep.
+              The sweep takes 26 seconds and can fail per-page; this arrives with
+              the row. `rows` still supplies WHICH capability once it lands. */}
+          <EvidenceBadge e={m.evidence} rows={rows} />
+          <IconArrow width={13} height={13} style={{ opacity: .5 }} />
+        </span>
+      </div>
+    ) : (
+      <Link
+        to={`/models/${m.model_version_id}`}
+        // `focus` carries which capability to open the model page on. It used to
+        // prefer whichever one the reader had filtered by; the "Discussed under"
+        // filter is gone, so the first capability this model has evidence for is
+        // the only answer left - and `null` when it has none, rather than a
+        // capability picked because it happened to sort first.
+        state={{
+          from: '/models',
+          name: m.display_name,
+          focus: m.evidence?.capabilities?.[0] || null,
+        }}
+        className="mrow"
+      >
+        <span className="stack" style={{ gap: 3, minWidth: 0 }}>
+          <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.display_name || m.model_version_id}</strong>
+          <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+            {m.provider}
+            {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
+          </span>
+          {/* Which capability, from the roster row itself — so it is on screen
+              the moment the list is, rather than 26 seconds later when the
+              capability sweep lands. `rows` upgrades it with voice counts if and
+              when that finishes. */}
+          {m.evidence?.capabilities?.length > 0 && (
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+              {rows
+                ? rows.map((r) => `${capLabel(r.capability)} · ${r.voices} ${r.voices === 1 ? 'voice' : 'voices'}`).join('  ·  ')
+                : m.evidence.capabilities.map(capLabel).join('  ·  ')}
+            </span>
+          )}
+        </span>
+
+        <span className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          {/* THE PRICE BLOCK IS GONE. It read `$1.60 / $3.20 PER MTOK` for the
+              thirteen models the OpenRouter poll carries and `no rate` for the
+              seventeen it does not - and those seventeen are image, video and
+              speech models, which are priced per image, per second and per
+              character. A column headed PER MTOK cannot hold any of them, so more
+              than half the page was a unit that did not apply, wearing the same
+              label as the half that did. Removed rather than half-filled. */}
+
+          {/* From the roster's own `evidence`, not from the capability sweep.
+              The sweep takes 26 seconds and can fail per-page; this arrives with
+              the row. `rows` still supplies WHICH capability once it lands. */}
+          <EvidenceBadge e={m.evidence} rows={rows} />
+          <IconArrow width={13} height={13} style={{ opacity: .5 }} />
+        </span>
+      </Link>
+    )}
     </div>
   )
 }
