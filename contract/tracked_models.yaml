@@ -65,19 +65,20 @@
 # `kind` says which of those a row is, so the page can say why a rate is absent
 # instead of leaving a reader to assume the model is free.
 #
-# THIRTEEN, DOWN FROM THIRTY ON 2026-09-15. Parvathi named fifteen to drop after
-# seeing them on the page, then two more the same day. They were not chosen by a
+# TWELVE, DOWN FROM THIRTY ON 2026-09-15. Parvathi named fifteen to drop after
+# seeing them on the page, then three more the same day. They were not chosen by a
 # rule - eleven of the first fifteen were image, video and speech models, but two
 # were language models the registry prices perfectly well (Gemini 3.1 Pro,
 # Qwen3.6 27B) - so this list is editorial and the file is the only record of it.
 # That is the point of it being config.
 #
-# ⚠ THE LAST TWO OUT WERE Qwen3.5 Omni Flash AND Qwen3.8 Max, AND THEY WENT FOR
-#   DIFFERENT REASONS THAT LOOK THE SAME FROM THE PAGE.
+# ⚠ THE LAST THREE OUT WENT FOR THREE DIFFERENT REASONS THAT LOOK IDENTICAL
+#   FROM THE PAGE - all three showed nothing.
 #
-#   Both showed nothing: 0 claims, 0 board_entry rows, checked before removing
-#   rather than assumed, so neither removal took a visible figure off the page.
-#   Why they were empty is not the same.
+#   All three showed 0 claims and 0 board_entry rows, checked before removing
+#   rather than assumed, so no removal took a visible figure off the page. WHY
+#   each was empty is the part that differs, and it is the part a bare "we
+#   removed the empty ones" would have thrown away.
 #
 #   Qwen3.8 Max HAS NEVER BEEN SEARCHED FOR. It carries zero `model_alias` rows,
 #   so `_variants_for` returns an empty list and a fetch against it searches no
@@ -98,22 +99,48 @@
 #   v3 got one hand-added surface and that judgement is noted in that file; this
 #   model and Recraft V4.1 Pro got none.
 #
-#   ⚠ RECRAFT V4.1 PRO HAS THE SAME GAP AND IS STILL ON THIS LIST. It was not
-#     part of this removal and must not be dropped by association - written down
-#     because "the other two Qwen-shaped ones went" is how a third quietly
-#     follows without anybody deciding it.
+#   RECRAFT V4.1 PRO WENT TOO, LATER THE SAME DAY, AND IT WENT FOR A THIRD
+#   REASON THAT MUST NOT BE FILED WITH THE OTHER TWO.
 #
-#   WHAT REMOVAL DOES NOT UNDO. Both keep their `model_version` row, and
-#   Qwen3.5 Omni Flash keeps its two `model_alias` rows: `model_alias` is
-#   append-only under FR-4 and a window close would assert a surface STOPPED
-#   MEANING a model, which is false. So the registry still holds them and only
-#   the page stops listing them. That is the honest end state.
+#     Qwen3.8 Max         never searched   - the silence was ours
+#     Qwen3.5 Omni Flash  looked, found nothing - 3 naming threads read, 0 claims
+#     Recraft V4.1 Pro    NEVER LOOKED     - see below
 #
-# ⚠ SOME OF THE THIRTEEN THAT STAYED ARE ALSO UNDISCUSSED: Recraft V4.1 Pro and
-#   ElevenLabs v3. They read "nobody has discussed this" exactly like the ones
-#   that went, so if the intent was "remove everything with no evidence" they
-#   were missed rather than kept. Recorded rather than acted on, because guessing
-#   at an editorial intent is how a list quietly becomes something nobody chose.
+#   ⚠ IT WAS REMOVED BEFORE IT WAS READ, NOT BECAUSE IT WAS READ.
+#
+#     Its fetch harvested 184 documents - 183 from Reddit, 1 from dev.to - and
+#     they were scored and assembled into thread_contexts. Then the run was
+#     killed at E4, before the extractor read a single one. `thread_extraction`
+#     holds nothing for it.
+#
+#     So its 0 claims and 0 board_entry rows are an absence WE CAUSED, not one
+#     we found, and this note is here so nobody later reads the empty row as a
+#     finding about the model. Rule 4, applied to the list itself. It shares the
+#     one-surface variant gap described above, so a completed run may well have
+#     found little - but "may well have" and "did not" are different claims and
+#     only one of them was ever tested.
+#
+#     Parvathi's call, taken with that stated. Recorded rather than smoothed
+#     over, because a removal that looks evidence-based and is not is the kind
+#     of thing this file exists to prevent.
+#
+#   WHAT REMOVAL DOES NOT UNDO. All three keep their `model_version` row, and
+#   Qwen3.5 Omni Flash and Recraft V4.1 Pro keep their `model_alias` rows:
+#   `model_alias` is append-only under FR-4 and a window close would assert a
+#   surface STOPPED MEANING a model, which is false. So the registry still holds
+#   them and only the page stops listing them. That is the honest end state.
+#
+# ⚠ ONE OF THE TWELVE THAT STAYED IS ALSO UNDISCUSSED: ElevenLabs v3. It reads
+#   "nobody has discussed this" exactly like the ones that went, so if the intent
+#   was "remove everything with no evidence" it was missed rather than kept.
+#   Recorded rather than acted on, because guessing at an editorial intent is how
+#   a list quietly becomes something nobody chose.
+#
+#   It is also the ONLY one of the three seated models still here, and the only
+#   one that got a hand-added surface (`elevenlabs v3`) rather than mechanical
+#   spellings alone. Whether that is why it is the survivor is not something this
+#   file can claim - its own fetch run died at thread 2 of 24, so it has not been
+#   read either.
 #
 #   This note used to name five, and three of those names have since been
 #   resolved rather than left. Wan 3.0 and Qwen3.5 Omni Flash were dropped at
@@ -227,9 +254,9 @@ models:
   - name: Nano Banana 2
     registry: google/gemini-3.1-flash-image
     kind: image
-  - name: Recraft V4.1 Pro
-    registry: recraft/recraft-v4.1-pro
-    kind: image
+  # Recraft V4.1 Pro was here until 2026-09-15. Dropped at Parvathi's request.
+  # ⚠ REMOVED BEFORE IT WAS READ, NOT BECAUSE IT WAS READ - see the top of this
+  #   file. That distinction is the whole reason this comment exists.
 
 
   # ── speech ───────────────────────────────────────────────────────────────
