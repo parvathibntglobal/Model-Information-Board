@@ -103,8 +103,20 @@ DEDUPE_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "hugg
 #:
 #: So: **quote 33s to size a cap, 15s to describe a typical thread**, and never
 #: swap them. A single 580s thread is not an anomaly to discount - it is why the
-#: mean is what a wait is built from. At this cap that is ~28 minutes expected
-#: and a tail that can double it.
+#: mean is what a wait is built from.
+#:
+#: AT THE MEAN, THEN: 25 x 33s is ~14 minutes expected, and the tail can double
+#: it. 40 would be ~22 minutes.
+#:
+#: ⚠ THIS LINE SAID "~28 minutes" AND THAT WAS THIS COMMENT CONTRADICTING
+#:   ITSELF. 28 minutes is 25 x 67s - the "~65 seconds per thread" figure the
+#:   paragraph below disavows by name, as "how a tail becomes a typical case".
+#:   The per-thread number was corrected when it was measured properly and the
+#:   minutes derived from it were not, so the stale figure outlived its own
+#:   retraction four lines away. Checked against git: the cap was already 25
+#:   when "28 minutes" was written, so it was never a leftover from a larger
+#:   cap - just arithmetic nobody redid. Rule 7: a figure travels with its
+#:   denominator, and that includes the one it was multiplied by.
 #:
 #: (One figure this replaces was mine and was worse: "~65 seconds per thread",
 #: computed as wall-clock over threads-completed on one run that happened to
@@ -1888,12 +1900,30 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # three different claims: this model's evidence, this run's fresh harvest,
     # and the backlog the cap had room for.
     backlog = len(threads) - named - own
+    # ⚠ THE CAP IS REPORTED, AND SO IS WHETHER IT BOUND. The progress line below
+    # this one reads `reading thread N/25`, and until now 25 could mean either
+    # "the cap stopped us" or "that is all there was" — two different facts about
+    # the world, rendered identically. Somebody who raises FETCH_MAX_THREADS and
+    # still sees /25 has no way to tell whether the variable failed to arrive or
+    # the corpus simply held 25 threads.
+    #
+    # `len(threads) == cap` is the discriminator: selection takes the first
+    # `limit` rows, so landing exactly on it means there was more to read.
+    # Rule 4 — a caused absence must say it was caused.
+    cap_bound = len(threads) >= MAX_FETCH_THREADS
     prog.stage("E5", "Extract", "running",
                threads_naming_the_model=named, threads_from_own_harvest=own,
                threads_from_backlog=backlog, unread_naming_the_model=len(naming),
+               thread_cap=MAX_FETCH_THREADS, cap_reached=cap_bound,
                detail=f"{len(threads)} thread(s) selected — {named} name this model "
                       f"(of {len(naming)} unread that do), {own} from this run's own "
-                      f"harvest, {backlog} from the backlog")
+                      f"harvest, {backlog} from the backlog. "
+                      + (f"THE CAP OF {MAX_FETCH_THREADS} STOPPED THIS — there is more "
+                         f"to read, and clicking Fetch again continues from here "
+                         f"(FETCH_MAX_THREADS raises it)."
+                         if cap_bound else
+                         f"The cap of {MAX_FETCH_THREADS} did not bind: this is every "
+                         f"thread there was to read."))
     if not naming:
         # Rule 4: an empty scan is a finding, not a fallback to be silent about.
         prog.stage("E5", "Extract", "running",
