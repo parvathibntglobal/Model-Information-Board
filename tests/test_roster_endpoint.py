@@ -41,13 +41,18 @@ class _Result:
         return self._rows[0]
 
 
-def _row(name, price_in, price_out, *, cells=0, published=0, capabilities=None):
+def _row(name, price_in, price_out, *, cells=0, published=0, capabilities=None,
+         entries=0, sections=None):
     return (
         f"mv_{name}", name, "vendor", f"vendor/{name}",
         price_in, price_out, None,
         128000, 4096,
         True, False, True, None, None,
         cells, published, capabilities,
+        # BOARD ENTRIES, and they are the last two on purpose: the SQL appends
+        # them, so a row built here that forgets them fails loudly on an
+        # IndexError rather than shifting a cell count into a board count.
+        entries, sections,
     )
 
 
@@ -182,3 +187,79 @@ def test_a_null_from_array_agg_becomes_an_empty_list():
     """
     conn = _FakeConn([_row("quiet", 1, 2, cells=0, published=0, capabilities=None)])
     assert RosterReader(conn).all().models[0]["evidence"]["capabilities"] == []
+
+
+class TestTheBoardTravelsBesideTheCells:
+    """Two counts, never one. The page showed only cells until 2026-09-15.
+
+    A cell is COUNTED AND GATED - `insufficient` means we counted and it was
+    not enough. A `board_entry` is UNGATED - somebody said this, with no claim
+    about corroboration. Collapsing them misreads in whichever direction you
+    collapse, measured on DeepSeek V4 Pro:
+
+        entries only   23 reports  -> reads as 23 findings, when ZERO cleared
+                                      the publication bar
+        cells only      6 cells    -> reads as a near-empty model, while 22
+                                      entries about it sit unread
+
+    The second is what the page did, which is why a fetch that produced 50
+    board entries changed nothing a reader could see.
+    """
+
+    def test_the_counts_travel_with_the_row(self):
+        conn = _FakeConn([_row("d", 1, 2, cells=6, published=0,
+                               capabilities=["code.generation"],
+                               entries=23,
+                               sections={"capability": 12, "metric": 8, "best_for": 3})])
+        m = RosterReader(conn).all().models[0]
+
+        assert m["evidence"]["state"] == "insufficient"
+        assert m["evidence"]["cells"] == 6
+        assert m["board"]["entries"] == 23
+
+    def test_sections_are_counted_and_ordered_biggest_first(self):
+        conn = _FakeConn([_row("d", 1, 2, entries=23,
+                               sections={"best_for": 3, "capability": 12, "metric": 8})])
+        board = RosterReader(conn).all().models[0]["board"]
+
+        assert list(board["sections"].items()) == [
+            ("capability", 12), ("metric", 8), ("best_for", 3)
+        ], "the row reads them biggest first; a count alone does not say where"
+
+    def test_the_board_carries_no_state_word(self):
+        """An entry has been through no gate, so it gets no gate vocabulary.
+
+        `evidence` has a `state` because a cell has a verdict behind it. Giving
+        the board one would invite comparing `insufficient` against some board
+        word as if they were the same scale.
+        """
+        conn = _FakeConn([_row("d", 1, 2, cells=6, entries=23,
+                               sections={"capability": 23})])
+        board = RosterReader(conn).all().models[0]["board"]
+
+        assert "state" not in board
+        assert "published" not in board
+
+    def test_no_entries_is_zero_rather_than_a_missing_key(self):
+        """Rule 6 at the page boundary: a page must tell "none" from "unsaid"."""
+        conn = _FakeConn([_row("d", 1, 2, cells=6, entries=0, sections=None)])
+        board = RosterReader(conn).all().models[0]["board"]
+
+        assert board == {"entries": 0, "sections": {}}
+
+    def test_entries_without_cells_and_cells_without_entries_both_survive(self):
+        """Neither is a subset of the other, which is the reason both are shown."""
+        conn = _FakeConn([
+            _row("cells_only", 1, 2, cells=4, capabilities=["code.generation"]),
+            _row("board_only", 1, 2, cells=0, entries=7, sections={"metric": 7}),
+        ])
+        cells_only, board_only = RosterReader(conn).all().models
+
+        assert cells_only["evidence"]["state"] == "insufficient"
+        assert cells_only["board"]["entries"] == 0
+        assert board_only["evidence"]["state"] == "unreported"
+        assert board_only["board"]["entries"] == 7, (
+            "a model with board reports and no cell reads as `unreported` on the "
+            "gate and must still show its reports - that combination is exactly "
+            "what the old page could not express"
+        )
