@@ -78,11 +78,15 @@ review_marker: "REVIEW REQUIRED"
 #  environment variable knows that." So a PERSON asserts it here, with a name
 #  and a date, and `observe_use_basis()` reads the assertion.
 #
-#  ⚠ `asserted_by` IS BLANK ON PURPOSE. This block is a proposal, and an
-#    undertaking nobody has signed must not be readable as one somebody has.
-#    While `asserted_by` is empty the observer returns a refusal value and all
-#    eight rulings refuse - which is the correct default and the opposite of
-#    what `ENVIRONMENT` unset does today.
+#  ✔ ASSERTED 2026-09-15 BY anooj. Before that this block shipped UNSIGNED and
+#    every ruling resting on it refused - deliberately, because an undertaking
+#    nobody has signed must not be readable as one somebody has. That remains
+#    the behaviour for an absent, expired or self-contradicting block.
+#
+#    THIS IS A PERSON'S STATEMENT, NOT A CONFIGURATION VALUE. It says the four
+#    conditions below were true of every reachable surface on the date named,
+#    and it is wrong the moment one of them stops being true - which is what
+#    `voided_by` is for and why the expiry is 30 days rather than 90.
 #
 #  ABSENT IS NOT PERMISSIVE (rule 6). No undertaking, an expired one, or one
 #  that contradicts itself all mean NO BASIS, which means every ruling that
@@ -98,8 +102,8 @@ review_marker: "REVIEW REQUIRED"
 
 use_basis_undertaking:
   asserts: internal-development-only
-  asserted_by: null          # ⚠ nobody has asserted this yet
-  asserted_on: null
+  asserted_by: anooj
+  asserted_on: 2026-09-15
   review_valid_days: 30
 
   #: Each is a fact a person can check in ten minutes and no process can check
