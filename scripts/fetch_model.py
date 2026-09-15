@@ -35,6 +35,7 @@ import threading
 import time
 import traceback
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -85,10 +86,30 @@ DEDUPE_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "hugg
 
 #: How many threads ONE fetch may send to the language model.
 #:
-#: The daily budget caps the money; this caps the WAIT. Extraction ran at
-#: roughly 15 seconds per thread on 2026-08-31, so the old limit of 200 was
-#: close to an hour of a click that looks hung - and a first run does not need
-#: the whole corpus to show the classifier works.
+#: The daily budget caps the money; this caps the WAIT.
+#:
+#: WHAT A THREAD COSTS IN TIME, AND WHY THE OLD FIGURE MISLED WITHOUT BEING
+#: WRONG. This said "roughly 15 seconds per thread on 2026-08-31" and used it
+#: to size the cap. 15s is a MEDIAN, and the distribution has a long right tail,
+#: so a median is the one summary that cannot be multiplied by a thread count.
+#:
+#: Measured 2026-09-14 over **115 consecutive-thread intervals in the 5 fetch
+#: logs on this machine that carry per-thread lines** - the gap between
+#: `reading thread N` and `reading thread N+1`, which is one thread's whole E5
+#: (call, verification, store). Not a sample of extraction in general: it is
+#: five runs on four models, on one machine, against one extractor.
+#:
+#:     min 9s    p50 15s    mean 33s    p90 64s    max 580s
+#:
+#: So: **quote 33s to size a cap, 15s to describe a typical thread**, and never
+#: swap them. A single 580s thread is not an anomaly to discount - it is why the
+#: mean is what a wait is built from. At this cap that is ~28 minutes expected
+#: and a tail that can double it.
+#:
+#: (One figure this replaces was mine and was worse: "~65 seconds per thread",
+#: computed as wall-clock over threads-completed on one run that happened to
+#: contain the 580s outlier. It lands within a second of the p90 by coincidence.
+#: A denominator of one run is how a tail becomes a typical case.)
 #:
 #: SMALL IS SAFE BECAUSE THE PIPELINE RESUMES. `already_extracted()` skips
 #: threads already read at this pipeline version, so the next click continues
@@ -122,6 +143,13 @@ _MAX_PROSE_DRIFT = 8
 #: still stops an unbounded cross-product if the variant or capability list
 #: grows: 20 variants x 6 queries is 120 searches nobody asked for.
 MAX_GITHUB_SEARCHES = int(os.getenv("FETCH_MAX_GITHUB_SEARCHES", "60"))
+
+#: X pages per model. NOT a post count - twitter241 ignores `count` and
+#: paginates by cursor, so a page is 20 posts however many are asked for, and
+#: this is the only depth lever there is. Three pages is ~60 retrieved against
+#: X 100,000/month ceiling, which is a TENTH of Reddit and the reason this is
+#: bounded at all.
+X_PAGES_PER_MODEL = int(os.getenv("FETCH_X_PAGES", "3"))
 
 
 class RunStopped(BaseException):
@@ -175,6 +203,12 @@ class Progress:
         self._stop_raised = False
         self.run_id = run_id
         self.model_version_id = model_version_id
+        #: When this run began, as a tz-aware UTC datetime. READ BY SELECTION,
+        #: not only by the log: `build_thread_inputs` scopes the extraction to
+        #: documents this run harvested, and `fetched_at >= started_at` is the
+        #: only marker that identifies them - the harvest arms write
+        #: `harvest_run_id=None`, so there is no id to join on.
+        self.started_at = datetime.now(UTC)
         self._seq = 0
         #: Stop trying after the first failure. A database that is down stays
         #: down for the length of a run, and re-attempting a connection on
@@ -911,6 +945,43 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
     missing `RAPIDAPI_KEY` arrives here as a refusal to build rather than as a
     request that fails midway. Both are reported as `skipped` with the reason:
     neither is a fault of this run, and an error badge would say it was.
+
+    IT STORED NOTHING, AND THE SIEVE WAS NOT WHY - THE SIEVE NEVER RAN
+    ------------------------------------------------------------------
+    Every X stage in the fetch log reads `20 post(s) seen, 0 document(s)
+    appended`, and `document` held **zero rows with source='x'** on
+    2026-09-14, across every run ever made. That looks like a filter set too
+    tight. It was not a filter at all.
+
+    This arm called `harvester.search(query)`, which is the retrieval HALF of
+    `harvester.harvest(query, terms)`. `search` fills `run.posts`. `drafts()`
+    iterates `run.stored`, and only `store_posts()` fills that - and
+    `store_posts` is called only from `harvest`. So `drafts()` returned `[]`
+    on a run holding 20 parsed posts, and `write_documents` faithfully
+    inserted nothing. **More pages of that is still nothing**, which is why
+    pagination had to wait for this line rather than ship beside it.
+
+    WHY THE SIEVE IS RUN HERE RATHER THAN PASSED TO `harvest`
+    ---------------------------------------------------------
+    `harvest(query, terms)` takes ONE rendered term set. A post is relevant if
+    it matches ANY capability query under ANY of this model surfaces, which is
+    24 entries x the clubbed surfaces - so the loop is here and `store_posts`
+    is called with what survives. This is the same shape
+    `scripts/measure_signal_demotion_x.py` measured on 2026-09-14, so what
+    ships is what was measured rather than a second implementation of it.
+
+    WHAT TO EXPECT, WITH ITS POPULATION (rule 7). That measurement read **127
+    posts captured by the two 2026-09-11 retrieval probes for five seeded
+    Fable 5.1 surfaces** - not a sample of X, and no rate from it is an X
+    retrieval rate. Of those, 72 named a seeded surface and **6 pass the sieve
+    now that signal is a weight, against 0 under the old gate**: 8.3% of the
+    72, 4.7% of the 127. So a three-page harvest of ~60 posts should append
+    single digits, and appending 2 is not evidence of a broken sieve.
+
+    THE DROPS ARE COUNTED AND NAMED ON THE STAGE LINE, never silent. A post
+    dropped here is a document the board will never see, and a run that cannot
+    say how many were dropped cannot tell a tight sieve from an empty search
+    (rule 4).
     """
     from collect.adapters.x import club_surfaces, harvester_for_source
 
@@ -918,7 +989,15 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
         "x", harvester_for_source,
         client=build_client(timeout=30.0),
         store=RawStore(Path(settings().raw_store_path)),
-        max_pages=1,
+        # THREE PAGES, BECAUSE COUNT IS NOT A KNOB HERE. twitter241 ignores the
+        # requested count and paginates by cursor, so a page is 20 posts
+        # whatever is asked for and depth is the only lever there is. The
+        # clubbed-surface measurement has the trade: at a 2-request budget, two
+        # clubbed pages returned 40 distinct where the old shape returned 30 -
+        # but page 1 is also the cleanest, 85% of its posts carrying a variant
+        # literally against 68% over three pages. That dilution is the sieve
+        # problem now that the sieve runs, and it is counted on the stage line.
+        max_pages=X_PAGES_PER_MODEL,
     )
     if harvester is None:
         prog.stage("E2X", "Harvest · X", "skipped", detail=why)
@@ -939,9 +1018,14 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
         # NAMED, NEVER SILENT. A dropped surface narrows the query, and a
         # narrower query reported as a wider one is a denominator that lies.
         detail += f" — {len(clubbed.dropped)} surface(s) did not fit: {list(clubbed.dropped)[:3]}"
+    detail += f" — up to {X_PAGES_PER_MODEL} page(s) of 20"
     prog.stage("E2X", "Harvest · X", "running", queries=1, detail=detail)
     inserted = posts = errors = 0
+    survived = pages = 0
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
+    from collect.adapters.queries.sieve import sieve as sieve_post
+
+    entries = [e for e in load_queries().all_entries if not e.direction_from_extraction]
     for variant in [clubbed.query]:
         run = harvester.search(variant)
         errors += int(getattr(run, "http_errors", 0) or 0)
@@ -954,11 +1038,30 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
         if getattr(run, "quota_limit", None) is not None:
             q_limit = run.quota_limit
         posts += len(getattr(run, "posts", []) or [])
+        pages += int(getattr(run, "pages_fetched", 0) or 0)
+        # THE SIEVE, AND THEN THE STORE. See the docstring: `search` alone left
+        # `run.stored` empty, so `drafts()` had nothing to draft and every run
+        # in the log appended zero.
+        survivors = []
+        for post in run.posts:
+            text = post.sieve_text
+            if any(sieve_post(entry.terms.substitute(surface), text).passed
+                   for surface in clubbed.used for entry in entries):
+                survivors.append(post)
+        harvester.store_posts(run, survivors)
+        survived += len(survivors)
         wrote = harvester.write_documents(conn, run, retrieval_provenance="not_recorded")
         conn.commit()
         inserted += int(getattr(wrote, "inserted", 0) or 0)
     _write_rapidapi_quota(q_remaining, q_limit, prog.run_id, read_on="x")
-    detail = f"{posts} post(s) seen, {inserted} document(s) appended"
+    # THE DENOMINATOR IS IN THE SENTENCE. "0 appended" out of 60 retrieved and
+    # "0 appended" out of 0 retrieved are different failures, and they used to
+    # render identically.
+    dropped = posts - survived
+    detail = (f"{posts} post(s) seen over {pages} page(s); sieve kept {survived}, "
+              f"dropped {dropped}; {inserted} document(s) appended")
+    if survived and not inserted:
+        detail += " — every survivor was already stored (append-only)"
     if errors:
         # THE ONE THE LOG GOT WRONG. `_get` catches every `httpx.HTTPError`,
         # DNS failures included, and returns None - so two searches that never
@@ -966,7 +1069,8 @@ def harvest_x(conn, prog: Progress, variants: list[str], *, max_queries: int) ->
         # the Reddit arm reporting the identical failure as an error.
         detail += f" — {errors} request(s) failed before returning anything"
     prog.stage("E2X", "Harvest · X", _harvest_verdict(errors, posts),
-               posts=posts, documents_inserted=inserted, http_errors=errors,
+               posts=posts, pages=pages, sieve_kept=survived, sieve_dropped=dropped,
+               documents_inserted=inserted, http_errors=errors,
                quota_remaining=q_remaining, quota_limit=q_limit,
                detail=detail)
     return inserted
@@ -1123,7 +1227,85 @@ def assemble_stage(conn, prog: Progress) -> None:
                       + " · ".join(notes))
 
 
-def build_thread_inputs(conn, seen, *, limit: int):
+def threads_naming_the_model(conn, store, surfaces) -> set[str]:
+    """Unread thread ids whose flattened text literally names one of `surfaces`.
+
+    WHY A TIMESTAMP COULD NOT ANSWER THIS, MEASURED RATHER THAN ARGUED
+    -------------------------------------------------------------------
+    Selection first scoped to "documents THIS run fetched" (`fetched_at >= run
+    start`), which is right for a model's first fetch and empty for its second.
+    Measured on the 2026-09-14 re-fetch of `minimax/minimax-m3`, 40 minutes
+    after the first one:
+
+        own harvest 0, backlog 50 of 50
+
+    The model's evidence had been harvested by the PREVIOUS run, so it was
+    backlog, and the run would have spent its whole cap on dev.to threads again
+    - the exact failure the scope was added to stop, wearing a different hat.
+    Documents are append-only with `ON CONFLICT DO NOTHING`, so a re-harvest
+    that retrieves the same 16 posts inserts 6 and updates no timestamp on the
+    other 10: the rows that ARE this model's evidence are invisible to any
+    `fetched_at` test.
+
+    `WriteReport` carries counts and not ids, so "the documents this harvest
+    touched" cannot be asked either without changing every adapter's write
+    path. That is the durable fix and it is somebody's whole change; this is the
+    question those ids would have been a proxy for, asked directly.
+
+    NO MODEL PARTICIPATES, AND IT IS NOT A GATE. A normalised substring test
+    over text already on disk, and its result is an ORDERING key - a thread that
+    does not name the model sorts after one that does and is still reachable by
+    this run and every later one (rule 8).
+
+    WHAT IT COSTS, AND BOTH NUMBERS, BECAUSE ONE OF THEM ALONE MISLEADS. One
+    local read per unread candidate, measured 2026-09-14 over 3,965 unread
+    threads (3,837 readable here, 128 on another machine):
+
+        cold page cache   23.6s
+        warm page cache    1-2s
+
+    Quoting 23.6s alone overstates what a run after the first one pays; quoting
+    1-2s alone understates the first. Either way it is a small fraction of a
+    50-thread extraction (~28 min expected), paid once per run, and it is why
+    the expensive per-candidate work below still runs over a bounded pool
+    rather than over everything.
+
+    A surface that is absent from the whole corpus returns an empty set, which
+    is a real answer - "nothing stored names this model" - and the caller says
+    so rather than silently falling back (rule 4).
+    """
+    from collect.registry.aliases import normalize
+    from judge.store.extractions import PIPELINE_VERSION
+
+    #: 4 characters is the floor the resolver already uses for a surface to be
+    #: worth matching. Below it a normalised key reaches inside unrelated words -
+    #: the `free` inside "freeze" finding, one layer up.
+    keys = {normalize(x) for x in surfaces if x and len(normalize(x)) >= 4}
+    if not keys:
+        return set()
+    rows = conn.execute(
+        "SELECT tc.id, tc.flattened_text_ref FROM thread_context tc "
+        "WHERE EXISTS (SELECT 1 FROM document d "
+        "              WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept') "
+        "  AND NOT EXISTS (SELECT 1 FROM thread_extraction te "
+        "                  WHERE te.thread_context_id = tc.id "
+        "                    AND te.pipeline_version = %s "
+        "                    AND te.content_fingerprint IS NOT NULL)",
+        (PIPELINE_VERSION,),
+    ).fetchall()
+    naming = set()
+    for tc_id, ref in rows:
+        try:
+            text = store.get_text(ref)
+        except Exception:
+            continue  # payload not on this machine - not this fetch's to judge
+        hay = normalize(text)
+        if any(k in hay for k in keys):
+            naming.add(tc_id)
+    return naming
+
+
+def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=()):
     """ThreadInputs for threads this fetch can actually read — the E5 input.
 
     This is the composition-root stand-in for the deferred RawTextResolver (#6):
@@ -1134,6 +1316,7 @@ def build_thread_inputs(conn, seen, *, limit: int):
     """
     from judge.extract.runner import ThreadInput
     from judge.extract.verify import OffsetMapping
+    from judge.store.extractions import PIPELINE_VERSION, ExtractionLedger
 
     store = RawStore(Path(settings().raw_store_path))
     # ── THE TRIAGE VERDICT HAS TO BITE HERE OR IT IS DECORATIVE ──────────────
@@ -1165,11 +1348,114 @@ def build_thread_inputs(conn, seen, *, limit: int):
         # run's story: dev.to assembled 37 minutes before Hacker News, so all
         # 38 of its threads fell outside a 25-row window and none was ever
         # considered. A wider pool reaches them.
-        "ORDER BY tc.assembled_at DESC LIMIT %s",
+        #
+        # ── THE EXCLUSION IS IN THE QUERY, AND THAT IS THE WHOLE FIX ─────────
+        # `seen` was applied in Python AFTER this LIMIT, so the pool was the
+        # newest N by `assembled_at` regardless of what had been read. Measured
+        # on the shared database 2026-09-14: 3,904 thread_contexts have a kept
+        # member and 50 were read at e5.4, so 3,854 are unread - and a 200-row
+        # pool could only ever offer the newest 200 of those. At a cap of 75
+        # that drains in three runs and then yields nothing, permanently, while
+        # ~3,650 older contexts stay unreachable. No cap fixes it: a pool
+        # filtered after its own LIMIT cannot reach past its first page.
+        #
+        # `NOT EXISTS` against the ledger rather than shipping 3,854 ids as a
+        # parameter, and it cannot go stale between two statements.
+        #
+        # `content_fingerprint IS NOT NULL` is load-bearing and is the ledger's
+        # own ruling, not a tidy-up. `already_extracted` returns
+        # {id: fingerprint} and `should_skip` treats a NULL as "we do not know,
+        # RE-READ" - so excluding those here would be this query overriding the
+        # ledger. They stay in the pool and `should_skip` decides them below,
+        # against the text, which is the only place the text is in hand.
+        "  AND NOT EXISTS (SELECT 1 FROM thread_extraction te "
+        "                  WHERE te.thread_context_id = tc.id "
+        "                    AND te.pipeline_version = %s "
+        "                    AND te.content_fingerprint IS NOT NULL) "
+        #
+        # ── WHAT ORDERS IT. THE FIRST KEY IS A SCOPE, AND IT IS THE POINT ───
+        #
+        # THIS WAS MEASURED WRONG ONCE, IN THIS FUNCTION, TODAY. The ordering
+        # was changed to "newest kept member document" on the argument that
+        # `assembled_at` is a fact about the pipeline's schedule rather than
+        # about the evidence. That argument is true and the change was still a
+        # regression, because `assembled_at DESC` was doing a SECOND job nobody
+        # had written down: the threads this fetch just assembled are the
+        # newest-assembled rows, so it front-loaded the run's OWN harvest.
+        #
+        # Measured on the live pool, 2026-09-14, over the 3,965 unread threads,
+        # asking how many of the first 75 hold a document that run harvested:
+        #
+        #     ORDER BY assembled_at DESC          75 of 75   (100%)
+        #     ORDER BY newest member created_at    2 of 75   (3%)
+        #
+        # dev.to articles carry recent publication dates, so 63 of those 75
+        # were dev.to threads from earlier in the week and NONE of the 13 X
+        # documents the run had just harvested was reached. A per-model fetch
+        # would have spent an hour of LLM calls on other models.
+        #
+        # So the scope is now EXPLICIT rather than a side effect of a sort key.
+        # `own_harvest` is the first ordering key: threads holding a document
+        # this run fetched come first, and the rest of the unread pool fills
+        # whatever the cap leaves. That keeps both properties - the run reads
+        # its own evidence, and the cap is not wasted when the harvest is thin -
+        # and neither depends on a timestamp meaning something it does not say.
+        #
+        # `fetched_at >= since` is the marker because there is no better one:
+        # every harvest arm passes `harvest_run_id=None`, so no id links a
+        # document to the run that fetched it. Worth fixing at the source; not
+        # fixed here, because it is a change to every arm's write call.
+        #
+        # WITHIN each tier, the newest kept member document - a property of what
+        # people said rather than of when we flattened it. NOT
+        # `document.specificity_score`, though it is computed on every row and
+        # nothing reads it: `contract/column_states.yaml` declares it
+        # `write_only` with its intended reader named (E3 child ranking,
+        # blocked), and `contract/harvest.yaml` forbids this exact use in terms
+        # - the composite is "COMPARABLE WITHIN A SOURCE ONLY", measured at
+        # github 0.527 against blogs 0.286, so "a cross-channel sort by
+        # specificity_score is a sort by `is this GitHub` with extra steps". It
+        # would trade an accidental platform bias for a stable one and demote
+        # blogs, the only positive-evidence channel. An unread column is not a
+        # free one; this is the reader it must not have.
+        #
+        # `NULLS LAST` is stated rather than relied on - `document.created_at`
+        # is non-null on all 9,532 rows today, and if that changes an undated
+        # thread goes last instead of silently sorting as old (rule 6).
+        #
+        # Nothing is EXCLUDED by any of this: with the exclusion in the query,
+        # whatever this run does not reach a later run does, which is what keeps
+        # it a weight and not a gate (rule 8).
+        # EXISTS, NOT `count(*) > 0`, and the difference is not style. The
+        # gated-out query is distinguished from this one by counting, so a
+        # `count(*)` in this ORDER BY makes the two indistinguishable to
+        # anything matching on the SQL - which is exactly what
+        # tests/test_fetch_model.py's `_Conn` does, and it caught this.
+        # THE FIRST KEY IS "DOES THIS THREAD NAME THE MODEL WE WERE ASKED
+        # ABOUT". See `threads_naming_the_model` for why a timestamp cannot
+        # answer that on a re-fetch. The second key keeps this run's own fresh
+        # harvest ahead of the rest when both are unnamed - a thread harvested
+        # now for this model that happens not to spell a seated surface is
+        # still likelier to be its evidence than a week-old dev.to article.
+        "ORDER BY (tc.id = ANY(%s)) DESC, "
+        "         EXISTS (SELECT 1 FROM document d "
+        "                 WHERE d.id = ANY(tc.member_document_ids) "
+        "                   AND d.fetched_at >= %s) DESC, "
+        "         (SELECT max(d.created_at) FROM document d "
+        "          WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept') "
+        "         DESC NULLS LAST, tc.assembled_at DESC, tc.id "
+        "LIMIT %s",
         # 8x the cap, floored at 200 so a small cap still sees a real pool.
         # Bounded rather than unbounded: this reads a payload per candidate, and
-        # an unbounded pool would read the whole corpus off disk to fill 25 slots.
-        (max(limit * 8, 200),),
+        # an unbounded pool would read the whole corpus off disk to fill 25
+        # slots. It is an over-fetch of UNREAD rows now, which is what makes it
+        # drain rather than re-offer the same page.
+        # `since` absent means nothing to scope on - every row scores 0 on the
+        # first key and the ordering degrades to the within-tier one, rather
+        # than the query refusing or silently scoping to "since the epoch".
+        (PIPELINE_VERSION, list(naming) or [""],
+         since or datetime.max.replace(tzinfo=UTC),
+         max(limit * 8, 200)),
     ).fetchall()
     # What the verdict cost, counted rather than inferred: a thread with no
     # surviving member is one E4 removed, and a run that cannot say how many did
@@ -1180,6 +1466,19 @@ def build_thread_inputs(conn, seen, *, limit: int):
         "                  WHERE d.id = ANY(tc.member_document_ids) AND d.status = 'kept')"
     ).fetchone()[0]
 
+    #: How many of the selected threads hold a document THIS run harvested.
+    #: Counted rather than inferred: "75 threads read" is the same sentence
+    #: whether they were this model's evidence or the backlog's, and only one
+    #: of those is what a per-model fetch was asked for.
+    own_ids = {
+        r[0] for r in conn.execute(
+            "SELECT tc.id FROM thread_context tc "
+            "WHERE EXISTS (SELECT 1 FROM document d "
+            "              WHERE d.id = ANY(tc.member_document_ids) "
+            "                AND d.fetched_at >= %s)",
+            (since or datetime.max.replace(tzinfo=UTC),),
+        ).fetchall()
+    } if since is not None else set()
     inputs = []
     doc_ids: set[str] = set()
     #: Threads skipped for size. Returned rather than counted, so the caller can
@@ -1187,12 +1486,18 @@ def build_thread_inputs(conn, seen, *, limit: int):
     #: can see WHICH threads are waiting.
     oversized: list[str] = []
     for tc_id, flat_ref, omap, members in rows:
-        if tc_id in seen:
-            continue  # already extracted at this pipeline version
         try:
             flattened = store.get_text(flat_ref)
         except Exception:
             continue  # payload not on this machine — not this fetch's thread
+        # THE LEDGER DECIDES, AGAINST THE TEXT. The query excluded the threads
+        # read at this version WITH a fingerprint recorded; what reaches here
+        # carrying a ledger row has a NULL one, which `should_skip` reads as
+        # "we do not know" and re-reads. The old `tc_id in seen` above could
+        # not tell that state from a match and skipped it, so a thread whose
+        # fingerprint was never recorded was never read again.
+        if ExtractionLedger.should_skip(seen, tc_id, flattened):
+            continue
         offset_map = tuple(OffsetMapping(**span) for span in (omap or ()))
         # THE DOCUMENT'S PROSE, NOT ITS PAYLOAD, AND THE OFFSET MAP DECIDES THAT.
         #
@@ -1318,7 +1623,13 @@ def build_thread_inputs(conn, seen, *, limit: int):
         doc_ids.update(members)
         if len(inputs) >= limit:
             break
-    return inputs, doc_ids, gated_out, oversized
+    naming_set = set(naming)
+    named = sum(1 for t in inputs if t.thread_context_id in naming_set)
+    from_own_harvest = sum(
+        1 for t in inputs
+        if t.thread_context_id in own_ids and t.thread_context_id not in naming_set
+    )
+    return inputs, doc_ids, gated_out, oversized, (named, from_own_harvest)
 
 
 def _thread_latest_dates(conn, thread_ids: list[str]) -> dict:
@@ -1537,7 +1848,8 @@ def _subject_ids(conn, given: str) -> frozenset[str]:
     return frozenset(ids)
 
 
-def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
+def extract_and_curate(conn, prog: Progress, *, release_date=None,
+                       surfaces=()) -> None:
     """E5–E7 — extract claims from this fetch's threads, vet, and curate cells.
 
     Spends (capped) OpenRouter money and writes claims + cells. Scoped to the
@@ -1563,8 +1875,30 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None) -> None:
 
     ledger = ExtractionLedger(conn)
     seen = ledger.already_extracted()
-    threads, doc_ids, gated_out, oversized = build_thread_inputs(
-        conn, seen, limit=MAX_FETCH_THREADS)
+    store = RawStore(Path(settings().raw_store_path))
+    prog.stage("E5", "Extract", "running",
+               detail="scanning unread threads for this model's surfaces "
+                      "(local reads, no network)")
+    naming = threads_naming_the_model(conn, store, surfaces)
+    threads, doc_ids, gated_out, oversized, (named, own) = build_thread_inputs(
+        conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming)
+    # SAID, NOT IMPLIED. A run that reads 50 threads of which 2 name the model
+    # whose page was clicked has done almost nothing for it, and "50 thread(s)
+    # to read" is the same sentence either way. Three tiers because they are
+    # three different claims: this model's evidence, this run's fresh harvest,
+    # and the backlog the cap had room for.
+    backlog = len(threads) - named - own
+    prog.stage("E5", "Extract", "running",
+               threads_naming_the_model=named, threads_from_own_harvest=own,
+               threads_from_backlog=backlog, unread_naming_the_model=len(naming),
+               detail=f"{len(threads)} thread(s) selected — {named} name this model "
+                      f"(of {len(naming)} unread that do), {own} from this run's own "
+                      f"harvest, {backlog} from the backlog")
+    if not naming:
+        # Rule 4: an empty scan is a finding, not a fallback to be silent about.
+        prog.stage("E5", "Extract", "running",
+                   detail="no unread thread anywhere in the corpus names this "
+                          "model's seated surfaces — everything below is backlog")
     if gated_out:
         # Said, not implied. A smaller corpus reaching the LLM because the gates
         # worked reads identically to a smaller corpus because the harvest was
@@ -1942,7 +2276,8 @@ def main(argv: list[str] | None = None) -> int:
             prog.stage("E4", "Triage", "error", detail=str(exc).splitlines()[0][:200])
 
         try:
-            extract_and_curate(db.live(prog), prog, release_date=release_date)
+            extract_and_curate(db.live(prog), prog, release_date=release_date,
+                               surfaces=variants)
         except Exception as exc:
             _safe_rollback(db.raw)
             prog.stage("E5", "Extract", "error", detail=str(exc).splitlines()[0][:200])
