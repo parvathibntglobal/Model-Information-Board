@@ -311,3 +311,63 @@ class TestTheArtifactGuard:
         # A guard that tolerates a large gap catches nothing. The smallest real
         # failure measured was +1,239; the largest benign drift was +2.
         assert fetch_model._MAX_PROSE_DRIFT <= 10
+
+
+class TestTheThreadCapIsVisible:
+    """`reading thread N/25` did not say whether 25 was the cap or the corpus.
+
+    Two different facts about the world rendered identically: "the cap stopped
+    us, there is more" and "that is everything there was". Parvathi raised
+    FETCH_MAX_THREADS and still saw /25, and nothing in the run log could tell
+    her whether the variable had failed to arrive or the corpus held 25 threads.
+    Rule 4 — a caused absence must say it was caused.
+    """
+
+    @staticmethod
+    def _source() -> str:
+        import inspect
+        return inspect.getsource(fetch_model)
+
+    def test_the_cap_and_whether_it_bound_are_both_on_the_stage_line(self):
+        source = self._source()
+        assert "thread_cap=MAX_FETCH_THREADS" in source, (
+            "the cap must be a field on the E5 stage record, not only a constant "
+            "in the file — the UI reads the record"
+        )
+        assert "cap_reached=cap_bound" in source, (
+            "reporting the cap without reporting whether it BOUND leaves the "
+            "original ambiguity intact"
+        )
+
+    def test_the_two_cases_read_differently(self):
+        """A shared prefix with a shared number is how they read alike before."""
+        source = self._source()
+        assert "THE CAP OF" in source and "did not bind" in source, (
+            "cap-reached and cap-not-reached must produce different prose; the "
+            "defect was that both produced the same sentence"
+        )
+
+    def test_the_cap_bound_test_is_inclusive(self):
+        """`>=`, not `==`.
+
+        Selection takes the first `limit` rows so equality is what happens, but
+        a future selection that over-fetches by one would make `==` quietly stop
+        reporting a cap that is very much binding. The failure mode of `>=` is a
+        true statement; the failure mode of `==` is silence.
+        """
+        assert "cap_bound = len(threads) >= MAX_FETCH_THREADS" in self._source()
+
+    def test_the_wait_figure_matches_its_own_mean(self):
+        """The comment corrected 65s -> 33s and left the minutes derived from 65s.
+
+        28 minutes is 25 x 67s, computed from the figure the same comment
+        disavows by name four lines further down. Pinned because a stale number
+        sitting beside its own retraction is the hardest kind to notice.
+        """
+        source = self._source()
+        assert "~28 minutes expected" not in source, (
+            "28 minutes derives from the disavowed 65s-per-thread figure"
+        )
+        assert "25 x 33s is ~14 minutes" in source, (
+            "the wait must be derived from the mean the file actually measured"
+        )
