@@ -24,7 +24,7 @@
 #   for. An entry with `registry: null` shows "no rate", and that is the honest
 #   state rather than a gap to be filled in by hand.
 #
-# ⚠ WHY TWO OF THESE HAVE NO REGISTRY ROW, AND WHY THAT IS NOT A TODO.
+# ⚠ EVERY ENTRY NOW HAS A REGISTRY ROW, AND THEY GOT THERE TWO DIFFERENT WAYS.
 #
 #   Three of the five were seated on 2026-09-15 from contract/unpolled_models.yaml
 #   so the page could link them - Recraft V4.1 Pro, ElevenLabs v3, Qwen3.5 Omni
@@ -56,6 +56,12 @@
 #     What is absent is the standalone image, video and speech VENDORS. The line
 #     is the billing unit, not the medium.
 #
+#   THE FOURTH AND FIFTH WERE NOT SEATED, BECAUSE THEY DID NOT NEED TO BE.
+#   Wan 3.0 was dropped at Parvathi's request. GPT-5.5 Codex turned out to name
+#   a model the registry already holds under a different spelling - see the note
+#   on its entry below, which is the only place in this file where a `registry:`
+#   value is an INTERPRETATION of the source list rather than a lookup of it.
+#
 # `kind` says which of those a row is, so the page can say why a rate is absent
 # instead of leaving a reader to assume the model is free.
 #
@@ -65,12 +71,18 @@
 # perfectly well (Gemini 3.1 Pro, Qwen3.6 27B) - so this list is editorial and
 # the file is the only record of it. That is the point of it being config.
 #
-# ⚠ FIVE OF THE FIFTEEN THAT STAYED ARE ALSO UNDISCUSSED: GPT-5.5 Codex,
-#   Recraft V4.1 Pro, Wan 3.0, ElevenLabs v3, Qwen3.5 Omni Flash. They read
-#   "nobody has discussed this" exactly like the ones that went, so if the
-#   intent was "remove everything with no evidence" they were missed rather
-#   than kept. Recorded rather than acted on, because guessing at an editorial
-#   intent is how a list quietly becomes something nobody chose.
+# ⚠ SOME OF THE FIFTEEN THAT STAYED ARE ALSO UNDISCUSSED: Recraft V4.1 Pro,
+#   ElevenLabs v3, Qwen3.5 Omni Flash. They read "nobody has discussed this"
+#   exactly like the ones that went, so if the intent was "remove everything
+#   with no evidence" they were missed rather than kept. Recorded rather than
+#   acted on, because guessing at an editorial intent is how a list quietly
+#   becomes something nobody chose.
+#
+#   This note used to name five, and two of those names have since been
+#   corrected rather than acted on. Wan 3.0 was dropped at Parvathi's request.
+#   GPT-5.5 Codex is NOT undiscussed - re-pointed at `openai/gpt-5.5` it is the
+#   single most-discussed model in the whole corpus, 228 attested mentions. It
+#   read as silent only because it was pointed at nothing.
 #
 # THREE FROM THE SOURCE LIST WERE NEVER HERE. `OPS-Agentic-Search` is described
 # by that list itself as "System Architecture" - an agent ensemble rather than a
@@ -117,12 +129,56 @@ models:
     registry: moonshotai/kimi-k3
     kind: text
 
-  # Named on the source list, absent from the router's catalogue. `registry:
-  # null` is a measurement, not a gap: the poll has run and these are not in it.
+  # ⚠ THE SOURCE LIST SAID "GPT-5.5 Codex". THIS ROW IS `openai/gpt-5.5`, AND
+  #   THE DIFFERENCE IS THE WHOLE NOTE.
+  #
+  #   It carried `registry: null` until 2026-09-15 and rendered as an
+  #   unclickable row, because nothing named `gpt-5.5-codex` exists to point at.
+  #   What was actually checked, against the shared registry:
+  #
+  #       the codex line, in full   gpt-5-codex, gpt-5.1-codex,
+  #                                 gpt-5.1-codex-max, gpt-5.1-codex-mini,
+  #                                 gpt-5.2-codex, gpt-5.3-codex
+  #       the 5.5 line, in full     openai/gpt-5.5, openai/gpt-5.5-pro
+  #       their intersection        EMPTY
+  #
+  #   So the poll carries both lines exhaustively and does not carry a 5.5-codex.
+  #   That is unlike Recraft, ElevenLabs and Qwen3.5 Omni Flash, whose absence
+  #   has a structural cause - OpenRouter lists no standalone image or speech
+  #   vendor. Here the poll demonstrably reaches both neighbourhoods. An absence
+  #   in the middle of a range the poll covers is evidence the name is wrong,
+  #   not evidence the poll is short.
+  #
+  #   AND THE CORPUS AGREES. Five claims quote the word "codex" and every one
+  #   uses it as the HARNESS, not a model suffix:
+  #
+  #       "GPT-5.6 Sol on Codex CLI: 16.2% resolution"
+  #       "GPT-6 Astra on Codex CLI: 33.8% resolution"
+  #       "gpt-5.3-codex model is not supported when using Codex with a ChatGPT account"
+  #
+  #   Zero claims name a 5.5 codex. Meanwhile `gpt 5.5` is the most-attested
+  #   surface in docs/proposals/alias-surfaces-tracked-set.yaml - 228 mentions,
+  #   with `gpt-5.5` at a further 204. Engineers talk about this model
+  #   constantly; they have never once called it codex.
+  #
+  #   So "GPT-5.5 Codex" reads as GPT-5.5 used THROUGH Codex, and the model is
+  #   `openai/gpt-5.5`.
+  #
+  #   ⚠ WHY POINT RATHER THAN SEED. Seating an invented `openai/gpt-5.5-codex`
+  #     through contract/unpolled_models.yaml would also have produced a page.
+  #     It would have been PERMANENT: `model_alias` is append-only under FR-4
+  #     and `tracked_load` states the reason - closing a window to undo a
+  #     mistaken load "would assert that a surface STOPPED MEANING a model on
+  #     the day we noticed our error". This line is config, and a reviewer who
+  #     disagrees reverts one word. Between a reversible reading and an
+  #     irreversible invention, the reading wins.
+  #
+  #   ⚠ THE PAGE WILL NOW SAY "OpenAI: GPT-5.5", NOT "GPT-5.5 Codex", because
+  #     every displayed figure is read from the registry row. That is the point
+  #     rather than a side effect: the board shows the model it actually has.
   - name: GPT-5.5 Codex
-    registry: null
+    registry: openai/gpt-5.5
     kind: text
-    absent_because: not carried by the OpenRouter poll
 
   # ── image ────────────────────────────────────────────────────────────────
   # THE ONE IMAGE MODEL THE POLL DOES CARRY, and it is why the note above is
