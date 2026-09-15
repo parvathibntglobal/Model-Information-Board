@@ -65,24 +65,62 @@
 # `kind` says which of those a row is, so the page can say why a rate is absent
 # instead of leaving a reader to assume the model is free.
 #
-# FIFTEEN, DOWN FROM THIRTY ON 2026-09-15. Parvathi named fifteen to drop after
-# seeing them on the page. They were not chosen by a rule - eleven were image,
-# video and speech models, but two were language models the registry prices
-# perfectly well (Gemini 3.1 Pro, Qwen3.6 27B) - so this list is editorial and
-# the file is the only record of it. That is the point of it being config.
+# THIRTEEN, DOWN FROM THIRTY ON 2026-09-15. Parvathi named fifteen to drop after
+# seeing them on the page, then two more the same day. They were not chosen by a
+# rule - eleven of the first fifteen were image, video and speech models, but two
+# were language models the registry prices perfectly well (Gemini 3.1 Pro,
+# Qwen3.6 27B) - so this list is editorial and the file is the only record of it.
+# That is the point of it being config.
 #
-# ⚠ SOME OF THE FIFTEEN THAT STAYED ARE ALSO UNDISCUSSED: Recraft V4.1 Pro,
-#   ElevenLabs v3, Qwen3.5 Omni Flash. They read "nobody has discussed this"
-#   exactly like the ones that went, so if the intent was "remove everything
-#   with no evidence" they were missed rather than kept. Recorded rather than
-#   acted on, because guessing at an editorial intent is how a list quietly
-#   becomes something nobody chose.
+# ⚠ THE LAST TWO OUT WERE Qwen3.5 Omni Flash AND Qwen3.8 Max, AND THEY WENT FOR
+#   DIFFERENT REASONS THAT LOOK THE SAME FROM THE PAGE.
 #
-#   This note used to name five, and two of those names have since been
-#   corrected rather than acted on. Wan 3.0 was dropped at Parvathi's request.
-#   GPT-5.5 Codex is NOT undiscussed - re-pointed at `openai/gpt-5.5` it is the
-#   single most-discussed model in the whole corpus, 228 attested mentions. It
-#   read as silent only because it was pointed at nothing.
+#   Both showed nothing: 0 claims, 0 board_entry rows, checked before removing
+#   rather than assumed, so neither removal took a visible figure off the page.
+#   Why they were empty is not the same.
+#
+#   Qwen3.8 Max HAS NEVER BEEN SEARCHED FOR. It carries zero `model_alias` rows,
+#   so `_variants_for` returns an empty list and a fetch against it searches no
+#   terms at all. It is attested in docs/proposals/alias-surfaces-tracked-set.yaml
+#   (`seated_by: launch-window`, 7 mentions) but absent from the reviewed
+#   manifest, so seating it was a review act nobody had taken. Its silence is
+#   OURS, not the corpus's.
+#
+#   Qwen3.5 Omni Flash WAS searched, and the search could not have worked. Its
+#   four alias variants are one surface punctuated four ways -
+#   `qwen3.5 omni flash`, `qwen3.5-omni-flash`, `qwen35omniflash`,
+#   `qwen3.5omniflash` - and the harvest searches the first three per platform.
+#   So all three slots went to spellings of a phrase nobody types; it never
+#   looked for `qwen omni` or `omni flash`. That is the exact failure
+#   `_order_variants` was written to prevent, and it could not: the ordering can
+#   only promote a distinct surface when one exists, and I seated this model from
+#   contract/unpolled_models.yaml with `query_variants` output alone. ElevenLabs
+#   v3 got one hand-added surface and that judgement is noted in that file; this
+#   model and Recraft V4.1 Pro got none.
+#
+#   ⚠ RECRAFT V4.1 PRO HAS THE SAME GAP AND IS STILL ON THIS LIST. It was not
+#     part of this removal and must not be dropped by association - written down
+#     because "the other two Qwen-shaped ones went" is how a third quietly
+#     follows without anybody deciding it.
+#
+#   WHAT REMOVAL DOES NOT UNDO. Both keep their `model_version` row, and
+#   Qwen3.5 Omni Flash keeps its two `model_alias` rows: `model_alias` is
+#   append-only under FR-4 and a window close would assert a surface STOPPED
+#   MEANING a model, which is false. So the registry still holds them and only
+#   the page stops listing them. That is the honest end state.
+#
+# ⚠ SOME OF THE THIRTEEN THAT STAYED ARE ALSO UNDISCUSSED: Recraft V4.1 Pro and
+#   ElevenLabs v3. They read "nobody has discussed this" exactly like the ones
+#   that went, so if the intent was "remove everything with no evidence" they
+#   were missed rather than kept. Recorded rather than acted on, because guessing
+#   at an editorial intent is how a list quietly becomes something nobody chose.
+#
+#   This note used to name five, and three of those names have since been
+#   resolved rather than left. Wan 3.0 and Qwen3.5 Omni Flash were dropped at
+#   Parvathi's request. GPT-5.5 Codex is NOT undiscussed - re-pointed at
+#   `openai/gpt-5.5` it is the single most-discussed model in the whole corpus,
+#   228 attested mentions. It read as silent only because it was pointed at
+#   nothing.
 #
 # THREE FROM THE SOURCE LIST WERE NEVER HERE. `OPS-Agentic-Search` is described
 # by that list itself as "System Architecture" - an agent ensemble rather than a
@@ -122,9 +160,9 @@ models:
   - name: GLM 5.3
     registry: z-ai/glm-5.3
     kind: text
-  - name: Qwen3.8 Max
-    registry: qwen/qwen3.8-max
-    kind: text
+  # Qwen3.8 Max was here until 2026-09-15. Dropped at Parvathi's request; see
+  # the note at the top of this file for what it and Qwen3.5 Omni Flash had in
+  # common, and what each leaves behind.
   - name: Kimi K3
     registry: moonshotai/kimi-k3
     kind: text
@@ -198,6 +236,5 @@ models:
   - name: ElevenLabs v3
     registry: elevenlabs/eleven-v3
     kind: speech
-  - name: Qwen3.5 Omni Flash
-    registry: qwen/qwen3.5-omni-flash
-    kind: speech
+  # Qwen3.5 Omni Flash was here until 2026-09-15, one day after it was seated.
+  # Dropped at Parvathi's request. See the note at the top of this file.
