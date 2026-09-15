@@ -106,8 +106,32 @@ use_basis_undertaking:
   asserted_on: 2026-09-15
   review_valid_days: 30
 
-  #: Each is a fact a person can check in ten minutes and no process can check
-  #: at all. All four must hold for the undertaking to stand.
+  #: THE CLOSED SET, AND WHAT EACH MUST BE.
+  #:
+  #: ⚠ THIS EXISTS BECAUSE `basis.py` CARRIED ITS OWN COPY AND IGNORED THE REST.
+  #:   `_undertaking_basis` looped a hardcoded four-tuple, so a key in
+  #:   `conditions` that it did not recognise was never read. Measured on main
+  #:   2026-09-15 (#314): an undertaking asserting
+  #:   `indexed_by_search_engines: true` and `shared_with_client: true`
+  #:   observed as `internal-development-only`. The block could say the board
+  #:   was indexed and shared with a client and still read as internal.
+  #:
+  #: So the contract lives HERE and the checker reads it. Adding a condition is
+  #: a two-line change to this file with a diff, rather than a code change
+  #: somebody has to remember to mirror.
+  #:
+  #: `conditions` below must match this EXACTLY - same keys, same values. An
+  #: unknown key VOIDS rather than being ignored, because somebody adding one is
+  #: telling us something and being overruled by silence is the worst available
+  #: response. A missing key voids too: not observed is not a pass (rule 6).
+  required_conditions:
+    auth_walled: true
+    external_users: false
+    publicly_linked: false
+    monetized: false
+
+  #: WHAT THE PERSON ASSERTS IS TRUE. Each is a fact a person can check in ten
+  #: minutes and no process can check at all.
   conditions:
     auth_walled: true        # every reachable surface requires a sign-in
     external_users: false    # nobody outside the team holds an account

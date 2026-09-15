@@ -43,6 +43,11 @@ def signed_undertaking(monkeypatch):
         "asserted_by": "tester",
         "asserted_on": date.today(),
         "review_valid_days": 30,
+        # BOTH HALVES. `required_conditions` is the closed set the checker
+        # reads (#314); `conditions` is what the person asserts. A fixture that
+        # supplied only the second would void every undertaking it built.
+        "required_conditions": {"auth_walled": True, "external_users": False,
+                                "publicly_linked": False, "monetized": False},
         "conditions": {"auth_walled": True, "external_users": False,
                        "publicly_linked": False, "monetized": False},
     }

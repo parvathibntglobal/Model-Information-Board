@@ -93,18 +93,52 @@ def _undertaking_basis() -> str:
     if expires < date.today():
         return f"undertaking-expired (asserted {asserted_on}, expired {expires})"
 
-    # SELF-CONSISTENCY. An undertaking whose conditions contradict what it
-    # asserts is not a weaker undertaking, it is a broken one - and letting the
-    # `asserts` line win would make the conditions decorative.
+    # SELF-CONSISTENCY, AS A CLOSED CONTRACT RATHER THAN A WHITELIST.
+    #
+    # ⚠ THIS WAS A HARDCODED FOUR-TUPLE AND IT SHIPPED GREEN (#314). The loop
+    #   asked "do the four conditions I know about hold" when the honest
+    #   question is "is there anything here that does not hold" - so a key it
+    #   did not recognise was never read. Measured 2026-09-15: an undertaking
+    #   asserting `indexed_by_search_engines: true` and
+    #   `shared_with_client: true` observed as `internal-development-only`.
+    #
+    #   Same shape as `finish_reason` vs `native_finish_reason` three days
+    #   earlier: a check that reads one named thing, is blind to everything
+    #   else, and passes because the named thing behaved.
+    #
+    # THREE WAYS TO FAIL, and the first is the one that was missing:
+    #
+    #   an UNKNOWN key      voids. Somebody adding a condition is telling us
+    #                       something; being overruled by silence is the worst
+    #                       available response.
+    #   a MISSING key       voids. Not observed is not a pass (rule 6) - the
+    #                       whole argument this undertaking rests on.
+    #   a WRONG value       voids, as before.
+    #
+    # `required_conditions` is read from the contract rather than carried here,
+    # so there is one source of truth for the set. Its own absence voids too:
+    # a checker that cannot find its contract has not passed anything.
+    required = block.get("required_conditions")
+    if not required:
+        return (
+            "undertaking-void (no required_conditions in "
+            "contract/sources.yaml:use_basis_undertaking, so nothing states "
+            "what the conditions must be)"
+        )
     conditions = block.get("conditions") or {}
-    broken = [
-        f"{k}: {conditions.get(k)!r}"
-        for k, required in (("auth_walled", True), ("external_users", False),
-                            ("publicly_linked", False), ("monetized", False))
-        if conditions.get(k) is not required
-    ]
-    if broken:
-        return f"undertaking-void ({'; '.join(broken)})"
+
+    faults: list[str] = []
+    for key in sorted(set(conditions) - set(required)):
+        faults.append(f"{key}: not a known condition")
+    for key in sorted(set(required) - set(conditions)):
+        faults.append(f"{key}: required and not asserted")
+    for key in sorted(set(required) & set(conditions)):
+        if conditions[key] is not required[key]:
+            faults.append(
+                f"{key}: {conditions[key]!r}, must be {required[key]!r}"
+            )
+    if faults:
+        return f"undertaking-void ({'; '.join(faults)})"
     return str(block.get("asserts") or "undertaking-asserts-nothing")
 
 
