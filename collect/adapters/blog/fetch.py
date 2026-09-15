@@ -62,6 +62,7 @@ from urllib.parse import urljoin
 
 import httpx
 
+from collect.adapters.basis import observe_use_basis
 from collect.adapters.blog.parse import FeedEntry, ParsedFeed, parse_feed
 from collect.adapters.blog.robots import RobotsGate, RobotsRuling
 from collect.adapters.blog.validators import (
@@ -648,6 +649,12 @@ def observe_source(source, robots: RobotsGate) -> dict[str, object]:
     observed["robots_status"] = decision.ruling.status
     observed["robots_http"] = decision.ruling.http_status
     observed["feed_path_allowed"] = decision.allowed
+    # ⚠ `use_basis` ADDED 2026-09-15. Both blog rulings NAMED
+    # `internal-development-only` and neither checked it, so on 2026-09-14 one
+    # container refused Reddit and would have fetched nine feeds under the
+    # identical sentence. `TermsRuling.basis` always said a named basis SHOULD
+    # be a live precondition; the loader now refuses one that is not.
+    observed.update(observe_use_basis())
     return observed
 
 

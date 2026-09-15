@@ -76,6 +76,7 @@ from typing import Any
 
 import httpx
 
+from collect.adapters.basis import observe_use_basis
 from collect.adapters.documents import DocumentDraft, SweepCounts, WriteReport
 from collect.config import settings
 from collect.ids import stable_id
@@ -510,7 +511,13 @@ def observe_devto_use() -> dict[str, object]:
     only in a docstring because it is the difference between a corpus and a
     calendar, and a live precondition is re-read every run.
     """
-    return {"access_path": "api", "search_endpoint": SEARCH_PATH}
+    # ⚠ `use_basis` ADDED 2026-09-15. This ruling NAMED
+    # `internal-development-only` and did not check it, so on 2026-09-14 one
+    # container refused Reddit and harvested here under the identical sentence.
+    # `TermsRuling.basis` always said a named basis SHOULD be a live
+    # precondition; the loader now refuses one that is not.
+    return {"access_path": "api", "search_endpoint": SEARCH_PATH,
+            **observe_use_basis()}
 
 
 def harvester_for_source(source, *, rulings=None, **kwargs) -> DevtoHarvester:

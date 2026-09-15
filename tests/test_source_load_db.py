@@ -20,6 +20,7 @@ from datetime import date
 import psycopg
 import pytest
 
+from collect.adapters.basis import INTERNAL_DEVELOPMENT_ONLY
 from collect.registry.assertions import TermsNotReviewedError, assert_terms_reviewed
 from collect.registry.sources import (
     SourceProvenanceConflictError,
@@ -255,7 +256,7 @@ def test_an_unruled_row_is_stored_with_nulls_and_reported(conn):
 # ── the four gates, against rows rather than fixtures ─────────────────────
 
 
-def test_gate_one_every_stored_feed_is_cleared_to_harvest(conn):
+def test_gate_one_every_stored_feed_is_cleared_to_harvest(signed_undertaking, conn):
     """The nine, read back out of Postgres, pass the terms check."""
     contract = load_sources()
     load_source_rows(conn)
@@ -267,6 +268,13 @@ def test_gate_one_every_stored_feed_is_cleared_to_harvest(conn):
             "endpoint_is_null": False,
             "robots_status": row["terms_evidence"]["robots_status"],
             "feed_path_allowed": True,
+            # ⚠ ADDED 2026-09-15. Both blog rulings now ENFORCE the basis they
+            # name; until then they named it and checked nothing, and this
+            # hand-built observation modelled that gap faithfully. The
+            # `signed_undertaking` fixture cannot supply it - this test builds
+            # its own observations rather than going through the adapter, which
+            # is exactly why the fixture alone did not fix it.
+            "use_basis": INTERNAL_DEVELOPMENT_ONLY,
         }
         for row in feeds
     }
@@ -329,7 +337,7 @@ def test_gate_three_the_stored_umbrella_row_refuses_as_a_fetch_target(conn, tmp_
 
 
 def test_gate_four_a_stored_medium_row_permits_the_feed_and_refuses_articles(
-    conn, tmp_path
+    signed_undertaking, conn, tmp_path,
 ):
     """The class B ruling, carried from Postgres into the fetcher's behaviour."""
     pytest.importorskip("feedparser", reason="the blog fetcher imports the parse path")

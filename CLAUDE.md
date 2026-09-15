@@ -228,6 +228,41 @@ These are the rules a helpful refactor will otherwise quietly violate.
 
 ## Conventions
 
+- **A CHECK IS SCOPED TO WHAT CI RUNS, NEVER TO WHAT LOOKS RELATED.** This has
+  now produced a wrong "it passes" claim twice in one day, on two different
+  checks, and the second happened after the first was understood.
+
+  ```
+  ruff    #294 and #295 both failed Lint while reporting green locally, because
+          `ruff check .` over the whole tree is noisy with untracked probe
+          scripts and the real answer was
+              ruff check $(git diff --name-only origin/main HEAD | grep '\.py$')
+
+  pytest  #310 reported "737 tests pass" from a HAND-PICKED list of files.
+          CI ran 3,473 and found 8 failures. Six were in `test_blog_fetch.py`,
+          which needs no database and was simply never run - it did not look
+          related to a change in `collect/adapters/basis.py`, and it exercises
+          that path through two indirections.
+  ```
+
+  **The two share a cause and it is not haste.** A scope chosen by judgement
+  answers "did the thing I was thinking about break", and CI answers "did
+  anything break". Those differ exactly where the change had a consequence
+  nobody predicted - which is the only case worth running a suite for.
+
+  So: **scope ruff to the diff, and scope pytest to everything.** The local
+  obstacle is that ~23 test files need Postgres and HANG rather than skip when
+  it is absent, so an unscoped run looks like a hang rather than a result.
+  Excluding them by name is the workaround and it is the thing that goes stale
+  - the list is discoverable with
+  `grep -rln "def conn\|TEST_DATABASE_URL\|psycopg.connect" tests/`, and a
+  file added to it after that grep is the next wrong claim.
+  **A local Postgres on :5433 removes the problem rather than working around
+  it**, and is the durable fix.
+
+  Say which scope a claim came from. "737 tests pass" and "CI is green" are
+  different statements and only one of them is about the branch.
+
 - Every derived row carries `pipeline_version`, so any scoring change is
   fully re-runnable and diffable.
 - Raw payloads are immutable and content-hash addressed. Reprocess from there

@@ -477,7 +477,7 @@ def test_the_source_entry_point_refuses_the_platform_row(tmp_path):
         _build_for(_platform("blogs"), tmp_path)
 
 
-def test_a_seeded_feed_builds_a_fetcher_that_may_read_articles(tmp_path):
+def test_a_seeded_feed_builds_a_fetcher_that_may_read_articles(signed_undertaking, tmp_path):
     """Class A permits the article path, so the fetcher is not feed-only."""
     from collect.registry.sources import load_sources
 
@@ -488,7 +488,9 @@ def test_a_seeded_feed_builds_a_fetcher_that_may_read_articles(tmp_path):
     assert fetcher._fetch_articles is True
 
 
-def test_a_medium_feed_builds_a_feed_only_fetcher_that_refuses_articles(tmp_path):
+def test_a_medium_feed_builds_a_feed_only_fetcher_that_refuses_articles(
+    signed_undertaking, tmp_path,
+):
     """The class B ruling is enforced here, not remembered by a driver author."""
     from collect.adapters.blog.fetch import FeedOnlyError
     from collect.registry.sources import load_sources
@@ -503,7 +505,7 @@ def test_a_medium_feed_builds_a_feed_only_fetcher_that_refuses_articles(tmp_path
         fetcher.harvest_feed(FEED_URL, fetch_articles=True)
 
 
-def test_a_feed_only_run_counts_the_feed_bodies_as_its_yield(tmp_path):
+def test_a_feed_only_run_counts_the_feed_bodies_as_its_yield(signed_undertaking, tmp_path):
     """FR-10 would otherwise alarm nightly on a perfectly healthy Medium feed.
 
     Found on the first live harvest: Netflix returned ten entries, the lead one
@@ -525,7 +527,7 @@ def test_a_feed_only_run_counts_the_feed_bodies_as_its_yield(tmp_path):
     assert run.harvest_run_fields()["items_kept"] == 2
 
 
-def test_a_feed_only_run_does_not_count_entries_with_no_body(tmp_path):
+def test_a_feed_only_run_does_not_count_entries_with_no_body(signed_undertaking, tmp_path):
     """The count is entries that yielded something, not entries that existed.
 
     Otherwise a Medium feed that started returning bare titles — the failure
@@ -549,7 +551,7 @@ def test_a_feed_only_run_does_not_count_entries_with_no_body(tmp_path):
     assert run.items_kept == 0
 
 
-def test_the_run_is_attributed_to_the_feeds_own_source_row(tmp_path):
+def test_the_run_is_attributed_to_the_feeds_own_source_row(signed_undertaking, tmp_path):
     """`harvest_run.source_id` is a foreign key, and FR-10 is per source.
 
     Attributing every feed's run to the `blogs` umbrella would merge nine
@@ -568,7 +570,7 @@ def test_the_run_is_attributed_to_the_feeds_own_source_row(tmp_path):
     assert fields["source_id"] != "blogs"
 
 
-def test_a_feed_only_fetcher_harvests_the_feed_and_no_articles(tmp_path):
+def test_a_feed_only_fetcher_harvests_the_feed_and_no_articles(signed_undertaking, tmp_path):
     """Refusing articles is not refusing the feed — the feed carries the text."""
     from collect.registry.sources import load_sources
 

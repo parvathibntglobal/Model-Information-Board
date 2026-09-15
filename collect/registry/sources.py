@@ -93,6 +93,14 @@ class SourcesContract:
     #: raises on None rather than sweeping zero subreddits.
     sweep_subreddits: dict[str, Any] | None = None
 
+    #: The person's assertion that this deployment is internal, read by
+    #: `collect/adapters/basis.py:observe_use_basis` INSTEAD of `ENVIRONMENT`.
+    #:
+    #: None where the block is absent, and absent is NOT permissive: every
+    #: ruling resting on a basis then refuses. See
+    #: docs/proposals/the-undertaking-replaces-environment.md.
+    use_basis_undertaking: dict[str, Any] | None = None
+
     def source_rows(self) -> list[dict[str, Any]]:
         """The `source` rows this contract seeds — platforms and feeds alike.
 
@@ -172,7 +180,7 @@ def _ruling_from(entry: Mapping[str, Any]) -> TermsRuling:
             "without a review date and an expiry is a placeholder with a name."
         )
 
-    return TermsRuling(
+    ruling = TermsRuling(
         id=ruling_id,
         reviewed_on=_as_date(entry["reviewed_on"], what=f"{ruling_id}.reviewed_on"),
         review_valid_days=int(entry["review_valid_days"]),
@@ -187,6 +195,29 @@ def _ruling_from(entry: Mapping[str, Any]) -> TermsRuling:
         live_preconditions=dict(entry.get("live_preconditions") or {}),
         recorded_evidence=dict(entry.get("recorded_evidence") or {}),
     )
+    # A NAMED BASIS MUST BE A FUSE, NOT A SENTENCE.
+    #
+    # `TermsRuling.basis` has always said a named basis "SHOULD also be a
+    # live_precondition, so the fuse is checked rather than remembered". It was
+    # a should and nothing enforced it, and the gap was measurable: on
+    # 2026-09-14 eight rulings named `internal-development-only` and THREE
+    # checked it, so one container refused Reddit and harvested 60 dev.to items
+    # under the identical sentence.
+    #
+    # Raised at LOAD time rather than checked in a test, because the next ruling
+    # somebody adds is the one that reopens the gap, and a test only fails after
+    # it is written.
+    if ruling.basis and ruling.basis not in (
+        ruling.live_preconditions.get("use_basis") or ()
+    ):
+        raise SourcesContractError(
+            f"ruling {ruling_id!r} names basis {ruling.basis!r} and does not "
+            f"enforce it. Add `use_basis: [{ruling.basis}]` to its "
+            f"live_preconditions, or drop the basis. A basis that is named and "
+            f"unchecked is a sentence in a summary, and the rulings that do "
+            f"check it then refuse while this one harvests."
+        )
+    return ruling
 
 
 def parse_sources(document: Mapping[str, Any]) -> SourcesContract:
@@ -206,6 +237,7 @@ def parse_sources(document: Mapping[str, Any]) -> SourcesContract:
         # `or None`, not `or {}`: see the field comment. An empty mapping would
         # let a caller iterate zero subreddits and call that a sweep.
         sweep_subreddits=dict(document.get("sweep_subreddits") or {}) or None,
+        use_basis_undertaking=dict(document.get("use_basis_undertaking") or {}) or None,
     )
 
 
