@@ -441,6 +441,14 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
               The sweep takes 26 seconds and can fail per-page; this arrives with
               the row. `rows` still supplies WHICH capability once it lands. */}
           <EvidenceBadge e={m.evidence} rows={rows} />
+          {/* BESIDE THE BADGE, NEVER INSTEAD OF IT. A cell has been through the
+              gate; a board entry has not. Collapsing them breaks rule 4 in
+              whichever direction you collapse - see BoardBadge.
+
+              ON BOTH BRANCHES OF THE ROW, because #299 split it into a linked
+              row and an unlinked one for models with no registry entry. A badge
+              on one branch only is the same defect in half the rows. */}
+          <BoardBadge b={m.board} />
           <IconArrow width={13} height={13} style={{ opacity: .5 }} />
         </span>
       </div>
@@ -491,6 +499,14 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
               The sweep takes 26 seconds and can fail per-page; this arrives with
               the row. `rows` still supplies WHICH capability once it lands. */}
           <EvidenceBadge e={m.evidence} rows={rows} />
+          {/* BESIDE THE BADGE, NEVER INSTEAD OF IT. A cell has been through the
+              gate; a board entry has not. Collapsing them breaks rule 4 in
+              whichever direction you collapse - see BoardBadge.
+
+              ON BOTH BRANCHES OF THE ROW, because #299 split it into a linked
+              row and an unlinked one for models with no registry entry. A badge
+              on one branch only is the same defect in half the rows. */}
+          <BoardBadge b={m.board} />
           <IconArrow width={13} height={13} style={{ opacity: .5 }} />
         </span>
       </Link>
@@ -508,6 +524,42 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
  * reports" hides that somebody looked. Both are wrong in a way the reader
  * cannot see, which is what rule 4 is about.
  */
+/**
+ * What the BOARD holds for this model. A second surface on the same evidence,
+ * never a second opinion on the gate.
+ *
+ * ⚠ IT SITS BESIDE `EvidenceBadge` AND MUST NOT MERGE WITH IT. The two count
+ *   different things and collapsing them misreads in whichever direction you
+ *   collapse. Measured on DeepSeek V4 Pro, 2026-09-15:
+ *
+ *     entries only   23 reports  → reads as 23 findings, when ZERO cleared
+ *                                  the publication bar
+ *     cells only      6 cells    → reads as a near-empty model, while 22
+ *                                  entries about it sit unread
+ *
+ *   The second is what this page did until now, which is why a fetch that
+ *   produced 50 board entries changed nothing a reader could see.
+ *
+ * NO STATE WORD HERE, deliberately. `EvidenceBadge` says `few reports` because
+ * a cell has a gate verdict behind it. An entry has been through nothing, so
+ * this says only how many and where - a count, never a judgement (rule 3).
+ */
+function BoardBadge({ b }) {
+  if (!b || !b.entries) return null
+  const where = Object.entries(b.sections || {})
+    .map(([section, n]) => `${n} ${section.replace('_', '-')}`)
+    .join(', ')
+  return (
+    <Badge
+      tone="mute"
+      title={`Ungated. ${b.entries} report${b.entries === 1 ? '' : 's'} on the board for this model${where ? ` (${where})` : ''}. Board entries are what somebody said; they have not been counted against the publication bar the way a capability has.`}
+    >
+      {b.entries} on the board{where ? ` · ${where}` : ''}
+    </Badge>
+  )
+}
+
+
 function EvidenceBadge({ e, rows }) {
   const state = e?.state || 'unreported'
 

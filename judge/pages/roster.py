@@ -60,7 +60,40 @@ SQL = """
            -- instruction.adherence; "1 cell" does not tell you that.
            (SELECT array_agg(DISTINCT c.capability_key ORDER BY c.capability_key)
               FROM cell c
-             WHERE c.model_version_id = mv.id)                      AS capability_keys
+             WHERE c.model_version_id = mv.id)                      AS capability_keys,
+           -- ── BOARD ENTRIES, WHICH ARE NOT CELLS AND MUST NOT READ AS THEM ──
+           --
+           -- A cell is COUNTED AND GATED: `insufficient` means we counted and
+           -- it was not enough. A board_entry is UNGATED: it means somebody
+           -- said this, with no claim about corroboration. `/board` already
+           -- renders them that way; this only carries the same fact onto the
+           -- roster.
+           --
+           -- WHY BOTH, rather than replacing the capability chips. They answer
+           -- different questions and collapsing them breaks rule 4 in whichever
+           -- direction you collapse. Measured on DeepSeek V4 Pro, 2026-09-15:
+           --
+           --   entries only  23 reports  -> reads as 23 findings, when ZERO
+           --                                cleared the publication bar
+           --   cells only     6 cells    -> reads as a near-empty model, while
+           --                                22 entries about it sit unread
+           --
+           -- The second is what the page did until now, which is why a run that
+           -- produced 50 board entries changed nothing a reader could see.
+           --
+           -- COUNTS AND SECTIONS, not the entries themselves. The roster is one
+           -- query for the whole registry; carrying every entry's quote would
+           -- put the board's full text in a list view. `/board` is where an
+           -- entry is read.
+           (SELECT count(*) FROM board_entry b
+             WHERE b.model_version_id = mv.id)                      AS board_entries,
+           -- COUNTS PER SECTION, not just which sections. "23 reports" does
+           -- not tell a reader where they are, and "12 capability, 8 metric,
+           -- 3 best-for" is the sentence the row actually needs.
+           (SELECT jsonb_object_agg(s, n)
+              FROM (SELECT b.section AS s, count(*) AS n FROM board_entry b
+                     WHERE b.model_version_id = mv.id
+                     GROUP BY b.section) q)                         AS board_sections
       FROM model_version mv
      ORDER BY mv.display_name
 """
@@ -114,6 +147,29 @@ def _evidence(*, cells: int, published: int, capability_keys) -> dict:
     return {"state": "unreported", "cells": 0, "published": 0, "capabilities": []}
 
 
+def _board(*, entries: int, sections: dict | None) -> dict:
+    """What the board holds for this model. NOT evidence in the cell sense.
+
+    `_evidence` above carries a `state` because a cell has been through the
+    gate and the state is the gate's answer. THIS CARRIES NO STATE, and the
+    absence is the point: an entry has not been through anything. Giving it one
+    would invite a reader to compare `insufficient` against some board word as
+    if they were the same scale.
+
+    `entries = 0` is returned as 0 with an empty section map rather than as an
+    absent key, so a page can tell "no entries" from "the roster did not say".
+
+    The map is section -> count, because "23 reports" does not tell a reader
+    where they are. Ordered biggest first, which is the order the row reads
+    them in.
+    """
+    by_section = dict(sections or {})
+    return {
+        "entries": entries,
+        "sections": dict(sorted(by_section.items(), key=lambda kv: (-kv[1], kv[0]))),
+    }
+
+
 @dataclass(frozen=True)
 class Roster:
     models: list[dict]
@@ -144,6 +200,7 @@ class RosterReader:
                 "supports_caching": r[12],
                 "lifecycle": r[13],
                 "evidence": _evidence(cells=r[14], published=r[15], capability_keys=r[16]),
+                "board": _board(entries=r[17], sections=r[18]),
             }
             for r in rows
         ]
