@@ -104,33 +104,55 @@ export const listCapabilities = () => request('/capabilities')
 // 342-model registry and every evidence cell — this narrows only what the UI
 // reads, and writes nothing. Delete this block (and the three overrides below)
 // to restore the live registry straight from the API.
-const TRACKED = [
-  {
-    model_version_id: 'openai/gpt-6-astra', canonical_id: 'openai/gpt-6-astra',
-    display_name: 'GPT 6 Astra', provider: 'OpenAI',
-    price_in: null, price_out: null, advertised_context: null,
-    state: 'unreported', phrases: [], conditional: false, voices: 0,
-    // No `cells`/`published` here: the board renders discovered board_entry rows
-    // (GET /board), and there is no cell or publication surface in the UI.
-    evidence: { reports: 0, sections: [] },
-  },
-  {
-    model_version_id: 'anthropic/claude-fable-5-1', canonical_id: 'anthropic/claude-fable-5-1',
-    display_name: 'Claude Fable 5.1', provider: 'Anthropic',
-    price_in: null, price_out: null, advertised_context: null,
-    state: 'unreported', phrases: [], conditional: false, voices: 0,
-    // No `cells`/`published` here: the board renders discovered board_entry rows
-    // (GET /board), and there is no cell or publication surface in the UI.
-    evidence: { reports: 0, sections: [] },
-  },
-]
-const TRACKED_PAGE = { has_more: false, returned: TRACKED.length, limit: 500, offset: 0 }
+//
+// IT NOW NARROWS THE LIVE ROSTER INSTEAD OF REPLACING IT, AND THAT WAS A REAL
+// DEFECT RATHER THAN A STYLE CHOICE. `listModels` used to resolve a hardcoded
+// two-element array, so the page read "2 models in the registry, 0 with any
+// evidence" off two literals and NOTHING WRITTEN TO THE DATABASE COULD EVER
+// CHANGE IT. A fetch that harvested, extracted and stored 13 board entries for
+// minimax/minimax-m3 left the page identical - and the page was not wrong
+// about what it had been handed; it had been handed a constant.
+//
+// The literals also had to state each model's price, context and evidence
+// count - figures with no source, which go stale the moment anything is
+// fetched (rule 3: a displayed number is counted or measured). Filtering the
+// live roster keeps the narrowing and removes the invention.
+//: The models the UI lists. Matched against BOTH `model_version_id` and
+//: `canonical_id`, because they are not the same thing for every row: the two
+//: originals are rows whose id IS their canonical id, while every polled model
+//: carries an `mv_...` hash and its canonical id separately. Matching one field
+//: only would silently drop whichever kind was not anticipated.
+const TRACKED_IDS = new Set([
+  'openai/gpt-6-astra',
+  'anthropic/claude-fable-5-1',
+  // minimax/minimax-m3 - seated 2026-09-14, 13 board entries and 13 claims.
+  // Its `mv_` id is what /fetch/start needs (`model_version.id`), so both forms
+  // are listed rather than assuming the page will only ever use one.
+  'mv_b3508133423993d7',
+  'minimax/minimax-m3',
+  // deepseek/deepseek-v4-pro - seated 2026-09-14. Longer in the corpus than
+  // the other three, so its evidence predates today's runs.
+  'mv_4247e801b57d22e3',
+  'deepseek/deepseek-v4-pro',
+])
+
+const tracked = (m) =>
+  TRACKED_IDS.has(m.model_version_id) || TRACKED_IDS.has(m.canonical_id)
 
 export const capabilityPage = (key) =>
   Promise.resolve({
     key,
     failure_mode: 'silent',
-    summary: 'No tracked model has reports for this capability yet.',
+    // NOT A MEASUREMENT, AND IT USED TO READ AS ONE. Capability pages are keyed
+    // on `cell`, which E7 writes once per BATCH after extraction. An empty list
+    // here makes the roster's "with any evidence" stat structurally 0 for every
+    // model whatever the database holds, so that stat is a property of this
+    // function rather than of the board (rule 4). minimax/minimax-m3 has 13
+    // board entries and ZERO cells today; the fix is E7 completing, not a read
+    // that reports the absence more confidently.
+    summary:
+      'Capability pages read E7 cells, which this UI does not query yet - this ' +
+      'is not a measurement that no model has reports.',
     models: [],
     count: 0,
     page: { has_more: false, returned: 0, limit: 500, offset: 0 },
@@ -145,25 +167,7 @@ export const capabilityPage = (key) =>
  * an `mv_…` hash with no slash in it, but the helper handles both.
  */
 export const modelPath = (id) => String(id).split('/').map(encodeURIComponent).join('/')
-export const modelPage = (id) => {
-  const raw = decodeURIComponent(String(id))
-  const m = TRACKED.find((x) => x.model_version_id === raw || x.canonical_id === raw)
-  return Promise.resolve({
-    model_version_id: m ? m.model_version_id : raw,
-    display_name: m ? m.display_name : raw,
-    provider: m ? m.provider : null,
-    price_in: m ? m.price_in : null,
-    price_out: m ? m.price_out : null,
-    advertised_context: m ? m.advertised_context : null,
-    tracked: Boolean(m),
-    summary: m
-      ? `${m.display_name} is tracked. No engineer reports are in the registry yet, so every capability below stays undiscussed rather than judged.`
-      : 'This model is not in the tracked set.',
-    unbound_phrases: [],
-    capabilities: [],
-    quotes: {},
-  })
-}
+export const modelPage = (id) => request(`/models/${modelPath(id)}`)
 
 /**
  * The registry with what each provider advertises — price, context window,
@@ -175,14 +179,22 @@ export const modelPage = (id) => {
  * here, and a page that puts price beside consensus without marking the
  * difference is the one mistake this board exists to avoid.
  */
-export const listModels = () =>
-  Promise.resolve({
-    count: TRACKED.length,
-    priced_at: null,
-    summary: 'Two models are being tracked. Neither has engineer reports in the registry yet — capabilities stay undiscussed until someone reports one.',
-    page: TRACKED_PAGE,
-    models: TRACKED,
-  })
+export const listModels = async (limit = 500, offset = 0) => {
+  const data = await request(`/models?limit=${limit}&offset=${offset}`)
+  const models = (data.models || []).filter(tracked)
+  return {
+    ...data,
+    models,
+    // `count` is what the page prints as "models in the registry", so it is the
+    // size of what is SHOWN. Printing the registry's 344 beside three rows
+    // would be a figure answering a question nobody asked (rule 7).
+    count: models.length,
+    summary:
+      `${models.length} model(s) shown; the registry holds ${data.count}. ` +
+      `Price and context are advertised by the provider, not measured by us, ` +
+      `and are not evidence of anything.`,
+  }
+}
 
 /**
  * Every page of a list endpoint, followed to the end.
