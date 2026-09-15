@@ -96,25 +96,42 @@ export default function ModelDetail() {
       {err && <Notice icon={<IconAlert />}>{err}</Notice>}
       {!page && !err && !unreadable && <div className="skel" style={{ height: 120 }} />}
 
-      {/* NOT TRACKED stays in the open, outside the disclosure below.
-          `tracked: false` is a fact about the MODEL — nobody has ever swept it —
-          rather than a fact about capabilities, and it is the one silence on
-          this page a reader can act on. Rule 4 is about not letting "we did not
-          look" read like "nothing was found"; collapsing an actionable absence
-          would be the same mistake with an extra click in front of it. */}
-      {page?.tracked === false && (
-        <div className="notice" style={{ borderColor: 'var(--warn)', background: 'var(--warn-dim, rgba(224,175,104,.1))' }}>
-          <IconAlert style={{ flex: 'none', marginTop: 2, color: 'var(--warn)' }} />
-          <div>
-            <strong style={{ color: 'var(--text)' }}>Not tracked yet.</strong>{' '}
-            This model has never been swept for evidence — nobody has looked at it.
-            An empty evidence panel above means <em>we have not asked</em>, not that
-            engineers reported no problems. That is different from a tracked model
-            with no evidence, and you can change it by asking for this model to be
-            tracked.
-          </div>
-        </div>
-      )}
+      {/* THE "NOT TRACKED YET" BANNER WAS HERE, AND IT WAS SAYING SOMETHING FALSE.
+
+          It rendered on `page.tracked === false`, which is
+          `model_version.last_swept_at IS NULL` (judge/pages/model.py:175). The
+          reasoning was sound — "we never asked" and "nobody answered" are
+          opposite claims and rule 4 says render them differently. The INPUT was
+          not: `last_swept_at` has exactly two writers, `collect/ops/sweep.py`
+          and `collect/registry/openrouter.py:648`, and the Fetch button on this
+          very page is neither. `/fetch/start` runs the pipeline end to end and
+          never calls `mark_swept`.
+
+          So a model could be fetched, harvested, extracted and vetted, and this
+          banner would still tell the reader nobody had looked at it — directly
+          above a ModelEvidence panel listing what was found. Measured on the
+          shared database on 2026-09-15, of the 15 in contract/tracked_models.yaml:
+
+              13 of 15  carried the banner
+               9 of 13  had board evidence anyway
+                        Claude Fable 5.1 34, MiniMax M3 29, DeepSeek V4 Pro 23,
+                        GLM 5.3 10, GPT 6 Astra 9, Nano Banana 2 5, GPT-5.6 Sol 4,
+                        Kimi K3 3, Grok 4.6 1
+
+          Removed rather than re-predicated. Stamping `last_swept_at` from the
+          Fetch path would make the banner true, but that is a change to what the
+          column MEANS — `assert_no_sweep_without_harvest`
+          (collect/registry/assertions.py:69) exists precisely to refuse a
+          `last_swept_at` no sweep accounts for — and it belongs in the collect
+          lane with its own review, not smuggled in behind a UI fix.
+
+          WHAT IS LOST, STATED. A model genuinely never looked at now renders an
+          empty evidence panel with no caveat. That is a real rule-4 cost. It is
+          the smaller one: the banner was not silent about those models, it was
+          WRONG about nine others, and a caveat that fires on the wrong rows
+          teaches a reader to skip it on the right ones. `tracked` and `swept_at`
+          are still on the payload (judge/app.py:1331) for whoever fixes the
+          predicate. */}
 
       {/* THE CAPABILITY CARDS ARE GONE FROM THIS PAGE.
           They showed the ratified twelve - a closed vocabulary feeding the
