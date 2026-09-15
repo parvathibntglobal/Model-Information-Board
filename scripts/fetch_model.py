@@ -2037,8 +2037,27 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     verified = sum(len(r.extraction.verified) for r in results)
     stored = sum(len(r.stored_claim_ids) for r in results)
     cells = sum(len(r.cells) for r in results)
-    prog.stage("E5", "Extract", "ok",
-               detail=f"{verified} claim(s) verified, {stored} stored")
+    # THREADS WE CUT OFF, NAMED ON THE LINE THAT REPORTS THE HARVEST.
+    #
+    # `max_tokens` bounds a degenerate call, and the price of a bound is that
+    # some reads end early. A truncated thread is an absence THIS PIPELINE
+    # created, so reporting "N claims verified" without it is rule 4 at the
+    # stage line: the run would look like a complete reading of the batch.
+    #
+    # Counted off `extraction.truncated` rather than off `zero_kind`, because a
+    # truncated thread can still have produced claims - and those are the ones
+    # that most look like a finished read.
+    truncated = [r.extraction.thread_context_id for r in results
+                 if r.extraction.truncated]
+    detail = f"{verified} claim(s) verified, {stored} stored"
+    if truncated:
+        detail += (
+            f"; {len(truncated)} of {len(results)} thread(s) STOPPED AT THE "
+            f"TOKEN CEILING and were not read to the end — their claims are "
+            f"partial or absent, not a finding about the thread"
+        )
+    prog.stage("E5", "Extract", "ok", truncated=len(truncated),
+               truncated_threads=truncated[:10], detail=detail)
 
     # CAPABILITY DISCOVERY. Proposals the extractor made for keys none of the 12
     # named — appended to capability_candidate for an admin to rule on. The LLM

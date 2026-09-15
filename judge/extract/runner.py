@@ -69,8 +69,15 @@ class ExtractionRefused(Exception):
 #:              plumbing, not about the corpus - and it read identically to the
 #:              first one until 2026-08-21, which is how `qwen-38-27b` was
 #:              recorded as a clean nothing while holding fourteen claims.
+#:   TRUNCATED the model was cut off at `max_tokens` mid-answer. Not a fact
+#:              about the corpus and not about our schema - it is an absence WE
+#:              caused, and it is the one of the three that must never be read
+#:              as either of the others. Measured 2026-09-14: a call that ran to
+#:              the provider's 2**16 ceiling returned `{}`, which downstream is
+#:              byte-identical to a document that said nothing.
 ZERO_SILENT = "silent"
 ZERO_UNSALVAGED = "unsalvaged"
+ZERO_TRUNCATED = "truncated"
 
 
 @dataclass
@@ -168,6 +175,18 @@ class ExtractionRun:
     schema_retries: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
+    #: True when any call for this thread stopped at `max_tokens`.
+    #:
+    #: SEPARATE FROM `zero_kind` ON PURPOSE. A truncated answer can still carry
+    #: claims - the ones generated before the ceiling - so a thread can be both
+    #: truncated and non-empty, and `zero_kind` is set only when nothing was
+    #: verified. Counting truncation off `zero_kind` would miss exactly the
+    #: partial reads, which are the ones that make the board look complete while
+    #: it is not.
+    #:
+    #: Consumer named, per rule 9: `scripts/fetch_model.py`'s E5 stage line
+    #: counts it and says so.
+    truncated: bool = False
 
     @property
     def proposed(self) -> int:
@@ -270,6 +289,10 @@ def extract(
     # spend by one call per retry, in the flattering direction.
     run.input_tokens = sum(c.input_tokens for c in completions)
     run.output_tokens = sum(c.output_tokens for c in completions)
+    # ANY call, not the last one. `completions` already exists because a retry's
+    # tokens were being under-counted; truncation has the same shape - a first
+    # answer cut at the ceiling is still a cut answer even if a retry completed.
+    run.truncated = any(c.stopped_at_ceiling for c in completions)
 
     if result is None:
         # SALVAGE. The envelope did not validate, which until 2026-08-21 ended the
@@ -291,6 +314,21 @@ def extract(
             )
         run.unsalvaged = lost
         if envelope_error is not None:
+            # TRUNCATION IS CHECKED FIRST, because it EXPLAINS the envelope
+            # error rather than being a second one. Cut-off JSON does not parse,
+            # so a truncated answer arrives here indistinguishable from a model
+            # that emitted garbage - and `ZERO_UNSALVAGED` would file it as a
+            # fact about our schema when it is a fact about our ceiling.
+            if run.truncated:
+                run.zero_kind = ZERO_TRUNCATED
+                run.no_claim_reason = (
+                    f"the extractor was cut off at the {run.output_tokens}-token "
+                    f"ceiling before it finished answering, so its answer could "
+                    f"not be read ({envelope_error}). THIS IS NOT A DOCUMENT THAT "
+                    f"SAID NOTHING - it is a read we stopped. Nothing can be said "
+                    f"about what the thread contains until it is read again."
+                )
+                return run
             run.zero_kind = ZERO_UNSALVAGED
             run.no_claim_reason = (
                 f"the extractor's answer could not be read at all: {envelope_error}. "
@@ -298,6 +336,14 @@ def extract(
             )
             return run
         if not built:
+            if run.truncated:
+                run.zero_kind = ZERO_TRUNCATED
+                run.no_claim_reason = (
+                    f"the extractor was cut off at the {run.output_tokens}-token "
+                    f"ceiling; all {len(lost)} claim(s) that had arrived failed "
+                    f"the schema. Not a document that said nothing."
+                )
+                return run
             run.zero_kind = ZERO_UNSALVAGED
             run.no_claim_reason = (
                 f"all {len(lost)} proposed claim(s) failed the schema; none could "
@@ -391,7 +437,14 @@ def extract(
     # distinction survives into whatever reads the run, rather than being
     # reconstructable only from a log line.
     if not run.verified and run.zero_kind is None:
-        run.zero_kind = ZERO_UNSALVAGED if run.unsalvaged else ZERO_SILENT
+        # TRUNCATED OUTRANKS BOTH. A cut-off answer that happened to parse and
+        # verified nothing is still a read we stopped, and `ZERO_SILENT` here
+        # would be the exact reading rule 4 forbids: an absence we caused,
+        # rendered as the corpus having nothing to say.
+        if run.truncated:
+            run.zero_kind = ZERO_TRUNCATED
+        else:
+            run.zero_kind = ZERO_UNSALVAGED if run.unsalvaged else ZERO_SILENT
 
     return run
 
@@ -607,6 +660,24 @@ def _call_with_one_retry(
         try:
             return _parse(completion), completions, retries
         except (ValidationError, json.JSONDecodeError) as exc:
+            # A LENGTH STOP IS NOT A SCHEMA VIOLATION AND MUST NOT BE RETRIED.
+            # It looks like one - truncated JSON does not parse - and the
+            # correction message would ask a model to fix an answer it was never
+            # allowed to finish. The second call generates to the same ceiling
+            # and truncates in the same place, for a second bill: before
+            # `max_tokens` existed that was 65,536 tokens twice, ~$0.024 and
+            # ~22 minutes, to arrive at the same nothing.
+            #
+            # Returned rather than raised, so `extract()` can still salvage
+            # whatever arrived before the cut and label the result truncated.
+            if completion.stopped_at_ceiling:
+                log.warning(
+                    "extraction stopped at the token ceiling after %d completion "
+                    "token(s); NOT retrying - a retry truncates identically. "
+                    "Parse error was: %s",
+                    completion.output_tokens, exc,
+                )
+                return None, completions, retries
             if attempt == MAX_SCHEMA_RETRIES:
                 log.error("extraction failed the schema after %d attempts: %s", attempt + 1, exc)
                 return None, completions, retries

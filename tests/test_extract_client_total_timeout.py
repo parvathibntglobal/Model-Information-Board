@@ -24,17 +24,33 @@ import pytest
 from judge.extract.client import ExtractorUnavailable, OpenRouterClient
 
 SCHEMA: dict[str, object] = {"type": "object", "properties": {}}
-GOOD_BODY = {
-    "model": "deepseek/deepseek-v4-flash",
-    "usage": {"prompt_tokens": 10, "completion_tokens": 2},
-    "choices": [
-        {"message": {"tool_calls": [{"function": {"arguments": '{"claims": []}'}}]}}
-    ],
-}
+
+
+def _sse(**event) -> str:
+    return "data: " + json.dumps(event)
+
+
+#: A complete streamed answer, as OpenRouter sends one: tool-call argument
+#: deltas, a finish_reason, then a usage-only frame (which arrives because the
+#: request sets `stream_options.include_usage`) and `[DONE]`.
+GOOD_EVENTS = [
+    _sse(model="deepseek/deepseek-v4-flash",
+         choices=[{"delta": {"tool_calls": [{"function": {"arguments": '{"claims"'}}]}}]),
+    _sse(choices=[{"delta": {"tool_calls": [{"function": {"arguments": ': []}'}}]},
+                   "finish_reason": "tool_calls"}]),
+    _sse(choices=[], usage={"prompt_tokens": 10, "completion_tokens": 2}),
+    "data: [DONE]",
+]
+
+#: What arrives while the upstream is generating and nothing has been decided:
+#: an SSE comment. The pre-stream version of this client saw the non-streamed
+#: equivalent - eleven bytes of whitespace every three seconds - and counted it
+#: as "bytes received", which is how 1,111 bytes came to look like an answer.
+KEEPALIVE = ": OPENROUTER PROCESSING"
 
 
 class _Trickle:
-    """A response that keeps sending, one byte at a time, for ever."""
+    """A response that keeps sending, one line at a time, for ever."""
 
     status_code = 200
 
@@ -42,12 +58,15 @@ class _Trickle:
         self._chunks = chunks
         self._clock = clock
 
-    def iter_bytes(self):
+    def iter_lines(self):
         for chunk in self._chunks:
-            # Every chunk costs 30 seconds of wall clock and none of idle time,
+            # Every line costs 30 seconds of wall clock and none of idle time,
             # which is exactly the shape that defeats a read timeout.
             self._clock.advance(30)
             yield chunk
+
+    def read(self):
+        return b""
 
     def raise_for_status(self):
         return None
@@ -90,7 +109,7 @@ class TestATricklingResponseIsEnded:
         # falls mid-stream with room to spare. NOT four: four lands exactly on
         # the cap, and a test that turns on whether `>` should be `>=` is
         # testing float equality rather than the behaviour.
-        _patch_stream(monkeypatch, _Trickle([b"{", b'"a"', b":1", b"}", b" "], clock))
+        _patch_stream(monkeypatch, _Trickle([KEEPALIVE] * 5, clock))
 
         with pytest.raises(ExtractorUnavailable) as caught:
             client.complete(system="s", user="u", tool_schema=SCHEMA)
@@ -102,7 +121,7 @@ class TestATricklingResponseIsEnded:
     def test_the_message_does_not_guess_why(self, monkeypatch, clock):
         """Slow, wedged, or streaming something enormous — it cannot tell."""
         client = OpenRouterClient(api_key="k", total_timeout_seconds=60)
-        _patch_stream(monkeypatch, _Trickle([b"x"] * 10, clock))
+        _patch_stream(monkeypatch, _Trickle([KEEPALIVE] * 10, clock))
 
         with pytest.raises(ExtractorUnavailable) as caught:
             client.complete(system="s", user="u", tool_schema=SCHEMA)
@@ -120,7 +139,7 @@ class TestATricklingResponseIsEnded:
         client = OpenRouterClient(
             api_key="k", timeout_seconds=60, total_timeout_seconds=90
         )
-        _patch_stream(monkeypatch, _Trickle([b"."] * 20, clock))
+        _patch_stream(monkeypatch, _Trickle([KEEPALIVE] * 20, clock))
 
         with pytest.raises(ExtractorUnavailable):
             client.complete(system="s", user="u", tool_schema=SCHEMA)
@@ -129,9 +148,8 @@ class TestATricklingResponseIsEnded:
 class TestANormalCallIsUntouched:
     def test_a_response_inside_the_cap_parses(self, monkeypatch, clock):
         client = OpenRouterClient(api_key="k", total_timeout_seconds=300)
-        body = json.dumps(GOOD_BODY).encode()
-        # Two chunks, 60s total, well inside the cap.
-        _patch_stream(monkeypatch, _Trickle([body[:20], body[20:]], clock))
+        # Four frames, 120s total, well inside the cap.
+        _patch_stream(monkeypatch, _Trickle(list(GOOD_EVENTS), clock))
 
         completion = client.complete(system="s", user="u", tool_schema=SCHEMA)
 
@@ -172,7 +190,7 @@ class TestAStopReachesInsideTheCall:
         client = OpenRouterClient(
             api_key="k", total_timeout_seconds=10_000, on_progress=_stop
         )
-        _patch_stream(monkeypatch, _Trickle([b"x"] * 5, clock))
+        _patch_stream(monkeypatch, _Trickle([KEEPALIVE] * 5, clock))
 
         # The cap is far away, so nothing but the hook can end this call.
         with pytest.raises(Stopped):
@@ -186,28 +204,27 @@ class TestAStopReachesInsideTheCall:
             total_timeout_seconds=10_000,
             on_progress=lambda: calls.append(1),
         )
-        # 100 chunks, each advancing the clock 30s — so every chunk is more than
+        # 100 lines, each advancing the clock 30s — so every chunk is more than
         # a second apart and each one legitimately gets a check.
-        _patch_stream(monkeypatch, _Trickle([b"x"] * 100, clock))
+        _patch_stream(monkeypatch, _Trickle([KEEPALIVE] * 100, clock))
         with contextlib.suppress(Exception):
             client.complete(system="s", user="u", tool_schema=SCHEMA)
         many = len(calls)
 
         calls.clear()
-        # Same 100 chunks with no time passing: one check, not a hundred.
+        # Same 100 lines with no time passing: one check, not a hundred.
         still = _Clock()
-        _patch_stream(monkeypatch, _Trickle([b"x"] * 100, _Clock()))
+        _patch_stream(monkeypatch, _Trickle([KEEPALIVE] * 100, _Clock()))
         monkeypatch.setattr(__import__("time"), "monotonic", still)
         with contextlib.suppress(Exception):
             client.complete(system="s", user="u", tool_schema=SCHEMA)
 
-        assert many == 100, "a chunk 30s after the last one must be checked"
+        assert many == 100, "a line 30s after the last one must be checked"
         assert len(calls) == 1, f"no time passed, so one check — got {len(calls)}"
 
     def test_no_hook_means_no_behaviour_change(self, monkeypatch, clock):
         client = OpenRouterClient(api_key="k", total_timeout_seconds=300)
-        body = json.dumps(GOOD_BODY).encode()
-        _patch_stream(monkeypatch, _Trickle([body[:20], body[20:]], clock))
+        _patch_stream(monkeypatch, _Trickle(list(GOOD_EVENTS), clock))
 
         assert client.complete(
             system="s", user="u", tool_schema=SCHEMA
