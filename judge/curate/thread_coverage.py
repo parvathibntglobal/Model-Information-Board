@@ -218,11 +218,18 @@ def _not_a_random_sample(threads) -> str:
     # page, which is the defect this function exists for.
     said = []
     if True in kinds:
-        said.append("on some, comments were ranked and the unread ones are the quieter ones")
+        said.append(
+            "on some, comments were ranked and the unread ones are the quieter ones"
+        )
     if False in kinds:
-        said.append("on others, no comments were fetched at all, so the discussion itself is missing")
+        said.append(
+            "on others, no comments were fetched at all, so the discussion itself "
+            "is missing"
+        )
     if None in kinds:
-        said.append("and on the rest it is not recorded which of those applies")
+        said.append(
+            "and on the rest it is not recorded which of those applies"
+        )
     return f"{_NOT_EVERYONE}: " + "; ".join(said) + "."
 
 
