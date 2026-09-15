@@ -107,7 +107,15 @@ def test_the_two_publish_time_conflicts_are_recorded_where_they_bite():
 TEST_HOST = "reddit-test.invalid"
 
 
-def test_the_harvester_factory_passes_with_the_ruling_in_place(reddit_row):
+def test_the_harvester_factory_passes_with_the_ruling_in_place(reddit_row, monkeypatch):
+    """NEEDS A SIGNED UNDERTAKING NOW, and that is the change working.
+
+    This passed unconditionally while the basis came from `ENVIRONMENT`, because
+    a development checkout observes as internal. It now needs somebody to have
+    asserted that the deployment is internal - which is the whole point, and it
+    means the factory refuses by DEFAULT rather than by configuration.
+    """
+    _undertaking(monkeypatch)
     harvester = harvester_for_source(
         reddit_row, client=None, store=None, host=TEST_HOST
     )
@@ -164,50 +172,134 @@ def test_the_gate_is_not_in_the_constructor(reddit_row):
 # ── the observation, and the limits it admits to ─────────────────────────
 
 
-def test_the_observation_reports_the_basis_outside_production(monkeypatch):
-    """PATCHED ON `collect.adapters.basis`, WHICH IS WHERE THE READ MOVED.
+def _real_contract():
+    """The parsed contract, read ONCE and before any patching.
 
-    `observe_reddit_use` delegated to `collect/adapters/basis.py` on 2026-09-08,
-    when `arxiv-api-terms` and `x-via-rapidapi-scraper` were ratified on the
-    same basis and three adapters needed the same observation. Patching
-    `collect.adapters.reddit.settings` no longer reaches the read - and the
-    failure was one-sided, which is the part worth recording: the staging case
-    still PASSED, because an unpatched read in a development checkout returns
-    the same answer. Only the production case failed. A test that patches the
-    wrong module and still passes is the shape this repository keeps finding.
+    Captured at first use rather than inside `_undertaking`: a test that calls
+    the helper twice finds `load_sources` already replaced by the first call's
+    lambda, which has no `cache_clear`.
     """
-    monkeypatch.setattr("collect.adapters.basis.settings", lambda: _settings("staging"))
+    global _REAL
+    if _REAL is None:
+        from collect.registry.sources import load_sources as _load
+        _load.cache_clear()
+        _REAL = _load()
+    return _REAL
+
+
+_REAL = None
+
+
+def _undertaking(monkeypatch, **overrides):
+    """Point `observe_use_basis` at an undertaking built for this test.
+
+    PATCHED ON `collect.registry.sources.load_sources`, WHICH IS WHERE THE READ
+    MOVED on 2026-09-15. It used to read `collect.adapters.basis.settings` and
+    infer the basis from `ENVIRONMENT` - a DEPLOYMENT MODE standing in for a
+    fact about who can reach the site. The undertaking is the fact itself,
+    asserted by a person.
+    """
+    import dataclasses
+
+    import collect.registry.sources as sources_module
+
+    block = {
+        "asserts": INTERNAL_DEVELOPMENT_ONLY,
+        "asserted_by": "tester",
+        "asserted_on": date.today(),
+        "review_valid_days": 30,
+        "conditions": {"auth_walled": True, "external_users": False,
+                       "publicly_linked": False, "monetized": False},
+    }
+    block.update(overrides)
+    if overrides.get("conditions"):
+        block["conditions"] = {**{"auth_walled": True, "external_users": False,
+                                  "publicly_linked": False, "monetized": False},
+                               **overrides["conditions"]}
+    # REPLACE ONLY THE UNDERTAKING. `assert_terms_reviewed` reads `.rulings`
+    # off the same object, so a bare namespace makes the gate raise
+    # AttributeError instead of exercising the basis.
+    real = _real_contract()
+    monkeypatch.setattr(
+        sources_module, "load_sources",
+        lambda: dataclasses.replace(real, use_basis_undertaking=block),
+    )
+    return block
+
+
+def test_a_signed_undertaking_reports_the_basis(monkeypatch):
+    _undertaking(monkeypatch)
     assert observe_reddit_use()["use_basis"] == INTERNAL_DEVELOPMENT_ONLY
 
 
-def test_the_observation_reports_production_as_not_internal(monkeypatch):
+def test_an_unsigned_undertaking_is_not_a_basis(monkeypatch):
+    """The state the proposal SHIPS in, and it must not read as asserted.
+
+    A block somebody wrote and nobody signed is a proposal. Treating it as an
+    assertion would make writing the file the same act as standing behind it.
+    """
+    _undertaking(monkeypatch, asserted_by=None)
+    basis = observe_reddit_use()["use_basis"]
+    assert basis != INTERNAL_DEVELOPMENT_ONLY
+    assert "unsigned" in basis
+
+
+def test_an_absent_undertaking_refuses_rather_than_permits(monkeypatch):
+    """Rule 6, and the DEFAULT FLIPS relative to what `ENVIRONMENT` did.
+
+    `ENVIRONMENT` unset observed as internal, so a misconfigured container
+    harvested under a basis nobody had asserted. Absent now refuses.
+    """
+    import dataclasses
+
+    import collect.registry.sources as sources_module
+
+    real = _real_contract()
     monkeypatch.setattr(
-        "collect.adapters.basis.settings", lambda: _settings("production")
+        sources_module, "load_sources",
+        lambda: dataclasses.replace(real, use_basis_undertaking=None),
     )
     basis = observe_reddit_use()["use_basis"]
     assert basis != INTERNAL_DEVELOPMENT_ONLY
-    # NAMED, not merely different. The gate's refusal quotes the observed value,
-    # so it has to say which deployment it refused.
-    assert "production" in basis
+    assert "no-undertaking" in basis
 
 
-def test_all_three_platforms_on_this_basis_observe_it_identically(monkeypatch):
+def test_an_expired_undertaking_is_not_a_basis(monkeypatch):
+    """An undertaking with no expiry is a thing nobody revisits."""
+    _undertaking(monkeypatch, asserted_on=date.today() - timedelta(days=400))
+    basis = observe_reddit_use()["use_basis"]
+    assert basis != INTERNAL_DEVELOPMENT_ONLY
+    assert "expired" in basis
+    # NAMED, not merely different. The gate quotes the observed value, so the
+    # refusal has to say WHICH check failed.
+    assert str(date.today() - timedelta(days=400)) in basis
+
+
+def test_conditions_beat_the_asserts_line(monkeypatch):
+    """A self-contradicting undertaking is broken, not weaker.
+
+    Letting `asserts:` win over `conditions:` would make the conditions
+    decorative - and they are the only part a person can actually check.
+    """
+    _undertaking(monkeypatch, conditions={"external_users": True})
+    basis = observe_reddit_use()["use_basis"]
+    assert basis != INTERNAL_DEVELOPMENT_ONLY
+    assert "void" in basis
+    assert "external_users" in basis
+
+
+def test_all_platforms_on_this_basis_observe_it_identically(monkeypatch):
     """The property `collect/adapters/basis.py` exists for.
 
-    Three rulings rest on `internal-development-only` - Reddit's, arXiv's and
-    X's - and three copies of one check drift. A basis read as internal by two
-    adapters and not by the third would refuse one platform and pass two on the
-    SAME deployment, which reads as a platform problem rather than as a config
-    one. So this asserts they agree, in both directions, rather than asserting
-    each separately.
+    EIGHT rulings name this basis now, not three. Until 2026-09-15 only three
+    listed `use_basis` as a live precondition, so one container refused Reddit
+    and harvested 60 dev.to items under the identical sentence.
     """
     from collect.adapters.arxiv import observe_arxiv_use
     from collect.adapters.x import observe_x_use
 
-    for environment, expected_internal in (("staging", True), ("production", False)):
-        monkeypatch.setattr(
-            "collect.adapters.basis.settings", lambda e=environment: _settings(e)
-        )
+    for kwargs, expect_internal in (({}, True), ({"asserted_by": None}, False)):
+        _undertaking(monkeypatch, **kwargs)
         observed = {
             "reddit": observe_reddit_use()["use_basis"],
             "arxiv": observe_arxiv_use()["use_basis"],
@@ -215,7 +307,28 @@ def test_all_three_platforms_on_this_basis_observe_it_identically(monkeypatch):
         }
         assert len(set(observed.values())) == 1, observed
         internal = next(iter(observed.values())) == INTERNAL_DEVELOPMENT_ONLY
-        assert internal is expected_internal, observed
+        assert internal is expect_internal, observed
+
+
+def test_every_ruling_that_names_a_basis_enforces_it():
+    """The should that became a must, measured before it did.
+
+    2026-09-14: eight rulings named `internal-development-only` and three
+    listed it as a live precondition. `_ruling_from` now raises at LOAD time
+    rather than leaving it to a reviewer, because the next ruling somebody adds
+    is the one that reopens the gap.
+    """
+    from collect.registry.sources import load_sources
+
+    load_sources.cache_clear()
+    unenforced = [
+        r.id for r in load_sources().rulings.values()
+        if r.basis and r.basis not in (r.live_preconditions.get("use_basis") or ())
+    ]
+    assert not unenforced, (
+        f"rulings naming a basis without enforcing it: {unenforced}. The loader "
+        "should have refused these."
+    )
 
 
 def _settings(environment: str):

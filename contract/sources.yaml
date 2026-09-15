@@ -66,6 +66,61 @@ review_marker: "REVIEW REQUIRED"
 
 
 # ============================================================================
+#  THE USE-BASIS UNDERTAKING          ⚠ PROPOSED 2026-09-15 - NOT YET ASSERTED
+#
+#  Eight rulings below rest on `basis: internal-development-only`. That basis
+#  is a fact about WHO CAN REACH THIS DEPLOYMENT, and until now the only thing
+#  answering it was `ENVIRONMENT`, which is a DEPLOYMENT MODE. Two different
+#  facts, one answering for the other.
+#
+#  `collect/adapters/basis.py` named the gap in its own docstring before it
+#  cost anything: "Publication is a property of who is looking at a page. No
+#  environment variable knows that." So a PERSON asserts it here, with a name
+#  and a date, and `observe_use_basis()` reads the assertion.
+#
+#  ⚠ `asserted_by` IS BLANK ON PURPOSE. This block is a proposal, and an
+#    undertaking nobody has signed must not be readable as one somebody has.
+#    While `asserted_by` is empty the observer returns a refusal value and all
+#    eight rulings refuse - which is the correct default and the opposite of
+#    what `ENVIRONMENT` unset does today.
+#
+#  ABSENT IS NOT PERMISSIVE (rule 6). No undertaking, an expired one, or one
+#  that contradicts itself all mean NO BASIS, which means every ruling that
+#  rests on one refuses.
+#
+#  WHY THE EXPIRY IS SHORTER THAN A RULING'S. `review_valid_days: 90` on a
+#  ruling is about a TERMS DOCUMENT, which changes in months. This is about a
+#  fact that is one careless link away from false, so it expires in 30 days.
+#  It is also a visible count of how long a terms reading has been deferred:
+#  an undertaking renewed four times has been standing in for a reading for
+#  four months.
+# ============================================================================
+
+use_basis_undertaking:
+  asserts: internal-development-only
+  asserted_by: null          # ⚠ nobody has asserted this yet
+  asserted_on: null
+  review_valid_days: 30
+
+  #: Each is a fact a person can check in ten minutes and no process can check
+  #: at all. All four must hold for the undertaking to stand.
+  conditions:
+    auth_walled: true        # every reachable surface requires a sign-in
+    external_users: false    # nobody outside the team holds an account
+    publicly_linked: false   # the URL is not published, linked or indexed
+    monetized: false
+
+  #: ANY ONE OF THESE VOIDS IT IMMEDIATELY, before the date. Listed rather than
+  #: left to judgement, because "is it still internal?" is a question somebody
+  #: answers optimistically at speed.
+  voided_by:
+    - an account issued to anybody outside the team
+    - the URL published, linked or indexed anywhere
+    - the auth wall removed or bypassed on any surface
+    - any payment taken for access to the board
+
+
+# ============================================================================
 #  TERMS RULINGS
 #
 #  `live_preconditions` are re-verified on every run, before the first
@@ -154,6 +209,11 @@ terms_rulings:
     live_preconditions:
       robots_status: [rules, no-rules]
       feed_path_allowed: [true]
+      # ⚠ ADDED 2026-09-15 WITH THE UNDERTAKING. This ruling NAMED the basis
+      # and did not check it, so the same deployment refused Reddit and
+      # harvested from here under the identical sentence. See
+      # docs/proposals/the-undertaking-replaces-environment.md.
+      use_basis: [internal-development-only]
     recorded_evidence:
       article_path_allowed: [true]
       paywall_observed: [false]
@@ -286,6 +346,11 @@ terms_rulings:
     live_preconditions:
       robots_status: [rules]
       feed_path_allowed: [true]
+      # ⚠ ADDED 2026-09-15 WITH THE UNDERTAKING. This ruling NAMED the basis
+      # and did not check it, so the same deployment refused Reddit and
+      # harvested from here under the identical sentence. See
+      # docs/proposals/the-undertaking-replaces-environment.md.
+      use_basis: [internal-development-only]
     recorded_evidence:
       feed_carries_full_text: [true]
       article_fetch_refused: [true]
@@ -779,6 +844,11 @@ terms_rulings:
     evidence_valid_days: 90
     fetch_articles: true
     live_preconditions:
+      # ⚠ ADDED 2026-09-15 WITH THE UNDERTAKING. This ruling NAMED the basis
+      # and did not check it, so the same deployment refused Reddit and
+      # harvested from here under the identical sentence. See
+      # docs/proposals/the-undertaking-replaces-environment.md.
+      use_basis: [internal-development-only]
       access_path: [api]
       search_endpoint: ["/articles/search"]
     recorded_evidence:
@@ -828,6 +898,11 @@ terms_rulings:
     evidence_valid_days: 90
     fetch_articles: true
     live_preconditions:
+      # ⚠ ADDED 2026-09-15 WITH THE UNDERTAKING. This ruling NAMED the basis
+      # and did not check it, so the same deployment refused Reddit and
+      # harvested from here under the identical sentence. See
+      # docs/proposals/the-undertaking-replaces-environment.md.
+      use_basis: [internal-development-only]
       access_path: [api]
     recorded_evidence:
       republication_claimed: [false]
@@ -884,6 +959,11 @@ terms_rulings:
     evidence_valid_days: 90
     fetch_articles: true
     live_preconditions:
+      # ⚠ ADDED 2026-09-15 WITH THE UNDERTAKING. This ruling NAMED the basis
+      # and did not check it, so the same deployment refused Reddit and
+      # harvested from here under the identical sentence. See
+      # docs/proposals/the-undertaking-replaces-environment.md.
+      use_basis: [internal-development-only]
       access_path: [api]
     recorded_evidence:
       republication_claimed: [false]

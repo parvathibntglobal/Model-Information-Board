@@ -17,6 +17,7 @@ from datetime import date, timedelta
 import pytest
 import yaml
 
+from collect.adapters.basis import INTERNAL_DEVELOPMENT_ONLY
 from collect.config import CONTRACT_DIR
 from collect.registry.assertions import TermsNotReviewedError, assert_terms_reviewed
 from collect.registry.sources import (
@@ -50,7 +51,26 @@ def _observations(source, *, allowed=True):
         "robots_status": evidence.get("robots_status"),
         "feed_path_allowed": allowed,
         "access_path": evidence.get("access_path"),
+        # ⚠ ADDED 2026-09-15. Both blog rulings now ENFORCE the basis they
+        # name, so a healthy run observes it - previously they named it and
+        # checked nothing, and this helper modelled that gap faithfully.
+        "use_basis": INTERNAL_DEVELOPMENT_ONLY,
+        # THE PLATFORM-SPECIFIC ONES, spelled as the real adapters spell them.
+        # Supplied for every source rather than only the one that needs each:
+        # `_check_facts` ignores an observation no ruling asks for, and a helper
+        # that has to know which platform it is describing drifts from the
+        # adapters it is modelling.
+        **_PLATFORM_OBSERVATIONS,
     }
+
+
+#: What the real observers return, for the preconditions that are not shared.
+#: `collect/adapters/x.py:observe_x_use` and `devto.py:observe_devto_use`.
+_PLATFORM_OBSERVATIONS = {
+    "scraper_provider": "twitter241",
+    "credential_present": True,
+    "search_endpoint": "/articles/search",
+}
 
 
 # ── the file itself ───────────────────────────────────────────────────────
@@ -347,19 +367,57 @@ def test_every_seeded_feed_passes_when_the_run_observes_what_was_recorded():
     )
 
 
-def test_github_and_blogs_pass_and_reddit_does_not():
+def test_every_platform_naming_the_basis_stands_or_falls_together():
+    """⚠ THIS TEST USED TO ASSERT THE BUG.
+
+    It was `test_github_and_blogs_pass_and_reddit_does_not`, and it passed
+    because only THREE of the eight rulings naming `internal-development-only`
+    listed it as a live precondition. So the same run refused Reddit and cleared
+    blogs under the identical sentence, and this test called that correct.
+
+    Measured 2026-09-14 on the hosted backend: Reddit, arXiv and X refused;
+    dev.to harvested 60 items. Nothing about dev.to's ruling permitted more than
+    Reddit's - it simply did not check.
+
+    Now all eight enforce it, so the property is consistency: with the
+    undertaking observed they all pass; without it they all refuse. GitHub is
+    the control - `github-api-terms` names NO basis, because it rests on an
+    actual terms reading rather than on who can reach us, so it is unaffected
+    either way.
+    """
     contract = load_sources()
-    observations = {s["id"]: _observations(s) for s in contract.platforms}
+
+    observed = {s["id"]: _observations(s) for s in contract.platforms}
+    assert_terms_reviewed(
+        contract.platforms, rulings=contract.rulings,
+        observations=observed, today=REVIEWED_ON,
+    )
+
+    # Drop the basis observation and every ruling that NAMES one must refuse.
+    without = {
+        sid: {k: v for k, v in obs.items() if k != "use_basis"}
+        for sid, obs in observed.items()
+    }
     with pytest.raises(TermsNotReviewedError) as excinfo:
         assert_terms_reviewed(
-            contract.platforms,
-            rulings=contract.rulings,
-            observations=observations,
-            today=REVIEWED_ON,
+            contract.platforms, rulings=contract.rulings,
+            observations=without, today=REVIEWED_ON,
         )
     message = str(excinfo.value)
-    assert "reddit" in message
-    assert "github" not in message and "blogs" not in message
+    on_the_basis = {
+        s["id"] for s in contract.platforms
+        if (r := contract.rulings.get(s.get("terms_ruling"))) and r.basis
+    }
+    assert on_the_basis, "no platform rests on a basis - the fixture moved"
+    for source_id in on_the_basis:
+        assert source_id in message, (
+            f"{source_id} rests on a basis and did not refuse when the basis "
+            f"was not observed. That is the eight-declare-three-enforce gap."
+        )
+    assert "github" not in message, (
+        "github-api-terms names no basis - it rests on a terms reading, and "
+        "must be unaffected by the undertaking"
+    )
 
 
 def test_a_ruling_that_expired_stops_the_run():

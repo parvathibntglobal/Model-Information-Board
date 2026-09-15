@@ -105,6 +105,7 @@ from typing import Any
 
 import httpx
 
+from collect.adapters.basis import observe_use_basis
 from collect.adapters.documents import (
     NO_TEXT_REASON,
     DocumentDraft,
@@ -740,7 +741,12 @@ def huggingface_document_id(external_id: str) -> str:
 
 def observe_huggingface_use() -> dict[str, object]:
     """This run's live observations for the terms gate."""
-    return {"access_path": "api"}
+    # ⚠ `use_basis` ADDED 2026-09-15. This ruling NAMED
+    # `internal-development-only` and did not check it, so on 2026-09-14 one
+    # container refused Reddit and harvested here under the identical sentence.
+    # `TermsRuling.basis` always said a named basis SHOULD be a live
+    # precondition; the loader now refuses one that is not.
+    return {"access_path": "api", **observe_use_basis()}
 
 
 def harvester_for_source(source, *, rulings=None, **kwargs) -> HuggingFaceHarvester:
