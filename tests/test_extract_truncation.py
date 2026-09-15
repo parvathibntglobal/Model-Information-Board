@@ -25,14 +25,11 @@ import contextlib
 import json
 from pathlib import Path
 
-import pytest
-
-from judge.extract.client import Completion, ExtractionClient, OpenRouterClient
+from judge.extract.client import Completion, OpenRouterClient
 from judge.extract.runner import (
     ZERO_SILENT,
     ZERO_TRUNCATED,
     ZERO_UNSALVAGED,
-    ExtractionRun,
     ThreadInput,
     extract,
 )
@@ -357,7 +354,8 @@ class TestATruncatedReadIsLabelledAsOne:
         case: `zero_kind` is only set when nothing verified, so a truncated
         thread carrying a good claim would otherwise report as a clean read.
         """
-        from tests.test_extract_runner import claim_json, thread as good_thread
+        from tests.test_extract_runner import claim_json
+        from tests.test_extract_runner import thread as good_thread
 
         client = _ScriptedClient([
             Completion(

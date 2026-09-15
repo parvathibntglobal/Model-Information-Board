@@ -81,7 +81,8 @@ def load(conn, store, tc_id: str) -> ThreadInput:
 
 
 def main() -> int:
-    caps = yaml.safe_load(open("contract/capabilities.yaml", encoding="utf-8"))
+    with open("contract/capabilities.yaml", encoding="utf-8") as handle:
+        caps = yaml.safe_load(handle)
     keys = [c["key"] for c in caps["capabilities"]]
     client = OpenRouterClient.from_env()
     recorder = _Recording(client)
