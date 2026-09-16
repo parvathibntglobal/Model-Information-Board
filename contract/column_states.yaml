@@ -1158,6 +1158,17 @@ columns:
       reviewed: true
       state: read
       why: selected; the numerator on the RapidAPI tab
+    quota_reset_seconds:
+      reviewed: true
+      state: write_only
+      why: 'DECLARED UNCONSUMED, with its intended reader named (rule 9). Written by the upsert in
+        collect/usage.py; x-ratelimit-requests-reset as read, seconds remaining until this meter''s
+        window resets. The intended reader is the usage panel, which cannot read it yet because the
+        panel has no window display - it states "monthly" and no measurement supports that. Both
+        adapters have parsed this header since the first probe and the writer dropped it, so the
+        window LENGTH is unmeasured: one reading gives time remaining, and only two boundaries give
+        a period. The 2026-09-11 09:45 UTC boundary is already dated from two readings, so the first
+        populated value here closes the question.'
     read_at:
       reviewed: true
       state: read
