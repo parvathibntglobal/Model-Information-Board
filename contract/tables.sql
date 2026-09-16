@@ -1557,7 +1557,19 @@ CREATE TABLE IF NOT EXISTS rapidapi_quota (
 
   read_by         text NOT NULL,
   source_run_id   text,
+
+  -- WHO OBSERVED IT. Provenance, and NOT whose quota it is - the board is
+  -- hosted, so a run starts from any browser and the machine that read the
+  -- header is rarely the one that "owns" anything. See `key_fingerprint`.
   machine         text NOT NULL,
+
+  -- WHOSE COUNTER. sha256(api key)[:12], never the key - see
+  -- collect/usage.py:key_fingerprint. `meter` says WHICH counter; this says
+  -- whose, which is what a shared subscription merged by recency could not
+  -- otherwise assert. NULL means not recorded (pre-2026-09-16 rows, or a
+  -- reading taken with no credential) and never "a different account".
+  key_fingerprint text,
+
   recorded_at     timestamptz NOT NULL DEFAULT now(),
 
   -- A reading with neither figure is not a reading. Refused here as well as in

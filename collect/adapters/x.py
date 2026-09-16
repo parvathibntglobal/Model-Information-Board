@@ -657,6 +657,11 @@ class XHarvester:
             remaining=run.quota_remaining,
             limit=run.quota_limit,
             read_on=SOURCE_ID,
+            # `key_for()` RATHER THAN THE SETTING, because this arm has two
+            # candidates and falls back X_RAPIDAPI_KEY -> RAPIDAPI_KEY. The
+            # fingerprint must be of the key the request was actually made
+            # with, or it identifies a subscription this reading is not of.
+            api_key=key_for()[0],
         )
 
         if response.status_code == 429:

@@ -29,6 +29,7 @@ state, and nothing here imports `judge/`.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import socket
@@ -50,7 +51,14 @@ MACHINE_ENV = "MODELBOARD_MACHINE"
 
 
 def machine() -> str:
-    """Which host took the reading. NOT which person — there is one account."""
+    """Which host took the reading. NOT which person — there is one account.
+
+    ⚠ AND NOT WHOSE QUOTA IT IS EITHER, WHICH IS WHAT THIS USED TO IMPLY.
+      The counter belongs to a RapidAPI SUBSCRIPTION. The machine is provenance -
+      who happened to observe it - and the panel above this once led with it, so
+      a quota drawn down by anybody signed in to the hosted board rendered as
+      though a laptop owned it. See `key_fingerprint`.
+    """
     named = os.getenv(MACHINE_ENV)
     if named and named.strip():
         return named.strip()
@@ -58,6 +66,44 @@ def machine() -> str:
         return socket.gethostname() or "unknown-host"
     except OSError:
         return "unknown-host"
+
+
+def key_fingerprint(key: str | None) -> str | None:
+    """WHICH SUBSCRIPTION a reading is of, without storing the key.
+
+    `sha256(key)[:12]`. One-way, so this is safe in a shared table, in a log and
+    on a page - and it is the only thing here that identifies the counter, which
+    is what `meter` alone could not do.
+
+    WHY IT IS NEEDED AT ALL, GIVEN `meter` IS THE PRIMARY KEY. `meter` says
+    WHICH counter (reddit or x); it does not say whose. Every reading merged
+    into one row is assumed to be of one subscription, and until now nothing
+    could check that assumption:
+
+        - the project is hosted, so a run can start from any browser;
+        - `x.py:key_for` falls back `X_RAPIDAPI_KEY` then `RAPIDAPI_KEY`, so two
+          hosts with different env can read DIFFERENT accounts on the same arm;
+        - the readings merge by recency, so the fresher of two unrelated
+          counters simply wins and the number moves for no visible reason.
+
+    Measured 2026-09-16 and it is currently fine - reddit 1,000,000 and x
+    100,000 on every host, decreasing monotonically, so one subscription each.
+    That is a fact about today's `.env` files, not a property of the system, and
+    it was unverifiable before this.
+
+    ⚠ NEVER THE KEY. `x.py:key_for` already established the shape for this -
+      it returns the VARIABLE NAME rather than the value, because "a key affords
+      no such check ... it is 50 opaque characters". A fingerprint is the same
+      move with an identity attached: it cannot be reversed and it can be
+      compared.
+
+    None when no key is set, which is not the same as a key that hashes to
+    nothing: the caller has no credential at all, and a reading taken without
+    one is not a reading of any subscription.
+    """
+    if not key or not str(key).strip():
+        return None
+    return hashlib.sha256(str(key).strip().encode("utf-8")).hexdigest()[:12]
 
 
 def _now() -> str:
@@ -71,6 +117,7 @@ def record_rapidapi_quota(
     read_on: str,
     read_by: str = "harvest",
     run_id: str | None = None,
+    api_key: str | None = None,
     path: Path | None = None,
 ) -> bool:
     """Persist one quota HEADER reading. Returns whether anything was written.
@@ -121,6 +168,11 @@ def record_rapidapi_quota(
             taken by a probe is as real as one taken by a fetch, and saying
             which prevents "the fetch must have run" being inferred from it.
         run_id: the run that spent it, where there is one.
+        api_key: the credential the request was made with. Hashed on the way in
+            by `key_fingerprint` and NEVER stored - it identifies WHICH
+            subscription the counter belongs to, which `read_on` cannot. None
+            where the caller has no key, which is a real state and not a
+            default.
         path: override, for tests.
     """
     if remaining is None and limit is None:
@@ -134,6 +186,8 @@ def record_rapidapi_quota(
         "read_on": read_on,
         "read_by": read_by,
         "source_run_id": run_id,
+        # WHOSE COUNTER, not whose machine. See `key_fingerprint`.
+        "key_fingerprint": key_fingerprint(api_key),
     }
     # ONE RECORD PER METER, KEYED BY ARM. Until 2026-09-10 this file held ONE
     # record and every arm overwrote it, so a Reddit reading and an X reading
@@ -175,6 +229,7 @@ def record_rapidapi_quota(
     _record_to_database(
         meter=read_on, remaining=remaining, limit=limit,
         read_at=record["at"], read_by=read_by, run_id=run_id,
+        key_fp=record["key_fingerprint"],
     )
     return wrote
 
@@ -253,7 +308,8 @@ def reset_telemetry_backoff() -> None:
 
 def _record_to_database(
     *, meter: str, remaining: int | None, limit: int | None,
-    read_at: str, read_by: str, run_id: str | None, url: str | None = None,
+    read_at: str, read_by: str, run_id: str | None,
+    key_fp: str | None = None, url: str | None = None,
 ) -> bool:
     """Upsert one meter's reading. NEVER raises — same contract as the file write.
 
@@ -278,8 +334,8 @@ def _record_to_database(
             conn.execute(
                 "insert into rapidapi_quota "
                 "(meter, quota_remaining, quota_limit, read_at, read_by, "
-                " source_run_id, machine) "
-                "values (%s,%s,%s,%s,%s,%s,%s) "
+                " source_run_id, machine, key_fingerprint) "
+                "values (%s,%s,%s,%s,%s,%s,%s,%s) "
                 "on conflict (meter) do update set "
                 "  quota_remaining = excluded.quota_remaining, "
                 "  quota_limit     = excluded.quota_limit, "
@@ -287,9 +343,11 @@ def _record_to_database(
                 "  read_by         = excluded.read_by, "
                 "  source_run_id   = excluded.source_run_id, "
                 "  machine         = excluded.machine, "
+                "  key_fingerprint = excluded.key_fingerprint, "
                 "  recorded_at     = now() "
                 "where excluded.read_at > rapidapi_quota.read_at",
-                (meter, remaining, limit, read_at, read_by, run_id, machine()),
+                (meter, remaining, limit, read_at, read_by, run_id, machine(),
+                 key_fp),
             )
         return True
     except Exception:
@@ -312,7 +370,7 @@ def read_database_meters(url: str | None = None) -> dict[str, dict] | None:
         with conn:
             rows = conn.execute(
                 "select meter, quota_remaining, quota_limit, read_at, read_by, "
-                "       source_run_id, machine from rapidapi_quota"
+                "       source_run_id, machine, key_fingerprint from rapidapi_quota"
             ).fetchall()
     except Exception:
         return None
@@ -327,8 +385,11 @@ def read_database_meters(url: str | None = None) -> dict[str, dict] | None:
             "read_by": str(by),
             "source_run_id": run,
             "machine": str(mach),
+            # WHOSE COUNTER. None on rows written before 2026-09-16, which is
+            # "not recorded" and never "a different subscription".
+            "key_fingerprint": kfp,
         }
-        for m, rem, lim, at, by, run, mach in rows
+        for m, rem, lim, at, by, run, mach, kfp in rows
     }
 
 
