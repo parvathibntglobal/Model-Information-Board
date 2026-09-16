@@ -371,3 +371,57 @@ class TestTheThreadCapIsVisible:
         assert "25 x 33s is ~14 minutes" in source, (
             "the wait must be derived from the mean the file actually measured"
         )
+
+
+class TestARetirementDateSeventyTwoYearsAwayIsNotAClosedWindow:
+    """`_variants_for` read `valid_until IS NULL` as "still current".
+
+    `seat` copies `model_version.retirement_date` into the alias's
+    `valid_until`, which is right - a surface stops naming a model when the
+    model retires. But `z-ai/glm-5.3` carries a retirement_date of 2098-12-31,
+    a sentinel the poll supplies, and the old predicate read a window closing in
+    seventy-two years as one already shut.
+
+    So GLM 5.3 was seated with two alias rows on 2026-09-16 and a fetch against
+    it still reported, in full:
+
+        E1 Registry ok     resolved Z.ai: GLM 5.3 - 0 search-eligible name variant(s)
+        E2 Harvest skipped no search variants for this model - nothing to search for
+        Run ok. nothing to harvest
+
+    Measured the same day: 10 of 344 registry rows carry a retirement_date, and
+    of the alias rows with a non-null `valid_until`, FOUR are in the future and
+    ZERO are in the past. The old filter excluded four rows that should search
+    and not one that should not.
+    """
+
+    @staticmethod
+    def _sql() -> str:
+        import inspect
+        source = inspect.getsource(fetch_model._variants_for)
+        # Comments quote the old predicate to explain it; the CODE is what runs.
+        return "\n".join(
+            line for line in source.splitlines() if not line.lstrip().startswith("#")
+        )
+
+    def test_the_predicate_compares_against_now_not_null(self):
+        assert "valid_until IS NULL OR valid_until > now()" in self._sql(), (
+            "a window that closes in the future is still open; comparing "
+            "against NULL alone treats every retirement date as already past"
+        )
+
+    def test_a_bare_null_check_is_gone_from_the_query(self):
+        """`AND valid_until IS NULL` on its own is the defect, not a synonym."""
+        sql = self._sql()
+        assert "AND valid_until IS NULL\n" not in sql and \
+               'AND valid_until IS NULL"' not in sql, (
+            "the standalone NULL check is what emptied GLM 5.3's search"
+        )
+
+    def test_specificity_is_still_filtered(self):
+        """The fix must not widen anything else.
+
+        A bare `family` form like "sonnet" names a line, not a model, and
+        searching it attributes one model's discussion to a whole family.
+        """
+        assert "specificity IN ('version', 'snapshot')" in self._sql()

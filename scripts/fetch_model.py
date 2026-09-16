@@ -473,13 +473,37 @@ def _variants_for(conn, model_version_id: str, canonical_id: str) -> list[str]:
     """
     # `search_eligible` is a Python field on AliasRow, not a DB column. In the
     # table, a variant is searchable when it names a version or snapshot (a bare
-    # `family` form like "sonnet" names a line, not a model) and is still current
-    # (`valid_until IS NULL`, since model_alias is append-only, FR-4).
+    # `family` form like "sonnet" names a line, not a model) and is still
+    # current.
+    #
+    # ⚠ "STILL CURRENT" IS NOT `valid_until IS NULL`, AND READING IT THAT WAY
+    #   SILENTLY EMPTIED A MODEL'S SEARCH.
+    #
+    #   `seat` copies `model_version.retirement_date` into the alias's
+    #   `valid_until`, which is right - a surface stops naming a model when the
+    #   model retires. But `z-ai/glm-5.3` carries `retirement_date`
+    #   **2098-12-31**, a sentinel the poll supplies, and the old predicate read
+    #   a window closing in seventy-two years as one already shut. GLM 5.3 was
+    #   seated with two alias rows on 2026-09-16 and a fetch against it still
+    #   reported:
+    #
+    #       E1 Registry ok     resolved Z.ai: GLM 5.3 - 0 search-eligible name variant(s)
+    #       E2 Harvest skipped no search variants for this model - nothing to search for
+    #
+    #   Measured the same day: 10 of 344 registry rows carry a retirement_date,
+    #   and of the alias rows with a non-null `valid_until`, **4 are in the
+    #   future and 0 are in the past**. So the old filter excluded four rows
+    #   that should search and not one that should not - it was doing only
+    #   harm, and would do more as the poll supplies more dates.
+    #
+    #   FR-4 append-only is still why `valid_until` exists: a closed window says
+    #   a surface stopped meaning this model on a date. That is a claim about
+    #   the PAST, so the comparison belongs against now(), not against NULL.
     rows = conn.execute(
         "SELECT variants FROM model_alias "
         "WHERE model_version_id = %s "
         "AND specificity IN ('version', 'snapshot') "
-        "AND valid_until IS NULL",
+        "AND (valid_until IS NULL OR valid_until > now())",
         (model_version_id,),
     ).fetchall()
     variants: set[str] = set()
