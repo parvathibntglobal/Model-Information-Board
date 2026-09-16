@@ -2647,7 +2647,8 @@ def _rapidapi_meters() -> dict[str, dict]:
 #: pinning and a constant is how a test can see it.
 _QUOTA_SELECT = (
     "select meter, quota_remaining, quota_limit, read_at, read_by, "
-    "       source_run_id, machine, key_fingerprint from rapidapi_quota"
+    "       source_run_id, machine, key_fingerprint, quota_reset_seconds "
+    "  from rapidapi_quota"
 )
 
 
@@ -2688,9 +2689,153 @@ def _rapidapi_meters_from_db() -> dict[str, dict] | None:
             # fingerprint, and reading that as "a different account" would light
             # the warning across the whole table (rule 6).
             "key_fingerprint": fp,
+            # Seconds to this meter's reset, as read. NULL is "not
+            # recorded", never "resets now" (rule 6).
+            "quota_reset_seconds": reset,
         }
-        for m, rem, lim, at, by, run, mach, fp in rows
+        for m, rem, lim, at, by, run, mach, fp, reset in rows
     }
+
+
+#: WHAT IS MEASURED ABOUT EACH ARM'S WINDOW, AND WHAT IS NOT.
+#:
+#: An ANCHOR plus a PERIOD rather than a pair of dates, deliberately. Dates go
+#: stale on a schedule - "next boundary 2026-10-11" is wrong from 11 October and
+#: nothing would say so, which is the #334 class this panel has already produced
+#: three instances of. An anchor and a period are true for as long as the period
+#: is, and every boundary is arithmetic from them.
+#:
+#: reddit  MEASURED. 2,592,000 s between two dated boundaries, 2026-09-11 and
+#:         2026-10-11, agreeing to the second.
+#: x       NOT MEASURED. One boundary is dated and one boundary is not a period.
+#:         `period_seconds: None` is the honest value and the panel renders the
+#:         left end of the bar as undated rather than assuming reddit's 30 days -
+#:         same gateway, different upstream (rule 6).
+#:
+#: docs/measurements/rapidapi-window-length.md
+QUOTA_WINDOW = {
+    "reddit": {
+        "anchor": "2026-09-11T09:45:23+00:00",
+        "period_seconds": 2_592_000,
+        "measured": True,
+        "source": "docs/measurements/rapidapi-window-length.md, two readings 22.7 days apart",
+    },
+    "x": {
+        "anchor": "2026-09-29T06:23:49+00:00",
+        "period_seconds": None,
+        "measured": False,
+        "source": "docs/measurements/rapidapi-window-length.md, one boundary only",
+    },
+}
+
+
+def _quota_window(read_on: str, reading_at: str | None, reset_seconds: object) -> dict:
+    """This arm's window, preferring the LIVE reading over the stored anchor.
+
+    THE READING WINS WHEN IT HAS THE HEADER. `read_at + x-ratelimit-requests-reset`
+    dates the next boundary directly, and it cannot go stale because it is
+    recomputed from whatever was last read. The anchor below is the fallback for
+    rows written before `quota_reset_seconds` existed - every row today.
+
+    A PERIOD IS NOT INFERRED FROM A SINGLE BOUNDARY. `x` has one dated boundary
+    and no period, so `period_seconds` is None and stays None until a second X
+    reading dates a second one. Returning reddit's 30 days there would be the
+    exact assumption the measurement refused to make.
+    """
+    from datetime import datetime, timedelta
+
+    spec = QUOTA_WINDOW.get(read_on) or {}
+    period = spec.get("period_seconds")
+    out = {
+        "period_seconds": period,
+        "period_days": (period / 86400) if period else None,
+        "period_measured": bool(spec.get("measured")),
+        "source": spec.get("source"),
+        "next_boundary": None,
+        "previous_boundary": None,
+        "boundary_from": None,
+    }
+
+    def _parse(value):
+        try:
+            return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        except Exception:
+            return None
+
+    # 1. The live reading, when it carried the header.
+    at = _parse(reading_at)
+    if at is not None and isinstance(reset_seconds, int):
+        nxt = at + timedelta(seconds=reset_seconds)
+        out["next_boundary"] = nxt.isoformat()
+        out["boundary_from"] = "this reading's x-ratelimit-requests-reset header"
+        if period:
+            out["previous_boundary"] = (nxt - timedelta(seconds=period)).isoformat()
+        return out
+
+    # 2. The anchor. With a period, roll it forward to the window we are in; a
+    #    boundary in the past is not this window's and must not render as one.
+    anchor = _parse(spec.get("anchor"))
+    if anchor is None:
+        return out
+    if period:
+        now = datetime.now(anchor.tzinfo)
+        nxt = anchor
+        while nxt <= now:
+            nxt = nxt + timedelta(seconds=period)
+        out["next_boundary"] = nxt.isoformat()
+        out["previous_boundary"] = (nxt - timedelta(seconds=period)).isoformat()
+        out["boundary_from"] = "the measured anchor and period, rolled forward"
+    else:
+        # NO PERIOD: the one dated boundary, and whether it has passed. Once it
+        # has, this arm has nothing current to say and the panel must say THAT
+        # rather than render a date that is behind us.
+        now = datetime.now(anchor.tzinfo)
+        out["next_boundary"] = anchor.isoformat() if anchor > now else None
+        out["boundary_passed"] = anchor.isoformat() if anchor <= now else None
+        out["boundary_from"] = "a single dated boundary; no period is known"
+    return out
+
+
+def _rapidapi_series(read_on: str) -> dict | None:
+    """The reading history for one meter, or None when the table cannot be read.
+
+    NONE AND EMPTY ARE DIFFERENT AND THE PANEL RENDERS THEM DIFFERENTLY. None is
+    "the table could not be read"; `readings: 0` is "nothing has been recorded
+    yet", which is the true state on the day the table ships and is a fact about
+    our instrumentation rather than about consumption.
+
+    A RATE NEEDS TWO POINTS AND CARRIES ITS SPAN. One reading gives no rate at
+    all; a rate without the window it was measured over answers a question
+    nobody asked, because this harvest is bursty (1,103 documents on one run,
+    2 on the next).
+    """
+    try:
+        with _conn() as conn:
+            rows = conn.execute(
+                "select read_at, quota_remaining from rapidapi_quota_reading "
+                "where meter = %s and quota_remaining is not null "
+                "order by read_at",
+                (read_on,),
+            ).fetchall()
+    except Exception:
+        return None
+
+    out = {"readings": len(rows), "per_day": None, "span_days": None,
+           "first_at": None, "last_at": None, "consumed": None}
+    if not rows:
+        return out
+    out["first_at"] = rows[0][0].isoformat()
+    out["last_at"] = rows[-1][0].isoformat()
+    if len(rows) < 2:
+        return out
+    span = (rows[-1][0] - rows[0][0]).total_seconds()
+    consumed = rows[0][1] - rows[-1][1]
+    out["span_days"] = span / 86400
+    out["consumed"] = consumed
+    # A span of zero is real - several readings inside one second - and dividing
+    # by it would render inf. Absent rather than infinite (rule 6).
+    out["per_day"] = (consumed / (span / 86400)) if span > 0 else None
+    return out
 
 
 def _rapidapi_quota(read_on: str = "reddit") -> dict:
@@ -2793,6 +2938,10 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
                 "var/rapidapi-quota.json or in the shared rapidapi_quota table"
             ),
             "instrumented": False,
+            # KNOWN EVEN WITH NO READING. The window is a fact about the
+            # subscription, not about whether we have read it lately.
+            "window": _quota_window(read_on, None, None),
+            "series": _rapidapi_series(read_on),
             "unattributed_reading": (
                 None if not orphan else {
                     "quota_remaining": orphan.get("quota_remaining"),
@@ -2900,6 +3049,17 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
             }
         ),
         "instrumented": True,
+        # THE WINDOW, COMPUTED RATHER THAN WRITTEN DOWN. Prefers this reading's
+        # own reset header; falls back to the measured anchor and period. `x`
+        # carries period_seconds: None and the panel renders that end of the bar
+        # as undated rather than borrowing reddit's 30 days.
+        "window": _quota_window(read_on, rec.get("at"),
+                                rec.get("quota_reset_seconds")),
+        # THE SERIES. `None` means the table could not be read; `readings: 0`
+        # means nothing has been recorded yet, which is the true state the day
+        # the table ships. Two different facts, rendered differently (rule 4).
+        "series": _rapidapi_series(read_on),
+        "quota_reset_seconds": rec.get("quota_reset_seconds"),
         "quota_limit": limit,
         "quota_remaining": remaining,
         "requests_used": used,

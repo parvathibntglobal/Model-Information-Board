@@ -609,65 +609,254 @@ function RapidApiTab({ rapid, which }) {
         </span>
       )}
 
+      {/* ── THE WINDOW. BOTH ENDS DATED, OR VISIBLY NOT. ──────────────────
+          Replaces a sentence that said "23.9 days, not a month (measured
+          2026-08-18)". That figure was never a window LENGTH — it was TIME
+          REMAINING on one reading, presented as a period, and it made every
+          costing on this page a third wrong in the direction nobody checks.
+
+          Reddit's period is measured at exactly 30.000 days and both boundaries
+          are dated. X's is NOT, and the bar says so rather than borrowing
+          Reddit's: same gateway, different upstream. */}
+      <WindowBar w={rapid.window} which={which} />
+
+      {/* ── THE SERIES. ABSENT BY CONSTRUCTION IS NOT ABSENT BECAUSE NOTHING
+             HAPPENED, and this is the whole reason for writing it. ─────────── */}
+      <QuotaSeries s={rapid.series} which={which} />
+
+      {/* ── PROVENANCE, DEMOTED TO ONE LINE. ──────────────────────────────
+          This was three overlapping sentences: "Reading taken from the shared
+          table, read by <host> at <time>", then "As of <time> (recorded by a
+          harvest), read on the Reddit fetch", then "This tab's own path took
+          the reading." The first two say the same thing twice and the third is
+          the second's own subject restated. One line, once. */}
       <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-        Reading taken from the{' '}
-        <strong style={{ color: 'var(--text)' }}>
-          {rapid.reading_source === 'shared table'
-            ? 'shared table'
-            : "this machine's cache"}
-        </strong>
-        , read by {rapid.reading_host || 'an unrecorded host'} at{' '}
-        {rapid.as_of || 'an unrecorded time'}.
-        {rapid.also_held ? (
-          <>
-            {' '}The other store holds {n(rapid.also_held.quota_remaining)}{' '}
-            remaining, read by{' '}
-            {rapid.also_held.host || 'an unrecorded host'} at{' '}
-            {rapid.also_held.as_of || 'an unrecorded time'}
-            {rapid.subscriptions_differ
-              ? ' — a different subscription, see above.'
-              : ' — older, and shown because a stale cached reading beside a'
-                + ' fresher shared one is the normal case on one shared'
-                + ' counter, not a disagreement to resolve.'}
-          </>
-        ) : rapid.reading_source === 'shared table' ? (
-          <> This machine has no cached reading of its own for this meter.</>
-        ) : (
-          <> Nothing has recorded this meter to the shared table yet.</>
-        )}
-      </span>
-      <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-        As of {rapid.as_of || 'the last fetch'}
-        {readBy ? ` (recorded by a ${readBy})` : ''}, read on{' '}
-        {readOn ? (
-          <strong style={{ color: 'var(--text)' }}>
-            the {readOn === 'x' ? 'X' : 'Reddit'} fetch
-          </strong>
-        ) : (
-          'a fetch that did not record which path'
-        )}
+        Read {rapid.as_of || 'at an unrecorded time'}
+        {readBy ? ` during a ${readBy}` : ''}, from{' '}
+        {rapid.reading_source === 'shared table' ? 'the shared table' : "this machine's cache"}
+        , on {rapid.reading_host || 'an unrecorded host'}
+        {rapid.key_fingerprint ? (
+          <> · key <span className="mono">{rapid.key_fingerprint}</span></>
+        ) : null}
         .{' '}
-        {mine
-          ? `This tab's own path took the reading.`
-          : `⚠ This reading was taken on a ${readOn ? (readOn === 'x' ? 'X' : 'Reddit') : 'different'} fetch, and the two arms are metered separately — so it is NOT this tab's quota. Read it as the other arm's figure, filed here only because no ${which} reading has been recorded.`}
-      </span>
-      <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
-        {which === 'Reddit' ? (
+        <Staleness asOf={rapid.as_of} />
+        {!mine && (
           <>
-            And the window is <strong>23.9 days, not a month</strong> (measured
-            2026-08-18), so anything costed as a share of a month against this
-            quota is a third too low.{' '}
-          </>
-        ) : (
-          <>
-            The window is <strong>not a month</strong> either: this arm's
-            <code> x-ratelimit-requests-reset</code> read ~19 days on 2026-09-10.
-            The 23.9-day figure belongs to the Reddit arm and is not this one's.{' '}
+            {' '}⚠ Taken on {readOn ? (readOn === 'x' ? 'an X' : 'a Reddit') : 'a different'}{' '}
+            fetch, and the arms are metered separately — so this is NOT this
+            tab's quota.
           </>
         )}
-        {knownLimit
-          ? `The billed tier remains unverified: the gateway header says ${n(limit)} and the plan page says 500,000. Only the RapidAPI subscription page settles it.`
-          : 'The billed tier has never been verified either — the plan page said 500,000, an older header said 1,000,000, and this reading fits neither. One look at the RapidAPI subscription page settles it, and no request can.'}
+      </span>
+
+      {/* THE READING THIS ONE BEAT — a footnote, which is what its own API
+          comment always said it was for: "here to show the other side has also
+          fetched, not as a second figure to compare". It led the caption until
+          now, which presented one counter as two and explained a gap that is
+          usually not there. */}
+      {rapid.also_held && !rapid.subscriptions_differ && (
+        <span className="dim" style={{ fontSize: 'var(--fs-2xs, var(--fs-xs))', opacity: 0.75 }}
+              title={`${n(rapid.also_held.quota_remaining)} remaining, read by ${rapid.also_held.host || 'an unrecorded host'} at ${rapid.also_held.as_of || 'an unrecorded time'}`}>
+          An older reading of this same meter is also held — hover for it. It is
+          not a second figure: the counter only falls, so the newest reading is
+          the truest one.
+        </span>
+      )}
+
+      <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
+        {/* ⚠ 500,000 IS THE REDDIT PLAN'S FIGURE AND WAS BEING ASSERTED OF BOTH
+            ARMS. It comes from docs/measurements/reddit-rate-and-quota.md, which
+            is about the Reddit subscription; nobody has read X's plan page. The
+            two arms are separate subscriptions — that is the premise this panel
+            got wrong once already, when one key was believed to meter both — so
+            the discrepancy is stated for the arm it was measured on and NOT for
+            the other (rule 7: a figure travels with the population it came
+            from). */}
+        {which === 'Reddit' ? (
+          knownLimit
+            ? `The billed tier remains unverified: the gateway header says ${n(limit)} and the plan page says 500,000. Only the RapidAPI subscription page settles it.`
+            : 'The billed tier has never been verified either — the plan page said 500,000, an older header said 1,000,000, and this reading fits neither. One look at the RapidAPI subscription page settles it, and no request can.'
+        ) : (
+          knownLimit
+            ? `The billed tier is unverified for this arm: the gateway header says ${n(limit)}, and nobody has read X's plan page. Reddit's 500,000/1,000,000 discrepancy is NOT quoted here — that figure was measured on the Reddit subscription and these are separate accounts. Only the RapidAPI subscription page settles it.`
+            : "The billed tier is unverified for this arm, and no plan figure has ever been read for it. Reddit's discrepancy is not this arm's — they are separate subscriptions."
+        )}
+      </span>
+    </div>
+  )
+}
+
+/** How old the reading is, and WHY that matters — not just the age.
+ *
+ * A number of hours means nothing on its own. What a reader acts on is that
+ * this counter is shared and moves only when a fetch runs: a fetch on another
+ * machine draws it down and nothing here learns about it until someone reads
+ * the header again. So the caution names the mechanism, not the duration.
+ *
+ * Thresholds are judgement, not measurement, and are deliberately coarse.
+ */
+function Staleness({ asOf }) {
+  if (!asOf) return null
+  const t = Date.parse(asOf)
+  if (Number.isNaN(t)) return null
+  const hours = (Date.now() - t) / 3_600_000
+  if (hours < 1) return null
+  if (hours < 3) {
+    return (
+      <span>
+        It moves only when a fetch runs, so it is current as of that time rather
+        than now.
+      </span>
+    )
+  }
+  const age = hours < 24
+    ? `${Math.round(hours)} hours old`
+    : `${Math.round(hours / 24)} days old`
+  return (
+    <strong style={{ color: hours >= 24 ? 'var(--warn)' : 'var(--text)' }}>
+      This reading is {age} and may be stale — the counter is shared, it moves
+      only when a fetch runs, and a fetch on another machine moves it invisibly
+      to this page.
+    </strong>
+  )
+}
+
+/** The window, with both ends dated — or one end visibly undated.
+ *
+ * ⚠ THE ASYMMETRY BETWEEN THE ARMS IS THE POINT AND MUST SURVIVE REDESIGN.
+ *   Reddit's period is MEASURED at 30.000 days, so both boundaries are
+ *   arithmetic. X has ONE dated boundary and no period, so its left end is
+ *   unknown and is drawn as unknown. Filling it in with Reddit's 30 days would
+ *   be inventing a measurement — same gateway, different upstream (rule 6).
+ */
+function WindowBar({ w, which }) {
+  if (!w) return null
+  const fmt = (iso) => {
+    if (!iso) return null
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return null
+    return d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC'
+  }
+  const prev = fmt(w.previous_boundary)
+  const next = fmt(w.next_boundary)
+  // Where we are in the window — only computable with both ends.
+  let pct = null, elapsedDays = null, leftDays = null
+  if (w.previous_boundary && w.next_boundary) {
+    const a = Date.parse(w.previous_boundary), b = Date.parse(w.next_boundary)
+    const now = Date.now()
+    if (b > a) {
+      pct = Math.min(100, Math.max(0, ((now - a) / (b - a)) * 100))
+      elapsedDays = (now - a) / 86_400_000
+      leftDays = (b - now) / 86_400_000
+    }
+  }
+  return (
+    <div className="stack stack-1">
+      <span className="label">
+        {w.period_measured
+          ? `Window — ${w.period_days.toFixed(3)} days, measured`
+          : 'Window — length not measured'}
+      </span>
+      {pct != null ? (
+        <>
+          <div style={{
+            position: 'relative', height: 6, borderRadius: 3,
+            background: 'var(--surface-2, rgba(128,128,128,0.2))',
+          }}>
+            <div style={{
+              position: 'absolute', left: 0, top: 0, bottom: 0,
+              width: `${pct}%`, borderRadius: 3, background: 'var(--accent, #6b8afd)',
+            }} />
+          </div>
+          <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+            {prev} → {next} · {elapsedDays.toFixed(1)}d in, {leftDays.toFixed(1)}d left
+          </span>
+        </>
+      ) : (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
+          {next ? (
+            <>
+              Next boundary <strong style={{ color: 'var(--text)' }}>{next}</strong>.{' '}
+              <strong>The start of this window is not known</strong> — only one
+              boundary has been dated, and one boundary is not a period. Reddit's
+              30 days is deliberately not assumed here: same gateway, different
+              upstream. One {which} reading after that date dates a second
+              boundary and settles it, for one request.
+            </>
+          ) : w.boundary_passed ? (
+            <>
+              <strong>The only dated boundary ({fmt(w.boundary_passed)}) has
+              passed</strong>, and no period is known, so this arm has nothing
+              current to say about its window. One reading re-dates it.
+            </>
+          ) : (
+            <>No boundary has been dated for this arm.</>
+          )}
+        </span>
+      )}
+      {w.source && (
+        <span className="dim" style={{ fontSize: 'var(--fs-2xs, var(--fs-xs))', opacity: 0.75 }}>
+          {w.source}
+          {w.boundary_from ? ` · boundary from ${w.boundary_from}` : ''}
+        </span>
+      )}
+    </div>
+  )
+}
+
+/** Consumption over time — or an honest account of why there is none yet.
+ *
+ * ⚠ EMPTY BY CONSTRUCTION IS NOT EMPTY BECAUSE NOTHING HAPPENED, and saying so
+ *   is the only reason to render anything here at all. `rapidapi_quota_reading`
+ *   was created on 2026-09-16 and every reading before that was written to a
+ *   table that OVERWRITES, so the history is absent because we did not keep it
+ *   — not because the quota sat still. Rendering a flat line or an empty chart
+ *   would assert the second (rule 4).
+ *
+ * A RATE CARRIES ITS SPAN. This harvest is bursty — 1,103 documents on one run
+ * and 2 on the next — so "30.6/day" without the window it was measured over is
+ * a figure answering a question nobody asked (rule 7).
+ */
+function QuotaSeries({ s, which }) {
+  if (s == null) {
+    return (
+      <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
+        <strong style={{ color: 'var(--warn)' }}>
+          The reading history could not be read.
+        </strong>{' '}
+        That is a fact about the database connection, not about consumption —
+        there may be readings and this page cannot see them.
+      </span>
+    )
+  }
+  if (!s.readings || s.readings < 2 || s.per_day == null) {
+    return (
+      <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
+        <strong style={{ color: 'var(--text)' }}>
+          No reading history yet — this fills from the next metered call.
+        </strong>{' '}
+        {s.readings === 1
+          ? 'One reading is recorded, and a rate needs two. '
+          : 'The series is empty BY CONSTRUCTION, not because nothing has happened: '
+            + 'every reading before 2026-09-16 was written to a table that keeps '
+            + 'only the latest row per meter, so the past was overwritten rather '
+            + 'than lost. '}
+        A consumption rate appears here once two {which} readings exist.
+      </span>
+    )
+  }
+  return (
+    <div className="stack stack-1">
+      <span className="label">Consumption — measured over the recorded series</span>
+      <div className="grid g2">
+        <Stat n={`${s.per_day.toFixed(1)}/day`}
+              l={`over ${s.span_days.toFixed(1)} days`} />
+        <Stat n={n(s.consumed)} l={`requests across ${s.readings} readings`} />
+      </div>
+      <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
+        Measured between {s.first_at} and {s.last_at}. The span is stated because
+        this harvest is bursty — a rate without the window it was taken over is a
+        figure answering a question nobody asked.
       </span>
     </div>
   )
