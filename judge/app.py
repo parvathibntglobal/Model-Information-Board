@@ -2707,21 +2707,39 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
     base = {
         "unit": "requests",
         "arm": read_on,
+        # ⚠ THIS SENTENCE HAS NOW BEEN WRONG TWICE, IN OPPOSITE DIRECTIONS, AND
+        #   THE SECOND TIME LASTED THIRTY MINUTES. It first called the quota
+        #   "monthly" with nothing behind it. #331 corrected that to "THE WINDOW
+        #   LENGTH IS NOT MEASURED" at 12:15Z on 2026-09-16 — and it was
+        #   measured at 12:45Z the same day, by two metered readings
+        #   (docs/measurements/rapidapi-window-length.md, #333).
+        #
+        #   Both were true when written. Neither was about this file, which is
+        #   why nothing here could catch either — see issue #334. The figures
+        #   below are therefore stated per ARM and with their boundaries, so the
+        #   next reader can check them against the world rather than trust the
+        #   prose.
         "limits_status": (
-            f"RapidAPI sells the {arm_label} path as a request quota per "
-            f"resetting window. THE WINDOW LENGTH IS NOT MEASURED and this "
-            f"line used to call it 'monthly'. What was read is TIME REMAINING, "
-            f"not a period: 23.893 days left on Reddit on 2026-08-18 and 19.04 "
-            f"on X on 2026-09-10 - and "
-            f"docs/measurements/reddit-rate-and-quota.md says plainly that one "
-            f"reading cannot give the length, being 'consistent with a 28-day "
-            f"window that began 2026-08-14 and with a 30-day window that began "
-            f"2026-08-12'. So anything costed as a monthly share is costed "
-            f"against an unestablished period (rule 7). "
-            f"This is the last quota header {arm_article} {arm_label} fetch saw; it "
-            f"moves "
-            "only when a fetch runs, not on a schedule. The Reddit and X arms "
-            "are metered separately - this figure is this arm's alone."
+            (
+                # REDDIT: MEASURED. 2,592,000 s between two dated boundaries.
+                "RapidAPI sells the Reddit path as a request quota per resetting "
+                "window, and that window is MEASURED at exactly 30.000 days "
+                "(2,592,000 s) — boundaries 2026-09-11 09:45:23 UTC and "
+                "2026-10-11 09:45:22 UTC. That is 30 days, NOT a calendar month: "
+                "it does not align to the 1st and the boundary rolls at 09:45 "
+                "UTC, so anything costed per-month is out by up to a day."
+                if read_on != "x" else
+                # X: ONE BOUNDARY IS NOT A PERIOD. Not inherited from Reddit's.
+                "RapidAPI sells the X path as a request quota per resetting "
+                "window. Its next boundary is dated 2026-09-29 06:23:49 UTC, and "
+                "ITS LENGTH IS NOT MEASURED — one boundary is not a period. "
+                "Reddit's 30 days is deliberately NOT assumed here: same "
+                "gateway, different upstream. One X reading after 29 September "
+                "dates a second boundary and settles it, for one request."
+            )
+            + f" This is the last quota header {arm_article} {arm_label} fetch "
+            "saw; it moves only when a fetch runs, not on a schedule. The Reddit "
+            "and X arms are metered separately - this figure is this arm's alone."
         ),
     }
     # ⚠ `source_of_record` IS COMPUTED BELOW, NOT SET HERE, AND THAT IS THE FIX.
