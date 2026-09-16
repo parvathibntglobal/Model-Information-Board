@@ -1192,11 +1192,15 @@ columns:
   rapidapi_quota_reading:
     id:
       reviewed: true
-      state: read
-      why: 'the content id the append-only merge turns on - `on conflict (id) do nothing` in
-        collect/usage.py:_append_quota_reading. Same shape and same reason as spend_ledger.id. Hashed over
-        meter|machine|run|observed_at|figures|fingerprint, so a replay is a no-op and two real observations are
-        two rows.'
+      state: write_only
+      why: 'CORRECTED AFTER THE AUDIT DISAGREED. Declared `read` first, copying spend_ledger.id -
+        and the audit discovered "written, UNREAD". The audit is right and the copy was wrong:
+        spend_ledger.id earns `read` on TWO readers, `on conflict (id) do nothing` AND `where id =
+        any(...)` in scripts/backfill_telemetry.py. This table has only the first, and a conflict
+        target is not a read the column scan can see. The deduplication is real and happens at
+        write time; it is simply not a SELECT. Intended reader is the usage panel''s quota series,
+        which cannot read it yet because that display is not built and the table holds no rows
+        until its migration is applied (rule 9).'
     key_fingerprint:
       reviewed: true
       state: write_only
