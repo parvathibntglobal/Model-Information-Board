@@ -56,12 +56,11 @@ if not os.getenv("DATABASE_URL"):
 def build() -> dict:
     import psycopg
 
+    import scripts.fetch_model as fm
     from collect.adapters.queries.contract import load_queries
     from collect.adapters.queries.github import plan_searches
     from collect.adapters.x import club_surfaces
     from judge.config import tracked_models
-
-    import scripts.fetch_model as fm
 
     # The budgets, read from the call sites rather than restated. `_variants_for`
     # is what the harvest calls, so a model whose aliases change shows different

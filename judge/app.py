@@ -2404,7 +2404,8 @@ _ACCESS = {
         ),
         "uses_credential": False,
         "credential_note": "No key. A feed served without login or payment.",
-        "evidence": "contract/sources.yaml rulings `blog-class-a-self-hosted`, `blog-class-b-medium`",
+        "evidence": ("contract/sources.yaml rulings "
+                     "`blog-class-a-self-hosted`, `blog-class-b-medium`"),
         "metered": False,
     },
 }
