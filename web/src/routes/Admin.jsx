@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { health, coveragePage, listModels, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
 import BoardReview from '../components/BoardReview'
+import KeywordsPanel from '../components/KeywordsPanel'
+import PromptsPanel from '../components/PromptsPanel'
+import SourcesPanel from '../components/SourcesPanel'
+import StagesPanel from '../components/StagesPanel'
 import FetchPanel from '../components/FetchPanel'
 import { IconAlert, IconGauge } from '../components/Icons'
 
@@ -86,9 +91,115 @@ function CollectEvidence() {
   )
 }
 
+/**
+ * THE FOUR SECTIONS, AND THE NAV IS BUILT FROM THIS RATHER THAN BESIDE IT.
+ *
+ * One list, so a section cannot appear in the nav and not render, or render
+ * with a heading that disagrees with the one you clicked. Adding a fifth panel
+ * is one entry here.
+ *
+ * `id` GOES IN THE URL and is therefore permanent: `?s=board` is a link
+ * somebody can send. Renaming one silently breaks saved links, which is why
+ * these are short slugs and not the titles.
+ */
+const SECTIONS = [
+  {
+    id: 'service',
+    title: 'Service',
+    blurb: 'Is the board up, and can it read the database',
+    render: (ctx) => <ServicePanel hp={ctx.hp} cov={ctx.cov} />,
+  },
+  {
+    id: 'usage',
+    title: 'API usage — our cap',
+    blurb: 'What we are spending, against the limits we set',
+    render: () => <UsagePanel />,
+  },
+  {
+    id: 'sources',
+    title: 'Sources',
+    blurb: 'Where evidence comes from, and how each is reached',
+    render: () => <SourcesPanel />,
+  },
+  {
+    id: 'keywords',
+    title: 'Keywords',
+    blurb: 'What each platform is actually sent, per model',
+    render: () => <KeywordsPanel />,
+  },
+  {
+    id: 'models',
+    title: 'Models',
+    blurb: 'Collect evidence — sweep a model on demand',
+    render: () => <CollectEvidence />,
+  },
+  {
+    id: 'board',
+    title: 'Board sections',
+    blurb: 'Discovered by the classifier, and already live',
+    render: () => <BoardReview />,
+  },
+  {
+    id: 'pipeline',
+    title: 'Evidence stages',
+    blurb: 'What each stage of a fetch actually does',
+    render: () => <StagesPanel />,
+  },
+  {
+    id: 'prompts',
+    title: 'Prompts',
+    blurb: 'Every prompt we send a model, composed not copied',
+    render: () => <PromptsPanel />,
+  },
+]
+
+/** `/health` plus whether the database answered. Needs no database itself. */
+function ServicePanel({ hp, cov }) {
+  return (
+    <section className="card">
+      <div className="row-between" style={{ marginBottom: 'var(--s3)' }}>
+        <div className="row" style={{ gap: 8 }}>
+          <IconGauge width={14} height={14} style={{ color: 'var(--text-3)' }} />
+          <span className="label">Service</span>
+        </div>
+        {hp.data
+          ? <Badge tone="pass">{hp.data.status}</Badge>
+          : <Badge tone="fail">unreachable</Badge>}
+      </div>
+      {hp.err && <Notice icon={<IconAlert />}>{hp.err}</Notice>}
+      {hp.data && (
+        <div className="grid g2">
+          {/* `capabilities_loaded` REMOVED — and the comment lives INSIDE
+              the div because `{cond && ( ... )}` takes ONE child, so a
+              comment beside the element is a second one and the build
+              refuses it.
+
+              It counted the ratified twelve: the closed vocabulary feeding
+              the legacy cell score, not the board's sections, which are
+              discovered from the evidence and unbounded. On a health panel
+              it read as "the board tracks 12 things", which is the one
+              thing it does not mean. `/health` still returns the figure;
+              nothing renders it as health. */}
+          <Stat n={hp.data.environment} l="environment" />
+          <Stat n={cov.data ? 'yes' : 'no'} l="database readable" />
+        </div>
+      )}
+    </section>
+  )
+}
+
 export default function Admin() {
   const hp = useSurface(health)
   const cov = useSurface(coveragePage)
+
+  // THE SELECTION LIVES IN THE URL, not in useState. An operations page is
+  // something people link each other to — "the board review is showing 40
+  // unruled" is worth sending — and a refresh mid-incident should not drop you
+  // back to the first tab. An unknown or absent `s` falls back to the first
+  // section rather than rendering nothing.
+  const [params, setParams] = useSearchParams()
+  const wanted = params.get('s')
+  const active = SECTIONS.find((x) => x.id === wanted) || SECTIONS[0]
 
   return (
     <div className="shell section-tight stack stack-4">
@@ -98,61 +209,43 @@ export default function Admin() {
         <p className="muted">Read straight off the backend. Nothing on this page is synthesised.</p>
       </div>
 
-      {/* health — no database required, so this always answers */}
-      <Reveal>
-        <section className="card">
-          <div className="row-between" style={{ marginBottom: 'var(--s3)' }}>
-            <div className="row" style={{ gap: 8 }}>
-              <IconGauge width={14} height={14} style={{ color: 'var(--text-3)' }} />
-              <span className="label">Service</span>
-            </div>
-            {hp.data
-              ? <Badge tone="pass">{hp.data.status}</Badge>
-              : <Badge tone="fail">unreachable</Badge>}
-          </div>
-          {hp.err && <Notice icon={<IconAlert />}>{hp.err}</Notice>}
-          {hp.data && (
-            <div className="grid g2">
-              {/* `capabilities_loaded` REMOVED — and the comment lives INSIDE
-                  the div because `{cond && ( ... )}` takes ONE child, so a
-                  comment beside the element is a second one and the build
-                  refuses it.
+      <div className="adm">
+        {/* A real <nav> with real <button>s: each is tabbable and reachable by
+            a screen reader, and `aria-current` is what announces which one you
+            are on. A div with an onClick would look identical and be none of
+            those things. */}
+        <nav className="adm-nav" aria-label="Operations sections">
+          {SECTIONS.map((sec) => (
+            <button
+              key={sec.id}
+              type="button"
+              aria-current={sec.id === active.id ? 'page' : undefined}
+              onClick={() => setParams(
+                sec.id === SECTIONS[0].id ? {} : { s: sec.id },
+                // REPLACE, NOT PUSH. Switching panels is not navigation a
+                // reader wants to walk back through — Back should leave the
+                // admin page, not step through four tabs they clicked.
+                { replace: true },
+              )}
+            >
+              <span className="t">{sec.title}</span>
+              <span className="d">{sec.blurb}</span>
+            </button>
+          ))}
+        </nav>
 
-                  It counted the ratified twelve: the closed vocabulary feeding
-                  the legacy cell score, not the board's sections, which are
-                  discovered from the evidence and unbounded. On a health panel
-                  it read as "the board tracks 12 things", which is the one
-                  thing it does not mean. `/health` still returns the figure;
-                  nothing renders it as health. */}
-              <Stat n={hp.data.environment} l="environment" />
-              <Stat n={cov.data ? 'yes' : 'no'} l="database readable" />
-            </div>
-          )}
-        </section>
-      </Reveal>
+        {/* ONE SECTION MOUNTED AT A TIME, which is the point and also the cost.
+            Each panel polls or fetches on mount, so switching away and back
+            re-fetches — that is correct for an ops page (a stale reading is
+            worse than a spinner) and it is why `UsagePanel`'s 15s poll no
+            longer runs while you are reading the board review.
 
-      {/* API usage — placed below Service deliberately. Service answers
-          "is the board up"; this answers "what are we spending". */}
-      <Reveal>
-        <UsagePanel />
-      </Reveal>
-
-      {/* collect evidence — the models, each with a fetch button and its
-          fetch-log history. This is where a model gets swept on demand. */}
-      <Reveal>
-        <CollectEvidence />
-      </Reveal>
-
-      {/* board sections the classifier discovered. Placed ABOVE the capability
-          review because it is the surface that now decides what the board shows,
-          and because the two are easily confused: these are already live and are
-          being consolidated, those are waiting outside the vocabulary to be let
-          in. Adjacent so the difference is visible rather than assumed. */}
-      <Reveal>
-        <BoardReview />
-      </Reveal>
-
-
+            `key` on the wrapper so React remounts rather than reconciling two
+            different panels into one another's state. */}
+        <div className="adm-body" key={active.id}>
+          <Reveal>{active.render({ hp, cov })}</Reveal>
+        </div>
+      </div>
     </div>
   )
 }

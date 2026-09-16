@@ -194,6 +194,30 @@ export default function BoardReview() {
                 </p>
               )}
 
+              {/* FOLDED, BECAUSE A SECTION IS LONG AND A LIST OF SECTIONS IS
+                  WHAT A REVIEWER IS CHOOSING BETWEEN. Five quotes plus four
+                  controls per section means three sections fill a screen, and
+                  the duplicate pair this panel exists to catch is then never
+                  on screen together.
+
+                  ⚠ THE SUMMARY CARRIES WHAT DECIDES WHETHER TO OPEN IT — how
+                    many quotes, and whether it still needs a ruling. A fold
+                    whose label says only "quotes" makes a reviewer open every
+                    one to find the work, which is the scrolling it replaced.
+
+                  Native <details>, like the section folds above: the quotes
+                  stay in the DOM for ctrl-F and for a screen reader whether or
+                  not it is open, so nothing is hidden from search — only from
+                  the first glance. */}
+              <details className="disc">
+                <summary>
+                  Quotes and ruling
+                  <span className="n">
+                    {(g.quotes || []).length} shown of {g.entries}
+                    {ruled ? ' · ruled' : ' · needs a ruling'}
+                  </span>
+                </summary>
+                <div className="disc-body stack stack-1">
               {/* The quotes ARE the evidence being ruled on, so they are shown
                   rather than linked — a decision made without reading them is
                   the one this panel exists to prevent. */}
@@ -302,6 +326,8 @@ export default function BoardReview() {
                   </button>
                 )}
               </div>
+                </div>
+              </details>
             </div>
           )
         })}

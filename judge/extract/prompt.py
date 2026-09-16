@@ -411,3 +411,100 @@ def wrap_untrusted(flattened_text: str) -> str:
             "the extractor must read exactly what verification checks against."
         )
     return f"{BLOCK_OPEN}\n{flattened_text}\n{BLOCK_CLOSE}"
+
+
+# ── THE TWO RETRY CORRECTIONS ─────────────────────────────────────────────
+#
+# A retry is a PROMPT. It is appended to the user message and the model reads
+# it, so it decides the answer exactly as the system prompt does - and both of
+# these lived inline at the call site in `runner.py`, where nothing could show
+# them without copying them.
+#
+# ⚠ THAT COPY IS THE PROBLEM THEY ARE MOVED HERE TO SOLVE. `/admin/prompts`
+#   renders what this project sends a model, and a transcribed prompt drifts the
+#   first time somebody edits the call site and not the page - which is the one
+#   failure a page about prompts must not have. Named builders here mean the
+#   page COMPOSES them, the same way it composes the system prompt.
+#
+# The parsing that decides WHICH correction to send stays in `runner.py`: it
+# needs a pydantic `ValidationError` and belongs with the call. Only the WORDING
+# moves, because the wording is the prompt.
+
+
+def schema_violation_correction(error_text: str) -> str:
+    """The generic retry: hand the validation error back and ask again.
+
+    VERBATIM, NOT SUMMARISED. The model is better at fixing a specific complaint
+    than a described one, and a summary here would be this code guessing which
+    part of the error mattered.
+    """
+    return (
+        "Your previous answer did not satisfy the schema:\n"
+        f"{error_text}\n\n"
+        "Answer again, correcting exactly that."
+    )
+
+
+def quote_length_correction(
+    offenders: list[tuple[int, int]],
+    others: list[str],
+    limit: int,
+) -> str:
+    """The specific retry: name each over-long quote, its length and the limit.
+
+    WHY THIS EXISTS RATHER THAN A BIGGER CEILING OR A DROPPED CLAIM. An
+    extractor once proposed 14 claims and lost all 14 because two quotes were 15
+    and 8 characters over, and both had a sentence boundary well inside the
+    limit - so a compliant span existed and the model did not choose it. That is
+    an instruction it already had being ignored, not a limit that is too tight.
+
+    AND THE FIX IS NOT TRUNCATION. A silently shortened quote that still
+    verifies is a true quote carrying a false claim: one of those two claims had
+    its measurement in the SECOND sentence, so a prefix would have read cleanly
+    and dropped the number the claim was about.
+
+    Args:
+        offenders: `(claim index, quote length)` per over-long quote. A length
+            of -1 means it could not be measured, and the line says so rather
+            than printing a number nobody counted.
+        others: already-formatted lines for faults that are NOT about length.
+            Carried rather than discarded - an earlier version fell back to the
+            generic message whenever anything else was also wrong, and lost the
+            specific instruction with it.
+        limit: `MAX_QUOTE_CHARS`, passed rather than imported so this module
+            stays free of the schema and can be called to render the text.
+    """
+    lines = [
+        f"{len(offenders)} of your quotes are longer than the {limit}-character "
+        "limit. Nothing else about your answer was wrong, and every other claim "
+        "was discarded only because these were rejected with them.",
+        "",
+    ]
+    for index, length in offenders:
+        over = length - limit if length > 0 else None
+        lines.append(
+            f"  claim {index}: the quote is {length} characters, "
+            f"{over} over the limit."
+            if over is not None
+            else f"  claim {index}: the quote is over the limit."
+        )
+    if others:
+        lines += [
+            "",
+            "These were also wrong, and are separate from the length problem:",
+            *others,
+        ]
+    lines += [
+        "",
+        "CHOOSE A SHORTER SPAN, do not shorten the text. Re-read the document and "
+        "pick a different, shorter run of characters that still carries the whole "
+        "claim - it may be one sentence of the passage you chose, and it may be "
+        "the SECOND sentence rather than the first. Do not trim, summarise or "
+        "abbreviate what you quoted: the quote is checked against the source by "
+        "exact substring match, so an edited quote fails and a truncated one can "
+        "lose the part that carried the claim.",
+        "",
+        "If no span under the limit carries the claim, drop that claim and keep "
+        "the others. Answer again with every claim you can still make.",
+    ]
+    return "\n".join(lines)

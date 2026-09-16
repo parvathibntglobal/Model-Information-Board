@@ -782,3 +782,68 @@ tbody tr:hover{background:var(--surface-2)}
 @media (prefers-reduced-motion:reduce){
   .disc > summary,.disc > summary::before{transition:none}
 }
+
+/* ── ADMIN: A SIDE PANEL, ONE SECTION AT A TIME ───────────────────────────
+   The operations page stacked four panels — Service, API usage, Collect
+   evidence, Board sections — so reaching the last one meant scrolling past
+   three, and each is a working surface rather than a summary. The nav makes
+   the four visible at once and gives each the whole page.
+
+   GRID, NOT FLOAT OR FIXED. The sidebar is a column that shrinks to a row
+   under 860px; nothing is position:fixed, so the page scrolls as one thing
+   and a long panel cannot trap the nav off-screen. */
+.adm{display:grid;grid-template-columns:var(--adm-nav,232px) minmax(0,1fr);
+     gap:var(--s4);align-items:start}
+
+/* FROZEN WHILE THE PANEL SCROLLS.
+   `top:88px` clears the app bar, which is `position:sticky;top:0` and 64px
+   tall — the same offset `.filters` already uses, rather than a second number
+   that drifts from it. The old `top:var(--s3)` stuck the nav UNDER the bar,
+   so it looked like it scrolled away.
+
+   `align-self:start` is what makes sticky work at all in a grid: an item
+   stretched to the row height has no room to travel inside its own area.
+   Stated here rather than relied on from the container's `align-items`, so
+   this keeps working if that changes.
+
+   `max-height` + `overflow-y` so a nav taller than the viewport scrolls
+   inside itself instead of having its last entries permanently unreachable. */
+.adm-nav{display:flex;flex-direction:column;gap:2px;position:sticky;
+         top:88px;align-self:start;min-width:0;
+         max-height:calc(100vh - 104px);overflow-y:auto;
+         scrollbar-width:thin}
+
+.adm-nav button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  width:100%;text-align:left;padding:10px 12px;border-radius:var(--r2);
+  border:1px solid transparent;background:transparent;color:var(--text-2);
+  font:inherit;cursor:pointer;transition:background .16s var(--ease),
+  color .16s var(--ease),border-color .16s var(--ease)}
+.adm-nav button:hover{background:var(--surface);color:var(--text)}
+.adm-nav button .t{font-size:var(--fs-sm);font-weight:600}
+.adm-nav button .d{font-size:11px;color:var(--text-3);line-height:1.35}
+
+/* The selected item, and it must be legible without colour alone — a left
+   rule plus weight, so it survives a monochrome display and a colour-blind
+   reader. */
+.adm-nav button[aria-current="page"]{background:var(--surface);color:var(--text);
+  border-color:var(--border);box-shadow:inset 3px 0 0 0 var(--text)}
+.adm-nav button[aria-current="page"] .d{color:var(--text-2)}
+
+.adm-body{min-width:0}
+
+/* ONE COLUMN UNDER 860px, and the nav becomes a scrolling row of chips.
+   `min-width:0` on the grid child is what stops a wide table inside a panel
+   from pushing the whole layout sideways. */
+@media (max-width:860px){
+  .adm{grid-template-columns:minmax(0,1fr)}
+  /* Everything the sticky column set is undone here, not just `position`:
+     a leftover `max-height` on a horizontal row would clip the chips. */
+  .adm-nav{position:static;flex-direction:row;gap:6px;overflow-x:auto;
+           overflow-y:visible;max-height:none;align-self:auto;
+           padding-bottom:4px;scrollbar-width:thin}
+  .adm-nav button{width:auto;flex:0 0 auto;border:1px solid var(--border);
+                  border-radius:999px;padding:7px 14px}
+  .adm-nav button .d{display:none}
+  .adm-nav button[aria-current="page"]{background:var(--text);color:var(--bg);
+    border-color:var(--text);box-shadow:none}
+}
