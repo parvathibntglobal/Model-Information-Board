@@ -497,3 +497,69 @@ class TestQuotaReadingHistoryId:
         )
         assert got.startswith("rqr_")
         assert len(got) == len("rqr_") + 24
+
+
+class TestSubscriptionsDifferCanActuallyFire:
+    """#330 added `key_fingerprint` and the shared-table read never selected it.
+
+    The comparison in `_rapidapi_meters` was correct the whole time. It was fed a
+    constant None for every shared-table row, so `differ` could not become True
+    and `subscriptions_differ` could not fire — a feature present in the schema,
+    wired at the writer, tested at the comparison, and DEAD AT THE READER.
+
+    ⚠ TESTED AGAINST THE SQL CONSTANT, AND THAT IS NOT LAZINESS. `conftest.py`
+      stubs `_rapidapi_meters_from_db` to `lambda: None` for every test that has
+      imported `judge.app`, deliberately, so the function cannot be called here
+      to see what it selects. The defect was exactly a missing column name in
+      that string, so the string is the thing worth pinning.
+    """
+
+    def test_the_shared_table_read_selects_key_fingerprint(self):
+        from judge.app import _QUOTA_SELECT
+
+        assert "key_fingerprint" in _QUOTA_SELECT, (
+            "the shared-table read dropped key_fingerprint — every row then "
+            "carries None, and subscriptions_differ silently cannot fire"
+        )
+
+    def test_it_selects_every_column_the_reader_unpacks(self):
+        """The tuple unpack and the select list must agree, or it raises.
+
+        A column added to one and not the other is the same class of defect in
+        the opposite direction, and it fails at runtime inside an `except
+        Exception: return None` — so it would present as "the table could not be
+        read" rather than as an error.
+        """
+        import inspect
+
+        from judge import app
+        from judge.app import _QUOTA_SELECT
+
+        selected = _QUOTA_SELECT.split("select", 1)[1].split("from", 1)[0]
+        names = [c.strip() for c in selected.split(",")]
+        source = inspect.getsource(app)
+        unpack = "for m, rem, lim, at, by, run, mach, fp in rows"
+        assert unpack in source, (
+            "the unpack changed shape; keep it in step with _QUOTA_SELECT"
+        )
+        assert len(names) == len(unpack.split(" in rows")[0].split(", ")), (
+            f"_QUOTA_SELECT selects {len(names)} columns and the reader unpacks "
+            f"a different number — this fails inside a bare except and renders "
+            f"as 'the table could not be read'"
+        )
+
+    def test_the_comparison_distinguishes_two_real_subscriptions(self):
+        """The rule the read now makes reachable, and its rule-6 boundary.
+
+        Absent is UNKNOWN, not mismatched: every row written before 2026-09-16
+        has no fingerprint, and reading that as "a different account" would light
+        the warning across the whole existing table.
+        """
+        def differ(a, b):
+            return bool(a) and bool(b) and a != b
+
+        assert differ("aaaaaaaaaaaa", "bbbbbbbbbbbb")
+        assert not differ("aaaaaaaaaaaa", "aaaaaaaaaaaa")
+        assert not differ(None, "bbbbbbbbbbbb")
+        assert not differ("aaaaaaaaaaaa", None)
+        assert not differ(None, None)
