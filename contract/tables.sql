@@ -1589,3 +1589,65 @@ COMMENT ON COLUMN rapidapi_quota.quota_limit IS
   'The denominator AS THIS READING STATED IT, or NULL when the response '
   'carried none. NEVER inherited from a previous reading: the arms are '
   'separately metered, so an inherited limit may belong to another meter.';
+
+
+CREATE TABLE IF NOT EXISTS rapidapi_quota_reading (
+  -- sha256 of meter|machine|run|observed_at|remaining|limit|reset|fingerprint.
+  -- Deterministic, so a replay is a no-op. MACHINE AND RUN ARE IN THE HASH for
+  -- spend_ledger's reason: two hosts can read the same counter in the same
+  -- instant and those are two real observations of a shared subscription.
+  id                  text PRIMARY KEY,
+
+  -- Which meter. NOT a foreign key to rapidapi_quota: that table holds only the
+  -- latest row per meter and may be pruned or rebuilt, and a history that can be
+  -- deleted by tidying the thing it is the history OF is not a history.
+  meter               text NOT NULL,
+
+  quota_remaining     bigint,
+  quota_limit         bigint,
+
+  -- Seconds remaining until this meter's window resets, as read. Carried from
+  -- the first row so the series can date window BOUNDARIES without a backfill -
+  -- a backfill could not supply it anyway, since the header was never stored.
+  quota_reset_seconds bigint,
+
+  -- WHAT THE ARM READ. Second resolution, same value as rapidapi_quota.read_at.
+  read_at             timestamptz NOT NULL,
+
+  -- WHEN THIS CALL RECORDED IT. Microseconds. See the header: this is what makes
+  -- two same-second readings two rows.
+  observed_at         timestamptz NOT NULL,
+
+  read_by             text NOT NULL,
+  source_run_id       text,
+  machine             text NOT NULL,
+
+  -- WHICH SUBSCRIPTION. Without it a series spanning a key change reads as one
+  -- counter that jumped, which is a wrong finding rather than a missing one.
+  -- NULL is "not recorded" and never "a different account" (rule 6), same
+  -- reading as 20260916T0930's column.
+  key_fingerprint     text,
+
+  recorded_at         timestamptz NOT NULL DEFAULT now(),
+
+  -- Same refusal as the latest-row table and as collect/usage.py: a reading with
+  -- neither figure is not a reading, and "no header" must never become "zero".
+  CONSTRAINT rapidapi_quota_reading_has_a_figure_ck
+    CHECK (quota_remaining IS NOT NULL OR quota_limit IS NOT NULL)
+);
+
+-- The series is always read per meter and in time order. Both questions this
+-- table exists for - consumption rate, and where a window boundary falls - are
+-- that scan.
+CREATE INDEX IF NOT EXISTS rapidapi_quota_reading_meter_read_at_idx
+  ON rapidapi_quota_reading (meter, read_at);
+
+COMMENT ON TABLE rapidapi_quota_reading IS
+  'Append-only history of RapidAPI quota header readings, one row per metered '
+  'call. rapidapi_quota holds the latest row per meter and keeps its '
+  'newest-reading-wins merge; this never updates and never deletes.';
+
+COMMENT ON COLUMN rapidapi_quota_reading.observed_at IS
+  'When this call recorded the reading, microsecond precision. Distinct from '
+  'read_at, which is second resolution: two calls in one second that read the '
+  'same figures must be two rows, because an unmoved counter is the signal.';

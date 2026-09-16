@@ -35,6 +35,7 @@ import os
 import socket
 import tempfile
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 #: The repo root — this file is `collect/usage.py`.
@@ -247,6 +248,20 @@ def record_rapidapi_quota(
         key_fp=record["key_fingerprint"],
         reset_seconds=reset_seconds,
     )
+    # THE HISTORY, AFTER THE LATEST ROW AND INDEPENDENT OF IT. Same best-effort
+    # contract: both are inside functions that never raise, and a metered
+    # request is already paid for by the time either runs.
+    #
+    # Deliberately NOT conditional on the upsert having applied. The upsert
+    # declines a reading older than the stored one (`read_at >`), and that
+    # reading is still a real observation of the counter - dropping it here
+    # would make the history agree with the latest row by throwing away exactly
+    # the rows that disagree.
+    _append_quota_reading(
+        meter=read_on, remaining=remaining, limit=limit,
+        read_at=record["at"], read_by=read_by, run_id=run_id,
+        key_fp=record["key_fingerprint"], reset_seconds=reset_seconds,
+    )
     return wrote
 
 
@@ -320,6 +335,90 @@ def reset_telemetry_backoff() -> None:
     the database is back — a backoff nobody can clear is a cache."""
     global _unreachable_until
     _unreachable_until = 0.0
+
+
+def quota_reading_id(
+    *, meter: str, machine_name: str, run_id: str | None, observed_at: str,
+    remaining: int | None, limit: int | None, reset_seconds: int | None,
+    key_fp: str | None,
+) -> str:
+    """A content id, so a replay is an append of nothing.
+
+    MACHINE AND RUN ARE IN THE HASH, for `spend_ledger`'s reason: two hosts can
+    read one shared counter in the same instant, and those are two real
+    observations rather than a duplicate.
+
+    `observed_at` RATHER THAN `read_at`, which is the deviation from
+    `spend_ledger` and the whole reason this function exists. `_now()` is second
+    resolution, so hashing `read_at` would give two calls in the same second
+    carrying the same figures one id - and `on conflict do nothing` would drop
+    the second. An unmoved counter between two calls is the consumption signal
+    this table is for, so that is the one row that must not be lost.
+
+    None is hashed as `-` rather than skipped: an absent limit and a limit of
+    zero must not reach the same id (rule 6, in the id).
+    """
+    parts = "|".join((
+        meter,
+        machine_name or "unknown-host",
+        run_id or "-",
+        observed_at,
+        "-" if remaining is None else str(remaining),
+        "-" if limit is None else str(limit),
+        "-" if reset_seconds is None else str(reset_seconds),
+        key_fp or "-",
+    ))
+    return "rqr_" + hashlib.sha256(parts.encode("utf-8")).hexdigest()[:24]
+
+
+def _append_quota_reading(
+    *, meter: str, remaining: int | None, limit: int | None,
+    read_at: str, read_by: str, run_id: str | None,
+    key_fp: str | None = None, reset_seconds: int | None = None,
+    url: str | None = None,
+) -> bool:
+    """Append one reading to the history. NEVER raises - same contract as above.
+
+    APPEND-ONLY, AND `do nothing` RATHER THAN `do update`. The latest-row table
+    resolves races by keeping the newest READING; this one keeps everything and
+    lets the reader decide. A history that updates is not one.
+
+    EVERY READING, INCLUDING ONES THE LATEST ROW REFUSED. See the caller: a
+    reading older than the stored one is still a real observation.
+    """
+    if remaining is None and limit is None:
+        return False
+    conn = _telemetry_connection(url)
+    if conn is None:
+        return False
+    try:
+        # MICROSECONDS, AND GENERATED HERE RATHER THAN PASSED IN. `read_at` is
+        # what the arm read and is second-resolution by design; this is when
+        # this call recorded it, and it is the field that makes two same-second
+        # readings two rows.
+        observed_at = datetime.now(UTC).isoformat()
+        mach = machine()
+        row_id = quota_reading_id(
+            meter=meter, machine_name=mach, run_id=run_id,
+            observed_at=observed_at, remaining=remaining, limit=limit,
+            reset_seconds=reset_seconds, key_fp=key_fp,
+        )
+        with conn:
+            conn.execute(
+                "insert into rapidapi_quota_reading "
+                "(id, meter, quota_remaining, quota_limit, quota_reset_seconds, "
+                " read_at, observed_at, read_by, source_run_id, machine, "
+                " key_fingerprint) "
+                "values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                "on conflict (id) do nothing",
+                (row_id, meter, remaining, limit, reset_seconds, read_at,
+                 observed_at, read_by, run_id, mach, key_fp),
+            )
+        return True
+    except Exception:
+        return False
+    finally:
+        conn.close()
 
 
 def _record_to_database(
