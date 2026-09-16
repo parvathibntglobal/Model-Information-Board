@@ -662,6 +662,10 @@ class XHarvester:
             # fingerprint must be of the key the request was actually made
             # with, or it identifies a subscription this reading is not of.
             api_key=key_for()[0],
+            # Same header, same arm-specific meter. X's own reset is a DIFFERENT
+            # boundary from Reddit's - separate subscriptions - so the two
+            # windows must be dated independently and never inherited.
+            reset_seconds=run.quota_reset_seconds,
         )
 
         if response.status_code == 429:

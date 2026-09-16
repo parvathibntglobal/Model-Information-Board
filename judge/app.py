@@ -2708,7 +2708,16 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
         "unit": "requests",
         "arm": read_on,
         "limits_status": (
-            f"RapidAPI sells the {arm_label} path as a monthly request quota. "
+            f"RapidAPI sells the {arm_label} path as a request quota per "
+            f"resetting window. THE WINDOW LENGTH IS NOT MEASURED and this "
+            f"line used to call it 'monthly'. What was read is TIME REMAINING, "
+            f"not a period: 23.893 days left on Reddit on 2026-08-18 and 19.04 "
+            f"on X on 2026-09-10 - and "
+            f"docs/measurements/reddit-rate-and-quota.md says plainly that one "
+            f"reading cannot give the length, being 'consistent with a 28-day "
+            f"window that began 2026-08-14 and with a 30-day window that began "
+            f"2026-08-12'. So anything costed as a monthly share is costed "
+            f"against an unestablished period (rule 7). "
             f"This is the last quota header {arm_article} {arm_label} fetch saw; it "
             f"moves "
             "only when a fetch runs, not on a schedule. The Reddit and X arms "
@@ -2879,13 +2888,19 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
         # METER the figure belongs to, and a reading is meaningless without it.
         # The gateway meters the key; there are two keys.
         #
-        # ⚠ AND THE STORE IS STILL ONE SLOT, which is the defect this field now
-        #   exposes rather than fixes. `var/rapidapi-quota.json` holds ONE
-        #   record, so a Reddit reading and an X reading overwrite each other
-        #   and the page shows whichever landed last under a heading that reads
-        #   as "the quota". Keying the store by `read_on` is the fix; until it
-        #   lands, treat this panel as one arm's reading and check this field
-        #   before quoting the number.
+        # ⚠ THE ONE-SLOT DEFECT IS FIXED, and this comment said otherwise for
+        #   six days. It read "the store is STILL ONE SLOT ... treat this panel
+        #   as one arm's reading" - true when written, and false from the moment
+        #   the store was keyed by arm. `collect/usage.py` now holds one record
+        #   per meter in `meters[read_on]` and `rapidapi_quota` has `meter` as
+        #   its PRIMARY KEY, so a Reddit reading and an X reading no longer
+        #   overwrite each other. Verified 2026-09-16: two rows, reddit and x,
+        #   carrying 1,000,000 and 100,000.
+        #
+        #   Left as a correction rather than deleted, because the instruction it
+        #   gave - "treat this panel as one arm's reading" - is the opposite of
+        #   what the panel now does, and anyone who read it once should see that
+        #   it was retracted rather than find it quietly gone.
         #
         # A record written before this field existed reports None, which means
         # the path is UNRECORDED and not that nothing read it.

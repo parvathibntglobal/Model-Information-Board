@@ -240,6 +240,31 @@ class RegistrySurfaceResolver:
         # Refusing rounds nothing down. `Opus 4.8` against a registry holding
         # only `opus-4` is a claim about a model we do not track, and a counted
         # drop is what that is. Silently filing it under `opus-4` was the defect.
+        #
+        # ⚠ THE FIRST EXAMPLE STOPPED BEING TRUE ON 2026-09-16, AND NO CODE
+        # CHANGED. `GPT-5.6 Sol Ultra` now resolves to `openai/gpt-5.6-sol`:
+        #
+        #   gpt56solultra    match gpt56sol      next `u`  -> RESOLVE
+        #
+        # The registry grew. When this was written the longest match was `gpt5`
+        # and the next character was the `6` that fires the guard. The 5.6 family
+        # arrived in `model_version`, `build_population` derives from it, so the
+        # match got longer and the character after it is now a letter. The guard
+        # is unchanged and correct on its own terms; its INPUT moved.
+        #
+        # Worth naming as its own failure mode: a comment made false by DATA
+        # rather than by an edit. Nothing in a diff, a review or a test suite
+        # looks at it - the example is prose, the population is a query, and the
+        # two are only compared by a person reading both. That is also why the
+        # example is kept above rather than rewritten into something currently
+        # true: the next model to land re-breaks whatever we put there.
+        #
+        # It costs nothing TODAY - no `gpt-5.6-sol-ultra` is in the registry, so
+        # the string is hypothetical. It stops costing nothing the moment a
+        # vendor ships a suffix that is not a digit onto a name we already seat.
+        # The durable fix is a boundary test rather than a digit test, and that
+        # is a re-measurement (the 1,641-document rule in `entity.py`), not a
+        # one-line change - so it is named here and not taken.
         if not exact:
             at = needle.find(key)
             if at >= 0 and needle[at + len(key):at + len(key) + 1].isdigit():

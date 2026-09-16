@@ -713,6 +713,10 @@ class RedditHarvester:
             # WHOSE COUNTER, hashed on the way in and never stored. The reading
             # is of a SUBSCRIPTION; `machine` beside it is only who saw it.
             api_key=settings().rapidapi_key,
+            # WHEN THIS METER ROLLS. Parsed here since the first probe and
+            # dropped at the writer until 2026-09-16, which is why the window
+            # LENGTH is still unmeasured while the panel says "monthly".
+            reset_seconds=run.quota_reset_seconds,
         )
 
         if response.status_code == 429:

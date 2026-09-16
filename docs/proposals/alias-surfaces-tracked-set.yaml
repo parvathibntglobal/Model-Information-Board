@@ -877,4 +877,44 @@ proposals:
     # ⚠ THE BARE `k3` IS DELIBERATELY ABSENT. It matches "K3" in unrelated
     #   prose and carries no vendor, which is the collision `deepseek v4` was
     #   left out for above.
+  - canonical_id: openai/gpt-5.6-sol
+    status: attested
+    seated_by: attested               # hand-added 2026-09-16, after the header's generation; the corpus attests this model
+    surface: gpt 5.6 sol        # attested 119 documents, 189 mentions [reddit 172, blog 9, github 5, hackernews 2, devto 1]
+    variants:
+      - gpt-5.6 sol                   # attested, 59 of the 175 literal spellings
+      - gpt-5.6-sol                   # attested, 14 of the 175
+      - gpt5.6sol                     # attested, 11 of the 175; folds to the same normalized key
+    # ── THE DISAMBIGUATION SLOT WAS WITHDRAWN AND REMOVED, 2026-09-16 ──────
+    # It was added on the claim that resolution is normalized-substring, so
+    # seating Sol alone would resolve Sol-Pro mentions to Sol. MEASURED against
+    # the live population 2026-09-16, and that claim is FALSE.
+    #
+    # `RegistrySurfaceResolver` matches EXACT normalized key first and falls
+    # back to containment only on a miss, and it builds its population from
+    # `model_version`, NOT from `model_alias`. Both models are already distinct
+    # keys with one owner each, today, with zero aliases seated:
+    #
+    #   gpt56sol     -> ('openai/gpt-5.6-sol',)      'GPT-5.6 Sol Pro' resolves
+    #   gpt56solpro  -> ('openai/gpt-5.6-sol-pro',)  correctly. ambiguous: {}
+    #
+    # So attribution never depended on seating - which is why this model already
+    # has 5 board entries and 2 cells with no aliases. Seating buys the harvest's
+    # search queries and the E5 ordering weight, and nothing about identity.
+    # There is no hazard left to settle: seat Sol alone, Sol with Sol-Pro, or the
+    # whole family, on harvest-coverage grounds.
+    #
+    # Withdrawn by E1/E2 on the measurement below and the slot removed, so this
+    # entry is seatable. `family_surface` remains, and never blocks.
+    #
+    # Live edge, not a blocker: `GPT-5.6 Sol Ultra` resolves to Sol. The digit
+    # guard that refuses `gpt 5.6` does not fire (next char `u`, not a digit).
+    # No such model is in the registry, so it costs nothing today.
+    #
+    # The bare `5.6 sol` (21 documents) is deliberately NOT a variant above: it
+    # is one token from every other 5.6 model.
+    #
+    # Counts are measured over 8,848 documents readable on one machine of the
+    # 12,779 carrying a text_ref, so each is a FLOOR (see #321).
+    # Argument and method: docs/proposals/for-the-team-seating-gpt-5-6-sol.md
     incomplete: [family_surface]
