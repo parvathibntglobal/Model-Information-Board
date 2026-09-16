@@ -2575,15 +2575,37 @@ def _rapidapi_meters() -> dict[str, dict]:
     # subscription, and dropping it would make "this machine has never
     # fetched" and "this machine fetched earlier" render identically - which
     # is the same collapse rule 4 forbids one layer up.
+    # ⚠ AND THEY ARE ONLY COMPARABLE IF THEY ARE READINGS OF THE SAME
+    #   SUBSCRIPTION, WHICH NOTHING CHECKED UNTIL 2026-09-16.
+    #
+    #   `meter` says WHICH counter (reddit or x). It does not say WHOSE. The
+    #   board is hosted, so a run starts from any browser, and `x.py:key_for`
+    #   falls back `X_RAPIDAPI_KEY` -> `RAPIDAPI_KEY` - so two hosts with
+    #   different env read different accounts on the same arm. Merged by
+    #   recency, the fresher of two unrelated counters simply wins and the
+    #   number moves for no reason a reader can see.
+    #
+    #   `key_fingerprint` is sha256(key)[:12] and is what makes that checkable.
+    #   A DISAGREEMENT IS SHOWN, NOT RESOLVED: picking one would be asserting
+    #   that one of two real subscriptions is the real one.
+    #
+    #   ABSENT IS UNKNOWN, NOT MISMATCHED (rule 6). Every row written before
+    #   today has no fingerprint, and reading that as "a different account"
+    #   would light this warning across the whole existing table.
     for meter, row in (_rapidapi_meters_from_db() or {}).items():
         row = {**row, "source": "shared table"}
         held = local.get(meter)
         if held is None:
             local[meter] = row
-        elif str(row.get("at") or "") > str(held.get("at") or ""):
+            continue
+        a, b = row.get("key_fingerprint"), held.get("key_fingerprint")
+        differ = bool(a) and bool(b) and a != b
+        if str(row.get("at") or "") > str(held.get("at") or ""):
             local[meter] = {**row, "also_held": held}
         else:
             local[meter] = {**held, "also_held": row}
+        if differ:
+            local[meter]["subscriptions_differ"] = True
     return local
 
 
@@ -2752,7 +2774,18 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
               "number, shown with the date it was taken"
         ),
         "reading_source": source,
+        # WHO OBSERVED IT. Provenance, and the panel now says so in those words
+        # - it used to lead with this line, which read as though a laptop owned
+        # the counter. The board is hosted: anybody signed in spends this quota.
         "reading_machine": taken_on,
+        # WHOSE COUNTER. sha256(key)[:12], never the key. None on readings taken
+        # before 2026-09-16 or with no credential - "not recorded", never "a
+        # different account".
+        "key_fingerprint": rec.get("key_fingerprint"),
+        # SET ONLY WHEN TWO READINGS NAME DIFFERENT SUBSCRIPTIONS, in which case
+        # they are not a stale/fresh pair and the panel must not present them as
+        # one counter. Absent fingerprints never set it (rule 6).
+        "subscriptions_differ": bool(rec.get("subscriptions_differ")),
         # THE READING THIS ONE BEAT, kept rather than dropped. On a shared
         # subscription a stale local figure beside a fresher shared one is the
         # NORMAL case and not an error; the panel names both so a reader can
@@ -2764,6 +2797,7 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
                 "as_of": other.get("at"),
                 "source": other.get("source"),
                 "machine": other.get("machine"),
+                "key_fingerprint": other.get("key_fingerprint"),
                 "why_not_shown": (
                     "an older reading of the same meter. The quota only "
                     "decreases, so the newest reading is the truest one - this "

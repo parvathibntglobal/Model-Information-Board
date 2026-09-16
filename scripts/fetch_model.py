@@ -699,9 +699,21 @@ def _write_rapidapi_quota(remaining: int | None, limit: int | None, run_id: str,
     """
     from collect.usage import record_rapidapi_quota
 
+    # WHICH SUBSCRIPTION THIS READING IS OF, picked the way the arm that made
+    # the request picks it. Reddit has one candidate; X falls back
+    # X_RAPIDAPI_KEY -> RAPIDAPI_KEY, and `key_for()` is the only thing that
+    # knows which one answered. Hashed inside `record_rapidapi_quota` and never
+    # stored - see `collect/usage.py:key_fingerprint`.
+    if read_on == "x":
+        from collect.adapters.x import key_for
+        api_key = key_for()[0]
+    else:
+        from collect.config import settings as _settings
+        api_key = _settings().rapidapi_key
+
     record_rapidapi_quota(
         remaining=remaining, limit=limit, read_on=read_on,
-        read_by="harvest", run_id=run_id,
+        read_by="harvest", run_id=run_id, api_key=api_key,
     )
 
 

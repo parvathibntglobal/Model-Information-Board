@@ -198,3 +198,101 @@ class TestTheFetchWriter:
         self._redirect(monkeypatch, tmp_path)
         fm._write_rapidapi_quota(None, None, "mv_x", read_on="reddit")
         assert not (tmp_path / "var" / "rapidapi-quota.json").exists()
+
+
+class TestTheQuotaBelongsToASubscriptionNotAMachine:
+    """The panel opened "Showing the shared table reading, taken on ANOOJ…".
+
+    That reads as though a laptop owned the counter. It does not: the board is
+    hosted, anybody signed in can start a fetch, and it draws down one RapidAPI
+    subscription whoever clicked. Parvathi, 2026-09-16 — *"anybody logged in can
+    do the fetch run so rely on api key usage and not machines"*.
+
+    `meter` was already the row identity and that was right. What was missing is
+    WHOSE counter, so two hosts reading different accounts on the same arm
+    merged by recency and the number moved for no visible reason.
+    """
+
+    def test_the_fingerprint_is_not_the_key(self):
+        from collect.usage import key_fingerprint
+
+        key = "abcdef0123456789-a-real-looking-rapidapi-key"
+        fp = key_fingerprint(key)
+        assert fp and key not in fp and fp not in key, (
+            "a fingerprint that contains the key, or is contained by it, is a "
+            "credential in a shared table and on a page"
+        )
+        assert len(fp) == 12 and all(c in "0123456789abcdef" for c in fp)
+
+    def test_it_is_stable_and_distinguishing(self):
+        from collect.usage import key_fingerprint
+
+        assert key_fingerprint("one") == key_fingerprint("one")
+        assert key_fingerprint("one") != key_fingerprint("two"), (
+            "two subscriptions must not fingerprint alike, or the check this "
+            "exists for cannot fire"
+        )
+
+    def test_no_key_is_none_rather_than_a_hash_of_nothing(self):
+        """A reading taken with no credential is of no subscription.
+
+        `sha256("")` is a real string and would read as an identity, quietly
+        grouping every credential-less reading under one made-up account.
+        """
+        from collect.usage import key_fingerprint
+
+        for empty in (None, "", "   "):
+            assert key_fingerprint(empty) is None
+
+    def test_two_different_subscriptions_are_flagged_not_merged(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(app_module, "_REPO_ROOT", tmp_path)
+        (tmp_path / "var").mkdir()
+        (tmp_path / "var" / "rapidapi-quota.json").write_text(json.dumps({"meters": {
+            "reddit": {"quota_remaining": 10, "quota_limit": 100,
+                       "at": "2026-09-16T08:00:00Z", "read_on": "reddit",
+                       "key_fingerprint": "aaaaaaaaaaaa"},
+        }}), encoding="utf-8")
+        monkeypatch.setattr(app_module, "_rapidapi_meters_from_db", lambda: {
+            "reddit": {"quota_remaining": 90, "quota_limit": 1000,
+                       "at": "2026-09-16T09:00:00Z", "read_on": "reddit",
+                       "machine": "OTHER", "key_fingerprint": "bbbbbbbbbbbb"},
+        })
+        got = app_module._rapidapi_meters()["reddit"]
+        assert got.get("subscriptions_differ") is True, (
+            "two readings of two accounts are not a stale/fresh pair; the "
+            "fresher must not silently become 'the' figure"
+        )
+        assert got.get("also_held"), "the loser is still kept, not dropped"
+
+    def test_an_absent_fingerprint_is_unknown_not_a_mismatch(self, monkeypatch, tmp_path):
+        """Rule 6, and it matters: every row written before today has none.
+
+        Reading absent as "different" would light the warning across the whole
+        existing table on the day this shipped.
+        """
+        monkeypatch.setattr(app_module, "_REPO_ROOT", tmp_path)
+        (tmp_path / "var").mkdir()
+        (tmp_path / "var" / "rapidapi-quota.json").write_text(json.dumps({"meters": {
+            "reddit": {"quota_remaining": 10, "quota_limit": 100,
+                       "at": "2026-09-16T08:00:00Z", "read_on": "reddit"},
+        }}), encoding="utf-8")
+        monkeypatch.setattr(app_module, "_rapidapi_meters_from_db", lambda: {
+            "reddit": {"quota_remaining": 90, "quota_limit": 100,
+                       "at": "2026-09-16T09:00:00Z", "read_on": "reddit",
+                       "machine": "OTHER", "key_fingerprint": "bbbbbbbbbbbb"},
+        })
+        got = app_module._rapidapi_meters()["reddit"]
+        assert not got.get("subscriptions_differ")
+
+    def test_the_panel_no_longer_leads_with_the_machine(self):
+        """The caption's SUBJECT is the counter; the machine is provenance."""
+        panel = (app_module._REPO_ROOT / "web" / "src" / "components"
+                 / "UsagePanel.jsx").read_text(encoding="utf-8")
+        assert "shared {readOn === 'x' ? 'X' : 'Reddit'} subscription" in panel
+        assert "not who spent it" in panel, (
+            "the machine line must say what it is — who read the number — or "
+            "it reads as ownership again"
+        )
+        assert "Showing the{' '}" not in panel, (
+            "the old machine-first caption is the defect"
+        )

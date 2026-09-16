@@ -1131,10 +1131,20 @@ columns:
       reviewed: false
       state: read
   rapidapi_quota:
+    key_fingerprint:
+      reviewed: true
+      state: read
+      why: selected and rendered; sha256(api key)[:12] and never the key. `meter` says WHICH counter,
+        this says WHOSE - the board is hosted so a run starts from any browser, and two hosts with
+        different env can read different accounts on the same arm. The reader compares it and refuses
+        to present two subscriptions as one counter. NULL is "not recorded" (pre-2026-09-16 rows, or
+        a reading taken with no credential) and never "a different account"
     machine:
       reviewed: true
       state: read
-      why: selected; which host took the reading
+      why: selected; which host OBSERVED the reading - provenance, not ownership. The quota belongs to
+        the subscription named by key_fingerprint; the panel led with this column until 2026-09-16 and
+        so read as though a laptop owned the counter
     meter:
       reviewed: true
       state: read

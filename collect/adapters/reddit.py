@@ -710,6 +710,9 @@ class RedditHarvester:
             remaining=run.quota_remaining,
             limit=run.quota_limit,
             read_on=SOURCE_ID,
+            # WHOSE COUNTER, hashed on the way in and never stored. The reading
+            # is of a SUBSCRIPTION; `machine` beside it is only who saw it.
+            api_key=settings().rapidapi_key,
         )
 
         if response.status_code == 429:

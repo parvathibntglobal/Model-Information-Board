@@ -564,37 +564,70 @@ function RapidApiTab({ rapid, which }) {
           ? `${n(used)} of ${n(limit)} requests is the spend.`
           : `${n(remaining)} requests remaining is what the gateway last reported.`}
       </span>
-      {/* WHICH MACHINE AND WHICH STORE. The subscription is shared and the
-          local file is a cache, so the freshest reading is often somebody
-          else's. Until 2026-09-11 the caption named this machine's file
-          unconditionally while `_rapidapi_meters` had already merged the
-          shared table in — so another laptop's figure rendered under a line
-          claiming it was local. */}
+      {/* ⚠ THE COUNTER BELONGS TO A SUBSCRIPTION, NOT TO A MACHINE, AND THIS
+          CAPTION USED TO LEAD WITH THE MACHINE.
+
+          It opened "Showing the shared table reading, taken on ANOOJ…", which
+          reads as though a laptop owned the quota. It does not. The board is
+          hosted: anybody signed in can start a fetch, and it draws down one
+          RapidAPI subscription whoever clicked. Parvathi, 2026-09-16 — "anybody
+          logged in can do the fetch run so rely on api key usage and not
+          machines".
+
+          So the subject is the meter and its subscription; the machine is
+          demoted to what it always was — who happened to observe the number.
+          `key_fingerprint` is sha256(key)[:12], never the key, and it is the
+          only thing on this row that identifies the counter. */}
       <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-        Showing the{' '}
+        This is one{' '}
+        <strong style={{ color: 'var(--text)' }}>
+          shared {readOn === 'x' ? 'X' : 'Reddit'} subscription
+        </strong>
+        {rapid.key_fingerprint ? (
+          <> (<span className="mono">{rapid.key_fingerprint}</span>)</>
+        ) : null}
+        , drawn down by everyone who runs a fetch — the board is hosted, so the
+        machine below is who <em>read</em> the number, not who spent it.
+      </span>
+
+      {/* A DISAGREEMENT IS SHOWN, NOT RESOLVED. Two readings of two different
+          subscriptions are not a stale-versus-fresh pair, and picking the newer
+          would assert that one of two real counters is the real one. */}
+      {rapid.subscriptions_differ && (
+        <span className="dim" style={{ fontSize: 'var(--fs-xs)', color: 'var(--warn)' }}>
+          <strong>These two readings are of different subscriptions.</strong>{' '}
+          Their key fingerprints do not match, so the figure above is one
+          account's and the one below is another's. They are not a stale reading
+          beside a fresh one and must not be read as a single counter — check
+          which <span className="mono">RAPIDAPI_KEY</span> each host is using.
+        </span>
+      )}
+
+      <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+        Reading taken from the{' '}
         <strong style={{ color: 'var(--text)' }}>
           {rapid.reading_source === 'shared table'
             ? 'shared table'
-            : "this machine's"}
-        </strong>{' '}
-        reading, taken on{' '}
-        <strong style={{ color: 'var(--text)' }}>
-          {rapid.reading_machine || 'an unrecorded machine'}
-        </strong>{' '}
-        at {rapid.as_of || 'an unrecorded time'}.
+            : "this machine's cache"}
+        </strong>
+        , observed by {rapid.reading_machine || 'an unrecorded machine'} at{' '}
+        {rapid.as_of || 'an unrecorded time'}.
         {rapid.also_held ? (
           <>
-            {' '}The other store holds{' '}
-            {n(rapid.also_held.quota_remaining)} remaining from{' '}
+            {' '}The other store holds {n(rapid.also_held.quota_remaining)}{' '}
+            remaining, observed by{' '}
             {rapid.also_held.machine || 'an unrecorded machine'} at{' '}
-            {rapid.also_held.as_of || 'an unrecorded time'} — older, and shown
-            because a stale local reading beside a fresher shared one is the
-            normal case on a shared subscription, not a disagreement to resolve.
+            {rapid.also_held.as_of || 'an unrecorded time'}
+            {rapid.subscriptions_differ
+              ? ' — a different subscription, see above.'
+              : ' — older, and shown because a stale cached reading beside a'
+                + ' fresher shared one is the normal case on one shared'
+                + ' counter, not a disagreement to resolve.'}
           </>
         ) : rapid.reading_source === 'shared table' ? (
-          <> This machine has no reading of its own for this meter.</>
+          <> This machine has no cached reading of its own for this meter.</>
         ) : (
-          <> No other machine has recorded this meter.</>
+          <> Nothing has recorded this meter to the shared table yet.</>
         )}
       </span>
       <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
