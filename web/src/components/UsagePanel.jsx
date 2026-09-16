@@ -220,10 +220,16 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
           // The population this figure was drawn from, on hover rather than in
           // prose. It was a sentence under the panel saying "nothing is
           // missing" on every healthy render.
+          //
+          // ⚠ THE COUNT, NOT THE ROSTER. This used to append the hostnames -
+          //   "ANOOJ, LenovoPB" beside four container ids - which is rule 7's
+          //   denominator answered with a guest list. The count IS the
+          //   denominator; the names were never acted on and this is a web
+          //   page. `spend_ledger.machine` still records them.
           title={
-            basis?.complete && basis.machines?.length
-              ? `Ledger totals cover ${basis.machines.length} machine${
-                  basis.machines.length === 1 ? '' : 's'}: ${basis.machines.join(', ')}`
+            basis?.complete && basis.machine_count
+              ? `Ledger totals cover ${basis.machine_count} host${
+                  basis.machine_count === 1 ? '' : 's'}`
               : undefined
           }
         />
@@ -316,7 +322,7 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
           panel is built to avoid. */}
       {basis && !basis.complete && (
         <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-          <strong>This machine only ({basis.this_machine}).</strong> The shared
+          <strong>This machine only.</strong> The shared
           ledger could not be read, so every figure here is a floor &mdash; other
           machines&rsquo; spend is missing from it, not absent.
         </span>
@@ -610,13 +616,13 @@ function RapidApiTab({ rapid, which }) {
             ? 'shared table'
             : "this machine's cache"}
         </strong>
-        , observed by {rapid.reading_machine || 'an unrecorded machine'} at{' '}
+        , read by {rapid.reading_host || 'an unrecorded host'} at{' '}
         {rapid.as_of || 'an unrecorded time'}.
         {rapid.also_held ? (
           <>
             {' '}The other store holds {n(rapid.also_held.quota_remaining)}{' '}
-            remaining, observed by{' '}
-            {rapid.also_held.machine || 'an unrecorded machine'} at{' '}
+            remaining, read by{' '}
+            {rapid.also_held.host || 'an unrecorded host'} at{' '}
             {rapid.also_held.as_of || 'an unrecorded time'}
             {rapid.subscriptions_differ
               ? ' — a different subscription, see above.'

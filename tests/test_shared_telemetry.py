@@ -411,12 +411,34 @@ class TestTheBackfillIsIdempotent:
 
 
 class TestTheTotalTravelsWithItsPopulation:
-    def test_the_payload_names_the_machines(self):
+    def test_the_payload_counts_the_machines(self):
+        """Rule 7 is satisfied by the COUNT. The roster was answering nothing.
+
+        ⚠ THIS TEST USED TO REQUIRE THE NAMES, and it was right about the rule
+          and wrong about what satisfies it. It asserted `"machines"` and
+          `"this_machine"` were in the payload, so the denominator travelled -
+          but a denominator is a NUMBER, and the roster shipped six hostnames
+          including two personal ones onto a hosted admin page.
+
+          Parvathi asked for them gone on 2026-09-16, for the second time: the
+          first ask moved the roster into a tooltip, which still rendered it on
+          hover. So the property to pin is "the total travels with its
+          population SIZE", and the absence of the names is now part of it.
+
+        `complete` stays because a floor reported as a total is the error this
+        whole panel exists to avoid, and that is a different claim from how many
+        hosts contributed.
+        """
         src = (ROOT / "judge" / "app.py").read_text(encoding="utf-8")
         block = src[src.index('"basis": {'):]
         block = block[: block.index('"cap": {')]
-        for field in ('"complete"', '"machines"', '"machine_count"', '"this_machine"'):
+        for field in ('"complete"', '"machine_count"'):
             assert field in block, field
+        for gone in ('"machines": list(', '"this_machine"'):
+            assert gone not in block, (
+                f"{gone} puts a hostname in a payload that feeds a web page; "
+                "the count is the denominator"
+            )
 
     def test_an_incomplete_total_says_it_is_a_floor(self):
         src = (ROOT / "judge" / "app.py").read_text(encoding="utf-8")

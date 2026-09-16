@@ -2069,11 +2069,27 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
         # every machine when the table is readable, one laptop when it is not.
         # `complete` false means the number is a FLOOR and the page must say so
         # rather than render a smaller figure in the same type as a whole one.
+        # ⚠ NO MACHINE NAME LEAVES THIS ENDPOINT. The count is the figure rule 7
+        #   asks for; the NAMES were never used for anything a reader acts on,
+        #   and this is a web page. `machines` sent the whole roster - two
+        #   personal hostnames beside four container ids - and `this_machine`
+        #   named the host serving the page.
+        #
+        #   Parvathi, 2026-09-16: "do you think on a web admin page is it oky to
+        #   show up these names? cant you remove this or any machine name from
+        #   being showed up?"
+        #
+        #   ⚠ AND THIS IS THE SECOND ASK. The first removed one line - "Ledger
+        #     totals cover all 2 machines (ANOOJ, LenovoPB)" - by moving the
+        #     roster into a tooltip, which kept rendering the names on hover and
+        #     left four other sites untouched. Fixing the instance and not the
+        #     class is why it came back.
+        #
+        #   The columns stay in the database. Provenance is worth having and is
+        #   queryable; what it is not is something to publish.
         "basis": {
             "complete": report.db_readable,
-            "machines": list(report.machines),
             "machine_count": len(report.machines),
-            "this_machine": spend_ledger.machine(),
             "note": (
                 f"every machine that has recorded — {len(report.machines)} so far"
                 if report.db_readable
@@ -2524,6 +2540,18 @@ def _whole_key_spend() -> dict:
     }
 
 
+def _this_machine_name() -> str:
+    """This host's name, used ONLY to compute a relation and never rendered.
+
+    `reading_host` says "this machine" or "another host"; the comparison needs
+    the name and the page does not. Kept as a one-line helper so the two call
+    sites cannot drift, and so the name has exactly one place it is read.
+    """
+    from judge.spend_ledger import machine as _m
+
+    return _m()
+
+
 def _rapidapi_meters() -> dict[str, dict]:
     """Every arm's latest quota reading, keyed by `read_on`. `{}` when none.
 
@@ -2762,22 +2790,31 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
     source = str(rec.get("source") or "this machine")
     taken_on = str(rec.get("machine") or "an unrecorded machine")
     shared = source == "shared table"
+    #: "this machine" / "another host" — the relation, never the name.
+    here_or_there = ("this machine" if taken_on == _this_machine_name()
+                     else "another host")
     return {
         **base,
+        # ⚠ THE PROSE CARRIED THE HOSTNAME TOO, which is how it survived the
+        #   first pass: the field-by-field sweep found `reading_machine` and
+        #   missed a sentence with a name inside it. A test now greps the WHOLE
+        #   payload rather than the fields it thought of.
         "source_of_record": (
-            (f"the shared `rapidapi_quota` table, meter '{read_on}', last written "
-             f"from {taken_on}"
+            (f"the shared `rapidapi_quota` table, meter '{read_on}', last "
+             f"written from {here_or_there}"
              if shared else
-             f"this machine's var/rapidapi-quota.json, meters['{read_on}'], "
-             f"written on {taken_on}")
+             f"this machine's var/rapidapi-quota.json, meters['{read_on}']")
             + " from RapidAPI's x-ratelimit-* headers - the provider's own "
               "number, shown with the date it was taken"
         ),
         "reading_source": source,
-        # WHO OBSERVED IT. Provenance, and the panel now says so in those words
-        # - it used to lead with this line, which read as though a laptop owned
-        # the counter. The board is hosted: anybody signed in spends this quota.
-        "reading_machine": taken_on,
+        # ⚠ THE RELATION, NOT THE NAME. "this machine" or "another host" is the
+        #   whole of what a reader acts on - is my cached figure the stale one,
+        #   or somebody else's - and it is the only part that survives onto a
+        #   web page. The hostname itself said "ANOOJ" on an admin screen and
+        #   bought nothing; `rapidapi_quota.machine` still records it.
+        "reading_host": ("this machine" if taken_on == _this_machine_name()
+                         else "another host"),
         # WHOSE COUNTER. sha256(key)[:12], never the key. None on readings taken
         # before 2026-09-16 or with no credential - "not recorded", never "a
         # different account".
@@ -2796,7 +2833,9 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
                 "quota_limit": other.get("quota_limit"),
                 "as_of": other.get("at"),
                 "source": other.get("source"),
-                "machine": other.get("machine"),
+                "host": ("this machine"
+                         if other.get("machine") == _this_machine_name()
+                         else "another host"),
                 "key_fingerprint": other.get("key_fingerprint"),
                 "why_not_shown": (
                     "an older reading of the same meter. The quota only "

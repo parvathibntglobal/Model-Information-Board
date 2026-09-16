@@ -296,3 +296,104 @@ class TestTheQuotaBelongsToASubscriptionNotAMachine:
         assert "Showing the{' '}" not in panel, (
             "the old machine-first caption is the defect"
         )
+
+
+class TestNoMachineNameReachesTheAdminPage:
+    """The panel printed "observed by ANOOJ" on a hosted admin screen.
+
+    Parvathi, 2026-09-16: *"do you think on a web admin page is it oky to show
+    up these names? cant you remove this or any machine name from being showed
+    up?"*
+
+    ⚠ THIS WAS THE SECOND ASK. The first removed one line — "Ledger totals cover
+      all 2 machines (ANOOJ, LenovoPB)" — by moving the roster into a `title`
+      tooltip, which still rendered the names on hover and left four other sites
+      alone. Fixing the instance rather than the class is why it came back, so
+      these pin the CLASS: no hostname on the page, from any field.
+
+    The database columns are untouched. Provenance is worth recording and is
+    queryable; what it is not is something to publish.
+    """
+
+    NAME_FIELDS = ("reading_machine", "this_machine")
+
+    def test_the_payload_sends_a_relation_not_a_hostname(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(app_module, "_REPO_ROOT", tmp_path)
+        (tmp_path / "var").mkdir()
+        (tmp_path / "var" / "rapidapi-quota.json").write_text(json.dumps({"meters": {
+            "reddit": {"quota_remaining": 10, "quota_limit": 100,
+                       "at": "2026-09-16T08:00:00Z", "read_on": "reddit"},
+        }}), encoding="utf-8")
+        monkeypatch.setattr(app_module, "_rapidapi_meters_from_db", lambda: {})
+        got = _rapidapi_quota("reddit")
+        assert got.get("reading_host") in ("this machine", "another host")
+        for field in self.NAME_FIELDS:
+            assert field not in got, (
+                f"{field} carries a hostname and this payload feeds a web page"
+            )
+
+    def test_the_spend_basis_sends_a_count_and_not_a_roster(self):
+        """`machines` shipped the whole guest list — two personal hostnames.
+
+        The COUNT is the denominator rule 7 asks for. The names answered a
+        different question nobody was asking.
+        """
+        import inspect
+
+        source = inspect.getsource(app_module)
+        assert '"machines": list(report.machines),' not in source
+        assert '"machine_count": len(report.machines),' in source, (
+            "the count must stay — dropping it too would remove the "
+            "denominator, which is a different defect"
+        )
+
+    def test_the_panel_reads_no_name_field(self):
+        panel = (app_module._REPO_ROOT / "web" / "src" / "components"
+                 / "UsagePanel.jsx").read_text(encoding="utf-8")
+        live = "\n".join(
+            line for line in panel.splitlines()
+            if not line.lstrip().startswith(("//", "*", "/*"))
+        )
+        for field in ("reading_machine", "basis.machines", "this_machine",
+                      "also_held.machine"):
+            assert field not in live, (
+                f"{field} renders a hostname; the page shows a relation instead"
+            )
+
+    def test_the_relation_is_what_a_reader_actually_acts_on(self):
+        """Removing the name must not remove the meaning.
+
+        "is my cached figure the stale one, or is somebody else's fresher" is
+        the only thing the hostname was ever used to answer, and it survives.
+        """
+        panel = (app_module._REPO_ROOT / "web" / "src" / "components"
+                 / "UsagePanel.jsx").read_text(encoding="utf-8")
+        assert "reading_host" in panel and "also_held.host" in panel
+
+    def test_no_hostname_survives_anywhere_in_the_payload(self, monkeypatch, tmp_path):
+        """⚠ THE FIELD-BY-FIELD CHECK ABOVE MISSED ONE, so this greps the lot.
+
+        The first pass swept for fields whose NAME contained "machine" and
+        cleared them. `source_of_record` is a prose sentence and read "...last
+        written from ANOOJ", so the hostname shipped anyway - found by dumping
+        the whole payload to JSON and searching it as text, which is the check
+        that does not depend on my guessing the field names.
+
+        A name can appear in any string, so the test has to be over all of them.
+        """
+        monkeypatch.setattr(app_module, "_REPO_ROOT", tmp_path)
+        (tmp_path / "var").mkdir()
+        (tmp_path / "var" / "rapidapi-quota.json").write_text(json.dumps({"meters": {
+            "reddit": {"quota_remaining": 10, "quota_limit": 100,
+                       "at": "2026-09-16T08:00:00Z", "read_on": "reddit"},
+        }}), encoding="utf-8")
+        monkeypatch.setattr(app_module, "_rapidapi_meters_from_db", lambda: {
+            "reddit": {"quota_remaining": 90, "quota_limit": 100,
+                       "at": "2026-09-16T09:00:00Z", "read_on": "reddit",
+                       "machine": "SOMEBODYS-LAPTOP"},
+        })
+        blob = json.dumps(_rapidapi_quota("reddit"))
+        assert "SOMEBODYS-LAPTOP" not in blob, (
+            "a hostname reached the payload - check every string, not only "
+            "the fields whose name looks like it holds one"
+        )
