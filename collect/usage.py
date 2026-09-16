@@ -118,6 +118,7 @@ def record_rapidapi_quota(
     read_by: str = "harvest",
     run_id: str | None = None,
     api_key: str | None = None,
+    reset_seconds: int | None = None,
     path: Path | None = None,
 ) -> bool:
     """Persist one quota HEADER reading. Returns whether anything was written.
@@ -188,6 +189,20 @@ def record_rapidapi_quota(
         "source_run_id": run_id,
         # WHOSE COUNTER, not whose machine. See `key_fingerprint`.
         "key_fingerprint": key_fingerprint(api_key),
+        # SECONDS AS READ, NEVER A COMPUTED DATE. Both adapters have always
+        # parsed `x-ratelimit-requests-reset`; until 2026-09-16 this function
+        # took `remaining` and `limit` only, so the value died with the process
+        # on every metered call (rule 9 - produced, carried, never consumed).
+        #
+        # It is the only field that can date the window. One reading gives
+        # seconds remaining, which is NOT the period; two consecutive boundaries
+        # are. The 2026-09-11 09:45 UTC boundary is already fixed by two
+        # readings, so the next populated value closes it.
+        #
+        # Stored beside `at`, which is what it must be subtracted from. Keeping
+        # the provider's own number rather than a date computed here is the same
+        # ruling `tests/test_reddit_fetch.py` already pins on the adapter side.
+        "quota_reset_seconds": reset_seconds,
     }
     # ONE RECORD PER METER, KEYED BY ARM. Until 2026-09-10 this file held ONE
     # record and every arm overwrote it, so a Reddit reading and an X reading
@@ -230,6 +245,7 @@ def record_rapidapi_quota(
         meter=read_on, remaining=remaining, limit=limit,
         read_at=record["at"], read_by=read_by, run_id=run_id,
         key_fp=record["key_fingerprint"],
+        reset_seconds=reset_seconds,
     )
     return wrote
 
@@ -309,7 +325,8 @@ def reset_telemetry_backoff() -> None:
 def _record_to_database(
     *, meter: str, remaining: int | None, limit: int | None,
     read_at: str, read_by: str, run_id: str | None,
-    key_fp: str | None = None, url: str | None = None,
+    key_fp: str | None = None, reset_seconds: int | None = None,
+    url: str | None = None,
 ) -> bool:
     """Upsert one meter's reading. NEVER raises — same contract as the file write.
 
@@ -334,8 +351,8 @@ def _record_to_database(
             conn.execute(
                 "insert into rapidapi_quota "
                 "(meter, quota_remaining, quota_limit, read_at, read_by, "
-                " source_run_id, machine, key_fingerprint) "
-                "values (%s,%s,%s,%s,%s,%s,%s,%s) "
+                " source_run_id, machine, key_fingerprint, quota_reset_seconds) "
+                "values (%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                 "on conflict (meter) do update set "
                 "  quota_remaining = excluded.quota_remaining, "
                 "  quota_limit     = excluded.quota_limit, "
@@ -344,10 +361,16 @@ def _record_to_database(
                 "  source_run_id   = excluded.source_run_id, "
                 "  machine         = excluded.machine, "
                 "  key_fingerprint = excluded.key_fingerprint, "
+                # MOVES WITH ITS READING, not independently. The whole row is
+                # replaced by the newer READ (see the where clause), so this
+                # cannot end up beside a `read_at` it was not read with - which
+                # is the only way the subtraction that dates the boundary could
+                # silently give a wrong answer.
+                "  quota_reset_seconds = excluded.quota_reset_seconds, "
                 "  recorded_at     = now() "
                 "where excluded.read_at > rapidapi_quota.read_at",
                 (meter, remaining, limit, read_at, read_by, run_id, machine(),
-                 key_fp),
+                 key_fp, reset_seconds),
             )
         return True
     except Exception:

@@ -1570,6 +1570,13 @@ CREATE TABLE IF NOT EXISTS rapidapi_quota (
   -- reading taken with no credential) and never "a different account".
   key_fingerprint text,
 
+  -- x-ratelimit-requests-reset AS READ: seconds remaining until this meter's
+  -- window resets. Never a computed date - add it to `read_at` for the
+  -- boundary. Both adapters have always parsed this header; until 2026-09-16
+  -- nothing persisted it, so the window LENGTH stayed unmeasured while the
+  -- panel called the quota "monthly". NULL is "not recorded", never "now".
+  quota_reset_seconds bigint,
+
   recorded_at     timestamptz NOT NULL DEFAULT now(),
 
   -- A reading with neither figure is not a reading. Refused here as well as in
