@@ -391,6 +391,28 @@ export const modelEvidence = (id) => request(`/models/${modelPath(id)}/evidence`
 
 export const boardEntries = () => request('/admin/board-entries')
 
+// Every prompt this project sends to a model, COMPOSED by the backend from the
+// real builders rather than transcribed. A copy in the frontend would drift the
+// first time somebody edits a prompt and not this file, and then the page would
+// be confidently wrong about the one thing it exists to show.
+export const adminPrompts = () => request('/admin/prompts')
+
+// Every platform the harvest reaches, read from `contract/sources.yaml` - the
+// same file the harvest reads. Whether an arm uses a key is a BOOLEAN in this
+// payload; no key, fingerprint or prefix is in it.
+export const adminSources = () => request('/admin/sources')
+
+// What each fetch stage does, in words. The LIST is parsed from the file that
+// emits the stages and the WORDS come from contract/pipeline_stages.yaml, so a
+// new stage shows up described as undescribed rather than silently missing.
+// Carries no counts - those are on the fetch log, attached to their run.
+export const adminStages = () => request('/admin/stages')
+
+// The search terms each platform is actually sent, per tracked model. Composed
+// through the same `_variants_for` the harvest calls, and sliced by each arm's
+// real budget - so these are the terms that would go out on the next fetch.
+export const adminKeywords = () => request('/admin/keywords')
+
 // `entry_ids` IS OMITTED, NOT EMPTIED, when the whole section is meant.
 //
 // The backend treats `null` as "the whole slug" and `[]` as a mistake, because

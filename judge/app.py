@@ -2309,6 +2309,558 @@ def admin_capability_candidates() -> dict:
     }
 
 
+# ── HOW EACH ARM REACHES ITS PLATFORM ─────────────────────────────────────
+#
+# ⚠ EVERY ROW CITES THE THING THAT MAKES IT TRUE, because "free" and "paid"
+#   are claims about money and "scraping" is a claim about somebody's terms.
+#   None of the three is inferable from `contract/sources.yaml` alone, so each
+#   is stated here beside the file that settles it.
+#
+# ⚠ NO CREDENTIAL IS SHOWN, EVER — not the key, not a fingerprint, not a
+#   prefix. `uses_credential` is a BOOLEAN and the page renders "uses a key" or
+#   "no key". Parvathi, 2026-09-16: "no keys should be displayed just mention
+#   using keys or not."
+#
+# `metered` is the honest name for "paid": what is measurable is that the arm
+# draws down a RapidAPI quota, and `collect/usage.py` records it. The price per
+# request is not in our config, so this does not claim an amount.
+_ACCESS = {
+    "github": {
+        "method": "free API",
+        "detail": "GitHub's own REST API, on the free tier.",
+        "uses_credential": True,
+        "credential_note": (
+            "A token is sent. Anonymous access is 10 requests/minute, which the "
+            "sweep refuses to run under."
+        ),
+        "evidence": "scripts/fetch_model.py:617 sends an Authorization header",
+        "metered": False,
+    },
+    "reddit": {
+        "method": "paid API",
+        "detail": (
+            "A RapidAPI reseller, verified by the ruling as a proxy of Reddit's "
+            "official Data API rather than a scrape — t2_ fullnames, "
+            "subreddit_id, Reddit's own cursor, 104 fields per post."
+        ),
+        "uses_credential": True,
+        "credential_note": "A key is required; no request can be made without one.",
+        "evidence": "contract/sources.yaml ruling `reddit-via-rapidapi`",
+        "metered": True,
+    },
+    "x": {
+        "method": "paid API",
+        "detail": (
+            "A RapidAPI reseller, and the ruling calls it a SCRAPER rather than "
+            "an API proxy — the id is `x-via-rapidapi-scraper` and its "
+            "access_path is `rapidapi-reseller`. Recorded as bought access to "
+            "somebody else's scrape, which is not the same as our own."
+        ),
+        "uses_credential": True,
+        "credential_note": "A key is required; no request can be made without one.",
+        "evidence": "contract/sources.yaml ruling `x-via-rapidapi-scraper`",
+        "metered": True,
+    },
+    "arxiv": {
+        "method": "free API",
+        "detail": "arXiv's public export API.",
+        "uses_credential": False,
+        "credential_note": "No key. The endpoint is open.",
+        "evidence": "contract/sources.yaml `access_path: api`",
+        "metered": False,
+    },
+    "devto": {
+        "method": "free API",
+        "detail": "dev.to's public article search API.",
+        "uses_credential": False,
+        "credential_note": "No key.",
+        "evidence": "contract/sources.yaml `access_path: api`",
+        "metered": False,
+    },
+    "hackernews": {
+        "method": "free API",
+        "detail": "Algolia's public index of Hacker News, not HN itself.",
+        "uses_credential": False,
+        "credential_note": "No key.",
+        "evidence": "contract/sources.yaml `access_path: api`",
+        "metered": False,
+    },
+    "huggingface": {
+        "method": "free API",
+        "detail": "Hugging Face's public API.",
+        "uses_credential": False,
+        "credential_note": "No key.",
+        "evidence": "contract/sources.yaml `access_path: api`",
+        "metered": False,
+    },
+    "blogs": {
+        "method": "public feeds, then the article",
+        "detail": (
+            "The one arm that is not an API. A published RSS/Atom feed is read, "
+            "then the articles it links. robots.txt is read and RE-READ on every "
+            "run, and the feed path and each article path are tested against it "
+            "— so this is gated by the publisher's own rules rather than by a "
+            "contract we signed."
+        ),
+        "uses_credential": False,
+        "credential_note": "No key. A feed served without login or payment.",
+        "evidence": ("contract/sources.yaml rulings "
+                     "`blog-class-a-self-hosted`, `blog-class-b-medium`"),
+        "metered": False,
+    },
+}
+
+
+#: The order a fetch runs them in. The parse below finds stages by scanning
+#: source, which gives no ordering - and the id strings are not sortable
+#: (`E3d` runs before `E3b`, `E5c` before `E5b`). Listed rather than derived,
+#: because the true order is the order the calls execute and no regex knows it.
+_STAGE_ORDER = (
+    "?", "DB", "E1",
+    "E2", "E2R", "E2A", "E2X", "E2B", "E2D", "E2H", "E2F",
+    "E3", "E3d", "E3b", "E4", "E4b", "E5", "E5c", "E5b", "E6", "E7",
+    "STOP",
+)
+
+
+def _fetch_stages_in_code() -> dict[str, str]:
+    """`{stage id: name}` as `scripts/fetch_model.py` actually emits them.
+
+    ⚠ PARSED FROM SOURCE, AND THAT IS THE POINT. A hand-kept list would be a
+      second description of the pipeline, and this project has paid for that
+      shape four times. The file that emits the stages is the only thing that
+      knows which stages exist, so it is what gets read.
+
+      Two call shapes: a literal `prog.stage("E4", "Triage", ...)`, and the
+      per-platform harvest arms, which pass variables built from a table of
+      `(platform, id, name, ...)` tuples. Both are matched; a third shape would
+      go unfound, which is why the endpoint reports stages it cannot describe
+      AND descriptions it cannot place.
+
+    Returns `{}` when the file cannot be read, which the caller renders as a
+    named failure rather than as "the pipeline has no stages".
+    """
+    import re
+
+    src = (_REPO_ROOT / "scripts" / "fetch_model.py").read_text(encoding="utf-8")
+    found: dict[str, str] = {}
+    # prog.stage("E4", "Triage", ...)
+    for sid, name in re.findall(r'prog\.stage\(\s*"([^"]+)",\s*"([^"]+)"', src):
+        found.setdefault(sid, name)
+    # ("devto", "E2D", "Harvest · dev.to", 2)
+    for sid, name in re.findall(r'\(\s*"[a-z]+",\s*"(E2[A-Z])",\s*"([^"]+)"', src):
+        found.setdefault(sid, name)
+    return found
+
+
+@app.get("/admin/stages")
+def admin_stages() -> dict:
+    """What happens at each stage of a fetch, in words rather than counts.
+
+    THE COUNTS ARE ALREADY ON THE FETCH LOG, beside each stage as it runs. What
+    the log cannot carry is what the stage is FOR: "E4b · 1 thread(s) held back"
+    is a number and not an explanation.
+
+    TWO SOURCES, DELIBERATELY. The LIST comes from `scripts/fetch_model.py`,
+    which is what emits the stages; the WORDS come from
+    `contract/pipeline_stages.yaml`, which is reviewable in a diff. Keeping them
+    apart is what makes the drift visible in both directions:
+
+      undescribed   a stage the code emits and the contract does not explain.
+                    Rendered as unknown, never omitted.
+      unemitted     a description for a stage nothing emits. Reported, because
+                    a page describing a stage that never runs is worse than one
+                    admitting a gap.
+
+    NO FIGURES. Not one number in the payload, by design - see the contract
+    file's own note on why a count here would be a figure with no denominator.
+    """
+    import yaml
+
+    stages_in_code = _fetch_stages_in_code()
+    described: dict[str, dict] = {}
+    contract_error = None
+    try:
+        raw = yaml.safe_load(
+            (_REPO_ROOT / "contract" / "pipeline_stages.yaml").read_text(encoding="utf-8")
+        )
+        described = {str(k): v for k, v in (raw or {}).get("stages", {}).items()}
+    except Exception as exc:  # noqa: BLE001
+        contract_error = str(exc)
+
+    ids = [x for x in _STAGE_ORDER if x in stages_in_code]
+    ids += sorted(set(stages_in_code) - set(_STAGE_ORDER))
+
+    rows = []
+    for sid in ids:
+        words = described.get(sid) or {}
+        rows.append({
+            "id": sid,
+            "name": stages_in_code.get(sid),
+            "what": (words.get("what") or "").strip() or None,
+            "why": (words.get("why") or "").strip() or None,
+            "undescribed": not words,
+        })
+
+    return {
+        "stages": rows,
+        "count": len(rows),
+        "source_of_list": "scripts/fetch_model.py",
+        "source_of_words": "contract/pipeline_stages.yaml",
+        "contract_unreadable": contract_error,
+        # A description with nothing emitting it. Named rather than dropped.
+        "described_but_not_emitted": sorted(set(described) - set(stages_in_code)),
+        "note": (
+            "Counts are not shown here on purpose - they are on the fetch log "
+            "beside each stage, where they carry the run they belong to."
+        ),
+    }
+
+
+@app.get("/admin/sources")
+def admin_sources() -> dict:
+    """Every platform the harvest reaches, and how it reaches it.
+
+    THE LIST COMES FROM THE CONTRACT, not from this file. `contract/sources.yaml`
+    is what the harvest actually reads, so a platform added there appears here
+    without an edit — and one that is described here but absent from the
+    contract is reported as such rather than rendered as if it harvested.
+
+    ⚠ NO CREDENTIAL IS RETURNED. Whether an arm uses a key is a boolean; the
+      key, a fingerprint of it and any prefix are all absent. A page that shows
+      even part of a credential has published it.
+
+    WHAT "PAID" MEANS HERE. Two arms draw down a RapidAPI quota and
+    `collect/usage.py` records the readings. The price per request is not in our
+    config, so `metered: true` is the claim and a dollar figure is not.
+    """
+    # ⚠ THE YAML DIRECTLY, NOT `collect.registry.sources`. `judge/` may not
+    #   import `collect/` - one-directional, and `tests/test_lane_boundary.py`
+    #   enforces it. Same move `_rapidapi_meters` already makes for the quota
+    #   file, and the same mitigation: this is a READER. It tolerates what it
+    #   finds and invents nothing, so a contract change degrades to a thinner
+    #   row rather than to a wrong one.
+    import yaml
+
+    try:
+        doc = yaml.safe_load(
+            (_REPO_ROOT / "contract" / "sources.yaml").read_text(encoding="utf-8")
+        ) or {}
+    except (OSError, ValueError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"the sources contract could not be read: {exc}",
+        ) from exc
+
+    rulings = {str(r.get("id")): r for r in (doc.get("terms_rulings") or [])}
+    platforms = list(doc.get("sources") or [])
+
+    rows: list[dict] = []
+    for src in platforms:
+        sid = str(src.get("id"))
+        access = _ACCESS.get(sid)
+        ruling_id = src.get("terms_ruling")
+        ruling = rulings.get(str(ruling_id)) or {}
+        rows.append({
+            "id": sid,
+            "platform": src.get("platform"),
+            # The HOST, which is public and is how a reader checks the claim
+            # above it. Not a credential and not a path with a key in it.
+            "endpoint": src.get("endpoint"),
+            "base_trust": src.get("base_trust"),
+            "terms_ruling": ruling_id,
+            "terms_reviewed_on": (
+                str(ruling["reviewed_on"]) if ruling.get("reviewed_on") else None
+            ),
+            # ⚠ RULE 4. A `false` here means nobody has read the platform's terms
+            # document - it does NOT mean the terms were read and found wanting.
+            "terms_document_read": (
+                (ruling.get("recorded_evidence") or {}).get("terms_document_read")
+            ),
+            **(access or {}),
+            # DESCRIBED NOWHERE, said rather than rendered as a blank row. A
+            # platform in the contract with no entry above is one this endpoint
+            # has not been taught about, which is different from one that uses
+            # no key.
+            "undescribed": access is None,
+        })
+
+    described = {k for k in _ACCESS}
+    in_contract = {str(x.get("id")) for x in platforms}
+    return {
+        "sources": rows,
+        "count": len(rows),
+        "by_method": {
+            m: sorted(r["id"] for r in rows if r.get("method") == m)
+            for m in sorted({r.get("method") for r in rows if r.get("method")})
+        },
+        # BOTH DIRECTIONS OF DRIFT, because they are different problems. A
+        # contract source with no description renders as unknown; a description
+        # with no contract source is dead weight that would otherwise look live.
+        "described_but_not_in_contract": sorted(described - in_contract),
+        "credentials_note": (
+            "Whether an arm uses a key is all that is recorded here. No key, "
+            "fingerprint or prefix is returned by this endpoint."
+        ),
+    }
+
+
+@app.get("/admin/keywords")
+def admin_keywords() -> dict:
+    """The search terms each platform is actually sent, per tracked model.
+
+    ⚠ RUN AS A SUBPROCESS, AND THE BOUNDARY IS WHY. `judge/` may not import
+      `collect/`, and `tests/test_lane_boundary.py` catches a lazy in-function
+      import as readily as a top-level one - it caught this endpoint's first
+      draft, which imported the GitHub query planner directly.
+
+      The composition genuinely needs the collect lane: `plan_searches` builds
+      the real GitHub queries, `club_surfaces` the one clubbed X query, and
+      `_variants_for` and `_order_variants` decide the order every arm slices.
+      Reimplementing any of it here would be a second description of the
+      pipeline - and on a page whose whole claim is "these are the terms that go
+      out", a copy is wrong the moment it drifts.
+
+      So the same shape `POST /fetch/start` already uses: a script outside both
+      lanes, run as a subprocess. `scripts/dump_keywords.py` carries the reason
+      in its own docstring.
+
+    THE COST, STATED. A process start and one SELECT per tracked model, so this
+    is slower than an in-process call and it is not cached. An admin page that
+    renders stale search terms would be worse than one that takes a moment.
+    """
+    import subprocess
+
+    script = _REPO_ROOT / "scripts" / "dump_keywords.py"
+    try:
+        done = subprocess.run(
+            [sys.executable, str(script)],
+            cwd=str(_REPO_ROOT),
+            env=os.environ.copy(),
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="composing the search terms timed out after 180s",
+        ) from exc
+
+    if done.returncode != 0:
+        # THE SCRIPT'S OWN WORDS, not a generic failure. It refuses for real
+        # reasons - no database, an unreadable contract - and each needs a
+        # different repair.
+        detail = (done.stderr or "").strip().splitlines()
+        raise HTTPException(
+            status_code=503,
+            detail=("the search terms could not be composed: "
+                    + (detail[-1] if detail else f"exit {done.returncode}")),
+        )
+    try:
+        return json.loads(done.stdout)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"the search terms came back unreadable: {exc}",
+        ) from exc
+
+
+@app.get("/admin/prompts")
+def admin_prompts() -> dict:
+    """Every prompt the LIVE PIPELINE sends a model, COMPOSED not copied.
+
+    ⚠ BUILT BY CALLING THE REAL BUILDERS. A page listing prompts is worth
+      nothing if it lists a transcription: the copy drifts the first time
+      somebody edits the prompt and not the page, and then the page is
+      confidently wrong about the one thing it exists to show. So this calls
+      `build_system_prompt` and `wrap_untrusted` exactly as `extract/runner.py`
+      does, and renders what comes back.
+
+      That is also why the capability list is read from `capabilities()` rather
+      than passed a fixture - the CLOSED vocabulary is part of the prompt's
+      text, so a prompt shown with a different list is a different prompt.
+
+    ⚠ FOUR PROMPTS, NOT ONE. The extractor's system prompt is the one people
+      mean, but a model in this pipeline reads three more strings and each can
+      change its answer:
+
+        - the USER MESSAGE, which is the document inside a delimited block;
+        - the SCHEMA-VIOLATION retry, which quotes the validation error back;
+        - the QUOTE-LENGTH retry, which replaces that generic complaint with a
+          specific instruction naming the claim and its length.
+
+      A "prompts" page showing only the system prompt would be describing a
+      quarter of what the model reads.
+
+    THE ASK BOX IS NAMED AND NOT SHOWN. `/ask/requirements`, `/ask/revise` and
+    `/ask/recommend` are still wired here and `judge/ask/understand.py` still
+    builds three prompts - but no page calls them: `askUnderstand` and friends
+    exist in `web/src/api/index.js` and no component imports them. Retired in
+    use rather than deleted, so it is listed as absent rather than omitted.
+
+    NO SECRET IS REACHABLE. A prompt is a template; the harvested document goes
+    into the block at call time and none of it is in this payload.
+    """
+    prompts: list[dict] = []
+    placeholder = "«the flattened thread goes here»"
+
+    try:
+        from judge.extract.prompt import build_system_prompt, wrap_untrusted
+
+        keys = sorted(capabilities().keys())
+        prompts.append({
+            "id": "extract-system",
+            "title": "E5 · Extract — system prompt",
+            "role": "system",
+            "used_for": (
+                "Every thread the board reads. This is the classifier: it "
+                "DISCOVERS the board's sections from the evidence rather than "
+                "choosing from a list, and files each claim with a verbatim "
+                "quote."
+            ),
+            "built_by": "judge/extract/prompt.py:build_system_prompt",
+            "called_from": "judge/extract/runner.py:278",
+            "text": build_system_prompt(keys),
+            # THE CLOSED HALF, NAMED. The prompt's asymmetry is its design - one
+            # closed vocabulary, three open sections - and a reader who cannot
+            # see which list was appended cannot check that the prompt they are
+            # reading is the one that ran.
+            "closed_vocabulary": keys,
+        })
+
+        # THE USER MESSAGE IS A PROMPT TOO, and it is the one carrying the
+        # untrusted text. Shown with a placeholder where the document goes: the
+        # shape is the instrument, the document is the input.
+        prompts.append({
+            "id": "extract-user",
+            "title": "E5 · Extract — the document wrapper",
+            "role": "user",
+            "used_for": (
+                "What the harvested thread is wrapped in before the model sees "
+                "it. The delimiters are the first of five defences against a "
+                "post that tries to give instructions; a document containing "
+                "either marker is REFUSED rather than edited, because the "
+                "extractor must read exactly what quote verification checks "
+                "against."
+            ),
+            "built_by": "judge/extract/prompt.py:wrap_untrusted",
+            "called_from": "judge/extract/runner.py:273",
+            "text": wrap_untrusted(placeholder),
+        })
+    except Exception as exc:  # noqa: BLE001 - one failing must not blank the rest
+        prompts.append({
+            "id": "extract-system",
+            "title": "E5 · Extract — system prompt",
+            "unreadable": str(exc),
+            "built_by": "judge/extract/prompt.py:build_system_prompt",
+        })
+
+    # ── THE TWO RETRIES, COMPOSED LIKE THE OTHERS ─────────────────────────
+    #
+    # These are appended to the user message on a failure, so the model reads
+    # them exactly as it reads the system prompt - and until 2026-09-16 this
+    # endpoint TRANSCRIBED them, because they were assembled inline in
+    # `runner.py` with no builder to call.
+    #
+    # Parvathi asked what "transcribed, not composed" meant and whether the
+    # model reads them. It does, and the caveat was describing a weakness in
+    # this page rather than a property of the prompt - so the wording moved into
+    # `prompt.py` and both are now composed. Nothing on this page is a copy.
+    #
+    # THE ARGUMENTS ARE ILLUSTRATIVE AND THE PAGE SAYS SO. A retry is built per
+    # failure, so there is no single instance to show; what is fixed is the
+    # WORDING, and that is what these render. The numbers below are the real
+    # measured case from `_quote_length_correction`'s docstring - 14 claims lost
+    # to two quotes 15 and 8 characters over - rather than invented ones.
+    try:
+        from judge.extract.prompt import (
+            quote_length_correction,
+            schema_violation_correction,
+        )
+        from judge.extract.schema import MAX_QUOTE_CHARS
+
+        prompts.append({
+            "id": "retry-schema",
+            "title": "E5 \u00b7 Retry \u2014 schema violation",
+            "role": "appended to the user message",
+            "used_for": (
+                "Sent once when the answer does not satisfy the tool schema. "
+                "The validation error goes back VERBATIM rather than "
+                "summarised - a model fixes a specific complaint better than a "
+                "described one, and summarising would be this code guessing "
+                "which part of the error mattered."
+            ),
+            "built_by": "judge/extract/prompt.py:schema_violation_correction",
+            "called_from": "judge/extract/runner.py:_call_with_one_retry",
+            "text": schema_violation_correction(
+                "\u00abthe pydantic validation error, verbatim\u00bb"),
+            "example_input": "The error text is the only variable part.",
+        })
+        prompts.append({
+            "id": "retry-quote-length",
+            "title": "E5 \u00b7 Retry \u2014 quote too long",
+            "role": "appended to the user message",
+            "used_for": (
+                "Replaces the generic complaint when the only fault is an "
+                "over-long quote. One extractor proposed 14 claims and lost all "
+                "14 because two quotes were 15 and 8 characters over, and both "
+                "had a sentence boundary well inside the limit - so a compliant "
+                "span existed and the model did not pick it. The retry names "
+                "each claim, its length and the limit instead of restating the "
+                "rule."
+            ),
+            "built_by": "judge/extract/prompt.py:quote_length_correction",
+            "called_from": "judge/extract/runner.py:_quote_length_correction",
+            "text": quote_length_correction(
+                [(11, 215), (12, 208)], [], MAX_QUOTE_CHARS),
+            "example_input": (
+                "Rendered with the real measured case - claims 11 and 12, at "
+                "215 and 208 characters against the "
+                f"{MAX_QUOTE_CHARS}-character limit. A live retry names "
+                "whichever claims actually offended; every other word is fixed."
+            ),
+        })
+    except Exception as exc:  # noqa: BLE001
+        prompts.append({
+            "id": "retry", "title": "E5 \u00b7 Retry corrections",
+            "unreadable": str(exc),
+            "built_by": "judge/extract/prompt.py",
+        })
+
+    return {
+        "prompts": prompts,
+        "count": len(prompts),
+        # SAID, BECAUSE A LIST THAT LOOKS EXHAUSTIVE AND IS NOT IS WORSE THAN NO
+        # LIST. Both groups are named so their absence is a statement.
+        "not_shown": [
+            {
+                "what": "The Ask box — three prompts, one per input shape",
+                "where": "judge/ask/understand.py:system_prompt",
+                "why": (
+                    "No page calls it. The routes are still wired here and the "
+                    "client functions still exist in web/src/api/index.js, but "
+                    "no component imports them - retired in use rather than "
+                    "deleted."
+                ),
+            },
+            {
+                "what": "Three measurement scripts",
+                "where": (
+                    "scripts/classify_capability_reports.py, "
+                    "scripts/measure_key_constraint.py, "
+                    "scripts/capability_choice_pool.py"
+                ),
+                "why": (
+                    "Run by hand to measure the pipeline, not paths a board "
+                    "reader can trigger. Putting experiments beside production "
+                    "under one heading would misread."
+                ),
+            },
+        ],
+    }
+
+
 @app.get("/admin/board-entries")
 def admin_board_entries() -> dict:
     """Discovered board sections awaiting consolidation, grouped by slug.

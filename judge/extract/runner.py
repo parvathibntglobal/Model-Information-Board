@@ -39,7 +39,12 @@ from judge.extract.client import (
     tool_schema_for,
 )
 from judge.extract.placeholder import has_nothing_to_extract
-from judge.extract.prompt import build_system_prompt, wrap_untrusted
+from judge.extract.prompt import (
+    build_system_prompt,
+    quote_length_correction,
+    schema_violation_correction,
+    wrap_untrusted,
+)
 from judge.extract.schema import MAX_QUOTE_CHARS, ExtractedClaim, ExtractionResult
 from judge.extract.verify import (
     OffsetMapping,
@@ -590,40 +595,11 @@ def _quote_length_correction(exc: ValidationError, raw: str) -> str | None:
     if not offenders:
         return None
 
-    lines = [
-        f"{len(offenders)} of your quotes are longer than the {limit}-character "
-        "limit. Nothing else about your answer was wrong, and every other claim "
-        "was discarded only because these were rejected with them.",
-        "",
-    ]
-    for index, length in offenders:
-        over = length - limit if length > 0 else None
-        lines.append(
-            f"  claim {index}: the quote is {length} characters, "
-            f"{over} over the limit."
-            if over is not None
-            else f"  claim {index}: the quote is over the limit."
-        )
-    if others:
-        lines += [
-            "",
-            "These were also wrong, and are separate from the length problem:",
-            *others,
-        ]
-    lines += [
-        "",
-        "CHOOSE A SHORTER SPAN, do not shorten the text. Re-read the document and "
-        "pick a different, shorter run of characters that still carries the whole "
-        "claim - it may be one sentence of the passage you chose, and it may be "
-        "the SECOND sentence rather than the first. Do not trim, summarise or "
-        "abbreviate what you quoted: the quote is checked against the source by "
-        "exact substring match, so an edited quote fails and a truncated one can "
-        "lose the part that carried the claim.",
-        "",
-        "If no span under the limit carries the claim, drop that claim and keep "
-        "the others. Answer again with every claim you can still make.",
-    ]
-    return "\n".join(lines)
+    # THE WORDING LIVES IN `prompt.py`. This function decides WHICH correction
+    # applies - that needs a pydantic error and belongs with the call. The text
+    # is a prompt, and prompts are built where `/admin/prompts` can compose them
+    # rather than transcribe them.
+    return quote_length_correction(offenders, others, limit)
 
 
 def _call_with_one_retry(
@@ -686,10 +662,7 @@ def _call_with_one_retry(
             if isinstance(exc, ValidationError):
                 correction = _quote_length_correction(exc, completion.raw_arguments)
             if correction is None:
-                correction = (
-                    "Your previous answer did not satisfy the schema:\n"
-                    f"{exc}\n\nAnswer again, correcting exactly that."
-                )
+                correction = schema_violation_correction(str(exc))
             else:
                 log.info(
                     "retrying with a quote-length correction rather than a schema "

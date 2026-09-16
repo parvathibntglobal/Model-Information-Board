@@ -1,0 +1,207 @@
+# What happens at each stage of a fetch, in words.
+#
+# WHY THIS FILE EXISTS
+#
+# The fetch log shows stage ids, counts and a one-line detail, and that is the
+# right thing for watching a run. It is the wrong thing for understanding one:
+# "E4b · 1 thread(s) held back" tells you a number and not what E4b is for.
+#
+# Parvathi, 2026-09-16: "instead of showing the counts on evidence pipeline can
+# you explain what is happening on each stage ... as counts are currently there
+# on fetch logs."
+#
+# ⚠ THE LIST IS NOT HERE. It is parsed out of `scripts/fetch_model.py` at read
+#   time, because that file is what actually emits the stages. A stage added
+#   there appears on the page immediately, described as undescribed - which is
+#   honest - rather than silently missing. And a description here for a stage
+#   nothing emits is reported too: a page that describes a stage which never
+#   runs is worse than one that admits a gap.
+#
+# So this file carries WORDS ONLY, keyed by the id the code emits. Rule 5: the
+# prose is config, reviewable in a diff, and separable from the code that runs.
+#
+# ⚠ NO COUNTS AND NO FIGURES BELONG IN HERE. A number in this file would be a
+#   number with no denominator and no date, which is rule 3 and rule 7 at once.
+#   Every figure a reader needs is in the fetch log beside the stage.
+
+version: 1
+
+stages:
+  DB:
+    what: >-
+      Reconnects to the database when a connection has dropped mid-run.
+    why: >-
+      A fetch is long - twenty minutes is ordinary - and a connection that dies
+      at minute fifteen would otherwise throw away everything harvested before
+      it. This reconnects and carries on rather than failing the run.
+
+  E1:
+    what: >-
+      Resolves the model you clicked into the search terms its evidence will be
+      found under.
+    why: >-
+      A model is discussed by name, not by id. `model_alias` holds the surfaces
+      people actually write - "gpt 5.5", "opus 5", "kimi k3" - and this reads
+      them. A model with no seated alias resolves to ZERO terms, and the run
+      says so and stops rather than searching for nothing.
+
+  E2:
+    what: >-
+      Searches GitHub issues and pull requests for each name variant, across
+      the capability queries.
+    why: >-
+      Engineers report model behaviour in the issue tracker of the tool they
+      were using, usually with a repro. GitHub's API is free and the search is
+      bounded by a per-run cap so an on-demand click cannot run away.
+
+  E2R:
+    what: >-
+      Searches Reddit for each variant, then fetches the comment tree of the
+      posts it finds.
+    why: >-
+      The comments are where the evidence is - a post asks "how is Opus 5" and
+      the answer is forty replies down. This is a metered, paid arm, so the
+      quota reading is recorded on every call.
+
+  E2A:
+    what: >-
+      Searches arXiv for papers naming the model.
+    why: >-
+      Papers carry measured numbers rather than impressions. Free API, open
+      endpoint, no key.
+
+  E2X:
+    what: >-
+      One search on X, clubbing every name variant into a single query.
+    why: >-
+      One query rather than one per variant because this arm's quota is a tenth
+      of Reddit's. Bought access to a reseller's scrape, which the ruling says
+      plainly rather than calling it an API.
+
+  E2B:
+    what: >-
+      Reads the engineering blogs in the feed list.
+    why: >-
+      Blogs are the one positive-evidence channel - people write posts about
+      what worked, and complaints go to issue trackers. Not run for a single
+      model: the feeds are read whole, so this is skipped on a per-model fetch.
+
+  E2D:
+    what: Searches dev.to's article API for each variant.
+    why: >-
+      Practitioner write-ups, free API, no key.
+
+  E2H:
+    what: >-
+      Searches Hacker News through Algolia's public index.
+    why: >-
+      HN comment threads carry unusually specific reports. The index is
+      Algolia's rather than HN's own, which is why the ruling is about Algolia.
+
+  E2F:
+    what: Searches Hugging Face for discussion of the model.
+    why: >-
+      Where open-weight models are actually run and compared. Free API.
+
+  E3:
+    what: >-
+      Flattens the harvested documents into threads - a root post plus the
+      replies that belong to it - and stores an offset map for each.
+    why: >-
+      A claim has to be attributable to an exact span of an exact document.
+      The offset map is what lets a quote found in the flattened text be
+      resolved back to the document it came from, which is what makes
+      verification possible at all.
+
+  E3d:
+    what: >-
+      Groups near-duplicate documents so a syndicated copy counts as reach
+      rather than as a second voice.
+    why: >-
+      The same post appears on three aggregators. Counting it three times would
+      turn one person's opinion into a consensus. Nothing is deleted - the
+      grouping is recorded and the duplicates keep their rows.
+
+  E3b:
+    what: >-
+      Fills the signal columns on each document - whether it has numbers, code,
+      error strings, stated conditions, and whether it names a model version.
+    why: >-
+      These are what weighting and triage read. They are counted, not judged:
+      no model is involved, and a document scoring zero is not thereby wrong.
+
+  E4:
+    what: >-
+      Runs the hard gates over every unjudged document and records a verdict:
+      bot posts, bare links, posts too short to carry a claim, and anything
+      that names no resolvable model.
+    why: >-
+      The gates exist so the language model is never asked to read something
+      nobody needs an opinion on. Every drop is recorded with which gate fired,
+      so a thin harvest and a strict gate look different.
+
+  E4b:
+    what: >-
+      Applies the same vetting rules a second time, at thread level, before
+      anything is sent to the model.
+    why: >-
+      A thread whose every member survived E4 can still be promotional or
+      placeholder as a whole. This is the last check that costs no tokens - a
+      thread dropped here never becomes a bill.
+
+  E5:
+    what: >-
+      Sends each selected thread to the language model, which reads it and
+      files what engineers claimed onto the board, each claim carrying a
+      verbatim quote and the character offsets of that span.
+    why: >-
+      This is the only stage that costs money and the only one where a model
+      decides anything. Every quote it returns is checked by exact substring
+      match against the text it was given, so an invented quote cannot survive.
+
+  E5c:
+    what: >-
+      Records the board sections the model DISCOVERED in the evidence - the
+      jobs, behaviours and metrics it named, rather than ones chosen from a
+      list.
+    why: >-
+      The board's vocabulary is open. A classifier restricted to a fixed list
+      would force a quote into the nearest existing key and manufacture
+      agreement about something nobody said.
+
+  E5b:
+    what: >-
+      Maps each claim onto the ratified capability list.
+    why: >-
+      A legacy scoring path indexes by capability key. Kept separate from E5c
+      because that list is CLOSED and the board's sections are not - the two
+      read alike and mean opposite things.
+
+  E6:
+    what: >-
+      Drops claims that are promotional, affiliate-driven, sarcastic, or about
+      a model before it was released.
+    why: >-
+      A verbatim quote can still be worthless evidence. This runs after the
+      model rather than before it, because deciding a quote is sarcastic needs
+      the quote.
+
+  E7:
+    what: >-
+      Recomputes the cells the board renders from the claims that survived.
+    why: >-
+      The board is derived, never written by hand. If this does not run, new
+      claims are stored and nothing on the page changes - which is why a run
+      that dies before E7 can look successful and show nothing.
+
+  STOP:
+    what: Records that somebody pressed Stop.
+    why: >-
+      A run somebody chose to end and a run that broke are different facts. The
+      log keeps them apart so the history stays readable.
+
+  "?":
+    what: The run's own opening and closing records.
+    why: >-
+      Not a pipeline stage - it is the frame around one, carrying when the run
+      started, which model it was for, and how it ended.
