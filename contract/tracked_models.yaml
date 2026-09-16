@@ -24,7 +24,8 @@
 #   for. An entry with `registry: null` shows "no rate", and that is the honest
 #   state rather than a gap to be filled in by hand.
 #
-# ⚠ EVERY ENTRY NOW HAS A REGISTRY ROW, AND THEY GOT THERE TWO DIFFERENT WAYS.
+# ⚠ EVERY ENTRY BUT ONE HAS A REGISTRY ROW, AND THEY GOT THERE TWO DIFFERENT
+#   WAYS. The exception is Gemini 3.8 Flash - see its entry below.
 #
 #   Three of the five were seated on 2026-09-15 from contract/unpolled_models.yaml
 #   so the page could link them - Recraft V4.1 Pro, ElevenLabs v3, Qwen3.5 Omni
@@ -65,12 +66,14 @@
 # `kind` says which of those a row is, so the page can say why a rate is absent
 # instead of leaving a reader to assume the model is free.
 #
-# TWELVE, DOWN FROM THIRTY ON 2026-09-15. Parvathi named fifteen to drop after
-# seeing them on the page, then three more the same day. They were not chosen by a
-# rule - eleven of the first fifteen were image, video and speech models, but two
-# were language models the registry prices perfectly well (Gemini 3.1 Pro,
-# Qwen3.6 27B) - so this list is editorial and the file is the only record of it.
-# That is the point of it being config.
+# THIRTEEN, AND THE ARITHMETIC IS WORTH KEEPING: thirty on 2026-09-15, less
+# fifteen Parvathi named after seeing them on the page, less three more the same
+# day, plus Gemini 3.8 Flash on 2026-09-16.
+#
+# The fifteen were not chosen by a rule - eleven were image, video and speech
+# models, but two were language models the registry prices perfectly well
+# (Gemini 3.1 Pro, Qwen3.6 27B) - so this list is editorial and the file is the
+# only record of it. That is the point of it being config.
 #
 # ⚠ THE LAST THREE OUT WENT FOR THREE DIFFERENT REASONS THAT LOOK IDENTICAL
 #   FROM THE PAGE - all three showed nothing.
@@ -244,6 +247,43 @@ models:
   - name: GPT-5.5 Codex
     registry: openai/gpt-5.5
     kind: text
+
+  # ⚠ ADDED 2026-09-16 AT PARVATHI'S REQUEST, AND IT IS THE ONLY ENTRY HERE
+  #   WITH `registry: null`. That is deliberate and it is not a TODO.
+  #
+  #   ATTESTED BUT NOT POLLED. One claim names it, from Hacker News:
+  #
+  #       "can do 7.2 serial arithmetic steps in a forward pass vs 4.1 for the
+  #        next best model (Gemini 3.8 Flash/Fable 5.1)"
+  #
+  #   So an engineer wrote it and the model is real. The OpenRouter poll does
+  #   not carry it: the flash line runs gemini-3-flash-preview, 3.5-flash,
+  #   3.6-flash, 3.7-flash and stops.
+  #
+  #   ⚠ AND THAT IS A DIFFERENT ABSENCE FROM GPT-5.5 CODEX'S. There the poll
+  #     covered both neighbourhoods exhaustively and the hole was in the MIDDLE,
+  #     which is evidence a name is wrong. Here 3.8 sits BEYOND the end of the
+  #     line - the ordinary shape of a model newer than the poll's snapshot.
+  #
+  #   WHY NOT SEATED THROUGH contract/unpolled_models.yaml, WHICH WOULD HAVE
+  #   GIVEN IT A PAGE. That file is for models "the poll will NEVER bring" -
+  #   Recraft, ElevenLabs, Qwen Omni are absent because OpenRouter lists no
+  #   standalone image or speech vendor, which is structural and permanent.
+  #   Google's flash line is polled exhaustively, so OpenRouter will carry this
+  #   the day it ships. Seeding it would write a `provenance: seed` row that the
+  #   poll later replaces with `polled` - and from then on
+  #   `_refuse_provenance_downgrade` would make unpolled_models.yaml unloadable,
+  #   which is exactly how seed_models.yaml became unloadable with seven of its
+  #   eleven polled.
+  #
+  #   So `registry: null` is the measurement, and the file's own rule applies:
+  #   it "shows no rate, and that is the honest state rather than a gap to be
+  #   filled in by hand". The row becomes clickable and priced on its own the
+  #   first time the poll returns it, with no edit here.
+  - name: Gemini 3.8 Flash
+    registry: null
+    kind: text
+    absent_because: not yet carried by the OpenRouter poll
 
   # ── image ────────────────────────────────────────────────────────────────
   # THE ONE IMAGE MODEL THE POLL DOES CARRY, and it is why the note above is

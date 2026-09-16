@@ -694,15 +694,62 @@ proposals:
       - solarpro4                     # mechanical, unattested
     incomplete: [family_surface, attested_surfaces]
 
+  # ⚠ REVIEWED BY HAND, 2026-09-16. `surface` was INCOMPLETE and `seat-alias`
+  #   refused it, correctly: "Nothing in the corpus was observed naming this
+  #   model, so every form under it is a derivation and a reviewer has to supply
+  #   the judgement."
+  #
+  #   THE JUDGEMENT, AND WHAT IT RESTS ON. Parvathi asked for it after a fetch
+  #   run reported, in full:
+  #
+  #       E1 Registry ok    resolved Z.ai: GLM 5.3 - 0 search-eligible name variant(s)
+  #       E2 Harvest skipped  no search variants for this model - nothing to search for
+  #       Run ok. nothing to harvest
+  #
+  #   The form is NOT a guess. Every other model in this line is already seated
+  #   under one convention, confirmed six times in `model_alias`:
+  #
+  #       z-ai/glm-4.5   surface 'glm-4.5'   variants ['glm-4.5','glm 4.5','glm4.5']
+  #       z-ai/glm-4.6   surface 'glm-4.6'   variants ['glm-4.6','glm 4.6','glm4.6']
+  #       z-ai/glm-4.7   surface 'glm-4.7'   variants ['glm 4.7','glm-4.7','glm4.7']
+  #       z-ai/glm-5     surface 'glm-5'     variants ['glm-5','glm 5','glm5']
+  #       z-ai/glm-5.1   surface 'glm-5.1'   variants ['glm-5.1','glm 5.1','glm5.1']
+  #       z-ai/glm-5.2   surface 'glm-5.2'   variants ['glm 5.2','glm-5.2','glm5.2']
+  #
+  #   GLM 5.3 is the ONLY gap in that run. So this is the line's established
+  #   spelling applied to its newest member, not a form invented for it.
+  #
+  #   ⚠ AND THE `INCOMPLETE` MARKER WAS STALE, NOT A STANDING FACT. I first
+  #     wrote this entry as `attested: false` on the strength of the siblings
+  #     alone, then checked the corpus rather than trusting the marker. It is
+  #     wrong:
+  #
+  #         claims quoting `glm 5.3`   5
+  #         claims quoting `glm-5.3`   4
+  #         claims quoting `glm5.3`    0
+  #
+  #             "GLM 5.3 is getting 84% on CyberGym"
+  #             "GLM-5.3 dominates vulnerability detection (CyberGym 84.5%)"
+  #             "GLM-5.3 identified a DNS protocol bug that had lay dormant for
+  #              over 40 years"
+  #
+  #     So the form is OBSERVED, not derived, and the siblings are corroboration
+  #     rather than the basis. `surface: INCOMPLETE` recorded the corpus as it
+  #     stood when the generator last ran; the corpus has since grown and
+  #     nothing re-ran it. That is worth knowing beyond this entry - every
+  #     remaining `INCOMPLETE` in this file is a claim with a date on it, and
+  #     the dates are old.
   - canonical_id: z-ai/glm-5.3
-    status: mechanical-only
-    seated_by: launch-window          # released inside the launch window; no attested surface, so every form below is derived
-    surface: INCOMPLETE   # no attested surface; recall is unmeasured, not zero
+    status: attested
+    seated_by: attested               # the corpus attests this model
+    reviewed_by: parvathi
+    reviewed_on: '2026-09-16'
+    surface: glm-5.3                  # attested 4 mentions; matches the line's seated form
     variants:
-      - glm 5.3                       # mechanical, unattested
-      - glm-5.3                       # mechanical, unattested
+      - glm 5.3                       # attested 5 mentions
+      - glm-5.3                       # attested 4 mentions
       - glm5.3                        # mechanical, unattested
-    incomplete: [family_surface, attested_surfaces]
+    incomplete: [family_surface]
 
 # ── THREE ENTRIES ADDED AND REVIEWED BY HAND, 2026-09-14 ─────────────────────
 #
@@ -780,4 +827,54 @@ proposals:
     # separate products sharing one label.
     # The bare `deepseek v4` is deliberately absent: 87 documents, and it does
     # not distinguish pro from flash.
+    incomplete: [family_surface]
+
+# ── ONE ENTRY ADDED AND REVIEWED BY HAND, 2026-09-16 ─────────────────────────
+#
+# Added for the same reason as the three above: the generator has not re-run and
+# `--out` refuses to overwrite a reviewed artifact.
+#
+# THE COUNTS BELOW ARE CLAIM COUNTS, which is a THIRD measurement in this file
+# and rule 7 says so plainly. The entries at the top carry MENTIONS from the
+# surface extract; the 2026-09-14 block carries DOCUMENTS whose payload contains
+# the form; these count CLAIMS — rows in `claim` whose stored `quote` contains
+# the form. A claim's quote is a span somebody chose to extract, so this is the
+# narrowest of the three and the least comparable: it counts places the form
+# survived into published evidence, not places it was written. Do not sum it
+# with either of the others.
+#
+# WHY IT IS STILL THE RIGHT MEASUREMENT HERE. Every payload-based count in this
+# file is bounded by what is readable on the machine that ran it, and #321
+# measured that at 23.8% on LenovoPB today. `claim.quote` is in the shared
+# database and is readable everywhere, so it is the only surface evidence this
+# host can count without understating it by three quarters.
+
+  - canonical_id: moonshotai/kimi-k3
+    status: attested
+    seated_by: attested               # hand-added 2026-09-16; the corpus attests this model
+    reviewed_by: parvathi
+    reviewed_on: '2026-09-16'
+    # ⚠ NO SIBLING IN THIS LINE IS SEATED, so unlike z-ai/glm-5.3 there is no
+    #   house convention to lean on. moonshotai/kimi-k2, k2-0905, k2-thinking,
+    #   k2.5, k2.6 and k2.7-code all carry zero alias rows. The form below rests
+    #   entirely on what people were observed writing.
+    surface: kimi k3                # attested 6 claims
+    variants:
+      - kimi-k3                       # mechanical, unattested — 0 claims
+      - kimik3                        # mechanical, unattested — 0 claims
+    # THE CORPUS IS UNANIMOUS ON THE SPACED FORM, which is worth recording
+    # because the two mechanical variants below it are the ones this project
+    # usually leads with:
+    #
+    #     "Kimi K3 (max) beats Sonnet 5 on Simple Bench"
+    #     "Kimi K3 lands at 57.1, behind only Claude Fable 5 at 59.9"
+    #     "Kimi K3 @ $15.00/M"
+    #
+    # Six claims, six spaced. One writes `Kimi k3` in lower case, which
+    # normalises to the same key. Not one hyphenated or concatenated form
+    # appears anywhere.
+    #
+    # ⚠ THE BARE `k3` IS DELIBERATELY ABSENT. It matches "K3" in unrelated
+    #   prose and carries no vendor, which is the collision `deepseek v4` was
+    #   left out for above.
     incomplete: [family_surface]
