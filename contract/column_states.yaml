@@ -1189,6 +1189,99 @@ columns:
       reviewed: true
       state: read
       why: selected; the run that spent it, where there was one
+  rapidapi_quota_reading:
+    id:
+      reviewed: true
+      state: read
+      why: 'the content id the append-only merge turns on - `on conflict (id) do nothing` in
+        collect/usage.py:_append_quota_reading. Same shape and same reason as spend_ledger.id. Hashed over
+        meter|machine|run|observed_at|figures|fingerprint, so a replay is a no-op and two real observations are
+        two rows.'
+    key_fingerprint:
+      reviewed: true
+      state: write_only
+      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). Which SUBSCRIPTION this reading is of,
+        sha256(key)[:12] and never the key. Load-bearing for the series specifically: without it a run of
+        readings spanning a key change reads as ONE counter that jumped, which is a wrong finding rather than a
+        missing one. NULL is "not recorded", never "a different account". The intended reader is the usage
+        panel''s quota series, which cannot read it yet because that display is not built - the table is new and
+        holds no rows until the first metered call after its migration is applied.'
+    machine:
+      reviewed: true
+      state: write_only
+      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). Which host OBSERVED the reading - provenance, not
+        ownership; the counter belongs to the subscription named by key_fingerprint. In the hash so two hosts
+        reading one shared counter in the same instant are two observations rather than a duplicate. The
+        intended reader is the usage panel''s quota series, which cannot read it yet because that display is not
+        built - the table is new and holds no rows until the first metered call after its migration is applied.'
+    meter:
+      reviewed: true
+      state: write_only
+      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). Which separately-metered arm. Deliberately NOT a
+        foreign key to rapidapi_quota: that table holds only the latest row per meter, and a history deletable
+        by tidying the thing it is the history OF is not a history. The intended reader is the usage panel''s
+        quota series, which cannot read it yet because that display is not built - the table is new and holds no
+        rows until the first metered call after its migration is applied.'
+    observed_at:
+      reviewed: true
+      state: write_only
+      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). When THIS call recorded the reading, microseconds -
+        distinct from read_at, which is second resolution. It exists because hashing read_at (spend_ledger''s
+        scheme) would give two calls in the same second carrying the same figures one id, and `do nothing` would
+        drop the second. That is the case this table is FOR: an unmoved counter between two calls is the
+        consumption signal, so the lost row would be the one carrying the finding. The intended reader is the
+        usage panel''s quota series, which cannot read it yet because that display is not built - the table is
+        new and holds no rows until the first metered call after its migration is applied.'
+    quota_limit:
+      reviewed: true
+      state: write_only
+      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). The denominator as this reading stated it, never
+        inherited from another reading - the arms are separately metered. The intended reader is the usage
+        panel''s quota series, which cannot read it yet because that display is not built - the table is new and
+        holds no rows until the first metered call after its migration is applied.'
+    quota_remaining:
+      reviewed: true
+      state: write_only
+      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). The numerator, and the column the consumption rate
+        is differenced from. The intended reader is the usage panel''s quota series, which cannot read it yet
+        because that display is not built - the table is new and holds no rows until the first metered call
+        after its migration is applied.'
+    quota_reset_seconds:
+      reviewed: true
+      state: write_only
+      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). Seconds remaining until this meter''s window
+        resets, as read. Carried from the first row so window BOUNDARIES are datable without a backfill - which
+        could not supply it anyway, the header having never been stored. A boundary is where this jumps up
+        instead of counting down. The intended reader is the usage panel''s quota series, which cannot read it
+        yet because that display is not built - the table is new and holds no rows until the first metered call
+        after its migration is applied.'
+    read_at:
+      reviewed: true
+      state: write_only
+      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). What the arm read, second resolution and identical
+        to rapidapi_quota.read_at so the two tables agree and can be compared. Indexed with meter, because every
+        question this table exists for is that scan in time order. The intended reader is the usage panel''s
+        quota series, which cannot read it yet because that display is not built - the table is new and holds no
+        rows until the first metered call after its migration is applied.'
+    read_by:
+      reviewed: true
+      state: write_only
+      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). Whether a harvest, a sweep or a probe took the
+        reading - so "a fetch must have run" is not inferred from a number that moved. The intended reader is
+        the usage panel''s quota series, which cannot read it yet because that display is not built - the table
+        is new and holds no rows until the first metered call after its migration is applied.'
+    recorded_at:
+      reviewed: true
+      state: defaulted
+      why: 'DEFAULT now(), never set explicitly by the insert and read by nothing. Same ruling as
+        spend_ledger.recorded_at: read_at is when the reading was TAKEN and this is when the row ARRIVED, which
+        a late mirror makes differ.'
+    source_run_id:
+      reviewed: true
+      state: write_only
+      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). The run that spent it, where there was one. The
+        intended reader is the usage panel''s quota series, which cannot read it yet because that display is not
+        built - the table is new and holds no rows until the first metered call after its migration is applied.'
   reported_context:
     advertised:
       reviewed: false
