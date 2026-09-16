@@ -1537,12 +1537,28 @@ def fetch_log(run_id: str) -> dict:
             for line in path.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
+        done = any(r.get("kind") == "end" for r in records)
+        # THE REAPER'S VERDICT, WHICH THIS ENDPOINT COULD NOT SEE UNTIL NOW.
+        # `reap` writes to `fetch_log` and never to this file, so a run it had
+        # already marked `abandoned` still answered `done: false` here and the
+        # UI polled it forever. Only consulted once the file itself has gone
+        # quiet past the reaper's threshold — see `_adopted_end_record`.
+        adopted = None
+        if not done:
+            adopted = _adopted_end_record(run_id, records)
+            if adopted is not None:
+                records = [*records, adopted]
+                done = True
         return {
             "run_id": run_id,
             "records": records,
             "started": True,
-            "done": any(r.get("kind") == "end" for r in records),
+            "done": done,
             "source": "local file",
+            # SAID, NOT SLIPPED IN. The last record is then not the run's own
+            # words but another process's verdict about it, and a reader
+            # deciding whether to trust "abandoned" needs to know which.
+            **({"end_adopted_from": "shared table"} if adopted is not None else {}),
         }
     shared = _fetch_log_from_db(run_id)
     if shared:
@@ -1556,6 +1572,61 @@ def fetch_log(run_id: str) -> dict:
         }
     return {"run_id": run_id, "records": [], "done": False, "started": False,
             "source": None}
+
+
+def _adopted_end_record(run_id: str, records: list[dict]) -> dict | None:
+    """The end record the SHARED TABLE holds for a run whose own FILE has none.
+
+    ⚠ THE REAPER AND THE UI WERE LOOKING AT TWO DIFFERENT STORES, AND THAT IS
+      WHY A DEAD RUN READ AS RUNNING FOR SIXTEEN HOURS.
+
+    `fetch_reaper.reap` appends its `abandoned` record to the `fetch_log` TABLE
+    and touches no file — grep it for `_FETCH_DIR` and there is nothing. Both
+    readers above prefer the LOCAL FILE, for a good reason stated in
+    `/fetch/log`: a poll that fires every second should not make a database
+    round trip, and a run failing *because of* the database should still be
+    watchable.
+
+    So on the machine that started a run, the reaper's verdict was invisible.
+    Measured 2026-09-16 on this machine:
+
+        GET /fetch/log?run_id=anthropic_claude-fable-5-1-fcb1e17b
+          source : local file
+          done   : False          <- the UI polls forever
+          records: 77
+
+    while `fetch_log` held an `abandoned` end record for that exact run. The
+    reaper had worked five days earlier and nothing could see it.
+
+    WHY THIS DOES NOT UNDO "LOCAL FILE FIRST". The file still wins for every
+    healthy run and for every poll of a live one: this is reached only when the
+    file has NO end record AND the run has been silent longer than the reaper's
+    own threshold. A run inside that window is plausibly alive, and asking the
+    database about it would be both wrong and the round trip the rule exists to
+    avoid.
+
+    THE FILE IS STILL NOT REWRITTEN. The run's own account stays exactly as it
+    left it — this adopts a record for the ANSWER, and the caller says so with
+    `end_adopted_from` rather than passing it off as the run's own words.
+
+    Returns None when the file is empty, when the run is still inside the
+    silence window, or when the table has no end record either.
+    """
+    if not records:
+        return None
+    stamps = [r.get("at") for r in records if r.get("at")]
+    if not stamps:
+        return None
+    last = _epoch_of(max(stamps))
+    if last is None:
+        return None
+    quiet_for = datetime.now(UTC).timestamp() - last
+    if quiet_for < fetch_reaper.DEFAULT_SILENT_FOR.total_seconds():
+        return None
+    for record, _machine in _fetch_log_from_db(run_id):
+        if record.get("kind") == "end":
+            return record
+    return None
 
 
 def _fetch_log_from_db(run_id: str) -> list[tuple[dict, str]]:
@@ -1601,6 +1672,29 @@ def fetch_runs(model_version_id: str) -> dict:
     mv = model_version_id.strip()
     if not mv:
         raise HTTPException(status_code=422, detail="model_version_id is required")
+
+    # REAP BEFORE RENDERING, WHICH IS THE CALLER `fetch_reaper` ALWAYS NAMED AND
+    # NOBODY EVER WIRED. Its own docstring says "the caller is a fetch about to
+    # start OR A PAGE ABOUT TO RENDER"; only the first existed, so nothing was
+    # reaped unless somebody happened to start another fetch. Measured
+    # 2026-09-16: three runs had read as `running` for ~16 hours because no
+    # fetch had been started since they died.
+    #
+    # The moment somebody LOOKS is at least as right as the moment somebody
+    # starts, and it comes first — a stale row confuses a reader when it is
+    # read, not when it is joined by a newer one.
+    #
+    # CHEAP WHEN THERE IS NOTHING TO DO: `reap` runs one query and returns early
+    # unless a run is actually past the threshold. Never raises, and wrapped
+    # anyway — a history that will not load because a tidy-up failed is worse
+    # than the stale row it was tidying.
+    reaped: list[str] = []
+    try:
+        with _conn() as conn:
+            reaped = [r.run_id for r in fetch_reaper.reap(conn)]
+    except Exception:  # noqa: BLE001 - a tidy-up must not fail the render
+        log.warning("could not reap abandoned runs before listing", exc_info=True)
+
     flat = mv.replace("/", "_")
     _HEX = set("0123456789abcdef")
     runs = []
@@ -1618,6 +1712,11 @@ def fetch_runs(model_version_id: str) -> dict:
             except (OSError, ValueError):
                 records = []
             end = next((r for r in records if r.get("kind") == "end"), None)
+            # Same adoption as `/fetch/log`, and needed here for the same
+            # reason: the reap above wrote to the table, not to this file, so
+            # without this the row it just marked would still list as running.
+            if end is None:
+                end = _adopted_end_record(path.stem, records)
             stages = [r for r in records if r.get("kind") == "stage"]
             docs = sum(int(s.get("documents_inserted") or 0) for s in stages)
             runs.append({
@@ -1660,7 +1759,12 @@ def fetch_runs(model_version_id: str) -> dict:
             "machine": machine_name,
         })
     runs.sort(key=lambda r: r["started_at"] or 0, reverse=True)
-    return {"model_version_id": mv, "runs": runs}
+    # NAMED IN THE RESPONSE, exactly as `/fetch/start` names it. Marking another
+    # machine's run dead is a visible change to shared history, and doing it on
+    # a page RENDER makes it easier to miss than doing it on a click - so the
+    # page is told what it just did and can say so. `reaped_by` is on each
+    # record too, so the write is attributable from the row as well as here.
+    return {"model_version_id": mv, "runs": runs, "reaped_runs": reaped}
 
 
 def _epoch_of(when: str | None) -> float | None:
