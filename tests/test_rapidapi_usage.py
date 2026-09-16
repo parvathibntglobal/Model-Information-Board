@@ -397,3 +397,103 @@ class TestNoMachineNameReachesTheAdminPage:
             "a hostname reached the payload - check every string, not only "
             "the fields whose name looks like it holds one"
         )
+
+
+class TestQuotaReadingHistoryId:
+    """`quota_reading_id` — the property the history table exists for.
+
+    The table's whole purpose is that no reading is lost. These pin the id
+    rules that decide it, without a database: the id IS the deduplication, so
+    a defect here is silent row loss rather than an error.
+    """
+
+    def test_two_same_second_readings_of_an_unmoved_counter_are_two_ids(self):
+        """THE CASE THE TABLE EXISTS FOR, and the reason `observed_at` exists.
+
+        `_now()` is second resolution, so two calls in one second share
+        `read_at`. If the counter did not move between them, every other hashed
+        field is identical too — so hashing `read_at` (spend_ledger's scheme)
+        would give one id and `on conflict do nothing` would drop the second.
+
+        That row is not noise. "The counter did not move across 40 calls" is
+        the consumption signal, so losing it loses the finding.
+        """
+        from collect.usage import quota_reading_id
+
+        common = dict(
+            meter="reddit", machine_name="HOST-A", run_id="run-1",
+            remaining=999_850, limit=1_000_000, reset_seconds=2_064_366,
+            key_fp="abc123def456",
+        )
+        first = quota_reading_id(observed_at="2026-09-16T08:24:59.100000+00:00", **common)
+        second = quota_reading_id(observed_at="2026-09-16T08:24:59.900000+00:00", **common)
+        assert first != second, (
+            "two real calls in the same second collapsed to one row — this is "
+            "exactly the unmoved-counter reading the history is for"
+        )
+
+    def test_a_replay_of_one_record_is_one_id(self):
+        """Idempotence, which is the other half and pulls the opposite way."""
+        from collect.usage import quota_reading_id
+
+        args = dict(
+            meter="x", machine_name="HOST-A", run_id="run-1",
+            observed_at="2026-09-16T08:26:00.500000+00:00",
+            remaining=98_957, limit=100_000, reset_seconds=1_645_033,
+            key_fp="abc123def456",
+        )
+        assert quota_reading_id(**args) == quota_reading_id(**args)
+
+    def test_two_hosts_reading_one_counter_in_the_same_instant_are_two_rows(self):
+        """A shared subscription read from two machines is two observations."""
+        from collect.usage import quota_reading_id
+
+        common = dict(
+            meter="reddit", run_id=None,
+            observed_at="2026-09-16T08:24:59.100000+00:00",
+            remaining=999_850, limit=1_000_000, reset_seconds=2_064_366,
+            key_fp="abc123def456",
+        )
+        assert (quota_reading_id(machine_name="HOST-A", **common)
+                != quota_reading_id(machine_name="HOST-B", **common))
+
+    def test_an_absent_figure_and_a_zero_do_not_share_an_id(self):
+        """Rule 6, in the id. A missing limit is not a limit of zero."""
+        from collect.usage import quota_reading_id
+
+        common = dict(
+            meter="reddit", machine_name="HOST-A", run_id=None,
+            observed_at="2026-09-16T08:24:59.100000+00:00",
+            remaining=999_850, reset_seconds=None, key_fp=None,
+        )
+        assert quota_reading_id(limit=None, **common) != quota_reading_id(limit=0, **common)
+
+    def test_a_subscription_change_is_visible_rather_than_a_jumped_counter(self):
+        """`key_fingerprint` is hashed, so the series can show the seam.
+
+        Without it, a reading of a DIFFERENT subscription at the same instant
+        with the same figures would be indistinguishable — and a series that
+        silently splices two accounts reads as one counter that jumped, which
+        is a wrong finding rather than a missing one.
+        """
+        from collect.usage import quota_reading_id
+
+        common = dict(
+            meter="x", machine_name="HOST-A", run_id=None,
+            observed_at="2026-09-16T08:26:00.500000+00:00",
+            remaining=98_957, limit=100_000, reset_seconds=1_645_033,
+        )
+        assert (quota_reading_id(key_fp="aaaaaaaaaaaa", **common)
+                != quota_reading_id(key_fp="bbbbbbbbbbbb", **common))
+
+    def test_the_id_is_prefixed_and_bounded(self):
+        """`rqr_` + 24 hex, the shape `spd_` established."""
+        from collect.usage import quota_reading_id
+
+        got = quota_reading_id(
+            meter="reddit", machine_name="HOST-A", run_id=None,
+            observed_at="2026-09-16T08:24:59.100000+00:00",
+            remaining=1, limit=2, reset_seconds=3, key_fp=None,
+        )
+        assert got.startswith("rqr_")
+        assert len(got) == len("rqr_") + 24
