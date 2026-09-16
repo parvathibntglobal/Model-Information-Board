@@ -2637,6 +2637,20 @@ def _rapidapi_meters() -> dict[str, dict]:
     return local
 
 
+#: The shared-table read, as a constant SO IT CAN BE TESTED.
+#:
+#: `tests/conftest.py` stubs `_rapidapi_meters_from_db` to `lambda: None` for
+#: every test that has imported `judge.app`, which is right - it stops ~3000
+#: tests reaching a real database - and it also means the function cannot be
+#: called in a test to check what it selects. The defect this guards against was
+#: EXACTLY a missing column name in this string, so the string is the thing worth
+#: pinning and a constant is how a test can see it.
+_QUOTA_SELECT = (
+    "select meter, quota_remaining, quota_limit, read_at, read_by, "
+    "       source_run_id, machine, key_fingerprint from rapidapi_quota"
+)
+
+
 def _rapidapi_meters_from_db() -> dict[str, dict] | None:
     """Every machine's latest reading, or None when the table cannot be read.
 
@@ -2646,10 +2660,19 @@ def _rapidapi_meters_from_db() -> dict[str, dict] | None:
     """
     try:
         with _conn() as conn:
-            rows = conn.execute(
-                "select meter, quota_remaining, quota_limit, read_at, read_by, "
-                "       source_run_id, machine from rapidapi_quota"
-            ).fetchall()
+            # ⚠ `key_fingerprint` WAS NOT IN THIS SELECT, AND IT IS THE WHOLE
+            #   OF #330's CHECK. The column was added to `rapidapi_quota` that
+            #   same morning and `collect/usage.py` writes it on every metered
+            #   call - but nothing read it back here, so `row.get(
+            #   "key_fingerprint")` in `_rapidapi_meters` was always None,
+            #   `differ` was always False, and `subscriptions_differ` could
+            #   never become True for a shared-table row against a local one.
+            #
+            #   The feature was present in the schema, wired at the writer,
+            #   tested at the comparison, and DEAD AT THE READER. Rule 9 from
+            #   the other end: not a value with no consumer, but a consumer
+            #   silently handed a constant None.
+            rows = conn.execute(_QUOTA_SELECT).fetchall()
     except Exception:
         return None
     return {
@@ -2661,8 +2684,12 @@ def _rapidapi_meters_from_db() -> dict[str, dict] | None:
             "read_by": str(by),
             "source_run_id": run,
             "machine": str(mach),
+            # None stays None. Every row written before 2026-09-16 has no
+            # fingerprint, and reading that as "a different account" would light
+            # the warning across the whole table (rule 6).
+            "key_fingerprint": fp,
         }
-        for m, rem, lim, at, by, run, mach in rows
+        for m, rem, lim, at, by, run, mach, fp in rows
     }
 
 
