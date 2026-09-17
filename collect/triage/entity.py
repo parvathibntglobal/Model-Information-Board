@@ -498,6 +498,26 @@ def resolve(text: str, population: SurfacePopulation) -> tuple[str, ...]:
 #: `opus 5 turbo` also still resolves - `turbo` may be somebody's adjective.
 _VERSION_CONTINUES = re.compile(r"[.\-]\d|\d")
 
+#: ⚠ `X.0` IS `X`, AND TREATING IT AS A LATER VERSION DROPPED REAL DOCUMENTS.
+#:
+#: Found by reading the documents (b) would drop, not by reading the rule.
+#: `"Sonnet 5.0 is another disaster"` names Sonnet 5 - the `.0` restates the
+#: version, it does not advance it - and the first version of this rule made
+#: that a near miss, so the document resolved to NOTHING and dropped.
+#:
+#: It concentrated exactly where it was most expensive: 17 of 2,377 near-miss
+#: documents overall (0.7%), but **14 of the 47 that lose every surface** - so
+#: nearly a third of everything (b) would have dropped was a model we do track,
+#: spelled with a `.0`. An `additionally_misattributed` document merely loses an
+#: attribution it should keep; these lost the whole document.
+#:
+#: The lookahead is what separates `5.0` from `5.01`, and the window widened
+#: from 2 characters to 3 to give it something to look at. A 2-character window
+#: cannot evaluate `(?!\d)` - it runs off the end and the lookahead passes
+#: vacuously, which is also what made the FIRST measurement of this class wrong
+#: (it counted `-0731` snapshots as `.0`).
+_SAME_VERSION = re.compile(r"[.\-]0(?!\d)")
+
 
 def _version_continues(text: str, after: int) -> bool:
     """Does `text` continue a version immediately after index `after`?
@@ -505,8 +525,18 @@ def _version_continues(text: str, after: int) -> bool:
     `after` is an index into the CASEFOLDED text, because that is what
     `normalize_with_offsets` indexes against - `casefold()` can change a
     string's length, so the two must agree on which string they mean.
+
+    KNOWN EXCLUSION, COUNTED RATHER THAN RULED ON: a DATED SNAPSHOT suffix -
+    `DeepSeek-V4-Flash-0731` - is still a near miss, so 22 documents (0.9%)
+    lose an attribution to the model line they are about. `.0` is settled
+    because `5.0` and `5` are the same number; a snapshot date is a different
+    question - whether a dated build may speak for its line - and deciding it
+    here would be ruling on it silently. Left as it was, with a figure.
     """
-    return bool(_VERSION_CONTINUES.match(text[after + 1 : after + 3]))
+    window = text[after + 1 : after + 4]
+    if _SAME_VERSION.match(window):
+        return False
+    return bool(_VERSION_CONTINUES.match(window))
 
 
 @dataclass(frozen=True)
@@ -607,14 +637,22 @@ def resolve_with_near_misses(
         10,131 readable of 14,351 with a text_ref   (the rest: payload absent
                                                      from this raw store, or
                                                      not prose)
-         2,377 have a near miss                     23.5% of readable
-         2,330 keep a correct attribution and shed a wrong one
-            47 resolve to NOTHING now and drop as `no-resolvable-entity`
+         2,355 have a near miss                     23.2% of readable
+         2,322 keep a correct attribution and shed a wrong one
+            33 resolve to NOTHING now and drop as `no-resolvable-entity`
 
-    So the trade is 47 documents lost against 2,330 corrected, and the 47 name
-    no model we track. `docs/measurements/flip-b-impact-2026-09-17.json` carries
-    every one with its document id, the two classes apart, so they can be
-    inspected rather than counted.
+    So the trade is 33 documents lost against 2,322 corrected.
+    `docs/measurements/flip-b-impact-2026-09-17.json` carries every one with its
+    document id, the two classes apart, so they can be inspected rather than
+    counted - and inspecting them is what found `_SAME_VERSION`.
+
+    ⚠  THE FIRST VERSION OF THESE FIGURES SAID 47 AND 2,330, AND THE WORDING
+       WAS "the 47 name no model we track". THAT WAS WRONG. 14 of those 47 were
+       `X.0` - `"Sonnet 5.0 is another disaster"` names Sonnet 5 - so a third of
+       the drops were a model we DO track. The claim was inherited from the
+       proposal rather than checked against the documents, and reading eight of
+       them was what falsified it. The rule now excludes `.0`; these figures are
+       from the corrected rule.
 
     WHAT IT STILL DOES NOT REFUSE, deliberately: `fable 5-preview` resolves,
     because the rule requires a DIGIT after the separator. Widening to any word
