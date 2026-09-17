@@ -25,6 +25,7 @@ from collect.triage.entity import (
 from collect.triage.gates import (
     KNOWN_BOT,
     LANGUAGE,
+    NEAR_MISS,
     NO_ENTITY,
     OUT_OF_WINDOW,
     PURE_LINK,
@@ -731,3 +732,59 @@ def test_a_run_with_no_inheritance_says_nothing_about_it():
     )
     assert run.subject_inherited == 0
     assert "SUBJECT INHERITED" not in run.describe()
+
+
+# ── the near-miss work-list, which had no reader until 2026-09-17 ────────
+
+
+def test_a_refused_surface_is_tallied_per_surface_as_the_registry_work_list():
+    """Rule 9: `near_miss_surfaces` was SET on every result and read by nothing.
+
+    Per surface rather than a total, because the total says a number and the
+    breakdown says what to do - a surface appearing in quantity names the model
+    somebody should register.
+    """
+    pop = population()
+    docs = [
+        doc(
+            "claude opus 5.1 dropped tool calls for us twice this week and we "
+            "have not worked out why it happens on longer conversations",
+            is_self_post=True,
+        ),
+        doc(
+            "claude opus 5.1 is much slower than we expected on long documents "
+            "and the latency is hard to explain to anybody who asks about it",
+            is_self_post=True,
+        ),
+    ]
+    results, run = triage_all(docs, population=pop)
+    assert all("opus 5" in r.near_miss_surfaces for r in results)
+    # The refused surface no longer attributes, which is (b).
+    assert all("opus 5" not in r.matched_surfaces for r in results)
+    assert run.near_miss_by_surface["opus 5"] == 2
+    assert "SURFACES REFUSED AS NEAR MISSES" in run.describe()
+    assert "opus 5 (2)" in run.describe()
+
+
+def test_the_flag_fires_when_a_document_keeps_a_clean_attribution_too():
+    """The shape `only_near_misses` went silent on.
+
+    A document naming Opus 5.1 AND Gemini 2.5 Flash keeps a clean hit, so the
+    old `set(near_misses) == set(hits)` was False and nothing was recorded -
+    silent on the very class that carries the misattribution.
+    """
+    pop = population()
+    results, run = triage_all(
+        [
+            doc(
+                "claude opus 5.1 and gemini 2.5 flash were both tried here and "
+                "only one of them handled the longer inputs without complaint",
+                is_self_post=True,
+            )
+        ],
+        population=pop,
+    )
+    result = results[0]
+    assert result.kept
+    assert NEAR_MISS in result.flags
+    assert run.near_miss_by_surface.get("opus 5") == 1

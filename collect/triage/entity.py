@@ -498,6 +498,26 @@ def resolve(text: str, population: SurfacePopulation) -> tuple[str, ...]:
 #: `opus 5 turbo` also still resolves - `turbo` may be somebody's adjective.
 _VERSION_CONTINUES = re.compile(r"[.\-]\d|\d")
 
+#: ⚠ `X.0` IS `X`, AND TREATING IT AS A LATER VERSION DROPPED REAL DOCUMENTS.
+#:
+#: Found by reading the documents (b) would drop, not by reading the rule.
+#: `"Sonnet 5.0 is another disaster"` names Sonnet 5 - the `.0` restates the
+#: version, it does not advance it - and the first version of this rule made
+#: that a near miss, so the document resolved to NOTHING and dropped.
+#:
+#: It concentrated exactly where it was most expensive: 17 of 2,377 near-miss
+#: documents overall (0.7%), but **14 of the 47 that lose every surface** - so
+#: nearly a third of everything (b) would have dropped was a model we do track,
+#: spelled with a `.0`. An `additionally_misattributed` document merely loses an
+#: attribution it should keep; these lost the whole document.
+#:
+#: The lookahead is what separates `5.0` from `5.01`, and the window widened
+#: from 2 characters to 3 to give it something to look at. A 2-character window
+#: cannot evaluate `(?!\d)` - it runs off the end and the lookahead passes
+#: vacuously, which is also what made the FIRST measurement of this class wrong
+#: (it counted `-0731` snapshots as `.0`).
+_SAME_VERSION = re.compile(r"[.\-]0(?!\d)")
+
 
 def _version_continues(text: str, after: int) -> bool:
     """Does `text` continue a version immediately after index `after`?
@@ -505,8 +525,18 @@ def _version_continues(text: str, after: int) -> bool:
     `after` is an index into the CASEFOLDED text, because that is what
     `normalize_with_offsets` indexes against - `casefold()` can change a
     string's length, so the two must agree on which string they mean.
+
+    KNOWN EXCLUSION, COUNTED RATHER THAN RULED ON: a DATED SNAPSHOT suffix -
+    `DeepSeek-V4-Flash-0731` - is still a near miss, so 22 documents (0.9%)
+    lose an attribution to the model line they are about. `.0` is settled
+    because `5.0` and `5` are the same number; a snapshot date is a different
+    question - whether a dated build may speak for its line - and deciding it
+    here would be ruling on it silently. Left as it was, with a figure.
     """
-    return bool(_VERSION_CONTINUES.match(text[after + 1 : after + 3]))
+    window = text[after + 1 : after + 4]
+    if _SAME_VERSION.match(window):
+        return False
+    return bool(_VERSION_CONTINUES.match(window))
 
 
 @dataclass(frozen=True)
@@ -519,33 +549,44 @@ class Resolution:
     misattribution.
     """
 
+    #: Surfaces that RESOLVE. Near misses have been SUBTRACTED - see
+    #: `resolve_with_near_misses`. Before 2026-09-17 this carried them.
     hits: tuple[str, ...]
-    #: Surfaces whose EVERY occurrence in this text is continued as a version.
-    #: A surface appearing once as `fable 5.1` and once as `fable 5` is a HIT
-    #: and is absent here: one real mention is a mention, and this field must
-    #: never be read as "this surface is unreliable in general".
+    #: Surfaces whose EVERY occurrence in this text is continued as a version,
+    #: and which are therefore REFUSED. A surface appearing once as `fable 5.1`
+    #: and once as `fable 5` is a HIT and is absent here: one real mention is a
+    #: mention, and this field must never be read as "this surface is unreliable
+    #: in general".
+    #:
+    #: ⚠  DISJOINT FROM `hits` SINCE (b) LANDED, AND IT WAS A SUBSET BEFORE.
+    #:    Any code that still reasons "near_misses are among hits" is reading a
+    #:    version of this class that no longer exists.
     near_misses: tuple[str, ...] = ()
 
     @property
-    def only_near_misses(self) -> bool:
-        """Did EVERY surface that matched do so inside a longer version string?
+    def has_near_miss(self) -> bool:
+        """Did anything in this text match only inside a longer version string?
 
-        The condition under which attribution is certainly wrong: the model this
-        document would be filed against is not the model it discusses.
+        FIRES ON ANY NEAR MISS, WHICH IS THE CORRECTION THAT CAME WITH (b).
+        This was `only_near_misses`, and it asked whether EVERY matched surface
+        was a near miss - `set(near_misses) == set(hits)` back when the two
+        overlapped. That condition is unsatisfiable the moment BOTH models are
+        registered, because the longer model then contributes a clean hit:
 
-        ⚠  `near_misses` IS A SUBSET OF `hits`, WHICH THE FIRST VERSION OF THIS
-           PROPERTY GOT WRONG. It read `bool(self.near_misses) and not
-           self.hits`, and `hits` is never empty when `near_misses` is not - so
-           it returned False always, including on the `Fable 5.1` document that
-           motivated the whole change. The comparison has to be between the two
-           sets, not a truthiness test on one.
+            "fable 5.1 is broken"   near={fable 5}  hits={fable 5.1, fable 5}
+                                    -> sets differ -> silent
 
-           Third instance in three days of the same slip: reading a SUBSET as a
-           DISJOINT SET. The other two were counting surfaces where the question
-           was models. Worth the sentence, because a property that silently
-           answers False is exactly the shape rule 4 is about.
+        So the flag went quiet exactly when the misattribution happened, and
+        the live corpus showed it: ZERO documents carried
+        `near-miss-not-registered` while 2,377 of 10,131 readable documents had
+        a near miss. The count was meant to be the registry work-list, and
+        registering the model was what switched it off.
+
+        A document that keeps a correct attribution AND sheds a wrong one is
+        still a document somebody should know about, which is why any is the
+        right threshold rather than all.
         """
-        return bool(self.near_misses) and set(self.near_misses) == set(self.hits)
+        return bool(self.near_misses)
 
     def owners(self, population: SurfacePopulation) -> tuple[set[str], set[str]]:
         """The models reached CLEANLY, and the models reached only by near miss.
@@ -556,40 +597,68 @@ class Resolution:
         count of surfaces answers a question nobody asked (rule 7).
 
         The second set minus the first is the actionable one: models this
-        document would be filed against and should not be.
+        document WOULD have been filed against before (b), and now is not.
+
+        READS THE TWO FIELDS SEPARATELY, because they are disjoint now. It used
+        to partition `hits` by membership in `near_misses`, which only worked
+        while near misses were a subset of hits.
         """
         clean: set[str] = set()
-        near: set[str] = set()
-        near_set = set(self.near_misses)
         for surface in self.hits:
-            target = near if surface in near_set else clean
-            target |= set(population.owners.get(surface, ()))
-        return clean, near - clean
+            clean |= set(population.owners.get(surface, ()))
+        refused: set[str] = set()
+        for surface in self.near_misses:
+            refused |= set(population.owners.get(surface, ()))
+        # A model reached cleanly by one surface is not "refused" because another
+        # of its surfaces was continued. Attribution is at the model level.
+        return clean, refused - clean
 
 
 def resolve_with_near_misses(
     text: str, population: SurfacePopulation
 ) -> Resolution:
-    """`resolve`, plus the near misses it silently accepted.
+    """`resolve`, with the near misses REFUSED rather than silently accepted.
 
-    ⚠  `hits` IS EXACTLY WHAT `resolve` RETURNS, INCLUDING THE NEAR MISSES.
-       Resolution is UNCHANGED by this function existing, deliberately: rule 8's
-       direction is one-way, so the near miss ships as a RECORDED field first
-       and becomes a refusal later on the evidence this field produces. Flipping
-       both at once would replace a measured defect (misattribution) with an
-       unmeasured one (documents refused for naming a model we do not track),
-       and only the first of those is currently counted.
+    (b) LANDED 2026-09-17. `hits` is what `resolve` returns MINUS every surface
+    that matched only inside a longer version string. A surface here resolved
+    and attributes the document; a surface in `near_misses` did neither.
 
-       When it is flipped, the change is one line here - subtract `near_misses`
-       from `hits` - and nothing else moves, because every caller that cares
-       already reads the two apart.
+    THE TWO WRONGS ARE NOT SYMMETRICAL, which is why the destination was always
+    a refusal. Refusing loses the document and `near-miss-not-registered` counts
+    it, so the loss is visible and carries its own fix - register the model.
+    Misattributing files the evidence on another model's cell with no counter
+    and no signal.
 
-    THE TWO WRONGS ARE NOT SYMMETRICAL, which is the argument for flipping
-    eventually. Refusing loses the document and `near-miss-not-registered`
-    counts it, so the loss is visible and carries its own fix - register the
-    model. Misattributing files the evidence on another model's cell with no
-    counter and no signal. That asymmetry, not caution, is why the destination
-    is a refusal.
+    RULE 8's ORDER WAS FOLLOWED RATHER THAN SKIPPED. This shipped as a recorded
+    field first (2026-09-08) and became a gate only once the cost was measured
+    on a population it did not choose - the whole stored corpus, every readable
+    document, not the documents the check had already kept:
+
+        10,131 readable of 14,351 with a text_ref   (the rest: payload absent
+                                                     from this raw store, or
+                                                     not prose)
+         2,355 have a near miss                     23.2% of readable
+         2,322 keep a correct attribution and shed a wrong one
+            33 resolve to NOTHING now and drop as `no-resolvable-entity`
+
+    So the trade is 33 documents lost against 2,322 corrected.
+    `docs/measurements/flip-b-impact-2026-09-17.json` carries every one with its
+    document id, the two classes apart, so they can be inspected rather than
+    counted - and inspecting them is what found `_SAME_VERSION`.
+
+    ⚠  THE FIRST VERSION OF THESE FIGURES SAID 47 AND 2,330, AND THE WORDING
+       WAS "the 47 name no model we track". THAT WAS WRONG. 14 of those 47 were
+       `X.0` - `"Sonnet 5.0 is another disaster"` names Sonnet 5 - so a third of
+       the drops were a model we DO track. The claim was inherited from the
+       proposal rather than checked against the documents, and reading eight of
+       them was what falsified it. The rule now excludes `.0`; these figures are
+       from the corrected rule.
+
+    WHAT IT STILL DOES NOT REFUSE, deliberately: `fable 5-preview` resolves,
+    because the rule requires a DIGIT after the separator. Widening to any word
+    suffix would have to defend `gpt-4-turbo` and `opus-5-thinking`, where the
+    suffix sometimes names a different model and sometimes a mode of the same
+    one - so widening means re-measuring, not re-reasoning.
     """
     hits = resolve(text, population)
     if not hits:
@@ -618,7 +687,14 @@ def resolve_with_near_misses(
         # and calling that a near miss would refuse a document that names it.
         if occurrences and continued == occurrences:
             near.append(surface)
-    return Resolution(hits=hits, near_misses=tuple(near))
+    # ── (b), AND IT IS THE ONE LINE THE DOCSTRING PROMISED ────────────────
+    # Subtracted here rather than at every caller: a caller that forgot would
+    # attribute on a refused surface, which is the defect this removes.
+    refused = set(near)
+    return Resolution(
+        hits=tuple(h for h in hits if h not in refused),
+        near_misses=tuple(near),
+    )
 
 
 def names_a_model(text: str, population: SurfacePopulation) -> bool:
