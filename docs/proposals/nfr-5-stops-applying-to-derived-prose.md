@@ -106,11 +106,13 @@ Three things that wording is doing:
 derived publication at all.** The per-source records are a *contract mechanism*;
 an NFR is a *requirement with an acceptance criterion*. They answer different
 questions - "may we publish from this source" versus "what must be true of what
-we publish" - and only the first now has a home.
+we publish" - and only the first had a home.
 
-That may be fine for now, and it is a second decision rather than a consequence
-of this one. Named because a requirements table silent on the project's main
-output is the kind of gap that reads as deliberate a year later.
+**That gap is now filled: `nfr-11-derived-publication.md`.** It carries the
+things no per-source flag can express - provenance, the verbatim bar, the source
+floor that proxies for close paraphrase, the screenshot seam, a destination
+ruling, and the retraction task that is as far as NFR-6's promise can reach
+outside the board.
 
 ## Where the requirement is restated, and the count has moved twice
 
@@ -145,10 +147,33 @@ contract/tables.sql:270               -- never republished: published content is
 contract/migrations/baseline.sql:242     quote + attribution + link.
 ```
 
-Identical text in both, because the migration is the schema's history. The
-baseline is **immutable by policy** - it records what the schema was - so this
-one arguably should *not* be updated, and that is worth ruling on rather than
-discovering when somebody edits it.
+Identical text in both, and the ruling for the two is **opposite**.
+
+#### RULED: `tables.sql:270` is updated, `baseline.sql:242` is LEFT ALONE
+
+`contract/tables.sql` is the live schema. Its comments describe the system as it
+is, so a comment that has stopped being true is a defect there and gets the same
+scoping as NFR-5.
+
+`contract/migrations/baseline.sql` is **immutable by policy**. It records what
+the schema *was* — it is applied once, its content hash is in
+`schema_migration`, and `collect.migrate.content_hash` is checked against it.
+Editing it would do two things, and both are wrong:
+
+- **It would make a historical artifact assert something about today.** The
+  baseline is evidence of a past state. A 2026-09 sentence inside it would be
+  the migration claiming a posture that did not exist when it ran, which is
+  precisely the class of value this project calls a placeholder wearing a
+  decision's clothes.
+- **It would break the hash**, and the ledger's mismatch is not a formality:
+  CLAUDE.md's entry on resolving one is a page long, because a stored hash that
+  matches no encoding of the file on disk is how a revised migration becomes a
+  database nobody can reason about.
+
+**So it stays, wrong, on purpose** — and this paragraph is the record of that,
+so the next person who greps for the stale phrase and finds it in a migration
+does not helpfully fix it. The line is not a statement about our posture. It is
+a statement about a file that was applied once, and it is accurate as that.
 
 **Lane instruction - 1.** Read by whoever works in `judge/`:
 
@@ -175,6 +200,45 @@ docs/unfiltered-sweep-design.md:290
 `logic-and-workflow.md:300` and `onboarding.md:50` are the two that matter most
 and neither is binding: one calls the form **non-negotiable**, the other is the
 first thing a new engineer reads.
+
+#### RULED: `logic-and-workflow.md:300` is amended, not left to drift
+
+The line reads:
+
+> **Legal posture, non-negotiable:** official APIs and public feeds only ·
+> `robots.txt` respected · identifying User-Agent with a contact URL ·
+> conservative rate limits · no paywall circumvention · **published content is
+> quote + attribution + link, never full-text republication** · a source whose
+> terms forbid this is dropped, not worked around.
+
+**The heading is load-bearing, and that changes the ruling.** A superseded
+sentence under an ordinary heading is out-of-date documentation. A superseded
+sentence under **"Legal posture, non-negotiable"** reads as binding — it is the
+one place in the docs that announces itself as a rule rather than a
+description, so a reader who finds a conflict between it and a ruling will not
+assume the ruling wins. It is worse than stale: it is stale and it claims
+authority.
+
+So it is amended, and the amendment carries the scope the way NFR-5's now does:
+
+```
+**Legal posture, non-negotiable:** official APIs and public feeds only ·
+`robots.txt` respected · identifying User-Agent with a contact URL ·
+conservative rate limits · no paywall circumvention · **on the board,
+published content is quote + attribution + link, never full-text
+republication** · **derived prose published outside the board is governed by
+NFR-11 and the per-source `publication` records, not by this line** · a source
+whose terms forbid this is dropped, not worked around.
+```
+
+Everything else on that line survives untouched — it is the acquisition
+posture, and acquisition did not change. Only the publication clause is scoped,
+and the pointer is added so a reader who stops here is sent to the thing that
+does govern derived output instead of concluding this line covers it.
+
+**`onboarding.md:50` follows the same ruling for the same reason**, one level
+softer: it is not headed non-negotiable, but it is what a new engineer reads on
+day one, and a joiner who learns the old form learns it as the rule.
 
 **Fixture READMEs - 3.** Each explains why a fixture is shaped as it is:
 
@@ -246,11 +310,14 @@ re-read."*
    clause.
 2. **Rule on the CLAUDE.md:227 line explicitly** - amend it, scope it to the
    board as NFR-5 now is, or strike it. Not by implication.
-3. **Rule on whether derived publication needs its own NFR**, given that scoping
-   NFR-5 leaves the requirements table silent on it.
-4. **Rule on `contract/migrations/baseline.sql:242`** - whether an immutable
-   migration's comment is updated or deliberately left as history.
-5. **Decide who updates the other eighteen, and when.**
+3. **Ratify NFR-11** (`nfr-11-derived-publication.md`), which fills the gap
+   scoping NFR-5 leaves. Its acceptance has two parameters that are
+   deliberately unset: the verbatim span length, and
+   `min_independent_sources_per_published_claim`. Both should be measured.
+4. **Ratify the two rulings above** - `logic-and-workflow.md:300` amended with
+   its scope, `contract/migrations/baseline.sql:242` left alone with the reason
+   recorded here so nobody fixes it.
+5. **Decide who updates the remaining seventeen, and when.**
    `scripts/labelling_pools.py:1016` first, because it is the only one that
    leaves the repository.
 
