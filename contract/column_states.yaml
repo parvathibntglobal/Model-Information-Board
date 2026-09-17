@@ -1340,11 +1340,19 @@ columns:
       reviewed: false
       state: reserved
     content_hash:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: written_not_by_query
+      why: written by collect/migrate.py (INSERT INTO {LEDGER}, an f-string the audit cannot read as
+        SQL, which is why it reports this UNWRITTEN); read by /admin/database (judge/app.py,
+        _migration_state) from 2026-09-17, comparing each applied migration against the sha256 of the
+        file still on disk. A mismatch means the database ran something this repo no longer contains
     filename:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: written_not_by_query
+      why: written by collect/migrate.py (INSERT INTO {LEDGER}, an f-string the audit cannot read as
+        SQL); read by /admin/database (judge/app.py, _migration_state) from 2026-09-17, to say which
+        migrations are pending and which were applied from a branch this checkout does not have.
+        18 files against 20 applied is not "2 pending", so the names are needed and not just a count
   source:
     base_trust:
       reviewed: false

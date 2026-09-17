@@ -8,6 +8,9 @@ import KeywordsPanel from '../components/KeywordsPanel'
 import PromptsPanel from '../components/PromptsPanel'
 import SourcesPanel from '../components/SourcesPanel'
 import StagesPanel from '../components/StagesPanel'
+import RunsPanel from '../components/RunsPanel'
+import DatabasePanel from '../components/DatabasePanel'
+import SettingsPanel from '../components/SettingsPanel'
 import FetchPanel from '../components/FetchPanel'
 import { IconAlert, IconGauge } from '../components/Icons'
 
@@ -92,7 +95,7 @@ function CollectEvidence() {
 }
 
 /**
- * THE FOUR SECTIONS, AND THE NAV IS BUILT FROM THIS RATHER THAN BESIDE IT.
+ * THE SECTIONS, AND THE NAV IS BUILT FROM THIS RATHER THAN BESIDE IT.
  *
  * One list, so a section cannot appear in the nav and not render, or render
  * with a heading that disagrees with the one you clicked. Adding a fifth panel
@@ -151,6 +154,29 @@ const SECTIONS = [
     blurb: 'Every prompt we send a model, composed not copied',
     render: () => <PromptsPanel />,
   },
+  // APPENDED RATHER THAN SLOTTED IN BESIDE `models`, WHERE `runs` BELONGS BY
+  // SUBJECT. Keywords was asked for in fourth place and Evidence stages in
+  // seventh, and both are counted from the top of this list — so inserting a
+  // section above them would quietly move the two that were positioned on
+  // purpose.
+  {
+    id: 'runs',
+    title: 'Runs',
+    blurb: 'Every fetch, across machines — and whether it finished',
+    render: () => <RunsPanel />,
+  },
+  {
+    id: 'database',
+    title: 'Database',
+    blurb: 'Which database, what is in it, and whether the schema matches',
+    render: () => <DatabasePanel />,
+  },
+  {
+    id: 'settings',
+    title: 'Settings',
+    blurb: 'Account, stack, running commit and every operational cap',
+    render: () => <SettingsPanel />,
+  },
 ]
 
 /** `/health` plus whether the database answered. Needs no database itself. */
@@ -202,7 +228,7 @@ export default function Admin() {
   const active = SECTIONS.find((x) => x.id === wanted) || SECTIONS[0]
 
   return (
-    <div className="shell section-tight stack stack-4">
+    <div className="shell section-tight stack stack-4 adm-page">
       <div className="stack stack-1">
         <span className="eyebrow">Operations</span>
         <h1 style={{ fontSize: 'var(--fs-display)' }}>Pipeline health</h1>

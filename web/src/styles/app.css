@@ -90,6 +90,11 @@ button.chip:hover{border-color:var(--border-strong);color:var(--text);background
 /* a selected chip keeps its dark-on-light text when hovered; without this the
    base hover rule forces color:var(--text) and paints white-on-white */
 button.chip-on:hover{background:var(--text);color:var(--bg);border-color:var(--text);opacity:.88}
+/* The count inside a SELECTED chip. `.chip .x` is a grey meant for a light
+   chip, and a selected one is near-black - so the count was grey on black and
+   effectively gone. Dimmed against the chip's own text colour instead, which
+   keeps it secondary without making it unreadable. */
+.chip-on .x{color:var(--bg);opacity:.72}
 
 .badge{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:6px;
   font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.04em;
@@ -808,9 +813,22 @@ tbody tr:hover{background:var(--surface-2)}
 
    `max-height` + `overflow-y` so a nav taller than the viewport scrolls
    inside itself instead of having its last entries permanently unreachable. */
+/* ⚠ STICKY WAS THE WRONG TOOL AND THE MEASUREMENT IS WHY.
+   A sticky box travels only inside its own containing block - here the grid
+   row - so its travel is (row height - its own height). Measured in Chromium
+   at 1440x900 on 2026-09-17: the nav is 796px and the row 812px, so it had
+   SIXTEEN PIXELS to move in, and the page scrolls 413. It pinned for 16px and
+   rode up with everything else, which is exactly "it is not frozen".
+
+   Raising the row to a viewport did not help and could not have: the nav's own
+   max-height is a viewport too, so both grew together and the 16px stayed 16px.
+   That fix was reasoned about rather than measured, and this one is not.
+
+   The console layout below replaces it. This rule is the fallback for browsers
+   without the media query and for the narrow layout. */
 .adm-nav{display:flex;flex-direction:column;gap:2px;position:sticky;
          top:88px;align-self:start;min-width:0;
-         max-height:calc(100vh - 104px);overflow-y:auto;
+         max-height:calc(100dvh - 104px);overflow-y:auto;
          scrollbar-width:thin}
 
 .adm-nav button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;
@@ -830,6 +848,50 @@ tbody tr:hover{background:var(--surface-2)}
 .adm-nav button[aria-current="page"] .d{color:var(--text-2)}
 
 .adm-body{min-width:0}
+
+/* THE ADMIN PAGE IS A CONSOLE, NOT A DOCUMENT - and that is what finally
+   freezes the nav.
+
+   Sticky asks "how far may this box travel inside its row"; the answer was 16px
+   (see above). This asks nothing: the page itself does not scroll. The route
+   fills the viewport, and the two columns each scroll INSIDE their own pane, so
+   the nav has nowhere to go. It is frozen by construction rather than by a
+   calculation that has to keep coming out right.
+
+   The cost is deliberate and small: on this one route the footer is not below
+   the fold, it is not there at all (App.jsx drops it), because a pane that
+   scrolls to a footer is a page again. An operations console is the one surface
+   where that trade is obviously right - you come here to watch something, not
+   to read to the end.
+
+   `min-height:0` on the grid is the part that is easy to miss: a flex child
+   defaults to `min-height:auto`, which refuses to shrink below its content, so
+   without it the grid grows past the viewport and the panes never scroll.
+
+   Desktop only. Under 860px the nav is a chip row that belongs in the document
+   flow, and a viewport-locked pane on a phone fights the browser's own chrome. */
+@media (min-width:861px){
+  /* THE HEIGHT A CONSOLE SPENDS ON ITS CHROME IT CANNOT SPEND ON ITS PANES, and
+     in a viewport-locked layout that is a straight subtraction rather than
+     something the reader can scroll past. `section-tight` gives this page 56px
+     of padding top and bottom and the title renders at `--fs-display`, which
+     together cost about 100px of pane - fine on a document, expensive here.
+
+     Measured at 1280x720 before this: the panes were 402px. The page header
+     stays (it says what the page is read from, which is not decoration); it is
+     the padding and the display size that go. */
+  .adm-page{height:calc(100dvh - 64px);display:flex;flex-direction:column;
+            overflow:hidden;padding-block:var(--s3) var(--s2);gap:var(--s3)}
+  .adm-page h1{font-size:var(--fs-h2)}
+  .adm-page > .stack:first-child{gap:2px}
+  .adm{flex:1;min-height:0;overflow:hidden;align-items:stretch}
+  /* Not sticky any more: there is no page scroll to stick against. */
+  .adm-nav{position:static;align-self:stretch;height:100%;max-height:none;
+           overflow-y:auto;padding-right:2px}
+  /* The pane that does scroll. The padding keeps a card's border off the
+     scrollbar, which otherwise sits on top of it. */
+  .adm-body{height:100%;overflow-y:auto;padding-right:var(--s2)}
+}
 
 /* ONE COLUMN UNDER 860px, and the nav becomes a scrolling row of chips.
    `min-width:0` on the grid child is what stops a wide table inside a panel

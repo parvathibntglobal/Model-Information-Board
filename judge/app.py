@@ -22,8 +22,9 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import NamedTuple
+from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from judge import fetch_reaper, login
@@ -2513,6 +2514,658 @@ def admin_stages() -> dict:
         "note": (
             "Counts are not shown here on purpose - they are on the fetch log "
             "beside each stage, where they carry the run they belong to."
+        ),
+    }
+
+
+#: Variables whose VALUE may never leave this process. The page says "set" or
+#: "not set" and nothing else — not a prefix, not a length, not a fingerprint.
+#:
+#: MATCHED BY SUBSTRING, NOT BY EXACT NAME, deliberately. An exact list is a
+#: list somebody forgets to extend, and the cost of forgetting is a published
+#: credential. A non-secret caught by this reads as "set", which is a smaller
+#: loss than the reverse by every measure.
+_SECRET_MARKERS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "DSN", "URL", "HASH")
+
+
+def _is_secretish(name: str) -> bool:
+    return any(marker in name.upper() for marker in _SECRET_MARKERS)
+
+
+def _safe_detail(exc: BaseException) -> str:
+    """An error message with everything private to this deployment removed.
+
+    ⚠ AN EXCEPTION IS A PAYLOAD, AND THAT IS HOW A HOSTNAME GOT OUT. psycopg's
+      OperationalError names the host it failed to resolve, so an endpoint that
+      answered `503 the run log could not be read: {exc}` published the database
+      hostname to anyone who could load the page while the database was down.
+
+      Caught by this module's own sweep test in CI, where there is no database
+      and every read fails exactly that way - which is the case nobody tests by
+      hand, because locally the database answers. A message is as public as the
+      page that renders it.
+
+    Redacted by VALUE rather than by pattern: the DSN's host, user, password and
+    port are known here, so they are removed wherever they appear, including
+    inside a sentence no format string put them in.
+    """
+    text = f"{type(exc).__name__}: {exc}".strip()
+    url = (os.getenv("DATABASE_URL") or "").strip()
+    pieces: list[str] = []
+    if url:
+        pieces.append(url)
+        try:
+            parsed = urlparse(url)
+        except ValueError:
+            parsed = None
+        if parsed is not None:
+            # A password is redacted at ANY length; a one-character host is not
+            # a real risk and blanket-replacing it would mangle every message.
+            if parsed.password:
+                pieces.append(parsed.password)
+            pieces += [p for p in (parsed.hostname, parsed.username) if p and len(p) > 2]
+            try:
+                if parsed.port:
+                    pieces.append(str(parsed.port))
+            except ValueError:
+                pass
+    # Longest first, so redacting the host does not leave the full DSN
+    # half-matched and partly readable.
+    for piece in sorted(set(pieces), key=len, reverse=True):
+        text = text.replace(piece, "<withheld>")
+    # The checkout path names the account this runs under - the same objection
+    # as a machine name, reached by a different route.
+    return text.replace(str(_REPO_ROOT), "<repo>")
+
+
+@app.get("/admin/runs")
+def admin_runs(limit: int = 60) -> dict:
+    """Every fetch run this database has seen, newest first.
+
+    THE QUESTION THIS ANSWERS AND NOTHING ELSE DID. `/fetch/log` answers "how is
+    THIS run going" and needs the run_id, which you have only if you started it.
+    "What has been running, and did any of it finish?" had no reader at all — a
+    run that died was found by someone noticing a stale page.
+
+    ⚠ THE TRACKED MODELS ONLY, WHICH IS A NARROWER LIST THAN THE TABLE HOLDS.
+      `fetch_log` keeps every run ever started, including runs against models
+      since dropped from the board. A page listing those answers a question
+      nobody has: the board shows 13 models, so this shows runs for those 13.
+      How many rows that excluded is reported rather than silently dropped.
+
+    ⚠ ALIVE IS A MEASUREMENT, NOT A STATUS. A run with no `end` record is not
+      alive: a killed process writes nothing, and 22 of the 51 end records in
+      this table were written by the reaper rather than by the run. So this
+      reports SILENCE — the heartbeat beats every 60s and the gap since the last
+      line is the evidence. `looks_dead` is that measurement, stated as such,
+      and never merged with `status`.
+
+    ⚠ NO MACHINE, NOT EVEN AS A RELATION. An earlier version reported "this
+      machine" / "another host", which was already a relation rather than a
+      name. It is gone entirely: this board is hosted and has one account, so
+      every run a reader sees is simply a run of this board, and "another host"
+      was a distinction with nothing on the other side of it. The `machine`
+      column still exists and is still written; nothing reads it onto a page.
+    """
+    try:
+        rows_limit = max(1, min(int(limit), 300))
+    except (TypeError, ValueError):
+        rows_limit = 60
+
+    from judge.config import tracked_models
+
+    # WHICH MODELS THE BOARD SHOWS, from the contract rather than from a list
+    # kept here - rule 5, and the same source `/models?tracked=true` reads, so
+    # dropping a model from the board drops its runs from this page too.
+    tracked = tracked_models()
+    wanted = {t.registry for t in tracked if t.registry}
+    # ⚠ RULE 4. A tracked model with no registry id CANNOT match a run, because
+    # a run is filed under one. Gemini 3.8 Flash is that case - the poll does not
+    # carry it yet - so its absence from this page is caused by us and says so,
+    # rather than reading as "it has never been fetched".
+    unmatchable = sorted(t.name for t in tracked if not t.registry)
+
+    try:
+        with _conn() as conn:
+            # `fetch_log.model_version_id` holds an `mv_` id on newer runs and a
+            # bare canonical name on older ones, so BOTH spellings of every
+            # tracked model are matched. Resolved by query rather than by
+            # recomputing the id: the hash lives in `collect/ids.py` and the
+            # lane boundary forbids importing it.
+            ids = {
+                row[0] for row in conn.execute(
+                    "SELECT id FROM model_version WHERE canonical_id = ANY(%s)",
+                    (list(wanted),),
+                ).fetchall()
+            } | wanted
+            runs_raw = conn.execute(
+                "SELECT run_id, min(at), max(at), count(*), "
+                "       max(model_version_id) "
+                "FROM fetch_log WHERE model_version_id = ANY(%s) "
+                "GROUP BY run_id ORDER BY max(at) DESC LIMIT %s",
+                (list(ids), rows_limit),
+            ).fetchall()
+            # ⚠ RULE 7 / RULE 4. The runs this page is NOT showing, counted, so
+            # "52 runs" is not read as "every run there has ever been".
+            untracked = conn.execute(
+                "SELECT count(DISTINCT run_id) FROM fetch_log "
+                "WHERE model_version_id IS NULL OR NOT (model_version_id = ANY(%s))",
+                (list(ids),),
+            ).fetchone()[0]
+            ends = dict(
+                conn.execute(
+                    "SELECT run_id, payload FROM fetch_log WHERE kind = 'end'"
+                ).fetchall()
+            )
+            # The LAST stage line per run — where an unfinished run got to,
+            # which is the whole value of a row with no end record.
+            lasts = dict(
+                conn.execute(
+                    "SELECT DISTINCT ON (run_id) run_id, payload FROM fetch_log "
+                    "WHERE kind = 'stage' ORDER BY run_id, seq DESC"
+                ).fetchall()
+            )
+            # Documents are reported per stage; a run's total is their sum.
+            inserted = dict(
+                conn.execute(
+                    "SELECT run_id, sum((payload->>'documents_inserted')::int) "
+                    "FROM fetch_log WHERE kind = 'stage' "
+                    "  AND payload ? 'documents_inserted' GROUP BY run_id"
+                ).fetchall()
+            )
+            names = dict(
+                conn.execute(
+                    "SELECT id, coalesce(display_name, canonical_id) "
+                    "FROM model_version"
+                ).fetchall()
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=503, detail=f"the run log could not be read. {_safe_detail(exc)}"
+        ) from exc
+
+    now = datetime.now(UTC)
+    runs = []
+    for run_id, first_at, last_at, lines, mv in runs_raw:
+        end = ends.get(run_id) or {}
+        last = lasts.get(run_id) or {}
+        silent = (now - last_at).total_seconds() if last_at else None
+        finished = bool(end)
+        runs.append(
+            {
+                "run_id": run_id,
+                # `model_version_id` holds an mv_ id on newer runs and a bare
+                # canonical name on older ones. Resolved where it resolves;
+                # otherwise the raw value, which is already the name.
+                "model": names.get(mv) or mv,
+                "started_at": first_at.isoformat() if first_at else None,
+                "last_at": last_at.isoformat() if last_at else None,
+                "ran_minutes": (
+                    round((last_at - first_at).total_seconds() / 60, 1)
+                    if first_at and last_at
+                    else None
+                ),
+                "lines": lines,
+                "documents_inserted": inserted.get(run_id),
+                "finished": finished,
+                "status": end.get("status"),
+                "detail": end.get("detail"),
+                # ⚠ RULE 4. The reaper's verdict is not the run's own word, and a
+                # reader deciding whether to trust "abandoned" needs to know
+                # which of the two wrote it.
+                "ruled_by_reaper": bool(end.get("reaped")),
+                "last_stage": last.get("id"),
+                "last_stage_name": last.get("name"),
+                "last_stage_detail": last.get("detail"),
+                # THE EVIDENCE, not a second status.
+                "silent_minutes": (
+                    round(silent / 60, 1) if silent is not None else None
+                ),
+                "missed_heartbeats": (
+                    int(silent // 60)
+                    if silent is not None and not finished
+                    else None
+                ),
+                "looks_dead": bool(
+                    not finished and silent is not None and silent > 180
+                ),
+            }
+        )
+
+    return {
+        "runs": runs,
+        "count": len(runs),
+        "running_now": len(
+            [r for r in runs if not r["finished"] and not r["looks_dead"]]
+        ),
+        "unfinished_and_silent": len([r for r in runs if r["looks_dead"]]),
+        "heartbeat_seconds": 60,
+        "reaper_threshold_minutes": 45,
+        "note": (
+            "A run with no end record is not necessarily alive — a killed "
+            "process writes nothing. Missed heartbeats are the measurement. "
+            "The reaper only rules `abandoned` after 45 minutes of silence, so "
+            "between the two a corpse and a slow thread read the same."
+        ),
+        # ⚠ RULE 7. These runs out of what, and what was left out.
+        "denominator": (
+            "the shared fetch log, filtered to the models the board tracks. A "
+            "run whose database write failed is in its own file and not here."
+        ),
+        "tracked_models": len(tracked),
+        "tracked_models_matchable": len(wanted),
+        "tracked_without_a_registry_id": unmatchable,
+        **({"unmatchable_note": (
+            "No run can be listed for "
+            + ", ".join(unmatchable)
+            + ": a run is filed under a registry id and "
+            + ("these have" if len(unmatchable) > 1 else "this one has")
+            + " none yet. That is an absence this page causes, not one it found."
+        )} if unmatchable else {}),
+        "runs_for_untracked_models": untracked,
+        "excluded_note": (
+            f"{untracked} further run(s) are in the log for models the board no "
+            f"longer tracks. They are excluded, not missing."
+        ),
+    }
+
+
+def _database_target(url: str | None) -> dict[str, object]:
+    """The database NAME, and the host as a relation rather than an address.
+
+    ⚠ NOT `writeguard.describe`, AND THE DIFFERENCE IS THE AUDIENCE. `describe`
+      is right for what it is for - a log line, on the machine that wrote it -
+      and it returns `host:port/dbname`. A page is not a log line: this one is
+      served over the network, and the host is a reachable address, so printing
+      it tells every reader where to point something. The same objection that
+      removed laptop names from the usage panel applies harder to an address.
+
+      What the reader actually needs is "is this the database I meant", and the
+      NAME answers that. Whether it is local or remote answers the rest.
+    """
+    if not url or not url.strip():
+        return {"database": None, "host": None, "unset": True}
+    try:
+        parsed = urlparse(url)
+        if (parsed.scheme or "").strip().lower() not in ("postgres", "postgresql"):
+            return {"database": None, "host": None,
+                    "unreadable": "not a postgresql:// DSN"}
+        name = (parsed.path or "").lstrip("/") or None
+        host = (parsed.hostname or "").strip().lower()
+    except ValueError as exc:
+        return {"database": None, "host": None,
+                "unreadable": _safe_detail(exc)}
+    return {
+        "database": name,
+        "host": (
+            "this machine" if not host or host in ("localhost", "127.0.0.1", "::1")
+            else "a remote host"
+        ),
+        # SAID, so that a reader does not go looking for a field that was
+        # deliberately left out and conclude it was forgotten.
+        "host_withheld": (
+            "The host and port are deliberately not shown: they are a reachable "
+            "address, and this page is served over a network."
+        ),
+    }
+
+
+@app.get("/admin/database")
+def admin_database() -> dict:
+    """Which database this is, what is in it, and whether its schema matches.
+
+    ⚠ NO CREDENTIAL. `writeguard.describe` returns `host:port/dbname` and says in
+      its own docstring why: "A DSN carries a password, so the string itself may
+      not be logged". Nothing else about the connection is reported.
+    """
+    import yaml
+
+    url = os.getenv("DATABASE_URL")
+    out: dict[str, object] = {
+        # 1 · WHICH DATABASE, AND CAN IT WRITE. The failure this answers: every
+        # INSERT in a fetch refused with "cannot execute INSERT in a read-only
+        # transaction" and no page said the connection was read-only.
+        **_database_target(url),
+        "read_only_dsn": is_read_only_dsn(url) if url else None,
+        "read_only_note": (
+            "A statement about the DSN, not about the server. A server-side "
+            "default or a role setting can make a session read-only without "
+            "appearing here — this answers only 'did we ask for read-only'."
+        ),
+        "environment": os.getenv("ENVIRONMENT", "development"),
+    }
+
+    # 2 · ROW COUNTS. The counts matter less than their RATIOS: thread_context
+    # against thread_extraction is the unread backlog, and claim against
+    # board_entry is how much of what was read reached a page.
+    tables = (
+        "model_version", "model_alias", "source",
+        "document", "thread_context", "thread_extraction", "dedup_cluster",
+        "claim", "board_entry", "cell", "capability_candidate",
+        "harvest_run", "job_run", "fetch_log", "spend_ledger", "rapidapi_quota",
+    )
+    counts: dict[str, object] = {}
+    applied: dict[str, str] = {}
+    ledger_error = None
+    try:
+        with _conn() as conn:
+            for table in tables:
+                try:
+                    counts[table] = conn.execute(
+                        f"SELECT count(*) FROM {table}"  # noqa: S608
+                    ).fetchone()[0]
+                except Exception:  # noqa: BLE001
+                    # ⚠ RULE 6. ABSENT, NOT ZERO. A table this build does not
+                    # have and a table holding nothing are different facts, and
+                    # rendering both as 0 is the conversion rule 6 bans.
+                    conn.rollback()
+                    counts[table] = None
+            # 4 · MIGRATIONS.
+            try:
+                applied = dict(
+                    conn.execute(
+                        "SELECT filename, content_hash FROM schema_migration"
+                    ).fetchall()
+                )
+            except Exception as exc:  # noqa: BLE001
+                conn.rollback()
+                ledger_error = _safe_detail(exc)
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=503, detail=f"the database could not be read. {_safe_detail(exc)}"
+        ) from exc
+
+    out["counts"] = counts
+    out["counts_absent_note"] = (
+        "A null is a table this database does not have. It is not zero."
+    )
+    out["migrations"] = _migration_state(applied, ledger_error)
+
+    # 5 · THE COLUMN CONTRACT.
+    try:
+        contract = yaml.safe_load(
+            (_REPO_ROOT / "contract" / "column_states.yaml").read_text(
+                encoding="utf-8"
+            )
+        ) or {}
+        states: dict[str, int] = {}
+        unreviewed = 0
+        for table in (contract.get("columns") or {}).values():
+            for column in (table or {}).values():
+                state = (column or {}).get("state")
+                if isinstance(state, str):
+                    states[state] = states.get(state, 0) + 1
+                if not (column or {}).get("reviewed"):
+                    unreviewed += 1
+        out["column_states"] = dict(sorted(states.items(), key=lambda kv: -kv[1]))
+        # ⚠ RULE 7. "256 unreviewed" is a different fact at 370 columns than at
+        # 260, so the figure travels with what it is out of.
+        out["columns_unreviewed"] = unreviewed
+        out["columns_total"] = sum(states.values())
+        out["column_states_note"] = (
+            "`write_only` is the bucket to read first: a column something "
+            "computes and nothing reads, so a value going wrong in it would be "
+            "noticed by nobody. `reserved` is declared and deliberately unused; "
+            "`unwired` is declared and not connected yet — a different repair."
+        )
+    except Exception as exc:  # noqa: BLE001
+        # ⚠ RULE 4. Said, not shown as zero columns.
+        out["column_states"] = None
+        out["column_states_unreadable"] = _safe_detail(exc)
+
+    return out
+
+
+def _migration_state(
+    applied: dict[str, str], ledger_error: str | None
+) -> dict[str, object]:
+    """Files on disk against the ledger, in the three ways they can disagree.
+
+    ⚠ THIS RECOMPUTES A HASH `collect/migrate.py` ALSO COMPUTES, AND MUST. The
+      lane boundary forbids `judge/` importing `collect/`, so the rule "sha256
+      of the file read as utf-8 text" is written twice. Verified against this
+      database on 2026-09-17: all 18 shared filenames matched, so the two
+      descriptions agree today.
+
+      The mitigation for the day they stop agreeing is that this is the READER,
+      and drift is REPORTED rather than acted on. A false alarm costs a look at
+      two files; the reverse would be a silent wrong schema.
+    """
+    import hashlib
+
+    directory = _REPO_ROOT / "contract" / "migrations"
+    disk: dict[str, str] = {}
+    try:
+        for path in sorted(directory.glob("*.sql")):
+            if path.name == "baseline.sql":
+                continue
+            disk[path.name] = hashlib.sha256(
+                path.read_text(encoding="utf-8").encode("utf-8")
+            ).hexdigest()
+    except Exception as exc:  # noqa: BLE001
+        return {"readable": False,
+                "why": f"the migration files: {_safe_detail(exc)}"}
+
+    if ledger_error is not None:
+        # A database with no ledger has had no migrations applied — the same
+        # statement, and `collect/migrate.py` says so where it creates the table
+        # on demand. But a ledger that exists and refused to be READ is a
+        # different fact, and this cannot tell the two apart, so it claims
+        # neither.
+        return {
+            "readable": False,
+            "why": f"the ledger could not be read: {ledger_error}",
+            "files_on_disk": len(disk),
+        }
+
+    pending = sorted(set(disk) - set(applied))
+    ahead = sorted(set(applied) - set(disk))
+    drifted = sorted(n for n in set(disk) & set(applied) if disk[n] != applied[n])
+    return {
+        "readable": True,
+        "files_on_disk": len(disk),
+        "applied": len(applied),
+        "agreeing": len(set(disk) & set(applied)) - len(drifted),
+        # ON DISK, NOT APPLIED. The schema is behind the code, and the failure
+        # shape is a column that does not exist, at request time.
+        "pending": pending,
+        # APPLIED, NOT ON DISK. Someone else's branch reached this database
+        # first. Harmless to read, and the reason a count alone would mislead:
+        # 18 files against 20 applied is not "2 pending".
+        "applied_not_on_disk": ahead,
+        # SAME NAME, DIFFERENT CONTENT. The one that is never benign: a file
+        # edited after it was applied means the database ran something this
+        # repo no longer contains.
+        "drifted": drifted,
+        "in_step": not pending and not drifted,
+    }
+
+
+@app.get("/admin/settings")
+def admin_settings(authorization: str | None = Header(default=None)) -> dict:
+    """Who is signed in, what this is built on, and every operational cap.
+
+    ⚠ NO SECRET VALUE LEAVES THIS FUNCTION. Anything whose NAME looks
+      credential-shaped reports `set` or `not set` and nothing else — not a
+      prefix, not a length, not a hash. `AUTH_PASSWORD_HASH` is in that set: a
+      hash of a guessable password is not a safe thing to publish.
+
+    THE CAPS ARE THE POINT. "What is the current LLM reading limit?" has been
+    asked and answered by reading source. This answers it, and says whether the
+    value is the DEFAULT or an OVERRIDE — which is how you would see that a
+    `FETCH_MAX_THREADS=40` written in a file never reached the process.
+    """
+    import platform
+
+    from judge import login
+
+    # (name, default, what it does). The defaults are the ones the code falls
+    # back to when the variable is unset, so `overridden` below is a fact.
+    # A cap is listed (name, default, what it does). `EXTRACT_MAX_OUTPUT_TOKENS`
+    # is the reason the fourth field exists: it contains "TOKEN", so the
+    # substring guard below catches it and blanks it - correct as a DEFAULT, and
+    # wrong for this one, which is a number with no secret in it. Rather than
+    # weaken the guard, a cap can be RULED public by a person, here, one at a
+    # time. The guard still refuses everything nobody has ruled on.
+    cap_specs = (
+        ("FETCH_MAX_THREADS", "25",
+         "documents one fetch sends the model — the 'x of 25' on the button"),
+        ("EXTRACT_TOTAL_TIMEOUT_SECONDS", "1200",
+         "ceiling on one extraction call before it is abandoned"),
+        ("EXTRACT_MAX_OUTPUT_TOKENS", "16384",
+         "output ceiling per call; a truncated answer is refused, not trimmed",
+         # RULED PUBLIC: a token COUNT, not a token. Nothing about it narrows a
+         # guess at any credential.
+         True),
+        ("FETCH_HEARTBEAT_SECONDS", "60",
+         "how often a live run says so — and how a dead one is detected"),
+        ("FETCH_ABANDONED_AFTER_SECONDS", "2700",
+         "silence before the reaper rules a run abandoned"),
+        ("FETCH_MAX_GITHUB_SEARCHES", "60",
+         "a runaway guard, not a budget — the GitHub API is free"),
+        ("FETCH_X_PAGES", "3",
+         "X pages per model; its quota is a tenth of Reddit's"),
+        ("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash",
+         "which model reads the evidence"),
+        ("ENVIRONMENT", "development",
+         "development turns the build-fixture guard off and opens this API"),
+    )
+    caps = []
+    for spec in cap_specs:
+        name, default, why = spec[0], spec[1], spec[2]
+        ruled_public = spec[3] if len(spec) > 3 else False
+        raw = os.getenv(name)
+        secretish = _is_secretish(name) and not ruled_public
+        caps.append(
+            {
+                "name": name,
+                # The guard runs on every entry, so adding a credential to the
+                # list above cannot publish it by accident - it would have to be
+                # ruled public by hand, which is a decision with a name on it.
+                "value": None if secretish else (raw if raw is not None else default),
+                "default": None if secretish else default,
+                "overridden": raw is not None and raw != default,
+                "why": why,
+            }
+        )
+
+    # CREDENTIALS: PRESENCE ONLY. Never a value, never a prefix, never a length.
+    credentials = [
+        {"name": name, "set": bool((os.getenv(name) or "").strip())}
+        for name in (
+            "DATABASE_URL", "API_TOKEN", "SESSION_SECRET", "AUTH_PASSWORD_HASH",
+            "OPENROUTER_API_KEY", "RAPIDAPI_KEY", "GITHUB_TOKEN",
+        )
+    ]
+
+    def _installed(package: str) -> str | None:
+        try:
+            from importlib.metadata import version
+
+            return version(package)
+        except Exception:  # noqa: BLE001
+            # ⚠ RULE 6. Not installed and not askable read the same here, so
+            # this claims neither — the page says "not reported".
+            return None
+
+    web: dict[str, str] = {}
+    try:
+        manifest = json.loads(
+            (_REPO_ROOT / "web" / "package.json").read_text(encoding="utf-8")
+        )
+        declared = {
+            **(manifest.get("dependencies") or {}),
+            **(manifest.get("devDependencies") or {}),
+        }
+        web = {
+            name: declared[name]
+            for name in ("react", "react-dom", "react-router-dom", "vite")
+            if name in declared
+        }
+    except Exception:  # noqa: BLE001
+        web = {}
+
+    def _git(*args: str) -> str | None:
+        try:
+            done = subprocess.run(  # noqa: S603
+                ["git", *args],
+                cwd=str(_REPO_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except Exception:  # noqa: BLE001
+            return None
+        return (done.stdout.strip() or None) if done.returncode == 0 else None
+
+    # WHO IS ACTUALLY HOLDING THIS SESSION, read from the caller's own token
+    # rather than from configuration. `login.read` returns the email it signed,
+    # or None; the shared API_TOKEN carries no identity, and that reads as such
+    # rather than as the configured account.
+    supplied = (authorization or "").removeprefix("Bearer ").strip()
+    signed_in_as = login.read(supplied) if supplied else None
+    configured_email, configured_hash = login.account()
+
+    return {
+        "account": {
+            # The email, which the person reading this page already typed.
+            # Never the hash beside it.
+            "signed_in_as": signed_in_as,
+            "via": (
+                "a signed session"
+                if signed_in_as
+                else (
+                    "the shared API_TOKEN, which carries no identity"
+                    if supplied
+                    else "no credential — this API is open"
+                )
+            ),
+            "configured_account": configured_email or None,
+            "password_configured": bool(configured_hash),
+            "sign_in_configured": login.is_configured(),
+            "session_hours": round(login.ttl_seconds() / 3600, 1),
+            "on_demo_credentials": login.uses_published_credentials(),
+        },
+        # Whether the board is exposed at all, and why. `auth_state` already
+        # reports the demo-credentials case, which is the one that matters on
+        # anything reachable.
+        "auth": auth_state(),
+        "runtime": {
+            "python": platform.python_version(),
+            "fastapi": _installed("fastapi"),
+            "psycopg": _installed("psycopg"),
+            "pydantic": _installed("pydantic"),
+            "httpx": _installed("httpx"),
+            "uvicorn": _installed("uvicorn"),
+        },
+        "web": web,
+        "web_note": (
+            "Declared in web/package.json — the range the build resolves, not "
+            "the version a particular install pinned."
+        ),
+        # WHICH COMMIT IS RUNNING. "Is the host on the code I merged?" has been
+        # unanswerable twice, and it is two git calls.
+        "build": {
+            "commit": _git("rev-parse", "--short", "HEAD"),
+            "branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+            "committed_at": _git("log", "-1", "--format=%cI"),
+            # A deploy built from a dirty tree is not the commit it names.
+            "uncommitted_changes": bool(_git("status", "--porcelain")),
+        },
+        "build_note": (
+            "Read from the git checkout this process runs out of. A container "
+            "built without the .git directory reports nulls, which means not "
+            "askable — not that there is no commit."
+        ),
+        "caps": caps,
+        "credentials": credentials,
+        "credentials_note": (
+            "Presence only. No value, prefix, length or hash of any credential "
+            "is returned by this endpoint or rendered by this page."
         ),
     }
 
