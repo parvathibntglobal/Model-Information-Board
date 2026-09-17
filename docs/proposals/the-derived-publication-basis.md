@@ -458,9 +458,11 @@ nothing.
    question and does not belong to the terms work.
 5. **Set `min_independent_sources_per_published_claim`.** `3` is a placeholder
    and should be measured, not chosen here.
-6. **Confirm the NFR-5 change is intended.** It is written up separately in
-   `docs/proposals/nfr-5-stops-applying-to-derived-prose.md` — it is a
-   requirements change and should be ruled on as one.
+6. **Confirm the NFR-5 ruling.** Written up separately in
+   `docs/proposals/nfr-5-stops-applying-to-derived-prose.md`, which takes the
+   "keep it and scope it to the board" option: NFR-5 governs the board, and
+   **derived prose is governed by the per-source `publication` records in
+   §2.1 instead**. It is a requirements change and should be ruled on as one.
 7. **Add Reddit's content policy and self-promotion rules to the reading list**
    as the posting document, and decide whether posting needs its own ruling. I
    think it does.
