@@ -1160,15 +1160,14 @@ columns:
       why: selected; the numerator on the RapidAPI tab
     quota_reset_seconds:
       reviewed: true
-      state: write_only
-      why: 'DECLARED UNCONSUMED, with its intended reader named (rule 9). Written by the upsert in
-        collect/usage.py; x-ratelimit-requests-reset as read, seconds remaining until this meter''s
-        window resets. The intended reader is the usage panel, which cannot read it yet because the
-        panel has no window display - it states "monthly" and no measurement supports that. Both
-        adapters have parsed this header since the first probe and the writer dropped it, so the
-        window LENGTH is unmeasured: one reading gives time remaining, and only two boundaries give
-        a period. The 2026-09-11 09:45 UTC boundary is already dated from two readings, so the first
-        populated value here closes the question.'
+      state: read
+      why: 'PROMOTED FROM write_only; THE NAMED READER WAS BUILT. It was declared unconsumed with the
+        usage panel as its blocked intended reader, because the panel had no window display - it said
+        "monthly" and no measurement supported that. The panel now has one: judge/app.py _QUOTA_SELECT
+        selects it, and _quota_window dates the next boundary from read_at + this header, in preference
+        to the measured anchor. NULL stays "not recorded" and never "resets now" (rule 6) - every row
+        written before the writer carried this column is NULL, and _quota_window falls back to the
+        measured anchor rather than inventing a boundary.'
     read_at:
       reviewed: true
       state: read
@@ -1220,12 +1219,12 @@ columns:
         built - the table is new and holds no rows until the first metered call after its migration is applied.'
     meter:
       reviewed: true
-      state: write_only
-      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). Which separately-metered arm. Deliberately NOT a
-        foreign key to rapidapi_quota: that table holds only the latest row per meter, and a history deletable
-        by tidying the thing it is the history OF is not a history. The intended reader is the usage panel''s
-        quota series, which cannot read it yet because that display is not built - the table is new and holds no
-        rows until the first metered call after its migration is applied.'
+      state: read
+      why: 'PROMOTED FROM write_only; THE NAMED READER WAS BUILT. The blocked intended reader was the usage
+        panel''s quota series, and judge/app.py _rapidapi_series is now it - this column is the WHERE clause
+        that scopes the series to one arm, so a reading history is per-meter rather than two subscriptions
+        interleaved. Still deliberately NOT a foreign key to rapidapi_quota: that table holds only the latest
+        row per meter, and a history deletable by tidying the thing it is the history OF is not a history.'
     observed_at:
       reviewed: true
       state: write_only
@@ -1245,11 +1244,12 @@ columns:
         holds no rows until the first metered call after its migration is applied.'
     quota_remaining:
       reviewed: true
-      state: write_only
-      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). The numerator, and the column the consumption rate
-        is differenced from. The intended reader is the usage panel''s quota series, which cannot read it yet
-        because that display is not built - the table is new and holds no rows until the first metered call
-        after its migration is applied.'
+      state: read
+      why: 'PROMOTED FROM write_only; THE NAMED READER WAS BUILT. The blocked intended reader was the usage
+        panel''s quota series, and judge/app.py _rapidapi_series is now it - selected, and differenced between
+        the first and last reading to give consumption. The select excludes NULLs rather than reading them as
+        zero, because a reading that stated no remainder is not a counter at zero (rule 6), and a rate needs two
+        points, so `readings: 1` renders as no rate rather than as no consumption.'
     quota_reset_seconds:
       reviewed: true
       state: write_only
@@ -1261,12 +1261,12 @@ columns:
         after its migration is applied.'
     read_at:
       reviewed: true
-      state: write_only
-      why: 'DECLARED UNCONSUMED, intended reader named (rule 9). What the arm read, second resolution and identical
-        to rapidapi_quota.read_at so the two tables agree and can be compared. Indexed with meter, because every
-        question this table exists for is that scan in time order. The intended reader is the usage panel''s
-        quota series, which cannot read it yet because that display is not built - the table is new and holds no
-        rows until the first metered call after its migration is applied.'
+      state: read
+      why: 'PROMOTED FROM write_only; THE NAMED READER WAS BUILT. The blocked intended reader was the usage
+        panel''s quota series, and judge/app.py _rapidapi_series is now it - selected, ordered by, and the span
+        the consumption rate is divided by, so the rate travels with the window it was measured over (rule 7).
+        Second resolution and identical to rapidapi_quota.read_at so the two tables agree and can be compared;
+        indexed with meter, because that ordered scan is every question this table exists for.'
     read_by:
       reviewed: true
       state: write_only
