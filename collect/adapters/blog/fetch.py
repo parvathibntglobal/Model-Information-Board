@@ -8,21 +8,44 @@ Harvest fetches and stores. It does not normalise, extract or flatten.
     article response bytes  -> raw/   the per-document artifact
     parsed entry metadata   -> in memory, for E3
 
-`document.text_ref` points at the **article** bytes, and `content_hash` is that
-article's hash. It cannot point at the feed payload: one feed covers many
-entries, so `content_hash` would stop identifying one document — which breaks
-dedupe, and breaks NFR-6, where a takedown for one post would land a tombstone
-on a blob holding forty.
+`document.text_ref` points at **one document's bytes**, and `content_hash` is
+that document's hash. It cannot point at the whole feed payload: one feed covers
+many entries, so `content_hash` would stop identifying one document — which
+breaks dedupe, and breaks NFR-6, where a takedown for one post would land a
+tombstone on a blob holding forty.
 
-The extracted plain text is not written here. It is derived and regenerable, so
-it belongs in `flattened/` behind `thread_context.flattened_text_ref`, which is
-assemble's artifact. `parse.extract_article_text` exists for E3 to call.
+**THAT ARGUMENT USED TO END "SO A FEED ENTRY CANNOT BE A DOCUMENT", AND IT WAS
+BACKWARDS.** `RawStore.tombstone(ref)` removes one blob's bytes, so the only
+question is how many documents share the blob a takedown lands on:
+
+    one blob per feed     takedown for one post  ->  40 posts' bytes destroyed
+    one blob per entry    takedown for one post  ->   1 post's bytes destroyed
+
+Carving per entry is what PREVENTS a takedown destroying thirty-nine unrelated
+posts; the arrangement this paragraph used to defend is the one with that
+problem. The `content_hash` half inverts the same way — "would stop identifying
+one document" is true of pointing many documents at one feed blob, which is a
+reason to carve. Ruled in #343, implemented 2026-09-17.
+
+    feed response bytes        -> raw/   the discovery artifact, kept
+    article response bytes     -> raw/   the per-document artifact, where the
+                                         ruling permits an article fetch
+    content:encoded byte range -> raw/   the per-document artifact, where it
+                                         does not. VERBATIM — a slice of the
+                                         feed bytes, not anything composed.
+                                         See `parse.content_spans`, which
+                                         records why the carve is the CDATA
+                                         and not the `<item>`.
+
+The extracted plain text is still not written here. It is derived and
+regenerable, so it belongs in `flattened/` behind
+`thread_context.flattened_text_ref`, which is assemble's artifact.
+`parse.extract_article_text` exists for E3 to call — and it now reads both
+kinds of per-document blob, because both are HTML the publisher served.
 
 Consequence, stated because it is a decision and not a detail: **a document
-exists only where the article fetch succeeded.** A discovered entry we could not
-fetch is a gap, not a document with a feed-shaped body — including for
-full-content feeds, where the alternative is storing bytes we serialised
-ourselves into the one namespace that forbids derived content.
+exists where a per-entry body was stored**, by fetch or by carve. An entry with
+neither is a gap, not a document with an empty body.
 
 THREE THINGS THIS PATH REFUSES TO DO
 ------------------------------------
@@ -63,7 +86,12 @@ from urllib.parse import urljoin
 import httpx
 
 from collect.adapters.basis import observe_use_basis
-from collect.adapters.blog.parse import FeedEntry, ParsedFeed, parse_feed
+from collect.adapters.blog.parse import (
+    FeedEntry,
+    ParsedFeed,
+    content_spans,
+    parse_feed,
+)
 from collect.adapters.blog.robots import RobotsGate, RobotsRuling
 from collect.adapters.blog.validators import (
     FeedValidators,
@@ -206,25 +234,32 @@ class FeedRun:
     def items_kept(self) -> int:
         """FR-10's yield figure: entries that yielded a body we can extract from.
 
-        Normally that is entries whose article reached `raw/`.
+        ONE RULE FOR BOTH MODES NOW: entries whose body reached `raw/`. Under a
+        fetch-articles ruling that body came from an article request; under a
+        feed-only ruling it was carved from the feed bytes. Either way it is a
+        blob a document can point at.
 
-        **Under a feed-only ruling it is entries carrying their own body**, and
-        getting that wrong is rule 4 with real consequences. Medium permits the
-        feed and refuses the articles, so `articles` is always empty there —
-        counting stored articles would report `items_kept = 0` on a feed that
-        just delivered ten full-length posts, every night, for ever. FR-10
-        would alarm on a healthy source, and the row would read "this source
-        produced nothing" when it produced everything it has.
+        ⚠ THIS USED TO BRANCH, AND THE BRANCH WAS COVERING FOR A REAL DEFECT.
+          It read: *"under a feed-only ruling it is entries carrying their own
+          body"* — counting `content_html` on the parsed entries, because
+          `articles` was always empty on such a run. The reason given was
+          right: counting stored articles would have reported `items_kept = 0`
+          on a feed that just delivered ten full-length posts, FR-10 would have
+          alarmed on a healthy source, and the row would have read "this source
+          produced nothing".
 
-        Found on the first live harvest, not by reading: Netflix returned ten
-        entries with a 33,806-character lead post and a yield figure of zero.
+          But the figure it produced was not a yield. It said TEN KEPT while
+          the corpus gained NOTHING, every night, for both Medium feeds, from
+          the day they were added — because `write.py` reads `run.articles` and
+          nothing else. Measured 2026-09-17: 121 blog documents across 7 hosts,
+          and the two class B hosts contributed 0.
+
+          So the branch made a true statement about the feed and a false one
+          about the run, and only the second is what FR-10 watches. Carving
+          the bodies (`carve_entry_bodies`) makes the honest count and the
+          reassuring count the same number, which is why the branch is gone
+          rather than corrected.
         """
-        if not self.fetch_articles:
-            return sum(
-                1
-                for entry in self.feed.entries
-                if (entry.content_html or entry.summary_html or "").strip()
-            )
         return sum(1 for article in self.articles if article.stored)
 
     @property
@@ -398,15 +433,79 @@ class BlogFetcher:
 
     def _store_payload(self, url: str, response: httpx.Response) -> StoredArtifact:
         stored = self._store.put(response.content, namespace=RAW)
+        return self._artifact(url, stored, response.status_code)
+
+    def _artifact(self, url, stored, http_status: int | None) -> StoredArtifact:
+        """Describe an ALREADY-STORED blob. Takes no bytes, and that is the point.
+
+        ⚠ THE `put` STAYS AT THE CALL SITE ON PURPOSE.
+          An earlier version of this took `payload: bytes` and did the `put`
+          here, which made both writers look identical to
+          `tests/test_writers_store_the_payload.py` - its AST scan saw
+          `put(payload)` where `payload` is a parameter, could not tell whether
+          the caller handed it the platform's bytes or something we composed,
+          and correctly reported `unclassified`.
+
+          That test FAILS on unclassified rather than passing, because "a
+          writer nobody classified is how `registry load-seed` ran unguarded
+          for weeks". Routing two writers through one helper would have hidden
+          both behind one unanswerable question. So each `put` sits where its
+          source is visible - `response.content` in one, a slice of the stored
+          feed in the other - and the scan can read both.
+        """
         return StoredArtifact(
             url=url,
             ref=stored.ref,
             content_hash=stored.content_hash,
             size=stored.size,
             already_present=stored.already_present,
-            http_status=response.status_code,
+            http_status=http_status,
             fetched_at=self._clock(),
         )
+
+    def carve_entry_bodies(self, feed: FeedFetch) -> list[ArticleFetch]:
+        """Each entry's own body, carved from the feed bytes already in hand.
+
+        NO REQUEST. The same shape as `x.store_posts` — *"write each post's own
+        payload, the bytes are in hand"* — except these bytes are a verbatim
+        slice rather than a re-serialisation, so `raw/` holds what the server
+        sent at both levels.
+
+        FOR A FEED-ONLY RULING, AND IT IS THE POINT OF ONE. Medium permits the
+        feed and refuses the articles, and its feed carries the whole post
+        (`feed_carries_full_text: [true]` is a condition of the class B
+        ruling). Before this existed both Medium feeds harvested nightly and
+        produced ZERO documents, because `write.py` only ever read
+        `run.articles` and a feed-only run left it empty.
+
+        An entry with no `content:encoded` yields nothing here rather than an
+        empty artifact: that is a gap in the feed, and `items_kept` counts it
+        as one.
+        """
+        if feed.outcome != "fetched" or feed.artifact is None:
+            return []
+        payload = self._store.get(feed.artifact.ref)
+        entries = feed.entries
+        out: list[ArticleFetch] = []
+        for index, start, end in content_spans(payload):
+            if index >= len(entries):
+                continue
+            entry = entries[index]
+            out.append(
+                ArticleFetch(
+                    entry=entry,
+                    url=entry.url,
+                    outcome="fetched",
+                    detail="carved from the feed body; no request was made",
+                    http_status=feed.http_status,
+                    artifact=self._artifact(
+                        entry.url or feed.feed_url,
+                        self._store.put(payload[start:end], namespace=RAW),
+                        feed.http_status,
+                    ),
+                )
+            )
+        return out
 
     # ── feeds ────────────────────────────────────────────────────────────
 
@@ -607,8 +706,12 @@ class BlogFetcher:
         feed = self.fetch_feed(feed_url)
 
         articles: list[ArticleFetch] = []
-        if fetch_articles and feed.outcome == "fetched":
-            articles = [self.fetch_article(entry) for entry in feed.entries]
+        if feed.outcome == "fetched":
+            articles = (
+                [self.fetch_article(entry) for entry in feed.entries]
+                if fetch_articles
+                else self.carve_entry_bodies(feed)
+            )
 
         return FeedRun(
             feed_url=feed_url,
