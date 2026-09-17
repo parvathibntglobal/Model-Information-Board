@@ -246,6 +246,11 @@ terms_rulings:
       article_path_allowed: [true]
       paywall_observed: [false]
       login_required: [false]
+      # The summary above states this in prose ("NO TERMS PAGE HAS BEEN READ
+      # FOR ANY OF THE NINE FEEDS"). Recorded as a fact so a machine reading
+      # `recorded_evidence` sees `false` rather than ABSENT — rule 6 inside the
+      # contract. Same footing as arxiv, x, devto, hackernews and huggingface.
+      terms_document_read: [false]
 
   # ── Class B: Medium ──────────────────────────────────────────────────────
   - id: blog-class-b-medium
@@ -383,6 +388,9 @@ terms_rulings:
       feed_carries_full_text: [true]
       article_fetch_refused: [true]
       login_required: [false]
+      # As class A. The summary states "Medium's terms of service have not been
+      # read"; this records it where a reader that is not a person can see it.
+      terms_document_read: [false]
 
   # ── The blog platform row, which is not a fetch target ───────────────────
   - id: blog-umbrella-not-a-fetch-target
@@ -1416,6 +1424,7 @@ feeds:
       article_http: 200
       paywall_observed: false
       login_required: false
+      terms_document_read: false
       feed_type: atom10
     measured:
       checked_on: 2026-08-14
@@ -1477,6 +1486,7 @@ feeds:
       article_http: 200
       paywall_observed: false
       login_required: false
+      terms_document_read: false
       feed_type: rss20
     measured:
       checked_on: 2026-08-14
@@ -1533,6 +1543,7 @@ feeds:
       article_http: 200
       paywall_observed: false
       login_required: false
+      terms_document_read: false
       feed_type: rss20
     measured:
       checked_on: 2026-08-14
@@ -1592,6 +1603,7 @@ feeds:
       article_http: 200
       paywall_observed: false
       login_required: false
+      terms_document_read: false
       feed_type: rss20
     measured:
       checked_on: 2026-08-14
@@ -1656,6 +1668,7 @@ feeds:
       article_http: 200
       paywall_observed: false
       login_required: false
+      terms_document_read: false
       feed_type: rss20
     measured:
       checked_on: 2026-08-14
@@ -1712,6 +1725,7 @@ feeds:
       article_http: 200
       paywall_observed: false
       login_required: false
+      terms_document_read: false
       feed_type: rss20
     measured:
       checked_on: 2026-08-14
@@ -1777,6 +1791,7 @@ feeds:
       article_http: 200
       paywall_observed: false
       login_required: false
+      terms_document_read: false
       feed_type: rss20
     measured:
       checked_on: 2026-08-14
@@ -1847,6 +1862,7 @@ feeds:
       feed_carries_full_text: true
       paywall_observed: unknown
       login_required: false
+      terms_document_read: false
       feed_type: rss20
     measured:
       checked_on: 2026-08-14
@@ -1929,6 +1945,7 @@ feeds:
       feed_carries_full_text: true
       paywall_observed: unknown
       login_required: false
+      terms_document_read: false
       feed_type: rss20
     measured:
       checked_on: 2026-08-14
