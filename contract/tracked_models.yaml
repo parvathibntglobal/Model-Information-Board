@@ -2,8 +2,10 @@
 #
 # WHY THIS FILE EXISTS
 #
-# `model_version` holds 344 rows because the OpenRouter poll brings back every
-# model the router carries. That is the right thing for the registry to HOLD and
+# `model_version` holds hundreds of rows - 348 when this was last measured, on
+# 2026-09-17 - because the OpenRouter poll brings back every model the router
+# carries. The figure is dated because it is a count of a table this file does
+# not own, and it moves without anything here changing (#334). That is the right thing for the registry to HOLD and
 # the wrong thing for a page to SHOW: a reader looking for the models this board
 # has opinions about does not want a router's catalogue.
 #
@@ -24,8 +26,11 @@
 #   for. An entry with `registry: null` shows "no rate", and that is the honest
 #   state rather than a gap to be filled in by hand.
 #
-# ⚠ EVERY ENTRY BUT ONE HAS A REGISTRY ROW, AND THEY GOT THERE TWO DIFFERENT
-#   WAYS. The exception is Gemini 3.8 Flash - see its entry below.
+# ⚠ EVERY ENTRY NOW HAS A REGISTRY ROW, AND THEY GOT THERE THREE DIFFERENT
+#   WAYS. This said "every entry BUT ONE" and named Gemini 3.8 Flash as the
+#   exception; seating it on 2026-09-17 made that false, in the same commit that
+#   wrote the entry explaining the exception. #334's class, and the note there
+#   is the reason this one now carries its date.
 #
 #   Three of the five were seated on 2026-09-15 from contract/unpolled_models.yaml
 #   so the page could link them - Recraft V4.1 Pro, ElevenLabs v3, Qwen3.5 Omni
@@ -68,7 +73,8 @@
 #
 # THIRTEEN, AND THE ARITHMETIC IS WORTH KEEPING: thirty on 2026-09-15, less
 # fifteen Parvathi named after seeing them on the page, less three more the same
-# day, plus Gemini 3.8 Flash on 2026-09-16.
+# day, plus Gemini 3.8 Flash - listed 2026-09-16 with no registry row, seated
+# 2026-09-17.
 #
 # The fifteen were not chosen by a rule - eleven were image, video and speech
 # models, but two were language models the registry prices perfectly well
@@ -277,8 +283,9 @@ models:
   #     will NEVER bring" these, and means it - Recraft, ElevenLabs and Qwen
   #     Omni are absent because OpenRouter lists no standalone image or speech
   #     vendor, which is structural. Google's flash line is polled exhaustively
-  #     (3-flash-preview, 3.1-flash-lite, 3.5, 3.6, 3.7), so it will carry this
-  #     the day it ships. Putting it there would be a false claim AND a trap:
+  #     - measured 2026-09-17 against 347 registry rows: seven
+  #     google/gemini-3.x*flash* rows, highest 3.7-flash, no 3.8 of any kind
+  #     before this seating - so it will carry this the day it ships. Putting it there would be a false claim AND a trap:
   #     the moment the poll returns it, `_refuse_provenance_downgrade` makes
   #     that whole file unloadable, blocking the three models that really need
   #     it. That is how seed_models.yaml died, with seven of eleven polled.

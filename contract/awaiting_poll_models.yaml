@@ -9,9 +9,23 @@
 #   is structural and permanent.
 #
 #   Gemini 3.8 Flash is the opposite case. OpenRouter polls Google's flash line
-#   exhaustively - 3-flash-preview, 3.1-flash-lite, 3.5, 3.6, 3.7 are all there -
-#   so it will carry this one the day it ships. Putting it in that file would be
-#   a false claim about the world, and it would also set a trap:
+#   exhaustively, so it will carry this one the day it ships. Putting it in that
+#   file would be a false claim about the world, and it would also set a trap:
+#
+#   ⚠ THE EVIDENCE FOR THAT, WITH ITS POPULATION AND ITS DATE - because the
+#     first draft of this note listed the line as "3-flash-preview,
+#     3.1-flash-lite, 3.5, 3.6, 3.7", and THIS COMMIT made that false. Seeding
+#     the row below put `google/gemini-3.8-flash` in the same table, so the
+#     sentence describing the gap was wrong the moment the gap was filled - by
+#     the write it was written to justify. See #334; that is a faster instance
+#     than any it records.
+#
+#         measured 2026-09-17 against the shared registry, 347 model_version
+#         rows: seven google/gemini-3.x*flash* rows, the highest 3.7-flash,
+#         and no 3.8 of any kind.
+#
+#     Stated that way it cannot go quietly false: a reader who re-measures gets
+#     a different number and knows to. Rule 7 applied to a comment.
 #
 #     `_refuse_provenance_downgrade` refuses any load that would turn a `polled`
 #     row back into a `seed` one. The moment the poll returns gemini-3.8-flash,
