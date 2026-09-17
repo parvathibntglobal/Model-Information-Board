@@ -164,13 +164,86 @@ It was refused, correctly:
 > refusing `judge rebuild-cells`: ENVIRONMENT=development and the database is
 > 52.17.75.29, which is not this machine.
 
+### Which environment satisfies the writeguard, honestly: none, from here
+
+`check()` permits a write in exactly three cases, and only three:
+
+```
+no DATABASE_URL                     not a real path
+environment() != "development"      any other value
+is_local(url)                       a database on this machine
+```
+
+Against the shared database from a laptop, **two of those doors are shut and the
+third is the one the refusal itself disowns**:
+
+- `is_local` is out — the rows are on 52.17.75.29, which is the whole point.
+- **Unsetting `ENVIRONMENT` does not help.** `environment()` is
+  `(os.getenv("ENVIRONMENT") or DEV)`, so unset resolves to `development` — the
+  refused value. There is no neutral setting.
+- Any non-development value passes, and passes for no good reason.
+  `check()`'s own comment says so: *"on a non-dev flag NO fixture check runs on
+  this path — returning here only declines to over-refuse, it does not hand off
+  to another guard."*
+
+**So the plain answer is that nobody can run `judge rebuild-cells` from a laptop
+against the shared database and have a guard be satisfied.** Every value that
+gets through gets through by the guard declining to over-refuse. The honest
+place to run it is a host where `ENVIRONMENT` is genuinely not `development`
+because of what the machine IS — the deployment — rather than because somebody
+set it to get past a check. Even there the protection is circumstantial: `judge/`
+does not call `preflight()`, so no fixture check runs; what protects that host is
+having no fixtures to leak, not a check confirming it.
+
+### This is #328 arriving as a blocked task rather than a principle
+
+[#328](https://github.com/parvathibntglobal/Model-Information-Board/issues/328)
+records that the writeguard covers `judge/cli.py` and not `scripts/fetch_model.py`,
+so the safer operation is refused and the riskier one is not. That is no longer
+an argument about coverage; it is why this correction is half-finished.
+
+Verified independently while writing this, not taken from the issue:
+
+```
+callers of writeguard.check()   judge/cli.py:73
+                                scripts/run_extraction_batched.py:90
+                                — that is the entire list
+scripts/fetch_model.py:1903     "Spends (capped) OpenRouter money and writes
+                                 claims + cells"
+```
+
+So **`fetch_model.py` would write `cell` rows to this same database, from this
+same laptop, under this same flag, right now.** Recomputing cells from claims
+already stored — deterministic, no model call, no new information — is refused.
+Paying a model to create the claims and then writing the cells is not. The
+correction is blocked and the origination is not.
+
 `judge/writeguard.py` exists because this lane's write commands had no gate at
-all. It also says, in the refusal itself, that `ENVIRONMENT=staging` satisfies
-the check and **is not a substitute** — it turns this guard off without turning
-another on. So it was not stepped around.
+all, and refusing was right. It was not stepped around.
 
 **This is a sequencing mistake and it is mine**: the rebuild path should have
-been checked before the claims were deleted, not after. The database is
+been checked before the claims were deleted, not after.
+
+### The ordering lesson, stated generally
+
+**A correction that leaves a derived table overstating its evidence is only half
+a correction.** The specific error was checking the recompute path after
+removing the rows it derives from; the general form is that a deletion and the
+recomputation it obliges are ONE operation, and doing the first without
+establishing that the second can run leaves the database in a state that is
+internally consistent and externally wrong - which is the worst combination,
+because nothing complains.
+
+It generalises past cells. Any write that invalidates a derived artifact -
+`cell` from `claim`, `thread_context` from `document`, a materialised view from
+anything - has the same shape. The cheap discipline is to **run the
+recomputation as a dry run first**, which here would have taken one rolled-back
+transaction and would have surfaced the writeguard refusal before anything was
+deleted rather than after.
+
+Worth recording because the failure is invisible in a diff and in a test suite:
+the rows are gone, the constraint holds, the suite passes, and two cells quietly
+claim one more voice than they have. The database is
 consistent — no dangling foreign key, `quote_ids` is a `text[]` and not a
 reference — but two cells overstate their evidence by one claim each until
 somebody runs:
