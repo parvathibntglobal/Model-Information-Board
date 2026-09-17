@@ -57,6 +57,11 @@ export default function BoardReview() {
   // below say which of the two they are about to do, so the difference is on
   // screen rather than inferred from state nobody can see.
   const [picked, setPicked] = useState({})
+  // WHICH OF THE THREE IS OPEN. `null` until the payload arrives, because the
+  // right default is "the first section that actually has anything in it" and
+  // that is not knowable before the fetch. Picking one here would open an empty
+  // tab on a board that has discovered no `best_for` yet.
+  const [openSection, setOpenSection] = useState(null)
 
   const togglePicked = (key, id) =>
     setPicked((p) => {
@@ -97,6 +102,27 @@ export default function BoardReview() {
   const summary = data?.summary ?? { sections: 0, unruled: 0, entries: 0 }
   const groups = Array.isArray(data?.groups) ? data.groups : []
 
+  // The three sections that actually have something in them, in the board's own
+  // order, each with the two counts its chip carries. Computed once rather than
+  // three times inside the render, and it is also what decides the default tab.
+  const sections = SECTION_ORDER
+    .filter((sec) => groups.some((g) => g.section === sec))
+    .map((sec) => {
+      const inSection = groups.filter((g) => g.section === sec)
+      return {
+        sec,
+        inSection,
+        unruled: inSection.filter((g) => !g.ruling).length,
+      }
+    })
+
+  // FALL BACK RATHER THAN RENDER NOTHING. A chosen tab can stop existing - the
+  // payload refreshes after a ruling - and a stale selection would leave the
+  // chips showing with no panel under them.
+  const active = sections.some((x) => x.sec === openSection)
+    ? openSection
+    : sections[0]?.sec
+
   return (
     <section className="card card-flush">
       <div className="card-head">
@@ -133,32 +159,60 @@ export default function BoardReview() {
           </p>
         )}
 
-        {/* GROUPED BY SECTION AND FOLDED. This was one flat list of every
-            discovered slug, which grows with every fetch and buries the reason
-            to look. Duplicates can only occur WITHIN a section - "function
-            calling" and "tool calling" are both capabilities, never a
-            capability and a metric - so grouping by section is not just tidier,
-            it puts the comparison a reader is actually making side by side.
+        {/* THREE CHIPS, ONE OPEN. These were three stacked <details> folds, which
+            meant the two you were not reading still took up a row each and the
+            one you were reading started somewhere down the page.
 
-            The summary carries the count AND how many still need a ruling, so a
-            folded panel says whether there is anything to do inside it. Native
-            <details>, same as the FAQ: the rows stay in the DOM for ctrl-F and
-            for a screen reader whether or not the panel is open. */}
-        {SECTION_ORDER.filter((sec) => groups.some((g) => g.section === sec)).map((sec) => {
-          const inSection = groups.filter((g) => g.section === sec)
-          const unruled = inSection.filter((g) => !g.ruling).length
-          return (
-            <details key={sec} className="disc">
-              <summary>
+            Duplicates can only occur WITHIN a section - "function calling" and
+            "tool calling" are both capabilities, never a capability and a
+            metric - so a reader is only ever comparing inside one of these.
+            Showing all three at once was showing two thirds of a page that
+            cannot take part in the comparison being made.
+
+            Real <button>s in a real tablist: each is tabbable, arrow keys are
+            not hijacked, and `aria-selected` announces which is open. A div
+            with an onClick would look the same and be none of that.
+
+            THE COUNT AND THE UNRULED COUNT STAY ON THE CHIP, because that is
+            what tells you whether there is anything to do in a tab you are not
+            looking at - the whole thing a closed fold used to say. */}
+        {sections.length > 0 && (
+          /* The board's own chip vocabulary, not a second one. `.chip` /
+             `.chip-on` is what every other filter row on this site uses, so
+             these look and behave like a control a reader has already met. */
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}
+               role="tablist" aria-label="Board sections">
+            {sections.map(({ sec, inSection, unruled }) => (
+              <button
+                key={sec}
+                type="button"
+                role="tab"
+                aria-selected={sec === active}
+                className={`chip${sec === active ? ' chip-on' : ''}`}
+                onClick={() => setOpenSection(sec)}
+              >
                 {SECTION_LABEL[sec] || sec}
-                <span className="n">
-                  {inSection.length} section{inSection.length === 1 ? '' : 's'}
-                  {unruled > 0
-                    ? ` · ${unruled} awaiting a ruling`
-                    : ' · all ruled'}
+                <span className="x">
+                  {inSection.length}
+                  {unruled > 0 ? ` · ${unruled} unruled` : ''}
                 </span>
-              </summary>
-              <div className="disc-body stack stack-3">
+              </button>
+            ))}
+          </div>
+        )}
+
+        {sections.filter(({ sec }) => sec === active).map(({ sec, inSection, unruled }) => (
+            <div key={sec} className="stack stack-3" role="tabpanel">
+              <p className="dim" style={{ fontSize: 11, margin: 0 }}>
+                {/* ⚠ RULE 7. The figure travels with its denominator: "4 awaiting
+                    a ruling" is a different fact in a section of 5 than in one
+                    of 40. */}
+                {inSection.length} section{inSection.length === 1 ? '' : 's'} under{' '}
+                {(SECTION_LABEL[sec] || sec).toLowerCase()}
+                {unruled > 0
+                  ? ` · ${unruled} of ${inSection.length} awaiting a ruling`
+                  : ' · all ruled'}
+              </p>
         {inSection.map((g) => {
           const key = `${g.section}:${g.slug}`
           const ruled = Boolean(g.ruling)
@@ -331,10 +385,8 @@ export default function BoardReview() {
             </div>
           )
         })}
-              </div>
-            </details>
-          )
-        })}
+            </div>
+        ))}
       </div>
     </section>
   )

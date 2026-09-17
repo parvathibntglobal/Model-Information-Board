@@ -413,6 +413,26 @@ export const adminStages = () => request('/admin/stages')
 // real budget - so these are the terms that would go out on the next fetch.
 export const adminKeywords = () => request('/admin/keywords')
 
+// Every fetch run this database has seen, newest first and across machines.
+// The host is a RELATION ("this machine" / "another host"), never a name.
+//
+// `looks_dead` is a MEASUREMENT, not a status: a run with no end record may be
+// a corpse, since a killed process writes nothing, and the missed heartbeats
+// beside it are the evidence for that reading.
+export const adminRuns = (limit) => request(`/admin/runs${limit ? `?limit=${limit}` : ''}`)
+
+// Which database this is, what is in it, and whether the schema matches the
+// migration files. The target is `host:port/dbname` from `writeguard.describe`
+// - there is no credential in this payload and none can be derived from it.
+export const adminDatabase = () => request('/admin/database')
+
+// The signed-in account, the stack this runs on, the running commit and every
+// operational cap - with whether each cap is the default or an override.
+//
+// CREDENTIALS ARE BOOLEANS HERE. `set` / `not set`, never a value, a prefix or
+// a hash, in the payload as much as on the page.
+export const adminSettings = () => request('/admin/settings')
+
 // `entry_ids` IS OMITTED, NOT EMPTIED, when the whole section is meant.
 //
 // The backend treats `null` as "the whole slug" and `[]` as a mistake, because
