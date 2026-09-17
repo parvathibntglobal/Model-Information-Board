@@ -152,6 +152,20 @@ jobs:
       - name: Lint
         run: ruff check .
 
+      # THE FRONTEND WAS NEVER LINTED BY CI, and a crash reached main because of
+      # it. `web/package.json` has had an oxlint script all along; nothing ran
+      # it, and oxlint's `no-undef` was off by default, so a reference to an
+      # undefined variable shipped and blanked the admin page the first time
+      # anyone clicked the tab that reached it.
+      #
+      # `--max-warnings` is NOT set: the four warnings already in the tree are
+      # real but not urgent, and failing on them would mean either fixing them
+      # in this change or turning the whole step off again. Errors fail, and
+      # `no-undef` is an error — which is the hole this closes.
+      - name: Lint the frontend
+        working-directory: web
+        run: npx --yes oxlint@1.2.0
+
       - name: Test
         # No ALLOW_MISSING_TEST_DB. If the service is unreachable the run
         # fails, which is the whole point: a skip reads as success.

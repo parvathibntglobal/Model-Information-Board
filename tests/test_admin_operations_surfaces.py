@@ -154,8 +154,9 @@ def test_database_names_the_database_without_naming_the_host():
         "postgresql://dbuser:TESTSECRET-dbpassword@db.example.net:5432/boarddb"
     )
     assert body["database"] == "boarddb"
-    # A RELATION, NOT AN ADDRESS.
-    assert body["host"] == "a remote host"
+    # A RELATION, NOT AN ADDRESS - and one that says what it means for a reader
+    # rather than naming a category of server.
+    assert body["host"] == "another machine, over the network"
     text = json.dumps(body)
     for forbidden in ("db.example.net", "5432", "dbuser", "TESTSECRET-dbpassword"):
         assert forbidden not in text, f"the target published {forbidden!r}"

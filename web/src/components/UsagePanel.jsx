@@ -474,8 +474,26 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
  *   1,000,000 and 100,000, each returning 403 on the other's provider.
  *   `read_on` identifies WHICH METER a reading belongs to.
  */
+/** A count, or an em dash. — rather than 0, because rule 6: a reading nobody
+ *  took and a reading of zero are different facts.
+ *
+ *  ⚠ HOISTED, AND RENAMED FROM `n`. It lived inside `RapidApiTab`, and
+ *    `QuotaSeries` — a sibling, not a child — called `n(s.consumed)` anyway.
+ *    That threw `ReferenceError` and React unmounted the whole page: a dark
+ *    empty screen with nothing to read.
+ *
+ *    It survived review because it is UNREACHABLE until an arm has two quota
+ *    readings. Reddit had none, so its tab returned early and rendered fine;
+ *    X reached its second reading and the tab stopped working. Not an X bug —
+ *    Reddit was one reading away from the same crash.
+ *
+ *    `count`, not `n`, because `<Stat n={...}>` takes a prop of that name, so
+ *    `n={n(x)}` reads as correct at a glance. Two things one letter apart in
+ *    one expression is how this got written in the first place.
+ */
+const count = (v) => (typeof v === 'number' ? v.toLocaleString() : '—')
+
 function RapidApiTab({ rapid, which }) {
-  const n = (v) => (typeof v === 'number' ? v.toLocaleString() : '—')
   if (!rapid.instrumented) {
     // AN UNATTRIBUTED READING IS RENDERED, NOT JUST CARRIED. `_rapidapi_quota`
     // publishes `unattributed_reading` when the store holds a record written
@@ -503,10 +521,10 @@ function RapidApiTab({ rapid, which }) {
                 is not mistaken for this tab's quota. */}
             <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
               <strong style={{ color: 'var(--text)' }}>
-                {n(orphan.quota_remaining)} requests remaining
+                {count(orphan.quota_remaining)} requests remaining
               </strong>
               {typeof orphan.quota_limit === 'number'
-                ? ` of ${n(orphan.quota_limit)}`
+                ? ` of ${count(orphan.quota_limit)}`
                 : ', against a limit this reading did not carry'}
               , read {orphan.as_of || 'at an unrecorded time'}.
             </span>
@@ -550,13 +568,13 @@ function RapidApiTab({ rapid, which }) {
           a dash three times would bury the one measured number on the tab. */}
       {knownLimit ? (
         <div className="grid g3">
-          <Stat n={n(used)} l="requests spent" />
+          <Stat n={count(used)} l="requests spent" />
           <Stat n={share == null ? '—' : `${share.toFixed(2)}%`} l="of the quota" />
-          <Stat n={n(remaining)} l="left" />
+          <Stat n={count(remaining)} l="left" />
         </div>
       ) : (
         <div className="grid g2">
-          <Stat n={n(remaining)} l="requests remaining — measured" />
+          <Stat n={count(remaining)} l="requests remaining — measured" />
           <Stat n="not established" l="monthly limit" />
         </div>
       )}
@@ -575,8 +593,8 @@ function RapidApiTab({ rapid, which }) {
         RapidAPI sells this as a request quota and the per-request price is not in
         our config, so a dollar figure would be invented rather than measured.{' '}
         {knownLimit
-          ? `${n(used)} of ${n(limit)} requests is the spend.`
-          : `${n(remaining)} requests remaining is what the gateway last reported.`}
+          ? `${count(used)} of ${count(limit)} requests is the spend.`
+          : `${count(remaining)} requests remaining is what the gateway last reported.`}
       </span>
       {/* ⚠ THE COUNTER BELONGS TO A SUBSCRIPTION, NOT TO A MACHINE, AND THIS
           CAPTION USED TO LEAD WITH THE MACHINE.
@@ -664,7 +682,7 @@ function RapidApiTab({ rapid, which }) {
           usually not there. */}
       {rapid.also_held && !rapid.subscriptions_differ && (
         <span className="dim" style={{ fontSize: 'var(--fs-2xs, var(--fs-xs))', opacity: 0.75 }}
-              title={`${n(rapid.also_held.quota_remaining)} remaining, read by ${rapid.also_held.host || 'an unrecorded host'} at ${rapid.also_held.as_of || 'an unrecorded time'}`}>
+              title={`${count(rapid.also_held.quota_remaining)} remaining, read by ${rapid.also_held.host || 'an unrecorded host'} at ${rapid.also_held.as_of || 'an unrecorded time'}`}>
           An older reading of this same meter is also held — hover for it. It is
           not a second figure: the counter only falls, so the newest reading is
           the truest one.
@@ -682,11 +700,11 @@ function RapidApiTab({ rapid, which }) {
             from). */}
         {which === 'Reddit' ? (
           knownLimit
-            ? `The billed tier remains unverified: the gateway header says ${n(limit)} and the plan page says 500,000. Only the RapidAPI subscription page settles it.`
+            ? `The billed tier remains unverified: the gateway header says ${count(limit)} and the plan page says 500,000. Only the RapidAPI subscription page settles it.`
             : 'The billed tier has never been verified either — the plan page said 500,000, an older header said 1,000,000, and this reading fits neither. One look at the RapidAPI subscription page settles it, and no request can.'
         ) : (
           knownLimit
-            ? `The billed tier is unverified for this arm: the gateway header says ${n(limit)}, and nobody has read X's plan page. Reddit's 500,000/1,000,000 discrepancy is NOT quoted here — that figure was measured on the Reddit subscription and these are separate accounts. Only the RapidAPI subscription page settles it.`
+            ? `The billed tier is unverified for this arm: the gateway header says ${count(limit)}, and nobody has read X's plan page. Reddit's 500,000/1,000,000 discrepancy is NOT quoted here — that figure was measured on the Reddit subscription and these are separate accounts. Only the RapidAPI subscription page settles it.`
             : "The billed tier is unverified for this arm, and no plan figure has ever been read for it. Reddit's discrepancy is not this arm's — they are separate subscriptions."
         )}
       </span>
@@ -859,7 +877,7 @@ function QuotaSeries({ s, which }) {
       <div className="grid g2">
         <Stat n={`${s.per_day.toFixed(1)}/day`}
               l={`over ${s.span_days.toFixed(1)} days`} />
-        <Stat n={n(s.consumed)} l={`requests across ${s.readings} readings`} />
+        <Stat n={count(s.consumed)} l={`requests across ${s.readings} readings`} />
       </div>
       <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
         Measured between {s.first_at} and {s.last_at}. The span is stated because
