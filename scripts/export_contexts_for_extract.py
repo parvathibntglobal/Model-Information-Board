@@ -67,6 +67,13 @@ def main() -> int:
     parser.add_argument("--out", required=True)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument(
+        "--source", default=None,
+        help="restrict to one platform, e.g. blog. `selection_method` is NOT a "
+             "substitute: `whole_document` is shared by blog, devto, x and "
+             "huggingface, so scoping by it selects 598 contexts of which 175 "
+             "are blog (measured 2026-09-17).",
+    )
+    parser.add_argument(
         "--selection-method", default=None,
         help="restrict to one selection_method, e.g. post_body_only",
     )
@@ -96,6 +103,12 @@ def main() -> int:
     try:
         clauses = ["tc.flattened_text_ref IS NOT NULL"]
         params: list[object] = []
+        if args.source:
+            # THE ROOT'S SOURCE, matching the `d.source` the SELECT already
+            # joins and reports. A thread is one platform's - the join is on
+            # `thread_root_id`, so this cannot half-select a mixed thread.
+            clauses.append("d.source = %s")
+            params.append(args.source)
         if args.selection_method:
             clauses.append("tc.selection_method = %s")
             params.append(args.selection_method)
@@ -210,7 +223,23 @@ def main() -> int:
 
     for (thread_id, root_id, members, flat_ref, offset_map,
          selection_method, hidden_min, source) in rows:
-        outcome = reader.resolve(flat_ref)
+        # A MALFORMED REF IS REFUSED, NOT RAISED. `RawStore.parse_ref` rejects
+        # anything that is not `flattened/sha256/...` before touching the
+        # filesystem, which is right for the store and wrong for a batch: one
+        # bad row would take the whole export with it.
+        #
+        # There is exactly one such row today - a blog context assembled
+        # 2026-08-20 whose `flattened_text_ref` reads `flattened/inline-see-json`,
+        # a sentinel left by an earlier export that inlined the text into JSON
+        # and overwrote the ref. 1 of 175 blog contexts; 0 on every other
+        # source. Its text is unreachable from the database, so the row is a
+        # real gap rather than a parsing nuisance - and it is REFUSED BY NAME
+        # here so the count says so instead of the export dying at row 1.
+        try:
+            outcome = reader.resolve(flat_ref)
+        except ValueError:
+            refuse(f"flattened_text_ref is not a store ref ({flat_ref!r})")
+            continue
         if not outcome.found:
             refuse(f"flattened text did not resolve ({outcome.outcome})")
             continue
