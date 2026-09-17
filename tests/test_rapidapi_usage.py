@@ -538,7 +538,7 @@ class TestSubscriptionsDifferCanActuallyFire:
         selected = _QUOTA_SELECT.split("select", 1)[1].split("from", 1)[0]
         names = [c.strip() for c in selected.split(",")]
         source = inspect.getsource(app)
-        unpack = "for m, rem, lim, at, by, run, mach, fp in rows"
+        unpack = "for m, rem, lim, at, by, run, mach, fp, reset in rows"
         assert unpack in source, (
             "the unpack changed shape; keep it in step with _QUOTA_SELECT"
         )
