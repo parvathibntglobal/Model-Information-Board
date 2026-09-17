@@ -265,25 +265,34 @@ models:
   #     which is evidence a name is wrong. Here 3.8 sits BEYOND the end of the
   #     line - the ordinary shape of a model newer than the poll's snapshot.
   #
-  #   WHY NOT SEATED THROUGH contract/unpolled_models.yaml, WHICH WOULD HAVE
-  #   GIVEN IT A PAGE. That file is for models "the poll will NEVER bring" -
-  #   Recraft, ElevenLabs, Qwen Omni are absent because OpenRouter lists no
-  #   standalone image or speech vendor, which is structural and permanent.
-  #   Google's flash line is polled exhaustively, so OpenRouter will carry this
-  #   the day it ships. Seeding it would write a `provenance: seed` row that the
-  #   poll later replaces with `polled` - and from then on
-  #   `_refuse_provenance_downgrade` would make unpolled_models.yaml unloadable,
-  #   which is exactly how seed_models.yaml became unloadable with seven of its
-  #   eleven polled.
+  #   SEATED 2026-09-17 FROM contract/awaiting_poll_models.yaml, A THIRD SEED
+  #   FILE, AND THE THIRD IS NOT AN ACCIDENT.
   #
-  #   So `registry: null` is the measurement, and the file's own rule applies:
-  #   it "shows no rate, and that is the honest state rather than a gap to be
-  #   filled in by hand". The row becomes clickable and priced on its own the
-  #   first time the poll returns it, with no edit here.
+  #   It carried `registry: null` for a day, which showed "no rate" honestly and
+  #   gave `model_alias` nothing to hang on - so Parvathi asked for name
+  #   variants and there was no row to attach them to. Seating was the only way
+  #   to answer that.
+  #
+  #   ⚠ BUT NOT THROUGH contract/unpolled_models.yaml. That file says "the poll
+  #     will NEVER bring" these, and means it - Recraft, ElevenLabs and Qwen
+  #     Omni are absent because OpenRouter lists no standalone image or speech
+  #     vendor, which is structural. Google's flash line is polled exhaustively
+  #     (3-flash-preview, 3.1-flash-lite, 3.5, 3.6, 3.7), so it will carry this
+  #     the day it ships. Putting it there would be a false claim AND a trap:
+  #     the moment the poll returns it, `_refuse_provenance_downgrade` makes
+  #     that whole file unloadable, blocking the three models that really need
+  #     it. That is how seed_models.yaml died, with seven of eleven polled.
+  #
+  #   So a separate file whose one obligation is structural: WHEN THE POLL PICKS
+  #   IT UP, DELETE IT FROM THERE. Nothing else is blocked meanwhile, and the
+  #   refusal names only that file when somebody forgets.
+  #
+  #   STILL NO PRICE, AND THAT IS UNCHANGED. Seating is not pricing - the row
+  #   gives it an identity and a page, and the rate column stays empty until the
+  #   poll supplies one. FR-2 refuses a figure nothing measured.
   - name: Gemini 3.8 Flash
-    registry: null
+    registry: google/gemini-3.8-flash
     kind: text
-    absent_because: not yet carried by the OpenRouter poll
 
   # ── image ────────────────────────────────────────────────────────────────
   # THE ONE IMAGE MODEL THE POLL DOES CARRY, and it is why the note above is

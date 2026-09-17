@@ -1,0 +1,73 @@
+# Models the poll WILL bring, and has not yet.
+#
+# ⚠ WHY THIS IS NOT `contract/unpolled_models.yaml`, WHICH HAS THE SAME SHAPE
+#   AND THE SAME LOADER.
+#
+#   That file's first line is "Models the registry must hold and the poll will
+#   NEVER bring", and it means it: Recraft, ElevenLabs and Qwen's Omni line are
+#   absent because OpenRouter lists no standalone image or speech vendor, which
+#   is structural and permanent.
+#
+#   Gemini 3.8 Flash is the opposite case. OpenRouter polls Google's flash line
+#   exhaustively - 3-flash-preview, 3.1-flash-lite, 3.5, 3.6, 3.7 are all there -
+#   so it will carry this one the day it ships. Putting it in that file would be
+#   a false claim about the world, and it would also set a trap:
+#
+#     `_refuse_provenance_downgrade` refuses any load that would turn a `polled`
+#     row back into a `seed` one. The moment the poll returns gemini-3.8-flash,
+#     `unpolled_models.yaml` becomes UNLOADABLE AS A WHOLE - blocking the three
+#     models that really do need it, for a reason that has nothing to do with
+#     them. That is exactly how `seed_models.yaml` died, with seven of its
+#     eleven polled.
+#
+#   Separate file, so the obligation is structural rather than a comment: when
+#   the poll picks an entry up, DELETE IT FROM HERE. Nothing else is blocked
+#   while you forget, and the refusal names only this file when you do.
+#
+# ⚠ NO PRICE, NO CONTEXT, NO FLAGS. `load_seed` refuses "any field that asserts
+#   a value without citing where it came from" (FR-2). Nothing here has measured
+#   this model's price, so nothing here states one. The row exists to give the
+#   model an identity and something for `model_alias` to hang on - seating is
+#   not pricing, and the page shows "no rate" until the poll supplies one.
+
+version: "1.0"
+provenance: seed
+
+models:
+  # ATTESTED, NOT INVENTED. One claim names it, from Hacker News:
+  #
+  #   "can do 7.2 serial arithmetic steps in a forward pass vs 4.1 for the next
+  #    best model (Gemini 3.8 Flash/Fable 5.1)"
+  #
+  # One mention is thin and that is said rather than hidden. What it is not is
+  # zero: an engineer wrote the name, so the model is real and the spelling
+  # below is observed rather than derived.
+  - canonical_id: 'google/gemini-3.8-flash'
+    provider: 'google'
+    family: 'gemini'
+    display_name: 'Gemini 3.8 Flash'
+    aliases:
+      # THE LINE'S OWN CONVENTION, confirmed by its seated sibling:
+      #   google/gemini-3.5-flash  surface `gemini-3.5-flash`
+      #                            variants `gemini 3.5 flash`, `gemini3.5flash`
+      surface: 'gemini-3.8-flash'
+      variants: ['gemini 3.8 flash', 'gemini3.8flash']
+      #
+      # ⚠ AND THE BARE `gemini 3.8` IS DELIBERATELY ABSENT, WHICH IS A COST.
+      #
+      #   These three are one phrase punctuated three ways, and the harvest
+      #   searches the first one to three per platform - the exact shape that
+      #   emptied Qwen3.5 Omni Flash's search and got it dropped. A short,
+      #   distinct surface is what fixes that, and for Qwen one existed
+      #   (`qwen omni`, `omni flash`) and I failed to add it.
+      #
+      #   Here the short form would be `gemini 3.8`, and it does NOT distinguish
+      #   this model from a `gemini-3.8-pro` the same poll would carry. That is
+      #   the reason `deepseek v4` is excluded in
+      #   docs/proposals/alias-surfaces-tracked-set.yaml - "87 documents, and it
+      #   does not distinguish pro from flash".
+      #
+      #   So the two cases differ and the outcome is the same either way: a
+      #   narrow search. Recorded rather than fixed, because the fix is a
+      #   surface that would attribute another model's discussion to this one,
+      #   and a quiet page is better than a wrong one.
