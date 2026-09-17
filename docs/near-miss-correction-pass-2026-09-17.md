@@ -6,6 +6,26 @@ because it touched stored verdicts and deleted rows on the shared database.
 ⚠ **IT IS NOT FINISHED. Two cells are stale and I could not rebuild them** —
 see *What is outstanding* at the bottom. That is the first thing a reader needs.
 
+**STALE BY A KNOWN AMOUNT, NOT WRONG BY AN UNKNOWN ONE.** Until
+`judge rebuild-cells` runs, these two rows on `anthropic/claude-opus-5` each
+**overstate their evidence by exactly one claim**:
+
+```
+instruction.adherence / context_size:unknown
+    reads   20 voices · 1 positive · 19 negative · 35 quotes
+    is      19 voices · 1 positive · 18 negative · 34 quotes
+
+tool_calling.long_chain_reliability / tool_count:unknown
+    reads    3 voices · 2 positive ·  1 negative ·  3 quotes
+    is       2 voices · 1 positive ·  1 negative ·  2 quotes
+```
+
+Both still hold a deleted `claim_id` in `quote_ids`. Both remain
+`insufficient` before and after, so **nothing published moves** — the overstate
+is in the counts a reader sees on the cell, not in what the board asserts.
+Anybody quoting these numbers in the meantime should quote the right-hand
+column.
+
 ---
 
 ## Why a correction pass at all
@@ -221,6 +241,60 @@ correction is blocked and the origination is not.
 `judge/writeguard.py` exists because this lane's write commands had no gate at
 all, and refusing was right. It was not stepped around.
 
+### Can it run on the Railway backend? Yes — so this is blocked on #328, not on access
+
+**The backend is deployed and it writes.** `fetch_log.machine` carries
+container hostnames beside the two laptops:
+
+```
+LenovoPB       314   2026-09-17     laptop
+ANOOJ          932   2026-09-16     laptop
+1fb1c6863ef5   128   2026-09-16     container
+a2aa987f50e8    98   2026-09-16     container
+7f713664b611    67   2026-09-15     container
+8f092b28828c    65   2026-09-15     container
+2fa959aa2765    28   2026-09-16     container
+dbdf571f8b13    14   2026-09-14     container   (the machine named in CLAUDE.md's
+                                                 undertaking incident)
+```
+
+Those containers ran `scripts/fetch_model.py`, which says of itself *"Spends
+(capped) OpenRouter money and writes claims + cells"*. So a container has
+already written `cell` rows to this database.
+
+**The command is present in the image and would be permitted there:**
+
+| | |
+|---|---|
+| `Dockerfile` | `COPY . .` plus `pip install .` with `include = ["collect*", "judge*"]` — the whole source and the packages |
+| invocation | `python -m judge.cli rebuild-cells`. There is **no** `[project.scripts]`, so there is no `judge` console script; the module form is the one that works |
+| `ENVIRONMENT` | `production` on the deployment (§7.3 of the Railway plan, and `judge/gate.py`'s API_TOKEN rule forces it), so `writeguard.check()` returns early |
+| `DATABASE_URL` | read directly by `judge/cli.py`, not via `MODELBOARD_DB`; the deployment runs `MODELBOARD_DB=write`, which is how the fetches wrote |
+
+What is missing is only a **way in**: `CMD` is `["python", "serve.py"]` and there
+is no Procfile, no second service and no job runner, so the container serves the
+API and nothing else. Getting a one-off command in needs `railway ssh` into the
+running container, or a second service built from the same image with a
+different start command. **I cannot verify from this repo which of those the
+team's Railway plan allows** — there is no `railway` CLI on this machine and no
+`railway.json` in the tree.
+
+⚠ **`railway run` IS NOT THE ANSWER AND IS THE TRAP.** It executes the command
+**locally** with the deployment's variables injected, so it would hand this
+laptop `ENVIRONMENT=production`, satisfy the writeguard, and run the write from
+the machine that has the fixtures — which is precisely the pairing the guard
+exists to refuse. It would look like running it on Railway and would be the
+hazard wearing the deployment's clothes.
+
+**So the honest statement to the team is that this is blocked on #328, not on
+access.** Somebody can run it: the image has the command, the environment
+permits it, and a container has already written these tables. What there is no
+sanctioned route for is the *safer* operation from a laptop — which is #328's
+inversion exactly, now holding up a correction rather than illustrating a
+principle.
+
+---
+
 **This is a sequencing mistake and it is mine**: the rebuild path should have
 been checked before the claims were deleted, not after.
 
@@ -254,3 +328,12 @@ judge rebuild-cells        # from an environment the writeguard permits
 
 Expected outcome is the table above: 2 of 258 cells move, no status changes.
 Anything else is a disagreement worth reading before it is committed.
+
+**And it can run** — see the Railway section above. The image carries the
+command, `ENVIRONMENT=production` permits it, and containers have already
+written these tables. It needs a one-off command into the container
+(`railway ssh`, or a second service off the same image), **not** `railway run`,
+which executes locally and reintroduces the hazard the guard refuses.
+
+So the sentence for the team is: *the correction is blocked on #328's gap, not
+on anybody's access.*
