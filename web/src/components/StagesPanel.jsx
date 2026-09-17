@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { adminStages } from '../api'
 import { Badge, Notice } from './ui'
 import { IconAlert, IconLayers } from './Icons'
@@ -88,42 +88,60 @@ export default function StagesPanel() {
           </Notice>
         )}
 
+        {/* DRAWN AS A RAIL, because a pipeline is what this is. The previous
+            shape was a stack of left-bordered blocks, which is the same markup
+            the Sources and Keywords panels use for a SET - and a set is exactly
+            what these are not. E2R runs after E2 and before E2A; the order is
+            the content, so the page draws it.
+
+            `what` reads at full strength and `why` beneath it dimmed: one is
+            the stage and the other is the argument for it, and flattening them
+            into two identical paragraphs is what made this hard to skim. */}
         {phases.map((phase) => (
           <div key={phase.name} className="stack stack-2">
-            <span className="label">{phase.name}</span>
-            {phase.items.map((s) => (
-              <div key={s.id} className="stack stack-1"
-                   style={{ borderLeft: '2px solid var(--line)', paddingLeft: 12 }}>
-                <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
-                  <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{s.id}</span>
-                  <strong style={{ fontSize: 'var(--fs-sm)' }}>{s.name}</strong>
-                  {s.undescribed && <Badge tone="fail">not described</Badge>}
-                </div>
+            <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
+              <span className="label">{phase.name}</span>
+              <span className="dim" style={{ fontSize: 11 }}>
+                {phase.items.length} stage{phase.items.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <div className="rail">
+              {phase.items.map((s, i) => (
+                <Fragment key={s.id}>
+                  <span className="rail-id">{s.id}</span>
+                  <div className={`rail-body${i === phase.items.length - 1 ? ' last' : ''}`}>
+                    <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
+                      <strong style={{ fontSize: 'var(--fs-sm)' }}>{s.name}</strong>
+                      {s.undescribed && <Badge tone="fail">not described</Badge>}
+                    </div>
 
-                {s.what && (
-                  <p style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0,
-                              color: 'var(--text-1)', lineHeight: 1.6 }}>
-                    {s.what}
-                  </p>
-                )}
-                {s.why && (
-                  <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch',
-                                              margin: 0, lineHeight: 1.6 }}>
-                    {s.why}
-                  </p>
-                )}
+                    {s.what && (
+                      <p style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: '4px 0 0',
+                                  color: 'var(--text-1)', lineHeight: 1.6 }}>
+                        {s.what}
+                      </p>
+                    )}
+                    {s.why && (
+                      <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch',
+                                                  margin: '4px 0 0', lineHeight: 1.6 }}>
+                        {s.why}
+                      </p>
+                    )}
 
-                {/* A stage the code emits and the contract does not explain.
-                    Shown as a gap rather than omitted: a reader who cannot see
-                    it has no way to know the page is incomplete. */}
-                {s.undescribed && (
-                  <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0 }}>
-                    This stage runs and nobody has written down what it is for.
-                    Add it to <span className="mono">contract/pipeline_stages.yaml</span>.
-                  </p>
-                )}
-              </div>
-            ))}
+                    {/* A stage the code emits and the contract does not explain.
+                        Shown as a gap rather than omitted: a reader who cannot
+                        see it has no way to know the page is incomplete. */}
+                    {s.undescribed && (
+                      <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch',
+                                                  margin: '4px 0 0' }}>
+                        This stage runs and nobody has written down what it is for.
+                        Add it to <span className="mono">contract/pipeline_stages.yaml</span>.
+                      </p>
+                    )}
+                  </div>
+                </Fragment>
+              ))}
+            </div>
           </div>
         ))}
 

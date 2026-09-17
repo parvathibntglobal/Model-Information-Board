@@ -411,6 +411,17 @@ def list_for_review(conn) -> list[dict]:
     returning one row per quote: merging "tool-calling" into "function-calling"
     is one decision about a word, not nine about nine quotes. The document count
     behind it is the evidence for that decision, so it is shown.
+
+    ⚠ THREE QUERIES, AND IT USED TO BE 2N+1. The quotes and the ruling counts
+      were fetched inside the loop, one pair per group. Measured 2026-09-17
+      against the shared database: 260 groups, 521 round trips, and at 250ms of
+      network latency each (the database is remote) the endpoint took **132.5
+      seconds**. The admin page was not failing to load the board sections; it
+      was waiting two minutes for them.
+
+      Nothing about the shape of the answer changes. The same three facts are
+      assembled, by asking for all of them at once instead of per group - which
+      is the only reason this is a safe change to a review surface.
     """
     rows = conn.execute(
         "SELECT section, slug, min(name) AS name, min(definition) AS definition,"
@@ -422,32 +433,47 @@ def list_for_review(conn) -> list[dict]:
         "FROM board_entry GROUP BY section, slug "
         "ORDER BY section, count(*) DESC, slug"
     ).fetchall()
+
+    # `id` AND `ruling` PER QUOTE. The id is the handle a reviewer needs to rule
+    # one row rather than the whole slug, and the ruling is how the page shows
+    # which rows are already decided - without it a declined quote and a live one
+    # look identical in this list.
+    #
+    # The window function is what replaces "LIMIT 5, once per group". `id` is in
+    # the ORDER BY where the per-group query had only `created_at DESC`: two
+    # quotes written in the same second used to be separated arbitrarily, and
+    # which five you saw could change between two loads of the same page.
+    quotes_by_group: dict[tuple[str, str], list[dict]] = {}
+    for section, slug, entry_id, quote, polarity, mv, doc, ruling in conn.execute(
+        "SELECT section, slug, id, quote, polarity, model_version_id, "
+        "       document_id, ruling FROM ("
+        "  SELECT *, row_number() OVER ("
+        "    PARTITION BY section, slug ORDER BY created_at DESC, id"
+        "  ) AS rn FROM board_entry"
+        ") ranked WHERE rn <= 5 ORDER BY section, slug, rn"
+    ).fetchall():
+        quotes_by_group.setdefault((section, slug), []).append({
+            "id": entry_id, "quote": quote, "polarity": polarity,
+            "model_version_id": mv, "document_id": doc, "ruling": ruling,
+        })
+
+    # HOW MANY ROWS CARRY EACH RULING, because `max(ruling)` above stops meaning
+    # anything the moment two quotes under one slug can differ. It returns
+    # whichever word sorts highest - 'merged' over 'declined' over 'adopted' - so
+    # a section with eight adopted quotes and one merged would read as "merged".
+    # A count says what is actually true, and lets the page say "3 of 9 declined"
+    # instead of picking a word for the group.
+    counts_by_group: dict[tuple[str, str], dict[str, int]] = {}
+    for section, slug, ruling, n in conn.execute(
+        "SELECT section, slug, coalesce(ruling, 'unruled'), count(*) "
+        "FROM board_entry GROUP BY section, slug, coalesce(ruling, 'unruled')"
+    ).fetchall():
+        counts_by_group.setdefault((section, slug), {})[ruling] = n
+
     out = []
     for (section, slug, name, definition, entries, documents, models,
          newest, ruling, ruling_target, reviewed_at) in rows:
-        # `id` AND `ruling` PER QUOTE. The id is the handle a reviewer needs to
-        # rule one row rather than the whole slug, and the ruling is how the page
-        # shows which rows are already decided - without it a declined quote and
-        # a live one look identical in this list.
-        quotes = conn.execute(
-            "SELECT id, quote, polarity, model_version_id, document_id, ruling "
-            "FROM board_entry WHERE section = %s AND slug = %s "
-            "ORDER BY created_at DESC LIMIT 5",
-            (section, slug),
-        ).fetchall()
-        # HOW MANY ROWS CARRY EACH RULING, because `max(ruling)` above stops
-        # meaning anything the moment two quotes under one slug can differ. It
-        # returns whichever word sorts highest - 'merged' over 'declined' over
-        # 'adopted' - so a section with eight adopted quotes and one merged would
-        # read as "merged". A count says what is actually true, and lets the page
-        # say "3 of 9 declined" instead of picking a word for the group.
-        by_ruling = dict(
-            conn.execute(
-                "SELECT coalesce(ruling, 'unruled'), count(*) FROM board_entry "
-                "WHERE section = %s AND slug = %s GROUP BY 1",
-                (section, slug),
-            ).fetchall()
-        )
+        by_ruling = counts_by_group.get((section, slug), {})
         out.append({
             "section": section, "slug": slug, "name": name, "definition": definition,
             "entries": entries, "documents": documents, "models": models,
@@ -460,11 +486,7 @@ def list_for_review(conn) -> list[dict]:
             "ruling_target": ruling_target,
             "reviewed_at": reviewed_at.isoformat() if reviewed_at else None,
             "ruling_counts": by_ruling,
-            "quotes": [
-                {"id": i, "quote": q, "polarity": p, "model_version_id": m,
-                 "document_id": d, "ruling": r}
-                for i, q, p, m, d, r in quotes
-            ],
+            "quotes": quotes_by_group.get((section, slug), []),
         })
     return out
 
