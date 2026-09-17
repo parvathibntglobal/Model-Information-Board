@@ -521,10 +521,30 @@ def test_a_feed_only_run_counts_the_feed_bodies_as_its_yield(signed_undertaking,
     )
     run = _build_for(feed, tmp_path).harvest_feed(FEED_URL)
 
-    assert run.articles == []
     assert run.items_fetched == 2
-    assert run.items_kept == 2, "the feed body is the yield when articles are refused"
-    assert run.harvest_run_fields()["items_kept"] == 2
+    # ⚠ THIS EXPECTED 2 UNTIL 2026-09-17, AND 2 WAS AN OVER-COUNT.
+    #
+    #   The old feed-only branch counted `content_html OR summary_html`, so an
+    #   entry carrying ONLY a `<description>` counted as yield. In this fixture
+    #   the second entry is exactly that, and its own description calls the
+    #   first one "A teaser that is not the whole post".
+    #
+    #   `parse.py` already ruled on this: *"A full-content feed puts the whole
+    #   post in `content`; most put a teaser in `summary`. Both are kept
+    #   separately rather than merged, because a teaser read as a full post
+    #   would make a truncated article look complete."* Counting the teaser as
+    #   yield did precisely that, one layer up - so a feed that switched to
+    #   teasers-only would have gone on reporting a full yield, which is the
+    #   FR-10 blindness this test exists to prevent.
+    #
+    #   The carve takes `content:encoded` and nothing else, so the count is now
+    #   bodies a document can actually be built from: ONE.
+    assert run.items_kept == 1, "a teaser is not a body, and is not yield"
+    assert run.harvest_run_fields()["items_kept"] == 1
+    # AND IT IS TRUE OF THE RUN AS WELL AS OF THE FEED. The old figure said
+    # kept while the corpus gained nothing, nightly, for both Medium feeds.
+    assert len(run.articles) == 1
+    assert run.items_kept == sum(1 for a in run.articles if a.stored)
 
 
 def test_a_feed_only_run_does_not_count_entries_with_no_body(signed_undertaking, tmp_path):
@@ -581,10 +601,17 @@ def test_a_feed_only_fetcher_harvests_the_feed_and_no_articles(signed_undertakin
     run = _build_for(feed, tmp_path, site=site).harvest_feed(FEED_URL)
 
     assert run.outcome == "fetched"
-    assert run.articles == []
     assert not any(
         request.url.path.startswith("/posts/") for request in site.requests
     ), "a feed-only ruling means no article URL is requested at all"
+    # ⚠ THIS USED TO ASSERT `run.articles == []` AND THAT WAS THE DEFECT, not
+    #   the property. The ruling refuses article REQUESTS; it does not refuse
+    #   documents, and the feed it permits carries the whole post. Bodies are
+    #   now carved from the feed bytes, so the run has articles and made no
+    #   request for them - which is what the assertion above actually pins.
+    assert run.articles, "the feed body carries the post; it becomes a document"
+    assert all(a.stored for a in run.articles)
+    assert all("carved" in a.detail for a in run.articles)
 
 
 def test_no_client_can_be_built_without_an_identifying_user_agent():

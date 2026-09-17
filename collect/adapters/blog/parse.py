@@ -200,6 +200,114 @@ def _entry_content_html(entry: Any) -> str | None:
 _HEADER_ONLY_BOZO = "NonXMLContentType"
 
 
+#: The elements whose CDATA carries a whole post. `content:encoded` is RSS's
+#: full-text element; Atom spells it `content`.
+_BODY_ELEMENTS = frozenset({"encoded", "content"})
+
+
+def content_spans(payload: bytes) -> list[tuple[int, int, int]]:
+    """`(entry_index, start, end)` byte ranges of each entry's full-text body.
+
+    VERBATIM, AND THAT IS THE WHOLE POINT. `payload[start:end]` is a slice of
+    the bytes the server sent - the publisher's own HTML, not anything this
+    code composed. That is what lets a per-entry blob sit in `raw/` on the same
+    footing as the feed blob it came from: NFR-4's rebuild reads original bytes
+    at both levels.
+
+    ⚠ WE CARVE `content:encoded`, NOT `<item>`, AND THE REASON IS MEASURED.
+      The obvious carve is the whole `<item>` element, and it does not work.
+      An item uses `content:`, `dc:` and `atom:` prefixes that the ROOT element
+      declares, so a carved `<item>` is not parseable on its own:
+
+          spans that re-parse standalone   0 of 20   (both Medium feeds, 10 each)
+          unbound prefixes                 atom, content, dc
+
+      Making it parseable means injecting the root's namespace declarations -
+      at which point the bytes are composed rather than verbatim, and the
+      argument for carving at all (that `raw/` holds what the server sent) is
+      gone. `content:encoded`'s CDATA has no such dependency: it is
+      self-contained HTML, byte-identical to what arrived, and exactly what
+      `extract_article_text` already consumes on the article path. One
+      function, two sources of bytes.
+
+    ENTRY INDEX RATHER THAN A GUID, because the caller already has the guids.
+    An earlier version read `<guid>` here and got the CHANNEL's `<link>`
+    instead - the feed's own URL, before any item had opened - so every span
+    carried the wrong identity and none matched a parsed entry. Counting item
+    opens cannot make that mistake, and `parse_feed` returns entries in
+    document order, so `entries[index]` is the entry this body belongs to.
+
+    EXPAT RATHER THAN A REGEX, because `</item>` and `]]>` both appear inside
+    real post bodies and only a parser knows which occurrence closes what.
+    `xml.parsers.expat` is stdlib and exposes `CurrentByteIndex`, which is the
+    one thing `feedparser` cannot give us - it returns parsed values and throws
+    the offsets away. Same shape as `offset_map`: cheap while you are already
+    walking the bytes, impossible to reconstruct afterwards.
+
+    Returns `[]` for a feed carrying no full-text bodies, and for a payload
+    that will not parse - a malformed feed is a gap, not an exception for every
+    call site to handle.
+    """
+    import xml.parsers.expat
+
+    spans: list[tuple[int, int, int]] = []
+    index = -1
+    in_body = False
+    body_start: int | None = None
+    parser = xml.parsers.expat.ParserCreate()
+
+    def _local(name: str) -> str:
+        return name.split("}")[-1].split(":")[-1]
+
+    def _start(name, _attrs):
+        nonlocal index, in_body, body_start
+        local = _local(name)
+        if local in ("item", "entry"):
+            index += 1
+        elif local in _BODY_ELEMENTS and index >= 0:
+            in_body, body_start = True, None
+
+    def _cdata():
+        nonlocal body_start
+        if in_body and body_start is None:
+            body_start = parser.CurrentByteIndex + len(b"<![CDATA[")
+
+    def _end(name):
+        nonlocal in_body, body_start
+        if _local(name) in _BODY_ELEMENTS and in_body:
+            in_body = False
+            if body_start is not None:
+                close = payload.rindex(b"]]>", body_start, parser.CurrentByteIndex)
+                # WHITESPACE-ONLY IS ABSENT. `<content:encoded><![CDATA[   ]]>`
+                # is what a feed looks like the day a publisher switches it to
+                # titles-only, and FR-10 has to see that as nothing delivered.
+                # An empty body is not the same shape as an absent one and both
+                # must count as zero - `fixtures/blog/feed_rss_no_bodies.xml`
+                # carries one of each on purpose.
+                if payload[body_start:close].strip():
+                    spans.append((index, body_start, close))
+            body_start = None
+
+    parser.StartElementHandler = _start
+    parser.EndElementHandler = _end
+    parser.StartCdataSectionHandler = _cdata
+    try:
+        parser.Parse(payload, True)
+    except Exception:  # noqa: BLE001 - a malformed feed yields no spans, not a raise
+        return []
+    # ONE BODY PER ENTRY, THE FIRST. A feed repeating `content:encoded` inside
+    # one item is not a shape we have seen; keeping the first is a decision
+    # rather than an accident, and a second would otherwise silently become a
+    # second document for one post.
+    seen: set[int] = set()
+    first: list[tuple[int, int, int]] = []
+    for idx, a, b in spans:
+        if idx not in seen:
+            seen.add(idx)
+            first.append((idx, a, b))
+    return first
+
+
 def parse_feed(
     payload: bytes,
     *,
