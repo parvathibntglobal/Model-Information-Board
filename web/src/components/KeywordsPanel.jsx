@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { adminKeywords } from '../api'
 import { Badge, Notice } from './ui'
-import { IconAlert, IconLayers } from './Icons'
+import { IconAlert, IconCaret, IconLayers } from './Icons'
 
 /**
  * The search terms each platform is actually sent, per tracked model.
@@ -137,12 +137,30 @@ export default function KeywordsPanel() {
           {(data?.models || []).map((m) => (
             <div key={m.name} className="stack stack-1"
                  style={{ borderLeft: '2px solid var(--line)', paddingLeft: 12 }}>
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
-                <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.name}</strong>
-                {m.searches_nothing
-                  ? <Badge tone="fail">searches nothing</Badge>
-                  : <span className="label">{m.variants.length} variant(s)</span>}
-              </div>
+              {/* THE HEADING IS THE CONTROL. This used to be a static row with a
+                  "Show what each platform gets" button under it, which is a
+                  second line of content per model - thirteen models, thirteen
+                  extra rows, and the list stopped reading as a list. A caret
+                  costs nothing and says the same thing.
+
+                  A model that searches nothing has nothing to open, so it keeps
+                  the plain row: a disclosure that opens onto an explanation of
+                  why there is nothing would be worse than the explanation. */}
+              {m.searches_nothing ? (
+                <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
+                  <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.name}</strong>
+                  <Badge tone="fail">searches nothing</Badge>
+                </div>
+              ) : (
+                <button type="button" className="rowtoggle"
+                        aria-expanded={open === m.name}
+                        onClick={() => setOpen(open === m.name ? null : m.name)}>
+                  <IconCaret width={13} height={13}
+                             className={`caret${open === m.name ? ' on' : ''}`} />
+                  <strong style={{ fontSize: 'var(--fs-sm)' }}>{m.name}</strong>
+                  <span className="label">{m.variants.length} variant(s)</span>
+                </button>
+              )}
 
               {/* ⚠ RULE 4. Zero terms is a fetch that searches NOTHING — not a
                   model nobody discusses. Those look identical on a results page
@@ -156,10 +174,6 @@ export default function KeywordsPanel() {
 
               {!m.searches_nothing && (
                 <>
-                  <button type="button" className="chip"
-                          onClick={() => setOpen(open === m.name ? null : m.name)}>
-                    {open === m.name ? 'Hide the terms' : 'Show what each platform gets'}
-                  </button>
                   {open === m.name && (
                     <div className="stack stack-2" style={{ marginTop: 4 }}>
                       {arms.map((a) => (

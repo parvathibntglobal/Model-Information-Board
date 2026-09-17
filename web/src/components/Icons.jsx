@@ -42,6 +42,13 @@ export const IconArrow = (p) => (
   </svg>
 )
 
+/** A disclosure marker. Points right when closed; `.caret.on` rotates it down. */
+export const IconCaret = (p) => (
+  <svg {...base} {...p}>
+    <path d="M9 6l6 6-6 6" />
+  </svg>
+)
+
 export const IconSearch = (p) => (
   <svg {...base} {...p}>
     <circle cx="11" cy="11" r="6.5" />

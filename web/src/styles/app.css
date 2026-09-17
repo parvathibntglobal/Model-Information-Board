@@ -80,6 +80,43 @@ main{flex:1}
   padding:14px var(--card-pad);border-bottom:1px solid var(--border-soft)}
 .card-body{padding:var(--card-pad)}
 
+/* ==================================================================== rail */
+/* A SEQUENCE DRAWN AS A SEQUENCE. The evidence stages are a pipeline - E1 then
+   E2 then E2R - and a stack of bordered blocks says "here are some items", not
+   "these happen in this order". A rail with the stage id hanging off it reads
+   as the thing it describes.
+
+   Two grid columns rather than absolute positioning: the line is the left
+   border of the content column, so it cannot drift out of alignment with the
+   text at any font size, and it joins up between rows on its own because the
+   row gap is zero. */
+.rail{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 12px}
+.rail-id{font-family:var(--font-mono);font-size:10px;font-weight:600;
+  letter-spacing:.04em;color:var(--text-2);background:var(--surface-2);
+  border:1px solid var(--border);border-radius:var(--r-pill);
+  padding:2px 8px;justify-self:end;margin-top:1px;white-space:nowrap}
+.rail-body{border-left:2px solid var(--line);padding:0 0 var(--s3) var(--s3)}
+.rail > .rail-body:last-child{padding-bottom:2px}
+/* The last stage of a phase stops the line rather than trailing past it. */
+.rail-body.last{border-left-color:transparent;
+  background:linear-gradient(var(--line),var(--line)) left top/2px 10px no-repeat}
+
+/* ============================================================ row disclosure */
+/* A FOLD THAT COSTS NO LINE OF ITS OWN.
+   The alternative is a control under the thing it opens - "Show what each
+   platform gets" - which reads as another row of content, and thirteen models
+   put thirteen of them on one page. The heading IS the control here, and the
+   caret is the only new ink. */
+.rowtoggle{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+  padding:3px 0;background:none;border:0;color:inherit;font:inherit;cursor:pointer;
+  border-radius:var(--r2)}
+.rowtoggle:hover .caret{color:var(--text)}
+.caret{flex:0 0 auto;color:var(--text-3);transition:transform .16s var(--ease),
+  color .16s var(--ease)}
+.caret.on{transform:rotate(90deg)}
+/* Respect a reader who has asked the interface to stop moving. */
+@media (prefers-reduced-motion:reduce){ .caret{transition:none} }
+
 /* ================================================================ chips + badges */
 .chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;
   border-radius:var(--r-pill);border:1px solid var(--border);background:var(--surface);

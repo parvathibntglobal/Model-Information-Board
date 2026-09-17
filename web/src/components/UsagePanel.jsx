@@ -21,7 +21,15 @@ import { IconAlert, IconGauge } from './Icons'
  * cost and the new one side by side rather than as one blurred total.
  */
 
-const POLL_MS = 15000
+// ⚠ LONGER THAN THE REQUEST TAKES, WHICH 15s WAS NOT. Measured 2026-09-17:
+// `/admin/usage` answers in about 10s - it reads the whole spend ledger twice,
+// each read opening its own connection to a remote database. A 15s poll against
+// a 10s request leaves the panel loading two thirds of the time, which is most
+// of what "the admin page is laggy" was.
+//
+// The number to fix is the 10s, not this; until then a poll that overlaps its
+// own previous request is just a slower page and a busier database.
+const POLL_MS = 45000
 const usd = (n, dp = 4) => (n == null ? '—' : `$${Number(n).toFixed(dp)}`)
 
 // Friendly label for an OpenRouter model id. Known extractors are pinned; any

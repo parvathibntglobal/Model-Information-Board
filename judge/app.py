@@ -12,13 +12,15 @@ degrades this surface.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
 import subprocess
 import sys
+import threading
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import NamedTuple
@@ -728,7 +730,135 @@ def recommend(req: AskRequest) -> dict:
 # caveat a separate call would make dropping it the easy path.
 
 
+class _ConnectionPool:
+    """A few connections, kept open and handed round.
+
+    ⚠ THE HANDSHAKE WAS THE PAGE'S BIGGEST SINGLE COST, and nothing was
+      measuring it. Measured 2026-09-17 against the shared database:
+
+          psycopg.connect        1.58s
+          one trivial query      0.25s
+
+      The database is remote, and `_conn()` dialled a new one for every request.
+      `/admin/usage` opened FOUR - its own, plus one each inside
+      `spend_ledger.read_everywhere`, `spend_ledger.report` and the meter read -
+      so more than five seconds of a sixteen-second endpoint was TCP and TLS for
+      connections that had just been thrown away.
+
+    BOUNDED, AND SMALL ON PURPOSE. A hosted Postgres has a connection limit that
+    is somebody else's to raise, and an unbounded pool trades a slow page for an
+    outage under load. Eight is more than the admin page can use at once; past
+    that, callers wait for a connection rather than opening a ninth.
+
+    LIFO, because a connection just returned is the one most likely to still be
+    alive - the server or something between it and us may have dropped the ones
+    that have been idle longest, and reaching for the coldest first is how a pool
+    finds that out the slow way.
+    """
+
+    #: Small enough to be a good guest on a shared database. See above.
+    MAX = 8
+
+    def __init__(self) -> None:
+        self._free: list[object] = []
+        self._lock = threading.Lock()
+        self._slots = threading.Semaphore(self.MAX)
+        self._url: str | None = None
+
+    def take(self, url: str):
+        """A live connection for this DSN. Blocks if all slots are in use."""
+        # Imported here for the same reason `_open_connection` does: the app
+        # module is imported by tooling that has no database driver installed.
+        import psycopg
+
+        from judge.store.claims import CONNECT_TIMEOUT_SECONDS
+
+        self._slots.acquire()
+        try:
+            with self._lock:
+                # A CHANGED DSN EMPTIES THE POOL. Tests point the app at a
+                # different database mid-process, and handing back a connection
+                # to the previous one would be a silent read of the wrong data -
+                # far worse than the reconnection it saves.
+                if url != self._url:
+                    stale, self._free, self._url = self._free, [], url
+                    for conn in stale:
+                        with contextlib.suppress(Exception):
+                            conn.close()
+                conn = self._free.pop() if self._free else None
+            if conn is not None:
+                if self._is_usable(conn):
+                    return conn
+                with contextlib.suppress(Exception):
+                    conn.close()
+            return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
+        except BaseException:
+            # The slot is only held by a connection that reached a caller.
+            self._slots.release()
+            raise
+
+    @staticmethod
+    def _is_usable(conn) -> bool:
+        """Cheap liveness, and it must not raise.
+
+        A pooled connection can be dead in a way `closed` does not show - the
+        server restarted, a NAT dropped it, a transaction was left broken. The
+        rollback both answers the question and clears any transaction state the
+        last caller left behind, which is the other thing a reused connection
+        must never carry.
+        """
+        if getattr(conn, "closed", True):
+            return False
+        try:
+            conn.rollback()
+        except Exception:  # noqa: BLE001
+            return False
+        return True
+
+    def give_back(self, conn, *, reusable: bool) -> None:
+        try:
+            if not reusable or not self._is_usable(conn) or len(self._free) >= self.MAX:
+                with contextlib.suppress(Exception):
+                    conn.close()
+                return
+            with self._lock:
+                self._free.append(conn)
+        finally:
+            self._slots.release()
+
+
+_POOL = _ConnectionPool()
+
+
+@contextmanager
 def _conn():
+    """A pooled connection, committed on success and returned to the pool.
+
+    SAME SHAPE AS BEFORE, deliberately: every call site says
+    `with _conn() as conn:` and psycopg's own connection context manager also
+    committed on a clean exit. What changes is the ending - the connection goes
+    back to the pool instead of being closed.
+
+    ⚠ A FAILED CONNECTION IS NOT REUSED. An exception may have left the session
+      mid-transaction or the socket half-dead, and a pool's whole risk is handing
+      that to the next request as if it were fresh. Cheap to reconnect; a wrong
+      read is not cheap at all.
+    """
+    conn = _open_connection()
+    reusable = True
+    try:
+        yield conn
+        conn.commit()
+    except BaseException:
+        reusable = False
+        with contextlib.suppress(Exception):
+            conn.rollback()
+        raise
+    finally:
+        _POOL.give_back(conn, reusable=reusable)
+
+
+def _open_connection():
     """A read connection, or a 503 that says the board is not readable.
 
     503 rather than 500: no database is an operational state, not a fault in
@@ -773,7 +903,7 @@ def _conn():
             ),
         )
     try:
-        return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
+        return _POOL.take(url)
     except psycopg.OperationalError as error:
         # LOGGED AND RE-RAISED, NOT CONVERTED. An unreachable database may well
         # deserve the same 503 as an unconfigured one, but that is a change to
@@ -2846,22 +2976,39 @@ def admin_database() -> dict:
         "claim", "board_entry", "cell", "capability_candidate",
         "harvest_run", "job_run", "fetch_log", "spend_ledger", "rapidapi_quota",
     )
-    counts: dict[str, object] = {}
+    counts: dict[str, object] = dict.fromkeys(tables)
     applied: dict[str, str] = {}
     ledger_error = None
     try:
         with _conn() as conn:
-            for table in tables:
-                try:
-                    counts[table] = conn.execute(
-                        f"SELECT count(*) FROM {table}"  # noqa: S608
-                    ).fetchone()[0]
-                except Exception:  # noqa: BLE001
-                    # ⚠ RULE 6. ABSENT, NOT ZERO. A table this build does not
-                    # have and a table holding nothing are different facts, and
-                    # rendering both as 0 is the conversion rule 6 bans.
-                    conn.rollback()
-                    counts[table] = None
+            # ⚠ TWO QUERIES, NOT SIXTEEN, AND THE REASON IS LATENCY NOT TIDINESS.
+            #   The database is remote: measured 2026-09-17 at 250ms per round
+            #   trip and 1.58s to open a connection. A count per table is
+            #   sixteen trips - four seconds of an endpoint that answered in
+            #   under six - and the count itself is instant at these row counts.
+            #
+            #   ASKING WHICH TABLES EXIST FIRST IS WHAT KEEPS RULE 6. One query
+            #   counting all sixteen would fail ENTIRELY if any one table were
+            #   missing, and the obvious repair - fall back to zero - is exactly
+            #   the conversion rule 6 bans: a table this build does not have and
+            #   a table holding nothing are different facts. So existence is
+            #   established separately, and a table that is absent stays `None`
+            #   all the way to the page.
+            present = [
+                row[0] for row in conn.execute(
+                    "SELECT table_name FROM information_schema.tables "
+                    "WHERE table_schema = current_schema() "
+                    "AND table_name = ANY(%s)",
+                    (list(tables),),
+                ).fetchall()
+            ]
+            if present:
+                counted = conn.execute(
+                    "SELECT " + ", ".join(
+                        f'(SELECT count(*) FROM "{t}")' for t in present  # noqa: S608
+                    )
+                ).fetchone()
+                counts.update(dict(zip(present, counted, strict=True)))
             # 4 · MIGRATIONS.
             try:
                 applied = dict(

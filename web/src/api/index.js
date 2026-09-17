@@ -21,6 +21,7 @@
  */
 
 import { sessionToken } from '../auth'
+import { cached } from './cache'
 
 const BASE = import.meta.env.VITE_API_URL || '/api'
 
@@ -395,23 +396,29 @@ export const boardEntries = () => request('/admin/board-entries')
 // real builders rather than transcribed. A copy in the frontend would drift the
 // first time somebody edits a prompt and not this file, and then the page would
 // be confidently wrong about the one thing it exists to show.
-export const adminPrompts = () => request('/admin/prompts')
+export const adminPrompts = () => cached('prompts', () => request('/admin/prompts'))
 
+// CACHED, like the three reference surfaces beside it. Each is derived from a
+// contract file or the registry, so nothing a reader does on this page can
+// change one - and the admin page remounts a section on every click, so without
+// this each visit paid the full remote round trip again. Runs, Usage, Database
+// and Board sections are deliberately NOT cached: see web/src/api/cache.js.
+//
 // Every platform the harvest reaches, read from `contract/sources.yaml` - the
 // same file the harvest reads. Whether an arm uses a key is a BOOLEAN in this
 // payload; no key, fingerprint or prefix is in it.
-export const adminSources = () => request('/admin/sources')
+export const adminSources = () => cached('sources', () => request('/admin/sources'))
 
 // What each fetch stage does, in words. The LIST is parsed from the file that
 // emits the stages and the WORDS come from contract/pipeline_stages.yaml, so a
 // new stage shows up described as undescribed rather than silently missing.
 // Carries no counts - those are on the fetch log, attached to their run.
-export const adminStages = () => request('/admin/stages')
+export const adminStages = () => cached('stages', () => request('/admin/stages'))
 
 // The search terms each platform is actually sent, per tracked model. Composed
 // through the same `_variants_for` the harvest calls, and sliced by each arm's
 // real budget - so these are the terms that would go out on the next fetch.
-export const adminKeywords = () => request('/admin/keywords')
+export const adminKeywords = () => cached('keywords', () => request('/admin/keywords'))
 
 // Every fetch run this database has seen, newest first and across machines.
 // The host is a RELATION ("this machine" / "another host"), never a name.
