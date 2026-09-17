@@ -75,6 +75,37 @@ def test_no_secret_value_appears_anywhere_in_the_payload(client, path):
         )
 
 
+def test_an_exception_message_cannot_carry_the_dsn_onto_a_page(client):
+    """⚠ THE LEAK THIS FILE ACTUALLY CAUGHT, pinned so it cannot come back.
+
+    An endpoint answered `503 the run log could not be read: {exc}`, and
+    psycopg's OperationalError names the host it failed to resolve - so while
+    the database was down, the page published the database hostname to anyone
+    who could load it. CI found it because CI has no database and every read
+    fails that way; locally the database answers, so nothing ever rendered it.
+
+    ASSERTED ON A FABRICATED MESSAGE, NOT ON WHATEVER THE PLATFORM HAPPENS TO
+    SAY. Linux says "could not translate host name 'db.example.net'" and
+    Windows says "[Errno 11001] getaddrinfo failed" with no host in it at all,
+    so a test that only hit the real error would pass on one machine while the
+    redaction did nothing.
+    """
+    from judge.app import _safe_detail
+
+    leaky = OSError(
+        "connection failed: could not translate host name "
+        "\"db.example.net\" to address, while connecting as dbuser with "
+        "password TESTSECRET-dbpassword on port 5432"
+    )
+    safe = _safe_detail(leaky)
+    for piece in ("db.example.net", "dbuser", "TESTSECRET-dbpassword", "5432"):
+        assert piece not in safe, f"{piece!r} survived redaction: {safe}"
+    # STILL SAYS SOMETHING. A message redacted down to nothing would trade one
+    # unreadable failure for another - the type is what makes it diagnosable.
+    assert "OSError" in safe
+    assert "<withheld>" in safe
+
+
 def test_settings_reports_credentials_as_booleans_and_nothing_else(client):
     payload = client.get("/admin/settings").json()
     credentials = payload["credentials"]

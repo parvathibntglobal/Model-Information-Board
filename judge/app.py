@@ -2532,6 +2532,52 @@ def _is_secretish(name: str) -> bool:
     return any(marker in name.upper() for marker in _SECRET_MARKERS)
 
 
+def _safe_detail(exc: BaseException) -> str:
+    """An error message with everything private to this deployment removed.
+
+    ⚠ AN EXCEPTION IS A PAYLOAD, AND THAT IS HOW A HOSTNAME GOT OUT. psycopg's
+      OperationalError names the host it failed to resolve, so an endpoint that
+      answered `503 the run log could not be read: {exc}` published the database
+      hostname to anyone who could load the page while the database was down.
+
+      Caught by this module's own sweep test in CI, where there is no database
+      and every read fails exactly that way - which is the case nobody tests by
+      hand, because locally the database answers. A message is as public as the
+      page that renders it.
+
+    Redacted by VALUE rather than by pattern: the DSN's host, user, password and
+    port are known here, so they are removed wherever they appear, including
+    inside a sentence no format string put them in.
+    """
+    text = f"{type(exc).__name__}: {exc}".strip()
+    url = (os.getenv("DATABASE_URL") or "").strip()
+    pieces: list[str] = []
+    if url:
+        pieces.append(url)
+        try:
+            parsed = urlparse(url)
+        except ValueError:
+            parsed = None
+        if parsed is not None:
+            # A password is redacted at ANY length; a one-character host is not
+            # a real risk and blanket-replacing it would mangle every message.
+            if parsed.password:
+                pieces.append(parsed.password)
+            pieces += [p for p in (parsed.hostname, parsed.username) if p and len(p) > 2]
+            try:
+                if parsed.port:
+                    pieces.append(str(parsed.port))
+            except ValueError:
+                pass
+    # Longest first, so redacting the host does not leave the full DSN
+    # half-matched and partly readable.
+    for piece in sorted(set(pieces), key=len, reverse=True):
+        text = text.replace(piece, "<withheld>")
+    # The checkout path names the account this runs under - the same objection
+    # as a machine name, reached by a different route.
+    return text.replace(str(_REPO_ROOT), "<repo>")
+
+
 @app.get("/admin/runs")
 def admin_runs(limit: int = 60) -> dict:
     """Every fetch run this database has seen, newest first.
@@ -2637,7 +2683,7 @@ def admin_runs(limit: int = 60) -> dict:
         raise
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(
-            status_code=503, detail=f"the run log could not be read: {exc}"
+            status_code=503, detail=f"the run log could not be read. {_safe_detail(exc)}"
         ) from exc
 
     now = datetime.now(UTC)
@@ -2749,7 +2795,8 @@ def _database_target(url: str | None) -> dict[str, object]:
         name = (parsed.path or "").lstrip("/") or None
         host = (parsed.hostname or "").strip().lower()
     except ValueError as exc:
-        return {"database": None, "host": None, "unreadable": str(exc)}
+        return {"database": None, "host": None,
+                "unreadable": _safe_detail(exc)}
     return {
         "database": name,
         "host": (
@@ -2824,12 +2871,12 @@ def admin_database() -> dict:
                 )
             except Exception as exc:  # noqa: BLE001
                 conn.rollback()
-                ledger_error = str(exc)
+                ledger_error = _safe_detail(exc)
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(
-            status_code=503, detail=f"the database could not be read: {exc}"
+            status_code=503, detail=f"the database could not be read. {_safe_detail(exc)}"
         ) from exc
 
     out["counts"] = counts
@@ -2868,7 +2915,7 @@ def admin_database() -> dict:
     except Exception as exc:  # noqa: BLE001
         # ⚠ RULE 4. Said, not shown as zero columns.
         out["column_states"] = None
-        out["column_states_unreadable"] = str(exc)
+        out["column_states_unreadable"] = _safe_detail(exc)
 
     return out
 
@@ -2900,7 +2947,8 @@ def _migration_state(
                 path.read_text(encoding="utf-8").encode("utf-8")
             ).hexdigest()
     except Exception as exc:  # noqa: BLE001
-        return {"readable": False, "why": f"the migration files: {exc}"}
+        return {"readable": False,
+                "why": f"the migration files: {_safe_detail(exc)}"}
 
     if ledger_error is not None:
         # A database with no ledger has had no migrations applied — the same
