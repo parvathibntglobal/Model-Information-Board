@@ -103,8 +103,50 @@ review_marker: "REVIEW REQUIRED"
 use_basis_undertaking:
   asserts: internal-development-only
   asserted_by: anooj
-  asserted_on: 2026-09-15
+  asserted_on: 2026-09-17
   review_valid_days: 30
+
+  #: RE-ASSERTED 2026-09-17, NOT REFRESHED. READ THIS BEFORE TOUCHING THE DATE.
+  #:
+  #: The position changed: we intend to publish DERIVED content - Reddit posts,
+  #: independent blogs, social posts - written from what we gather. That is
+  #: publishing, and it is not what this undertaking was signed against.
+  #:
+  #: IT DID NOT VOID, AND THAT IS WHY THIS BLOCK CHANGED BY HAND.
+  #: All four conditions and all four `voided_by` clauses describe ACCESS TO
+  #: THE BOARD. Writing a Reddit post from gathered evidence issues no account,
+  #: publishes no board URL, removes no auth wall and takes no payment - so all
+  #: four stayed literally true, `_undertaking_basis()` went on returning
+  #: `internal-development-only`, and eight rulings went on passing their
+  #: `use_basis` precondition. The harvest would have continued on a basis that
+  #: had stopped describing our intent, with nothing in code able to notice.
+  #: Diagnosed in docs/proposals/the-undertaking-does-not-cover-derived-
+  #: publication.md, merged 2026-09-17 as #344.
+  #:
+  #: WHY RE-ASSERT RATHER THAN LET IT EXPIRE ON 2026-10-15.
+  #: Expiry would have produced the same refusal, and produced it as an
+  #: ACCIDENT. `_undertaking_basis()` would have returned
+  #: `undertaking-expired (asserted 2026-09-15, expired 2026-10-15)` - which
+  #: reads as an administrative lapse, and the obvious fix for a stale date is
+  #: a fresh date. Somebody would have re-dated the block to clear a red
+  #: harvest and re-asserted, in one keystroke, a basis nobody re-examined.
+  #: The expiry exists to FORCE a review; letting it fire turns it into a
+  #: rubber stamp.
+  #:
+  #: WHAT IS ASSERTED NOW, AND IT IS NARROWER THAN IT LOOKS.
+  #: `derived_publication: false` says NOTHING HAS BEEN PUBLISHED YET - which
+  #: is true on 2026-09-17 and is a fact about the world, not about our plans.
+  #: It is not a decision against derived publication. It is the honest state
+  #: while the basis that would permit it (`derived-publication-only`, proposed
+  #: in docs/proposals/the-derived-publication-basis.md) is unratified and its
+  #: per-source `publication` records do not exist as fields.
+  #:
+  #: SO THE FIRST DERIVED POST VOIDS THIS BLOCK, deliberately and by its own
+  #: terms. Flip `conditions.derived_publication` to `true` and the checker
+  #: refuses every ruling that names a basis - which is the correct refusal and
+  #: a full harvest outage, so the replacement basis wants to be ready first.
+  #: That is the ordering this re-assertion buys time for. It does not remove
+  #: the decision; it stops the decision being made by a calendar.
 
   #: THE CLOSED SET, AND WHAT EACH MUST BE.
   #:
@@ -129,6 +171,7 @@ use_basis_undertaking:
     external_users: false
     publicly_linked: false
     monetized: false
+    derived_publication: false
 
   #: WHAT THE PERSON ASSERTS IS TRUE. Each is a fact a person can check in ten
   #: minutes and no process can check at all.
@@ -137,6 +180,10 @@ use_basis_undertaking:
     external_users: false    # nobody outside the team holds an account
     publicly_linked: false   # the URL is not published, linked or indexed
     monetized: false
+    # NOTHING DERIVED FROM THE CORPUS HAS BEEN PUBLISHED OUTSIDE THE TEAM.
+    # A fact about today, checkable the same way the four above are: somebody
+    # looks. It is NOT a statement that we will not - see the header.
+    derived_publication: false
 
   #: ANY ONE OF THESE VOIDS IT IMMEDIATELY, before the date. Listed rather than
   #: left to judgement, because "is it still internal?" is a question somebody
@@ -146,6 +193,11 @@ use_basis_undertaking:
     - the URL published, linked or indexed anywhere
     - the auth wall removed or bypassed on any surface
     - any payment taken for access to the board
+    # ⚠ THE FIRST FOUR ARE ALL ABOUT THE BOARD, WHICH IS HOW THIS LIST MISSED
+    #   DERIVED PUBLICATION ENTIRELY. Added 2026-09-17 so the list covers what
+    #   leaves the team as well as what reaches the board.
+    - any derived post, article or social message published outside the team
+      from material in this corpus
 
 
 # ============================================================================
@@ -243,7 +295,12 @@ terms_rulings:
       # docs/proposals/the-undertaking-replaces-environment.md.
       use_basis: [internal-development-only]
     recorded_evidence:
-      article_path_allowed: [true]
+      #: ⚠ WAS `article_path_allowed`, SPLIT 2026-09-17. One boolean was
+      #:   carrying two different facts and only prose told them apart - see
+      #:   the note above `blog-class-b-medium`. On THIS class the two agree
+      #:   (robots permits AND the fetch returns 200), which is exactly why
+      #:   the conflation was invisible here and load-bearing there.
+      robots_allows_article_path: [true]
       paywall_observed: [false]
       login_required: [false]
       # The summary above states this in prose ("NO TERMS PAGE HAS BEEN READ
@@ -1420,7 +1477,7 @@ feeds:
       robots_status: rules
       robots_http: 200
       feed_path_allowed: true
-      article_path_allowed: true
+      robots_allows_article_path: true
       article_http: 200
       paywall_observed: false
       login_required: false
@@ -1482,7 +1539,7 @@ feeds:
       robots_status: rules
       robots_http: 200
       feed_path_allowed: true
-      article_path_allowed: true
+      robots_allows_article_path: true
       article_http: 200
       paywall_observed: false
       login_required: false
@@ -1539,7 +1596,7 @@ feeds:
       robots_status: rules
       robots_http: 200
       feed_path_allowed: true
-      article_path_allowed: true
+      robots_allows_article_path: true
       article_http: 200
       paywall_observed: false
       login_required: false
@@ -1599,7 +1656,7 @@ feeds:
       robots_status: rules
       robots_http: 200
       feed_path_allowed: true
-      article_path_allowed: true
+      robots_allows_article_path: true
       article_http: 200
       paywall_observed: false
       login_required: false
@@ -1664,7 +1721,7 @@ feeds:
       robots_status: rules
       robots_http: 200
       feed_path_allowed: true
-      article_path_allowed: true
+      robots_allows_article_path: true
       article_http: 200
       paywall_observed: false
       login_required: false
@@ -1721,7 +1778,7 @@ feeds:
       robots_status: rules
       robots_http: 200
       feed_path_allowed: true
-      article_path_allowed: true
+      robots_allows_article_path: true
       article_http: 200
       paywall_observed: false
       login_required: false
@@ -1787,7 +1844,7 @@ feeds:
       robots_status: no-rules
       robots_http: 404
       feed_path_allowed: true
-      article_path_allowed: true
+      robots_allows_article_path: true
       article_http: 200
       paywall_observed: false
       login_required: false
@@ -1856,7 +1913,14 @@ feeds:
       robots_status: rules
       robots_http: 200
       feed_path_allowed: true
-      article_path_allowed: false
+      # ROBOTS PERMITS THIS PATH, AND THE SERVER STILL REFUSES IT.
+      # `Disallow: /*/*source=` needs TWO slashes before `source=`. This is a
+      # CUSTOM DOMAIN serving `/<slug>`, which has one, so the rule does not
+      # reach these URLs - the ruling says so in capitals. Measured 2026-08-14.
+      # The 403 below is the only thing stopping us, and it is recorded as
+      # `article_fetch_refused`. The old `article_path_allowed: false` said
+      # both of those at once and this row is why the field was split.
+      robots_allows_article_path: true
       article_http: 403
       article_fetch_refused: true
       feed_carries_full_text: true
@@ -1939,7 +2003,15 @@ feeds:
       robots_status: rules
       robots_http: 200
       feed_path_allowed: true
-      article_path_allowed: false
+      # ROBOTS DISALLOWS THIS PATH, AND THE SERVER ALSO REFUSES IT.
+      # `Disallow: /*/*source=` needs TWO slashes before `source=`, and a
+      # medium.com publication is `/<publication>/<slug>`, which has two - so
+      # the rule DOES reach these URLs. 5 of 6 sampled, measured 2026-08-14.
+      # THE OPPOSITE VALUE TO netflixtechblog.com, ON THE SAME RULING AND THE
+      # SAME 37 ROBOTS LINES: the effect depends on the URL shape the domain
+      # serves, which is a property of the domain and not of the terms. That
+      # is the ruling's per-domain paragraph, in a field.
+      robots_allows_article_path: false
       article_http: 403
       article_fetch_refused: true
       feed_carries_full_text: true

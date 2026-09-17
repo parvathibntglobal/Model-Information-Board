@@ -185,7 +185,7 @@ def test_every_feed_records_the_mechanical_evidence():
         "robots_status",
         "robots_http",
         "feed_path_allowed",
-        "article_path_allowed",
+        "robots_allows_article_path",
         "paywall_observed",
         "login_required",
         "feed_type",
@@ -242,11 +242,33 @@ def test_the_medium_ruling_demonstrates_the_split_rather_than_asserting_it():
 def test_the_medium_feeds_record_the_refusal_rather_than_a_clean_bill():
     for feed_id in ("blog:netflixtechblog.com", "blog:medium.com/airbnb-engineering"):
         evidence = _feed(feed_id)["terms_evidence"]
-        assert evidence["article_path_allowed"] is False
         assert evidence["article_http"] == 403
         assert evidence["article_fetch_refused"] is True
         # Rule 6: a 403 page cannot show a paywall, so we do not claim it has none.
         assert evidence["paywall_observed"] == "unknown"
+
+
+def test_the_two_medium_rows_DISAGREE_about_robots_and_that_is_the_point():
+    """The split's whole reason, in one assertion.
+
+    `article_path_allowed` was `false` on both rows and meant two different
+    things: on Airbnb robots disallows the path; on Netflix robots PERMITS it
+    and a Cloudflare 403 is the only refusal. The ruling says so in capitals
+    and the old field could not, because one boolean cannot hold two facts.
+
+    Same ruling, same 37 robots lines, OPPOSITE values - `Disallow:
+    /*/*source=` needs two slashes and a custom domain serves `/<slug>`. The
+    effect depends on the URL shape the DOMAIN serves, which is the ruling's
+    per-domain paragraph and is the shape Substack has.
+    """
+    netflix = _feed("blog:netflixtechblog.com")["terms_evidence"]
+    airbnb = _feed("blog:medium.com/airbnb-engineering")["terms_evidence"]
+
+    assert netflix["robots_allows_article_path"] is True
+    assert airbnb["robots_allows_article_path"] is False
+
+    # And the fact they DO share is the one that refuses the fetch.
+    assert netflix["article_fetch_refused"] is airbnb["article_fetch_refused"] is True
 
 
 def test_the_class_a_ruling_carries_the_404_caveat_in_its_text():
@@ -548,7 +570,7 @@ def test_a_row_naming_a_ruling_while_still_carrying_the_marker_contradicts_itsel
         "terms_evidence": {
             "checked_on": REVIEWED_ON,
             "robots_status": "rules",
-            "article_path_allowed": True,
+            "robots_allows_article_path": True,
             "paywall_observed": False,
             "login_required": False,
         },
@@ -576,7 +598,7 @@ def test_a_discovered_feed_is_gated_exactly_like_a_seeded_one():
         "terms_evidence": {
             "checked_on": REVIEWED_ON,
             "robots_status": "rules",
-            "article_path_allowed": True,
+            "robots_allows_article_path": True,
             "paywall_observed": False,
             "login_required": False,
             # The class A ruling now conditions on this, so a discovered feed
