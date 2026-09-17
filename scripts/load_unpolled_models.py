@@ -66,13 +66,24 @@ def main() -> int:
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--apply", action="store_true")
+    # ONE LOADER, TWO CONTRACTS. `contract/awaiting_poll_models.yaml` has the
+    # same shape and a different CLAIM - models the poll WILL bring and has not
+    # yet, against ones it never will. Keeping them in separate files is what
+    # stops the first kind, once polled, making the second kind's file
+    # unloadable under `_refuse_provenance_downgrade`; keeping them on one
+    # loader is what stops the two drifting into two slightly different loads.
+    ap.add_argument(
+        "--path", default=None,
+        help="contract to load (default: contract/unpolled_models.yaml)",
+    )
     args = ap.parse_args()
+    contract = pathlib.Path(args.path).resolve() if args.path else CONTRACT
 
     conn = psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=15)
     before = conn.execute("SELECT count(*) FROM model_version").fetchone()[0]
     aliases_before = conn.execute("SELECT count(*) FROM model_alias").fetchone()[0]
 
-    report = load_seed(conn, path=CONTRACT)
+    report = load_seed(conn, path=contract)
     print(report.summary())
 
     after = conn.execute("SELECT count(*) FROM model_version").fetchone()[0]
@@ -85,7 +96,7 @@ def main() -> int:
     import yaml
 
     wanted = [m["canonical_id"] for m in yaml.safe_load(
-        CONTRACT.read_text(encoding="utf-8"))["models"]]
+        contract.read_text(encoding="utf-8"))["models"]]
     rows = conn.execute(
         "SELECT canonical_id, provenance, display_name, price_in "
         "FROM model_version WHERE canonical_id = ANY(%s) ORDER BY canonical_id",
