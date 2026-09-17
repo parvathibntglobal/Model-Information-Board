@@ -2929,9 +2929,14 @@ def _database_target(url: str | None) -> dict[str, object]:
                 "unreadable": _safe_detail(exc)}
     return {
         "database": name,
+        # SAYS WHAT IT MEANS FOR THE READER. This read "a remote host", which is
+        # a phrase about the SERVER and left a reader asking what it was being
+        # told. What they can act on is that every query crosses a network -
+        # measured here at 250ms per round trip, which is the whole reason the
+        # admin page needed a connection pool.
         "host": (
             "this machine" if not host or host in ("localhost", "127.0.0.1", "::1")
-            else "a remote host"
+            else "another machine, over the network"
         ),
         # SAID, so that a reader does not go looking for a field that was
         # deliberately left out and conclude it was forgotten.

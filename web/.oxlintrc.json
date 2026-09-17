@@ -1,8 +1,34 @@
 {
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "oxc"],
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/npm/oxlint/configuration_schema.json",
+
+  // WHY THIS FILE EXISTS. `npm run lint` already ran oxlint, and oxlint already
+  // has `no-undef` — but it is OFF by default. So the linter sitting in this
+  // repo reported two unused imports and said nothing about a reference to an
+  // undefined variable that blanked the entire admin page at runtime.
+  //
+  // UsagePanel's `QuotaSeries` called `n(s.consumed)`, and `n` was defined
+  // inside a DIFFERENT component in the same file. It was unreachable until an
+  // arm had two quota readings; when X got its second, clicking that tab threw
+  // ReferenceError and React unmounted the whole tree — a dark, empty screen
+  // with nothing on it to explain itself. One flag finds it in under a second.
+  //
+  // Turning it on needs the environments declared, or every `window`, `fetch`
+  // and `setTimeout` reports as undefined and the one real finding is buried in
+  // fifteen false ones. That is presumably why it was left off.
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+
   "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+    "no-undef": "error"
+  },
+
+  "overrides": [
+    {
+      // Build tooling runs in Node, not a browser: `process` is real here.
+      "files": ["vite.config.js", "*.config.js", "scripts/**"],
+      "env": { "node": true }
+    }
+  ]
 }

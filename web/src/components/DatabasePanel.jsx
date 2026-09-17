@@ -83,7 +83,7 @@ export default function DatabasePanel() {
           <div className="stack stack-2">
             <div className="grid g2">
               <Stat n={data.database || 'not configured'} l="database" />
-              <Stat n={data.host || '—'} l="where it lives" />
+              <Stat n={data.host || '—'} l="where it runs" />
               <Stat n={data.environment} l="environment" />
             </div>
             {/* SAID, NOT SILENTLY OMITTED. A reader who goes looking for the
@@ -91,6 +91,14 @@ export default function DatabasePanel() {
                 than conclude the page forgot it. */}
             {data.host_withheld && (
               <p className="dim" style={{ fontSize: 11, margin: 0, maxWidth: '78ch', lineHeight: 1.6 }}>
+                {/* WHAT IT MEANS, NOT JUST WHAT IT IS. "a remote host" named a
+                    category of server and left a reader none the wiser. The
+                    consequence is the part worth reading: every query crosses a
+                    network, which is why this page has a connection pool. */}
+                {data.host !== 'this machine' && (
+                  <>Every query crosses a network — about 250ms per round trip
+                  from here, which is why the backend pools its connections. </>
+                )}
                 {data.host_withheld}
               </p>
             )}
