@@ -579,6 +579,11 @@ def test_a_discovered_feed_is_gated_exactly_like_a_seeded_one():
             "article_path_allowed": True,
             "paywall_observed": False,
             "login_required": False,
+            # The class A ruling now conditions on this, so a discovered feed
+            # has to record it too — which is the point the test is making. A
+            # feed that arrived by a link answers the same questions as a
+            # seeded one, including "has anybody read the terms" (answer: no).
+            "terms_document_read": False,
         },
     }
     assert_terms_reviewed(
