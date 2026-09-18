@@ -1,0 +1,72 @@
+{
+ "query": "Claude Fable 5.1 instruction",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+     "title": "Introducing Claude Fable 5.1 and Claude Mythos 5.1 - Anthropic",
+     "description": "Claude Fable 5.1 trained a neural network to create a new, high-resolution elevation map of a third of the planet Venus. Its work was based on radar images",
+     "position": 1
+    },
+    {
+     "url": "https://platform.claude.com/docs/en/models/fable-5-1/overview",
+     "title": "Claude Fable 5.1 - Claude Platform Docs",
+     "description": "Use Claude Fable 5.1 for demanding reasoning and long-horizon agentic work, or when your evals on Claude Opus 5 at higher effort still fall short. Claude Mythos ...",
+     "position": 2
+    },
+    {
+     "url": "https://www.linkedin.com/posts/ruben-hassid_anthropic-released-new-claude-fable-51-activity-7502319707685949441-w-9p",
+     "title": "Claude Fable 5.1 Tutorial: Step-by-Step Guide - LinkedIn",
+     "description": "Install the Claude desktop app. Open the app. In the prompt box, choose \"Cowork.\" Go to Settings. Turn everything off. We will only use projects ...",
+     "position": 3
+    },
+    {
+     "url": "https://kenhuangus.substack.com/p/anthropics-fable-51-guide-reads-like",
+     "title": "Anthropic's Fable 5.1 guide reads like a manual for agent product design ...",
+     "description": "# Anthropic\u2019s Fable 5.1 guide reads like a manual for agent product design, not a collection of prompt tricks\nSep 02, 2026\n\n\u2219 Paid\n\n33\n\n1\n\nShare\n\nA customer uses the whole system.\n\n## Four \u201cmodel problems\u201d that actually belong to the harness\n### 2. Silence can be a rendering bug\nAnthropic offers a short instruction that asks for a one-line opening, brief updates during work, and a self-contained recap.",
+     "position": 4
+    },
+    {
+     "url": "https://www.youtube.com/watch?v=MagStZ3yA3A",
+     "title": "Fable 5.1 + Claude Code /design (Beginner's Guide) - YouTube",
+     "description": "# Turn Fable 5.1 into a Design Genius in 6 Easy Steps\nFollow along using the transcript.\n\nFollow along using the transcript.\n\n### [CLAUDE CODE ADVANCED FULL COURSE (3 HOURS)](https://www.youtube.com/watch?v=UPtmKh1vMN8&pp=ugUHEgVlbi1VUw%3D%3D)\n[![](https://i.ytimg.com/vi/YSYqFBq68Wk/hqdefault.jpg?sqp=-oaymwEnCNACELwBSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLBXA6Nzpa12miqUFxBy6M2UdwunGw)\\\n\\\n20:30](https://www.youtube.com/watch?v=YSYqFBq68Wk&pp=ugUEEgJlbtIHCQkaDAGHKiGM7w%3D%3D)\n\n### [Claude Design FULL Tutorial: Beginner to Pro](https://www.youtube.com/watch?v=CJ4ndXv3CkY&pp=ugUEEgJlbg%3D%3D)\n[![](https://i.ytimg.com/vi/jT5YdajTg6I/hqdefault.jpg?sqp=-oaymwEnCNACELwBSFryq4qpAxkIARUAAIhCGAHYAQHiAQoIGBACGAY4AUAB&rs=AOn4CLDJeuD8DNbeCI75f6HbKFXPnl8OCg)\\\n\\\n23:11](https://www.youtube.com/watch?v=jT5YdajTg6I&pp=ugUEEgJlbg%3D%3D)",
+     "position": 5
+    },
+    {
+     "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1",
+     "title": "Prompting Claude Fable 5.1 - Claude Platform Docs",
+     "description": "## Prefer targeted edits over whole-file rewrites\ue09a\nIf Claude Fable 5.1 rewrites whole files for small changes, append the following instruction to the system prompt or the first user message. The instruction brings Claude Fable 5.1 back in line with Claude Fable 5 for small and medium changes.",
+     "position": 6
+    },
+    {
+     "url": "https://www.reddit.com/r/ClaudeAI/comments/1w4jsqn/fable_51_official_prompting_docs_released/",
+     "title": "Fable 5.1 official prompting docs released : r/ClaudeAI - Reddit",
+     "description": "An instruction that defines the anti-pattern, mannered prose , helps. Add it to a user message (preferred) or the system prompt : Mannered prose ...r/ClaudeAI - Introducing Claude Fable 5.1 and Claude Mythos 5.1 \\ AnthropicFable 5.1 is amazing : r/ClaudeCode - RedditMore results from www.reddit.com",
+     "position": 7
+    },
+    {
+     "url": "https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-fable-5-1.html",
+     "title": "Claude Fable 5.1 - Amazon Bedrock - AWS Documentation",
+     "description": "Step 1 - AWS. To use this getting started guide, you must have Python already installed. Then install the relevant software depending on the APIs you are using.",
+     "position": 8
+    },
+    {
+     "url": "https://aident.ai/blog/use-claude-fable-5-1-claude-code-safely",
+     "title": "Claude Fable 5.1 in Claude Code: Upgrade and Verify Safely - Aident AI",
+     "description": "Step 1: Record the Current Working State \u00b7 Step 2: Update Through the Owning Installer \u00b7 Step 3: Select Fable 5.1 From the Model Picker \u00b7 Step 4: ...",
+     "position": 9
+    },
+    {
+     "url": "https://www.youtube.com/watch?v=i0RnzthEx0c",
+     "title": "How to Use Anthropic's Most Powerful AI Model (Full Tutorial) - YouTube",
+     "description": "10 hours ago \u00b7 NEW Claude Fable 5.1 \u2014 How to Use Anthropic's Most Powerful AI Model (Full Tutorial). @iamAImaster29 likes1.4K views7 hours ago",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b30f-7b8b-7581-9e26-933f0f77c6dc"
+ }
+}

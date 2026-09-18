@@ -1,0 +1,72 @@
+{
+ "query": "DeepSeek V4 Pro substack",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://kenhuangus.substack.com/p/deepseek-v4-the-next-frontier-of",
+     "title": "DeepSeek V4: The Next Frontier of Open-Source AI",
+     "description": "V4-Pro is DeepSeek's most capable model ever built. With 1.6 trillion total parameters, it represents one of the largest neural networks ever ...",
+     "position": 1
+    },
+    {
+     "url": "https://emergingai.substack.com/p/deepseek-v4-complete-beginners-guide",
+     "title": "DeepSeek V4 Is Cheap, Long-Context, and Surprisingly ...",
+     "description": "DeepSeek is a cheaper and efficient way for normal people, small teams, and builders to work with serious AI.",
+     "position": 2
+    },
+    {
+     "url": "https://maximelabonne.substack.com/p/deepseek-v4-ten-teachers-one-student",
+     "title": "DeepSeek V4: ten teachers, one student - Maxime Labonne - Substack",
+     "description": "# DeepSeek V4: ten teachers, one student\n### On-policy distillation replaced the RL stage\nDeepSeek shipped V4 on April 24th, 2026, in two open-weight sizes: the 1.6-trillion-parameter **Pro** and the 284-billion-parameter **Flash**, both MIT-licensed with a million-token context window.",
+     "position": 3
+    },
+    {
+     "url": "https://aifordevelopers.substack.com/p/deepseek-v4-just-dropped-and-its",
+     "title": "DeepSeek V4 Just Dropped \u2014 And It's the Cheapest Frontier Model on ...",
+     "description": "DeepSeek V4-Pro costs 3.48 per million output tokens. Less than GPT-5.4's input price alone. About one-ninth of Claude Opus 4.7's output ...",
+     "position": 4
+    },
+    {
+     "url": "https://fundaai.substack.com/p/deepdeepseek-v4-the-first-model-custom",
+     "title": "Deep|DeepSeek V4: The First Model Custom-Built for Non-NVIDIA Chips ...",
+     "description": "For V4-Pro, each MoE layer has 1 shared expert and 384 routed experts, with each token activating only 6 routed experts. This design itself is ...",
+     "position": 5
+    },
+    {
+     "url": "https://genuineimpact.substack.com/p/inside-deepseek-v41-flash-a-cheaper",
+     "title": "Inside DeepSeek V4.1 Flash: A Cheaper Model, a Bigger Signal",
+     "description": "3 days ago \u00b7 V4.1 Flash outperforms DeepSeek's own V4 Pro on most benchmarks that matter for agent work \u2014 and DeepSeek is now routing paying Pro ...",
+     "position": 6
+    },
+    {
+     "url": "https://www.reddit.com/r/GithubCopilot/comments/1su7721/deepseek_v4_pro_just_dropped_is_anyone_actually/",
+     "title": "DeepSeek V4 Pro just dropped \u2014 is anyone actually using ... - Reddit",
+     "description": "Deepseek V4 pro is too expensive, even more in typical usage patterns than Opus. By this I mean: how many Devs are using Opus via API? I don't ...",
+     "position": 7
+    },
+    {
+     "url": "https://blog.kilo.ai/p/deepseek-v4-is-here",
+     "title": "DeepSeek-V4 is Here. So is Everybody Else. - Kilo Blog",
+     "description": "# DeepSeek-V4 is Here. So is Everybody Else.\n## What Actually Dropped (And What Didn\u2019t)\nInstead they released two models \u2014 **[DeepSeek-V4-Pro](https://kilo.ai/landing/deepseek-v4)** (1.6T total / 49B active parameters) and **[DeepSeek-V4-Flash](https://kilo.ai/models/deepseek-v4-flash)** (284B total / 13B active).",
+     "position": 8
+    },
+    {
+     "url": "https://www.youtube.com/watch?v=e2CPf06MDn4",
+     "title": "I Tried NEW Deepseek-v4-Pro-0813: Better Than v4-Flash? - YouTube",
+     "description": "Deepseek have released their v4-Pro model out of preview mode, so I've run the benchmarks and calculated the upcoming increased prices.",
+     "position": 9
+    },
+    {
+     "url": "https://louisbouchard.substack.com/p/should-you-use-deepseek-v41-flash",
+     "title": "Should You Use DeepSeek V4.1 Flash? A Game Changer for AI ...",
+     "description": "4 days ago \u00b7 V4.1 changes how much of the model processes the prompt, shares more cached state across layers, and stores the main cache at lower precision.",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b317-753d-76e9-8457-f64c375cd9f8"
+ }
+}

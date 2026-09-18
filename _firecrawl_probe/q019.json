@@ -1,0 +1,73 @@
+{
+ "query": "GPT-5.6 Sol function call",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+     "title": "GPT-5.6 Sol Model | OpenAI API",
+     "description": "Function calling. Supported. Structured outputs. Supported. Fine-tuning. Not supported. Tools. Tools supported by this model when using the Responses API. Web ...",
+     "position": 1
+    },
+    {
+     "url": "https://www.reddit.com/r/codex/comments/1uukmyl/using_gpt_56_sol_ultramaxhighxhigh_to_call_on_pro/",
+     "title": "r/codex on Reddit: Using GPT 5.6 Sol Ultra/Max/High/Xhigh to Call on Pro ...",
+     "description": "I have a plugin that can call Pro on ChatGPT and it asks it for reviews, critics, planning, and it just does the execution/implementation.I got GPT-5.6 Sol to stop before a tool call existed - RedditGPT-5.6 Sol is the real deal. : r/OpenAI - RedditMore results from www.reddit.com",
+     "position": 2
+    },
+    {
+     "url": "https://www.sitepoint.com/gpt-5-6-sol-openai-developer-workflows/",
+     "title": "GPT-5.6 Sol: What OpenAI's New Flagship Model Means ... - SitePoint",
+     "description": "# GPT-5.6 Sol: What OpenAI's New Flagship Model Means for Developer Workflows\n## Practical Workflow Integration: When to Use Sol\n### Sol for Code Generation and Multi-File Refactoring\n```python\n# Prerequisites:\n# - Python >= 3.6\n# - openai SDK: confirm minimum version at pypi.org/project/openai/\n# - OPENAI_API_KEY environment variable must be set\n# - Source files must exist at the specified paths\n\n# \u26a0\ufe0f WARNING: The model identifier \"gpt-5.6-sol\" and \"mode\" parameter are UNVERIFIED.\n# Confirm both at platform.openai.com/docs before running.\n# \u26a0\ufe0f WARNING: File contents are sent to an external API. Review files for secrets before running.\n\nimport os\nimport time\nimport logging\nfrom openai import OpenAI\nimport openai\n\nlogger = logging.getLogger(__name__)\n\nMODEL_ID = os.environ.get(\"OPENAI_MODEL\", \"gpt-5.6-sol\")  # UNVERIFIED: confirm at platform.openai.com/docs\nMAX_FILE_BYTES = 512 * 1024  # 512 KB per file; adjust to model context limit\nMAX_TOKENS = int(os.environ.get(\"SOL_MAX_TOKENS\", \"4096\"))\n\nclient = OpenAI()  # Uses OPENAI_API_KEY environment variable\n\ndef read_file_safe(path: str) -> str:\n    \"\"\"Read a file with size and existence checks.\"\"\"\n    if not os.path.isfile(path):\n        raise FileNotFoundError(f\"Not a regular file: {path}\")\n    if os.path.getsize(path) > MAX_FILE_BYTES:\n        raise ValueError(f\"File exceeds size limit ({MAX_FILE_BYTES} bytes): {path}\")\n    with open(path, encoding=\"utf-8\", errors=\"replace\") as fh:\n        return fh.read()\n\ndef extract_content(response) -> str:\n    \"\"\"Safely extract content from an API response.\"\"\"\n    if not response.choices:\n        raise ValueError(\n            f\"API returned empty choices list. \"\n            f\"Response id: {getattr(response, 'id', 'unknown')}\"\n        )\n    return response.choices[0].message.content\n\ndef create_with_retry(max_retries: int = 3, **kwargs):\n    \"\"\"Call the API with exponential backoff on rate-limit errors.\"\"\"\n    for attempt in range(max_retries):\n        try:\n            return client.chat.completions.create(**kwargs)\n        except openai.RateLimitError:\n            if attempt == max_retries - 1:\n                logger.error(\"Rate limit exceeded after %d retries\", max_retries)\n                raise\n            wait = 2 ** attempt\n            logger.warning(\"Rate limited on attempt %d; retrying in %ds\", attempt + 1, wait)\n            time.sleep(wait)\n        except openai.OpenAIError:\n            raise\n\ndef validate_files(file_list: list) -> None:\n    \"\"\"Validate that all paths are non-empty, exist, and are within size limits.\"\"\"\n    for path in file_list:\n        if not path:\n            raise ValueError(\"Empty file path in files list\")\n        if not os.path.isfile(path):\n            raise FileNotFoundError(f\"File not found or not a regular file: {path}\")\n        if os.path.getsize(path) > MAX_FILE_BYTES:\n            raise ValueError(f\"File too large: {path}\")\n\n# Define source files \u2014 update with your actual file paths\nfiles = [\"payment.py\", \"payment_test.py\"]  # Update with actual file paths\nvalidate_files(files)\nfile_contents = [read_file_safe(f) for f in files]\ncombined_file_contents = \"\n---\n\".join(file_contents)\n\ntry:\n    response = create_with_retry(\n        max_retries=3,\n        model=MODEL_ID,  # UNVERIFIED: confirm via client.models.list()\n        # mode=\"ultra\",  # UNVERIFIED: confirm parameter name in current API docs at platform.openai.com/docs\n        messages=[\\\n            {\\\n                \"role\": \"system\",\\\n                \"content\": (\\\n                    \"You are a senior Python engineer. Decompose the refactoring task \"\\\n                    \"across all provided modules. Update implementation and test files \"\\\n                    \"in parallel. Return each file's content with its filename as a header.\"\\\n                )\\\n            },\\\n            {\\\n                \"role\": \"user\",\\\n                \"content\": \"Refactor the payment module to separate Stripe and PayPal \"\\\n                           \"integrations into individual strategy classes. Update all \"\\\n                           \"unit tests.\\\n\\\n\" + combined_file_contents\\\n            }\\\n        ],\n        max_tokens=MAX_TOKENS,  # Verify ceiling at platform.openai.com/docs\n        timeout=60.0,\n    )\n    print(extract_content(response))\nexcept openai.OpenAIError as e:\n    logger.error(\"API error: %s\", e, exc_info=True)\n    raise\n```",
+     "position": 3
+    },
+    {
+     "url": "https://openai.com/index/gpt-5-6/",
+     "title": "GPT-5.6: Frontier intelligence that scales with your ambition | OpenAI",
+     "description": "Calling lets GPT\u20105.6 write and run programs in-memory that coordinate tools and process intermediate results, making it Zero Data Retention ( ...",
+     "position": 4
+    },
+    {
+     "url": "https://github.com/BerriAI/litellm/issues/33221",
+     "title": "[Bug]: Function tools fail with reasoning_effort error for ... - GitHub",
+     "description": "# [Bug]: Function tools fail with reasoning_effort error for OpenAI gpt-5.6 family models (gpt-5.6-sol/luna/terra) on /chat/completions#33221\n## Description\n### Steps to Reproduce\n```\ncurl --location 'http://localhost:4000/chat/completions' \\\n--header 'Content-Type: application/json' \\\n--header 'Authorization: Bearer 1234' \\\n--data '{\n  \"model\": \"openai/gpt-5.6-sol\",\n  \"stream\": false,\n  \"messages\": [\\\n    {\\\n      \"role\": \"user\",\\\n      \"content\": \"What'\\''s the weather like in Boston today? in celsius\"\\\n    }\\\n  ],\n  \"tools\": [\\\n    {\\\n      \"type\": \"function\",\\\n      \"function\": {\\\n        \"name\": \"get_current_weather\",\\\n        \"description\": \"Get the current weather in a given location\",\\\n        \"parameters\": {\\\n          \"type\": \"object\",\\\n          \"properties\": {\\\n            \"location\": {\\\n              \"type\": \"string\",\\\n              \"description\": \"The city and state, e.g. San Francisco, CA\"\\\n            },\\\n            \"unit\": {\\\n              \"type\": \"string\",\\\n              \"enum\": [\"celsius\", \"fahrenheit\"]\\\n            }\\\n          },\\\n          \"required\": [\"location\"]\\\n        }\\\n      }\\\n    }\\\n  ]\n}'\n```\n\n```\n{\n    \"error\": {\n        \"message\": \"litellm.BadRequestError: OpenAIException - Function tools with reasoning_effort are not supported for gpt-5.6-sol in /v1/chat/completions. To use function tools, use /v1/responses or set reasoning_effort to 'none'....\",\n        \"type\": \"invalid_request_error\",\n        \"param\": \"reasoning_effort\",\n        \"code\": \"400\"\n    }\n}\n```\n\n### Relevant log output\n```\nlitellm.BadRequestError: OpenAIException - Function tools with reasoning_effort are not supported for gpt-5.6-sol in /v1/chat/completions. To use function tools, use /v1/responses or set reasoning_effort to 'none'....\n```",
+     "position": 5,
+     "category": "github"
+    },
+    {
+     "url": "https://simonw.substack.com/p/the-new-gpt-56-family-luna-terra",
+     "title": "The new GPT-5.6 family: Luna, Terra, Sol",
+     "description": "Programmatic Tool Calling allows the models to \u201ccompose and run JavaScript that orchestrates tool calls\u201d - which sounds to me like it could help ...",
+     "position": 6
+    },
+    {
+     "url": "https://www.youtube.com/watch?v=7pVTQSA4s5I",
+     "title": "GPT 5.6 SOL IS HERE! How to use it. - YouTube",
+     "description": "... calls the real unlock. 4. Building Turnaround Live \u2014 Together we build a small SaaS called Turnaround, a status badge that signals an app ...",
+     "position": 7
+    },
+    {
+     "url": "https://tech-insider.org/how-to-use-gpt-5-6-api-2026/",
+     "title": "How to Use the GPT-5.6 API: 12 Steps, 100 Min [2026] - Tech Insider",
+     "description": "Step-by-step guide to the GPT-5.6 API: set up Sol, Terra, and Luna tiers, tool calling, multi-agent mode, and prompt caching.",
+     "position": 8
+    },
+    {
+     "url": "https://www.arcade.dev/blog/gpt-5-6-chatgpt-workforce-authorization/",
+     "title": "GPT 5.6 Sol Explained: Authorization Implications - Arcade.dev",
+     "description": "On every tool call, Arcade checks the action against your policy and the real permissions of the person it is acting for, keeps each user's ...",
+     "position": 9
+    },
+    {
+     "url": "https://www.developersdigest.tech/blog/gpt-5-6-sol-terra-luna-developer-guide",
+     "title": "GPT-5.6 Sol, Terra, and Luna: A Developer's Guide to OpenAI's New ...",
+     "description": "## The GPT-5.6 family at a glance [#](https://www.developersdigest.tech/blog/gpt-5-6-sol-terra-luna-developer-guide#the-gpt-5-6-family-at-a-glance)\n| Model | API model ID | Best fit | Input / output per 1M tokens | Context / max output |\n|-|-|-|-|-|\n| GPT-5.6 Sol | `gpt-5.6-sol` (alias `gpt-5.6`) | Complex coding, research, long-running professional workflows | $5 / $30 | 1.05M / 128K |",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b311-d73a-739e-bb2e-770fc85f209a"
+ }
+}

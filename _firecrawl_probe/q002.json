@@ -1,0 +1,73 @@
+{
+ "query": "GPT 6 Astra system prompt",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://deploymentsafety.openai.com/gpt-6-astra",
+     "title": "GPT-6 Astra System Card - Deployment Safety Hub - OpenAI",
+     "description": "GPT-6 Astra is significantly more robust to prompt injections than GPT-5.6 Sol. safety scenarios. prompts were intentionally adversarial and ...",
+     "position": 1
+    },
+    {
+     "url": "https://github.com/asgeirtj/system_prompts_leaks/blob/main/OpenAI/Codex/gpt-6-astra.md",
+     "title": "gpt-6-astra.md - GitHub",
+     "description": "# gpt-6-astra.md\n## Latest commit\n[Update with full prompt](https://github.com/asgeirtj/system_prompts_leaks/commit/48fd1f5f269b8e7959c2af0ae2435623de74ebcc)",
+     "position": 2,
+     "category": "github"
+    },
+    {
+     "url": "https://openai.com/index/gpt-6-astra/",
+     "title": "GPT-6 Astra: A new generation of intelligence - OpenAI",
+     "description": "# GPT-6 Astra: A new generation of intelligence\n## The world\u2019s best computer use model\nPause\n\n## A step change in professional work\nPause\n\n## Advancing scientific discovery\nPause",
+     "position": 3
+    },
+    {
+     "url": "https://www.reddit.com/r/OpenaiCodex/comments/1wc4daw/how_do_you_prompt_gpt6_astra_to_orchestrate/",
+     "title": "How do you prompt GPT-6 Astra to orchestrate effectively? - Reddit",
+     "description": "8 days ago \u00b7 How do you prompt Astra to take initiative, delegate effectively, and finish the work? Any advice or examples would be appreciated.",
+     "position": 4
+    },
+    {
+     "url": "https://www.youtube.com/watch?v=swcKLJWnhNw",
+     "title": "GPT-6 Astra is Here... 5 Use Cases You Need NOW - YouTube",
+     "description": "# GPT-6 Astra is Here... 5 Use Cases You Need NOW\nLevel one is a prompt that interviews you one question at a time, finds the single bottleneck holding your business back, turns it into a 90 day plan and then debates that plan with Claude Fable 5.1.",
+     "position": 5
+    },
+    {
+     "url": "https://www.elser.ai/blog/gpt-6-astra-prompt-guide",
+     "title": "GPT-6 Astra Prompt Guide: How to Get Better, More Reliable Results",
+     "description": "## The Six-Part Astra Prompt\n```text\nOutcome:\nCreate [specific deliverable] for [audience and use].\n\nSource of truth:\nUse [documents/URLs/data]. Treat [file/version] as authoritative.\nMark any unresolved conflict instead of inventing an answer.\n\nConstraints:\nFollow [length, tone, technical, legal or creative rules].\n\nAuthority:\nMake routine, reversible decisions without asking.\nAsk only when missing information would materially change the outcome.\n\nOutput contract:\nReturn [sections/schema/file type], in [order], with [citations/fields].\n\nVerification:\nBefore finishing, check [acceptance criteria] and repair failures.\n```",
+     "position": 6
+    },
+    {
+     "url": "https://medium.com/data-science-collective/mastering-gpt-6-astra-10-patterns-that-separate-experts-from-everyone-070175859f51",
+     "title": "Mastering GPT-6 Astra: 10 patterns that separate experts from everyone",
+     "description": "Your AGENTS.md or system prompt uses explicit permission grants rather than blanket \u201calways ask before acting\u201d rules,",
+     "position": 7
+    },
+    {
+     "url": "https://www.reddit.com/r/AISEOInsider/comments/1wg7pv2/this_3step_gpt6_astra_system_automates_almost/",
+     "title": "This 3-Step GPT-6 Astra System Automates Almost Anything - Reddit",
+     "description": "4 days ago \u00b7 9.1K subscribers in the AISEOInsider community. AI SEO Insider teaches cutting-edge strategies to rank higher, drive more traffic, ...",
+     "position": 8
+    },
+    {
+     "url": "https://the-decoder.com/openai-shares-prompting-tips-for-gpt-6-astra-including-a-blocklist-of-slop-words/",
+     "title": "OpenAI shares prompting tips for GPT-6 Astra including a blocklist of ...",
+     "description": "# OpenAI shares prompting tips for GPT-6 Astra including a blocklist of slop words\n## Topics\nTo push it toward more initiative, OpenAI recommends a prompt telling the model to infer the user's \"intent\" from context and show a \"bias towards action.\"",
+     "position": 9
+    },
+    {
+     "url": "https://www.facebook.com/groups/1348711550214520/posts/1635499364869069/",
+     "title": "5 Essential Prompts to Optimize GPT-6 Astra Performance - Facebook",
+     "description": "The \"expert panel\" prompt \"Answer this as a panel of 3 experts who disagree. Show their debate, then give me the consensus takeaway.\" One prompt ...",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b30f-9b48-76bb-825a-e4c725e9807b"
+ }
+}

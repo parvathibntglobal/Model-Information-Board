@@ -1,0 +1,72 @@
+{
+ "query": "GPT-5.6 Sol substack",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://simonw.substack.com/p/the-new-gpt-56-family-luna-terra",
+     "title": "The new GPT-5.6 family: Luna, Terra, Sol",
+     "description": "The new models are priced per 1M input/output tokens as Luna $1/$6, Terra $2.50/$15, Sol $5/$30. For comparison, the Claude Opus series are $5/$ ...",
+     "position": 1
+    },
+    {
+     "url": "https://ruth.substack.com/p/gpt-56-found-risks-did-its-agents",
+     "title": "GPT-5.6 Found Risks. Did Its Agents Change One Another's ...",
+     "description": "Testing GPT-5.6 OpenAI reported a new high for Sol on Agents' Last Exam, an evaluation of long-running professional workflows in 55 fields.",
+     "position": 2
+    },
+    {
+     "url": "https://thezvi.substack.com/p/ai-176-part-1-doing-it-live",
+     "title": "AI #176 Part 1: Doing It Live - by Zvi Mowshowitz - Substack",
+     "description": "# AI #176 Part 1: Doing It Live\nThen on Monday, if all goes as I expect, we\u2019ll cover OpenAI\u2019s Sol, aka GPT-5.6.",
+     "position": 3
+    },
+    {
+     "url": "https://thezvi.substack.com/p/better-call-sol-the-workhorse",
+     "title": "Better Call Sol The Workhorse - by Zvi Mowshowitz - Substack",
+     "description": "GPT\u20105.6 is our strongest model yet for accelerating AI research. The largest variant, GPT-5.6 Sol, sets a new high bar at cost. is behind Opus ...",
+     "position": 4
+    },
+    {
+     "url": "https://community.openai.com/t/gpt-5-6-sol-vs-terra-what-are-you-seeing-in-real-development-during-these-first-days/1386726",
+     "title": "GPT-5.6 Sol vs Terra: what are you seeing in real development during ...",
+     "description": "GPT-5.6 Sol and GPT-5.6 Terra, GPT-5.6 behaves in real production workflows, beyond short benchmarks and isolated coding tasks.",
+     "position": 5
+    },
+    {
+     "url": "https://aicodingdaily.substack.com/p/new-gpt-56-great-but-dangerous",
+     "title": "New GPT-5.6: Great but... Dangerous?",
+     "description": "I Tested Fable 5 and GPT-5.6 Sol as \u201cOrchestrators\u201d I see delegating the implementation to cheaper models with subagents.",
+     "position": 6
+    },
+    {
+     "url": "https://handyai.substack.com/p/model-drop-gpt-56-sol-terra-and-luna",
+     "title": "Model Drop: GPT-5.6 Sol, Terra, & Luna - Handy AI - Substack",
+     "description": "GPT-5.6 is a three-tier model line OpenAI is previewing as Sol (flagship), Terra (the workhorse), and Luna (the cheap one).",
+     "position": 7
+    },
+    {
+     "url": "https://theslowai.substack.com/p/slow-takes-ep-18-can-ai-suffer",
+     "title": "Anthropic's Consciousness Paper, GPT-5.6, Grok 4.5 - Slow AI",
+     "description": "OpenAI released GPT-5.6 in three sizes called Sol, Terra, and Luna, with an API and the Codex coding tool. Sol runs at $5 per million input ...",
+     "position": 8
+    },
+    {
+     "url": "https://www.reddit.com/r/codex/comments/1v140ba/i_spent_two_weeks_testing_gpt56_heres_what_i_found/",
+     "title": "I spent two weeks testing GPT-5.6. Here's what I found. : r/codex - Reddit",
+     "description": "I've been testing the GPT-5.6 Sol models for the past two weeks, and my experience has been extremely disappointing. Stay away from GPT-5.6 ...",
+     "position": 9
+    },
+    {
+     "url": "https://substack.com/@opinionai/note/c-324519215",
+     "title": "Opinion AI - Substack",
+     "description": "This is about how to use GPT 5.6 Sol, Terra, and Luna for different kinds of work instead of using the biggest model for everything.",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b317-d7c8-7310-9280-44dd543c9d56"
+ }
+}
