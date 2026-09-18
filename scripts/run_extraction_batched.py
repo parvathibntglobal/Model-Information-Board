@@ -46,6 +46,8 @@ import pathlib
 import sys
 import time
 
+from judge.extract.client import extractor_model
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -144,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
         conn,
         client=OpenRouterClient.from_env(),
         capability_keys=list(capabilities().keys()),
-        extractor_model=os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
+        extractor_model=extractor_model(),
     )
 
     totals = {"verified": 0, "rejected": 0, "unclassified": 0, "stored": 0,

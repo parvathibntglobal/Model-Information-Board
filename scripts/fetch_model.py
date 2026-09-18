@@ -38,6 +38,8 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
+from judge.extract.client import extractor_model
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -2073,7 +2075,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         conn,
         client=extractor,
         capability_keys=list(capabilities().keys()),
-        extractor_model=os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
+        extractor_model=extractor_model(),
         # BOTH ID SHAPES for this run's subject. `board_entry.model_version_id`
         # holds the canonical id when a run names its own model and the
         # internal `mv_` key when the entry came out of a thread, so a single
@@ -2191,7 +2193,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     if proposals and table_present:
         outcome = store_proposals(
             conn, proposals,
-            proposer_model=os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
+            proposer_model=extractor_model(),
             prompt_label="fetch-extract",
         )
         conn.commit()

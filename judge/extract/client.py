@@ -37,8 +37,53 @@ from typing import Protocol
 #: threads: clean schema/tool-calls, 100% quote-verify, no fabrication —
 #: docs/measurements/extractor-ab-deepseek-v4-flash-vs-gemini.md. Undated alias;
 #: pin a dated build (…-0731) if a run needs to be exactly reproducible.
+#: THE DATACLASS DEFAULT FOR DIRECT CONSTRUCTION, AND NOT THE ENVIRONMENT'S
+#: FALLBACK. `extractor_model()` below refuses an unset variable rather than
+#: reaching for this, because the value lands in `claim.extractor_model` - a
+#: NOT NULL provenance column whose entire job is to say what produced the row.
+#: A default there is a confident guess in the one field that must not guess.
 DEFAULT_MODEL = "deepseek/deepseek-v4-flash"
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
+
+
+def extractor_model() -> str:
+    """`EXTRACTOR_MODEL`, or a refusal. NO DEFAULT, for the same reason as
+    `DATABASE_URL` and `EXTRACTION_DAILY_BUDGET_USD`.
+
+    WHY THIS IS NOT TIDINESS. The value is written to `claim.extractor_model`,
+    which `judge/store/claims.py` describes as the column that says what
+    produced the row. An unset variable used to write `"deepseek/..."` into it
+    - a confident guess on a provenance column, which is rule 6 in the worst
+    place it can happen. That was found once and half-fixed: the literal was
+    copied into eight files instead of removed, so the guess survived in every
+    caller that was not the one being edited.
+
+    ONE FUNCTION, SO THE CALL AND THE RECORD CANNOT DIVERGE. Before this,
+    `client.py` read the variable with `DEFAULT_MODEL` as its fallback and
+    `cli.py` read it again with the literal string as its fallback. They agreed
+    by coincidence. If they ever stopped agreeing, the call would use one model
+    and the claim would record the other - and nothing would be wrong enough to
+    notice, because both values are plausible model ids.
+
+    IT IS STILL WHAT WE ASKED FOR, NOT WHAT RAN. `Completion.model` carries
+    what the provider reported and NOTHING READS IT (judge/pipeline.py sets
+    `self._extractor_model` once, from here). So this refusal narrows the gap
+    to "did the provider serve what we asked for" and does not close it. See
+    docs/proposals/the-blended-cells-and-what-extractor-model-means.md.
+    """
+    model = (os.getenv("EXTRACTOR_MODEL") or "").strip()
+    if not model:
+        raise RuntimeError(
+            "EXTRACTOR_MODEL is unset. Refusing to run rather than defaulting: "
+            "this value is written to `claim.extractor_model`, the column that "
+            "records what produced each row, so a default writes a guess into "
+            "the one field whose job is to say what actually read the evidence.\n\n"
+            "Set it to an exact OpenRouter model id, e.g. "
+            "deepseek/deepseek-v4-flash. An undated slug is fine and is pinned "
+            "by OpenRouter to a dated snapshot; a `~vendor/model-latest` route "
+            "is NOT, and is refused separately - routes are not models."
+        )
+    return model
 
 #: One retry, not three. A model that violates a forced schema twice is not
 #: having a bad moment, and paying for a third attempt is how a daily budget
@@ -282,7 +327,7 @@ class OpenRouterClient:
                 "document halfway through a batch."
             )
         return cls(
-            model=os.getenv("EXTRACTOR_MODEL", DEFAULT_MODEL),
+            model=extractor_model(),
             base_url=os.getenv("OPENROUTER_BASE_URL", DEFAULT_BASE_URL),
             api_key=key,
         )
