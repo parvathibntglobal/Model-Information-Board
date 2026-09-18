@@ -187,6 +187,70 @@ def _cmd_extract(args: argparse.Namespace, *, resolver_factory=None) -> int:
 
 
 
+#: `collect/registry/propose.py:150`'s ROUTE_PREFIX, restated rather than
+#: imported: `tests/test_lane_boundary.py` forbids judge/ importing collect/ in
+#: either direction, with no allowlist. One character, one ruling, and the
+#: ruling is named below so a reader can find the original.
+_ROUTE_PREFIX = "~"
+
+
+def _assert_model_is_registered(conn: Any, model: str) -> None:
+    """Refuse an extractor id the registry has never polled, before paying.
+
+    WHAT THIS CATCHES. A typo, a renamed slug, or a model the vendor withdrew.
+    All three currently fail at the first API call, after the run has started,
+    the budget has been seeded and the ledger has an open row - and the error
+    that comes back is a provider 404 about a model id, which reads as an
+    outage rather than as a configuration mistake.
+
+    THREE OUTCOMES AND THEY ARE DISTINCT, because collapsing them is the defect
+    (rule 6). An empty registry is SKIPPED AND NAMED rather than counted as a
+    pass: a fresh database has no `model_version` rows, and refusing there would
+    block a legitimate first run on the absence of a poller.
+
+        registry has no rows      skipped, and says so
+        id present and a ROUTE    refused - routes are not models
+        id absent                 refused
+        id present                proceeds, and says which
+
+    A ROUTE IS REFUSED ON PURPOSE. `~vendor/model-latest` points at whatever the
+    vendor currently ships, so the model that served the request is unknown BY
+    CONSTRUCTION - which is precisely what `claim.extractor_model` exists to
+    record. Ruled 2026-08-18, `collect/registry/propose.py`: routes are not
+    models.
+    """
+    total = conn.execute("SELECT count(*) FROM model_version").fetchone()[0]
+    if not total:
+        print(
+            "  extractor not checked against the registry: model_version has 0 "
+            "rows on this database. SKIPPED, not passed - seed or poll it and "
+            "this check becomes real."
+        )
+        return
+
+    row = conn.execute(
+        "SELECT canonical_id FROM model_version WHERE canonical_id = %s", (model,)
+    ).fetchone()
+    if row is None:
+        raise SystemExit(
+            f"EXTRACTOR_MODEL is {model!r} and no row in `model_version` has that "
+            f"canonical_id, across {total} polled models. Refusing before the "
+            f"first call rather than taking a provider 404 mid-run.\n\n"
+            f"Check the spelling against the registry. If the id is right and the "
+            f"registry is stale, poll it - do not edit this check."
+        )
+    if model.startswith(_ROUTE_PREFIX):
+        raise SystemExit(
+            f"EXTRACTOR_MODEL is {model!r}, which is a ROUTE rather than a model: "
+            f"it points at whatever the vendor currently ships, so the model that "
+            f"served each request is unknown by construction.\n\n"
+            f"`claim.extractor_model` exists to record what produced a row, and a "
+            f"route makes that unanswerable. Name the model instead. "
+            f"(Routes are not models - ruled 2026-08-18.)"
+        )
+    print(f"  extractor {model} is in the registry ({total} polled models)")
+
+
 def _document_facts(
     conn: Any,
     document_ids: set[str],
@@ -353,7 +417,7 @@ def _extract_from_export(
 
     from judge.config import capabilities
     from judge.extract import export_source
-    from judge.extract.client import OpenRouterClient
+    from judge.extract.client import OpenRouterClient, extractor_model
     from judge.pipeline import Pipeline
 
     loaded = export_source.load(Path(args.from_export))
@@ -399,11 +463,18 @@ def _extract_from_export(
     else:
         print("  surface resolver wired (registry): claims resolve by the surface written")
 
+    # ONE RESOLUTION, USED TWICE. `from_env()` calls the same function, so the
+    # model we CALL and the model we RECORD cannot diverge. They used to be two
+    # `os.getenv` reads with two separately-hardcoded fallbacks that agreed by
+    # coincidence.
+    model = extractor_model()
+    _assert_model_is_registered(conn, model)
+
     results = Pipeline(
         conn,
         client=OpenRouterClient.from_env(),
         capability_keys=list(capabilities().keys()),
-        extractor_model=os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
+        extractor_model=model,
     ).run_all(
         loaded.threads,
         facts=facts,
