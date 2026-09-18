@@ -198,6 +198,16 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     table, not a model list. It receives the new fields because they come off
     one query, and nothing on it reads them.
 
+    `report_split` IS CAPABILITY-ONLY, and the omission is the finding rather
+    than an oversight. `best_for` filters negative reports out before any of
+    this, so a split there would read "6 positive" on every row - true, and
+    carrying no information a reader can use. Verified rather than assumed:
+    0 of the 230 quotes reaching `best_for` are negative, 0 of its model rows
+    carry `negative` in `polarities`, and 0 of its documents are both. A
+    negative appearing there would be a defect in the FILTER, not in a
+    display, which is why a test asserts it against the payload rather than
+    against the SQL.
+
     `declined` rows are excluded and `merged` rows are counted under their
     target, so a person's consolidation shows up here without rewriting history
     — the rows stay, the grouping changes.
@@ -381,14 +391,20 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             # rather than keyed: first row wins, and rows arrive newest first.
             model = bucket["_models"].setdefault(
                 model_key,
-                {"docs": set(), "voices": set(), "polarities": set(),
+                {"docs": {}, "voices": set(), "polarities": set(),
                  "raw": mv_id, "label": label},
             )
-            model["docs"].add(doc_id)
+            # `docs` MAPS A DOCUMENT TO ITS POLARITIES rather than being a set
+            # of ids, and that is what lets the split be counted in REPORTS.
+            # Counting it in quotes would put the inflation this file's
+            # docstring is about back on the row, one column along: three
+            # figures in one comment would read as three positive reports.
+            model["docs"].setdefault(doc_id, set())
             if author_id:
                 model["voices"].add(author_id)
             if polarity:
                 model["polarities"].add(polarity)
+                model["docs"][doc_id].add(polarity)
         # THE CAP IS GONE, AND IT WAS NEVER A CHOICE ABOUT REPORTS.
         #
         # This was `if len(bucket["quotes"]) < 12`, taken newest-first, and the
@@ -488,7 +504,11 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
                 {"model_key": key, "model_version_id": m["raw"],
                  "model_label": m["label"],
                  "reports": len(m["docs"]), "voices": len(m["voices"]),
-                 "polarities": sorted(m["polarities"])}
+                 "polarities": sorted(m["polarities"]),
+                 **(
+                     {"report_split": _split(m["docs"])}
+                     if section == "capability" else {}
+                 )}
                 for key, m in sorted(
                     item.pop("_models").items(), key=lambda kv: -len(kv[1]["docs"])
                 )
@@ -503,6 +523,49 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
 
     _attach_hidden_negatives(conn, out["best_for"])
     return out
+
+
+def _split(docs: dict[str, set[str]]) -> dict[str, int]:
+    """How many of a model's reports were positive, negative, neither, both.
+
+    COUNTED IN REPORTS, so it is the same unit as the `reports` figure it sits
+    beside. One comment stating three positive figures is one positive report.
+
+    ⚠ IT DOES NOT PARTITION, AND THAT IS A PROPERTY OF THE DATA RATHER THAN A
+      BUG TO ROUND AWAY. One report can be both - somebody writing "Kimi
+      walked through it step by step" and "speed is the slowest of the four,
+      by a lot" in one post has filed one report that is positive and
+      negative. So `positive + negative` can exceed `reports`, and on the two
+      biggest capability pages it does ON THE TOP ROW: Kimi K2.5 on
+      `reasoning` is 10 reports, 10 positive, 2 negative.
+
+      Measured 2026-09-18 over the 297 (capability, model) groups: 16 contain
+      at least one such document. Switching the unit does not help - a VOICE
+      split over-counts on exactly the same 16, because a person can say both
+      things just as a document can.
+
+      `both` is therefore emitted as its own number, and the identity a reader
+      can check is
+
+          positive + negative - both + neutral == reports
+
+      which holds for all 297 groups. The page states `both` only on the rows
+      that have one, so a clean split reads clean and a mixed one says so.
+
+    `neutral` is reports that are neither, not reports with no polarity -
+    `board_entry.polarity` is NOT NULL, so there is no third state hiding in
+    here. It is carried because 24 of the 297 groups are neutral-only, and a
+    row rendering "0 positive, 0 negative" would otherwise be saying nothing
+    about two real reports.
+    """
+    return {
+        "positive": sum(1 for p in docs.values() if "positive" in p),
+        "negative": sum(1 for p in docs.values() if "negative" in p),
+        "both": sum(1 for p in docs.values()
+                    if "positive" in p and "negative" in p),
+        "neutral": sum(1 for p in docs.values()
+                       if "positive" not in p and "negative" not in p),
+    }
 
 
 def _attach_hidden_negatives(conn: Any, best_for: list[dict]) -> None:

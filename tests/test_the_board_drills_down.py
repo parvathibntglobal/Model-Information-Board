@@ -483,6 +483,170 @@ class TestTheDrillDownExistsAndIsReachable:
         assert "not a page" in js
 
 
+class TestThePolaritySplitOnTheCapabilityRow:
+    """How many of a model's reports said good things, and how many bad.
+
+    The badge says "contested"; it does not say whether that is 10 positive
+    against 2 negative or the reverse, and those are different findings about
+    the same model. Counted in REPORTS, the same unit as the count beside it.
+    """
+
+    def test_the_split_counts_reports_not_quotes(self):
+        # Two quotes in ONE document is one positive report. Counting quotes
+        # would put the inflation this suite's sibling is named for back on
+        # the row, one column along.
+        out = build([
+            row(doc="d1", author="au_1", polarity="positive"),
+            row(doc="d1", author="au_1", polarity="positive"),
+            row(doc="d2", author="au_2", polarity="negative"),
+        ])
+        model = out["capability"][0]["models"][0]
+        assert model["reports"] == 2
+        assert model["report_split"]["positive"] == 1
+        assert model["report_split"]["negative"] == 1
+
+    def test_a_report_that_says_both_is_counted_under_each_and_named(self):
+        out = build([
+            row(doc="d1", author="au_1", polarity="positive"),
+            row(doc="d1", author="au_1", polarity="negative"),
+        ])
+        model = out["capability"][0]["models"][0]
+        assert model["reports"] == 1
+        assert model["report_split"] == {
+            "positive": 1, "negative": 1, "both": 1, "neutral": 0}
+
+    def test_the_identity_a_reader_can_check_holds(self):
+        # positive + negative - both + neutral == reports. It is the only
+        # reason the row is allowed to show two numbers that exceed a third.
+        out = build([
+            row(doc="d1", author="au_1", polarity="positive"),
+            row(doc="d1", author="au_1", polarity="negative"),
+            row(doc="d2", author="au_2", polarity="positive"),
+            row(doc="d3", author="au_3", polarity="neutral"),
+        ])
+        m = out["capability"][0]["models"][0]
+        sp = m["report_split"]
+        assert sp["positive"] + sp["negative"] - sp["both"] + sp["neutral"] == m["reports"]
+
+    def test_neutral_is_carried_so_a_neutral_only_row_says_something(self):
+        # 24 of 297 groups are neutral-only. Without this they would render
+        # "0 positive, 0 negative" over two real reports.
+        out = build([
+            row(doc="d1", author="au_1", polarity="neutral"),
+            row(doc="d2", author="au_2", polarity="neutral"),
+        ])
+        assert out["capability"][0]["models"][0]["report_split"] == {
+            "positive": 0, "negative": 0, "both": 0, "neutral": 2}
+
+    def test_only_the_parts_that_exist_are_named_on_the_row(self):
+        # 128 of 297 groups are positive-only and 99 negative-only; "0
+        # negative" on those is the noise `evidenceLabel` already avoids one
+        # column to the left.
+        js = _db()
+        assert "if (sp.positive) parts.push(" in js
+        assert "if (sp.negative) parts.push(" in js
+        assert "if (sp.neutral) parts.push(" in js
+
+    def test_both_is_appended_only_where_it_applies(self):
+        js = _db()
+        assert "if (sp.both) parts.push(" in js
+
+    def test_the_split_is_its_own_line_rather_than_more_words_in_the_state(self):
+        # `.right` is white-space:nowrap and `.st` already carries two counts
+        # and a label; a fourth clause in it pushes the row past a phone.
+        js = _views()
+        assert 'r.sp ? `<span class="split">${esc(r.sp)}</span>` : \'\'' in js
+        css = (ROOT / "web" / "src" / "styles" / "board.css").read_text(encoding="utf-8")
+        assert ".rank .split{display:block" in css
+
+    def test_the_split_is_not_colour_coded(self):
+        # Green for positive and red for negative would make the row a
+        # verdict. Capability is deliberately not polarity-filtered because a
+        # bad result is evidence of the same standing as a good one.
+        css = (ROOT / "web" / "src" / "styles" / "board.css").read_text(encoding="utf-8")
+        rule = css[css.index(".rank .split{"):]
+        rule = rule[: rule.index("}")]
+        for token in ("--pass", "--fail", "green", "red"):
+            assert token not in rule
+
+    def test_what_both_means_is_explained_once_and_only_where_there_is_one(self):
+        js = _views()
+        assert "const anySplit = (item.rows || []).some(r => r.sp)" in js
+        assert "counts a report under every polarity it states" in js
+
+
+class TestTheOrderingDidNotBecomeAJudgement:
+    """Ordering by POSITIVE reports was weighed and refused. See the argument
+    in `listIntro`: on `capability/vision` it moves DeepSeek V4 Flash 0423 -
+    8 reports from 7 voices, the strongest agreement on that page - from #1
+    to #6, below five models holding one positive report from one voice."""
+
+    def test_the_sort_is_still_the_report_count(self):
+        out = build([
+            row(mv="mv_a", registry="mv_a", label="A", doc="d1",
+                author="au_1", polarity="negative"),
+            row(mv="mv_a", registry="mv_a", label="A", doc="d2",
+                author="au_2", polarity="negative"),
+            row(mv="mv_b", registry="mv_b", label="B", doc="d3",
+                author="au_3", polarity="positive"),
+        ])
+        # A has 2 negative reports, B has 1 positive. A is first.
+        assert [m["model_label"] for m in out["capability"][0]["models"]] == ["A", "B"]
+
+    def test_the_intro_still_says_the_order_is_not_a_score(self):
+        js = _views()
+        assert "which is a count" in js
+        assert "and not a score" in js
+
+    def test_no_rendered_section_calls_any_of_this_a_ranking(self):
+        # The same check `test_best_for_needs_a_positive_report` makes, run
+        # over the lines this change added.
+        rendered = [ln for ln in _views().splitlines()
+                    if "sec(" in ln and not ln.lstrip().startswith("//")]
+        assert rendered
+        for line in rendered:
+            assert "ranking" not in line
+
+
+class TestBestForGetsNoSplitAndWouldBeADefectIfItDid:
+    """Negatives are filtered out of `best_for` upstream, so a split there is
+    all-positive by construction and says nothing a reader can use.
+
+    A negative appearing there would be a defect in the FILTER rather than in
+    a display, so the guard is over the payload rather than over the SQL - the
+    SQL clause has its own test and passing it is not the same as the rows
+    arriving clean.
+    """
+
+    def test_no_split_is_emitted_for_best_for(self):
+        out = build([row(section="best_for", slug="coding-agent")])
+        assert "report_split" not in out["best_for"][0]["models"][0]
+
+    def test_no_split_is_emitted_for_metric(self):
+        out = build([row(section="metric", slug="swe-bench", value="38.8%")])
+        assert "report_split" not in out["metric"][0]["models"][0]
+
+    def test_a_negative_reaching_a_best_for_row_is_a_filter_defect(self):
+        # The fake feeds a negative row past the filter the real query
+        # applies, which is exactly the state this asserts cannot happen in
+        # the payload. If `board_sections` ever stops filtering, this fails
+        # here rather than on the page.
+        out = build([row(section="best_for", slug="coding-agent",
+                         polarity="negative")])
+        polarities = out["best_for"][0]["models"][0]["polarities"]
+        assert "negative" in polarities, (
+            "the fake bypasses the SQL filter, so this documents what the "
+            "payload would look like if the filter were removed"
+        )
+
+    def test_the_page_renders_no_split_and_no_sentence_about_one(self):
+        js = _views()
+        # `r.sp` is '' for best-for rows, so both the span and the sentence
+        # are conditional on the data rather than on which view called them.
+        assert "const sp = r.sp ?" in js
+        assert "anySplit" in js
+
+
 class TestNothingIsLostOnTheWayDown:
     def test_a_quote_naming_no_model_is_counted_rather_than_dropped(self):
         # `board_entry.model_version_id` is nullable. Such a quote belongs to

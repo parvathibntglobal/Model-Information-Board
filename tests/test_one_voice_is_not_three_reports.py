@@ -101,12 +101,28 @@ class TestTheCountIsSourcesNotRows:
         #   polarities beside reports. `reports` is still `len(...["docs"])`,
         #   which is what this test is for; `voices` is asserted below because
         #   it is the same inflation one field along.
+        #
+        # ⚠ AND AGAIN, FOR THE POLARITY SPLIT. `docs` is now a MAPPING from
+        #   document id to the polarities that document stated, because the
+        #   row says "10 positive · 2 negative" and that has to be counted in
+        #   documents rather than rows - the same correction as this file's,
+        #   arriving on a new column. Keyed by doc_id either way, so `reports`
+        #   is still distinct documents, which is all this test has ever been
+        #   about.
         src = self._src()
         assert 'bucket["_models"].setdefault(' in src
-        assert '{"docs": set(), "voices": set(), "polarities": set(),' in src
-        assert 'model["docs"].add(doc_id)' in src
+        assert '{"docs": {}, "voices": set(), "polarities": set(),' in src
+        assert 'model["docs"].setdefault(doc_id, set())' in src
         assert '"reports": len(m["docs"])' in src
         assert '"model_version_id": m["raw"]' in src
+
+    def test_the_polarity_split_is_counted_in_documents_too(self):
+        # Two positive quotes in one comment are ONE positive report. This is
+        # the same defect as the one this file is named for, and the split is
+        # the newest place it could reappear.
+        src = self._src()
+        assert 'model["docs"][doc_id].add(polarity)' in src
+        assert 'sum(1 for p in docs.values() if "positive" in p)' in src
 
     def test_per_model_voices_are_distinct_authors(self):
         # The model row says "≥N reports · M voices", and a voice count that
