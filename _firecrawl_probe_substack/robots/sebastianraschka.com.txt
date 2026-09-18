@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sebastianraschka.com/sitemap.xml
+
+# AI-oriented site maps (non-restrictive discovery hints for assistants and crawlers).
+# HTML pages also advertise these via <link rel="alternate" type="text/plain">.
+# llms.txt: https://sebastianraschka.com/llms.txt
+# llms-full.txt: https://sebastianraschka.com/llms-full.txt

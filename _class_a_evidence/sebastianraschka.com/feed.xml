@@ -1,0 +1,3897 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Sebastian Raschka, PhD</title>
+    <description>I&apos;m an LLM Research Engineer with over a decade of experience in artificial intelligence. My work bridges academia and industry, with roles including senior staff at an AI company and a statistics professor. My expertise lies in LLM research and the development of high-performance AI systems, with a deep focus on practical, code-driven implementations.
+</description>
+    <link>https://sebastianraschka.com/</link>
+    <atom:link href="https://sebastianraschka.com/rss_feed.xml" rel="self" type="application/rss+xml" />
+    <pubDate>Mon, 14 Sep 2026 08:57:28 -0500</pubDate>
+    <lastBuildDate>Mon, 14 Sep 2026 08:57:28 -0500</lastBuildDate>
+    
+    
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Pacing != pacing development</title>
+        <description>My take on AI model pacing as a framework for release checks and the competitive pressure around model releases.</description>
+        <pubDate>Mon, 14 Sep 2026 08:27:41 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/pacing-development.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/pacing-development.html</guid>
+        
+        <category>llm</category>
+        
+        <category>pacing</category>
+        
+        <category>model-releases</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>AI Reasoning Models Course on LinkedIn Learning</title>
+        <description>A 90-minute LinkedIn Learning course on how reasoning models relate to conventional LLMs and how they are developed.</description>
+        <pubDate>Sun, 13 Sep 2026 08:11:39 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/ai-reasoning-models-course.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/ai-reasoning-models-course.html</guid>
+        
+        <category>llm</category>
+        
+        <category>reasoning-models</category>
+        
+        <category>course</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>GPT-6 Astra, Looped Transformers, and Hidden Reasoning</title>
+        <description>A Look at Recurrent Depth, Hidden Chains of Thought, and Recent Research on Looping Transformer Blocks</description>
+        <pubDate>Wed, 09 Sep 2026 06:14:25 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/gpt-6-astra-looped-transformers-and</link>
+        <guid isPermaLink="true">https://magazine.sebastianraschka.com/p/gpt-6-astra-looped-transformers-and</guid>
+        
+        
+        <category>Coding</category>
+        
+        <category>OpenAI</category>
+        
+        <category>AI</category>
+        
+        <category>AI Research</category>
+        
+        <category>GPT</category>
+        
+        <category>Agents</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>OpenAI Astra and Looped Transformers</title>
+        <description>A short note on OpenAI Astra, recurrent depth, looped transformers, Nanbeige 4.2, and the Mixture-of-Recursions paper.</description>
+        <pubDate>Wed, 02 Sep 2026 03:30:28 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/openai-astra-looped-transformers.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/openai-astra-looped-transformers.html</guid>
+        
+        <category>llm</category>
+        
+        <category>architecture</category>
+        
+        <category>looped-transformers</category>
+        
+        <category>recurrent-depth</category>
+        
+        <category>inference</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Reasoning Models From Scratch: Code Setup</title>
+        <description>A short video on how conventional LLMs relate to reasoning models and agents, along with Python and PyTorch setup using uv.</description>
+        <pubDate>Sun, 30 Aug 2026 08:42:39 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/reasoning-models-and-agents-from-scratch.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/reasoning-models-and-agents-from-scratch.html</guid>
+        
+        <category>llm</category>
+        
+        <category>reasoning-models</category>
+        
+        <category>agents</category>
+        
+        <category>from-scratch</category>
+        
+        <category>pytorch</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Two Live Book Club Q&amp;As on September 3</title>
+        <description>Two free live book club Q&amp;A sessions on September 3 about Build a Reasoning Model From Scratch and related reader questions.</description>
+        <pubDate>Sat, 29 Aug 2026 06:55:18 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/reasoning-model-book-club-q-and-a.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/reasoning-model-book-club-q-and-a.html</guid>
+        
+        <category>llm</category>
+        
+        <category>reasoning-models</category>
+        
+        <category>books</category>
+        
+        <category>events</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>GLM-5.3-Flash Architecture Notes</title>
+        <description>Architecture note on GLM-5.3-Flash, formerly Ox Alpha, covering its KDA and MLA/DSA hybrid attention, sparse MoE backbone, and four-stream mHC residual path.</description>
+        <pubDate>Wed, 26 Aug 2026 05:11:51 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/glm-5-3-flash-architecture-notes.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/glm-5-3-flash-architecture-notes.html</guid>
+        
+        <category>llm</category>
+        
+        <category>open-weight-models</category>
+        
+        <category>architecture</category>
+        
+        <category>mixture-of-experts</category>
+        
+        <category>attention</category>
+        
+        <category>multimodal</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>How Claude Watermarks AI-Generated Text</title>
+        <description>A 48-minute video walkthrough of token sampling, watermark detection, and removal</description>
+        <pubDate>Sat, 22 Aug 2026 06:11:39 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/claude-watermarking</link>
+        <guid isPermaLink="true">https://magazine.sebastianraschka.com/p/claude-watermarking</guid>
+        
+        
+        <category>AI</category>
+        
+        <category>GPT</category>
+        
+        <category>LLMs</category>
+        
+        <category>Claude</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Building an AI Text Detector From Scratch</title>
+        <description>An End-to-End Project With Dataset Construction, Model Training, Local Deployment, and RLVR</description>
+        <pubDate>Sat, 15 Aug 2026 06:54:24 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/ai-detector-from-scratch</link>
+        <guid isPermaLink="true">https://magazine.sebastianraschka.com/p/ai-detector-from-scratch</guid>
+        
+        
+        <category>Coding</category>
+        
+        <category>Reasoning Models</category>
+        
+        <category>AI</category>
+        
+        <category>AI Research</category>
+        
+        <category>GPT</category>
+        
+        <category>PyTorch</category>
+        
+        <category>LLMs</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>How Claude&apos;s Text Watermarking Works</title>
+        <description>Short illustration of how Claude&apos;s text watermarking is supposed to work based on Anthropic&apos;s released materials.</description>
+        <pubDate>Sat, 15 Aug 2026 04:28:41 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/claude-text-watermarking.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/claude-text-watermarking.html</guid>
+        
+        <category>llm</category>
+        
+        <category>claude</category>
+        
+        <category>watermarking</category>
+        
+        <category>text-generation</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Build a Reasoning Model From Scratch Is Now on Amazon</title>
+        <description>Short note on the Amazon availability of Build a Reasoning Model From Scratch and a warning about counterfeit black-and-white copies sold through Amazon India.</description>
+        <pubDate>Wed, 12 Aug 2026 03:25:44 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/build-a-reasoning-model-from-scratch-on-amazon.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/build-a-reasoning-model-from-scratch-on-amazon.html</guid>
+        
+        <category>llm</category>
+        
+        <category>reasoning-models</category>
+        
+        <category>books</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Muse Glimmer 30B Architecture Notes</title>
+        <description>Short architecture note on Meta Muse Glimmer 30B, including gated local and global GQA, KV-cache efficiency, and release-time benchmark comparisons.</description>
+        <pubDate>Tue, 11 Aug 2026 09:15:07 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/muse-glimmer-30b-architecture-notes.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/muse-glimmer-30b-architecture-notes.html</guid>
+        
+        <category>llm</category>
+        
+        <category>open-weight-models</category>
+        
+        <category>architecture</category>
+        
+        <category>attention</category>
+        
+        <category>multimodal</category>
+        
+        <category>long-context</category>
+        
+        <category>inference</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>LLMs From Scratch Reaches 100,000 GitHub Stars</title>
+        <description>Short note celebrating the LLMs-from-scratch repository passing 100,000 GitHub stars and summarizing its learning materials.</description>
+        <pubDate>Fri, 07 Aug 2026 04:40:53 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/llms-from-scratch-reaches-100000-github-stars.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/llms-from-scratch-reaches-100000-github-stars.html</guid>
+        
+        <category>llm</category>
+        
+        <category>llms-from-scratch</category>
+        
+        <category>open-source</category>
+        
+        <category>github</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Kimi K3 Architecture Notes</title>
+        <description>Short architecture note on Kimi K3, including LatentMoE, Kimi Delta Attention, Attention Residuals, NoPE, multimodality, and inference-efficiency choices.</description>
+        <pubDate>Tue, 28 Jul 2026 08:38:20 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/kimi-k3-architecture-notes.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/kimi-k3-architecture-notes.html</guid>
+        
+        <category>llm</category>
+        
+        <category>open-weight-models</category>
+        
+        <category>architecture</category>
+        
+        <category>mixture-of-experts</category>
+        
+        <category>attention</category>
+        
+        <category>multimodal</category>
+        
+        <category>long-context</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>A Few Notable Open-Weight Models This Week</title>
+        <description>Short note on the architectures of six new open-weight models, including Nanbeige 4.2, Laguna S 2.1, Motif-3-Beta, Solar Open 2, Antares 1B, and BTL-3.</description>
+        <pubDate>Sun, 26 Jul 2026 08:47:44 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/notable-open-weight-models-this-week.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/notable-open-weight-models-this-week.html</guid>
+        
+        <category>llm</category>
+        
+        <category>open-weight-models</category>
+        
+        <category>architecture</category>
+        
+        <category>mixture-of-experts</category>
+        
+        <category>attention</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Correction for Listing 6.5 in Build a Reasoning Model From Scratch</title>
+        <description>Short correction note for the random seed in Listing 6.5 on page 198 of Build a Reasoning Model From Scratch.</description>
+        <pubDate>Sat, 25 Jul 2026 08:18:12 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/reasoning-model-listing-6-5-correction.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/reasoning-model-listing-6-5-correction.html</guid>
+        
+        <category>llm</category>
+        
+        <category>reasoning-models</category>
+        
+        <category>books</category>
+        
+        <category>pytorch</category>
+        
+        <category>errata</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Controlling Reasoning Effort in LLMs</title>
+        <description>How LLMs Learn Low-, Medium-, and High-Effort Reasoning Modes</description>
+        <pubDate>Sat, 18 Jul 2026 06:16:09 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/controlling-reasoning-effort-in-llms</link>
+        <guid isPermaLink="true">https://magazine.sebastianraschka.com/p/controlling-reasoning-effort-in-llms</guid>
+        
+        
+        <category>Reasoning Models</category>
+        
+        <category>AI Research</category>
+        
+        <category>Coding Agents</category>
+        
+        <category>GPT</category>
+        
+        <category>Agents</category>
+        
+        <category>LLMs</category>
+        
+        <category>Open-Source</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Inkling: A New Open-Weight 975B MoE with a Few Surprises</title>
+        <description>Architecture and benchmark notes on Thinking Machines Lab&apos;s 975B Inkling MoE, including short convolutions, relative-position bias, training, and effort control.</description>
+        <pubDate>Thu, 16 Jul 2026 03:50:22 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/inkling-architecture-benchmark-notes.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/inkling-architecture-benchmark-notes.html</guid>
+        
+        <category>llm</category>
+        
+        <category>open-weight-models</category>
+        
+        <category>architecture</category>
+        
+        <category>mixture-of-experts</category>
+        
+        <category>benchmarks</category>
+        
+        <category>long-context</category>
+        
+        <category>multimodal</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>200,000 Subscribers</title>
+        <description>Short note celebrating Ahead of AI reaching 200,000 subscribers.</description>
+        <pubDate>Sun, 12 Jul 2026 10:04:37 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/ahead-of-ai-reached-200000-subscribers.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/ahead-of-ai-reached-200000-subscribers.html</guid>
+        
+        <category>ahead-of-ai</category>
+        
+        <category>newsletter</category>
+        
+        <category>subscribers</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>GPT 5.6 Has 72 Possible Configurations. What&apos;s A Good Default?</title>
+        <description>Short note on how GPT 5.6 model and effort choices map onto training-time and inference-time scaling, producing 72 configurations.</description>
+        <pubDate>Thu, 09 Jul 2026 17:33:25 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/gpt-5-6-configurations.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/gpt-5-6-configurations.html</guid>
+        
+        <category>llm</category>
+        
+        <category>reasoning-models</category>
+        
+        <category>inference-time-scaling</category>
+        
+        <category>model-selection</category>
+        
+        <category>gpt-5-6</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Build a Reasoning Model From Scratch Is Out</title>
+        <description>Short note announcing the release of Build a Reasoning Model From Scratch and linking the publisher and Amazon pages.</description>
+        <pubDate>Tue, 30 Jun 2026 08:16:51 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/build-a-reasoning-model-from-scratch-is-out.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/build-a-reasoning-model-from-scratch-is-out.html</guid>
+        
+        <category>llm</category>
+        
+        <category>reasoning-models</category>
+        
+        <category>books</category>
+        
+        <category>reinforcement-learning</category>
+        
+        <category>qwen3</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Using Local Coding Agents</title>
+        <description>Short note linking a new article on setting up local coding agents with open-weight models.</description>
+        <pubDate>Mon, 29 Jun 2026 09:01:02 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/using-local-coding-agents.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/using-local-coding-agents.html</guid>
+        
+        <category>llm</category>
+        
+        <category>coding-agents</category>
+        
+        <category>open-weight-models</category>
+        
+        <category>local-llms</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Using Local Coding Agents</title>
+        <description>Using Open-Weight Models in Local Coding Harnesses as an Alternative to Claude Code and Codex Subscriptions</description>
+        <pubDate>Sat, 27 Jun 2026 06:21:58 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/using-local-coding-agents</link>
+        <guid isPermaLink="true">https://magazine.sebastianraschka.com/p/using-local-coding-agents</guid>
+        
+        
+        <category>Coding</category>
+        
+        <category>AI</category>
+        
+        <category>Coding Agents</category>
+        
+        <category>Large language models</category>
+        
+        <category>Agents</category>
+        
+        <category>LLMs</category>
+        
+        <category>Open-Source</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Local Open-Weight LLMs in Coding Harnesses</title>
+        <description>Short note on trying local open-weight LLMs across Qwen-Code, Codex, and Claude Code harnesses.</description>
+        <pubDate>Fri, 26 Jun 2026 09:42:42 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/local-open-weight-llms-coding-harnesses.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/local-open-weight-llms-coding-harnesses.html</guid>
+        
+        <category>llm</category>
+        
+        <category>open-weight-models</category>
+        
+        <category>coding-models</category>
+        
+        <category>agentic-coding</category>
+        
+        <category>benchmarks</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>GLM-5.2 and IndexShare for Long-Context Sparse Attention</title>
+        <description>How GLM-5.2 uses IndexShare to reuse sparse-attention token selections across layers and reduce long-context indexer computation.</description>
+        <pubDate>Thu, 18 Jun 2026 04:16:05 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/glm-5-2-indexshare.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/glm-5-2-indexshare.html</guid>
+        
+        <category>llm</category>
+        
+        <category>open-weight-models</category>
+        
+        <category>architecture</category>
+        
+        <category>attention</category>
+        
+        <category>long-context</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>VibeThinker-3B and the Strength of Post-Training</title>
+        <description>A closer look at VibeThinker-3B, a Qwen2.5-Coder-based model whose reported reasoning gains come from a detailed post-training pipeline.</description>
+        <pubDate>Wed, 17 Jun 2026 03:13:15 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/vibethinker-3b-post-training.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/vibethinker-3b-post-training.html</guid>
+        
+        <category>llm</category>
+        
+        <category>coding-models</category>
+        
+        <category>post-training</category>
+        
+        <category>reinforcement-learning</category>
+        
+        <category>benchmarks</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>North Mini Code and Agentic Coding Benchmarks</title>
+        <description>Architecture and benchmark notes for North Mini Code, Cohere&apos;s 30B-A3B MoE trained for repository, terminal, and code-generation tasks.</description>
+        <pubDate>Fri, 12 Jun 2026 13:49:55 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/north-mini-code-agentic-coding.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/north-mini-code-agentic-coding.html</guid>
+        
+        <category>llm</category>
+        
+        <category>coding-models</category>
+        
+        <category>agentic-coding</category>
+        
+        <category>benchmarks</category>
+        
+        <category>mixture-of-experts</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>LLM Research Papers: The 2026 List (January to May)</title>
+        <description>A curated roundup of notable LLM research papers that came out this year</description>
+        <pubDate>Sat, 06 Jun 2026 06:16:22 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/llm-research-papers-2026-part1</link>
+        <guid isPermaLink="true">https://magazine.sebastianraschka.com/p/llm-research-papers-2026-part1</guid>
+        
+        
+        <category>AI</category>
+        
+        <category>Attention</category>
+        
+        <category>AI Research</category>
+        
+        <category>Large language models</category>
+        
+        <category>Agents</category>
+        
+        <category>LLMs</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Nemotron 3 Ultra and Latent MoE Scaling</title>
+        <description>Architecture notes on Nemotron 3 Ultra, including its 108-layer hybrid stack, Latent MoE scaling, NVFP4 recipe, MTP, and inference results.</description>
+        <pubDate>Thu, 04 Jun 2026 06:56:41 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/nemotron-3-ultra-latent-moe.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/nemotron-3-ultra-latent-moe.html</guid>
+        
+        <category>llm</category>
+        
+        <category>architecture</category>
+        
+        <category>mixture-of-experts</category>
+        
+        <category>mamba</category>
+        
+        <category>benchmarks</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>MiniMax M2 Technical Report Notes</title>
+        <description>Technical notes on MiniMax M2, including full attention, fine-grained MoE routing, agent training data, speed rewards, and self-evolution.</description>
+        <pubDate>Wed, 27 May 2026 05:09:03 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/minimax-m2-technical-report.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/minimax-m2-technical-report.html</guid>
+        
+        <category>llm</category>
+        
+        <category>paper</category>
+        
+        <category>architecture</category>
+        
+        <category>mixture-of-experts</category>
+        
+        <category>agentic-coding</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>DeepSeek Sparse Attention From Scratch</title>
+        <description>Short note on a DeepSeek Sparse Attention from-scratch implementation added to the LLMs-from-scratch repository.</description>
+        <pubDate>Sat, 23 May 2026 14:00:34 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/deepseek-sparse-attention-from-scratch.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/deepseek-sparse-attention-from-scratch.html</guid>
+        
+        <category>llm</category>
+        
+        <category>architecture</category>
+        
+        <category>attention</category>
+        
+        <category>from-scratch</category>
+        
+        <category>deepseek</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Recent Developments in LLM Architectures: KV Sharing, mHC, and Compressed Attention</title>
+        <description>From Gemma 4 to DeepSeek V4, How New Open-Weight LLMs Are Reducing Long-Context Costs</description>
+        <pubDate>Sat, 16 May 2026 06:33:51 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/recent-developments-in-llm-architectures</link>
+        <guid isPermaLink="true">https://magazine.sebastianraschka.com/p/recent-developments-in-llm-architectures</guid>
+        
+        
+        <category>Reasoning Models</category>
+        
+        <category>AI</category>
+        
+        <category>Attention</category>
+        
+        <category>AI Research</category>
+        
+        <category>PyTorch</category>
+        
+        <category>Large language models</category>
+        
+        <category>LLMs</category>
+        
+        <category>Open-Source</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Implementing LLM Architectures From Scratch</title>
+        <description>Short note linking a talk on implementing LLM architectures from scratch and comparing new open-weight model implementations against references.</description>
+        <pubDate>Thu, 14 May 2026 08:45:46 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/llm-architectures-from-scratch-talk.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/llm-architectures-from-scratch-talk.html</guid>
+        
+        <category>llm</category>
+        
+        <category>architecture</category>
+        
+        <category>from-scratch</category>
+        
+        <category>pytorch</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>My Workflow for Understanding LLM Architectures</title>
+        <description>A learning-oriented workflow for understanding new open-weight model releases</description>
+        <pubDate>Sat, 18 Apr 2026 06:24:36 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/workflow-for-understanding-llms</link>
+        <guid isPermaLink="true">https://magazine.sebastianraschka.com/p/workflow-for-understanding-llms</guid>
+        
+        
+        <category>Coding</category>
+        
+        <category>Deep Learning</category>
+        
+        <category>AI</category>
+        
+        <category>AI Research</category>
+        
+        <category>PyTorch</category>
+        
+        <category>Large language models</category>
+        
+        <category>LLMs</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Components of A Coding Agent</title>
+        <description>How coding agents use tools, memory, and repo context to make LLMs work better in practice</description>
+        <pubDate>Sat, 04 Apr 2026 06:45:37 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/components-of-a-coding-agent</link>
+        <guid isPermaLink="true">https://magazine.sebastianraschka.com/p/components-of-a-coding-agent</guid>
+        
+        
+        <category>Reasoning Models</category>
+        
+        <category>Large language models</category>
+        
+        <category>Agents</category>
+        
+        <category>LLMs</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Gemma 4 Architecture and Benchmark Notes</title>
+        <description>Architecture and benchmark notes for Gemma 4 31B and 26B-A4B, including hybrid attention, long-context changes, and evaluation caveats.</description>
+        <pubDate>Thu, 02 Apr 2026 09:07:15 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/gemma-4-release-notes.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/gemma-4-release-notes.html</guid>
+        
+        <category>llm</category>
+        
+        <category>model-release</category>
+        
+        <category>architecture</category>
+        
+        <category>benchmarks</category>
+        
+        <category>gemma</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>LLM Architecture Gallery Diff Tool</title>
+        <description>Compare two LLM architectures side by side across attention, decoder type, layer recipe, model scale, context length, and KV-cache use.</description>
+        <pubDate>Thu, 26 Mar 2026 07:56:08 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/llm-architecture-gallery-diff-tool.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/llm-architecture-gallery-diff-tool.html</guid>
+        
+        <category>llm</category>
+        
+        <category>architecture</category>
+        
+        <category>gallery</category>
+        
+        <category>comparison-tool</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>A Visual Guide to Attention Variants in Modern LLMs</title>
+        <description>From MHA and GQA to MLA, sparse attention, and hybrid architectures</description>
+        <pubDate>Sun, 22 Mar 2026 06:55:40 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/visual-attention-variants</link>
+        <guid isPermaLink="true">https://magazine.sebastianraschka.com/p/visual-attention-variants</guid>
+        
+        
+        <category>Reasoning Models</category>
+        
+        <category>AI</category>
+        
+        <category>Attention</category>
+        
+        <category>AI Research</category>
+        
+        <category>Large language models</category>
+        
+        <category>LLMs</category>
+        
+        <category>Open-Source</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Inside the LLM Architecture Gallery</title>
+        <description>Browse 93 LLM architecture diagrams with model fact sheets, source links, concept explainers, and a side-by-side comparison tool.</description>
+        <pubDate>Sat, 14 Mar 2026 09:45:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/llm-architecture-gallery.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/llm-architecture-gallery.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Nemotron 3 Super Throughput Notes</title>
+        <description>Nemotron 3 Super combines Mamba-2, Latent MoE, sparse GQA, and shared-weight MTP in a throughput-oriented 120B-A12B model.</description>
+        <pubDate>Thu, 12 Mar 2026 03:07:03 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/nemotron-3-super-throughput.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/nemotron-3-super-throughput.html</guid>
+        
+        <category>llm</category>
+        
+        <category>model-release</category>
+        
+        <category>architecture</category>
+        
+        <category>benchmarks</category>
+        
+        <category>nemotron</category>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>A Dream of Spring for Open-Weight LLMs: 10 Architectures from Jan-Feb 2026</title>
+        <description>A Round Up And Comparison of 10 Open-Weight LLM Releases in Spring 2026</description>
+        <pubDate>Wed, 25 Feb 2026 02:15:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/a-dream-of-spring-for-open-weight</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/a-dream-of-spring-for-open-weight.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>State of AI 2026 with Sebastian Raschka, Nathan Lambert, and Lex Fridman</title>
+        <description>I recently sat down with Lex Fridman and Nathan Lambert for a comprehensive 4.5 h interview to discuss the current state of progress of AI, and what the...</description>
+        <pubDate>Sun, 01 Feb 2026 00:20:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2026/state-of-ai-interview.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/state-of-ai-interview.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Categories of Inference-Time Scaling for Improved LLM Reasoning</title>
+        <description>Inference scaling has become one of the most effective ways to improve answer quality and accuracy in deployed LLMs. The idea is straightforward. If we are...</description>
+        <pubDate>Sat, 24 Jan 2026 02:15:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/categories-of-inference-time-scaling</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2026/categories-of-inference-time-scaling.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>The State Of LLMs 2025: Progress, Problems, and Predictions</title>
+        <description>A 2025 review of large language models, from DeepSeek R1 and RLVR to inference-time scaling, benchmarks, architectures, and predictions for 2026.</description>
+        <pubDate>Tue, 30 Dec 2025 02:15:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/state-of-llms-2025</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/state-of-llms-2025.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>LLM Research Papers: The 2025 List (July to December)</title>
+        <description>A curated list of LLM research papers from July–December 2025, organized by reasoning models, inference-time scaling, architectures, training efficiency...</description>
+        <pubDate>Tue, 30 Dec 2025 02:00:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/llm-research-papers-2025-part2</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/llm-research-papers-2025-part2.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>From Random Forests to RLVR: A Short History of ML/AI Hello Worlds</title>
+        <description>Two years ago, I posted a list of Hello World examples for machine learning and AI on social. Here, the Hello World means beginner-friendly examples to...</description>
+        <pubDate>Sun, 07 Dec 2025 18:20:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2025/hello-world-ai.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/hello-world-ai.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>From DeepSeek V3 to V3.2: Architecture, Sparse Attention, and RL Updates</title>
+        <description>Similar to DeepSeek V3, the team released their new flagship model over a major US holiday weekend. Given DeepSeek V3.2&apos;s really good performance (on GPT-5...</description>
+        <pubDate>Tue, 02 Dec 2025 18:06:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/technical-deepseek</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/technical-deepseek.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Recommendations for Getting the Most Out of a Technical Book</title>
+        <description>This short article compiles a few notes I previously shared when readers ask how to get the most out of my building large language model from scratch books...</description>
+        <pubDate>Tue, 11 Nov 2025 18:08:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2025/reading-books.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/reading-books.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Beyond Standard LLMs</title>
+        <description>After I shared my Big LLM Architecture Comparison a few months ago, which focused on the main transformer-based LLMs, I received a lot of questions with...</description>
+        <pubDate>Mon, 03 Nov 2025 18:08:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/beyond-standard-llms</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/beyond-standard-llms.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>DGX Spark and Mac Mini for Local PyTorch Development</title>
+        <description>The DGX Spark for local LLM inferencing and fine-tuning was a pretty popular discussion topic recently. I got to play with one myself, primarily working...</description>
+        <pubDate>Tue, 28 Oct 2025 19:06:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2025/dgx-impressions.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/dgx-impressions.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Understanding the 4 Main Approaches to LLM Evaluation (From Scratch)</title>
+        <description>Multiple-Choice Benchmarks, Verifiers, Leaderboards, and LLM Judges with Code Examples</description>
+        <pubDate>Sat, 04 Oct 2025 19:06:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/llm-evaluation-4-approaches</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/llm-evaluation-4-approaches.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Understanding and Implementing Qwen3 From Scratch</title>
+        <description>Previously, I compared the most notable open-weight architectures of 2025 in The Big LLM Architecture Comparison. Then, I zoomed in and discussed the...</description>
+        <pubDate>Sat, 06 Sep 2025 03:00:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/qwen3-from-scratch</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/qwen3-from-scratch.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>From GPT-2 to gpt-oss: Analyzing the Architectural Advances</title>
+        <description>OpenAI just released their new open-weight LLMs this week: gpt-oss-120b and gpt-oss-20b, their first open-weight models since GPT-2 in 2019. And yes, thanks...</description>
+        <pubDate>Sat, 09 Aug 2025 06:00:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/from-gpt-2-to-gpt-oss-analyzing-the</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/from-gpt-2-to-gpt-oss.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>The Big LLM Architecture Comparison</title>
+        <description>It has been seven years since the original GPT architecture was developed. At first glance, looking back at GPT-2 (2019) and forward to DeepSeek-V3 and...</description>
+        <pubDate>Sat, 19 Jul 2025 01:00:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/the-big-llm-architecture-comparison</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/the-big-llm-architecture-comparison.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>LLM Research Papers: The 2025 List (January to June)</title>
+        <description>The latest in LLM research with a hand-curated, topic-organized list of over 200 research papers from 2025.</description>
+        <pubDate>Tue, 01 Jul 2025 01:06:11 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/llm-research-papers-2025-list-one</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/llm-research-papers-the-2025-list-january-to-june.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Understanding and Coding the KV Cache in LLMs from Scratch</title>
+        <description>KV caches are one of the most critical techniques for efficient inference in LLMs in production. KV caches are an important component for compute-efficient...</description>
+        <pubDate>Tue, 17 Jun 2025 03:00:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/coding-the-kv-cache-in-llms</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/coding-the-kv-cache-in-llms.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Coding LLMs from the Ground Up: A Complete Course</title>
+        <description>Why build an LLM from scratch? It&apos;s probably the best and most efficient way to learn how LLMs really work. Plus, many readers have told me they had a lot...</description>
+        <pubDate>Fri, 09 May 2025 19:00:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/coding-llms-from-the-ground-up</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/coding-llms-from-the-ground-up-a-complete-course.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>The State of Reinforcement Learning for LLM Reasoning</title>
+        <description>A lot has happened this month, especially with the releases of new flagship models like GPT-4.5 and Llama 4. But you might have noticed that reactions to...</description>
+        <pubDate>Fri, 18 Apr 2025 19:00:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/the-state-of-llm-reasoning-model-training</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/the-state-of-reinforcement-learning-for-llm-reasoning.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+        <category>Reasoning Models</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>First Look at Reasoning From Scratch: Chapter 1</title>
+        <description>As you know, I&apos;ve been writing a lot lately about the latest research on reasoning in LLMs. Before my next research-focused blog post, I wanted to offer...</description>
+        <pubDate>Sat, 29 Mar 2025 01:03:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/first-look-at-reasoning-from-scratch</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/first-look-at-reasoning-from-scratch.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Inference-Time Compute Scaling Methods to Improve Reasoning Models</title>
+        <description>This article explores recent research advancements in reasoning-optimized LLMs, with a particular focus on inference-time compute scaling that have emerged...</description>
+        <pubDate>Sat, 08 Mar 2025 00:03:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/state-of-llm-reasoning-and-inference-scaling</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/state-of-llm-reasoning-and-inference-scaling.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Understanding Reasoning LLMs</title>
+        <description>Overview of four ways to build reasoning-capable LLMs, including inference-time scaling, supervised finetuning, reinforcement learning, and search-based methods.</description>
+        <pubDate>Wed, 05 Feb 2025 00:03:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/understanding-reasoning-llms</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/understanding-reasoning-llms.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Noteworthy LLM Research Papers of 2024</title>
+        <description>This article covers 12 influential AI research papers of 2024, ranging from mixture-of-experts models to new LLM scaling laws for precision.</description>
+        <pubDate>Thu, 23 Jan 2025 00:03:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/ai-research-papers-2024-part-1</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/llm-research-2024.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Implementing A Byte Pair Encoding (BPE) Tokenizer From Scratch</title>
+        <description>Implements byte pair encoding (BPE) tokenization from scratch: tokenizer training, GPT-style merge rules, and step-by-step Python examples.</description>
+        <pubDate>Fri, 17 Jan 2025 00:03:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2025/bpe-from-scratch.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2025/bpe-from-scratch.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>LLM Research Papers: The 2024 List</title>
+        <description>I want to share my running bookmark list of many fascinating (mostly LLM-related) papers I stumbled upon in 2024. It&apos;s just a list, but maybe it will come...</description>
+        <pubDate>Sun, 29 Dec 2024 00:03:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/llm-research-papers-the-2024-list</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/llm-research-papers-the-2024-list.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Understanding Multimodal LLMs</title>
+        <description>There has been a lot of new research on the multimodal LLM front, including the latest Llama 3.2 vision models, which employ diverse architectural...</description>
+        <pubDate>Sun, 03 Nov 2024 01:03:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/understanding-multimodal-llms</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/understanding-multimodal-llms.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Building A GPT-Style LLM Classifier From Scratch</title>
+        <description>This article shows you how to transform pretrained large language models (LLMs) into strong text classifiers. But why focus on classification? First...</description>
+        <pubDate>Sat, 21 Sep 2024 01:03:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/building-a-gpt-style-llm-classifier</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/building-a-gpt-style-llm-classifier.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Building LLMs from the Ground Up: A 3-hour Coding Workshop</title>
+        <description>Three-hour coding workshop that builds the core pieces of a GPT-style large language model from the ground up for developers who want implementation intuition.</description>
+        <pubDate>Sun, 01 Sep 2024 01:03:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/building-llms-from-the-ground-up</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/building-llms-from-the-ground-up.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>New LLM Pre-training and Post-training Paradigms</title>
+        <description>There are hundreds of LLM papers each month proposing new techniques and approaches. However, one of the best ways to see what actually works well in...</description>
+        <pubDate>Sat, 17 Aug 2024 01:03:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/new-llm-pre-training-and-post-training</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/new-llm-pre-training-and-post-training.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Instruction Pretraining LLMs</title>
+        <description>This article covers a new, cost-effective method for generating data for instruction finetuning LLMs; instruction finetuning from scratch; pretraining LLMs...</description>
+        <pubDate>Sat, 20 Jul 2024 01:03:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/instruction-pretraining-llms</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/instruction-pretraining-llms.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>LLM Research Insights: Instruction Masking and New LoRA Finetuning Experiments?</title>
+        <description>This article covers three new papers related to instruction finetuning and parameter-efficient finetuning with LoRA in large language models (LLMs). I work...</description>
+        <pubDate>Sun, 02 Jun 2024 01:03:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/llm-research-insights-instruction</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/llm-research-insights-instruction.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Developing an LLM: Building, Training, Finetuning</title>
+        <description>This is an overview of the LLM development process. This one-hour talk focuses on the essential three stages of developing an LLM: coding the architecture...</description>
+        <pubDate>Sun, 02 Jun 2024 01:03:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/llms-building-training-finetuning</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/llms-building-training-finetuning.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>How Good Are the Latest Open LLMs? And Is DPO Better Than PPO?</title>
+        <description>What a month! We had four major open LLM releases: Mixtral, Meta AI&apos;s Llama 3, Microsoft&apos;s Phi-3, and Apple&apos;s OpenELM. In my new article, I review and...</description>
+        <pubDate>Sun, 12 May 2024 01:03:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/how-good-are-the-latest-open-llms</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/how-good-open-llm.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Using and Finetuning Pretrained Transformers</title>
+        <description>Guide to using and finetuning pretrained transformers, comparing feature extraction, prompt-based use, full finetuning, and parameter-efficient LLM adaptation.</description>
+        <pubDate>Sat, 20 Apr 2024 02:00:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/using-and-finetuning-pretrained-transformers</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/using-finetuning-transformers.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>AI</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Tips for LLM Pretraining and Evaluating Reward Models</title>
+        <description>It&apos;s another month in AI research, and it&apos;s hard to pick favorites. This month, I am going over a paper that discusses strategies for the continued...</description>
+        <pubDate>Sun, 31 Mar 2024 01:00:00 -0500</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/tips-for-llm-pretraining-and-evaluating-rms</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/research-papers-in-march-2024.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Research Papers in February 2024</title>
+        <description>Once again, this has been an exciting month in AI research. This month, I&apos;m covering two new openly available LLMs, insights into small finetuned LLMs, and...</description>
+        <pubDate>Sun, 03 Mar 2024 00:00:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/research-papers-in-february-2024</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/research-papers-in-february-2024.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Improving LoRA: Implementing Weight-Decomposed Low-Rank Adaptation (DoRA) from Scratch</title>
+        <description>Technical tutorial on LoRA and DoRA for parameter-efficient finetuning, with from-scratch PyTorch code and intuition for weight-decomposed low-rank adaptation.</description>
+        <pubDate>Sun, 18 Feb 2024 02:00:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/lora-and-dora-from-scratch</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2024/lora-dora.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Optimizing LLMs From a Dataset Perspective</title>
+        <description>Practical guide to improving LLM finetuning with better instruction datasets, covering data curation, prompt-output pairs, synthetic data, and experiment ideas.</description>
+        <pubDate>Fri, 15 Sep 2023 03:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/optimizing-LLMs-dataset-perspective.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/optimizing-LLMs-dataset-perspective.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>The NeurIPS 2023 LLM Efficiency Challenge Starter Guide</title>
+        <description>Large language models (LLMs) offer one of the most interesting opportunities for developing more efficient training methods. A few weeks ago, the NeurIPS...</description>
+        <pubDate>Thu, 10 Aug 2023 03:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/neurips2023-starter-guide.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/neurips2023-starter-guide.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Optimizing Memory Usage for Training LLMs and Vision Transformers in PyTorch</title>
+        <description>Peak memory consumption is a common bottleneck when training deep learning models such as vision transformers and LLMs. This article provides a series of...</description>
+        <pubDate>Sat, 01 Jul 2023 03:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/pytorch-memory-optimization.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/pytorch-memory-optimization.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Finetuning Falcon LLMs More Efficiently With LoRA and Adapters</title>
+        <description>Finetuning allows us to adapt pretrained LLMs in a cost-efficient manner. But which method should we use? This article compares different...</description>
+        <pubDate>Wed, 14 Jun 2023 03:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/falcon-finetuning.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/falcon-finetuning.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Accelerating Large Language Models with Mixed-Precision Techniques</title>
+        <description>Training and using large language models (LLMs) is expensive due to their large compute requirements and memory footprints. This article will explore how...</description>
+        <pubDate>Thu, 11 May 2023 03:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/llm-mixed-precision-copy.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/llm-mixed-precision-copy.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Parameter-Efficient LLM Finetuning With Low-Rank Adaptation (LoRA)</title>
+        <description>Pretrained large language models are often referred to as foundation models for a good reason: they perform well on various tasks, and we can use them as a...</description>
+        <pubDate>Wed, 26 Apr 2023 03:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/llm-finetuning-lora.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/llm-finetuning-lora.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Understanding Parameter-Efficient Finetuning of Large Language Models: From Prefix Tuning to LLaMA-Adapters</title>
+        <description>In the rapidly evolving field of artificial intelligence, utilizing large language models in an efficient and effective manner has become increasingly...</description>
+        <pubDate>Wed, 12 Apr 2023 03:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/llm-finetuning-llama-adapter.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/llm-finetuning-llama-adapter.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Finetuning Large Language Models On A Single GPU Using Gradient Accumulation</title>
+        <description>Previously, I shared an article using multi-GPU training strategies to speed up the finetuning of large language models. Several of these strategies include...</description>
+        <pubDate>Tue, 28 Mar 2023 03:00:00 -0500</pubDate>
+        <link>https://lightning.ai/pages/blog/gradient-accumulation/</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/llm-grad-accumulation.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Keeping Up With AI Research And News</title>
+        <description>When it comes to productivity workflows, there are a lot of things I&apos;d love to share. However, the one topic many people ask me about is how I keep up with...</description>
+        <pubDate>Thu, 23 Mar 2023 03:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/keeping-up-with-ai.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/keeping-up-with-ai.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Some Techniques To Make Your PyTorch Models Train (Much) Faster</title>
+        <description>This blog post outlines techniques for improving the training performance of your PyTorch model without compromising its accuracy. To do so, we will wrap a...</description>
+        <pubDate>Thu, 23 Feb 2023 02:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/pytorch-faster.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/pytorch-faster.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Understanding and Coding Self-Attention, Multi-Head Attention, Causal Attention, and Cross-Attention in LLMs</title>
+        <description>A deep-dive implementation of self-attention, multi-head attention, causal attention, and cross-attention — the mechanisms behind modern transformer LLMs.</description>
+        <pubDate>Thu, 09 Feb 2023 02:00:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/understanding-and-coding-self-attention</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/understanding-and-coding-self-attention.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>LLM</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Understanding and Coding the Self-Attention Mechanism of Large Language Models From Scratch</title>
+        <description>Step-by-step tutorial explaining scaled dot-product self-attention for large language models, with Python code that builds the mechanism from scratch.</description>
+        <pubDate>Thu, 09 Feb 2023 02:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/self-attention-from-scratch.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/self-attention-from-scratch.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Understanding Large Language Models -- A Transformative Reading List</title>
+        <description>Curated reading list for understanding large language models, from attention and transformers to BERT, GPT, scaling laws, instruction tuning, and RLHF.</description>
+        <pubDate>Tue, 07 Feb 2023 02:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/llm-reading-list.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/llm-reading-list.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>What Are the Different Approaches for Detecting Content Generated by LLMs Such As ChatGPT? And How Do They Work and Differ?</title>
+        <description>Since the release of the AI Classifier by OpenAI made big waves yesterday, I wanted to share a few details about the different approaches for detecting...</description>
+        <pubDate>Wed, 01 Feb 2023 03:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/detect-ai.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/detect-ai.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Comparing Different Automatic Image Augmentation Methods in PyTorch</title>
+        <description>Data augmentation is a key tool in reducing overfitting, whether it&apos;s for images or text. This article compares three Auto Image Data Augmentation...</description>
+        <pubDate>Sun, 29 Jan 2023 03:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/data-augmentation-pytorch.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/data-augmentation-pytorch.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Curated Resources and Trustworthy Experts: The Key Ingredients for Finding Accurate Answers to Technical Questions in the Future</title>
+        <description>Conversational chat bots such as ChatGPT probably will not be able replace traditional search engines and expert knowledge anytime soon. With the vast...</description>
+        <pubDate>Mon, 16 Jan 2023 03:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/chatgpt-dilemma.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/chatgpt-dilemma.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Training an XGBoost Classifier Using Cloud GPUs Without Worrying About Infrastructure</title>
+        <description>Imagine you want to quickly train a few machine learning or deep learning models on the cloud but don&apos;t want to deal with cloud infrastructure. This short...</description>
+        <pubDate>Sun, 15 Jan 2023 01:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/xgboost-gpu.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/xgboost-gpu.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Open Source Highlights 2022 for Machine Learning &amp; AI</title>
+        <description>Recently, I shared the top 10 papers that I read in 2022. As a follow-up, I am compiling a list of my favorite 10 open-source releases that I discovered...</description>
+        <pubDate>Thu, 05 Jan 2023 01:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2023/open-source-highlights-2022.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/open-source-highlights-2022.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Influential Machine Learning Papers Of 2022</title>
+        <description>Every day brings something new and exciting to the world of machine learning and AI, from the latest developments and breakthroughs in the field to emerging...</description>
+        <pubDate>Tue, 03 Jan 2023 01:00:00 -0600</pubDate>
+        <link>https://magazine.sebastianraschka.com/p/ahead-of-ai-4-a-big-year-for-ai</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2023/top10-papers-2022.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Ahead Of AI, And What&apos;s Next?</title>
+        <description>About monthly machine learning musings, and other things I am currently workin on ...</description>
+        <pubDate>Sat, 15 Oct 2022 02:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2022/ahead-of-ai-and-whats-next.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2022/ahead-of-ai-and-whats-next.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>A Short Chronology Of Deep Learning For Tabular Data</title>
+        <description>Occasionally, I share research papers proposing new deep learning approaches for tabular data on social media, which is typically an excellent discussion...</description>
+        <pubDate>Sun, 24 Jul 2022 02:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2022/deep-learning-for-tabular-data.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2022/deep-learning-for-tabular-data.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>Data Science</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>No, We Don&apos;t Have to Choose Batch Sizes As Powers Of 2</title>
+        <description>Regarding neural network training, I think we are all guilty of doing this: we choose our batch sizes as powers of 2, that is, 64, 128, 256, 512, 1024, and...</description>
+        <pubDate>Tue, 05 Jul 2022 02:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2022/batch-size-2.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2022/batch-size-2.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>PyTorch</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Sharing Deep Learning Research Models with Lightning Part 2: Leveraging the Cloud</title>
+        <description>Deploys a Super Resolution GAN (SRGAN) app to the cloud with Lightning.ai — covers containerization, model serving, and production deployment steps.</description>
+        <pubDate>Thu, 30 Jun 2022 02:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2022/lightning-app-srgan-2.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2022/lightning-app-srgan-2.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>ML Systems</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Sharing Deep Learning Research Models with Lightning Part 1: Building A Super Resolution App</title>
+        <description>Build a Super Resolution GAN app with Lightning.ai: interactive UI, model serving, and a modern workflow for sharing deep learning research.</description>
+        <pubDate>Fri, 17 Jun 2022 02:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2022/lightning-app-srgan-1.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2022/lightning-app-srgan-1.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+        <category>ML Systems</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Taking Datasets, DataLoaders, and PyTorch’s New DataPipes for a Spin</title>
+        <description>The PyTorch team recently announced TorchData, a prototype library focused on implementing composable and reusable data loading utilities for PyTorch. In...</description>
+        <pubDate>Sun, 12 Jun 2022 02:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2022/datapipes.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2022/datapipes.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Running PyTorch on the M1 GPU</title>
+        <description>Today, PyTorch officially introduced GPU support for Apple&apos;s ARM M1 chips. This is an exciting day for Mac users out there, so I spent a few minutes trying...</description>
+        <pubDate>Wed, 18 May 2022 02:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2022/pytorch-m1-gpu.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2022/pytorch-m1-gpu.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Creating Confidence Intervals for Machine Learning Classifiers</title>
+        <description>Developing good predictive models hinges upon accurate performance evaluation and comparisons. However, when evaluating machine learning models, we...</description>
+        <pubDate>Mon, 25 Apr 2022 02:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2022/confidence-intervals-for-ml.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2022/confidence-intervals-for-ml.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Losses Learned</title>
+        <description>The cross-entropy loss is our go-to loss for training deep learning-based classifiers. In this article, I am giving you a quick tour of how we usually...</description>
+        <pubDate>Mon, 04 Apr 2022 10:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2022/losses-learned-part1.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2022/losses-learned-part1.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>TorchMetrics</title>
+        <description>TorchMetrics is a really nice and convenient library that lets us compute the performance of models in an iterative fashion. It&apos;s designed with PyTorch (and...</description>
+        <pubDate>Thu, 24 Mar 2022 08:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2022/torchmetrics.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2022/torchmetrics.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Machine Learning with PyTorch and Scikit-Learn</title>
+        <description>Machine Learning with PyTorch and Scikit-Learn has been a long time in the making, and I am excited to finally get to talk about the release of my new book...</description>
+        <pubDate>Fri, 25 Feb 2022 01:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2022/ml-pytorch-book.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2022/ml-pytorch-book.html</guid>
+        
+        
+        <category>Book</category>
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Introduction to Machine Learning</title>
+        <description>About half a year ago, I organized all my deep learning-related videos in a handy blog post to have everything in one place. Since many people liked this...</description>
+        <pubDate>Wed, 29 Dec 2021 00:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2021/ml-course.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2021/ml-course.html</guid>
+        
+        
+        <category>Machine Learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Introduction to Deep Learning</title>
+        <description>I just sat down this morning and organized all deep learning related videos I recorded in 2021. I am sure this will be a useful reference for my future...</description>
+        <pubDate>Fri, 09 Jul 2021 01:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2021/dl-course.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2021/dl-course.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Datasets for Machine Learning and Deep Learning</title>
+        <description>With the semester being in full swing, I recently shared this set of dataset repositories with my deep learning class. However, I thought that beyond using...</description>
+        <pubDate>Thu, 11 Feb 2021 03:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2021/ml-dl-datasets.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2021/ml-dl-datasets.html</guid>
+        
+        
+        <category>Deep Learning</category>
+        
+        <category>Machine Learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Book Review: Deep Learning With PyTorch</title>
+        <description>After its release in August 2020, Deep Learning with PyTorch has been sitting on my shelf before I finally got a chance to read it during this winter break...</description>
+        <pubDate>Thu, 21 Jan 2021 03:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2021/pytorch-deeplearning-review.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2021/pytorch-deeplearning-review.html</guid>
+        
+        
+        <category>Productivity</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>How I Keep My Projects Organized</title>
+        <description>Since I started my undergraduate studies in 2008, I have been obsessed with productivity tips, notetaking solutions, and todo-list management. Over the...</description>
+        <pubDate>Sun, 03 Jan 2021 14:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2021/project-management.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2021/project-management.html</guid>
+        
+        
+        <category>Productivity</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Scientific Computing in Python: Introduction to NumPy and Matplotlib</title>
+        <description>Beginner&apos;s guide to NumPy and Matplotlib for scientific computing: arrays, indexing, broadcasting, linear algebra, and plotting with Python code examples.</description>
+        <pubDate>Sun, 27 Sep 2020 12:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2020/numpy-intro.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2020/numpy-intro.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>NumPy</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Interpretable Machine Learning</title>
+        <description>Review of Christoph Molnar&apos;s Interpretable Machine Learning, plus practical notes on GAMs, LIME, and SHAP for explaining black-box model predictions.</description>
+        <pubDate>Wed, 26 Aug 2020 13:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2020/interpretable-ml-1.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2020/interpretable-ml-1.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Deep-learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Chapter 1: Introduction to Machine Learning and Deep Learning</title>
+        <description>The first chapter (draft) of the Introduction to Deep Learning book, which is a book based on my lecture notes and slides.</description>
+        <pubDate>Wed, 05 Aug 2020 16:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2020/intro-to-dl-ch01.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2020/intro-to-dl-ch01.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Deep-learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Book Review: Architects of Intelligence by Martin Ford</title>
+        <description>A brief review of Martin Ford&apos;s book that features interviews with 23 of the most well-known and brightest minds working on AI.</description>
+        <pubDate>Mon, 06 Jan 2020 07:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2020/book-review-1-architects-of-intelligence.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2020/book-review-1-architects-of-intelligence.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Deep-learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>What&apos;s New in the 3rd Edition</title>
+        <description>A brief summary of what&apos;s new in the 3rd edition of Python Machine Learning.</description>
+        <pubDate>Thu, 12 Dec 2019 16:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2019/whats-new-in-the-3rd-edition.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2019/whats-new-in-the-3rd-edition.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Deep-learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>My First Year at UW-Madison and a Gallery of Awesome Student Projects</title>
+        <description>Not too long ago, in the Summer of 2018, I was super excited to join the Department of Statistics at the University of Wisconsin-Madison after obtaining my...</description>
+        <pubDate>Fri, 24 May 2019 17:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2019/student-gallery-1.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2019/student-gallery-1.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Deep-learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Model evaluation, model selection, and algorithm selection in machine learning</title>
+        <description>Part 4 of the model evaluation series explaining statistical tests, algorithm comparisons, corrected resampled tests, and nested cross-validation.</description>
+        <pubDate>Sat, 10 Nov 2018 16:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2018/model-evaluation-selection-part4.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2018/model-evaluation-selection-part4.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Generating Gender-Neutral Face Images with Semi-Adversarial Neural Networks to Enhance Privacy</title>
+        <description>I thought that it would be nice to have short and concise summaries of recent projects handy, to share them with a more general audience, including...</description>
+        <pubDate>Thu, 02 Aug 2018 00:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2018/semi-adversarial-nets-1.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2018/semi-adversarial-nets-1.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Deep-Learning</category>
+        
+        <category>PyTorch</category>
+        
+        <category>Python</category>
+        
+        <category>Biometrics</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Model evaluation, model selection, and algorithm selection in machine learning</title>
+        <description>Part 3 of the model evaluation series covering hyperparameter tuning, model selection, validation sets, k-fold cross-validation, and nested workflows.</description>
+        <pubDate>Sun, 02 Oct 2016 15:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2016/model-evaluation-selection-part3.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2016/model-evaluation-selection-part3.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Model evaluation, model selection, and algorithm selection in machine learning</title>
+        <description>Part 2 of the model evaluation series explaining bootstrap methods, holdout validation, resampling variance, uncertainty estimates, and model stability.</description>
+        <pubDate>Sat, 13 Aug 2016 15:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2016/model-evaluation-selection-part2.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2016/model-evaluation-selection-part2.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Model evaluation, model selection, and algorithm selection in machine learning</title>
+        <description>Part 1 of a practical model evaluation series covering generalization performance, train-test splits, bias, variance, and supervised learning workflow basics.</description>
+        <pubDate>Sat, 11 Jun 2016 15:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2016/model-evaluation-selection-part1.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2016/model-evaluation-selection-part1.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Writing &apos;Python Machine Learning&apos;</title>
+        <description>It&apos;s been about time. I am happy to announce that &quot;Python Machine Learning&quot; was finally released today! Sure, I could just send an email around to all the...</description>
+        <pubDate>Thu, 24 Sep 2015 05:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2015/writing-pymle.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2015/writing-pymle.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Python, Machine Learning, and Language Wars</title>
+        <description>This has really been quite a journey for me lately. And regarding the frequently asked question “Why did you choose Python for Machine Learning?” I guess it...</description>
+        <pubDate>Mon, 24 Aug 2015 05:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/blog/2015/why-python.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2015/why-python.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Single-Layer Neural Networks and Gradient Descent</title>
+        <description>History and fundamentals of single-layer neural networks and gradient descent, with Python implementations of the perceptron and ADALINE for classification.</description>
+        <pubDate>Tue, 24 Mar 2015 05:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2015_singlelayer_neurons.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2015_singlelayer_neurons.html</guid>
+        
+        <category>python</category>
+        
+        <category>machine-learning</category>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Principal Component Analysis</title>
+        <description>Step-by-step PCA tutorial that explains standardization, covariance matrices, eigendecomposition, explained variance, and projection with Python code.</description>
+        <pubDate>Tue, 27 Jan 2015 10:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/Articles/2015_pca_in_3_steps.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2015_pca_in_3_steps.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Implementing a Weighted Majority Rule Ensemble Classifier</title>
+        <description>Here, I want to present a simple and conservative approach of implementing a weighted majority rule ensemble classifier in scikit-learn that yielded...</description>
+        <pubDate>Sun, 11 Jan 2015 12:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_ensemble_classifier.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_ensemble_classifier.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+        <category>scikit-learn</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>MusicMood</title>
+        <description>Music mood classification project: predicting a song&apos;s emotional valence from lyrics with NLP, feature engineering, and scikit-learn in Python.</description>
+        <pubDate>Fri, 05 Dec 2014 01:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/blog/2014/musicmood.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/blog/2014/musicmood.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Turn Your Twitter Timeline into a Word Cloud</title>
+        <description>Last week, I posted some visualizations in context of Happy Rock Song data mining project, and some people were curious about how I created the word clouds...</description>
+        <pubDate>Fri, 28 Nov 2014 16:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_twitter_wordcloud.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_twitter_wordcloud.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Naive Bayes and Text Classification</title>
+        <description>Naive Bayes classifiers, a family of classifiers that are based on the popular Bayes’ probability theorem, are known for creating simple yet well performing...</description>
+        <pubDate>Sat, 04 Oct 2014 17:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_naive_bayes_1.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_naive_bayes_1.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Kernel tricks and nonlinear dimensionality reduction via RBF kernel PCA</title>
+        <description>Tutorial on kernel methods and nonlinear dimensionality reduction with RBF kernel PCA, including the kernel trick and a Python implementation.</description>
+        <pubDate>Sun, 14 Sep 2014 15:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_kernel_pca.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_kernel_pca.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Predictive modeling, supervised machine learning, and pattern classification</title>
+        <description>When I was working on my next pattern classification application, I realized that it might be worthwhile to take a step back and look at the big picture of...</description>
+        <pubDate>Mon, 25 Aug 2014 03:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_intro_supervised_learning.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_intro_supervised_learning.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Linear Discriminant Analysis</title>
+        <description>Step-by-step Linear Discriminant Analysis tutorial covering scatter matrices, eigenvectors, class separation, dimensionality reduction, and Python code.</description>
+        <pubDate>Sun, 03 Aug 2014 11:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_python_lda.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_python_lda.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Dixon&apos;s Q test for outlier identification</title>
+        <description>I recently faced the impossible task to identify outliers in a dataset with very, very small sample sizes and Dixon&apos;s Q test caught my attention. Honestly...</description>
+        <pubDate>Fri, 18 Jul 2014 20:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_dixon_test.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_dixon_test.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>About Feature Scaling and Normalization</title>
+        <description>I received a couple of questions in response to my previous article (Entry point: Data) where people asked me why I used Z-score standardization as feature...</description>
+        <pubDate>Fri, 11 Jul 2014 04:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_about_feature_scaling.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_about_feature_scaling.html</guid>
+        
+        
+        <category>Python</category>
+        
+        <category>Machine-learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Entry Point Data</title>
+        <description>Overview of Python tools for data entry and pattern recognition workflows — file I/O, CSV handling, argparse, and command-line scripting best practices.</description>
+        <pubDate>Fri, 27 Jun 2014 04:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_scikit_dataprocessing.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_scikit_dataprocessing.html</guid>
+        
+        
+        <category>Python</category>
+        
+        <category>Machine-learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Molecular docking, estimating free energies of binding, and AutoDock&apos;s semi-empirical force field</title>
+        <description>Discussions and questions about methods, approaches, and tools for estimating (relative) binding free energies of protein-ligand complexes are quite...</description>
+        <pubDate>Thu, 26 Jun 2014 11:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_autodock_energycomps.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_autodock_energycomps.html</guid>
+        
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>An introduction to parallel programming using Python&apos;s multiprocessing module</title>
+        <description>Parallel programming in Python with multiprocessing: bypassing the GIL, spawning processes, using Pool.map, and speeding up CPU-bound workloads.</description>
+        <pubDate>Fri, 20 Jun 2014 04:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_multiprocessing.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_multiprocessing.html</guid>
+        
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Kernel density estimation via the Parzen-Rosenblatt window method</title>
+        <description>The Parzen-window method (also known as Parzen-Rosenblatt window method) is a widely used non-parametric approach to estimate a probability density function...</description>
+        <pubDate>Thu, 19 Jun 2014 04:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_kernel_density_est.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_kernel_density_est.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Numeric matrix manipulation</title>
+        <description>At its core, this article is about a simple cheat sheet for basic operations on numeric matrices, which can be very useful if you working and experimenting...</description>
+        <pubDate>Thu, 19 Jun 2014 04:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_matrix_cheatsheet.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_matrix_cheatsheet.html</guid>
+        
+        
+        <category>Machine-learning</category>
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>The key differences between Python 2.7.x and Python 3.x with examples</title>
+        <description>Many beginning Python users are wondering with which version of Python they should start. My answer to this question is usually something along the lines...</description>
+        <pubDate>Sun, 01 Jun 2014 04:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_python_2_3_key_diff.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_python_2_3_key_diff.html</guid>
+        
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>5 simple steps for converting Markdown documents into HTML and adding Python syntax highlighting</title>
+        <description>5-step tutorial to add code syntax highlighting to Markdown blog posts using Python-Markdown, Pygments, and custom CSS stylesheets.</description>
+        <pubDate>Wed, 28 May 2014 04:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_markdown_syntax_color.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_markdown_syntax_color.html</guid>
+        
+        
+        <category>Python</category>
+        
+        <category>Markdown</category>
+        
+        <category>Web</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Creating a table of contents with internal links in IPython Notebooks and Markdown documents</title>
+        <description>Many people have asked me how I create the table of contents with internal links for my IPython Notebooks and Markdown documents on GitHub. Well, no...</description>
+        <pubDate>Tue, 20 May 2014 04:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_ipython_internal_links.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_ipython_internal_links.html</guid>
+        
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>A Beginner&apos;s Guide to Python&apos;s Namespaces, Scope Resolution, and the LEGB Rule</title>
+        <description>A short tutorial about Python&apos;s namespaces and the scope resolution for variable names using the LEGB-rule with little quiz-like exercises.</description>
+        <pubDate>Mon, 12 May 2014 04:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_python_scope_and_namespaces.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_python_scope_and_namespaces.html</guid>
+        
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Diving deep into Python</title>
+        <description>Some while ago, I started to collect some of the not-so-obvious things I encountered when I was coding in Python. I thought that it was worthwhile sharing...</description>
+        <pubDate>Mon, 21 Apr 2014 04:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_deep_python.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_deep_python.html</guid>
+        
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Implementing a Principal Component Analysis (PCA)</title>
+        <description>Implementing Principal Component Analysis from scratch in Python: scatter matrices, eigenvectors, variance explained, and comparison with scikit-learn PCA.</description>
+        <pubDate>Sun, 13 Apr 2014 04:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_pca_step_by_step.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_pca_step_by_step.html</guid>
+        
+        
+        <category>Python</category>
+        
+        <category>Statistics</category>
+        
+        <category>Machine-learning</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Installing Scientific Packages for Python3 on MacOS 10.9 Mavericks</title>
+        <description>I just went through some pain (again) when I wanted to install some of Python&apos;s scientific libraries on my second Mac. I summarized the setup and...</description>
+        <pubDate>Thu, 13 Mar 2014 04:00:00 -0500</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_install_python_sci_pkgs.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_install_python_sci_pkgs.html</guid>
+        
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>A thorough guide to SQLite database operations in Python</title>
+        <description>Complete SQLite guide for Python: creating databases, running queries, bulk inserts, pandas integration, and tips for working with large datasets.</description>
+        <pubDate>Fri, 07 Mar 2014 03:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_sqlite_in_python_tutorial.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_sqlite_in_python_tutorial.html</guid>
+        
+        
+        <category>Python</category>
+        
+        <category>SQLite</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Using OpenEye software for substructure alignments</title>
+        <description>This is a quickguide showing how to use OpenEye software command line tools to align target molecules to a query based on substructure matches and how to...</description>
+        <pubDate>Sun, 23 Feb 2014 03:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/Articles/2014_openeye_alignments_overlays.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2014_openeye_alignments_overlays.html</guid>
+        
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>Unit testing in Python</title>
+        <description>Let’s be honest, code testing is everything but a joyful task. However, a good unit testing framework makes this process as smooth as possible. Eventually...</description>
+        <pubDate>Sat, 14 Dec 2013 03:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/Articles/2013_python_unittest.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2013_python_unittest.html</guid>
+        
+        
+        <category>Python</category>
+        
+        <category>Testing</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>A short tutorial for decent heat maps in R</title>
+        <description>I received many questions from people who want to quickly visualize their data via heat maps - ideally as quickly as possible. This is the major issue of...</description>
+        <pubDate>Sun, 08 Dec 2013 03:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/Articles/heatmaps_in_r.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/heatmaps_in_r.html</guid>
+        
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+      
+      
+      
+      
+      
+      
+      <item>
+        <title>SQLite</title>
+        <description>My new project confronted me with the task of screening a massive set of large data files in text format with billions of entries each. I will have to...</description>
+        <pubDate>Sun, 03 Nov 2013 03:00:00 -0600</pubDate>
+        <link>https://sebastianraschka.com/Articles/2013_sqlite_database.html</link>
+        <guid isPermaLink="true">https://sebastianraschka.com/Articles/2013_sqlite_database.html</guid>
+        
+        
+        <category>Python</category>
+        
+      </item>
+      
+    
+  </channel>
+</rss>
