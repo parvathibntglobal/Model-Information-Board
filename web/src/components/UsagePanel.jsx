@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { adminUsage } from '../api'
+import { prettyModel } from '../modelNames'
 import { Badge, Notice, Stat } from './ui'
 import { IconAlert, IconGauge } from './Icons'
 
@@ -32,20 +33,8 @@ import { IconAlert, IconGauge } from './Icons'
 const POLL_MS = 45000
 const usd = (n, dp = 4) => (n == null ? '—' : `$${Number(n).toFixed(dp)}`)
 
-// Friendly label for an OpenRouter model id. Known extractors are pinned; any
-// other id (e.g. a new deepseek/… once EXTRACTOR_MODEL switches) is title-cased
-// from its slug so it still reads properly. The raw id is shown beside it.
-const MODEL_NAMES = {
-  'google/gemini-2.5-flash': 'Gemini 2.5 Flash',          // previous extractor
-  'deepseek/deepseek-v4-flash': 'DeepSeek V4 Flash',       // current extractor
-  'deepseek/deepseek-v4-flash:free': 'DeepSeek V4 Flash (free)',
-  'deepseek/deepseek-v4-flash-0731': 'DeepSeek V4 Flash 0731',
-}
-function prettyModel(id) {
-  if (MODEL_NAMES[id]) return MODEL_NAMES[id]
-  const slug = String(id).split('/').pop() || String(id)
-  return slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-}
+// MOVED TO src/modelNames.js, because Settings names the same model and was
+// printing the raw id - so one page called the extractor two different things.
 
 // Corrected per-model total. The local ledger only logged a fraction of the
 // pre-switch Gemini spend ($0.0783); the real total on the key while Gemini
@@ -370,7 +359,12 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
         </>
       )}
 
-      <span className="label">By extractor model — Gemini 2.5 Flash (used so far) → DeepSeek V4 Flash (current)</span>
+      {/* Through `prettyModel` like the rows below it, so the heading and the
+          row it describes cannot disagree about what the extractor is called. */}
+      <span className="label">
+        By extractor model — {prettyModel('google/gemini-2.5-flash')} (used so far)
+        {' → '}{prettyModel(CURRENT_EXTRACTOR)} (current)
+      </span>
       {rows.length === 0 ? (
         <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>No model calls recorded yet.</span>
       ) : (
@@ -428,7 +422,7 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
 
       <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
         Spend to date ran on <strong>Gemini 2.5 Flash</strong>; the extractor is now{' '}
-        <strong>DeepSeek V4 Flash</strong>, so new spend accrues under it — the two stay
+        <strong>{prettyModel(CURRENT_EXTRACTOR)}</strong>, so new spend accrues under it — the two stay
         separated above.
       </span>
       {currentSpend != null && !alreadyListed && (
