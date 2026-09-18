@@ -50,6 +50,13 @@
 .rank{display:grid;grid-template-columns:14px 1fr auto;gap:16px;align-items:start;
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 19px}
 .rank.dim{opacity:.58}
+/* A ROW THAT OPENS A PAGE SAYS SO. `.rank` had no cursor and no hover, because
+   until the drill-down nothing behind it was clickable. `.open` rather than a
+   bare `.rank` rule: a list rendered without a route is still inert, and a
+   pointer over something that does nothing is the worse half of the bug. */
+.rank.open{cursor:pointer;transition:.18s var(--ease)}
+.rank.open:hover{border-color:var(--border-strong);background:var(--surface-2)}
+.rank.open:hover .n{color:var(--info)}
 .rank .n{font:400 .8rem var(--mono);color:var(--text-3);padding-top:3px}
 .rank b{font-size:1.02rem;font-weight:650}
 .rank .vend{color:var(--text-3);font-size:.8rem;font-weight:400;margin-left:8px}

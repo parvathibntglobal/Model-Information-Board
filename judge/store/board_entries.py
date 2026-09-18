@@ -187,6 +187,17 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     a discovered section with its report count, the models named in it, and the
     quotes behind it.
 
+    THE BEST-FOR AND CAPABILITY PAGES ARE A DRILL-DOWN, and two fields here
+    exist for it. `models[]` carries `voices` and `polarities` beside
+    `reports`, because the category page now lists models rather than quotes
+    and a bare name says less than the page it replaced. Every quote carries
+    `model_key`, because the page below it holds one model's reports and is
+    made by partitioning this list.
+
+    `metric` is untouched by that and renders as it did: its page is a figure
+    table, not a model list. It receives the new fields because they come off
+    one query, and nothing on it reads them.
+
     `declined` rows are excluded and `merged` rows are counted under their
     target, so a person's consolidation shows up here without rewriting history
     — the rows stay, the grouping changes.
@@ -279,7 +290,15 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         # Resolved HERE rather than in the frontend because this is the
         # layer that can see the registry, and matched on EITHER shape so
         # it does not depend on the two writers agreeing first.
-        "       v.canonical_id, v.display_name "
+        # `v.id` COMES BACK TOO, and it is what the model list groups on.
+        # Grouping on the RAW column keys one model under two shapes as two
+        # rows, and it is the URL key for the drill-down as well - a canonical
+        # id contains a slash and the internal key never does. Measured
+        # 2026-09-18: 0 of 640 (section, slug, model) groups are currently
+        # split across both shapes, so this closes a latent split rather than
+        # repairing a live one - worth saying, because the same sentence with
+        # no denominator would read as a defect being fixed.
+        "       v.canonical_id, v.display_name, v.id "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
         "LEFT JOIN model_version v "
         "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
@@ -297,11 +316,17 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     grouped: dict[str, dict[str, dict]] = {s: {} for s in SECTIONS}
     for (section, slug, name, definition, unit, value, basis,
          mv_id, doc_id, quote, polarity, _created_at, url, author_id,
-         canonical, display) in rows:
+         canonical, display, registry_id) in rows:
         # Falls back to the raw id rather than to None: an id nobody can
         # resolve is still better than a blank where a model name belongs,
         # and it names the row to go and look at.
         label = display or canonical or mv_id
+        # THE GROUPING AND URL KEY. `registry_id` when the join resolved, the
+        # raw id when it did not - and an unresolved raw id is the only way a
+        # slash reaches this key, so the router segment is read as the rest of
+        # the path rather than one segment. 0 of 59 distinct ids fail to
+        # resolve today, so that path is insurance rather than a live case.
+        model_key = registry_id or mv_id
         if section not in grouped:
             continue
         bucket = grouped[section].setdefault(
@@ -329,15 +354,82 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             # `model_version_id` field, which is the kind of quiet
             # substitution this whole change exists to stop. Distinct
             # documents, as above.
-            bucket["_models"].setdefault((mv_id, label), set()).add(doc_id)
-        # The quote list is the evidence, so it is capped for payload size rather
-        # than sampled - newest first, and the count above is the honest total.
-        if len(bucket["quotes"]) < 12:
-            bucket["quotes"].append(
-                {"quote": quote, "document_id": doc_id, "url": url,
-                 "polarity": polarity,
-                 "model_version_id": mv_id, "model_label": label}
+            # KEYED ON THE REGISTRY ID, carrying the raw one and the label.
+            #
+            # Three sets per model, not one count, and the two new ones are
+            # what the row and its badge are made of:
+            #
+            #   docs        distinct source documents - the report count
+            #   voices      distinct authors - what corroboration is judged on
+            #   polarities  which polarities this MODEL was reported with
+            #
+            # The badge used to be the SECTION's state stamped onto every
+            # model row (`s: st` in web/src/board/db.js), and measured
+            # 2026-09-18 over every model row the best-for and capability
+            # pages render, 173 of 414 (42%) were not that model's own state -
+            # 48 of them reading "corroborated" over a single voice. The
+            # verdict still belongs to `evidenceState` in db.js and is not
+            # duplicated here; what has to be computed HERE is the input,
+            # because the polarity set is only complete where every row is
+            # visible.
+            #
+            # KEYED ON `model_key` ALONE, and that is the whole point of
+            # resolving it. Keying on the raw id as well - which this did for
+            # one revision, and its own test caught - puts a model named under
+            # both shapes back into two rows, which is exactly the split the
+            # resolution exists to close. The raw id and the label are CARRIED
+            # rather than keyed: first row wins, and rows arrive newest first.
+            model = bucket["_models"].setdefault(
+                model_key,
+                {"docs": set(), "voices": set(), "polarities": set(),
+                 "raw": mv_id, "label": label},
             )
+            model["docs"].add(doc_id)
+            if author_id:
+                model["voices"].add(author_id)
+            if polarity:
+                model["polarities"].add(polarity)
+        # THE CAP IS GONE, AND IT WAS NEVER A CHOICE ABOUT REPORTS.
+        #
+        # This was `if len(bucket["quotes"]) < 12`, taken newest-first, and the
+        # renderer then groups those twelve BY DOCUMENT - so what a reader saw
+        # was twelve quotes collapsed to however many documents they happened
+        # to span. Measured 2026-09-18 on the pages that get opened:
+        #
+        #     best_for/coding-agent        6 blocks shown, 64 documents held
+        #     capability/instruction-…     6 blocks shown, 31 documents held
+        #     capability/reasoning         9 blocks shown, 43 documents held
+        #
+        # Two numbers chosen independently, multiplying into a slice with no
+        # stated basis. The cap bit on 8 of 222 best-for and capability
+        # sections, which is the whole top of the board.
+        #
+        # WHAT IT COSTS TO REMOVE, measured 2026-09-18 on the shared database
+        # at 1,249 board_entry rows - the WHOLE `/board` response, not the
+        # quote text, because the response is what a visitor waits for:
+        #
+        #     before   711 quotes    485 KB raw    69 KB gzipped
+        #     after  1,230 quotes    744 KB raw   101 KB gzipped
+        #
+        # A first estimate of "+43 KB" counted quote characters and missed the
+        # per-quote JSON around them; the figure is +32 KB gzipped, and it is
+        # the second one because gzip is what ships. It grows with the corpus,
+        # and the bound to revisit is a per-model endpoint rather than a
+        # smaller cap - a cap re-creates exactly the slice above.
+        #
+        # AND IT FIXES THE SECTION BADGE FOR FREE. `evidenceState` reads the
+        # polarity set off this list, so while it was truncated the section's
+        # own badge was computed from twelve rows of a hundred and eleven.
+        bucket["quotes"].append(
+            {"quote": quote, "document_id": doc_id, "url": url,
+             "polarity": polarity,
+             "model_version_id": mv_id, "model_label": label,
+             # The drill-down partitions this list by model, so each quote
+             # carries the same key the model list is grouped on. Matching on
+             # `model_version_id` instead would miss a model named under both
+             # id shapes.
+             "model_key": model_key}
+        )
         if section == "metric" and value is not None:
             # `url` TRAVELS WITH THE FIGURE, for the same reason it travels with
             # the quote directly above. A figure is the most checkable thing on
@@ -369,11 +461,36 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             item["reports"] = len(item.pop("_docs"))
             item["voices"] = len(item.pop("_voices"))
             item["quote_count"] = len(item["quotes"])
+            # `reports` AND `voices` ARE DIFFERENT NUMBERS AND BOTH ARE SAID.
+            #
+            # A bare name gives a reader less than the section line above it
+            # does. Measured 2026-09-18 over 636 (section, slug, model)
+            # groups: 131 hold more quotes than documents, and 22 hold more
+            # documents than voices - so neither number can stand for the
+            # other on a row a reader is about to choose between.
+            #
+            # `polarities` is a sorted list rather than a verdict. The state
+            # machine lives in `evidenceState` in web/src/board/db.js, is
+            # tested there, and must have exactly one definition - so this
+            # sends the INPUT it could not otherwise see and leaves the
+            # judgement where it was. Rule 3 holds either way: these are
+            # counts and labels, and nothing here is scored.
+            #
+            # `model_key` is the grouping and URL key; `model_version_id`
+            # stays the RAW column value it has always been, because
+            # `modelName()` in db.js falls back to splitting it on "/" when
+            # no label arrives, and quietly substituting the internal key
+            # would turn `claude-fable-5-1` into `mv_a2b4f7fc…` in exactly
+            # the place a model name belongs. Where a group could hold two
+            # raw shapes the join resolved, so a label is present and that
+            # fallback never fires.
             item["models"] = [
-                {"model_version_id": mid, "model_label": lbl,
-                 "reports": len(docs)}
-                for (mid, lbl), docs in sorted(
-                    item.pop("_models").items(), key=lambda kv: -len(kv[1])
+                {"model_key": key, "model_version_id": m["raw"],
+                 "model_label": m["label"],
+                 "reports": len(m["docs"]), "voices": len(m["voices"]),
+                 "polarities": sorted(m["polarities"])}
+                for key, m in sorted(
+                    item.pop("_models").items(), key=lambda kv: -len(kv[1]["docs"])
                 )
             ]
             if section != "metric":
@@ -383,7 +500,95 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         # Most-reported first: the ordering is a COUNT, never a score.
         items.sort(key=lambda i: (-i["reports"], i["slug"]))
         out[section] = items
+
+    _attach_hidden_negatives(conn, out["best_for"])
     return out
+
+
+def _attach_hidden_negatives(conn: Any, best_for: list[dict]) -> None:
+    """How many reports of a PROBLEM each best-for model row is not showing.
+
+    The filter above is right and stays: `best_for` claims suitability, and a
+    complaint cannot fill a surface that promises one. What was wrong is that
+    it was SILENT. A model row opening onto a page headed "every report the
+    board holds" while four of that model's reports were dropped upstream is
+    the caused absence rule 4 forbids - an absence we made, reading as one we
+    found.
+
+    So the count travels to the page and the page says it, with a link to the
+    model page where those reports are shown in full. Measured 2026-09-18:
+    19 negative best-for rows across 12 (slug, model) pairs.
+
+    TWO COUNTS, BECAUSE THE ABSENCE HAS TWO SHAPES.
+
+      `hidden_negative_reports` on a model row  the model IS listed, and some
+                                                of its reports are not shown
+      `suppressed_models` on the section        the model is NOT listed at
+                                                all, because every report it
+                                                has on this job is a problem
+                                                report
+
+    The second is the worse one and it is the one the first cannot reach: a
+    model with no positive row is not in `models[]`, so it has no row to carry
+    a caveat and no drill-down page for that caveat to sit on. It is invisible
+    rather than incomplete, which is the difference between a page that
+    understates and a page that omits. 4 of the 12 pairs are in this state.
+
+    ⚠ AND TWO OF THOSE FOUR ARE STILL OUT OF REACH. `api-usage` and
+      `proof-based-programming` hold NOTHING BUT negative rows, so the slug
+      produces no section at all and there is no category page for this list
+      to appear on - 2 of 64 best-for slugs on the board, plus these 2 that
+      are not. `code-review`/Grok 4.6 and `translation`/DeepSeek V4 Flash 0423
+      are the two this reaches. Recorded rather than rounded off, because
+      "the category page now says it" is true of half the cases and reads as
+      true of all of them.
+    """
+    if not best_for:
+        return
+    # A SECOND QUERY RATHER THAN A WIDENED FIRST ONE. Folding this into the
+    # main query means dropping the `NOT (...)` clause and re-applying it in
+    # Python, and that clause is the one thing about this rule a reader can
+    # check by reading the SQL. Counted here, filtered there, and the two do
+    # not have to agree about anything except the section name.
+    rows = conn.execute(
+        "SELECT COALESCE(be.ruling_target, be.slug) AS slug,"
+        "       COALESCE(v.id, be.model_version_id) AS model_key,"
+        # The LABEL as well, because a suppressed model has no row in
+        # `models[]` to carry one - and a line naming `mv_4247e801b57d22e3`
+        # where a model name belongs is #278 arriving by a third route.
+        "       COALESCE(v.display_name, v.canonical_id, be.model_version_id),"
+        "       count(DISTINCT be.document_id) "
+        "FROM board_entry be "
+        "LEFT JOIN model_version v "
+        "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
+        "WHERE be.section = 'best_for' AND be.polarity = 'negative' "
+        "  AND be.ruling IS DISTINCT FROM 'declined' "
+        "GROUP BY 1, 2, 3"
+    ).fetchall()
+    hidden = {(slug, key): (label, n) for slug, key, label, n in rows}
+    for item in best_for:
+        listed = set()
+        for model in item["models"]:
+            listed.add(model["model_key"])
+            # 0 is written rather than left absent. A reader of this payload
+            # cannot otherwise tell "no complaints were filtered" from "nobody
+            # counted", and those are the two things this board exists to keep
+            # apart. Distinct DOCUMENTS, so it counts the same unit as
+            # `reports` beside it.
+            model["hidden_negative_reports"] = hidden.get(
+                (item["slug"], model["model_key"]), (None, 0)
+            )[1]
+        # The models this section drops ENTIRELY - see the docstring. Sorted by
+        # name so the line does not reshuffle between requests; an empty list
+        # is written rather than omitted, for the same reason the 0 above is.
+        item["suppressed_models"] = sorted(
+            (
+                {"model_key": key, "model_label": label, "reports": n}
+                for (slug, key), (label, n) in hidden.items()
+                if slug == item["slug"] and key not in listed
+            ),
+            key=lambda m: m["model_label"] or m["model_key"],
+        )
 
 
 # ── the admin review surface ─────────────────────────────────────────────────
