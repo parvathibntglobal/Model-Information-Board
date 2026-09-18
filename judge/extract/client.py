@@ -37,53 +37,58 @@ from typing import Protocol
 #: threads: clean schema/tool-calls, 100% quote-verify, no fabrication —
 #: docs/measurements/extractor-ab-deepseek-v4-flash-vs-gemini.md. Undated alias;
 #: pin a dated build (…-0731) if a run needs to be exactly reproducible.
-#: THE DATACLASS DEFAULT FOR DIRECT CONSTRUCTION, AND NOT THE ENVIRONMENT'S
-#: FALLBACK. `extractor_model()` below refuses an unset variable rather than
-#: reaching for this, because the value lands in `claim.extractor_model` - a
-#: NOT NULL provenance column whose entire job is to say what produced the row.
-#: A default there is a confident guess in the one field that must not guess.
+#: THE AGREED EXTRACTOR. OpenRouter resolves this undated slug to the 0423
+#: snapshot (2026-04-24) and it is pinned there, so the vendor cannot move it
+#: underneath a run. Moving to 0731 costs a PIPELINE_VERSION bump and a
+#: re-extraction of ~531 threads at ~$1.18 - the fork is the cost, not the
+#: money. We are on 0423 on purpose; see
+#: `docs/proposals/the-blended-cells-and-what-extractor-model-means.md` §6.
+#:
+#: Changing this line changes what `claim.extractor_model` records on every row
+#: written afterwards, so it is a provenance change and not a constant edit.
 DEFAULT_MODEL = "deepseek/deepseek-v4-flash"
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 
 
 def extractor_model() -> str:
-    """`EXTRACTOR_MODEL`, or a refusal. NO DEFAULT, for the same reason as
-    `DATABASE_URL` and `EXTRACTION_DAILY_BUDGET_USD`.
+    """`EXTRACTOR_MODEL`, or the agreed extractor.
 
-    WHY THIS IS NOT TIDINESS. The value is written to `claim.extractor_model`,
-    which `judge/store/claims.py` describes as the column that says what
-    produced the row. An unset variable used to write `"deepseek/..."` into it
-    - a confident guess on a provenance column, which is rule 6 in the worst
-    place it can happen. That was found once and half-fixed: the literal was
-    copied into eight files instead of removed, so the guess survived in every
-    caller that was not the one being edited.
+    THE DEFAULT IS THE CHOICE, NOT A GUESS, and that distinction is the whole
+    of this docstring. `DEFAULT_MODEL` is `deepseek/deepseek-v4-flash`, which
+    OpenRouter resolves to the **0423** snapshot - pinned, not floating, because
+    `deepseek/deepseek-v4-flash-0731` and `~deepseek/deepseek-v4-flash-latest`
+    both exist separately and a route would be redundant otherwise. Staying on
+    0423 is a decision with a date on it, recorded in
+    `docs/proposals/the-blended-cells-and-what-extractor-model-means.md` §6.
 
-    ONE FUNCTION, SO THE CALL AND THE RECORD CANNOT DIVERGE. Before this,
-    `client.py` read the variable with `DEFAULT_MODEL` as its fallback and
-    `cli.py` read it again with the literal string as its fallback. They agreed
-    by coincidence. If they ever stopped agreeing, the call would use one model
-    and the claim would record the other - and nothing would be wrong enough to
-    notice, because both values are plausible model ids.
+    So writing it into `claim.extractor_model` records the agreed extractor
+    rather than inventing one. THIS BRIEFLY REFUSED ON UNSET INSTEAD, and that
+    was wrong: it answered a failure that had not happened. The gemini mixture
+    on the board was not produced by an unset variable. It was produced by a
+    machine with this variable EXPLICITLY SET to gemini, which a
+    refuse-on-unset check cannot see and does not touch.
 
-    IT IS STILL WHAT WE ASKED FOR, NOT WHAT RAN. `Completion.model` carries
-    what the provider reported and NOTHING READS IT (judge/pipeline.py sets
-    `self._extractor_model` once, from here). So this refusal narrows the gap
-    to "did the provider serve what we asked for" and does not close it. See
-    docs/proposals/the-blended-cells-and-what-extractor-model-means.md.
+    WHAT THIS DOES NOT CHECK, AND WHAT WOULD HAVE CAUGHT IT. Nothing here
+    compares the value against the extractor the team agreed on - only against
+    the registry, which contains every polled model including gemini. The check
+    that would have refused `LAPTOP-TA28DHTF` is a comparison with a RECORDED
+    CHOICE, and rule 5 says where a recorded choice lives: `contract/`, not a
+    Python literal. Proposed in
+    `docs/proposals/the-agreed-extractor-belongs-in-contract.md`, not taken.
+
+    ONE FUNCTION, SO THE CALL AND THE RECORD CANNOT DIVERGE. This is the part
+    worth keeping whatever the default is. `client.py` used to read the variable
+    with `DEFAULT_MODEL` as its fallback and `cli.py` read it again with the
+    literal string as its own, and they agreed by coincidence. Had they stopped
+    agreeing, the call would use one model and the claim would record the other,
+    and nothing would be wrong enough to notice because both values are
+    plausible model ids.
+
+    IT IS STILL WHAT WE ASKED FOR, NOT WHAT RAN. `Completion.model` carries what
+    the provider reported and NOTHING READS IT (`judge/pipeline.py` sets
+    `self._extractor_model` once, from here).
     """
-    model = (os.getenv("EXTRACTOR_MODEL") or "").strip()
-    if not model:
-        raise RuntimeError(
-            "EXTRACTOR_MODEL is unset. Refusing to run rather than defaulting: "
-            "this value is written to `claim.extractor_model`, the column that "
-            "records what produced each row, so a default writes a guess into "
-            "the one field whose job is to say what actually read the evidence.\n\n"
-            "Set it to an exact OpenRouter model id, e.g. "
-            "deepseek/deepseek-v4-flash. An undated slug is fine and is pinned "
-            "by OpenRouter to a dated snapshot; a `~vendor/model-latest` route "
-            "is NOT, and is refused separately - routes are not models."
-        )
-    return model
+    return (os.getenv("EXTRACTOR_MODEL") or "").strip() or DEFAULT_MODEL
 
 #: One retry, not three. A model that violates a forced schema twice is not
 #: having a bad moment, and paying for a third attempt is how a daily budget

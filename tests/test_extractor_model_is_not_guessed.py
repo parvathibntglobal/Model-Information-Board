@@ -1,24 +1,30 @@
-"""`EXTRACTOR_MODEL` has no default, because it is a provenance value.
+"""`EXTRACTOR_MODEL` resolves in ONE place, so the call and the record agree.
 
-`judge/store/claims.py` already says this of the column it lands in:
+`judge/store/claims.py` describes `claim.extractor_model` as the column that
+says what produced a row. The defect was never that it had a default - it is
+that **eight files each had their own**, so the model the client CALLED and the
+model the pipeline RECORDED were two independent `os.getenv` reads that agreed
+by coincidence. One function fixes that whatever the default is.
 
-    "The model that ACTUALLY ran, from the completion, not from the
-     environment. It was `os.getenv("EXTRACTOR_MODEL", "...flash")` on a
-     NOT NULL provenance column, so an unset variable wrote a confident
-     guess into the one field whose job is to say what produced the row."
+THE DEFAULT IS THE AGREED EXTRACTOR AND IS TESTED AS SUCH. `deepseek/deepseek-v4-flash`
+resolves to the pinned 0423 snapshot, and staying there is a dated decision
+rather than an accident. `test_the_default_is_the_agreed_extractor` exists so
+changing it is a deliberate, visible diff - it changes what every subsequent
+row records about its own provenance.
 
-That was found once and half-fixed: the literal was copied rather than removed,
-so eight files kept a fallback and the guess survived in every caller that was
-not the one being edited. Measured 2026-09-18, before this change, the board
-carried 985 claims at pipeline_version e5.4 from TWO different extractors, and
-three cells aggregated both.
+WHAT THESE TESTS DO NOT COVER, STATED BECAUSE IT IS THE LIVE GAP. Nothing here
+refuses a value explicitly set to something other than the agreed extractor.
+That is what produced the gemini mixture on the board - a machine with the
+variable SET to gemini, not one with it unset - and a refuse-on-unset check
+cannot see it. The check that would is a comparison against a recorded choice in
+`contract/`; proposed in
+`docs/proposals/the-agreed-extractor-belongs-in-contract.md`, not taken.
 
-WHY THE STRUCTURAL TEST IS THE ONE THAT MATTERS
+WHY THE STRUCTURAL TEST IS STILL THE ONE THAT MATTERS
 
-The behavioural tests below cover the resolver. They cannot see the ninth file,
-and the ninth file is how this came back the first time. So the last test reads
-the tree for the literal and holds an explicit allowlist: a new write path
-carrying its own fallback fails the day it is written, naming itself.
+The behavioural tests cover the resolver. They cannot see the ninth file, and
+the ninth file is how the divergence came back the first time. So the last test
+reads the tree for the literal and holds an explicit allowlist.
 """
 
 from __future__ import annotations
@@ -59,19 +65,30 @@ def _no_ambient_value(monkeypatch):
 # ── the resolver ────────────────────────────────────────────────────────────
 
 
-def test_an_unset_variable_refuses_rather_than_defaulting():
-    with pytest.raises(RuntimeError) as raised:
-        extractor_model()
+def test_an_unset_variable_gets_the_agreed_extractor():
+    """Not a guess: the default IS the choice, and the choice is recorded."""
+    from judge.extract.client import DEFAULT_MODEL
 
-    message = str(raised.value)
-    assert "EXTRACTOR_MODEL is unset" in message
-    assert "claim.extractor_model" in message, "the refusal must say WHY, not only what"
+    assert extractor_model() == DEFAULT_MODEL
 
 
-def test_whitespace_is_unset_rather_than_a_model_named_space(monkeypatch):
+def test_the_default_is_the_agreed_extractor():
+    """PINNED ON PURPOSE. `deepseek/deepseek-v4-flash` resolves to the 0423
+    snapshot, and this line is what `claim.extractor_model` records on every
+    row written without an override. Changing it is a provenance change, so it
+    should be a deliberate diff with this test in it rather than a constant
+    somebody edits in passing."""
+    from judge.extract.client import DEFAULT_MODEL
+
+    assert DEFAULT_MODEL == "deepseek/deepseek-v4-flash"
+
+
+def test_whitespace_is_not_a_model_named_space(monkeypatch):
+    """`EXTRACTOR_MODEL="   "` is unset with extra steps, not a model id."""
+    from judge.extract.client import DEFAULT_MODEL
+
     monkeypatch.setenv("EXTRACTOR_MODEL", "   ")
-    with pytest.raises(RuntimeError):
-        extractor_model()
+    assert extractor_model() == DEFAULT_MODEL
 
 
 def test_a_set_value_is_returned_stripped(monkeypatch):
@@ -79,17 +96,23 @@ def test_a_set_value_is_returned_stripped(monkeypatch):
     assert extractor_model() == "deepseek/deepseek-v4-flash"
 
 
-def test_the_client_refuses_too_rather_than_falling_back_to_its_dataclass_default(
-    monkeypatch,
-):
-    """`DEFAULT_MODEL` still exists as a dataclass default for direct
-    construction. It must not be reachable from the environment path."""
+def test_the_client_and_the_record_resolve_to_the_same_value(monkeypatch):
+    """THE POINT OF THE SINGLE FUNCTION. Whatever the environment says, the
+    model the client calls is the model `judge/cli.py` hands the pipeline to
+    record. Two `os.getenv` reads with two fallbacks could not guarantee this,
+    and they are what produced the divergence risk in the first place."""
     from judge.extract.client import OpenRouterClient
 
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
-    with pytest.raises(RuntimeError) as raised:
-        OpenRouterClient.from_env()
-    assert "EXTRACTOR_MODEL" in str(raised.value)
+    monkeypatch.setenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash-0731")
+    assert OpenRouterClient.from_env().model == extractor_model()
+
+
+def test_the_client_uses_the_agreed_extractor_when_nothing_is_set(monkeypatch):
+    from judge.extract.client import DEFAULT_MODEL, OpenRouterClient
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
+    assert OpenRouterClient.from_env().model == DEFAULT_MODEL
 
 
 # ── the registry check ──────────────────────────────────────────────────────
