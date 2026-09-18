@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { adminSettings } from '../api'
+import { prettyModel } from '../modelNames'
 import { Badge, Notice, Stat } from './ui'
 import { IconAlert, IconFilter } from './Icons'
 
@@ -185,7 +186,21 @@ export default function SettingsPanel() {
                     <span className="dim" style={{ fontSize: 10 }}>{c.why}</span>
                   </span>
                   <span className="row" style={{ gap: 6, alignItems: 'baseline', flexShrink: 0 }}>
-                    <span className="mono" style={{ fontSize: 'var(--fs-sm)' }}>{c.value}</span>
+                    {/* ⚠ THE MODEL CAP READS AS A NAME, THE REST AS NUMBERS.
+                        `EXTRACTOR_MODEL` printed the bare id, so the same model
+                        was `DeepSeek V4 Flash` on the usage panel and
+                        `deepseek/deepseek-v4-flash` here - and neither said
+                        WHICH build, while `-0731` sits in the registry looking
+                        almost identical. The id stays beside the name; it is
+                        what is actually sent and it has not changed. */}
+                    {c.name === 'EXTRACTOR_MODEL' && c.value ? (
+                      <span className="row" style={{ gap: 6, alignItems: 'baseline' }}>
+                        <span style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(c.value)}</span>
+                        <span className="mono dim" style={{ fontSize: 10 }}>{c.value}</span>
+                      </span>
+                    ) : (
+                      <span className="mono" style={{ fontSize: 'var(--fs-sm)' }}>{c.value}</span>
+                    )}
                     {c.overridden
                       ? <Badge tone="warn" title={`default ${c.default}`}>overridden</Badge>
                       : <Badge tone="mute">default</Badge>}
