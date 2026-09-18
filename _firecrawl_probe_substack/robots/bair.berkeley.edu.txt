@@ -1,0 +1,5 @@
+# HTTP 404 on https://bair.berkeley.edu/robots.txt, fetched 2026-09-18
+# No crawl policy served. The body was an Apache 404 page and is NOT stored
+# here, because an error page saved under a robots filename reads as rules.
+# 404 means "no crawl rules" and nothing about terms - see the 404 CAVEAT in
+# contract/sources.yaml, blog-class-a-self-hosted.

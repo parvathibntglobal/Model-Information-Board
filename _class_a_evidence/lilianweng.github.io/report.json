@@ -1,0 +1,26 @@
+{
+ "host": "lilianweng.github.io",
+ "feed": "https://lilianweng.github.io/index.xml",
+ "robots_http": 200,
+ "robots_status": "rules",
+ "feed_path_allowed": true,
+ "feed_http": 200,
+ "feed_type": "rss20",
+ "malformed": false,
+ "entries": 53,
+ "declared_author": null,
+ "entry_bylines_present": 0,
+ "distinct_entry_bylines": 0,
+ "articles_requested": 10,
+ "robots_refused_article_paths": [],
+ "article_http": [
+  200
+ ],
+ "articles_fetched": 10,
+ "median_body_chars": 37207,
+ "paywall_observed": false,
+ "pages_examined": 10,
+ "template_threshold": 0.8,
+ "repeated_lines": [],
+ "template_block_status": "clean"
+}
