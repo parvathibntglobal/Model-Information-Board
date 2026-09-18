@@ -1,0 +1,72 @@
+{
+ "query": "ElevenLabs v3 substack",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://cheekypint.substack.com/p/the-world-of-voice-ai-with-mati-staniszewski",
+     "title": "The world of voice AI, with Mati Staniszewski of ElevenLabs",
+     "description": "ElevenLabs, the research company making audio accessible across languages and voices. we released the V3 model \u30fb the text-to-speech. , and we ...",
+     "position": 1
+    },
+    {
+     "url": "https://substack.com/home/post/p-187921027",
+     "title": "ElevenLabs vs OpenAI Voice: Comprehensive Real-World ...",
+     "description": "ElevenLabs is a modular stack. ElevenLabs' v3 model supports over 70 languages, including complex ones like Punjabi and Welsh. OpenAI supports ...",
+     "position": 2
+    },
+    {
+     "url": "https://www.reddit.com/r/ElevenLabs/comments/1l8k45e/list_of_v3_audio_tags/",
+     "title": "List of V3 audio tags. : r/ElevenLabs - Reddit",
+     "description": "List of V3 audio tags. \u00b7 Emotional tone: [EXCITED], [NERVOUS], [FRUSTRATED], [TIRED] \u00b7 Reactions: [GASP], [SIGH], [LAUGHS], [GULPS] \u00b7 Volume & ...Introducing Eleven v3 (alpha) : r/ElevenLabs - Redditv3 Alpha Support Documentation (copied from Eleven Labs before ...More results from www.reddit.com",
+     "position": 3
+    },
+    {
+     "url": "https://elevenlabs.io/v3",
+     "title": "Eleven v3 \u2014 Most Expressive AI Voice Model - ElevenLabs",
+     "description": "# Take v3 anywhere - now available on mobile\n## Build with the Eleven v3 API\n```\nimport { ElevenLabsClient, play } from '@elevenlabs/elevenlabs-js';\nimport 'dotenv/config';\n\nconst elevenlabs = new ElevenLabsClient();\nconst voiceId = 'JBFqnCBsd6RMkjVDRZzb';\n\nconst audio = await elevenlabs.textToSpeech.convert(voiceId, {\n  text: '[slowly] Back then... [chuckles] we had no phones.\n [whispers] Just dirt roads and [coughs] big dreams. [sad] Then it happenend',\n  modelId: 'eleven_v3',\n  outputFormat: 'mp3_44100_128',\n});\n\nawait play(audio);\n```",
+     "position": 4
+    },
+    {
+     "url": "https://catalaize.substack.com/p/what-elevenlabs-is-today-platform",
+     "title": "What ElevenLabs Is Today: Platform State and Evolution",
+     "description": "ElevenLabs utilizes a proprietary diffusion-based synthesis engine (v3) that processes text in larger chunks to maintain prosodic stability. v3 ...",
+     "position": 5
+    },
+    {
+     "url": "https://www.facebook.com/groups/698593531630485/posts/1305222174300948/",
+     "title": "Elevenlabs v3 releases advanced voice model with emotional ...",
+     "description": "ElevenLabs just dropped Eleven v3 (alpha), their most expressive and emotion-rich text-to-speech engine that can laugh, sigh and whisper.",
+     "position": 6
+    },
+    {
+     "url": "https://inworld.ai/resources/elevenlabs-v3-review",
+     "title": "ElevenLabs v3 Is Now GA. Here's What Developers Should Know.",
+     "description": "ElevenLabs v3 is best for pre-rendered audio, not realtime. Top alternatives for voice agents and conversational AI that need sub-200ms ...",
+     "position": 7
+    },
+    {
+     "url": "https://www.youtube.com/watch?v=Z2B_pgJ9hbA&vl=en-US",
+     "title": "ElevenLabs V3 Full Tutorial: Best Voice Settings + Free GPT Tool ...",
+     "description": "Master the new Eleven V3 audio tags for emotional expression \u00b7 Understand ElevenLabs best voice settings for Natural, Creative, and Robust modes ...",
+     "position": 8
+    },
+    {
+     "url": "https://elevenlabs.io/blog/v3-audiotags",
+     "title": "Audio Tags 101: Directing emotional TTS in Eleven v3 - ElevenLabs",
+     "description": "- [Eleven v3](https://elevenlabs.io/v3)",
+     "position": 9
+    },
+    {
+     "url": "https://departmentofproduct.substack.com/p/deep-how-elevenlabs-built-an-ai-user",
+     "title": "Deep: How ElevenLabs built an AI User Research Voice Agent",
+     "description": "The multi-billion dollar AI startup ElevenLabs recently revealed that they built their own user research assistant that conducted over 230 user ...",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b318-bf7a-73f2-9083-13a5c8b570c6"
+ }
+}

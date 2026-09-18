@@ -1,0 +1,72 @@
+{
+ "query": "GLM 5.3 structured output",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://docs.z.ai/guides/llm/glm-5.3",
+     "title": "GLM-5.3 - Overview - Z.AI DEVELOPER DOCUMENT",
+     "description": "Structured Output\uff1aSupports structured output formats such as JSON for seamless system integration ... At Max effort, GLM-5.3 reaches 34.5% at roughly 75K output ...Feature Changes \u00b7 How to Use \u00b7 Key Advancements",
+     "position": 1
+    },
+    {
+     "url": "https://z.ai/blog/glm-5.3-flash",
+     "title": "GLM-5.3-Flash: Frontier Intelligence, Flash Cost - Z.ai",
+     "description": "With 320B total parameters and just 18B active parameters, it outperforms GLM-5.2 across benchmarks and real-world workloads at one-tenth the ...",
+     "position": 2
+    },
+    {
+     "url": "https://www.reddit.com/r/LocalLLaMA/comments/1nqcy4k/glm45air_outputting_n_x_times_when_asked_to/",
+     "title": "GLM-4.5-air outputting \\n x times when asked to create structured output",
+     "description": "Been spinning up GLM-4.5-air lately and i make him generate some structured output. it just gets stuck after one of the field names generating ...Terminal Bench 4.0 just dropped, GLM-5.3 is at the same level as Fable 5 ...GLM-5.3 benchmark breakdown: where it actually beats Fable 5 ...More results from www.reddit.com",
+     "position": 3
+    },
+    {
+     "url": "https://openrouter.ai/z-ai/glm-5.3-flash",
+     "title": "Z.ai: GLM 5.3 Flash - API Pricing & Benchmarks - OpenRouter",
+     "description": "# Z.ai: GLM 5.3 Flash\n## Frequently asked questions\n### Does GLM 5.3 Flash support tool calling and structured outputs?\nIt also supports structured outputs via a JSON schema in `response_format`.",
+     "position": 4
+    },
+    {
+     "url": "https://www.datacamp.com/blog/glm-5-3-flash",
+     "title": "GLM-5.3-Flash: Features, Benchmarks, and Pricing | DataCamp",
+     "description": "Tool calling and structured output. You can wire GLM-5.3-Flash into agent frameworks with function calls and enforced JSON schemas. The model ...",
+     "position": 5
+    },
+    {
+     "url": "https://z.ai/blog/glm-5.3",
+     "title": "GLM-5.3: Frontier Coding with Emergent Cyber Capabilities - Z.ai",
+     "description": "# Getting started with GLM-5.3\n## API Changes in GLM-5.3\n```json\n{\n  \"model\": \"glm-5.3\",\n  \"thinking\": { \"type\": \"enabled\" },\n  \"reasoning_effort\": \"max\"\n}\n```",
+     "position": 6
+    },
+    {
+     "url": "https://huggingface.co/zai-org/GLM-5.3-Flash",
+     "title": "zai-org/GLM-5.3-Flash - Hugging Face",
+     "description": "We introduce GLM-5.3-Flash, the first natively multimodal model in the GLM-5 series. With 320B total parameters and just 18B active parameters, ...",
+     "position": 7
+    },
+    {
+     "url": "https://www.qubrid.com/blog/glm-53-flash-benchmarks-official-and-independent-results?srsltid=AU7gw4WLLNnO0Ri64am3ac5lchLfiTj0KJYqzrZQBnUHJrrKB-FYNKbe",
+     "title": "GLM-5.3-Flash Benchmarks: Official and Independent Results - Qubrid AI",
+     "description": "GLM-5.3-Flash is close to excellent at extracting structured data from short documents and roughly coin-flip on medium ones. The mean of ...",
+     "position": 8
+    },
+    {
+     "url": "https://agentnativedev.medium.com/glm-5-3-fable-5-level-coding-model-with-better-harness-75a3cc6b4995",
+     "title": "GLM 5.3 Hits Fable 5-Level Coding Through Better Harness - Medium",
+     "description": "# GLM 5.3 Hits Fable 5-Level Coding Through Better Harness\n## What Actually Changed in GLM-5.3?\n- structured output",
+     "position": 9
+    },
+    {
+     "url": "https://docs.z.ai/guides/capabilities/struct-output",
+     "title": "Structured Output - Overview - Z.AI DEVELOPER DOCUMENT",
+     "description": "## Documentation Index\nStructured output (JSON mode) ensures that AI returns JSON data conforming to predefined formats, providing reliable guarantees for programmatic processing of AI outputs.\n\n## [\u200b](https://docs.z.ai/guides/capabilities/struct-output#code-examples)  Code Examples\n```\n# Install latest version\npip install zai-sdk\n\n# Or specify version\npip install zai-sdk==0.2.3\n```\n\n```\nfrom zai import ZaiClient\nimport json\n\n# Initialize client\nclient = ZaiClient(api_key=\"your-api-key\")\n\n# Basic JSON mode\nresponse = client.chat.completions.create(\n    model=\"glm-5\",\n    messages=[\\\n        {\\\n            \"role\": \"system\",\\\n            \"content\": \"\"\"\\\n            You are a sentiment analysis expert. Please return analysis results in the following JSON format:\\\n            {\\\n                \"sentiment\": \"positive/negative/neutral\",\\\n                \"confidence\": 0.95,\\\n                \"emotions\": [\"joy\", \"excitement\"],\\\n                \"keywords\": [\"weather\", \"mood\"],\\\n                \"analysis\": \"Detailed analysis explanation\"\\\n            }\\\n            \"\"\"\\\n        },\\\n        {\\\n            \"role\": \"user\",\\\n            \"content\": \"Please analyze the sentiment of this sentence: 'The weather is really nice today, I'm feeling very happy!'\"\\\n        }\\\n    ],\n    response_format={\n        \"type\": \"json_object\"\n    }\n)\n\n# Parse results\nresult = json.loads(response.choices[0].message.content)\nprint(f\"Sentiment: {result['sentiment']}\")\nprint(f\"Confidence: {result['confidence']}\")\nprint(f\"Emotions: {result['emotions']}\")\n```\n\n## [\u200b](https://docs.z.ai/guides/capabilities/struct-output#basic-usage)  Basic Usage\n```\nfrom zai import ZaiClient\n\nclient = ZaiClient(api_key=\"your-api-key\")\n\n# Basic JSON mode\nresponse = client.chat.completions.create(\n    model=\"glm-5\",\n    messages=[\\\n        {\\\n            \"role\": \"user\",\\\n            \"content\": \"Please analyze the sentiment of this sentence: 'The weather is really nice today, I'm feeling very happy!'\"\\\n        }\\\n    ],\n    response_format={\n        \"type\": \"json_object\"\n    }\n)\n\nimport json\nresult = json.loads(response.choices[0].message.content)\nprint(result)\n```\n\n### [\u200b](https://docs.z.ai/guides/capabilities/struct-output#specify-json-structure)  Specify JSON Structure\n```\n# Specify specific JSON structure\nresponse = client.chat.completions.create(\n    model=\"glm-5\",\n    messages=[\\\n        {\\\n            \"role\": \"system\",\\\n            \"content\": \"\"\"\\\n            You are a sentiment analysis expert. Please return analysis results in the following JSON format:\\\n            {\\\n                \"sentiment\": \"positive/negative/neutral\",\\\n                \"confidence\": 0.95,\\\n                \"emotions\": [\"joy\", \"excitement\"],\\\n                \"keywords\": [\"weather\", \"mood\"],\\\n                \"analysis\": \"Detailed analysis explanation\"\\\n            }\\\n            \"\"\"\\\n        },\\\n        {\\\n            \"role\": \"user\",\\\n            \"content\": \"Please analyze the sentiment of this sentence: 'The weather is really nice today, I'm feeling very happy!'\"\\\n        }\\\n    ],\n    response_format={\n        \"type\": \"json_object\"\n    }\n)\n\nresult = json.loads(response.choices[0].message.content)\nprint(f\"Sentiment: {result['sentiment']}\")\nprint(f\"Confidence: {result['confidence']}\")\nprint(f\"Emotions: {result['emotions']}\")\n```",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b310-5fcb-736b-ba6f-8ae7980e4f0c"
+ }
+}

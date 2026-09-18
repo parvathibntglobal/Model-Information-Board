@@ -1,0 +1,72 @@
+{
+ "query": "Gemini 3.8 Flash json mode",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://ai.google.dev/gemini-api/docs/structured-output",
+     "title": "Structured outputs - Interactions API - Google AI for Developers",
+     "description": "# Structured outputs\n## Streaming results\n```\ncurl -N -X POST \"https://generativelanguage.googleapis.com/v1beta/interactions\" \\\n    -H \"x-goog-api-key: $GEMINI_API_KEY\" \\\n    -H 'Content-Type: application/json' \\\n    -d '{\n      \"model\": \"gemini-3.8-flash\",\n      \"input\": \"The new UI is incredibly intuitive. Add a very long summary!\",\n      \"response_format\": {\n        \"type\": \"text\",\n        \"mime_type\": \"application/json\",\n        \"schema\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"sentiment\": { \"type\": \"string\", \"enum\": [\"positive\", \"neutral\", \"negative\"] },\n            \"summary\": { \"type\": \"string\" }\n          },\n          \"required\": [\"sentiment\", \"summary\"]\n        }\n      },\n      \"stream\": true\n    }'\n```",
+     "position": 1
+    },
+    {
+     "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/3-8-flash-and-3-8-flash-cyber/",
+     "title": "Introducing Gemini 3.8 Flash and 3.8 Flash Cyber - Google Blog",
+     "description": "3.8 Flash is available to Google AI Pro and Ultra subscribers across the Gemini app, AI Mode in Google Search and Gemini in Google Sheets.",
+     "position": 2
+    },
+    {
+     "url": "https://firebase.google.com/docs/ai-logic/generate-structured-output",
+     "title": "Generate structured output (like JSON and enums) using the Gemini API",
+     "description": "# Generate structured output (like JSON and enums) using the Gemini\u00a0API    Stay organized with collections      Save and categorize content based on your preferences.\n## **Step 2**: Generate JSON output using your response schema\n```\n\nusing Firebase;\nusing Firebase.AI;\n\n// Provide a JSON schema object using a standard format.\n// Later, pass this schema object into `responseSchema` in the generation config.\nvar jsonSchema = Schema.Object(\n  properties: new System.Collections.Generic.Dictionary<string, Schema> {\n    { \"characters\", Schema.Array(\n      items: Schema.Object(\n        properties: new System.Collections.Generic.Dictionary<string, Schema> {\n          { \"name\", Schema.String() },\n          { \"age\", Schema.Int() },\n          { \"species\", Schema.String() },\n          { \"accessory\", Schema.Enum(new string[] { \"hat\", \"belt\", \"shoes\" }) },\n        },\n        optionalProperties: new string[] { \"accessory\" }\n      )\n    ) },\n  }\n);\n\n// Initialize the Gemini Developer API backend service.\n// Create a `GenerativeModel` instance with a model that supports your use case.\nvar model = FirebaseAI.DefaultInstance.GetGenerativeModel(\n  modelName: \"GEMINI_MODEL_NAME\",\n  // In the generation config, set the `responseMimeType` to `application/json`\n  // and pass the JSON schema object into `responseSchema`.\n  generationConfig: new GenerationConfig(\n    responseMimeType: \"application/json\",\n    responseSchema: jsonSchema\n  )\n);\n\nvar prompt = \"For use in a children's card game, generate 10 animal-based characters.\";\n\nvar response = await model.GenerateContentAsync(prompt);\nUnityEngine.Debug.Log(response.Text ?? \"No text in response.\");\n```",
+     "position": 3
+    },
+    {
+     "url": "https://deepmind.google/models/model-cards/gemini-3-8-flash/",
+     "title": "Gemini 3.8 Flash - Model Card - Google DeepMind",
+     "description": "Gemini 3.8 Flash is well-suited for users, developers, and enterprises, designed for cost-effective scaling of general-purpose, production-ready ...",
+     "position": 4
+    },
+    {
+     "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/capabilities/control-generated-output",
+     "title": "Structured output | Gemini Enterprise Agent Platform",
+     "description": "# Structured output    Stay organized with collections      Save and categorize content based on your preferences.\n## Send a prompt with a response schema\n#### Install\n```\nconst {GoogleGenAI} = require('@google/genai');\n\nconst GOOGLE_CLOUD_PROJECT = process.env.GOOGLE_CLOUD_PROJECT;\nconst GOOGLE_CLOUD_LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'global';\n\nasync function generateResponseSchema(\n  projectId = GOOGLE_CLOUD_PROJECT,\n  location = GOOGLE_CLOUD_LOCATION\n) {\n  const client = new GoogleGenAI({\n    vertexai: true,\n    project: projectId,\n    location: location,\n  });\n\n  const prompt = 'List a few popular cookie recipes.';\n\n  const responseSchema = {\n    type: 'ARRAY',\n    items: {\n      type: 'OBJECT',\n      properties: {\n        recipeName: {type: 'STRING'},\n        ingredients: {\n          type: 'ARRAY',\n          items: {type: 'STRING'},\n        },\n      },\n      required: ['recipeName', 'ingredients'],\n    },\n  };\n\n  const response = await client.models.generateContent({\n    model: 'gemini-2.5-flash',\n    contents: prompt,\n    config: {\n      responseMimeType: 'application/json',\n      responseSchema: responseSchema,\n    },\n  });\n\n  console.log(response.text);\n\n  // Example output:\n  // [\\\n  //     {\\\n  //         \"ingredients\": [\\\n  //             \"2 1/4 cups all-purpose flour\",\\\n  //             \"1 teaspoon baking soda\",\\\n  //             \"1 teaspoon salt\",\\\n  //             \"1 cup (2 sticks) unsalted butter, softened\",\\\n  //             \"3/4 cup granulated sugar\",\\\n  //             \"3/4 cup packed brown sugar\",\\\n  //             \"1 teaspoon vanilla extract\",\\\n  //             \"2 large eggs\",\\\n  //             \"2 cups chocolate chips\",\\\n  //         ],\\\n  //         \"recipe_name\": \"Chocolate Chip Cookies\",\\\n  //     }\\\n  // ]\n\n  return response.text;\n}\n```\n\n### Example schemas for JSON output\n#### Install\n```\n\nimport com.google.genai.Client;\nimport com.google.genai.types.GenerateContentConfig;\nimport com.google.genai.types.GenerateContentResponse;\nimport com.google.genai.types.HttpOptions;\nimport com.google.genai.types.Schema;\nimport com.google.genai.types.Type;\nimport java.util.List;\nimport java.util.Map;\n\npublic class ControlledGenerationWithNullableSchema {\n\n  public static void main(String[] args) {\n    // TODO(developer): Replace these variables before running the sample.\n    String modelId = \"gemini-2.5-flash\";\n\n    String prompt =\n        \"The week ahead brings a mix of weather conditions.\\n\"\n            + \"Sunday is expected to be sunny with a temperature \"\n            + \"of 77\u00b0F and a humidity level of 50%. \"\n            + \"Winds will be light at around 10 km/h.\\n\"\n            + \"Monday will see partly cloudy skies with \"\n            + \"a slightly cooler temperature of 72\u00b0F and the winds \"\n            + \"will pick up slightly to around 15 km/h.\\n\"\n            + \"Tuesday brings rain showers, with temperatures dropping \"\n            + \"to 64\u00b0F and humidity rising to 70%.\\n\"\n            + \"Wednesday may see thunderstorms, with a temperature of 68\u00b0F.\\n\"\n            + \"Thursday will be cloudy with a temperature of 66\u00b0F and moderate humidity at 60%.\\n\"\n            + \"Friday returns to partly cloudy conditions, with \"\n            + \"a temperature of 73\u00b0F and the Winds will be \"\n            + \"light at 12 km/h.\\n\"\n            + \"Finally, Saturday rounds off the week with sunny skies, a \"\n            + \"temperature of 80\u00b0F, and a humidity \"\n            + \"level of 40%. Winds will be gentle at 8 km/h.\\n\";\n\n    generateContent(modelId, prompt);\n  }\n\n  // Generates content with a nullable response schema\n  public static String generateContent(String modelId, String contents) {\n    // Initialize client that will be used to send requests. This client only needs to be created\n    // once, and can be reused for multiple requests.\n    try (Client client =\n        Client.builder()\n            .location(\"global\")\n            .vertexAI(true)\n            .httpOptions(HttpOptions.builder().apiVersion(\"v1\").build())\n            .build()) {\n\n      // Define schema for array items (each weather entry object)\n      Schema dayForecastSchema =\n          Schema.builder()\n              .type(Type.Known.OBJECT)\n              .properties(\n                  Map.of(\n                      \"Day\", Schema.builder().type(Type.Known.STRING).nullable(true).build(),\n                      \"Forecast\", Schema.builder().type(Type.Known.STRING).nullable(true).build(),\n                      \"Temperature\",\n                          Schema.builder().type(Type.Known.INTEGER).nullable(true).build(),\n                      \"Humidity\", Schema.builder().type(Type.Known.STRING).nullable(true).build(),\n                      \"Wind Speed\",\n                          Schema.builder().type(Type.Known.INTEGER).nullable(true).build()))\n              .required(List.of(\"Day\", \"Temperature\", \"Forecast\", \"Wind Speed\"))\n              .build();\n\n      // Full response schema\n      Schema responseSchema =\n          Schema.builder()\n              .type(Type.Known.OBJECT)\n              .properties(\n                  Map.of(\n                      \"forecast\",\n                      Schema.builder().type(Type.Known.ARRAY).items(dayForecastSchema).build()))\n              .build();\n\n      GenerateContentConfig config =\n          GenerateContentConfig.builder()\n              .responseMimeType(\"application/json\")\n              .responseSchema(responseSchema)\n              .build();\n\n      GenerateContentResponse response = client.models.generateContent(modelId, contents, config);\n\n      System.out.println(response.text());\n      // Example response:\n      // {\"forecast\": [{\"Day\": \"Sunday\", \"Forecast\": \"sunny\", \"Temperature\": 77, \"Wind Speed\": 10,\\\n      // \"Humidity\": \"50%\"},\\\n      //  {\"Day\": \"Monday\", \"Forecast\": \"partly cloudy\", \"Temperature\": 72, \"Wind Speed\": 15},\\\n      //  {\"Day\": \"Tuesday\", \"Forecast\": \"rain showers\", \"Temperature\": 64, \"Wind Speed\": null,\\\n      // \"Humidity\": \"70%\"},\\\n      //  {\"Day\": \"Wednesday\", \"Forecast\": \"thunderstorms\", \"Temperature\": 68, \"Wind Speed\": null},\\\n      //  {\"Day\": \"Thursday\", \"Forecast\": \"cloudy\", \"Temperature\": 66, \"Wind Speed\": null,\\\n      // \"Humidity\": \"60%\"},\\\n      //  {\"Day\": \"Friday\", \"Forecast\": \"partly cloudy\", \"Temperature\": 73, \"Wind Speed\": 12},\\\n      //  {\"Day\": \"Saturday\", \"Forecast\": \"sunny\", \"Temperature\": 80, \"Wind Speed\": 8, \"Humidity\":\\\n      // \"40%\"}]}\n      return response.text();\n    }\n  }\n}\n```",
+     "position": 5
+    },
+    {
+     "url": "https://www.reddit.com/r/Bard/comments/1ishzwf/partial_json_output_using_gemini_flash_20/",
+     "title": "Partial JSON Output Using Gemini Flash 2.0 : r/Bard - Reddit",
+     "description": "I am trying to generate a list of JSONS using the JSON mode from flash 2.0. When max tokens is specified (8096) it hogs all the tokens ...",
+     "position": 6
+    },
+    {
+     "url": "https://ai.google.dev/gemini-api/docs/latest-model",
+     "title": "What's new in Gemini 3.8 Flash - Interactions API",
+     "description": "# What's new in Gemini 3.8 Flash\n## Quickstart\n```\nfrom google import genai\n\nclient = genai.Client()\n\ninteraction = client.interactions.create(\n    model=\"gemini-3.8-flash\",\n    input=\"Write a three.js script that renders a realistic 3D black hole.\"\n)\n\nprint(interaction.output_text)\n```\n\n```\nimport { GoogleGenAI } from \"@google/genai\";\n\nconst client = new GoogleGenAI({});\n\nconst interaction = await client.interactions.create({\n  model: \"gemini-3.8-flash\",\n  input: \"Write a three.js script that renders a realistic 3D black hole.\",\n});\n\nconsole.log(interaction.output_text);\n```\n\n```\ncurl \"https://generativelanguage.googleapis.com/v1beta/interactions\" \\\n  -H \"x-goog-api-key: $GEMINI_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  -X POST \\\n  -d '{\n    \"model\": \"gemini-3.8-flash\",\n    \"input\": \"Write a three.js script that renders a realistic 3D black hole.\"\n  }'\n```\n\n## Migration checklist\n```\n  `/gemini-api-dev migrate my app to Gemini 3.8 Flash`\n```",
+     "position": 7
+    },
+    {
+     "url": "https://apidog.com/blog/gemini-3-8-flash-thinking-levels/",
+     "title": "Gemini 3.8 Flash thinking levels: low vs medium vs high (and why ...",
+     "description": "## Why minimal is gone and how to fix the error\n```json\n{\n  \"model\": \"gemini-3.8-flash\",\n  \"input\": \"Classify this ticket as billing, bug, or feature.\",\n  \"generation_config\": { \"thinking_level\": \"minimal\" }\n}\n```\n\n```json\n{\n  \"model\": \"gemini-3.8-flash\",\n  \"input\": \"Classify this ticket as billing, bug, or feature.\",\n  \"generation_config\": { \"thinking_level\": \"low\" }\n}\n```\n\n## Setting it in legacy generateContent\n```bash\ncurl \"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent\" \\\n  -H \"x-goog-api-key: $GEMINI_API_KEY\" -H 'Content-Type: application/json' -X POST \\\n  -d '{\"contents\":[{\"parts\":[{\"text\":\"Explain HTTP caching in 3 sentences.\"}]}],\n       \"generationConfig\":{\"thinkingConfig\":{\"thinkingLevel\":\"low\",\"includeThoughts\":true}}}'\n```",
+     "position": 8
+    },
+    {
+     "url": "https://www.datacamp.com/tutorial/gemini-3-8-flash-api-tutorial",
+     "title": "Gemini 3.8 Flash API Tutorial: A Hands-On Python Guide - DataCamp",
+     "description": "Learn how to use the Gemini 3.8 Flash API in Python: Interactions API setup, thinking_level tuning, PDF-to-JSON extraction, and function calling ...",
+     "position": 9
+    },
+    {
+     "url": "https://docs.ai.it.ufl.edu/docs/navigator_models/models/google-gemini-3.8-flash",
+     "title": "Google Gemini 3.8 Flash | NaviGator AI - University of Florida",
+     "description": "The generally available model supports adjustable thinking levels, accepts up to 1,048,576 input tokens, and produces up to 65,536 output tokens ...",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b310-c38b-711e-bb02-9a19dcac8a9b"
+ }
+}

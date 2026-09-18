@@ -1,0 +1,72 @@
+{
+ "query": "GPT-5.5 Codex schema",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://developers.openai.com/api/docs/guides/latest-model",
+     "title": "Model guidance | OpenAI API",
+     "description": "## Migration quickstart\n### Migrate with Codex\n```\n$openai-docs migrate this project to GPT-6 Astra\n\n```",
+     "position": 1
+    },
+    {
+     "url": "https://www.youtube.com/watch?v=5XZxmkjsNos",
+     "title": "GPT 5.5 + Codex Just Became the Best Model Ever - YouTube",
+     "description": "This video covers OpenAI's new GPT 5.5 model, code-named Spud, and why it is stronger for real work, long tasks, tool use, and finishing complex ...",
+     "position": 2
+    },
+    {
+     "url": "https://openai.com/index/gpt-5-5-system-card/",
+     "title": "GPT-5.5 System Card - OpenAI",
+     "description": "GPT\u20105.5 is a new model designed for complex, real-world work, including writing code, researching online, analyzing information, creating ...",
+     "position": 3
+    },
+    {
+     "url": "https://learn.chatgpt.com/docs/models",
+     "title": "Models - ChatGPT Learn",
+     "description": "## Choose a model\n```\ncodex --model gpt-5.6\n```\n\n```\ncodex exec -m gpt-5.6 \"Review the current changes\"\n```",
+     "position": 4
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/GPT-5.5",
+     "title": "GPT-5.5 - Wikipedia",
+     "description": "# GPT-5.5\n## External links\n| [OpenAI](https://en.wikipedia.org/wiki/OpenAI) |\n|-|\n| Specialized | - [DALL-E](https://en.wikipedia.org/wiki/DALL-E)<br>- [Codex](https://en.wikipedia.org/wiki/OpenAI_Codex_(language_model))<br>- [GPT Image](https://en.wikipedia.org/wiki/GPT_Image)<br>- [Sora](https://en.wikipedia.org/wiki/Sora_(text-to-video_model))<br>- [Whisper](https://en.wikipedia.org/wiki/Whisper_(speech_recognition_system)) |  |\n| [Intelligent<br><br>agents](https://en.wikipedia.org/wiki/Intelligent_agent) | - [ChatGPT agent](https://en.wikipedia.org/wiki/ChatGPT_agent)<br>- [Codex](https://en.wikipedia.org/wiki/OpenAI_Codex_(AI_agent)) <br>  - [GPT-5.3-Codex](https://en.wikipedia.org/wiki/GPT-5.3-Codex)<br>- [Operator](https://en.wikipedia.org/wiki/OpenAI_Operator) |  |\n\n| [Large language models](https://en.wikipedia.org/wiki/Large_language_model) (LLMs) |\n|-|\n| Agents, coding,<br>and applications | - [AI agent](https://en.wikipedia.org/wiki/AI_agent)<br>- [Intelligent agent](https://en.wikipedia.org/wiki/Intelligent_agent)<br>- [AutoGPT](https://en.wikipedia.org/wiki/AutoGPT)<br>- [CrewAI](https://en.wikipedia.org/wiki/CrewAI)<br>- [LangChain](https://en.wikipedia.org/wiki/LangChain)<br>- [Manus](https://en.wikipedia.org/wiki/Manus_(AI_agent))<br>- [Model Context Protocol](https://en.wikipedia.org/wiki/Model_Context_Protocol)<br>- [Agent2Agent](https://en.wikipedia.org/wiki/Agent2Agent)<br>- [OpenAI Codex](https://en.wikipedia.org/wiki/OpenAI_Codex_(AI_agent))<br>- [Vibe coding](https://en.wikipedia.org/wiki/Vibe_coding)<br>- [Code generation](https://en.wikipedia.org/wiki/AI-assisted_software_development)<br>- [Question answering](https://en.wikipedia.org/wiki/Question_answering)<br>- [Machine translation](https://en.wikipedia.org/wiki/Machine_translation)<br>- [Text summarization](https://en.wikipedia.org/wiki/Text_summarization)<br>- [Chatbot](https://en.wikipedia.org/wiki/Chatbot)<br>- [Virtual assistant](https://en.wikipedia.org/wiki/Virtual_assistant)<br>- [LLMs in higher education](https://en.wikipedia.org/wiki/LLMs_in_higher_education) |\n\n| [Generative AI](https://en.wikipedia.org/wiki/Generative_AI) |\n|-|\n| Products |  | [Coding tools](https://en.wikipedia.org/wiki/List_of_AI-assisted_software_development_tools) | - [Claude Code](https://en.wikipedia.org/wiki/Claude_Code)<br>- [Codex](https://en.wikipedia.org/wiki/Codex_(AI_agent))<br>- [Cursor](https://en.wikipedia.org/wiki/Cursor_(code_editor))<br>- [Devin AI](https://en.wikipedia.org/wiki/Devin_AI)<br>- [GitHub Copilot](https://en.wikipedia.org/wiki/GitHub_Copilot)<br>- [Google Antigravity](https://en.wikipedia.org/wiki/Google_Antigravity)<br>- [MiniMax Code](https://en.wikipedia.org/wiki/MiniMax_(company)#Technology)<br>- [Replit](https://en.wikipedia.org/wiki/Replit) |",
+     "position": 5
+    },
+    {
+     "url": "https://www.reddit.com/r/codex/comments/1swmpi2/what_types_of_users_are_getting_good_results_from/",
+     "title": "What types of users are getting good results from GPT 5.5? : r/codex",
+     "description": "Its responses are extremely short, and almost point-form. Terminology is frequently invented to keep responses extremely short. This almost ...",
+     "position": 6
+    },
+    {
+     "url": "https://thezvi.substack.com/p/gpt-55-capabilities-and-reactions",
+     "title": "GPT-5.5: Capabilities and Reactions - by Zvi Mowshowitz - Substack",
+     "description": "It excels at writing and debugging code, researching online, analyzing data, creating documents and spreadsheets, operating software, and ...",
+     "position": 7
+    },
+    {
+     "url": "https://huggingface.co/datasets/AletheiaResearch/GPT-5.5-Codex",
+     "title": "AletheiaResearch/GPT-5.5-Codex \u00b7 Datasets at Hugging Face",
+     "description": "Generated agent traces carry configured or recovered tool schemas so tools remain available for training even when a session did not call them.",
+     "position": 8
+    },
+    {
+     "url": "https://openai.com/index/gpt-5-5-instant/",
+     "title": "GPT-5.5 Instant: smarter, clearer, and more personalized | OpenAI",
+     "description": "GPT-5.5 Instant updates ChatGPT's default model with smarter, more accurate answers, reduced hallucinations, and improved personalization ...",
+     "position": 9
+    },
+    {
+     "url": "https://www.mindstudio.ai/blog/how-to-use-gpt-5-5-codex-agentic-tasks",
+     "title": "How to Use GPT-5.5 in Codex for Real-World Agentic Tasks | MindStudio",
+     "description": "GPT-5.5 is optimized for agentic work, not chat. Learn how to activate it in Codex, use plan mode, and get the most from its token ...",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b310-a2ea-7696-be66-4a9ce24e3527"
+ }
+}

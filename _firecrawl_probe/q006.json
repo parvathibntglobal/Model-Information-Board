@@ -1,0 +1,72 @@
+{
+ "query": "GPT-5.6 Sol asked it to",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://openai.com/index/gpt-5-6/",
+     "title": "GPT-5.6: Frontier intelligence that scales with your ambition | OpenAI",
+     "description": "GPT\u20105.6 Sol sets a new standard for both intelligence and efficiency, achieving state-of-the-art results across coding, knowledge work, ...",
+     "position": 1
+    },
+    {
+     "url": "https://www.reddit.com/r/ChatGPT/comments/1uscohi/gpt56_sol_ultra_is_impressive_for_the_12_minutes/",
+     "title": "GPT-5.6 Sol Ultra is impressive \u2014 for the 12 minutes you're allowed to ...",
+     "description": "What exactly is the target audience for Sol Ultra? People who only ask it to summarize a three-paragraph email? OpenAI keeps advertising these ...Previewing GPT-5.6 Sol: a next-generation model : r/singularitymy experience with gpt 5.6 sol : r/codex - RedditMore results from www.reddit.com",
+     "position": 2
+    },
+    {
+     "url": "https://www.youtube.com/watch?v=13tHN3iP5kQ",
+     "title": "I Tested GPT\u20115.6 Sol for a Month - YouTube",
+     "description": "Dan Shipper, CEO of Every, spent a month testing OpenAI's GPT\u20115.6 Sol. It is fast, powerful, relatively inexpensive and an excellent writer.",
+     "position": 3
+    },
+    {
+     "url": "https://every.to/vibe-check/gpt-5-6-sol",
+     "title": "Vibe Check: GPT-5.6 Sol Is Our Favorite Model to Collaborate With",
+     "description": "# Vibe Check: GPT-5.6 Sol Is Our Favorite Model to Collaborate With\n## Writing: A fantastic collaborator with context and direction\n### Context use: Stronger with a writing system\nAsk it to determine the argument and standards from scratch, and the benchmark weaknesses return.",
+     "position": 4
+    },
+    {
+     "url": "https://addyosmani.com/notes/gpt-5-6-sol/",
+     "title": "Notes on GPT-5.6 \"Sol\": a genuinely strong model, and a smart ...",
+     "description": "Sol Medium for coding the plan and general coding tasks.\n\nThat\u2019s the claim I most want to stress-test, and I\u2019d like OpenAI to publish more on Sol\u2019s long-horizon behavior.",
+     "position": 5
+    },
+    {
+     "url": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+     "title": "GPT-5.6 Sol Model | OpenAI API",
+     "description": "PT-5.6 Sol is a flagship model in the GPT-5.6 family. routes requests to GPT-5.6 Sol. GPT-5.6 Sol costs $4 per million input tokens and $20 per million output ...",
+     "position": 6
+    },
+    {
+     "url": "https://www.youtube.com/watch?v=STczJBYJf7w&vl=en",
+     "title": "7 Rules To Use GPT 5.6 Sol Better Than 90% Of People - YouTube",
+     "description": "GPT 5.6 Sol just dropped, and we ran OpenAI's new GPT 5.6 against Claude Fable 5 in Codex for four days. Here are 7 rules for getting the ...",
+     "position": 7
+    },
+    {
+     "url": "https://coursiv.io/blog/chatgpt-5-6-sol",
+     "title": "ChatGPT 5.6 Sol: Benchmarks, API Pricing, Tools & Review - Coursiv",
+     "description": "GPT-5.6 Sol is OpenAI's flagship GPT-5.6 model for difficult professional, coding, research, computer-use, and tool-heavy work.",
+     "position": 8
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/GPT-5.6",
+     "title": "GPT-5.6 - Wikipedia",
+     "description": "The models were designed to expand user capabilities across enterprise work, coding, scientific research, and cybersecurity. GPT-5.6. Developer \u00b7 OpenAI.Capabilities and benchmarks \u00b7 Security incident",
+     "position": 9
+    },
+    {
+     "url": "https://hix.ai/c/gpt-5-6-sol",
+     "title": "GPT-5.6 Sol | Try for Free | No Signup - HIX.AI",
+     "description": "Rating 4.5(1,759,876) \u00b7 Free \u00b7 Business/ProductivityGPT\u20115.6 Sol is OpenAI's highest\u2011capability model in the GPT\u20115.6 family, designed for complex, multi\u2011step professional work such as agentic coding, security ...",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b310-1e6b-75a3-82bf-988894c8db69"
+ }
+}

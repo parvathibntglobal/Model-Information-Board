@@ -1,0 +1,72 @@
+{
+ "query": "Kimi K3 response format",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://platform.kimi.ai/docs/guide/use-json-mode-feature-of-kimi-api",
+     "title": "Use Kimi API's JSON Mode",
+     "description": "## [\u200b](https://platform.kimi.ai/docs/guide/use-json-mode-feature-of-kimi-api#full-example-a-customer-service-bot-with-mixed-message-types)  Full example: a customer-service bot with mixed message types\n```\nimport os\nimport json\n\nfrom openai import OpenAI\n\nclient = OpenAI(\n    api_key=os.environ[\"MOONSHOT_API_KEY\"], # Set the MOONSHOT_API_KEY environment variable before running this example\n    base_url=\"https://api.moonshot.ai/v1\",\n)\n\nsystem_prompt = \"\"\"\nYou are the intelligent customer service of Moonshot AI (Kimi), responsible for answering various user questions. Please refer to the document content to reply to user questions. Your reply can be text, images, links, and you can include text, images, and links in a single response.\n\nPlease output your reply in the following JSON format:\n\n{\n    \"text\": \"Text information\",\n    \"image\": \"Image URL\",\n    \"url\": \"Link URL\"\n}\n\nNote: Please place the text information in the `text` field, put the image in the `image` field in the form of a link starting with `oss://`, and place the regular link in the `url` field.\n\"\"\"\n\ncompletion = client.chat.completions.create(\n    model=\"kimi-k3\",\n    messages=[\\\n        {\"role\": \"system\",\\\n         \"content\": \"You are Kimi, an artificial intelligence assistant provided by Moonshot AI, excelling in Chinese and English conversations. You provide users with safe, helpful, and accurate answers. You will reject any questions involving terrorism, racism, pornography, and violence. Moonshot AI is a proper noun and should not be translated into other languages.\"},\\\n        {\"role\": \"system\", \"content\": system_prompt}, # <-- Submit the system prompt with the output format to Kimi\\\n        {\"role\": \"user\", \"content\": \"Hello, my name is Li Lei, what is 1+1?\"}\\\n    ],\n    response_format={\"type\": \"json_object\"}, # <-- Use the response_format parameter to specify the output format as json_object\n)\n\n# Since we have set JSON Mode, the message.content returned by the Kimi large language model is a serialized JSON Object string.\n# We use json.loads to parse its content and deserialize it into a Python dictionary.\ncontent = json.loads(completion.choices[0].message.content)\n\n# Parse text content\nif \"text\" in content:\n\t# For demonstration purposes, we print the content;\n\t# In real business logic, you may need to call the text message sending interface to send the generated text to the user.\n    print(\"text:\", content[\"text\"])\n\n# Parse image content\nif \"image\" in content:\n\t# For demonstration purposes, we print the content;\n\t# In real business logic, you may need to first parse the image URL, download the image, and then call the image message sending\n\t# interface to send the image to the user.\n    print(\"image:\", content[\"image\"])\n\n# Parse link\nif \"url\" in content:\n\t# For demonstration purposes, we print the content;\n\t# In real business logic, you may need to call the link card sending interface to send the link to the user in the form of a card.\n    print(\"url:\", content[\"url\"])\n```\n\n```\nconst OpenAI = require(\"openai\")\n\nconst client = new OpenAI({\n    apiKey: process.env.MOONSHOT_API_KEY, // Set the MOONSHOT_API_KEY environment variable before running this example\n    baseURL: \"https://api.moonshot.ai/v1\",\n})\n\nsystem_prompt = `\nYou are the intelligent customer service of Moonshot AI (Kimi), responsible for answering various user questions. Please refer to the document content to reply to user questions. Your reply can be text, images, links, and you can include text, images, and links in a single response.\n\"\n\"\nPlease output your reply in the following JSON format:\n\n{\n    \"text\": \"Text information\",\n    \"image\": \"Image URL\",\n    \"url\": \"Link URL\"\n}\n\"\nNote: Please place the text information in the 'text' field, put the image in the 'image' field in the form of a link starting with oss://, and place the regular link in the 'url' field.\n`\nasync function main() {\n    const completion = await client.chat.completions.create({\n        model: \"kimi-k3\",\n        messages: [\\\n            {role: \"system\",\\\n             content: \"You are Kimi, an artificial intelligence assistant provided by Moonshot AI, excelling in Chinese and English conversations. You provide users with safe, helpful, and accurate answers. You will reject any questions involving terrorism, racism, pornography, and violence. Moonshot AI is a proper noun and should not be translated into other languages.\"},\\\n            {role: \"system\", content: system_prompt}, // <-- Submit the system prompt with the output format to Kimi\\\n            {role: \"user\", content: \"Hello, my name is Li Lei, what is 1+1?\"}\\\n        ],\n        response_format: {type: \"json_object\"}, // <-- Use the response_format parameter to specify the output format as json_object\n    })\n\n    // Since we have set JSON Mode, the message.content returned by the Kimi large language model is a serialized JSON Object string.\n    // We use JSON.parse to parse its content and deserialize it into a JavaScript object.\n    content = JSON.parse(completion.choices[0].message.content)\n\n    // Parse text content\n    if (content.text) {\n        // For demonstration purposes, we print the content;\n        // In real business logic, you may need to call the text message sending interface to send the generated text to the user.\n        console.log(\"text:\", content.text)\n    }\n    // Parse image content\n    if (content.image) {\n        // For demonstration purposes, we print the content;\n        // In real business logic, you may need to first parse the image URL, download the image, and then call the image message sending\n        // interface to send the image to the user.\n        console.log(\"image:\", content.image)\n    }\n    // Parse link\n    if (content.url) {\n        // For demonstration purposes, we print the content;\n        // In real business logic, you may need to call the link card sending interface to send the link to the user in the form of a card.\n        console.log(\"url\", content.url)\n    }\n}\n\nmain()\n```",
+     "position": 1
+    },
+    {
+     "url": "https://huggingface.co/blog/ResterChed/kimi-k3-model-overview-mxfp4-quantization-open-wei",
+     "title": "Kimi K3 Model Overview: 2.8T Parameters, MXFP4 Quantization ...",
+     "description": "The format choices are deliberate: MXFP4 weights (Microscaling FP4): Each weight is stored in 4-bit floating point with per-block scaling ...",
+     "position": 2
+    },
+    {
+     "url": "https://www.reddit.com/r/AI_Agents/comments/1v81jk6/kimi_k3_is_the_largest_openweight_model_ever/",
+     "title": "Kimi K3 is the largest open-weight model ever released. You still can't ...",
+     "description": "2.8 trillion parameters, Modified MIT license. Genuinely impressive benchmarks, 91.2% on BrowseComp, best published agentic score at release.",
+     "position": 3
+    },
+    {
+     "url": "https://www.together.ai/blog/kimi-k3-guide",
+     "title": "Kimi K3: the complete developer guide - Together AI",
+     "description": "# Kimi K3: the complete developer guide\n## How to use Kimi K3 on Together AI\n### Structured output\nUse response_format with json_schema and strict: true to constrain the final message.content.",
+     "position": 4
+    },
+    {
+     "url": "https://www.kimi.ai/blog/kimi-k3",
+     "title": "Kimi K3 Tech Blog: Open Frontier Intelligence",
+     "description": "Each model works independently in an identical sandbox, with up to 24 hours to profile, rewrite, and benchmark four tasks spanning AttnRes, KDA, and a 512-head ...",
+     "position": 5
+    },
+    {
+     "url": "https://www.ayautomate.com/blog/how-to-use-kimi-k3",
+     "title": "How to Use Kimi K3: Setup, API, and Pricing (2026) - AY Automate",
+     "description": "## How to Use Kimi K3: Access, API Setup, and Pricing (2026)\n### How to Access Kimi K3 (Two Paths)\n#### 2. The Developer API: platform.kimi.ai\n```python\nimport os\nfrom openai import OpenAI\n\nclient = OpenAI(\n    api_key=os.environ[\"MOONSHOT_API_KEY\"],\n    base_url=\"https://api.moonshot.ai/v1\",\n)\n\ncompletion = client.chat.completions.create(\n    model=\"kimi-k3\",\n    messages=[\\\n        {\"role\": \"user\", \"content\": \"Summarize this document and flag any open questions.\"},\\\n    ],\n)\n\nprint(completion.choices[0].message.content)\n```",
+     "position": 6
+    },
+    {
+     "url": "https://linas.substack.com/p/kimi-k3-ultimate-guide",
+     "title": "The Ultimate Guide to Kimi K3 - Linas's Newsletter",
+     "description": "K3 returns reasoning_content alongside its answer, and dropping it destabilizes later turns. That is documented behavior, not superstition. In ...",
+     "position": 7
+    },
+    {
+     "url": "https://news.ycombinator.com/item?id=48935574",
+     "title": "More details: - https://platform.kimi.ai/docs/guide ...",
+     "description": "Kimi K3: Open Frontier Intelligence. Kimi K3 that spends 50K reasoning tokens, % in a format string when reading a whole file. 't respond if you are ...",
+     "position": 8
+    },
+    {
+     "url": "https://www.runpod.io/articles/guides/kimi-k3-technical-faq",
+     "title": "Kimi K3: KDA, MXFP4, and the self-host breakeven math - Runpod",
+     "description": "K3 always emits a reasoning stream, and those tokens count against max_tokens. Set a generous max_tokens and read reasoning_content, or a small ...",
+     "position": 9
+    },
+    {
+     "url": "https://apidog.com/blog/kimi-k3-api/",
+     "title": "How to Use the Kimi K3 API ? - Apidog",
+     "description": "## Quickstart: your first kimi-k3 call\n### Python\n```python\nimport os\nfrom openai import OpenAI\n\nclient = OpenAI(\n    api_key=os.environ[\"KIMI_API_KEY\"],\n    # Kimi is OpenAI-SDK compatible. Confirm the exact base URL in the\n    # console at platform.kimi.ai; Kimi has historically used the value below.\n    base_url=\"https://api.moonshot.ai/v1\",\n)\n\nresponse = client.chat.completions.create(\n    model=\"kimi-k3\",\n    messages=[\\\n        {\"role\": \"system\", \"content\": \"You are a precise coding assistant.\"},\\\n        {\"role\": \"user\", \"content\": \"Explain what a token bucket rate limiter does in one paragraph.\"},\\\n    ],\n)\n\nprint(response.choices[0].message.content)\n```\n\n### JavaScript / TypeScript\n```javascript\nimport OpenAI from \"openai\";\n\nconst client = new OpenAI({\n  apiKey: process.env.KIMI_API_KEY,\n  // Confirm the base URL in the platform.kimi.ai console.\n  baseURL: \"https://api.moonshot.ai/v1\",\n});\n\nconst response = await client.chat.completions.create({\n  model: \"kimi-k3\",\n  messages: [\\\n    { role: \"system\", content: \"You are a precise coding assistant.\" },\\\n    { role: \"user\", content: \"Explain what a token bucket rate limiter does in one paragraph.\" },\\\n  ],\n});\n\nconsole.log(response.choices[0].message.content);\n```\n\n### cURL\n```bash\ncurl \"$KIMI_BASE_URL/chat/completions\" \\\n  -H \"Authorization: Bearer $KIMI_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"model\": \"kimi-k3\",\n    \"messages\": [\\\n      {\"role\": \"user\", \"content\": \"Explain what a token bucket rate limiter does in one paragraph.\"}\\\n    ]\n  }'\n```",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b310-81e5-736c-b319-feb6a2644871"
+ }
+}

@@ -1,0 +1,72 @@
+{
+ "query": "ElevenLabs v3 json schema",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://elevenlabs.io/docs/changelog",
+     "title": "Changelog | ElevenLabs Documentation",
+     "description": "Every ElevenLabs API operation is available as a subcommand, with JSON, table, YAML and CSV output, automatic pagination and shell completion. The CLI also ...",
+     "position": 1
+    },
+    {
+     "url": "https://elevenlabs.io/v3",
+     "title": "Eleven v3 \u2014 Most Expressive AI Voice Model - ElevenLabs",
+     "description": "Menu\n\n# Take v3 anywhere - now available on mobile\n## Build with the Eleven v3 API\n```\nimport { ElevenLabsClient, play } from '@elevenlabs/elevenlabs-js';\nimport 'dotenv/config';\n\nconst elevenlabs = new ElevenLabsClient();\nconst voiceId = 'JBFqnCBsd6RMkjVDRZzb';\n\nconst audio = await elevenlabs.textToSpeech.convert(voiceId, {\n  text: '[slowly] Back then... [chuckles] we had no phones.\n [whispers] Just dirt roads and [coughs] big dreams. [sad] Then it happenend',\n  modelId: 'eleven_v3',\n  outputFormat: 'mp3_44100_128',\n});\n\nawait play(audio);\n```",
+     "position": 2
+    },
+    {
+     "url": "https://www.reddit.com/r/ElevenLabs/comments/1mjeh65/patiently_and_programmatically_waiting_for/",
+     "title": "Patiently (and programmatically) waiting for ElevenLabs API v3 to ...",
+     "description": "Patiently (and programmatically) waiting for ElevenLabs API v3 to drop... ... jsonvalid8.nvim - Realtime JSON Schema Validation in Neovim ( ...",
+     "position": 3
+    },
+    {
+     "url": "https://elevenlabs.io/blog/eleven-v3-alpha-now-available-in-the-api",
+     "title": "Eleven v3 (alpha), now available in the API - ElevenLabs",
+     "description": "Eleven v3 is no longer in alpha, and is now generally available. Today, we're making Eleven v3 (alpha) available in our API. Eleven v3 ...",
+     "position": 4
+    },
+    {
+     "url": "https://replicate.com/elevenlabs/v3",
+     "title": "Elevenlabs v3 - Replicate",
+     "description": "## Input\n*string\n\nstring\n\nDefault: \"Rachel\"\n\nnumber\n\n(minimum: 0, maximum: 1)\n\nDefault: 0.5\n\nsimilarity_boost number\n\n(minimum: 0, maximum: 1)\n\nsimilarity_boost\n\nDefault: 0.75\n\nstyle number\n\n(minimum: 0, maximum: 1)\n\nstyle\n\nDefault: 0\n\nnumber\n\n(minimum: 0.7, maximum: 1.2)\n\nDefault: 1\n\nprevious_text string\n\nDefault: \"\"\n\nnext_text string\n\nDefault: \"\"\n\nlanguage_code string\n\nDefault: \"en\"\n\nnpx create-replicate --model=elevenlabs/v3\n\nCopy\n\nCheck out the [model's schema](https://replicate.com/elevenlabs/v3/api/schema) for an overview of inputs and outputs.\n\n```javascript\nconst input = {\n  speed: 1,\n  style: 0,\n  voice: \"Grimblewood\",\n  prompt: \"In the ancient land of Eldoria, where skies shimmered and forests, whispered secrets to the wind, lived a dragon named Zephyros. Not the \u201cburn it all down\u201d kind, but he was gentle, wise, with eyes like old stars. Even the birds fell silent when he passed.\",\n  next_text: \"\",\n  stability: 0.5,\n  language_code: \"en\",\n  previous_text: \"\",\n  similarity_boost: 0.75\n};\n\nconst output = await replicate.run(\"elevenlabs/v3\", { input });\n\n// To access the file URL:\nconsole.log(output.url()); //=> \"http://example.com\"\n\n// To write the file to disk:\nfs.writeFile(\"my-image.png\", output);\n```\n\nCopy\n\nCheck out the [model's schema](https://replicate.com/elevenlabs/v3/api/schema) for an overview of inputs and outputs.\n\n```python\noutput = replicate.run(\n    \"elevenlabs/v3\",\n    input={\n        \"speed\": 1,\n        \"style\": 0,\n        \"voice\": \"Grimblewood\",\n        \"prompt\": \"In the ancient land of Eldoria, where skies shimmered and forests, whispered secrets to the wind, lived a dragon named Zephyros. Not the \u201cburn it all down\u201d kind, but he was gentle, wise, with eyes like old stars. Even the birds fell silent when he passed.\",\n        \"next_text\": \"\",\n        \"stability\": 0.5,\n        \"language_code\": \"en\",\n        \"previous_text\": \"\",\n        \"similarity_boost\": 0.75\n    }\n)\n\n# To access the file URL:\nprint(output.url)\n#=> \"http://example.com\"\n\n# To write the file to disk:\nwith open(\"my-image.png\", \"wb\") as file:\n    file.write(output.read())\n```\n\nCopy\n\nCheck out the [model's schema](https://replicate.com/elevenlabs/v3/api/schema) for an overview of inputs and outputs.\n\n```shell\ncurl -s -X POST \\\n  -H \"Authorization: Bearer $REPLICATE_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Prefer: wait\" \\\n  -d $'{\n    \"input\": {\n      \"speed\": 1,\n      \"style\": 0,\n      \"voice\": \"Grimblewood\",\n      \"prompt\": \"In the ancient land of Eldoria, where skies shimmered and forests, whispered secrets to the wind, lived a dragon named Zephyros. Not the \u201cburn it all down\u201d kind, but he was gentle, wise, with eyes like old stars. Even the birds fell silent when he passed.\",\n      \"next_text\": \"\",\n      \"stability\": 0.5,\n      \"language_code\": \"en\",\n      \"previous_text\": \"\",\n      \"similarity_boost\": 0.75\n    }\n  }' \\\n  https://api.replicate.com/v1/models/elevenlabs/v3/predictions\n```",
+     "position": 5
+    },
+    {
+     "url": "https://aitopia.ai/elevenlabs/v3",
+     "title": "ElevenLabs v3 | Latest Premium Voice AI - Aitopia",
+     "description": "Generate the most expressive and natural ElevenLabs TTS with v3's improved emotion control. Best for premium audiobooks, narration, and brand voices.",
+     "position": 6
+    },
+    {
+     "url": "https://elevenlabs.io/docs/overview/models",
+     "title": "Models | ElevenLabs Documentation",
+     "description": "## Models overview\n| Model ID | Description | Languages |\n|-|-|-|\n| `eleven_v3` | Human-like and expressive speech generation | [70+ languages](https://elevenlabs.io/docs/overview/models#supported-languages) |\n\n## Eleven v3\n### Supported languages\n_Afrikaans (afr), Arabic (ara), Armenian (hye), Assamese (asm), Azerbaijani (aze), Belarusian (bel), Bengali (ben), Bosnian (bos), Bulgarian (bul), Catalan (cat), Cebuano (ceb), Chichewa (nya), Croatian (hrv), Czech (ces), Danish (dan), Dutch (nld), English (eng), Estonian (est), Filipino (fil), Finnish (fin), French (fra), Galician (glg), Georgian (kat), German (deu), Greek (ell), Gujarati (guj), Hausa (hau), Hebrew (heb), Hindi (hin), Hungarian (hun), Icelandic (isl), Indonesian (ind), Irish (gle), Italian (ita), Japanese (jpn), Javanese (jav), Kannada (kan), Kazakh (kaz), Kirghiz (kir), Korean (kor), Latvian (lav), Lingala (lin), Lithuanian (lit), Luxembourgish (ltz), Macedonian (mkd), Malay (msa), Malayalam (mal), Mandarin Chinese (cmn), Marathi (mar), Nepali (nep), Norwegian (nor), Pashto (pus), Persian (fas), Polish (pol), Portuguese (por), Punjabi (pan), Romanian (ron), Russian (rus), Serbian (srp), Sindhi (snd), Slovak (slk), Slovenian (slv), Somali (som), Spanish (spa), Swahili (swa), Swedish (swe), Tamil (tam), Telugu (tel), Thai (tha), Turkish (tur), Ukrainian (ukr), Urdu (urd), Vietnamese (vie), Welsh (cym)._",
+     "position": 7
+    },
+    {
+     "url": "https://www.youtube.com/watch?v=ORUFd9K5tp4&vl=en",
+     "title": "ElevenLabs V3 Tutorial: Build Natural Multi-Speaker AI Voices - YouTube",
+     "description": "Access ALL video resources & get personalized help in my community: ...",
+     "position": 8
+    },
+    {
+     "url": "https://apis.io/schemas/elevenlabs/elevenlabs-createaudionativerequest/",
+     "title": "CreateAudioNativeRequest \u2014 JSON Schema - APIs.io",
+     "description": "CreateAudioNativeRequest is a JSON Schema published by elevenlabs, one of 65 schemas the APIs.io network indexes for this provider.",
+     "position": 9
+    },
+    {
+     "url": "https://www.webfuse.com/elevenlabs-cheat-sheet",
+     "title": "ElevenLabs Cheat Sheet (2026) - Models, Voices, API & Agents",
+     "description": "# ElevenLabs Cheat Sheet\n## API Quick Reference\n### Python Example\n```\nimport requests\n\nurl = f\"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}\"\n\nheaders = {\n    \"xi-api-key\": API_KEY,\n    \"Content-Type\": \"application/json\"\n}\n\ndata = {\n    \"text\": \"Hello world\",\n    \"model_id\": \"eleven_flash_v2_5\"\n}\n\nresponse = requests.post(url, json=data, headers=headers)\n\nwith open(\"output.mp3\", \"wb\") as f:\n    f.write(response.content)\n```\n\n### JavaScript Example\n```\nconst response = await fetch(url, {\n  method: 'POST',\n  headers: {\n    'xi-api-key': API_KEY,\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({ text: 'Hello world', model_id: 'eleven_flash_v2_5' })\n});\n\nconst audioBuffer = await response.arrayBuffer();\nconst blob = new Blob([audioBuffer], { type: 'audio/mpeg' });\nconst urlObject = URL.createObjectURL(blob);\n```",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b311-09ff-75a8-951f-5c6b216c9af4"
+ }
+}

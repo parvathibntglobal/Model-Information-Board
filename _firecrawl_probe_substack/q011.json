@@ -1,0 +1,72 @@
+{
+ "query": "Gemini 3.8 Flash substack",
+ "response": {
+  "success": true,
+  "data": {
+   "web": [
+    {
+     "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/3-8-flash-and-3-8-flash-cyber/",
+     "title": "Introducing Gemini 3.8 Flash and 3.8 Flash Cyber - Google Blog",
+     "description": "Gemini 3.8 Flash and 3.8 Flash Cyber deliver next-generation intelligence for agentic workflows and cybersecurity.",
+     "position": 1
+    },
+    {
+     "url": "https://substack.com/@bdtechtalks/note/c-329583661",
+     "title": "Ben Dickson (@bdtechtalks) - Substack",
+     "description": "As a test, I tried Gemini 3.8 Flash yesterday for a task that I would usually give to 3.1 Pro. The results were super impressive.",
+     "position": 2
+    },
+    {
+     "url": "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/guides/gemini-3-8-flash",
+     "title": "Developer's guide to Gemini 3.8 Flash | Gemini Enterprise Agent Platform",
+     "description": "2 days ago \u00b7 Developer guide for Gemini 3.8 Flash, covering model specifications, comparisons, migration steps, and API integration.",
+     "position": 3
+    },
+    {
+     "url": "https://deepmind.google/models/gemini/flash/",
+     "title": "Gemini 3.8 Flash - Google DeepMind",
+     "description": "Gemini 3.8 Flash outperforms 3.7 Flash and other frontier models in benchmarks like Vals Finance Agent V2 and Harvey's Legal Agent Benchmark.",
+     "position": 4
+    },
+    {
+     "url": "https://www.youtube.com/watch?v=7LXEwvoc9Oo",
+     "title": "I Tested NEW Gemini-3.8-Flash on my LLM Coding Leaderboard - YouTube",
+     "description": "# I Tested NEW Gemini-3.8-Flash on my LLM Coding Leaderboard\nSubscribe",
+     "position": 5
+    },
+    {
+     "url": "https://thesequence.substack.com/p/the-sequence-learning-loop-issue-0fd",
+     "title": "Learn About Meta Muse Spark, World Labs' Atlas and Gemini 3.8 Flash",
+     "description": "Google released Gemini 3.8 Flash on September 2, targeting software engineering and extended agent workflows. Google describes a revealing ...",
+     "position": 6
+    },
+    {
+     "url": "https://blog.kilo.ai/p/the-quiet-launch-of-gemini-38-flash",
+     "title": "The Quiet Launch of Gemini 3.8 Flash - by Ari Messer - Kilo Blog",
+     "description": "# The Quiet Launch of Gemini 3.8 Flash\n### Google\u2019s new go-to model is surprisingly smart and extremely fast\n[![Ari Messer's avatar](https://substackcdn.com/image/fetch/$s_!psPk!,w_36,h_36,c_fill,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F3df81850-1ae7-4179-8dc8-e43f6b418ae6_144x144.png)](https://substack.com/@westernzevon)\n\n[![](https://substackcdn.com/image/fetch/$s_!KucJ!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2ba3f994-8cd1-4c5b-bb91-377afb511fce_1536x1024.png)](https://substackcdn.com/image/fetch/$s_!KucJ!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2ba3f994-8cd1-4c5b-bb91-377afb511fce_1536x1024.png)\n\n## The Numbers Nobody Is Talking About\n[![](https://substackcdn.com/image/fetch/$s_!_Vli!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2d6e3079-a819-4df2-8dd5-c5ded3a48ad8_806x900.png)](https://substackcdn.com/image/fetch/$s_!_Vli!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F2d6e3079-a819-4df2-8dd5-c5ded3a48ad8_806x900.png)\n\n[![](https://substackcdn.com/image/fetch/$s_!PgHU!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ffde6447f-81bc-495b-83d6-1d47146ac0b6_1672x2048.png)](https://substackcdn.com/image/fetch/$s_!PgHU!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ffde6447f-81bc-495b-83d6-1d47146ac0b6_1672x2048.png)\n\n## Gemini 3.8 Flash vs Grok 4.6\n[![](https://substackcdn.com/image/fetch/$s_!gctT!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F51f12b62-2f67-444c-ac97-2337e76d6f69_1912x864.png)](https://substackcdn.com/image/fetch/$s_!gctT!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F51f12b62-2f67-444c-ac97-2337e76d6f69_1912x864.png)Gemini 3.8 Flash vs Grok 4.6\n\n## Flash Models Are for Builders\n#### Subscribe to Kilo Blog\nBy subscribing, you agree Substack's [Terms of Use](https://substack.com/tos), and acknowledge its [Information Collection Notice](https://substack.com/ccpa#personal-data-collected) and [Privacy Policy](https://substack.com/privacy).",
+     "position": 7
+    },
+    {
+     "url": "https://shattered.io/gemini-3-8-flash-preview-google-testing-2026/",
+     "title": "Google Tests Gemini 3.8 Flash 14 Days After 3.7 [2026] - shattered.io",
+     "description": "Google staff are reportedly testing Gemini 3.8 Flash Preview on internal tool Jetski, 14 days after Gemini 3.7 Flash shipped. Full breakdown.",
+     "position": 8
+    },
+    {
+     "url": "https://www.reddit.com/r/google_antigravity/comments/1wfy6jj/gemini_38_flash_has_a_dangerous_obsession_with/",
+     "title": "Gemini 3.8 Flash has a dangerous obsession with silent fallbacks (and ...",
+     "description": "4 days ago \u00b7 I've been testing and pair-programming with Gemini 3.8 Flash on real-world backend integrations (e-commerce, logistics APIs, WMS, ...",
+     "position": 9
+    },
+    {
+     "url": "https://substack.com/@opencloudai/note/c-328659409",
+     "title": "Cloud AI (@opencloudai): \"Gemini 3.8 Flash is now available in Cursor!\"",
+     "description": "Gemini 3.8 Flash is now available in Cursor ... Join Cloud AI on Substack. The home for great writing, podcasts, and ...",
+     "position": 10
+    }
+   ]
+  },
+  "creditsUsed": 2,
+  "id": "01a0b318-7e78-71ac-8613-52fcbd597027"
+ }
+}
