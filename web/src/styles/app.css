@@ -101,6 +101,39 @@ main{flex:1}
 .rail-body.last{border-left-color:transparent;
   background:linear-gradient(var(--line),var(--line)) left top/2px 10px no-repeat}
 
+/* =============================================================== matchlist */
+/* The registry typeahead. Absolutely positioned so opening it does not push the
+   controls beside it down the page, and `z-index` above the cards it covers. */
+.matchlist{position:absolute;top:100%;left:0;z-index:40;margin-top:4px;
+  min-width:min(420px,86vw);max-height:280px;overflow-y:auto;
+  border:1px solid var(--border);border-radius:var(--r2);
+  background:var(--surface);box-shadow:var(--shadow-lift);scrollbar-width:thin}
+.matchrow{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;
+  padding:7px 10px;border:0;background:transparent;color:var(--text);
+  font:inherit;cursor:pointer}
+.matchrow:hover:not(:disabled){background:var(--surface-2)}
+.matchrow:disabled{cursor:not-allowed;opacity:.55}
+.matchrow .t{font-size:var(--fs-xs)}
+.matchrow .n{font-size:10px;color:var(--text-3);margin-left:auto;white-space:nowrap}
+
+/* ================================================================= confirm */
+/* A NATIVE <dialog>, NOT A DIV WITH A HIGH z-index.
+   `showModal()` gives focus trapping, Escape, inertness of the page behind and
+   a real `::backdrop` - four things a hand-rolled overlay has to reimplement
+   and usually gets two of. It is also announced as a dialog to a screen reader
+   without any aria plumbing.
+
+   `padding:0` because the body and the actions row carry their own, so the
+   separator between them can run the full width. */
+dialog.confirm{border:1px solid var(--border);border-radius:var(--r-card);
+  background:var(--surface);color:var(--text);padding:0;
+  max-width:min(560px,92vw);box-shadow:var(--shadow-lift)}
+dialog.confirm::backdrop{background:rgba(8,8,10,.5)}
+.confirm-body{padding:var(--s3);display:flex;flex-direction:column;gap:var(--s2)}
+.confirm-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
+  padding:var(--s2) var(--s3);border-top:1px solid var(--border-soft);
+  background:var(--surface-2)}
+
 /* ============================================================ row disclosure */
 /* A FOLD THAT COSTS NO LINE OF ITS OWN.
    The alternative is a control under the thing it opens - "Show what each

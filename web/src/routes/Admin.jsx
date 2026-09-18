@@ -12,6 +12,7 @@ import RunsPanel from '../components/RunsPanel'
 import DatabasePanel from '../components/DatabasePanel'
 import SettingsPanel from '../components/SettingsPanel'
 import FetchPanel from '../components/FetchPanel'
+import ModelProposal from '../components/ModelProposal'
 import { IconAlert, IconGauge } from '../components/Icons'
 
 /**
@@ -64,6 +65,17 @@ function CollectEvidence() {
       </div>
       {err && <Notice icon={<IconAlert />}>{err}</Notice>}
       {!models && !err && <div className="skel" style={{ height: 120 }} />}
+
+      {/* AT THE TOP, AS CHIPS, because these are what you come to this section
+          to do that is not "run a fetch" - and below thirteen model folds they
+          were somewhere you had to scroll to find. Each opens in place; neither
+          add nor stop-tracking acts on one click. */}
+      {models && (
+        <div style={{ borderBottom: '1px solid var(--border-soft)',
+                      paddingBottom: 'var(--s3)' }}>
+          <ModelProposal models={models} />
+        </div>
+      )}
       {models && models.length === 0 && (
         <p className="dim" style={{ fontSize: 'var(--fs-sm)' }}>No models tracked yet.</p>
       )}
@@ -90,6 +102,7 @@ function CollectEvidence() {
           </div>
         </details>
       ))}
+
     </div>
   )
 }
@@ -133,7 +146,7 @@ const SECTIONS = [
   {
     id: 'models',
     title: 'Models',
-    blurb: 'Collect evidence — sweep a model on demand',
+    blurb: 'Sweep a model on demand, add one, or stop tracking one',
     render: () => <CollectEvidence />,
   },
   {

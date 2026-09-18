@@ -267,8 +267,13 @@ export default function BoardReview() {
                 <summary>
                   Quotes and ruling
                   <span className="n">
-                    {(g.quotes || []).length} shown of {g.entries}
-                    {ruled ? ' · ruled' : ' · needs a ruling'}
+                    {/* ⚠ RULE 7. "5 shown of 125" said nothing about how many
+                        were LEFT, which is the number a reviewer works against.
+                        The queue is what remains, and it shortens. */}
+                    {g.unruled > 0
+                      ? `${(g.quotes || []).length} of ${g.unruled} left to rule`
+                      : 'all ruled'}
+                    {g.ruled > 0 ? ` · ${g.ruled} done` : ''}
                   </span>
                 </summary>
                 <div className="disc-body stack stack-1">
@@ -308,10 +313,54 @@ export default function BoardReview() {
                   the button travels with what it was drawn from. */}
               {g.entries > (g.quotes || []).length && (
                 <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-                  Showing {(g.quotes || []).length} of {g.entries} quotes. A
-                  section-wide ruling covers all {g.entries}, including the
+                  {/* ⚠ THIS USED TO BE A DEAD END AND IS NOW A QUEUE.
+                      The five shown were the five NEWEST regardless of ruling,
+                      so ruling them showed the same five again and the other
+                      120 could only ever be ruled wholesale. They are now the
+                      OLDEST UNRULED five: rule them and the next five arrive. */}
+                  {(g.quotes || []).length} of {g.unruled} still to rule, oldest
+                  first. Ruling these reveals the next {Math.min(5, Math.max(0,
+                  g.unruled - (g.quotes || []).length))}. A section-wide ruling
+                  below covers all {g.entries} at once, including the
                   {' '}{g.entries - (g.quotes || []).length} not listed here.
                 </span>
+              )}
+
+              {/* ⚠ WITHOUT THIS, A MISCLICK IS INVISIBLE. A ruled quote leaves
+                  the queue and says nothing on its way out, so a wrong decline
+                  would simply vanish from the page with no way to find it. The
+                  receipt is a SAMPLE, so its count travels with it (rule 7). */}
+              {(g.ruled_sample || []).length > 0 && (
+                <details className="disc">
+                  <summary>
+                    Already ruled
+                    <span className="n">
+                      {g.ruled_sample.length} most recent of {g.ruled}
+                    </span>
+                  </summary>
+                  <div className="disc-body stack stack-1">
+                    {g.ruled_sample.map((q) => (
+                      <div key={q.id} className="stack stack-1"
+                           style={{ opacity: q.ruling === 'declined' ? 0.6 : 1 }}>
+                        <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
+                          <Badge tone={q.ruling === 'declined' ? 'fail' : 'pass'}>
+                            {q.ruling}
+                          </Badge>
+                          <span className="dim" style={{ fontSize: 11 }}>
+                            {q.model_version_id || 'no model recorded'}
+                          </span>
+                        </div>
+                        <blockquote style={{ margin: 0, fontSize: 'var(--fs-xs)',
+                                             color: 'var(--text-2)', lineHeight: 1.6 }}>
+                          {q.quote}
+                        </blockquote>
+                      </div>
+                    ))}
+                    <span className="dim" style={{ fontSize: 11 }}>
+                      Use the undo below to put any of these back in the queue.
+                    </span>
+                  </div>
+                </details>
               )}
 
               <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>

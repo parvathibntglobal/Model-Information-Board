@@ -2708,6 +2708,98 @@ def _safe_detail(exc: BaseException) -> str:
     return text.replace(str(_REPO_ROOT), "<repo>")
 
 
+@app.get("/admin/models/propose")
+def admin_models_propose(
+    action: str, registry: str = "", name: str = "", kind: str = "text"
+) -> dict:
+    """What adding or dropping a tracked model would mean. Writes nothing.
+
+    ⚠ A GET, AND THAT IS THE CONTRACT RATHER THAN AN OVERSIGHT. This surface
+      composes a proposal and changes nothing - no file, no row, no alias. The
+      thing it proposes is a change to `contract/tracked_models.yaml`, which is
+      versioned config (rule 5), so it ends in a commit somebody reviews.
+
+      `recallable` lists what the board used to show and no longer does, read
+      from that file's git history - the only record of it. Two database
+      proxies were measured and rejected: "has evidence" returns 71 models
+      that were mostly never tracked, and "has seated aliases" returns 40.
+      The history returns six.
+
+      `add` is reached only through that list. The "Add a model" control was
+      removed: it worked only for a model the registry already held, and even
+      then the board did not change until the contract edit was committed and
+      deployed - so a button reading "Add this model" left the models page
+      saying 13. See the issue for what moving tracked membership into the
+      database would cost.
+
+      A button that wrote the board's model list somewhere else would put it in
+      two places that can disagree, and the second copy would carry no review,
+      no diff and no history. On the deployment it would be worse still: the
+      filesystem is ephemeral, so a YAML edit made by the hosted UI dies at the
+      next deploy while any rows it caused survive - the contract and the
+      database disagreeing, which is the shape of the Recraft mess.
+
+    ⚠ RUN AS A SUBPROCESS BECAUSE `judge/` MAY NOT IMPORT `collect/`. Both
+      things the preview needs - `query_variants`, the project's own speller,
+      and `model_version_id`, the id the registry keys on - live on the collect
+      side. Same pattern as `/fetch/start` and `/admin/keywords`.
+    """
+    if action not in ("add", "untrack", "recallable"):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"action must be `add`, `untrack` or `recallable`, not {action!r}"
+            ),
+        )
+    if action != "recallable" and not registry.strip():
+        raise HTTPException(
+            status_code=400, detail=f"`{action}` needs a registry id"
+        )
+
+    script = _REPO_ROOT / "scripts" / "propose_model.py"
+    args = [sys.executable, str(script), f"--{action}"]
+    if registry.strip():
+        args += ["--registry", registry]
+    if action == "add":
+        args += ["--name", name, "--kind", kind]
+    try:
+        done = subprocess.run(  # noqa: S603
+            args,
+            cwd=str(_REPO_ROOT),
+            env=os.environ.copy(),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="composing the proposal took longer than 120s and was abandoned",
+        ) from exc
+
+    # THE SCRIPT'S OWN REFUSALS COME BACK AS 400s, not as a 500. A canonical id
+    # in the wrong shape is a caller's mistake and the script already says so in
+    # a sentence; wrapping that in a server error would hide the sentence.
+    try:
+        payload = json.loads(done.stdout or "{}")
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "the proposal script produced no readable output. "
+                f"{_safe_detail(exc)}"
+            ),
+        ) from exc
+    if "error" in payload:
+        raise HTTPException(status_code=400, detail=payload["error"])
+    if done.returncode != 0:
+        raise HTTPException(
+            status_code=502,
+            detail=f"the proposal script exited {done.returncode}",
+        )
+    return payload
+
+
 @app.get("/admin/runs")
 def admin_runs(limit: int = 60) -> dict:
     """Every fetch run this database has seen, newest first.

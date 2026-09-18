@@ -443,16 +443,39 @@ def list_for_review(conn) -> list[dict]:
     # the ORDER BY where the per-group query had only `created_at DESC`: two
     # quotes written in the same second used to be separated arbitrarily, and
     # which five you saw could change between two loads of the same page.
+    # ⚠ A QUEUE THAT DRAINS, NOT A WINDOW THAT DOES NOT MOVE.
+    #
+    #   This used to take the 5 newest quotes REGARDLESS of ruling, so a
+    #   reviewer who ruled all five saw the same five again - and a slug with
+    #   125 entries could never be worked through quote by quote, only ruled
+    #   wholesale. The page said "Showing 5 of 125" and left the other 120
+    #   permanently out of reach of the per-quote buttons sitting right there.
+    #
+    #   Partitioning within each ruling state instead gives two independent
+    #   windows: the 5 oldest UNRULED (the queue) and the 5 newest RULED (the
+    #   receipt). Rule five, refetch, the next five arrive. Same mechanism as
+    #   `seen` in the fetch's thread selection, which is why runs drain rather
+    #   than re-offering their first page.
+    #
+    #   OLDEST-FIRST FOR THE QUEUE, newest-first everywhere else in this file.
+    #   A queue worked newest-first never reaches its tail: new evidence keeps
+    #   arriving at the head, and the oldest unruled quote would be the last
+    #   thing anyone saw rather than the first.
     quotes_by_group: dict[tuple[str, str], list[dict]] = {}
-    for section, slug, entry_id, quote, polarity, mv, doc, ruling in conn.execute(
+    ruled_by_group: dict[tuple[str, str], list[dict]] = {}
+    for section, slug, entry_id, quote, polarity, mv, doc, ruling, _rn in conn.execute(
         "SELECT section, slug, id, quote, polarity, model_version_id, "
-        "       document_id, ruling FROM ("
+        "       document_id, ruling, rn FROM ("
         "  SELECT *, row_number() OVER ("
-        "    PARTITION BY section, slug ORDER BY created_at DESC, id"
+        "    PARTITION BY section, slug, (ruling IS NULL) "
+        "    ORDER BY CASE WHEN ruling IS NULL THEN created_at END ASC, "
+        "             CASE WHEN ruling IS NULL THEN NULL ELSE created_at END DESC, "
+        "             id"
         "  ) AS rn FROM board_entry"
         ") ranked WHERE rn <= 5 ORDER BY section, slug, rn"
     ).fetchall():
-        quotes_by_group.setdefault((section, slug), []).append({
+        target = quotes_by_group if ruling is None else ruled_by_group
+        target.setdefault((section, slug), []).append({
             "id": entry_id, "quote": quote, "polarity": polarity,
             "model_version_id": mv, "document_id": doc, "ruling": ruling,
         })
@@ -486,7 +509,16 @@ def list_for_review(conn) -> list[dict]:
             "ruling_target": ruling_target,
             "reviewed_at": reviewed_at.isoformat() if reviewed_at else None,
             "ruling_counts": by_ruling,
+            # THE QUEUE: up to 5 unruled, oldest first.
             "quotes": quotes_by_group.get((section, slug), []),
+            # ⚠ RULE 4 / RULE 7. How many are LEFT, so "5 shown" is never read
+            # as "5 remaining" - and so a reviewer can see the queue shortening.
+            "unruled": by_ruling.get("unruled", 0),
+            # THE RECEIPT: a sample of what has already been decided. Without it
+            # a ruling is invisible the moment it is made, and a misclick is
+            # unfindable - the quote simply leaves the queue and says nothing.
+            "ruled_sample": ruled_by_group.get((section, slug), []),
+            "ruled": sum(n for word, n in by_ruling.items() if word != "unruled"),
         })
     return out
 

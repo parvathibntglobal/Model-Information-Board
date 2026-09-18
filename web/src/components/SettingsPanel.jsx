@@ -129,7 +129,20 @@ export default function SettingsPanel() {
         )}
 
         {/* ── which commit ───────────────────────────────────────────── */}
-        {build && (
+        {/* ⚠ HIDDEN WHERE IT HAS NO ANSWER, WHICH IS THE HOSTED DEPLOYMENT.
+            `.dockerignore:55` excludes `.git/` - correctly, it is large and it
+            is a supply-chain surface - so the container has no checkout and all
+            three fields come back null. Three rows reading "no git checkout to
+            read" are worse than no rows at all: they occupy the space an answer
+            would, and say nothing, on the one machine where Railway's own
+            dashboard already shows the deployed commit.
+
+            NOT DELETED, because locally it answers something nothing else does
+            - which commit this backend is actually running - and local is where
+            you debug. If it is ever wanted on the deployment, Railway already
+            injects RAILWAY_GIT_COMMIT_SHA and RAILWAY_GIT_BRANCH and nothing
+            reads them; that is the fix, not removing the block. */}
+        {build && (build.commit || build.branch || build.committed_at) && (
           <div className="stack stack-2">
             <div className="row-between">
               <span className="label">Running code</span>
