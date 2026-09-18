@@ -24,9 +24,14 @@ WHAT THIS REFUSES TO DO
                     not "spend freely" - it is "nobody decided", and an
                     extraction run is the one command here that spends money.
 
-  --dry-run         reports what WOULD be extracted, spends nothing, and is
-                    the honest way to find out how many threads are pending
-                    without paying to find out.
+  --dry-run         reports the ledger and the budget, spends nothing, and
+                    TAKES NO WRITE GATE - `writing=` is None on this path, so
+                    it runs from a development laptop pointed at the shared
+                    database, which is where the question is usually asked.
+
+                    It does NOT report pending threads and does not open the
+                    export. Both need something this command does not have,
+                    and saying "what WOULD be extracted" claimed otherwise.
 
 THE DATABASE IS NOT GUESSED
 
@@ -117,18 +122,32 @@ def _cmd_extract(args: argparse.Namespace, *, resolver_factory=None) -> int:
             "--dry-run to see what is pending without paying to find out."
         )
 
-    with _connect(writing="judge extract") as conn:
+    # `writing=` ON A REAL RUN ONLY. It turns on `judge/writeguard.py`, which
+    # refuses ENVIRONMENT=development against a database that is not this
+    # machine - correct for a run that spends money and writes claims, and
+    # wrong for one that returns before it opens a transaction. `judge
+    # reweight` already spells it this way, and its dry run is the weaker case:
+    # that one writes inside a transaction and rolls it back, while everything
+    # this path touches below is a SELECT.
+    with _connect(writing=None if args.dry_run else "judge extract") as conn:
         ledger = ExtractionLedger(conn)
         seen = ledger.already_extracted()
         zero_yield, read = ledger.yield_rate()
         print(
             f"  {read} threads read at this pipeline version, {zero_yield} of them yielding nothing"
         )
+        # ABOVE THE DRY-RUN RETURN, so both paths report it. Below, `seen` was
+        # a query the dry run paid for and nothing read - and it is the count a
+        # dry run is being asked for.
+        print(f"  {len(seen)} threads already extracted and will be skipped")
 
         if args.dry_run:
             # Reports and spends nothing. Deliberately does NOT report a count
             # of pending threads, because that needs the thread list `collect/`
             # owns and inventing one here would be a figure with no population.
+            # The line above is ALREADY-EXTRACTED, read from `thread_extraction`
+            # at this pipeline version; it is not pending and must not be read
+            # as pending.
             print("  --dry-run: nothing extracted, nothing charged")
             if budget is not None:
                 affordable = int(budget.limit_usd / budget.estimated_next_call_usd)
@@ -143,7 +162,6 @@ def _cmd_extract(args: argparse.Namespace, *, resolver_factory=None) -> int:
                 "this run to new-evidence when you did not say so would blame "
                 "the world for a change we may have made."
             )
-        print(f"  {len(seen)} threads already extracted and will be skipped")
         if getattr(args, "from_export", None):
             resolve_surface = resolver_factory(conn) if resolver_factory is not None else None
             return _extract_from_export(
