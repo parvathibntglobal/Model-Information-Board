@@ -420,6 +420,21 @@ export const adminStages = () => cached('stages', () => request('/admin/stages')
 // real budget - so these are the terms that would go out on the next fetch.
 export const adminKeywords = () => cached('keywords', () => request('/admin/keywords'))
 
+// What adding or dropping a tracked model would mean. WRITES NOTHING - it
+// derives the spellings, counts what the corpus attests, finds alias collisions
+// and composes the exact contract entry, and a person commits it.
+//
+// The board's model list is versioned config (rule 5). A button that wrote it
+// from here would put it in two places that can disagree, and on the hosted
+// deployment the filesystem is ephemeral, so the YAML edit would die at the next
+// deploy while any rows it caused survived.
+export const proposeModel = ({ action, registry = '', name = '', kind = 'text' }) =>
+  request(
+    `/admin/models/propose?action=${encodeURIComponent(action)}`
+    + `&registry=${encodeURIComponent(registry)}`
+    + `&name=${encodeURIComponent(name)}&kind=${encodeURIComponent(kind)}`,
+  )
+
 // Every fetch run this database has seen, newest first and across machines.
 // The host is a RELATION ("this machine" / "another host"), never a name.
 //

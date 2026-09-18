@@ -10,8 +10,12 @@ import { IconAlert, IconLayers } from './Icons'
  * ⚠ NO CREDENTIAL AND NO ADDRESS IS SHOWN, and neither is in the payload. The
  *   database NAME is here because it is what answers "is this the one I meant";
  *   the host and port are not, because they are a reachable address and this
- *   page is served over a network. Local or remote is the whole of what is said
- *   about where it lives.
+ *   page is served over a network.
+ *
+ *   Nor is there a remote/local label any more. It was a Stat reading "another
+ *   machine, over the network" and a reader asked what it meant - which is a
+ *   label failing at its one job. What survives is the CONSEQUENCE, as a
+ *   sentence: every query crosses a network, which is why there is a pool.
  *
  * WHY MIGRATIONS ARE ON AN ADMIN PAGE AT ALL. The database is shared and hosted
  * and the host auto-deploys, so code can arrive before its schema does. The
@@ -66,8 +70,7 @@ export default function DatabasePanel() {
 
       <div style={{ padding: '0 var(--s4)' }}>
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
-          The database name, which is what tells you this is the one you meant,
-          and whether it lives on this machine or a remote one.{' '}
+          The database name, which is what tells you this is the one you meant.{' '}
           <strong style={{ color: 'var(--text-1)' }}>
             No credential and no host address is shown
           </strong>
@@ -81,9 +84,21 @@ export default function DatabasePanel() {
 
         {data && (
           <div className="stack stack-2">
+            {/* ⚠ "WHERE IT RUNS" IS GONE, AND NOT BECAUSE IT WAS WRONG.
+                It read "another machine, over the network", which is true and
+                was still the wrong thing to put in a Stat: a reader asked what
+                it meant, which is a label failing at its one job. The two
+                answers it could have given - remote, or this machine - are not
+                a figure, and the consequence that matters is already a sentence
+                below.
+
+                "AWS" was considered and refused. This code knows exactly one
+                thing: the DSN's hostname is not localhost. It does not know who
+                owns that address, so writing a provider's name would be a value
+                nobody measured (rule 3) - and it would go on reading AWS the day
+                the database moves to Neon, with nothing to catch it. */}
             <div className="grid g2">
               <Stat n={data.database || 'not configured'} l="database" />
-              <Stat n={data.host || '—'} l="where it runs" />
               <Stat n={data.environment} l="environment" />
             </div>
             {/* SAID, NOT SILENTLY OMITTED. A reader who goes looking for the

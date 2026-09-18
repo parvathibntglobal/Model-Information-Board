@@ -540,9 +540,12 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
  *   The second is what this page did until now, which is why a fetch that
  *   produced 50 board entries changed nothing a reader could see.
  *
- * NO STATE WORD HERE, deliberately. `EvidenceBadge` says `few reports` because
- * a cell has a gate verdict behind it. An entry has been through nothing, so
+ * NO STATE WORD HERE, deliberately. A board entry has been through no gate, so
  * this says only how many and where - a count, never a judgement (rule 3).
+ *
+ * `EvidenceBadge` now agrees with it, arrived at from the other direction: it
+ * said `few reports` because a cell DOES have a gate verdict behind it, and the
+ * verdict turned out to be the same one every time. Two badges, one rule.
  */
 function BoardBadge({ b }) {
   if (!b || !b.entries) return null
@@ -570,9 +573,40 @@ function EvidenceBadge({ e, rows }) {
     return <Badge tone="pass">reported{rows ? ` · ${rows.length}` : ''}</Badge>
   }
   if (state === 'insufficient') {
+    // ⚠ "FEW REPORTS" WAS A CONSTANT WEARING A VERDICT'S CLOTHES.
+    //
+    //   Measured against the shared database 2026-09-17: 268 cells, 268
+    //   `insufficient`, ZERO published - and not narrowly. The gate wants
+    //   `n_eff >= 3.0`; the best cell on the board reaches 0.448 with 19
+    //   independent voices, and 70 cells already clear the platform rule. So
+    //   every capability of every model carried the same two words, identically
+    //   for one voice and for twenty.
+    //
+    //   That is a sentence about US, not about the model - #194, where the tier
+    //   table makes A and B unreachable by construction. Rendering it as a
+    //   judgement of the model is rule 4 in miniature: an absence we caused,
+    //   read as a fact about the world.
+    //
+    //   THE COUNT STAYS, AND IT IS THE HALF THAT WAS ALWAYS TRUE. It varies, it
+    //   is measured, and it is the only thing here a reader can act on. Dropping
+    //   the badge outright would have made 1 voice and 20 look the same, which
+    //   is the same defect with the evidence removed as well.
+    //
+    //   `mute`, not `warn`: amber said "look at this", and there is nothing to
+    //   look at until the gate moves.
+    const reports = e.reports
     return (
-      <Badge tone="warn" title="Somebody has reported on this. A low count is not a verdict.">
-        few reports{e.reports ? ` · ${e.reports}` : ''}
+      <Badge
+        tone="mute"
+        title={
+          'How many people have reported on this. Not a verdict and not a score: '
+          + 'nothing on this board has yet cleared the publication bar (issue '
+          + '#194), so a count is the only honest thing to show.'
+        }
+      >
+        {typeof reports === 'number'
+          ? `${reports} report${reports === 1 ? '' : 's'}`
+          : 'reported'}
       </Badge>
     )
   }
