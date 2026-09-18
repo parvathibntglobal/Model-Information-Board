@@ -52,7 +52,7 @@ const stOf = (k) => ST[k] || ST.n;
 function crumb(parts){
   return '<p class="crumb">'+parts.map(([t,h])=>h?`<a data-go="${esc(h)}">${esc(t)}</a>`:t).join('<i>/</i>')+'</p>';
 }
-function ranked(rows){
+function ranked(rows, route){
   if(!rows || !rows.length) return '';
   // NO RANK NUMERAL. This printed 01, 02, 03 from the array index, and the
   // heading above it said "the quotes behind the ranking" — so a list ordered
@@ -61,12 +61,80 @@ function ranked(rows){
   // path: `board_sections` sorts by count and says so ("the ordering is a
   // COUNT, never a score"). The count is already on the right of every row,
   // which is the honest version of what the numeral was pretending to be.
+  //
+  // `route` MAKES THE ROW THE WAY IN. Given one, each row opens that model's
+  // own page under this category and the marker becomes a chevron; without
+  // one the list renders exactly as it did. It is a parameter rather than
+  // always-on because the row is only worth clicking where a page exists to
+  // land on, and inventing that link everywhere would be a promise this file
+  // cannot keep.
+  //
+  // THE STATE ON EACH ROW IS NOW THAT ROW'S OWN — see `commonFields` in
+  // db.js, which used to stamp the section's state onto every model.
   return '<div class="ranked">'+rows.map((r)=>{
     const [cls,lbl]=stOf(r.s);
-    return `<div class="rank${r.dim?' dim':''}"><span class="n">·</span>
+    const go = route && r.key ? ` data-go="${esc(route)}:${esc(r.key)}"` : '';
+    return `<div class="rank${r.dim?' dim':''}${go?' open':''}"${go}><span class="n">${go?'›':'·'}</span>
       <div><b>${esc(r.m)}</b><span class="vend">${esc(r.v)}</span><p>${esc(r.d)}</p></div>
       <div class="right"><span class="price">${esc(r.p)}</span><span class="st ${cls}">${esc(r.e)} · ${esc(lbl)}</span></div></div>`;
   }).join('')+'</div>';
+}
+
+/** The line above a model list, carrying what the list was drawn from.
+ *
+ * Rule 7 on a page rather than in an argument: "20 models" answers nothing
+ * without saying 20 of what, counted how. The three numbers here are the
+ * section's own — models listed, reports behind them, voices among those —
+ * and the ordering is named as a count so the top row is not read as a pick.
+ */
+function listIntro(item){
+  const n = (item.rows||[]).length;
+  if(!n) return '';
+  const rep = item.repTotal, voi = item.voiTotal;
+  return `${n} model${n===1?'':'s'}, named in ≥${rep} report${rep===1?'':'s'}`
+    + ` by ${voi} voice${voi===1?'':'s'}. Ordered by report count, which is a count`
+    + ` and not a score. Open one to read every report it holds.`;
+}
+
+/** Reports that name no model, and so appear under none.
+ *
+ * Renders nothing when there are none — a caveat about nothing is noise, and
+ * 0 of 1,249 rows are in this state today. It exists because the alternative
+ * to saying it is losing them silently, which is the one thing this board
+ * must not do with an absence of its own making.
+ */
+function orphanNote(item){
+  const n = item.orphans || 0;
+  if(!n) return '';
+  return `<p class="muted" style="margin-top:10px;max-width:74ch;font-size:.9rem">${n}
+    report${n===1?' names':'s name'} no model, so ${n===1?'it is':'they are'} not listed
+    above. ${n===1?'It is':'They are'} held by the board and counted in the total.</p>`;
+}
+/** The models this job drops entirely, named and linked.
+ *
+ * `best_for` claims suitability, so a problem report cannot fill it - and for
+ * most models that means a row with some reports missing, which the drill-down
+ * page says. For a model whose every report here is a problem report it means
+ * NO ROW: the model is not on the page at all, and a reader cannot tell that
+ * from a model nobody has ever discussed. Rule 4 on the largest thing this
+ * filter can remove.
+ *
+ * It names each model rather than only counting them, because "1 model is not
+ * listed" is not something a reader can act on and a link to what was actually
+ * said is. Renders nothing on a capability page, where nothing is filtered.
+ */
+function suppressedNote(item){
+  const list = item.suppressed || [];
+  if(!list.length) return '';
+  const names = list.map(x =>
+    `<a data-go="model:${esc(x.key)}">${esc(x.m)}</a> (${x.n} report${x.n===1?'':'s'})`
+  ).join(', ');
+  return `<p class="muted" style="margin-top:14px;max-width:74ch;line-height:1.6">
+    <b>${list.length} model${list.length===1?' is':'s are'} not listed above.</b>
+    ${list.length===1?'Every report it has':'Every report they have'} on this job is a report of
+    a problem, and <b>Best for</b> lists evidence that a model suits a job — so
+    ${list.length===1?'it has':'they have'} no row here. The reports exist and the board kept them:
+    ${names}.</p>`;
 }
 function conds(list){
   if(!list || !list.length) return '';
@@ -207,19 +275,28 @@ function vJob(slug){
   // classifier makes. Absent by default, so the block below is skipped rather
   // than filled with a guess.
   const [w,pr,ev,why] = j.pick || [];
+  // THE VERBATIM-QUOTE BLOCK IS GONE FROM THIS LEVEL, and it is not lost.
+  //
+  // It rendered the 12 quotes the API sent - grouped by document, so 6 blocks
+  // - of the 64 reports `best_for/coding-agent` actually holds. A 6-of-64
+  // slice with nothing on the page saying it was a slice. Every one of those
+  // reports is now on the page of the model it was reported about, and this
+  // page is the way to them.
   return `<div class="shell phead">${crumb([['Board','board'],['Best for','board:best'],[j.name,null]])}
     <h1>${esc(j.h1)}</h1><p class="sub">${esc(j.sub)}</p></div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
       <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
-    ${sec('Every model reported working for this job','Who got this working','',ranked(j.rows))}
+    ${sec('Every model reported working for this job','Who got this working',
+      listIntro(j), ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j) + suppressedNote(j))}
     ${sec('Conditions that change the answer','Where the pick stops holding',
       'Most disagreements between engineers are condition mismatches rather than contradictions. These are the ones the reports keep naming.',conds(j.conds))}
-    ${sec('The reports this list is built from','What they said, verbatim','',quotes(j.qs))}
     ${sec('Related','','',related(j.rel))}`;
 }
 
 function vCap(slug){
   const c = byS(DB.caps,slug); if(!c) return vBoard('cap');
+  // The quote block left this page too - see `vJob` above for why. On
+  // `capability/reasoning` it was 9 blocks of the 43 reports the page holds.
   return `<div class="shell phead">${crumb([['Board','board'],['Capabilities','board:cap'],[c.name,null]])}
     <h1>${esc(c.name)}</h1><p class="sub">A capability the board found engineers discussing. This page is
     the definition every model page resolves against, so a report about one model can be compared with a
@@ -227,9 +304,82 @@ function vCap(slug){
     ${sec('','','',`<div class="defbox"><div class="l">definition</div><p>${esc(c.d1)}</p><p>${esc(c.d2)}</p></div>`)}
     ${sec('What this is not','Three things filed elsewhere',
       'Capability boundaries exist so a disagreement is a disagreement rather than two people using one word for two things.',conds(c.nots))}
-    ${sec('Models with evidence','Who has been reported doing this','',ranked(c.rows))}
-    ${sec('Reports',reportsHeading(c.qs),'',quotes(c.qs))}
+    ${sec('Models with evidence','Who has been reported doing this',
+      listIntro(c), ranked(c.rows,'capmodel:'+c.slug) + orphanNote(c) + suppressedNote(c))}
     ${sec('Related','','',related(c.rel))}`;
+}
+
+/* ---------- the drill-down: one model, inside one category ---------- */
+
+/** Every report the board holds for one model under one section.
+ *
+ * WHAT "EVERY" MEANS HERE, because the page says the word. Every non-declined
+ * `board_entry` row for this (section, slug, model), grouped by source
+ * document, newest document first. No cap: the 12-quote cap that produced the
+ * category page's slice is gone from the API, so this list is the whole of
+ * what the board holds.
+ *
+ * It is scoped to this category, not to this model. The model's whole corpus
+ * across every job, capability and metric has its own page already, and the
+ * link out says so rather than this page quietly meaning one and saying the
+ * other.
+ *
+ * ONE REPORT IS ONE SOURCE DOCUMENT. `quotes()` groups on document id, so two
+ * figures from one comment render as one block with both inside it - the same
+ * rule the counts on the row above were built on, applied to what the reader
+ * sees.
+ */
+function vModelIn(kind, item, key, crumbs){
+  const row = (item.rows||[]).find(r => r.key === key);
+  // AN UNKNOWN MODEL GOES BACK, rather than rendering a page about nothing. A
+  // hand-typed or stale key is not evidence that nobody discussed this model.
+  if(!row) return kind === 'job' ? vJob(item.slug) : vCap(item.slug);
+  const qs = row.qs || [];
+  const [,lbl] = stOf(row.s);
+  // THE COUNTS, AND WHAT EACH ONE COUNTED. `row.e` already reads
+  // "at least N reports, M voices"; the quote count joins it here because this
+  // is the page where the difference between a report and a quote is visible
+  // on the screen - one block, two quotes inside it.
+  const counts = `${esc(row.e)} \u00b7 ${qs.length} quote${qs.length===1?'':'s'} \u00b7 ${esc(lbl)}`;
+  // BEST FOR DROPS THE COMPLAINTS, AND A PAGE SAYING "EVERY REPORT" HAS TO
+  // SAY SO. The filter is right - `best_for` claims suitability and a problem
+  // report cannot support one - but until now it was silent, and an absence we
+  // caused reading as one we found is rule 4 exactly. The count is distinct
+  // documents, the same unit as the report count beside it, and the link goes
+  // where those reports are shown in full.
+  const hidden = row.hidden || 0;
+  const hiddenNote = hidden ? `<p class="muted" style="margin-top:12px;max-width:74ch;line-height:1.6">
+    <b>${hidden} report${hidden===1?'':'s'} of a problem</b> with this model on this job
+    ${hidden===1?'is':'are'} not shown here. <b>Best for</b> lists evidence that a model suits a
+    job, so a complaint cannot fill it \u2014 but the complaint exists and the board kept it.
+    <a data-go="model:${esc(key)}">Read it on the model page \u2192</a></p>` : '';
+  const empty = `<p class="muted" style="padding:8px 0">The board holds no readable report for this
+    model under this ${kind === 'job' ? 'job' : 'capability'}. That is what the board has, not a page
+    that failed to load.</p>`;
+  return `<div class="shell phead">${crumb(crumbs)}
+    <h1>${esc(row.m)} on ${esc(item.name)}</h1>
+    <p class="sub">Every report the board holds for this model under this
+    ${kind === 'job' ? 'job' : 'capability'}: ${counts}. One report is one source document, so two
+    quotes from one comment are one report. The report count is a floor \u2014 an open vocabulary can
+    name one section two ways until the duplicates are merged.</p>
+    ${hiddenNote}
+    <p style="margin-top:14px"><a data-go="model:${esc(key)}">Everything said about
+    ${esc(row.m)}, across every job, capability and metric \u2192</a></p></div>
+    ${qs.length ? sec('Reports',reportsHeading(qs),'',quotes(qs)) : sec('Reports','','',empty)}`;
+}
+
+function vJobModel(slug, key){
+  const j = byS(DB.jobs,slug); if(!j) return vBoard('best');
+  return vModelIn('job', j, key,
+    [['Board','board'],['Best for','board:best'],[j.name,'job:'+j.slug],
+     [(j.rows.find(r=>r.key===key)||{}).m || key, null]]);
+}
+
+function vCapModel(slug, key){
+  const c = byS(DB.caps,slug); if(!c) return vBoard('cap');
+  return vModelIn('capability', c, key,
+    [['Board','board'],['Capabilities','board:cap'],[c.name,'cap:'+c.slug],
+     [(c.rows.find(r=>r.key===key)||{}).m || key, null]]);
 }
 
 function vMet(slug){
@@ -355,4 +505,4 @@ function vPost(slug){
       ${related(p.rel)}
     </div>`;
 }
-export { vBoard, vJob, vCap, vMet, vBlogs, vPost }
+export { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vBlogs, vPost }

@@ -94,10 +94,28 @@ class TestTheCountIsSourcesNotRows:
         #   `model_version_id` field, so both are carried. What is asserted
         #   here is unchanged: the SET holds doc_ids, so the count is
         #   distinct documents rather than rows.
+        #
+        # ⚠ THE LITERALS MOVED AGAIN, AND THE PROPERTY STILL HAS NOT. The
+        #   per-model value is now a dict of three sets rather than one set of
+        #   doc_ids, because the drill-down's model row carries voices and
+        #   polarities beside reports. `reports` is still `len(...["docs"])`,
+        #   which is what this test is for; `voices` is asserted below because
+        #   it is the same inflation one field along.
         src = self._src()
-        assert 'bucket["_models"].setdefault((mv_id, label), set()).add(doc_id)' in src
-        assert '"reports": len(docs)' in src
-        assert '"model_version_id": mid, "model_label": lbl' in src
+        assert 'bucket["_models"].setdefault(' in src
+        assert '{"docs": set(), "voices": set(), "polarities": set(),' in src
+        assert 'model["docs"].add(doc_id)' in src
+        assert '"reports": len(m["docs"])' in src
+        assert '"model_version_id": m["raw"]' in src
+
+    def test_per_model_voices_are_distinct_authors(self):
+        # The model row says "≥N reports · M voices", and a voice count that
+        # counted rows would put "8 voices" under one person writing eight
+        # times - the same defect as the one this file is named for, on the
+        # number that decides whether the badge says corroborated.
+        src = self._src()
+        assert 'model["voices"].add(author_id)' in src
+        assert '"voices": len(m["voices"])' in src
 
     def test_the_docstring_corrects_the_floor_claim(self):
         # The floor argument is about undercounting. This bug overcounted, and
@@ -199,8 +217,31 @@ class TestTheReportsHeadingFollowsThePolarity:
         assert "sec('Reports','What breaks it'" not in js
 
     def test_the_page_calls_the_derived_heading(self):
+        # ⚠ THE CALLER MOVED DOWN A LEVEL. This asserted
+        #   `sec('Reports',reportsHeading(c.qs)` on the CAPABILITY page, and
+        #   that page no longer renders quotes - it lists models, and each
+        #   model's reports are on its own page. The heading has to follow the
+        #   polarity of whatever it now heads, and what it heads is one model's
+        #   reports rather than a section's, so getting this wrong is MORE
+        #   visible than before: a per-model list is far more likely to be all
+        #   negative than a whole capability is.
         js = VIEWS.read_text(encoding="utf-8")
-        assert "sec('Reports',reportsHeading(c.qs)" in js
+        assert "reportsHeading(qs)" in js
+        assert "sec('Reports',reportsHeading(qs),'',quotes(qs))" in js
+
+    def test_the_heading_is_derived_on_every_surface_that_shows_quotes(self):
+        # The guard against the next copy of the hardcoded heading: any call
+        # to `quotes(...)` inside a `sec(...)` must be headed by the derived
+        # function rather than a literal.
+        js = VIEWS.read_text(encoding="utf-8")
+        calls = [ln for ln in js.splitlines()
+                 if "quotes(" in ln and "sec(" in ln and not ln.lstrip().startswith("//")]
+        assert calls, "no section renders quotes - the check would pass vacuously"
+        for line in calls:
+            assert "reportsHeading(" in line, (
+                f"a quote block headed by something other than the polarity it "
+                f"contains: {line.strip()[:90]}"
+            )
 
     @pytest.mark.parametrize(
         "negatives,total,expected",
