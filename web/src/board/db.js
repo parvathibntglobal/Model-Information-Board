@@ -92,6 +92,43 @@ function evidenceLabel(item) {
   return quotes > reports ? `${r} · ${quotes} figures` : r
 }
 
+/**
+ * "10 positive · 2 negative · 2 both" — the split, in reports.
+ *
+ * CAPABILITY ONLY, by the data rather than by the caller. `best_for` filters
+ * negative reports out upstream, so a split there would read "6 positive" on
+ * every row: true, and carrying nothing a reader can use. `board_sections`
+ * sends `report_split` for capability sections and omits it elsewhere, so this
+ * returns '' and the row renders as it did.
+ *
+ * ONLY THE PARTS THAT EXIST ARE NAMED. 128 of the 297 (capability, model)
+ * groups are positive-only and 99 are negative-only; printing "0 negative" on
+ * those is the noise `evidenceLabel` already avoids one column to the left.
+ *
+ * ⚠ `both` IS SAID ONLY WHERE IT APPLIES — 16 of 297 groups. One report can be
+ *   positive AND negative, so the split does not partition the report count,
+ *   and on the two biggest capability pages the top row is one of those:
+ *   Kimi K2.5 on `reasoning` reads 10 reports, 10 positive, 2 negative. A
+ *   reader doing the arithmetic gets 12 and is right to. Naming the 2 is what
+ *   makes the row add up again (positive + negative - both + neutral =
+ *   reports), and saying it on the other 281 rows would be a caveat about
+ *   nothing.
+ */
+function splitPhrase(m) {
+  const sp = m.report_split
+  if (!sp) return ''
+  const parts = []
+  if (sp.positive) parts.push(`${sp.positive} positive`)
+  if (sp.negative) parts.push(`${sp.negative} negative`)
+  if (sp.neutral) parts.push(`${sp.neutral} neutral`)
+  // A group with reports but no polarity at all cannot happen today —
+  // `board_entry.polarity` is NOT NULL — but an empty phrase would silently
+  // drop the row's split rather than saying the board holds none.
+  if (!parts.length) return ''
+  if (sp.both) parts.push(`${sp.both} both`)
+  return parts.join(' \u00b7 ')
+}
+
 /** One quote, as the tuple views.js renders.
  *
  * [quote, who, document_id, isNegative, url] — the shape views.js renders.
@@ -219,6 +256,8 @@ function commonFields(item) {
         // always 0 outside `best_for`. Read by the drill-down page, which
         // says it rather than letting the filter be silent.
         hidden: m.hidden_negative_reports || 0,
+        // The polarity split, or '' where the section does not have one.
+        sp: splitPhrase(m),
         qs: byKey.get(key) || [],
         dim: false,
       }

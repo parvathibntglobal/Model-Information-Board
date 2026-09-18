@@ -74,9 +74,14 @@ function ranked(rows, route){
   return '<div class="ranked">'+rows.map((r)=>{
     const [cls,lbl]=stOf(r.s);
     const go = route && r.key ? ` data-go="${esc(route)}:${esc(r.key)}"` : '';
+    // THE SPLIT IS ITS OWN LINE, not more words inside `.st`. That span
+    // already carries two counts and a state label, and `.right` is
+    // `white-space:nowrap` - a fourth clause in it would push the row wider
+    // than a phone. Empty on best-for and metric, where there is no split.
+    const sp = r.sp ? `<span class="split">${esc(r.sp)}</span>` : '';
     return `<div class="rank${r.dim?' dim':''}${go?' open':''}"${go}><span class="n">${go?'›':'·'}</span>
       <div><b>${esc(r.m)}</b><span class="vend">${esc(r.v)}</span><p>${esc(r.d)}</p></div>
-      <div class="right"><span class="price">${esc(r.p)}</span><span class="st ${cls}">${esc(r.e)} · ${esc(lbl)}</span></div></div>`;
+      <div class="right"><span class="price">${esc(r.p)}</span><span class="st ${cls}">${esc(r.e)} · ${esc(lbl)}</span>${sp}</div></div>`;
   }).join('')+'</div>';
 }
 
@@ -91,9 +96,29 @@ function listIntro(item){
   const n = (item.rows||[]).length;
   if(!n) return '';
   const rep = item.repTotal, voi = item.voiTotal;
+  // WHAT `both` MEANS, SAID ONCE. The split counts a report under each
+  // polarity it states, so a report saying both is counted twice and the row
+  // names it - and that has to be explained somewhere a reader will see
+  // before the arithmetic fails for them. Here rather than on 16 of 297 rows.
+  //
+  // Conditional on a split being present, so best-for and metric do not carry
+  // a sentence about a column they do not have.
+  const anySplit = (item.rows || []).some(r => r.sp);
+  const split = anySplit
+    ? ` The split counts a report under every polarity it states, so one that`
+      + ` says both is counted under each and the row says so.`
+    : '';
+  // ⚠ THE ORDERING SENTENCE IS LOAD-BEARING AND STAYS. Ordering by POSITIVE
+  //   reports was weighed and refused: on `capability/vision` it moves
+  //   DeepSeek V4 Flash 0423 - 8 reports from 7 voices, the strongest
+  //   agreement on the page - from #1 to #6, below five models holding one
+  //   positive report from one voice. An ordering that answers "who does this
+  //   best" is a merit ranking whatever it is counted from, and this section
+  //   is deliberately not polarity-filtered (see `board_sections`) precisely
+  //   because a bad result is evidence of the same standing as a good one.
   return `${n} model${n===1?'':'s'}, named in ≥${rep} report${rep===1?'':'s'}`
     + ` by ${voi} voice${voi===1?'':'s'}. Ordered by report count, which is a count`
-    + ` and not a score. Open one to read every report it holds.`;
+    + ` and not a score.${split} Open one to read every report it holds.`;
 }
 
 /** Reports that name no model, and so appear under none.
