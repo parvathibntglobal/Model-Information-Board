@@ -126,7 +126,7 @@ def main() -> int:
     if tot[0]:
         print(f"   {args.version} (this run)          : {tot[2]} of {tot[0]} "
               f"({tot[2]/tot[0]*100:.0f}%)")
-        print("   ⚠ different prompt, different corpus: e5.1 was 3 hosts and mostly")
+        print("   !! different prompt, different corpus: e5.1 was 3 hosts and mostly")
         print("     simonwillison link posts; this is 18 feeds. A baseline to compare")
         print("     against, not a prediction that was tested.")
 
@@ -136,7 +136,7 @@ def main() -> int:
 
     print("\nSPEND TODAY (stage=extract, as the ledger computes it - see #381)")
     print(f"   {spend[0]} calls, ${float(spend[1]):.4f}, {spend[2]} unpriced")
-    print("   ⚠ the ledger prices DeepSeek at $0.14/$0.28 while the cap uses")
+    print("   !! the ledger prices DeepSeek at $0.14/$0.28 while the cap uses")
     print("     $0.065/$0.14; neither is validated against an invoice (#381).")
 
     print(f"\ncells total: {cells}" + (f"   board entries from blog claims: {boards}"

@@ -174,7 +174,7 @@ def main() -> int:
     print(f"  {total} documents with a verdict and readable payload "
           f"({unreadable} unreadable, excluded)")
     print(f"  {not_prose} payload(s) yielded no prose at all")
-    print(f"  ⚠ {markup_only} document(s) name a model in the MARKUP and not in "
+    print(f"  !! {markup_only} document(s) name a model in the MARKUP and not in "
           f"the prose\n     - those are what the first, markup-based run "
           f"counted as finder hits\n")
     print(f"  {'':<18}{'finder FINDS':>14}{'finder empty':>14}")
@@ -184,7 +184,7 @@ def main() -> int:
               f"{cells[(row, 'finder-empty')]:>14}")
     d = cells[("entity-dropped", "finder-finds")]
     k = cells[("entity-passed", "finder-empty")]
-    print(f"\n  ⚠ triage DROPPED but the finder names a model : {d}"
+    print(f"\n  !! triage DROPPED but the finder names a model : {d}"
           f"  ({d/total*100:.1f}% of {total})")
     print(f"    triage kept but the finder names nothing     : {k}")
     print(f"    agreement                                     : "
