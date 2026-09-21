@@ -456,7 +456,7 @@ class TestStripTemplateBlock:
             "the roster lives in contract/sources.yaml, one entry per feed"
         )
         blogs = [f for f in load_sources().feeds if f.get("platform") == "blog"]
-        assert len(blogs) == 9
+        assert len(blogs) == 18  # 9 until the 2026-09-21 class A re-review
         assert all("template_block" in f for f in blogs), (
             "EVERY blog feed carries the key, so an unexamined feed is a row "
             "somebody can count rather than a key that is missing"

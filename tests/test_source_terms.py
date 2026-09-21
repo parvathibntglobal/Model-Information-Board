@@ -150,10 +150,17 @@ def test_every_source_and_feed_has_tos_notes():
 # ── the seeded feeds ──────────────────────────────────────────────────────
 
 
-def test_nine_feeds_are_seeded():
-    """Nine, not ten. Dropbox is dropped on data quality, not on terms."""
+def test_eighteen_feeds_are_seeded():
+    """Eighteen, not nineteen. Dropbox is dropped on data quality, not terms.
+
+    Was nine until 2026-09-21, when the class A re-review seated three feeds
+    proposed in #372 and six probed the same day. The count is asserted rather
+    than derived because a feed arriving without a re-reading of the ruling is
+    exactly what the `RE-REVIEW REQUIRED BEFORE` clause exists to stop, and a
+    test that counts whatever it finds would not notice.
+    """
     feeds = _contract()["feeds"]
-    assert len(feeds) == 9
+    assert len(feeds) == 18
     assert not any("dropbox" in f["id"] for f in feeds)
 
 
@@ -172,10 +179,30 @@ def test_every_seeded_row_carries_provenance():
 
 
 def test_every_feed_dates_its_measurements():
-    """A class ruling on a stale robots check is a placeholder with a date."""
+    """A class ruling on a stale robots check is a placeholder with a date.
+
+    ⚠ WAS `== REVIEWED_ON`, AND THAT WAS THE WRONG ASSERTION ONCE A SECOND
+      DATE EXISTED. Feeds are now measured on the day they are seated - three
+      dates across eighteen rows - so equality against one day would force a
+      re-measurement of every feed on every pass, which is the opposite of
+      what this test wants. What it actually wants is that no row's evidence
+      has gone stale, which is what the GATE enforces, so it is asserted here
+      the same way: against the ruling's own `evidence_valid_days`.
+    """
+    contract = load_sources()
+    today = date.today()
     for feed in _contract()["feeds"]:
-        assert feed["terms_evidence"]["checked_on"] == REVIEWED_ON, feed["id"]
-        assert feed["measured"]["checked_on"] == REVIEWED_ON, feed["id"]
+        ruling = contract.rulings[feed["terms_ruling"]]
+        horizon = timedelta(days=ruling.evidence_valid_days)
+        for block in ("terms_evidence", "measured"):
+            checked = feed[block]["checked_on"]
+            assert isinstance(checked, date), f"{feed['id']}.{block}"
+            assert checked <= today, f"{feed['id']}.{block} is dated ahead"
+            assert today - checked <= horizon, (
+                f"{feed['id']}.{block} checked {checked}, which is older than "
+                f"{ruling.id}'s evidence_valid_days of "
+                f"{ruling.evidence_valid_days} days"
+            )
 
 
 def test_every_feed_records_the_mechanical_evidence():
@@ -211,7 +238,8 @@ def test_the_two_classes_split_self_hosted_from_platform_hosted():
         "blog:medium.com/airbnb-engineering",
         "blog:netflixtechblog.com",
     ]
-    assert len(by_class["A"]) == 7
+    # 7 until 2026-09-21, 16 after the re-review seated nine more.
+    assert len(by_class["A"]) == 16
 
 
 def test_the_medium_ruling_is_feed_only_and_says_why():
@@ -326,8 +354,10 @@ def test_every_feed_becomes_a_source_row():
     """Seeded in contract/, ordinary rows at runtime — seed_models' pattern."""
     contract = load_sources()
     rows = {row["id"]: row for row in contract.source_rows()}
-    assert len(rows) == 17  # eight platforms + nine feeds. 12 before 2026-09-08,
-    #                        14 after arXiv and X, 17 after dev.to / HN / Hugging Face
+    assert len(rows) == 26  # eight platforms + eighteen feeds. 12 before
+    #                        2026-09-08, 14 after arXiv and X, 17 after dev.to
+    #                        / HN / Hugging Face, 26 after the 2026-09-21
+    #                        class A re-review seated nine blogs.
     assert rows["blog:simonwillison.net"]["provenance"] == "seed"
     assert rows["blog:simonwillison.net"]["terms_checked_on"] == REVIEWED_ON
     assert all(row["base_trust"] for row in rows.values())
