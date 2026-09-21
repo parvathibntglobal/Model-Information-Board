@@ -487,13 +487,24 @@ class TestAZeroDateIsNotADate:
     `_timestamp_or_none`'s caught tuple. One undated FAQ page took down a
     seventeen-feed harvest seven feeds in.
 
-    ⚠ THIS TEST MAY PASS ON LINUX FOR THE WRONG REASON, and that is the point
-      of writing it rather than trusting the fix. The exception TYPE is
-      platform-dependent; on the CI runner this input may raise ValueError,
-      which the original tuple already caught. So a green CI here does not
-      establish that the Windows path is fixed - it establishes that the
-      FUNCTION'S CONTRACT holds on both, which is the thing worth pinning:
-      an unrepresentable date is None, on every platform, whatever it throws.
+    ⚠ THIS TEST FAILED ON CI AND THAT IS WHY IT EXISTS. It was written
+      expecting to pass on Linux "for the wrong reason" - the guess being that
+      the input would raise ValueError there and be caught. It does not raise
+      on Linux AT ALL: `datetime.fromtimestamp(-62135596800, tz=UTC)` returns
+      `datetime(1, 1, 1, tzinfo=UTC)`.
+
+          Windows   raises OSError [Errno 22]    -> loud, caught, None
+          Linux     returns year 1               -> silent, stored, WRONG
+
+      So the first fix (catch OSError) repaired the platform that crashed and
+      left the one that writes `published_at = 0001-01-01` into the database.
+      The nightly chain runs on Linux. The crash was the lucky platform, and
+      the only reason the silent half was ever seen is that CI disagreed with
+      the machine the harvest ran on.
+
+      The test pins the CONTRACT - unrepresentable or sentinel is None - and
+      the implementation now checks the sentinel explicitly instead of relying
+      on an exception that one platform does not raise. #378.
     """
 
     def test_hugos_zero_date_becomes_none_rather_than_raising(self):
