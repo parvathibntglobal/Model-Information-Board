@@ -309,6 +309,55 @@ terms_rulings:
       today, not the weakest, and `jack-clark.net`'s 8/10-naming-0/10-resolving
       survey shape is a reason to seat it rather than a reservation about it.
 
+      3a · A TEN-ENTRY SAMPLE OVERSTATES NAMING BY 3-5x ON ANY FEED DEEPER
+      THAN TEN ENTRIES. **This is a rule for the NEXT candidate, not a fact
+      about these nine.** Measure a candidate's naming rate however you like;
+      do not let the sampled figure stand as the feed's rate, and do not rank
+      two candidates against each other unless both figures are the same kind.
+
+      It is a rule because it was measured, on the harvest of 2026-09-21,
+      after nine feeds had already been seated on the sampled number:
+
+          feed                     sampled        full window      error
+          lilianweng.github.io      6/10  60%      6/53   11.3%    5.3x over
+          eugeneyan.com             4/10  40%     21/212   9.9%    4.0x over
+          swyx.io                   1/10  10%     12/432   2.8%    3.6x over
+          maggieappleton.com        2/10  20%     10/142   7.0%    2.8x over
+          ---------------------------------------------------------------
+          minimaxir.com             9/10  90%      9/10   90.0%    exact
+          jack-clark.net            8/10  80%      8/10   80.0%    exact
+          mattrickard.com           0/10   0%      0/10    0.0%    exact
+          www.fast.ai               1/10  10%      2/20   10.0%    exact
+
+      THE SPLIT IS NOT ABOUT THE HOSTS AND IT IS NOT LUCK. The four that
+      regressed are the four with archives deeper than ten entries. The four
+      that held exactly are the ones whose whole feed IS about ten, so the
+      sample WAS the population and had nothing to regress against. The
+      mechanism is ordinary: a feed is newest-first, model mentions cluster in
+      recent posts, and the ten most recent are therefore the densest ten the
+      blog has. Nothing was measured wrongly - "6 of the 10 most recent" was
+      true when written and was never "60% of the feed".
+
+      Rule 7, landing on our own instrument: a real value answering a question
+      it was not asked, which survived inspection because a spot-check of any
+      one figure confirms it. THE CHECK THAT CATCHES IT NEEDS NO SUSPICION -
+      ask how deep the feed is. If it is deeper than the sample, the sampled
+      rate is an upper bound and should be written down as one.
+
+      WHAT THIS DOES AND DOES NOT CHANGE ABOUT §3. The ranking stands and gets
+      firmer: `minimaxir.com` at 9/10 is a FULL-POPULATION 90%, while
+      `lilianweng.github.io`'s 60% is a sample that is really 11.3%. So the
+      criterion picked the right feed and §3's stated reason was only half the
+      reason it had. Nothing is re-seated on this; it is recorded because the
+      next candidate will arrive with a ten-entry figure and somebody will
+      compare it to these.
+
+      BOTH NUMBERS STAY ON EVERY ROW, WITH THEIR DENOMINATORS. The sample is
+      not deleted, because it is what the seating decision was actually made
+      on and overwriting it would erase that. The population is not omitted,
+      because a row carrying only the sample misleads in exactly the way this
+      harvest demonstrated. See each row's `measured` block.
+
       4 · A FEED ROW NAMES THE HOST THAT SERVES THE ARTICLES. Seating hygiene,
       and it is a defect the moment it is got wrong rather than a preference.
       `_blog_corpus_census.py:feed_of` joins on the ARTICLE URL's hostname, so
@@ -2097,9 +2146,31 @@ feeds:
       entry_bylines_present: 0
       distinct_entry_bylines: 0
       resolves_to_voices: 0
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
       names_tracked_model: 6
       resolves_to_one_model: 3
       sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE OVERSTATED THIS FEED BY 5.3x (60% sampled, 11.3% actual).
+      population_documents: 53
+      names_tracked_model_population: 6
+      resolves_to_one_model_population: 3
     notes: >-
       `User-agent: * / Disallow:` - an empty Disallow, which permits
       everything explicitly. NO BYLINE ANYWHERE: the feed declares no author
@@ -2167,9 +2238,31 @@ feeds:
       entry_bylines_present: 0
       distinct_entry_bylines: 0
       resolves_to_voices: 0
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
       names_tracked_model: 4
       resolves_to_one_model: 1
       sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE OVERSTATED THIS FEED BY 4.0x (40% sampled, 9.9% actual).
+      population_documents: 212
+      names_tracked_model_population: 21
+      resolves_to_one_model_population: 8
     notes: >-
       212 entries, THE LONGEST ARCHIVE OF THE EIGHTEEN, and therefore the
       largest single blog fetch this project has attempted. TEMPLATE BLOCK IS
@@ -2229,9 +2322,32 @@ feeds:
       entry_bylines_present: 10
       distinct_entry_bylines: 1
       resolves_to_voices: 1
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
       names_tracked_model: 8
       resolves_to_one_model: 0
       sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE IS THE POPULATION here - the feed window is 10 entries, so
+      #: there is no deeper archive for it to regress against. The rate is exact.
+      population_documents: 10
+      names_tracked_model_population: 8
+      resolves_to_one_model_population: 0
     notes: >-
       ONE OF ONLY TWO FEEDS SEATED TODAY THAT PRODUCES A VOICE. 10 of 10
       entries carry a byline naming one person, so this takes the
@@ -2296,9 +2412,32 @@ feeds:
       entry_bylines_present: 0
       distinct_entry_bylines: 0
       resolves_to_voices: 0
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
       names_tracked_model: 9
       resolves_to_one_model: 0
       sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE IS THE POPULATION here - the feed window is 10 entries, so
+      #: there is no deeper archive for it to regress against. The rate is exact.
+      population_documents: 10
+      names_tracked_model_population: 9
+      resolves_to_one_model_population: 0
     notes: >-
       THE STRONGEST NAMING RATE OF THE EIGHTEEN - 9 of 10 - AND 0 OF 10
       RESOLVING, and under §3 of the ruling that pair is the reason to seat it
@@ -2359,9 +2498,31 @@ feeds:
       entry_bylines_present: 0
       distinct_entry_bylines: 0
       resolves_to_voices: 0
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
       names_tracked_model: 2
       resolves_to_one_model: 0
       sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE OVERSTATED THIS FEED BY 2.8x (20% sampled, 7.0% actual).
+      population_documents: 142
+      names_tracked_model_population: 10
+      resolves_to_one_model_population: 6
     notes: >-
       142 entries, the second-longest archive seated today. NO BYLINE IN THE
       FEED - 0 of 142 entries carry one and the feed declares no author - so
@@ -2430,9 +2591,31 @@ feeds:
       entry_bylines_present: 0
       distinct_entry_bylines: 0
       resolves_to_voices: 0
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
       names_tracked_model: 1
       resolves_to_one_model: 1
       sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE OVERSTATED THIS FEED BY 3.6x (10% sampled, 2.8% actual).
+      population_documents: 432
+      names_tracked_model_population: 12
+      resolves_to_one_model_population: 10
     notes: >-
       432 entries, THE LONGEST FEED WINDOW OF THE EIGHTEEN, and the same feed
       is served at /feed, /feed/, /rss and /rss.xml.
@@ -2511,9 +2694,32 @@ feeds:
       entry_bylines_present: 10
       distinct_entry_bylines: 1
       resolves_to_voices: 1
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
       names_tracked_model: 0
       resolves_to_one_model: 0
       sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE IS THE POPULATION here - the feed window is 10 entries, so
+      #: there is no deeper archive for it to regress against. The rate is exact.
+      population_documents: 10
+      names_tracked_model_population: 0
+      resolves_to_one_model_population: 0
     notes: >-
       ⚠ SEATED UNDER `mattrickard.com`, NOT `matt-rickard.com`. The name it is
       known by 308-redirects here, and ruling §4 is the reason this row uses
@@ -2589,9 +2795,31 @@ feeds:
       #:   7 here would be recording an intent as a fact - rule 6.
       resolves_to_voices: 0
       resolves_to_voices_when_373_closes: 7
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
       names_tracked_model: 1
       resolves_to_one_model: 0
       sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE OVERSTATED THIS FEED BY 1.0x (10% sampled, 10.0% actual).
+      population_documents: 20
+      names_tracked_model_population: 2
+      resolves_to_one_model_population: 1
     notes: >-
       ⚠ SEATED UNDER `www.fast.ai`, NOT `fast.ai`. `fast.ai` 301-redirects
       here and the entry links are all on `www.fast.ai`; ruling §4 is why the
@@ -2664,9 +2892,31 @@ feeds:
       entry_bylines_present: 0
       distinct_entry_bylines: 0
       resolves_to_voices: 1
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
       names_tracked_model: 0
       resolves_to_one_model: 0
       sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: Sample and population agree at zero.
+      population_documents: 20
+      names_tracked_model_population: 0
+      resolves_to_one_model_population: 0
     notes: >-
       THE ONLY FULL-TEXT FEED SEATED TODAY - median summary 4,268 chars
       against median body 4,257 - so this feed could be harvested without
