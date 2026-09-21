@@ -591,8 +591,18 @@ function vMet(slug){
        <b>One model has a published figure on this axis.</b> This is an observation, not a
        ranking — there is nothing here to compare it against yet.</p>`
     : '';
+  // SAID, NOT ASSUMED. Two writers spelling one benchmark two ways produce
+  // two slugs, because the extractor is required to copy the name character
+  // for character - that rule is what stops a Terminal-bench figure being
+  // filed as SWE-bench. The spellings are folded here and the fold is
+  // declared, so a reader who searched for the other one knows where it went.
+  const alsoSpelled = (m.spelledAlso || []).length
+    ? `<p class="muted" style="margin-top:8px;max-width:74ch;line-height:1.6;font-size:.9rem">
+       Also written ${m.spelledAlso.map(x=>`<code>${esc(x)}</code>`).join(', ')} in the evidence.
+       Those are the same axis and their figures are on this page &mdash; only the spelling differed.</p>`
+    : '';
   return `<div class="shell phead">${crumb([['Board','board'],['Metrics','board:met'],[m.name,null]])}
-    <h1>${esc(m.name)}</h1><p class="sub">An axis the board found figures for. Open a model to see every
+    <h1>${esc(m.name)}</h1>${alsoSpelled}<p class="sub">An axis the board found figures for. Open a model to see every
     figure recorded for it here, what each one measured, and the words it came from — an output price
     and a cache-read price can share a unit without being the same measurement.</p></div>
     ${sec('','','',`<div class="defbox"><div class="l">unit · ${esc(m.unit)}</div><p>${esc(m.d1)}</p><p>${esc(m.d2)}</p></div>`)}

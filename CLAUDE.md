@@ -215,6 +215,121 @@ These are the rules a helpful refactor will otherwise quietly violate.
    itemises.
    Argument and all four instances in `docs/produced-and-never-consumed.md`.
 
+10. **An identifier is the whole identifier, and a separator is not part of
+    it.** Anything used as a grouping key — a slug, an axis name, a benchmark
+    — must be copied complete, and must be compared on its characters rather
+    than on its punctuation. A prefix is a **different** identifier, and two
+    spellings of one name are the **same** one.
+
+    Three failures, one week, all on the metrics pages, and they need
+    different fixes — which is why they are one rule rather than three
+    patches:
+
+    | | example | where the fix belongs |
+    | --- | --- | --- |
+    | truncation | `aime` vs `aime-2026` | the extractor, asked |
+    | spelling | `exploitbench` vs `exploit-bench` | code, mechanically |
+    | real versions | `osworld` vs `osworld-2` | **must never merge** |
+
+    **The truncation case is not two writers disagreeing.** One model's 97.1%
+    was filed under `aime` from the quote *"97.1% on AIME 2026 math"* and
+    under `aime-2026` from *"97.1% on AIME 2026"*. The full name is in both
+    quotes; the copy stopped at different depths. Both copies pass
+    `metric_refusal`'s substring check, because a substring test cannot tell a
+    complete name from a prefix.
+
+    **⚠ AND THE MECHANICAL REPAIR IS A TRAP, WHICH IS THE PART WORTH
+    REMEMBERING.** `axis_specificity` already detects a name that continues.
+    Over the 314 published figures on 2026-09-21 it fired five times and
+    **three of the five continuations were the score, not the name**:
+
+        'CyberGym'      ->  'CyberGym 84.5'       84.5% is the result
+        'ExploitBench'  ->  'ExploitBench 54.4'   54.4% is the result
+        'AIME'          ->  'AIME 2026'           a year, genuinely the name
+
+    Extending the copy automatically would invent three axes named after
+    measurements in order to repair two. Telling a year from a score is a
+    reading task, so it is **asked of the extractor** (`axis_verbatim`'s
+    description, which now says where the name stops) and **reported as a
+    weight** here, per rule 8.
+
+    **The spelling case is the opposite: code must do it, because the prompt
+    cannot.** The extractor is required to copy the axis character for
+    character — that rule is what stops a Terminal-bench figure being filed as
+    SWE-bench (#368). Two documents spelling one benchmark two ways therefore
+    *must* produce two spellings, and asking the model to normalise would be
+    asking it to write something the text does not say. `spelling_key` folds
+    separators and nothing else; it left `osworld`/`osworld-2` alone and
+    caught `over-thinking`/`overthinking` in a section nobody had looked at.
+
+    **The boundary that keeps this from becoming rule 2's problem**:
+    `normalise_slug` refuses to fold `tool-calling` into `function-calling`,
+    because that is a judgement about **meaning** and belongs to a person
+    through `ruling`. Folding a hyphen is a judgement about **nothing**. The
+    day this rule is read as licence for a synonym table it has been
+    misunderstood.
+
+11. **A count in prose is a measurement with a date, or it is a defect.** Any
+    number written into a comment, a docstring, a refusal message or a README
+    must either be **computed where it is shown**, or **stated as a record**:
+    what was counted, over what population, on what date. Never a bare present
+    tense about state the file does not own.
+
+    **Six instances, and "be more careful" has demonstrably been tried.**
+    `CLAUDE.md`'s preflight entry was wrong three times in a row, each
+    correction smaller than the last. The fixtures table above said *"ZERO
+    seed (verified 2026-08-28)"* while four seeded rows carried 65 claims
+    (#382). `weight.py`'s refusal told a reader that carrying `has_conditions`
+    *"changes nothing"* when it had come to change 1,005 documents (#384).
+
+    **The fastest instance took thirty-five minutes and was written by someone
+    who had spent that morning measuring this exact class.**
+    `board_entries.py` shipped `447 stored / 269 shown` at 10:15 on
+    2026-09-21; by 10:50 it was `471 / 290`, because a run wrote in between.
+    That comment was not decoration — it was the justification for withholding
+    at all, so a reader checking whether the trade was still fair got a number
+    two runs out of date with nothing to tell them.
+
+    The two honest forms, and they are different:
+
+    - a count the code **can** recompute — compute it, or state none. The
+      module holding an open connection can count its own rows.
+    - a count from **elsewhere** — date it and name the population, and phrase
+      it as a record: *"was 269 of 447 on 2026-09-21"*, not *"269 shown"*.
+
+    No test catches this, for rule 7's reason: a stale number is not a
+    behaviour. It is a **reviewer question** — *does this number describe now,
+    and what recounts it?* The mechanism for enforcing it in refusal messages
+    is being decided on #384.
+
+12. **A fallback that can succeed on a wrong input is not a fallback.** A
+    default, a permissive pattern or a silent coercion must fail loudly when
+    the thing it is standing in for is wrong. If it can quietly produce a
+    plausible result, it is not protecting the code — it is hiding the branch
+    where the code is broken.
+
+    **Two instances on one page, both of which passed the suite, passed the
+    linter and built clean.**
+
+    `What was measured` shipped **unreadable**. It was styled
+    `color: var(--fg, #1f2328)`, and there is no `--fg` in `tokens.css`, so
+    every cell fell through to a light-theme fallback on a board whose
+    background is `#0C0C0E`. The markup was right, the class was right, the
+    text was in the DOM. A `var()` fallback is exactly the branch that runs
+    when the name is wrong. `test_a_figure_is_one_measurement.py` now fails on
+    any rule naming an undefined custom property, and found five more.
+
+    `_HAS_QUANTITY` was `re.compile(r"\d")` — *is there a digit anywhere?* On
+    2026-09-21 it published `'matches or trails Claude Fable 5 and GPT 5.6
+    Sol'` as a measurement, because **Fable 5** and **GPT 5.6** contain
+    digits. Every modern model name does. The check had been wrong since it
+    was written and only became visible when a value arrived whose sole digits
+    were a version number (#386).
+
+    The question to ask of any default: **what does this do when I am wrong?**
+    If the answer is "produces something that looks fine", it needs to fail
+    instead.
+
 ## Stack decisions already made - do not relitigate
 
 - Python 3.11+. Postgres plus an object store. `httpx` for fetching.
