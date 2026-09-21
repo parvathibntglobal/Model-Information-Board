@@ -246,8 +246,20 @@ def main(argv: list[str] | None = None) -> int:
         extractor_model=extractor_model(),
     )
 
+    # ⚠ `board_entries` IS IN HERE BECAUSE IT WAS NOT, AND THAT COST A WRONG
+    #   ANSWER TO A TEAMMATE. `Pipeline` returns `board_entries_stored` per
+    #   thread and nothing accumulated it, so a run printed `stored 114` and
+    #   said NOTHING about the board. Reconstructing it afterwards meant
+    #   matching `board_entry.created_at` against remembered wall-clock, the
+    #   reconstruction was off by one cutoff, and #386 was told the run wrote
+    #   zero board entries when it wrote 127.
+    #
+    #   This file already warned about exactly this, one report over:
+    #   "A field added to `BlogAssembleReport` must be added here, or it does
+    #   not exist as far as anyone running this can tell." Same sentence, same
+    #   dict, a different field.
     totals = {"verified": 0, "rejected": 0, "unclassified": 0, "stored": 0,
-              "unsalvaged": 0, "threads": 0, "batches": 0}
+              "unsalvaged": 0, "threads": 0, "batches": 0, "board_entries": 0}
     started = time.perf_counter()
     stopped_by_budget = False
     # THE SURFACES WE DECLINED TO GUESS. 347 of 450 verified claims were dropped
@@ -294,6 +306,7 @@ def main(argv: list[str] | None = None) -> int:
             totals["unclassified"] += len(r.extraction.unclassified)
             totals["unsalvaged"] += len(r.extraction.unsalvaged)
             totals["stored"] += len(r.stored_claim_ids)
+            totals["board_entries"] += r.board_entries_stored
             unresolved.extend(r.unresolved_surfaces)
             unvetted += len(r.unvetted_documents)
         seen = ledger.already_extracted()
@@ -304,6 +317,7 @@ def main(argv: list[str] | None = None) -> int:
             f"batch {totals['batches']:3d} committed · position {done}/{len(threads)}"
             f" · verified {totals['verified']} stored {totals['stored']}"
             f" · ${budget.spent_usd:.4f} of ${budget.limit_usd:.2f}"
+            f" board {totals['board_entries']}"
             f" · {elapsed/60:.1f} min"
         )
 
@@ -338,6 +352,12 @@ def main(argv: list[str] | None = None) -> int:
             print(f"    {n:5d}  {surface!r}")
     if unvetted:
         print(f"unvetted documents: {unvetted} (E6 could not run - no text)")
+    # ZERO IS A RESULT AND IT IS PRINTED AS ONE. A run that puts nothing on
+    # the board must say so; silence here is what sent somebody to the
+    # database to guess.
+    print(f"board entries     : {totals['board_entries']}"
+          + ("  (nothing reached the board from this run)"
+             if not totals["board_entries"] else ""))
     if totals["verified"] and not totals["stored"]:
         print("  VERIFIED BUT NOT STORED: either the documents could not be "
               "weighted or the models resolved to no tracked row.")
