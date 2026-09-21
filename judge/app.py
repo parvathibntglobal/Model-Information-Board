@@ -16,6 +16,7 @@ import contextlib
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -3236,6 +3237,81 @@ def _migration_state(
     }
 
 
+def _what_the_extractor_is_asked() -> list[dict]:
+    """Every field the extraction schema asks a model for, and the words it
+    asks in — READ FROM THE SCHEMA AT REQUEST TIME, never transcribed.
+
+    ⚠ RULE 11, WHICH IS WHY THIS IS NOT A PAGE SOMEBODY MAINTAINS. A copy of
+      a prompt on an admin page is a count in prose with extra steps: it is
+      true the day it is pasted and silently wrong afterwards, and the reader
+      it misleads is the one person who went looking for the current wording.
+
+      `axis_verbatim`'s description has been rewritten twice in a week - once
+      because it said "REQUIRED" and "leave this empty" in one paragraph
+      (0 absent, 19 unsupported of 22 on the run that followed), and once to
+      say where a benchmark name stops. A transcription would be describing
+      neither version by now.
+
+    The descriptions ARE the prompt for these fields: they are what the
+    provider is sent as the tool-call schema. So this is the instruction
+    itself rather than a summary of it.
+    """
+    from judge.extract.schema import BoardEntry, ExtractedClaim
+
+    out: list[dict] = []
+    for model, where in ((ExtractedClaim, "claim"), (BoardEntry, "board entry")):
+        for name, field in model.model_fields.items():
+            if not field.description:
+                continue
+            out.append({
+                "object": where,
+                "field": name,
+                "required": field.is_required(),
+                "asks": field.description,
+            })
+    return out
+
+
+#: The non-negotiables, by number and headline, read out of `CLAUDE.md`.
+#:
+#: ⚠ DOTALL, AND IT RETURNED 8 OF 12 WITHOUT IT. A headline wraps when it is
+#:   long - rule 9's headline runs `A produced value has a named consumer,
+#:   or a declared reason it has none.` across two lines, so a pattern whose
+#:   `.` stopped at the line break
+#:   silently skipped every rule from 9 up. Rule 12's own shape: it did not
+#:   fail, it returned a shorter list that looked like the whole one.
+_RULE_LINE = re.compile(r"^(\d+)\. \*\*(.+?)\*\*", re.MULTILINE | re.DOTALL)
+
+
+def _the_rules() -> list[dict]:
+    """The rule numbers and headlines, parsed from the file that holds them.
+
+    HEADLINES ONLY, AND THE LINK IS THE POINT. The argument under each rule is
+    what makes it followable and it is long; reproducing it here would make
+    this endpoint a second copy of the document, which is the failure the
+    rules themselves are about. A reader who needs the reasoning opens the
+    file, and this page tells them the file exists, what is in it, and that
+    nothing here was retyped.
+    """
+    path = Path(__file__).resolve().parents[1] / "CLAUDE.md"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        # Not on the container: `.dockerignore` ships the code and not the
+        # repository. An empty list with `source_readable: false` beside it is
+        # the honest answer; a hardcoded fallback would be the stale copy this
+        # whole function exists to avoid (rule 6).
+        return []
+    start = text.find("## Non-negotiable rules")
+    end = text.find("\n## ", start + 1) if start != -1 else -1
+    if start == -1:
+        return []
+    body = text[start:end if end != -1 else len(text)]
+    # A wrapped headline arrives with its indentation in the middle of it.
+    return [{"n": int(n), "rule": " ".join(headline.split())}
+            for n, headline in _RULE_LINE.findall(body)]
+
+
 @app.get("/admin/settings")
 def admin_settings(authorization: str | None = Header(default=None)) -> dict:
     """Who is signed in, what this is built on, and every operational cap.
@@ -3253,6 +3329,10 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
     import platform
 
     from judge import login
+
+    # Read once: the file is opened per request on purpose (rule 11 -
+    # a cached copy is the stale copy), but not twice in one request.
+    rules = _the_rules()
 
     # (name, default, what it does). The defaults are the ones the code falls
     # back to when the variable is unset, so `overridden` below is a fact.
@@ -3385,6 +3465,19 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
         # reports the demo-credentials case, which is the one that matters on
         # anything reachable.
         "auth": auth_state(),
+        # ⚠ WHAT THE MODEL IS ACTUALLY ASKED, AND THE RULES IT IS ASKED UNDER.
+        # Both read from source on every request. Neither is a copy, and the
+        # page says so - the value of putting a prompt on an admin page is
+        # entirely in it being the live one.
+        "contract": {
+            "extraction_fields": _what_the_extractor_is_asked(),
+            "rules": rules,
+            # A container ships the code without the repository
+            # (`.dockerignore` excludes `.git/`), so the rules file can
+            # genuinely be absent. Said rather than rendered as "no rules".
+            "rules_source_readable": bool(rules),
+            "read_from_source_at": datetime.now(UTC).isoformat(),
+        },
         "runtime": {
             "python": platform.python_version(),
             "fastapi": _installed("fastapi"),

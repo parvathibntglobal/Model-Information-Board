@@ -228,6 +228,73 @@ export default function SettingsPanel() {
             </p>
           </div>
         )}
+
+        {/* ── what the model is asked, and the rules it is asked under ──
+            READ FROM SOURCE ON EVERY REQUEST, never transcribed. A prompt
+            pasted onto an admin page is true the day it is pasted and
+            silently wrong afterwards, and the reader it misleads is the one
+            person who came here to find the current wording (rule 11).
+
+            `axis_verbatim` has been rewritten twice in a week - once because
+            it said "REQUIRED" and "leave this empty" in one paragraph, and
+            once to say where a benchmark name stops. A copy would be
+            describing neither version by now. */}
+        {data?.contract && (
+          <div className="stack stack-2">
+            <span className="label">What the extractor is asked</span>
+            <p className="dim" style={{ fontSize: 11, margin: 0, maxWidth: '78ch', lineHeight: 1.6 }}>
+              These descriptions <em>are</em> the prompt: they are sent to the provider as the
+              tool-call schema, so this is the instruction itself and not a summary of it. Read
+              from <span className="mono">judge/extract/schema.py</span> when this page loaded.
+            </p>
+            <div className="stack stack-2">
+              {(data.contract.extraction_fields || []).map((f) => (
+                <details key={`${f.object}:${f.field}`} className="fold">
+                  <summary>
+                    <span className="mono" style={{ fontSize: 11 }}>{f.field}</span>
+                    <Badge tone={f.required ? 'warn' : 'mute'}>
+                      {f.required ? 'required' : 'optional'}
+                    </Badge>
+                    <span className="dim" style={{ fontSize: 11 }}>{f.object}</span>
+                  </summary>
+                  <p style={{
+                    fontSize: 'var(--fs-xs)', lineHeight: 1.65, maxWidth: '82ch',
+                    margin: '8px 0 0', color: 'var(--text-2)', whiteSpace: 'pre-wrap',
+                  }}>
+                    {f.asks}
+                  </p>
+                </details>
+              ))}
+            </div>
+
+            <span className="label" style={{ marginTop: 8 }}>The rules this is built under</span>
+            {data.contract.rules_source_readable ? (
+              <ol className="stack stack-1" style={{
+                margin: 0, paddingLeft: '1.4em', fontSize: 'var(--fs-xs)',
+                lineHeight: 1.65, color: 'var(--text-2)', maxWidth: '82ch',
+              }}>
+                {(data.contract.rules || []).map((r) => (
+                  <li key={r.n} value={r.n}>{r.rule}</li>
+                ))}
+              </ol>
+            ) : (
+              /* RULE 4: SAY THE ABSENCE WAS CAUSED. A container ships the code
+                 without the repository, so the file genuinely is not there -
+                 which is a different thing from there being no rules, and a
+                 blank list would say the second. */
+              <p className="dim" style={{ fontSize: 11, margin: 0, maxWidth: '78ch', lineHeight: 1.6 }}>
+                <span className="mono">CLAUDE.md</span> is not readable from this process, so the
+                rules cannot be listed here. That is this deployment shipping code without the
+                repository around it — not an absence of rules.
+              </p>
+            )}
+            <p className="dim" style={{ fontSize: 11, margin: 0, maxWidth: '78ch', lineHeight: 1.6 }}>
+              Headlines only. The argument under each rule is what makes it followable and it is
+              long; a second copy of it here is the exact failure the rules are about. Read at{' '}
+              <span className="mono">{data.contract.read_from_source_at}</span>.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   )

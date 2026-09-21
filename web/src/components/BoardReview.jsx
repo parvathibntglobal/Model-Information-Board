@@ -389,13 +389,47 @@ export default function BoardReview() {
                         ? `decline ${chosen.length} quote${chosen.length === 1 ? '' : 's'}`
                         : `decline all ${g.entries}`}
                     </button>
+                    {/* ⚠ THE TARGETS ARE OFFERED, NOT REMEMBERED.
+                        A merge target that is not already a slug in this
+                        section creates an axis rather than folding into one,
+                        and the only way to know which was to have the list in
+                        your head. `aime` and `aime-2026` were two pages for
+                        one benchmark and the fix needed the exact spelling of
+                        the other one, typed from memory, with no way to check.
+
+                        SCOPED TO THIS SECTION. A metric may not be merged into
+                        a capability, and offering one would propose a move the
+                        backend refuses. `g.slug` itself is excluded: folding a
+                        slug into itself is not a merge. */}
                     <input
                       className="input"
-                      style={{ maxWidth: 200, fontSize: 'var(--fs-xs)' }}
+                      list={`mergeopts-${key}`}
+                      style={{ maxWidth: 220, fontSize: 'var(--fs-xs)' }}
                       placeholder="merge into slug…"
                       value={mergeInto[key] || ''}
                       onChange={(e) => setMergeInto((m) => ({ ...m, [key]: e.target.value }))}
                     />
+                    <datalist id={`mergeopts-${key}`}>
+                      {groups
+                        .filter((o) => o.section === g.section && o.slug !== g.slug)
+                        .map((o) => (
+                          <option key={o.slug} value={o.slug}>
+                            {o.name && o.name !== o.slug ? `${o.name} · ${o.entries}` : `${o.entries} entries`}
+                          </option>
+                        ))}
+                    </datalist>
+                    {/* AN UNKNOWN TARGET IS SAID BEFORE THE CLICK, not refused
+                        after it. Typing a slug that does not exist is a real
+                        thing to want - the page cannot know a new axis is
+                        wrong - so this states what will happen rather than
+                        blocking it. */}
+                    {(mergeInto[key] || '').trim()
+                      && !groups.some((o) => o.section === g.section
+                        && o.slug === (mergeInto[key] || '').trim()) && (
+                      <span className="mono" style={{ fontSize: 11, color: 'var(--warn)' }}>
+                        no such slug in {g.section} — this creates one
+                      </span>
+                    )}
                     {/* MERGE FOLLOWS THE SELECTION TOO. Folding a whole slug
                         into another is one judgement about a word; moving a
                         single quote is "this was filed under the wrong

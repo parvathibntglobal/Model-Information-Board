@@ -979,3 +979,85 @@ tbody tr:hover{background:var(--surface-2)}
   .adm-nav button[aria-current="page"]{background:var(--text);color:var(--bg);
     border-color:var(--text);box-shadow:none}
 }
+
+/* ── .input, which did not exist ─────────────────────────────────────────────
+ *
+ * ⚠ RULE 12. `className="input"` appeared once in the tree, in the board
+ *   review's merge box, and NO `.input` rule was ever written. So the element
+ *   took the browser default - a white background - with `color:inherit` from
+ *   `app.css:16` handing it this board's white text. **White on white: a
+ *   reviewer could not see what they were typing**, and the control looked
+ *   entirely normal otherwise.
+ *
+ *   Same family as `var(--fg, #1f2328)` rendering a column unreadable: the
+ *   markup names something that is not there and the result is plausible
+ *   rather than broken. A class that does not exist cannot warn you.
+ *
+ * Matches `.field input`, which is the styling that already worked, rather
+ * than inventing a second look for the same control. */
+.input{
+  height:36px;
+  padding:0 12px;
+  border-radius:var(--r-control);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--text);
+  font-size:var(--fs-sm);
+  transition:border-color .16s var(--ease), box-shadow .16s var(--ease);
+}
+.input::placeholder{ color:var(--text-3) }
+.input:focus{
+  outline:none;
+  border-color:var(--border-strong);
+  box-shadow:0 0 0 3px rgba(255,255,255,.055);
+}
+/* The suggestion list's own arrow, so it is visible that there is one. */
+.input[list]{ padding-right:8px }
+
+/* ── .fold: a compact <details> row for the settings contract ────────────────
+ *
+ * ⚠ RULE 12 AGAIN, CAUGHT BEFORE IT SHIPPED THIS TIME. The first draft used
+ *   `className="fold"` with no such rule in the tree - the same mistake as
+ *   `className="input"`, which rendered white on white in the board review
+ *   because nobody had ever written `.input`. A class that does not exist
+ *   does not warn you; it just looks slightly wrong and reads as a style
+ *   nobody finished.
+ *
+ * Modelled on `.faq-item`, which is the same control - a native <details>
+ * with a rotating chevron drawn from borders - but tighter, because these
+ * rows carry a field name rather than a sentence, and there are seventeen.
+ * The marker is on the left so seventeen summaries align. */
+.fold{
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  background:var(--surface);
+  overflow:hidden;
+}
+.fold + .fold{ margin-top:-1px }
+.fold > summary{
+  cursor:pointer;
+  list-style:none;
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  padding:9px 12px 9px 30px;
+  position:relative;
+  color:var(--text);
+  transition:background var(--t-fast) var(--ease);
+}
+.fold > summary::-webkit-details-marker{ display:none }
+.fold > summary:hover{ background:var(--surface-2) }
+.fold > summary:focus-visible{ outline:2px solid var(--info); outline-offset:-2px }
+.fold > summary::before{
+  content:'';
+  position:absolute;
+  left:12px; top:50%;
+  width:5px; height:5px;
+  border-right:1.5px solid var(--text-3);
+  border-bottom:1.5px solid var(--text-3);
+  transform:translateY(-70%) rotate(-45deg);
+  transition:transform var(--t-fast) var(--ease);
+}
+.fold[open] > summary::before{ transform:translateY(-50%) rotate(45deg) }
+.fold[open] > summary{ background:var(--surface-2) }
+.fold > p{ padding:0 12px 12px 30px }
