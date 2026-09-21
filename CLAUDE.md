@@ -551,6 +551,34 @@ These are the rules a helpful refactor will otherwise quietly violate.
   a follow-up commit written *because a review comment asked for it* - the moment
   you are most sure the PR is open is right after it closed.
 
+  **⚠ THIRD INSTANCE, 2026-09-21, AND THE CHECK WAS RUN. That is the part worth
+  adding.** `7ea2798` pushed to `feat/fixture-exposure-gate` after #383 merged
+  at 08:40; two measurement scripts, invisible on `main`, found only by a sweep
+  hours later. The command above WAS run first, and it printed nothing, and the
+  nothing was read as clearance.
+
+  ```
+  gh pr list --head "$(git branch --show-current)" --state open ...
+      prints a number   the PR is open, push
+      PRINTS NOTHING    there is no open PR. STOP. This is the warning.
+  ```
+
+  An empty result is the failure signal and it looks exactly like a clean
+  check - same silence, opposite meaning, and the two-command form makes it
+  worse by putting the push on the same line with `&&`. So the rule is no
+  longer "run the check"; it is **read the empty result as a refusal**, and
+  prefer a form that cannot be misread:
+
+  ```
+  gh pr list --head "$(git branch --show-current)" --state open --json number \
+    --jq 'if length == 0 then error("no open PR for this branch") else .[0].number end'
+  ```
+
+  Same family as the `UNSTABLE`/`DIRTY` entry above and as rule 4: an absence
+  that reads as a pass. The two earlier instances were a habit not followed;
+  this one was the habit followed and the output misread, which no amount of
+  remembering to run it would have caught.
+
 ## Build fixtures currently in place
 
 Load-bearing during the build and poisonous afterwards.
