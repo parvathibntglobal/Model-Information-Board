@@ -16,6 +16,7 @@ import contextlib
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -3236,6 +3237,81 @@ def _migration_state(
     }
 
 
+def _what_the_extractor_is_asked() -> list[dict]:
+    """Every field the extraction schema asks a model for, and the words it
+    asks in — READ FROM THE SCHEMA AT REQUEST TIME, never transcribed.
+
+    ⚠ RULE 11, WHICH IS WHY THIS IS NOT A PAGE SOMEBODY MAINTAINS. A copy of
+      a prompt on an admin page is a count in prose with extra steps: it is
+      true the day it is pasted and silently wrong afterwards, and the reader
+      it misleads is the one person who went looking for the current wording.
+
+      `axis_verbatim`'s description has been rewritten twice in a week - once
+      because it said "REQUIRED" and "leave this empty" in one paragraph
+      (0 absent, 19 unsupported of 22 on the run that followed), and once to
+      say where a benchmark name stops. A transcription would be describing
+      neither version by now.
+
+    The descriptions ARE the prompt for these fields: they are what the
+    provider is sent as the tool-call schema. So this is the instruction
+    itself rather than a summary of it.
+    """
+    from judge.extract.schema import BoardEntry, ExtractedClaim
+
+    out: list[dict] = []
+    for model, where in ((ExtractedClaim, "claim"), (BoardEntry, "board entry")):
+        for name, field in model.model_fields.items():
+            if not field.description:
+                continue
+            out.append({
+                "object": where,
+                "field": name,
+                "required": field.is_required(),
+                "asks": field.description,
+            })
+    return out
+
+
+#: The non-negotiables, by number and headline, read out of `CLAUDE.md`.
+#:
+#: ⚠ DOTALL, AND IT RETURNED 8 OF 12 WITHOUT IT. A headline wraps when it is
+#:   long - rule 9's headline runs `A produced value has a named consumer,
+#:   or a declared reason it has none.` across two lines, so a pattern whose
+#:   `.` stopped at the line break
+#:   silently skipped every rule from 9 up. Rule 12's own shape: it did not
+#:   fail, it returned a shorter list that looked like the whole one.
+_RULE_LINE = re.compile(r"^(\d+)\. \*\*(.+?)\*\*", re.MULTILINE | re.DOTALL)
+
+
+def _the_rules() -> list[dict]:
+    """The rule numbers and headlines, parsed from the file that holds them.
+
+    HEADLINES ONLY, AND THE LINK IS THE POINT. The argument under each rule is
+    what makes it followable and it is long; reproducing it here would make
+    this endpoint a second copy of the document, which is the failure the
+    rules themselves are about. A reader who needs the reasoning opens the
+    file, and this page tells them the file exists, what is in it, and that
+    nothing here was retyped.
+    """
+    path = Path(__file__).resolve().parents[1] / "CLAUDE.md"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        # Not on the container: `.dockerignore` ships the code and not the
+        # repository. An empty list with `source_readable: false` beside it is
+        # the honest answer; a hardcoded fallback would be the stale copy this
+        # whole function exists to avoid (rule 6).
+        return []
+    start = text.find("## Non-negotiable rules")
+    end = text.find("\n## ", start + 1) if start != -1 else -1
+    if start == -1:
+        return []
+    body = text[start:end if end != -1 else len(text)]
+    # A wrapped headline arrives with its indentation in the middle of it.
+    return [{"n": int(n), "rule": " ".join(headline.split())}
+            for n, headline in _RULE_LINE.findall(body)]
+
+
 @app.get("/admin/settings")
 def admin_settings(authorization: str | None = Header(default=None)) -> dict:
     """Who is signed in, what this is built on, and every operational cap.
@@ -3732,9 +3808,30 @@ def admin_prompts() -> dict:
             "built_by": "judge/extract/prompt.py",
         })
 
+    # Read once per request on purpose (rule 11 - a cached copy is the
+    # stale copy), but not twice in one response.
+    rules = _the_rules()
     return {
         "prompts": prompts,
         "count": len(prompts),
+        # ⚠ THE TOOL-CALL SCHEMA IS PART OF THE PROMPT, and it was the missing
+        # half of this page. `prompts` above is the system message, the user
+        # message and the two retry corrections; the FIELD DESCRIPTIONS are
+        # sent in the same call and are what the model is actually asked to
+        # fill in. A page listing four strings and omitting seventeen field
+        # instructions describes a fraction of what the model reads.
+        #
+        # Read from the Pydantic model on every request, like everything else
+        # here. `axis_verbatim` has been rewritten twice in a week; a
+        # transcription would be describing neither version (rule 11).
+        "schema_fields": _what_the_extractor_is_asked(),
+        # NOT SENT TO A MODEL, and the page must say so. These are the
+        # constraints the pipeline is built under, not instructions the
+        # extractor reads - putting them on this page without that distinction
+        # would imply the model has been told them.
+        "rules": rules,
+        "rules_source_readable": bool(rules),
+        "read_from_source_at": datetime.now(UTC).isoformat(),
         # SAID, BECAUSE A LIST THAT LOOKS EXHAUSTIVE AND IS NOT IS WORSE THAN NO
         # LIST. Both groups are named so their absence is a statement.
         "not_shown": [

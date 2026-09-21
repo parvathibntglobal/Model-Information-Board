@@ -87,7 +87,7 @@ export default function ModelEvidence({ modelVersionId }) {
       <div style={{ padding: '0 var(--s4)' }}>
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0 }}>
           Three ways into the same evidence, and the sections are{' '}
-          <strong style={{ color: 'var(--text-1)' }}>discovered, not chosen from a list</strong>{' '}
+          <strong style={{ color: 'var(--text)' }}>discovered, not chosen from a list</strong>{' '}
           — whatever engineers actually discussed gets named here, whether or not it
           matches anything the board already tracks. Counts are a floor: one section can
           arrive under two names until somebody merges them.
@@ -136,7 +136,7 @@ export default function ModelEvidence({ modelVersionId }) {
 
               {items.map((it) => (
                 <div key={it.slug} className="stack stack-1"
-                     style={{ borderLeft: '2px solid var(--line)', paddingLeft: 12 }}>
+                     style={{ borderLeft: '2px solid var(--border)', paddingLeft: 12 }}>
                   <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
                     <strong style={{ fontSize: 'var(--fs-sm)' }}>{it.name || it.slug}</strong>
                     <span className="label">

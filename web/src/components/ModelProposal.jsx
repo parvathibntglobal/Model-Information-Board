@@ -82,7 +82,7 @@ export default function ModelProposal({ models }) {
       <div className="stack stack-1">
         <span className="label">Change what the board tracks</span>
         <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', lineHeight: 1.6 }}>
-          Both <strong style={{ color: 'var(--text-1)' }}>write nothing</strong>.
+          Both <strong style={{ color: 'var(--text)' }}>write nothing</strong>.
           They work out what the change would mean and hand you the exact contract
           edit — the commit and a deploy are what make it real, so the board does
           not change while you are looking at it.
@@ -296,7 +296,7 @@ function Confirm({ pending, onCancel, onConfirm }) {
 }
 
 const INPUT = {
-  height: 32, padding: '0 10px', borderRadius: 'var(--r2)',
+  height: 32, padding: '0 10px', borderRadius: 'var(--r-sm)',
   border: '1px solid var(--border)', background: 'var(--surface)',
   fontSize: 'var(--fs-xs)', minWidth: 190,
 }
@@ -448,7 +448,7 @@ function Paste({ label, text }) {
         </button>
       </div>
       <pre className="mono" style={{
-        margin: 0, padding: 'var(--s2)', borderRadius: 'var(--r2)',
+        margin: 0, padding: 'var(--s2)', borderRadius: 'var(--r-sm)',
         background: 'var(--surface-2)', border: '1px solid var(--border)',
         fontSize: 11, overflowX: 'auto', whiteSpace: 'pre',
       }}>{text}</pre>

@@ -675,7 +675,7 @@ function RapidApiTab({ rapid, which }) {
           now, which presented one counter as two and explained a gap that is
           usually not there. */}
       {rapid.also_held && !rapid.subscriptions_differ && (
-        <span className="dim" style={{ fontSize: 'var(--fs-2xs, var(--fs-xs))', opacity: 0.75 }}
+        <span className="dim" style={{ fontSize: 'var(--fs-xs))', opacity: 0.75 }}
               title={`${count(rapid.also_held.quota_remaining)} remaining, read by ${rapid.also_held.host || 'an unrecorded host'} at ${rapid.also_held.as_of || 'an unrecorded time'}`}>
           An older reading of this same meter is also held — hover for it. It is
           not a second figure: the counter only falls, so the newest reading is
@@ -815,7 +815,7 @@ function WindowBar({ w, which }) {
         </span>
       )}
       {w.source && (
-        <span className="dim" style={{ fontSize: 'var(--fs-2xs, var(--fs-xs))', opacity: 0.75 }}>
+        <span className="dim" style={{ fontSize: 'var(--fs-xs))', opacity: 0.75 }}>
           {w.source}
           {w.boundary_from ? ` · boundary from ${w.boundary_from}` : ''}
         </span>

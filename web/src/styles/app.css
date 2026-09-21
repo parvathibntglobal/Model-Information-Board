@@ -979,3 +979,149 @@ tbody tr:hover{background:var(--surface-2)}
   .adm-nav button[aria-current="page"]{background:var(--text);color:var(--bg);
     border-color:var(--text);box-shadow:none}
 }
+
+/* ── .input, which did not exist ─────────────────────────────────────────────
+ *
+ * ⚠ RULE 12. `className="input"` appeared once in the tree, in the board
+ *   review's merge box, and NO `.input` rule was ever written. So the element
+ *   took the browser default - a white background - with `color:inherit` from
+ *   `app.css:16` handing it this board's white text. **White on white: a
+ *   reviewer could not see what they were typing**, and the control looked
+ *   entirely normal otherwise.
+ *
+ *   Same family as `var(--fg, #1f2328)` rendering a column unreadable: the
+ *   markup names something that is not there and the result is plausible
+ *   rather than broken. A class that does not exist cannot warn you.
+ *
+ * Matches `.field input`, which is the styling that already worked, rather
+ * than inventing a second look for the same control. */
+.input{
+  height:36px;
+  padding:0 12px;
+  border-radius:var(--r-control);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--text);
+  font-size:var(--fs-sm);
+  transition:border-color .16s var(--ease), box-shadow .16s var(--ease);
+}
+.input::placeholder{ color:var(--text-3) }
+.input:focus{
+  outline:none;
+  border-color:var(--border-strong);
+  box-shadow:0 0 0 3px rgba(255,255,255,.055);
+}
+/* The suggestion list's own arrow, so it is visible that there is one. */
+.input[list]{ padding-right:8px }
+
+/* ── .fold: a compact <details> row for the settings contract ────────────────
+ *
+ * ⚠ RULE 12 AGAIN, CAUGHT BEFORE IT SHIPPED THIS TIME. The first draft used
+ *   `className="fold"` with no such rule in the tree - the same mistake as
+ *   `className="input"`, which rendered white on white in the board review
+ *   because nobody had ever written `.input`. A class that does not exist
+ *   does not warn you; it just looks slightly wrong and reads as a style
+ *   nobody finished.
+ *
+ * Modelled on `.faq-item`, which is the same control - a native <details>
+ * with a rotating chevron drawn from borders - but tighter, because these
+ * rows carry a field name rather than a sentence, and there are seventeen.
+ * The marker is on the left so seventeen summaries align. */
+.fold{
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  background:var(--surface);
+  overflow:hidden;
+}
+.fold + .fold{ margin-top:-1px }
+.fold > summary{
+  cursor:pointer;
+  list-style:none;
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  padding:9px 12px 9px 30px;
+  position:relative;
+  color:var(--text);
+  transition:background var(--t-fast) var(--ease);
+}
+.fold > summary::-webkit-details-marker{ display:none }
+.fold > summary:hover{ background:var(--surface-2) }
+.fold > summary:focus-visible{ outline:2px solid var(--info); outline-offset:-2px }
+.fold > summary::before{
+  content:'';
+  position:absolute;
+  left:12px; top:50%;
+  width:5px; height:5px;
+  border-right:1.5px solid var(--text-3);
+  border-bottom:1.5px solid var(--text-3);
+  transform:translateY(-70%) rotate(-45deg);
+  transition:transform var(--t-fast) var(--ease);
+}
+.fold[open] > summary::before{ transform:translateY(-50%) rotate(45deg) }
+.fold[open] > summary{ background:var(--surface-2) }
+.fold > p{ padding:0 12px 12px 30px }
+
+/* ── the board review's axis list ────────────────────────────────────────────
+ *
+ * WHAT THIS REPLACED: every group expanded, so a tab with thirty slugs was
+ * thirty definitions and thirty fold headers before the one you came for. The
+ * panel exists to catch duplicates, and two names being compared have to be
+ * on screen together to be compared. */
+.axis{ border-bottom:1px solid var(--border-soft) }
+.axis:last-child{ border-bottom:0 }
+.axis-row{
+  display:flex; align-items:baseline; gap:10px; width:100%;
+  padding:10px 4px 10px 26px; position:relative; text-align:left;
+  background:transparent; border:0; border-radius:var(--r-sm); cursor:pointer;
+  transition:background var(--t-fast) var(--ease);
+}
+.axis-row:hover{ background:var(--surface-2) }
+.axis-row:focus-visible{ outline:2px solid var(--info); outline-offset:-2px }
+/* the chevron, drawn from borders so it needs no asset */
+.axis-row::before{
+  content:''; position:absolute; left:8px; top:50%;
+  width:5px; height:5px;
+  border-right:1.5px solid var(--text-3);
+  border-bottom:1.5px solid var(--text-3);
+  transform:translateY(-70%) rotate(-45deg);
+  transition:transform var(--t-fast) var(--ease);
+}
+.axis-row[aria-expanded="true"]::before{ transform:translateY(-50%) rotate(45deg) }
+.axis-name{ font-size:var(--fs-sm); font-weight:600; color:var(--text) }
+.axis-slug{ font-size:11px; color:var(--text-3) }
+/* PUSHED RIGHT, so thirty rows have their counts in one column and the eye can
+   run down them rather than hunting along each line. */
+.axis-counts{ margin-left:auto; font-size:11px; color:var(--text-2); white-space:nowrap }
+.axis-left{
+  font-family:var(--font-mono); font-size:11px; color:var(--text-3);
+  white-space:nowrap; min-width:9ch; text-align:right;
+}
+.axis-body{ padding:4px 4px 16px 26px }
+
+/* ── the quotes of one model, inside an open section ─────────────────────── */
+.qmodel{ border-left:2px solid var(--border); padding-left:12px; margin-bottom:14px }
+.qmodel:last-child{ margin-bottom:0 }
+.qmodel-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:6px; flex-wrap:wrap }
+.qmodel-name{ font-size:var(--fs-xs); font-weight:600; color:var(--text) }
+/* A button that reads as a link: this is a selection shortcut, not a ruling,
+   and giving it a chip would put it beside the four controls that DO rule. */
+.linkish{
+  background:none; border:0; padding:0; cursor:pointer;
+  font-family:var(--font-mono); font-size:11px; color:var(--info);
+  text-decoration:underline; text-underline-offset:2px;
+}
+.linkish:hover{ color:var(--text) }
+.linkish:focus-visible{ outline:2px solid var(--info); outline-offset:2px }
+
+/* The full text of a prompt. Whitespace is load-bearing — the delimiters and
+   the indented examples — so it is preserved and wraps rather than scrolling
+   sideways on a phone. Was an inline style using `var(--r2)`, which is not a
+   token that exists (rule 12), so the radius silently did nothing. */
+.prompt-text{
+  font-size:11px; line-height:1.55;
+  white-space:pre-wrap; word-break:break-word;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r-sm); padding:var(--s3);
+  margin:0; max-width:100%;
+}

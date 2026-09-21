@@ -48,6 +48,31 @@ const SECTION_LABEL = {
 // One shared empty set, so `picked[key] || EMPTY` does not allocate per render.
 const EMPTY = new Set()
 
+//: ── THE STATUS FILTERS ──────────────────────────────────────────────────
+//:
+//: `ruling` is set only when the WHOLE slug agrees, so a section with one
+//: declined quote among nine unruled ones reports no ruling at all. That is
+//: why `awaiting` matches on `unruled` rather than on the absence of a
+//: ruling: a row with one quote left IS work, and a filter keyed on
+//: `!g.ruling` would put it beside rows nobody has touched and call them the
+//: same thing.
+//:
+//: Each filter is a predicate over a group, so the count on a chip and the
+//: rows behind it cannot disagree - which they would the moment one was a
+//: server number and the other a client filter.
+const FILTERS = [
+  { key: 'all', label: 'all', match: () => true,
+    why: 'every section in this tab, ruled or not' },
+  { key: 'awaiting', label: 'awaiting', match: (g) => g.unruled > 0,
+    why: 'at least one quote nobody has ruled on — this is the work' },
+  { key: 'adopted', label: 'adopted', match: (g) => g.ruling === 'adopted',
+    why: 'reviewed and kept as is' },
+  { key: 'declined', label: 'declined', match: (g) => g.ruling === 'declined',
+    why: 'taken off the board; the rows and their evidence are kept' },
+  { key: 'merged', label: 'merged', match: (g) => g.ruling === 'merged',
+    why: 'folded into another slug, which the badge names' },
+]
+
 export default function BoardReview() {
   const [state, setState] = useState({ data: null, err: null, unreadable: null })
   const [busy, setBusy] = useState(null)
@@ -62,6 +87,13 @@ export default function BoardReview() {
   // that is not knowable before the fetch. Picking one here would open an empty
   // tab on a board that has discovered no `best_for` yet.
   const [openSection, setOpenSection] = useState(null)
+  // WHICH ONE ROW IS OPEN, as `section:slug`. One at a time: the list is what
+  // a reviewer scans, and two open bodies push the rest off screen again -
+  // which is the crowding this replaced.
+  const [openSlug, setOpenSlug] = useState(null)
+  // STARTS AT `all`, because a panel that opens already filtered hides rows
+  // nobody asked to hide. The counts on the chips say where the work is.
+  const [statusFilter, setStatusFilter] = useState('all')
 
   const togglePicked = (key, id) =>
     setPicked((p) => {
@@ -201,8 +233,34 @@ export default function BoardReview() {
           </div>
         )}
 
-        {sections.filter(({ sec }) => sec === active).map(({ sec, inSection, unruled }) => (
+        {sections.filter(({ sec }) => sec === active).map(({ sec, inSection, unruled }) => {
+          // ── THE LIST, OR ONE SECTION'S PAGE. NEVER BOTH ─────────────────
+          //
+          // Opening a section REPLACES the list rather than expanding inside
+          // it. Expanding in place was the first attempt and it keeps the
+          // crowding it was meant to remove: the body is five quotes, four
+          // controls and a receipt fold, so the rows below it are pushed off
+          // screen anyway and the reader has lost the list without being
+          // given a page.
+          //
+          // A page can also say what it is FOR at the top - which model's
+          // evidence, how much is left - where a row expanding in a list has
+          // no room for a heading.
+          const openGroup = inSection.find((x) => `${x.section}:${x.slug}` === openSlug)
+          return (
             <div key={sec} className="stack stack-3" role="tabpanel">
+              {/* THE WAY BACK IS THE FIRST THING ON THE PAGE, because a view
+                  that replaced another with no visible return is a trap. It
+                  names the count it is returning to, so the click is a known
+                  quantity. */}
+              {openGroup && (
+                <button type="button" className="linkish" style={{ alignSelf: 'flex-start' }}
+                        onClick={() => setOpenSlug(null)}>
+                  ← all {inSection.length} section{inSection.length === 1 ? '' : 's'} under{' '}
+                  {(SECTION_LABEL[sec] || sec).toLowerCase()}
+                </button>
+              )}
+              {!openGroup && (
               <p className="dim" style={{ fontSize: 11, margin: 0 }}>
                 {/* ⚠ RULE 7. The figure travels with its denominator: "4 awaiting
                     a ruling" is a different fact in a section of 5 than in one
@@ -213,27 +271,94 @@ export default function BoardReview() {
                   ? ` · ${unruled} of ${inSection.length} awaiting a ruling`
                   : ' · all ruled'}
               </p>
-        {inSection.map((g) => {
+              )}
+        {/* ── the filter row ──────────────────────────────────────────
+            A count of zero still renders its chip, disabled. A filter that
+            appears and disappears as rulings land is one nobody can learn,
+            and `declined 0` is a fact worth reading. */}
+        {!openGroup && (
+        <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+          {FILTERS.map((f) => {
+            const n = inSection.filter((x) => f.match(x)).length
+            return (
+              <button
+                key={f.key}
+                type="button"
+                aria-pressed={statusFilter === f.key}
+                disabled={n === 0 && f.key !== 'all'}
+                className={`chip${statusFilter === f.key ? ' chip-on' : ''}`}
+                onClick={() => setStatusFilter(f.key)}
+                title={f.why}
+              >
+                {f.label}
+                <span className="x">{n}</span>
+              </button>
+            )
+          })}
+        </div>
+        )}
+
+        {/* RULE 4: A FILTER HIDING EVERYTHING SAYS SO. An empty list under an
+            active filter and an empty board look identical otherwise. */}
+        {!openGroup
+          && inSection.filter((g) => FILTERS.find((f) => f.key === statusFilter).match(g)).length === 0 && (
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+            Nothing in <strong>{SECTION_LABEL[sec] || sec}</strong> is{' '}
+            <strong>{statusFilter}</strong>. That is this filter hiding rows, not an
+            empty board — there {inSection.length === 1 ? 'is' : 'are'} {inSection.length}{' '}
+            in total.
+          </p>
+        )}
+
+        {(openGroup
+          ? [openGroup]
+          : inSection.filter((g) => FILTERS.find((f) => f.key === statusFilter).match(g))
+        ).map((g) => {
           const key = `${g.section}:${g.slug}`
           const ruled = Boolean(g.ruling)
             // The ticked ids for this group, as an array the api client can send.
             const chosen = [...(picked[key] || EMPTY)]
+          const open = openSlug === key
           return (
-            <div key={key} className="stack stack-1"
-                 style={{ opacity: g.ruling === 'declined' ? 0.55 : 1 }}>
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
-                <strong style={{ fontSize: 'var(--fs-sm)' }}>{g.name || g.slug}</strong>
-                <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{g.slug}</span>
-                <span className="label">
+            <div key={key} className="axis"
+                 style={{ opacity: g.ruling === 'declined' && !open ? 0.55 : 1 }}>
+              {/* ── ONE LINE PER SECTION, OPENED ON CLICK ─────────────────
+                  This was every group expanded, so a tab with thirty slugs was
+                  thirty definitions and thirty fold headers before you reached
+                  the one you came for. The panel exists to catch DUPLICATES,
+                  and two names being compared have to be on screen together -
+                  which they never were.
+
+                  A REAL BUTTON, not a div with an onClick: tabbable, space and
+                  enter both work, and `aria-expanded` is what tells a screen
+                  reader the body below belongs to this row. */}
+              <button
+                type="button"
+                className="axis-row"
+                aria-expanded={open}
+                onClick={() => setOpenSlug(open ? null : key)}
+              >
+                <span className="axis-name">{g.name || g.slug}</span>
+                <span className="mono axis-slug">{g.slug}</span>
+                <span className="axis-counts">
                   {g.documents} document{g.documents === 1 ? '' : 's'} · {g.models} model
                   {g.models === 1 ? '' : 's'}
+                </span>
+                {/* ⚠ RULE 7 ON THE LINE ITSELF. "5 quotes" says nothing about
+                    how many are LEFT, which is what decides whether to open
+                    this row. The queue is what remains, and it shortens. */}
+                <span className="axis-left">
+                  {g.unruled > 0 ? `${g.unruled} to rule` : 'all ruled'}
                 </span>
                 {g.ruling && (
                   <Badge tone={g.ruling === 'declined' ? 'fail' : 'pass'}>
                     {g.ruling}{g.ruling_target ? ` → ${g.ruling_target}` : ''}
                   </Badge>
                 )}
-              </div>
+              </button>
+
+              {open && (
+                <div className="axis-body stack stack-1">
 
               {/* Labelled for the same reason as ModelEvidence.jsx — see the
                   note there. This panel is worse if anything: the definition
@@ -277,10 +402,68 @@ export default function BoardReview() {
                   </span>
                 </summary>
                 <div className="disc-body stack stack-1">
-              {/* The quotes ARE the evidence being ruled on, so they are shown
-                  rather than linked — a decision made without reading them is
-                  the one this panel exists to prevent. */}
-              {(g.quotes || []).map((q) => (
+              {/* ── THE QUOTES, GROUPED BY THE MODEL THEY ARE ABOUT ──────
+                  A ruling is a judgement about whether a model is fairly
+                  described, and the quotes arrived interleaved - four models
+                  in five lines, with only an `mv_6d0dcdfbe2d7fa18` to tell
+                  them apart, which is an internal key in the place a model
+                  name belongs (#278).
+
+                  Grouped, a reviewer reads one model's evidence together and
+                  rules on it together. `select all` per model is the action
+                  that was missing: ticking four boxes one at a time to
+                  decline one model's quotes is the friction that makes people
+                  rule the whole slug instead, which is the blunt instrument
+                  #279 measured - six of twenty-one slugs held broken AND
+                  sound quotes.
+
+                  The quotes ARE the evidence, so they are shown rather than
+                  linked: a decision made without reading them is the one this
+                  panel exists to prevent. */}
+              {byModel(g.quotes).map(([label, { named, quotes: qs }]) => {
+                const ids = qs.map((q) => q.id)
+                const allTicked = ids.every((id) => (picked[key] || EMPTY).has(id))
+                return (
+                  <div key={label} className="qmodel">
+                    <div className="qmodel-head">
+                      <span className={`qmodel-name${named ? '' : ' mono'}`}>{label}</span>
+                      {/* ⚠ RULE 12: THE FALLBACK SAYS IT IS ONE. `label` is
+                          `model_label || model_version_id`, so a payload
+                          without the field renders `mv_9a8f4a62b182ff64` as
+                          though that were the model's name - which reads as a
+                          registry problem when it is a payload that predates
+                          the field. Measured 2026-09-21: 0 of 719 review
+                          quotes fail to resolve server-side, so an id here
+                          means the response is older than the column, not
+                          that the model is unknown. */}
+                      {!named && (
+                        <span className="label" title="This response carries no model names. It predates the field, so the raw id is being shown instead.">
+                          id only — no name in this response
+                        </span>
+                      )}
+                      <span className="label">
+                        {qs.length} quote{qs.length === 1 ? '' : 's'}
+                      </span>
+                      {/* TICKS THIS MODEL'S QUOTES AND NOTHING ELSE, so the
+                          buttons below - which already act on the selection -
+                          become per-model rulings with no new endpoint and no
+                          second code path to keep in step. */}
+                      <button
+                        type="button"
+                        className="linkish"
+                        onClick={() => setPicked((prev) => {
+                          const next = new Set(prev[key] || [])
+                          for (const id of ids) {
+                            if (allTicked) next.delete(id)
+                            else next.add(id)
+                          }
+                          return { ...prev, [key]: next }
+                        })}
+                      >
+                        {allTicked ? 'clear' : `select all ${qs.length}`}
+                      </button>
+                    </div>
+                    {qs.map((q) => (
                 <label key={q.id} className="row"
                        style={{ gap: 8, alignItems: 'flex-start', cursor: 'pointer',
                                 opacity: q.ruling === 'declined' ? 0.5 : 1 }}>
@@ -305,7 +488,10 @@ export default function BoardReview() {
                     <Badge tone={q.ruling === 'declined' ? 'fail' : 'pass'}>{q.ruling}</Badge>
                   )}
                 </label>
-              ))}
+                    ))}
+                  </div>
+                )
+              })}
               {/* THE LIST IS CAPPED AT FIVE AND THE SECTION CAN HOLD MORE, so a
                   reviewer pressing "decline all 15" would be ruling on ten quotes
                   they were never shown. Naming the gap is the difference between a
@@ -346,8 +532,22 @@ export default function BoardReview() {
                           <Badge tone={q.ruling === 'declined' ? 'fail' : 'pass'}>
                             {q.ruling}
                           </Badge>
-                          <span className="dim" style={{ fontSize: 11 }}>
-                            {q.model_version_id || 'no model recorded'}
+                          {/* ⚠ THE NAME, NOT THE ID. This receipt printed
+                              `q.model_version_id` directly and was the last
+                              place on the panel still showing
+                              `mv_9a8f4a62b182ff64` where a model name
+                              belongs (#278) - the quote list above it was
+                              fixed and this was not, which is exactly how a
+                              second instance of one defect survives a fix for
+                              the first.
+
+                              Falls back to the id rather than to nothing: an
+                              id nobody can resolve still names the row to go
+                              and look at. Measured 2026-09-21, 0 of 719
+                              review quotes need that fallback. */}
+                          <span className={`dim${q.model_label ? '' : ' mono'}`}
+                                style={{ fontSize: 11 }}>
+                            {q.model_label || q.model_version_id || 'no model recorded'}
                           </span>
                         </div>
                         <blockquote style={{ margin: 0, fontSize: 'var(--fs-xs)',
@@ -389,13 +589,47 @@ export default function BoardReview() {
                         ? `decline ${chosen.length} quote${chosen.length === 1 ? '' : 's'}`
                         : `decline all ${g.entries}`}
                     </button>
+                    {/* ⚠ THE TARGETS ARE OFFERED, NOT REMEMBERED.
+                        A merge target that is not already a slug in this
+                        section creates an axis rather than folding into one,
+                        and the only way to know which was to have the list in
+                        your head. `aime` and `aime-2026` were two pages for
+                        one benchmark and the fix needed the exact spelling of
+                        the other one, typed from memory, with no way to check.
+
+                        SCOPED TO THIS SECTION. A metric may not be merged into
+                        a capability, and offering one would propose a move the
+                        backend refuses. `g.slug` itself is excluded: folding a
+                        slug into itself is not a merge. */}
                     <input
                       className="input"
-                      style={{ maxWidth: 200, fontSize: 'var(--fs-xs)' }}
+                      list={`mergeopts-${key}`}
+                      style={{ maxWidth: 220, fontSize: 'var(--fs-xs)' }}
                       placeholder="merge into slug…"
                       value={mergeInto[key] || ''}
                       onChange={(e) => setMergeInto((m) => ({ ...m, [key]: e.target.value }))}
                     />
+                    <datalist id={`mergeopts-${key}`}>
+                      {groups
+                        .filter((o) => o.section === g.section && o.slug !== g.slug)
+                        .map((o) => (
+                          <option key={o.slug} value={o.slug}>
+                            {o.name && o.name !== o.slug ? `${o.name} · ${o.entries}` : `${o.entries} entries`}
+                          </option>
+                        ))}
+                    </datalist>
+                    {/* AN UNKNOWN TARGET IS SAID BEFORE THE CLICK, not refused
+                        after it. Typing a slug that does not exist is a real
+                        thing to want - the page cannot know a new axis is
+                        wrong - so this states what will happen rather than
+                        blocking it. */}
+                    {(mergeInto[key] || '').trim()
+                      && !groups.some((o) => o.section === g.section
+                        && o.slug === (mergeInto[key] || '').trim()) && (
+                      <span className="mono" style={{ fontSize: 11, color: 'var(--warn)' }}>
+                        no such slug in {g.section} — this creates one
+                      </span>
+                    )}
                     {/* MERGE FOLLOWS THE SELECTION TOO. Folding a whole slug
                         into another is one judgement about a word; moving a
                         single quote is "this was filed under the wrong
@@ -431,12 +665,36 @@ export default function BoardReview() {
               </div>
                 </div>
               </details>
+                </div>
+              )}
             </div>
           )
         })}
             </div>
-        ))}
+          )
+        })}
       </div>
     </section>
   )
+}
+
+/** The quotes for one section, grouped by the model each is about.
+ *
+ * ORDER IS FIRST APPEARANCE, not count and not alphabetical. The list arrives
+ * oldest-unruled-first — that ordering is the queue, and it is what makes
+ * ruling these five reveal the next five — so re-sorting the models would
+ * scramble the only thing about the order that is load-bearing.
+ *
+ * A quote whose model did not resolve keeps its raw id as the heading. An id
+ * nobody can resolve is still better than a blank where a model name belongs,
+ * and it names the row to go and look at.
+ */
+function byModel(quotes) {
+  const out = new Map()
+  for (const q of quotes || []) {
+    const label = q.model_label || q.model_version_id || 'unattributed'
+    if (!out.has(label)) out.set(label, { named: Boolean(q.model_label), quotes: [] })
+    out.get(label).quotes.push(q)
+  }
+  return [...out.entries()]
 }

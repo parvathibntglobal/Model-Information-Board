@@ -59,6 +59,16 @@ def _strip_css_comments(text: str) -> str:
 #:
 #: This is `tests/test_cli_write_gate.py`'s `READ_ONLY` idiom: an explicit set,
 #: so retiring one is a visible diff and adding one is a failure.
+#: ⚠ EMPTY, AND IT HELD SEVEN. Found when a reader asked why a panel looked
+#: crowded and the file turned out to be setting
+#: `borderLeft: '2px solid var(--line)'` - a token nothing defines, so the
+#: declaration was dropped and the border never drew.
+#:
+#: All seven are fixed. Kept as an empty set rather than deleted, because the
+#: check below is what makes an eighth impossible to add quietly, and a reader
+#: wondering whether this was ever a problem should find the answer here.
+KNOWN_UNDEFINED_INLINE: set[str] = set()
+
 KNOWN_UNDEFINED = {
     "app.css": {"--adm-nav", "--line", "--r2", "--t-fast", "--text-1"},
 }
@@ -94,6 +104,40 @@ class TestEveryColourNamesATokenThatExists:
             f"through to its literal fallback: {missing}. On a dark board a "
             "light-theme fallback is invisible text - which is how `What was "
             "measured` shipped unreadable."
+        )
+
+    def test_no_inline_style_uses_an_undefined_custom_property(self):
+        """⚠ THE GAP THAT LET SEVEN THROUGH. The check above reads
+        stylesheets. Components set colours inline too - `style={{ color:
+        'var(--text-1)' }}` - and nothing looked there, so `--text-1` reached
+        nine files, `--line` three and `--r2` three. An invalid property is
+        dropped, so text meant to be bright simply stays dim: plausible, not
+        broken, and invisible to the linter and the build.
+
+        Recorded rather than swept, because each needs a look at what the rule
+        was for. `--text-1` almost certainly wanted `--text` - the scale is
+        `--text`, `--text-2`, `--text-3` and somebody read it as 1/2/3 - but
+        "almost certainly" is the guess this repository has just written down
+        that it does not make in a stylesheet.
+        """
+        src = ROOT / "web" / "src"
+        defined: set[str] = set()
+        for f in sorted(STYLES.glob("*.css")):
+            defined |= set(re.findall(
+                r"(--[a-z0-9-]+)\s*:", _strip_css_comments(f.read_text(encoding="utf-8"))
+            ))
+
+        found: dict[str, set[str]] = {}
+        for f in sorted([*src.rglob("*.jsx"), *src.rglob("*.js")]):
+            for used in set(re.findall(r"var\(\s*(--[a-z0-9-]+)", f.read_text(encoding="utf-8"))):
+                if used not in defined:
+                    found.setdefault(used, set()).add(f.relative_to(src).as_posix())
+
+        new = {k: sorted(v) for k, v in found.items() if k not in KNOWN_UNDEFINED_INLINE}
+        assert not new, (
+            "these inline styles name a custom property nothing defines, so "
+            f"the declaration is dropped and the element keeps what it "
+            f"inherited: {new}"
         )
 
     def test_the_recorded_debt_is_still_real(self):
