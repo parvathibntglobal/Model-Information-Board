@@ -476,3 +476,47 @@ class TestStripTemplateBlock:
             html, url="https://example.com/a", template_block="Recent articles"
         ) or ""
         assert len(with_rule) <= len(without)
+
+
+class TestAZeroDateIsNotADate:
+    """`lilianweng.github.io` crashed the 2026-09-21 harvest on its 53rd entry.
+
+    Hugo dates a page with no date of its own `Mon, 01 Jan 0001 00:00:00
+    +0000`. That is `timegm` -> -62135596800, and on Windows/CPython 3.11
+    `datetime.fromtimestamp` raises OSError [Errno 22] for it, which was not in
+    `_timestamp_or_none`'s caught tuple. One undated FAQ page took down a
+    seventeen-feed harvest seven feeds in.
+
+    ⚠ THIS TEST MAY PASS ON LINUX FOR THE WRONG REASON, and that is the point
+      of writing it rather than trusting the fix. The exception TYPE is
+      platform-dependent; on the CI runner this input may raise ValueError,
+      which the original tuple already caught. So a green CI here does not
+      establish that the Windows path is fixed - it establishes that the
+      FUNCTION'S CONTRACT holds on both, which is the thing worth pinning:
+      an unrepresentable date is None, on every platform, whatever it throws.
+    """
+
+    def test_hugos_zero_date_becomes_none_rather_than_raising(self):
+        import time
+
+        from collect.adapters.blog.parse import _timestamp_or_none
+
+        assert _timestamp_or_none(time.struct_time((1, 1, 1, 0, 0, 0, 0, 1, 0))) is None
+
+    def test_a_real_date_still_parses(self):
+        """The guard must not swallow the normal case."""
+        import time
+
+        from collect.adapters.blog.parse import _timestamp_or_none
+
+        parsed = _timestamp_or_none(time.struct_time((2026, 9, 21, 10, 30, 0, 0, 264, 0)))
+        assert parsed == datetime(2026, 9, 21, 10, 30, tzinfo=UTC)
+
+    def test_an_absent_date_and_an_unrepresentable_one_agree(self):
+        """Rule 6: both are missing, and neither becomes 1970 or today."""
+        import time
+
+        from collect.adapters.blog.parse import _timestamp_or_none
+
+        assert _timestamp_or_none(None) is None
+        assert _timestamp_or_none(time.struct_time((1, 1, 1, 0, 0, 0, 0, 1, 0))) is None

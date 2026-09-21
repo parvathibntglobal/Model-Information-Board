@@ -165,12 +165,33 @@ def _timestamp_or_none(struct_time: Any) -> datetime | None:
     author last edited — and reading it as the publication date would misdate
     every corrected post, which matters because FR-4 resolves aliases against
     the date a claim was made.
+
+    ⚠ `OSError` IS IN THE TUPLE AND IT IS NOT DEFENSIVE PADDING. It was
+    missing, and `lilianweng.github.io` crashed the whole harvest on its 53rd
+    entry - the feed's `/faq/` page, which Hugo dates `Mon, 01 Jan 0001
+    00:00:00 +0000` because the page carries no date at all. That is
+    `timegm` -> -62135596800, and on Windows/CPython 3.11
+    `datetime.fromtimestamp` raises **OSError [Errno 22]** for it rather than
+    the `ValueError` the original tuple expected.
+
+    Two things make it worth this much comment. A ZERO DATE IS HUGO'S NORMAL
+    OUTPUT for an undated page, so any Hugo feed with one reaches here - it is
+    a shape, not a corrupt feed. And the exception TYPE IS PLATFORM-DEPENDENT:
+    the tuple as written may well be sufficient on Linux, where CI runs, so a
+    green suite says nothing about whether this line holds on the machine the
+    harvest is actually run from. That is the same class as the ruff and
+    pytest scoping entries in CLAUDE.md - a check answering a narrower
+    question than the one being asked of it.
+
+    An unrepresentable date returns None, the same as an absent one, and the
+    caller keeps `published_at` NULL. That is rule 6 holding: the date is
+    missing and stays missing, rather than becoming 1970 or today.
     """
     if not struct_time:
         return None
     try:
         return datetime.fromtimestamp(calendar.timegm(struct_time), tz=UTC)
-    except (TypeError, ValueError, OverflowError):
+    except (TypeError, ValueError, OverflowError, OSError):
         return None
 
 
