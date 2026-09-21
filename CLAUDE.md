@@ -444,14 +444,30 @@ Load-bearing during the build and poisonous afterwards.
 |---|---|---|
 | `contract/seed_models.yaml` | 10 hardcoded models so work starts without the registry poller | When OpenRouter polling lands |
 
-**The shared database is already fully polled: 342 `model_version` rows,
-`provenance='polled'`, ZERO `seed` (verified 2026-08-28).** So on the one
-database the poisoning risk matters for, it is absent - polling has landed
-there. The file has NOT been removed, because code still references it (the
-seed loader, and `scripts/fetch_model.py`'s alias fallback), so a fresh or
-local DB can still be seeded. A fixture nobody loaded looks identical from the
-file to a fixture nobody removed, which is why this row now carries the count
-rather than only the trigger.
+**The shared database is 344 `model_version` rows at `provenance='polled'`
+and FOUR at `provenance='seed'`, with 65 claims and 11 cells pointing at those
+four (measured 2026-09-21, #382).** The file has NOT been removed, because code
+still references it (the seed loader, and `scripts/fetch_model.py`'s alias
+fallback), so a fresh or local DB can still be seeded. A fixture nobody loaded
+looks identical from the file to a fixture nobody removed, which is why this
+row carries the count rather than only the trigger.
+
+⚠ **THE FOUR ARE NOT FIXTURES, AND THAT IS THE DEFECT.** This line read "ZERO
+`seed` (verified 2026-08-28)" until 2026-09-21, and went stale on 09-15 and
+again on 09-17 when Recraft V4.1 Pro, ElevenLabs v3, Qwen3.5 Omni Flash and
+Gemini 3.8 Flash were seated by `3e1c343` and `dc45b47`. They are real models
+OpenRouter does not list and never will, hand-entered so the board can link
+them; every one of the 65 claims traces to a harvested document with a real
+quote. Nothing about them is a build fixture.
+
+`provenance` allows only `seed|polled`, so there is no value for "hand-entered
+and never going to be polled" - the third state gets labelled with the word
+that means fixture, and `assert_no_fixtures` then refuses it correctly by its
+own definition and wrongly by intent. Three contract files now feed that one
+value (`seed_models.yaml`, `unpolled_models.yaml`, `awaiting_poll_models.yaml`),
+each added to dodge a load refusal rather than to mean something different.
+**`unpolled` is the agreed third value (#382); until it exists, do not read
+`provenance='seed'` as "this row is a fixture".**
 
 `fixtures/hand_cells.yaml` was listed here until the Ask box was parked and the
 file deleted. The section documenting our guard against stale fixtures had gone

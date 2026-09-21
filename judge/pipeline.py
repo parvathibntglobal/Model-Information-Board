@@ -493,6 +493,16 @@ class PipelineResult:
     #: sections, so the two numbers are legitimately different and a
     #: reader comparing them should see why.
     board_entries_stored: int = 0
+    #: Whether this thread's metric figures could QUOTE their own axis and
+    #: subject. Measured and reported, never enforced - the question it answers
+    #: is whether the extractor can be made to copy those two the way it copies
+    #: the figure, and a gate built before that is known would be rule 8's
+    #: "unmeasured check shipped as a gate". See `quoted_support`.
+    metric_support: dict[str, int] = field(default_factory=dict)
+    #: A few of the figures behind `metric_support`, worst first, so the counts
+    #: can be checked rather than believed. Telemetry only - it reaches the run's
+    #: stage record and no board table.
+    metric_examples: list[dict] = field(default_factory=list)
     cells: list[CellOutcome] = field(default_factory=list)
     extractor_disagreements: list[str] = field(default_factory=list)
     #: Claims whose subject came from outside their own quote. DERIVED in code,
@@ -949,6 +959,14 @@ class Pipeline:
                     "unit": _entry.unit,
                     "value_verbatim": _entry.value_verbatim,
                     "basis": _entry.basis,
+                    # CARRIED, NOT STORED. `board_entry` has no column for
+                    # either yet, and adding one is a shared-schema migration
+                    # that has not been agreed (#370). They ride this far so the
+                    # run can MEASURE whether the extractor will quote its axis
+                    # and its subject at all - which is the question that decides
+                    # whether the column is worth adding.
+                    "axis_verbatim": _entry.axis_verbatim,
+                    "subject_verbatim": _entry.subject_verbatim,
                     "model_version_id": model_version_id,
                     "document_id": quote.document_id,
                     "claim_id": _claim_id,
@@ -969,11 +987,31 @@ class Pipeline:
                 searched_model_version_id=self._searched_model_version_id,
             )
             result.board_entries_stored = outcome["stored"]
+            # ⚠ RULE 7. Counts out of the metrics in THIS batch. A run is the
+            # only place the denominator is known, so the denominator is printed
+            # beside the counts rather than a percentage that outlives it.
+            from judge.store.board_entries import support_samples, support_tally
+
+            result.metric_support = support_tally(board_rows)
+            # THE FIGURES BEHIND THE COUNTS. Nothing new is stored this round,
+            # so without these the counts are the only evidence - and a count
+            # cannot be checked against itself.
+            result.metric_examples = support_samples(board_rows)
             log.info(
                 "thread %s: %d board entr(ies) proposed, %d stored, %d skipped",
                 thread.thread_context_id, outcome["proposed"],
                 outcome["stored"], outcome["skipped_unverified"],
             )
+            if result.metric_support["metrics"]:
+                t = result.metric_support
+                log.info(
+                    "thread %s: %d metric(s) - axis %d quoted / %d absent / %d "
+                    "unsupported, subject %d quoted / %d absent / %d unsupported",
+                    thread.thread_context_id, t["metrics"],
+                    t["axis_quoted"], t["axis_absent"], t["axis_unsupported"],
+                    t["subject_quoted"], t["subject_absent"],
+                    t["subject_unsupported"],
+                )
 
         if result.stored_claim_ids and rebuild_cells:
             # Whole-table, for the reason in cells.py: a cell is a view of the

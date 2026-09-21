@@ -18,7 +18,7 @@
 // made-up condition would be worse than a missing one: it reads as a finding.
 // When an editor writes them, they get a home; until then the page shows what
 // the evidence actually says and no more.
-export const DB = { jobs: [], caps: [], mets: [], posts: [] }
+export const DB = { jobs: [], caps: [], mets: [], posts: [], metsWithheld: {} }
 
 /** Was the board read at all? Distinguishes "nothing found" from "never asked". */
 export let boardLoaded = false
@@ -282,10 +282,103 @@ function commonFields(item) {
  * Order is preserved: first appearance wins, so the table does not reshuffle
  * when a new quote arrives for a figure already on it.
  */
+// -- WHAT A FIGURE ACTUALLY MEASURES, TAKEN FROM ITS OWN QUOTE --------------
+//
+// THE PROBLEM THIS EXISTS FOR, IN ONE CELL. `cost-per-token` held BOTH of
+// these for Claude Fable 5.1, in one column, under one unit:
+//
+//     $0.25 / MTok   "Cache read price | $0.25 / MTok"
+//     $50   / MTok   "Official output price | $50 / MTok"
+//
+// They do not disagree. They are answers to different questions, and only the
+// quote said which - so a reader met the same model name twice with a 200x
+// spread and no way to tell why without opening both sources.
+//
+// COPIED, NEVER INFERRED, AND `null` IS A CORRECT ANSWER. The label comes from
+// words that are really in the quote. Measured over the 269 figures rendering
+// on 2026-09-21: `cost-per-token` says which side for 44 of 113,
+// `time-to-first-token` for 1 of 15, `tokens-per-second` for 1 of 18. So the
+// common case is that the evidence does not say, and the page has to be able
+// to say THAT rather than pick the likely one - filing an unmarked price as
+// "input" because most prices are input is exactly the substitution that put a
+// Terminal-bench figure on the SWE-bench page (#368, rule 6).
+//
+// Ordered, and the order matters: "cache read" contains "read", and an
+// input/output price pair mentions both words in one sentence. First match
+// wins, most specific first.
+const SUBAXIS = [
+  ['cache write', /cache\s*writ|write\s*cach/],
+  ['cache read', /cache\s*read|read\s*cach|cached\s*input/],
+  ['output', /\boutput\b|\bcompletion\b|\bgenerated\b/],
+  ['input', /\binput\b|\bprompt\b|\buncached\b/],
+  ['per request or task', /\bblended\b|per\s*request|\bper\s*task\b/],
+]
+
+export function subAxisOf(quote) {
+  const q = (quote || '').toLowerCase()
+  if (!q) return null
+  const hit = SUBAXIS.find(([, re]) => re.test(q))
+  return hit ? hit[0] : null
+}
+
+// -- ONE MEASUREMENT, HOWEVER IT WAS SPELLED ------------------------------
+//
+// WHAT THE PAGE SHOWED. DeepSeek V4 Flash, cost per token, four rows:
+//
+//     output   $0.25/M                            10 reports
+//     output   $0.25 per million output tokens     3 reports
+//     output   $0.25/M output tokens               1 report
+//     output   $0.25                               stated and reported
+//
+// One price, one unit, one axis, four rows - because the group key was the
+// VERBATIM STRING, so a writer's choice of abbreviation split a figure that
+// fifteen reports agree on. It read as four findings and buried the
+// corroboration, which is the same defect `groupFigures` was already built
+// to fix one level down.
+//
+// EXACTLY ONE MAGNITUDE, OR NOTHING. The denominator words are removed
+// first, then every remaining number is counted. Two numbers means the
+// string is not a single figure - `$10/1M input and $50/1M output`,
+// `$0.66 off-peak or $1.32 at peak` - and those keep their verbatim key and
+// never merge. Refusing to canonicalise is always available and is what
+// makes this safe.
+//
+// MEASURED BEFORE SHIPPING, over every figure the board publishes: 220
+// groups become 204, sixteen rows removed, and every one of the sixteen was
+// read by eye. They are the same number written two or three ways -
+// `$10 / MTok` with `$10`, `$15 per million` with `$15.00/M`,
+// `60 tokens per second` with `60 tokens/sec`. No merge changed a value.
+//
+// THE UNIT STAYS IN THE KEY, so `8.7c per task` never meets `$8.70`, and
+// nothing is averaged: an exact agreement collapses and a disagreement
+// stays two rows, exactly as before.
+const FIGURE_DENOMINATORS = [
+  /per\s*(?:one\s*)?(?:1\s*)?million\s+(?:input\s+|output\s+|cached\s+)?tokens?/g,
+  /per\s*(?:1\s*)?m(?:illion)?\s*tok(?:ens?)?/g,
+  /\/\s*1?\s*m(?:tok|illion)?\b/g,
+  /per\s*1?m\b/g,
+  /per\s*token/g,
+  /\bmtok\b/g,
+  /\b1m\b/g,
+]
+
+export function canonicalFigure(value) {
+  let v = String(value || '').toLowerCase()
+  for (const re of FIGURE_DENOMINATORS) v = v.replace(re, ' ')
+  const nums = v.match(/\d[\d,]*(?:\.\d+)?/g) || []
+  if (nums.length !== 1) return null
+  const n = Number(nums[0].replace(/,/g, ''))
+  return Number.isFinite(n) ? n : null
+}
+
 function groupFigures(m) {
   const byKey = new Map()
   for (const f of m.figures || []) {
     const model = modelName(f)
+    // THE KEY, SO THE DRILL-DOWN CAN FILTER ON IT. `model_key` is what
+    // the model rows are grouped on; a label is a display string and
+    // two spellings of one model share neither.
+    const modelKey = f.model_key || f.model_version_id || ''
     const unit = f.unit || m.unit || ''
     // THE KEY IS THE FIGURE, AND `basis` IS NOT IN IT.
     //
@@ -304,11 +397,24 @@ function groupFigures(m) {
     //   still contains the VALUE, so two different figures stay two rows and a
     //   disagreement stays visible. Only an exact agreement collapses, and the
     //   row then names both bases rather than picking one.
-    const key = [model, f.value, unit].join('\u001f')
+    // The canonical magnitude when the string yields exactly one, the raw
+    // text when it does not. `n:` and `v:` keep the two kinds of key from
+    // ever colliding.
+    const canon = canonicalFigure(f.value)
+    const figureKey = canon === null ? 'v:' + f.value : 'n:' + canon
+    const key = [modelKey || model, figureKey, unit].join('\u001f')
     if (!byKey.has(key)) {
-      byKey.set(key, { model, value: f.value, unit, bases: [], sources: [] })
+      byKey.set(key, { model, modelKey, value: f.value, unit,
+                       // EVERY WORDING, COUNTED. The row shows the one most
+                       // reports used and says how many others there were:
+                       // dropping them silently would hide that a figure was
+                       // written four ways, and that is the reader's evidence
+                       // that fifteen people agree rather than one saying it
+                       // four times.
+                       spellings: new Map(), bases: [], sources: [] })
     }
     const group = byKey.get(key)
+    group.spellings.set(f.value, (group.spellings.get(f.value) || 0) + 1)
     if (f.basis && !group.bases.includes(f.basis)) group.bases.push(f.basis)
     const id = f.document_id || ''
     // ONE ENTRY PER DOCUMENT, and it carries which basis it supports so the
@@ -317,8 +423,20 @@ function groupFigures(m) {
     const seen = group.sources.find((s) => s.id === id)
     if (seen) {
       if (f.basis && !seen.bases.includes(f.basis)) seen.bases.push(f.basis)
+      // First quote wins. An article stating one figure twice is one report
+      // (this file's own rule), and two wordings of one report would read as
+      // corroboration that is not there.
+      if (!seen.quote && f.quote) seen.quote = f.quote
     } else {
-      group.sources.push({ id, url: f.url || null, bases: f.basis ? [f.basis] : [] })
+      // THE QUOTE RIDES WITH ITS REPORT, not with the row. A row groups on the
+      // FIGURE, so two reports can state 38.8% in different words — and which
+      // words belong to which report is the whole of what makes a figure
+      // checkable. See views.js for why it is printed rather than hovered.
+      group.sources.push({
+        id, url: f.url || null, quote: f.quote || null,
+        subAxis: subAxisOf(f.quote),
+        bases: f.basis ? [f.basis] : [],
+      })
     }
   }
   // `basis` stays on the group for the table cell: one word when there is one,
@@ -330,10 +448,26 @@ function groupFigures(m) {
   // before the confirmation because that is the order the two happen in.
   const ORDER = ['stated', 'reported']
   const rank = (b) => { const i = ORDER.indexOf(b); return i === -1 ? ORDER.length : i }
-  return [...byKey.values()].map((g) => ({
-    ...g,
-    basis: [...g.bases].sort((a, b) => rank(a) - rank(b)).join(' · '),
-  }))
+  return [...byKey.values()].map((g) => {
+    // ONLY WHERE THE REPORTS AGREE. If two reports of one figure describe it
+    // differently - one says "output", the other says nothing - the group
+    // cannot claim either. A disagreement about WHAT WAS MEASURED is a
+    // finding, and resolving it by majority would bury it.
+    const named = [...new Set(g.sources.map((x) => x.subAxis).filter(Boolean))]
+    // SHOWN AS THE TEXT WROTE IT - and where several texts wrote it
+    // differently, as the most of them wrote it. Never reformatted into a
+    // house style, because the page's own subtitle promises the figure
+    // verbatim and a tidied string is not one.
+    const spelled = [...g.spellings.entries()].sort((a, b) => b[1] - a[1]);
+    return {
+      ...g,
+      value: spelled.length ? spelled[0][0] : g.value,
+      otherSpellings: Math.max(0, spelled.length - 1),
+      subAxis: named.length === 1 ? named[0] : null,
+      subAxisDisputed: named.length > 1,
+      basis: [...g.bases].sort((a, b) => rank(a) - rank(b)).join(' · '),
+    }
+  })
 }
 
 /** Populate `DB` from the `/board` payload. Called once, before the views render. */
@@ -404,9 +538,34 @@ export function setBoardData(payload) {
       // cell that had to carry an anchor would make the cells polymorphic and
       // put an un-escaped branch inside it. One controlled column instead.
       srcs: groups.map((g) => g.sources),
+      // -- THE MODEL LEVEL, WHICH THIS SECTION USED TO THROW AWAY ------------
+      //
+      // `commonFields` builds `rows` from `item.models` - ONE ROW PER MODEL -
+      // for every section, and this mapping then overwrote it with the figure
+      // table. That overwrite is why a metric page repeated a model name once
+      // per figure, and why metrics was the only section with no drill-down:
+      // `vJobModel` and `vCapModel` both partition `rows` by model, and there
+      // were no model rows left to partition.
+      //
+      // Measured 2026-09-21: 34 (slug, model) cells hold two or more DIFFERENT
+      // figures, the worst being 6 values over 19 rows. Every one of those
+      // read as the same model contradicting itself.
+      //
+      // `figs` is the figure table, kept whole; `mrows` is the model level,
+      // kept rather than discarded. Neither overwrites the other, and the
+      // figure table is still what the leaf page renders - filtered to one
+      // model instead of holding all of them at once.
+      mrows: base.rows || [],
+      groups,
     }
   })
 
+  // RULE 4. The metrics tab renders fewer rows than the database holds,
+  // because a figure that cannot support itself is held back. Without this the
+  // page makes the opposite claim - that nobody measured these models - and
+  // the two look identical to a reader. Counted by reason, because a figure
+  // with no quantity sends you to the prompt and a mislabelled axis does not.
+  DB.metsWithheld = d.metrics_withheld || {}
   DB.posts = d.posts || []
   boardLoaded = true
   return DB

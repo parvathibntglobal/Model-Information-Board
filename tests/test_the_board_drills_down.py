@@ -37,15 +37,31 @@ reading as one we FOUND, which is rule 4. 19 negative best-for rows across 12
 do not - those four models are named nowhere on the best-for surface, which
 this change does not fix and does not hide.
 
-METRICS IS NOT PART OF THIS. Its page is a figure table rather than a model
-list, and the last class here checks that the code producing it did not move.
+METRICS IS NOW PART OF THIS, AND IT WAS THE SECTION THAT NEEDED IT MOST.
+This file used to end: *"METRICS IS NOT PART OF THIS. Its page is a figure
+table rather than a model list."* That was true and it was the defect. On
+2026-09-21 a reader met this, on one axis, in one column, under one unit:
+
+    Claude Fable 5.1   $0.25 / MTok   stated   USD per 1M tokens
+    Claude Fable 5.1   $50   / MTok   stated   USD per 1M tokens
+
+They do not disagree. One is a cache read price and the other an output price,
+and only the quote said which. Measured the same day over the 269 published
+figures, **34 (axis, model) cells hold two or more DIFFERENT figures** like
+that, the worst being six values over nineteen rows.
+
+The cause was one line in `db.js`: `commonFields` builds `rows` from
+`item.models` for every section, and `DB.mets` overwrote it with the figure
+table - so metrics discarded the model level rather than merely not using it,
+which is why `vJobModel` and `vCapModel` had no `vMetModel` beside them.
+
+AND 62 OF 84 AXES HOLD EXACTLY ONE MODEL. A table is a claim that its rows are
+comparable; on three quarters of these pages there was nothing to compare.
 """
 
 from __future__ import annotations
 
 import pathlib
-
-import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 STORE = ROOT / "judge" / "store" / "board_entries.py"
@@ -119,9 +135,22 @@ class FakeConn:
 
 
 def row(section="capability", slug="reasoning", *, mv="mv_a", doc="d1",
-        author="au_1", polarity="positive", quote="q", value=None,
+        author="au_1", polarity="positive", quote=None, value=None,
         registry="mv_a", label="Model A"):
-    """One `board_entry` row in the column order `board_sections` selects."""
+    """One `board_entry` row in the column order `board_sections` selects.
+
+    ⚠ A METRIC ROW'S DEFAULT QUOTE CONTAINS ITS FIGURE, and that is a fixture
+      correction rather than a convenience. The default used to be the literal
+      `"q"` for every row, so a metric fixture asserted things about a figure
+      whose quote did not contain it - a row the read path now withholds and
+      which `quote_verified` never described in the first place. A test whose
+      fixture cannot occur in the database proves nothing about the database.
+
+      Pass `quote=` explicitly to build the unsupported case on purpose; the
+      gate's own tests do exactly that.
+    """
+    if quote is None:
+        quote = f"measured {value} on this axis" if value else "q"
     return (section, slug, "Reasoning", "def", None, value, None,
             mv, doc, quote, polarity, "2026-09-18", "https://e.com/1", author,
             "vendor/model-a", label, registry)
@@ -663,37 +692,174 @@ class TestNothingIsLostOnTheWayDown:
         assert "if(!n) return '';" in js
 
 
-class TestMetricsDidNotMove:
-    """The three functions that make a metric page, unchanged from HEAD~.
+class TestTheMetricPathCarriesItsEvidence:
+    """⚠ THIS REPLACED `TestMetricsDidNotMove`, ON ITS AUTHOR'S INSTRUCTION.
 
-    Scoped to what actually renders that page rather than to the file: `db.js`
-    and `views.js` both changed, and a whole-file hash would only prove that.
+    That class pinned `vMet`, `mcard` and `groupFigures` byte-identical against
+    HEAD, to show that #369 and #371 had not disturbed the metric page while
+    changing the capability and best-for ones. It did that job. Grouping has now
+    changed on purpose (#368), so the pin had become a test that the defect
+    stays — and @anoojntglobal-sudo said in #370 to delete or rewrite it rather
+    than work around it.
+
+    ⚠ IT ALSO COULD NOT FAIL IN CI, WHICH IS WHY THIS DOES NOT COPY ITS METHOD.
+      It compared the working tree against `git show HEAD:…`, so it caught an
+      UNCOMMITTED edit and passed on every committed one — green in CI by
+      construction. Same shape as #357, flagged by its own author in the same
+      week. It caught this branch's edit locally, correctly, and would have said
+      nothing about it once pushed.
+
+    What replaces it is a property rather than a hash: a figure on the metric
+    page must reach the reader with the sentence it came from. That is what #368
+    is about — `43.5%` is indefensible alone and self-evidently wrong beside
+    "the hard biology set from 43.5% to 56.5%" — and unlike a byte comparison it
+    holds however the functions are rewritten, and fails wherever it runs.
     """
 
-    @pytest.mark.parametrize(
-        "path,start,end",
-        [
-            ("web/src/board/views.js", "function vMet(slug){", "function vBlogs()"),
-            ("web/src/board/views.js", "function mcard(x){", "/* ---------- views"),
-            ("web/src/board/db.js", "function groupFigures(m) {",
-             "/** Populate `DB` from the `/board` payload."),
-        ],
-    )
-    def test_the_metric_path_is_byte_identical(self, path, start, end):
-        import subprocess
+    def test_a_figure_reaches_the_page_with_its_quote(self):
+        """The backend selected the quote and dropped it before the payload, so
+        the page had a figure and no way to check it."""
+        py = (ROOT / "judge" / "store" / "board_entries.py").read_text(encoding="utf-8")
+        # A generous window rather than "to the next `)`": the block carries a
+        # comment explaining why the quote is there, and the first `)` in it
+        # belongs to that prose.
+        figures = py[py.index('bucket["figures"].append'):][:2000]
+        assert '"quote": quote' in figures, (
+            "the figure payload no longer carries its quote; a metric page "
+            "cannot be checked by a reader without it (#368)"
+        )
 
-        now = (ROOT / path).read_text(encoding="utf-8")
-        was = subprocess.run(
-            ["git", "show", f"HEAD:{path}"],
-            cwd=ROOT, capture_output=True, text=True, encoding="utf-8", check=True,
-        ).stdout
-        assert now[now.index(start):now.index(end)] == was[was.index(start):was.index(end)]
+    def test_the_grouping_keeps_the_quote_with_its_report(self):
+        """One row groups several reports of one figure, so the quote belongs to
+        the source rather than to the row — two reports can word it differently
+        and which words are whose is the checkable part."""
+        js = _db()
+        group = js[js.index("function groupFigures(m) {"):]
+        group = group[:group.index(chr(10) + "}")]
+        assert "quote: f.quote" in group
 
-    def test_the_metric_page_still_reads_its_own_row_shape(self):
-        # `commonFields` is shared, and `DB.mets` overwrites `rows` with the
-        # figure table. If that overwrite ever went away, the metric page would
-        # silently start rendering model rows.
+    def test_the_page_prints_the_quote_rather_than_hiding_it(self):
+        """⚠ NOT A `title` ATTRIBUTE. Invisible on a phone, absent to a screen
+        reader in most settings, and it requires knowing there is something to
+        hover. The board review prints its quotes for the same reason."""
+        js = (ROOT / "web" / "src" / "board" / "views.js").read_text(encoding="utf-8")
+        assert 'class="figq"' in js
+
+    def test_the_metric_page_keeps_both_the_figures_and_the_models(self):
+        """⚠ THIS COMMENT USED TO SAY THE OPPOSITE, and the code moved under it.
+
+        It read: *"`DB.mets` overwrites `rows` with the figure table. If that
+        overwrite ever went away, the metric page would silently start
+        rendering model rows."* Rendering model rows is now the point - the
+        overwrite is what discarded the level `vJobModel` and `vCapModel` both
+        have, and its absence is why a metric page repeated one model once per
+        figure. Measured 2026-09-21: 34 (axis, model) cells held two or more
+        DIFFERENT figures that way.
+
+        The figure table still exists and is still what the leaf renders. What
+        must not come back is the *discarding*: both levels are kept.
+        """
         js = _db()
         mets = js[js.index("DB.mets = (d.mets || []).map"):]
-        assert "rows: groups.map((g) => [" in mets
+        assert "rows: groups.map((g) => [" in mets, "the figure table is still built"
         assert "srcs: groups.map((g) => g.sources)" in mets
+        assert "mrows: base.rows || []" in mets, (
+            "the model level is discarded again; a metric axis page cannot "
+            "list its models and the drill-down has nothing to key on"
+        )
+        assert "groups," in mets, "the leaf page filters these by model"
+
+
+class TestTheMetricAxisListsModelsAndDrillsDown:
+    """The level metrics never had, and the collision it resolves."""
+
+    def test_the_axis_page_lists_models_rather_than_figures(self):
+        js = _views()
+        met = js[js.index("function vMet(slug){"):js.index("function vMetModel(")]
+        assert "ranked(rows, 'metmodel:' + m.slug)" in met, (
+            "the axis page must list each model once and link to its own page; "
+            "a flat figure table repeats the model name once per figure"
+        )
+
+    def test_a_model_page_exists_for_metrics_like_the_other_two_sections(self):
+        js = _views()
+        assert "function vMetModel(slug, key){" in js
+        assert "vMetModel" in js[js.index("export {"):]
+
+    def test_the_leaf_filters_on_the_model_key_not_the_label(self):
+        # Two spellings of one model share no label, and two models can share a
+        # display name. `model_key` is what the model rows are grouped on.
+        js = _views()
+        leaf = js[js.index("function vMetModel(slug, key){"):]
+        assert "g.modelKey || '') === key" in leaf
+
+    def test_the_figure_payload_carries_that_key(self):
+        assert '"model_key": model_key,' in _store(), (
+            "without it the leaf cannot match a figure to its model row"
+        )
+
+    def test_the_route_reaches_the_leaf(self):
+        assert "kind === 'metmodel'" in BOARDVIEW.read_text(encoding="utf-8")
+        route = ROUTE.read_text(encoding="utf-8")
+        assert "modelKey ? vMetModel(slug, modelKey) : vMet(slug)" in route
+
+
+class TestWhatAFigureMeasuredIsCopiedNeverInferred:
+    """The column that tells $0.25 from $50, and the state it must be able to
+    express when the evidence does not say."""
+
+    def test_the_sub_axis_comes_from_the_quote(self):
+        import re as _re
+        js = _db()
+        block = js[js.index("export function subAxisOf(quote)"):]
+        block = block[:block.index(chr(10) + "}")]
+        assert "quote || ''" in block and ".toLowerCase()" in block
+        # It must read the QUOTE and nothing else - not the slug, not the unit.
+        assert "slug" not in block and "unit" not in block
+        assert _re.search(r"return hit \? hit\[0\] : null", block)
+
+    def test_an_unnamed_axis_returns_null_rather_than_a_guess(self):
+        js = _db()
+        block = js[js.index("export function subAxisOf(quote)"):]
+        block = block[:block.index(chr(10) + "}")]
+        assert "if (!q) return null" in block
+
+    def test_the_word_boundaries_are_real_escapes(self):
+        # ⚠ THEY WERE NOT, FOR ONE COMMIT. A patch wrote the regexes with a
+        #   literal 0x08 byte where a word-boundary escape belonged, so it
+        #   matched nothing and every figure read "not stated" - including
+        #   "Official output price | $50 / MTok". The page still rendered and
+        #   still looked plausible, which is what makes it worth pinning.
+        raw = DB.read_bytes()
+        assert bytes([8]) not in raw, (
+            "a control byte is standing in for a regex escape"
+        )
+        js = _db()
+        wb = chr(92) + "b"   # the two characters a regex needs, not one control byte
+        assert f"/{wb}output{wb}|{wb}completion{wb}|{wb}generated{wb}/" in js
+
+    def test_reports_that_disagree_about_what_was_measured_claim_neither(self):
+        js = _db()
+        assert "subAxisDisputed: named.length > 1" in js
+        assert "subAxis: named.length === 1 ? named[0] : null" in js
+
+    def test_not_stated_is_rendered_as_a_value(self):
+        # Rule 6. A blank cell reads as an oversight and invites the reader to
+        # assume the common case; 69 of 113 cost figures name no side.
+        js = _views()
+        assert 'class="subax none">not stated<' in js
+
+
+class TestTheTabSaysWhatIsBehindEachCard:
+    def test_the_card_carries_its_model_count(self):
+        js = _views()
+        card = js[js.index("function mcard(x){"):]
+        card = card[:card.index(chr(10) + "}")]
+        assert "(x.mrows || []).length" in card
+
+    def test_single_model_axes_are_separated_rather_than_mixed_in(self):
+        js = _views()
+        assert "function metGrid(){" in js
+        grid = js[js.index("function metGrid(){"):]
+        grid = grid[:grid.index(chr(10) + "}")]
+        assert "axes hold a single model" in grid

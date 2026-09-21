@@ -2051,6 +2051,13 @@ def board_page() -> dict:
             "caps": len(sections["capability"]),
             "mets": len(sections["metric"]),
         },
+        # RULE 4, AND IT TRAVELS WITH ITS DENOMINATOR (rule 7). The metrics
+        # tab is thinner than the stored rows because figures that cannot
+        # support themselves are held back, and a page that simply showed
+        # fewer rows would be making the opposite claim: that nobody measured
+        # these models. Counted by reason so a reader can tell a prompt
+        # problem from a labelling one.
+        "metrics_withheld": sections.get("_withheld", {}),
         "report_counts_are_a_floor": True,
         "summary": (
             "Discovered from the evidence, not chosen from a list. Report counts "

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { boardPage, BoardUnreadable } from '../api'
 import { setBoardData } from '../board/db'
-import { vBoard, vJob, vCap, vMet, vJobModel, vCapModel } from '../board/views'
+import { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel } from '../board/views'
 import BoardView from '../board/BoardView'
 
 /**
@@ -27,7 +27,8 @@ import BoardView from '../board/BoardView'
  *   /board/jobs/:slug/*             → one model's reports on that job
  *   /board/capabilities/:slug       → the models reported on that capability
  *   /board/capabilities/:slug/*     → one model's reports on that capability
- *   /board/metrics/:slug            → unchanged, a figure table
+ *   /board/metrics/:slug            → the models with figures on that axis
+ *   /board/metrics/:slug/*          → one model's figures on that axis
  *
  * THE MODEL KEY IS THE REST OF THE PATH, not the third segment.
  * `model_version.id` holds a canonical id for 166 of 1,249 board rows, and
@@ -77,7 +78,7 @@ export default function Board() {
   let html
   if (seg === 'jobs') html = modelKey ? vJobModel(slug, modelKey) : vJob(slug)
   else if (seg === 'capabilities') html = modelKey ? vCapModel(slug, modelKey) : vCap(slug)
-  else if (seg === 'metrics') html = vMet(slug)
+  else if (seg === 'metrics') html = modelKey ? vMetModel(slug, modelKey) : vMet(slug)
   else html = vBoard(sp.get('tab') || 'best')
 
   return (

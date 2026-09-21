@@ -2205,6 +2205,87 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         for e in claim.board_entries
     }
     _stored_entries = sum(r.board_entries_stored for r in results)
+
+    # ⚠ THE MEASUREMENT #370 IS WAITING ON, PRINTED WHERE A PERSON WILL SEE IT.
+    #
+    #   A metric figure needs four things true together and only two are
+    #   checkable today: that it is a quantity, and that it is in its own quote.
+    #   The other two - which axis, which model - are asked for and never shown,
+    #   which is how nine benchmarks ended up under one `swe-bench` slug and one
+    #   model collected eight figures that were not its own (#368).
+    #
+    #   The proposed fix is to make the extractor COPY both out of the quote, so
+    #   code can check them the way it checks the figure. This line answers the
+    #   question that decides whether that is worth a shared-schema migration:
+    #   asked for them, does the extractor actually produce them?
+    #
+    #   Nothing is stored and nothing is refused on it. `board_entry` has no
+    #   column for either, and gating on a signal nobody has measured is rule 8
+    #   backwards.
+    _support: dict[str, int] = {}
+    _examples: list[dict] = []
+    for r in results:
+        for k, v in (r.metric_support or {}).items():
+            _support[k] = _support.get(k, 0) + v
+        _examples.extend(r.metric_examples or [])
+    # Worst first across the whole run rather than per thread: somebody checking
+    # this wants every `unsupported` the run found before any that passed.
+    _examples.sort(key=lambda e: 0 if e["state"] == "unsupported" else 1)
+    _examples = _examples[:8]
+    if _support.get("metrics"):
+        n = _support["metrics"]
+        prog.stage(
+            "E5d", "Metric evidence (measured, nothing stored)", "ok",
+            # ⚠ THE EVIDENCE FOR THE COUNTS. Nothing new is stored this round,
+            # so the metric pages look identical after a run - which would leave
+            # the counts certifying themselves.
+            examples=_examples,
+            metrics=n,
+            axis_quoted=_support["axis_quoted"],
+            axis_absent=_support["axis_absent"],
+            axis_unsupported=_support["axis_unsupported"],
+            # THE SPLIT #370 ASKED FOR. These sum to `axis_quoted`: did the
+            # extractor copy the whole benchmark name, or a prefix of it? The
+            # prefix is the bucket-forming move, and this number is what decides
+            # whether `quoted` should require exactness.
+            axis_exact=_support["axis_exact"],
+            axis_partial=_support["axis_partial"],
+            subject_quoted=_support["subject_quoted"],
+            subject_absent=_support["subject_absent"],
+            subject_unsupported=_support["subject_unsupported"],
+            detail=(
+                f"{n} metric figure(s). "
+                f"AXIS: {_support['axis_quoted']} quoted the benchmark from the "
+                f"evidence, {_support['axis_absent']} named none, "
+                f"{_support['axis_unsupported']} named one the quote does not "
+                f"contain — and of the {_support['axis_quoted']} quoted, "
+                f"{_support['axis_exact']} copied the whole benchmark name and "
+                f"{_support['axis_partial']} copied a prefix of one the quote "
+                f"spells out more fully. "
+                f"SUBJECT: {_support['subject_quoted']} quoted the model, "
+                f"{_support['subject_absent']} named none, "
+                f"{_support['subject_unsupported']} named one the quote does not "
+                f"contain. "
+                f"Measured only - no column exists for either and nothing was "
+                f"refused on this. `unsupported` is the one to watch: a named "
+                f"axis that is not in the quote is the defect #368 reports, "
+                f"caught at the source instead of on a page, and now REFUSED "
+                f"rather than filed under the name it invented. A verified axis "
+                f"also becomes the slug, so each benchmark gets its own page "
+                f"instead of nine sharing one."
+                + (
+                    " Worst cases - the figure, what the extractor named, and "
+                    "the quote it was checked against: "
+                    + " | ".join(
+                        f"{e['figure']} -> {e['property']} {e['claimed']!r} "
+                        f"[{e['state']}] in {e['quote'][:70]!r}"
+                        for e in _examples[:3]
+                    )
+                    if _examples else ""
+                )
+            ),
+        )
+
     if _slugs:
         prog.stage(
             "E5c", "Board sections discovered", "ok",
