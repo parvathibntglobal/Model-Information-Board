@@ -58,6 +58,28 @@ load_dotenv(ROOT / ".env")
 from collect.surface_resolver import RegistrySurfaceResolver  # noqa: E402
 
 
+def fixture_exposure(threads, finder, resolve, seeded) -> dict[str, set[str]]:
+    """Which seeded `model_version` rows this export would attach claims to.
+
+    Pure, and separated from `main` so it can be tested without a database or
+    a model call - the two things that make the real gate expensive to
+    exercise. `{}` means no thread in the export resolves to a fixture.
+
+    A CHECK THAT CANNOT FIRE IS WORSE THAN NO CHECK, so this has both controls
+    run against the live registry on 2026-09-21: all four seeded rows fire on
+    a probe sentence naming them, and a polled model does not. Recorded
+    because "0 exposed" and "the matcher is broken" render identically.
+    """
+    exposed: dict[str, set[str]] = {}
+    for thread in threads:
+        for doc_id, text in thread.raw_text_of.items():
+            for surface in finder(text):
+                model_version = resolve(surface)
+                if model_version in seeded:
+                    exposed.setdefault(model_version, set()).add(doc_id)
+    return exposed
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--from-export", required=True)
@@ -71,6 +93,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--driver", default="new-evidence")
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument(
+        "--development-write", action="store_true",
+        help="replace judge/writeguard.py's ENVIRONMENT proxy with the check "
+             "it stands in for: refuse if any thread in this export resolves "
+             "to a seeded (build-fixture) model_version. Stricter than the "
+             "proxy in one direction and narrower in the other; see the "
+             "block comment at the call site. A caller who does not pass it "
+             "gets the writeguard unchanged.",
+    )
     args = parser.parse_args(argv)
 
     from judge.config import capabilities
@@ -89,7 +120,42 @@ def main(argv: list[str] | None = None) -> int:
             "that quietly reaches localhost is how a batch writes to a real "
             "database once."
         )
-    writeguard_check(database_url, command="run_extraction_batched.py")
+    # ── THE WRITE GATE, AND WHICH ONE RUNS ─────────────────────────────────
+    #
+    # `judge/writeguard.py` refuses ENVIRONMENT=development + a remote
+    # database. It is a PROXY and says so itself: "THIS DOES NOT REPLACE THE
+    # PREFLIGHT CHECKS ... Wiring preflight() into judge's write path is the
+    # larger fix."
+    #
+    # THE PROXY IS WRONG IN BOTH DIRECTIONS, and #328 is the first half:
+    # `scripts/fetch_model.py:1905` "Spends (capped) OpenRouter money and
+    # writes claims + cells" into this same database, from a laptop, under the
+    # same ENVIRONMENT=development, with NO guard at all - invoked by the
+    # backend on a button click. So the identical write is routine through one
+    # path and refused through this one. That is too BROAD.
+    #
+    # It is also too NARROW, which is the half #328 does not cover. What
+    # `assert_no_fixtures` actually protects is that a build fixture is never
+    # SERVED AS EVIDENCE. The way THIS command could do that is by attaching a
+    # claim to a seeded `model_version` - and ENVIRONMENT cannot see that,
+    # because it is a property of the export, not of the machine.
+    #
+    # ⚠ AND THE DATABASE IS NOT FIXTURE-CLEAN, so this is live rather than
+    #   theoretical. Measured 2026-09-21: 4 `model_version` rows carry
+    #   provenance='seed', with 65 claims and 11 cells already pointing at
+    #   them (#382). `CLAUDE.md` says "ZERO seed (verified 2026-08-28)" and is
+    #   stale. A blanket assertion would refuse every write to this database
+    #   until that is resolved, including writes that demonstrably cannot
+    #   touch a fixture.
+    #
+    # So `--development-write` swaps the proxy for the condition, per run and
+    # before any spend. It refuses on exposure and permits otherwise.
+    if not args.development_write:
+        writeguard_check(database_url, command="run_extraction_batched.py")
+    else:
+        print("write gate  : --development-write, so judge/writeguard.py's "
+              "ENVIRONMENT proxy is replaced by the fixture-exposure check "
+              "below (#328, #382)")
 
     limit = args.budget if args.budget is not None else None
     if limit is None:
@@ -132,6 +198,37 @@ def main(argv: list[str] | None = None) -> int:
             "SELECT canonical_id, display_name, id FROM model_version"
         ).fetchall()
     }
+    # ── THE FIXTURE-EXPOSURE CHECK ─────────────────────────────────────────
+    # Runs BEFORE the first model call, because a claim already paid for is
+    # already the harm. Refuses by naming the model and the documents, so the
+    # answer is actionable rather than "something matched".
+    if args.development_write:
+        from collect.surface_resolver import RegistrySurfaceFinder
+
+        seeded = {
+            r[0] for r in conn.execute(
+                "SELECT id FROM model_version WHERE provenance = 'seed'"
+            ).fetchall()
+        }
+        finder = RegistrySurfaceFinder.from_connection(conn)
+        exposed = fixture_exposure(threads, finder, resolver, seeded)
+        if exposed:
+            raise SystemExit(
+                "REFUSED by the fixture-exposure check. This export would "
+                f"attach claims to {len(exposed)} seeded (build-fixture) "
+                "model_version row(s):\n"
+                + "\n".join(
+                    f"    {mv}  <- {len(docs)} document(s)"
+                    for mv, docs in sorted(exposed.items())
+                )
+                + "\n`assert_no_fixtures` exists so a build fixture is never "
+                "served as evidence, and that is what this run would do. "
+                "Nothing was written and nothing was spent."
+            )
+        print(f"fixture gate: {len(seeded)} seeded model_version row(s) in this "
+              f"database; 0 of {len(threads)} threads resolve to one, so this "
+              f"run cannot attach evidence to a fixture")
+
     ledger = ExtractionLedger(conn)
     seen = ledger.already_extracted()
 
