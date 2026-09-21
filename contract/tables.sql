@@ -902,6 +902,38 @@ CREATE TABLE board_entry (
   -- when the read path learned to resolve both. NULL is not backfilled:
   -- guessing from the old shape would bake an accident in as a decision.
   model_scope       text,
+
+  -- ── was this row's SLUG backed by its own quote? #368 ────────────────────
+  -- `axis_verbatim` and `subject_verbatim` are the words COPIED from the
+  -- quote, or NULL when the quote named none. They existed on the extraction
+  -- schema from #385 and were thrown away at write time: `axis_slug()` used
+  -- the axis to set `slug` and discarded it, so a stored row could not be
+  -- asked what its slug was derived from (rule 9).
+  --
+  -- The live case for `subject_verbatim`: three entries attribute a
+  -- capability to `google/gemini-2.5-flash` from a Spotify post whose quotes
+  -- say only "the worker model". A NULL here beside a non-NULL
+  -- `model_version_id` means the attribution was inferred from the document
+  -- rather than read from the quote.
+  --
+  -- ⚠ `axis_quoted` HAS THREE STATES AND NULL IS NOT false.
+  --     NULL   no check ran - created_at < 2026-09-21T10:29:16Z, when #385
+  --            merged and `axis_slug()` began running. `pipeline_version`
+  --            cannot discriminate: it is `e5.4` on both sides.
+  --     true   axis_verbatim copied AND found in the quote.
+  --     false  checked, slug not backed by the quote - either the quote named
+  --            no benchmark, or it named one that is not in it. Both are
+  --            `false` because the page's question is the same for both; the
+  --            two are counted apart per run as `axis_absent` and
+  --            `axis_unsupported` in judge/store/board_entries.py.
+  -- No DEFAULT, deliberately: `DEFAULT false` would assert that every
+  -- pre-existing row was checked and failed (rule 6). RENDER all three,
+  -- never filter on `= true`, or every NULL row vanishes from the page
+  -- silently (rule 4).
+  axis_verbatim     text,
+  subject_verbatim  text,
+  axis_quoted       boolean,
+
   pipeline_version  text NOT NULL,
   created_at        timestamptz NOT NULL DEFAULT now(),
 
