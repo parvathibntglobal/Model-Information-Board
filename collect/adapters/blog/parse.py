@@ -61,7 +61,7 @@ import calendar
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import MINYEAR, UTC, datetime
 from typing import Any
 
 import feedparser  # type: ignore[import-untyped]  # ships no py.typed marker
@@ -165,13 +165,47 @@ def _timestamp_or_none(struct_time: Any) -> datetime | None:
     author last edited — and reading it as the publication date would misdate
     every corrected post, which matters because FR-4 resolves aliases against
     the date a claim was made.
+
+    ⚠ HUGO'S ZERO DATE, AND WHY CATCHING THE EXCEPTION IS NOT THE FIX.
+    `lilianweng.github.io/faq/` is dated `Mon, 01 Jan 0001 00:00:00 +0000`,
+    which is Hugo's zero value for a page carrying no date of its own - a
+    SHAPE, not a corrupt feed, and reachable from any Hugo feed with an
+    undated page. `timegm` maps it to -62135596800, and the two platforms
+    disagree about what that is:
+
+        Windows / CPython 3.11   raises OSError [Errno 22]
+        Linux   / CPython 3.11   RETURNS datetime(1, 1, 1, tzinfo=UTC)
+
+    So the first version of this fix - adding `OSError` to the tuple - fixed
+    the crash on the machine that hit it and left the WORSE half untouched.
+    On Linux nothing raises, so `published_at` would be written as
+    `0001-01-01`: a missing value silently converted into a definite one,
+    which is rule 6 exactly, and invisible because it never fails. The
+    nightly chain runs on Linux. The crash was the lucky platform.
+
+    Hence the explicit sentinel check rather than exception handling alone.
+    `MINYEAR` is 1 and no blog post is dated year 1, so rejecting that year
+    invents no threshold and drops nothing real - which is the reason the
+    test is `year == MINYEAR` and not a "pre-web" cutoff somebody would have
+    to defend.
+
+    Found by CI disagreeing with the machine the harvest ran on, which is the
+    only reason the Linux half was ever seen. #378.
+
+    An unrepresentable or sentinel date returns None, the same as an absent
+    one, and the caller keeps `published_at` NULL - missing, and staying
+    missing, rather than becoming year 1 or 1970 or today.
     """
     if not struct_time:
         return None
     try:
-        return datetime.fromtimestamp(calendar.timegm(struct_time), tz=UTC)
-    except (TypeError, ValueError, OverflowError):
+        parsed = datetime.fromtimestamp(calendar.timegm(struct_time), tz=UTC)
+    except (TypeError, ValueError, OverflowError, OSError):
         return None
+    # The sentinel, on the platform where it does not raise.
+    if parsed.year == MINYEAR:
+        return None
+    return parsed
 
 
 def _entry_content_html(entry: Any) -> str | None:

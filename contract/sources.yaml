@@ -220,7 +220,7 @@ terms_rulings:
   - id: blog-class-a-self-hosted
     class: A
     party: publisher
-    reviewed_on: 2026-08-14
+    reviewed_on: 2026-09-21          # was 2026-08-14; re-read on adding nine feeds
     reviewed_by: anooj
     basis: internal-development-only
     review_valid_days: 90
@@ -231,11 +231,193 @@ terms_rulings:
       are the same party. A public feed served without login or payment, with
       robots.txt permitting the feed path and the article paths it links.
 
+      RE-READ 2026-09-21, ON ADDING NINE FEEDS. EIGHTEEN FEEDS AS OF THIS
+      READING, NOT NINE. The clause below fires on "adding a feed outside the
+      nine assessed", and this is that reading. It covers everything added in
+      this pass in one go: the three proposed in #372 and not seated by it
+      (lilianweng.github.io, eugeneyan.com, jack-clark.net) and the six probed
+      2026-09-21 (minimaxir.com, maggieappleton.com, swyx.io, mattrickard.com,
+      www.fast.ai, thorstenball.com). #372 merged a PROPOSAL DOCUMENT and did
+      not change this file; the nine rows arrive together, here.
+
+      1 · THE DEFERRAL NOW HAS ONE CONFIRMED COUNTER-EXAMPLE AND ONE CONFIRMED
+      COUNTER-COUNTER-EXAMPLE, which is why this is a re-reading and not a date
+      change. The text below says terms review is deferred and that the
+      condition "a source whose terms forbid this use is dropped" HAS NOT BEEN
+      TESTED. It has now been tested twice, in opposite directions:
+
+        - SUBSTACK, 2026-09-18, REFUSED. robots ALLOWED the article path and
+          the feed; the Acceptable Use Policy prohibited crawling any page or
+          portion of the platform and separately prohibited storing any
+          significant portion of its content; the prohibition was
+          UNCONDITIONAL, so internal-development-only did not reach it.
+        - SWYX.IO, 2026-09-21, PERMITTED, AND IT IS THE FIRST FEED IN THIS FILE
+          WITH `terms_document_read: true`. See that row. The terms document
+          affirmatively permits what this project publishes, in its own words:
+          "You're welcome to quote, with attribution and a link back here."
+
+      Two things follow and neither is hypothetical. ROBOTS AND TERMS CAN
+      DIVERGE IN THE PERMISSIVE-TO-RESTRICTIVE DIRECTION - Substack is a case
+      where robots was not silent, was affirmative, and did not predict the
+      outcome. And AN UNCONDITIONAL PROHIBITION IS NOT HELD OPEN BY THE BASIS:
+      every other unresolved condition here is about publication, monetization
+      or audience, which internal-development-only genuinely speaks to; a crawl
+      clause contingent on nothing has nothing for the basis to hold.
+
+      WHAT THAT DOES NOT SAY. The denominator is 2 terms documents read, of
+      18 feeds. One was a PLATFORM with a drafted AUP and one a practitioner
+      blog with a self-described non-binding one, and they went opposite ways -
+      which is evidence that the deferral is a real risk rather than a
+      formality, and NOT that the other sixteen are likely to refuse. Sixteen
+      of eighteen remain `terms_document_read: false`.
+
+      WHERE THE RISK STILL CONCENTRATES, AND IT IS CHEAP TO CLOSE. The feeds
+      likely to carry a drafted terms document are the corporate three - Grab,
+      Slack, Spotify - measured at 1 model-naming document each and 0 resolving
+      to a single model. Reading those three closes the deferral exactly where
+      an unconditional clause is plausible, and drops them at near-zero
+      evidentiary cost if any refuses. A person-afternoon, and it is the next
+      thing this ruling should have done to it.
+
+      2 · WHAT "TERMS PAGE NOT FOUND" IS ALLOWED TO MEAN. Eight of the nine
+      added today record it, and it is a finding about PLACES CHECKED, never
+      about the site. The check is three places: the sitemap robots advertises,
+      the front page's own markup, and eight conventional paths (/terms, /tos,
+      /legal, /privacy, /colophon, /license, /copyright and /terms/). Zero
+      matches in all three is as far as this goes without a lawyer. It is NOT
+      permission, and a row's `tos_notes` may not round it to one - that would
+      be rule 6 pointed outward, an absence read as a definite allowance.
+
+      3 · THE CRITERION FOR RANKING A CANDIDATE IS NAMING, NOT
+      RESOLVES-TO-ONE. Recorded in the ruling because it changed which feeds
+      are here. `resolves_to_one` counts documents about exactly ONE model, so
+      it penalises breadth by construction: a post naming eighteen models
+      resolves to none and a post naming one resolves to one, and the richest
+      source sorts last. The corpus says that ranking is backwards. Over 544
+      threads that reached the extractor and whose text is readable, documents
+      naming 2+ models produced at least one claim 43-47% of the time and
+      documents naming 0-1 models managed 18%; and of documents that produced
+      claims, 58% of those naming ten or more models produced claims about two
+      or more distinct models (mean 3.25). Extraction SPLITS a comparison post.
+      Measured in issue #375, `scripts/_comparison_post_extraction.py`.
+      Two limits kept attached to that number, because they are the reason it
+      is a ranking criterion and not a promise: the population is POST-SIEVE,
+      and only 52 blog threads have ever been extracted, from three hosts. The
+      widest blog post ever extracted named 14 models and produced nothing -
+      a population of 1, recorded so nobody rediscovers it as a surprise.
+      So `minimaxir.com` at 9/10 naming is the STRONGEST of the six seated
+      today, not the weakest, and `jack-clark.net`'s 8/10-naming-0/10-resolving
+      survey shape is a reason to seat it rather than a reservation about it.
+
+      3a · A TEN-ENTRY SAMPLE OVERSTATES NAMING BY 3-5x ON ANY FEED DEEPER
+      THAN TEN ENTRIES. **This is a rule for the NEXT candidate, not a fact
+      about these nine.** Measure a candidate's naming rate however you like;
+      do not let the sampled figure stand as the feed's rate, and do not rank
+      two candidates against each other unless both figures are the same kind.
+
+      It is a rule because it was measured, on the harvest of 2026-09-21,
+      after nine feeds had already been seated on the sampled number:
+
+          feed                     sampled        full window      error
+          lilianweng.github.io      6/10  60%      6/53   11.3%    5.3x over
+          eugeneyan.com             4/10  40%     21/212   9.9%    4.0x over
+          swyx.io                   1/10  10%     12/432   2.8%    3.6x over
+          maggieappleton.com        2/10  20%     10/142   7.0%    2.8x over
+          ---------------------------------------------------------------
+          minimaxir.com             9/10  90%      9/10   90.0%    exact
+          jack-clark.net            8/10  80%      8/10   80.0%    exact
+          mattrickard.com           0/10   0%      0/10    0.0%    exact
+          www.fast.ai               1/10  10%      2/20   10.0%    exact
+
+      THE SPLIT IS NOT ABOUT THE HOSTS AND IT IS NOT LUCK. The four that
+      regressed are the four with archives deeper than ten entries. The four
+      that held exactly are the ones whose whole feed IS about ten, so the
+      sample WAS the population and had nothing to regress against. The
+      mechanism is ordinary: a feed is newest-first, model mentions cluster in
+      recent posts, and the ten most recent are therefore the densest ten the
+      blog has. Nothing was measured wrongly - "6 of the 10 most recent" was
+      true when written and was never "60% of the feed".
+
+      Rule 7, landing on our own instrument: a real value answering a question
+      it was not asked, which survived inspection because a spot-check of any
+      one figure confirms it. THE CHECK THAT CATCHES IT NEEDS NO SUSPICION -
+      ask how deep the feed is. If it is deeper than the sample, the sampled
+      rate is an upper bound and should be written down as one.
+
+      WHAT THIS DOES AND DOES NOT CHANGE ABOUT §3. The ranking stands and gets
+      firmer: `minimaxir.com` at 9/10 is a FULL-POPULATION 90%, while
+      `lilianweng.github.io`'s 60% is a sample that is really 11.3%. So the
+      criterion picked the right feed and §3's stated reason was only half the
+      reason it had. Nothing is re-seated on this; it is recorded because the
+      next candidate will arrive with a ten-entry figure and somebody will
+      compare it to these.
+
+      BOTH NUMBERS STAY ON EVERY ROW, WITH THEIR DENOMINATORS. The sample is
+      not deleted, because it is what the seating decision was actually made
+      on and overwriting it would erase that. The population is not omitted,
+      because a row carrying only the sample misleads in exactly the way this
+      harvest demonstrated. See each row's `measured` block.
+
+      4 · A FEED ROW NAMES THE HOST THAT SERVES THE ARTICLES. Seating hygiene,
+      and it is a defect the moment it is got wrong rather than a preference.
+      `_blog_corpus_census.py:feed_of` joins on the ARTICLE URL's hostname, so
+      a row naming a redirect SOURCE harvests normally and reports every one of
+      its own documents as `(unseated: ...)` - an absence we caused, which is
+      rule 4 one stage before the page. Two of the six probed today redirect:
+      `matt-rickard.com` 308s to `mattrickard.com` and `fast.ai` 301s to
+      `www.fast.ai`. Both are seated under their TARGETS, and both targets
+      serve their own robots.txt, which is the one obeyed.
+
+      5 · THE BYLINE ARITHMETIC, IN THE RULING RATHER THAN IN A FOOTNOTE,
+      because it is the cost of this pass and no per-row field shows it.
+      `judge/store/cells.py:177` computes `voice_id = author_id or
+      "anonymous:" + platform`, and `judge/curate/gate.py` DEDUPS BY
+      `voice_id`. So every blog document with a NULL author_id is one voice,
+      platform-wide, however many feeds and posts it came from.
+
+      Three of the six seated today carry no byline at all - minimaxir.com
+      (0 of 10), maggieappleton.com (0 of 142), swyx.io (0 of 432). That is
+      584 declared entries at `byline_source: none`, which writes NO author
+      row (correctly - "unknown, not anonymous"), and they therefore merge
+      into the single `anonymous:blog` voice, with each other and with the
+      already-seated unbylined feeds. They do not merely fail to corroborate.
+
+      ⚠ AND `www.fast.ai` DOES NOT CURRENTLY BUY THE SEVEN VOICES IT LOOKS
+      LIKE IT BUYS. It is 20 of 20 bylined across SEVEN distinct authors, and
+      `byline_source: entry` with more than one distinct byline hits the
+      `authors_per_entry_unwired` branch in `collect/adapters/blog/write.py`:
+      the author rows are written and `document.author_id` is left NULL. That
+      is open issue #373 - 19 orphaned rows and 31 unattributed documents
+      already. Until it closes, fast.ai's seven authors are seven rows nothing
+      links, and its documents land in `anonymous:blog` beside the three
+      unbylined feeds. SEATED ANYWAY AND DELIBERATELY: the bylines are real in
+      the feed, the defect is ours and downstream, and the feed is the reason
+      to fix it. The row records this in `notes` rather than claiming 7 voices.
+
+      Two of the nine DO produce a voice today: `mattrickard.com`, one distinct
+      entry byline, which takes the single-row branch; and `thorstenball.com`,
+      `feed_declared` with a declared author, the same shape simonwillison.net
+      already uses. `thorstenball.com` was called a recoverable case in the
+      probe write-up on the grounds that an entry-level reader misses a
+      feed-level author - that was wrong about THIS pipeline, which handles
+      `feed_declared` and has since the nine were seated.
+
+      THE TRADE IS THE POINT: the most voices and the most model mentions are
+      on different hosts, the board's corroboration rule counts VOICES, and of
+      the nine feeds seated today exactly TWO add one. The consequence to
+      watch is a capability whose evidence is loud, plentiful and
+      single-voiced, which is what a corroboration rule is supposed to catch
+      and cannot when the voice count is an artefact of a NULL.
+
       WHAT WAS ACTUALLY CHECKED, AND IT IS NOT THE TERMS. Per feed: robots.txt
       read and re-read on every run, the feed path and article paths tested
       against it, no paywall observed, no login required, feed type recorded.
       That is mechanical evidence about the SERVER's stated crawl policy.
-      NO TERMS PAGE HAS BEEN READ FOR ANY OF THE NINE FEEDS.
+      ONE TERMS PAGE OF EIGHTEEN HAS BEEN READ — swyx.io, 2026-09-21, and it
+      permits quote with attribution and a link. Seventeen are unread, and
+      eight of those were searched for in three places and not found. This
+      sentence said "NO TERMS PAGE HAS BEEN READ FOR ANY OF THE NINE FEEDS"
+      until the re-read above, and it is the sentence a reader checks.
 
       So this ruling does not say the terms permit this, and no per-feed
       `tos_notes` may say it either. It says what was observed, and it records
@@ -260,7 +442,9 @@ terms_rulings:
           respected by `judge/pages/filtered.py`, which never renders one.
 
       RE-REVIEW REQUIRED BEFORE: any external publication, any external user,
-      any monetization, or adding a feed outside the nine assessed.
+      any monetization, or adding a feed outside the EIGHTEEN assessed.
+      (Was "the nine assessed". The count moves with every re-reading, and
+      leaving it stale is how a tenth feed arrives without one.)
 
       Permitted under that basis: fetch the declared feed and the article URLs
       in it, one request per second or slower, robots re-checked on every
@@ -277,8 +461,12 @@ terms_rulings:
       (collect/adapters/blog/robots.py). It is not permission granted by the
       publisher, because the publisher never spoke. Among the seeded feeds
       this is engineering.grab.com, whose robots.txt returned 404 on
-      2026-08-14 — and it was also true of dropbox.tech, which is dropped for
-      an unrelated reason. Where robots is silent, the class A reading is
+      2026-08-14, and — added 2026-09-21 — thorstenball.com, whose robots.txt
+      returned 404 on that date. It was also true of dropbox.tech, which is
+      dropped for an unrelated reason. TWO OF EIGHTEEN now rest on the class
+      A reading alone, and a third is adjacent: eugeneyan.com answers 200
+      with a bare `Sitemap:` line and NO `User-agent` group, which is silence
+      with a different status code and not "rules, everything allowed". Where robots is silent, the class A reading is
       doing all of the work, so it is the reading that has to be right: a
       public feed, no login, and no payment. NOT "no terms page forbidding
       automated retrieval" — that clause was here and is withdrawn, because no
@@ -303,11 +491,18 @@ terms_rulings:
       robots_allows_article_path: [true]
       paywall_observed: [false]
       login_required: [false]
-      # The summary above states this in prose ("NO TERMS PAGE HAS BEEN READ
-      # FOR ANY OF THE NINE FEEDS"). Recorded as a fact so a machine reading
-      # `recorded_evidence` sees `false` rather than ABSENT — rule 6 inside the
-      # contract. Same footing as arxiv, x, devto, hackernews and huggingface.
-      terms_document_read: [false]
+      # Recorded as a fact so a machine reading `recorded_evidence` sees a
+      # value rather than ABSENT — rule 6 inside the contract. Same footing as
+      # arxiv, x, devto, hackernews and huggingface.
+      #
+      # ⚠ WAS `[false]` AND THAT WAS A GATE POINTING THE WRONG WAY, found
+      #   2026-09-21 by the first row that ever set it true. `swyx.io`'s terms
+      #   document was located and READ, and a permitted-values list of
+      #   `[false]` would have REFUSED the only feed that did the reading this
+      #   ruling keeps saying it wants. The field records whether the reading
+      #   happened; it is not a verdict, and the verdict lives in `tos_notes`.
+      #   Both values are acceptable and a MISSING value still refuses.
+      terms_document_read: [false, true]
 
   # ── Class B: Medium ──────────────────────────────────────────────────────
   - id: blog-class-b-medium
@@ -1893,6 +2088,866 @@ feeds:
 
       TERMS PAGE NOT READ. Robots permits the paths; that is a crawl policy
       and not a terms reading. Deferred while the project is internal.
+
+
+  # ── Class A · added 2026-09-21, under the re-review above ────────────────
+  #
+  # Nine feeds in one pass. Three were proposed in #372 and NOT seated by it
+  # (that PR merged a proposal document and changed no contract row); six were
+  # probed 2026-09-21 by `scripts/_six_host_probe.py`, with denominators in
+  # `docs/measurements/six-host-probe-2026-09-21.md`.
+  #
+  # ⚠ `robots_status` IS WHAT THE ADAPTER WILL OBSERVE, NOT A READING OF THE
+  #   BODY, and two rows below would read differently if it were. `no-rules`
+  #   is 404/410 in `collect/adapters/blog/robots.py`; ANY 200 is `rules`,
+  #   including a robots.txt that is a bare `Sitemap:` line with no
+  #   `User-agent` group at all. `www.fast.ai` and `eugeneyan.com` are that
+  #   shape: served, 200, and stating nothing that applies to us.
+  #   #372's proposed eugeneyan row wrote `no-rules` for exactly this reason
+  #   and it is substantively right and mechanically wrong - the live check
+  #   compares against what the fetcher observed, which is `rules`, so a
+  #   contradiction would sit in the file forever looking like a typo.
+  #   Resolved by recording the OBSERVABLE value and carrying the substantive
+  #   fact in `robots_group_applies`, which is new, and in prose. A REVIEWER
+  #   SHOULD SETTLE THIS rather than inherit it.
+
+  - id: blog:lilianweng.github.io
+    platform: blog
+    endpoint: https://lilianweng.github.io/index.xml
+    site: https://lilianweng.github.io/
+    template_block:
+      status: verified
+      checked_on: 2026-09-18
+      pages_examined: 10
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-09-18
+      robots_status: rules
+      robots_group_applies: true
+      robots_http: 200
+      feed_path_allowed: true
+      robots_allows_article_path: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-09-18
+      entries: 53
+      malformed: false
+      median_body_chars: 37207
+      median_feed_summary_chars: 817
+      byline_source: none
+      declared_author: null
+      entry_bylines_present: 0
+      distinct_entry_bylines: 0
+      resolves_to_voices: 0
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
+      names_tracked_model: 6
+      resolves_to_one_model: 3
+      sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE OVERSTATED THIS FEED BY 5.3x (60% sampled, 11.3% actual).
+      population_documents: 53
+      names_tracked_model_population: 6
+      resolves_to_one_model_population: 3
+    notes: >-
+      `User-agent: * / Disallow:` - an empty Disallow, which permits
+      everything explicitly. NO BYLINE ANYWHERE: the feed declares no author
+      and no entry carries one, so `resolves_to_voices` is 0 and every
+      document from here is UNATTRIBUTED rather than attributed to Lilian Weng
+      because the domain is hers (rule 6, the same reading applied to
+      hamel.dev's 9 unbylined entries). The feed carries SUMMARIES (817 median
+      chars), not full text, so article fetches are required for this feed to
+      be worth anything. Ten most recent entries: 6 name a tracked model,
+      3 resolve to exactly one - the highest resolving rate of the eighteen,
+      three times the board's current rate.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-09-18.
+      robots.txt 200 with an empty Disallow; feed path and article path both
+      allowed; sample fetch 200, no paywall, no login. RSS 2.0.
+      TERMS PAGE NOT FOUND, AND NOT THE SAME AS ABSENT. Checked in two places
+      - the sitemap robots advertises, and the front-page markup for any link
+      matching terms/legal/privacy/copyright/licence/tos/disclaimer/imprint.
+      Zero matches in either. What the site carries instead is a bare
+      copyright notice, which asserts the default position and says nothing
+      about automated retrieval. Absent from both places a terms page is
+      normally reachable is as far as this check goes without a lawyer.
+
+  - id: blog:eugeneyan.com
+    platform: blog
+    endpoint: https://eugeneyan.com/rss/
+    site: https://eugeneyan.com/
+    template_block:
+      status: verified
+      checked_on: 2026-09-18
+      pages_examined: 10
+      headings:
+        - "If you found this useful, please cite this write-up as:"
+        - "Join 11,800+ readers getting updates on machine learning, RecSys, LLMs, and engineering."
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-09-18
+      #: ⚠ `rules` IS THE OBSERVABLE VALUE AND THE SUBSTANCE IS SILENCE.
+      #:   robots.txt is a single `Sitemap:` line with NO `User-agent` block,
+      #:   so no group applies to us and nothing is stated. The adapter calls
+      #:   any 200 `rules`, so that is what the live precondition will see and
+      #:   that is what is recorded. `robots_group_applies: false` carries the
+      #:   real fact. The 404 CAVEAT's reasoning applies unchanged: where
+      #:   robots is silent the class A reading does all of the work.
+      robots_status: rules
+      robots_group_applies: false
+      robots_http: 200
+      feed_path_allowed: true
+      robots_allows_article_path: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-09-18
+      entries: 212
+      malformed: false
+      median_body_chars: 15679
+      median_feed_summary_chars: 95
+      byline_source: none
+      declared_author: null
+      entry_bylines_present: 0
+      distinct_entry_bylines: 0
+      resolves_to_voices: 0
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
+      names_tracked_model: 4
+      resolves_to_one_model: 1
+      sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE OVERSTATED THIS FEED BY 4.0x (40% sampled, 9.9% actual).
+      population_documents: 212
+      names_tracked_model_population: 21
+      resolves_to_one_model_population: 8
+    notes: >-
+      212 entries, THE LONGEST ARCHIVE OF THE EIGHTEEN, and therefore the
+      largest single blog fetch this project has attempted. TEMPLATE BLOCK IS
+      REAL AND MEASURED: 4 lines in 9 of 10 pages - a newsletter call to
+      action and a three-line BibTeX citation block. Both are appended to
+      nearly every post and neither is the author writing about a model.
+      ONE OF THE TEN SAMPLED ARTICLES IS AN HTML META-REFRESH REDIRECT STUB
+      ("Redirecting... Click here if you are not redirected."), 50 characters.
+      Not a paywall; recorded because a short body is the shape a paywall also
+      has and the distinction should be on the row rather than rediscovered.
+      The feed carries 95-character summaries, so article fetches are
+      required. Ten most recent entries: 4 name a tracked model, 1 resolves to
+      exactly one.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-09-18.
+      robots.txt 200 and states NO rules - a bare Sitemap line, no User-agent
+      group. Article path is therefore unrestricted by omission rather than by
+      permission. Sample fetch 200, no paywall, no login. RSS 2.0.
+      TERMS PAGE NOT FOUND, checked in the sitemap and the front-page footer
+      markup; zero matches in either. Absent from two places, not established
+      as absent from the site.
+
+  - id: blog:jack-clark.net
+    platform: blog
+    endpoint: https://jack-clark.net/feed/
+    site: https://jack-clark.net/
+    template_block:
+      status: verified
+      checked_on: 2026-09-18
+      pages_examined: 10
+      headings:
+        - "Welcome to Import AI, a newsletter about AI research."
+        - "Thanks for reading!"
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-09-18
+      robots_status: rules
+      robots_group_applies: true
+      robots_http: 200
+      feed_path_allowed: true
+      robots_allows_article_path: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-09-18
+      entries: 10
+      malformed: false
+      median_body_chars: 16731
+      median_feed_summary_chars: 16315
+      byline_source: entry
+      declared_author: null
+      entry_bylines_present: 10
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
+      names_tracked_model: 8
+      resolves_to_one_model: 0
+      sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE IS THE POPULATION here - the feed window is 10 entries, so
+      #: there is no deeper archive for it to regress against. The rate is exact.
+      population_documents: 10
+      names_tracked_model_population: 8
+      resolves_to_one_model_population: 0
+    notes: >-
+      ONE OF ONLY TWO FEEDS SEATED TODAY THAT PRODUCES A VOICE. 10 of 10
+      entries carry a byline naming one person, so this takes the
+      single-author-row branch in `collect/assemble/authors.py:from_blog` and
+      `document.author_id` is actually set - unlike an `entry` feed with
+      several distinct bylines, which is issue #373.
+      SHORTEST FEED WINDOW OF ANY SEATED FEED: 10 entries. An article that
+      drops out of that window cannot be re-assembled from the feed, which is
+      the hazard that nearly destroyed a grab.com context on 2026-09-18 - a
+      delete plus re-harvest does not restore a post older than the window.
+      Anything rebuilding this feed's contexts must work from stored payloads.
+      The feed carries FULL TEXT (16,315 median chars), so this is the one
+      feed of the three from #372 that could be harvested without article
+      fetches at all.
+      Ten most recent entries: 8 name a tracked model, 0 resolve to exactly
+      one. Import AI is a weekly survey naming a dozen models per issue.
+      #372 recorded that as "high naming, zero resolving, and whether that
+      becomes evidence depends on extraction splitting a survey into per-model
+      claims. Unproven." IT IS NO LONGER UNPROVEN and it went the favourable
+      way - see §3 of the ruling and issue #375. This is a reason to seat it.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-09-18.
+      robots.txt 200, rules present, feed path and article path both allowed;
+      sample fetch 200, no paywall, no login. RSS 2.0.
+      TERMS PAGE NOT FOUND, checked in the sitemap and the front-page markup;
+      zero matches in either. Absent from two places, not established as
+      absent from the site.
+
+  - id: blog:minimaxir.com
+    platform: blog
+    endpoint: https://minimaxir.com/index.xml
+    site: https://minimaxir.com/
+    template_block:
+      status: verified
+      checked_on: 2026-09-21
+      pages_examined: 10
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-09-21
+      robots_status: rules
+      robots_group_applies: true
+      robots_http: 200
+      feed_path_allowed: true
+      robots_allows_article_path: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-09-21
+      entries: 10
+      malformed: false
+      median_body_chars: 11127
+      median_feed_summary_chars: 60
+      onhost_ratio: 1.0
+      byline_source: none
+      declared_author: null
+      entry_bylines_present: 0
+      distinct_entry_bylines: 0
+      resolves_to_voices: 0
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
+      names_tracked_model: 9
+      resolves_to_one_model: 0
+      sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE IS THE POPULATION here - the feed window is 10 entries, so
+      #: there is no deeper archive for it to regress against. The rate is exact.
+      population_documents: 10
+      names_tracked_model_population: 9
+      resolves_to_one_model_population: 0
+    notes: >-
+      THE STRONGEST NAMING RATE OF THE EIGHTEEN - 9 of 10 - AND 0 OF 10
+      RESOLVING, and under §3 of the ruling that pair is the reason to seat it
+      rather than a reservation. The zero is not a resolution failure: those
+      nine posts name 18, 12, 9, 7, 7, 7, 6, 2 and 2 distinct models, so they
+      are comparison and benchmark write-ups. Extraction splits those - issue
+      #375.
+      NO BYLINE ANYWHERE: no feed author, no entry author, and no `author`
+      meta tag on any of the ten articles. `byline_source: none` writes no
+      author row, so every document lands in `anonymous:blog` (ruling §5).
+      The feed carries 60-character summaries, so article fetches are
+      required. Hugo, Cloudflare; template block clean at 10 pages.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-09-21.
+      robots.txt 200 - `User-agent: * / Disallow:` with an empty Disallow,
+      which permits everything explicitly. Feed path and article paths all
+      allowed; 10 of 10 articles returned 200, no paywall, no login, no short
+      body. RSS 2.0.
+      TERMS PAGE NOT FOUND, checked in THREE places - the sitemap robots
+      advertises (252 urls), the front page's own markup, and eight
+      conventional paths (/terms, /terms/, /tos, /legal, /privacy, /colophon,
+      /license, /copyright). Zero matches in all three. Absent from three
+      places is not established as absent from the site.
+
+  - id: blog:maggieappleton.com
+    platform: blog
+    endpoint: https://maggieappleton.com/rss.xml
+    site: https://maggieappleton.com/
+    template_block:
+      status: verified
+      checked_on: 2026-09-21
+      pages_examined: 10
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-09-21
+      robots_status: rules
+      robots_group_applies: true
+      robots_http: 200
+      feed_path_allowed: true
+      robots_allows_article_path: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-09-21
+      entries: 142
+      malformed: false
+      median_body_chars: 6377
+      median_feed_summary_chars: 99
+      onhost_ratio: 1.0
+      byline_source: none
+      declared_author: null
+      entry_bylines_present: 0
+      distinct_entry_bylines: 0
+      resolves_to_voices: 0
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
+      names_tracked_model: 2
+      resolves_to_one_model: 0
+      sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE OVERSTATED THIS FEED BY 2.8x (20% sampled, 7.0% actual).
+      population_documents: 142
+      names_tracked_model_population: 10
+      resolves_to_one_model_population: 6
+    notes: >-
+      142 entries, the second-longest archive seated today. NO BYLINE IN THE
+      FEED - 0 of 142 entries carry one and the feed declares no author - so
+      `byline_source: none` and every document lands in `anonymous:blog`
+      (ruling §5). An `author` meta tag IS present on 6 of the 10 sampled
+      ARTICLES, which is a different fact from the feed's and is recorded here
+      because it is the thing a future author extractor would read; nothing
+      reads it today.
+      Astro, Vercel; template block clean at 10 pages. One YouTube iframe
+      across the ten, no other third-party embed. The feed carries
+      99-character summaries, so article fetches are required.
+      2 of 10 name a tracked model - the weaker half of this pass, seated for
+      archive depth rather than density.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-09-21.
+      robots.txt 200 - `User-agent: * / Allow: /`. Feed path and article paths
+      all allowed; 10 of 10 articles returned 200, no paywall, no login. RSS
+      2.0.
+      TERMS PAGE NOT FOUND, checked in THREE places - the sitemap (193 urls),
+      the front page's markup, and eight conventional paths. `/colophon`
+      returns 200 AND IS NOT A TERMS DOCUMENT: it was read on 2026-09-21 and
+      is a build-and-typography colophon (Astro, islands architecture, Canela
+      and Lato), carrying no licence, no copyright grant and no statement
+      about automated retrieval. Recorded because a 200 at a plausible path is
+      exactly what a later check would stop at. Absent from three places is
+      not established as absent from the site.
+
+  - id: blog:swyx.io
+    platform: blog
+    endpoint: https://swyx.io/rss.xml
+    site: https://swyx.io/
+    template_block:
+      status: verified
+      checked_on: 2026-09-21
+      pages_examined: 10
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-09-21
+      robots_status: rules
+      robots_group_applies: true
+      robots_http: 200
+      feed_path_allowed: true
+      robots_allows_article_path: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      #: ⚠ THE ONLY `true` IN THIS FILE. See tos_notes - the document was
+      #:   located, fetched and read on 2026-09-21. This is the field that
+      #:   forced `recorded_evidence.terms_document_read` from `[false]` to
+      #:   `[false, true]`, because the gate as written refused the one feed
+      #:   that did the reading.
+      terms_document_read: true
+      feed_type: rss20
+    measured:
+      checked_on: 2026-09-21
+      entries: 432
+      malformed: false
+      median_body_chars: 5780
+      median_feed_summary_chars: 134
+      onhost_ratio: 1.0
+      byline_source: none
+      declared_author: null
+      entry_bylines_present: 0
+      distinct_entry_bylines: 0
+      resolves_to_voices: 0
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
+      names_tracked_model: 1
+      resolves_to_one_model: 1
+      sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE OVERSTATED THIS FEED BY 3.6x (10% sampled, 2.8% actual).
+      population_documents: 432
+      names_tracked_model_population: 12
+      resolves_to_one_model_population: 10
+    notes: >-
+      432 entries, THE LONGEST FEED WINDOW OF THE EIGHTEEN, and the same feed
+      is served at /feed, /feed/, /rss and /rss.xml.
+      NOT SUBSTACK, AND IT WAS WORTH CHECKING: swyx runs Latent Space on
+      Substack, so a custom domain in front of it was the obvious hypothesis
+      and is refuted. 10 of 10 article canonicals point at swyx.io; there is
+      no Substack script or iframe on any of them (the only four iframes are
+      `srcdoc`, self-contained); `substackcdn.com` appears on 1 of 10 pages as
+      a hotlinked image; and of 134 `substack` strings across the ten, 132 are
+      in ONE post that is ABOUT Substack. `latent.space` appears as an
+      OUTBOUND LINK on 5 of 10 - a different host, outside this ruling, on the
+      same reasoning that stopped sebastianraschka.com's feed being followed
+      to magazine.sebastianraschka.com.
+      NO BYLINE: 0 of 432 entries and no feed author, so `anonymous:blog`
+      (ruling §5). Two of the ten articles have bodies under 500 chars (253
+      and 327) and BOTH WERE READ: they are genuine short link-posts
+      announcing a talk with a slides URL, not paywall stubs.
+      1 of 10 names a tracked model and that one also resolves to exactly one.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-09-21.
+      robots.txt 200, `User-agent: * / Allow: /`, and it carries a
+      CONTENT SIGNAL - `Content-signal: search=yes, ai-input=yes` - the only
+      one in this file. That is the publisher speaking about AI use inside the
+      crawl policy. Feed and article paths all allowed; 10 of 10 articles 200,
+      no login.
+
+      TERMS DOCUMENT FOUND AND READ, 2026-09-21, AND IT IS THE ONLY ONE IN
+      THIS FILE. `https://swyx.io/digital-garden-tos`, "Digital Garden Terms
+      of Service", found via the robots-advertised sitemap. It describes
+      ITSELF as "not-legally-binding" and it is a social-norms document about
+      reading and critiquing digital gardens. Read in full (7,845 chars) and
+      searched for crawl, scrape, automated, robot, index, store, dataset and
+      training clauses: THERE ARE NONE. What it does say, affirmatively, is
+      the model this project already publishes under: "You're welcome to
+      quote, with attribution and a link back here."
+      TWO LIMITS, RECORDED SO NOBODY OVER-READS THIS. It also says "I don't
+      waive copyright for commercial purposes", which bites on monetization -
+      already a re-reading trigger on this ruling, and now with a named
+      source for it. And a self-described non-binding document is weaker
+      evidence than a drafted one; it is the author's stated intent, not a
+      licence. It is still the strongest consent any feed here has.
+
+  - id: blog:mattrickard.com
+    platform: blog
+    endpoint: https://mattrickard.com/rss
+    site: https://mattrickard.com/
+    template_block:
+      status: verified
+      checked_on: 2026-09-21
+      pages_examined: 10
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-09-21
+      robots_status: rules
+      robots_group_applies: true
+      robots_http: 200
+      feed_path_allowed: true
+      robots_allows_article_path: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-09-21
+      entries: 10
+      malformed: false
+      median_body_chars: 1895
+      median_feed_summary_chars: 160
+      onhost_ratio: 1.0
+      byline_source: entry
+      declared_author: null
+      entry_bylines_present: 10
+      distinct_entry_bylines: 1
+      resolves_to_voices: 1
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
+      names_tracked_model: 0
+      resolves_to_one_model: 0
+      sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE IS THE POPULATION here - the feed window is 10 entries, so
+      #: there is no deeper archive for it to regress against. The rate is exact.
+      population_documents: 10
+      names_tracked_model_population: 0
+      resolves_to_one_model_population: 0
+    notes: >-
+      ⚠ SEATED UNDER `mattrickard.com`, NOT `matt-rickard.com`. The name it is
+      known by 308-redirects here, and ruling §4 is the reason this row uses
+      the target: `_blog_corpus_census.py:feed_of` joins on the ARTICLE URL's
+      hostname, so a row naming the redirect source would harvest normally and
+      file every one of its own documents as `(unseated: mattrickard.com)`.
+      The target serves its own robots.txt and that is the one obeyed.
+      ONE OF ONLY TWO FEEDS SEATED TODAY THAT PRODUCES A VOICE: 10 of 10
+      entries carry `matt@mattrickard.com (Matt Rickard)`, one distinct
+      byline, so the single-author-row branch applies and `author_id` is set.
+      THE WEAKEST EVIDENCE DENSITY OF THE NINE AND SEATED KNOWING IT: 0 of 10
+      name a tracked model, and the median body is 1,895 chars - short essays,
+      several not about AI at all. Seated for the voice and the cadence, not
+      for the naming rate, and this row is the one to drop first if the pass
+      is trimmed. Astro, Cloudflare; template block clean, canonicals on 10 of
+      10 pointing at mattrickard.com.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-09-21.
+      robots.txt 200 at the redirect TARGET - `User-agent: * / Disallow:`,
+      an empty Disallow permitting everything. Feed and article paths allowed;
+      10 of 10 articles 200, no paywall, no login. RSS 2.0.
+      TERMS PAGE NOT FOUND, checked in THREE places - the sitemap (953 urls),
+      the front page's markup, and eight conventional paths. The sitemap
+      matches for "licence/policy" are ARTICLE SLUGS ("the-business-source-
+      license", "does-financial-policy-matter"), not terms documents; recorded
+      because a keyword match on a sitemap is exactly the false positive a
+      later check would trip on. Absent from three places is not established
+      as absent from the site.
+
+  - id: blog:www.fast.ai
+    platform: blog
+    endpoint: https://www.fast.ai/index.xml
+    site: https://www.fast.ai/
+    template_block:
+      status: verified
+      checked_on: 2026-09-21
+      pages_examined: 10
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-09-21
+      #: `rules` is the observable value; the BODY is a bare `Sitemap:` line
+      #: with no `User-agent` group, so nothing is stated that applies to us.
+      #: Same shape as eugeneyan.com - see the block comment above this
+      #: section, and `robots_group_applies`.
+      robots_status: rules
+      robots_group_applies: false
+      robots_http: 200
+      feed_path_allowed: true
+      robots_allows_article_path: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: rss20
+    measured:
+      checked_on: 2026-09-21
+      entries: 20
+      malformed: false
+      median_body_chars: 9980
+      median_feed_summary_chars: 55
+      onhost_ratio: 1.0
+      byline_source: entry
+      declared_author: null
+      entry_bylines_present: 20
+      distinct_entry_bylines: 7
+      #: ⚠ 0 TODAY, NOT 7, AND THE DIFFERENCE IS A DEFECT OF OURS. See notes
+      #:   and ruling §5: `byline_source: entry` with more than one distinct
+      #:   byline writes the author rows and leaves `document.author_id` NULL
+      #:   (`authors_per_entry_unwired`), which is open issue #373. Recording
+      #:   7 here would be recording an intent as a fact - rule 6.
+      resolves_to_voices: 0
+      resolves_to_voices_when_373_closes: 7
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
+      names_tracked_model: 1
+      resolves_to_one_model: 0
+      sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: SAMPLE OVERSTATED THIS FEED BY 1.0x (10% sampled, 10.0% actual).
+      population_documents: 20
+      names_tracked_model_population: 2
+      resolves_to_one_model_population: 1
+    notes: >-
+      ⚠ SEATED UNDER `www.fast.ai`, NOT `fast.ai`. `fast.ai` 301-redirects
+      here and the entry links are all on `www.fast.ai`; ruling §4 is why the
+      row names the target.
+      THE MOST BYLINED FEED OF THE EIGHTEEN AND IT ADDS NO VOICE TODAY. 20 of
+      20 entries carry a byline across SEVEN distinct authors - Jeremy Howard,
+      Rachel Thomas, Hamel Husain and others, including co-authored entries -
+      and `author` meta on 10 of 10 articles. That is the multi-byline shape
+      `collect/adapters/blog/write.py` counts as `authors_per_entry_unwired`:
+      rows written, `document.author_id` NULL, documents landing in
+      `anonymous:blog`. Issue #373. Seated anyway and deliberately - the
+      bylines are real in the feed, the defect is downstream and ours, and
+      this feed is the strongest argument for fixing it.
+      1 of 10 names a tracked model: fast.ai writes about teaching and
+      practice more than about models. It is seated for VOICES and its naming
+      rate is the low end of this pass - the exact inverse of minimaxir.com,
+      which is ruling §5's trade in two rows.
+      Quarto 1.9.38, Cloudflare; template block clean; four YouTube iframes
+      across the ten, no other third-party embed.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-09-21.
+      robots.txt 200 at the redirect target and it states NO RULES - a bare
+      `Sitemap:` line with no `User-agent` group, so the article paths are
+      unrestricted by OMISSION rather than by permission, and the class A
+      reading carries the weight (see THE 404 CAVEAT, whose reasoning applies
+      to silence at 200 as much as to silence at 404). 10 of 10 articles 200,
+      no paywall, no login. RSS 2.0.
+      TERMS PAGE NOT FOUND, checked in THREE places - the sitemap (165 urls),
+      the front page's markup, and eight conventional paths. The three
+      front-page "policy" matches are ARTICLE SLUGS about technology policy,
+      not terms documents. Absent from three places is not established as
+      absent from the site.
+
+  - id: blog:thorstenball.com
+    platform: blog
+    endpoint: https://thorstenball.com/atom.xml
+    site: https://thorstenball.com/
+    template_block:
+      status: verified
+      checked_on: 2026-09-21
+      pages_examined: 10
+      headings: []
+    base_trust: 0.90
+    provenance: seed
+    terms_ruling: blog-class-a-self-hosted
+    terms_evidence:
+      checked_on: 2026-09-21
+      #: 404. THE SERVER ANSWERED AND THE ANSWER IS THAT THERE ARE NO RULES -
+      #: a definite value, not a missing one. Second feed of the eighteen in
+      #: this position after engineering.grab.com; see THE 404 CAVEAT.
+      robots_status: no-rules
+      robots_group_applies: false
+      robots_http: 404
+      feed_path_allowed: true
+      robots_allows_article_path: true
+      article_http: 200
+      paywall_observed: false
+      login_required: false
+      terms_document_read: false
+      feed_type: atom10
+    measured:
+      checked_on: 2026-09-21
+      entries: 20
+      malformed: false
+      median_body_chars: 4257
+      median_feed_summary_chars: 4268
+      onhost_ratio: 1.0
+      byline_source: feed_declared
+      declared_author: Thorsten Ball
+      entry_bylines_present: 0
+      distinct_entry_bylines: 0
+      resolves_to_voices: 1
+      #: ── SAMPLE, taken BEFORE seating, over the TEN most recent entries ─
+      #: This is the figure the seating decision was made on, kept for that
+      #: reason. It is a RECENCY SAMPLE and not a rate for the feed; the
+      #: population figures below are the rate. Neither is redundant.
+      names_tracked_model: 0
+      resolves_to_one_model: 0
+      sampled_entries: 10
+      #: ── FULL POPULATION, measured 2026-09-21 AFTER the harvest ──────────
+      #: Denominator: documents this feed's CURRENT WINDOW put in `document`,
+      #: not the blog's whole archive - a feed window is all we can see, and a
+      #: post that has dropped out of it was never offered to us.
+      #: Same method as the sample: article text, `RegistrySurfaceFinder` +
+      #: `RegistrySurfaceResolver` over 348 `model_version` rows.
+      #: ⚠ One methodological difference, CHECKED rather than assumed: the
+      #:   population figure is measured over text with this feed's
+      #:   `template_block` ALREADY STRIPPED, and the sample was not, so the
+      #:   two are not byte-identical inputs. Verified on the two feeds seated
+      #:   today that HAVE a block - re-counting the ten most recent STORED
+      #:   (stripped) documents reproduces the pre-seating sample exactly:
+      #:   eugeneyan.com 4/10 and jack-clark.net 8/10. Stripping moves neither,
+      #:   so the sample and population columns are comparable.
+      #: Sample and population agree at zero.
+      population_documents: 20
+      names_tracked_model_population: 0
+      resolves_to_one_model_population: 0
+    notes: >-
+      THE ONLY FULL-TEXT FEED SEATED TODAY - median summary 4,268 chars
+      against median body 4,257 - so this feed could be harvested without
+      article fetches at all. The other eight of this pass carry 55-817
+      character summaries.
+      PRODUCES A VOICE, VIA `feed_declared`. The Atom feed's `author` element
+      names Thorsten Ball and no entry carries a byline of its own, which is
+      the shape simonwillison.net already uses and which
+      `collect/assemble/authors.py:from_blog` handles today. The probe
+      write-up called this a "recoverable case" on the grounds that an
+      entry-level reader misses a feed-level author; that was wrong about this
+      pipeline and is corrected here and in ruling §5.
+      ⚠ THE ENTRY LINKS ARE `http://`, NOT `https://`, on all 20 entries while
+      the feed and the site are served over https. They resolve, and the
+      fetcher follows the upgrade, but robots is re-checked on every redirect
+      hop and this feed exercises that path on every single article.
+      0 of 10 name a tracked model: Thorsten Ball writes about programming
+      craft and the ten sampled span 2018-2026. Seated for the voice and as
+      the pass's only full-text feed, not for naming - with mattrickard.com,
+      one of the two rows to drop first if this pass is trimmed.
+    tos_notes: >-
+      Class A, ruling blog-class-a-self-hosted, evidence checked 2026-09-21.
+      robots.txt returned 404 - THE ABSENCE OF A CRAWL POLICY, which this
+      ruling's live_preconditions accept and which is NOT consent. Where
+      robots is silent the class A reading does all of the work, so it is the
+      reading that has to be right: a public feed, no login, no payment. All
+      three hold - 10 of 10 articles 200, no paywall, no login. Atom 1.0.
+      TERMS PAGE NOT FOUND, checked in THREE places - robots advertises no
+      sitemap so that place was empty rather than searched, the front page's
+      markup, and eight conventional paths. Zero matches. Absent from the two
+      places that existed is not established as absent from the site.
 
   # ── Class B · Medium-hosted ──────────────────────────────────────────────
 

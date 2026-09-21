@@ -456,7 +456,7 @@ class TestStripTemplateBlock:
             "the roster lives in contract/sources.yaml, one entry per feed"
         )
         blogs = [f for f in load_sources().feeds if f.get("platform") == "blog"]
-        assert len(blogs) == 9
+        assert len(blogs) == 18  # 9 until the 2026-09-21 class A re-review
         assert all("template_block" in f for f in blogs), (
             "EVERY blog feed carries the key, so an unexamined feed is a row "
             "somebody can count rather than a key that is missing"
@@ -476,3 +476,58 @@ class TestStripTemplateBlock:
             html, url="https://example.com/a", template_block="Recent articles"
         ) or ""
         assert len(with_rule) <= len(without)
+
+
+class TestAZeroDateIsNotADate:
+    """`lilianweng.github.io` crashed the 2026-09-21 harvest on its 53rd entry.
+
+    Hugo dates a page with no date of its own `Mon, 01 Jan 0001 00:00:00
+    +0000`. That is `timegm` -> -62135596800, and on Windows/CPython 3.11
+    `datetime.fromtimestamp` raises OSError [Errno 22] for it, which was not in
+    `_timestamp_or_none`'s caught tuple. One undated FAQ page took down a
+    seventeen-feed harvest seven feeds in.
+
+    ⚠ THIS TEST FAILED ON CI AND THAT IS WHY IT EXISTS. It was written
+      expecting to pass on Linux "for the wrong reason" - the guess being that
+      the input would raise ValueError there and be caught. It does not raise
+      on Linux AT ALL: `datetime.fromtimestamp(-62135596800, tz=UTC)` returns
+      `datetime(1, 1, 1, tzinfo=UTC)`.
+
+          Windows   raises OSError [Errno 22]    -> loud, caught, None
+          Linux     returns year 1               -> silent, stored, WRONG
+
+      So the first fix (catch OSError) repaired the platform that crashed and
+      left the one that writes `published_at = 0001-01-01` into the database.
+      The nightly chain runs on Linux. The crash was the lucky platform, and
+      the only reason the silent half was ever seen is that CI disagreed with
+      the machine the harvest ran on.
+
+      The test pins the CONTRACT - unrepresentable or sentinel is None - and
+      the implementation now checks the sentinel explicitly instead of relying
+      on an exception that one platform does not raise. #378.
+    """
+
+    def test_hugos_zero_date_becomes_none_rather_than_raising(self):
+        import time
+
+        from collect.adapters.blog.parse import _timestamp_or_none
+
+        assert _timestamp_or_none(time.struct_time((1, 1, 1, 0, 0, 0, 0, 1, 0))) is None
+
+    def test_a_real_date_still_parses(self):
+        """The guard must not swallow the normal case."""
+        import time
+
+        from collect.adapters.blog.parse import _timestamp_or_none
+
+        parsed = _timestamp_or_none(time.struct_time((2026, 9, 21, 10, 30, 0, 0, 264, 0)))
+        assert parsed == datetime(2026, 9, 21, 10, 30, tzinfo=UTC)
+
+    def test_an_absent_date_and_an_unrepresentable_one_agree(self):
+        """Rule 6: both are missing, and neither becomes 1970 or today."""
+        import time
+
+        from collect.adapters.blog.parse import _timestamp_or_none
+
+        assert _timestamp_or_none(None) is None
+        assert _timestamp_or_none(time.struct_time((1, 1, 1, 0, 0, 0, 0, 1, 0))) is None
