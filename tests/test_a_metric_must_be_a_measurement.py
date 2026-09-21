@@ -161,3 +161,73 @@ class TestTheRefusalIsCountedByReason:
         assert metric_refusal(entry(
             value_verbatim="much cheaper", quote="a totally unrelated sentence",
         )) == "no quantity"
+
+
+class TestADigitInAModelNameIsNotAQuantity:
+    r"""#386 item 3. `_HAS_QUANTITY` was `re.compile(r"\d")`, and every modern
+    model name carries a digit, so a sentence passed a gate named for quantity
+    and rendered on the board as a measurement.
+
+    ⚠ THE NEGATIVE CASES ARE THE POINT. A rule that refuses prose is easy; one
+      that refuses prose AND keeps a bare `51` under `unit: score` is the
+      whole difficulty, and the first attempt failed exactly there — anchoring
+      the digit to the row's own unit refused 145 of 452 stored rows because a
+      value need not repeat a unit that has its own column. Measured, not
+      argued, and the obvious rule was 20x worse than this one.
+    """
+
+    def _refusal(self, value, unit="score", quote=None):
+        from judge.store.board_entries import metric_refusal
+
+        return metric_refusal({
+            "section": "metric",
+            "value_verbatim": value,
+            "unit": unit,
+            "quote": quote if quote is not None else f"... {value} ...",
+        })
+
+    def test_the_row_that_reached_the_board(self):
+        """Its only digits are version numbers in two model names."""
+        assert self._refusal(
+            "matches or trails Claude Fable 5 and GPT 5.6 Sol"
+        ) == "no quantity"
+
+    def test_the_other_four_of_its_kind_found_in_the_same_sweep(self):
+        for value in (
+            "outperforms DeepSeek V4 Pro across the board",
+            "same as it was for 3.7 Flash",
+            "p99 stays flat even under burst load",
+            "more than 10x the token adjusted price",
+        ):
+            assert self._refusal(value) == "no quantity", value
+
+    def test_a_date_is_not_a_figure(self):
+        for value in ("September 1, 2026", "June 2026"):
+            assert self._refusal(value, unit="licence name") == "no quantity", value
+
+    def test_a_bare_figure_still_passes_because_the_unit_has_its_own_column(self):
+        """The case the first attempt broke. None of these repeats its unit."""
+        for value, unit in (
+            ("1.000", "accuracy (0-1)"), ("300ms", "milliseconds"),
+            ("51", "score"), ("200K", "tokens"), ("#23", "rank"),
+            ("6/24", "percent"), ("48-hour", "hours"),
+        ):
+            assert self._refusal(value, unit=unit) != "no quantity", value
+
+    def test_a_multi_figure_value_still_passes(self):
+        for value in (
+            "82% vs 78% vs 74%",
+            "$2 per million input tokens and $10 per million output tokens",
+            "1,048,576 input tokens and 65,536 output tokens",
+            "10 files at 174 KB",
+        ):
+            assert self._refusal(value, unit="tokens") != "no quantity", value
+
+    def test_a_hedged_figure_still_passes(self):
+        """A lead-in is not prose. 'about 13 AIC per task' is a measurement."""
+        for value in ("about 13 AIC per task", "roughly 40 minutes per task",
+                      "~40 minutes", "up to 512K"):
+            assert self._refusal(value, unit="minutes") != "no quantity", value
+
+    def test_no_digit_at_all_is_still_refused_the_same_way(self):
+        assert self._refusal("twice as expensive") == "no quantity"

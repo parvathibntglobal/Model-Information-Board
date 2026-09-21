@@ -103,23 +103,54 @@ def _scope_of(entry: dict, searched: frozenset[str]) -> str | None:
     return "searched" if mv in searched else "mentioned"
 
 
-#: A quantity is a digit. Deliberately this crude: `43.5%`, `84 tasks`,
-#: `$0.50 / 1M` and `2.3x` all carry one, and "twice as expensive", "slowest",
-#: "one or two euros" and "volume" do not. A stricter parser would start
-#: deciding which units are real, which is a vocabulary decision and not this
-#: function's to make.
-#: ⚠ RULE 12, AND THIS IS A LIVE VIOLATION OF IT (#386, item 3). "Is there a
-#: digit anywhere" is a test almost nothing fails, because every modern model
-#: name carries one. On 2026-09-21 it published
-#: `'matches or trails Claude Fable 5 and GPT 5.6 Sol'` as a measurement - the
-#: digits it found were `['5','5','6']`, from **Fable 5** and **GPT 5.6**.
-#: The check has been wrong since it was written and only became visible when
-#: a value arrived whose only digits were a version number.
+#: A quantity is a digit the value LEADS WITH. `43.5%`, `84 tasks`,
+#: `$0.50 / 1M`, `2.3x`, `200K`, `#23`, `~40 minutes` all do; "twice as
+#: expensive", "slowest", "one or two euros" and "volume" do not.
 #:
-#: NOT PATCHED WITH A LONGER WORD LIST, deliberately: `_RELATIVE_CLAIM` missing
-#: "trails" is the same shape as `SUBAXIS` missing "batch pricing", and a
-#: fixed vocabulary guessing what writers will say is what #386 is about.
-_HAS_QUANTITY = re.compile(r"\d")
+#: ⚠ THIS CLOSES ONE OF RULE 12's TWO NAMED INSTANCES. It was
+#:   `re.compile(r"\d")` - *is there a digit anywhere?* - which is a test
+#:   almost nothing fails, because every modern model name carries one. On
+#:   2026-09-21 it published `'matches or trails Claude Fable 5 and GPT 5.6
+#:   Sol'` as a measurement; the digits it found were `['5','5','6']`, from
+#:   **Fable 5** and **GPT 5.6**. Wrong since written, visible only when a
+#:   value arrived whose sole digits were a version number (#386 item 3).
+#:
+#: NOT PATCHED WITH A LONGER WORD LIST, deliberately: `_RELATIVE_CLAIM`
+#: missing "trails" is the same shape as `SUBAXIS` missing "batch pricing",
+#: and a fixed vocabulary guessing what writers will say is what #386 is
+#: about.
+#:
+#: MEASURED BEFORE CHANGING IT, over all 496 stored metric rows at the time.
+#: The reported row was one of FIVE of its own kind, not a one-off:
+#:
+#:     matches or trails Claude Fable 5 and GPT 5.6 Sol   model versions
+#:     outperforms DeepSeek V4 Pro across the board       model version
+#:     same as it was for 3.7 Flash                       model version
+#:     p99 stays flat even under burst load               a percentile name
+#:     more than 10x the token adjusted price             relative claim
+#:     September 1, 2026  /  June 2026                    dates, not figures
+#:
+#:   Seven newly refused of the 452 that passed, and no legitimate figure
+#:   among the other 445 moves - `1.000`, `300ms`, `51`, `200K`, `6/24`,
+#:   `82% vs 78% vs 74%` and `$2 per million input tokens and $10 per million
+#:   output tokens` all lead with their number and all still pass.
+#:
+#: WHY LEADING RATHER THAN ANCHORED TO THE UNIT, which was tried first and is
+#: the more obvious idea: anchoring a digit to the row's own `unit` refuses
+#: 145 of 452, because a bare `51` under `unit: score` is exactly right - the
+#: unit lives in its own column so the value need not repeat it. Measured, not
+#: reasoned; the obvious rule was 20x worse.
+#:
+#: The hedge list is about LEAD-INS ("about 13 AIC per task"), not the domain,
+#: which is what keeps this from being the vocabulary guess #386 argues
+#: against - it decides nothing about which units or comparatives are real.
+_LEADING_QUANTITY = re.compile(
+    r"^\s*(?:[~<>≈#±+\-]|\(|\"|')*\s*"
+    r"(?:about|approx\.?|approximately|roughly|around|nearly|over|under|"
+    r"up\s+to|just)?\s*"
+    r"(?:[$€£¥₹]\s*)?\d",
+    re.IGNORECASE,
+)
 
 
 #: What a benchmark name looks like when it CONTINUES past where the extractor
@@ -356,7 +387,7 @@ def metric_refusal(entry: dict) -> str | None:
         # about a metric - "they publish latency numbers" - and the page can
         # show it as evidence without showing it as a measurement.
         return None
-    if not _HAS_QUANTITY.search(value):
+    if not _LEADING_QUANTITY.match(value):
         return "no quantity"
     # Whitespace-insensitive, because a quote crossing a line break renders the
     # figure with a newline in it and that is not a different figure.
