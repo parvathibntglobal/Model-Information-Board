@@ -16,9 +16,9 @@ function goPath(go) {
   // FIRST colon only, because a model key can contain one - and it can contain
   // a slash too (`model_version.id` is canonical for 166 of 1,249 board rows),
   // which is why it goes last in the path and `Board.jsx` rejoins the tail.
-  if (kind === 'jobmodel' || kind === 'capmodel') {
+  if (kind === 'jobmodel' || kind === 'capmodel' || kind === 'metmodel') {
     const j = arg.indexOf(':')
-    const seg = kind === 'jobmodel' ? 'jobs' : 'capabilities'
+    const seg = kind === 'jobmodel' ? 'jobs' : kind === 'capmodel' ? 'capabilities' : 'metrics'
     return j === -1 ? `/board/${seg}` : `/board/${seg}/${arg.slice(0, j)}/${arg.slice(j + 1)}`
   }
   // Out to the model's own page, which holds every section rather than one.
