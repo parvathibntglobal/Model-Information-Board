@@ -3330,10 +3330,6 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
 
     from judge import login
 
-    # Read once: the file is opened per request on purpose (rule 11 -
-    # a cached copy is the stale copy), but not twice in one request.
-    rules = _the_rules()
-
     # (name, default, what it does). The defaults are the ones the code falls
     # back to when the variable is unset, so `overridden` below is a fact.
     # A cap is listed (name, default, what it does). `EXTRACT_MAX_OUTPUT_TOKENS`
@@ -3465,19 +3461,6 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
         # reports the demo-credentials case, which is the one that matters on
         # anything reachable.
         "auth": auth_state(),
-        # ⚠ WHAT THE MODEL IS ACTUALLY ASKED, AND THE RULES IT IS ASKED UNDER.
-        # Both read from source on every request. Neither is a copy, and the
-        # page says so - the value of putting a prompt on an admin page is
-        # entirely in it being the live one.
-        "contract": {
-            "extraction_fields": _what_the_extractor_is_asked(),
-            "rules": rules,
-            # A container ships the code without the repository
-            # (`.dockerignore` excludes `.git/`), so the rules file can
-            # genuinely be absent. Said rather than rendered as "no rules".
-            "rules_source_readable": bool(rules),
-            "read_from_source_at": datetime.now(UTC).isoformat(),
-        },
         "runtime": {
             "python": platform.python_version(),
             "fastapi": _installed("fastapi"),
@@ -3825,9 +3808,30 @@ def admin_prompts() -> dict:
             "built_by": "judge/extract/prompt.py",
         })
 
+    # Read once per request on purpose (rule 11 - a cached copy is the
+    # stale copy), but not twice in one response.
+    rules = _the_rules()
     return {
         "prompts": prompts,
         "count": len(prompts),
+        # ⚠ THE TOOL-CALL SCHEMA IS PART OF THE PROMPT, and it was the missing
+        # half of this page. `prompts` above is the system message, the user
+        # message and the two retry corrections; the FIELD DESCRIPTIONS are
+        # sent in the same call and are what the model is actually asked to
+        # fill in. A page listing four strings and omitting seventeen field
+        # instructions describes a fraction of what the model reads.
+        #
+        # Read from the Pydantic model on every request, like everything else
+        # here. `axis_verbatim` has been rewritten twice in a week; a
+        # transcription would be describing neither version (rule 11).
+        "schema_fields": _what_the_extractor_is_asked(),
+        # NOT SENT TO A MODEL, and the page must say so. These are the
+        # constraints the pipeline is built under, not instructions the
+        # extractor reads - putting them on this page without that distinction
+        # would imply the model has been told them.
+        "rules": rules,
+        "rules_source_readable": bool(rules),
+        "read_from_source_at": datetime.now(UTC).isoformat(),
         # SAID, BECAUSE A LIST THAT LOOKS EXHAUSTIVE AND IS NOT IS WORSE THAN NO
         # LIST. Both groups are named so their absence is a statement.
         "not_shown": [

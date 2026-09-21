@@ -1157,21 +1157,37 @@ def list_for_review(conn) -> list[dict]:
     #   thing anyone saw rather than the first.
     quotes_by_group: dict[tuple[str, str], list[dict]] = {}
     ruled_by_group: dict[tuple[str, str], list[dict]] = {}
-    for section, slug, entry_id, quote, polarity, mv, doc, ruling, _rn in conn.execute(
-        "SELECT section, slug, id, quote, polarity, model_version_id, "
-        "       document_id, ruling, rn FROM ("
+    # ⚠ THE MODEL'S NAME, NOT ONLY ITS ID. A reviewer ruling on a quote is
+    #   deciding whether THIS MODEL is fairly described by it, and the raw
+    #   column is `mv_6d0dcdfbe2d7fa18` for most rows - an internal key in the
+    #   place a model name belongs, which is #278 exactly. The panel groups the
+    #   quotes by model so a ruling can be made per model rather than per slug,
+    #   and a heading reading `mv_6d0dcdf…` would make that grouping useless.
+    #
+    #   LEFT JOIN, and matched on either shape: `model_version_id` holds a
+    #   canonical id for some rows and an internal one for others. A row whose
+    #   model does not resolve keeps its raw id as the label rather than going
+    #   blank - an id nobody can resolve still names the row to go and look at.
+    for section, slug, entry_id, quote, polarity, mv, label, doc, ruling, _rn in conn.execute(
+        "SELECT r.section, r.slug, r.id, r.quote, r.polarity, r.model_version_id, "
+        "       coalesce(v.display_name, v.canonical_id, r.model_version_id) AS model_label, "
+        "       r.document_id, r.ruling, r.rn FROM ("
         "  SELECT *, row_number() OVER ("
         "    PARTITION BY section, slug, (ruling IS NULL) "
         "    ORDER BY CASE WHEN ruling IS NULL THEN created_at END ASC, "
         "             CASE WHEN ruling IS NULL THEN NULL ELSE created_at END DESC, "
         "             id"
         "  ) AS rn FROM board_entry"
-        ") ranked WHERE rn <= 5 ORDER BY section, slug, rn"
+        ") r "
+        "LEFT JOIN model_version v "
+        "  ON v.id = r.model_version_id OR v.canonical_id = r.model_version_id "
+        "WHERE r.rn <= 5 ORDER BY r.section, r.slug, r.rn"
     ).fetchall():
         target = quotes_by_group if ruling is None else ruled_by_group
         target.setdefault((section, slug), []).append({
             "id": entry_id, "quote": quote, "polarity": polarity,
-            "model_version_id": mv, "document_id": doc, "ruling": ruling,
+            "model_version_id": mv, "model_label": label or mv,
+            "document_id": doc, "ruling": ruling,
         })
 
     # HOW MANY ROWS CARRY EACH RULING, because `max(ruling)` above stops meaning
