@@ -71,7 +71,7 @@ export default function DatabasePanel() {
       <div style={{ padding: '0 var(--s4)' }}>
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           The database name, which is what tells you this is the one you meant.{' '}
-          <strong style={{ color: 'var(--text-1)' }}>
+          <strong style={{ color: 'var(--text)' }}>
             No credential and no host address is shown
           </strong>
           , and neither is in the payload behind this page.
@@ -206,7 +206,7 @@ export default function DatabasePanel() {
                   {/* ⚠ RULE 7. The figure travels with its denominator — a bare
                       percentage here would be the same number with the thing it
                       measures removed. */}
-                  <strong style={{ color: 'var(--text-1)' }}>
+                  <strong style={{ color: 'var(--text)' }}>
                     {of.toLocaleString()} of {per.toLocaleString()}
                   </strong>{' '}
                   {r.label} ({Math.round((of / per) * 100)}%). {r.why}

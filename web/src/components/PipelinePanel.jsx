@@ -23,10 +23,10 @@ import { IconAlert, IconLayers } from './Icons'
 // Bar/segment colours by tone. Fallbacks so the bar renders even before the
 // theme vars load — a colourless bar would read as one undivided bucket.
 const TONE = {
-  pass: 'var(--ok, #6aa06f)',
+  pass: 'var(--pass)',
   warn: 'var(--warn, #d08770)',
-  fail: 'var(--bad, #bf616a)',
-  mute: 'var(--bg-3, rgba(127,127,127,.22))',
+  fail: 'var(--fail)',
+  mute: 'var(--surface-3))',
 }
 
 // job_run.outcome → badge tone. 'refused' is a deliberate decline (a gate, a
@@ -118,7 +118,7 @@ function Stage({ s }) {
           <div
             style={{
               display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden',
-              background: 'var(--bg-3, rgba(127,127,127,.14))',
+              background: 'var(--surface-3))',
             }}
             role="img"
             aria-label={`${s.total} ${s.unit}`}

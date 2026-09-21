@@ -128,3 +128,54 @@ class TestEveryClassNameIsDefined:
         declared = _declared()
         assert "input" in declared, "the merge box is unreadable again"
         assert "fold" in declared, "the settings contract rows are unstyled"
+
+
+class TestAModelIsShownByName:
+    """⚠ TWO RENDER SITES, ONE FIXED, AND THE READER FOUND THE OTHER.
+
+    The board review printed `mv_9a8f4a62b182ff64` where a model name belongs
+    (#278). The quote list was fixed by resolving the label in
+    `list_for_review`; the "already ruled" receipt below it printed
+    `q.model_version_id` directly and was missed — so the defect survived its
+    own fix, in the same file, forty lines down.
+
+    Measured 2026-09-21: 0 of 719 review quotes fail to resolve server-side,
+    so an id on this panel means a render site that forgot to ask for the
+    name, not a model the registry does not know.
+    """
+
+    def test_no_render_site_prints_a_raw_model_id_without_trying_the_name(self):
+        src = (ROOT / "web" / "src" / "components" / "BoardReview.jsx").read_text(encoding="utf-8")
+        # ⚠ BLOCK STATE, NOT A PREFIX TEST. The first version skipped lines
+        #   STARTING with a comment marker, and a JSX block comment explaining
+        #   this very rule wraps onto lines that start with a backtick — so
+        #   the check failed on its own documentation. Fourth time this
+        #   repository has hit mention-versus-use, and the first three are
+        #   written down in `test_the_board_drills_down.py`.
+        in_block = False
+        for i, line in enumerate(src.splitlines(), 1):
+            stripped = line.strip()
+            if not in_block and ("{/*" in line or "/*" in line) and "*/" not in line:
+                in_block = True
+                continue
+            if in_block:
+                if "*/" in line:
+                    in_block = False
+                continue
+            if stripped.startswith("//"):
+                continue
+            if "model_version_id" not in line:
+                continue
+            assert "model_label" in line, (
+                f"BoardReview.jsx:{i} renders a model id without preferring "
+                f"`model_label` first: {stripped}"
+            )
+
+    def test_the_backend_resolves_the_name_for_every_review_quote(self):
+        # Structural: the query must do the join, because a frontend cannot
+        # resolve an id it was never sent.
+        store = (ROOT / "judge" / "store" / "board_entries.py").read_text(encoding="utf-8")
+        block = store[store.index("def list_for_review"):]
+        block = block[:block.index(chr(10) + "def ")]
+        assert "coalesce(v.display_name, v.canonical_id, r.model_version_id)" in block
+        assert '"model_label": label or mv,' in block

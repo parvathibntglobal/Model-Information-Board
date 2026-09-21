@@ -532,8 +532,22 @@ export default function BoardReview() {
                           <Badge tone={q.ruling === 'declined' ? 'fail' : 'pass'}>
                             {q.ruling}
                           </Badge>
-                          <span className="dim" style={{ fontSize: 11 }}>
-                            {q.model_version_id || 'no model recorded'}
+                          {/* ⚠ THE NAME, NOT THE ID. This receipt printed
+                              `q.model_version_id` directly and was the last
+                              place on the panel still showing
+                              `mv_9a8f4a62b182ff64` where a model name
+                              belongs (#278) - the quote list above it was
+                              fixed and this was not, which is exactly how a
+                              second instance of one defect survives a fix for
+                              the first.
+
+                              Falls back to the id rather than to nothing: an
+                              id nobody can resolve still names the row to go
+                              and look at. Measured 2026-09-21, 0 of 719
+                              review quotes need that fallback. */}
+                          <span className={`dim${q.model_label ? '' : ' mono'}`}
+                                style={{ fontSize: 11 }}>
+                            {q.model_label || q.model_version_id || 'no model recorded'}
                           </span>
                         </div>
                         <blockquote style={{ margin: 0, fontSize: 'var(--fs-xs)',

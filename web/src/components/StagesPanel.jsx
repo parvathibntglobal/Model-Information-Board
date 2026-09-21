@@ -70,7 +70,7 @@ export default function StagesPanel() {
       <div style={{ padding: '0 var(--s4)' }}>
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           Every stage a fetch emits, in the order it runs them.{' '}
-          <strong style={{ color: 'var(--text-1)' }}>No counts here on purpose</strong> —
+          <strong style={{ color: 'var(--text)' }}>No counts here on purpose</strong> —
           those are on the fetch log beside each stage, attached to the run they belong
           to. The list is read from the file that emits the stages, so a new one shows
           up here the moment it exists.
@@ -117,7 +117,7 @@ export default function StagesPanel() {
 
                     {s.what && (
                       <p style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: '4px 0 0',
-                                  color: 'var(--text-1)', lineHeight: 1.6 }}>
+                                  color: 'var(--text)', lineHeight: 1.6 }}>
                         {s.what}
                       </p>
                     )}

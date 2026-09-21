@@ -34,8 +34,8 @@ function Terms({ terms }) {
     <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
       {terms.map((t, i) => (
         <span key={i} className="mono" style={{
-          ...chip, color: 'var(--text-1)', background: 'var(--surface)',
-          border: '1px solid var(--border)', borderRadius: 'var(--r2)',
+          ...chip, color: 'var(--text)', background: 'var(--surface)',
+          border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
           padding: '2px 7px', wordBreak: 'break-word', maxWidth: '100%',
         }}>{t}</span>
       ))}
@@ -72,7 +72,7 @@ export default function KeywordsPanel() {
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           Read through the same call the harvest makes, so these are the terms that
           would go out on the next fetch.{' '}
-          <strong style={{ color: 'var(--text-1)' }}>The arms do not search alike</strong> —
+          <strong style={{ color: 'var(--text)' }}>The arms do not search alike</strong> —
           each takes a different number of terms, for reasons of quota and cost.
         </p>
       </div>
@@ -115,7 +115,7 @@ export default function KeywordsPanel() {
               </p>
               {data.capability_queries.map((q, i) => (
                 <div key={i} className="stack stack-1"
-                     style={{ borderLeft: '2px solid var(--line)', paddingLeft: 12 }}>
+                     style={{ borderLeft: '2px solid var(--border)', paddingLeft: 12 }}>
                   <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
                     <span className="mono" style={chip}>{q.capability}</span>
                     <Badge tone={q.stance === 'positive' ? 'pass' : 'warn'}>{q.stance}</Badge>
@@ -136,7 +136,7 @@ export default function KeywordsPanel() {
           <span className="label">Per model</span>
           {(data?.models || []).map((m) => (
             <div key={m.name} className="stack stack-1"
-                 style={{ borderLeft: '2px solid var(--line)', paddingLeft: 12 }}>
+                 style={{ borderLeft: '2px solid var(--border)', paddingLeft: 12 }}>
               {/* THE HEADING IS THE CONTROL. This used to be a static row with a
                   "Show what each platform gets" button under it, which is a
                   second line of content per model - thirteen models, thirteen
@@ -212,14 +212,14 @@ export default function KeywordsPanel() {
                                 <div className="disc-body stack stack-1">
                                   {m.github_queries.map((q, i) => (
                                     <div key={i} className="stack stack-1"
-                                         style={{ borderLeft: '1px solid var(--line)', paddingLeft: 10 }}>
+                                         style={{ borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
                                       <span className="dim" style={chip}>
                                         {q.entry}
                                         {q.narrowing_token ? ` · narrowed on "${q.narrowing_token}"` : ''}
                                       </span>
                                       <span className="mono" style={{
-                                        ...chip, color: 'var(--text-1)', background: 'var(--surface)',
-                                        border: '1px solid var(--border)', borderRadius: 'var(--r2)',
+                                        ...chip, color: 'var(--text)', background: 'var(--surface)',
+                                        border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
                                         padding: '3px 7px', wordBreak: 'break-word',
                                       }}>{q.query}</span>
                                     </div>

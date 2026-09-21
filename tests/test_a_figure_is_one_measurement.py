@@ -59,17 +59,15 @@ def _strip_css_comments(text: str) -> str:
 #:
 #: This is `tests/test_cli_write_gate.py`'s `READ_ONLY` idiom: an explicit set,
 #: so retiring one is a visible diff and adding one is a failure.
-#: ⚠ SEVEN MORE, IN INLINE STYLES RATHER THAN STYLESHEETS, found when a
-#: reader asked why a panel looked crowded and the file turned out to be
-#: setting `borderLeft: '2px solid var(--line)'`. Each is dropped as invalid,
-#: so the element silently keeps whatever it inherited.
+#: ⚠ EMPTY, AND IT HELD SEVEN. Found when a reader asked why a panel looked
+#: crowded and the file turned out to be setting
+#: `borderLeft: '2px solid var(--line)'` - a token nothing defines, so the
+#: declaration was dropped and the border never drew.
 #:
-#: `PromptsPanel.jsx` is not listed: its three were fixed in the same change,
-#: because that file was being rewritten anyway and leaving known-bad tokens
-#: in a file you are already editing is a different thing from not sweeping.
-KNOWN_UNDEFINED_INLINE = {
-    "--bad", "--bg-3", "--fs-2xs", "--line", "--ok", "--r2", "--text-1",
-}
+#: All seven are fixed. Kept as an empty set rather than deleted, because the
+#: check below is what makes an eighth impossible to add quietly, and a reader
+#: wondering whether this was ever a problem should find the answer here.
+KNOWN_UNDEFINED_INLINE: set[str] = set()
 
 KNOWN_UNDEFINED = {
     "app.css": {"--adm-nav", "--line", "--r2", "--t-fast", "--text-1"},

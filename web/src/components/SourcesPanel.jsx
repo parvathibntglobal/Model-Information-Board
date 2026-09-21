@@ -62,7 +62,7 @@ export default function SourcesPanel() {
           Read from <span className="mono">contract/sources.yaml</span>, the same file
           the harvest reads — so this is what actually runs, not a description of it.
           Each row says how the platform is reached and whether a key is used.{' '}
-          <strong style={{ color: 'var(--text-1)' }}>No key is shown anywhere</strong>,
+          <strong style={{ color: 'var(--text)' }}>No key is shown anywhere</strong>,
           and none is in the payload behind this page.
         </p>
       </div>

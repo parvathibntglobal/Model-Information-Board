@@ -54,7 +54,7 @@ export default function SettingsPanel() {
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           Read from the running process — the values this backend is actually
           using, not the ones a config file declares.{' '}
-          <strong style={{ color: 'var(--text-1)' }}>
+          <strong style={{ color: 'var(--text)' }}>
             No key, token or secret is shown here or carried in the payload
           </strong>
           ; a credential appears only as set or not set.

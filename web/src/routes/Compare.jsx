@@ -201,7 +201,7 @@ export default function Compare() {
           <div className="stack stack-1">
             {unsourced.map((u) => (
               <p key={u.row} className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '80ch' }}>
-                <strong style={{ color: 'var(--text-1)' }}>
+                <strong style={{ color: 'var(--text)' }}>
                   {u.row.replace(/_/g, ' ')}
                 </strong>{' '}
                 — {u.why}.
