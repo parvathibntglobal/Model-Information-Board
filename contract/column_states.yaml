@@ -88,6 +88,40 @@ columns:
       reviewed: false
       state: reserved
   board_entry:
+    axis_quoted:
+      known_gap: the writer is #368 item 3 (store_entries, beside axis_slug) and the renderer is item 4 (db.js/views.js) - both hers, both held until this column exists
+      reviewed: true
+      state: unwired
+      why: >-
+        Added by 20260921T1330 for #368. Three states - NULL predates the
+        check, true means the axis was copied and found in the quote, false
+        means checked and not backed by it. UNWIRED on purpose and briefly:
+        the writer is item 3 and the page is item 4, both hers, and she is
+        holding them until this column exists rather than writing against one
+        that does not. Declared rather than deferred (rule 9): the readers are
+        named and the reason they cannot read yet is that the column landed
+        first, by agreement.
+    axis_verbatim:
+      known_gap: the writer is #368 item 3; the value already exists on the extraction schema and is discarded at write time
+      reviewed: true
+      state: unwired
+      why: >-
+        Added by 20260921T1330. The benchmark name copied from the quote.
+        Carried on the extraction schema since #385 and thrown away at write
+        time - `axis_slug()` used it to set `slug` and discarded it - so a
+        stored row could not be asked what its slug came from. Intended reader
+        is the metrics page via #368 item 4.
+    subject_verbatim:
+      known_gap: the writer is #368 item 3; same discard, and it is the field the Spotify/Gemini misattribution turns on
+      reviewed: true
+      state: unwired
+      why: >-
+        Added by 20260921T1330. The model name copied from the quote, NULL
+        when the quote named none. The live case: three entries attribute a
+        capability to google/gemini-2.5-flash from a Spotify post whose quotes
+        say only "the worker model". NULL here beside a non-NULL
+        model_version_id means the attribution was inferred from the document
+        rather than read from the quote. Intended reader is the same page.
     basis:
       reviewed: true
       state: read
