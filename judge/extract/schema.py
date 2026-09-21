@@ -283,6 +283,76 @@ class BoardEntry(BaseModel):
             "number is a claim they did not make."
         ),
     )
+    #: ⚠ TWO FIELDS THAT EXIST TO BE CHECKED, NOT TO BE TRUSTED.
+    #:
+    #: A metric figure needs four things true together, and only two were ever
+    #: verifiable: that it is a quantity, and that it appears in its own quote.
+    #: The other two — that it belongs to THIS model and THIS axis — were asked
+    #: for and never shown, so nothing could check them.
+    #:
+    #: Measured 2026-09-18 over 440 stored figures: nine different benchmarks
+    #: sat under one `swe-bench` slug (SWE-bench Verified, SWE-Bench Pro,
+    #: Terminal-Bench 4.0, AutomationBench, CursorBench 3.2.0, OSWorld-2.0,
+    #: DeepSWE v1.1, "the hard biology set"), and 58.2% of figures had a quote
+    #: naming no model at all.
+    #:
+    #: ⚠ BOTH ARE OPTIONAL, AND THE FIRST VERSION SAID "REQUIRED" WHILE ALSO
+    #: SAYING "LEAVE THIS EMPTY". Measured on the first run that asked for them:
+    #: 22 metric figures, 0 ABSENT and 19 naming an axis the quote does not
+    #: contain. The extractor was never allowed to say "the quote names none",
+    #: so it named something every time - 'API pricing' for a quote reading
+    #: "Input: $10 per million tokens", 'GPT-6 Astra' for one reading "Astra".
+    #:
+    #: A field that cannot be left empty is a field that will be guessed, and a
+    #: guess here is indistinguishable from a copy until code checks it. Empty
+    #: is now stated first, and stated as correct.
+    #:
+    #: THE FIX IS THE ONE THAT ALREADY WORKS HERE. `value_verbatim` is reliable
+    #: not because its instruction is emphatic — it is, and 10% of figures still
+    #: were not in their quote — but because code can check the copy against the
+    #: text. So these ask for the same thing: COPY THE WORDS, and code verifies
+    #: them the same way. A field nothing can check is a field that goes wrong
+    #: eventually and silently.
+    axis_verbatim: str | None = Field(
+        default=None,
+        description=(
+            "OPTIONAL, and empty is a correct answer. Most quotes carrying a "
+            "figure do not name a benchmark, and those must be left empty. "
+            "COPY, NEVER NAME. If the quote names a benchmark or axis, copy it "
+            "character for character from the quote: 'SWE-bench Verified', "
+            "'Terminal-bench 4.0', 'OSWorld-2.0'. Code checks that what you "
+            "write appears in the quote and discards anything else, so there is "
+            "nothing to gain by filling this in. "
+            "LEAVE IT EMPTY when the quote names no benchmark. 'Input: $10 per "
+            "million tokens' names none — 'API pricing' is a category you "
+            "inferred, not a name the text wrote, and it is worse than empty. "
+            "Do not expand an abbreviation, do not add a version the text did "
+            "not write, and never substitute the better-known benchmark you "
+            "think was meant: a Terminal-bench figure filed as SWE-bench is a "
+            "wrong number on a page, not a near miss. "
+            "An unnamed axis is a fact about the evidence; a guessed one is a "
+            "fact about nothing."
+        ),
+    )
+    subject_verbatim: str | None = Field(
+        default=None,
+        description=(
+            "OPTIONAL, and empty is a correct answer. "
+            "COPY, NEVER NAME. If the quote names the model this figure is "
+            "about, copy it exactly as the quote spells it. Write 'Astra' if "
+            "the quote says Astra — do NOT expand it to 'GPT-6 Astra', even "
+            "though that is the fuller name, because code checks your copy "
+            "against the quote and an expansion is not a copy. "
+            "LEAVE IT EMPTY when the quote names no model — a table cell "
+            "reading '1M context' names none. The figure is then recorded as "
+            "unattributed, which is honest. Naming the model the thread happens "
+            "to be about would attach somebody else's number to it, and that is "
+            "the defect this field exists to end. "
+            "Where a quote compares several models, give the one THIS figure "
+            "belongs to and no other."
+        ),
+    )
+
     basis: MetricBasis | None = Field(
         default=None,
         description=(

@@ -169,6 +169,24 @@ stages:
       would force a quote into the nearest existing key and manufacture
       agreement about something nobody said.
 
+  E5d:
+    what: >-
+      Counts whether each metric figure could QUOTE the benchmark it belongs to
+      and the model it is about, rather than having them assigned. Measures
+      only: nothing is stored and nothing is refused.
+    why: >-
+      A metric needs four things true together and only two can be checked - that
+      it is a quantity, and that it appears in its own quote. Which axis and
+      which model are asked for and never shown, which is how nine benchmarks
+      came to sit under one `swe-bench` slug and one model collected eight
+      figures that were not its own. The repair is to make the extractor copy
+      both out of the evidence so code can check them the same way; this line
+      answers whether it will. No migration was needed in the end: the grouping
+      key a metric page uses is `slug`, and a verified axis becomes that slug,
+      so each benchmark gets its own page instead of nine sharing one. An axis
+      the quote does not contain is refused rather than filed under the name it
+      was given.
+
   E5b:
     what: >-
       Maps each claim onto the ratified capability list.
