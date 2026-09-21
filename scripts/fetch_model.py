@@ -228,6 +228,17 @@ class Progress:
         #: down for the length of a run, and re-attempting a connection on
         #: every stage line turns a quiet mirror into a per-line timeout.
         self._mirror = True
+        #: EVERY STAGE THAT REPORTED `error`, IN ORDER, DEDUPED. The end record
+        #: is derived from this rather than from what the caller believes.
+        #:
+        #: WHY IT HAS TO BE HERE AND NOT IN `main`. Each stage in `main` is
+        #: wrapped in its own `try/except` on purpose - a Reddit quota error
+        #: must not throw away a GitHub harvest that already succeeded - and
+        #: that per-stage isolation is right and stays. What was missing is the
+        #: last step: nothing consulted whether any handler had fired before
+        #: declaring the run `ok`. A flag kept by the object that writes the log
+        #: cannot be forgotten by a future stage the way an `if` in `main` can.
+        self._errored: list[str] = []
         #: TWO THREADS WRITE NOW, so `_seq` and the file append need one. The
         #: heartbeat below runs off the main thread on purpose — that is the
         #: whole point of it — and two unsynchronised appends would interleave a
@@ -330,19 +341,56 @@ class Progress:
         # so the log line is a finding, not just a heartbeat.
         self._write({"kind": "stage", "id": id_, "name": name,
                      "status": status, "at": _now(), **fields})
+        if status == "error" and id_ not in self._errored:
+            self._errored.append(id_)
         # AFTER the write, never before: the stage that just finished is a real
         # finding and belongs in the log whether or not the run continues.
         self.checkpoint()
 
-    def done(self, status: str, detail: str = "") -> None:
-        """The run's last line. NEVER checkpoints - this is how a stop is
-        recorded, and a `done` that could raise `RunStopped` would leave the
-        run with no end record and the UI polling a run that had finished."""
+    def done(self, status: str, detail: str = "") -> str:
+        """The run's last line. Returns the status actually written.
+
+        NEVER CHECKPOINTS - this is how a stop is recorded, and a `done` that
+        could raise `RunStopped` would leave the run with no end record and the
+        UI polling a run that had finished.
+
+        ⚠ `ok` IS EARNED, NOT ASSERTED. A caller passing `ok` is stating its
+          own control flow reached the end, which is a different claim from
+          "the run did what it was for". `main` calls every stage inside its
+          own handler, so control flow reaches the end whatever happened, and
+          10 of 16 local runs, 11 of 23 on the other machine and 12 of 50 in
+          the shared `fetch_log` ended `ok` with at least one errored stage
+          (#327). The worst had eleven. At the summary line - which is what the
+          UI shows and what a person checks - those were indistinguishable from
+          clean runs.
+
+          Two of them were measured again on 2026-09-21 and are why this
+          landed: both fetches reported `fetch complete`, and both had lost E5
+          to a provider 504 and 502. E5 raising means E5c, E5b, E6 and E7 never
+          ran, and E7 is what recomputes cells - so the runs read as complete
+          while nothing they collected reached a page.
+
+        ⚠ IT ONLY EVER DOWNGRADES `ok`. `stopped` stays `stopped` - a
+          deliberate halt is not a failure and #327 is not a licence to call it
+          one - and an explicit `error` keeps the detail its caller chose,
+          which is more specific than anything derivable here.
+
+        ⚠ AND IT SAYS WHICH STAGES, because "error" alone sends a reader back
+          to the log to find out what the log already knew. Rule 4: a caused
+          absence has to say it was caused.
+        """
+        if status == "ok" and self._errored:
+            status = "error"
+            detail = (
+                f"{len(self._errored)} stage(s) errored and the run did not "
+                f"complete: {', '.join(self._errored)}"
+            )
         # THE HEARTBEAT STOPS FIRST. A beat written after the end record would
         # sort after it, and a run whose last line is `alive` reads as one that
         # came back from the dead.
         self._stop_beating.set()
         self._write({"kind": "end", "status": status, "detail": detail, "at": _now()})
+        return status
 
 
 def _now() -> str:
@@ -2369,8 +2417,10 @@ def main(argv: list[str] | None = None) -> int:
             _safe_rollback(db.raw)
             prog.stage("E5", "Extract", "error", detail=str(exc).splitlines()[0][:200])
 
-        prog.done("ok", "fetch complete")
-        return 0
+        # THE EXIT CODE IS THE SAME CLAIM IN THE OTHER CHANNEL. A run that
+        # reports `error` in its log and 0 to its caller has only moved the
+        # defect: the nightly chain reads the code, not the JSONL.
+        return 0 if prog.done("ok", "fetch complete") == "ok" else 1
     except RunStopped:
         # A DELIBERATE HALT IS NOT A FAILURE, and the log must not call it one.
         # `stopped` is its own end status so the history reads "stopped" rather
