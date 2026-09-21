@@ -108,6 +108,17 @@ def _scope_of(entry: dict, searched: frozenset[str]) -> str | None:
 #: "one or two euros" and "volume" do not. A stricter parser would start
 #: deciding which units are real, which is a vocabulary decision and not this
 #: function's to make.
+#: ⚠ RULE 12, AND THIS IS A LIVE VIOLATION OF IT (#386, item 3). "Is there a
+#: digit anywhere" is a test almost nothing fails, because every modern model
+#: name carries one. On 2026-09-21 it published
+#: `'matches or trails Claude Fable 5 and GPT 5.6 Sol'` as a measurement - the
+#: digits it found were `['5','5','6']`, from **Fable 5** and **GPT 5.6**.
+#: The check has been wrong since it was written and only became visible when
+#: a value arrived whose only digits were a version number.
+#:
+#: NOT PATCHED WITH A LONGER WORD LIST, deliberately: `_RELATIVE_CLAIM` missing
+#: "trails" is the same shape as `SUBAXIS` missing "batch pricing", and a
+#: fixed vocabulary guessing what writers will say is what #386 is about.
 _HAS_QUANTITY = re.compile(r"\d")
 
 
@@ -488,7 +499,14 @@ def store_entries(
 #:   axis work lands, or because a reviewer rules on it - appears with no
 #:   migration.
 #:
-#: MEASURED OVER THE 447 ROWS IN THE SHARED DATABASE, 2026-09-21:
+#: RULE 11: THIS IS A RECORD, NOT A DESCRIPTION OF NOW. It said `447 stored /
+#: 269 shown` in the present tense when it landed at 10:15 on 2026-09-21, and
+#: by 10:50 the database held 471 and showed 290 - a run wrote in between. The
+#: ratio is the justification for withholding at all, so a reader checking
+#: whether the trade is still fair needs to know this is a snapshot and go and
+#: count. `board_sections` returns the live counts under `_withheld`.
+#:
+#: WAS, WHEN MEASURED ON 2026-09-21 AT 10:15, OVER 447 ROWS:
 #:
 #:     447  metric rows stored
 #:      75  already declined by a reviewer (all 39 `swe-bench`, all 36
@@ -564,6 +582,42 @@ _RELATIVE_CLAIM = re.compile(
 #: refused it for not starting with a dollar sign.
 _CURRENCY = re.compile(r"[$\u20ac\u00a3]\s*\d|\d\s*(?:\u00a2|cents?\b)", re.IGNORECASE)
 _MONEY_UNIT = re.compile(r"usd|\$|cost|price", re.IGNORECASE)
+
+
+def spelling_key(slug: str) -> str:
+    """The letters of a slug with its separators removed. Rule 10.
+
+    ⚠ NOT SYNONYM RESOLUTION, AND THE DISTINCTION IS THE WHOLE LICENCE FOR IT.
+      `normalise_slug` refuses to fold `tool-calling` into `function-calling`
+      because that is a judgement about MEANING and belongs to a person. This
+      folds `exploit-bench` into `exploitbench`, which is a judgement about
+      NOTHING: they are the same letters in the same order, and one writer put
+      a hyphen where another did not.
+
+    WHY A PROMPT CANNOT FIX THIS AND SO CODE HAS TO. The extractor is required
+    to copy the axis CHARACTER FOR CHARACTER from the quote - that rule is what
+    stopped a Terminal-bench figure being filed as SWE-bench (#368). Two
+    documents spelling one benchmark two ways therefore MUST produce two
+    spellings; asking the model to normalise would be asking it to write
+    something the text does not say, which is the defect, not the fix.
+
+    MEASURED 2026-09-21 over the 314 published figures and 104 axes:
+
+        exploit-bench / exploitbench    5 figures, one benchmark
+        exploit-gym   / exploitgym      4 figures, one benchmark
+
+    ⚠ WHAT IT DELIBERATELY DOES NOT TOUCH. A digit is a letter here, so
+      `osworld` and `osworld-2` keep their separate keys - they are different
+      versions of a benchmark and merging them would be the #368 defect with
+      the sign flipped. Same for `arc-agi` / `arc-agi-3` and
+      `posttrainbench` / `posttrainbench-plus`. Only the separators go.
+    """
+    return _SEPARATORS.sub("", slug or "")
+
+
+#: Everything `normalise_slug` uses to join words. Removing them cannot change
+#: which characters a slug contains, only how they are grouped.
+_SEPARATORS = re.compile(r"[-_\s]+")
 
 
 def board_sections(conn: Any) -> dict[str, list[dict]]:
@@ -738,11 +792,22 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         model_key = registry_id or mv_id
         if section not in grouped:
             continue
+        # THE BUCKET KEY IGNORES SEPARATORS; the slug shown is chosen below
+        # from the spellings actually written. Applied to every section, not
+        # only metrics: a capability named `function-calling` by one writer
+        # and `functioncalling` by another has the same problem and nobody had
+        # looked.
+        skey = spelling_key(slug)
         bucket = grouped[section].setdefault(
-            slug,
+            skey,
             {
                 "slug": slug, "name": name, "definition": definition,
                 "unit": unit, "quotes": [], "figures": [],
+                # ⚠ COUNTED SO THE SHOWN SPELLING IS THE ONE MOST WRITERS USED,
+                # not whichever row the ORDER BY happened to put first. A page
+                # whose title flips between `exploitbench` and `exploit-bench`
+                # as evidence arrives has a URL that changes for no reason.
+                "_spellings": {},
                 # SETS, COUNTED AT THE END. `reports` used to be incremented
                 # once per ROW, and a row is one quote - so three figures
                 # stated in one comment by one person counted as three
@@ -752,6 +817,7 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
                 "_docs": set(), "_voices": set(), "_models": {},
             },
         )
+        bucket["_spellings"][slug] = bucket["_spellings"].get(slug, 0) + 1
         bucket["_docs"].add(doc_id)
         if author_id:
             bucket["_voices"].add(author_id)
@@ -896,6 +962,19 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             # the board's own rule (see `evidenceState` in web/src/board/db.js).
             # `quote_count` stays separate so a page can say "3 figures from 1
             # report" instead of choosing which of those numbers to show.
+            # THE SLUG SHOWN IS THE SPELLING MOST WRITERS USED, and the
+            # ordering is `-count, spelling` so a tie is broken by the text
+            # rather than by dict order. This is the URL as well as the title:
+            # a page whose address changed because a fourth report arrived
+            # spelled differently would break every link to it.
+            spellings = item.pop("_spellings", {}) or {}
+            if spellings:
+                item["slug"] = min(spellings.items(), key=lambda kv: (-kv[1], kv[0]))[0]
+                # RULE 4 AGAIN. A page silently standing for two spellings is
+                # making a claim the reader cannot check. Said only when there
+                # is more than one, or it is a caveat about nothing.
+                if len(spellings) > 1:
+                    item["spelled_also"] = sorted(k for k in spellings if k != item["slug"])
             item["reports"] = len(item.pop("_docs"))
             item["voices"] = len(item.pop("_voices"))
             item["quote_count"] = len(item["quotes"])

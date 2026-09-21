@@ -307,6 +307,21 @@ class BoardEntry(BaseModel):
     #: guess here is indistinguishable from a copy until code checks it. Empty
     #: is now stated first, and stated as correct.
     #:
+    #: ⚠ RULE 10. COPYING A PREFIX SPLITS AN AXIS IN TWO. Measured 2026-09-21 over
+    #: the 290 published figures: one model's 97.1% was filed under `aime` from
+    #: the quote "97.1% on AIME 2026 math" and under `aime-2026` from
+    #: "97.1% on AIME 2026". Same model, same figure, same benchmark, two axis
+    #: pages - because the copy stopped at different depths and BOTH copies
+    #: really are in their quotes, so the substring check passes either way.
+    #:
+    #: A MACHINE CANNOT FINISH THE NAME FOR YOU, WHICH IS WHY THIS IS ASKED OF
+    #: THE MODEL. `axis_specificity` already detects a name that continues, and
+    #: on the same 290 figures it fired 5 times - of which 3 were the SCORE
+    #: rather than the name (`CyberGym 84.5`, `ExploitBench 54.4`). Extending
+    #: the copy automatically would invent three axes named after measurements
+    #: to repair two. Telling a year from a score is a reading task, so it is
+    #: asked here and reported as a weight there (rule 8).
+    #:
     #: THE FIX IS THE ONE THAT ALREADY WORKS HERE. `value_verbatim` is reliable
     #: not because its instruction is emphatic — it is, and 10% of figures still
     #: were not in their quote — but because code can check the copy against the
@@ -323,6 +338,19 @@ class BoardEntry(BaseModel):
             "'Terminal-bench 4.0', 'OSWorld-2.0'. Code checks that what you "
             "write appears in the quote and discards anything else, so there is "
             "nothing to gain by filling this in. "
+            "COPY THE WHOLE NAME, INCLUDING A VERSION OR YEAR THAT IS PART OF "
+            "IT. 'AIME 2026', not 'AIME'. 'Terminal Bench 2.1', not "
+            "'Terminal Bench'. 'OSWorld-2.0', not 'OSWorld'. A truncated "
+            "name is a DIFFERENT axis from the full one - the board filed one "
+            "model's 97.1% under 'AIME' and the same model's 97.1% under "
+            "'AIME 2026', as two benchmarks, because two quotes were copied to "
+            "different depths. "
+            "BUT STOP AT THE NAME. The number that follows a benchmark is the "
+            "SCORE, not part of what it is called: in 'CyberGym 84.5%' the "
+            "axis is 'CyberGym', and in 'ExploitBench 54.4% vs Mythos 5' it "
+            "is 'ExploitBench'. A year and a version belong to the name; a "
+            "measurement does not. If you cannot tell which you are looking "
+            "at, copy the shorter name. "
             "LEAVE IT EMPTY when the quote names no benchmark. 'Input: $10 per "
             "million tokens' names none — 'API pricing' is a category you "
             "inferred, not a name the text wrote, and it is worse than empty. "

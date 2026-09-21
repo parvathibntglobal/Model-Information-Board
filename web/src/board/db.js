@@ -495,6 +495,10 @@ export function setBoardData(payload) {
     return {
       ...base,
       unit: m.unit || '',
+      // The other spellings this axis stands for. A page silently
+      // covering `exploitbench` and `exploit-bench` is making a claim
+      // the reader cannot check (rule 4).
+      spelledAlso: m.spelled_also || [],
       d1: m.definition,
       d2: '',
       lim: [],
