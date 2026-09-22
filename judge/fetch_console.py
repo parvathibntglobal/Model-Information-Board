@@ -190,6 +190,63 @@ def ending(record: dict, *, model_version_id: str) -> list[str]:
     return lines
 
 
+def thread(record: dict) -> list[str]:
+    """One finished thread: what was sent, what came back, what it cost.
+
+    ⚠ THE ARROWS ARE THE POINT. `->` is the request and `<-` is the answer,
+      so a reader scanning a long E5 sees the shape of the exchange without
+      reading a word. A run of `<- 0 verified` under a run of `-> 3 post(s)`
+      is a batch producing nothing, and it is visible at a glance rather than
+      by comparing numbers.
+
+    ⚠ COUNTS AND CAPABILITY KEYS, NEVER THE CLAIM TEXT. A verified claim
+      carries a quote from a harvested document, and a terminal line is the
+      one place it would appear with no ruling, no attribution and no way to
+      decline it. The keys are ours; the quotes are not.
+    """
+    idx = record.get("index")
+    total = record.get("total")
+    where = f"[{idx}/{total}] " if idx and total else ""
+    posts = record.get("posts")
+    head = (f"  -> {where}{record.get('thread_context_id', '?')}"
+            f"{f'  {posts} post(s)' if posts is not None else ''}")
+
+    got = (
+        f"     <- {record.get('verified', 0)} verified, "
+        f"{record.get('rejected', 0)} rejected, "
+        f"{record.get('unsalvaged', 0)} unsalvaged, "
+        f"{record.get('unclassified', 0)} unclassified, "
+        f"{record.get('proposed', 0)} proposed"
+    )
+    lines = [head, got]
+
+    keys = record.get("keys") or {}
+    if keys:
+        lines.append("        " + ", ".join(
+            f"{k} x{n}" for k, n in sorted(keys.items(), key=lambda kv: (-kv[1], kv[0]))))
+    elif record.get("no_claim_reason"):
+        # WHY NOTHING CAME BACK, which is the line that separates a thread
+        # that said nothing from one the extractor could not read.
+        reason = " ".join(str(record["no_claim_reason"]).split())
+        lines.append("        no claim: " + reason[:_WRAP - 18])
+
+    cost = []
+    if record.get("tokens_in") is not None or record.get("tokens_out") is not None:
+        cost.append(f"in {record.get('tokens_in') or 0:,} / "
+                    f"out {record.get('tokens_out') or 0:,} tok")
+    if record.get("usd") is not None:
+        cost.append(f"${float(record['usd']):.6f}")
+    # Said only when it happened: a retry and a truncation are both events, and
+    # a column of "retries 0" is noise that hides the one that says 1.
+    if record.get("schema_retries"):
+        cost.append(f"retries {record['schema_retries']}")
+    if record.get("truncated"):
+        cost.append("TRUNCATED at the token ceiling")
+    if cost:
+        lines.append("        " + "   ".join(cost))
+    return lines
+
+
 def render(record: dict, *, model_version_id: str) -> list[str]:
     """One JSONL record to the lines it prints, or none.
 
@@ -200,6 +257,8 @@ def render(record: dict, *, model_version_id: str) -> list[str]:
     kind = record.get("kind")
     if kind == "stage":
         return stage(record)
+    if kind == "thread":
+        return thread(record)
     if kind == "end":
         return ending(record, model_version_id=model_version_id)
     return []

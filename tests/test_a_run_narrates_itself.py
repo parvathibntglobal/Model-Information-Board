@@ -167,9 +167,10 @@ class TestBothHalvesAreWired:
         src = SCRIPT.read_text(encoding="utf-8")
         assert "from judge import fetch_console" in src
         assert "fetch_console.header(" in src
-        assert src.count("fetch_console.render(") == 2, (
-            "both the stage path and the end record must render, or a run "
-            "narrates itself and then finishes in silence"
+        assert src.count("fetch_console.render(") == 3, (
+            "the stage path, the end record AND the per-thread record must "
+            "all render, or a run narrates itself and then goes quiet for the "
+            "one part that takes forty minutes"
         )
 
     def test_the_spawn_no_longer_discards_the_output(self):
@@ -237,3 +238,83 @@ class TestTheTotalsAreRecordedNotDerived:
         block = block[:block.index(")" + chr(10))]
         for always in ("sent_threads=", "claims_verified=", "claims_stored="):
             assert always in block, f"{always} must not depend on the budget"
+
+
+class TestEachThreadSaysWhatCameBack:
+    """⚠ THE NUMBERS EXISTED IN THE LOOP AND DIED IN IT. E5 emitted
+    `reading thread 8/20` and nothing else, so a run could say which thread it
+    was on and never what came back from it - how many claims survived, which
+    capabilities, what the call cost. All of it was on `ExtractionRun` and in
+    `Budget` the whole time.
+    """
+
+    def _t(self, **over):
+        base = {
+            "kind": "thread", "index": 5, "total": 20,
+            "thread_context_id": "thread_context_43b741bd2a6fcd84", "posts": 2,
+            "verified": 3, "rejected": 1, "unsalvaged": 0, "unclassified": 0,
+            "proposed": 0, "keys": {"code.generation": 3},
+            "tokens_in": 9817, "tokens_out": 1063, "usd": 0.001672,
+        }
+        base.update(over)
+        return base
+
+    def test_the_arrows_show_the_exchange(self):
+        """`->` is the request and `<-` the answer, so a reader scanning a long
+        E5 sees the shape without reading a word."""
+        lines = fetch_console.thread(self._t())
+        assert lines[0].startswith("  -> [5/20] thread_context_43b741bd2a6fcd84  2 post(s)")
+        assert lines[1].startswith("     <- 3 verified, 1 rejected, 0 unsalvaged")
+
+    def test_it_prints_the_capability_keys_and_their_counts(self):
+        assert "code.generation x3" in chr(10).join(fetch_console.thread(self._t()))
+
+    def test_a_thread_that_produced_nothing_says_why(self):
+        """The line that separates a thread which said nothing from one the
+        extractor could not read."""
+        body = chr(10).join(fetch_console.thread(self._t(
+            verified=0, keys=None, unsalvaged=7,
+            no_claim_reason="all 7 proposed claim(s) failed the schema",
+        )))
+        assert "no claim: all 7 proposed claim(s) failed the schema" in body
+
+    def test_the_cost_of_one_call_is_shown(self):
+        body = chr(10).join(fetch_console.thread(self._t()))
+        assert "in 9,817 / out 1,063 tok" in body
+        assert "$0.001672" in body
+
+    def test_a_retry_and_a_truncation_are_said_only_when_they_happened(self):
+        """A column of `retries 0` is noise that hides the one saying 1."""
+        quiet = chr(10).join(fetch_console.thread(self._t()))
+        assert "retries" not in quiet and "TRUNCATED" not in quiet
+        loud = chr(10).join(fetch_console.thread(self._t(schema_retries=1, truncated=True)))
+        assert "retries 1" in loud and "TRUNCATED at the token ceiling" in loud
+
+    def test_no_claim_text_ever_reaches_the_terminal(self):
+        """⚠ COUNTS AND KEYS, NEVER THE QUOTE. A verified claim carries text
+        from a harvested document, and a terminal line is the one place it
+        would appear with no ruling, no attribution and no way to decline it.
+        The callback must send counts, not claims."""
+        # ⚠ THE ARGUMENT LIST, NOT THE FUNCTION BODY. The first version
+        #   scanned the whole callback and tripped on `for claim, _quote in
+        #   run.verified:` - a destructuring that DISCARDS the quote. Matching
+        #   a mention rather than a use, for the sixth time in this repository.
+        src = SCRIPT.read_text(encoding="utf-8")
+        call = src[src.index("        prog.thread("):]
+        call = call[:call.index(chr(10) + "        )") + 10]
+        assert "verified=len(run.verified)," in call
+        for leak in ("quote", "flattened", "raw_text"):
+            assert leak not in call, f"the per-thread record carries {leak!r}"
+
+    def test_the_cost_is_this_thread_s_share(self):
+        """`Budget` accumulates, so a per-thread figure has to be a delta or
+        every thread reports the run's running total."""
+        src = (ROOT / "judge" / "pipeline.py").read_text(encoding="utf-8")
+        assert "before_in = budget.input_tokens if budget else 0" in src
+        assert "tokens_in=(budget.input_tokens - before_in) if budget else None," in src
+
+    def test_a_thread_record_is_not_a_stage(self):
+        """Fifteen stages a run, but twenty-five threads. Filing these as
+        stages would bury the pipeline's shape in `E5 running` lines."""
+        src = SCRIPT.read_text(encoding="utf-8")
+        assert '{"kind": "thread", "at": _now(), **fields}' in src

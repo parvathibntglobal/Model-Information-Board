@@ -108,6 +108,7 @@ which is a different fix with a different reason.
 from __future__ import annotations
 
 import logging
+import os
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -119,7 +120,7 @@ from judge.config import bucket_for
 from judge.curate.labels import Driver
 from judge.curate.nightly import close_the_night
 from judge.extract.budget import Budget
-from judge.extract.client import Completion, ExtractionClient
+from judge.extract.client import Completion, ExtractionClient, ExtractorUnavailable
 from judge.extract.runner import ExtractionRefused, ExtractionRun, ThreadInput, extract
 from judge.store.cells import CellOutcome, CellStore
 from judge.store.claims import ClaimStore, StoredClaim
@@ -138,6 +139,19 @@ from judge.vet.weight import (
 )
 
 log = logging.getLogger(__name__)
+
+#: How many times one thread may be sent before it is given up on.
+#:
+#: TWO, NOT MORE, AND IT IS A COST DECISION. Every attempt is a paid model
+#: call and the first has already been charged when a retry fires, so this is
+#: the difference between "the upstream had a bad minute" and "we will keep
+#: paying until it stops". Measured on 33 run logs (#397): 7 runs died on a
+#: transient provider failure, all of them on the first attempt at a thread -
+#: so one more attempt is where the evidence says the value is.
+#:
+#: The daily cap still governs: `check_before_call` runs again before each
+#: attempt, so a retry cannot push a run past `EXTRACTION_DAILY_BUDGET_USD`.
+EXTRACT_ATTEMPTS = max(1, int(os.getenv("EXTRACT_ATTEMPTS", "2")))
 
 #: Until E4's tier assignment lands, every claim is weighted as a bare
 #: first-hand opinion. D is the LOWEST first-hand tier, chosen deliberately:
@@ -1054,6 +1068,10 @@ class Pipeline:
         resolve_surface: SurfaceResolver | None = None,
         find_surfaces: SurfaceFinder | None = None,
         on_thread: Callable[[str], None] | None = None,
+        #: Called with each finished thread and what it cost. `on_thread`
+        #: fires BEFORE the call and carries only an id, so this is the
+        #: only place a caller can see what came back.
+        on_result: Callable[..., None] | None = None,
         after_thread: Callable[[], None] | None = None,
     ) -> list[PipelineResult]:
         """A batch. A refused thread is skipped, never fatal.
@@ -1072,6 +1090,12 @@ class Pipeline:
         # the default is now the correct answer rather than the safe one. An
         # explicit frozenset() still forces a full re-extraction.
         seen = self._ledger.already_extracted() if already_extracted is None else already_extracted
+        # RULE 4 AT THE BATCH LEVEL. A run that read 20 of 23 threads and one
+        # that read 23 must not report the same thing, so what was retried and
+        # what was never read is counted and handed back rather than logged and
+        # forgotten.
+        self.retried_threads = 0
+        self.unread_threads: list[str] = []
         for thread in threads:
             if ExtractionLedger.should_skip(seen, thread.thread_context_id, thread.flattened_text):
                 log.info(
@@ -1089,21 +1113,98 @@ class Pipeline:
                 # BEFORE the call. Spend cannot be undone, so a check after it
                 # is a report rather than a cap.
                 budget.check_before_call()
-            try:
-                result = self.run(
-                    thread,
-                    facts=facts,
-                    model_version_of=model_version_of,
-                    release_dates=release_dates,
-                    as_of=as_of,
-                    resolve_surface=resolve_surface,
-                    find_surfaces=find_surfaces,
-                    # ONCE AFTER THE BATCH, not once per thread. See below.
-                    rebuild_cells=False,
-                )
-            except ExtractionRefused as exc:
-                log.error("thread %s refused: %s", thread.thread_context_id, exc)
+            # ── ONE BAD RESPONSE ENDS THE THREAD, NOT THE BATCH ──────────
+            #
+            # `ExtractorUnavailable` used to escape this loop, so a single 502
+            # from one upstream ended E5 and, with it, E5c, E5b, E6 and E7.
+            # Measured over 33 run logs (#397): 7 runs died this way and
+            # **145 threads were never attempted** - several of them on thread
+            # 1 or 2 of 23, after the documents had been harvested, assembled,
+            # triaged and one model call paid for.
+            #
+            # ⚠ RETRIED, THEN GIVEN UP ON - NEVER RECORDED AS READ. The
+            #   `continue` below skips `self._ledger.record(...)`, so a thread
+            #   this could not read stays unread and the next run tries it
+            #   again. Recording it would mark the thread done and lose its
+            #   evidence permanently, which is the same rule 4 distinction the
+            #   exception's own docstring makes: a document the extractor
+            #   never read must not join the documents that were read and said
+            #   nothing.
+            #
+            # ⚠ BOUNDED, BECAUSE EVERY ATTEMPT IS PAID FOR. The first call has
+            #   already been charged when this fires, and an unbounded retry
+            #   turns a provider outage into a budget event. `check_before_call`
+            #   runs again on each attempt, so the daily cap still governs.
+            before_in = budget.input_tokens if budget else 0
+            before_out = budget.output_tokens if budget else 0
+            before_usd = budget.spent_usd if budget else 0.0
+            result = None
+            for attempt in range(1, EXTRACT_ATTEMPTS + 1):
+                try:
+                    result = self.run(
+                        thread,
+                        facts=facts,
+                        model_version_of=model_version_of,
+                        release_dates=release_dates,
+                        as_of=as_of,
+                        resolve_surface=resolve_surface,
+                        find_surfaces=find_surfaces,
+                        # ONCE AFTER THE BATCH, not once per thread. See below.
+                        rebuild_cells=False,
+                    )
+                    break
+                except ExtractionRefused as exc:
+                    log.error("thread %s refused: %s", thread.thread_context_id, exc)
+                    break
+                except ExtractorUnavailable as exc:
+                    # A REJECTION OF OUR OWN REQUEST IS NOT RETRIED. The
+                    # upstream that refuses our tool schema will refuse it
+                    # identically on every attempt, so trying again buys the
+                    # same sentence and pays for it (#397).
+                    if not getattr(exc, "transient", True):
+                        self.unread_threads.append(thread.thread_context_id)
+                        log.error(
+                            "thread %s: provider rejected the request itself, "
+                            "not retried: %s", thread.thread_context_id, exc,
+                        )
+                        break
+                    if attempt >= EXTRACT_ATTEMPTS:
+                        self.unread_threads.append(thread.thread_context_id)
+                        log.error(
+                            "thread %s unread after %d attempt(s): %s",
+                            thread.thread_context_id, attempt, exc,
+                        )
+                        break
+                    self.retried_threads += 1
+                    log.warning(
+                        "thread %s attempt %d failed (%s); retrying",
+                        thread.thread_context_id, attempt, exc,
+                    )
+                    if budget is not None:
+                        budget.check_before_call()
+            if result is None:
                 continue
+            # ⚠ WHAT THE THREAD COST AND WHAT IT PRODUCED, HANDED BACK AS IT
+            #   FINISHES. `on_thread` fires BEFORE the call with only an id, so
+            #   everything a reader wants - how many claims survived, which
+            #   capabilities, what the call cost - existed in this loop and died
+            #   in it. The run could say it had read thread 8 of 20 and not what
+            #   came back.
+            #
+            #   The token and dollar figures are DELTAS taken across this one
+            #   call. `Budget` accumulates, so the difference is this thread's
+            #   share and nothing else's - the same reason the run total is a
+            #   delta from a baseline rather than `spent_usd` itself.
+            if on_result is not None:
+                on_result(
+                    result,
+                    tokens_in=(budget.input_tokens - before_in) if budget else None,
+                    tokens_out=(budget.output_tokens - before_out) if budget else None,
+                    usd=(budget.spent_usd - before_usd) if budget else None,
+                    posts=len(thread.raw_text_of),
+                    index=len(results) + 1,
+                    total=len(threads),
+                )
             results.append(result)
             # Same transaction as the claims. A ledger row that survived a
             # rolled-back extraction would mark a thread read that produced

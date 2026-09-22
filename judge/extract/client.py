@@ -111,7 +111,41 @@ class ExtractorUnavailable(RuntimeError):
 
     That distinction is rule 4 in the harvest layer: a document the extractor
     never read must not join the documents that were read and said nothing.
+
+    ⚠ `transient` IS SET AT THE RAISE SITE, NOT GUESSED BY A CALLER. Two
+      failures arrive through this one exception and they want opposite
+      handling:
+
+        502 from an upstream, 504 idle timeout, a stream that stopped
+            -> another attempt is routed afresh and usually succeeds
+
+        the provider rejecting our TOOL SCHEMA
+            -> fails identically every time, for as long as the schema says
+               what it says. Measured over 33 run logs: two runs died on
+               `GenerateContentRequest...properties[quote_offset].items:
+               missing field`, which is Gemini refusing an array with no
+               item type (#397).
+
+      Retrying the second is spending money to receive the same sentence, so
+      the caller must be able to tell them apart without reading the message.
     """
+
+    def __init__(self, *args, transient: bool = False) -> None:
+        super().__init__(*args)
+        #: Could another attempt plausibly differ, AND is it worth paying for?
+        #:
+        #: ⚠ `False` BY DEFAULT, AND THE FIRST VERSION HAD IT THE OTHER WAY.
+        #:   I argued a new raise site should "fail toward retrying rather than
+        #:   toward giving up silently". @anoojntglobal-sudo pointed at the
+        #:   raise that disproves it: a call abandoned after 300s had a LIVE
+        #:   CONNECTION PRODUCING BYTES, and retrying it re-pays for a call
+        #:   that was working slowly. Defaulting to retry turns a bounded
+        #:   retry into paying twice for every long thread.
+        #:
+        #:   Failing toward not-spending is the safer default when the cost of
+        #:   being wrong is money rather than a lost thread - and a thread not
+        #:   retried is not lost, because it is never recorded as read.
+        self.transient = transient
 
 
 @dataclass(frozen=True)
@@ -422,9 +456,16 @@ class OpenRouterClient:
             # answer.
             if response.status_code != 200:
                 response.read()
+                # THE STATUS DECIDES WHETHER ANOTHER ATTEMPT IS WORTH PAYING
+                # FOR. 429 and the 5xx family are the router or an upstream
+                # having a bad minute, and OpenRouter re-routes; 4xx is our
+                # request being wrong, and sending it again buys the same
+                # refusal. Nothing was streamed, so no tokens have been
+                # charged for this attempt either way.
                 raise ExtractorUnavailable(
                     f"the provider returned HTTP {response.status_code}: "
-                    f"{response.text[:300]!r}"
+                    f"{response.text[:300]!r}",
+                    transient=response.status_code in {429, 500, 502, 503, 504},
                 )
 
             fragments: list[str] = []
@@ -462,6 +503,13 @@ class OpenRouterClient:
                         f"answer well inside this window, so this is the provider "
                         f"rather than the document."
                     )
+                    # NOT RETRIED, and `transient` defaults to False so this
+                    # needs no argument - but it needs the reason. The
+                    # connection was open and producing bytes when this fired:
+                    # the call was WORKING, just slowly. A retry re-pays for it
+                    # in full and is as likely to be slow again, so this is the
+                    # one failure shape where trying again is strictly worse
+                    # than giving up.
                 if not line or line.startswith(":"):
                     continue          # SSE comment / keep-alive
                 if not line.startswith("data:"):
@@ -497,8 +545,20 @@ class OpenRouterClient:
                             fragments.append(piece)
 
         if stream_error is not None:
+            # A REJECTION OF OUR REQUEST IS NOT A BAD MINUTE. When the upstream
+            # complains about the tool schema itself, every retry re-sends the
+            # same schema and receives the same complaint - so it is marked
+            # permanent and the thread is given up on rather than paid for
+            # twice. Everything else here is a provider fault and is retried.
+            text = str(stream_error)
+            permanent = (
+                "function_declarations" in text
+                or "GenerateContentRequest" in text
+                or "tools[0]" in text
+            )
             raise ExtractorUnavailable(
-                f"the provider reported an error mid-stream: {stream_error!r}"
+                f"the provider reported an error mid-stream: {stream_error!r}",
+                transient=not permanent,
             )
 
         arguments = "".join(fragments)
