@@ -208,9 +208,27 @@ def _declared_feeds(html: str, base: str) -> list[str]:
 
 
 def _is_feed(content: bytes):
-    """A feed is a thing that PARSES INTO ENTRIES, not a thing that 200s."""
+    """A feed is a thing that PARSES INTO ENTRIES, not a thing that 200s.
+
+    ⚠ `version` IS NOT ALWAYS PRESENT, AND ASSUMING IT ABORTED A WHOLE PROBE.
+      `feedparser.parse(b"")` returns a `FeedParserDict` with **no** `version`
+      attribute at all — unlike HTML or JSON input, which return one set to
+      `""`. So `parsed.version` raises `AttributeError` on exactly one input:
+      an empty body.
+
+      `danluu.com` serves one, on a conventional feed path, and the probe died
+      with `AttributeError: object has no attribute 'version'` before it
+      reached robots-permitted articles, feed discovery or the two deciding
+      numbers. The six hosts probed on 2026-09-21 happened not to serve an
+      empty body anywhere, which is why this survived that run.
+
+      Rule 12: a permissive attribute access that works on every input except
+      the one that matters. `getattr` with a default makes the empty body what
+      it actually is — not a feed — instead of an exception.
+    """
     parsed = feedparser.parse(content)
-    return parsed, bool(parsed.version) and len(parsed.entries) > 0
+    version = getattr(parsed, "version", "") or ""
+    return parsed, bool(version) and len(parsed.entries) > 0
 
 
 def probe_host(host, client, ua, pages, delay, threshold, finder, resolver,
@@ -315,13 +333,13 @@ def probe_host(host, client, ua, pages, delay, threshold, finder, resolver,
                 "path": path, "robots": "allowed", "http": resp.status_code,
                 "content_type": resp.headers.get("content-type"),
                 "parses_as_feed": ok,
-                "feed_type": parsed.version or None,
+                "feed_type": getattr(parsed, "version", "") or None,
                 "entries": len(parsed.entries),
                 "final_url": str(resp.url),
             })
             print("    " + path.ljust(18) + " " + str(resp.status_code) + "  "
                   + ("FEED" if ok else "    ") + "  "
-                  + (parsed.version or "-").ljust(8)
+                  + (getattr(parsed, "version", "") or "-").ljust(8)
                   + str(len(parsed.entries)).rjust(3) + " entries")
     r["conventional_paths"] = conventional
     hits = [x for x in conventional if x.get("parses_as_feed")]
@@ -352,7 +370,7 @@ def probe_host(host, client, ua, pages, delay, threshold, finder, resolver,
     (out / "feed.xml").write_bytes(fr.content)
     parsed = feedparser.parse(fr.content)
     r["feed_http"] = fr.status_code
-    r["feed_type"] = parsed.version or "unknown"
+    r["feed_type"] = getattr(parsed, "version", "") or "unknown"
     r["feed_malformed"] = bool(parsed.bozo)
     entries = parsed.entries
     r["feed_entries"] = len(entries)
