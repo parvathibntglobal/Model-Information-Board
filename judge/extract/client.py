@@ -111,7 +111,32 @@ class ExtractorUnavailable(RuntimeError):
 
     That distinction is rule 4 in the harvest layer: a document the extractor
     never read must not join the documents that were read and said nothing.
+
+    ⚠ `transient` IS SET AT THE RAISE SITE, NOT GUESSED BY A CALLER. Two
+      failures arrive through this one exception and they want opposite
+      handling:
+
+        502 from an upstream, 504 idle timeout, a stream that stopped
+            -> another attempt is routed afresh and usually succeeds
+
+        the provider rejecting our TOOL SCHEMA
+            -> fails identically every time, for as long as the schema says
+               what it says. Measured over 33 run logs: two runs died on
+               `GenerateContentRequest...properties[quote_offset].items:
+               missing field`, which is Gemini refusing an array with no
+               item type (#397).
+
+      Retrying the second is spending money to receive the same sentence, so
+      the caller must be able to tell them apart without reading the message.
     """
+
+    def __init__(self, *args, transient: bool = True) -> None:
+        super().__init__(*args)
+        #: Could another attempt plausibly differ? `True` by default because
+        #: the common case is a routed upstream having a bad minute, and
+        #: because a new raise site that forgets to think about this should
+        #: fail toward retrying rather than toward giving up silently.
+        self.transient = transient
 
 
 @dataclass(frozen=True)
@@ -497,8 +522,20 @@ class OpenRouterClient:
                             fragments.append(piece)
 
         if stream_error is not None:
+            # A REJECTION OF OUR REQUEST IS NOT A BAD MINUTE. When the upstream
+            # complains about the tool schema itself, every retry re-sends the
+            # same schema and receives the same complaint - so it is marked
+            # permanent and the thread is given up on rather than paid for
+            # twice. Everything else here is a provider fault and is retried.
+            text = str(stream_error)
+            permanent = (
+                "function_declarations" in text
+                or "GenerateContentRequest" in text
+                or "tools[0]" in text
+            )
             raise ExtractorUnavailable(
-                f"the provider reported an error mid-stream: {stream_error!r}"
+                f"the provider reported an error mid-stream: {stream_error!r}",
+                transient=not permanent,
             )
 
         arguments = "".join(fragments)

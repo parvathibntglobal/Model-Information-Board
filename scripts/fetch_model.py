@@ -39,6 +39,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from judge import fetch_console
+from judge.pipeline import EXTRACT_ATTEMPTS
 from judge.extract.client import extractor_model
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -2189,7 +2190,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     extractor = OpenRouterClient.from_env()
     extractor.on_progress = prog.checkpoint
 
-    results = Pipeline(
+    # BOUND RATHER THAN CHAINED, so the counters it keeps - threads retried,
+    # threads it could not read - survive the call and can be reported.
+    pipeline = Pipeline(
         conn,
         client=extractor,
         capability_keys=list(capabilities().keys()),
@@ -2199,7 +2202,8 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         # internal `mv_` key when the entry came out of a thread, so a single
         # form would mislabel the searched model's own rows as `mentioned`.
         searched_model_version_id=_subject_ids(conn, prog.model_version_id),
-    ).run_all(
+    )
+    results = pipeline.run_all(
         threads, facts=facts, model_version_of=mvo, budget=budget,
         already_extracted=seen, driver=Driver("new-evidence"), resolve_surface=resolver,
         on_thread=_on_thread,
@@ -2242,8 +2246,26 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             f"TOKEN CEILING and were not read to the end — their claims are "
             f"partial or absent, not a finding about the thread"
         )
+    # ⚠ RULE 4 AGAIN, ONE LEVEL DOWN FROM #327. A run that read 20 of 23
+    #   threads and one that read 23 must not report the same sentence. A
+    #   thread the provider would not answer for is an absence THIS RUN
+    #   created - it is not a thread that was read and said nothing - and it
+    #   stays unread in the ledger so the next run tries it again.
+    unread = list(getattr(pipeline, "unread_threads", []) or [])
+    retried = int(getattr(pipeline, "retried_threads", 0) or 0)
+    if retried:
+        detail += f"; {retried} thread(s) needed a second attempt"
+    if unread:
+        detail += (
+            f"; {len(unread)} thread(s) COULD NOT BE READ - the provider did "
+            f"not answer for them after {EXTRACT_ATTEMPTS} attempt(s). They are "
+            f"not recorded as read, so the next run tries them again"
+        )
     prog.stage("E5", "Extract", "ok", truncated=len(truncated),
-               truncated_threads=truncated[:10], detail=detail)
+               truncated_threads=truncated[:10],
+               retried_threads=retried or None,
+               unread_threads=len(unread) or None,
+               detail=detail)
 
     # ── WHAT THE RUN AMOUNTED TO, for the closing box ────────────────────
     #
