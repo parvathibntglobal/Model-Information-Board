@@ -166,7 +166,7 @@ def main() -> int:
         print(label.ljust(w) + "".join(str(fn(r)).ljust(26) for r in results))
 
     # ── classification distributions ───────────────────────────────────────
-    for field in ("capability", "speaking", "specificity", "polarity"):
+    for field in ("legacy_score_key", "speaking", "specificity", "polarity"):
         print(f"\n{field} distribution (of verified claims):")
         for r in results:
             top = ", ".join(f"{k}:{n}" for k, n in _dist(r["claims"], field).most_common(6))
@@ -183,7 +183,7 @@ def main() -> int:
             for q in set(idx[0][tid]) & set(idx[1][tid]):
                 a, b = idx[0][tid][q], idx[1][tid][q]
                 shared += 1
-                cap_agree += a.capability == b.capability
+                cap_agree += a.legacy_score_key == b.legacy_score_key
                 spk_agree += a.model_ref.speaking == b.model_ref.speaking
         print(f"\nagreement on the {shared} quote(s) BOTH models verified verbatim:")
         if shared:
@@ -198,7 +198,7 @@ def main() -> int:
             for r in results:
                 for tid, c in r["claims"]:
                     f.write(json.dumps({
-                        "model": r["model"], "thread": tid, "capability": c.capability,
+                        "model": r["model"], "thread": tid, "capability": c.legacy_score_key,
                         "speaking": c.model_ref.speaking, "specificity": c.model_ref.specificity,
                         "polarity": c.polarity, "quote": c.quote,
                     }, ensure_ascii=False) + "\n")

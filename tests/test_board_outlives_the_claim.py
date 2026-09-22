@@ -192,14 +192,14 @@ class TestTheClosedVocabularyIsInTheSchemaNotOnlyThePrompt:
     def test_the_capability_field_carries_the_ratified_keys_as_an_enum(self):
         from judge.config import capabilities
 
-        node = self._schema()["properties"]["claims"]["items"]["properties"]["capability"]
+        node = self._schema()["properties"]["claims"]["items"]["properties"]["legacy_score_key"]
         assert node.get("enum") == list(capabilities()), (
             "the closed vocabulary must reach the provider as an enum, not only "
             "as prose in the system prompt"
         )
 
     def test_an_unratified_key_is_not_in_the_enum(self):
-        node = self._schema()["properties"]["claims"]["items"]["properties"]["capability"]
+        node = self._schema()["properties"]["claims"]["items"]["properties"]["legacy_score_key"]
         for slug in ("vision", "multimodal", "long-context"):
             assert slug not in node["enum"]
 
@@ -216,8 +216,36 @@ class TestTheClosedVocabularyIsInTheSchemaNotOnlyThePrompt:
         # unclosed schema that LOOKS closed is worse than no change at all.
         from judge.extract.client import _close_capability
 
-        with pytest.raises(ValueError, match="exactly one string `capability`"):
+        with pytest.raises(ValueError, match=r"exactly one string .*`legacy_score_key`"):
             _close_capability({"properties": {}}, ["a.b"])
+
+    def test_the_field_is_optional_and_the_schema_says_so(self):
+        """2026-09-22. The prompt tells the model to leave this empty.
+
+        A `required` still naming it would make the schema contradict the
+        prompt, and the model would resolve that by inventing a value - which
+        is the whole defect being fixed. The closure was prose until
+        2026-09-14 and cost two runs; optionality must not be prose either.
+        """
+        items = self._schema()["properties"]["claims"]["items"]
+        assert "legacy_score_key" not in items.get("required", [])
+        # Flattened rather than left as pydantic's anyOf(string, null): a
+        # construct some backends validate and others ignore presents as an
+        # intermittent provider outage, which is what `prefixItems` taught.
+        node = items["properties"]["legacy_score_key"]
+        assert node.get("type") == "string" and "anyOf" not in node
+
+    def test_a_required_key_refuses_rather_than_contradicting_the_prompt(self):
+        from judge.extract.client import _close_capability
+
+        schema = {
+            "properties": {"claims": {"items": {
+                "properties": {"legacy_score_key": {"type": "string"}},
+                "required": ["legacy_score_key"],
+            }}}
+        }
+        with pytest.raises(ValueError, match="the prompt tells the model to omit"):
+            _close_capability(schema, ["a.b"])
 
     def test_an_empty_vocabulary_is_refused(self):
         from judge.extract.client import _close_capability
@@ -276,7 +304,7 @@ class TestAnUnratifiedKeyCostsOneCellNotTheBatch:
         # tell an unratified capability from a missing tier.
         src = pathlib.Path("judge/pipeline.py").read_text(encoding="utf-8")
         assert "result.cell_refusals.append(" in src
-        assert "claim.capability," in src[src.index("result.cell_refusals.append("):][:400]
+        assert "claim.legacy_score_key," in src[src.index("result.cell_refusals.append("):][:400]
 
     def test_a_refusal_is_not_double_counted_in_both_tallies(self):
         # One loss in two denominators is how a denominator stops meaning
@@ -288,3 +316,136 @@ class TestAnUnratifiedKeyCostsOneCellNotTheBatch:
         # The CALL, not the word - the handler's comment names the other tally
         # to explain why it is not used, and matching prose would fail on that.
         assert "result.claim_write_failures.append(" not in block
+
+
+class TestAnEmptyKeyKeepsTheClaim:
+    """2026-09-22. `legacy_score_key` became optional, and that alone would
+    have silently deleted most of the corpus.
+
+    The extractor used to be told to "pick the closest key", and did: measured
+    over 1,385 stored claims, a 60-claim read found the chosen key did not name
+    what the quote described in 38 of them
+    (`docs/measurements/the-key-that-takes-anything-2026-09-22.md`). Making the
+    field optional is the fix. But BOTH readers of the key refuse an absent one
+    - `compute()` with a ValueError, `bucket_for()` with a KeyError - and the
+    handler around them sets the claim aside, which writes no claim row at all.
+
+    So "the extractor may say it does not know" would have become "the pipeline
+    discards every claim it does not know": rule 4 at the worst possible stage,
+    in the table every count comes from, looking exactly like an absence we
+    found rather than one we caused. These pin the branch that prevents it.
+    """
+
+    def test_the_field_is_optional_on_the_model(self):
+        from judge.extract.schema import ExtractedClaim
+
+        field = ExtractedClaim.model_fields["legacy_score_key"]
+        assert not field.is_required()
+        assert field.default is None
+
+    def test_an_empty_key_takes_the_keep_the_claim_branch(self):
+        src = pathlib.Path("judge/pipeline.py").read_text(encoding="utf-8")
+        assert "if claim.legacy_score_key is None:" in src
+        branch = src[src.index("if claim.legacy_score_key is None:"):]
+        branch = branch[:branch.index("            else:")]
+        # A StoredClaim is still built, so the claim row is still written.
+        assert "stored = StoredClaim(" in branch
+        assert "weights=None," in branch
+        # And it never reaches the two readers that refuse an absent key.
+        assert "compute(" not in branch and "bucket_for(" not in branch
+
+    def test_no_weight_rather_than_a_defaulted_one(self):
+        """Rule 6. `half_life_for` returns the SLOW default for an unknown key -
+        the most generous decay there is - so a defaulted weight would hand the
+        claims we know least about the gentlest treatment, via a fallback that
+        cannot fail (rule 12). No cell means nothing to rank within.
+        """
+        from judge.store.claims import StoredClaim
+
+        assert StoredClaim.__dataclass_fields__["weights"].type == "WeightFactors | None"
+        src = pathlib.Path("judge/store/claims.py").read_text(encoding="utf-8")
+        assert "if stored.weights is None:" in src
+        # The early return must come BEFORE the claim_weight insert and AFTER
+        # the claim insert, or the claim is lost again.
+        assert src.index("INSERT INTO claim (") < src.index("if stored.weights is None:")
+        assert src.index("if stored.weights is None:") < src.index("INSERT INTO claim_weight (")
+
+    def test_an_unweighted_claim_cannot_become_a_voice(self):
+        """The other end: `n_eff` turns the gate, so a weightless claim must be
+        excluded rather than counted at zero. Two independent guards.
+        """
+        src = pathlib.Path("judge/store/cells.py").read_text(encoding="utf-8")
+        agg = src[src.index("FROM claim c"):src.index("FROM claim c") + 600]
+        assert "JOIN claim_weight w ON w.claim_id = c.id" in agg
+        assert "LEFT JOIN claim_weight" not in agg
+        # And the cell key itself cannot be NULL, so a keyless claim is not
+        # merely unweighted - it belongs to no cell at all.
+        assert "c.capability_key = %s" in agg
+
+    def test_the_skip_is_counted_apart_from_a_refusal(self):
+        """They argue opposite things. `cell_refusals` rising means our
+        vocabulary could not resolve a key the extractor supplied; this rising
+        means the extractor honestly reported that no key applies. One number
+        for both would climb when the pipeline breaks AND when it starts
+        telling the truth.
+        """
+        from judge.pipeline import PipelineResult
+
+        assert "cell_skipped_no_key" in PipelineResult.__dataclass_fields__
+        assert PipelineResult.__dataclass_fields__["cell_skipped_no_key"].default == 0
+        src = pathlib.Path("judge/pipeline.py").read_text(encoding="utf-8")
+        skip = src.index("result.cell_skipped_no_key += 1")
+        block = src[skip:skip + 400]
+        assert "result.cell_refusals.append(" not in block
+
+    def test_the_bucket_names_the_absence_rather_than_borrowing_a_dimension(self):
+        """`condition_bucket` is NOT NULL and reads `<dimension>:<band>` for a
+        capability. With no capability there is no dominant dimension, so
+        borrowing one would render as a real slice of nothing (rule 6).
+        """
+        src = pathlib.Path("judge/pipeline.py").read_text(encoding="utf-8")
+        assert 'condition_bucket="none:no_ratified_key",' in src
+
+    def test_the_prompt_no_longer_asks_for_the_closest_key(self):
+        """The contradiction, as a test. Three instructions mandated picking the
+        closest and one forbade it, and the mandating one closed the prompt.
+        """
+        from judge.config import capabilities
+        from judge.extract.prompt import build_system_prompt
+
+        prompt = build_system_prompt(list(capabilities()))
+        assert "pick the closest key and move on" not in prompt
+        assert "still pick the closest one" not in prompt
+        # The prohibition survives, and so does the permission it needed.
+        assert "Do not stretch a quote to fit a key." in prompt
+        assert "LEAVE IT EMPTY" in prompt
+
+    def test_the_definitions_reach_the_model(self):
+        """They never did until 2026-09-22, and it was never intended:
+        `capabilities.yaml` carries a description and `sounds_like` for all
+        twelve and `build_system_prompt` appended bare keys. Recorded as "the
+        single largest confound" in the-vocabulary-hypothesis.md §2.
+        """
+        from judge.config import capabilities
+        from judge.extract.prompt import build_system_prompt
+
+        caps = capabilities()
+        prompt = build_system_prompt(list(caps))
+        extraction = caps["extraction.faithfulness"]
+        # The definition is the thing that excludes reading names off a photo,
+        # and the model had never seen it.
+        assert "Null discipline" in extraction.description
+        assert " ".join(extraction.description.split())[:60] in " ".join(prompt.split())
+        assert extraction.sounds_like[0] in prompt
+
+    def test_the_bare_key_prompt_is_still_reproducible(self):
+        """Round 3's pool was built against it and its frozen sidecar still
+        measures that extractor. A re-run scores against the same gold, so the
+        old prompt has to remain constructible or the pair is not a measurement.
+        """
+        from judge.config import capabilities
+        from judge.extract.prompt import build_system_prompt
+
+        bare = build_system_prompt(list(capabilities()), definitions={})
+        assert "Null discipline" not in bare
+        assert "  - extraction.faithfulness" in bare

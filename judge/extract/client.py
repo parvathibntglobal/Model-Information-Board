@@ -539,7 +539,13 @@ class OpenRouterClient:
 #: Where the closed capability vocabulary lives in the generated schema.
 #:
 #: Exactly one node, asserted rather than assumed — see `_close_capability`.
-_CAPABILITY_PATH = ("properties", "claims", "items", "properties", "capability")
+_CAPABILITY_PATH = (
+    "properties", "claims", "items", "properties", "legacy_score_key",
+)
+
+#: The field name the walk looks for. Renamed from `capability` on 2026-09-22 —
+#: `judge/extract/schema.py` carries the reason.
+_CAPABILITY_FIELD = "legacy_score_key"
 
 
 def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
@@ -567,6 +573,28 @@ def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
     exactly as weak as it was while looking fixed, which is worse than not
     doing it - so a schema whose shape has moved raises here rather than
     returning an unclosed schema.
+
+    ⚠ THE FIELD BECAME OPTIONAL ON 2026-09-22 AND THE NODE SHAPE CHANGED WITH
+      IT. `legacy_score_key: str | None` renders as
+      `{"anyOf": [{"type": "string"}, {"type": "null"}]}`, not as a flat
+      `{"type": "string"}` - so the walk below accepts BOTH shapes, and a walk
+      that only knew the old one would have found nothing and raised on every
+      call.
+
+      The node is then FLATTENED back to `{"type": "string", "enum": [...]}`
+      and the field is asserted ABSENT from `required`. Two reasons, and the
+      first is this file's own scar tissue:
+
+        - `prefixItems` taught it that a schema construct some backends
+          validate and others ignore presents as an intermittent provider
+          outage. `anyOf` carrying an `enum` on one branch is exactly that
+          shape. A flat type with an enum, absent from `required`, says "one of
+          these twelve, or nothing" in the plainest JSON Schema there is.
+        - OPTIONALITY MUST NOT BE PROSE EITHER. The closure was prose until
+          2026-09-14 and cost two runs. The new prompt tells the model to leave
+          this empty; if `required` still named it, the schema would be
+          contradicting the prompt, which is the defect this whole change is
+          about. So it is asserted rather than assumed.
     """
     if not capability_keys:
         raise ValueError(
@@ -578,11 +606,22 @@ def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
 
     found = []
 
+    def _is_string_or_optional_string(value: object) -> bool:
+        """A flat string node, or pydantic's `str | None` anyOf."""
+        if not isinstance(value, dict):
+            return False
+        if value.get("type") == "string":
+            return True
+        branches = value.get("anyOf")
+        if not isinstance(branches, list):
+            return False
+        types = {b.get("type") for b in branches if isinstance(b, dict)}
+        return types == {"string", "null"}
+
     def walk(node: object, path: tuple[str, ...] = ()) -> None:
         if isinstance(node, dict):
             for key, value in node.items():
-                if key == "capability" and isinstance(value, dict) \
-                        and value.get("type") == "string":
+                if key == _CAPABILITY_FIELD and _is_string_or_optional_string(value):
                     found.append(path + (key,))
                 walk(value, path + (key,))
         elif isinstance(node, list):
@@ -592,20 +631,46 @@ def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
     walk(schema)
     if found != [_CAPABILITY_PATH]:
         raise ValueError(
-            f"expected exactly one string `capability` property at "
-            f"{'.'.join(_CAPABILITY_PATH)}, found {[('.'.join(p)) for p in found]}. "
+            f"expected exactly one string (or str|None) `{_CAPABILITY_FIELD}` "
+            f"property at {'.'.join(_CAPABILITY_PATH)}, found "
+            f"{[('.'.join(p)) for p in found]}. "
             "The schema shape moved, so the closed vocabulary was NOT applied. "
             "Refusing rather than returning a schema that looks closed and is not."
         )
 
-    node = schema
-    for step in _CAPABILITY_PATH:
-        node = node[step]
-    node["enum"] = list(capability_keys)
+    parent = schema
+    for step in _CAPABILITY_PATH[:-1]:
+        parent = parent[step]
+    node = parent[_CAPABILITY_PATH[-1]]
+
+    # FLATTENED, not annotated in place. `anyOf` branches are dropped and the
+    # node becomes a plain optional-string-with-enum; everything else pydantic
+    # wrote (description, title) is kept.
+    flat = {k: v for k, v in node.items() if k not in ("anyOf", "type", "enum")}
+    flat["type"] = "string"
+    flat["enum"] = list(capability_keys)
+    parent[_CAPABILITY_PATH[-1]] = flat
+
+    # ASSERTED, NOT ASSUMED. The prompt now tells the model to leave this empty
+    # when no key fits; a `required` naming it would make the schema contradict
+    # the prompt, and the model would resolve that by inventing a value - which
+    # is the defect being fixed. Checked here because this is the one place
+    # holding both facts.
+    container = schema
+    for step in _CAPABILITY_PATH[:-2]:
+        container = container[step]
+    required = container.get("required", [])
+    if _CAPABILITY_FIELD in required:
+        raise ValueError(
+            f"`{_CAPABILITY_FIELD}` is in `required` at "
+            f"{'.'.join(_CAPABILITY_PATH[:-2])}, so the schema demands a value "
+            "the prompt tells the model to omit. One of the two moved. Refusing "
+            "rather than sending a schema that contradicts its own instructions."
+        )
+
     # The description still carries the instruction, because an enum tells the
-    # model WHAT is allowed and not what to do when nothing fits. The answer to
-    # that - pick the closest and propose the missing one - is the part that
-    # keeps discovery working, and it only exists in prose.
+    # model WHAT is allowed and not when to answer at all. That empty is correct
+    # - and that the nearest key is worse than none - only exists in prose.
     return schema
 
 

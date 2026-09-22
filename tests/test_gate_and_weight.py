@@ -333,17 +333,29 @@ class TestTheWeightingInputsHaveASupplier:
 
         Asserted as a property of the SOURCE, so that adding the derivation
         fails here rather than quietly reweighting the board.
+
+        READS TWO METHODS, because the `compute()` call moved out of `run` on
+        2026-09-22 when `legacy_score_key` became optional and the cell half
+        became its own branch. Both are named rather than falling back to the
+        whole module: a module-level search would pass on the line appearing in
+        a comment or a docstring, which is most of this file's neighbours.
         """
         import inspect
 
         from judge import pipeline
 
-        src = inspect.getsource(pipeline.Pipeline.run)
+        src = "\n".join(
+            inspect.getsource(m)
+            for m in (pipeline.Pipeline.run, pipeline.Pipeline._stored_with_cell_weight)
+        )
         assert "has_conditions=document.has_conditions" in src, (
             "has_conditions must stay visibly dead rather than plausibly alive - "
             "see the module docstring for why a claim-side derivation is worse "
             "than a missing input"
         )
+        # And it must not be derived from the claim anywhere in either method,
+        # which is the actual prohibition rather than the presence above.
+        assert "has_conditions=bool(claim.conditions" not in src.replace(" ", "")
         # And the expression it is tempting to use really does differ from the
         # thing the factor wants, which is the whole argument.
         bare = self._claim("version")

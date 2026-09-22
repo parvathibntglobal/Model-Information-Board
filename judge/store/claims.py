@@ -8,6 +8,16 @@ matters — it would sit in the table contributing to nothing, and the failure
 would present weeks later as a cell that will not publish rather than as a
 write that half-succeeded.
 
+⚠ SINCE 2026-09-22 THERE IS ONE DELIBERATE EXCEPTION, and it is the opposite
+case rather than a hole in the rule. A claim whose `legacy_score_key` is empty
+has no cell to be ranked within, so `StoredClaim.weights` is None and no
+`claim_weight` row is written. That is not a half-succeeded write: it is
+recorded, intended, and `write()` returns at a named early exit rather than
+falling through. What the original property protects against is a weight that
+was *supposed* to exist and did not — a claim with no key was supposed to be
+dropped entirely, and used to be, which is what made 1,385 claims carry a key
+that named the wrong thing in roughly two of three cases. See `StoredClaim.weights`.
+
 **Re-running extraction over the same thread does not duplicate anything.**
 The id is derived from what the claim IS, not from when it was written, so a
 re-run under the same `pipeline_version` writes the same rows. This is not an
@@ -72,7 +82,23 @@ from judge.vet.weight import WeightFactors
 #:                  prices them. ONLY `f_specificity` moves.
 #:                  `judge reweight --specificity current`.
 #:
-#: A plain `judge extract` writes e5.4. e5.2 and e5.3 exist only as the
+#:   e5.4 -> e5.5   `legacy_score_key` (was `capability`) became OPTIONAL and
+#:                  the prompt stopped asking for the closest key. NOT a
+#:                  weighting change and NOT reproducible by `judge reweight`:
+#:                  it changes what the EXTRACTOR emits, so the only way to
+#:                  produce e5.5 rows is to pay for extraction again.
+#:
+#:                  ⚠ THE FORK IS THE POINT AND IT IS NOT FREE. A claim whose
+#:                  key goes from `extraction.faithfulness` to empty hashes to
+#:                  a different id, so a re-run ADDS a row beside the e5.4 one
+#:                  rather than correcting it - which is exactly what a version
+#:                  fork is for (the old rows stay for the diff) and is also
+#:                  why nothing here backfills. The e5.4 rows keep their wrong
+#:                  keys; `CellStore` filters on this constant, so they stop
+#:                  reaching cells the moment the constant moves.
+#:                  `docs/measurements/the-key-that-takes-anything-2026-09-22.md`
+#:
+#: A plain `judge extract` writes e5.5. e5.2 and e5.3 exist only as the
 #: intermediates each diff is measured against, which is what a version-stamped
 #: fork is for - and each is reproducible from the one before it with no model
 #: call, which is what makes three forks cheap rather than three runs.
@@ -83,7 +109,7 @@ from judge.vet.weight import WeightFactors
 #:   held one version and no aggregation needed to say which; after it, an
 #:   unfiltered `n_eff` would take each voice's best weight across BOTH versions
 #:   and quietly report a mixture that is neither.
-PIPELINE_VERSION = "e5.4"
+PIPELINE_VERSION = "e5.5"
 
 CONNECT_TIMEOUT_SECONDS = 10
 
@@ -100,7 +126,7 @@ def claim_id_for(
     *,
     thread_context_id: str,
     source_comment_id: str,
-    capability_key: str,
+    capability_key: str | None,
     quote_flat_offset: tuple[int, int],
     pipeline_version: str,
 ) -> str:
@@ -130,12 +156,16 @@ def claim_id_for(
     them.
     """
     start, end = quote_flat_offset
+    # `capability_key` is OPTIONAL since 2026-09-22 and None hashes as the empty
+    # string. Deliberately NOT a sentinel word: a literal like "none" could
+    # collide with a future ratified key, and the separator is already \x1f so
+    # an empty field is unambiguous in the joined digest.
     digest = hashlib.sha256(
         "\x1f".join(
             [
                 thread_context_id,
                 source_comment_id,
-                capability_key,
+                capability_key or "",
                 f"{start}:{end}",
                 pipeline_version,
             ]
@@ -155,7 +185,20 @@ class StoredClaim:
 
     claim: ExtractedClaim
     quote: VerifiedQuote
-    weights: WeightFactors
+    #: None when the claim carries no ratified `legacy_score_key`.
+    #:
+    #: ⚠ NOT A ZERO AND NOT A DEFAULT (rule 6). Every one of the seven factors
+    #: exists to rank a claim WITHIN a cell, and a claim with no key has no
+    #: cell — so there is nothing for a weight to order it against. Writing one
+    #: anyway would mean picking a recency half-life, and `half_life_for`
+    #: returns the SLOW default for any key it does not recognise: the most
+    #: generous decay there is, handed to the claims we know least about, by a
+    #: fallback that cannot fail. Rule 12.
+    #:
+    #: A number with no consumer is rule 9's defect, so the honest record is no
+    #: row in `claim_weight` at all. The claim, its quote and its board entries
+    #: are all still written.
+    weights: WeightFactors | None
     document_id: str
     thread_context_id: str
     model_version_id: str
@@ -178,7 +221,7 @@ class StoredClaim:
         return claim_id_for(
             thread_context_id=self.thread_context_id,
             source_comment_id=self.claim.source_comment_id,
-            capability_key=self.claim.capability,
+            capability_key=self.claim.legacy_score_key,
             quote_flat_offset=self.claim.quote_offset,
             pipeline_version=self.pipeline_version,
         )
@@ -294,7 +337,7 @@ class ClaimStore:
                 # migration 20260821T1600_claim_speaking.sql.
                 "speaking": claim.model_ref.speaking,
                 "resolution_confidence": claim.model_ref.resolution_confidence,
-                "capability_key": self._ratified_or_none(claim.capability),
+                "capability_key": self._ratified_or_none(claim.legacy_score_key),
                 "taxonomy_version": stored.taxonomy_version,
                 "condition_bucket": stored.condition_bucket,
                 "conditions": Json(claim.conditions.model_dump(exclude_none=True)),
@@ -323,6 +366,14 @@ class ClaimStore:
                 "pipeline_version": stored.pipeline_version,
             },
         )
+
+        # NO KEY, NO WEIGHT, AND THE CLAIM IS STILL WRITTEN. Returning before
+        # `claim_weight` rather than writing zeros: see `StoredClaim.weights`.
+        # The row above is already committed to this transaction, which is the
+        # whole point - a claim the legacy scorer cannot rank is still evidence
+        # and still reaches the board.
+        if stored.weights is None:
+            return stored.id
 
         # as_row() is the seven factors plus w_final, which is their product
         # and a property rather than a field. Using it here means the row and

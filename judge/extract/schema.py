@@ -473,11 +473,9 @@ class ExtractedClaim(BaseModel):
     #: THE LEGACY CLOSED KEY, and it does not decide what the board shows.
     #:
     #: This is a key from `contract/capabilities.yaml` — the ratified twelve. It
-    #: is still required because the CELL path reads it (`judge/pipeline.py`,
-    #: `judge/store/claims.py`, `judge/vet/weight.py` all index cells by
-    #: `capability_key`, and `bucket_for` looks the key up to find its failure
-    #: mode). Removing it would break scoring for every claim, so it stays until
-    #: that path is retired.
+    #: feeds the CELL path (`judge/pipeline.py`, `judge/store/claims.py`,
+    #: `judge/vet/weight.py` all index cells by `capability_key`, and
+    #: `bucket_for` looks the key up to find its failure mode).
     #:
     #: WHAT IT IS NOT is the board's capability section. That comes from
     #: `board_entries` below, which is discovered and unbounded. Keeping the two
@@ -485,16 +483,49 @@ class ExtractedClaim(BaseModel):
     #: ratified twelve do not contain — without either inventing a ratified key
     #: or dropping the evidence.
     #:
-    #: Pick the closest ratified key. Where none is close, that is a signal
-    #: rather than a failure: say so in `proposed_capabilities`.
-    capability: str = Field(
+    #: ⚠ IT WAS `capability: str` AND IT ASKED FOR THE CLOSEST KEY. Measured
+    #: 2026-09-22 over all 1,385 stored claims: on a 60-claim read the chosen
+    #: key did not name what the quote described in **38 of 60**, and 1,194 of
+    #: the claims were written after the column became nullable with **zero**
+    #: NULLs. `docs/measurements/the-key-that-takes-anything-2026-09-22.md`.
+    #:
+    #: `minimaxir.com/2025/07/llms-identify-people/` produced 12 claims about
+    #: naming people in photographs, all 12 under `extraction.faithfulness`,
+    #: and five of the 21 cells on that key are sourced entirely from
+    #: facial-recognition quotes. Nobody discussed typed-field extraction.
+    #:
+    #: ⚠ TWO CHANGES, AND THE RENAME IS THE LOAD-BEARING ONE. `Conditions`'
+    #: docstring records the experiment: adding `reasoning_effort` with a better
+    #: description changed nothing, and renaming `structured_mode` to
+    #: `schema_enforced` stopped misfiling dead — **a field name is a stronger
+    #: instruction than any field's description.** A field named `capability`
+    #: could not be left empty, because `capability` is also the board's
+    #: discovered section, `contract/capabilities.yaml` and
+    #: `capability_candidate`: the prompt spends most of its length teaching the
+    #: OPEN vocabulary under that exact word. `legacy_score_key` names what it
+    #: feeds and claims nothing about capability.
+    #:
+    #: `None` is now a correct answer and the common one. A claim with no key is
+    #: written with `capability_key` NULL, no `claim_weight` row and no cell —
+    #: see `judge/pipeline.py`, which keeps the claim and skips the cell.
+    legacy_score_key: str | None = Field(
+        default=None,
         description=(
-            "a key from contract/capabilities.yaml. This feeds the legacy cell "
-            "score, NOT the board's capability section - the board reads "
-            "`board_entries`. Pick the closest ratified key; if none is close, "
-            "still pick the closest AND propose the missing one in "
-            "`proposed_capabilities`."
-        )
+            "OPTIONAL, and empty is a correct answer - the common one. A key "
+            "from contract/capabilities.yaml, which feeds an older scoring "
+            "path and is NOT what the board displays; the board reads "
+            "`board_entries`.\n\n"
+            "LEAVE IT EMPTY unless one of the ratified keys names what the "
+            "quote is about. DO NOT PICK THE CLOSEST. A key that is merely "
+            "nearest files this quote into a count about something the writer "
+            "never discussed - five people discussing one model's vision and "
+            "Chinese OCR were counted as '5 people mentioned following "
+            "instructions', because `instruction.adherence` was the nearest of "
+            "twelve.\n\n"
+            "Where no key names it, leave this empty AND propose the missing "
+            "key in `proposed_capabilities`. An empty key is a fact about the "
+            "vocabulary; a nearest-fit key is a fact about nothing."
+        ),
     )
 
     #: ── WHAT THE BOARD ACTUALLY RENDERS ───────────────────────────────────

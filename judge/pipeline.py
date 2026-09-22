@@ -488,6 +488,28 @@ class PipelineResult:
     #: remaining board entry with it. Now the board entry for the same quote is
     #: still written, so a run reporting cell refusals still produced evidence.
     cell_refusals: list[tuple[str, str, str]] = field(default_factory=list)
+
+    #: Claims the extractor correctly declined to key, since 2026-09-22.
+    #:
+    #: ⚠ A COUNT, NOT A LIST, AND NOT A REFUSAL. This is the one number in
+    #: `PipelineResult` that going UP is good news about: it is the extractor
+    #: saying "no ratified key names this quote" instead of picking the nearest
+    #: of twelve, which it did 1,385 times and got wrong in roughly two of
+    #: three (`docs/measurements/the-key-that-takes-anything-2026-09-22.md`).
+    #:
+    #: SEPARATE FROM `cell_refusals` BECAUSE THEY ARGUE OPPOSITE THINGS. That
+    #: list is the vocabulary failing to resolve a key the extractor supplied -
+    #: a defect in our machinery. This is the vocabulary being honestly reported
+    #: as not containing one, which is the signal `capabilities.yaml`'s own
+    #: "growing the vocabulary" note asks for. Folding them would produce a
+    #: single number that rises both when the pipeline breaks and when it starts
+    #: telling the truth.
+    #:
+    #: A count rather than a list because the quote is not lost: the claim row
+    #: is written with `capability_key` NULL and its board entries land as
+    #: normal, so `SELECT ... WHERE capability_key IS NULL` recovers every one
+    #: of them with more detail than a tuple here could carry.
+    cell_skipped_no_key: int = 0
     #: How many `board_entry` rows this thread produced. Counted rather
     #: than inferred from the claims: one claim can inform three board
     #: sections, so the two numbers are legitimately different and a
@@ -809,87 +831,70 @@ class Pipeline:
             for signal in verdict.unconfirmed:
                 result.tier_signals_unconfirmed[signal] += 1
 
-            # ── THE CELL HALF, GUARDED AS ONE REGION ─────────────────────────
+            # ── THE CELL HALF, TWO BRANCHES ──────────────────────────────────
             #
-            # TWO SITES READ THE LEGACY CLOSED KEY AND BOTH RAISE ON ONE IT DOES
-            # NOT KNOW, and until 2026-09-14 neither was guarded:
-            #
-            #   compute()     ValueError "unknown capability 'vision' - it must
-            #                 exist in contract/capabilities.yaml"
-            #   bucket_for()  KeyError 'vision', from a bare dict lookup on
-            #                 `dominant_dimension()`. The worse of the two: its
-            #                 message is the key and nothing else.
-            #
-            # `capability` is a closed vocabulary enforced in the tool schema
-            # since 2026-09-14 (`tool_schema_for(..., capability_keys=...)`), so
-            # a non-compliant key should no longer arrive. Should is not a
-            # guarantee - providers differ on whether they validate an enum, the
-            # lesson `prefixItems` already taught this codebase - so the
-            # assertion stays and is now survivable.
-            #
-            # WRAPPING `compute()` ALONE WOULD NOT HAVE BEEN ENOUGH, and neither
-            # would `try: ... continue`. `continue` skips the board write below,
-            # which is exactly what the 2026-09-10 fix exists to prevent: "A
-            # CLAIM FAILING MUST NOT COST THE BOARD." So this sets the cell
-            # aside and falls THROUGH to the board, which is the same shape that
-            # fix chose one statement later.
+            # Both fall THROUGH to the board rather than `continue`-ing, which
+            # is what the 2026-09-10 fix exists to prevent: "A CLAIM FAILING
+            # MUST NOT COST THE BOARD." The refusal path and its reasons now
+            # live in `_stored_with_cell_weight`.
             stored: StoredClaim | None = None
-            try:
-                weights = compute(
-                    evidence_tier=evidence_tier,
-                    platform=document.platform,
-                    capability_key=claim.capability,
-                    relevance=claim.relevance,
-                    specificity=claim.model_ref.specificity,
-                    claim_date=document.created_at,
-                    release_date=(release_dates or {}).get(model_version_id),
-                    as_of=as_of,
-                    # DERIVED FROM THE CLAIM, not read from the document.
-                    # `DocumentFacts` has exactly one constructor in the repository
-                    # and it is a test, so this was a required argument supplied
-                    # from a dataclass default. See the module docstring.
-                    version_named=claim.model_ref.specificity in ("snapshot", "version"),
-                    # NOT DERIVED, DELIBERATELY. See the module docstring: there is
-                    # no honest claim-side source for this one, and a wrong
-                    # derivation is worse than a missing input.
-                    has_conditions=document.has_conditions,
-                    has_numbers=document.has_numbers,
-                    has_repro_steps=claim.has_repro_steps,
-                )
 
+            # ── NO RATIFIED KEY: KEEP THE CLAIM, SKIP THE CELL ───────────────
+            #
+            # ⚠ THIS BRANCH IS WHY THE SCHEMA CHANGE IS SAFE, AND WITHOUT IT THE
+            #   RENAME WOULD HAVE SILENTLY DELETED MOST OF THE CORPUS.
+            #
+            # `legacy_score_key` became optional on 2026-09-22 so the extractor
+            # could stop forcing a nearest-fit key (measured: the key did not
+            # name what the quote described in 38 of 60 claims read). But both
+            # readers of the key refuse an absent one - `compute()` with a
+            # ValueError and `bucket_for()` with a KeyError, in
+            # `_stored_with_cell_weight` - and its handler returns None, which
+            # would mean NO CLAIM ROW WRITTEN AT ALL: no claim, no weight, no
+            # quote, only a board entry with a null `claim_id`.
+            #
+            # So making the field optional without this branch would have turned
+            # "the extractor may say it does not know" into "the pipeline
+            # discards every claim it does not know", which is rule 4 at the
+            # worst possible stage - an absence we caused, in the table the
+            # whole board counts from, looking exactly like an absence we found.
+            #
+            # It is NOT an error and is not counted as one. `cell_refusals` is
+            # for a key the vocabulary could not resolve; this is the extractor
+            # correctly reporting that no key applies, so it gets its own tally.
+            if claim.legacy_score_key is None:
+                result.cell_skipped_no_key += 1
                 stored = StoredClaim(
                     claim=claim,
                     quote=quote,
-                    weights=weights,
+                    # See `StoredClaim.weights`: no cell, so nothing to rank
+                    # within, so no weight rather than a defaulted one.
+                    weights=None,
                     document_id=quote.document_id,
-                    # From the RESOLVED document (verify step 2 picked which comment),
-                    # so a Reddit thread's claims carry the author of the comment the
-                    # quote came from — distinct people, distinct voices. Without this
-                    # every claim was one anonymous voice and no cell could publish.
                     author_id=document.author_id,
                     thread_context_id=thread.thread_context_id,
                     model_version_id=model_version_id,
-                    condition_bucket=bucket_for(
-                        claim.capability, claim.conditions.model_dump(exclude_none=True)
-                    ),
+                    # `claim.condition_bucket` is NOT NULL and a bucket is
+                    # `<dimension>:<band>` for a CAPABILITY. With no capability
+                    # there is no dominant dimension, so this names the absence
+                    # instead of borrowing a dimension that would read as a real
+                    # slice (rule 6). Nothing groups on it: no cell exists.
+                    condition_bucket="none:no_ratified_key",
                     evidence_tier=evidence_tier,
                     claim_date=document.created_at,
                     extractor_model=self._extractor_model,
                 )
-            except (ValueError, KeyError, LookupError) as exc:
-                # NAMED, NOT COUNTED. A bare tally would say "3 claims lost" and
-                # leave nobody able to tell an unratified capability from a
-                # missing tier - rule 4 on what the pipeline discards. `KeyError`
-                # stringifies to just the key, so the type is carried too.
-                result.cell_refusals.append(
-                    (quote.document_id, claim.capability,
-                     f"{type(exc).__name__}: {str(exc).splitlines()[0][:160]}")
-                )
-                log.warning(
-                    "claim on %r refused by the legacy cell path (%s: %s); the "
-                    "board entry is still written",
-                    claim.capability, type(exc).__name__,
-                    str(exc).splitlines()[0][:120],
+            else:
+                stored = self._stored_with_cell_weight(
+                    claim=claim,
+                    quote=quote,
+                    thread=thread,
+                    document=document,
+                    model_version_id=model_version_id,
+                    evidence_tier=evidence_tier,
+                    release_dates=release_dates,
+                    as_of=as_of,
+                    result=result,
                 )
             # CAPTURED PER ITERATION, not read back off the tail of the list.
             # The board rows below used `stored_claim_ids[-1]`, which is the
@@ -1039,6 +1044,104 @@ class Pipeline:
             result.published,
         )
         return result
+
+    def _stored_with_cell_weight(
+        self,
+        *,
+        claim: Any,
+        quote: Any,
+        thread: ThreadInput,
+        document: Any,
+        model_version_id: str,
+        evidence_tier: str,
+        release_dates: dict[str, date] | None,
+        as_of: date,
+        result: PipelineResult,
+    ) -> StoredClaim | None:
+        """The cell half, for a claim that DOES carry a ratified key.
+
+        Extracted from `run_one` on 2026-09-22 when `legacy_score_key` became
+        optional, so the key-less branch could be read beside it rather than
+        threaded through the same try. The body is unchanged; only its home is.
+
+        TWO SITES READ THE LEGACY CLOSED KEY AND BOTH RAISE ON ONE THEY DO NOT
+        KNOW, and until 2026-09-14 neither was guarded:
+
+          compute()     ValueError "unknown capability 'vision' - it must exist
+                        in contract/capabilities.yaml"
+          bucket_for()  KeyError 'vision', from a bare dict lookup on
+                        `dominant_dimension()`. The worse of the two: its
+                        message is the key and nothing else.
+
+        The key is closed in the tool schema since 2026-09-14
+        (`tool_schema_for(..., capability_keys=...)`), so a non-compliant key
+        should no longer arrive. Should is not a guarantee - providers differ on
+        whether they validate an enum, the lesson `prefixItems` already taught
+        this codebase - so the assertion stays and is survivable.
+
+        Returns None when the cell half refused, having recorded WHY in
+        `result.cell_refusals`. The caller falls through to the board either
+        way: "A CLAIM FAILING MUST NOT COST THE BOARD."
+        """
+        try:
+            weights = compute(
+                evidence_tier=evidence_tier,
+                platform=document.platform,
+                capability_key=claim.legacy_score_key,
+                relevance=claim.relevance,
+                specificity=claim.model_ref.specificity,
+                claim_date=document.created_at,
+                release_date=(release_dates or {}).get(model_version_id),
+                as_of=as_of,
+                # DERIVED FROM THE CLAIM, not read from the document.
+                # `DocumentFacts` has exactly one constructor in the repository
+                # and it is a test, so this was a required argument supplied
+                # from a dataclass default. See the module docstring.
+                version_named=claim.model_ref.specificity in ("snapshot", "version"),
+                # NOT DERIVED, DELIBERATELY. See the module docstring: there is
+                # no honest claim-side source for this one, and a wrong
+                # derivation is worse than a missing input.
+                has_conditions=document.has_conditions,
+                has_numbers=document.has_numbers,
+                has_repro_steps=claim.has_repro_steps,
+            )
+
+            return StoredClaim(
+                claim=claim,
+                quote=quote,
+                weights=weights,
+                document_id=quote.document_id,
+                # From the RESOLVED document (verify step 2 picked which comment),
+                # so a Reddit thread's claims carry the author of the comment the
+                # quote came from — distinct people, distinct voices. Without this
+                # every claim was one anonymous voice and no cell could publish.
+                author_id=document.author_id,
+                thread_context_id=thread.thread_context_id,
+                model_version_id=model_version_id,
+                condition_bucket=bucket_for(
+                    claim.legacy_score_key,
+                    claim.conditions.model_dump(exclude_none=True),
+                ),
+                evidence_tier=evidence_tier,
+                claim_date=document.created_at,
+                extractor_model=self._extractor_model,
+            )
+        except (ValueError, KeyError, LookupError) as exc:
+            # NAMED, NOT COUNTED. A bare tally would say "3 claims lost" and
+            # leave nobody able to tell an unratified capability from a
+            # missing tier - rule 4 on what the pipeline discards. `KeyError`
+            # stringifies to just the key, so the type is carried too.
+            result.cell_refusals.append(
+                (quote.document_id, claim.legacy_score_key,
+                 f"{type(exc).__name__}: {str(exc).splitlines()[0][:160]}")
+            )
+            log.warning(
+                "claim on %r refused by the legacy cell path (%s: %s); the "
+                "board entry is still written",
+                claim.legacy_score_key, type(exc).__name__,
+                str(exc).splitlines()[0][:120],
+            )
+            return None
 
     def run_all(
         self,

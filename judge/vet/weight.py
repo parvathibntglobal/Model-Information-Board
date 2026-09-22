@@ -167,7 +167,11 @@ INPUT_GAPS: dict[str, _Gap] = {
     ),
     "capability_key": _Gap(
         kind=NOT_CARRIED,
-        writer="claim.capability, from the extractor",
+        # OPTIONAL since 2026-09-22. A claim with no key never reaches
+        # `compute()` at all - `judge/pipeline.py` writes it with no weight and
+        # no cell - so this gap is about a key that IS supplied and unsupplied,
+        # not about the empty case.
+        writer="claim.legacy_score_key, from the extractor",
         fix="supplied today",
     ),
     "has_repro_steps": _Gap(
