@@ -341,6 +341,21 @@ class Progress:
                 model_version_id=self.model_version_id,
             )
 
+    def thread(self, **fields) -> None:
+        """One finished thread: what came back, and what the call cost.
+
+        ⚠ ITS OWN RECORD KIND, NOT A STAGE. A stage is a transition and there
+          are fifteen of them; these are one per thread and there can be
+          twenty-five. Filing them as stages would bury the pipeline's shape
+          in a column of `E5 running` lines, which is what the old
+          `reading thread N/M` line already did.
+        """
+        self._write({"kind": "thread", "at": _now(), **fields})
+        if self._console:
+            self._say(fetch_console.render(
+                {"kind": "thread", **fields},
+                model_version_id=self.model_version_id))
+
     def record_summary(self, **fields) -> None:
         """Totals for the closing box. Merged, so a later stage can add to an
         earlier one's without either having to know about the other."""
@@ -2175,6 +2190,38 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         prog.stage("E5", "Extract", "running",
                    detail=f"reading thread {counter['n']}/{total} (LLM) — {tc_id}")
 
+    def _on_result(result, *, tokens_in, tokens_out, usd, posts, index, total):
+        """What came back from one thread, as it lands.
+
+        ⚠ COUNTS AND KEYS, NEVER THE CLAIM TEXT. A verified claim carries a
+          quote from a harvested document, and a terminal line is the one place
+          it would be printed with no ruling, no model attribution and no way
+          to decline it. The capability keys are ours; the quotes are not.
+        """
+        run = result.extraction
+        keys: dict[str, int] = {}
+        for claim, _quote in run.verified:
+            key = getattr(claim, "capability", None) or getattr(
+                claim, "legacy_score_key", None)
+            if key:
+                keys[str(key)] = keys.get(str(key), 0) + 1
+        prog.thread(
+            index=index, total=total,
+            thread_context_id=run.thread_context_id,
+            posts=posts,
+            verified=len(run.verified),
+            rejected=len(run.rejected),
+            unsalvaged=len(run.unsalvaged),
+            unclassified=len(run.unclassified),
+            proposed=len(run.proposed_capabilities),
+            keys=keys or None,
+            no_claim_reason=run.no_claim_reason,
+            schema_retries=run.schema_retries or None,
+            truncated=run.truncated or None,
+            tokens_in=tokens_in, tokens_out=tokens_out,
+            usd=round(usd, 6) if usd is not None else None,
+        )
+
     # THE STOP BUTTON REACHES INSIDE A THREAD, WHICH IT DID NOT.
     #
     # `checkpoint()` is called from `stage()`, so during E5 the next check is the
@@ -2207,6 +2254,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         threads, facts=facts, model_version_of=mvo, budget=budget,
         already_extracted=seen, driver=Driver("new-evidence"), resolve_surface=resolver,
         on_thread=_on_thread,
+        on_result=_on_result,
         # COMMIT EACH THREAD AS IT LANDS. This batch used to commit once, after
         # every thread, so a run that was stopped or died at thread 20 of 24
         # discarded all 19 that had finished — measured E5 durations reach 13.8

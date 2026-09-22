@@ -1068,6 +1068,10 @@ class Pipeline:
         resolve_surface: SurfaceResolver | None = None,
         find_surfaces: SurfaceFinder | None = None,
         on_thread: Callable[[str], None] | None = None,
+        #: Called with each finished thread and what it cost. `on_thread`
+        #: fires BEFORE the call and carries only an id, so this is the
+        #: only place a caller can see what came back.
+        on_result: Callable[..., None] | None = None,
         after_thread: Callable[[], None] | None = None,
     ) -> list[PipelineResult]:
         """A batch. A refused thread is skipped, never fatal.
@@ -1131,6 +1135,9 @@ class Pipeline:
             #   already been charged when this fires, and an unbounded retry
             #   turns a provider outage into a budget event. `check_before_call`
             #   runs again on each attempt, so the daily cap still governs.
+            before_in = budget.input_tokens if budget else 0
+            before_out = budget.output_tokens if budget else 0
+            before_usd = budget.spent_usd if budget else 0.0
             result = None
             for attempt in range(1, EXTRACT_ATTEMPTS + 1):
                 try:
@@ -1177,6 +1184,27 @@ class Pipeline:
                         budget.check_before_call()
             if result is None:
                 continue
+            # ⚠ WHAT THE THREAD COST AND WHAT IT PRODUCED, HANDED BACK AS IT
+            #   FINISHES. `on_thread` fires BEFORE the call with only an id, so
+            #   everything a reader wants - how many claims survived, which
+            #   capabilities, what the call cost - existed in this loop and died
+            #   in it. The run could say it had read thread 8 of 20 and not what
+            #   came back.
+            #
+            #   The token and dollar figures are DELTAS taken across this one
+            #   call. `Budget` accumulates, so the difference is this thread's
+            #   share and nothing else's - the same reason the run total is a
+            #   delta from a baseline rather than `spent_usd` itself.
+            if on_result is not None:
+                on_result(
+                    result,
+                    tokens_in=(budget.input_tokens - before_in) if budget else None,
+                    tokens_out=(budget.output_tokens - before_out) if budget else None,
+                    usd=(budget.spent_usd - before_usd) if budget else None,
+                    posts=len(thread.raw_text_of),
+                    index=len(results) + 1,
+                    total=len(threads),
+                )
             results.append(result)
             # Same transaction as the claims. A ledger row that survived a
             # rolled-back extraction would mark a thread read that produced
