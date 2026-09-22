@@ -2779,8 +2779,8 @@ def _gates_at_each_stage() -> tuple[dict[str, dict], list[str]]:
 
         stages["E5c"] = {
             "runs": [
-                {"name": g["reason"], "kind": "gate", "drops": g["means"],
-                 "undescribed": False}
+                {"name": g.get("shows_as") or g["reason"], "kind": "gate",
+                 "drops": g["means"], "undescribed": False}
                 for g in METRIC_GATES if g["when"] == "write"
             ],
             "note": (
@@ -2806,8 +2806,10 @@ def _gates_after_the_run() -> tuple[list[dict], str | None]:
     except Exception as exc:  # noqa: BLE001
         return [], str(exc)
     return [
-        {"name": g["reason"], "kind": "gate", "drops": g["means"],
-         "undescribed": False}
+        # A TEMPLATE IS NOT A NAME. `shows_as` exists for the one reason that
+        # fills in its two families at the point of refusal.
+        {"name": g.get("shows_as") or g["reason"], "kind": "gate",
+         "drops": g["means"], "undescribed": False}
         for g in METRIC_GATES if g["when"] == "read"
     ], None
 

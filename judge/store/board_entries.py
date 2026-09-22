@@ -431,7 +431,12 @@ METRIC_GATES: tuple[dict[str, str], ...] = (
         ),
     },
     {
+        # ⚠ THE ONLY REASON THAT IS A TEMPLATE, so it is the only one that
+        #   needs a name of its own. Rendering the raw string put
+        #   `{declared}s` and `{written}s` on the page, which reads as a bug
+        #   in the very list that exists to explain the pipeline.
         "reason": GATE_TIME_UNIT_DISAGREES,
+        "shows_as": "the unit and the figure name different durations",
         "when": "read",
         "means": (
             "The declared unit and the figure name different durations - "

@@ -170,8 +170,20 @@ class TestTheReadTimeGatesAreNotAFetchStage:
         stages, _ = _gates_at_each_stage()
         write = {g["name"] for g in stages["E5c"]["runs"]}
         read = {g["name"] for g in _gates_after_the_run()[0]}
-        assert write | read == {g["reason"] for g in METRIC_GATES}
+        names = {g.get("shows_as") or g["reason"] for g in METRIC_GATES}
+        assert write | read == names
         assert not (write & read)
+
+    def test_a_templated_reason_is_given_a_readable_name(self):
+        """⚠ ONE REASON IS A FORMAT STRING, filled in at the point of refusal
+        with the two durations that disagree. Rendered raw it put
+        `{declared}s` and `{written}s` on the page - a placeholder showing
+        through, in the very list that exists to explain the pipeline."""
+        from judge.store.board_entries import METRIC_GATES
+
+        for gate in METRIC_GATES:
+            shown = gate.get("shows_as") or gate["reason"]
+            assert "{" not in shown, f"{shown!r} leaks a placeholder"
 
 
 class TestTheMetricGatesHaveOneSource:
