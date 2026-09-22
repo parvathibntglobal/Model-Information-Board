@@ -38,6 +38,7 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
+from judge import fetch_console
 from judge.extract.client import extractor_model
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -245,8 +246,37 @@ class Progress:
         #: line and hand the same seq to both.
         self._lock = threading.Lock()
         self._stop_beating = threading.Event()
+        #: WHAT THE RUN AMOUNTED TO, set by the stage that knows and written
+        #: onto the `end` record. The end record carried a status and a
+        #: sentence and nothing else, so neither the terminal, the UI nor a
+        #: replay could say what a finished run had sent or got back - the
+        #: numbers existed, in local variables, and died with the function.
+        #:
+        #: ON THE RECORD RATHER THAN PRINTED DIRECTLY, so all three readers
+        #: get it from one place and a replay of an old log shows exactly what
+        #: the terminal showed at the time.
+        self._summary: dict = {}
+        #: ⚠ THE THIRD DESTINATION, AND THE ONE A PERSON READS. The file is the
+        #: survivor and `fetch_log` is the shared view; both are for machines.
+        #: A run started from the admin page was spawned with `stdout=DEVNULL`,
+        #: so the console that started the backend saw nothing for forty
+        #: minutes and then a board that had changed - and reading what
+        #: happened meant opening the JSONL and decoding it by eye.
+        #:
+        #: WRITTEN LAST AND NEVER ALLOWED TO RAISE, for the same reason the
+        #: database mirror is not: a closed pipe or a console that cannot
+        #: encode a character must cost the line, not the run.
+        self._console = os.getenv("FETCH_QUIET", "").strip().lower() not in {
+            "1", "true", "yes",
+        }
         self._write({"kind": "run", "run_id": run_id,
                      "model_version_id": model_version_id, "at": _now()})
+        if self._console:
+            self._say(fetch_console.header(
+                run_id=run_id,
+                model_version_id=model_version_id,
+                records=str(self.path),
+            ))
         self._start_heartbeat()
 
     # ── the heartbeat ────────────────────────────────────────────────────────
@@ -310,6 +340,30 @@ class Progress:
                 model_version_id=self.model_version_id,
             )
 
+    def record_summary(self, **fields) -> None:
+        """Totals for the closing box. Merged, so a later stage can add to an
+        earlier one's without either having to know about the other."""
+        self._summary.update({k: v for k, v in fields.items() if v is not None})
+
+    def _say(self, lines: list[str]) -> None:
+        """Print, and never let printing end a run.
+
+        A Windows console in cp1252 raises `UnicodeEncodeError` on a character
+        it cannot map, and that exception would unwind out of `stage()` - the
+        run dying because it tried to describe itself. `errors="replace"` on
+        the way out means an unmappable character costs a glyph.
+        """
+        if not lines:
+            return
+        try:
+            text = "\n".join(lines)
+            stream = sys.stdout
+            enc = getattr(stream, "encoding", None) or "utf-8"
+            stream.write(text.encode(enc, "replace").decode(enc) + "\n")
+            stream.flush()
+        except Exception:  # noqa: BLE001 - see the docstring
+            pass
+
     def stop_requested(self) -> bool:
         """Has somebody asked this run to stop? Never raises."""
         try:
@@ -339,8 +393,12 @@ class Progress:
     def stage(self, id_: str, name: str, status: str, **fields) -> None:
         # status: running | ok | skipped | error. Counts and detail ride along
         # so the log line is a finding, not just a heartbeat.
-        self._write({"kind": "stage", "id": id_, "name": name,
-                     "status": status, "at": _now(), **fields})
+        record = {"kind": "stage", "id": id_, "name": name,
+                  "status": status, "at": _now(), **fields}
+        self._write(record)
+        if self._console:
+            self._say([""] + fetch_console.render(
+                record, model_version_id=self.model_version_id))
         if status == "error" and id_ not in self._errored:
             self._errored.append(id_)
         # AFTER the write, never before: the stage that just finished is a real
@@ -389,7 +447,12 @@ class Progress:
         # sort after it, and a run whose last line is `alive` reads as one that
         # came back from the dead.
         self._stop_beating.set()
-        self._write({"kind": "end", "status": status, "detail": detail, "at": _now()})
+        record = {"kind": "end", "status": status, "detail": detail,
+                  "at": _now(), **self._summary}
+        self._write(record)
+        if self._console:
+            self._say([""] + fetch_console.render(
+                record, model_version_id=self.model_version_id))
         return status
 
 
@@ -2088,8 +2151,15 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         return
 
     budget = Budget.from_env()
+    # ⚠ `spent_usd` IS SEEDED WITH TODAY'S TOTAL, NOT THIS RUN'S, because the
+    #   cap is a DAILY one. So this run's own spend is the delta, and the
+    #   baseline has to be taken before a single call is made - reporting
+    #   `spent_usd` as the run's cost would charge this run for every fetch
+    #   since midnight.
+    spent_before = 0.0
     if budget is not None:
         budget.spent_usd = spend_ledger.spent_today()
+        spent_before = budget.spent_usd
     facts, _ = _document_facts(conn, doc_ids)
     mvo = _model_version_map(conn)
     resolver = RegistrySurfaceResolver.from_connection(conn)
@@ -2174,6 +2244,39 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         )
     prog.stage("E5", "Extract", "ok", truncated=len(truncated),
                truncated_threads=truncated[:10], detail=detail)
+
+    # ── WHAT THE RUN AMOUNTED TO, for the closing box ────────────────────
+    #
+    # Every one of these was already computed and then dropped on the floor:
+    # `threads` is the batch that was sent, `results` is what came back, and
+    # `budget` has been counting tokens and dollars all along. The end record
+    # carried a status and a sentence, so a finished run could not say what it
+    # had sent or got back - and the terminal, the UI and a replay all read
+    # that same record.
+    #
+    # ⚠ `cost` IS TOKENS TIMES A CONFIGURED RATE, NOT AN INVOICE, and the
+    #   renderer says so on the line. #381 measured the two constants in this
+    #   repo disagreeing by 2.11x and nothing has ever been checked against a
+    #   bill. Printing it unlabelled would be the "looks measured and is not"
+    #   that rule 3 is about; withholding it entirely would be worse, because
+    #   it is the only spend figure a person running a fetch can see.
+    prog.record_summary(
+        llm=extractor_model(),
+        sent_threads=len(threads),
+        sent_posts=sum(len(t.raw_text_of) for t in threads),
+        sent_chars=sum(len(t.flattened_text) for t in threads),
+        claims_verified=verified,
+        claims_stored=stored,
+        cells_written=cells,
+        **({
+            "tokens_in": budget.input_tokens,
+            "tokens_out": budget.output_tokens,
+            "cost_usd": round(budget.spent_usd - spent_before, 6),
+            # A provider that stops reporting usage silently disables the cap,
+            # and the symptom is a total that looks like good news.
+            "unmetered_calls": budget.unmetered_calls,
+        } if budget is not None else {}),
+    )
 
     # CAPABILITY DISCOVERY. Proposals the extractor made for keys none of the 12
     # named — appended to capability_candidate for an admin to rule on. The LLM
