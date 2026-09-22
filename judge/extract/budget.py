@@ -163,6 +163,18 @@ class Budget:
     #: this cap, and the symptom is a suspiciously low total that looks like
     #: good news.
     unmetered_calls: int = 0
+    #: TOKENS AS THE PROVIDER REPORTED THEM, summed across this run's calls.
+    #:
+    #: `charge()` already receives both numbers and was throwing them away
+    #: after multiplying. A run could say what it had SPENT and not what it
+    #: had SENT - and the two answer different questions: a run that cost
+    #: little because it was throttled and one that cost little because the
+    #: threads were short look identical in dollars and not in tokens.
+    #:
+    #: Recorded, never derived. `unmetered_calls` beside them is what says
+    #: whether to believe the total.
+    input_tokens: int = 0
+    output_tokens: int = 0
     _by_model: dict[str, float] = field(default_factory=dict)
 
     @classmethod
@@ -225,6 +237,8 @@ class Budget:
         """
         cost = self.cost_of(completion.input_tokens, completion.output_tokens)
         self.spent_usd += cost
+        self.input_tokens += completion.input_tokens
+        self.output_tokens += completion.output_tokens
         self.calls += 1
         self._by_model[completion.model] = self._by_model.get(completion.model, 0.0) + cost
         if completion.input_tokens == 0 and completion.output_tokens == 0:

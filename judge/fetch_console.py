@@ -121,21 +121,73 @@ def stage(record: dict) -> list[str]:
 
 
 def ending(record: dict, *, model_version_id: str) -> list[str]:
-    """The closing box.
+    """The closing box: what the run amounted to.
 
-    ⚠ IT CARRIES WHAT THE RUN RECORDED AND NOTHING ELSE. A summary of tokens
-      sent and dollars spent would be the most useful thing here and the `end`
-      record does not hold either - the ledger does, written by the client that
-      made each call. Deriving them in a renderer would be a figure with no
-      measurement behind it, so the line is absent rather than estimated.
+    ⚠ EVERY LINE IS A NUMBER THE RUN RECORDED. The `end` record carries them
+      because `extract_and_curate` puts them there - `threads` is the batch
+      that was sent, `results` is what came back, `Budget` counted the tokens.
+      Nothing here is computed from anything else, so a line is absent when the
+      run did not measure it rather than estimated into existence (rule 3).
+
+      A fetch that never reached E5 - no threads to read, or an error before
+      it - prints the box with the model and nothing else, which is the honest
+      shape of "it ended and it extracted nothing".
+
+    ⚠ AND THE COST LINE SAYS WHAT IT IS. `spend_ledger`'s dollars are tokens
+      times a configured rate, and #381 measured the two rates in this repo
+      disagreeing by 2.11x with neither ever checked against an invoice.
+      Printing `$0.017892` bare would be a figure that looks measured and is
+      not; withholding it would leave a person running a fetch with no spend
+      figure at all. So it is shown and labelled.
     """
     status = str(record.get("status") or "").upper()
-    return [
+    lines = [
         "=" * WIDTH,
         f"  RUN {status}   {record.get('detail') or ''}".rstrip(),
         f"  model   {model_version_id}",
-        "=" * WIDTH,
     ]
+    if record.get("llm"):
+        lines.append(f"  llm     {record['llm']}")
+
+    threads = record.get("sent_threads")
+    if threads is not None:
+        posts, chars = record.get("sent_posts"), record.get("sent_chars")
+        sent = f"{threads:,} thread(s)"
+        if posts is not None:
+            sent += f" - {posts:,} post(s)"
+        if chars is not None:
+            sent += f", {chars:,} chars"
+        lines.append(f"  sent    {sent}")
+
+    tin, tout = record.get("tokens_in"), record.get("tokens_out")
+    if tin is not None or tout is not None:
+        lines.append(f"  tokens  in {tin or 0:,}  out {tout or 0:,}")
+        # A provider that stops reporting usage silently disables the daily
+        # cap, and the symptom is a total that looks like good news. Said only
+        # when it happened, or it is a caveat about nothing.
+        if record.get("unmetered_calls"):
+            lines.append(
+                f"          {record['unmetered_calls']} call(s) reported NO usage - "
+                f"the totals above are short by whatever those cost"
+            )
+
+    if record.get("cost_usd") is not None:
+        lines.append(
+            f"  cost    ${float(record['cost_usd']):.6f}   "
+            f"tokens x the configured rate, not an invoice (#381)"
+        )
+
+    verified = record.get("claims_verified")
+    if verified is not None:
+        back = f"{verified:,} claim(s) verified"
+        if record.get("claims_stored") is not None:
+            back += f", {record['claims_stored']:,} stored"
+        if record.get("cells_written"):
+            back += f", {record['cells_written']:,} cell(s)"
+        lines.append(f"  back    {back}")
+
+    lines.append("=" * WIDTH)
+    return lines
 
 
 def render(record: dict, *, model_version_id: str) -> list[str]:

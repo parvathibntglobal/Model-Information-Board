@@ -108,16 +108,58 @@ class TestTheClosingBoxSaysOnlyWhatWasMeasured:
         assert any("RUN ERROR" in x for x in lines)
         assert any("3 stage(s) errored" in x for x in lines)
 
-    def test_it_does_not_invent_a_cost_or_a_token_total(self):
-        """Rule 3. The `end` record holds neither; the ledger does, written by
-        the client that made each call. A figure computed in a renderer is a
-        number with no measurement behind it."""
+    def test_a_run_that_measured_nothing_prints_no_totals(self):
+        """⚠ RULE 3, AND IT IS WHY EVERY LINE IS CONDITIONAL. A fetch that
+        never reached E5 - nothing to read, or an error before it - has no
+        tokens and no cost, and the box must be short rather than print zeros
+        that look like a run which sent nothing and got nothing back."""
         text = " ".join(fetch_console.ending(
             {"kind": "end", "status": "ok", "detail": "fetch complete"},
             model_version_id="mv_x",
         )).lower()
         assert "$" not in text
         assert "token" not in text
+        assert "sent" not in text
+
+    def test_it_prints_the_totals_the_run_recorded(self):
+        lines = fetch_console.ending({
+            "kind": "end", "status": "ok", "detail": "fetch complete",
+            "llm": "deepseek/deepseek-v4-flash",
+            "sent_threads": 9, "sent_posts": 20, "sent_chars": 7195,
+            "tokens_in": 108575, "tokens_out": 9613, "cost_usd": 0.017892,
+            "claims_verified": 11, "claims_stored": 9, "cells_written": 3,
+        }, model_version_id="mv_x")
+        body = chr(10).join(lines)
+        assert "llm     deepseek/deepseek-v4-flash" in body
+        assert "sent    9 thread(s) - 20 post(s), 7,195 chars" in body
+        assert "tokens  in 108,575  out 9,613" in body
+        assert "back    11 claim(s) verified, 9 stored, 3 cell(s)" in body
+
+    def test_the_cost_says_it_is_not_an_invoice(self):
+        """#381: the ledger's dollars are tokens times a configured rate, and
+        the two rates in this repo disagreed by 2.11x with neither ever
+        checked against a bill. Bare, it reads as measured."""
+        body = chr(10).join(fetch_console.ending(
+            {"kind": "end", "status": "ok", "cost_usd": 0.0179},
+            model_version_id="mv_x",
+        ))
+        assert "$0.017900" in body
+        assert "not an invoice" in body
+
+    def test_calls_that_reported_no_usage_are_named(self):
+        """A provider that stops reporting usage silently disables the daily
+        cap, and the symptom is a total that looks like good news."""
+        body = chr(10).join(fetch_console.ending({
+            "kind": "end", "status": "ok", "tokens_in": 10, "tokens_out": 2,
+            "unmetered_calls": 3,
+        }, model_version_id="mv_x"))
+        assert "3 call(s) reported NO usage" in body
+        # and stays quiet when it did not happen
+        quiet = chr(10).join(fetch_console.ending({
+            "kind": "end", "status": "ok", "tokens_in": 10, "tokens_out": 2,
+            "unmetered_calls": 0,
+        }, model_version_id="mv_x"))
+        assert "reported NO usage" not in quiet
 
 
 class TestBothHalvesAreWired:
@@ -161,3 +203,37 @@ class TestBothHalvesAreWired:
         say = say[:say.index(chr(10) + "    def ", 10)]
         assert "except Exception" in say
         assert '"replace"' in say
+
+
+class TestTheTotalsAreRecordedNotDerived:
+    """The numbers existed in local variables and died with the function."""
+
+    def test_the_budget_counts_the_tokens_it_is_handed(self):
+        src = (ROOT / "judge" / "extract" / "budget.py").read_text(encoding="utf-8")
+        assert "self.input_tokens += completion.input_tokens" in src
+        assert "self.output_tokens += completion.output_tokens" in src
+
+    def test_the_run_records_its_own_spend_not_the_day_s(self):
+        """⚠ `spent_usd` IS SEEDED WITH TODAY'S TOTAL because the cap is a
+        daily one, so this run's cost is the delta. Reporting `spent_usd`
+        would charge this run for every fetch since midnight."""
+        src = SCRIPT.read_text(encoding="utf-8")
+        assert "spent_before = budget.spent_usd" in src
+        assert '"cost_usd": round(budget.spent_usd - spent_before, 6),' in src
+
+    def test_the_totals_ride_on_the_end_record(self):
+        """On the record rather than printed, so the terminal, the UI and a
+        replay of an old log all read the same numbers from one place."""
+        src = SCRIPT.read_text(encoding="utf-8")
+        assert '"at": _now(), **self._summary}' in src
+        assert "prog.record_summary(" in src
+
+    def test_a_run_with_no_budget_still_reports_what_it_sent(self):
+        """`Budget.from_env()` returns None when nothing is configured, and a
+        run without a cap still sent threads and got claims back."""
+        src = SCRIPT.read_text(encoding="utf-8")
+        assert "} if budget is not None else {}),"  in src
+        block = src[src.index("prog.record_summary("):]
+        block = block[:block.index(")" + chr(10))]
+        for always in ("sent_threads=", "claims_verified=", "claims_stored="):
+            assert always in block, f"{always} must not depend on the budget"
