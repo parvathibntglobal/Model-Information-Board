@@ -120,7 +120,7 @@ from judge.config import bucket_for
 from judge.curate.labels import Driver
 from judge.curate.nightly import close_the_night
 from judge.extract.budget import Budget
-from judge.extract.client import ExtractorUnavailable, Completion, ExtractionClient
+from judge.extract.client import Completion, ExtractionClient, ExtractorUnavailable
 from judge.extract.runner import ExtractionRefused, ExtractionRun, ThreadInput, extract
 from judge.store.cells import CellOutcome, CellStore
 from judge.store.claims import ClaimStore, StoredClaim

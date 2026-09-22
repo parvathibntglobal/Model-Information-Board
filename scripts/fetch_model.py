@@ -39,8 +39,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from judge import fetch_console
-from judge.pipeline import EXTRACT_ATTEMPTS
 from judge.extract.client import extractor_model
+from judge.pipeline import EXTRACT_ATTEMPTS
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
