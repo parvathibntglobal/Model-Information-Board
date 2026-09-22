@@ -110,3 +110,39 @@ class TestTheRowSaysWhatItCannotClaim:
         panel = PANEL.read_text(encoding="utf-8")
         assert "robots only" in panel and "not recorded" in panel
         assert re.search(r"terms_document_read === true", panel)
+
+
+class TestTheFeedsRenderWhereAReaderLooksForThem:
+    """⚠ THE FIRST VERSION PUT THEM IN THE WRONG PLACE AND A READER FOUND IT.
+
+    Each platform row has a caret that opens its own detail panel. The feeds
+    were rendered as a separate table BELOW the platform list, so opening the
+    `blogs` row showed its endpoint and nothing else — and the person who
+    asked for this reported, correctly, that the feed names were not there.
+
+    They were, six hundred pixels down. An answer in the wrong place is not a
+    smaller version of the right answer; it is the same as no answer, and the
+    reader is the one who finds that out.
+    """
+
+    def test_the_feeds_render_inside_the_blogs_row(self):
+        panel = PANEL.read_text(encoding="utf-8")
+        assert "{s.id === 'blogs' && <BlogFeeds" in panel, (
+            "the feeds are not inside the blogs row's dropdown, which is where "
+            "a reader opens to ask which blogs"
+        )
+
+    def test_they_render_in_exactly_one_place(self):
+        """Two copies would drift, and the second would be the one nobody
+        maintains."""
+        panel = PANEL.read_text(encoding="utf-8")
+        assert panel.count("<BlogFeeds") == 1
+        assert panel.count("function BlogFeeds") == 1
+
+    def test_an_empty_feed_list_is_named_rather_than_blank(self):
+        """Rule 4 at the dropdown level: a contract carrying no feeds is a
+        state, and an empty panel reads as a component that failed."""
+        panel = PANEL.read_text(encoding="utf-8")
+        body = panel[panel.index("function BlogFeeds"):]
+        assert "if (!feeds.length)" in body
+        assert "No feeds are seated" in body

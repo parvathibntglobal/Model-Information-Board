@@ -47,9 +47,6 @@ export default function SourcesPanel() {
   const { data, err } = state
   const sources = data?.sources || []
   const feeds = data?.blog_feeds || []
-  // Summed here rather than sent: the endpoint already returns every row,
-  // and a total computed beside the rows cannot disagree with them.
-  const totalDocs = feeds.reduce((t, f) => t + (f.documents || 0), 0)
 
   return (
     <section className="card card-flush">
@@ -183,6 +180,21 @@ export default function SourcesPanel() {
                             <span className="dim mono" style={{ fontSize: 11 }}>
                               {s.endpoint || 'no single endpoint — feed-based'}
                             </span>
+
+                            {/* ⚠ THE FEEDS BELONG IN THIS ROW'S OWN DROPDOWN,
+                                and the first version put them in a separate
+                                table further down the page. A reader looking
+                                for "which blogs" opens the blogs row - that is
+                                what the caret is for - and finding the answer
+                                somewhere else on the page is the same as not
+                                finding it.
+
+                                `blogs` is the only platform with feeds under
+                                it, so this is keyed on the id rather than on
+                                the list being non-empty: if `feeds` ever
+                                arrives empty, the row should say so here
+                                rather than silently render nothing. */}
+                            {s.id === 'blogs' && <BlogFeeds data={data} feeds={feeds} />}
                             <span className="dim mono" style={{ fontSize: 11 }}>
                               ruling {s.terms_ruling || '—'}
                               {s.terms_reviewed_on ? ` · reviewed ${s.terms_reviewed_on}` : ''}
@@ -201,19 +213,49 @@ export default function SourcesPanel() {
 
         {/* DRIFT IN THE OTHER DIRECTION. A platform described here but absent
             from the contract would otherwise look live. */}
-        {/* ── THE SEATED BLOG FEEDS ───────────────────────────────────────
-            THE PAGE SAID "blogs · public feeds, then the article" AND STOPPED.
-            `contract/sources.yaml` keeps platforms under `sources` and feeds
-            under `feeds`, and this panel only ever read the first — so
-            eighteen feeds producing a real share of the corpus appeared as one
-            word, and which ones were live was answerable only by opening the
-            contract file.
+        {data?.described_but_not_in_contract?.length > 0 && (
+          <Notice icon={<IconAlert />}>
+            Described but not in the contract, so nothing harvests them:{' '}
+            {data.described_but_not_in_contract.join(', ')}
+          </Notice>
+        )}
 
-            ⚠ THE COUNT IS WHAT MAKES THIS WORTH READING, not the list. Two of
-              the eighteen have harvested nothing, and `swyx.io` alone is 432
-              documents — a third of the blog corpus. A list of names would
-              have told you neither. */}
-        {feeds.length > 0 && (
+        {data && (
+          <span className="dim" style={{ fontSize: 11 }}>{data.credentials_note}</span>
+        )}
+      </div>
+    </section>
+  )
+}
+
+/** The blog feeds seated in the contract, inside the `blogs` row's dropdown.
+ *
+ * ⚠ WHERE THIS RENDERS IS THE WHOLE POINT, and the first version got it
+ *   wrong. The feeds were a separate table below the platform list, so a
+ *   reader who opened the blogs row - which is exactly what the caret invites
+ *   - saw the platform's endpoint and nothing else, and reported that the
+ *   feeds were not there. They were, six hundred pixels down.
+ *
+ *   An answer in the wrong place is not a smaller version of the right
+ *   answer. It is the same as no answer, and the reader is the one who
+ *   discovers that.
+ *
+ * THE COUNT IS WHY IT IS WORTH RENDERING, not the list of names. Two of the
+ * eighteen have harvested nothing and `swyx.io` alone is 432 documents,
+ * roughly a third of the blog corpus. A list of names says neither.
+ */
+function BlogFeeds({ data, feeds }) {
+  if (!feeds.length) {
+    // RULE 4. The contract carrying no feeds is a state worth naming; an
+    // empty dropdown would read as a component that failed to load.
+    return (
+      <p className="dim" style={{ fontSize: 11, margin: 0 }}>
+        No feeds are seated in <span className="mono">contract/sources.yaml</span>.
+      </p>
+    )
+  }
+  const totalDocs = feeds.reduce((t, f) => t + (f.documents || 0), 0)
+  return (
           <div className="stack stack-2">
             <div className="row-between">
               <span className="label">Blog feeds seated in the contract</span>
@@ -316,19 +358,5 @@ export default function SourcesPanel() {
               feeds whose author rows are written and linked to nothing (#373).
             </p>
           </div>
-        )}
-
-        {data?.described_but_not_in_contract?.length > 0 && (
-          <Notice icon={<IconAlert />}>
-            Described but not in the contract, so nothing harvests them:{' '}
-            {data.described_but_not_in_contract.join(', ')}
-          </Notice>
-        )}
-
-        {data && (
-          <span className="dim" style={{ fontSize: 11 }}>{data.credentials_note}</span>
-        )}
-      </div>
-    </section>
   )
 }
