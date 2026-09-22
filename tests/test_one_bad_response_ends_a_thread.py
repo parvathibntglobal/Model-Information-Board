@@ -33,13 +33,40 @@ SCRIPT = ROOT / "scripts" / "fetch_model.py"
 
 
 class TestTheExceptionSaysWhetherToTryAgain:
-    def test_it_defaults_to_transient(self):
-        """A new raise site that forgets to think about this should fail
-        toward retrying, not toward giving up silently."""
-        assert ExtractorUnavailable("anything").transient is True
+    def test_it_defaults_to_NOT_retrying(self):
+        """⚠ THE FIRST VERSION DEFAULTED THE OTHER WAY, and the argument for
+        it was wrong. I wrote that a new raise site should "fail toward
+        retrying rather than toward giving up silently".
+        @anoojntglobal-sudo pointed at the raise that disproves it: a call
+        abandoned after 300s had a LIVE CONNECTION PRODUCING BYTES, so
+        retrying re-pays for a call that was working slowly, and a default of
+        True turns a bounded retry into paying twice for every long thread.
 
-    def test_a_rejection_of_our_own_request_is_permanent(self):
-        assert ExtractorUnavailable("x", transient=False).transient is False
+        Failing toward not-spending is the safer default when the cost of
+        being wrong is money - and a thread not retried is not lost, because
+        it is never recorded as read."""
+        assert ExtractorUnavailable("anything").transient is False
+
+    def test_a_retry_has_to_be_asked_for(self):
+        assert ExtractorUnavailable("x", transient=True).transient is True
+
+    def test_the_status_decides_on_an_http_failure(self):
+        """429 and the 5xx family are the router or an upstream having a bad
+        minute and OpenRouter re-routes. 4xx is our request being wrong, and
+        sending it again buys the same refusal."""
+        src = CLIENT.read_text(encoding="utf-8")
+        assert "transient=response.status_code in {429, 500, 502, 503, 504}," in src
+
+    def test_a_slow_call_is_never_retried(self):
+        """The one failure shape where trying again is strictly worse than
+        giving up: the connection was open and producing bytes."""
+        src = CLIENT.read_text(encoding="utf-8")
+        block = src[src.index("the provider was still sending after"):]
+        block = block[:block.index("def ", 10)] if "def " in block[10:] else block[:1200]
+        assert "transient=True" not in block, (
+            "the timeout raise asks for a retry; the call was working, just "
+            "slowly, and a retry re-pays for it in full"
+        )
 
     def test_the_schema_rejection_is_classified_at_the_raise_site(self):
         """Not sniffed from the message by the caller: the place that knows

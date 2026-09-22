@@ -130,12 +130,21 @@ class ExtractorUnavailable(RuntimeError):
       the caller must be able to tell them apart without reading the message.
     """
 
-    def __init__(self, *args, transient: bool = True) -> None:
+    def __init__(self, *args, transient: bool = False) -> None:
         super().__init__(*args)
-        #: Could another attempt plausibly differ? `True` by default because
-        #: the common case is a routed upstream having a bad minute, and
-        #: because a new raise site that forgets to think about this should
-        #: fail toward retrying rather than toward giving up silently.
+        #: Could another attempt plausibly differ, AND is it worth paying for?
+        #:
+        #: ⚠ `False` BY DEFAULT, AND THE FIRST VERSION HAD IT THE OTHER WAY.
+        #:   I argued a new raise site should "fail toward retrying rather than
+        #:   toward giving up silently". @anoojntglobal-sudo pointed at the
+        #:   raise that disproves it: a call abandoned after 300s had a LIVE
+        #:   CONNECTION PRODUCING BYTES, and retrying it re-pays for a call
+        #:   that was working slowly. Defaulting to retry turns a bounded
+        #:   retry into paying twice for every long thread.
+        #:
+        #:   Failing toward not-spending is the safer default when the cost of
+        #:   being wrong is money rather than a lost thread - and a thread not
+        #:   retried is not lost, because it is never recorded as read.
         self.transient = transient
 
 
@@ -447,9 +456,16 @@ class OpenRouterClient:
             # answer.
             if response.status_code != 200:
                 response.read()
+                # THE STATUS DECIDES WHETHER ANOTHER ATTEMPT IS WORTH PAYING
+                # FOR. 429 and the 5xx family are the router or an upstream
+                # having a bad minute, and OpenRouter re-routes; 4xx is our
+                # request being wrong, and sending it again buys the same
+                # refusal. Nothing was streamed, so no tokens have been
+                # charged for this attempt either way.
                 raise ExtractorUnavailable(
                     f"the provider returned HTTP {response.status_code}: "
-                    f"{response.text[:300]!r}"
+                    f"{response.text[:300]!r}",
+                    transient=response.status_code in {429, 500, 502, 503, 504},
                 )
 
             fragments: list[str] = []
@@ -487,6 +503,13 @@ class OpenRouterClient:
                         f"answer well inside this window, so this is the provider "
                         f"rather than the document."
                     )
+                    # NOT RETRIED, and `transient` defaults to False so this
+                    # needs no argument - but it needs the reason. The
+                    # connection was open and producing bytes when this fired:
+                    # the call was WORKING, just slowly. A retry re-pays for it
+                    # in full and is as likely to be slow again, so this is the
+                    # one failure shape where trying again is strictly worse
+                    # than giving up.
                 if not line or line.startswith(":"):
                     continue          # SSE comment / keep-alive
                 if not line.startswith("data:"):
