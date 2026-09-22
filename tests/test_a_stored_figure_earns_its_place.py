@@ -91,22 +91,29 @@ class TestARelativeClaimIsNotAValueOnTheAxis:
         assert held == "a relative claim, not a value on this axis"
 
     @pytest.mark.parametrize(
-        "value,unit",
+        "value,unit,slug",
         [
-            ("~60 tokens/second", "tokens/second"),
-            ("~190 ms (streaming)", "milliseconds"),
-            ("around $1.20", "USD per 1M tokens"),
-            ("~145 tokens / second", "tokens/second"),
-            ("about 40 minutes per task", "minutes"),
+            ("~60 tokens/second", "tokens/second", "tokens-per-second"),
+            ("~190 ms (streaming)", "milliseconds", "time-to-first-token"),
+            ("around $1.20", "USD per 1M tokens", "cost-per-token"),
+            ("~145 tokens / second", "tokens/second", "tokens-per-second"),
+            ("about 40 minutes per task", "minutes", "task-duration"),
         ],
     )
-    def test_an_approximate_reading_is_kept(self, value, unit):
+    def test_an_approximate_reading_is_kept(self, value, unit, slug):
         """⚠ APPROXIMATION IS NOT COMPARISON, and an earlier version of this
         conflated them and refused 14 real measurements. `~60 tokens/second` is
         a reading somebody took and rounded; `3x faster` is not a reading at
         all. Refusing the first deletes a fact to enforce a rule about the
         second (rule 6)."""
-        assert metric_withholding(metric(value, f"it does {value}", unit)) is None
+        # ⚠ THE SLUG IS PART OF THE CASE NOW, and giving them all the default
+        #   `cost-per-token` is what made four of these fail when the axis/unit
+        #   check landed. `~60 tokens/second` really is withheld under a
+        #   cost axis - correctly - so a fixture that files a throughput
+        #   reading under a price would have tested the wrong thing.
+        assert metric_withholding(
+            metric(value, f"it does {value}", unit, slug=slug)
+        ) is None
 
 
 class TestTheUnitHasToBeAbleToHoldTheValue:
@@ -126,7 +133,8 @@ class TestTheUnitHasToBeAbleToHoldTheValue:
 
     def test_a_non_money_unit_is_not_asked_for_money(self):
         assert metric_withholding(
-            metric("38.8%", "it scores 38.8% on the set", "percent")
+            metric("38.8%", "it scores 38.8% on the set", "percent",
+                   slug="swe-bench")
         ) is None
 
 
