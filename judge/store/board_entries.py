@@ -565,6 +565,23 @@ def metric_withholding(entry: dict) -> str | None:
     The first two reasons ARE `metric_refusal`, so a row stored before those
     gates existed is now held to them; the rest are checks that only make sense
     once a row has both a value and a unit to disagree with each other.
+
+    ⚠ THE LAST THREE WITHHOLD A LABEL, NOT A FIGURE, and that is the difference
+      from every reason above them. `about 75 minutes` is a real duration
+      somebody measured; what is wrong is the `milliseconds` beside it and the
+      `time-to-first-token` above it. So the row comes back the moment either is
+      corrected - nothing here proposes a deletion, and the evidence is intact
+      for the reviewer who fixes the axis.
+
+    RULE 8, MEASURED BEFORE THESE SHIPPED AS GATES. Run over every metric row in
+    the shared database on 2026-09-22 - 519 rows, a population no filter here
+    chose - `shown` went 402 -> 392. Eleven rows left it and all eleven are
+    wrong rows: five token totals filed as `cost-per-token` from one recurring
+    table shape ("90 tasks, 10.59M tokens, 118K per task, 10h 37m"), five task
+    durations on the `time-to-first-token` page, and one per-task figure under
+    tokens-per-second. One row came BACK - `cache-read-cost`, see the money
+    check - and a twelfth was a false positive, fixed rather than tolerated, in
+    `_time_families`.
     """
     if entry.get("section") != "metric":
         return None
@@ -591,8 +608,61 @@ def metric_withholding(entry: dict) -> str | None:
     # ⚠ AND THE UNIT HAS TO BE ABLE TO HOLD THE VALUE. A row reading `80%`
     #   under `USD per 1M tokens` came from "GPT-5.6 costs drop 80%" - the
     #   figure is real, in its quote, and is not money.
-    if _MONEY_UNIT.search(unit) and not _CURRENCY.search(value):
+    #
+    #   ⚠ UNLESS THE UNIT ITSELF SAYS THE FIGURE IS A SHARE, which this used to
+    #     miss and it cost one row. `cache-read-cost` is declared in "percent of
+    #     input cost", holding `2%` from "That 2% cache read really pays off" -
+    #     a coherent reading on a real axis, withheld because the unit contains
+    #     the word cost and the value contains no dollar sign. A price quoted as
+    #     a fraction of another price is still a price. Measured over the 519
+    #     stored figures: 3 rows were withheld here, 2 of them discounts under a
+    #     currency unit and this one, which the reviewer who read it ruled sound.
+    if (
+        _MONEY_UNIT.search(unit)
+        and not _RATIO_UNIT.search(unit)
+        and not _CURRENCY.search(value)
+    ):
         return "the unit says money and the value carries no amount"
+
+    # ⚠ AND A TIME UNIT HAS TO BE THE ONE THE FIGURE IS WRITTEN IN. Three
+    #   rows read `about 40 minutes per task`, `about 75 minutes` and
+    #   `8.566 seconds` under a declared unit of MILLISECONDS - so a task
+    #   that took three quarters of an hour rendered on the
+    #   time-to-first-token page next to figures around 300ms, where it is
+    #   not an outlier but a different measurement.
+    #
+    #   Both sides have to name a time before this can say anything. A bare
+    #   `280` under `milliseconds` is not checked, because the value names
+    #   no unit to disagree with - that is rule 6, not a quiet pass.
+    declared = _time_families(unit)
+    written = _time_families(value)
+    if declared and written and not (declared & written):
+        return (
+            f"the unit says {'/'.join(sorted(declared))}s and the figure is "
+            f"written in {'/'.join(sorted(written))}s"
+        )
+
+    # ⚠ A RATE PER SECOND IS NOT A RATE PER TASK. `118K per task` was stored
+    #   as tokens-per-second, from a quote reading "90 tasks, 10.59M tokens,
+    #   118K per task, 10h 37m": both are rates, so the vocabulary matched
+    #   and the denominator did not. Rule 7 inside one cell - the figure is
+    #   real and it answers a question nobody asked it.
+    if _PER_SECOND_UNIT.search(unit) and _PER_SOMETHING_ELSE.search(value):
+        return "the unit is per second and the figure is per something else"
+
+    # ⚠ AN AXIS THAT PROMISES MONEY, DECLARED IN SOMETHING THAT IS NOT MONEY.
+    #   The check above reads the unit against the value; this reads the SLUG
+    #   against the unit, which is the only place `cost-per-token` holding
+    #   `10.59M tokens` in a unit of `tokens` shows up: the value agrees with
+    #   the unit perfectly, and neither is a cost. A total spend of tokens is
+    #   not a price per token, and the column heading says it is.
+    #
+    #   A PERCENTAGE OF A PRICE IS STILL ABOUT PRICE, and `_MONEY_UNIT` reads
+    #   the word cost inside "percent of input cost", so `cache-read-cost`
+    #   passes here as an axis that IS declared in money.
+    slug = entry.get("slug") or ""
+    if _MONEY_SLUG.search(slug) and not _MONEY_UNIT.search(unit):
+        return "the axis is a cost and the unit is not money"
     return None
 
 
@@ -612,7 +682,82 @@ _RELATIVE_CLAIM = re.compile(
 #: Cents included, because `8.7¢ per task` is money and an earlier pass
 #: refused it for not starting with a dollar sign.
 _CURRENCY = re.compile(r"[$\u20ac\u00a3]\s*\d|\d\s*(?:\u00a2|cents?\b)", re.IGNORECASE)
-_MONEY_UNIT = re.compile(r"usd|\$|cost|price", re.IGNORECASE)
+#: `eur`/`gbp` because `cost-per-generation` is declared in EUR, and the slug
+#: check below would otherwise read a euro price as not being money. `cent`
+#: is deliberately absent: it sits inside "percent", which is a unit on 60
+#: rows here and is not money.
+_MONEY_UNIT = re.compile(r"usd|\$|cost|price|eur|gbp", re.IGNORECASE)
+
+#: The slug side of the same question. Only the words that make a PRICE the
+#: thing being measured - `token-cost` and `cost-per-task` are in, and
+#: `costly-to-run` would be too if anything named an axis that way. It is
+#: read against the UNIT, never against the value, because a price can be
+#: quoted as a share of another price.
+_MONEY_SLUG = re.compile(r"\b(cost|price|pricing|spend)\b", re.IGNORECASE)
+
+#: A unit that says its own figure is a SHARE rather than an amount. Read only
+#: against the unit - a value of `80%` under `USD per 1M tokens` is still a
+#: discount rather than a price, and that is the row the money check exists for.
+_RATIO_UNIT = re.compile(r"percent|%|share|fraction|ratio|multiple", re.IGNORECASE)
+
+#: ⚠ ONE FAMILY PER DURATION, and an abbreviation counts only where no letter
+#:   precedes it. `300ms` is a figure in milliseconds; the `ms` ending `items`
+#:   and the `min` opening "minimum" are not units, and reading them as units
+#:   is the mention-versus-use trap this repository has hit six times. A leading
+#:   `\b` would not have done it - there is no boundary between `0` and `m`, so
+#:   the first version read `300ms` as naming no unit at all.
+_TIME_FAMILIES: tuple[tuple[str, str], ...] = (
+    ("millisecond", r"millisecond|msec|(?<![a-z])ms\b"),
+    ("second", r"(?<!milli)second|(?<![a-z])secs?\b"),
+    ("minute", r"minute|(?<![a-z])mins?\b"),
+    ("hour", r"hour|(?<![a-z])hrs?\b"),
+    ("day", r"(?<![a-z])days?\b"),
+)
+
+
+def _time_families(text: str | None) -> set[str]:
+    """Every duration a unit or a figure is written in. Empty when none.
+
+    Empty is the answer for most values, and it is the SAFE answer: it means
+    the text names no time unit, so nothing here can say whether it agrees
+    with the declared one. Rule 6 - an unknown does not become a mismatch.
+
+    ⚠ EVERY FAMILY, NOT THE FIRST, AND THAT WAS THE ONE FALSE POSITIVE.
+      Measured over all 519 stored figures, the first version withheld 12 rows
+      and 11 of them were right. The twelfth was `2 minutes 54 seconds` under a
+      declared unit of MINUTES: a compound duration names two families, the
+      first match was `second`, and a figure that agrees with its unit was read
+      as contradicting it. A value is only in conflict with its unit when the
+      unit is nowhere in it.
+
+    ⚠ `millisecond` IS TESTED BEFORE `second` AND STILL MATTERS. "milliseconds"
+      contains "second", so both patterns fire on one word; the millisecond
+      pattern is what stops the pair being read as a disagreement with itself.
+      That is why the second pattern excludes a preceding "milli".
+    """
+    if not text:
+        return set()
+    return {
+        family
+        for family, pattern in _TIME_FAMILIES
+        if re.search(pattern, text, re.IGNORECASE)
+    }
+
+
+#: `tokens/second`, `tokens per second`, `ms` is not one of these - this asks
+#: only whether the DENOMINATOR is a second.
+_PER_SECOND_UNIT = re.compile(
+    r"per\s*second|/\s*sec(ond)?s?\b|\btps\b|\bhz\b", re.IGNORECASE
+)
+
+#: And whether the figure names a different one. Deliberately a closed list
+#: of denominators somebody actually wrote, rather than `per \w+`: "per
+#: second" itself would match that, and so would "per million tokens".
+_PER_SOMETHING_ELSE = re.compile(
+    r"\bper\s+(task|run|request|query|prompt|call|job|test|problem|"
+    r"question|document|page|image|minute|hour|day)s?\b",
+    re.IGNORECASE,
+)
 
 
 def spelling_key(slug: str) -> str:
