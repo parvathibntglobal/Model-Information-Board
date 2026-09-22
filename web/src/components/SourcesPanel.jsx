@@ -46,6 +46,10 @@ export default function SourcesPanel() {
 
   const { data, err } = state
   const sources = data?.sources || []
+  const feeds = data?.blog_feeds || []
+  // Summed here rather than sent: the endpoint already returns every row,
+  // and a total computed beside the rows cannot disagree with them.
+  const totalDocs = feeds.reduce((t, f) => t + (f.documents || 0), 0)
 
   return (
     <section className="card card-flush">
@@ -197,6 +201,123 @@ export default function SourcesPanel() {
 
         {/* DRIFT IN THE OTHER DIRECTION. A platform described here but absent
             from the contract would otherwise look live. */}
+        {/* ── THE SEATED BLOG FEEDS ───────────────────────────────────────
+            THE PAGE SAID "blogs · public feeds, then the article" AND STOPPED.
+            `contract/sources.yaml` keeps platforms under `sources` and feeds
+            under `feeds`, and this panel only ever read the first — so
+            eighteen feeds producing a real share of the corpus appeared as one
+            word, and which ones were live was answerable only by opening the
+            contract file.
+
+            ⚠ THE COUNT IS WHAT MAKES THIS WORTH READING, not the list. Two of
+              the eighteen have harvested nothing, and `swyx.io` alone is 432
+              documents — a third of the blog corpus. A list of names would
+              have told you neither. */}
+        {feeds.length > 0 && (
+          <div className="stack stack-2">
+            <div className="row-between">
+              <span className="label">Blog feeds seated in the contract</span>
+              <span className="label">
+                {feeds.length} feed{feeds.length === 1 ? '' : 's'}
+                {data.blog_counts_unreadable ? '' : ` · ${totalDocs.toLocaleString()} documents`}
+              </span>
+            </div>
+
+            {/* RULE 6. A count we could not take is not a zero, and the page
+                must not print one. */}
+            {data.blog_counts_unreadable && (
+              <Notice icon={<IconAlert />}>
+                The per-feed document counts could not be read, so they are shown as
+                <strong> unknown</strong> rather than zero: {data.blog_counts_unreadable}
+              </Notice>
+            )}
+
+            <div className="tblwrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Feed</th>
+                    <th className="r">Documents</th>
+                    <th>Byline</th>
+                    <th>Terms</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {feeds.map((f) => (
+                    <tr key={f.id}>
+                      <td>
+                        <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
+                          {/* The site, not the feed URL: a reader checking a
+                              claim wants the blog, and the endpoint is an
+                              atom file. Both are public; neither is a key. */}
+                          {f.site
+                            ? (
+                              <a href={f.site} target="_blank" rel="noopener noreferrer"
+                                 className="mono" style={{ fontSize: 11 }}>
+                                {f.id.replace(/^blog:/, '')}
+                              </a>
+                            )
+                            : <span className="mono" style={{ fontSize: 11 }}>{f.id.replace(/^blog:/, '')}</span>}
+                          {f.provenance === 'seed' && <Badge tone="mute">seed</Badge>}
+                        </div>
+                      </td>
+                      <td className="r">
+                        {f.documents == null
+                          ? <span className="dim">unknown</span>
+                          : (
+                            <>
+                              {f.documents.toLocaleString()}
+                              {/* RULE 7. `medium.com/airbnb-engineering` is one
+                                  feed on a host the harvester keys by, so this
+                                  number is the host's and the row says so
+                                  rather than claiming it. */}
+                              {f.count_is_for_the_host && (
+                                <span className="dim" title="Counted by host, which this feed shares with another">
+                                  {' '}· host
+                                </span>
+                              )}
+                            </>
+                          )}
+                      </td>
+                      <td>
+                        {/* ⚠ `entry` IS THE ONE WITH A KNOWN DEFECT (#373):
+                            several voices in one run, so the author row is
+                            written and nothing links a document to it. Marked
+                            here so the affected feeds are visible without
+                            opening the issue. */}
+                        {f.byline_source === 'entry'
+                          ? <Badge tone="warn">entry</Badge>
+                          : <span className="dim" style={{ fontSize: 11 }}>{f.byline_source || 'not recorded'}</span>}
+                      </td>
+                      <td>
+                        {/* RULE 4, the same as the platform rows above: `false`
+                            means nobody has read the terms document, NOT that
+                            it was read and found wanting. */}
+                        <span className="dim" style={{ fontSize: 11 }}>
+                          {f.terms_document_read === true
+                            ? 'document read'
+                            : f.terms_document_read === false
+                              ? 'robots only'
+                              : 'not recorded'}
+                          {f.terms_reviewed_on ? ` · ${f.terms_reviewed_on}` : ''}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="dim" style={{ fontSize: 11, maxWidth: '78ch', lineHeight: 1.6, margin: 0 }}>
+              Read from <span className="mono">contract/sources.yaml</span> when this page
+              loaded; the counts are live from <span className="mono">document</span>.
+              A feed reading <strong>0</strong> is seated and has harvested nothing — which
+              is a measurement, not a gap. <strong>entry</strong> under Byline marks the
+              feeds whose author rows are written and linked to nothing (#373).
+            </p>
+          </div>
+        )}
+
         {data?.described_but_not_in_contract?.length > 0 && (
           <Notice icon={<IconAlert />}>
             Described but not in the contract, so nothing harvests them:{' '}

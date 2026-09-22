@@ -3534,6 +3534,14 @@ def admin_sources() -> dict:
 
     rulings = {str(r.get("id")): r for r in (doc.get("terms_rulings") or [])}
     platforms = list(doc.get("sources") or [])
+    # ⚠ `feeds` IS A SEPARATE TOP-LEVEL KEY AND THIS ENDPOINT NEVER READ IT.
+    #   `sources` holds the eight PLATFORMS - github, reddit, blogs, … - so the
+    #   page rendered one row reading "blogs · public feeds, then the article"
+    #   and could not name a single one of them. Eighteen feeds are seated and
+    #   producing a real share of the corpus; which ones, and whether a given
+    #   one has ever yielded anything, was answerable only by reading the
+    #   contract file.
+    feeds = list(doc.get("feeds") or [])
 
     rows: list[dict] = []
     for src in platforms:
@@ -3565,11 +3573,89 @@ def admin_sources() -> dict:
             "undescribed": access is None,
         })
 
+    # HOW MANY DOCUMENTS EACH FEED HAS ACTUALLY PRODUCED.
+    #
+    # ⚠ BEST-EFFORT, AND A FAILURE IS SAID RATHER THAN RENDERED AS ZEROS. This
+    #   endpoint answered from the contract alone and so could not fail on the
+    #   database; keeping that property matters more than the counts. If the
+    #   read fails every feed reports `documents: None` and
+    #   `counts_unreadable` carries the reason - because "this feed has
+    #   harvested nothing" and "we could not ask" are opposite claims and a 0
+    #   would make them identical (rule 6).
+    harvested: dict[str, int] = {}
+    counts_unreadable: str | None = None
+    try:
+        with _conn() as conn:
+            for host, n in conn.execute(
+                "SELECT substring(external_id from 'https?://([^/]+)') AS host, "
+                "       count(*) "
+                "FROM document WHERE source = 'blog' GROUP BY 1"
+            ).fetchall():
+                if host:
+                    harvested[str(host)] = int(n)
+    except Exception as exc:  # noqa: BLE001
+        counts_unreadable = _safe_detail(exc)
+
+    feed_rows: list[dict] = []
+    for feed in feeds:
+        fid = str(feed.get("id") or "")
+        ruling_id = feed.get("terms_ruling")
+        ruling = rulings.get(str(ruling_id)) or {}
+        evidence = feed.get("terms_evidence") or {}
+        # The host as the harvester stores it, which is what the count is keyed
+        # on. `blog:medium.com/airbnb-engineering` is one feed on a shared host,
+        # so the path is dropped and the count is the host's - said on the row
+        # rather than silently attributed to this feed alone.
+        host = fid.removeprefix("blog:").split("/")[0]
+        shared_host = sum(
+            1 for f in feeds
+            if str(f.get("id") or "").removeprefix("blog:").split("/")[0] == host
+        ) > 1
+        feed_rows.append({
+            "id": fid,
+            "site": feed.get("site"),
+            "endpoint": feed.get("endpoint"),
+            "base_trust": feed.get("base_trust"),
+            "provenance": feed.get("provenance"),
+            # WHOSE NAME GOES ON A CLAIM FROM THIS FEED, and the reason
+            # `entry` matters: it is the one value whose author is not wired
+            # (#373), so a reader of this page can see which feeds are
+            # affected without opening the issue.
+            "byline_source": ((feed.get("measured") or {}).get("byline_source")),
+            "terms_ruling": ruling_id,
+            "terms_reviewed_on": (
+                str(ruling["reviewed_on"]) if ruling.get("reviewed_on") else None
+            ),
+            # ⚠ RULE 4, AS ON THE PLATFORM ROWS. `false` means nobody read the
+            # terms document - NOT that it was read and found wanting.
+            "terms_document_read": evidence.get("terms_document_read"),
+            "robots_allows_article_path": evidence.get("robots_allows_article_path"),
+            # ⚠ `0` WHEN WE ASKED, `None` ONLY WHEN WE COULD NOT. The first
+            # version was `harvested.get(host)`, which returns None for a feed
+            # with no documents - so `mattrickard.com`, seated and genuinely
+            # empty, reported the same value as a feed we failed to count.
+            # That is precisely the conflation the comment above claims to
+            # avoid, written four lines under it.
+            "documents": (
+                harvested.get(host, 0) if counts_unreadable is None else None
+            ),
+            "count_is_for_the_host": shared_host,
+            "template_block": (feed.get("template_block") or {}).get("status"),
+        })
+    feed_rows.sort(key=lambda r: (-(r["documents"] or 0), r["id"]))
+
     described = {k for k in _ACCESS}
     in_contract = {str(x.get("id")) for x in platforms}
     return {
         "sources": rows,
         "count": len(rows),
+        # UNDER THEIR OWN KEY, not appended to `sources`. A feed is not a
+        # platform: it has no access method, no credential and no quota, and
+        # eighteen of them in a list of eight platforms would make the
+        # platform count meaningless.
+        "blog_feeds": feed_rows,
+        "blog_feed_count": len(feed_rows),
+        "blog_counts_unreadable": counts_unreadable,
         "by_method": {
             m: sorted(r["id"] for r in rows if r.get("method") == m)
             for m in sorted({r.get("method") for r in rows if r.get("method")})
