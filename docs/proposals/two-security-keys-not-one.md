@@ -149,6 +149,39 @@ keys — but the argument is by analogy, not by an instance we have.
 
 ---
 
+## 3b · Round 3's second reading adds one, and it is the case for reading the document
+
+Row 2 of the golden pool, quote only:
+
+> The API has zero authorisations checks on cancelling other people's
+> reservations … I tested this with the person in waitlist position #1 — and it
+> actually went through.
+
+Read like that it is a bug report about somebody's booking API, and nothing
+about a model. The document ends the sentence:
+
+> — OpenClaw (running Opus 4.6), **hacking an Australian gym-booking website**
+
+**The speaker is the model.** `blog:https://simonwillison.net/2026/Aug/10/openclaw/`.
+It is an offensive-capability claim — a model finding and exercising a missing
+authorisation check on a live site — and the first reading of round 3, which
+was labelled from quote and model alone, could not have seen that.
+
+⚠ **IT IS NOT INSIDE THE 25, AND NOT BECAUSE OF A SLUG.** I checked: **there is
+no claim from that document in the database at all.** The document is present
+(all 15 of round 3's documents are), and those 15 have produced 32 claims, but
+none of them is this one — the pool came from the 2026-08-21 blog run and the
+stored claims from a different draw, and the extractor is nondeterministic.
+
+So row 2 is **additional** evidence for the offensive key rather than a
+reclassification within it, and I am deliberately not giving it an index: I
+cannot say "the 26th entry" when the population it would join was counted from
+stored board entries and this one is not stored. What it is, is a case the
+offensive key would have to hold, found by a labeller with the document in
+front of them.
+
+---
+
 ## 4 · The proposal
 
 Two keys. `contract/capabilities.yaml`:
