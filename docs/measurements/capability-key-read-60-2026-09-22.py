@@ -1,5 +1,12 @@
-import json, os
-s = json.load(open(os.environ['SC'] + '/sample60.json'))
+import json
+import os
+from collections import Counter
+
+# The committed sibling, so this runs from a checkout rather than from the
+# scratchpad it was written in.
+HERE = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(HERE, 'capability-key-read-60-2026-09-22.json')) as fh:
+    s = json.load(fh)
 
 # One reader (anooj, via Claude), one pass, 2026-09-22. Sample of 60 drawn from
 # all 1,385 claims, random.seed(20260922).
@@ -23,9 +30,8 @@ LABEL = {
 assert len(LABEL) == 60
 for i, r in enumerate(s, 1):
     r['label'] = LABEL[i]
-json.dump(s, open(os.environ['SC'] + '/sample60_labelled.json', 'w'), indent=1)
+# Labels are already in the file above; nothing is rewritten here.
 
-from collections import Counter
 c = Counter(r['label'] for r in s)
 print('population 1,385 claims | sample 60 | seed 20260922 | one reader, 2026-09-22')
 print()

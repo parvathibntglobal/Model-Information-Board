@@ -1,11 +1,14 @@
 """Round 3, split three ways. A single accuracy figure over 36 rows conflates
 three populations that argue different things, so it is not reported alone.
 """
-import json, pathlib, collections
+import collections
+import json
+import pathlib
 
 G = pathlib.Path("fixtures/golden")
 def rows(p):
-    ls = [json.loads(l) for l in (G/p).read_text(encoding="utf-8").splitlines() if l.strip()]
+    text = (G / p).read_text(encoding="utf-8")
+    ls = [json.loads(line) for line in text.splitlines() if line.strip()]
     return ls[0].get("_meta"), [r for r in ls if "_meta" not in r]
 
 _, lab = rows("capability-choice-round3--labelled-by-anooj.jsonl")
@@ -30,20 +33,20 @@ print("ROUND 3 — 36 claims, 15 documents, one site, one author, one extractor,
 print("one draw. NOT a pipeline misfiling rate.")
 print("=" * 72)
 print()
-print(f"THE CEILING. The extractor's tool-schema enum offers the twelve ratified")
-print(f"keys and nothing else, so `no-key-fits` and `not-a-capability-claim` are")
+print("THE CEILING. The extractor's tool-schema enum offers the twelve ratified")
+print("keys and nothing else, so `no-key-fits` and `not-a-capability-claim` are")
 print(f"answers it CANNOT give. {len(B)} of 36 rows are one of those two.")
 print(f"  maximum possible agreement = {len(A)} of 36 = {len(A)/36*100:.0f}%,")
-print(f"  before extractor quality enters at all.")
+print("  before extractor quality enters at all.")
 print()
-print(f"A. GOLD PICKED A RATIFIED KEY — the only rows where agreement is possible")
+print("A. GOLD PICKED A RATIFIED KEY — the only rows where agreement is possible")
 print(f"   n = {len(A)}   agreed {len(agree)}  disagreed {len(disagree)}"
       f"   = {len(agree)}/{len(A)} = {len(agree)/len(A)*100:.0f}%")
 for i in A:
     mark = "OK " if gold[i] == ext[i] else "XX "
     print(f"     {mark} row {i:>2}  gold={gold[i]:<36} extractor={ext[i]}")
 print()
-print(f"B. GOLD SAYS THE EXTRACTOR SHOULD NOT HAVE ANSWERED — structurally impossible")
+print("B. GOLD SAYS THE EXTRACTOR SHOULD NOT HAVE ANSWERED — structurally impossible")
 print(f"   n = {len(B)} of 36 = {len(B)/36*100:.0f}%")
 for label in ("not-a-capability-claim", "no-key-fits"):
     ids = [i for i in B if gold[i] == label]
@@ -51,14 +54,18 @@ for label in ("not-a-capability-claim", "no-key-fits"):
     for i in ids:
         print(f"        row {i:>2}  extractor said {ext[i]:<36} {quote[i][:52]}")
 print()
-print(f"C. CANNOT-TELL — about the POOL, not the extractor. Excluded from accuracy.")
+print("C. CANNOT-TELL — about the POOL, not the extractor. Excluded from accuracy.")
 print(f"   n = {len(C)}  rows {C}")
 print()
 print("-" * 72)
 print("DENOMINATORS, kept apart:")
-print(f"  {len(agree)}/36 = {len(agree)/36*100:.0f}%   what the repo scorer prints. Conflates all three.")
-print(f"  {len(agree)}/{len(A)+len(B)} = {len(agree)/(len(A)+len(B))*100:.0f}%   over the 31 usable rows (cannot-tell excluded).")
-print(f"  {len(agree)}/{len(A)} = {len(agree)/len(A)*100:.0f}%   over rows where agreement was POSSIBLE.")
+print(f"  {len(agree)}/36 = {len(agree)/36*100:.0f}%"
+      "   what the repo scorer prints. Conflates all three.")
+usable = len(A) + len(B)
+print(f"  {len(agree)}/{usable} = {len(agree)/usable*100:.0f}%"
+      "   over the usable rows (cannot-tell excluded).")
+print(f"  {len(agree)}/{len(A)} = {len(agree)/len(A)*100:.0f}%"
+      "   over rows where agreement was POSSIBLE.")
 print()
 print("FILLER. Gold calls", len(B), "of the extractor's 36 choices answers it should")
 print("not have given;", len([i for i in B if gold[i]=='not-a-capability-claim']),
@@ -66,5 +73,7 @@ print("not have given;", len([i for i in B if gold[i]=='not-a-capability-claim']
 print("a company) — the extractor emitted a ratified key for every one.")
 print()
 print("what the extractor said on the not-a-capability-claim rows:")
-for k, n in collections.Counter(ext[i] for i in B if gold[i]=="not-a-capability-claim").most_common():
+filler = collections.Counter(
+    ext[i] for i in B if gold[i] == "not-a-capability-claim")
+for k, n in filler.most_common():
     print(f"   {n:>2}  {k}")
