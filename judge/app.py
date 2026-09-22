@@ -1555,12 +1555,29 @@ def start_fetch(req: FetchRequest) -> dict:
     script = _REPO_ROOT / "scripts" / "fetch_model.py"
     # Detached: we do not wait. env carries DATABASE_URL / GITHUB_TOKEN etc.,
     # which run-backend.py loaded from .env into this process's environment.
+    # ⚠ INHERITED, NOT DISCARDED, AND THAT IS THE POINT OF THE CHANGE.
+    #   This was `stdout=DEVNULL, stderr=DEVNULL`, so a run started from the
+    #   admin page threw away every word it said. The console that started the
+    #   backend went silent for forty minutes and then the board had changed,
+    #   and reading what happened meant opening `var/fetch/<run>.jsonl` and
+    #   decoding it by eye. `fetch_model.py` now renders itself as it goes, and
+    #   passing the streams through is what lets that reach a person.
+    #
+    #   THE RUN IS STILL DETACHED AND NOTHING IS READ BACK. These are not
+    #   pipes: the child writes to the same console as the parent and nobody
+    #   waits on it, so there is no buffer to fill and no reader to block. A
+    #   PIPE here would deadlock the moment a long run filled it with nobody
+    #   draining, which is the version of this change that looks equivalent
+    #   and is not.
+    #
+    #   A BACKEND WITH NO CONSOLE - a service, a container - inherits whatever
+    #   it was given, which is the right answer there too: the same place its
+    #   own logs go. `FETCH_QUIET=1` turns the rendering off without changing
+    #   how the process is spawned.
     subprocess.Popen(
         [sys.executable, str(script), mv, "--run-id", run_id],
         cwd=str(_REPO_ROOT),
         env=os.environ.copy(),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
     )
     # NAMED IN THE RESPONSE, not done quietly. Marking another machine's run
     # dead is a visible change to shared history, and a caller that can see it

@@ -38,6 +38,7 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
+from judge import fetch_console
 from judge.extract.client import extractor_model
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -245,8 +246,27 @@ class Progress:
         #: line and hand the same seq to both.
         self._lock = threading.Lock()
         self._stop_beating = threading.Event()
+        #: ⚠ THE THIRD DESTINATION, AND THE ONE A PERSON READS. The file is the
+        #: survivor and `fetch_log` is the shared view; both are for machines.
+        #: A run started from the admin page was spawned with `stdout=DEVNULL`,
+        #: so the console that started the backend saw nothing for forty
+        #: minutes and then a board that had changed - and reading what
+        #: happened meant opening the JSONL and decoding it by eye.
+        #:
+        #: WRITTEN LAST AND NEVER ALLOWED TO RAISE, for the same reason the
+        #: database mirror is not: a closed pipe or a console that cannot
+        #: encode a character must cost the line, not the run.
+        self._console = os.getenv("FETCH_QUIET", "").strip().lower() not in {
+            "1", "true", "yes",
+        }
         self._write({"kind": "run", "run_id": run_id,
                      "model_version_id": model_version_id, "at": _now()})
+        if self._console:
+            self._say(fetch_console.header(
+                run_id=run_id,
+                model_version_id=model_version_id,
+                records=str(self.path),
+            ))
         self._start_heartbeat()
 
     # ── the heartbeat ────────────────────────────────────────────────────────
@@ -310,6 +330,25 @@ class Progress:
                 model_version_id=self.model_version_id,
             )
 
+    def _say(self, lines: list[str]) -> None:
+        """Print, and never let printing end a run.
+
+        A Windows console in cp1252 raises `UnicodeEncodeError` on a character
+        it cannot map, and that exception would unwind out of `stage()` - the
+        run dying because it tried to describe itself. `errors="replace"` on
+        the way out means an unmappable character costs a glyph.
+        """
+        if not lines:
+            return
+        try:
+            text = "\n".join(lines)
+            stream = sys.stdout
+            enc = getattr(stream, "encoding", None) or "utf-8"
+            stream.write(text.encode(enc, "replace").decode(enc) + "\n")
+            stream.flush()
+        except Exception:  # noqa: BLE001 - see the docstring
+            pass
+
     def stop_requested(self) -> bool:
         """Has somebody asked this run to stop? Never raises."""
         try:
@@ -339,8 +378,12 @@ class Progress:
     def stage(self, id_: str, name: str, status: str, **fields) -> None:
         # status: running | ok | skipped | error. Counts and detail ride along
         # so the log line is a finding, not just a heartbeat.
-        self._write({"kind": "stage", "id": id_, "name": name,
-                     "status": status, "at": _now(), **fields})
+        record = {"kind": "stage", "id": id_, "name": name,
+                  "status": status, "at": _now(), **fields}
+        self._write(record)
+        if self._console:
+            self._say([""] + fetch_console.render(
+                record, model_version_id=self.model_version_id))
         if status == "error" and id_ not in self._errored:
             self._errored.append(id_)
         # AFTER the write, never before: the stage that just finished is a real
@@ -389,7 +432,11 @@ class Progress:
         # sort after it, and a run whose last line is `alive` reads as one that
         # came back from the dead.
         self._stop_beating.set()
-        self._write({"kind": "end", "status": status, "detail": detail, "at": _now()})
+        record = {"kind": "end", "status": status, "detail": detail, "at": _now()}
+        self._write(record)
+        if self._console:
+            self._say([""] + fetch_console.render(
+                record, model_version_id=self.model_version_id))
         return status
 
 
