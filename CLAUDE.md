@@ -387,14 +387,35 @@ These are the rules a helpful refactor will otherwise quietly violate.
   nobody predicted - which is the only case worth running a suite for.
 
   So: **scope ruff to the diff, and scope pytest to everything.** The local
-  obstacle is that ~23 test files need Postgres and HANG rather than skip when
+  obstacle is that ~29 test files need Postgres and HANG rather than skip when
   it is absent, so an unscoped run looks like a hang rather than a result.
-  Excluding them by name is the workaround and it is the thing that goes stale
-  - the list is discoverable with
-  `grep -rln "def conn\|TEST_DATABASE_URL\|psycopg.connect" tests/`, and a
-  file added to it after that grep is the next wrong claim.
-  **A local Postgres on :5433 removes the problem rather than working around
-  it**, and is the durable fix.
+
+  **START THE DATABASE. DO NOT BUILD AN EXCLUSION LIST.**
+  `.\scripts\dev-postgres.ps1` — it is already provisioned on most machines
+  here, port 5433, `docs/dev-database.md`. Then `pytest tests` with no
+  `--ignore` at all, which is the only run that answers "did anything break".
+
+  **THE EXCLUSION GREP MISSED A FILE, WHICH IS THE THIRD INSTANCE OF THIS
+  ENTRY'S OWN LESSON.** The documented discovery command was
+  `grep -rln "def conn\|TEST_DATABASE_URL\|psycopg.connect" tests/`, and on
+  2026-09-22 it returned 27 files and **not** `tests/test_column_states.py`,
+  which needs Postgres as much as any of them. That file contains none of the
+  three patterns: its fixture is not named `conn`, it never says
+  `psycopg.connect`, and it reaches the database through
+  `from collect.db import apply_schema, connect`. So a run scoped by that grep
+  reported a clean suite while erroring on four tests it had not excluded and
+  could not have found.
+
+  If a list is unavoidable, this one is wider and still not a guarantee:
+
+  ```
+  grep -rlnE "def conn|TEST_DATABASE_URL|psycopg\.connect|[^.]\bconnect\(|apply_schema|assert_disposable" tests/ --include=*.py
+  ```
+
+  It finds 29 including `test_column_states.py`. **It is still a workaround**,
+  and the reason to keep the sentence above it is that the next file will reach
+  Postgres through a fourth spelling nobody grepped for. A list that has been
+  wrong once is evidence about the method, not about the pattern.
 
   Say which scope a claim came from. "737 tests pass" and "CI is green" are
   different statements and only one of them is about the branch.

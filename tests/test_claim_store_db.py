@@ -131,7 +131,7 @@ def a_claim(capability="summarization.fidelity", start=0) -> ExtractedClaim:
                     "definition": "Condenses without dropping a detail.",
                 }
             ],
-            "capability": capability,
+            "legacy_score_key": capability,
             "polarity": "negative",
             "quote": QUOTE,
             "quote_offset": [start, start + len(QUOTE)],

@@ -370,10 +370,31 @@ any of this helped. The figure that would say so does not exist — see §10.
 
 ### Checks, and their scope
 
+**Postgres was started on :5433 and the whole suite ran with no `--ignore` at
+all.** That is the run this entry should have carried from the start.
+
 ```
-ruff     scoped to the diff (11 files)            all passed
-pytest   3,373 tests, DB-dependent files excluded  3 failed -> 2 fixed, 1 pre-existing
+ruff     scoped to the diff                        all passed
+pytest   tests/  UNSCOPED, Postgres up             3,783 passed, 2 failed, 14 skipped
 ```
+
+**3,783 against the 3,386 the scoped run reported — 397 tests that had not been
+run when this change was first committed.** Both remaining failures are local
+environment, proven rather than assumed:
+
+```
+test_export_source   `_handoff/` is GITIGNORED (.gitignore:95) and holds 17
+                     documents here against a hardcoded `== 7`. CI has no
+                     `_handoff/` at all, so the test SKIPS there. Rule 11: a
+                     bare count about state the test does not own.
+
+test_column_states   `thread_context.child_count` is declared `write_only` and
+                     `scripts/rebuild_reddit_contexts_with_comments.py:88`
+                     reads it. That script is UNTRACKED, so the discovered
+                     state cannot differ in CI.
+```
+
+Neither file appears in this change's diff.
 
 The two were this change, both caught by source-inspection tests doing their
 job: `_close_capability`'s refusal message pinned the old field name, and
@@ -387,12 +408,65 @@ The pre-existing one is **not mine and is a rule-11 instance**:
 untracked local `_handoff/` that now holds 17 — a bare count in a test about
 state the test does not own.
 
-⚠ **THIS IS NOT "CI IS GREEN".** No Postgres is running here, so ~28 files were
-excluded by name and `tests/test_column_states.py` errored on `import psycopg`
-after the documented `grep` missed it — which is the exact staleness that grep
-is warned about in `CLAUDE.md`. `test_pipeline_db.py`, `test_claim_store_db.py`
-and `test_cell_store_db.py` all exercise the paths this change touches and
-**none of them ran.**
+### ⚠ THE EXCLUDED TESTS HELD A REAL DEFECT — FOUND 2026-09-22, AFTER THE COMMIT
+
+A local Postgres was started on :5433 and the three excluded files were run.
+**`tests/test_pipeline_db.py` and `tests/test_claim_store_db.py` failed 9 tests,
+and one of them was a production defect this change introduced.**
+
+```
+psycopg.errors.NotNullViolation: null value in column "capability_key"
+  of relation "cell" violates not-null constraint
+DETAIL:  Failing row contains
+  (mv1, null, none:no_ratified_key, 0, 0, 0, 0, 0, 0, insufficient,
+   harvested, Nobody has publicly discussed None, ...)
+```
+
+`CellStore.cell_keys()` enumerates what to rebuild with
+
+```sql
+SELECT DISTINCT model_version_id, capability_key, condition_bucket FROM claim
+WHERE pipeline_version = %s
+```
+
+and had no `capability_key IS NOT NULL`. It never needed one, because until
+2026-09-22 the column could not be NULL in practice — 0 of 1,385 rows. The
+moment a keyless claim existed it enumerated as `(mv1, NULL, ...)` and the
+insert died on `cell.capability_key`'s NOT NULL. **Every nightly rebuild, not
+just the first.**
+
+The phrase in that DETAIL line is the tell: `Nobody has publicly discussed
+None`. The rebuild was not merely crashing, it was on its way to writing a
+consensus about no capability at all.
+
+Fixed with the WHERE clause rather than a coalesce, because a claim with no
+ratified key **has no cell by definition** — `cell` is keyed on a capability and
+exists to aggregate voices about one.
+
+The other 8 failures were fixture renames (`"capability"` → `"legacy_score_key"`
+in three construction sites). Those are the shape the file's own comments
+already warn about twice: *"these sites were missed because the local runs
+excluded every `_db` test, so 28 fixed construction sites read as all of them."*
+It has now happened a third time, for the third time because no database was
+running.
+
+**36 passed** across the three files after the fix.
+
+⚠ **AND THE EXCLUSION GREP ITSELF WAS WRONG.** `CLAUDE.md` documented the
+discovery command as
+`grep -rln "def conn\|TEST_DATABASE_URL\|psycopg.connect" tests/`. It returns
+27 files and **not `tests/test_column_states.py`**, which needs Postgres as much
+as any of them: its fixture is not named `conn`, it never writes
+`psycopg.connect`, and it reaches the database through
+`from collect.db import apply_schema, connect`. So the scoped run reported a
+clean suite while erroring on four tests it had not excluded and could not have
+found. `CLAUDE.md` now carries the instance, a wider pattern (29 files), and the
+sentence that matters more: **start the database, do not build a list.**
+
+`test_column_states.py`'s one real failure with Postgres up is **not this
+change and not CI's**: `thread_context.child_count` is declared `write_only`
+and an UNTRACKED local probe script (`scripts/rebuild_reddit_contexts_with_comments.py:88`)
+reads it. It cannot fail in CI because the file is not committed.
 
 ---
 
