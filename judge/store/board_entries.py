@@ -1313,12 +1313,39 @@ def list_for_review(conn) -> list[dict]:
     ).fetchall():
         counts_by_group.setdefault((section, slug), {})[ruling] = n
 
+    # ── SLUGS THAT DIFFER ONLY BY A SEPARATOR, NAMED ON EACH OTHER'S ROW ──
+    #
+    # `exploit-bench` and `exploitbench` are one benchmark and two rows here,
+    # and a reviewer reading them sees two identical-looking sections with no
+    # hint they are the same word. The board folds them on read (`spelling_key`
+    # in `board_sections`); this panel must NOT, for two reasons:
+    #
+    #   1. A ruling is keyed on (section, slug). A folded row that sent one
+    #      slug would decline half the pair and leave the other live, which is
+    #      worse than showing two rows.
+    #   2. This is the surface where a person DECIDES. Pre-merging hides the
+    #      decision the board is asking them to make, and `ruling_target`
+    #      exists to record it.
+    #
+    # So they are flagged, not folded: each row names the others it looks like,
+    # and the panel offers the merge with the target already filled in.
+    by_spelling: dict[tuple[str, str], list[str]] = {}
+    for r in rows:
+        by_spelling.setdefault((r[0], spelling_key(r[1])), []).append(r[1])
+
     out = []
     for (section, slug, name, definition, entries, documents, models,
          newest, ruling, ruling_target, reviewed_at) in rows:
+        looks_like = sorted(
+            x for x in by_spelling.get((section, spelling_key(slug)), [])
+            if x != slug
+        )
         by_ruling = counts_by_group.get((section, slug), {})
         out.append({
             "section": section, "slug": slug, "name": name, "definition": definition,
+            # Empty for almost every row. Present only where another slug in
+            # this section has the same letters in the same order.
+            "looks_like": looks_like or None,
             "entries": entries, "documents": documents, "models": models,
             "newest": newest.isoformat() if newest else None,
             # KEPT, and now only true when the whole slug agrees. A mixed slug
