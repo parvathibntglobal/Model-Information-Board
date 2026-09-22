@@ -343,6 +343,130 @@ def support_tally(entries: list[dict]) -> dict[str, int]:
     return out
 
 
+#: ── EVERY REASON A FIGURE IS KEPT OFF A PAGE, AND WHAT EACH ONE MEANS ──────
+#:
+#: ⚠ ONE SOURCE, BECAUSE THE SECOND ONE WOULD BE A TRANSCRIPTION. The gates
+#:   below return these constants and `/admin/stages` renders this tuple, so a
+#:   reason added to the code appears on the page and a reason removed from the
+#:   code cannot linger there. The alternative - a list of gates written out on
+#:   the page - is a count in prose with extra steps (rule 11): true the day it
+#:   is pasted, quietly wrong afterwards, and misleading exactly the person who
+#:   went looking for what the pipeline currently refuses.
+#:
+#: ⚠ RULE 4 IS WHY THIS IS SHOWN AT ALL. Every one of these CAUSES AN ABSENCE.
+#:   A metrics tab that is thin because eleven figures were withheld and one
+#:   that is thin because nobody ever measured the model render identically,
+#:   and they are opposite statements. Naming the gates does not fix that on its
+#:   own, but a reader who cannot find out that a gate exists has no way to ask.
+#:
+#: `when` separates the two questions this module asks, which are not the same
+#: question asked twice:
+#:   write  `metric_refusal` - may this row be STORED as a figure at all
+#:   read   `metric_withholding` - may this stored row be SHOWN on a page
+GATE_NO_QUANTITY = "no quantity"
+GATE_FIGURE_NOT_IN_QUOTE = "figure not in its quote"
+GATE_AXIS_NOT_IN_QUOTE = "axis not in its quote"
+GATE_RELATIVE_CLAIM = "a relative claim, not a value on this axis"
+GATE_UNIT_SAYS_MONEY = "the unit says money and the value carries no amount"
+#: A TEMPLATE, not a fixed string - the two families are filled in at the point
+#: of refusal so the reason names the actual disagreement rather than its shape.
+GATE_TIME_UNIT_DISAGREES = (
+    "the unit says {declared}s and the figure is written in {written}s"
+)
+GATE_PER_SECOND_NOT_PER_TASK = (
+    "the unit is per second and the figure is per something else"
+)
+GATE_COST_WITHOUT_MONEY = "the axis is a cost and the unit is not money"
+
+METRIC_GATES: tuple[dict[str, str], ...] = (
+    {
+        "reason": GATE_NO_QUANTITY,
+        "when": "write",
+        "means": (
+            "The figure column holds no digits. \"twice as expensive\", "
+            "\"slowest\", \"Blazing Fast\" are real things somebody said and "
+            "they belong in a capability entry; under a heading reading "
+            "MILLISECONDS they are a measurement the board never took."
+        ),
+    },
+    {
+        "reason": GATE_FIGURE_NOT_IN_QUOTE,
+        "when": "write",
+        "means": (
+            "The figure does not appear in the quote offered as its evidence. "
+            "It may be correct and taken from a table two paragraphs away, and "
+            "nothing here can tell that from an invention - so it is refused "
+            "rather than stored on the reading that happens to be convenient."
+        ),
+    },
+    {
+        "reason": GATE_AXIS_NOT_IN_QUOTE,
+        "when": "write",
+        "means": (
+            "The benchmark name does not appear in the quote. This is the "
+            "substitution that put a Terminal-bench figure on the SWE-bench "
+            "page. An axis left EMPTY is not refused - a quote naming no "
+            "benchmark is evidence with no axis in it."
+        ),
+    },
+    {
+        "reason": GATE_RELATIVE_CLAIM,
+        "when": "read",
+        "means": (
+            "\"3x cheaper\", \"70% lower cost\" measure the GAP TO ANOTHER "
+            "MODEL rather than the axis the column is headed with. In a column "
+            "reading USD PER 1M TOKENS, \"70% lower cost\" is not an imprecise "
+            "price - it is not a price. Approximation is not comparison: "
+            "\"~60 tokens/second\" is a reading somebody rounded, and stays."
+        ),
+    },
+    {
+        "reason": GATE_UNIT_SAYS_MONEY,
+        "when": "read",
+        "means": (
+            "A row reading `80%` under `USD per 1M tokens`, from \"GPT-5.6 "
+            "costs drop 80%\" - real, in its quote, and not money. A unit that "
+            "says the figure is a SHARE is exempt: a price quoted as a "
+            "fraction of another price is still a price."
+        ),
+    },
+    {
+        # ⚠ THE ONLY REASON THAT IS A TEMPLATE, so it is the only one that
+        #   needs a name of its own. Rendering the raw string put
+        #   `{declared}s` and `{written}s` on the page, which reads as a bug
+        #   in the very list that exists to explain the pipeline.
+        "reason": GATE_TIME_UNIT_DISAGREES,
+        "shows_as": "the unit and the figure name different durations",
+        "when": "read",
+        "means": (
+            "The declared unit and the figure name different durations - "
+            "`about 75 minutes` stored as MILLISECONDS, so a task that took "
+            "three quarters of an hour rendered beside figures around 300ms. "
+            "Both sides must name a time before this says anything: a bare "
+            "`280` under milliseconds is not checked."
+        ),
+    },
+    {
+        "reason": GATE_PER_SECOND_NOT_PER_TASK,
+        "when": "read",
+        "means": (
+            "`118K per task` stored as tokens-per-second. Both are rates, so "
+            "the vocabulary matched and the denominator did not."
+        ),
+    },
+    {
+        "reason": GATE_COST_WITHOUT_MONEY,
+        "when": "read",
+        "means": (
+            "`cost-per-token` holding `10.59M tokens` in a unit of `tokens`. "
+            "The value agrees with the unit perfectly and neither is a price - "
+            "only the AXIS NAME disagrees, so only a slug-against-unit check "
+            "finds it."
+        ),
+    },
+)
+
+
 def metric_refusal(entry: dict) -> str | None:
     """Why this metric may not be stored as a figure, or None.
 
@@ -388,13 +512,13 @@ def metric_refusal(entry: dict) -> str | None:
         # show it as evidence without showing it as a measurement.
         return None
     if not _LEADING_QUANTITY.match(value):
-        return "no quantity"
+        return GATE_NO_QUANTITY
     # Whitespace-insensitive, because a quote crossing a line break renders the
     # figure with a newline in it and that is not a different figure.
     haystack = " ".join((entry.get("quote") or "").split())
     needle = " ".join(value.split())
     if needle not in haystack:
-        return "figure not in its quote"
+        return GATE_FIGURE_NOT_IN_QUOTE
     # ⚠ THE THIRD REFUSAL, AND IT IS THE SAME RELIABILITY CLASS AS THE SECOND.
     #   An axis the extractor named and the quote does not contain is a
     #   fabricated axis - exactly the substitution that put a Terminal-bench
@@ -410,7 +534,7 @@ def metric_refusal(entry: dict) -> str | None:
     #   evidence with no axis in it, and refusing it would delete a fact to
     #   enforce a rule about a different one (rule 6).
     if quoted_support(entry)["axis"] == "unsupported":
-        return "axis not in its quote"
+        return GATE_AXIS_NOT_IN_QUOTE
     return None
 
 
@@ -603,7 +727,7 @@ def metric_withholding(entry: dict) -> str | None:
     #   They belong in a capability entry, which is why this withholds the
     #   figure rather than proposing a deletion.
     if _RELATIVE_CLAIM.search(value):
-        return "a relative claim, not a value on this axis"
+        return GATE_RELATIVE_CLAIM
 
     # ⚠ AND THE UNIT HAS TO BE ABLE TO HOLD THE VALUE. A row reading `80%`
     #   under `USD per 1M tokens` came from "GPT-5.6 costs drop 80%" - the
@@ -622,7 +746,7 @@ def metric_withholding(entry: dict) -> str | None:
         and not _RATIO_UNIT.search(unit)
         and not _CURRENCY.search(value)
     ):
-        return "the unit says money and the value carries no amount"
+        return GATE_UNIT_SAYS_MONEY
 
     # ⚠ AND A TIME UNIT HAS TO BE THE ONE THE FIGURE IS WRITTEN IN. Three
     #   rows read `about 40 minutes per task`, `about 75 minutes` and
@@ -637,9 +761,9 @@ def metric_withholding(entry: dict) -> str | None:
     declared = _time_families(unit)
     written = _time_families(value)
     if declared and written and not (declared & written):
-        return (
-            f"the unit says {'/'.join(sorted(declared))}s and the figure is "
-            f"written in {'/'.join(sorted(written))}s"
+        return GATE_TIME_UNIT_DISAGREES.format(
+            declared="/".join(sorted(declared)),
+            written="/".join(sorted(written)),
         )
 
     # ⚠ A RATE PER SECOND IS NOT A RATE PER TASK. `118K per task` was stored
@@ -648,7 +772,7 @@ def metric_withholding(entry: dict) -> str | None:
     #   and the denominator did not. Rule 7 inside one cell - the figure is
     #   real and it answers a question nobody asked it.
     if _PER_SECOND_UNIT.search(unit) and _PER_SOMETHING_ELSE.search(value):
-        return "the unit is per second and the figure is per something else"
+        return GATE_PER_SECOND_NOT_PER_TASK
 
     # ⚠ AN AXIS THAT PROMISES MONEY, DECLARED IN SOMETHING THAT IS NOT MONEY.
     #   The check above reads the unit against the value; this reads the SLUG
@@ -662,7 +786,7 @@ def metric_withholding(entry: dict) -> str | None:
     #   passes here as an axis that IS declared in money.
     slug = entry.get("slug") or ""
     if _MONEY_SLUG.search(slug) and not _MONEY_UNIT.search(unit):
-        return "the axis is a cost and the unit is not money"
+        return GATE_COST_WITHOUT_MONEY
     return None
 
 
