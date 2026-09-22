@@ -240,15 +240,23 @@ one is wrong; where they agree, neither is confirmed. That is weaker than
 
 ## 7 · Artefacts
 
-Scratchpad, this session — not committed:
+**Committed beside this file**, because the 63% enters an argument and an
+unsaved draw is gone:
 
 ```
-sample60.json             the 60-claim draw, seed 20260922
-sample60_labelled.json    the same rows with one reader's labels
-label.py                  labels + the cross-tab in §3c/§3d
-transfer.py               the substring check in §6
-pairs.txt                 all 228 (key, slug) pairs with counts
+capability-key-read-60-2026-09-22.json   the 60 rows with one reader's labels
+capability-key-read-60-2026-09-22.py     the labels, the rates, the cross-tab
+capability-key-slug-pairs-2026-09-22.txt all 228 (key, slug) pairs with counts
 ```
+
+The labels are in a file so they can be **disputed rather than re-derived**.
+They are one reader, one pass, and they are not a golden set: nothing scores
+against them and `fixtures/golden/capability-choice-round3--unlabelled.jsonl`
+remains the instrument (§10).
+
+The draw is reproducible without the file - `random.seed(20260922)` over
+`SELECT ... FROM claim ORDER BY id` - so a second reader can label the same 60
+rows blind and the two can be compared.
 
 ⚠ `copyable.py` was also run and **its output is not reported**. It counted
 benchmark-shaped names in quotes with a hand-written regex and returned 7.4% for
