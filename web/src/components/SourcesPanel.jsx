@@ -46,6 +46,7 @@ export default function SourcesPanel() {
 
   const { data, err } = state
   const sources = data?.sources || []
+  const feeds = data?.blog_feeds || []
 
   return (
     <section className="card card-flush">
@@ -179,6 +180,21 @@ export default function SourcesPanel() {
                             <span className="dim mono" style={{ fontSize: 11 }}>
                               {s.endpoint || 'no single endpoint — feed-based'}
                             </span>
+
+                            {/* ⚠ THE FEEDS BELONG IN THIS ROW'S OWN DROPDOWN,
+                                and the first version put them in a separate
+                                table further down the page. A reader looking
+                                for "which blogs" opens the blogs row - that is
+                                what the caret is for - and finding the answer
+                                somewhere else on the page is the same as not
+                                finding it.
+
+                                `blogs` is the only platform with feeds under
+                                it, so this is keyed on the id rather than on
+                                the list being non-empty: if `feeds` ever
+                                arrives empty, the row should say so here
+                                rather than silently render nothing. */}
+                            {s.id === 'blogs' && <BlogFeeds data={data} feeds={feeds} />}
                             <span className="dim mono" style={{ fontSize: 11 }}>
                               ruling {s.terms_ruling || '—'}
                               {s.terms_reviewed_on ? ` · reviewed ${s.terms_reviewed_on}` : ''}
@@ -209,5 +225,138 @@ export default function SourcesPanel() {
         )}
       </div>
     </section>
+  )
+}
+
+/** The blog feeds seated in the contract, inside the `blogs` row's dropdown.
+ *
+ * ⚠ WHERE THIS RENDERS IS THE WHOLE POINT, and the first version got it
+ *   wrong. The feeds were a separate table below the platform list, so a
+ *   reader who opened the blogs row - which is exactly what the caret invites
+ *   - saw the platform's endpoint and nothing else, and reported that the
+ *   feeds were not there. They were, six hundred pixels down.
+ *
+ *   An answer in the wrong place is not a smaller version of the right
+ *   answer. It is the same as no answer, and the reader is the one who
+ *   discovers that.
+ *
+ * THE COUNT IS WHY IT IS WORTH RENDERING, not the list of names. Two of the
+ * eighteen have harvested nothing and `swyx.io` alone is 432 documents,
+ * roughly a third of the blog corpus. A list of names says neither.
+ */
+function BlogFeeds({ data, feeds }) {
+  if (!feeds.length) {
+    // RULE 4. The contract carrying no feeds is a state worth naming; an
+    // empty dropdown would read as a component that failed to load.
+    return (
+      <p className="dim" style={{ fontSize: 11, margin: 0 }}>
+        No feeds are seated in <span className="mono">contract/sources.yaml</span>.
+      </p>
+    )
+  }
+  const totalDocs = feeds.reduce((t, f) => t + (f.documents || 0), 0)
+  return (
+          <div className="stack stack-2">
+            <div className="row-between">
+              <span className="label">Blog feeds seated in the contract</span>
+              <span className="label">
+                {feeds.length} feed{feeds.length === 1 ? '' : 's'}
+                {data.blog_counts_unreadable ? '' : ` · ${totalDocs.toLocaleString()} documents`}
+              </span>
+            </div>
+
+            {/* RULE 6. A count we could not take is not a zero, and the page
+                must not print one. */}
+            {data.blog_counts_unreadable && (
+              <Notice icon={<IconAlert />}>
+                The per-feed document counts could not be read, so they are shown as
+                <strong> unknown</strong> rather than zero: {data.blog_counts_unreadable}
+              </Notice>
+            )}
+
+            <div className="tblwrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Feed</th>
+                    <th className="r">Documents</th>
+                    <th>Byline</th>
+                    <th>Terms</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {feeds.map((f) => (
+                    <tr key={f.id}>
+                      <td>
+                        <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
+                          {/* The site, not the feed URL: a reader checking a
+                              claim wants the blog, and the endpoint is an
+                              atom file. Both are public; neither is a key. */}
+                          {f.site
+                            ? (
+                              <a href={f.site} target="_blank" rel="noopener noreferrer"
+                                 className="mono" style={{ fontSize: 11 }}>
+                                {f.id.replace(/^blog:/, '')}
+                              </a>
+                            )
+                            : <span className="mono" style={{ fontSize: 11 }}>{f.id.replace(/^blog:/, '')}</span>}
+                          {f.provenance === 'seed' && <Badge tone="mute">seed</Badge>}
+                        </div>
+                      </td>
+                      <td className="r">
+                        {f.documents == null
+                          ? <span className="dim">unknown</span>
+                          : (
+                            <>
+                              {f.documents.toLocaleString()}
+                              {/* RULE 7. `medium.com/airbnb-engineering` is one
+                                  feed on a host the harvester keys by, so this
+                                  number is the host's and the row says so
+                                  rather than claiming it. */}
+                              {f.count_is_for_the_host && (
+                                <span className="dim" title="Counted by host, which this feed shares with another">
+                                  {' '}· host
+                                </span>
+                              )}
+                            </>
+                          )}
+                      </td>
+                      <td>
+                        {/* ⚠ `entry` IS THE ONE WITH A KNOWN DEFECT (#373):
+                            several voices in one run, so the author row is
+                            written and nothing links a document to it. Marked
+                            here so the affected feeds are visible without
+                            opening the issue. */}
+                        {f.byline_source === 'entry'
+                          ? <Badge tone="warn">entry</Badge>
+                          : <span className="dim" style={{ fontSize: 11 }}>{f.byline_source || 'not recorded'}</span>}
+                      </td>
+                      <td>
+                        {/* RULE 4, the same as the platform rows above: `false`
+                            means nobody has read the terms document, NOT that
+                            it was read and found wanting. */}
+                        <span className="dim" style={{ fontSize: 11 }}>
+                          {f.terms_document_read === true
+                            ? 'document read'
+                            : f.terms_document_read === false
+                              ? 'robots only'
+                              : 'not recorded'}
+                          {f.terms_reviewed_on ? ` · ${f.terms_reviewed_on}` : ''}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="dim" style={{ fontSize: 11, maxWidth: '78ch', lineHeight: 1.6, margin: 0 }}>
+              Read from <span className="mono">contract/sources.yaml</span> when this page
+              loaded; the counts are live from <span className="mono">document</span>.
+              A feed reading <strong>0</strong> is seated and has harvested nothing — which
+              is a measurement, not a gap. <strong>entry</strong> under Byline marks the
+              feeds whose author rows are written and linked to nothing (#373).
+            </p>
+          </div>
   )
 }
