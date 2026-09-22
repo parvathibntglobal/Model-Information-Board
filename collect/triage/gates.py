@@ -217,6 +217,78 @@ GATE_ORDER = (LANGUAGE, PURE_LINK, TOO_SHORT, NO_ENTITY, OUT_OF_WINDOW, KNOWN_BO
 #: highest-signal thing in the corpus.
 MIN_TOKENS = 15
 
+#: ⚠ WHAT EACH GATE DROPS, IN ONE LINE, BESIDE THE GATE ITSELF. Read by
+#:   `/admin/stages` so the page can name the gates a stage runs without
+#:   transcribing them. A second copy on the page would be true the day it was
+#:   written and quietly wrong afterwards (rule 11), and the reader it misled
+#:   would be the one person who went looking for what E4 currently refuses.
+#:
+#:   A gate in `GATE_ORDER` with no entry here renders as UNDESCRIBED rather
+#:   than being omitted - the same direction `/admin/stages` already reports
+#:   drift in for stages, because a gap is the useful thing to show.
+GATE_MEANING: dict[str, str] = {
+    LANGUAGE: (
+        "Not written in a language the board reads. RECORDED, NOT GATING: no "
+        "detector is installed, and `document.lang` was NULL on 6,502 of 6,502 "
+        "rows when it was measured, so a check against it would silently pass "
+        "everything. Rule 8 - it stays a field until a distribution is "
+        "published."
+    ),
+    PURE_LINK: (
+        "A bare link with no text of its own. There is no claim to read and no "
+        "quote to verify, so sending it to the model would be paying to be "
+        "told nothing."
+    ),
+    # ⚠ THE THRESHOLD IS NAMED AND NOT COPIED. `f"Under {MIN_TOKENS} tokens"`
+    #   read better and made this dict uninterpolatable from outside the
+    #   process - and `judge/` may never import `collect/`, so the page that
+    #   shows these reads the file rather than the module. Writing `15` here
+    #   instead would be the same number in two places, which is how it comes
+    #   to be two different numbers.
+    TOO_SHORT: (
+        "Under the minimum token count (`MIN_TOKENS`) and carrying no "
+        "artifact. Below that a document is a reaction rather than a report - "
+        "unless it holds an error string, a number, code or a condition, "
+        "because `TypeError: 'NoneType'` is eleven tokens and is the "
+        "highest-signal thing in the corpus."
+    ),
+    NO_ENTITY: (
+        "Names no model this board can resolve. A document about nothing we "
+        "track cannot produce a claim about anything we show."
+    ),
+    OUT_OF_WINDOW: (
+        "Published outside the window the run asked for. The document is fine; "
+        "it answers a different question than the one being asked."
+    ),
+    KNOWN_BOT: (
+        "Posted by an account the PLATFORM ITSELF declares a bot - GitHub's "
+        "`user.type == \"Bot\"`. A generated comment is not a person "
+        "reporting, and counting it would inflate the voice count behind every "
+        "figure."
+    ),
+}
+
+#: NOT GATES, AND THE DISTINCTION IS RULE 8 IN TWO NAMES. Both are recorded on a
+#: KEPT document, because the judgement behind each was measured on a population
+#: we chose ourselves. Listed for the page so a reader can see what is watched
+#: without being dropped.
+FLAG_MEANING: dict[str, str] = {
+    KNOWN_BOT_COUNTED: (
+        "An account carrying `bot` in its login that the platform does NOT "
+        "declare a bot. Seven of them, found by grepping our own corpus - so "
+        "the document is kept and the hit is counted."
+    ),
+    NEAR_MISS: (
+        "Every surface this document resolved through was matched inside a "
+        "longer version string - `fable 5` inside `fable 5.1`. The refused "
+        "surface no longer attributes the document, and a document left with "
+        "nothing drops through NO_ENTITY, which owns that decision. This is "
+        "also the registry work-list: N documents flagged on `fable 5` is the "
+        "signal that says register Fable 5.1."
+    ),
+}
+
+
 _TOKEN = re.compile(r"\S+")
 
 
