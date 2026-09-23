@@ -1063,14 +1063,76 @@ def compare_page(ids: str = "") -> dict:
         )
 
     with _conn() as conn:
-        roster = {m["model_version_id"]: m for m in RosterReader(conn).all().models}
+        all_models = RosterReader(conn).all().models
+        # ⚠ EITHER ID RESOLVES, AND THE URL SHOULD CARRY THE READABLE ONE.
+        #   `/compare?ids=mv_de3e701e07b8bfa9,mv_9a53a616c98d9f6b` is what the
+        #   models list used to produce: an internal key in a link people
+        #   share, which says nothing about what is being compared and cannot
+        #   be typed or checked by eye. `canonical_id` is the same fact in the
+        #   form the provider uses - `google/gemini-3.1-flash-image` - so the
+        #   link reads as the comparison it is.
+        #
+        #   BOTH ARE ACCEPTED RATHER THAN SWAPPED. Links already sent, and any
+        #   bookmark holding the old form, keep working - a URL that 404s
+        #   because we improved it is a URL we broke.
+        roster: dict[str, dict] = {}
+        for m in all_models:
+            roster[m["model_version_id"]] = m
+            if m.get("canonical_id"):
+                roster.setdefault(m["canonical_id"], m)
         # UNKNOWN IDS ARE NAMED, NOT DROPPED. A comparison that silently
         # renders two of the three asked for is a different comparison, and
         # the reader has no way to tell.
         missing = [i for i in wanted if i not in roster]
-        found = [roster[i] for i in wanted if i in roster]
+        # DE-DUPLICATED ON THE MODEL, not on the string. Asking for a model by
+        # both of its ids is one column, not two identical ones.
+        found = []
+        for i in wanted:
+            m = roster.get(i)
+            if m is not None and not any(
+                x["model_version_id"] == m["model_version_id"] for x in found
+            ):
+                found.append(m)
         evidence = {m["model_version_id"]: evidence_for_model(conn, m["model_version_id"])
                     for m in found}
+        # ⚠ HOW ENGINEERS SPOKE, COUNTED. The comparison's whole subject is
+        #   what people reported, and "12 reports" says nothing about whether
+        #   twelve people were pleased or twelve were complaining. `polarity`
+        #   is already on every entry and was reaching no page.
+        #
+        #   COUNTS, NEVER A SCORE (rule 3). No ratio, no net, no "sentiment
+        #   index" - three numbers and the denominator they came from, so a
+        #   reader does the comparing. A single figure here would be exactly
+        #   the 0-100 capability score this board refuses to compute.
+        #
+        #   DECLINED ROWS ARE EXCLUDED, because a reviewer has ruled them off
+        #   the board and counting them would put them back in through an
+        #   arithmetic side door.
+        polarity = {}
+        for m in found:
+            rows = conn.execute(
+                "SELECT polarity, count(*), count(DISTINCT document_id) "
+                "FROM board_entry "
+                "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined' "
+                "GROUP BY polarity",
+                (m["model_version_id"],),
+            ).fetchall()
+            counts = {p: n for p, n, _ in rows if p}
+            docs = conn.execute(
+                "SELECT count(DISTINCT document_id) FROM board_entry "
+                "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined'",
+                (m["model_version_id"],),
+            ).fetchone()[0]
+            polarity[m["model_version_id"]] = {
+                "positive": counts.get("positive", 0),
+                "negative": counts.get("negative", 0),
+                "neutral": counts.get("neutral", 0),
+                # THE DENOMINATOR TRAVELS WITH THE FIGURE (rule 7). Entries are
+                # not people: one document can produce several, so a reader
+                # needs both numbers or "74 negative" means nothing.
+                "entries": sum(counts.values()),
+                "documents": docs,
+            }
 
     if len(found) < 2:
         raise HTTPException(
@@ -1095,6 +1157,11 @@ def compare_page(ids: str = "") -> dict:
         ]
         models.append({
             "model_version_id": m["model_version_id"],
+            # THE NAME THE PROVIDER USES, so the page can show it and the URL
+            # can carry it instead of an internal key. `None` where the
+            # registry has none - the client falls back rather than printing
+            # the database id at a reader.
+            "canonical_id": m.get("canonical_id"),
             "display_name": m["display_name"],
             "provider": m["provider"],
             # ADVERTISED. Kept under its own key so no client can fold it in
@@ -1115,6 +1182,7 @@ def compare_page(ids: str = "") -> dict:
             "reported": {
                 "state": (m.get("evidence") or {}).get("state", "unreported"),
                 "reports": (m.get("evidence") or {}).get("reports", 0),
+                "polarity": polarity.get(m["model_version_id"], {}),
                 "capabilities": list((m.get("evidence") or {}).get("capabilities") or ()),
                 "best_for": best_for,
                 # The discovered sections in full, so the compare page can show
@@ -1132,9 +1200,11 @@ def compare_page(ids: str = "") -> dict:
         "missing": missing,
         "unsourced": [{"row": k, "why": v} for k, v in COMPARE_UNSOURCED.items()],
         "summary": (
-            f"{len(models)} models compared on advertised specification and counted "
-            f"reports. Nothing here is a score: where every model has 0 reports the "
-            f"comparison is a spec sheet, and it says so rather than ranking them."
+            f"{len(models)} models, compared on what engineers reported about them. "
+            f"Every figure here is counted - entries, documents, how each one was "
+            f"phrased - and none is a score. No winner is picked and no total is "
+            f"computed, because the board has no way to weigh a complaint against a "
+            f"recommendation without inventing one."
         ),
     }
 
@@ -4240,13 +4310,43 @@ def admin_board_entries() -> dict:
     that silently merges two real sections the day it is wrong. So a person
     merges, and `documents` is the evidence they rule on.
     """
+    from judge.board_grouping import coverage, parent_of
+    from judge.config import parent_heading
     from judge.store.board_entries import list_for_review
 
     with _conn() as conn:
         groups = list_for_review(conn)
+
+    # ⚠ THE SAME HEADINGS THE BOARD RENDERS, ATTACHED HERE AT READ TIME. The
+    #   reviewer and the reader have to be looking at one arrangement: a
+    #   duplicate is found by seeing two names beside each other, and if the
+    #   admin list orders by slug while the board orders by parent, the pair a
+    #   reviewer needs to compare can be thirty rows apart here and adjacent
+    #   there.
+    #
+    # ⚠ A PARENT IS NOT A MERGE, AND THIS SURFACE IS WHERE THAT MATTERS MOST -
+    #   it is the one page with a MERGE BUTTON on it. Grouping two slugs under
+    #   one heading must not read as a proposal to merge them: `osworld-2` and
+    #   `osworld-verified` sit under `benchmark` together and are different
+    #   measurements. The heading is a way to find things, never a ruling.
+    #
+    #   `None` for an unmapped slug, and the page renders those plainly rather
+    #   than under an "other" heading - there is no catch-all parent by design
+    #   (rule 6: unmapped is absent, not a category).
+    for g in groups:
+        g["parent"] = parent_of(g["slug"], section=g["section"])
+        g["parent_name"] = parent_heading(g["parent"]) if g["parent"] else None
+
     unruled = [g for g in groups if g["ruling"] is None]
     return {
         "groups": groups,
+        # COMPUTED PER REQUEST, NEVER RECORDED (rule 11). The proposal behind
+        # `slug_parents.yaml` went stale three times in 47 minutes, and this
+        # list grows with every extraction run.
+        "parent_coverage": {
+            sec: coverage([g for g in groups if g["section"] == sec], section=sec)
+            for sec in ("best_for", "capability", "metric")
+        },
         "summary": {
             "sections": len(groups),
             "unruled": len(unruled),
