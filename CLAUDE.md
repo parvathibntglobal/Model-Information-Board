@@ -273,13 +273,23 @@ These are the rules a helpful refactor will otherwise quietly violate.
 
     **The worked case, measured 2026-09-23 over all 32 candidate pairs:**
 
-        reasoning  ->  reasoning-effort      1 LONG of 80 rows
+        reasoning  ->  reasoning-effort      1 LONG of 80 capability rows
+                                              (measured 2026-09-23 11:18Z)
 
-    One quote among eighty happens to contain the words *"reasoning effort"*,
-    and the mechanical test reported SAME — proposing that `reasoning`, an
+    One quote among the eighty happens to contain the words *"reasoning
+    effort"* — and it contains them because the sentence is **about** reasoning
+    effort, not because anybody was naming an axis. The mechanical test reported
+    SAME — proposing that `reasoning`, an
     80-entry capability slug, is a truncation of `reasoning-effort`, which
     holds two. It is not. The word was in the text because the sentence was
     about reasoning.
+
+    ⚠ **AND THE FIGURE NEEDS ITS POPULATION, NOT JUST ITS DATE.** This was
+    reported as *"80 rows"* and re-read as **88** on review. Neither was wrong:
+    `reasoning` is 80 rows in `capability` and 8 in `best_for`, 88 across all
+    sections. The pair here is capability-to-capability, so 80 is the number
+    the test ran on — and a bare *"80 rows"* invited exactly that disagreement.
+    Rule 7 inside the worked example of rule 10.
 
     `accuracy`, `speed`, `writing`, `math`, `sql` and `quality` are the same
     shape and are all live slugs. **On any of them the test returns an answer
