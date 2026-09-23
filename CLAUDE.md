@@ -253,6 +253,36 @@ These are the rules a helpful refactor will otherwise quietly violate.
     under `osworld`. A genuine v1-against-v2 pair fails it, because the v1
     row's quote says v1.
 
+    ⚠ **A QUOTE THAT NAMES NO BENCHMARK DECIDES NOTHING**, and the row is
+    ruled with its siblings under the slug rather than against them. Three
+    states, not two: *names it*, *names a different one*, and *names none*.
+    Without this clause the test reads an ABSENCE as the definite answer
+    "different" — rule 6 inside the rule that replaced a bad example — and
+    un-merges a correct merge. The live case is the second `osworld` row,
+    whose quote is *"Sol's 65.7 percent in about 75 minutes"*: no benchmark,
+    same document and the tail of the same sentence as the row above it,
+    correctly merged. A literal reader of the two-state version reverses that,
+    which is #406's failure with a different cause.
+
+    ⚠ **AND THE TEST IS PER-PAIR, NOT PER-SLUG.** One slug can be the long
+    side of one pair and the short side of another at the same time:
+
+        osworld      ->  osworld-2        `osworld-2` is the LONGER name
+        osworld-2    ->  osworld-2-0      `osworld-2` is the SHORTER name
+
+    Both are truncations and both merge, in opposite directions, and
+    `osworld-verified` fails the test against all three and stays separate.
+    Four spellings, three outcomes. A reviewer who decides once that
+    *"`osworld-2` is the real name"* and applies it everywhere gets one of
+    those two pairs wrong — so the question is asked of a pair of rows, never
+    answered for a slug.
+
+    `osworld-2` against `osworld-2-0` is also the pair that defeats both
+    mechanisms we have: `spelling_key` folds separators only, so `osworld2`
+    and `osworld20` are different keys and the look-alike badge never pairs
+    them — correct, since it is what stops `arc-agi` folding into `arc-agi-3`,
+    and unhelpful here at the same time.
+
     **The strings cannot tell you which case you are in.** `aime`/`aime-2026`
     and `osworld`/`osworld-2` are identical in shape and opposite in evidence,
     and the old table presented them as different shapes. That is why the
