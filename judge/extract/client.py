@@ -100,6 +100,52 @@ MAX_SCHEMA_RETRIES = 1
 TOOL_NAME = "emit_claims"
 
 
+#: Everything httpx raises when a connection fails part-way through a
+#: response. `RemoteProtocolError` is the one measured — "peer closed
+#: connection without sending complete message body" — and the siblings are
+#: here because they arrive at the same place for the same reason and
+#: classifying only the one we have seen is how the next one escapes too.
+#:
+#: ⚠ NOT `httpx.HTTPError`, WHICH WOULD SWALLOW TOO MUCH. That base class also
+#:   covers `HTTPStatusError`, and a status is already classified above with
+#:   the code that produced it. A broad catch here would take a precise
+#:   classification and replace it with a vague one.
+#: IMPORTED LAZILY, like every other use of httpx in this module. The top of
+#: the file deliberately has no `import httpx`, and a module-level tuple of its
+#: exception classes would quietly reintroduce one.
+def _stream_died() -> tuple[type[BaseException], ...]:
+    import httpx
+
+    return (
+        httpx.RemoteProtocolError,
+        httpx.ReadError,
+        httpx.ReadTimeout,
+        httpx.ConnectError,
+    )
+
+
+def _stream_lines(response, *, chars_so_far):
+    """`response.iter_lines()`, with a dead connection named as our own failure.
+
+    ⚠ A GENERATOR RAISES WHERE IT IS CONSUMED, NOT WHERE IT IS CREATED, and my
+      first version got this wrong: it wrapped the CALL in a try, which catches
+      nothing, because `iter_lines()` returns immediately and the socket dies
+      later inside the caller's `for`. Wrapping the `yield from` puts the guard
+      where the exception actually arrives.
+
+    `chars_so_far` is a callable rather than a number for the same reason: the
+    count is only meaningful at the moment of failure, and that moment is after
+    this function has already returned its generator.
+    """
+    try:
+        yield from response.iter_lines()
+    except _stream_died() as exc:
+        raise ExtractorUnavailable(
+            f"the connection died while the answer was streaming "
+            f"({chars_so_far()} chars of tool-call arguments received): {exc}"
+        ) from exc
+
+
 class ExtractorUnavailable(RuntimeError):
     """The provider answered, and not with a completion.
 
@@ -480,7 +526,38 @@ class OpenRouterClient:
             # far faster than a person can regret pressing Stop, and costs
             # nothing.
             next_check = 0.0
-            for line in response.iter_lines():
+            # ⚠ THE STREAM CAN DIE UNDER THIS LOOP, AND HTTPX RAISES ITS OWN
+            #   EXCEPTION WHEN IT DOES — which nothing in `judge/` caught, so
+            #   it walked out past `pipeline.py`'s `except ExtractorUnavailable`
+            #   and ended the run. Found by @anoojntglobal-sudo on run 3 of the
+            #   e5.5 batch (#427), 2026-09-23:
+            #
+            #       E5 Extract  error  peer closed connection without sending
+            #       complete message body (incomplete chunked read)
+            #       RUN ERROR   1 stage(s) errored — thread 14 of 23
+            #
+            #   Ten threads unread, and E5b, E5c, E5d, E6 and E7 never ran.
+            #   That is #397's original defect — one bad response ending the
+            #   batch — arriving through a door #399's fix did not cover,
+            #   because the taxonomy only classifies exceptions we raise
+            #   ourselves and this one is httpx's.
+            #
+            # ⚠ CAUGHT, NOT CLASSIFIED. Whether to RETRY this is a genuinely
+            #   open question and one instance cannot answer it: a connection
+            #   dying mid-stream reads as "a bad minute", and it is also the
+            #   closest shape to the 300s timeout above, which is deliberately
+            #   NOT retried because the call was working and a retry re-pays
+            #   for it in full. Telling them apart needs to know how far
+            #   through the response it died, which nothing records.
+            #
+            #   So `transient` takes its default of False: the thread is lost,
+            #   the batch survives, and the thread is NOT written to the
+            #   extraction ledger — so the next ordinary run reads it again.
+            #   Not retrying costs one thread on one run. Not catching costs
+            #   every thread behind it.
+            for line in _stream_lines(
+                response, chars_so_far=lambda: sum(len(f) for f in fragments)
+            ):
                 now = time.monotonic()
                 if self.on_progress is not None and now >= next_check:
                     next_check = now + 1.0
