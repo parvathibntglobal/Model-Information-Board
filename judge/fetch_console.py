@@ -230,6 +230,19 @@ def thread(record: dict) -> list[str]:
         reason = " ".join(str(record["no_claim_reason"]).split())
         lines.append("        no claim: " + reason[:_WRAP - 18])
 
+    # ⚠ WHY THE LOST CLAIMS WERE LOST, IN SHAPES (#409). `97 unsalvaged` on the
+    #   line above is a count, and a thread that lost 40 to ONE repeated error
+    #   and one that lost 40 to FORTY different ones print the same number and
+    #   want opposite fixes. Shown only when something was lost - a column of
+    #   blanks on the healthy threads would bury the two that matter.
+    shapes = record.get("unsalvaged_by_error") or {}
+    for shape, n in sorted(shapes.items(), key=lambda kv: (-kv[1], kv[0])):
+        lines.append(f"        x{n:<3} {' '.join(str(shape).split())[:_WRAP - 14]}")
+    if record.get("unsalvaged_other"):
+        # The cap saying it bound. A truncated list with nothing marking the
+        # truncation reads as a complete one.
+        lines.append(f"        +{record['unsalvaged_other']} more in other shapes")
+
     cost = []
     if record.get("tokens_in") is not None or record.get("tokens_out") is not None:
         cost.append(f"in {record.get('tokens_in') or 0:,} / "

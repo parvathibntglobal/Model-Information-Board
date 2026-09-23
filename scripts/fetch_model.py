@@ -2190,6 +2190,24 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         prog.stage("E5", "Extract", "running",
                    detail=f"reading thread {counter['n']}/{total} (LLM) — {tc_id}")
 
+    def _unsalvaged_shapes(lost) -> dict:
+        """`{}` when nothing was lost, so the key is absent rather than empty.
+
+        An empty dict on every healthy thread would put `unsalvaged_by_error:
+        {}` on twenty lines out of twenty and bury the two that matter.
+        """
+        if not lost:
+            return {}
+        from judge.extract.runner import unsalvaged_shapes
+
+        shapes, overflow = unsalvaged_shapes(lost)
+        out = {"unsalvaged_by_error": shapes}
+        if overflow:
+            # NAMED, because a capped list that does not say it was capped
+            # reads as the whole list (rule 4).
+            out["unsalvaged_other"] = overflow
+        return out
+
     def _on_result(result, *, tokens_in, tokens_out, usd, posts, index, total):
         """What came back from one thread, as it lands.
 
@@ -2212,6 +2230,14 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             verified=len(run.verified),
             rejected=len(run.rejected),
             unsalvaged=len(run.unsalvaged),
+            # ⚠ WHY 97 CLAIMS DIED, NOT JUST THAT THEY DID (#409). Measured on
+            #   the ElevenLabs v3 run of 2026-09-23: 158 proposed, 97
+            #   unsalvaged, and five threads that retried once and stored
+            #   nothing. The reasons existed on `Unsalvaged.errors` and were
+            #   never written down, so the log said `97` and the two cases that
+            #   want opposite fixes - one defect repeated, or twenty different
+            #   ones - were indistinguishable afterwards.
+            **_unsalvaged_shapes(run.unsalvaged),
             unclassified=len(run.unclassified),
             proposed=len(run.proposed_capabilities),
             keys=keys or None,
