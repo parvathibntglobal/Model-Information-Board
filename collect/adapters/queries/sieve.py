@@ -699,6 +699,32 @@ class SieveYield:
 
     @property
     def pass_rate(self) -> float:
+        """Kept as a share of what was SIEVED. Denominator is `candidates`.
+
+        ⚠ `examined` IS THE OTHER DENOMINATOR AND ANSWERS A DIFFERENT QUESTION.
+          Asked for on #405, because the two now sit next to each other and a
+          caller reaching for "a rate" has two plausible choices with nothing
+          saying which is which:
+
+            pass_rate   kept / candidates   of the things we TESTED, how many
+                                            passed. A fact about the sieve.
+            kept/examined                   of the things we LOOKED AT, how
+                                            many passed. A fact about the
+                                            corpus, and it moves with
+                                            `untestable`.
+
+          They differ by exactly `untestable`, which was 123 on the case that
+          motivated that PR — so on a corpus sweep these two answers are not
+          close. Neither is wrong; the wrong one is wrong by answering a
+          question nobody asked it, which is rule 7 inside one class.
+
+        This one keeps `candidates` deliberately. It has meant that since it
+        was written, `untestable` was added BESIDE rather than inside the
+        denominator for that reason, and folding never-sieved documents in
+        would silently restate every historical yield figure.
+        `test_untestable_sits_beside_candidates_and_does_not_move_pass_rate`
+        pins it.
+        """
         return self.kept / self.candidates if self.candidates else 0.0
 
     @property
