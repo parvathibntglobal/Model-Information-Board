@@ -408,6 +408,42 @@ These are the rules a helpful refactor will otherwise quietly violate.
 
 ## Conventions
 
+- **MERGE WITH A MERGE COMMIT. NEVER `--squash`, NEVER `--rebase`.**
+
+  ```
+  gh pr merge <n> --merge --delete-branch      yes
+  gh pr merge <n> --squash                     no - see below
+  ```
+
+  A squash rewrites the head commit, so the PR's `headRefOid` is no longer an
+  ancestor of `main`. `Merged PRs reached main` compares exactly that, and it
+  is the check that exists because four PRs once merged into base branches that
+  never reached `main` and nobody noticed for weeks.
+
+  **A squash turns that check red and it does not self-heal.** The check reports
+  the whole set on every run, so ONE squashed PR fails every later run and names
+  only itself - #405 and #410 were ordinary merge commits and their runs failed
+  too, pointing at #404. **A check that is red for a benign reason stops being
+  read**, which costs more than the case it was built to catch.
+
+  Measured 2026-09-23: three squash merges in one morning (#404, #414, #416),
+  two of them an hour after somebody had cleared the list for the first. The
+  only repair is a hand-verified entry in `SQUASHED_ONTO_MAIN` per PR, proving
+  base, merge-commit ancestry and patch equality - which is real work to undo a
+  keystroke.
+
+  ⚠ **AND `--squash-tolerant` IS NOT THE FIX**, though the checker offers it.
+  It compares `mergeCommit` instead, and it cannot tell a squash onto `main`
+  from a squash of a base branch that never reached `main` - **the second is
+  the defect the whole check exists for.** Turning it on globally would make
+  the check quiet and useless.
+
+  ⚠ **AND DO NOT MERGE TWO PRs IN THE SAME MINUTE.** They land in one CI
+  concurrency group and the second cancels the first, so `main` keeps a
+  `cancelled` CI result for a commit that was never tested on `main`. #414 and
+  #416 went in thirteen seconds apart on 2026-09-23 and #414's run was
+  cancelled. Wait for the first to go green.
+
 - **A RED CHECK IS `UNSTABLE`, NOT `DIRTY`, UNTIL `gh` SAYS OTHERWISE.** Read
   the state before reading the X. Three times in a row a red PR was described as
   having conflicts and had none — #300, #301's sibling, #310 and #300 again:
