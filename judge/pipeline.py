@@ -1135,9 +1135,6 @@ class Pipeline:
             #   already been charged when this fires, and an unbounded retry
             #   turns a provider outage into a budget event. `check_before_call`
             #   runs again on each attempt, so the daily cap still governs.
-            before_in = budget.input_tokens if budget else 0
-            before_out = budget.output_tokens if budget else 0
-            before_usd = budget.spent_usd if budget else 0.0
             result = None
             for attempt in range(1, EXTRACT_ATTEMPTS + 1):
                 try:
@@ -1191,16 +1188,38 @@ class Pipeline:
             #   in it. The run could say it had read thread 8 of 20 and not what
             #   came back.
             #
-            #   The token and dollar figures are DELTAS taken across this one
-            #   call. `Budget` accumulates, so the difference is this thread's
-            #   share and nothing else's - the same reason the run total is a
-            #   delta from a baseline rather than `spent_usd` itself.
+            #   ⚠ READ OFF THE THREAD, NEVER DIFFERENCED OFF THE BUDGET. The
+            #     first version took `budget.spent_usd` before the call and
+            #     again here and reported the difference - and `budget.charge()`
+            #     is THIRTY LINES BELOW THIS, so the difference was always
+            #     exactly zero. Measured on the ElevenLabs v3 run of
+            #     2026-09-23: all 20 threads reported `0 tokens, $0.000000`
+            #     while the run total was right at 407,396 in / 81,238 out /
+            #     $0.037854, because the total is read after the loop by which
+            #     time every charge has landed.
+            #
+            #     The defect is not the ordering, it is asking a MUTABLE
+            #     ACCUMULATOR a question whose answer depends on when you ask.
+            #     Moving the call below `charge` would fix this instance and
+            #     leave the trap armed for the next person to insert a line.
+            #     `result.extraction` already carries this thread's own totals -
+            #     retries included, which is exactly what `charge` is handed
+            #     below - so there is nothing to difference and no order to get
+            #     right.
             if on_result is not None:
+                thread_in = result.extraction.input_tokens
+                thread_out = result.extraction.output_tokens
                 on_result(
                     result,
-                    tokens_in=(budget.input_tokens - before_in) if budget else None,
-                    tokens_out=(budget.output_tokens - before_out) if budget else None,
-                    usd=(budget.spent_usd - before_usd) if budget else None,
+                    tokens_in=thread_in,
+                    tokens_out=thread_out,
+                    # `cost_of` is pure arithmetic over the pricing table and
+                    # moves nothing. Without a Budget there is no pricing, so
+                    # the cost is UNKNOWN rather than zero (rule 6).
+                    usd=(
+                        budget.cost_of(thread_in or 0, thread_out or 0)
+                        if budget is not None else None
+                    ),
                     posts=len(thread.raw_text_of),
                     index=len(results) + 1,
                     total=len(threads),
