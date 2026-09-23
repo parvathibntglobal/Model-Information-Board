@@ -333,6 +333,31 @@ _PARENT_FORBIDDEN_KEYS = ("voices", "n_eff", "weight", "score", "consensus")
 
 
 @lru_cache(maxsize=1)
+def parent_names() -> dict[str, str]:
+    """`contract/slug_parents.yaml` -> {parent_slug: display heading}.
+
+    A parent with no entry here is NOT an error: `parent_heading()` falls back
+    to the slug so a newly added parent renders rather than crashing a page.
+    The contract is expected to be complete and a test asserts it is — the code
+    is permissive so a missing name is a cosmetic gap, not an outage.
+    """
+    return {
+        str(k).strip().lower(): str(v)
+        for k, v in (_read("slug_parents.yaml").get("parent_names") or {}).items()
+    }
+
+
+def parent_heading(parent: str) -> str:
+    """The heading a reader sees, or the slug when nobody has written one.
+
+    Every LEAF has a display name because the extractor is required to produce
+    one. Parents are written by hand, so this is the one place a heading can be
+    missing, and falling back to the slug keeps the page rendering.
+    """
+    return parent_names().get((parent or "").strip().lower()) or parent
+
+
+@lru_cache(maxsize=1)
 def slug_parents() -> dict[str, dict[str, str]]:
     """`contract/slug_parents.yaml` -> {section: {leaf_slug: parent}}.
 

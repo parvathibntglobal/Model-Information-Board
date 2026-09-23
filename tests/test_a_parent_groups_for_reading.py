@@ -301,3 +301,52 @@ class TestTheRenamedParents:
         assert parent_of("coding", section="capability") == "software-engineering"
         assert parent_of("reasoning", section="capability") == "reasoning-and-math"
         assert parent_of("token-usage", section="metric") == "token-volume"
+
+
+class TestAParentHasAHeading:
+    """#416. Every LEAF has a display name because the extractor is required to
+    produce one — *"Two to four words, title case … This is the heading the
+    board renders."* Parents are written by hand and were the one heading with
+    no such rule, so the board would have rendered `reasoning-and-math` directly
+    above `Reasoning`, `CoT controllability` and `Over-thinking`.
+    """
+
+    def test_every_parent_has_a_name(self):
+        """The CONTRACT is complete even though the CODE is permissive.
+
+        `parent_heading()` falls back to the slug so a new parent renders
+        rather than crashing a page; this makes shipping one nameless fail
+        here instead of on the board.
+        """
+        named = {k.strip().lower() for k in RAW["parent_names"]}
+        for section, parents in RAW["sections"].items():
+            for parent in parents:
+                assert parent.strip().lower() in named, (
+                    f"{parent!r} in {section!r} has no display name, so the "
+                    "board would render the slug as a heading"
+                )
+
+    def test_no_name_is_written_for_a_parent_that_does_not_exist(self):
+        parents = {p.lower() for s in RAW["sections"].values() for p in s}
+        for name in RAW["parent_names"]:
+            assert name.strip().lower() in parents, f"{name!r} names no parent"
+
+    def test_a_parent_row_carries_the_heading_beside_the_slug(self):
+        """Beside, not instead of. A leaf carries both `slug` and `name`; a
+        parent carrying only one would be the row a reader cannot look up."""
+        rows = group_section([leaf("reasoning", 80)], section="capability")
+        parent = rows[0]
+        assert parent["parent"] == "reasoning-and-math"
+        assert parent["name"] == "Reasoning and maths"
+
+    def test_the_heading_falls_back_to_the_slug_when_unnamed(self):
+        from judge.config import parent_heading, parent_names
+
+        parent_names.cache_clear()
+        assert parent_heading("a-parent-nobody-named") == "a-parent-nobody-named"
+
+    def test_a_heading_is_not_a_count(self):
+        """A name is display text. It must not smuggle a figure onto a row that
+        is forbidden from carrying one."""
+        for name in RAW["parent_names"].values():
+            assert not re.search(r"\d", str(name)), f"{name!r} carries a digit"

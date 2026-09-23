@@ -45,7 +45,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from judge.config import slug_parents
+from judge.config import parent_heading, slug_parents
 
 #: A leaf with no parent renders at the top level, beside the parents rather
 #: than beneath a residual heading. There is deliberately no `other` bucket:
@@ -94,6 +94,11 @@ def group_section(items: list[dict], *, section: str) -> list[dict]:
                 {
                     "kind": "parent",
                     "parent": parent,
+                    # THE HEADING, beside the slug rather than instead of it.
+                    # A leaf carries both `slug` and `name`; a parent that
+                    # carried only one would be the one row on the page a
+                    # reader cannot look up. Falls back to the slug (#416).
+                    "name": parent_heading(parent),
                     # A COUNT OF LEAVES. Never a sum of `reports` — see the
                     # module docstring for the two reasons that is wrong
                     # arithmetic and not only a rule.
