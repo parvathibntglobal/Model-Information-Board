@@ -651,13 +651,43 @@ class ExtractedClaim(BaseModel):
         supplies a position anything trusts, and a span code computed is a span
         code verified.
 
-        What remains checked here is only that the hint is not nonsense: a
-        forward range at a plausible position. A wrong-by-two hint is fine and
-        is exactly what arrives.
+        ⚠ AND SINCE 2026-09-23 IT REFUSES NOTHING. It used to require a
+          forward range and raise on anything else, which discarded the WHOLE
+          CLAIM over the one value in it that nothing reads.
+
+          Measured on the Nano Banana 2 run of 2026-09-23
+          (`mv_de3e701e07b8bfa9-554826d4`): the extractor returned
+          `quote_offset (0, 0)` on **44 claims in one thread**, every one of
+          them lost to this line. That thread used more input tokens than the
+          other three in the run combined, retried once and failed identically,
+          cost $0.004608 - **64% of the whole run** - and stored nothing.
+
+        ⚠ THE VALUE IT REJECTED ON HAS NO READER. `verify.py:322` passes
+          `quote_offset[0]` to `_locate` as a tiebreak hint and NOTHING reads
+          `quote_offset[1]` anywhere, outside one error message. `_locate`
+          finds every occurrence of the quote itself and takes the one nearest
+          the hint, so `start=0` is a usable hint meaning "prefer the earliest
+          occurrence" - and `end` was the half this raised on.
+
+          A wrong-by-two hint was fine and a hint of zero was fatal, in a
+          docstring that says the model "no longer supplies a position anything
+          trusts". The check contradicted the design it was written under.
+
+        ⚠ WHAT STILL CATCHES A FABRICATED QUOTE, WHICH IS THE ONLY REASON TO
+          HESITATE. Rule 1 is untouched: `verify()` requires the quote to
+          appear character for character in the text the model was shown, and
+          an invented one is rejected as NOT_FOUND by the check built for it.
+          Every integrity test downstream runs on the span CODE computed
+          (`start, end = located`), never on this one. Removing a check that
+          can only produce false alarms is not removing a check that catches
+          fabrication.
+
+          What is genuinely lost: on a quote appearing TWICE, a zero hint takes
+          the earlier occurrence rather than the right one. That is a worse
+          attribution than a good hint would give and a far better outcome than
+          discarding the claim - and it is identical to what any model guessing
+          low already produces.
         """
-        start, end = self.quote_offset
-        if start < 0 or end <= start:
-            raise ValueError(f"quote_offset {self.quote_offset} is not a forward range")
         return self
 
     @property

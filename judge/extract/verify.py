@@ -319,7 +319,12 @@ def verify(
     # occurrence NEAREST the hint is taken, so a repeated sentence is
     # attributed to the comment the extractor was actually reading rather than
     # to the first one in the thread.
-    located = _locate(claim.quote, flattened_text, hint=claim.quote_offset[0])
+    # ⚠ A MALFORMED HINT IS NO HINT, NOT A REJECTION. `quote_offset` is
+    #   advisory - see `ExtractedClaim._offsets_are_sane`, which used to raise
+    #   here instead and cost 44 claims in one thread. A negative start cannot
+    #   be a position, so it becomes 0, which is what a hint of "no idea"
+    #   means to `_locate`: prefer the earliest occurrence.
+    located = _locate(claim.quote, flattened_text, hint=max(0, claim.quote_offset[0]))
     if located is None:
         # ABSENT BY EXACT MATCH — but is it invented, or just re-encoded? The two
         # are opposite findings (fabrication vs a fidelity miss), and this is the
