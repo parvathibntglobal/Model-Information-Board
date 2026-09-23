@@ -301,17 +301,64 @@ function parentHead(g){
     merged, and there is no total for the group.</p></div><div class="igrid">`;
 }
 
+//: HOW MANY LEAVES A HEADING SHOWS BEFORE THE REST ARE FOLDED.
+//
+// ⚠ GROUPING DID NOT SHORTEN THIS PAGE AND WAS NEVER GOING TO. Every leaf
+//   still draws: capability renders 199 cards under 8 headings, metric 112
+//   under 6, and the biggest single heading holds 33 and 50. The headings made
+//   the list navigable and made it EIGHT ROWS LONGER.
+//
+// The obvious fix is to make a heading clickable, and it is refused: behind a
+// click the leaves exist only for a reader who already suspected they were
+// there, which is the reader who does not need them. The one who reads the
+// heading and moves on sees a category — a merge, which is the one thing a
+// parent must never look like.
+//
+// So the leaves stay on the page and the TAIL folds. Six is enough to show
+// what kind of thing is under a heading and short enough that eight headings
+// fit on a screen. The fold says how many it is hiding, never just "more".
+const LEAF_PREVIEW = 6;
+
 /** One grid, leaves under their headings, ungrouped leaves in their own rank. */
 function groupedGrid(groups, flat, draw){
   // NO GROUPS MEANS RENDER AS BEFORE. An older payload carries no `grouped`,
   // and a board that silently showed nothing would be worse than one that
   // shows what it always did.
   if(!groups || !groups.length) return flat.map(draw).join('');
-  return groups.map(g =>
-    g.kind === 'parent'
-      ? parentHead(g) + g.children.map(draw).join('')
-      : draw(g.leaf)
-  ).join('');
+  return groups.map(g => {
+    if(g.kind !== 'parent') return draw(g.leaf);
+    const hidden = g.children.length - LEAF_PREVIEW;
+    // ⚠ `hidden="until-found"`, NOT `hidden`, AND THE DIFFERENCE IS THE WHOLE
+    //   CLAIM. Plain `hidden` resolves to `display:none`, which removes the
+    //   tail from FIND-IN-PAGE and from the ACCESSIBILITY TREE — so a comment
+    //   promising those two while the CSS says `display:none` is promising
+    //   the opposite of what ships. `until-found` keeps the tail folded,
+    //   lets Ctrl+F match inside it, and makes the browser reveal it and fire
+    //   `beforematch`. Where it is unsupported it degrades to plain `hidden`,
+    //   which is no worse than having no fold at all.
+    //
+    //   `board.css` must NOT set `display:none` on this element: the UA rule
+    //   for `[hidden=until-found]` is `content-visibility:hidden`, and an
+    //   author `display:none` overrides it and takes the feature away. Nor
+    //   `display:contents`, which generates no box for `content-visibility`
+    //   to apply to. Tested in `test_the_board_renders_its_parents.py`.
+    const shown = g.children.slice(0, LEAF_PREVIEW).map(draw).join('');
+    if(hidden <= 0) return parentHead(g) + shown;
+    const rest = g.children.slice(LEAF_PREVIEW).map(draw).join('');
+    const id = `leaves-${esc(g.parent)}`;
+    return parentHead(g) + shown
+      + `<div class="leaf-rest" id="${id}" data-rest="${esc(g.parent)}"
+              hidden="until-found">${rest}</div>`
+      // NAMES THE COUNT, NOT "MORE". "+27 more" is a number a reader can
+      // decide on; "more" is a promise they have to spend a click to price.
+      //
+      // `aria-expanded` and `aria-controls` because without them a screen
+      // reader announces the label and nothing else — not that this is a
+      // disclosure, and not what it opens.
+      + `<p class="leaf-fold"><button type="button" data-expand="${esc(g.parent)}"
+           aria-expanded="false" aria-controls="${id}">
+         Show the other ${hidden} under ${esc(g.name)}</button></p>`;
+  }).join('');
 }
 
 /** How much of a section has a heading. READ, NOT REMEMBERED - the ungrouped
