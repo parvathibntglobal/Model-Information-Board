@@ -232,12 +232,19 @@
 }
 .bv .withheld b{ color:var(--text); font-weight:600 }
 
-/* A PARENT HEADING. It breaks out of `.igrid` and the grid restarts beneath
-   it, so the leaves sit under their heading as cards rather than beside it.
+/* A PARENT HEADING. It sits BETWEEN two grids rather than inside one, so the
+   leaves sit under their heading as cards rather than beside it.
+
+   ⚠ NO `grid-column` HERE, and its absence is load-bearing rather than tidy.
+     This used to be a grid item spanning `1 / -1`, which is what made it
+     plausible for `parentHead` to splice `</div>…<div class="igrid">` around
+     itself - and that splice filed every ungrouped leaf under the heading
+     above it (#428). It is now a block-level sibling of the grids. If a
+     `grid-column` comes back here, the splice has come back with it.
+
    The heading is NOT clickable and has no route: a parent is a way to read the
    list, and anything you can click into reads as a category. */
 .bv .phead-row{
-  grid-column:1 / -1;
   max-width:74ch;
   margin:30px 0 4px;
 }

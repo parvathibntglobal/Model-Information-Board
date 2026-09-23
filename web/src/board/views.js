@@ -1,6 +1,12 @@
 // Board + blogs view builders, ported verbatim from the SEO demo.
 // They return HTML strings; BoardView renders them and wires clicks to the router.
-import { DB } from './db'
+// `./db.js` WITH THE EXTENSION, so `node` can load this file directly and a
+// test can render the board instead of reading its source. Vite resolves an
+// explicit extension unchanged; node will not resolve one that is missing, and
+// every one of the 28 tests over this file was a string search for that
+// reason. A defect in WHERE a card lands is not visible in the source text
+// (#428), so the render has to be executable.
+import { DB } from './db.js'
 
 // ── ESCAPING, WHICH THIS FILE DID NOT HAVE ─────────────────────────────────
 // Every builder below returns an HTML STRING and BoardView renders it through
@@ -294,11 +300,27 @@ function mcard(x){
 //   and sums a figure that is already a floor. The line under the heading says
 //   there is no total, because a reader who wants one should be told it does
 //   not exist rather than left looking for it.
+//
+// ⚠ IT RETURNS A BLOCK AND SPLICES NOTHING, AND THAT IS THE WHOLE OF #428.
+//   This used to return `</div>…<div class="igrid">` - closing the caller's
+//   grid and opening one nothing ever closed. The grid a card landed in was
+//   then whichever heading had opened one LAST, so an ungrouped leaf ranking
+//   below the first parent was drawn inside that parent's grid, under its
+//   heading. Every one of the 69 ungrouped leaves rendered that way and none
+//   at the top level: `instruction-following` (38 reports, rank 2 of 215) read
+//   as belonging to "Reasoning and maths", and the last heading in each
+//   section absorbed the tail - 35 cards under a "Writing and language" that
+//   printed its own, smaller, leaf count directly above them.
+//
+//   A heading that swallows leaves it does not own is the one thing a parent
+//   must never look like, so the markup is now well-formed by construction:
+//   this emits a heading and `groupedGrid` wraps each RUN of cards in its own
+//   `.igrid`. Nothing here opens an element it does not close.
 function parentHead(g){
-  return `</div><div class="phead-row"><div class="parent-h">
+  return `<div class="phead-row"><div class="parent-h">
     <h3>${esc(g.name)}</h3><span>${g.leaves} ${g.leaves===1?'leaf':'leaves'}</span></div>
     <p>Grouped for reading. Each of these is its own measurement — nothing here is
-    merged, and there is no total for the group.</p></div><div class="igrid">`;
+    merged, and there is no total for the group.</p></div>`;
 }
 
 //: HOW MANY LEAVES A HEADING SHOWS BEFORE THE REST ARE FOLDED.
@@ -319,14 +341,37 @@ function parentHead(g){
 // fit on a screen. The fold says how many it is hiding, never just "more".
 const LEAF_PREVIEW = 6;
 
-/** One grid, leaves under their headings, ungrouped leaves in their own rank. */
+/** Cards in a grid of their own, or nothing at all when there are none.
+
+    EVERY RUN OF CARDS GETS ITS OWN `.igrid`, rather than one grid the headings
+    cut holes in. An empty run emits NO element: an `.igrid` with no children
+    still takes its `gap` and would leave a 12px hole under a heading. */
+const gridBlock = (cards) => cards ? `<div class="igrid">${cards}</div>` : '';
+
+/** One section, leaves under their headings, ungrouped leaves in their own rank.
+
+    ⚠ AN UNGROUPED LEAF IS NOT THE LAST HEADING'S (#428). Consecutive ungrouped
+      leaves are collected into a run and emitted as their OWN grid, outside
+      every heading - which is what "interleave by rank with no heading" meant
+      and what the previous splice could not express. A leaf with `parent: null`
+      is not an unfiled leaf waiting for a heading; it is a leaf ruled to sit
+      beside the headings, and 37 capability and 32 metric slugs are that
+      deliberately (2026-09-23). Rendering them under the nearest heading above
+      is the same error as merging them into it, arrived at by punctuation. */
 function groupedGrid(groups, flat, draw){
   // NO GROUPS MEANS RENDER AS BEFORE. An older payload carries no `grouped`,
   // and a board that silently showed nothing would be worse than one that
   // shows what it always did.
-  if(!groups || !groups.length) return flat.map(draw).join('');
-  return groups.map(g => {
-    if(g.kind !== 'parent') return draw(g.leaf);
+  if(!groups || !groups.length) return gridBlock(flat.map(draw).join(''));
+  const out = [];
+  let run = [];
+  const flushRun = () => { if(run.length){ out.push(gridBlock(run.join(''))); run = []; } };
+  for(const g of groups){
+    if(g.kind !== 'parent'){ run.push(draw(g.leaf)); continue; }
+    // THE RUN CLOSES BEFORE THE HEADING OPENS. Otherwise the leaves standing
+    // in their own rank would be swept under the heading that follows them,
+    // which is the same defect as the one above it, facing the other way.
+    flushRun();
     const hidden = g.children.length - LEAF_PREVIEW;
     // ⚠ `hidden="until-found"`, NOT `hidden`, AND THE DIFFERENCE IS THE WHOLE
     //   CLAIM. Plain `hidden` resolves to `display:none`, which removes the
@@ -343,10 +388,13 @@ function groupedGrid(groups, flat, draw){
     //   `display:contents`, which generates no box for `content-visibility`
     //   to apply to. Tested in `test_the_board_renders_its_parents.py`.
     const shown = g.children.slice(0, LEAF_PREVIEW).map(draw).join('');
-    if(hidden <= 0) return parentHead(g) + shown;
+    if(hidden <= 0){ out.push(parentHead(g) + gridBlock(shown)); continue; }
     const rest = g.children.slice(LEAF_PREVIEW).map(draw).join('');
     const id = `leaves-${esc(g.parent)}`;
-    return parentHead(g) + shown
+    // THE TAIL AND ITS BUTTON STAY INSIDE THIS HEADING'S GRID, which is what
+    // their `grid-column:1 / -1` is for. They belong to this parent; an
+    // ungrouped leaf does not, and that is the distinction the splice lost.
+    out.push(parentHead(g) + gridBlock(shown
       + `<div class="leaf-rest" id="${id}" data-rest="${esc(g.parent)}"
               hidden="until-found">${rest}</div>`
       // NAMES THE COUNT, NOT "MORE". "+27 more" is a number a reader can
@@ -357,8 +405,10 @@ function groupedGrid(groups, flat, draw){
       // disclosure, and not what it opens.
       + `<p class="leaf-fold"><button type="button" data-expand="${esc(g.parent)}"
            aria-expanded="false" aria-controls="${id}">
-         Show the other ${hidden} under ${esc(g.name)}</button></p>`;
-  }).join('');
+         Show the other ${hidden} under ${esc(g.name)}</button></p>`));
+  }
+  flushRun();
+  return out.join('');
 }
 
 /** How much of a section has a heading. READ, NOT REMEMBERED - the ungrouped
@@ -412,9 +462,13 @@ export function withheldNote(){
 function vBoard(tab){
   tab = tab||'best';
   const empty = '<p class="muted" style="padding:8px 0">Nothing here yet.</p>';
+  // ⚠ THE PANE NO LONGER WRAPS `grid` IN AN `.igrid` (#428). Each builder
+  //   emits its own grids, so a heading can sit BETWEEN two of them instead of
+  //   inside one it has to cut open. Anything added here that returns bare
+  //   cards must wrap them in `gridBlock` or they will render as a column.
   const panes = {
     best: {intro:'Jobs with enough reports to rank. Each opens a page that names the cheapest model engineers report doing it, the conditions that change the answer, and the criticisms that did not disqualify it.',
-      grid: DB.jobs.length ? DB.jobs.map(j=>card(j,'job')).join('') : empty},
+      grid: DB.jobs.length ? gridBlock(DB.jobs.map(j=>card(j,'job')).join('')) : empty},
     cap: {intro:'A capability means one thing across every model page. These are the definitions the board rules by — written so an answer engine can quote them, and so two claims can be compared without arguing about words.',
       note: parentNote('caps'),
       grid: DB.caps.length ? groupedGrid(DB.capGroups, DB.caps, c=>card(c,'cap')) : empty},
@@ -451,7 +505,7 @@ function vBoard(tab){
       </div>
       <p class="muted" style="max-width:70ch;margin-bottom:20px;line-height:1.6">${p.intro}</p>
       ${note}
-      <div class="igrid">${p.grid}</div>
+      ${p.grid}
     </div>`;
 }
 
