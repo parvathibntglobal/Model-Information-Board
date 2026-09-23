@@ -355,6 +355,17 @@ export default function BoardReview() {
                     {g.ruling}{g.ruling_target ? ` → ${g.ruling_target}` : ''}
                   </Badge>
                 )}
+                {/* ⚠ THE SAME LETTERS IN THE SAME ORDER, AS ANOTHER ROW.
+                    `exploit-bench` and `exploitbench` are one benchmark and
+                    two rows, and a reviewer reading the list saw two
+                    identical-looking sections with nothing saying they were
+                    the same word. The board folds these on read; this panel
+                    must not, because a ruling is keyed on the slug and a
+                    folded row would decline half the pair. So it is named
+                    here and the merge below is filled in for it. */}
+                {g.looks_like && (
+                  <Badge tone="warn">also spelled {g.looks_like.join(', ')}</Badge>
+                )}
               </button>
 
               {open && (
@@ -589,6 +600,19 @@ export default function BoardReview() {
                         ? `decline ${chosen.length} quote${chosen.length === 1 ? '' : 's'}`
                         : `decline all ${g.entries}`}
                     </button>
+                    {/* ONE CLICK FOR THE CASE THE PANEL JUST DIAGNOSED.
+                        The merge box already accepts any slug; this fills it
+                        with the twin rather than making a reviewer retype a
+                        spelling whose whole problem is that it is easy to get
+                        slightly wrong. It does NOT rule - the reviewer still
+                        presses merge, and still chooses which of the two
+                        survives by which row they do it from. */}
+                    {g.looks_like && !mergeInto[key] && (
+                      <button type="button" className="linkish"
+                              onClick={() => setMergeInto((m) => ({ ...m, [key]: g.looks_like[0] }))}>
+                        fold into {g.looks_like[0]}
+                      </button>
+                    )}
                     {/* ⚠ THE TARGETS ARE OFFERED, NOT REMEMBERED.
                         A merge target that is not already a slug in this
                         section creates an axis rather than folding into one,

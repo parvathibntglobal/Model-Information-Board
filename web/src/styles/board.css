@@ -232,6 +232,46 @@
 }
 .bv .withheld b{ color:var(--text); font-weight:600 }
 
+/* A PARENT HEADING. It breaks out of `.igrid` and the grid restarts beneath
+   it, so the leaves sit under their heading as cards rather than beside it.
+   The heading is NOT clickable and has no route: a parent is a way to read the
+   list, and anything you can click into reads as a category. */
+.bv .phead-row{
+  grid-column:1 / -1;
+  max-width:74ch;
+  margin:30px 0 4px;
+}
+.bv .parent-h{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:16px;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
+.bv .parent-h h3{
+  margin:0;
+  font-size:1.05rem;
+  font-weight:600;
+  color:var(--text);
+  letter-spacing:.01em;
+}
+/* THE ONLY NUMBER A HEADING CARRIES. Deliberately quiet - it is a count of
+   headings below it, not an amount of evidence, and styling it like a metric
+   would invite it to be read as one. */
+.bv .parent-h span{
+  flex:none;
+  font-size:.82rem;
+  color:var(--text-2);
+  font-variant-numeric:tabular-nums;
+}
+.bv .phead-row p{
+  margin:8px 0 0;
+  font-size:.86rem;
+  line-height:1.6;
+  color:var(--text-2);
+}
+
 /* The divider between axes that compare models and axes that hold one. */
 .bv .axisdiv{
   grid-column:1 / -1;

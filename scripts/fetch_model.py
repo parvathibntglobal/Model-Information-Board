@@ -38,7 +38,9 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
+from judge import fetch_console
 from judge.extract.client import extractor_model
+from judge.pipeline import EXTRACT_ATTEMPTS
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -245,8 +247,37 @@ class Progress:
         #: line and hand the same seq to both.
         self._lock = threading.Lock()
         self._stop_beating = threading.Event()
+        #: WHAT THE RUN AMOUNTED TO, set by the stage that knows and written
+        #: onto the `end` record. The end record carried a status and a
+        #: sentence and nothing else, so neither the terminal, the UI nor a
+        #: replay could say what a finished run had sent or got back - the
+        #: numbers existed, in local variables, and died with the function.
+        #:
+        #: ON THE RECORD RATHER THAN PRINTED DIRECTLY, so all three readers
+        #: get it from one place and a replay of an old log shows exactly what
+        #: the terminal showed at the time.
+        self._summary: dict = {}
+        #: ⚠ THE THIRD DESTINATION, AND THE ONE A PERSON READS. The file is the
+        #: survivor and `fetch_log` is the shared view; both are for machines.
+        #: A run started from the admin page was spawned with `stdout=DEVNULL`,
+        #: so the console that started the backend saw nothing for forty
+        #: minutes and then a board that had changed - and reading what
+        #: happened meant opening the JSONL and decoding it by eye.
+        #:
+        #: WRITTEN LAST AND NEVER ALLOWED TO RAISE, for the same reason the
+        #: database mirror is not: a closed pipe or a console that cannot
+        #: encode a character must cost the line, not the run.
+        self._console = os.getenv("FETCH_QUIET", "").strip().lower() not in {
+            "1", "true", "yes",
+        }
         self._write({"kind": "run", "run_id": run_id,
                      "model_version_id": model_version_id, "at": _now()})
+        if self._console:
+            self._say(fetch_console.header(
+                run_id=run_id,
+                model_version_id=model_version_id,
+                records=str(self.path),
+            ))
         self._start_heartbeat()
 
     # ── the heartbeat ────────────────────────────────────────────────────────
@@ -310,6 +341,45 @@ class Progress:
                 model_version_id=self.model_version_id,
             )
 
+    def thread(self, **fields) -> None:
+        """One finished thread: what came back, and what the call cost.
+
+        ⚠ ITS OWN RECORD KIND, NOT A STAGE. A stage is a transition and there
+          are fifteen of them; these are one per thread and there can be
+          twenty-five. Filing them as stages would bury the pipeline's shape
+          in a column of `E5 running` lines, which is what the old
+          `reading thread N/M` line already did.
+        """
+        self._write({"kind": "thread", "at": _now(), **fields})
+        if self._console:
+            self._say(fetch_console.render(
+                {"kind": "thread", **fields},
+                model_version_id=self.model_version_id))
+
+    def record_summary(self, **fields) -> None:
+        """Totals for the closing box. Merged, so a later stage can add to an
+        earlier one's without either having to know about the other."""
+        self._summary.update({k: v for k, v in fields.items() if v is not None})
+
+    def _say(self, lines: list[str]) -> None:
+        """Print, and never let printing end a run.
+
+        A Windows console in cp1252 raises `UnicodeEncodeError` on a character
+        it cannot map, and that exception would unwind out of `stage()` - the
+        run dying because it tried to describe itself. `errors="replace"` on
+        the way out means an unmappable character costs a glyph.
+        """
+        if not lines:
+            return
+        try:
+            text = "\n".join(lines)
+            stream = sys.stdout
+            enc = getattr(stream, "encoding", None) or "utf-8"
+            stream.write(text.encode(enc, "replace").decode(enc) + "\n")
+            stream.flush()
+        except Exception:  # noqa: BLE001 - see the docstring
+            pass
+
     def stop_requested(self) -> bool:
         """Has somebody asked this run to stop? Never raises."""
         try:
@@ -339,8 +409,12 @@ class Progress:
     def stage(self, id_: str, name: str, status: str, **fields) -> None:
         # status: running | ok | skipped | error. Counts and detail ride along
         # so the log line is a finding, not just a heartbeat.
-        self._write({"kind": "stage", "id": id_, "name": name,
-                     "status": status, "at": _now(), **fields})
+        record = {"kind": "stage", "id": id_, "name": name,
+                  "status": status, "at": _now(), **fields}
+        self._write(record)
+        if self._console:
+            self._say([""] + fetch_console.render(
+                record, model_version_id=self.model_version_id))
         if status == "error" and id_ not in self._errored:
             self._errored.append(id_)
         # AFTER the write, never before: the stage that just finished is a real
@@ -389,7 +463,12 @@ class Progress:
         # sort after it, and a run whose last line is `alive` reads as one that
         # came back from the dead.
         self._stop_beating.set()
-        self._write({"kind": "end", "status": status, "detail": detail, "at": _now()})
+        record = {"kind": "end", "status": status, "detail": detail,
+                  "at": _now(), **self._summary}
+        self._write(record)
+        if self._console:
+            self._say([""] + fetch_console.render(
+                record, model_version_id=self.model_version_id))
         return status
 
 
@@ -2088,8 +2167,15 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         return
 
     budget = Budget.from_env()
+    # ⚠ `spent_usd` IS SEEDED WITH TODAY'S TOTAL, NOT THIS RUN'S, because the
+    #   cap is a DAILY one. So this run's own spend is the delta, and the
+    #   baseline has to be taken before a single call is made - reporting
+    #   `spent_usd` as the run's cost would charge this run for every fetch
+    #   since midnight.
+    spent_before = 0.0
     if budget is not None:
         budget.spent_usd = spend_ledger.spent_today()
+        spent_before = budget.spent_usd
     facts, _ = _document_facts(conn, doc_ids)
     mvo = _model_version_map(conn)
     resolver = RegistrySurfaceResolver.from_connection(conn)
@@ -2103,6 +2189,64 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         counter["n"] += 1
         prog.stage("E5", "Extract", "running",
                    detail=f"reading thread {counter['n']}/{total} (LLM) — {tc_id}")
+
+    def _unsalvaged_shapes(lost) -> dict:
+        """`{}` when nothing was lost, so the key is absent rather than empty.
+
+        An empty dict on every healthy thread would put `unsalvaged_by_error:
+        {}` on twenty lines out of twenty and bury the two that matter.
+        """
+        if not lost:
+            return {}
+        from judge.extract.runner import unsalvaged_shapes
+
+        shapes, overflow = unsalvaged_shapes(lost)
+        out = {"unsalvaged_by_error": shapes}
+        if overflow:
+            # NAMED, because a capped list that does not say it was capped
+            # reads as the whole list (rule 4).
+            out["unsalvaged_other"] = overflow
+        return out
+
+    def _on_result(result, *, tokens_in, tokens_out, usd, posts, index, total):
+        """What came back from one thread, as it lands.
+
+        ⚠ COUNTS AND KEYS, NEVER THE CLAIM TEXT. A verified claim carries a
+          quote from a harvested document, and a terminal line is the one place
+          it would be printed with no ruling, no model attribution and no way
+          to decline it. The capability keys are ours; the quotes are not.
+        """
+        run = result.extraction
+        keys: dict[str, int] = {}
+        for claim, _quote in run.verified:
+            key = getattr(claim, "capability", None) or getattr(
+                claim, "legacy_score_key", None)
+            if key:
+                keys[str(key)] = keys.get(str(key), 0) + 1
+        prog.thread(
+            index=index, total=total,
+            thread_context_id=run.thread_context_id,
+            posts=posts,
+            verified=len(run.verified),
+            rejected=len(run.rejected),
+            unsalvaged=len(run.unsalvaged),
+            # ⚠ WHY 97 CLAIMS DIED, NOT JUST THAT THEY DID (#409). Measured on
+            #   the ElevenLabs v3 run of 2026-09-23: 158 proposed, 97
+            #   unsalvaged, and five threads that retried once and stored
+            #   nothing. The reasons existed on `Unsalvaged.errors` and were
+            #   never written down, so the log said `97` and the two cases that
+            #   want opposite fixes - one defect repeated, or twenty different
+            #   ones - were indistinguishable afterwards.
+            **_unsalvaged_shapes(run.unsalvaged),
+            unclassified=len(run.unclassified),
+            proposed=len(run.proposed_capabilities),
+            keys=keys or None,
+            no_claim_reason=run.no_claim_reason,
+            schema_retries=run.schema_retries or None,
+            truncated=run.truncated or None,
+            tokens_in=tokens_in, tokens_out=tokens_out,
+            usd=round(usd, 6) if usd is not None else None,
+        )
 
     # THE STOP BUTTON REACHES INSIDE A THREAD, WHICH IT DID NOT.
     #
@@ -2119,7 +2263,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     extractor = OpenRouterClient.from_env()
     extractor.on_progress = prog.checkpoint
 
-    results = Pipeline(
+    # BOUND RATHER THAN CHAINED, so the counters it keeps - threads retried,
+    # threads it could not read - survive the call and can be reported.
+    pipeline = Pipeline(
         conn,
         client=extractor,
         capability_keys=list(capabilities().keys()),
@@ -2129,10 +2275,12 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         # internal `mv_` key when the entry came out of a thread, so a single
         # form would mislabel the searched model's own rows as `mentioned`.
         searched_model_version_id=_subject_ids(conn, prog.model_version_id),
-    ).run_all(
+    )
+    results = pipeline.run_all(
         threads, facts=facts, model_version_of=mvo, budget=budget,
         already_extracted=seen, driver=Driver("new-evidence"), resolve_surface=resolver,
         on_thread=_on_thread,
+        on_result=_on_result,
         # COMMIT EACH THREAD AS IT LANDS. This batch used to commit once, after
         # every thread, so a run that was stopped or died at thread 20 of 24
         # discarded all 19 that had finished — measured E5 durations reach 13.8
@@ -2172,8 +2320,59 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             f"TOKEN CEILING and were not read to the end — their claims are "
             f"partial or absent, not a finding about the thread"
         )
+    # ⚠ RULE 4 AGAIN, ONE LEVEL DOWN FROM #327. A run that read 20 of 23
+    #   threads and one that read 23 must not report the same sentence. A
+    #   thread the provider would not answer for is an absence THIS RUN
+    #   created - it is not a thread that was read and said nothing - and it
+    #   stays unread in the ledger so the next run tries it again.
+    unread = list(getattr(pipeline, "unread_threads", []) or [])
+    retried = int(getattr(pipeline, "retried_threads", 0) or 0)
+    if retried:
+        detail += f"; {retried} thread(s) needed a second attempt"
+    if unread:
+        detail += (
+            f"; {len(unread)} thread(s) COULD NOT BE READ - the provider did "
+            f"not answer for them after {EXTRACT_ATTEMPTS} attempt(s). They are "
+            f"not recorded as read, so the next run tries them again"
+        )
     prog.stage("E5", "Extract", "ok", truncated=len(truncated),
-               truncated_threads=truncated[:10], detail=detail)
+               truncated_threads=truncated[:10],
+               retried_threads=retried or None,
+               unread_threads=len(unread) or None,
+               detail=detail)
+
+    # ── WHAT THE RUN AMOUNTED TO, for the closing box ────────────────────
+    #
+    # Every one of these was already computed and then dropped on the floor:
+    # `threads` is the batch that was sent, `results` is what came back, and
+    # `budget` has been counting tokens and dollars all along. The end record
+    # carried a status and a sentence, so a finished run could not say what it
+    # had sent or got back - and the terminal, the UI and a replay all read
+    # that same record.
+    #
+    # ⚠ `cost` IS TOKENS TIMES A CONFIGURED RATE, NOT AN INVOICE, and the
+    #   renderer says so on the line. #381 measured the two constants in this
+    #   repo disagreeing by 2.11x and nothing has ever been checked against a
+    #   bill. Printing it unlabelled would be the "looks measured and is not"
+    #   that rule 3 is about; withholding it entirely would be worse, because
+    #   it is the only spend figure a person running a fetch can see.
+    prog.record_summary(
+        llm=extractor_model(),
+        sent_threads=len(threads),
+        sent_posts=sum(len(t.raw_text_of) for t in threads),
+        sent_chars=sum(len(t.flattened_text) for t in threads),
+        claims_verified=verified,
+        claims_stored=stored,
+        cells_written=cells,
+        **({
+            "tokens_in": budget.input_tokens,
+            "tokens_out": budget.output_tokens,
+            "cost_usd": round(budget.spent_usd - spent_before, 6),
+            # A provider that stops reporting usage silently disables the cap,
+            # and the symptom is a total that looks like good news.
+            "unmetered_calls": budget.unmetered_calls,
+        } if budget is not None else {}),
+    )
 
     # CAPABILITY DISCOVERY. Proposals the extractor made for keys none of the 12
     # named — appended to capability_candidate for an admin to rule on. The LLM

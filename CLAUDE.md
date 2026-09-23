@@ -229,7 +229,72 @@ These are the rules a helpful refactor will otherwise quietly violate.
     | --- | --- | --- |
     | truncation | `aime` vs `aime-2026` | the extractor, asked |
     | spelling | `exploitbench` vs `exploit-bench` | code, mechanically |
-    | real versions | `osworld` vs `osworld-2` | **must never merge** |
+    | real versions | *none — see the test below* | **must never merge** |
+
+    ⚠ **THE THIRD ROW HAS NO EXAMPLE ON PURPOSE, AND THE TEST REPLACES IT.**
+    It read `osworld` vs `osworld-2` until 2026-09-23, and that pair is a
+    **truncation** on this corpus, not two versions: every row under slug
+    `osworld` quotes *"OSWorld 2.0"*, and **0 of 14** rows mentioning OSWorld
+    quote it without a `2` and without *"Verified"*. There is no OSWorld v1
+    evidence on this board. So the example named a correct merge as the thing
+    never to do, and anybody applying it literally reverts that merge — which
+    nearly happened on #406, by the person reading the rule.
+
+    **A worked example that a correct merge would fail is worse than no
+    example**, because the example is what gets applied and the prose is what
+    gets skipped. The replacement is a test rather than a pair:
+
+    > **A prefix and a longer name are the SAME identifier when the longer
+    > name appears in the shorter row's own quote, and DIFFERENT when it does
+    > not.**
+
+    `aime` passes it — *"97.1% on AIME **2026** math"*, filed under `aime`.
+    `osworld` passes it — *"**OSWorld 2.0** latency simulations…"*, filed
+    under `osworld`. A genuine v1-against-v2 pair fails it, because the v1
+    row's quote says v1.
+
+    ⚠ **A QUOTE THAT NAMES NO BENCHMARK DECIDES NOTHING**, and the row is
+    ruled with its siblings under the slug rather than against them. Three
+    states, not two: *names it*, *names a different one*, and *names none*.
+    Without this clause the test reads an ABSENCE as the definite answer
+    "different" — rule 6 inside the rule that replaced a bad example — and
+    un-merges a correct merge. The live case is the second `osworld` row,
+    whose quote is *"Sol's 65.7 percent in about 75 minutes"*: no benchmark,
+    same document and the tail of the same sentence as the row above it,
+    correctly merged. A literal reader of the two-state version reverses that,
+    which is #406's failure with a different cause.
+
+    ⚠ **AND THE TEST IS PER-PAIR, NOT PER-SLUG.** One slug can be the long
+    side of one pair and the short side of another at the same time:
+
+        osworld      ->  osworld-2        `osworld-2` is the LONGER name
+        osworld-2    ->  osworld-2-0      `osworld-2` is the SHORTER name
+
+    Both are truncations and both merge, in opposite directions, and
+    `osworld-verified` fails the test against all three and stays separate.
+    Four spellings, three outcomes. A reviewer who decides once that
+    *"`osworld-2` is the real name"* and applies it everywhere gets one of
+    those two pairs wrong — so the question is asked of a pair of rows, never
+    answered for a slug.
+
+    `osworld-2` against `osworld-2-0` is also the pair that defeats both
+    mechanisms we have: `spelling_key` folds separators only, so `osworld2`
+    and `osworld20` are different keys and the look-alike badge never pairs
+    them — correct, since it is what stops `arc-agi` folding into `arc-agi-3`,
+    and unhelpful here at the same time.
+
+    **The strings cannot tell you which case you are in.** `aime`/`aime-2026`
+    and `osworld`/`osworld-2` are identical in shape and opposite in evidence,
+    and the old table presented them as different shapes. That is why the
+    third row now carries a test and no pair: any pair put there would be a
+    claim about two strings, and the distinction is not in the strings.
+
+    ⚠ **AND TODAY THE TEST CAN ONLY BE APPLIED BY READING.** `axis_verbatim`,
+    `subject_verbatim` and `axis_quoted` landed in #392 and are NULL on every
+    `board_entry` row, because the writer is unbuilt (#368 item 3). Until it
+    runs, this test is a reviewer instruction and not a check — which is the
+    second consumer for that column and an argument for it that does not
+    depend on the metric pages. #407.
 
     **The truncation case is not two writers disagreeing.** One model's 97.1%
     was filed under `aime` from the quote *"97.1% on AIME 2026 math"* and
@@ -342,6 +407,42 @@ These are the rules a helpful refactor will otherwise quietly violate.
 - Published content is *quote + attribution + link*, never full text.
 
 ## Conventions
+
+- **MERGE WITH A MERGE COMMIT. NEVER `--squash`, NEVER `--rebase`.**
+
+  ```
+  gh pr merge <n> --merge --delete-branch      yes
+  gh pr merge <n> --squash                     no - see below
+  ```
+
+  A squash rewrites the head commit, so the PR's `headRefOid` is no longer an
+  ancestor of `main`. `Merged PRs reached main` compares exactly that, and it
+  is the check that exists because four PRs once merged into base branches that
+  never reached `main` and nobody noticed for weeks.
+
+  **A squash turns that check red and it does not self-heal.** The check reports
+  the whole set on every run, so ONE squashed PR fails every later run and names
+  only itself - #405 and #410 were ordinary merge commits and their runs failed
+  too, pointing at #404. **A check that is red for a benign reason stops being
+  read**, which costs more than the case it was built to catch.
+
+  Measured 2026-09-23: three squash merges in one morning (#404, #414, #416),
+  two of them an hour after somebody had cleared the list for the first. The
+  only repair is a hand-verified entry in `SQUASHED_ONTO_MAIN` per PR, proving
+  base, merge-commit ancestry and patch equality - which is real work to undo a
+  keystroke.
+
+  ⚠ **AND `--squash-tolerant` IS NOT THE FIX**, though the checker offers it.
+  It compares `mergeCommit` instead, and it cannot tell a squash onto `main`
+  from a squash of a base branch that never reached `main` - **the second is
+  the defect the whole check exists for.** Turning it on globally would make
+  the check quiet and useless.
+
+  ⚠ **AND DO NOT MERGE TWO PRs IN THE SAME MINUTE.** They land in one CI
+  concurrency group and the second cancels the first, so `main` keeps a
+  `cancelled` CI result for a commit that was never tested on `main`. #414 and
+  #416 went in thirteen seconds apart on 2026-09-23 and #414's run was
+  cancelled. Wait for the first to go green.
 
 - **A RED CHECK IS `UNSTABLE`, NOT `DIRTY`, UNTIL `gh` SAYS OTHERWISE.** Read
   the state before reading the X. Three times in a row a red PR was described as
@@ -572,6 +673,34 @@ These are the rules a helpful refactor will otherwise quietly violate.
   a follow-up commit written *because a review comment asked for it* - the moment
   you are most sure the PR is open is right after it closed.
 
+  **⚠ THIRD INSTANCE, 2026-09-21, AND THE CHECK WAS RUN. That is the part worth
+  adding.** `7ea2798` pushed to `feat/fixture-exposure-gate` after #383 merged
+  at 08:40; two measurement scripts, invisible on `main`, found only by a sweep
+  hours later. The command above WAS run first, and it printed nothing, and the
+  nothing was read as clearance.
+
+  ```
+  gh pr list --head "$(git branch --show-current)" --state open ...
+      prints a number   the PR is open, push
+      PRINTS NOTHING    there is no open PR. STOP. This is the warning.
+  ```
+
+  An empty result is the failure signal and it looks exactly like a clean
+  check - same silence, opposite meaning, and the two-command form makes it
+  worse by putting the push on the same line with `&&`. So the rule is no
+  longer "run the check"; it is **read the empty result as a refusal**, and
+  prefer a form that cannot be misread:
+
+  ```
+  gh pr list --head "$(git branch --show-current)" --state open --json number \
+    --jq 'if length == 0 then error("no open PR for this branch") else .[0].number end'
+  ```
+
+  Same family as the `UNSTABLE`/`DIRTY` entry above and as rule 4: an absence
+  that reads as a pass. The two earlier instances were a habit not followed;
+  this one was the habit followed and the output misread, which no amount of
+  remembering to run it would have caught.
+
 ## Build fixtures currently in place
 
 Load-bearing during the build and poisonous afterwards.
@@ -596,14 +725,32 @@ OpenRouter does not list and never will, hand-entered so the board can link
 them; every one of the 65 claims traces to a harvested document with a real
 quote. Nothing about them is a build fixture.
 
-`provenance` allows only `seed|polled`, so there is no value for "hand-entered
-and never going to be polled" - the third state gets labelled with the word
-that means fixture, and `assert_no_fixtures` then refuses it correctly by its
-own definition and wrongly by intent. Three contract files now feed that one
+`provenance` allowed only `seed|polled`, so there was no value for
+"hand-entered and never going to be polled" - the third state got labelled with
+the word that means fixture, and `assert_no_fixtures` then refused it correctly
+by its own definition and wrongly by intent. Three contract files fed that one
 value (`seed_models.yaml`, `unpolled_models.yaml`, `awaiting_poll_models.yaml`),
 each added to dodge a load refusal rather than to mean something different.
-**`unpolled` is the agreed third value (#382); until it exists, do not read
-`provenance='seed'` as "this row is a fixture".**
+
+**`unpolled` is the third value, and it lands in two steps.** The CHECK, the
+loader and the guard ship as code; the four rows convert when somebody runs the
+migration.
+
+```
+20260923T0500_model_version_unpolled_provenance.sql
+```
+
+⚠ **UNTIL THAT MIGRATION IS APPLIED TO A GIVEN DATABASE, THE WRITER IS AHEAD OF
+THE SCHEMA THERE.** `scripts/load_unpolled_models.py` now writes
+`provenance='unpolled'`, and against an un-migrated database that is a
+`CHECK` violation rather than a mislabelled row - the #260 shape, where the
+writer reached another machine on a pull and the migration reached it as a file
+nobody had run. Pull, then migrate, then load.
+
+**Do not read `provenance='seed'` as "this row is a fixture" on a database that
+has not been migrated.** After it has, `seed` means fixture again and
+`assert_no_fixtures` is unchanged in code and stricter in intent - it always
+queried `seed` exactly, which is why it needed no edit.
 
 `fixtures/hand_cells.yaml` was listed here until the Ask box was parked and the
 file deleted. The section documenting our guard against stale fixtures had gone

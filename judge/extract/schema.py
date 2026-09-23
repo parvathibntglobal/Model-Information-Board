@@ -227,7 +227,13 @@ class BoardEntry(BaseModel):
             "capability ONE NAMED BEHAVIOUR a model does or fails at, defined "
             "the same way for every model so two reports can be compared.\n"
             "metric     a MEASURED AXIS WITH A UNIT, where the text states a "
-            "figure. Requires `unit`, `value_verbatim` and `basis`."
+            "figure. Requires `unit`, `value_verbatim` and `basis`.\n\n"
+            "A FIGURE IS A QUANTITY. \"much cheaper\", \"much faster\", "
+            "\"Blazing Fast\" and \"token burn remained low\" state none, and "
+            "all four were filed as metrics with those words in the figure "
+            "column. They are real things somebody said about how the model "
+            "behaved, so they are capability entries; under a heading reading "
+            "MILLISECONDS they are a measurement nobody took."
         )
     )
     slug: str = Field(
@@ -239,7 +245,27 @@ class BoardEntry(BaseModel):
             "reduce to the same slug or the board grows two sections where there "
             "is one. So prefer the plainest, most common form of the term. Code "
             "normalises case and spacing; it cannot decide that \"tool-calling\" "
-            "and \"function-calling\" were one idea."
+            "and \"function-calling\" were one idea.\n\n"
+            "⚠ ON A METRIC, THE AXIS IS WHAT WAS MEASURED — NEVER WHICH WORDS "
+            "SIT BESIDE THE FIGURE. Every one of these was filed by matching a "
+            "word rather than a measurement, and each put a real number on the "
+            "wrong page:\n"
+            "  \"10.59M tokens\" across 90 tasks is a TOTAL. Filed as "
+            "cost-per-token, for containing the word tokens. It is not a cost "
+            "and it is not per token.\n"
+            "  \"118K per task\" is a per-task average. Filed as "
+            "tokens-per-second, because both are rates. They are not the same "
+            "rate.\n"
+            "  \"about 75 minutes\" is how long a task took. Filed as "
+            "time-to-first-token, which is the pause before a reply starts.\n"
+            "  \"$0.013880\" is what ONE RUN cost. Filed as cost-per-token.\n"
+            "A total is not a rate, an elapsed time is not a latency, and a "
+            "per-task figure is not a per-second one. WHERE NO FAMILIAR AXIS "
+            "FITS, NAME THE ONE THAT DOES — `task-duration`, `total-tokens`, "
+            "`cost-per-task`. A new axis costs one row on a new page and a "
+            "reviewer can merge it; a figure filed under a familiar wrong axis "
+            "is a wrong number on a page people read, and nothing about it "
+            "looks wrong."
         )
     )
     name: str = Field(
@@ -266,7 +292,13 @@ class BoardEntry(BaseModel):
         description=(
             "REQUIRED when section is metric. What the figure is measured in — "
             "\"milliseconds\", \"USD per 1M tokens\", \"tokens\", \"percent "
-            "resolved\". An axis with no unit is not a metric."
+            "resolved\". An axis with no unit is not a metric.\n\n"
+            "THE UNIT THE FIGURE IS ACTUALLY WRITTEN IN, not the one the axis "
+            "usually carries. \"about 40 minutes per task\" is minutes; it was "
+            "stored as milliseconds, so a 40-minute task duration rendered as a "
+            "latency. Code now compares the two and withholds the row when they "
+            "disagree, which means a unit copied from the axis loses the figure "
+            "rather than mis-labelling it."
         ),
     )
     value_verbatim: str | None = Field(
@@ -280,7 +312,17 @@ class BoardEntry(BaseModel):
             "number nobody measured and rule 3 forbids it reaching a page — code "
             "converts afterwards, from the characters you copied. KEEP THE HEDGE "
             "IF THE WRITER HEDGED: \"about 200k\" is the finding; the precise "
-            "number is a claim they did not make."
+            "number is a claim they did not make.\n\n"
+            "AND THE QUOTE YOU OFFER HAS TO CONTAIN THE FIGURE — CHOOSE THE "
+            "QUOTE THAT DOES. A `cost-per-benchmark-point` entry reading "
+            "\"$0.0076 per point\" was filed against a quote that stops twelve "
+            "words before the writer wrote the figure: the document really does "
+            "say \"cost per benchmark point and DeepSeek costs $0.0076 per "
+            "point\", so the axis and the number are both published and both "
+            "sound. Code compares the value with the quote and withholds the "
+            "row, which means that figure is lost by WHERE THE QUOTE WAS CUT "
+            "and by nothing else. Where one sentence carries the measurement "
+            "and its neighbour carries the subject, QUOTE BOTH."
         ),
     )
     #: ⚠ TWO FIELDS THAT EXIST TO BE CHECKED, NOT TO BE TRUSTED.
@@ -392,7 +434,16 @@ class BoardEntry(BaseModel):
             "Never merged, so a guess here corrupts the one distinction the "
             "metric pages exist to show. It usually agrees with "
             "`model_ref.speaking`: own-experience is reported, "
-            "vendor-about-own-product is stated."
+            "vendor-about-own-product is stated.\n\n"
+            "⚠ AND A FIGURE FROM SOMEBODY'S OWN TASK IS NOT THE PUBLISHED "
+            "FIGURE — THE AXIS DIFFERS, NOT ONLY THE BASIS. \"took 8.566 "
+            "seconds\" on one person's run is `reported`, and what it measures "
+            "is how long THAT task took. The vendor's published "
+            "time-to-first-token is `stated`, and is a different measurement "
+            "that happens to be a duration too. Record each the way the text "
+            "expresses it: one person's timing stays one person's timing, and "
+            "is never promoted onto the axis the number superficially "
+            "resembles."
         ),
     )
 
@@ -437,8 +488,8 @@ class BoardEntry(BaseModel):
 #: describes is the classifier's entire output channel.
 _BOARD_ENTRIES_DESC = (
     "EVERY board section this quote belongs on — DISCOVERED, not chosen from a "
-    "list. One entry per section; a quote answering two questions produces two "
-    "entries.\n\n"
+    "list. A quote answering two of the three questions produces two entries, "
+    "and a quote naming three tasks produces three in one section.\n\n"
     "Ask all three questions of the quote and add an entry for each one the "
     "quote itself answers:\n"
     "  best_for   — does it say what they were TRYING TO DO?\n"
@@ -452,6 +503,44 @@ _BOARD_ENTRIES_DESC = (
     "output\" is a metric and nothing else — no behaviour is reported and no "
     "task is named — and that is a complete, useful record. Do not invent a "
     "capability to pad it out.\n\n"
+    "⚠ EVERY ENTRY IS READ BACK AGAINST THIS QUOTE ALONE, with the rest of "
+    "the document covered up. Several entries in one section is right when "
+    "the quote names several things — \"classification, short summaries, and "
+    "simple extraction\" is three best_for entries and all three are in it. "
+    "What is never right is an entry for something the quote does not say. "
+    "The other sentences of the thread are not evidence for THIS quote; they "
+    "have their own quotes and will produce their own entries. Checked against "
+    "the source documents: \"targeted enhancements for code generation, "
+    "debugging, and orchestrating complex tasks\" produced a capability entry "
+    "for `reasoning`, and the post does discuss reasoning — in a different "
+    "paragraph, \"long-running agents, multi-step reasoning, and software "
+    "engineering tasks\". Two sound entries were merged into one unsupported "
+    "one. The fix is two entries with two quotes, not one quote carrying both."
+    "\n\n"
+    "Measured 2026-09-22, over the 56 quotes in undeclined entries that had "
+    "produced two or more entries in one section, read one at a time by a "
+    "reviewer: 40 were sound and 16 carried at least one entry naming "
+    "something its quote does not support. \"DeepSeek V4 Flash at $0.25/M "
+    "output is the real story\" produced best_for/extraction and "
+    "best_for/rag; it names a price and no task. \"the quality was "
+    "indistinguishable from GPT-4o for about 90% of what I needed\" "
+    "produced code-review and summarization, and names neither. "
+    "\"it communicates clearly\" produced communication-clarity, "
+    "which it says, and instruction-following, which it does not.\n\n"
+    "⚠ A QUOTE THAT NAMES SEVERAL MODELS SPLITS BETWEEN THEM, and only the "
+    "part about THIS model is an entry. \"Haiku for routing, Sonnet for "
+    "reasoning, Opus for long chains\" says exactly one thing about Haiku. It "
+    "produced three capability entries on Haiku — routing, reasoning and "
+    "long-tool-chains — so the board credited one model with what the writer "
+    "said about two others. A comma-separated sentence is not a list of "
+    "things one model does; read whose clause each one is.\n\n"
+    "⚠ NAME EVERY ITEM IN A LIST, not the two you recognise. \"significant "
+    "advance in reasoning, coding, cybersecurity and professional work\" is "
+    "four named things and produced two entries; \"code review, vulnerability "
+    "detection, and long-horizon software engineering\" is three and produced "
+    "two. A list read short is the quieter defect — nothing on the page is "
+    "wrong, so nothing prompts anyone to look — and it is rule 4 applied to "
+    "what the extractor drops rather than to what the page renders.\n\n"
     "Never empty: a claim that belongs on no section cannot be shown, so it is "
     "not a claim. Put its quote in `unclassified` instead."
 )
@@ -593,13 +682,43 @@ class ExtractedClaim(BaseModel):
         supplies a position anything trusts, and a span code computed is a span
         code verified.
 
-        What remains checked here is only that the hint is not nonsense: a
-        forward range at a plausible position. A wrong-by-two hint is fine and
-        is exactly what arrives.
+        ⚠ AND SINCE 2026-09-23 IT REFUSES NOTHING. It used to require a
+          forward range and raise on anything else, which discarded the WHOLE
+          CLAIM over the one value in it that nothing reads.
+
+          Measured on the Nano Banana 2 run of 2026-09-23
+          (`mv_de3e701e07b8bfa9-554826d4`): the extractor returned
+          `quote_offset (0, 0)` on **44 claims in one thread**, every one of
+          them lost to this line. That thread used more input tokens than the
+          other three in the run combined, retried once and failed identically,
+          cost $0.004608 - **64% of the whole run** - and stored nothing.
+
+        ⚠ THE VALUE IT REJECTED ON HAS NO READER. `verify.py:322` passes
+          `quote_offset[0]` to `_locate` as a tiebreak hint and NOTHING reads
+          `quote_offset[1]` anywhere, outside one error message. `_locate`
+          finds every occurrence of the quote itself and takes the one nearest
+          the hint, so `start=0` is a usable hint meaning "prefer the earliest
+          occurrence" - and `end` was the half this raised on.
+
+          A wrong-by-two hint was fine and a hint of zero was fatal, in a
+          docstring that says the model "no longer supplies a position anything
+          trusts". The check contradicted the design it was written under.
+
+        ⚠ WHAT STILL CATCHES A FABRICATED QUOTE, WHICH IS THE ONLY REASON TO
+          HESITATE. Rule 1 is untouched: `verify()` requires the quote to
+          appear character for character in the text the model was shown, and
+          an invented one is rejected as NOT_FOUND by the check built for it.
+          Every integrity test downstream runs on the span CODE computed
+          (`start, end = located`), never on this one. Removing a check that
+          can only produce false alarms is not removing a check that catches
+          fabrication.
+
+          What is genuinely lost: on a quote appearing TWICE, a zero hint takes
+          the earlier occurrence rather than the right one. That is a worse
+          attribution than a good hint would give and a far better outcome than
+          discarding the claim - and it is identical to what any model guessing
+          low already produces.
         """
-        start, end = self.quote_offset
-        if start < 0 or end <= start:
-            raise ValueError(f"quote_offset {self.quote_offset} is not a forward range")
         return self
 
     @property

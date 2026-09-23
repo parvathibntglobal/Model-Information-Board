@@ -103,23 +103,54 @@ def _scope_of(entry: dict, searched: frozenset[str]) -> str | None:
     return "searched" if mv in searched else "mentioned"
 
 
-#: A quantity is a digit. Deliberately this crude: `43.5%`, `84 tasks`,
-#: `$0.50 / 1M` and `2.3x` all carry one, and "twice as expensive", "slowest",
-#: "one or two euros" and "volume" do not. A stricter parser would start
-#: deciding which units are real, which is a vocabulary decision and not this
-#: function's to make.
-#: ⚠ RULE 12, AND THIS IS A LIVE VIOLATION OF IT (#386, item 3). "Is there a
-#: digit anywhere" is a test almost nothing fails, because every modern model
-#: name carries one. On 2026-09-21 it published
-#: `'matches or trails Claude Fable 5 and GPT 5.6 Sol'` as a measurement - the
-#: digits it found were `['5','5','6']`, from **Fable 5** and **GPT 5.6**.
-#: The check has been wrong since it was written and only became visible when
-#: a value arrived whose only digits were a version number.
+#: A quantity is a digit the value LEADS WITH. `43.5%`, `84 tasks`,
+#: `$0.50 / 1M`, `2.3x`, `200K`, `#23`, `~40 minutes` all do; "twice as
+#: expensive", "slowest", "one or two euros" and "volume" do not.
 #:
-#: NOT PATCHED WITH A LONGER WORD LIST, deliberately: `_RELATIVE_CLAIM` missing
-#: "trails" is the same shape as `SUBAXIS` missing "batch pricing", and a
-#: fixed vocabulary guessing what writers will say is what #386 is about.
-_HAS_QUANTITY = re.compile(r"\d")
+#: ⚠ THIS CLOSES ONE OF RULE 12's TWO NAMED INSTANCES. It was
+#:   `re.compile(r"\d")` - *is there a digit anywhere?* - which is a test
+#:   almost nothing fails, because every modern model name carries one. On
+#:   2026-09-21 it published `'matches or trails Claude Fable 5 and GPT 5.6
+#:   Sol'` as a measurement; the digits it found were `['5','5','6']`, from
+#:   **Fable 5** and **GPT 5.6**. Wrong since written, visible only when a
+#:   value arrived whose sole digits were a version number (#386 item 3).
+#:
+#: NOT PATCHED WITH A LONGER WORD LIST, deliberately: `_RELATIVE_CLAIM`
+#: missing "trails" is the same shape as `SUBAXIS` missing "batch pricing",
+#: and a fixed vocabulary guessing what writers will say is what #386 is
+#: about.
+#:
+#: MEASURED BEFORE CHANGING IT, over all 496 stored metric rows at the time.
+#: The reported row was one of FIVE of its own kind, not a one-off:
+#:
+#:     matches or trails Claude Fable 5 and GPT 5.6 Sol   model versions
+#:     outperforms DeepSeek V4 Pro across the board       model version
+#:     same as it was for 3.7 Flash                       model version
+#:     p99 stays flat even under burst load               a percentile name
+#:     more than 10x the token adjusted price             relative claim
+#:     September 1, 2026  /  June 2026                    dates, not figures
+#:
+#:   Seven newly refused of the 452 that passed, and no legitimate figure
+#:   among the other 445 moves - `1.000`, `300ms`, `51`, `200K`, `6/24`,
+#:   `82% vs 78% vs 74%` and `$2 per million input tokens and $10 per million
+#:   output tokens` all lead with their number and all still pass.
+#:
+#: WHY LEADING RATHER THAN ANCHORED TO THE UNIT, which was tried first and is
+#: the more obvious idea: anchoring a digit to the row's own `unit` refuses
+#: 145 of 452, because a bare `51` under `unit: score` is exactly right - the
+#: unit lives in its own column so the value need not repeat it. Measured, not
+#: reasoned; the obvious rule was 20x worse.
+#:
+#: The hedge list is about LEAD-INS ("about 13 AIC per task"), not the domain,
+#: which is what keeps this from being the vocabulary guess #386 argues
+#: against - it decides nothing about which units or comparatives are real.
+_LEADING_QUANTITY = re.compile(
+    r"^\s*(?:[~<>≈#±+\-]|\(|\"|')*\s*"
+    r"(?:about|approx\.?|approximately|roughly|around|nearly|over|under|"
+    r"up\s+to|just)?\s*"
+    r"(?:[$€£¥₹]\s*)?\d",
+    re.IGNORECASE,
+)
 
 
 #: What a benchmark name looks like when it CONTINUES past where the extractor
@@ -312,6 +343,130 @@ def support_tally(entries: list[dict]) -> dict[str, int]:
     return out
 
 
+#: ── EVERY REASON A FIGURE IS KEPT OFF A PAGE, AND WHAT EACH ONE MEANS ──────
+#:
+#: ⚠ ONE SOURCE, BECAUSE THE SECOND ONE WOULD BE A TRANSCRIPTION. The gates
+#:   below return these constants and `/admin/stages` renders this tuple, so a
+#:   reason added to the code appears on the page and a reason removed from the
+#:   code cannot linger there. The alternative - a list of gates written out on
+#:   the page - is a count in prose with extra steps (rule 11): true the day it
+#:   is pasted, quietly wrong afterwards, and misleading exactly the person who
+#:   went looking for what the pipeline currently refuses.
+#:
+#: ⚠ RULE 4 IS WHY THIS IS SHOWN AT ALL. Every one of these CAUSES AN ABSENCE.
+#:   A metrics tab that is thin because eleven figures were withheld and one
+#:   that is thin because nobody ever measured the model render identically,
+#:   and they are opposite statements. Naming the gates does not fix that on its
+#:   own, but a reader who cannot find out that a gate exists has no way to ask.
+#:
+#: `when` separates the two questions this module asks, which are not the same
+#: question asked twice:
+#:   write  `metric_refusal` - may this row be STORED as a figure at all
+#:   read   `metric_withholding` - may this stored row be SHOWN on a page
+GATE_NO_QUANTITY = "no quantity"
+GATE_FIGURE_NOT_IN_QUOTE = "figure not in its quote"
+GATE_AXIS_NOT_IN_QUOTE = "axis not in its quote"
+GATE_RELATIVE_CLAIM = "a relative claim, not a value on this axis"
+GATE_UNIT_SAYS_MONEY = "the unit says money and the value carries no amount"
+#: A TEMPLATE, not a fixed string - the two families are filled in at the point
+#: of refusal so the reason names the actual disagreement rather than its shape.
+GATE_TIME_UNIT_DISAGREES = (
+    "the unit says {declared}s and the figure is written in {written}s"
+)
+GATE_PER_SECOND_NOT_PER_TASK = (
+    "the unit is per second and the figure is per something else"
+)
+GATE_COST_WITHOUT_MONEY = "the axis is a cost and the unit is not money"
+
+METRIC_GATES: tuple[dict[str, str], ...] = (
+    {
+        "reason": GATE_NO_QUANTITY,
+        "when": "write",
+        "means": (
+            "The figure column holds no digits. \"twice as expensive\", "
+            "\"slowest\", \"Blazing Fast\" are real things somebody said and "
+            "they belong in a capability entry; under a heading reading "
+            "MILLISECONDS they are a measurement the board never took."
+        ),
+    },
+    {
+        "reason": GATE_FIGURE_NOT_IN_QUOTE,
+        "when": "write",
+        "means": (
+            "The figure does not appear in the quote offered as its evidence. "
+            "It may be correct and taken from a table two paragraphs away, and "
+            "nothing here can tell that from an invention - so it is refused "
+            "rather than stored on the reading that happens to be convenient."
+        ),
+    },
+    {
+        "reason": GATE_AXIS_NOT_IN_QUOTE,
+        "when": "write",
+        "means": (
+            "The benchmark name does not appear in the quote. This is the "
+            "substitution that put a Terminal-bench figure on the SWE-bench "
+            "page. An axis left EMPTY is not refused - a quote naming no "
+            "benchmark is evidence with no axis in it."
+        ),
+    },
+    {
+        "reason": GATE_RELATIVE_CLAIM,
+        "when": "read",
+        "means": (
+            "\"3x cheaper\", \"70% lower cost\" measure the GAP TO ANOTHER "
+            "MODEL rather than the axis the column is headed with. In a column "
+            "reading USD PER 1M TOKENS, \"70% lower cost\" is not an imprecise "
+            "price - it is not a price. Approximation is not comparison: "
+            "\"~60 tokens/second\" is a reading somebody rounded, and stays."
+        ),
+    },
+    {
+        "reason": GATE_UNIT_SAYS_MONEY,
+        "when": "read",
+        "means": (
+            "A row reading `80%` under `USD per 1M tokens`, from \"GPT-5.6 "
+            "costs drop 80%\" - real, in its quote, and not money. A unit that "
+            "says the figure is a SHARE is exempt: a price quoted as a "
+            "fraction of another price is still a price."
+        ),
+    },
+    {
+        # ⚠ THE ONLY REASON THAT IS A TEMPLATE, so it is the only one that
+        #   needs a name of its own. Rendering the raw string put
+        #   `{declared}s` and `{written}s` on the page, which reads as a bug
+        #   in the very list that exists to explain the pipeline.
+        "reason": GATE_TIME_UNIT_DISAGREES,
+        "shows_as": "the unit and the figure name different durations",
+        "when": "read",
+        "means": (
+            "The declared unit and the figure name different durations - "
+            "`about 75 minutes` stored as MILLISECONDS, so a task that took "
+            "three quarters of an hour rendered beside figures around 300ms. "
+            "Both sides must name a time before this says anything: a bare "
+            "`280` under milliseconds is not checked."
+        ),
+    },
+    {
+        "reason": GATE_PER_SECOND_NOT_PER_TASK,
+        "when": "read",
+        "means": (
+            "`118K per task` stored as tokens-per-second. Both are rates, so "
+            "the vocabulary matched and the denominator did not."
+        ),
+    },
+    {
+        "reason": GATE_COST_WITHOUT_MONEY,
+        "when": "read",
+        "means": (
+            "`cost-per-token` holding `10.59M tokens` in a unit of `tokens`. "
+            "The value agrees with the unit perfectly and neither is a price - "
+            "only the AXIS NAME disagrees, so only a slug-against-unit check "
+            "finds it."
+        ),
+    },
+)
+
+
 def metric_refusal(entry: dict) -> str | None:
     """Why this metric may not be stored as a figure, or None.
 
@@ -356,14 +511,14 @@ def metric_refusal(entry: dict) -> str | None:
         # about a metric - "they publish latency numbers" - and the page can
         # show it as evidence without showing it as a measurement.
         return None
-    if not _HAS_QUANTITY.search(value):
-        return "no quantity"
+    if not _LEADING_QUANTITY.match(value):
+        return GATE_NO_QUANTITY
     # Whitespace-insensitive, because a quote crossing a line break renders the
     # figure with a newline in it and that is not a different figure.
     haystack = " ".join((entry.get("quote") or "").split())
     needle = " ".join(value.split())
     if needle not in haystack:
-        return "figure not in its quote"
+        return GATE_FIGURE_NOT_IN_QUOTE
     # ⚠ THE THIRD REFUSAL, AND IT IS THE SAME RELIABILITY CLASS AS THE SECOND.
     #   An axis the extractor named and the quote does not contain is a
     #   fabricated axis - exactly the substitution that put a Terminal-bench
@@ -379,7 +534,7 @@ def metric_refusal(entry: dict) -> str | None:
     #   evidence with no axis in it, and refusing it would delete a fact to
     #   enforce a rule about a different one (rule 6).
     if quoted_support(entry)["axis"] == "unsupported":
-        return "axis not in its quote"
+        return GATE_AXIS_NOT_IN_QUOTE
     return None
 
 
@@ -534,6 +689,23 @@ def metric_withholding(entry: dict) -> str | None:
     The first two reasons ARE `metric_refusal`, so a row stored before those
     gates existed is now held to them; the rest are checks that only make sense
     once a row has both a value and a unit to disagree with each other.
+
+    ⚠ THE LAST THREE WITHHOLD A LABEL, NOT A FIGURE, and that is the difference
+      from every reason above them. `about 75 minutes` is a real duration
+      somebody measured; what is wrong is the `milliseconds` beside it and the
+      `time-to-first-token` above it. So the row comes back the moment either is
+      corrected - nothing here proposes a deletion, and the evidence is intact
+      for the reviewer who fixes the axis.
+
+    RULE 8, MEASURED BEFORE THESE SHIPPED AS GATES. Run over every metric row in
+    the shared database on 2026-09-22 - 519 rows, a population no filter here
+    chose - `shown` went 402 -> 392. Eleven rows left it and all eleven are
+    wrong rows: five token totals filed as `cost-per-token` from one recurring
+    table shape ("90 tasks, 10.59M tokens, 118K per task, 10h 37m"), five task
+    durations on the `time-to-first-token` page, and one per-task figure under
+    tokens-per-second. One row came BACK - `cache-read-cost`, see the money
+    check - and a twelfth was a false positive, fixed rather than tolerated, in
+    `_time_families`.
     """
     if entry.get("section") != "metric":
         return None
@@ -555,13 +727,66 @@ def metric_withholding(entry: dict) -> str | None:
     #   They belong in a capability entry, which is why this withholds the
     #   figure rather than proposing a deletion.
     if _RELATIVE_CLAIM.search(value):
-        return "a relative claim, not a value on this axis"
+        return GATE_RELATIVE_CLAIM
 
     # ⚠ AND THE UNIT HAS TO BE ABLE TO HOLD THE VALUE. A row reading `80%`
     #   under `USD per 1M tokens` came from "GPT-5.6 costs drop 80%" - the
     #   figure is real, in its quote, and is not money.
-    if _MONEY_UNIT.search(unit) and not _CURRENCY.search(value):
-        return "the unit says money and the value carries no amount"
+    #
+    #   ⚠ UNLESS THE UNIT ITSELF SAYS THE FIGURE IS A SHARE, which this used to
+    #     miss and it cost one row. `cache-read-cost` is declared in "percent of
+    #     input cost", holding `2%` from "That 2% cache read really pays off" -
+    #     a coherent reading on a real axis, withheld because the unit contains
+    #     the word cost and the value contains no dollar sign. A price quoted as
+    #     a fraction of another price is still a price. Measured over the 519
+    #     stored figures: 3 rows were withheld here, 2 of them discounts under a
+    #     currency unit and this one, which the reviewer who read it ruled sound.
+    if (
+        _MONEY_UNIT.search(unit)
+        and not _RATIO_UNIT.search(unit)
+        and not _CURRENCY.search(value)
+    ):
+        return GATE_UNIT_SAYS_MONEY
+
+    # ⚠ AND A TIME UNIT HAS TO BE THE ONE THE FIGURE IS WRITTEN IN. Three
+    #   rows read `about 40 minutes per task`, `about 75 minutes` and
+    #   `8.566 seconds` under a declared unit of MILLISECONDS - so a task
+    #   that took three quarters of an hour rendered on the
+    #   time-to-first-token page next to figures around 300ms, where it is
+    #   not an outlier but a different measurement.
+    #
+    #   Both sides have to name a time before this can say anything. A bare
+    #   `280` under `milliseconds` is not checked, because the value names
+    #   no unit to disagree with - that is rule 6, not a quiet pass.
+    declared = _time_families(unit)
+    written = _time_families(value)
+    if declared and written and not (declared & written):
+        return GATE_TIME_UNIT_DISAGREES.format(
+            declared="/".join(sorted(declared)),
+            written="/".join(sorted(written)),
+        )
+
+    # ⚠ A RATE PER SECOND IS NOT A RATE PER TASK. `118K per task` was stored
+    #   as tokens-per-second, from a quote reading "90 tasks, 10.59M tokens,
+    #   118K per task, 10h 37m": both are rates, so the vocabulary matched
+    #   and the denominator did not. Rule 7 inside one cell - the figure is
+    #   real and it answers a question nobody asked it.
+    if _PER_SECOND_UNIT.search(unit) and _PER_SOMETHING_ELSE.search(value):
+        return GATE_PER_SECOND_NOT_PER_TASK
+
+    # ⚠ AN AXIS THAT PROMISES MONEY, DECLARED IN SOMETHING THAT IS NOT MONEY.
+    #   The check above reads the unit against the value; this reads the SLUG
+    #   against the unit, which is the only place `cost-per-token` holding
+    #   `10.59M tokens` in a unit of `tokens` shows up: the value agrees with
+    #   the unit perfectly, and neither is a cost. A total spend of tokens is
+    #   not a price per token, and the column heading says it is.
+    #
+    #   A PERCENTAGE OF A PRICE IS STILL ABOUT PRICE, and `_MONEY_UNIT` reads
+    #   the word cost inside "percent of input cost", so `cache-read-cost`
+    #   passes here as an axis that IS declared in money.
+    slug = entry.get("slug") or ""
+    if _MONEY_SLUG.search(slug) and not _MONEY_UNIT.search(unit):
+        return GATE_COST_WITHOUT_MONEY
     return None
 
 
@@ -581,7 +806,82 @@ _RELATIVE_CLAIM = re.compile(
 #: Cents included, because `8.7¢ per task` is money and an earlier pass
 #: refused it for not starting with a dollar sign.
 _CURRENCY = re.compile(r"[$\u20ac\u00a3]\s*\d|\d\s*(?:\u00a2|cents?\b)", re.IGNORECASE)
-_MONEY_UNIT = re.compile(r"usd|\$|cost|price", re.IGNORECASE)
+#: `eur`/`gbp` because `cost-per-generation` is declared in EUR, and the slug
+#: check below would otherwise read a euro price as not being money. `cent`
+#: is deliberately absent: it sits inside "percent", which is a unit on 60
+#: rows here and is not money.
+_MONEY_UNIT = re.compile(r"usd|\$|cost|price|eur|gbp", re.IGNORECASE)
+
+#: The slug side of the same question. Only the words that make a PRICE the
+#: thing being measured - `token-cost` and `cost-per-task` are in, and
+#: `costly-to-run` would be too if anything named an axis that way. It is
+#: read against the UNIT, never against the value, because a price can be
+#: quoted as a share of another price.
+_MONEY_SLUG = re.compile(r"\b(cost|price|pricing|spend)\b", re.IGNORECASE)
+
+#: A unit that says its own figure is a SHARE rather than an amount. Read only
+#: against the unit - a value of `80%` under `USD per 1M tokens` is still a
+#: discount rather than a price, and that is the row the money check exists for.
+_RATIO_UNIT = re.compile(r"percent|%|share|fraction|ratio|multiple", re.IGNORECASE)
+
+#: ⚠ ONE FAMILY PER DURATION, and an abbreviation counts only where no letter
+#:   precedes it. `300ms` is a figure in milliseconds; the `ms` ending `items`
+#:   and the `min` opening "minimum" are not units, and reading them as units
+#:   is the mention-versus-use trap this repository has hit six times. A leading
+#:   `\b` would not have done it - there is no boundary between `0` and `m`, so
+#:   the first version read `300ms` as naming no unit at all.
+_TIME_FAMILIES: tuple[tuple[str, str], ...] = (
+    ("millisecond", r"millisecond|msec|(?<![a-z])ms\b"),
+    ("second", r"(?<!milli)second|(?<![a-z])secs?\b"),
+    ("minute", r"minute|(?<![a-z])mins?\b"),
+    ("hour", r"hour|(?<![a-z])hrs?\b"),
+    ("day", r"(?<![a-z])days?\b"),
+)
+
+
+def _time_families(text: str | None) -> set[str]:
+    """Every duration a unit or a figure is written in. Empty when none.
+
+    Empty is the answer for most values, and it is the SAFE answer: it means
+    the text names no time unit, so nothing here can say whether it agrees
+    with the declared one. Rule 6 - an unknown does not become a mismatch.
+
+    ⚠ EVERY FAMILY, NOT THE FIRST, AND THAT WAS THE ONE FALSE POSITIVE.
+      Measured over all 519 stored figures, the first version withheld 12 rows
+      and 11 of them were right. The twelfth was `2 minutes 54 seconds` under a
+      declared unit of MINUTES: a compound duration names two families, the
+      first match was `second`, and a figure that agrees with its unit was read
+      as contradicting it. A value is only in conflict with its unit when the
+      unit is nowhere in it.
+
+    ⚠ `millisecond` IS TESTED BEFORE `second` AND STILL MATTERS. "milliseconds"
+      contains "second", so both patterns fire on one word; the millisecond
+      pattern is what stops the pair being read as a disagreement with itself.
+      That is why the second pattern excludes a preceding "milli".
+    """
+    if not text:
+        return set()
+    return {
+        family
+        for family, pattern in _TIME_FAMILIES
+        if re.search(pattern, text, re.IGNORECASE)
+    }
+
+
+#: `tokens/second`, `tokens per second`, `ms` is not one of these - this asks
+#: only whether the DENOMINATOR is a second.
+_PER_SECOND_UNIT = re.compile(
+    r"per\s*second|/\s*sec(ond)?s?\b|\btps\b|\bhz\b", re.IGNORECASE
+)
+
+#: And whether the figure names a different one. Deliberately a closed list
+#: of denominators somebody actually wrote, rather than `per \w+`: "per
+#: second" itself would match that, and so would "per million tokens".
+_PER_SOMETHING_ELSE = re.compile(
+    r"\bper\s+(task|run|request|query|prompt|call|job|test|problem|"
+    r"question|document|page|image|minute|hour|day)s?\b",
+    re.IGNORECASE,
+)
 
 
 def spelling_key(slug: str) -> str:
@@ -1282,12 +1582,39 @@ def list_for_review(conn) -> list[dict]:
     ).fetchall():
         counts_by_group.setdefault((section, slug), {})[ruling] = n
 
+    # ── SLUGS THAT DIFFER ONLY BY A SEPARATOR, NAMED ON EACH OTHER'S ROW ──
+    #
+    # `exploit-bench` and `exploitbench` are one benchmark and two rows here,
+    # and a reviewer reading them sees two identical-looking sections with no
+    # hint they are the same word. The board folds them on read (`spelling_key`
+    # in `board_sections`); this panel must NOT, for two reasons:
+    #
+    #   1. A ruling is keyed on (section, slug). A folded row that sent one
+    #      slug would decline half the pair and leave the other live, which is
+    #      worse than showing two rows.
+    #   2. This is the surface where a person DECIDES. Pre-merging hides the
+    #      decision the board is asking them to make, and `ruling_target`
+    #      exists to record it.
+    #
+    # So they are flagged, not folded: each row names the others it looks like,
+    # and the panel offers the merge with the target already filled in.
+    by_spelling: dict[tuple[str, str], list[str]] = {}
+    for r in rows:
+        by_spelling.setdefault((r[0], spelling_key(r[1])), []).append(r[1])
+
     out = []
     for (section, slug, name, definition, entries, documents, models,
          newest, ruling, ruling_target, reviewed_at) in rows:
+        looks_like = sorted(
+            x for x in by_spelling.get((section, spelling_key(slug)), [])
+            if x != slug
+        )
         by_ruling = counts_by_group.get((section, slug), {})
         out.append({
             "section": section, "slug": slug, "name": name, "definition": definition,
+            # Empty for almost every row. Present only where another slug in
+            # this section has the same letters in the same order.
+            "looks_like": looks_like or None,
             "entries": entries, "documents": documents, "models": models,
             "newest": newest.isoformat() if newest else None,
             # KEPT, and now only true when the whole slug agrees. A mixed slug

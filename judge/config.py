@@ -324,3 +324,81 @@ def tracked_models() -> tuple[TrackedModel, ...]:
         )
         for e in raw["models"]
     )
+
+
+#: Keys a parent map may never carry. A parent that could express a voice count
+#: would eventually publish one, and a count of voices under a heading nobody
+#: wrote is a consensus about a category no writer named (#410, ruling 1).
+_PARENT_FORBIDDEN_KEYS = ("voices", "n_eff", "weight", "score", "consensus")
+
+
+@lru_cache(maxsize=1)
+def parent_names() -> dict[str, str]:
+    """`contract/slug_parents.yaml` -> {parent_slug: display heading}.
+
+    A parent with no entry here is NOT an error: `parent_heading()` falls back
+    to the slug so a newly added parent renders rather than crashing a page.
+    The contract is expected to be complete and a test asserts it is — the code
+    is permissive so a missing name is a cosmetic gap, not an outage.
+    """
+    return {
+        str(k).strip().lower(): str(v)
+        for k, v in (_read("slug_parents.yaml").get("parent_names") or {}).items()
+    }
+
+
+def parent_heading(parent: str) -> str:
+    """The heading a reader sees, or the slug when nobody has written one.
+
+    Every LEAF has a display name because the extractor is required to produce
+    one. Parents are written by hand, so this is the one place a heading can be
+    missing, and falling back to the slug keeps the page rendering.
+    """
+    return parent_names().get((parent or "").strip().lower()) or parent
+
+
+@lru_cache(maxsize=1)
+def slug_parents() -> dict[str, dict[str, str]]:
+    """`contract/slug_parents.yaml` -> {section: {leaf_slug: parent}}.
+
+    Inverted from the file's {section: {parent: [leaf, ...]}} because every
+    reader asks "what is this leaf's heading", never "what is under this
+    heading" — the second is a `groupby` over the first and inverting once here
+    keeps one direction authoritative.
+
+    ⚠ READ-TIME NAVIGATION ONLY. This is NOT `capabilities()`. That is the
+      closed 12-key counting vocabulary: it keys `cell`, it drives `n_eff`, and
+      `judge/pages/capability.py` refuses a key it does not contain. This keys
+      nothing, and a leaf absent from it is UNGROUPED rather than invalid —
+      absence is the default (rule 6), which is why this returns a mapping to
+      look up rather than a list to validate against.
+
+    `best_for` is deliberately absent from the file; this returns whatever
+    sections it declares, so a caller must handle a section with no parents.
+    """
+    raw = _read("slug_parents.yaml")
+    forbidden = {str(n).strip().lower() for n in raw.get("forbidden_parents") or ()}
+    out: dict[str, dict[str, str]] = {}
+    for section, parents in (raw.get("sections") or {}).items():
+        mapping: dict[str, str] = {}
+        for parent, leaves in (parents or {}).items():
+            name = str(parent).strip().lower()
+            if name in forbidden:
+                raise ValueError(
+                    f"slug_parents.yaml: {name!r} is in `forbidden_parents`. A "
+                    "parent wide enough to take anything takes everything — "
+                    "`extraction.faithfulness` absorbed 12 facial-recognition "
+                    "claims without one candidate proposal."
+                )
+            for leaf in leaves or ():
+                leaf = str(leaf).strip().lower()
+                if leaf in mapping:
+                    raise ValueError(
+                        f"slug_parents.yaml: {leaf!r} is under both "
+                        f"{mapping[leaf]!r} and {name!r} in {section!r}. A leaf "
+                        "under two parents is counted twice by any reader that "
+                        "walks the map."
+                    )
+                mapping[leaf] = name
+        out[str(section)] = mapping
+    return out

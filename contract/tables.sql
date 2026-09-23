@@ -54,7 +54,18 @@ CREATE TABLE model_version (
   sources                     jsonb NOT NULL,         -- {field: {url, retrieved_at}}
 
   possibly_changed            boolean NOT NULL DEFAULT false,
-  provenance                  text NOT NULL,          -- seed | polled
+  -- seed | polled | unpolled. THREE STATES, AND ONLY ONE IS A FIXTURE.
+  --   polled    OpenRouter carries it.
+  --   seed      a BUILD FIXTURE polling replaces. `assert_no_fixtures`
+  --             refuses these outside development, and means only these.
+  --   unpolled  a real model hand-entered because no poll carries it - either
+  --             never will (Recraft, ElevenLabs, Qwen Omni: OpenRouter lists
+  --             no standalone image or speech vendor) or has not yet (Gemini
+  --             3.8 Flash). Nothing about it is a fixture and it carries real
+  --             evidence: 65 claims and 11 cells on 2026-09-23.
+  -- Added by 20260923T0500_model_version_unpolled_provenance.sql, #382. Before
+  -- it, the third state was labelled with the word that means fixture.
+  provenance                  text NOT NULL,
   in_window                   boolean NOT NULL DEFAULT true,
 
   first_seen_at               timestamptz NOT NULL DEFAULT now(),
@@ -83,7 +94,7 @@ CREATE TABLE model_version (
   last_swept_at               timestamptz,
 
   CONSTRAINT model_version_provenance_ck
-    CHECK (provenance IN ('seed', 'polled'))
+    CHECK (provenance IN ('seed', 'polled', 'unpolled'))
 );
 
 -- ============================================================================

@@ -284,7 +284,20 @@ export const fetchRuns = (modelVersionId) =>
 export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
 /**
  * The board's three sections, DISCOVERED by the classifier rather than chosen
- * from a list. Returns { jobs, caps, mets, counts, report_counts_are_a_floor }.
+ * from a list. Returns { jobs, caps, mets, counts, report_counts_are_a_floor,
+ * grouped, parent_coverage }.
+ *
+ * `grouped` is the SAME leaves under their parent headings - `{jobs, caps,
+ * mets}`, each a list of `{kind:'parent', name, leaves, children}` or
+ * `{kind:'leaf', …}`. It is additive: `caps`/`mets`/`jobs` are unchanged and
+ * still authoritative for anything that looks a leaf up by slug.
+ *
+ * `best_for` is DELIBERATELY UNGROUPED (#412), so `grouped.jobs` comes back as
+ * flat leaves with `parent: null` - confirmed against staging rather than
+ * assumed, 74 rows, 0 parents.
+ *
+ * `parent_coverage` is computed per request and MUST NOT be copied into the
+ * UI as a literal: the ungrouped count read 19, 20 and 21 within one day.
  *
  * `reports` on each section IS A FLOOR and the UI must say so: the vocabulary
  * is open, so one section can arrive under two names until the duplicates are

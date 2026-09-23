@@ -630,8 +630,101 @@ class SieveYield:
     #: (rule 6).
     phrase_present: int | None = None
 
+    #: Documents that produced NO VERDICT AT ALL, and so were never sieved.
+    #:
+    #: ⚠ NOT A REFUSAL, AND MERGING THE TWO PRODUCES A NUMBER NOBODY CAN ACT
+    #: ON. #365 defect 2. A term set's `subject` is `{alias}`, so a document
+    #: naming no tracked model has nothing to render and no `SieveVerdict` is
+    #: ever built for it. In the blog census, 153 of 179 readable documents
+    #: "did not pass":
+    #:
+    #:      30  named a model and were refused   <- a fact about the document
+    #:     123  named nothing, never sieved      <- no verdict exists
+    #:
+    #: `153` reads as "the sieve rejected 153", which points at tuning the
+    #: sieve. The actionable reading — "it rejected 30, and 123 mention no
+    #: tracked model" — points at the registry or the corpus and says nothing
+    #: about the sieve.
+    #:
+    #: `SieveVerdict.signal_score` already draws this line one level down, in
+    #: its own words: *"0 is a MEASUREMENT here, not an absence... That is
+    #: different from a document nobody sieved, which has no verdict at all."*
+    #: The distinction existed at the verdict and had nowhere to go in the
+    #: tally, which is why the merged total was the only number available.
+    #:
+    #: NOT IN `candidates`, DELIBERATELY. `candidates` is what was sieved, so
+    #: `pass_rate` keeps the denominator it has always had and does not move
+    #: because this field was added. `examined` is the wider population.
+    #:
+    #: 0 IS A REAL ANSWER HERE, unlike `phrase_present`. A per-query sweep
+    #: renders a subject by construction, so github and reddit legitimately
+    #: report 0 — every candidate they retrieved was testable. The value is
+    #: passed in rather than derived because a verdict list cannot count what
+    #: is not in it.
+    untestable: int = 0
+
+    @property
+    def examined(self) -> int:
+        """Documents looked at: sieved plus never-sieved.
+
+        The denominator for "how much of what we looked at did we keep", which
+        is a different question from `pass_rate` and has a different answer
+        wherever `untestable` is non-zero.
+        """
+        return self.candidates + self.untestable
+
+    @property
+    def refused(self) -> int:
+        """Sieved and not kept. A fact about those documents.
+
+        The number `153` was NOT, and the reason to have this as a property is
+        that a caller writing `candidates - kept` gets the right answer only
+        while nothing untestable is in scope.
+        """
+        return self.candidates - self.kept
+
+    def split(self) -> str:
+        """The one line that stops the two being merged again.
+
+        Written as a sentence rather than left to each caller, because the
+        defect was every caller printing a single total and each of them
+        reconstructing the split differently, or not at all.
+        """
+        if not self.untestable:
+            return f"{self.refused} refused of {self.candidates} sieved"
+        return (
+            f"{self.refused} refused of {self.candidates} sieved, "
+            f"{self.untestable} never sieved (no tracked model named)"
+        )
+
     @property
     def pass_rate(self) -> float:
+        """Kept as a share of what was SIEVED. Denominator is `candidates`.
+
+        ⚠ `examined` IS THE OTHER DENOMINATOR AND ANSWERS A DIFFERENT QUESTION.
+          Asked for on #405, because the two now sit next to each other and a
+          caller reaching for "a rate" has two plausible choices with nothing
+          saying which is which:
+
+            pass_rate   kept / candidates   of the things we TESTED, how many
+                                            passed. A fact about the sieve.
+            kept/examined                   of the things we LOOKED AT, how
+                                            many passed. A fact about the
+                                            corpus, and it moves with
+                                            `untestable`.
+
+          They differ by exactly `untestable`, which was 123 on the case that
+          motivated that PR — so on a corpus sweep these two answers are not
+          close. Neither is wrong; the wrong one is wrong by answering a
+          question nobody asked it, which is rule 7 inside one class.
+
+        This one keeps `candidates` deliberately. It has meant that since it
+        was written, `untestable` was added BESIDE rather than inside the
+        denominator for that reason, and folding never-sieved documents in
+        would silently restate every historical yield figure.
+        `test_untestable_sits_beside_candidates_and_does_not_move_pass_rate`
+        pins it.
+        """
         return self.kept / self.candidates if self.candidates else 0.0
 
     @property
@@ -681,14 +774,30 @@ class SieveYield:
         return self.kept / self.phrase_present
 
 
-def tally(query_key: str, verdicts, *, phrase_present: int | None = None) -> SieveYield:
+def tally(
+    query_key: str,
+    verdicts,
+    *,
+    phrase_present: int | None = None,
+    untestable: int = 0,
+) -> SieveYield:
     """Fold verdicts into one row. Counting only — nothing is dropped here.
 
     `phrase_present` is passed in rather than computed: a verdict knows nothing
     about the query string that retrieved it, and the caller already holds both.
     Leaving it None records "not measured" rather than claiming zero.
+
+    `untestable` is passed in for a stronger reason than convenience: it counts
+    documents that produced NO verdict, and a verdict list cannot count what is
+    not in it. Only the caller that decided not to build a term set knows how
+    many times it did that. Defaulting to 0 is correct for every per-query
+    sweep — those render a subject by construction — and a caller sieving a
+    corpus rather than a query result must pass it or the two states merge
+    again. #365 defect 2.
     """
     verdicts = list(verdicts)
+    if untestable < 0:
+        raise ValueError(f"untestable cannot be negative, got {untestable}")
     return SieveYield(
         query_key=query_key,
         candidates=len(verdicts),
@@ -698,6 +807,7 @@ def tally(query_key: str, verdicts, *, phrase_present: int | None = None) -> Sie
         missing_signal=sum(1 for v in verdicts if "signal" in v.missing),
         kept_with_signal=sum(1 for v in verdicts if v.passed and v.signal_present),
         phrase_present=phrase_present,
+        untestable=untestable,
     )
 
 

@@ -62,6 +62,64 @@ class VerificationFailure(StrEnum):
     SARCASTIC = "sarcastic"
     POLARITY_CONTRADICTION = "polarity_contradiction"
 
+    def explain(self) -> str:
+        """One line, for a reader who is not going to open this file.
+
+        ⚠ BESIDE THE ENUM, NOT ON A PAGE. `/admin/stages` names the gates each
+          stage runs and reads this, the same way it reads
+          `RejectionTrigger.explain` and `GATE_MEANING`. A description written
+          on the page instead would be true the day it was pasted and quietly
+          wrong afterwards (rule 11) - and a rejection reason nobody outside
+          this module can read is a rejection nobody can disagree with.
+        """
+        return _EXPLANATIONS[self]
+
+
+_EXPLANATIONS = {
+    VerificationFailure.NOT_FOUND: (
+        "The quote appears nowhere in the text the extractor was given, even "
+        "after normalisation. This is what a fabricated or injected quote "
+        "produces, and it is the failure rule 1 exists for."
+    ),
+    VerificationFailure.ENCODING_MISMATCH: (
+        "Absent by exact match but PRESENT after normalisation - HTML entities "
+        "decoded, smart quotes and whitespace folded. The model re-encoded "
+        "what it was shown rather than inventing it. Kept separate from "
+        "not-found because folding the two together doubled the apparent "
+        "fabrication rate."
+    ),
+    VerificationFailure.OFFSET_OUT_OF_RANGE: (
+        "The character span points past the end of the text it was given."
+    ),
+    VerificationFailure.TEXT_MISMATCH: (
+        "The span is inside the text, and the characters at it are not the "
+        "quote the extractor claimed."
+    ),
+    VerificationFailure.UNMAPPED_SPAN: (
+        "The span resolves to no source document in the offset map, so there "
+        "is nobody to attribute the quote to."
+    ),
+    VerificationFailure.SPAN_CROSSES_COMMENTS: (
+        "The quote runs across two people's comments. It cannot be displayed "
+        "as anybody's words, and counting it would credit one voice with "
+        "another's sentence."
+    ),
+    VerificationFailure.RAW_TEXT_MISSING: (
+        "The document is not in this machine's raw store, so the quote cannot "
+        "be shown in the form a human actually wrote it."
+    ),
+    VerificationFailure.SARCASTIC: (
+        "The quote reads as sarcasm, so its plain meaning is the opposite of "
+        "the claim filed against it. Discarded rather than flipped - we do not "
+        "guess which reading to believe."
+    ),
+    VerificationFailure.POLARITY_CONTRADICTION: (
+        "The extractor marked the claim positive while listing it as a pain "
+        "point. The sign is contradictory, so the claim is discarded rather "
+        "than flipped."
+    ),
+}
+
 
 @dataclass(frozen=True)
 class OffsetMapping:
@@ -261,7 +319,12 @@ def verify(
     # occurrence NEAREST the hint is taken, so a repeated sentence is
     # attributed to the comment the extractor was actually reading rather than
     # to the first one in the thread.
-    located = _locate(claim.quote, flattened_text, hint=claim.quote_offset[0])
+    # ⚠ A MALFORMED HINT IS NO HINT, NOT A REJECTION. `quote_offset` is
+    #   advisory - see `ExtractedClaim._offsets_are_sane`, which used to raise
+    #   here instead and cost 44 claims in one thread. A negative start cannot
+    #   be a position, so it becomes 0, which is what a hint of "no idea"
+    #   means to `_locate`: prefer the earliest occurrence.
+    located = _locate(claim.quote, flattened_text, hint=max(0, claim.quote_offset[0]))
     if located is None:
         # ABSENT BY EXACT MATCH — but is it invented, or just re-encoded? The two
         # are opposite findings (fabrication vs a fidelity miss), and this is the

@@ -1555,12 +1555,29 @@ def start_fetch(req: FetchRequest) -> dict:
     script = _REPO_ROOT / "scripts" / "fetch_model.py"
     # Detached: we do not wait. env carries DATABASE_URL / GITHUB_TOKEN etc.,
     # which run-backend.py loaded from .env into this process's environment.
+    # ⚠ INHERITED, NOT DISCARDED, AND THAT IS THE POINT OF THE CHANGE.
+    #   This was `stdout=DEVNULL, stderr=DEVNULL`, so a run started from the
+    #   admin page threw away every word it said. The console that started the
+    #   backend went silent for forty minutes and then the board had changed,
+    #   and reading what happened meant opening `var/fetch/<run>.jsonl` and
+    #   decoding it by eye. `fetch_model.py` now renders itself as it goes, and
+    #   passing the streams through is what lets that reach a person.
+    #
+    #   THE RUN IS STILL DETACHED AND NOTHING IS READ BACK. These are not
+    #   pipes: the child writes to the same console as the parent and nobody
+    #   waits on it, so there is no buffer to fill and no reader to block. A
+    #   PIPE here would deadlock the moment a long run filled it with nobody
+    #   draining, which is the version of this change that looks equivalent
+    #   and is not.
+    #
+    #   A BACKEND WITH NO CONSOLE - a service, a container - inherits whatever
+    #   it was given, which is the right answer there too: the same place its
+    #   own logs go. `FETCH_QUIET=1` turns the rendering off without changing
+    #   how the process is spawned.
     subprocess.Popen(
         [sys.executable, str(script), mv, "--run-id", run_id],
         cwd=str(_REPO_ROOT),
         env=os.environ.copy(),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
     )
     # NAMED IN THE RESPONSE, not done quietly. Marking another machine's run
     # dead is a visible change to shared history, and a caller that can see it
@@ -2036,10 +2053,29 @@ def board_page() -> dict:
     Nothing here ranks or scores. Sections are ordered by report count, which is
     a count, and each carries the models named in it and the quotes behind it.
     """
+    from judge.board_grouping import coverage as parent_coverage
+    from judge.board_grouping import group_section
     from judge.store.board_entries import board_sections
 
     with _conn() as conn:
         sections = board_sections(conn)
+
+    # ADDITIVE, AND THE EXISTING KEYS ARE UNTOUCHED ON PURPOSE. `jobs`, `caps`
+    # and `mets` are rendered directly by the frontend; changing their shape to
+    # deliver headings would be a schema change to a page in the same commit
+    # that introduces the headings. `grouped` carries the same leaves in the
+    # same order, wrapped, so the frontend can adopt it when it is ready and
+    # nothing breaks while it is not.
+    #
+    # ⚠ A PARENT CARRIES `leaves` AND NOTHING ELSE NUMERIC. Not a sum of its
+    #   children's `reports`: that double-counts every document appearing under
+    #   two leaves (55 against a true union of 51 on `software-engineering`,
+    #   measured 2026-09-23) and sums a figure that is already a floor.
+    grouped = {
+        "jobs": group_section(sections["best_for"], section="best_for"),
+        "caps": group_section(sections["capability"], section="capability"),
+        "mets": group_section(sections["metric"], section="metric"),
+    }
 
     return {
         # The demo board's three tabs, in its own order: Best for, Capabilities,
@@ -2060,6 +2096,17 @@ def board_page() -> dict:
         # problem from a labelling one.
         "metrics_withheld": sections.get("_withheld", {}),
         "report_counts_are_a_floor": True,
+        # The same sections under their headings. `best_for` is deliberately
+        # unmapped (#412), so its rows come back as leaves and render as now.
+        "grouped": grouped,
+        # COMPUTED, NEVER RECORDED (rule 11). The proposal behind
+        # `contract/slug_parents.yaml` went stale three times in 47 minutes, so
+        # the file carries no counts and coverage is recomputed per request.
+        "parent_coverage": {
+            "jobs": parent_coverage(sections["best_for"], section="best_for"),
+            "caps": parent_coverage(sections["capability"], section="capability"),
+            "mets": parent_coverage(sections["metric"], section="metric"),
+        },
         "summary": (
             "Discovered from the evidence, not chosen from a list. Report counts "
             "are a floor: an open vocabulary can name one section two ways until "
@@ -2592,6 +2639,211 @@ def _fetch_stages_in_code() -> dict[str, str]:
     return found
 
 
+#: A gate family that could not be imported is NAMED, never dropped. Rule 6 at
+#: the page level: a stage listing no gates because the import failed and one
+#: that genuinely runs none render identically otherwise, and the first is a
+#: broken page while the second is a fact about the pipeline.
+def _triage_gates_in_source() -> tuple[tuple, dict, dict]:
+    """E4's gate names and meanings, PARSED FROM `collect/triage/gates.py`.
+
+    ⚠ PARSED RATHER THAN IMPORTED, AND THE RULE IS NOT NEGOTIABLE. `judge/`
+      may never import `collect/` - `test_lane_boundary.py` enforces it, and
+      the reason it exists is that two implementations of one storage contract
+      can only be byte-compared while neither can see the other. An `import`
+      here passed every test I ran locally and failed that one, which is the
+      test doing its job.
+
+      It is also what this file ALREADY does one function up:
+      `_fetch_stages_in_code` parses the stage list out of
+      `scripts/fetch_model.py` rather than importing the script. Same reason,
+      same shape - the list has one home, and this reads it.
+
+    ⚠ LITERALS ONLY, WHICH CONSTRAINS THE OTHER SIDE AND SHOULD. `literal_eval`
+      cannot evaluate an f-string, so a meaning written as
+      `f"Under {MIN_TOKENS} tokens"` would arrive here as a parse failure and
+      the whole family would report unreadable. The dict names the constant
+      instead of interpolating it, which is the better sentence anyway: a
+      number copied into prose is a number that goes stale (rule 11).
+    """
+    import ast
+
+    tree = ast.parse(
+        (_REPO_ROOT / "collect" / "triage" / "gates.py").read_text(encoding="utf-8")
+    )
+    # `LANGUAGE = "wrong-language"` and friends, so the dict keys resolve.
+    consts: dict[str, str] = {}
+    wanted: dict[str, object] = {}
+    for node in tree.body:
+        # ⚠ BOTH ASSIGNMENT FORMS. `GATE_MEANING: dict[str, str] = {...}` is an
+        #   AnnAssign and `LANGUAGE = "wrong-language"` is an Assign; a loop
+        #   that knows only the second finds the keys and none of the values,
+        #   and reports the whole family unreadable rather than failing loudly.
+        if isinstance(node, ast.AnnAssign):
+            target, value = node.target, node.value
+        elif isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target, value = node.targets[0], node.value
+        else:
+            continue
+        if not isinstance(target, ast.Name) or value is None:
+            continue
+        if isinstance(value, ast.Constant) and isinstance(value.value, str):
+            consts[target.id] = value.value
+        if target.id in {"GATE_ORDER", "GATE_MEANING", "FLAG_MEANING"}:
+            wanted[target.id] = value
+
+    def resolve(node):
+        """A tuple of names, or a dict keyed by them."""
+        if isinstance(node, ast.Tuple):
+            return tuple(consts[e.id] for e in node.elts if isinstance(e, ast.Name))
+        out = {}
+        for key, value in zip(node.keys, node.values, strict=True):
+            name = consts[key.id] if isinstance(key, ast.Name) else ast.literal_eval(key)
+            out[name] = ast.literal_eval(value)
+        return out
+
+    return (
+        resolve(wanted["GATE_ORDER"]),
+        resolve(wanted["GATE_MEANING"]),
+        resolve(wanted["FLAG_MEANING"]),
+    )
+
+
+def _gates_at_each_stage() -> tuple[dict[str, dict], list[str]]:
+    """`{stage id: {...}}` and the gate families that could not be read.
+
+    ⚠ READ FROM THE MODULES THAT RUN THEM, LIKE THE PROMPTS PAGE. Four
+      vocabularies, each already declared in the code that enforces it:
+
+        collect.triage.gates.GATE_ORDER        the six hard gates at E4
+        judge.extract.verify.VerificationFailure  why a quote fails rule 1
+        judge.vet.reject.RejectionTrigger      what E6 drops after the model
+        judge.store.board_entries.METRIC_GATES why a figure is not stored/shown
+
+      A list written out here instead would be a transcription, and this
+      project has already paid for one of those - see `_what_the_extractor_is_asked`.
+
+    ⚠ NO COUNTS, AND THAT IS THE PAGE'S EXISTING RULE, NOT A NEW ONE. How many
+      documents a gate dropped is a figure that needs its denominator and its
+      run (rules 3 and 7); the fetch log carries it. This answers the question
+      the log cannot: WHICH gates exist, and what each one refuses.
+
+    ⚠ A FLAG IS NOT A GATE and the page says so. `known-bot-counted` and
+      `near-miss-not-registered` are recorded on documents that are KEPT,
+      because the judgement behind each was measured on a population we chose
+      ourselves - rule 8's one-way direction, visible rather than remembered.
+    """
+    stages: dict[str, dict] = {}
+    unreadable: list[str] = []
+
+    try:
+        GATE_ORDER, GATE_MEANING, FLAG_MEANING = _triage_gates_in_source()
+
+        stages["E4"] = {
+            "runs": [
+                {
+                    "name": g,
+                    "kind": "gate",
+                    "drops": GATE_MEANING.get(g),
+                    "undescribed": g not in GATE_MEANING,
+                }
+                for g in GATE_ORDER
+            ] + [
+                {"name": n, "kind": "flag", "drops": why, "undescribed": False}
+                for n, why in FLAG_MEANING.items()
+            ],
+            "source": "collect/triage/gates.py:GATE_ORDER",
+        }
+        # THE SAME SIX, ONE LEVEL UP. Repeating the rows would say there are
+        # twelve gates; a pointer says there are six, run twice.
+        stages["E4b"] = {
+            "runs": [],
+            "same_as": "E4",
+            "note": (
+                "The same six gates, applied to the assembled thread rather "
+                "than to each document. The last check that costs no tokens."
+            ),
+            "source": "collect/triage/gates.py:GATE_ORDER",
+        }
+    except Exception as exc:  # noqa: BLE001
+        unreadable.append(f"E4 triage gates: {exc}")
+
+    try:
+        from judge.extract.verify import VerificationFailure
+
+        stages["E5"] = {
+            "runs": [
+                {"name": v.value, "kind": "gate", "drops": v.explain(),
+                 "undescribed": False}
+                for v in VerificationFailure
+            ],
+            "note": (
+                "Rule 1, checked in plain Python against the text the model "
+                "was given. These are the ways a quote fails that check - a "
+                "claim whose quote cannot be found is never stored."
+            ),
+            "source": "judge/extract/verify.py:VerificationFailure",
+        }
+    except Exception as exc:  # noqa: BLE001
+        unreadable.append(f"E5 quote verification: {exc}")
+
+    try:
+        from judge.vet.reject import RejectionTrigger
+
+        stages["E6"] = {
+            "runs": [
+                {"name": t.value, "kind": "gate", "drops": t.explain(),
+                 "undescribed": False}
+                for t in RejectionTrigger
+            ],
+            "note": (
+                "Runs AFTER the model rather than before it, because deciding "
+                "a quote is sarcastic or sponsored needs the quote."
+            ),
+            "source": "judge/vet/reject.py:RejectionTrigger",
+        }
+    except Exception as exc:  # noqa: BLE001
+        unreadable.append(f"E6 claim rejections: {exc}")
+
+    try:
+        from judge.store.board_entries import METRIC_GATES
+
+        stages["E5c"] = {
+            "runs": [
+                {"name": g.get("shows_as") or g["reason"], "kind": "gate",
+                 "drops": g["means"], "undescribed": False}
+                for g in METRIC_GATES if g["when"] == "write"
+            ],
+            "note": (
+                "Asked of every metric entry before it is stored as a figure. "
+                "A refused entry is counted by reason rather than dropped "
+                "silently."
+            ),
+            "source": "judge/store/board_entries.py:metric_refusal",
+        }
+    except Exception as exc:  # noqa: BLE001
+        unreadable.append(f"E5c metric refusals: {exc}")
+
+    return stages, unreadable
+
+
+#: ⚠ NOT A FETCH STAGE, AND FILING IT AS ONE WOULD BE WRONG. These run when
+#:   somebody OPENS A PAGE, over rows that are already stored - so they belong
+#:   beside the stages rather than inside them. A row held here is untouched in
+#:   the database and returns the moment its unit or axis is corrected.
+def _gates_after_the_run() -> tuple[list[dict], str | None]:
+    try:
+        from judge.store.board_entries import METRIC_GATES
+    except Exception as exc:  # noqa: BLE001
+        return [], str(exc)
+    return [
+        # A TEMPLATE IS NOT A NAME. `shows_as` exists for the one reason that
+        # fills in its two families at the point of refusal.
+        {"name": g.get("shows_as") or g["reason"], "kind": "gate",
+         "drops": g["means"], "undescribed": False}
+        for g in METRIC_GATES if g["when"] == "read"
+    ], None
+
+
 @app.get("/admin/stages")
 def admin_stages() -> dict:
     """What happens at each stage of a fetch, in words rather than counts.
@@ -2627,18 +2879,30 @@ def admin_stages() -> dict:
     except Exception as exc:  # noqa: BLE001
         contract_error = str(exc)
 
+    gates_by_stage, gates_unreadable = _gates_at_each_stage()
+    after_the_run, after_error = _gates_after_the_run()
+
     ids = [x for x in _STAGE_ORDER if x in stages_in_code]
     ids += sorted(set(stages_in_code) - set(_STAGE_ORDER))
 
     rows = []
     for sid in ids:
         words = described.get(sid) or {}
+        g = gates_by_stage.get(sid) or {}
         rows.append({
             "id": sid,
             "name": stages_in_code.get(sid),
             "what": (words.get("what") or "").strip() or None,
             "why": (words.get("why") or "").strip() or None,
             "undescribed": not words,
+            # WHICH GATES THIS STAGE RUNS, read from the module that runs them.
+            # Absent rather than empty where a stage gates nothing: [] would
+            # say "this stage refuses nothing", and for most stages that is
+            # true but unasked - only the stages that DO gate carry a list.
+            "gates": g.get("runs") or None,
+            "gates_same_as": g.get("same_as"),
+            "gates_note": g.get("note"),
+            "gates_source": g.get("source"),
         })
 
     return {
@@ -2649,6 +2913,18 @@ def admin_stages() -> dict:
         "contract_unreadable": contract_error,
         # A description with nothing emitting it. Named rather than dropped.
         "described_but_not_emitted": sorted(set(described) - set(stages_in_code)),
+        # ⚠ THE READ-TIME GATES, BESIDE THE STAGES RATHER THAN INSIDE THEM.
+        #   They run when somebody OPENS A PAGE, over rows already stored, so
+        #   filing them under a fetch stage would say a run refuses them. A row
+        #   held here is untouched and returns when its unit or axis is fixed.
+        "after_the_run": after_the_run or None,
+        "after_the_run_unreadable": after_error,
+        "gates_unreadable": gates_unreadable or None,
+        "source_of_gates": (
+            "the modules that enforce them - collect/triage/gates.py, "
+            "judge/extract/verify.py, judge/vet/reject.py, "
+            "judge/store/board_entries.py"
+        ),
         "note": (
             "Counts are not shown here on purpose - they are on the fetch log "
             "beside each stage, where they carry the run they belong to."
@@ -3534,6 +3810,14 @@ def admin_sources() -> dict:
 
     rulings = {str(r.get("id")): r for r in (doc.get("terms_rulings") or [])}
     platforms = list(doc.get("sources") or [])
+    # ⚠ `feeds` IS A SEPARATE TOP-LEVEL KEY AND THIS ENDPOINT NEVER READ IT.
+    #   `sources` holds the eight PLATFORMS - github, reddit, blogs, … - so the
+    #   page rendered one row reading "blogs · public feeds, then the article"
+    #   and could not name a single one of them. Eighteen feeds are seated and
+    #   producing a real share of the corpus; which ones, and whether a given
+    #   one has ever yielded anything, was answerable only by reading the
+    #   contract file.
+    feeds = list(doc.get("feeds") or [])
 
     rows: list[dict] = []
     for src in platforms:
@@ -3565,11 +3849,89 @@ def admin_sources() -> dict:
             "undescribed": access is None,
         })
 
+    # HOW MANY DOCUMENTS EACH FEED HAS ACTUALLY PRODUCED.
+    #
+    # ⚠ BEST-EFFORT, AND A FAILURE IS SAID RATHER THAN RENDERED AS ZEROS. This
+    #   endpoint answered from the contract alone and so could not fail on the
+    #   database; keeping that property matters more than the counts. If the
+    #   read fails every feed reports `documents: None` and
+    #   `counts_unreadable` carries the reason - because "this feed has
+    #   harvested nothing" and "we could not ask" are opposite claims and a 0
+    #   would make them identical (rule 6).
+    harvested: dict[str, int] = {}
+    counts_unreadable: str | None = None
+    try:
+        with _conn() as conn:
+            for host, n in conn.execute(
+                "SELECT substring(external_id from 'https?://([^/]+)') AS host, "
+                "       count(*) "
+                "FROM document WHERE source = 'blog' GROUP BY 1"
+            ).fetchall():
+                if host:
+                    harvested[str(host)] = int(n)
+    except Exception as exc:  # noqa: BLE001
+        counts_unreadable = _safe_detail(exc)
+
+    feed_rows: list[dict] = []
+    for feed in feeds:
+        fid = str(feed.get("id") or "")
+        ruling_id = feed.get("terms_ruling")
+        ruling = rulings.get(str(ruling_id)) or {}
+        evidence = feed.get("terms_evidence") or {}
+        # The host as the harvester stores it, which is what the count is keyed
+        # on. `blog:medium.com/airbnb-engineering` is one feed on a shared host,
+        # so the path is dropped and the count is the host's - said on the row
+        # rather than silently attributed to this feed alone.
+        host = fid.removeprefix("blog:").split("/")[0]
+        shared_host = sum(
+            1 for f in feeds
+            if str(f.get("id") or "").removeprefix("blog:").split("/")[0] == host
+        ) > 1
+        feed_rows.append({
+            "id": fid,
+            "site": feed.get("site"),
+            "endpoint": feed.get("endpoint"),
+            "base_trust": feed.get("base_trust"),
+            "provenance": feed.get("provenance"),
+            # WHOSE NAME GOES ON A CLAIM FROM THIS FEED, and the reason
+            # `entry` matters: it is the one value whose author is not wired
+            # (#373), so a reader of this page can see which feeds are
+            # affected without opening the issue.
+            "byline_source": ((feed.get("measured") or {}).get("byline_source")),
+            "terms_ruling": ruling_id,
+            "terms_reviewed_on": (
+                str(ruling["reviewed_on"]) if ruling.get("reviewed_on") else None
+            ),
+            # ⚠ RULE 4, AS ON THE PLATFORM ROWS. `false` means nobody read the
+            # terms document - NOT that it was read and found wanting.
+            "terms_document_read": evidence.get("terms_document_read"),
+            "robots_allows_article_path": evidence.get("robots_allows_article_path"),
+            # ⚠ `0` WHEN WE ASKED, `None` ONLY WHEN WE COULD NOT. The first
+            # version was `harvested.get(host)`, which returns None for a feed
+            # with no documents - so `mattrickard.com`, seated and genuinely
+            # empty, reported the same value as a feed we failed to count.
+            # That is precisely the conflation the comment above claims to
+            # avoid, written four lines under it.
+            "documents": (
+                harvested.get(host, 0) if counts_unreadable is None else None
+            ),
+            "count_is_for_the_host": shared_host,
+            "template_block": (feed.get("template_block") or {}).get("status"),
+        })
+    feed_rows.sort(key=lambda r: (-(r["documents"] or 0), r["id"]))
+
     described = {k for k in _ACCESS}
     in_contract = {str(x.get("id")) for x in platforms}
     return {
         "sources": rows,
         "count": len(rows),
+        # UNDER THEIR OWN KEY, not appended to `sources`. A feed is not a
+        # platform: it has no access method, no credential and no quota, and
+        # eighteen of them in a list of eight platforms would make the
+        # platform count meaningless.
+        "blog_feeds": feed_rows,
+        "blog_feed_count": len(feed_rows),
+        "blog_counts_unreadable": counts_unreadable,
         "by_method": {
             m: sorted(r["id"] for r in rows if r.get("method") == m)
             for m in sorted({r.get("method") for r in rows if r.get("method")})

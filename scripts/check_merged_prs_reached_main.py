@@ -142,9 +142,102 @@ def merged_prs(limit: int) -> list[dict]:
 # its patch matches the PR head, so the content genuinely arrived.
 #   #172  merge 9bdab5f  contract+collect: withdraw the fourth value, correct 853
 #   #173  merge 1d7b59a  collect+contract: the Reddit listing sweep + denominator
+#
+# ⚠ #404 IS THE FIRST SINCE THE NORM, AND IT MADE THIS CHECK RED ON EVERY RUN.
+#   The docstring's prediction happening: squash-merged onto main 2026-09-23,
+#   base=main, and its head SHA is not an ancestor because the squash rewrote
+#   it. The branch was deleted afterwards, so the SHA is not even fetchable -
+#   the run reports `(commit not in this clone)`.
+#
+#   ONE STRANDED PR TURNS EVERY LATER RUN RED, because the check reports the
+#   whole set each time. #405 and #410 were ordinary merge commits and their
+#   runs failed too, naming only #404. A check that is red for a benign reason
+#   stops being read, which costs more than the case it was built to catch -
+#   and this one has now cried wolf twice in two days (the other was a timing
+#   race, #401 merging 39 seconds before the run).
+#
+#   VERIFIED ON 2026-09-23 against every condition the paragraph above sets:
+#     base=main, not a base branch            <- the case this list is for
+#     mergeCommit 8f9553177 is an ancestor    <- the content arrived
+#     patch is the PR's 6 files, +467/-16     <- and it is the same content
+#   #404  merge 8f95531  contract+collect: unpolled, the third provenance
+#
+# ⚠ #414 AND #416 ARE OURS, AND THEY WENT IN AN HOUR AFTER #404 CLEARED THIS
+#   LIST FOR THE SAME CAUSE. Not a new failure mode and not a surprise: #413
+#   added #404 above at 07:44 and explained why squash-merging does this, and
+#   at 09:19 I squash-merged two more PRs thirteen seconds apart and put the
+#   check straight back to red. The paragraph above had already been written,
+#   by somebody else, about my previous merge that morning.
+#
+#   That is why the real fix is not this list. It is `CLAUDE.md`'s merge
+#   convention, added with these entries, where somebody reaching for
+#   `gh pr merge --squash` will meet it - a comment in the checker is read by
+#   whoever is debugging the checker, which is the wrong person and the wrong
+#   moment.
+#
+#   VERIFIED 2026-09-23 against all three conditions the #404 entry sets, and
+#   shown rather than asserted:
+#
+#     #414   base main, not a base branch          <- the case this list is for
+#            head  propose/rule-10-… @ c61e7005ed  (squash rewrote it)
+#            mergeCommit 5486e39bc1 is an ancestor <- the content arrived
+#            PR 1 file +66/-1  ==  merge 1 file +66/-1,  CLAUDE.md
+#
+#     #416   base main, not a base branch
+#            head  feat/the-board-sections-… @ a5f13ba894
+#            mergeCommit 97c2701d9b is an ancestor
+#            PR 7 files +1084/-3  ==  merge 7 files +1084/-3, same seven paths
+#
+#   ⚠ AND #414's `CI` RUN ON main SAYS `cancelled`, WHICH THIS LIST DOES NOT
+#     COVER AND SHOULD NOT. Merging the two 13 seconds apart put them in one
+#     concurrency group and the second cancelled the first, so `main` has no
+#     CI result for 5486e39b even though its PR checks were green. Re-run
+#     rather than excused - an allowlist is for a check that is wrong, and
+#     that one simply did not finish.
+#   #414  merge 5486e39b  CLAUDE.md: rule 10 loses its example, gains the test
+#   #416  merge 97c2701d  contract+judge: the board sections get parents
+#
+# ⚠ #418 IS THE PR THAT RECORDED THE CONVENTION, AND IT WAS SQUASH-MERGED.
+#   Not softened, because the whole value of this entry is that it is the
+#   embarrassing one.
+#
+#   #418 added `MERGE WITH A MERGE COMMIT. NEVER --squash, NEVER --rebase.` to
+#   CLAUDE.md and the two entries above to this list. Its reviewer approved it
+#   with one instruction attached - "merge this one with a merge commit, it
+#   would be a memorable way to lose the argument otherwise" - and it went in
+#   squashed, from our account, at 10:11:12Z.
+#
+#   It broke BOTH conventions it shipped, in the same minute:
+#     squash          6ae97004 has ONE parent. #419 directly above it has two.
+#     13 seconds      #419 merged at 10:11:25Z, so the concurrency group
+#                     cancelled #418's CI. `main` has no CI result for its own
+#                     convention commit. That is the second rule the same PR
+#                     added, broken by the merge that delivered it.
+#
+#   AND IT COULD NOT EXCUSE ITSELF. The list it extended was written before the
+#   squash that stranded it, so the file shipped {172, 173, 404, 414, 416} and
+#   the check went red on 418 the moment it landed. Four entries added in one
+#   day, and the fifth is for the PR banning the practice.
+#
+#   ⚠ THE RATCHET THIS LIST WARNED ABOUT IS NOW VISIBLE IN THE LIST. #418's own
+#     review argued the allowlist "grows by one hand-verified entry per squash,
+#     forever ... so the list rots into a rubber stamp and the check stops
+#     meaning anything." This entry is that sentence happening. It is here
+#     rather than in a revert BECAUSE the history is the record: flattening it
+#     would remove the one entry likely to stop the next person adding a sixth
+#     without thinking.
+#
+#   VERIFIED 2026-09-23 against all three conditions, shown not asserted:
+#     base main, not a base branch            <- the case this list is for
+#     head  fix/the-merge-convention-… @ 5b27f2b954   (squash rewrote it)
+#     mergeCommit 6ae97004d1 is an ancestor   <- the content arrived
+#     PR 2 files +72/-1  ==  merge 2 files +72/-1
+#     paths CLAUDE.md, scripts/check_merged_prs_reached_main.py - both
+#   #418  merge 6ae97004  CLAUDE.md+scripts: the merge convention, squashed in
+#
 # An entry only clears a PR whose MERGE COMMIT is an ancestor of main, so it can
 # never excuse a PR whose content is actually missing.
-SQUASHED_ONTO_MAIN = {172, 173}
+SQUASHED_ONTO_MAIN = {172, 173, 404, 414, 416, 418}
 
 
 def open_prs(limit: int) -> list[dict]:

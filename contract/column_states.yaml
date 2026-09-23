@@ -1583,8 +1583,18 @@ columns:
       reviewed: false
       state: read
     schema_retries:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: >-
+        Gained its first reader 2026-09-21: `scripts/_blog_extraction_yield.py`
+        reports the retry rate per feed. It was write_only because nothing had
+        ever needed it, and what needed it was a question nobody could answer
+        - the 15.8% retry rate used to price the blog extraction was borrowed
+        from other sources, because no blog context had run at e5.4 and the
+        column that would have said so was written and unread. Measured on the
+        first blog run at e5.4: 4 of 79, 5.1%, concentrated on two feeds
+        (jack-clark.net 3 of 8) rather than spread.
+        Writer unchanged: `judge/store/extractions.py:147`.
     thread_context_id:
       reviewed: false
       state: read
