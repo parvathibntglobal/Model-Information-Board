@@ -82,8 +82,28 @@ export default function Compare() {
     return <div className="shell section-tight"><div className="skel" style={{ height: 260 }} /></div>
   }
 
-  const { models, missing, unsourced, summary } = state.data
-  const anyReports = models.some((m) => (m.reported?.reports || 0) > 0)
+  // `unsourced` is deliberately not destructured — the payload still carries
+  // it and nothing on this page reads it. See the note further down.
+  const { models, missing, summary } = state.data
+  // ⚠ NOT `reported.reports`, AND GATING ON IT BLANKED THE PAGE. That counter
+  //   comes from the legacy `cell` table and is **0 on all 348 models in the
+  //   registry** (#194: `cell.status` is `insufficient` on 311 of 311), while
+  //   79 models carry real board entries. It used to only add a paragraph
+  //   above a table that rendered anyway, so its being permanently zero was
+  //   invisible; the moment the table was gated on it, every comparison
+  //   rendered empty.
+  //
+  //   The question this page is asking is "did anybody write about these",
+  //   and the answer is in the evidence itself - entries, discovered sections
+  //   - not in a score nothing has ever populated.
+  const hasEvidence = (m) => {
+    const r = m.reported || {}
+    return (r.polarity?.entries || 0) > 0
+      || (r.best_for || []).length > 0
+      || (r.capabilities || []).length > 0
+      || (r.discovered?.metrics || []).length > 0
+  }
+  const anyReports = models.some(hasEvidence)
 
   return (
     <div className="shell section-tight stack stack-4">
@@ -105,26 +125,70 @@ export default function Compare() {
         </Notice>
       )}
 
-      {/* ── REPORTED ─ what people found. First, because it is the only half
-             that can settle anything. ─────────────────────────────────────── */}
+      {/* ── WHAT ENGINEERS SAID. The whole page. ───────────────────────── */}
+
+      {/* ⚠ NOBODY HAS WRITTEN ABOUT THESE: SAY IT ONCE AND STOP. This used to
+             render as a table row reading "nobody has discussed this" in every
+             column - the same sentence three times, under a heading, in a grid
+             built for differences. A row where every cell is identical is a row
+             carrying no comparison, and three of them is not three facts. */}
+      {!anyReports ? (
+        <p className="dim" style={{ fontSize: 'var(--fs-sm)', maxWidth: '76ch', lineHeight: 1.7 }}>
+          <strong style={{ color: 'var(--text)' }}>
+            Nobody has written about {models.length === 2 ? 'either' : 'any'} of these yet.
+          </strong>{' '}
+          So there is nothing to compare. That is an absence we found rather than a judgement
+          we made — a model here may be excellent and simply unwritten-about — and it is why
+          this page shows nothing instead of showing a specification and calling it a
+          comparison.
+        </p>
+      ) : (
       <div className="stack stack-2">
-        <span className="label">Reported — what engineers said, counted</span>
-        {!anyReports && (
-          <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch' }}>
-            <strong style={{ color: 'var(--text)' }}>Nobody has reported on any of these yet.</strong>{' '}
-            So this comparison is a specification sheet, not a recommendation. That is an absence
-            we found, not a judgement we made — a model here may be excellent and simply
-            unwritten-about.
-          </p>
-        )}
+        <span className="label">What engineers said, counted</span>
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch' }}>
+          Every number below is counted, never scored. How a report was PHRASED is counted
+          separately from how many there were, because twelve complaints and twelve
+          recommendations are both "12 reports" and are not the same finding.
+        </p>
         <Table
           models={models}
           rows={[
-            ['Reports', (m) => {
-              const n = m.reported?.reports || 0
+            ['Documents', (m) => {
+              const p = m.reported?.polarity || {}
+              const n = p.documents || 0
               return n === 0
-                ? <span className="dim">nobody has discussed this</span>
-                : <span className="tnum">{n} {n === 1 ? 'report' : 'reports'}</span>
+                ? <span className="dim">none yet</span>
+                : <span className="tnum">{n} {n === 1 ? 'document' : 'documents'}</span>
+            }],
+            // ⚠ THREE NUMBERS AND NEVER A RATIO. A net score, a percentage
+            //   positive or a "sentiment" figure would be the 0-100 capability
+            //   score this board refuses to compute (rule 3) - and it would
+            //   pick a winner from a count of sentences.
+            ['How it was phrased', (m) => {
+              const p = m.reported?.polarity || {}
+              if (!p.entries) return <span className="dim">nothing recorded</span>
+              return (
+                <span className="tnum" style={{ display: 'inline-flex', gap: 10, flexWrap: 'wrap' }}>
+                  <span title="entries phrased as a problem">
+                    <strong>{p.negative}</strong> negative
+                  </span>
+                  <span title="entries phrased as praise or a recommendation">
+                    <strong>{p.positive}</strong> positive
+                  </span>
+                  <span className="dim" title="entries stating something without praise or complaint">
+                    {p.neutral} neutral
+                  </span>
+                </span>
+              )
+            }],
+            // RULE 7: the figures above are ENTRIES, and entries are not
+            // people. One document can produce several, so the denominator
+            // travels with them or "74 negative" means nothing.
+            ['— out of', (m) => {
+              const p = m.reported?.polarity || {}
+              return p.entries
+                ? <span className="dim tnum">{p.entries} entries, from {p.documents} documents</span>
+                : <span className="dim">—</span>
             }],
             ['Best for — discovered', (m) => {
               const bf = m.reported?.best_for || []
@@ -150,66 +214,50 @@ export default function Compare() {
           ]}
         />
       </div>
-
-      {/* ── ADVERTISED ─ what is on the tin. Evidence of nothing. ─────────── */}
-      <div className="stack stack-2">
-        <span className="label">Advertised — the provider's claim about itself</span>
-        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch' }}>
-          Measured figures, published by the vendor, and evidence of nothing about whether the
-          model does your job. A blank rate is a router with no price of its own — never a zero.
-        </p>
-        <Table
-          models={models}
-          rows={[
-            ['Provider', (m) => m.provider || <span className="dim">—</span>],
-            ['Cost per Mtok — in / out', (m) => {
-              const a = m.advertised || {}
-              return a.price_in == null
-                ? <span className="dim">no rate published</span>
-                : <span className="mono">{fmtPrice(a.price_in)} / {fmtPrice(a.price_out)}</span>
-            }],
-            ['Cached read', (m) => m.advertised?.price_cached_read == null
-              ? <span className="dim">—</span>
-              : <span className="mono">{fmtPrice(m.advertised.price_cached_read)}</span>],
-            ['Context window', (m) => m.advertised?.context
-              ? <span className="mono">{fmtTokens(m.advertised.context)}</span>
-              : <span className="dim">not published</span>],
-            ['Max output', (m) => m.advertised?.max_output_tokens
-              ? <span className="mono">{fmtTokens(m.advertised.max_output_tokens)}</span>
-              : <span className="dim">not published</span>],
-            ['Tools · vision · JSON · caching', (m) => {
-              const a = m.advertised || {}
-              // `null` is not `false`. A flag the provider never stated stays a
-              // dash, because "does not support tools" and "did not say" are
-              // different claims (rule 6).
-              const mark = (v) => v === true ? '✓' : v === false ? '✗' : '–'
-              return (
-                <span className="mono" title="✓ stated · ✗ stated as unsupported · – not stated">
-                  {mark(a.tools)} {mark(a.vision)} {mark(a.structured_output)} {mark(a.caching)}
-                </span>
-              )
-            }],
-            ['Lifecycle', (m) => m.advertised?.lifecycle || <span className="dim">—</span>],
-          ]}
-        />
-      </div>
-
-      {/* ── WHAT IS NOT HERE, and why. ───────────────────────────────────── */}
-      {unsourced?.length > 0 && (
-        <div className="stack stack-2">
-          <span className="label">Rows the landing demo had that this cannot</span>
-          <div className="stack stack-1">
-            {unsourced.map((u) => (
-              <p key={u.row} className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '80ch' }}>
-                <strong style={{ color: 'var(--text)' }}>
-                  {u.row.replace(/_/g, ' ')}
-                </strong>{' '}
-                — {u.why}.
-              </p>
-            ))}
-          </div>
-        </div>
       )}
+
+      {/* ⚠ THE PROVIDER'S SPECIFICATION IS NOT ON THIS PAGE, 2026-09-23.
+
+             It was the larger half: price in and out, cached read, context,
+             max output, tools/vision/JSON/caching, lifecycle. All of it real
+             and all of it published.
+
+             It went because of what this board IS. The evidence here comes
+             from engineers writing about models they used; a provider's spec
+             sheet is the one thing on the page nobody reported, and putting it
+             beside counted reports invites exactly the comparison the board
+             exists to refuse - a published number read as a measured one. The
+             old heading tried to hold that line in words ("the provider's
+             claim about itself") and the line does not hold: a table is a
+             table, and the two halves looked equally like findings.
+
+             Price and context are still on every MODEL PAGE, where they are
+             described rather than ranked, and still in `/compare`'s payload
+             under `advertised` for anything that wants them.
+
+             ⚠ WHAT THIS COSTS, SAID PLAINLY: two models nobody has written
+             about now compare to almost nothing. That is the honest result -
+             the board has no evidence about them - and it is better than a
+             spec sheet standing in for evidence that does not exist. */}
+
+      {/* ⚠ THE "WHAT IS NOT HERE" LIST IS GONE, 2026-09-23, and the reason is
+             worth keeping because rule 4 nearly justified keeping it.
+
+             It listed `licence`, `benchmark_standing` and `one_line` with an
+             explanation each, under the argument that a shorter table with no
+             explanation reads as "everything comparable has been compared".
+
+             That argument is rule 4's and it does not reach this far. Rule 4 is
+             about an absence WE CAUSED - a figure withheld by a gate, a thread
+             we could not read - which a reader would otherwise take for an
+             absence in the world. These three were never collected at all, so
+             there is no caused absence to disclose, and the section was the
+             board explaining its own history to somebody who came to compare
+             two models.
+
+             `unsourced` is still in the payload and still carries its reasons.
+             If a row here ever becomes an absence we cause rather than one we
+             never filled, this is where it goes back. */}
 
       <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
         Change the selection on the <Link to="/models" className="mb-link">models list</Link>.
@@ -242,11 +290,19 @@ function Table({ models, rows }) {
                 >
                   {m.display_name}
                 </Link>
-                <span className="mono" style={{
-                  display: 'block', fontSize: 10, color: 'var(--text-3)', fontWeight: 400,
-                }}>
-                  {m.model_version_id}
-                </span>
+                {/* ⚠ THE PROVIDER'S NAME, NOT OURS. This printed
+                    `mv_de3e701e07b8bfa9` under every column - an internal key
+                    shown to a reader, who cannot look it up, check it, or use
+                    it anywhere. `canonical_id` is the same model in the form
+                    the provider writes it. Omitted entirely where there is
+                    none, rather than falling back to the database id. */}
+                {m.canonical_id && (
+                  <span className="mono" style={{
+                    display: 'block', fontSize: 10, color: 'var(--text-3)', fontWeight: 400,
+                  }}>
+                    {m.canonical_id}
+                  </span>
+                )}
               </th>
             ))}
           </tr>

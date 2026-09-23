@@ -35,6 +35,17 @@ import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 //: makes the table scroll sideways, which is where a comparison stops being
 //: read. The backend refuses a fourth independently - this is not the only
 //: guard, it is the one that explains itself before the request.
+// ⚠ WHAT A COMPARISON URL CARRIES. `canonical_id` is the provider's own name
+//   for the model — `anthropic/claude-opus-5` — so `/compare?ids=...` reads as
+//   the comparison it is and can be typed, checked and shared. It used to
+//   carry `model_version_id`, an internal key that says nothing about what is
+//   being compared and leaks a database id into a link people send each other.
+//
+//   FALLS BACK TO THE INTERNAL ID rather than dropping the model: a row whose
+//   canonical id never loaded is still comparable, and the endpoint accepts
+//   both forms (see `compare_page`).
+const compareId = (m) => m.canonical_id || m.model_version_id
+
 const COMPARE_MAX = 3
 
 // PRICE IS NOT SHOWN ON THIS PAGE, SO IT DOES NOT SORT IT EITHER.
@@ -321,7 +332,7 @@ export default function Models() {
                 key={m.model_version_id}
                 m={m}
                 rows={evidence[m.model_version_id]}
-                picked={picked.includes(m.model_version_id)}
+                picked={picked.includes(compareId(m))}
                 onPick={togglePick}
                 atCap={picked.length >= COMPARE_MAX}
               />
@@ -389,7 +400,7 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
           type="checkbox"
           checked={picked}
           disabled={!picked && atCap}
-          onChange={() => onPick(m.model_version_id)}
+          onChange={() => onPick(compareId(m))}
           aria-label={`Select ${m.display_name || m.model_version_id} to compare`}
           title={!picked && atCap
             ? `${COMPARE_MAX} is the maximum — a fourth column makes the table scroll sideways`
