@@ -14,7 +14,16 @@ would click it, see leaves, click a leaf. That shape says the leaves are one
 measurement however the prose denies it.
 
 These tests read `web/src/board/views.js` and `db.js` as text, which is what
-the rest of this suite does — there is no JS test runner in `web/`.
+the rest of this suite did when they were written.
+
+⚠ THAT IS NO LONGER THE ONLY OPTION, AND READING SOURCE MISSED A DEFECT.
+  `tests/test_every_leaf_reaches_the_grid.py` RENDERS the board through node
+  and asks which grid each card landed in. #431 — every ungrouped leaf drawn
+  inside the heading above it — was invisible to all 28 tests here, because the
+  line responsible read correctly and the markup around it did not. A question
+  about what a builder SAYS belongs in this file; a question about what it
+  PRODUCES belongs in that one, and three tests here were moved for exactly
+  that reason rather than being repaired in place.
 """
 
 from __future__ import annotations
@@ -36,6 +45,24 @@ def _db() -> str:
 def _fn(js: str, sig: str) -> str:
     body = js[js.index(sig) :]
     return body[: body.index(chr(10) + "}")]
+
+
+def _code(js: str) -> str:
+    """The source with `//` comment lines removed.
+
+    MENTION IS NOT USE, and this file has now confused the two three times: a
+    test searching for `"show less"` matched a comment saying we do not write
+    it, and `test_no_route_was_added_for_a_parent` matched first a `//` comment
+    and then a `/** */` one, both explaining what `parent: null` means. Each
+    time the test reported on prose.
+
+    BOTH COMMENT FORMS, because stripping only `//` is what let the second one
+    through — a fix that handles the instance and not the class.
+    """
+    js = re.sub(r"/\*[\s\S]*?\*/", "", js)
+    return chr(10).join(
+        ln for ln in js.splitlines() if not ln.strip().startswith("//")
+    )
 
 
 class TestAHeadingCountsLeaves:
@@ -97,8 +124,8 @@ class TestAParentIsNotARoute:
         assert "<a " not in head
 
     def test_no_route_was_added_for_a_parent(self):
-        js = _views()
-        assert "parent:" not in js.replace("r.parent", "").replace("g.parent", "")
+        js = _code(_views()).replace("r.parent", "").replace("g.parent", "")
+        assert "parent:" not in js
 
     def test_a_leaf_keeps_its_own_route_under_a_heading(self):
         """Ruling 3: nothing about a leaf changes because it gained a heading.
@@ -140,9 +167,20 @@ class TestUngroupedRendersAsItself:
             assert banned not in js
 
     def test_an_older_payload_renders_exactly_as_before(self):
-        """No `grouped` key means no groups, and the grid falls back to flat."""
+        """No `grouped` key means no groups, and the grid falls back to flat.
+
+        ⚠ ASSERTED AS A PROPERTY, NOT A SPELLING. This pinned the exact line
+          `return flat.map(draw).join('')` and broke on #431's fix, which draws
+          the same leaves and wraps them. A test that fails on a fix it does
+          not disagree with is one more reason to delete a test.
+
+        What the fallback actually renders is checked by running it:
+        `test_every_leaf_reaches_the_grid.py` renders the `best_for` tab, which
+        carries no groups at all, and asserts every leaf lands with no heading.
+        """
         grid = _fn(_views(), "function groupedGrid(groups, flat, draw){")
-        assert "if(!groups || !groups.length) return flat.map(draw).join('')" in grid
+        guard = grid[: grid.index(chr(10), grid.index("!groups"))]
+        assert "return" in guard and "flat" in guard and "draw" in guard
 
 
 class TestCoverageIsReadNeverRemembered:
@@ -265,8 +303,13 @@ class TestTheLeafFold:
         assert "Show the other ${hidden}" in grid
 
     def test_a_heading_shorter_than_the_preview_gets_no_fold(self):
+        """Also a property rather than a spelling, and also checked by running
+        it: the fixture in `test_every_leaf_reaches_the_grid.py` has headings of
+        8, 2 and 2 leaves, and asserts only the first one folds."""
         grid = _fn(_views(), "function groupedGrid(groups, flat, draw){")
-        assert "if(hidden <= 0) return parentHead(g) + shown" in grid
+        assert "hidden <= 0" in grid
+        early = grid[: grid.index("leaf-fold")]
+        assert "hidden <= 0" in early, "the no-fold branch must precede the fold"
 
     def test_the_tail_lays_out_on_the_same_column_rhythm(self):
         """It cannot be `display:contents` any more — see above — so it is its
