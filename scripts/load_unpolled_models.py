@@ -28,6 +28,18 @@ file: adding them would make the whole file unloadable for a reason that has
 nothing to do with them, and would label them a fixture awaiting replacement
 when nothing will ever replace them.
 
+WHAT PROVENANCE IT WRITES, AND WHY THAT CHANGED
+
+`unpolled`, since #382. It wrote `seed` until then, and that was the defect:
+`provenance` had no value for "a real model no poll carries", so the third
+state got labelled with the word that means fixture. `assert_no_fixtures` then
+refused four real models - carrying 65 claims and 11 cells - correctly by its
+own definition and wrongly by intent.
+
+The migration `20260923T0500_model_version_unpolled_provenance.sql` converts
+the four rows already written. This is the writer, so nothing new arrives
+mislabelled.
+
 WHAT IT DOES NOT TOUCH
 
 Only the three rows named in the file. `_refuse_provenance_downgrade` still runs
@@ -83,7 +95,11 @@ def main() -> int:
     before = conn.execute("SELECT count(*) FROM model_version").fetchone()[0]
     aliases_before = conn.execute("SELECT count(*) FROM model_alias").fetchone()[0]
 
-    report = load_seed(conn, path=contract)
+    # `unpolled`, NOT `seed`. Both files here hold REAL models - a person typed
+    # the row because no poll carries it, not because the build needed a stand-in.
+    # Until #382 this loader wrote `seed`, which made `assert_no_fixtures` refuse
+    # four real models correctly by its own definition and wrongly by intent.
+    report = load_seed(conn, path=contract, provenance="unpolled")
     print(report.summary())
 
     after = conn.execute("SELECT count(*) FROM model_version").fetchone()[0]
@@ -112,8 +128,8 @@ def main() -> int:
     for cid, prov, _n, price in rows:
         if price is not None:
             failures.append(f"{cid} has a price, and nothing measured one")
-        if prov != "seed":
-            failures.append(f"{cid} landed as {prov!r}")
+        if prov != "unpolled":
+            failures.append(f"{cid} landed as {prov!r}, expected 'unpolled'")
     # The rest of the registry must be untouched: this file names three models
     # and the loader has no business moving anything else.
     if after - before not in (0, len(wanted)):
