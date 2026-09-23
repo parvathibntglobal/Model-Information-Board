@@ -2053,10 +2053,29 @@ def board_page() -> dict:
     Nothing here ranks or scores. Sections are ordered by report count, which is
     a count, and each carries the models named in it and the quotes behind it.
     """
+    from judge.board_grouping import coverage as parent_coverage
+    from judge.board_grouping import group_section
     from judge.store.board_entries import board_sections
 
     with _conn() as conn:
         sections = board_sections(conn)
+
+    # ADDITIVE, AND THE EXISTING KEYS ARE UNTOUCHED ON PURPOSE. `jobs`, `caps`
+    # and `mets` are rendered directly by the frontend; changing their shape to
+    # deliver headings would be a schema change to a page in the same commit
+    # that introduces the headings. `grouped` carries the same leaves in the
+    # same order, wrapped, so the frontend can adopt it when it is ready and
+    # nothing breaks while it is not.
+    #
+    # ⚠ A PARENT CARRIES `leaves` AND NOTHING ELSE NUMERIC. Not a sum of its
+    #   children's `reports`: that double-counts every document appearing under
+    #   two leaves (55 against a true union of 51 on `software-engineering`,
+    #   measured 2026-09-23) and sums a figure that is already a floor.
+    grouped = {
+        "jobs": group_section(sections["best_for"], section="best_for"),
+        "caps": group_section(sections["capability"], section="capability"),
+        "mets": group_section(sections["metric"], section="metric"),
+    }
 
     return {
         # The demo board's three tabs, in its own order: Best for, Capabilities,
@@ -2077,6 +2096,17 @@ def board_page() -> dict:
         # problem from a labelling one.
         "metrics_withheld": sections.get("_withheld", {}),
         "report_counts_are_a_floor": True,
+        # The same sections under their headings. `best_for` is deliberately
+        # unmapped (#412), so its rows come back as leaves and render as now.
+        "grouped": grouped,
+        # COMPUTED, NEVER RECORDED (rule 11). The proposal behind
+        # `contract/slug_parents.yaml` went stale three times in 47 minutes, so
+        # the file carries no counts and coverage is recomputed per request.
+        "parent_coverage": {
+            "jobs": parent_coverage(sections["best_for"], section="best_for"),
+            "caps": parent_coverage(sections["capability"], section="capability"),
+            "mets": parent_coverage(sections["metric"], section="metric"),
+        },
         "summary": (
             "Discovered from the evidence, not chosen from a list. Report counts "
             "are a floor: an open vocabulary can name one section two ways until "

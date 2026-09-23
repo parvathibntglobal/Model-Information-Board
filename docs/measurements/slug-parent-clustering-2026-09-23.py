@@ -27,13 +27,23 @@ from dotenv import load_dotenv
 
 SECTIONS = ("capability", "metric", "best_for")
 
+#: ⚠ THREE PARENTS WERE RENAMED 2026-09-23, AFTER A TEST CAUGHT THEM. In
+#: `capability`, `coding` and `reasoning` were each ALSO A LIVE LEAF SLUG; so
+#: was `token-usage` in `metric`. A heading sharing a name with its own member
+#: is the catch-all shape - sharpest on `reasoning`, whose same-named leaf holds
+#: 80 entries. They are now `software-engineering`, `reasoning-and-math` and
+#: `token-volume`. THE CLUSTERING DID NOT CHANGE: the member lists are
+#: identical and every count below is the same, so this is a naming fix rather
+#: than a re-measurement. `best_for`'s `coding` parent is untouched - it does
+#: not collide, and that section is deferred (#412).
+#:
 #: Parent -> member leaf slugs. A JUDGEMENT, not a measurement. Leaves absent
 #: from every list are UNGROUPED and stay that way -- there is deliberately no
 #: residual bucket, because a taxonomy that covers everything has forced
 #: something.
 PARENTS: dict[str, dict[str, list[str]]] = {
     "capability": {
-        "coding": [
+        "software-engineering": [
             "code-generation", "code-review", "code-quality", "coding",
             "code-fixing", "code-editing-diff-fidelity",
             "frontend-code-generation", "debugging", "test-generation",
@@ -57,7 +67,7 @@ PARENTS: dict[str, dict[str, list[str]]] = {
             "reasoning-trace-security", "sandbox-compliance",
             "internet-connected-code-execution",
         ],
-        "reasoning": [
+        "reasoning-and-math": [
             "reasoning", "mathematical-reasoning", "spatial-reasoning",
             "long-horizon-reasoning", "persistent-reasoning", "no-cot-reasoning",
             "cot-controllability", "reasoning-effort", "proof-writing",
@@ -167,7 +177,7 @@ PARENTS: dict[str, dict[str, list[str]]] = {
             "wall-clock-time", "added-latency", "chip-design-time", "fast-mode",
             "time-horizon",
         ],
-        "token-usage": [
+        "token-volume": [
             "token-usage", "tokens-per-output", "output-tokens",
             "output-token-inflation", "output-size", "token-consumption",
             "tokens-per-task", "token-count-accuracy", "tokenizer-efficiency",
