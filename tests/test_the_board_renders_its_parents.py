@@ -18,7 +18,7 @@ the rest of this suite did when they were written.
 
 ⚠ THAT IS NO LONGER THE ONLY OPTION, AND READING SOURCE MISSED A DEFECT.
   `tests/test_every_leaf_reaches_the_grid.py` RENDERS the board through node
-  and asks which grid each card landed in. #428 — every ungrouped leaf drawn
+  and asks which grid each card landed in. #431 — every ungrouped leaf drawn
   inside the heading above it — was invisible to all 28 tests here, because the
   line responsible read correctly and the markup around it did not. A question
   about what a builder SAYS belongs in this file; a question about what it
@@ -170,7 +170,7 @@ class TestUngroupedRendersAsItself:
         """No `grouped` key means no groups, and the grid falls back to flat.
 
         ⚠ ASSERTED AS A PROPERTY, NOT A SPELLING. This pinned the exact line
-          `return flat.map(draw).join('')` and broke on #428's fix, which draws
+          `return flat.map(draw).join('')` and broke on #431's fix, which draws
           the same leaves and wraps them. A test that fails on a fix it does
           not disagree with is one more reason to delete a test.
 

@@ -1,12 +1,12 @@
-"""Every leaf reaches the grid, and lands where it belongs. #428.
+"""Every leaf reaches the grid, and lands where it belongs. #431.
 
 WHY THIS FILE IS NOT IN `test_the_board_renders_its_parents.py`. Those 28 tests
 search the SOURCE of `views.js`. They are the right tool for what a builder
 says - that a heading carries `leaves` and no other count, that the tail is
 `until-found` and not `display:none` - and the wrong tool for where a card ends
-up, which is why all 28 passed over #428.
+up, which is why all 28 passed over #431.
 
-#428 in one line: `parentHead` returned `</div>...<div class="igrid">`, closing
+#431 in one line: `parentHead` returned `</div>...<div class="igrid">`, closing
 the caller's grid and opening one nothing closed. So the grid a card landed in
 was whichever heading had opened one last, and EVERY ungrouped leaf was drawn
 inside the grid of the heading above it - 37 capability and 32 metric leaves on
@@ -20,7 +20,7 @@ throughout and was never wrong.
   the broken page: all 215 capability cards and all 120 metric cards were in the
   DOM exactly once the whole time. It is kept because it guards a real and
   different failure - `regroup` drops a leaf whose slug is not in the flat list,
-  by design, and nothing else watches that - but the assertion that SEES #428 is
+  by design, and nothing else watches that - but the assertion that SEES #431 is
   containment: which grid, under which heading.
 
 So this renders the real `vBoard` through `node` and parses the result.
@@ -45,7 +45,7 @@ PROBE = ROOT / "tests" / "js" / "board_render.mjs"
 
 #: A fixture map rather than `contract/slug_parents.yaml`, so this file does not
 #: fail the day somebody re-files a slug. Leaves stand in their own rank BEFORE
-#: the first heading, BETWEEN the two, and AFTER the last - because #428 was
+#: the first heading, BETWEEN the two, and AFTER the last - because #431 was
 #: harmless in the first position and fatal in the other two, and a fixture with
 #: only a leading ungrouped leaf would have passed against the broken build.
 PARENTS = {
@@ -141,7 +141,7 @@ def _drawn(pane: dict) -> dict[str, int]:
 
 
 class TestEveryLeafReachesTheGrid:
-    """The count. Kept although it did not catch #428 - see the module docstring.
+    """The count. Kept although it did not catch #431 - see the module docstring.
 
     What it does catch is a leaf silently dropped between the flat list and the
     grid, which `regroup` is built to do on a slug the flat list does not carry.
@@ -166,7 +166,7 @@ class TestEveryLeafReachesTheGrid:
 
 
 class TestALeafLandsUnderItsOwnHeadingOrNone:
-    """THE CLASS THAT SEES #428. Presence was never the question; grids were.
+    """THE CLASS THAT SEES #431. Presence was never the question; grids were.
 
     Run against `78e7a1d` the first of these fails with 37 of 37 capability and
     32 of 32 metric leaves filed under a heading, while the count class above
@@ -211,7 +211,7 @@ class TestALeafLandsUnderItsOwnHeadingOrNone:
 
     def test_only_a_heading_longer_than_the_preview_folds(self, rendered):
         """Eight leaves fold; two do not. Asserted by rendering, because the
-        source-text version of this pinned a spelling and broke on #428's fix.
+        source-text version of this pinned a spelling and broke on #431's fix.
 
         `LEAF_PREVIEW` is not restated here - the fixture is 8, 2 and 2, which
         straddles any preview between 2 and 7, and a test naming the constant

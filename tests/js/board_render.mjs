@@ -2,7 +2,7 @@
 //
 // WHY THIS EXISTS. The 28 tests in `test_the_board_renders_its_parents.py` are
 // searches over the SOURCE of `views.js`. That is enough to check what a
-// builder says, and useless for checking what it produces: #428 filed all 69
+// builder says, and useless for checking what it produces: #431 filed all 69
 // ungrouped leaves under the heading above them while the source still read
 // `if(g.kind !== 'parent') return draw(g.leaf)`. The branch was right; the
 // markup around it put the card in the wrong grid, and no string search over a

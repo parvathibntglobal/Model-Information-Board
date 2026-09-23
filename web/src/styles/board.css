@@ -239,7 +239,7 @@
      This used to be a grid item spanning `1 / -1`, which is what made it
      plausible for `parentHead` to splice `</div>…<div class="igrid">` around
      itself - and that splice filed every ungrouped leaf under the heading
-     above it (#428). It is now a block-level sibling of the grids. If a
+     above it (#431). It is now a block-level sibling of the grids. If a
      `grid-column` comes back here, the splice has come back with it.
 
    The heading is NOT clickable and has no route: a parent is a way to read the

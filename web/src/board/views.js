@@ -5,7 +5,7 @@
 // explicit extension unchanged; node will not resolve one that is missing, and
 // every one of the 28 tests over this file was a string search for that
 // reason. A defect in WHERE a card lands is not visible in the source text
-// (#428), so the render has to be executable.
+// (#431), so the render has to be executable.
 import { DB } from './db.js'
 
 // ── ESCAPING, WHICH THIS FILE DID NOT HAVE ─────────────────────────────────
@@ -301,7 +301,7 @@ function mcard(x){
 //   there is no total, because a reader who wants one should be told it does
 //   not exist rather than left looking for it.
 //
-// ⚠ IT RETURNS A BLOCK AND SPLICES NOTHING, AND THAT IS THE WHOLE OF #428.
+// ⚠ IT RETURNS A BLOCK AND SPLICES NOTHING, AND THAT IS THE WHOLE OF #431.
 //   This used to return `</div>…<div class="igrid">` - closing the caller's
 //   grid and opening one nothing ever closed. The grid a card landed in was
 //   then whichever heading had opened one LAST, so an ungrouped leaf ranking
@@ -350,7 +350,7 @@ const gridBlock = (cards) => cards ? `<div class="igrid">${cards}</div>` : '';
 
 /** One section, leaves under their headings, ungrouped leaves in their own rank.
 
-    ⚠ AN UNGROUPED LEAF IS NOT THE LAST HEADING'S (#428). Consecutive ungrouped
+    ⚠ AN UNGROUPED LEAF IS NOT THE LAST HEADING'S (#431). Consecutive ungrouped
       leaves are collected into a run and emitted as their OWN grid, outside
       every heading - which is what "interleave by rank with no heading" meant
       and what the previous splice could not express. A leaf with `parent: null`
@@ -462,7 +462,7 @@ export function withheldNote(){
 function vBoard(tab){
   tab = tab||'best';
   const empty = '<p class="muted" style="padding:8px 0">Nothing here yet.</p>';
-  // ⚠ THE PANE NO LONGER WRAPS `grid` IN AN `.igrid` (#428). Each builder
+  // ⚠ THE PANE NO LONGER WRAPS `grid` IN AN `.igrid` (#431). Each builder
   //   emits its own grids, so a heading can sit BETWEEN two of them instead of
   //   inside one it has to cut open. Anything added here that returns bare
   //   cards must wrap them in `gridBlock` or they will render as a column.
