@@ -197,9 +197,26 @@ def merged_prs(limit: int) -> list[dict]:
 #   #414  merge 5486e39b  CLAUDE.md: rule 10 loses its example, gains the test
 #   #416  merge 97c2701d  contract+judge: the board sections get parents
 #
+# ⚠ #418 IS THE PR THAT BANNED SQUASHING, AND IT WAS SQUASHED. Not by anyone
+#   choosing to: GitHub's merge button REMEMBERS THE LAST METHOD USED in a
+#   repository and pre-selects it, so #414 and #416 left it on "Squash and
+#   merge" and #418 went through on that default. #419, merged minutes later
+#   with the button changed by hand, is an ordinary two-parent merge commit -
+#   so the two sat side by side and the difference was the sticky default
+#   rather than a decision.
+#
+#   Which is why the convention #418 wrote is necessary and not sufficient. A
+#   rule in CLAUDE.md is read by a person BEFORE they open the merge dropdown;
+#   the default is applied AFTER. The repository still allows all three methods
+#   (`allow_squash_merge` and `allow_rebase_merge` are both true, checked
+#   2026-09-23), and turning those off is the only version of this that a
+#   sticky default cannot defeat. Raised separately - a repository setting is
+#   not a code change.
+#   #418  merge 6ae97004  the merge convention itself, squashed by the default
+#
 # An entry only clears a PR whose MERGE COMMIT is an ancestor of main, so it can
 # never excuse a PR whose content is actually missing.
-SQUASHED_ONTO_MAIN = {172, 173, 404, 414, 416}
+SQUASHED_ONTO_MAIN = {172, 173, 404, 414, 416, 418}
 
 
 def open_prs(limit: int) -> list[dict]:
