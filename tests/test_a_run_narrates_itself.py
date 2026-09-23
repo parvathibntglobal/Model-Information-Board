@@ -307,11 +307,27 @@ class TestEachThreadSaysWhatCameBack:
             assert leak not in call, f"the per-thread record carries {leak!r}"
 
     def test_the_cost_is_this_thread_s_share(self):
-        """`Budget` accumulates, so a per-thread figure has to be a delta or
-        every thread reports the run's running total."""
+        """A per-thread figure is this thread's own, not the run's total.
+
+        ⚠ THIS TEST USED TO ASSERT THE BUG, AND PASSED WHILE IT SHIPPED. The
+          first version pinned the implementation - `before_in = budget...` and
+          the subtraction that followed - on the reasoning that "a per-thread
+          figure has to be a delta or every thread reports the running total".
+          The reasoning was right about the problem and wrong about the fix,
+          and the test could not tell: it checked the SHAPE OF THE CODE and
+          never the value it produced, so it went green over twenty threads
+          each reporting `0 tokens, $0.000000` under a total of $0.037854
+          (ElevenLabs v3, 2026-09-23).
+
+          It now asserts what must be TRUE of the figure rather than how it is
+          spelled. `test_a_thread_reports_what_it_cost.py` holds the rest,
+          including that the per-thread costs sum to what `charge` accumulates.
+        """
         src = (ROOT / "judge" / "pipeline.py").read_text(encoding="utf-8")
-        assert "before_in = budget.input_tokens if budget else 0" in src
-        assert "tokens_in=(budget.input_tokens - before_in) if budget else None," in src
+        block = src[src.index("if on_result is not None:"):]
+        block = block[:block.index("results.append(result)")]
+        assert "result.extraction.input_tokens" in block
+        assert "result.extraction.output_tokens" in block
 
     def test_a_thread_record_is_not_a_stage(self):
         """Fifteen stages a run, but twenty-five threads. Filing these as
