@@ -197,9 +197,47 @@ def merged_prs(limit: int) -> list[dict]:
 #   #414  merge 5486e39b  CLAUDE.md: rule 10 loses its example, gains the test
 #   #416  merge 97c2701d  contract+judge: the board sections get parents
 #
+# ⚠ #418 IS THE PR THAT RECORDED THE CONVENTION, AND IT WAS SQUASH-MERGED.
+#   Not softened, because the whole value of this entry is that it is the
+#   embarrassing one.
+#
+#   #418 added `MERGE WITH A MERGE COMMIT. NEVER --squash, NEVER --rebase.` to
+#   CLAUDE.md and the two entries above to this list. Its reviewer approved it
+#   with one instruction attached - "merge this one with a merge commit, it
+#   would be a memorable way to lose the argument otherwise" - and it went in
+#   squashed, from our account, at 10:11:12Z.
+#
+#   It broke BOTH conventions it shipped, in the same minute:
+#     squash          6ae97004 has ONE parent. #419 directly above it has two.
+#     13 seconds      #419 merged at 10:11:25Z, so the concurrency group
+#                     cancelled #418's CI. `main` has no CI result for its own
+#                     convention commit. That is the second rule the same PR
+#                     added, broken by the merge that delivered it.
+#
+#   AND IT COULD NOT EXCUSE ITSELF. The list it extended was written before the
+#   squash that stranded it, so the file shipped {172, 173, 404, 414, 416} and
+#   the check went red on 418 the moment it landed. Four entries added in one
+#   day, and the fifth is for the PR banning the practice.
+#
+#   ⚠ THE RATCHET THIS LIST WARNED ABOUT IS NOW VISIBLE IN THE LIST. #418's own
+#     review argued the allowlist "grows by one hand-verified entry per squash,
+#     forever ... so the list rots into a rubber stamp and the check stops
+#     meaning anything." This entry is that sentence happening. It is here
+#     rather than in a revert BECAUSE the history is the record: flattening it
+#     would remove the one entry likely to stop the next person adding a sixth
+#     without thinking.
+#
+#   VERIFIED 2026-09-23 against all three conditions, shown not asserted:
+#     base main, not a base branch            <- the case this list is for
+#     head  fix/the-merge-convention-… @ 5b27f2b954   (squash rewrote it)
+#     mergeCommit 6ae97004d1 is an ancestor   <- the content arrived
+#     PR 2 files +72/-1  ==  merge 2 files +72/-1
+#     paths CLAUDE.md, scripts/check_merged_prs_reached_main.py - both
+#   #418  merge 6ae97004  CLAUDE.md+scripts: the merge convention, squashed in
+#
 # An entry only clears a PR whose MERGE COMMIT is an ancestor of main, so it can
 # never excuse a PR whose content is actually missing.
-SQUASHED_ONTO_MAIN = {172, 173, 404, 414, 416}
+SQUASHED_ONTO_MAIN = {172, 173, 404, 414, 416, 418}
 
 
 def open_prs(limit: int) -> list[dict]:
