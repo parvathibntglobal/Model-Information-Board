@@ -328,19 +328,35 @@ function groupedGrid(groups, flat, draw){
   return groups.map(g => {
     if(g.kind !== 'parent') return draw(g.leaf);
     const hidden = g.children.length - LEAF_PREVIEW;
-    // THE WHOLE SET IS IN THE DOM, and the tail is hidden by a class rather
-    // than dropped. A reader who opens the page with JS broken, or reads it
-    // with a screen reader, or searches it with the browser's own find, gets
-    // every leaf — the fold is a convenience for the eye and must not be the
-    // thing that decides what exists.
+    // ⚠ `hidden="until-found"`, NOT `hidden`, AND THE DIFFERENCE IS THE WHOLE
+    //   CLAIM. Plain `hidden` resolves to `display:none`, which removes the
+    //   tail from FIND-IN-PAGE and from the ACCESSIBILITY TREE — so a comment
+    //   promising those two while the CSS says `display:none` is promising
+    //   the opposite of what ships. `until-found` keeps the tail folded,
+    //   lets Ctrl+F match inside it, and makes the browser reveal it and fire
+    //   `beforematch`. Where it is unsupported it degrades to plain `hidden`,
+    //   which is no worse than having no fold at all.
+    //
+    //   `board.css` must NOT set `display:none` on this element: the UA rule
+    //   for `[hidden=until-found]` is `content-visibility:hidden`, and an
+    //   author `display:none` overrides it and takes the feature away. Nor
+    //   `display:contents`, which generates no box for `content-visibility`
+    //   to apply to. Tested in `test_the_board_renders_its_parents.py`.
     const shown = g.children.slice(0, LEAF_PREVIEW).map(draw).join('');
     if(hidden <= 0) return parentHead(g) + shown;
     const rest = g.children.slice(LEAF_PREVIEW).map(draw).join('');
+    const id = `leaves-${esc(g.parent)}`;
     return parentHead(g) + shown
-      + `<div class="leaf-rest" data-rest="${esc(g.parent)}" hidden>${rest}</div>`
+      + `<div class="leaf-rest" id="${id}" data-rest="${esc(g.parent)}"
+              hidden="until-found">${rest}</div>`
       // NAMES THE COUNT, NOT "MORE". "+27 more" is a number a reader can
       // decide on; "more" is a promise they have to spend a click to price.
-      + `<p class="leaf-fold"><button type="button" data-expand="${esc(g.parent)}">
+      //
+      // `aria-expanded` and `aria-controls` because without them a screen
+      // reader announces the label and nothing else — not that this is a
+      // disclosure, and not what it opens.
+      + `<p class="leaf-fold"><button type="button" data-expand="${esc(g.parent)}"
+           aria-expanded="false" aria-controls="${id}">
          Show the other ${hidden} under ${esc(g.name)}</button></p>`;
   }).join('');
 }

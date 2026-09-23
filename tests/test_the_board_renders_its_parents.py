@@ -203,13 +203,54 @@ class TestTheLeafFold:
     there. So the leaves stay on the page and the TAIL folds.
     """
 
-    def test_the_folded_tail_is_in_the_dom_and_merely_hidden(self):
-        """The fold is for the eye. Find, screen readers and a JS-less render
-        must still see every leaf — a convenience must not decide what exists."""
+    def test_the_folded_tail_is_reachable_and_not_merely_present(self):
+        """⚠ THIS TEST ASSERTED PRESENCE AND PASSED WHILE THE CLAIM WAS FALSE.
+
+        It checked `hidden>` was in the markup and
+        `.leaf-rest[hidden]{display:none}` was in the CSS, and called that
+        "in the DOM, merely hidden" — under a comment promising find-in-page
+        and screen readers. **`display:none` removes content from both.** The
+        claim and the mechanism defeating it were asserted two lines apart,
+        and the suite was green.
+
+        Found by @parvathibntglobal on #425. Rule 4's shape in a comment: a
+        stated property nothing checks.
+
+        So this asserts the MECHANISM THAT MAKES IT REACHABLE and refuses the
+        two that would take it away.
+        """
         grid = _fn(_views(), "function groupedGrid(groups, flat, draw){")
+        css = (ROOT / "web" / "src" / "styles" / "board.css").read_text(encoding="utf-8")
+
         assert "g.children.slice(LEAF_PREVIEW).map(draw)" in grid
-        assert 'class="leaf-rest"' in grid
-        assert "hidden>" in grid
+        # `until-found`, not plain `hidden` — the whole difference.
+        assert 'hidden="until-found"' in grid
+        assert "hidden>" not in grid, "plain `hidden` resolves to display:none"
+
+        # ⚠ AND NEITHER OF THESE MAY APPEAR ON `.leaf-rest`. `display:none`
+        #   overrides the UA `content-visibility:hidden`; `display:contents`
+        #   generates no box for it to apply to. Either silently removes
+        #   find-in-page and the accessibility tree.
+        block = css[css.index(".bv .leaf-rest"):]
+        block = block[:block.index("}") + 1]
+        assert "display:none" not in block
+        assert "display:contents" not in block
+
+    def test_the_fold_button_says_what_it_is_and_what_it_opens(self):
+        """A bare <button> announces its label and nothing else — not that it
+        is a disclosure, and not what it controls."""
+        grid = _fn(_views(), "function groupedGrid(groups, flat, draw){")
+        assert 'aria-expanded="false"' in grid
+        assert "aria-controls=" in grid
+        assert 'id="${id}"' in grid, "aria-controls needs something to point at"
+
+    def test_find_in_page_reveals_the_tail_and_retires_the_button(self):
+        """`until-found` means the browser can reveal the tail without the
+        button being clicked, which would leave a control offering to expand
+        what is already expanded."""
+        jsx = (ROOT / "web" / "src" / "board" / "BoardView.jsx").read_text(encoding="utf-8")
+        assert "beforematch" in jsx
+        assert "removeEventListener('beforematch'" in jsx, "listeners must be cleaned up"
 
     def test_no_leaf_is_dropped_by_folding(self):
         grid = _fn(_views(), "function groupedGrid(groups, flat, draw){")
@@ -227,14 +268,21 @@ class TestTheLeafFold:
         grid = _fn(_views(), "function groupedGrid(groups, flat, draw){")
         assert "if(hidden <= 0) return parentHead(g) + shown" in grid
 
-    def test_the_tail_is_a_grid_child_when_shown(self):
-        """`display:contents`, or the whole tail becomes ONE grid cell and the
-        cards stop laying out beside their siblings."""
+    def test_the_tail_lays_out_on_the_same_column_rhythm(self):
+        """It cannot be `display:contents` any more — see above — so it is its
+        own full-width grid with the SAME template as `.igrid`, which is what
+        keeps the cards on the same columns as the ones above them."""
         css = (ROOT / "web" / "src" / "styles" / "board.css").read_text(encoding="utf-8")
-        assert ".bv .leaf-rest{ display:contents }" in css
-        assert ".bv .leaf-rest[hidden]{ display:none }" in css, (
-            "`display:contents` overrides the UA default for [hidden]"
-        )
+        outer = css[css.index(".igrid{"):]
+        outer = outer[:outer.index("}")]
+        block = css[css.index(".bv .leaf-rest"):]
+        block = block[:block.index("}")]
+        assert "grid-column:1 / -1" in block
+        assert "display:grid" in block
+        for prop in ("repeat(auto-fill,minmax(262px,1fr))", "gap:12px"):
+            assert prop in outer and prop in block, (
+                f"{prop!r} must match `.igrid` or the tail breaks the rhythm"
+            )
 
     def test_expanding_removes_the_button_rather_than_toggling(self):
         """Re-folding a list a reader deliberately opened is a state nobody

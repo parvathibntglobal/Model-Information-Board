@@ -273,12 +273,25 @@
 }
 
 /* THE FOLDED TAIL OF A HEADING'S LEAVES.
-   `display:contents` so the hidden cards are GRID CHILDREN of `.igrid` when
-   shown - wrapping them in a block would make the whole tail one grid cell and
-   the cards would stop laying out beside their siblings. `[hidden]` has to be
-   restated because `display:contents` overrides the UA default. */
-.bv .leaf-rest{ display:contents }
-.bv .leaf-rest[hidden]{ display:none }
+
+   ⚠ THERE IS DELIBERATELY NO `display:none` HERE, AND NO `display:contents`.
+     The markup sets `hidden="until-found"`, whose UA rule is
+     `content-visibility:hidden` - so find-in-page can match inside it and the
+     browser reveals it. An author `display:none` OVERRIDES that and silently
+     takes the feature away; `display:contents` generates no box, so there is
+     nothing for `content-visibility` to apply to. Either one turns the tail
+     back into content that Ctrl+F and a screen reader cannot reach, which is
+     the defect this replaced.
+
+   So the tail is its own full-width grid with the SAME template as `.igrid`,
+   which is what lets it generate a box and still lay the cards out on the
+   same column rhythm as the ones above it. */
+.bv .leaf-rest{
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(262px,1fr));
+  gap:12px;
+}
 
 .bv .leaf-fold{
   grid-column:1 / -1;
