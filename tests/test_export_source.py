@@ -157,9 +157,59 @@ class TestTheDenominatorTravels:
             export_source.load(tmp_path / "does-not-exist")
 
 
+#: A real harvested Reddit thread, COMMITTED, in the export's own shape - the
+#: same seven keys `_handoff/threads/*.json` carries. Built by
+#: `fixtures/threads/build.py` from harvested data rather than hand-written,
+#: for the reason that file gives: the first offset map in this repo was typed
+#: by hand and was off by one.
+COMMITTED_EXPORT = Path(__file__).resolve().parents[1] / "fixtures" / "threads"
+
+
+class TestItLoadsTheCommittedExport:
+    """The half that RUNS IN CI. #357.
+
+    `_handoff/` is gitignored, so every assertion below used to live in a test
+    that CI skipped and only this laptop executed. A test that can only fail on
+    one machine is not protecting the loader on any other.
+
+    The count belongs HERE and nowhere else: this directory is committed, so
+    `7` is a property of the repository rather than of a filesystem, and a
+    change to the fixture fails the test that owns it.
+    """
+
+    def test_the_committed_export_loads_with_typed_spans(self):
+        loaded = export_source.load(COMMITTED_EXPORT)
+
+        assert loaded.threads, "the committed export must load"
+        assert loaded.skipped == []
+        assert len(loaded.document_ids) == 7, "one root and six comments"
+        for thread in loaded.threads:
+            assert thread.flattened_text.strip()
+            # DEFECT 1, AND THE ONLY ASSERTION THAT EVER CAUGHT IT. Raw dicts
+            # load fine and raise `AttributeError` inside `verify()`, after
+            # the model call has been paid for.
+            assert all(isinstance(s, OffsetMapping) for s in thread.offset_map)
+
+
 class TestItLoadsTheRealExport:
     """Against `_handoff/`, because a fixture I wrote proves only that I am
-    consistent with myself - and defect 1 survived exactly that."""
+    consistent with myself - and defect 1 survived exactly that.
+
+    ⚠ NO COUNT HERE, AND THAT IS THE FIX RATHER THAN AN OVERSIGHT. #357.
+
+    This asserted `len(loaded.document_ids) == 7` against a GITIGNORED
+    directory, so its result was a property of one filesystem: it passed on the
+    laptop it was written on, skipped in CI, and could only ever fail for
+    somebody whose export happened to differ. Measured 2026-09-23 on that same
+    laptop, the directory had drifted to **12 threads and 17 documents** - the
+    assertion had become false locally and there was still nowhere it could be
+    reported, because CI has no `_handoff/` to skip on.
+
+    What survives is every assertion that is a property of the LOADER rather
+    than of the directory, and those are the ones that caught all three
+    defects. The count moved to `TestItLoadsTheCommittedExport`, where the
+    directory is committed and the number can be true.
+    """
 
     def test_the_handoff_export_loads_with_typed_spans(self):
         directory = Path("_handoff/threads")
@@ -170,7 +220,6 @@ class TestItLoadsTheRealExport:
 
         assert loaded.threads, "the real export must load"
         assert loaded.skipped == []
-        assert len(loaded.document_ids) == 7, "1 + 6 documents across two threads"
         for thread in loaded.threads:
             assert thread.flattened_text.strip()
             assert all(isinstance(s, OffsetMapping) for s in thread.offset_map)

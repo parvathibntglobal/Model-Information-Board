@@ -237,10 +237,17 @@ def main(argv: list[str] | None = None) -> int:
         fetched += run.rest_calls
         runs.append(run)
         y = run.sieve_yield
+        # `untestable` IS ZERO ON THIS PATH AND THE LINE SAYS SO BY OMISSION.
+        # A per-query sweep renders `{alias}` from the model it is sweeping
+        # for, so every candidate it retrieves is testable by construction.
+        # Printed only when it is non-zero, so the sweep line is unchanged
+        # today and cannot silently merge the two states the day a caller
+        # sieves a corpus instead of a query result (#365 defect 2).
+        never = f" never-sieved={y.untestable}" if y.untestable else ""
         print(
             f"  [{index:2}/{plan.request_count}] {run.request.entry_label:44} "
             f"total={str(run.total_count):>5} got={run.retrieved:3} "
-            f"sieve={y.kept:3}/{y.candidates:3} ({y.pass_rate:5.1%}) "
+            f"sieve={y.kept:3}/{y.candidates:3} ({y.pass_rate:5.1%}){never} "
             # inserted, not seen: a sweep legitimately returns the same issue
             # from two queries, and the old counter reported writing it twice.
             f"wrote={wrote['inserted']:3}/{wrote['seen']:<3} "
