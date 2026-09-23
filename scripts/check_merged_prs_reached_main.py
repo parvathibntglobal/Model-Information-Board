@@ -142,9 +142,29 @@ def merged_prs(limit: int) -> list[dict]:
 # its patch matches the PR head, so the content genuinely arrived.
 #   #172  merge 9bdab5f  contract+collect: withdraw the fourth value, correct 853
 #   #173  merge 1d7b59a  collect+contract: the Reddit listing sweep + denominator
+#
+# ⚠ #404 IS THE FIRST SINCE THE NORM, AND IT MADE THIS CHECK RED ON EVERY RUN.
+#   The docstring's prediction happening: squash-merged onto main 2026-09-23,
+#   base=main, and its head SHA is not an ancestor because the squash rewrote
+#   it. The branch was deleted afterwards, so the SHA is not even fetchable -
+#   the run reports `(commit not in this clone)`.
+#
+#   ONE STRANDED PR TURNS EVERY LATER RUN RED, because the check reports the
+#   whole set each time. #405 and #410 were ordinary merge commits and their
+#   runs failed too, naming only #404. A check that is red for a benign reason
+#   stops being read, which costs more than the case it was built to catch -
+#   and this one has now cried wolf twice in two days (the other was a timing
+#   race, #401 merging 39 seconds before the run).
+#
+#   VERIFIED ON 2026-09-23 against every condition the paragraph above sets:
+#     base=main, not a base branch            <- the case this list is for
+#     mergeCommit 8f9553177 is an ancestor    <- the content arrived
+#     patch is the PR's 6 files, +467/-16     <- and it is the same content
+#   #404  merge 8f95531  contract+collect: unpolled, the third provenance
+#
 # An entry only clears a PR whose MERGE COMMIT is an ancestor of main, so it can
 # never excuse a PR whose content is actually missing.
-SQUASHED_ONTO_MAIN = {172, 173}
+SQUASHED_ONTO_MAIN = {172, 173, 404}
 
 
 def open_prs(limit: int) -> list[dict]:
