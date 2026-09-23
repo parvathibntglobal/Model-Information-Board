@@ -264,8 +264,55 @@ These are the rules a helpful refactor will otherwise quietly violate.
     correctly merged. A literal reader of the two-state version reverses that,
     which is #406's failure with a different cause.
 
-    ⚠ **AND THE TEST IS PER-PAIR, NOT PER-SLUG.** One slug can be the long
-    side of one pair and the short side of another at the same time:
+    ⚠ **THE TEST APPLIES TO A PROPER NOUN, AND NOT TO AN ORDINARY WORD.
+    WHERE IT DOES NOT APPLY, THERE IS NO MERGE.** A benchmark, a product, a
+    dataset — `OSWorld`, `AIME`, `ExploitBench` — appears in a quote because
+    somebody named it. An ordinary English word appears because somebody was
+    writing English, and its presence says nothing about which identifier a
+    row belongs to.
+
+    **The worked case, measured 2026-09-23 over all 32 candidate pairs:**
+
+        reasoning  ->  reasoning-effort      1 LONG of 80 rows
+
+    One quote among eighty happens to contain the words *"reasoning effort"*,
+    and the mechanical test reported SAME — proposing that `reasoning`, an
+    80-entry capability slug, is a truncation of `reasoning-effort`, which
+    holds two. It is not. The word was in the text because the sentence was
+    about reasoning.
+
+    `accuracy`, `speed`, `writing`, `math`, `sql` and `quality` are the same
+    shape and are all live slugs. **On any of them the test returns an answer
+    and the answer means nothing**, which is worse than returning none — so
+    the rule is that it does not apply, rather than that it should be applied
+    carefully.
+
+    The line is not always obvious and it does not have to be: **where it is
+    unclear whether a slug is a name or a word, the test does not apply, and
+    nothing merges.** A missed merge costs a reader one extra heading. A wrong
+    one costs the board a figure filed under a benchmark nobody measured it on.
+
+    ⚠ **AND THE TEST IS PER-ROW, NOT PER-SLUG — I WROTE IT AND IT STILL READ AS
+    SLUGGABLE.** *"A prefix and a longer name"* sounds like a question about
+    two strings, so a reader answers it once for the slug and applies the
+    answer to every row under it. Every row carries its own quote, and the
+    quote is what decides.
+
+    **What that costs, measured on this corpus:**
+
+        swe-bench  ->  swe-bench-pro        1 row of 39 names it
+                                            36 of the 39 name no benchmark
+        terminal-bench -> terminal-bench-2-1  row 1 "Terminal Bench 2.1"  MERGE
+                                              row 2 "Terminal-Bench"      KEEP
+
+    Answered per slug, the first moves thirty-nine rows — including #368's
+    nine different measurements — into `swe-bench-pro` on the strength of one
+    quote. The second moves a row whose own quote names the shorter form.
+    `judge/store/board_entries.py` has `rule_entry_ids` for exactly this;
+    `rule_entries` rules a whole slug and is the wrong instrument here.
+
+    ⚠ **ONE SLUG CAN BE THE LONG SIDE OF ONE PAIR AND THE SHORT SIDE OF
+    ANOTHER** at the same time:
 
         osworld      ->  osworld-2        `osworld-2` is the LONGER name
         osworld-2    ->  osworld-2-0      `osworld-2` is the SHORTER name
