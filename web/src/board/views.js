@@ -274,21 +274,54 @@ function mcard(x){
     <div class="meta"><span>unit · ${esc(x.unit)}</span><span>${esc(who)}</span></div></div>`;
 }
 
-/** The metrics grid, comparable axes first, single-model ones below a line. */
-function metGrid(){
-  const many = DB.mets.filter(m => (m.mrows || []).length > 1);
-  const one = DB.mets.filter(m => (m.mrows || []).length <= 1);
-  const cards = (xs) => xs.map(m => mcard(m)).join('');
-  if(!one.length) return cards(DB.mets);
-  if(!many.length) return cards(DB.mets);
-  // THE DIVIDER SAYS WHAT IS BELOW IT rather than just separating. A reader
-  // who scrolls past it should know these are observations and not a tail of
-  // less important comparisons.
-  return cards(many)
-    + `</div><p class="axisdiv"><b>${one.length} axes hold a single model.</b>
-       Each is a real recorded figure, and none of them is a comparison — there is nothing
-       else measured on that axis yet.</p><div class="igrid">`
-    + cards(one);
+/* ---------- parent headings ---------- */
+//
+// A PARENT IS A HEADING ON THE GRID AND NEVER A ROUTE, and that is the whole
+// design rather than a simplification of it. `contract/slug_parents.yaml`:
+//
+//     A parent groups for reading and never implies the leaves are the same
+//     measurement.
+//
+// A heading renders its leaves UNDERNEATH, visible without a click, so a
+// reader can never mistake the parent for the thing being measured. A parent
+// PAGE would read as a category - you would click it, see leaves, click a
+// leaf - and that shape says the leaves are one measurement however the prose
+// denies it. It would also add a fourth level to board -> category -> model.
+//
+// ⚠ THE COUNT ON A HEADING IS `leaves` AND NOTHING ELSE. Never reports, never
+//   models, never voices. Summing the children double-counts every document
+//   under two leaves (55 against a true union of 51 on `software-engineering`)
+//   and sums a figure that is already a floor. The line under the heading says
+//   there is no total, because a reader who wants one should be told it does
+//   not exist rather than left looking for it.
+function parentHead(g){
+  return `</div><div class="phead-row"><div class="parent-h">
+    <h3>${esc(g.name)}</h3><span>${g.leaves} ${g.leaves===1?'leaf':'leaves'}</span></div>
+    <p>Grouped for reading. Each of these is its own measurement — nothing here is
+    merged, and there is no total for the group.</p></div><div class="igrid">`;
+}
+
+/** One grid, leaves under their headings, ungrouped leaves in their own rank. */
+function groupedGrid(groups, flat, draw){
+  // NO GROUPS MEANS RENDER AS BEFORE. An older payload carries no `grouped`,
+  // and a board that silently showed nothing would be worse than one that
+  // shows what it always did.
+  if(!groups || !groups.length) return flat.map(draw).join('');
+  return groups.map(g =>
+    g.kind === 'parent'
+      ? parentHead(g) + g.children.map(draw).join('')
+      : draw(g.leaf)
+  ).join('');
+}
+
+/** How much of a section has a heading. READ, NOT REMEMBERED - the ungrouped
+ *  count was 19, 20 and 21 within one day. */
+function parentNote(key){
+  const c = (DB.parentCoverage || {})[key];
+  if(!c || !c.parents) return '';
+  return `<p class="axisdiv"><b>${c.parents} headings over ${c.grouped} of ${c.leaves}.</b>
+    The other ${c.ungrouped} sit on their own — a heading is a way to read the list, not a
+    claim about what belongs together, and nothing is filed under a catch-all.</p>`;
 }
 
 /* ---------- the withheld notice ---------- */
@@ -336,15 +369,25 @@ function vBoard(tab){
     best: {intro:'Jobs with enough reports to rank. Each opens a page that names the cheapest model engineers report doing it, the conditions that change the answer, and the criticisms that did not disqualify it.',
       grid: DB.jobs.length ? DB.jobs.map(j=>card(j,'job')).join('') : empty},
     cap: {intro:'A capability means one thing across every model page. These are the definitions the board rules by — written so an answer engine can quote them, and so two claims can be compared without arguing about words.',
-      grid: DB.caps.length ? DB.caps.map(c=>card(c,'cap')).join('') : empty},
-    met: {intro:'The axes recorded on every model. Each page states the unit, where the figure came from, and the thing the number cannot tell you — which is usually more useful than the number.',
-      note: withheldNote(),
+      note: parentNote('caps'),
+      grid: DB.caps.length ? groupedGrid(DB.capGroups, DB.caps, c=>card(c,'cap')) : empty},
+    met: {intro:'The axes recorded on every model. Each page states the unit, where the figure came from, and the thing the number cannot tell you — which is usually more useful than the number. '
+      // ⚠ THIS SENTENCE CAME OFF `metGrid`'s DIVIDER AND MUST NOT BE LOST.
+      // That divider split the grid into comparing axes and single-model ones;
+      // parents now group the same grid by subject and the two cannot both
+      // own it. The SPLIT is redundant - `mcard` has printed "1 model" /
+      // "N models" on every card since 2026-09-21, which is the same fact per
+      // card - but the sentence is rule 4 content and is not redundant: an
+      // axis holding one model is a real recorded figure, and a reader must
+      // not read it as a failed comparison.
+      + 'Many axes hold a single model. Each is a real recorded figure, and none of them is a comparison — there is nothing else measured on that axis yet.',
+      note: withheldNote() + parentNote('mets'),
       // AXES THAT CAN COMPARE SOMETHING COME FIRST, and the rest are marked
       // rather than mixed in. An axis holding one model is a real observation
       // and belongs on the page; listing it between two comparisons implies it
       // is one. Stable within each half - `board_sections` already ordered
       // these by report count, and that ordering is a COUNT, never a score.
-      grid: DB.mets.length ? metGrid() : empty}
+      grid: DB.mets.length ? groupedGrid(DB.metGroups, DB.mets, m=>mcard(m)) : empty}
   };
   const p = panes[tab];
   const note = p.note || '';

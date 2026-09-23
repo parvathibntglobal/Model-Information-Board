@@ -857,9 +857,27 @@ class TestTheTabSaysWhatIsBehindEachCard:
         card = card[:card.index(chr(10) + "}")]
         assert "(x.mrows || []).length" in card
 
-    def test_single_model_axes_are_separated_rather_than_mixed_in(self):
+    def test_a_single_model_axis_is_named_as_a_recording_not_a_failed_comparison(self):
+        """⚠ THIS TEST USED TO PIN `function metGrid(){`, WHICH IS A SPELLING.
+
+        It asserted that one FUNCTION existed and that a sentence lived inside
+        it. When parents replaced that function's split (#416 renders them; the
+        divider and the headings cannot both own one grid), the test failed
+        while the thing it was protecting was intact and had simply moved.
+
+        That is #408's class pointed at a test: a check on the SHAPE OF THE
+        CODE defends an implementation rather than a behaviour. The sentence is
+        what matters and it is rule 4 content - an axis holding one model is a
+        real recorded figure, and a reader must not read it as a comparison
+        that failed. So this asserts the sentence reaches the METRICS TAB,
+        wherever it is written.
+
+        The SPLIT it used to describe is gone on purpose and nothing is lost:
+        `mcard` has printed "1 model" / "N models" on every card since
+        2026-09-21, which is the same fact per card and is checked above.
+        """
         js = _views()
-        assert "function metGrid(){" in js
-        grid = js[js.index("function metGrid(){"):]
-        grid = grid[:grid.index(chr(10) + "}")]
-        assert "axes hold a single model" in grid
+        met = js[js.index("met: {intro:"):]
+        met = met[:met.index("grid:")]
+        assert "single model" in met, "the metrics tab no longer says it"
+        assert "none of them is a comparison" in met

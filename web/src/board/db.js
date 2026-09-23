@@ -18,7 +18,24 @@
 // made-up condition would be worse than a missing one: it reads as a finding.
 // When an editor writes them, they get a home; until then the page shows what
 // the evidence actually says and no more.
-export const DB = { jobs: [], caps: [], mets: [], posts: [], metsWithheld: {} }
+export const DB = {
+  jobs: [], caps: [], mets: [], posts: [], metsWithheld: {},
+  // PARENT HEADINGS, AS A RENDER ORDER OVER THE SAME OBJECTS.
+  //
+  // `caps` and `mets` stay FLAT and are not replaced. Every lookup on this
+  // board is by slug - `byS(DB.caps, slug)`, the model pages, the routes - and
+  // a nested shape would mean two answers to "what is a leaf". So these hold
+  // {kind:'parent', name, leaves, children:[leaf…]} or {kind:'leaf', …} rows
+  // whose leaf objects are THE SAME OBJECTS as in `caps`/`mets`, re-ordered.
+  //
+  // Empty when the payload predates grouping, and the views fall back to the
+  // flat list - so an older API renders exactly as it did.
+  capGroups: [], metGroups: [],
+  // COMPUTED PER REQUEST, NEVER CARRIED AS A LITERAL. The ungrouped count was
+  // 19 in the proposal, 20 in review and 21 by the time the page was written -
+  // three answers in one day. Anything that states it reads this.
+  parentCoverage: {},
+}
 
 /** Was the board read at all? Distinguishes "nothing found" from "never asked". */
 export let boardLoaded = false
@@ -569,6 +586,35 @@ export function setBoardData(payload) {
   // page makes the opposite claim - that nobody measured these models - and
   // the two look identical to a reader. Counted by reason, because a figure
   // with no quantity sends you to the prompt and a mislabelled axis does not.
+  // THE GROUPED VIEW, BUILT FROM THE FLAT ONES BY SLUG. The payload's grouped
+  // rows carry their own copies of each leaf; we re-point them at the objects
+  // already in `DB.caps`/`DB.mets` so a leaf is one object on this page no
+  // matter which way it was reached. A slug the flat list does not have is
+  // dropped rather than rendered from the payload's copy - that would be two
+  // leaves with one slug, which is the shape parents exist NOT to create.
+  const regroup = (rows, flat) => {
+    const bySlug = new Map(flat.map((x) => [x.slug, x]))
+    return (rows || []).flatMap((r) => {
+      if (r.kind !== 'parent') {
+        const leaf = bySlug.get(r.slug)
+        return leaf ? [{ kind: 'leaf', leaf }] : []
+      }
+      const children = (r.children || []).map((c) => bySlug.get(c.slug)).filter(Boolean)
+      // A PARENT WITH NOTHING UNDER IT IS NOT RENDERED. A heading over no
+      // cards is a claim that something is there, and a reader who cannot see
+      // the leaves under a parent is reading a merge.
+      if (!children.length) return []
+      // `leaves` COMES FROM WHAT WE WILL ACTUALLY DRAW, not from the payload's
+      // count. If a leaf was dropped above, the heading must not still claim it.
+      return [{ kind: 'parent', name: r.name, parent: r.parent, children,
+                leaves: children.length }]
+    })
+  }
+  const grouped = d.grouped || {}
+  DB.capGroups = regroup(grouped.caps, DB.caps)
+  DB.metGroups = regroup(grouped.mets, DB.mets)
+  DB.parentCoverage = d.parent_coverage || {}
+
   DB.metsWithheld = d.metrics_withheld || {}
   DB.posts = d.posts || []
   boardLoaded = true
