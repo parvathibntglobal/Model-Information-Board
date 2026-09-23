@@ -603,14 +603,32 @@ OpenRouter does not list and never will, hand-entered so the board can link
 them; every one of the 65 claims traces to a harvested document with a real
 quote. Nothing about them is a build fixture.
 
-`provenance` allows only `seed|polled`, so there is no value for "hand-entered
-and never going to be polled" - the third state gets labelled with the word
-that means fixture, and `assert_no_fixtures` then refuses it correctly by its
-own definition and wrongly by intent. Three contract files now feed that one
+`provenance` allowed only `seed|polled`, so there was no value for
+"hand-entered and never going to be polled" - the third state got labelled with
+the word that means fixture, and `assert_no_fixtures` then refused it correctly
+by its own definition and wrongly by intent. Three contract files fed that one
 value (`seed_models.yaml`, `unpolled_models.yaml`, `awaiting_poll_models.yaml`),
 each added to dodge a load refusal rather than to mean something different.
-**`unpolled` is the agreed third value (#382); until it exists, do not read
-`provenance='seed'` as "this row is a fixture".**
+
+**`unpolled` is the third value, and it lands in two steps.** The CHECK, the
+loader and the guard ship as code; the four rows convert when somebody runs the
+migration.
+
+```
+20260923T0500_model_version_unpolled_provenance.sql
+```
+
+⚠ **UNTIL THAT MIGRATION IS APPLIED TO A GIVEN DATABASE, THE WRITER IS AHEAD OF
+THE SCHEMA THERE.** `scripts/load_unpolled_models.py` now writes
+`provenance='unpolled'`, and against an un-migrated database that is a
+`CHECK` violation rather than a mislabelled row - the #260 shape, where the
+writer reached another machine on a pull and the migration reached it as a file
+nobody had run. Pull, then migrate, then load.
+
+**Do not read `provenance='seed'` as "this row is a fixture" on a database that
+has not been migrated.** After it has, `seed` means fixture again and
+`assert_no_fixtures` is unchanged in code and stricter in intent - it always
+queried `seed` exactly, which is why it needed no edit.
 
 `fixtures/hand_cells.yaml` was listed here until the Ask box was parked and the
 file deleted. The section documenting our guard against stale fixtures had gone
