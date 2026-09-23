@@ -91,6 +91,21 @@ export default function BoardReview() {
   // a reviewer scans, and two open bodies push the rest off screen again -
   // which is the crowding this replaced.
   const [openSlug, setOpenSlug] = useState(null)
+
+  // ⚠ WHICH HEADINGS ARE OPEN, AND ALL OF THEM START CLOSED. A section holds
+  //   202 axes; the panel exists to catch DUPLICATES, and two names can only
+  //   be compared when both are on screen. Eight closed headings fit; 202 open
+  //   rows do not, which is the crowding the one-line-per-axis change was for.
+  //
+  //   `Set` of `section:parent`, because the same parent name can exist under
+  //   two sections and they are different groups.
+  const [openParents, setOpenParents] = useState(() => new Set())
+  const toggleParent = (key) =>
+    setOpenParents((p) => {
+      const next = new Set(p)
+      if (next.has(key)) next.delete(key); else next.add(key)
+      return next
+    })
   // STARTS AT `all`, because a panel that opens already filtered hides rows
   // nobody asked to hide. The counts on the chips say where the work is.
   const [statusFilter, setStatusFilter] = useState('all')
@@ -247,6 +262,9 @@ export default function BoardReview() {
           // evidence, how much is left - where a row expanding in a list has
           // no room for a heading.
           const openGroup = inSection.find((x) => `${x.section}:${x.slug}` === openSlug)
+          // How much of this section the heading map covers. Computed server
+          // side per request, never stored (rule 11).
+          const cov = (data?.parent_coverage || {})[sec]
           return (
             <div key={sec} className="stack stack-3" role="tabpanel">
               {/* THE WAY BACK IS THE FIRST THING ON THE PAGE, because a view
@@ -310,10 +328,22 @@ export default function BoardReview() {
           </p>
         )}
 
-        {(openGroup
+        {(() => {
+        // ⚠ THE HEADINGS ARE THE BOARD'S, READ FROM THE SAME MAP. A reviewer
+        //   hunting a duplicate and a reader browsing the board have to be
+        //   looking at one arrangement - a pair that sits adjacent on the
+        //   board and thirty rows apart here is a pair nobody finds.
+        //
+        // ⚠ AND A HEADING IS NOT A MERGE PROPOSAL, which matters more on this
+        //   page than anywhere else because this is the page with the merge
+        //   button. `osworld-2` and `osworld-verified` share a heading and are
+        //   different measurements. The heading says "look here", never "these
+        //   are the same".
+        const visible = openGroup
           ? [openGroup]
           : inSection.filter((g) => FILTERS.find((f) => f.key === statusFilter).match(g))
-        ).map((g) => {
+
+        const renderAxis = (g) => {
           const key = `${g.section}:${g.slug}`
           const ruled = Boolean(g.ruling)
             // The ticked ids for this group, as an array the api client can send.
@@ -693,7 +723,91 @@ export default function BoardReview() {
               )}
             </div>
           )
-        })}
+        }
+
+        // One axis open: no headings, it is a page about that axis.
+        if (openGroup) return renderAxis(openGroup)
+
+        // ⚠ ORDERED BY SIZE, UNGROUPED LAST AND NEVER UNDER A CATCH-ALL.
+        //   `slug_parents.yaml` has no `other` parent on purpose - an unmapped
+        //   slug is one nobody has filed, which is a different fact from one
+        //   ruled to belong nowhere (rule 6). So these get a heading that says
+        //   what they are rather than a category name that would imply the map
+        //   had an opinion about them.
+        const byParent = new Map()
+        visible.forEach((g) => {
+          const k = g.parent || ''
+          if (!byParent.has(k)) byParent.set(k, { key: k, name: g.parent_name, rows: [] })
+          byParent.get(k).rows.push(g)
+        })
+        const parents = [...byParent.values()]
+          .filter((p) => p.key)
+          .sort((a, b) => b.rows.length - a.rows.length || a.name.localeCompare(b.name))
+        const loose = byParent.get('')
+
+        const headingRow = (p, label, hint) => {
+          const key = `${sec}:${p.key}`
+          const isOpen = openParents.has(key)
+          return (
+            <div key={key} className="axis">
+              <button type="button" className="axis-row" aria-expanded={isOpen}
+                      onClick={() => toggleParent(key)}
+                      style={{ width: '100%', textAlign: 'left', background: 'none',
+                               border: 0, cursor: 'pointer' }}>
+                <span className="mono" style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-3)' }}>
+                  {isOpen ? '▾' : '▸'}
+                </span>
+                <strong style={{ fontSize: 'var(--fs-sm)' }}>{label}</strong>
+                {/* COUNT OF AXES, NEVER OF REPORTS. Summing the axes' report
+                    counts double-counts every document appearing under two of
+                    them and sums a figure that is already a floor. */}
+                <span className="dim" style={{ fontSize: 11 }}>
+                  {p.rows.length} axis{p.rows.length === 1 ? '' : 'es'}
+                </span>
+              </button>
+              {isOpen && hint && (
+                <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: '0 0 6px 22px',
+                                            maxWidth: '72ch', lineHeight: 1.6 }}>{hint}</p>
+              )}
+              {isOpen && p.rows.map(renderAxis)}
+            </div>
+          )
+        }
+
+        // ⚠ A SECTION WITH NO HEADINGS RENDERS AS IT ALWAYS DID. `best_for` is
+        //   deliberately unmapped (#412 - its real problem is one 50%-share
+        //   leaf, not a missing tier), so grouping it would put all 77 axes
+        //   behind a single dropdown with nothing to compare it to. A fold
+        //   with no siblings is not organisation, it is just hiding.
+        if (!parents.length) return visible.map(renderAxis)
+
+        return (
+          <>
+            {parents.map((p) => headingRow(
+              p, p.name,
+              'Grouped for reading. Each of these is its own section — a heading is '
+              + 'never a proposal to merge what is under it.'))}
+            {loose && headingRow(
+              loose, 'Not under a heading',
+              'These are not filed under any heading yet. That is a gap in the map, '
+              + 'not a category — there is no catch-all, so nothing has been put in one.')}
+            {/* RULE 11: READ, NOT REMEMBERED. The coverage moves with every
+                extraction run, so it is recomputed per request rather than
+                written down. */}
+            {cov && cov.parents > 0 && (
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: '8px 0 0',
+                                          maxWidth: '78ch', lineHeight: 1.6 }}>
+                <strong style={{ color: 'var(--text)' }}>
+                  {cov.parents} heading{cov.parents === 1 ? '' : 's'} over {cov.grouped} of {cov.leaves} axes.
+                </strong>{' '}
+                The other {cov.ungrouped} sit on their own. Headings come from{' '}
+                <span className="mono">contract/slug_parents.yaml</span> — the same map the
+                board reads, so a pair that looks adjacent there is adjacent here.
+              </p>
+            )}
+          </>
+        )
+        })()}
             </div>
           )
         })}
