@@ -129,12 +129,31 @@ class CellStore:
         fact about the capability list rather than about this table — the
         coverage page derives it by subtracting these from the vocabulary,
         which keeps the two kinds of silence distinguishable.
+
+        ⚠ `capability_key IS NOT NULL`, AND LEAVING IT OUT CRASHED THE REBUILD.
+          `legacy_score_key` became optional on 2026-09-22, so a claim may now
+          carry no key at all. Without this clause such a claim enumerated as
+          `(mv1, NULL, 'none:no_ratified_key')` and the insert died on
+          `cell.capability_key`'s NOT NULL — every nightly rebuild, not just
+          the first.
+
+          The clause is not merely a crash fix, and that is why it is a WHERE
+          rather than a coalesce: a claim with no ratified key HAS NO CELL, by
+          definition. `cell` is keyed on a capability and its whole purpose is
+          to aggregate voices about one; a row keyed on "no capability" would
+          be a consensus about nothing, phrased as "Nobody has publicly
+          discussed None" - which is what the failing insert was carrying. The
+          claim is still stored, still quoted and still on the board.
+
+          Found by `tests/test_pipeline_db.py`, which does not run without a
+          local Postgres and did not run when the change shipped.
         """
         rows = self._conn.execute(
             """
             SELECT DISTINCT model_version_id, capability_key, condition_bucket
             FROM claim
             WHERE pipeline_version = %s
+              AND capability_key IS NOT NULL
             ORDER BY model_version_id, capability_key, condition_bucket
             """,
             (self._pipeline_version,),

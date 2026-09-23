@@ -79,9 +79,10 @@ DISCOVERED in the quote, each with a slug, a name and a definition.
   3. A VERBATIM QUOTE - the exact characters from the text, copied, never \
 paraphrased, never tidied, never trimmed of a typo. Give the character offsets \
 of that span.
-  4. A `capability` key from the ratified list at the end of this prompt. That \
-one field feeds an older scoring path and is NOT what the board displays; pick \
-the closest key and move on.
+  4. A `legacy_score_key` - ONLY IF one of the ratified keys at the end of \
+this prompt names what the quote is about. That one field feeds an older \
+scoring path and is NOT what the board displays. LEAVE IT EMPTY when no key \
+names it. That is the common answer and it is a correct one.
 
 YOU DISCOVER THE SECTIONS. YOU DO NOT CHOOSE THEM FROM A LIST.
 
@@ -266,9 +267,13 @@ one you left blank.
 
 Do not stretch a quote to fit a key. Forcing a quote into the nearest key \
 fabricates consensus about something the writer never discussed. A quote that \
-fits none of the keys has two homes, and choosing the right one is how the \
+fits none of the keys has three homes, and choosing the right one is how the \
 vocabulary grows on evidence:
 
+  - LEAVE `legacy_score_key` EMPTY. This is the first thing to do and it is \
+always available: an empty key is the honest record that no ratified key names \
+this quote. The claim is still kept and still reaches the board - the key only \
+feeds an older scoring path.
   - If the quote describes a REAL, recurring thing a model does or fails at \
 that none of the keys name - token spend, output length, over-thinking, and so \
 on - PROPOSE a new key for it in `proposed_capabilities`: a dotted key in the \
@@ -306,19 +311,80 @@ a failure. A document you had to reach for is a document with no claim in it.\
 """
 
 
+def _keys_block(capability_keys: list[str], definitions: dict | None) -> str:
+    """The ratified keys, WITH what each one means.
+
+    ⚠ THE DEFINITIONS DID NOT REACH THE MODEL UNTIL 2026-09-22, AND THAT WAS
+      NEVER INTENDED. This function used to be `"\\n".join(f"  - {key}")`:
+      twelve bare dotted strings. `contract/capabilities.yaml` carries a
+      `description` and a `sounds_like` for every one of them and neither was
+      ever sent - measured 2026-08-21, zero hits for every description fragment
+      and every `sounds_like` phrase, and recorded as "the single largest
+      confound" in `docs/measurements/the-vocabulary-hypothesis.md` §2.
+
+      Read `extraction.faithfulness` as a bare string and reading names off a
+      photograph is a defensible pick. The definition - *typed fields from messy
+      input, with correct nulls* - is the thing that excludes it, and the model
+      had never seen it. Twelve claims were filed that way from one blog post
+      (`docs/measurements/the-key-that-takes-anything-2026-09-22.md` §2).
+
+    ⚠ IT IS NOT A FIX UNTIL IT IS MEASURED, AND IT CHANGES WHAT AN OLD LABEL
+      MEANS. `fixtures/golden/capability-choice-round3--unlabelled.jsonl` was
+      built against the bare-key prompt and its `_meta` says so: a labeller
+      shown the definitions is *better informed than the extractor was*, so a
+      disagreement there is an UPPER BOUND on what this change could fix, not
+      evidence that it did. The pool's frozen sidecar still measures the
+      bare-key extractor; a re-run under this prompt scores against the same
+      gold, which is what makes the pair a measurement rather than a hope.
+
+      So this ships per rule 8 as the coarser, reversible change - more prompt,
+      no new gate, nothing refused - and the figure that says whether it worked
+      does not exist yet.
+
+    `sounds_like` is included because it is the part written in the corpus's own
+    words, and the key names are not. `failure_mode` is deliberately left out:
+    it decides how much evidence the ANSWER path demands and is nothing the
+    extractor should be reasoning about.
+    """
+    if not definitions:
+        return "\n".join(f"  - {key}" for key in capability_keys)
+
+    rows = []
+    for key in capability_keys:
+        cap = definitions.get(key)
+        if cap is None:
+            # A key with no definition is listed bare rather than skipped: the
+            # closed list and the enum must agree, and dropping a key here
+            # would offer the model fewer options than the schema accepts.
+            rows.append(f"  - {key}")
+            continue
+        body = " ".join((cap.description or "").split())
+        rows.append(f"  - {key}\n      {body}" if body else f"  - {key}")
+        if cap.sounds_like:
+            phrases = "  ".join(f'"{p}"' for p in cap.sounds_like)
+            rows.append(f"      sounds like: {phrases}")
+    return "\n".join(rows)
+
+
 def build_system_prompt(
     capability_keys: list[str],
     exemplars: dict | None = None,
+    definitions: dict | None = None,
 ) -> str:
     """The classifier prompt: one CLOSED list, three OPEN sections.
 
     The asymmetry is the design, and it is worth stating plainly because the two
     halves read alike at the bottom of the prompt:
 
-      `capability_keys`  A CLOSED VOCABULARY, appended with "use these and no
-                         others". It feeds the legacy cell score, which indexes
-                         by `capability_key` and looks the key up to find its
-                         failure mode - an unknown key breaks that path.
+      `capability_keys`  A CLOSED VOCABULARY - and OPTIONAL since 2026-09-22.
+                         It feeds the legacy cell score, which indexes by
+                         `capability_key` and looks the key up to find its
+                         failure mode - an unknown key breaks that path, so the
+                         list stays closed. What changed is that EMPTY is now
+                         an answer: it asked for "the closest key" while a
+                         separate paragraph forbade exactly that, and the
+                         forcing instruction was the one that closed the
+                         prompt. `_keys_block` and `ExtractedClaim`.
 
       `exemplars`        NOT A VOCABULARY. Samples from the hand-designed board,
                          appended with an explicit instruction that they are open
@@ -333,13 +399,23 @@ def build_system_prompt(
     and widening that signature would touch every caller of `extract()` for no
     gain yet. The parameter exists so a run can still be reproduced against an
     older calibration.
+
+    `definitions` defaults the same way and for the same reason: it is
+    `contract/capabilities.yaml` keyed by key, and it is what `_keys_block`
+    prints under each one. Passing `{}` reproduces the bare-key prompt every
+    stored claim before 2026-09-22 was extracted under.
     """
     if not capability_keys:
         raise ValueError(
             "no capability keys: the legacy cell path indexes by capability_key, "
             "so a claim could not be scored. The BOARD sections are discovered "
-            "and need no vocabulary, but this closed list is not optional."
+            "and need no vocabulary, but this closed list is not optional. "
+            "(A CLAIM may leave `legacy_score_key` empty; the LIST may not be.)"
         )
+    if definitions is None:
+        from judge.config import capabilities
+
+        definitions = capabilities()
     if exemplars is None:
         from judge.config import board_exemplars
 
@@ -386,14 +462,23 @@ def build_system_prompt(
         # ── the CLOSED half ─────────────────────────────────────────────────
         + "\n\n"
         + "=" * 70
-        + "\nTHE RATIFIED CAPABILITY KEYS (`capability`) - CLOSED, use these and "
-          "no others\n"
+        + "\nTHE RATIFIED KEYS (`legacy_score_key`) - CLOSED, AND OPTIONAL\n"
         + "=" * 70
-        + "\nThis single field feeds an older scoring path, NOT the board. Pick "
-          "the\nclosest key. It does not limit what you may discover above, and "
-          "where no\nkey is close, still pick the closest one AND propose the "
-          "missing key in\n`proposed_capabilities`.\n"
-        + "\n".join(f"  - {key}" for key in capability_keys)
+        + "\nThis field feeds an older scoring path and is NOT what the board "
+          "displays.\n"
+          "\nLEAVE IT EMPTY unless one of these keys names what the quote is "
+          "about.\nEmpty is stated first because empty is the common answer: "
+          "these twelve were\nwritten for a different corpus, and most quotes "
+          "are about something else.\nThe claim is still kept and still reaches "
+          "the board.\n"
+          "\nDO NOT PICK THE CLOSEST. A key that is merely nearest files this "
+          "quote into\na count about something the writer never discussed. Five "
+          "people discussing\none model's vision and Chinese OCR were counted as "
+          '"5 people mentioned\nfollowing instructions", because '
+          "`instruction.adherence` was the nearest of\ntwelve.\n"
+          "\nIf no key names it, leave this empty AND propose the missing key "
+          "in\n`proposed_capabilities`.\n"
+        + _keys_block(capability_keys, definitions)
     )
 
 

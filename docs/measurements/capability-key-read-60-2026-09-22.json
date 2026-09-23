@@ -1,0 +1,482 @@
+[
+ {
+  "id": "clm_fee3554355f47a79af86b91f",
+  "key": "code.generation",
+  "pol": "positive",
+  "quote": "Astra targets difficult end-to-end workflows and often uses fewer output tokens than GPT-5.6 Sol",
+  "slug": "",
+  "label": "mis"
+ },
+ {
+  "id": "clm_8d9ce47c00a6e11da210346a",
+  "key": "instruction.adherence",
+  "pol": "neutral",
+  "quote": "$0.18/M input",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_26913b48d77cf2d6ba7b2aa3",
+  "key": "tool_calling.long_chain_reliability",
+  "pol": "negative",
+  "quote": "Claude Sonnet 4.6 scored only a 49% on the HLE with tool use including web search.",
+  "slug": "",
+  "label": "near"
+ },
+ {
+  "id": "clm_c05dc80f5ba8bdf970eecc12",
+  "key": "code.generation",
+  "pol": "neutral",
+  "quote": "The introductory API pricing for 3.8 Flash remains the same as it was for 3.7 Flash",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_0338b089922e11e5530bfb96",
+  "key": "code.generation",
+  "pol": "positive",
+  "quote": "Fable 5 decoded an entire 1989 DOS game executable in one day \u2014 six months of work with earlier models, done overnight",
+  "slug": "",
+  "label": "near"
+ },
+ {
+  "id": "clm_c22b46fb287e65d8c3db2278",
+  "key": "instruction.adherence",
+  "pol": "negative",
+  "quote": "Opus 5's Language Is Painful to Read",
+  "slug": "language-quality",
+  "label": "mis"
+ },
+ {
+  "id": "clm_1c1c45474e04a83b981b0783",
+  "key": "code.editing_diff_fidelity",
+  "pol": "positive",
+  "quote": "Muse Spark 1.2 is explicitly tuned for repository-level editing",
+  "slug": "",
+  "label": "match"
+ },
+ {
+  "id": "clm_d34d10137e49b557240deda9",
+  "key": "code.generation",
+  "pol": "negative",
+  "quote": "3 days later it still cannot compare to even Opus4.5",
+  "slug": "instruction-following",
+  "label": "near"
+ },
+ {
+  "id": "clm_f44f28fedd64aa32a8072080",
+  "key": "reasoning.multistep",
+  "pol": "neutral",
+  "quote": "Opus 5's 63.6%",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_c6258272a62d1994d25c30be",
+  "key": "reasoning.multistep",
+  "pol": "positive",
+  "quote": "It gets stuck much less, doesn't have that insane slow burn like Opus 4.6, it's much more dynamic.",
+  "slug": "",
+  "label": "near"
+ },
+ {
+  "id": "clm_0cb379fea777faa9202a6242",
+  "key": "over_refusal",
+  "pol": "positive",
+  "quote": "GPT-6 Astra, however, is vastly improved, and could do it without writing Python",
+  "slug": "vision",
+  "label": "mis"
+ },
+ {
+  "id": "clm_176f22996da16f50d2817702",
+  "key": "ops.latency_ttft",
+  "pol": "neutral",
+  "quote": "DeepSeek V4 Pro sits at $0.544 blended \u2014 roughly one twentieth of GPT-5.6 Sol at $11.25 \u2014 while scoring 71.5 on the Vellum leaderboard against Sol's 83.8",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_e69adfb566ef2e81250b33a3",
+  "key": "code.generation",
+  "pol": "positive",
+  "quote": "22GB local models run in Pi now outperform Claude Code Opus 5 High on real-world coding tasks published after training cutoffs",
+  "slug": "code-fixing",
+  "label": "match"
+ },
+ {
+  "id": "clm_b04329b409a5b68be1d1d4d6",
+  "key": "reasoning.multistep",
+  "pol": "neutral",
+  "quote": "stripping vocabulary cost 0.108 in accuracy",
+  "slug": "",
+  "label": "mis"
+ },
+ {
+  "id": "clm_fe4f0a708b2a698b86c88658",
+  "key": "context.effective_window",
+  "pol": "positive",
+  "quote": "Long context is great",
+  "slug": "long-context",
+  "label": "match"
+ },
+ {
+  "id": "clm_a149f0538e0c6ebf520cc2b4",
+  "key": "instruction.adherence",
+  "pol": "negative",
+  "quote": "Agent (Playwright MCP) | 0% | ~12%",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_153bef69d7aee42b75bdfb95",
+  "key": "instruction.adherence",
+  "pol": "positive",
+  "quote": "It's definitely my go-to model out of the current lineup",
+  "slug": "",
+  "label": "mis"
+ },
+ {
+  "id": "clm_c42692ded309898aac2d514e",
+  "key": "code.generation",
+  "pol": "positive",
+  "quote": "High-parameter frontier models (Claude Opus 5, GPT-5.6 Sol) experience modest deflation",
+  "slug": "production-reliability",
+  "label": "mis"
+ },
+ {
+  "id": "clm_e4044063a4deb752b906acb5",
+  "key": "instruction.adherence",
+  "pol": "positive",
+  "quote": "Work's code environment can talk to the rest of the internet: install packages, call APIs, fetch web pages.",
+  "slug": "internet-connected-code-execution",
+  "label": "mis"
+ },
+ {
+  "id": "clm_57825420b26ccd0785968af0",
+  "key": "code.generation",
+  "pol": "neutral",
+  "quote": "37.3%",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_3c6c3f7bf9969d6db15836b0",
+  "key": "code.editing_diff_fidelity",
+  "pol": "negative",
+  "quote": "Grok 4.6 is noticeably weaker that Claude Fable 5, Claude Opus 5, Claude Opus 4.8, Kimi K3, GLM 5.3",
+  "slug": "code-review",
+  "label": "near"
+ },
+ {
+  "id": "clm_cb653b646953fa0fa111668f",
+  "key": "context.effective_window",
+  "pol": "neutral",
+  "quote": "CTX 131072",
+  "slug": "",
+  "label": "mis"
+ },
+ {
+  "id": "clm_c6c5176120a2311ae016b711",
+  "key": "ops.latency_ttft",
+  "pol": "negative",
+  "quote": "expensive",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_298257c8edeb6572c597e131",
+  "key": "instruction.adherence",
+  "pol": "negative",
+  "quote": "`eu.anthropic.claude-sonnet-5` | 400 | 400 | not probed",
+  "slug": "sampling-parameter-handling",
+  "label": "mis"
+ },
+ {
+  "id": "clm_ce4d15074b6cc101cd6284ba",
+  "key": "context.effective_window",
+  "pol": "positive",
+  "quote": "natively ingests multi-hour video recordings, hundred-page PDF manuals, and entire repository worktrees in a single prompt",
+  "slug": "",
+  "label": "match"
+ },
+ {
+  "id": "clm_fcab103946d259bb77eb1484",
+  "key": "tool_calling.long_chain_reliability",
+  "pol": "positive",
+  "quote": "calls tools more persistently",
+  "slug": "agentic-tool-use",
+  "label": "match"
+ },
+ {
+  "id": "clm_528c9363915eb244cd30b950",
+  "key": "instruction.adherence",
+  "pol": "neutral",
+  "quote": "At $0.28/M, it's a sweet spot",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_96921ef664ab014f61efbb62",
+  "key": "ops.latency_ttft",
+  "pol": "neutral",
+  "quote": "MiniMax-M2.7 | $0.30 | $1.20 | $0.06",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_44a5532bc5e20364cd80dd1f",
+  "key": "ops.latency_ttft",
+  "pol": "negative",
+  "quote": "It took a bit longer though.",
+  "slug": "",
+  "label": "match"
+ },
+ {
+  "id": "clm_6f2a608dab1df5a250b3e9ab",
+  "key": "code.generation",
+  "pol": "neutral",
+  "quote": "Junie + Opus 4.6: 81 tasks, 7.45M tokens, 92K per task, 8h 36m.",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_63231aca69633b0618a8a298",
+  "key": "code.generation",
+  "pol": "negative",
+  "quote": "it's spending 5-8x more tokens than competitors to produce comparable or worse results",
+  "slug": "token-efficiency",
+  "label": "mis"
+ },
+ {
+  "id": "clm_78bb59329a4adefe410d763d",
+  "key": "code.generation",
+  "pol": "positive",
+  "quote": "Plan B is what it did, installing smolvm and running these tests directly in a GitHub Actions runner against that branch.",
+  "slug": "",
+  "label": "near"
+ },
+ {
+  "id": "clm_26897008a2e88bf20f1640c8",
+  "key": "instruction.adherence",
+  "pol": "neutral",
+  "quote": "78.1% on Charxiv RQ",
+  "slug": "",
+  "label": "mis"
+ },
+ {
+  "id": "clm_9862b1a259c11c34c8fa7dc5",
+  "key": "over_refusal",
+  "pol": "negative",
+  "quote": "It elaborates endlessly, it attempts an idiotic \"both sides\" pseudo-balance, and it adopts a \"stick up its ass\" tone (compared to 4.6).",
+  "slug": "",
+  "label": "mis"
+ },
+ {
+  "id": "clm_ef8eff53df476d326e15c9cc",
+  "key": "code.editing_diff_fidelity",
+  "pol": "neutral",
+  "quote": "Astra's 96%",
+  "slug": "code-review",
+  "label": "filler"
+ },
+ {
+  "id": "clm_8f620e1d3ba863746c89de28",
+  "key": "code.generation",
+  "pol": "negative",
+  "quote": "every once in a while it seems to get confused by some minor detail that I really wouldn't expect a model in this size/class to get confused by",
+  "slug": "reasoning",
+  "label": "mis"
+ },
+ {
+  "id": "clm_16501166b66e7bcf3b9fd3ef",
+  "key": "instruction.adherence",
+  "pol": "positive",
+  "quote": "The ghost banana character rendered as a woodblock print",
+  "slug": "style-transfer",
+  "label": "mis"
+ },
+ {
+  "id": "clm_2c07eb89ef1a924857d6f05b",
+  "key": "code.generation",
+  "pol": "positive",
+  "quote": "V4 Flash at $0.25/M output tokens is genuinely absurd \u2014 it competes with GPT-4o quality at roughly 1/40th the price",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_2e2a853cbd9a51c0cfb74ebb",
+  "key": "instruction.adherence",
+  "pol": "positive",
+  "quote": "Switched to back to 4.5 on claude code and what a difference does that make holy shit, feels like i got Opus back finally.",
+  "slug": "",
+  "label": "near"
+ },
+ {
+  "id": "clm_9f4039d7b7c9eadbf830c2f1",
+  "key": "instruction.adherence",
+  "pol": "negative",
+  "quote": "Some git disaster recovery tasks the model does arrive at the final result, but in a way that deviates greatly from the prompt",
+  "slug": "instruction-following",
+  "label": "match"
+ },
+ {
+  "id": "clm_78ffe17af3fe08feace378bf",
+  "key": "ops.latency_ttft",
+  "pol": "neutral",
+  "quote": "DeepSeek V4 Pro|12 minutes",
+  "slug": "",
+  "label": "match"
+ },
+ {
+  "id": "clm_bdcb5861d9b5d4ad00b99310",
+  "key": "summarization.fidelity",
+  "pol": "positive",
+  "quote": "Quality-wise, it was a decent read. I'd definitely prefer that presentation of information over a 2-minute answer.",
+  "slug": "",
+  "label": "match"
+ },
+ {
+  "id": "clm_53172116867bafead35b9ead",
+  "key": "code.generation",
+  "pol": "negative",
+  "quote": "They are all really bad (more than 1/3 the expressions had an error in them somewhere).",
+  "slug": "text-to-speech-japanese",
+  "label": "mis"
+ },
+ {
+  "id": "clm_5e20fa0f0e0695ed15d457b5",
+  "key": "reasoning.multistep",
+  "pol": "negative",
+  "quote": "xhigh went 7/8 \u2014 the most-thinking configuration failed a task there, and it took four times longer to do it",
+  "slug": "reasoning",
+  "label": "match"
+ },
+ {
+  "id": "clm_1992a5c229a5662975aef27b",
+  "key": "ops.latency_ttft",
+  "pol": "neutral",
+  "quote": "Best for: classification, data extraction, high-volume pipelines, agent sub-tasks.",
+  "slug": "",
+  "label": "mis"
+ },
+ {
+  "id": "clm_79caa5b6ac4ced1b2cc79001",
+  "key": "code.generation",
+  "pol": "negative",
+  "quote": "Fable 5 now almost always downgrades to Opus 4.8 (not even 5)",
+  "slug": "model-downgrade",
+  "label": "mis"
+ },
+ {
+  "id": "clm_6b9561ea432153226fd7ddec",
+  "key": "code.generation",
+  "pol": "positive",
+  "quote": "gives 10%+ better results on SWE-Bench",
+  "slug": "",
+  "label": "match"
+ },
+ {
+  "id": "clm_f10a5b7c0b231f6c60d9655f",
+  "key": "code.generation",
+  "pol": "negative",
+  "quote": "Those models were not capable of even schematic editing or building.",
+  "slug": "schematic-building+schematic-editing",
+  "label": "mis"
+ },
+ {
+  "id": "clm_05f6d825bbb6cde5bcb04cbc",
+  "key": "instruction.adherence",
+  "pol": "negative",
+  "quote": "I still see it violate this rule regularly, but it's less bad IME.",
+  "slug": "instruction-following+output-verbosity",
+  "label": "match"
+ },
+ {
+  "id": "clm_48e4446573e4b47c2aaff0d3",
+  "key": "code.generation",
+  "pol": "positive",
+  "quote": "Kimi K3 developed MiniTriton, a compact Triton-like compiler with its own tile-level IR layer over MLIR, optimization passes, and a PTX code-generation pipeline",
+  "slug": "gpu-compiler-writing",
+  "label": "match"
+ },
+ {
+  "id": "clm_3e870b17283cc87c4658acd1",
+  "key": "ops.latency_ttft",
+  "pol": "neutral",
+  "quote": "V4 Flash @ $0.25/M",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_e495bf604c7ccf308469791d",
+  "key": "ops.latency_ttft",
+  "pol": "neutral",
+  "quote": "Opus 5 at $5 input and $25 output",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_06d7c42d8310681a4cfe4085",
+  "key": "context.effective_window",
+  "pol": "neutral",
+  "quote": "up to 1,048,576 input tokens and 65,536 output tokens",
+  "slug": "",
+  "label": "mis"
+ },
+ {
+  "id": "clm_4830dff9b7bcde46e194adc7",
+  "key": "over_refusal",
+  "pol": "neutral",
+  "quote": "Sol's 78.5 percent",
+  "slug": "",
+  "label": "filler"
+ },
+ {
+  "id": "clm_350991a3998f3c79810090ea",
+  "key": "over_refusal",
+  "pol": "negative",
+  "quote": "Fable now refuses to improve / check it's own work",
+  "slug": "self-audit",
+  "label": "match"
+ },
+ {
+  "id": "clm_15cbee003f8adbb9f4ba1f4f",
+  "key": "extraction.faithfulness",
+  "pol": "positive",
+  "quote": "strong vision ability",
+  "slug": "vision",
+  "label": "mis"
+ },
+ {
+  "id": "clm_ed9e9ec987411edc98c11aa1",
+  "key": "code.editing_diff_fidelity",
+  "pol": "negative",
+  "quote": "a couple of good catches but some of those are not issues at all",
+  "slug": "code-review",
+  "label": "mis"
+ },
+ {
+  "id": "clm_3d083a8a8eef2e7bf8e1e526",
+  "key": "instruction.adherence",
+  "pol": "positive",
+  "quote": "I've used it for document understanding pipelines and the results have been solid",
+  "slug": "vision",
+  "label": "mis"
+ },
+ {
+  "id": "clm_3761b484aaa63ec191a42bb2",
+  "key": "code.generation",
+  "pol": "negative",
+  "quote": "It's capable but expensive and keeps going off-track. Thus it fails to leverage its capabilities",
+  "slug": "",
+  "label": "near"
+ },
+ {
+  "id": "clm_4dbc429f7a3c39bb414acf39",
+  "key": "instruction.adherence",
+  "pol": "neutral",
+  "quote": "77.2% on MMAU",
+  "slug": "",
+  "label": "mis"
+ }
+]
