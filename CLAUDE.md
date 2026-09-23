@@ -229,7 +229,42 @@ These are the rules a helpful refactor will otherwise quietly violate.
     | --- | --- | --- |
     | truncation | `aime` vs `aime-2026` | the extractor, asked |
     | spelling | `exploitbench` vs `exploit-bench` | code, mechanically |
-    | real versions | `osworld` vs `osworld-2` | **must never merge** |
+    | real versions | *none — see the test below* | **must never merge** |
+
+    ⚠ **THE THIRD ROW HAS NO EXAMPLE ON PURPOSE, AND THE TEST REPLACES IT.**
+    It read `osworld` vs `osworld-2` until 2026-09-23, and that pair is a
+    **truncation** on this corpus, not two versions: every row under slug
+    `osworld` quotes *"OSWorld 2.0"*, and **0 of 14** rows mentioning OSWorld
+    quote it without a `2` and without *"Verified"*. There is no OSWorld v1
+    evidence on this board. So the example named a correct merge as the thing
+    never to do, and anybody applying it literally reverts that merge — which
+    nearly happened on #406, by the person reading the rule.
+
+    **A worked example that a correct merge would fail is worse than no
+    example**, because the example is what gets applied and the prose is what
+    gets skipped. The replacement is a test rather than a pair:
+
+    > **A prefix and a longer name are the SAME identifier when the longer
+    > name appears in the shorter row's own quote, and DIFFERENT when it does
+    > not.**
+
+    `aime` passes it — *"97.1% on AIME **2026** math"*, filed under `aime`.
+    `osworld` passes it — *"**OSWorld 2.0** latency simulations…"*, filed
+    under `osworld`. A genuine v1-against-v2 pair fails it, because the v1
+    row's quote says v1.
+
+    **The strings cannot tell you which case you are in.** `aime`/`aime-2026`
+    and `osworld`/`osworld-2` are identical in shape and opposite in evidence,
+    and the old table presented them as different shapes. That is why the
+    third row now carries a test and no pair: any pair put there would be a
+    claim about two strings, and the distinction is not in the strings.
+
+    ⚠ **AND TODAY THE TEST CAN ONLY BE APPLIED BY READING.** `axis_verbatim`,
+    `subject_verbatim` and `axis_quoted` landed in #392 and are NULL on every
+    `board_entry` row, because the writer is unbuilt (#368 item 3). Until it
+    runs, this test is a reviewer instruction and not a check — which is the
+    second consumer for that column and an argument for it that does not
+    depend on the metric pages. #407.
 
     **The truncation case is not two writers disagreeing.** One model's 97.1%
     was filed under `aime` from the quote *"97.1% on AIME 2026 math"* and
