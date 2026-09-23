@@ -162,9 +162,44 @@ def merged_prs(limit: int) -> list[dict]:
 #     patch is the PR's 6 files, +467/-16     <- and it is the same content
 #   #404  merge 8f95531  contract+collect: unpolled, the third provenance
 #
+# ⚠ #414 AND #416 ARE OURS, AND THEY WENT IN AN HOUR AFTER #404 CLEARED THIS
+#   LIST FOR THE SAME CAUSE. Not a new failure mode and not a surprise: #413
+#   added #404 above at 07:44 and explained why squash-merging does this, and
+#   at 09:19 I squash-merged two more PRs thirteen seconds apart and put the
+#   check straight back to red. The paragraph above had already been written,
+#   by somebody else, about my previous merge that morning.
+#
+#   That is why the real fix is not this list. It is `CLAUDE.md`'s merge
+#   convention, added with these entries, where somebody reaching for
+#   `gh pr merge --squash` will meet it - a comment in the checker is read by
+#   whoever is debugging the checker, which is the wrong person and the wrong
+#   moment.
+#
+#   VERIFIED 2026-09-23 against all three conditions the #404 entry sets, and
+#   shown rather than asserted:
+#
+#     #414   base main, not a base branch          <- the case this list is for
+#            head  propose/rule-10-… @ c61e7005ed  (squash rewrote it)
+#            mergeCommit 5486e39bc1 is an ancestor <- the content arrived
+#            PR 1 file +66/-1  ==  merge 1 file +66/-1,  CLAUDE.md
+#
+#     #416   base main, not a base branch
+#            head  feat/the-board-sections-… @ a5f13ba894
+#            mergeCommit 97c2701d9b is an ancestor
+#            PR 7 files +1084/-3  ==  merge 7 files +1084/-3, same seven paths
+#
+#   ⚠ AND #414's `CI` RUN ON main SAYS `cancelled`, WHICH THIS LIST DOES NOT
+#     COVER AND SHOULD NOT. Merging the two 13 seconds apart put them in one
+#     concurrency group and the second cancelled the first, so `main` has no
+#     CI result for 5486e39b even though its PR checks were green. Re-run
+#     rather than excused - an allowlist is for a check that is wrong, and
+#     that one simply did not finish.
+#   #414  merge 5486e39b  CLAUDE.md: rule 10 loses its example, gains the test
+#   #416  merge 97c2701d  contract+judge: the board sections get parents
+#
 # An entry only clears a PR whose MERGE COMMIT is an ancestor of main, so it can
 # never excuse a PR whose content is actually missing.
-SQUASHED_ONTO_MAIN = {172, 173, 404}
+SQUASHED_ONTO_MAIN = {172, 173, 404, 414, 416}
 
 
 def open_prs(limit: int) -> list[dict]:
