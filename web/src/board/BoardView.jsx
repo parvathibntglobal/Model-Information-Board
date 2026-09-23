@@ -36,6 +36,23 @@ export default function BoardView({ html }) {
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [html])
 
   function onClick(e) {
+    // THE LEAF FOLD. A heading shows the first few of its leaves and folds the
+    // tail; this reveals it. The tail is in the DOM either way - hidden by an
+    // attribute, not dropped - so find, screen readers and a JS-less render
+    // all see every leaf. This only moves the eye.
+    const expand = e.target.closest && e.target.closest('[data-expand]')
+    if (expand && ref.current) {
+      e.preventDefault()
+      const key = expand.getAttribute('data-expand')
+      const rest = ref.current.querySelector(`[data-rest="${key}"]`)
+      if (rest) rest.hidden = false
+      // THE BUTTON GOES, rather than becoming "show less". Re-folding a list
+      // a reader deliberately opened is a state nobody asked for, and a
+      // toggle that can hide evidence is worse than one that cannot.
+      const row = expand.closest('.leaf-fold')
+      if (row) row.remove()
+      return
+    }
     const go = e.target.closest && e.target.closest('[data-go]')
     if (go) {
       e.preventDefault()

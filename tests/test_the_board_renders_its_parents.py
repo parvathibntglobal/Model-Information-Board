@@ -66,8 +66,16 @@ class TestTheLeavesAreVisible:
     merge."""
 
     def test_a_parent_renders_its_children_immediately_after_the_heading(self):
+        """⚠ THIS PINNED A SPELLING UNTIL THE FOLD LANDED. It asserted the
+        exact expression `parentHead(g) + g.children.map(draw).join('')`, and
+        failed the moment the tail was folded — while the property it exists
+        for was intact. Third time this week (#408, #420's metGrid test), so
+        it now asserts that the heading is followed by its children being
+        drawn, however that is spelled."""
         grid = _fn(_views(), "function groupedGrid(groups, flat, draw){")
-        assert "parentHead(g) + g.children.map(draw).join('')" in grid
+        assert "parentHead(g)" in grid
+        assert "g.children" in grid and "map(draw)" in grid
+        assert "children" in grid.split("parentHead(g)")[1]
 
     def test_the_heading_says_the_leaves_are_not_merged(self):
         head = _fn(_views(), "function parentHead(g){")
@@ -180,3 +188,67 @@ class TestTheMetricDividerSentenceSurvived:
         assumed."""
         card = _fn(_views(), "function mcard(x){")
         assert "(x.mrows || []).length" in card
+
+
+class TestTheLeafFold:
+    """A heading shows the first few of its leaves and folds the tail. #420.
+
+    ⚠ GROUPING DID NOT SHORTEN THE PAGE AND WAS NEVER GOING TO. Every leaf
+    still draws: capability renders 199 cards under 8 headings, and the
+    biggest single heading holds 33. The headings made the list navigable and
+    made it eight rows LONGER.
+
+    The obvious fix — make a heading clickable — is refused, because behind a
+    click the leaves exist only for a reader who already suspected they were
+    there. So the leaves stay on the page and the TAIL folds.
+    """
+
+    def test_the_folded_tail_is_in_the_dom_and_merely_hidden(self):
+        """The fold is for the eye. Find, screen readers and a JS-less render
+        must still see every leaf — a convenience must not decide what exists."""
+        grid = _fn(_views(), "function groupedGrid(groups, flat, draw){")
+        assert "g.children.slice(LEAF_PREVIEW).map(draw)" in grid
+        assert 'class="leaf-rest"' in grid
+        assert "hidden>" in grid
+
+    def test_no_leaf_is_dropped_by_folding(self):
+        grid = _fn(_views(), "function groupedGrid(groups, flat, draw){")
+        assert "g.children.slice(0, LEAF_PREVIEW)" in grid
+        assert "g.children.slice(LEAF_PREVIEW)" in grid
+
+    def test_the_fold_names_its_count_rather_than_saying_more(self):
+        """"+27 more" is a number a reader can decide on. "more" is a promise
+        they have to spend a click to price."""
+        grid = _fn(_views(), "function groupedGrid(groups, flat, draw){")
+        assert "const hidden = g.children.length - LEAF_PREVIEW" in grid
+        assert "Show the other ${hidden}" in grid
+
+    def test_a_heading_shorter_than_the_preview_gets_no_fold(self):
+        grid = _fn(_views(), "function groupedGrid(groups, flat, draw){")
+        assert "if(hidden <= 0) return parentHead(g) + shown" in grid
+
+    def test_the_tail_is_a_grid_child_when_shown(self):
+        """`display:contents`, or the whole tail becomes ONE grid cell and the
+        cards stop laying out beside their siblings."""
+        css = (ROOT / "web" / "src" / "styles" / "board.css").read_text(encoding="utf-8")
+        assert ".bv .leaf-rest{ display:contents }" in css
+        assert ".bv .leaf-rest[hidden]{ display:none }" in css, (
+            "`display:contents` overrides the UA default for [hidden]"
+        )
+
+    def test_expanding_removes_the_button_rather_than_toggling(self):
+        """Re-folding a list a reader deliberately opened is a state nobody
+        asked for, and a toggle that can hide evidence is worse than one that
+        cannot."""
+        jsx = (ROOT / "web" / "src" / "board" / "BoardView.jsx").read_text(encoding="utf-8")
+        assert "rest.hidden = false" in jsx
+        assert "row.remove()" in jsx
+        # ⚠ CODE LINES ONLY. The comment above the handler explains that the
+        # button is removed *rather than* becoming "show less", so a plain
+        # search finds the explanation and reports the thing it rules out.
+        # Mention-versus-use, caught on my own comment — the same shape
+        # `test_the_validator_raises_on_nothing` hit on #419, one day later.
+        code = chr(10).join(
+            ln for ln in jsx.splitlines() if not ln.strip().startswith("//")
+        )
+        assert "show less" not in code.lower()

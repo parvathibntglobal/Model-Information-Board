@@ -301,17 +301,48 @@ function parentHead(g){
     merged, and there is no total for the group.</p></div><div class="igrid">`;
 }
 
+//: HOW MANY LEAVES A HEADING SHOWS BEFORE THE REST ARE FOLDED.
+//
+// ⚠ GROUPING DID NOT SHORTEN THIS PAGE AND WAS NEVER GOING TO. Every leaf
+//   still draws: capability renders 199 cards under 8 headings, metric 112
+//   under 6, and the biggest single heading holds 33 and 50. The headings made
+//   the list navigable and made it EIGHT ROWS LONGER.
+//
+// The obvious fix is to make a heading clickable, and it is refused: behind a
+// click the leaves exist only for a reader who already suspected they were
+// there, which is the reader who does not need them. The one who reads the
+// heading and moves on sees a category — a merge, which is the one thing a
+// parent must never look like.
+//
+// So the leaves stay on the page and the TAIL folds. Six is enough to show
+// what kind of thing is under a heading and short enough that eight headings
+// fit on a screen. The fold says how many it is hiding, never just "more".
+const LEAF_PREVIEW = 6;
+
 /** One grid, leaves under their headings, ungrouped leaves in their own rank. */
 function groupedGrid(groups, flat, draw){
   // NO GROUPS MEANS RENDER AS BEFORE. An older payload carries no `grouped`,
   // and a board that silently showed nothing would be worse than one that
   // shows what it always did.
   if(!groups || !groups.length) return flat.map(draw).join('');
-  return groups.map(g =>
-    g.kind === 'parent'
-      ? parentHead(g) + g.children.map(draw).join('')
-      : draw(g.leaf)
-  ).join('');
+  return groups.map(g => {
+    if(g.kind !== 'parent') return draw(g.leaf);
+    const hidden = g.children.length - LEAF_PREVIEW;
+    // THE WHOLE SET IS IN THE DOM, and the tail is hidden by a class rather
+    // than dropped. A reader who opens the page with JS broken, or reads it
+    // with a screen reader, or searches it with the browser's own find, gets
+    // every leaf — the fold is a convenience for the eye and must not be the
+    // thing that decides what exists.
+    const shown = g.children.slice(0, LEAF_PREVIEW).map(draw).join('');
+    if(hidden <= 0) return parentHead(g) + shown;
+    const rest = g.children.slice(LEAF_PREVIEW).map(draw).join('');
+    return parentHead(g) + shown
+      + `<div class="leaf-rest" data-rest="${esc(g.parent)}" hidden>${rest}</div>`
+      // NAMES THE COUNT, NOT "MORE". "+27 more" is a number a reader can
+      // decide on; "more" is a promise they have to spend a click to price.
+      + `<p class="leaf-fold"><button type="button" data-expand="${esc(g.parent)}">
+         Show the other ${hidden} under ${esc(g.name)}</button></p>`;
+  }).join('');
 }
 
 /** How much of a section has a heading. READ, NOT REMEMBERED - the ungrouped

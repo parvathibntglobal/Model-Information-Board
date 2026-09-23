@@ -272,6 +272,30 @@
   color:var(--text-2);
 }
 
+/* THE FOLDED TAIL OF A HEADING'S LEAVES.
+   `display:contents` so the hidden cards are GRID CHILDREN of `.igrid` when
+   shown - wrapping them in a block would make the whole tail one grid cell and
+   the cards would stop laying out beside their siblings. `[hidden]` has to be
+   restated because `display:contents` overrides the UA default. */
+.bv .leaf-rest{ display:contents }
+.bv .leaf-rest[hidden]{ display:none }
+
+.bv .leaf-fold{
+  grid-column:1 / -1;
+  margin:4px 0 0;
+}
+.bv .leaf-fold button{
+  background:none;
+  border:0;
+  padding:6px 0;
+  font:inherit;
+  font-size:.86rem;
+  color:var(--info);
+  cursor:pointer;
+  text-align:left;
+}
+.bv .leaf-fold button:hover{ text-decoration:underline }
+
 /* The divider between axes that compare models and axes that hold one. */
 .bv .axisdiv{
   grid-column:1 / -1;
