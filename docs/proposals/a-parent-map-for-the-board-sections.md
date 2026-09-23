@@ -186,6 +186,33 @@ could name a replacement slug. `normalise_slug`'s existing refusal to fold
 a fold, and the day someone implements parents by rewriting leaf slugs, rule 10
 has been broken.
 
+### The property all three rest on, and it is the one to state
+
+@parvathibntglobal's words, reviewing this, and it belongs in the file rather
+than in a review thread:
+
+> **A parent groups for reading and never implies the leaves are the same
+> measurement.**
+
+That sentence is what makes the three rulings above coherent rather than three
+separate prohibitions, and it is what makes **a wrong member list cheap**:
+
+> if it holds, a wrong member list costs a reader one click rather than costing
+> the board a wrong number.
+
+It answers §9's first question — the member lists cannot be reviewed by reading,
+and two readers agreeing is not validation because *"two people with the same
+priors are one prior."* The property is reviewable where the list is not, and
+the test she gives is concrete: **does a parent ever put two slugs together that
+a quote proves are different things?**
+
+Under it, `osworld-verified` beside `osworld-2` is fine and `arc-agi` beside
+`arc-agi-3` is fine — **because the parent is not a merge.** Those are four
+different measurements filed adjacently, which is what a reader needs in order
+to notice that three of them are one benchmark and one is not (#407).
+
+So it goes in the file's header as the sentence the three constraints serve.
+
 ---
 
 ## 4 · The proposed map
@@ -276,7 +303,20 @@ heading. There is deliberately no `other` parent — see ruling 2.
 #   393-slug display vocabulary onto headings, and the capability page never
 #   reads it.
 #
-# THREE CONSTRAINTS, EACH WITH A TEST RATHER THAN A CONVENTION:
+# THE PROPERTY THIS FILE EXISTS TO HOLD, AND THE ONE TO CHECK A CHANGE AGAINST:
+#
+#     A PARENT GROUPS FOR READING AND NEVER IMPLIES THE LEAVES ARE THE SAME
+#     MEASUREMENT.
+#
+#   It is why a wrong member list is cheap - it costs a reader one click, not
+#   the board a wrong number - and it is the only part of this file reviewable
+#   by reading, since the member lists are 292 slugs of one reader's judgement.
+#   The check it licenses: DOES A PARENT PUT TWO SLUGS TOGETHER THAT A QUOTE
+#   PROVES ARE DIFFERENT THINGS? `osworld-verified` beside `osworld-2` passes,
+#   because the parent is not a merge and filing them adjacently is how a
+#   reader notices three of the four are one benchmark (#407).
+#
+# THREE CONSTRAINTS SERVING IT, EACH WITH A TEST RATHER THAN A CONVENTION:
 #   1. no voice counts   - this schema has no field for one, and a test refuses
 #                          any key matching voices|n_eff|weight|score|consensus.
 #   2. no catch-all      - `forbidden_parents` below, tested; and no parent name
@@ -349,7 +389,29 @@ not.** `'Terminal-bench 4.0'` is a string in the text; no document says
 leaf can only be argued about. The catch-all risk is real and it is the one
 place where a mechanism already exists to catch it.
 
-**And `swe-bench` is a problem this file does not solve and might hide.** It
+**⚠ And grouping benchmarks makes the #368 class MORE visible, not less.**
+@parvathibntglobal's point on review, and it is close to the opposite of the
+worry I raise below:
+
+> `osworld`, `osworld-2`, `osworld-2-0` and `osworld-verified` are four slugs,
+> three of them one benchmark, and **only the quotes can tell you which**. A
+> `benchmark` parent would at least put them adjacent for the person who has to
+> read them.
+
+**Both are true, of different failure modes**, and naming which is which is the
+useful part:
+
+| | what it looks like | what a parent does |
+|---|---|---|
+| **dispersion** — one benchmark scattered across several slugs | `osworld` · `osworld-2` · `osworld-2-0` · `osworld-verified` | **surfaces it.** Four headings become four adjacent rows under one parent, and the reader who has to rule on them sees all four at once instead of in four places |
+| **over-merge** — one slug holding several benchmarks | `swe-bench`, 39 rows naming nine different measurements | **does nothing, and looks tidier for it.** The defect is inside a single leaf; a heading above it adds an organised-looking layer over an unorganised leaf |
+
+So the file helps with exactly half of #368 and the half it helps with is the
+half nobody had a surface for. It is not a reason to expect it to help with the
+other half, which is the next paragraph.
+
+**And `swe-bench` is the over-merge half: a problem this file does not solve
+and might hide.** It
 holds 39 rows whose quotes name OSWorld-2.0, Terminal-Bench 4.0,
 AutomationBench, CursorBench 3.2.0, DeepSWE v1.1, SWE-Bench Pro and SWE-bench
 Verified — nine different measurements under one slug (#368). Putting it under
@@ -382,10 +444,21 @@ wrong under any parent. Nothing in this file repairs a leaf.
 1. **Are the member lists right?** They are one reader's judgement over 292
    slugs and nobody has checked them. The measurement is reproducible; the
    clustering is not a measurement.
-2. **Is `benchmark` acceptable, given §7?** I think yes and I would not argue
-   hard.
-3. **Does `best_for` even need parents,** given all 77 slugs fit five and
-   `coding-agent` alone is 142 of 282 entries?
+2. ~~**Is `benchmark` acceptable, given §7?**~~ **ANSWERED on review: yes**, on
+   the reason given, and #407 strengthens rather than weakens it. §7 now
+   carries the visibility half.
+3. ~~**Does `best_for` even need parents?**~~ **ANSWERED on review: no, and
+   parents would make it worse.** One slug is half the section and the other 76
+   have a median of one entry, so a parent map there groups a long tail nobody
+   reads and leaves the actual defect untouched. **`best_for` wants
+   `coding-agent` split, not a tier above it.** That is a leaf repair, out of
+   scope here, and filed as **#412** — the scoping was hers and it is right.
+
+   ⚠ **This changes the proposal**: `best_for` parents are now proposed as
+   **deferred, not adopted**, pending that split. The capability and metric maps
+   stand. Adding five parents over a section whose real problem is one
+   50%-share leaf would be the tidiness-mistaken-for-a-fix that §7 warns about,
+   one section over.
 4. **Should the file carry the leaf counts** as a dated record, per rule 11?
    My inclination is **no** — a count in a config file rots exactly the way
    rule 11 describes, and the count is recomputable from `board_entry` at any
@@ -399,6 +472,18 @@ wrong under any parent. Nothing in this file repairs a leaf.
 The first measurement was taken at **05:55Z** and said `capability 710 entries`.
 The script was re-run at **06:40Z** and said **712** — `agentic` moved 79 to 81.
 Forty-five minutes.
+
+**It moved again while the PR sat.** @parvathibntglobal read **716** on review,
+and a re-run here confirms it:
+
+```
+05:55Z   capability 710
+06:40Z   capability 712      +2   while this document was being written
+06:42Z   capability 716      +4   while the PR sat, unreviewed, for two minutes
+```
+
+`metric` moved further in the same window — 534 to **563**. Three readings,
+three answers, and nobody did anything wrong.
 
 Two other machines were extracting into staging in that window:
 
