@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { adminStages } from '../api'
 import { Badge, Notice } from './ui'
 import { IconAlert, IconLayers } from './Icons'
+import PipelinePanel from './PipelinePanel'
 
 /**
  * What happens at each stage of a fetch, in words.
@@ -265,6 +266,20 @@ export default function StagesPanel() {
             list: {data.source_of_list} · words: {data.source_of_words}
           </span>
         )}
+
+        {/* ⚠ THE COUNTS BELOW THE WORDS, IN ONE SECTION RATHER THAN TWO.
+            This panel says what each stage is FOR and deliberately shows no
+            figures; `/admin/pipeline` says how many rows are sitting at each.
+            They were two admin sections asking one question in two halves, and
+            a reader wanting "what is E4 and how much is in it" had to hold one
+            page in their head while reading the other.
+
+            The no-figures rule above is unchanged and is why this is a
+            SEPARATE BLOCK with its own heading rather than a column added to
+            the rail: a count beside a description invites reading the
+            description as an explanation of the count. */}
+        <hr style={{ border: 0, borderTop: '1px solid var(--border-soft)', margin: '4px 0' }} />
+        <PipelinePanel />
       </div>
     </section>
   )
