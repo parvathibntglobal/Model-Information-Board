@@ -354,6 +354,41 @@ def weights() -> dict[str, float]:
     return {name: float(configured[name]) for name in COMPONENTS}
 
 
+def score_if_version_inherited(own: Specificity) -> float:
+    """The composite this document would score if its THREAD named the version.
+
+    ⚠ A FLOAT, NEVER A `Specificity`, AND THAT IS THE WHOLE SAFETY OF IT. A
+      `Specificity` carries `as_row()`, so returning one would put an inherited
+      `names_version` a single call away from the `document` table — where it
+      would assert that this comment's own text names a version. It does not.
+      A number cannot be written to a boolean column by accident.
+
+    WHY INHERIT AT ALL. A reply saying "it still drops the tool call at 40k"
+    is about whatever the root was about, and scoring it as though the subject
+    were unknown is a defect in the SCORE that ranking then reports faithfully
+    (#307: 84% of replies score zero, so the ranking orders them by nothing).
+
+    The permission is the 2026-09-08 thread-subject ruling, and this follows
+    `TriageRun.subject_inherited` rather than inventing a second convention:
+    the caller is expected to COUNT what inherited, because a population of
+    ranked children that pools inherited and own-text subjects is a figure
+    about two different reading units.
+
+    An own `names_version` returns the own score unchanged — inheriting on top
+    of a component already counted would double it.
+    """
+    if own.names_version:
+        return own.score
+    w = weights()
+    total = sum(w.values())
+    if total <= 0:
+        raise SpecificityContractError(
+            "`specificity.weights` sum to zero, which would score every "
+            "document identically."
+        )
+    return own.score + w["names_version"] / total
+
+
 def floor_components() -> tuple[str, ...]:
     """Which components clear the floor, from the contract."""
     configured = _contract().get("floor_clears_on")
