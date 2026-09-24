@@ -2589,6 +2589,38 @@ def main(argv: list[str] | None = None) -> int:
         prog.done("error", "no database configured")
         return 1
 
+    # ⚠ THE WRITEGUARD, BEFORE ANYTHING OPENS A CONNECTION (#328). This script
+    #   runs E5-E7 in process and writes `claim`, `board_entry` and `cell` to
+    #   whatever DATABASE_URL names — and it did not pass the guard at all,
+    #   because the guard sits in `judge/cli.py`'s connection helper and this
+    #   file composes the pipeline itself through a lazy in-function import.
+    #
+    #   THE COVERAGE WAS INVERTED WITH RESPECT TO RISK. `judge rebuild-cells`
+    #   was refused: it derives `cell` from claims already stored, adds no new
+    #   information, and spends nothing. This path ORIGINATES the claims, pays
+    #   a model to do it, and was not checked. A guard that stops the
+    #   recomputation and permits the origination is calibrated to nothing.
+    #
+    #   The four runs that wrote before this existed were not wrong to write —
+    #   their rows are derived evidence, not `seed` or `hand_curated`, so the
+    #   contamination the guard exists to stop did not occur. The defect was
+    #   that nothing checked, for a structural reason rather than a judgement
+    #   anybody made per run.
+    #
+    #   Refused HERE rather than at each write site: a refusal that arrives
+    #   after E2 has harvested and E5 has paid for extraction is a refusal
+    #   that costs money to deliver.
+    from judge.writeguard import UnsafeWriteRefused
+    from judge.writeguard import check as writeguard_check
+
+    try:
+        writeguard_check(dsn, command=f"fetch_model {args.model_version_id}")
+    except UnsafeWriteRefused as refusal:
+        prog.stage("E1", "Registry", "error", detail=str(refusal).splitlines()[0])
+        prog.done("error", "refused: unsafe write target")
+        print(refusal, file=sys.stderr)
+        return 1
+
     try:
         db = _Db(dsn)  # NO drop, NO disposability wipe — append-only
         conn = db.raw

@@ -95,6 +95,14 @@ def main() -> int:
     mode.add_argument("--apply", action="store_true")
     args = ap.parse_args()
 
+    # THE WRITEGUARD, BEFORE THE CONNECTION (#328). This script writes to
+    # whatever DATABASE_URL names, and the guard that refuses
+    # ENVIRONMENT=development pointed at a shared database lived only in
+    # `judge/cli.py`'s connection helper - which a script in `scripts/` never
+    # passes through.
+    from judge.writeguard import check as writeguard_check
+    writeguard_check(os.environ.get("DATABASE_URL"), command="repair_board_entry_quotes.py")
+
     reader = RawStoreReader(RawStore(settings().raw_store_path))
     conn = psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=10)
 
