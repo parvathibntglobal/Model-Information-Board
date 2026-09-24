@@ -203,3 +203,36 @@ class TestTheBilledCostIsRecordedNotComputed:
         partial = line(reported_costs=[0.00151, None])
         assert "billed $" not in partial
         assert "not reported for every call" in partial
+
+
+class TestAFailedAttemptIsNotHiddenInsideTheBill:
+    """A retried attempt (#399) never becomes a Completion, so it is ABSENT
+    from `reported_costs`, not None in it - and `all(...)` cannot see an
+    element that was never appended. The line names what it leaves out."""
+
+    def test_a_recovered_thread_says_its_failed_attempts_are_not_in_the_sum(self):
+        line = TestTheThreadLinePrintsIt()._line(reported_costs=[0.00119], failed_attempts=1)
+        assert "billed $0.001190 + 1 failed attempt(s) not reported" in line
+
+    def test_a_clean_thread_prints_the_bill_alone(self):
+        line = TestTheThreadLinePrintsIt()._line(reported_costs=[0.00119])
+        assert "failed attempt" not in line
+
+    def test_the_pipeline_result_carries_the_count(self):
+        from judge.pipeline import PipelineResult
+
+        assert "failed_attempts" in PipelineResult.__dataclass_fields__
+        assert PipelineResult.__dataclass_fields__["failed_attempts"].default == 0
+
+    def test_the_retry_loop_sets_it_from_the_attempt_that_succeeded(self):
+        """Source-level, in the style of test_one_bad_response_ends_a_thread:
+        the count is taken inside the retry loop, from the attempt number, on
+        the success path - so attempt 2 succeeding records 1 failure."""
+        import pathlib
+
+        src = (pathlib.Path(__file__).resolve().parents[1] / "judge" / "pipeline.py").read_text(
+            encoding="utf-8")
+        loop = src[src.index("for attempt in range(1, EXTRACT_ATTEMPTS + 1):"):]
+        success = loop[:loop.index("except ExtractionRefused")]
+        assert "result.failed_attempts = attempt - 1" in success
+        assert success.index("result.failed_attempts") < success.index("break")

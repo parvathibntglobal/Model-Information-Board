@@ -263,9 +263,21 @@ def thread(record: dict) -> list[str]:
     # BILLED, AS OPENROUTER REPORTED IT, beside the `$` above - which is tokens
     # times a constant and says so in the run box (#381). Printed only when
     # every call reported a figure: a partial sum would read as the total.
+    #
+    # ⚠ `all(...)` CAN ONLY SEE CALLS THAT WERE APPENDED. An attempt that raised
+    #   `ExtractorUnavailable` and was retried (#399) never became a Completion,
+    #   so it is absent from the list rather than None in it - and the sum would
+    #   pass the guard while missing it. `failed_attempts` is the count the list
+    #   cannot hold, and the line says so rather than calling a partial sum the
+    #   bill. What those attempts cost is unknown: a failed call's charge is not
+    #   documented (#381), and it writes no ledger row (#393).
     billed = record.get("reported_costs") or []
+    failed = record.get("failed_attempts") or 0
     if billed and all(b is not None for b in billed):
-        cost.append(f"billed ${sum(billed):.6f}")
+        figure = f"billed ${sum(billed):.6f}"
+        if failed:
+            figure += f" + {failed} failed attempt(s) not reported"
+        cost.append(figure)
     elif billed:
         cost.append("billed: not reported for every call")
     if cost:

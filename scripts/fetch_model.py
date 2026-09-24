@@ -2253,6 +2253,10 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             upstreams=run.upstreams or None,
             generation_ids=run.generation_ids or None,
             reported_costs=run.reported_costs or None,
+            # The attempts `reported_costs` cannot hold: retried after
+            # ExtractorUnavailable, so never a Completion. See
+            # `PipelineResult.failed_attempts`.
+            failed_attempts=result.failed_attempts or None,
         )
 
     # THE STOP BUTTON REACHES INSIDE A THREAD, WHICH IT DID NOT.
