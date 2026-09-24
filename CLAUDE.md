@@ -756,15 +756,20 @@ Load-bearing during the build and poisonous afterwards.
 |---|---|---|
 | `contract/seed_models.yaml` | 10 hardcoded models so work starts without the registry poller | When OpenRouter polling lands |
 
-**The shared database is 344 `model_version` rows at `provenance='polled'`
-and FOUR at `provenance='seed'`, with 65 claims and 11 cells pointing at those
-four (measured 2026-09-21, #382).** The file has NOT been removed, because code
+**The shared database carries NO `provenance='seed'` row.** The four that did
+are now `unpolled`, which is what they always were (#382, below). That is
+stated as a rule rather than a count, because this row has already been wrong
+in both directions — read it with
+`SELECT provenance, count(*) FROM model_version GROUP BY 1`. The file has NOT
+been removed, because code
 still references it (the seed loader, and `scripts/fetch_model.py`'s alias
 fallback), so a fresh or local DB can still be seeded. A fixture nobody loaded
 looks identical from the file to a fixture nobody removed, which is why this
-row carries the count rather than only the trigger.
+row names the query rather than only the trigger.
 
-⚠ **THE FOUR ARE NOT FIXTURES, AND THAT IS THE DEFECT.** This line read "ZERO
+⚠ **THE FOUR WERE NOT FIXTURES, AND THAT WAS THE DEFECT.** Kept in the past
+tense as a record of what happened, not as a statement about the database
+today. This line read "ZERO
 `seed` (verified 2026-08-28)" until 2026-09-21, and went stale on 09-15 and
 again on 09-17 when Recraft V4.1 Pro, ElevenLabs v3, Qwen3.5 Omni Flash and
 Gemini 3.8 Flash were seated by `3e1c343` and `dc45b47`. They are real models
@@ -779,9 +784,24 @@ by its own definition and wrongly by intent. Three contract files fed that one
 value (`seed_models.yaml`, `unpolled_models.yaml`, `awaiting_poll_models.yaml`),
 each added to dodge a load refusal rather than to mean something different.
 
-**`unpolled` is the third value, and it lands in two steps.** The CHECK, the
-loader and the guard ship as code; the four rows convert when somebody runs the
-migration.
+**`unpolled` is the third value, and both steps have landed.** The CHECK, the
+loader and the guard shipped as code, and the migration has been run:
+`provenance` on this database is now `polled` and `unpolled` with **no `seed`
+row at all**, so `assert_no_fixtures` refuses nothing it should permit.
+
+⚠ **DO NOT REPLACE THAT WITH A COUNT.** This row has now been wrong in BOTH
+directions — it claimed zero seeded rows while four existed, and it would
+claim four while zero exist. The state is a property of the database, not of
+this file, and the query is one line:
+
+```sql
+SELECT provenance, count(*) FROM model_version GROUP BY 1;
+```
+
+What this file owns is the *rule*: `seed` means build fixture and nothing
+else, `unpolled` means hand-entered and never going to be polled, and a model
+that is real but unlistable must never be labelled with the word that means
+fixture.
 
 ```
 20260923T0500_model_version_unpolled_provenance.sql
