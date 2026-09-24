@@ -2576,6 +2576,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--fetch-cap", type=int, default=20,
                         help="max GitHub REST calls this fetch may spend (default 20)")
+    parser.add_argument(
+        "--development-write", action="store_true",
+        help="replace judge/writeguard.py's ENVIRONMENT proxy with the check it "
+             "stands in for: refuse if THIS model_version is a seeded "
+             "(build-fixture) row. Same shape as run_extraction_batched.py's "
+             "flag (#383). A caller who does not pass it gets the writeguard "
+             "unchanged.",
+    )
     args = parser.parse_args(argv)
 
     run_id = args.run_id or f"{args.model_version_id}-{uuid.uuid4().hex[:8]}"
@@ -2589,11 +2597,64 @@ def main(argv: list[str] | None = None) -> int:
         prog.done("error", "no database configured")
         return 1
 
+    # ⚠ THE WRITEGUARD, BEFORE ANYTHING OPENS A CONNECTION (#328). This script
+    #   runs E5-E7 in process and writes `claim`, `board_entry` and `cell` to
+    #   whatever DATABASE_URL names — and it did not pass the guard at all,
+    #   because the guard sits in `judge/cli.py`'s connection helper and this
+    #   file composes the pipeline itself through a lazy in-function import.
+    #
+    #   THE COVERAGE WAS INVERTED WITH RESPECT TO RISK. `judge rebuild-cells`
+    #   was refused: it derives `cell` from claims already stored, adds no new
+    #   information, and spends nothing. This path ORIGINATES the claims, pays
+    #   a model to do it, and was not checked. A guard that stops the
+    #   recomputation and permits the origination is calibrated to nothing.
+    #
+    #   The four runs that wrote before this existed were not wrong to write —
+    #   their rows are derived evidence, not `seed` or `hand_curated`, so the
+    #   contamination the guard exists to stop did not occur. The defect was
+    #   that nothing checked, for a structural reason rather than a judgement
+    #   anybody made per run.
+    #
+    #   Refused HERE rather than at each write site: a refusal that arrives
+    #   after E2 has harvested and E5 has paid for extraction is a refusal
+    #   that costs money to deliver.
+    # ⚠ AND `--development-write` IS WHY THIS IS A BRANCH RATHER THAN A CALL.
+    #   `check()` refuses ENVIRONMENT=development against a remote database,
+    #   which is how every fetch against staging is run today - all five runs
+    #   of #432, and the admin page's Fetch button with the backend local. A
+    #   bare guard here would leave exactly one way through, the
+    #   `ENVIRONMENT=staging` edit the refusal message itself disowns, and that
+    #   edit is invisible: nothing records that somebody made it.
+    #
+    #   So the flag swaps the PROXY for the CONDITION it stands in for, per
+    #   run, and prints itself into the run log. Same shape as
+    #   `run_extraction_batched.py`'s (#383, ruled on #328). The condition for
+    #   this path is narrow and exact: a fetch writes derived evidence about
+    #   ONE model, so the only fixture exposure it can have is that model being
+    #   a seeded row. Checked below, once the registry row is in hand and still
+    #   before E2 harvests anything.
+    from judge.writeguard import UnsafeWriteRefused
+    from judge.writeguard import check as writeguard_check
+
+    if not args.development_write:
+        try:
+            writeguard_check(dsn, command=f"fetch_model {args.model_version_id}")
+        except UnsafeWriteRefused as refusal:
+            prog.stage("E1", "Registry", "error", detail=str(refusal).splitlines()[0])
+            prog.done("error", "refused: unsafe write target")
+            print(refusal, file=sys.stderr)
+            return 1
+    else:
+        print("write gate  : --development-write, so judge/writeguard.py's "
+              "ENVIRONMENT proxy is replaced by the seeded-model check below "
+              "(#328, #383)", file=sys.stderr)
+
     try:
         db = _Db(dsn)  # NO drop, NO disposability wipe — append-only
         conn = db.raw
         row = conn.execute(
-            "SELECT canonical_id, display_name, release_date FROM model_version WHERE id = %s",
+            "SELECT canonical_id, display_name, release_date, provenance "
+            "FROM model_version WHERE id = %s",
             (args.model_version_id,),
         ).fetchone()
         if row is None:
@@ -2601,7 +2662,26 @@ def main(argv: list[str] | None = None) -> int:
                        detail=f"{args.model_version_id} is not in the registry")
             prog.done("error", "unknown model")
             return 1
-        canonical_id, display_name, release_date = row
+        canonical_id, display_name, release_date, provenance = row
+
+        # ── THE FIXTURE-EXPOSURE CHECK, when the flag replaced the proxy ────
+        # BEFORE E2, because a harvest already run is a harvest already paid
+        # for in rate limit, and before E5, which costs money. Refuses by
+        # naming the model, so the answer is actionable.
+        #
+        # The database is NOT fixture-clean, which is why this is live rather
+        # than theoretical: `model_version` rows carry provenance='seed' with
+        # claims and cells already pointing at them (#382).
+        if args.development_write and provenance == "seed":
+            detail = (
+                f"refusing: {display_name or canonical_id} is a seeded "
+                f"(build-fixture) model_version, and --development-write "
+                f"replaced the ENVIRONMENT proxy with exactly this check"
+            )
+            prog.stage("E1", "Registry", "error", detail=detail)
+            prog.done("error", "refused: seeded model")
+            print(detail, file=sys.stderr)
+            return 1
         variants = _variants_for(conn, args.model_version_id, canonical_id)
         prog.stage("E1", "Registry", "ok",
                    model=display_name or canonical_id, variants=len(variants),

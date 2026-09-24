@@ -398,6 +398,12 @@ def main() -> int:
         print(json.dumps({"error": "DATABASE_URL is not set in this process."}))
         return 1
 
+    # THE WRITEGUARD, BEFORE THE CONNECTION (#328). This writes registry rows
+    # to whatever DATABASE_URL names, and the guard lived only in
+    # `judge/cli.py`'s connection helper, which a script never passes through.
+    from judge.writeguard import check as writeguard_check
+    writeguard_check(url, command="propose_model.py")
+
     with psycopg.connect(url, connect_timeout=15) as conn:
         if args.recallable:
             out = _recallable(conn)
