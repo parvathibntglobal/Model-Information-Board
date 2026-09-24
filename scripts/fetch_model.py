@@ -1662,10 +1662,30 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=()):
     #: name them - "deferred to the nightly batch" is only honest if somebody
     #: can see WHICH threads are waiting.
     oversized: list[str] = []
+    #: Threads whose flattened payload this machine could not read (#303).
+    #:
+    #: ⚠ COUNTED, BECAUSE SKIPPING THEM SILENTLY NARROWS THE RUN'S OWN INPUT.
+    #:   `continue` here is right - a payload harvested on another machine is
+    #:   genuinely not this fetch's thread - but it left NO TRACE in a run
+    #:   log, so a fetch that skipped a third of its candidates reported the
+    #:   same way as one that skipped none. That is rule 4 at the selection
+    #:   step: an absence this run caused, invisible in what the run says.
+    #:
+    #:   Measured 2026-09-15: 151 of 4,144 `thread_context` rows (3.6%) had
+    #:   unreadable flattened text on one laptop - hackernews 58, devto 56,
+    #:   reddit 25, huggingface 10, blog 1. And 4 of the 20 threads behind the
+    #:   `cost.*` claims are in that set, so a re-extraction for #300 would
+    #:   have skipped them without saying so.
+    #:
+    #:   NOT an error and not a repair: the store cannot tell a lost blob from
+    #:   one written elsewhere and never synced, and neither can this. The
+    #:   count says what happened here, which is all either of them knows.
+    unreadable: list[str] = []
     for tc_id, flat_ref, omap, members in rows:
         try:
             flattened = store.get_text(flat_ref)
         except Exception:
+            unreadable.append(tc_id)
             continue  # payload not on this machine — not this fetch's thread
         # THE LEDGER DECIDES, AGAINST THE TEXT. The query excluded the threads
         # read at this version WITH a fingerprint recorded; what reaches here
@@ -1806,7 +1826,7 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=()):
         1 for t in inputs
         if t.thread_context_id in own_ids and t.thread_context_id not in naming_set
     )
-    return inputs, doc_ids, gated_out, oversized, (named, from_own_harvest)
+    return inputs, doc_ids, gated_out, oversized, unreadable, (named, from_own_harvest)
 
 
 def _thread_latest_dates(conn, thread_ids: list[str]) -> dict:
@@ -2057,7 +2077,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
                detail="scanning unread threads for this model's surfaces "
                       "(local reads, no network)")
     naming = threads_naming_the_model(conn, store, surfaces)
-    threads, doc_ids, gated_out, oversized, (named, own) = build_thread_inputs(
+    threads, doc_ids, gated_out, oversized, unreadable, (named, own) = build_thread_inputs(
         conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming)
     # SAID, NOT IMPLIED. A run that reads 50 threads of which 2 name the model
     # whose page was clicked has done almost nothing for it, and "50 thread(s)
@@ -2076,13 +2096,30 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # `limit` rows, so landing exactly on it means there was more to read.
     # Rule 4 — a caused absence must say it was caused.
     cap_bound = len(threads) >= MAX_FETCH_THREADS
+    # ⚠ THREADS THIS MACHINE COULD NOT READ, ON THE LINE THAT REPORTS WHAT WAS
+    #   SELECTED (#303). Skipping them is correct — a payload harvested
+    #   elsewhere is not this fetch's thread — but it left no trace, so a run
+    #   that skipped a third of its candidates reported identically to one
+    #   that skipped none. Said only when it happened; a permanent "0
+    #   unreadable" is furniture.
+    #
+    #   Deliberately NOT called corruption. The store cannot tell a lost blob
+    #   from one written on another machine and never synced, and neither can
+    #   this line.
+    unreadable_note = (
+        f" {len(unreadable)} more were not readable on this machine and were "
+        f"skipped — their payloads were harvested elsewhere, or are lost; "
+        f"nothing here can tell which (#303)."
+        if unreadable else ""
+    )
     prog.stage("E5", "Extract", "running",
                threads_naming_the_model=named, threads_from_own_harvest=own,
                threads_from_backlog=backlog, unread_naming_the_model=len(naming),
+               threads_unreadable_here=len(unreadable),
                thread_cap=MAX_FETCH_THREADS, cap_reached=cap_bound,
                detail=f"{len(threads)} thread(s) selected — {named} name this model "
                       f"(of {len(naming)} unread that do), {own} from this run's own "
-                      f"harvest, {backlog} from the backlog. "
+                      f"harvest, {backlog} from the backlog.{unreadable_note} "
                       + (f"THE CAP OF {MAX_FETCH_THREADS} STOPPED THIS — there is more "
                          f"to read, and clicking Fetch again continues from here "
                          f"(FETCH_MAX_THREADS raises it)."
