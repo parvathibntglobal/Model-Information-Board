@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { pipelineStatus, BoardUnreadable } from '../api'
 import { Badge, Notice, Unreadable } from './ui'
-import { IconAlert, IconLayers } from './Icons'
+import { IconAlert } from './Icons'
 
 /**
  * The evidence pipeline, stage by stage. COUNTS, not money — the sibling of
@@ -29,11 +29,6 @@ const TONE = {
   mute: 'var(--surface-3))',
 }
 
-// job_run.outcome → badge tone. 'refused' is a deliberate decline (a gate, a
-// missing input), NOT an error — it must not render red (schema comment).
-const OUTCOME_TONE = { ok: 'pass', refused: 'warn', error: 'fail' }
-
-const when = (ts) => (ts ? ts.replace('T', ' ').slice(0, 16) : '—')
 
 export default function PipelinePanel() {
   const [data, setData] = useState(null)
@@ -59,38 +54,43 @@ export default function PipelinePanel() {
     }
   }, [])
 
+  // ⚠ E1-E7 ONLY, AND THE TWO THAT GO ARE NOT COUNTS OF A FETCH.
+  //   E8 (`cell -> label_change`) has never run, so its row said "not run yet"
+  //   in a list where every other row is a number. E9 (`last_swept_at`) counts
+  //   how stale the REGISTRY is - a real fact, and not a stage a fetch passes
+  //   through, so it read as an eighth step that does not exist.
+  //
+  //   They are still in the payload. Removed from this view, not from the
+  //   endpoint, because "never run" is a fact somebody may want to surface
+  //   deliberately rather than beside seven throughput numbers.
+  const stages = (data?.stages || []).filter((s) => !['E8', 'E9'].includes(s.id))
+
   return (
-    <section className="card card-flush">
-      <div className="card-head">
-        <span className="eyebrow">
-          <IconLayers width={14} height={14} /> Evidence pipeline — stage by stage
-        </span>
-        {data?.pipeline_version && <span className="label">{data.pipeline_version}</span>}
-      </div>
-      <div className="card-body stack stack-3">
-        {unreadable && <Unreadable detail={unreadable} compact />}
-        {err && <Notice icon={<IconAlert />}>{err}</Notice>}
-        {!data && !err && !unreadable && <div className="skel" style={{ height: 200 }} />}
+    <div className="stack stack-3">
+      {unreadable && <Unreadable detail={unreadable} compact />}
+      {err && <Notice icon={<IconAlert />}>{err}</Notice>}
+      {!data && !err && !unreadable && <div className="skel" style={{ height: 160 }} />}
 
-        {data && (
-          <>
-            <p className="muted" style={{ margin: 0 }}>{data.summary}</p>
+      {data && (
+        <>
+          <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
+            <span className="label">How many rows are sitting at each stage</span>
+            {data.pipeline_version && (
+              <span className="dim mono" style={{ fontSize: 11 }}>{data.pipeline_version}</span>
+            )}
+          </div>
+          <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch',
+                                      margin: 0, lineHeight: 1.6 }}>
+            The same stages described above, as counts. Every figure is counted rather than
+            derived, and a stage with no rows reports as not-yet-run rather than a clean zero.
+          </p>
 
-            <div className="stack stack-3">
-              {data.stages.map((s) => <Stage key={s.id} s={s} />)}
-            </div>
-
-            {/* THE DISCARDS THIS PANEL CANNOT COUNT, said once rather than
-                faked as a zero on every affected stage. */}
-            {data.caveats?.map((c, i) => (
-              <p key={i} className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{c}</p>
-            ))}
-
-            <RunLedger runs={data.runs} measured={data.runs_measured} />
-          </>
-        )}
-      </div>
-    </section>
+          <div className="stack stack-3">
+            {stages.map((s) => <Stage key={s.id} s={s} />)}
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -152,60 +152,3 @@ function Stage({ s }) {
   )
 }
 
-function RunLedger({ runs, measured }) {
-  // Two different silences, kept apart. Unreadable = the ledger table is not on
-  // this database; empty = it is there and nothing has run. Neither is allowed
-  // to vanish into a missing section (rule 4).
-  if (!measured) {
-    return (
-      <div className="stack stack-1">
-        <span className="label">Last run per stage</span>
-        <span className="muted" style={{ fontSize: 'var(--fs-sm)' }}>
-          The <code>job_run</code> ledger could not be read on this database — the run
-          history is unavailable, which is not the same as no runs.
-        </span>
-      </div>
-    )
-  }
-  if (!runs.length) {
-    return (
-      <div className="stack stack-1">
-        <span className="label">Last run per stage</span>
-        <span className="muted" style={{ fontSize: 'var(--fs-sm)' }}>
-          No pass recorded yet — <code>job_run</code> is empty. The pipeline has run
-          nothing on this database, which is different from a pass that did nothing.
-        </span>
-      </div>
-    )
-  }
-  return (
-    <div className="stack stack-2">
-      <span className="label">Last run per stage — job_run ledger</span>
-      {runs.map((r) => {
-        const io = [
-          r.items_in != null ? `${r.items_in} in` : null,
-          r.items_out != null ? `${r.items_out} out` : null,
-        ].filter(Boolean).join(' → ')
-        return (
-          <div key={r.stage} className="row-between" style={{ gap: 10, flexWrap: 'wrap' }}>
-            <div className="row" style={{ gap: 8 }}>
-              <strong style={{ fontSize: 'var(--fs-xs)' }}>{r.stage}</strong>
-              {r.running
-                ? <Badge tone="mute">not finished</Badge>
-                : <Badge tone={OUTCOME_TONE[r.outcome] || 'mute'}>{r.outcome || 'unknown'}</Badge>}
-            </div>
-            <span className="dim" style={{ fontSize: 11 }}>
-              {io && <>{io} · </>}
-              {when(r.started_at)}
-              {r.finished_at && !r.running ? ` → ${when(r.finished_at)}` : ''}
-            </span>
-          </div>
-        )
-      })}
-      <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-        “not finished” is a stage still running or killed, never a reported failure — a
-        crash and a refusal are opposite repairs, so they are not both shown as red.
-      </span>
-    </div>
-  )
-}
