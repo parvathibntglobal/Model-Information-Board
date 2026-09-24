@@ -161,6 +161,36 @@ class TestEveryDatabaseScriptIsGuardedOrDeclared:
         source = (SCRIPTS / "fetch_model.py").read_text(encoding="utf-8")
         assert _calls_the_writeguard(source)
 
+    def test_the_originating_path_has_a_named_escape_flag(self):
+        """⚠ A BARE GUARD GETS STEPPED AROUND, AND THE STEP-AROUND IS
+        INVISIBLE. Ruled by @anoojntglobal-sudo on #328: `check()` refuses
+        ENVIRONMENT=development against a remote database, which is how every
+        fetch against staging is run — so a guard with no flag leaves exactly
+        one way through, the `ENVIRONMENT=staging` edit the refusal message
+        itself disowns, and nothing records that somebody made it.
+
+        `--development-write` swaps the proxy for the condition it stands in
+        for, per run, and prints itself into the run log."""
+        source = (SCRIPTS / "fetch_model.py").read_text(encoding="utf-8")
+        assert '"--development-write"' in source
+        assert "args.development_write" in source
+
+    def test_the_flag_replaces_the_proxy_rather_than_removing_the_check(self):
+        """⚠ THE FAILURE MODE OF AN ESCAPE FLAG IS THAT IT ESCAPES EVERYTHING.
+        The flag's whole justification is that it keeps a check — a narrower
+        and exact one — so a version that only skipped the writeguard would be
+        the bypass wearing the ruling's clothes."""
+        source = (SCRIPTS / "fetch_model.py").read_text(encoding="utf-8")
+        assert 'provenance == "seed"' in source
+        assert "refused: seeded model" in source
+
+    def test_the_seeded_check_runs_before_the_harvest_too(self):
+        """Same reason as the proxy: a harvest already run is rate limit
+        already spent, and E5 after it costs money."""
+        source = (SCRIPTS / "fetch_model.py").read_text(encoding="utf-8")
+        body = source[source.index("def main(argv"):]
+        assert body.index('provenance == "seed"') < body.index("harvest_github(")
+
     def test_the_guard_runs_before_anything_is_harvested_or_paid_for(self):
         """A refusal that arrives after E2 has harvested and E5 has paid for
         extraction is a refusal that costs money to deliver."""
