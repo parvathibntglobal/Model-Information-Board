@@ -64,6 +64,8 @@ READ_ONLY: dict[str, str] = {
     "dump_keywords.py": "prints what each platform is sent; no write verb",
     "measure_key_constraint.py": "measurement only; no write verb",
     "measure_signal_demotion_platforms.py": "measurement only; no write verb",
+    "registry_diff.py": ("diffs the catalogue against model_version for #450; one SELECT, "
+                         "over a default_transaction_read_only connection; no write verb"),
     "triage_stored_corpus.py": "re-triages in memory and reports; no write verb",
     "write_report.py": "writes a FILE, not the database; no SQL write verb",
 }
