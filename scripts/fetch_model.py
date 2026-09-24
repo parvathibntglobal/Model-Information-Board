@@ -2310,7 +2310,14 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     conn.commit()
 
     verified = sum(len(r.extraction.verified) for r in results)
-    stored = sum(len(r.stored_claim_ids) for r in results)
+    # ROWS, NOT UPSERTS (#444). `len(stored_claim_ids)` counts writes, and
+    # two claims hashing to one id are two writes and one row - 35-49% of
+    # them on today's batch, because e5.5 leaves `capability_key` empty and
+    # it is part of the hash. `merged` is the difference, reported rather
+    # than hidden: which of two colliding claims survives depends on
+    # extraction order.
+    stored = sum(r.stored_claims for r in results)
+    merged = sum(r.merged_claims for r in results)
     cells = sum(len(r.cells) for r in results)
     # THREADS WE CUT OFF, NAMED ON THE LINE THAT REPORTS THE HARVEST.
     #
@@ -2325,6 +2332,10 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     truncated = [r.extraction.thread_context_id for r in results
                  if r.extraction.truncated]
     detail = f"{verified} claim(s) verified, {stored} stored"
+    # THE DIFFERENCE BETWEEN WRITES AND ROWS, ON THE LINE THAT REPORTS THE
+    # ROWS (#444). Said only when it happened.
+    if merged:
+        detail += f", {merged} merged into an existing row"
     if truncated:
         detail += (
             f"; {len(truncated)} of {len(results)} thread(s) STOPPED AT THE "

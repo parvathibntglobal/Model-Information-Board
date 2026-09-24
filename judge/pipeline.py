@@ -479,7 +479,43 @@ class PipelineResult:
     """What one thread produced, all the way through."""
 
     extraction: ExtractionRun
+    #: ⚠ ONE ENTRY PER UPSERT, NOT PER ROW THE TABLE GAINED (#444). The id is
+    #:   a content hash of `(thread_context_id, source_comment_id,
+    #:   capability_key, quote_flat_offset, pipeline_version)`, and the write
+    #:   is `ON CONFLICT ... DO UPDATE` - so two claims hashing the same way
+    #:   append twice here and leave ONE row behind, with the second
+    #:   overwriting the first's quote, polarity and conditions.
+    #:
+    #:   Measured by @anoojntglobal-sudo across today's batch: E5 reported 154
+    #:   stored against +100 rows, 166 against +84, 89 against +50 - a gap of
+    #:   35-49%. Under e5.4 the same gap was 14% (#386). The counter did not
+    #:   change; `capability_key` did. It is empty on 306 of 308 e5.5 claims,
+    #:   so two claims on one span that used to differ by key now hash
+    #:   identically.
+    #:
+    #:   USE `stored_claims` AND `merged_claims` BELOW rather than the length
+    #:   of this list. The raw list is kept because the ORDER is the evidence:
+    #:   which of two colliding claims survived depends on extraction order,
+    #:   and that is unreconstructible from a set.
     stored_claim_ids: list[str] = field(default_factory=list)
+
+    @property
+    def stored_claims(self) -> int:
+        """Rows the table actually holds from this thread. Distinct ids."""
+        return len(set(self.stored_claim_ids))
+
+    @property
+    def merged_claims(self) -> int:
+        """Claims that overwrote an earlier one on the same span (#444).
+
+        ⚠ NOT A LOSS THIS CAN REPAIR, AND NOT ONE IT SHOULD HIDE. What
+          distinguishes two claims on one span once `capability_key` is gone
+          is a decision, not a defect to patch here (#434 decides whether the
+          key comes back at all). Until then the number is reported so the run
+          says "154 written, 100 stored, 54 merged" rather than "154 stored"
+          about a table that gained 100.
+        """
+        return len(self.stored_claim_ids) - self.stored_claims
 
     #: (document_id, error) for claims that could not be written. NOT silent:
     #: a claim lost to a schema constraint is a finding about our own
@@ -1060,11 +1096,16 @@ class Pipeline:
             result.cells = self._cells.rebuild_all(as_of=as_of)
 
         log.info(
-            "thread %s: %d proposed, %d verified, %d stored, %d cells, %d published",
+            "thread %s: %d proposed, %d verified, %d stored, %d merged, "
+            "%d cells, %d published",
             thread.thread_context_id,
             result.extraction.proposed,
             len(result.extraction.verified),
-            len(result.stored_claim_ids),
+            # ⚠ ROWS, NOT UPSERTS (#444). This said `len(stored_claim_ids)`,
+            #   which counts writes - and two claims hashing the same way are
+            #   two writes and one row.
+            result.stored_claims,
+            result.merged_claims,
             len(result.cells),
             result.published,
         )
@@ -1347,7 +1388,7 @@ class Pipeline:
             self._ledger.record(
                 ExtractionRecord(
                     thread_context_id=thread.thread_context_id,
-                    claims_written=len(result.stored_claim_ids),
+                    claims_written=result.stored_claims,
                     input_tokens=result.extraction.input_tokens or None,
                     output_tokens=result.extraction.output_tokens or None,
                     schema_retries=result.extraction.schema_retries,

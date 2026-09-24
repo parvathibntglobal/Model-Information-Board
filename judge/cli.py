@@ -491,7 +491,14 @@ def _extract_from_export(
     encoding = sum(r.extraction.encoding_mismatches for r in results)
     unclassified = sum(len(r.extraction.unclassified) for r in results)
     proposed = verified + rejected + unclassified
-    stored = sum(len(r.stored_claim_ids) for r in results)
+    # ROWS, NOT UPSERTS (#444). `len(stored_claim_ids)` counts writes, and
+    # two claims hashing to one id are two writes and one row - 35-49% of
+    # them on today's batch, because e5.5 leaves `capability_key` empty and
+    # it is part of the hash. `merged` is the difference, reported rather
+    # than hidden: which of two colliding claims survives depends on
+    # extraction order.
+    stored = sum(r.stored_claims for r in results)
+    merged = sum(r.merged_claims for r in results)
     cells = sum(len(r.cells) for r in results)
     retries = sum(r.extraction.schema_retries for r in results)
 
@@ -517,7 +524,12 @@ def _extract_from_export(
             f"    of which fabricated {fabricated} (absent even normalised) · "
             f"encoding {encoding} (present re-encoded, recoverable) · other {other}"
         )
-    print(f"  stored {stored} · cells {cells} · schema retries {retries}")
+    # `merged` printed only when it happened: a permanent "0 merged" on every
+    # line is furniture, and a non-zero one is the difference between what E5
+    # wrote and what the table holds (#444).
+    merged_note = f" · {merged} merged into an existing row" if merged else ""
+    print(f"  stored {stored} · cells {cells} · schema retries {retries}"
+          f"{merged_note}")
     if verified and not stored:
         # TWO CAUSES, AND THIS MUST NOT PICK ONE. `pipeline.run` drops a verified
         # claim either because the document has no facts (unweightable) or
