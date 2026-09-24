@@ -344,8 +344,12 @@ columns:
       reviewed: false
       state: read
     pipeline_version:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: 'judge/pages/roster.py reads it as of #302 - the roster scoped its cell counts
+        to one generation, because a version bump forks the cell table and an unfiltered
+        count belongs to no version. It also counts the cells at OTHER versions, so the
+        page can say what it dropped rather than silently resolving it'
     platform_count:
       reviewed: false
       state: read
