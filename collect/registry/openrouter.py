@@ -298,6 +298,8 @@ class PollResult:
     tier_entries: int
     content_hash: str | None = None
     ref: str | None = None
+    #: `~vendor/family-latest` pointer entries skipped (they carry `alias_target`).
+    alias_entries: int = 0
 
     @property
     def distinct_models(self) -> int:
@@ -306,7 +308,8 @@ class PollResult:
     def describe(self) -> str:
         return (
             f"{self.raw_entries} feed entries -> {self.distinct_models} models "
-            f"({self.tier_entries} service-tier entries folded in)"
+            f"({self.tier_entries} service-tier entries folded in, "
+            f"{self.alias_entries} alias pointer entries skipped)"
         )
 
 
@@ -355,11 +358,20 @@ def parse_models(payload: Any, *, retrieved_at: datetime) -> PollResult:
     by_base: dict[str, dict[str, Any]] = {}
     batch_by_base: dict[str, dict[str, Any]] = {}
     tier_count = 0
+    alias_count = 0
     for entry in entries:
         if not isinstance(entry, dict):
             continue
         model_id = str(entry.get("id") or "")
         if not model_id:
+            continue
+        # ⚠ A `~vendor/family-latest` ENTRY IS A POINTER, NOT A MODEL. The
+        #   catalogue marks it with `alias_target` naming the real model -
+        #   `~openai/gpt-astra-latest` -> `openai/gpt-6-astra` - and writing it
+        #   as a row gives one model two registry ids and splits its evidence.
+        #   12 such rows were written by the 2026-08 polls. Skipped and COUNTED.
+        if entry.get("alias_target"):
+            alias_count += 1
             continue
         base = base_id(model_id)
         if model_id.endswith(":batch"):
@@ -377,7 +389,8 @@ def parse_models(payload: Any, *, retrieved_at: datetime) -> PollResult:
                   batch_sibling=batch_by_base.get(base))
         for base, entry in sorted(by_base.items())
     )
-    return PollResult(retrieved_at, len(entries), models, tier_count)
+    return PollResult(retrieved_at, len(entries), models, tier_count,
+                      alias_entries=alias_count)
 
 
 def undeclared_models(models: tuple[PolledModel, ...], declared: Any) -> tuple[str, ...]:
