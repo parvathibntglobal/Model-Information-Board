@@ -487,22 +487,17 @@ export const unruleBoardEntry = (section, slug, entry_ids = null) =>
     body: { section, slug, ruling: 'adopted', entry_ids: entry_ids?.length ? entry_ids : null },
   })
 
-export const capabilityCandidates = () => request('/admin/capability-candidates')
-export const ruleCapability = (proposed_key, ruling, ruling_target = null) =>
-  request('/admin/capability-candidates/rule', {
-    method: 'POST',
-    body: { proposed_key, ruling, ruling_target },
-  })
-export const editCapability = (proposed_key, { new_key = null, new_definition = null }) =>
-  request('/admin/capability-candidates/edit', {
-    method: 'POST',
-    body: { proposed_key, new_key, new_definition },
-  })
-export const deleteCapability = (proposed_key) =>
-  request('/admin/capability-candidates/delete', {
-    method: 'POST',
-    body: { proposed_key },
-  })
+// ⚠ NOTHING HERE REACHES `/admin/capability-candidates`, ON PURPOSE. Four
+//   functions did — list, rule, edit, delete — and no component ever called
+//   them. Rather than wire them up, the surface was ruled unwanted on
+//   2026-09-24: `capability_key` is the closed twelve from the first plan,
+//   and discovery moved to `board_entries`, whose vocabulary is open. Board
+//   sections is the review surface; capabilities get no separate one.
+//
+//   The endpoint still answers and the extractor still proposes into it, so
+//   this is a client that declines to call a live route rather than a route
+//   that went away. The upstream half — the prompt field and the endpoint —
+//   is #434, not deleted from this side.
 
 /* ------------------------------------------------------------------ display */
 

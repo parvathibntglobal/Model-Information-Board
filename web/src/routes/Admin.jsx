@@ -155,6 +155,24 @@ const SECTIONS = [
     blurb: 'Discovered by the classifier, and already live',
     render: () => <BoardReview />,
   },
+  // ⚠ THERE IS NO 'Capability candidates' SECTION, AND ITS ABSENCE IS A
+  //   DECISION RATHER THAN THE OVERSIGHT IT LOOKS LIKE. `capability_key` is
+  //   the CLOSED twelve from the first plan, where discovering capabilities
+  //   was its own surface. The board replaced that: discovery now happens in
+  //   `board_entries`, whose vocabulary is open and needs no ruling, and
+  //   `schema.py` itself calls the closed path "an older scoring path and is
+  //   NOT what the board displays".
+  //
+  //   So capabilities get no privilege the other two sections lack. Board
+  //   sections above is the whole review surface. Ruled 2026-09-24 by
+  //   @parvathibntglobal, after measuring that 24 of the 53 keys e5.5
+  //   proposed ALREADY EXIST as a board slug — one observation, written
+  //   into two vocabularies, only one of which anybody reads.
+  //
+  //   What still writes to `capability_candidate` is upstream of this file:
+  //   the `proposed_capabilities` prompt field and the endpoint behind it.
+  //   Both are shared code mid-batch, so they are raised on #434 rather
+  //   than deleted from this side.
   {
     id: 'pipeline',
     title: 'Evidence stages',
