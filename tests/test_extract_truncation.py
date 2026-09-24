@@ -47,6 +47,9 @@ class _Canned:
     """A streamed response built from whole SSE frames."""
 
     status_code = 200
+    #: A real httpx.Response always has headers; the client reads
+    #: `X-Generation-Id` from them.
+    headers: dict = {}
 
     def __init__(self, lines):
         self._lines = lines

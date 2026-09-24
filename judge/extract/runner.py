@@ -254,6 +254,21 @@ class ExtractionRun:
     #: Consumer named, per rule 9: `scripts/fetch_model.py`'s E5 stage line
     #: counts it and says so.
     truncated: bool = False
+    #: The upstream that served EACH call for this thread, in order, so a
+    #: schema retry that went somewhere else says so. None where a call's
+    #: stream never named one. See `Completion.provider`.
+    #:
+    #: Consumer named, per rule 9: `scripts/fetch_model.py`'s `_on_result`
+    #: puts it on the thread record, and `judge/fetch_console.py` prints it.
+    upstreams: list[str | None] = field(default_factory=list)
+    #: OpenRouter generation ids, one per call, in the same order. Consumer
+    #: named: the same thread record, where it is the key for looking up a
+    #: call's billed cost after the fact (#381).
+    generation_ids: list[str | None] = field(default_factory=list)
+    #: What OpenRouter reported billing for each call, same order; None where
+    #: it reported nothing. See `Completion.reported_cost_usd`. Consumer
+    #: named: the thread record and its console line.
+    reported_costs: list[float | None] = field(default_factory=list)
 
     @property
     def proposed(self) -> int:
@@ -360,6 +375,9 @@ def extract(
     # tokens were being under-counted; truncation has the same shape - a first
     # answer cut at the ceiling is still a cut answer even if a retry completed.
     run.truncated = any(c.stopped_at_ceiling for c in completions)
+    run.upstreams = [c.provider for c in completions]
+    run.generation_ids = [c.generation_id for c in completions]
+    run.reported_costs = [c.reported_cost_usd for c in completions]
 
     if result is None:
         # SALVAGE. The envelope did not validate, which until 2026-08-21 ended the

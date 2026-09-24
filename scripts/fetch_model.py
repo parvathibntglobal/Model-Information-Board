@@ -2246,6 +2246,13 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             truncated=run.truncated or None,
             tokens_in=tokens_in, tokens_out=tokens_out,
             usd=round(usd, 6) if usd is not None else None,
+            # WHO SERVED IT, per call (#397, #381). A failed attempt never
+            # reaches here - its upstream is in the ExtractorUnavailable
+            # message the retry loop logs - so these are the calls that
+            # returned an answer, which is the half the log could not show.
+            upstreams=run.upstreams or None,
+            generation_ids=run.generation_ids or None,
+            reported_costs=run.reported_costs or None,
         )
 
     # THE STOP BUTTON REACHES INSIDE A THREAD, WHICH IT DID NOT.
