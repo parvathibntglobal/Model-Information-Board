@@ -124,7 +124,20 @@ def _stream_died() -> tuple[type[BaseException], ...]:
     )
 
 
-def _stream_lines(response, *, chars_so_far):
+def _upstream(provider: str | None, generation_id: str | None) -> str:
+    """Which upstream served the attempt, for a failure message.
+
+    ⚠ SAID AS ABSENT WHEN ABSENT (rule 6). OpenRouter puts `provider` on every
+      streamed chunk and the generation id on each chunk and on the
+      `X-Generation-Id` header, but a call that fails before its first chunk
+      has neither - and "upstream not reported" is a different fact from any
+      upstream's name.
+    """
+    return (f" [upstream {provider or 'not reported'}, "
+            f"generation {generation_id or 'not reported'}]")
+
+
+def _stream_lines(response, *, chars_so_far, upstream_so_far=lambda: ""):
     """`response.iter_lines()`, with a dead connection named as our own failure.
 
     ⚠ A GENERATOR RAISES WHERE IT IS CONSUMED, NOT WHERE IT IS CREATED, and my
@@ -143,6 +156,7 @@ def _stream_lines(response, *, chars_so_far):
         raise ExtractorUnavailable(
             f"the connection died while the answer was streaming "
             f"({chars_so_far()} chars of tool-call arguments received): {exc}"
+            f"{upstream_so_far()}"
         ) from exc
 
 
@@ -243,6 +257,49 @@ class Completion:
     #: What we asked for, so `stopped_at_ceiling` can do arithmetic rather than
     #: trust a label. None when no bound was set.
     ceiling_tokens: int | None = None
+
+    #: ⚠ WHICH UPSTREAM SERVED THIS CALL, AND IT WAS BEING THROWN AWAY.
+    #:
+    #: OpenRouter routes one model across ~15 endpoints and names the one it
+    #: used on every streamed chunk (`"provider"`). This client read `model`
+    #: and dropped `provider`, so whether a retry lands on the upstream that
+    #: just failed - sticky routing or bad luck, open on #397 for three days -
+    #: could not be read from any log. 2026-09-24: seven NextBit failures, five
+    #: unread, and nothing to say where the retries went.
+    #:
+    #: It is also a PRICE: OpenRouter passes through each endpoint's own rate,
+    #: $0.0886 to $0.21 per million input tokens for deepseek-v4-flash that
+    #: day, so a constant cannot price a call whose upstream is unknown (#381).
+    #:
+    #: None when the stream never said - not "unknown", not a default.
+    #: Consumer named, per rule 9: `ExtractionRun.upstreams`, printed on the
+    #: per-thread line by `judge/fetch_console.py`.
+    provider: str | None = None
+
+    #: OpenRouter's generation id (`gen-...`), the key to its per-generation
+    #: record of what the call actually cost and who served it. Consumer named:
+    #: `ExtractionRun.generation_ids`, carried to the run's JSONL record.
+    generation_id: str | None = None
+
+    #: ⚠ WHAT THE CALL WAS BILLED, AS OPENROUTER REPORTED IT - not tokens times
+    #:   a constant. The streamed `usage` chunk carries `cost` in USD, and this
+    #:   client read the token counts from that same chunk and dropped the price
+    #:   beside them.
+    #:
+    #:   Measured 2026-09-24 against the key's own usage figure: the day's
+    #:   ledger, priced as tokens x one constant, overstated billed spend
+    #:   several-fold, because the price depends on which of ~15 endpoints served
+    #:   the call and on how much of the prompt was cached. A repeat of the same
+    #:   prompt on the same upstream was billed a third of the first ($0.00050
+    #:   against $0.00151) with 8,960 of 9,210 input tokens cached. No constant
+    #:   can express that; the reported figure already does (#381).
+    #:
+    #:   None when the provider did not report one - never 0, which would read
+    #:   as free (rule 6). RECORDED, NOT YET USED FOR THE LEDGER OR THE CAP:
+    #:   moving the spend ledger onto it is #381's fix, alongside choosing the
+    #:   single record site. Consumer named, per rule 9: `ExtractionRun.
+    #:   reported_costs`, printed on the per-thread line.
+    reported_cost_usd: float | None = None
 
     @property
     def stopped_at_ceiling(self) -> bool:
@@ -500,6 +557,15 @@ class OpenRouterClient:
             # is a short JSON body, not an SSE stream, and iterating it as lines
             # would yield nothing recognisable and report the failure as an empty
             # answer.
+            # THE HEADER IS THE ONE PLACE A GENERATION ID EXISTS BEFORE ANY
+            # CHUNK, including on a refusal, so it is taken first and a chunk's
+            # own `id` overrides it below.
+            #: MUTATED, NOT REBOUND, so the failure paths below read whatever
+            #: the stream had said by the moment it failed - the same reason
+            #: `chars_so_far` reads `fragments` through a callable.
+            seen: dict[str, str | None] = {
+                "provider": None, "id": response.headers.get("X-Generation-Id"),
+            }
             if response.status_code != 200:
                 response.read()
                 # THE STATUS DECIDES WHETHER ANOTHER ATTEMPT IS WORTH PAYING
@@ -510,7 +576,8 @@ class OpenRouterClient:
                 # charged for this attempt either way.
                 raise ExtractorUnavailable(
                     f"the provider returned HTTP {response.status_code}: "
-                    f"{response.text[:300]!r}",
+                    f"{response.text[:300]!r}"
+                    f"{_upstream(seen['provider'], seen['id'])}",
                     transient=response.status_code in {429, 500, 502, 503, 504},
                 )
 
@@ -556,7 +623,8 @@ class OpenRouterClient:
             #   Not retrying costs one thread on one run. Not catching costs
             #   every thread behind it.
             for line in _stream_lines(
-                response, chars_so_far=lambda: sum(len(f) for f in fragments)
+                response, chars_so_far=lambda: sum(len(f) for f in fragments),
+                upstream_so_far=lambda: _upstream(seen["provider"], seen["id"]),
             ):
                 now = time.monotonic()
                 if self.on_progress is not None and now >= next_check:
@@ -579,6 +647,7 @@ class OpenRouterClient:
                         f"{self.max_output_tokens}, which bounds a legitimate "
                         f"answer well inside this window, so this is the provider "
                         f"rather than the document."
+                        f"{_upstream(seen['provider'], seen['id'])}"
                     )
                     # NOT RETRIED, and `transient` defaults to False so this
                     # needs no argument - but it needs the reason. The
@@ -598,6 +667,13 @@ class OpenRouterClient:
                     event = _json.loads(data)
                 except ValueError:
                     continue          # a partial frame; the next one carries it
+                # TAKEN BEFORE THE ERROR CHECK, because the error event is the
+                # one that matters most: it is the attempt that failed, and
+                # knowing which upstream failed it is the whole point.
+                if event.get("provider"):
+                    seen["provider"] = event["provider"]
+                if event.get("id"):
+                    seen["id"] = event["id"]
                 # A PROVIDER ERROR ARRIVES INSIDE THE STREAM, as an event with
                 # no `choices`. Recorded and raised after the loop rather than
                 # here, so whatever already arrived is still counted.
@@ -634,7 +710,8 @@ class OpenRouterClient:
                 or "tools[0]" in text
             )
             raise ExtractorUnavailable(
-                f"the provider reported an error mid-stream: {stream_error!r}",
+                f"the provider reported an error mid-stream: {stream_error!r}"
+                f"{_upstream(seen['provider'], seen['id'])}",
                 transient=not permanent,
             )
 
@@ -670,6 +747,10 @@ class OpenRouterClient:
             finish_reason=finish_reason,
             native_finish_reason=native_finish,
             ceiling_tokens=self.max_output_tokens,
+            provider=seen["provider"],
+            generation_id=seen["id"],
+            reported_cost_usd=(float(usage["cost"])
+                               if usage.get("cost") is not None else None),
         )
 
 

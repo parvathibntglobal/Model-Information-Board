@@ -539,6 +539,17 @@ class PipelineResult:
     #: can be checked rather than believed. Telemetry only - it reaches the run's
     #: stage record and no board table.
     metric_examples: list[dict] = field(default_factory=list)
+    #: How many attempts at this thread FAILED before the one that produced
+    #: this result - `ExtractorUnavailable` raised, the bounded retry (#399)
+    #: tried again. Those attempts never became a `Completion`, so they are
+    #: missing from `extraction.reported_costs` entirely rather than present as
+    #: None, and nothing reading that list can see them.
+    #:
+    #: Measured 2026-09-24: the retry fired on 13+ threads in one batch, and
+    #: several recovered, so this is not a future case. Consumer named, per
+    #: rule 9: `scripts/fetch_model.py`'s thread record, where the console
+    #: says the billed figure excludes them.
+    failed_attempts: int = 0
     cells: list[CellOutcome] = field(default_factory=list)
     extractor_disagreements: list[str] = field(default_factory=list)
     #: Claims whose subject came from outside their own quote. DERIVED in code,
@@ -1252,6 +1263,7 @@ class Pipeline:
                         # ONCE AFTER THE BATCH, not once per thread. See below.
                         rebuild_cells=False,
                     )
+                    result.failed_attempts = attempt - 1
                     break
                 except ExtractionRefused as exc:
                     log.error("thread %s refused: %s", thread.thread_context_id, exc)
