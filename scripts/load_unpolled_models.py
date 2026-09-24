@@ -91,6 +91,12 @@ def main() -> int:
     args = ap.parse_args()
     contract = pathlib.Path(args.path).resolve() if args.path else CONTRACT
 
+    # THE WRITEGUARD, BEFORE THE CONNECTION (#328). This writes registry rows
+    # to whatever DATABASE_URL names, and the guard lived only in
+    # `judge/cli.py`'s connection helper, which a script never passes through.
+    from judge.writeguard import check as writeguard_check
+    writeguard_check(os.environ.get("DATABASE_URL"), command="load_unpolled_models.py")
+
     conn = psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=15)
     before = conn.execute("SELECT count(*) FROM model_version").fetchone()[0]
     aliases_before = conn.execute("SELECT count(*) FROM model_alias").fetchone()[0]

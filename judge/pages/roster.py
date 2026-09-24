@@ -18,6 +18,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
+from judge.store.claims import PIPELINE_VERSION
+
 # Ordered by display_name rather than by price. A default sort by cost would
 # be this module quietly making the recommendation the rest of the system
 # refuses to make without evidence.
@@ -47,11 +49,45 @@ SQL = """
            -- way for a filter to be half-right about a row.
            --
            -- This is one join. 360ms, and correct the moment it returns.
-           (SELECT count(*) FROM cell c
-             WHERE c.model_version_id = mv.id)                      AS cells,
+           --
+           -- ⚠ SCOPED TO ONE `pipeline_version`, AND IT WAS NOT (#302). A bump
+           --   FORKS the cell table: `claim_id_for` hashes the version, so the
+           --   same quote exists at e5.1 and e5.4 with different weights and
+           --   the same `author_id`. `CellStore`'s own docstring says an
+           --   unfiltered read "would silently give every voice the better of
+           --   its two tiers and report an n_eff that belongs to no version -
+           --   worst on exactly the claims a re-tier moved". This was that
+           --   unfiltered read, on the page as shipped: 12 of 45 models with
+           --   cells were mixed-generation, all e5.1 + e5.4.
+           --
+           --   DeepSeek V4 Pro said "6 cells". Five were e5.4; the sixth was
+           --   an e5.1 `context.effective_window` cell holding a PRICE quote,
+           --   filed by the retired Gemini extractor and not recounted since
+           --   2026-08-31.
+           --
+           -- ⚠ AND WHAT IS DROPPED IS COUNTED, NOT SILENTLY RESOLVED (option B,
+           --   ruled by @anoojntglobal-sudo). Filtering alone would move a
+           --   model whose only cells are older from `insufficient` to
+           --   `unreported` - which reads as "nobody has discussed this" when
+           --   the truth is "we have not recounted this since the extractor
+           --   changed". That is rule 4 exactly, and it would hit every model
+           --   nobody has re-fetched.
            (SELECT count(*) FROM cell c
              WHERE c.model_version_id = mv.id
+               AND c.pipeline_version = %(pipeline_version)s)        AS cells,
+           (SELECT count(*) FROM cell c
+             WHERE c.model_version_id = mv.id
+               AND c.pipeline_version = %(pipeline_version)s
                AND c.status = 'published')                          AS published_cells,
+           (SELECT count(*) FROM cell c
+             WHERE c.model_version_id = mv.id
+               AND c.pipeline_version <> %(pipeline_version)s)       AS stale_cells,
+           -- WHICH generation they were counted under. "1 not recounted" is a
+           -- fact; "1 not recounted since e5.1" is one somebody can act on.
+           (SELECT array_agg(DISTINCT c.pipeline_version ORDER BY c.pipeline_version)
+              FROM cell c
+             WHERE c.model_version_id = mv.id
+               AND c.pipeline_version <> %(pipeline_version)s)       AS stale_versions,
            -- WHICH capability, not just how many. A count answers "is there
            -- anything here"; the board's actual question is "who is good at
            -- THIS", and a roster that cannot say which capability a model has
@@ -60,7 +96,8 @@ SQL = """
            -- instruction.adherence; "1 cell" does not tell you that.
            (SELECT array_agg(DISTINCT c.capability_key ORDER BY c.capability_key)
               FROM cell c
-             WHERE c.model_version_id = mv.id)                      AS capability_keys,
+             WHERE c.model_version_id = mv.id
+               AND c.pipeline_version = %(pipeline_version)s)        AS capability_keys,
            -- ── BOARD ENTRIES, WHICH ARE NOT CELLS AND MUST NOT READ AS THEM ──
            --
            -- A cell is COUNTED AND GATED: `insufficient` means we counted and
@@ -113,7 +150,8 @@ def _num(v: Decimal | None) -> float | None:
     return None if v is None else float(v)
 
 
-def _evidence(*, cells: int, published: int, capability_keys) -> dict:
+def _evidence(*, cells: int, published: int, capability_keys,
+              stale: int = 0, stale_versions=None) -> dict:
     """Three states, and the middle one is why this is not a boolean.
 
     "Has evidence" sounds like a yes/no and is not. Right now 3 of 342 models
@@ -134,17 +172,33 @@ def _evidence(*, cells: int, published: int, capability_keys) -> dict:
     # array_agg over no rows is NULL, not an empty array.
     keys = list(capability_keys or ())
 
+    #: ⚠ CELLS THIS GENERATION HAS NOT RECOUNTED, CARRIED ON EVERY STATE
+    #:   INCLUDING `unreported` (#302, option B). A model whose only cells are
+    #:   older now reads `unreported`, and without this it would say "nobody
+    #:   has discussed this" about a model we simply have not re-fetched -
+    #:   rule 4, and the exact failure filtering alone would introduce.
+    #:
+    #: `not_recounted` is 0 where there are none, because that IS a
+    #: measurement: we looked at every other generation and found nothing.
+    not_recounted = {
+        "not_recounted": stale,
+        "not_recounted_since": list(stale_versions or ()),
+    }
+
     if published:
         return {
             "state": "published", "cells": cells,
-            "published": published, "capabilities": keys,
+            "published": published, "capabilities": keys, **not_recounted,
         }
     if cells:
         return {
             "state": "insufficient", "cells": cells,
-            "published": 0, "capabilities": keys,
+            "published": 0, "capabilities": keys, **not_recounted,
         }
-    return {"state": "unreported", "cells": 0, "published": 0, "capabilities": []}
+    return {
+        "state": "unreported", "cells": 0, "published": 0, "capabilities": [],
+        **not_recounted,
+    }
 
 
 def _board(*, entries: int, sections: dict | None) -> dict:
@@ -178,11 +232,18 @@ class Roster:
 
 
 class RosterReader:
-    def __init__(self, conn) -> None:
+    def __init__(self, conn, *, pipeline_version: str = PIPELINE_VERSION) -> None:
         self._conn = conn
+        #: ⚠ WHICH GENERATION THIS ROSTER IS ABOUT. Defaulted rather than
+        #:   required, because every caller wants the current one — but named
+        #:   so a caller reading an older generation has to say so, and so the
+        #:   payload can state which version its counts belong to.
+        self._pipeline_version = pipeline_version
 
     def all(self) -> Roster:
-        rows = self._conn.execute(SQL).fetchall()
+        rows = self._conn.execute(
+            SQL, {"pipeline_version": self._pipeline_version}
+        ).fetchall()
         models = [
             {
                 "model_version_id": r[0],
@@ -199,8 +260,12 @@ class RosterReader:
                 "supports_structured_output": r[11],
                 "supports_caching": r[12],
                 "lifecycle": r[13],
-                "evidence": _evidence(cells=r[14], published=r[15], capability_keys=r[16]),
-                "board": _board(entries=r[17], sections=r[18]),
+                "evidence": _evidence(
+                    cells=r[14], published=r[15],
+                    stale=r[16], stale_versions=r[17],
+                    capability_keys=r[18],
+                ),
+                "board": _board(entries=r[19], sections=r[20]),
             }
             for r in rows
         ]

@@ -542,14 +542,49 @@ function BoardBadge({ b }) {
 }
 
 
+/**
+ * "5 cells (1 not recounted since e5.1)" — the half of #302 that is not the
+ * filter.
+ *
+ * ⚠ BESIDE THE COUNT, NEVER FOLDED INTO IT. Adding the older cells back would
+ *   produce a number belonging to no generation, which is the defect being
+ *   fixed; hiding them would make the fix silently lose coverage. It renders
+ *   nothing at zero, because most models have no fork and a permanent "0 not
+ *   recounted" on every row is furniture.
+ */
+function NotRecounted({ n, versions }) {
+  if (!n) return null
+  const since = (versions || []).join(', ')
+  return (
+    <span
+      className="dim"
+      style={{ fontSize: 11 }}
+      title={'Counted under an earlier extractor and not recounted since. '
+             + 'A gap in our coverage, not a finding about this model.'}
+    >
+      {n} not recounted{since ? ` since ${since}` : ''}
+    </span>
+  )
+}
+
+
 function EvidenceBadge({ e }) {
   const state = e?.state || 'unreported'
+  //: Cells this generation has not recounted. 0 is a measurement - we looked
+  //: at every other generation and found nothing - so the absent case and the
+  //: none-found case are the same here on purpose.
+  const notRecounted = e?.not_recounted || 0
 
   // The board has no publication gate any more, so these badges COUNT reports
   // rather than announcing a gate verdict. A count says how many people spoke;
   // it never says who was right.
   if (state === 'published') {
-    return <Badge tone="pass">reported</Badge>
+    return (
+      <>
+        <Badge tone="pass">reported</Badge>
+        <NotRecounted n={notRecounted} versions={e?.not_recounted_since} />
+      </>
+    )
   }
   if (state === 'insufficient') {
     // ⚠ "FEW REPORTS" WAS A CONSTANT WEARING A VERDICT'S CLOTHES.
@@ -575,6 +610,7 @@ function EvidenceBadge({ e }) {
     //   look at until the gate moves.
     const reports = e.reports
     return (
+      <>
       <Badge
         tone="mute"
         title={
@@ -587,7 +623,31 @@ function EvidenceBadge({ e }) {
           ? `${reports} report${reports === 1 ? '' : 's'}`
           : 'reported'}
       </Badge>
+        <NotRecounted n={notRecounted} versions={e?.not_recounted_since} />
+      </>
     )
   }
-  return <Badge tone="mute">nobody has discussed this</Badge>
+  // ⚠ "NOBODY HAS DISCUSSED THIS" IS FALSE WHERE AN OLDER GENERATION COUNTED
+  //   SOMETHING (#302). The roster is now scoped to one `pipeline_version`,
+  //   which is right - a bump forks the cell table and an unfiltered count
+  //   belongs to no version - but filtering alone would move a model whose
+  //   only cells are older from `insufficient` to `unreported`, and say
+  //   nobody discussed it about a model we simply have not re-fetched.
+  //
+  //   That is rule 4: an absence we caused, rendered as a fact about the
+  //   world. So what was dropped is said here rather than resolved away.
+  return (
+    <Badge
+      tone="mute"
+      title={notRecounted
+        ? `Not counted under the current extractor. ${notRecounted} cell`
+          + `${notRecounted === 1 ? '' : 's'} were counted under `
+          + `${(e.not_recounted_since || []).join(', ')} and have not been `
+          + 'recounted since - that is a gap in our coverage, not a finding '
+          + 'about this model.'
+        : undefined}
+    >
+      {notRecounted ? `not recounted (${notRecounted})` : 'nobody has discussed this'}
+    </Badge>
+  )
 }

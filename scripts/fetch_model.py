@@ -1662,10 +1662,30 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=()):
     #: name them - "deferred to the nightly batch" is only honest if somebody
     #: can see WHICH threads are waiting.
     oversized: list[str] = []
+    #: Threads whose flattened payload this machine could not read (#303).
+    #:
+    #: ⚠ COUNTED, BECAUSE SKIPPING THEM SILENTLY NARROWS THE RUN'S OWN INPUT.
+    #:   `continue` here is right - a payload harvested on another machine is
+    #:   genuinely not this fetch's thread - but it left NO TRACE in a run
+    #:   log, so a fetch that skipped a third of its candidates reported the
+    #:   same way as one that skipped none. That is rule 4 at the selection
+    #:   step: an absence this run caused, invisible in what the run says.
+    #:
+    #:   Measured 2026-09-15: 151 of 4,144 `thread_context` rows (3.6%) had
+    #:   unreadable flattened text on one laptop - hackernews 58, devto 56,
+    #:   reddit 25, huggingface 10, blog 1. And 4 of the 20 threads behind the
+    #:   `cost.*` claims are in that set, so a re-extraction for #300 would
+    #:   have skipped them without saying so.
+    #:
+    #:   NOT an error and not a repair: the store cannot tell a lost blob from
+    #:   one written elsewhere and never synced, and neither can this. The
+    #:   count says what happened here, which is all either of them knows.
+    unreadable: list[str] = []
     for tc_id, flat_ref, omap, members in rows:
         try:
             flattened = store.get_text(flat_ref)
         except Exception:
+            unreadable.append(tc_id)
             continue  # payload not on this machine — not this fetch's thread
         # THE LEDGER DECIDES, AGAINST THE TEXT. The query excluded the threads
         # read at this version WITH a fingerprint recorded; what reaches here
@@ -1806,7 +1826,7 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=()):
         1 for t in inputs
         if t.thread_context_id in own_ids and t.thread_context_id not in naming_set
     )
-    return inputs, doc_ids, gated_out, oversized, (named, from_own_harvest)
+    return inputs, doc_ids, gated_out, oversized, unreadable, (named, from_own_harvest)
 
 
 def _thread_latest_dates(conn, thread_ids: list[str]) -> dict:
@@ -2057,7 +2077,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
                detail="scanning unread threads for this model's surfaces "
                       "(local reads, no network)")
     naming = threads_naming_the_model(conn, store, surfaces)
-    threads, doc_ids, gated_out, oversized, (named, own) = build_thread_inputs(
+    threads, doc_ids, gated_out, oversized, unreadable, (named, own) = build_thread_inputs(
         conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming)
     # SAID, NOT IMPLIED. A run that reads 50 threads of which 2 name the model
     # whose page was clicked has done almost nothing for it, and "50 thread(s)
@@ -2076,13 +2096,30 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # `limit` rows, so landing exactly on it means there was more to read.
     # Rule 4 — a caused absence must say it was caused.
     cap_bound = len(threads) >= MAX_FETCH_THREADS
+    # ⚠ THREADS THIS MACHINE COULD NOT READ, ON THE LINE THAT REPORTS WHAT WAS
+    #   SELECTED (#303). Skipping them is correct — a payload harvested
+    #   elsewhere is not this fetch's thread — but it left no trace, so a run
+    #   that skipped a third of its candidates reported identically to one
+    #   that skipped none. Said only when it happened; a permanent "0
+    #   unreadable" is furniture.
+    #
+    #   Deliberately NOT called corruption. The store cannot tell a lost blob
+    #   from one written on another machine and never synced, and neither can
+    #   this line.
+    unreadable_note = (
+        f" {len(unreadable)} more were not readable on this machine and were "
+        f"skipped — their payloads were harvested elsewhere, or are lost; "
+        f"nothing here can tell which (#303)."
+        if unreadable else ""
+    )
     prog.stage("E5", "Extract", "running",
                threads_naming_the_model=named, threads_from_own_harvest=own,
                threads_from_backlog=backlog, unread_naming_the_model=len(naming),
+               threads_unreadable_here=len(unreadable),
                thread_cap=MAX_FETCH_THREADS, cap_reached=cap_bound,
                detail=f"{len(threads)} thread(s) selected — {named} name this model "
                       f"(of {len(naming)} unread that do), {own} from this run's own "
-                      f"harvest, {backlog} from the backlog. "
+                      f"harvest, {backlog} from the backlog.{unreadable_note} "
                       + (f"THE CAP OF {MAX_FETCH_THREADS} STOPPED THIS — there is more "
                          f"to read, and clicking Fetch again continues from here "
                          f"(FETCH_MAX_THREADS raises it)."
@@ -2310,7 +2347,14 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     conn.commit()
 
     verified = sum(len(r.extraction.verified) for r in results)
-    stored = sum(len(r.stored_claim_ids) for r in results)
+    # ROWS, NOT UPSERTS (#444). `len(stored_claim_ids)` counts writes, and
+    # two claims hashing to one id are two writes and one row - 35-49% of
+    # them on today's batch, because e5.5 leaves `capability_key` empty and
+    # it is part of the hash. `merged` is the difference, reported rather
+    # than hidden: which of two colliding claims survives depends on
+    # extraction order.
+    stored = sum(r.stored_claims for r in results)
+    merged = sum(r.merged_claims for r in results)
     cells = sum(len(r.cells) for r in results)
     # THREADS WE CUT OFF, NAMED ON THE LINE THAT REPORTS THE HARVEST.
     #
@@ -2325,6 +2369,10 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     truncated = [r.extraction.thread_context_id for r in results
                  if r.extraction.truncated]
     detail = f"{verified} claim(s) verified, {stored} stored"
+    # THE DIFFERENCE BETWEEN WRITES AND ROWS, ON THE LINE THAT REPORTS THE
+    # ROWS (#444). Said only when it happened.
+    if merged:
+        detail += f", {merged} merged into an existing row"
     if truncated:
         detail += (
             f"; {len(truncated)} of {len(results)} thread(s) STOPPED AT THE "
@@ -2576,6 +2624,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--fetch-cap", type=int, default=20,
                         help="max GitHub REST calls this fetch may spend (default 20)")
+    parser.add_argument(
+        "--development-write", action="store_true",
+        help="replace judge/writeguard.py's ENVIRONMENT proxy with the check it "
+             "stands in for: refuse if THIS model_version is a seeded "
+             "(build-fixture) row. Same shape as run_extraction_batched.py's "
+             "flag (#383). A caller who does not pass it gets the writeguard "
+             "unchanged.",
+    )
     args = parser.parse_args(argv)
 
     run_id = args.run_id or f"{args.model_version_id}-{uuid.uuid4().hex[:8]}"
@@ -2589,11 +2645,64 @@ def main(argv: list[str] | None = None) -> int:
         prog.done("error", "no database configured")
         return 1
 
+    # ⚠ THE WRITEGUARD, BEFORE ANYTHING OPENS A CONNECTION (#328). This script
+    #   runs E5-E7 in process and writes `claim`, `board_entry` and `cell` to
+    #   whatever DATABASE_URL names — and it did not pass the guard at all,
+    #   because the guard sits in `judge/cli.py`'s connection helper and this
+    #   file composes the pipeline itself through a lazy in-function import.
+    #
+    #   THE COVERAGE WAS INVERTED WITH RESPECT TO RISK. `judge rebuild-cells`
+    #   was refused: it derives `cell` from claims already stored, adds no new
+    #   information, and spends nothing. This path ORIGINATES the claims, pays
+    #   a model to do it, and was not checked. A guard that stops the
+    #   recomputation and permits the origination is calibrated to nothing.
+    #
+    #   The four runs that wrote before this existed were not wrong to write —
+    #   their rows are derived evidence, not `seed` or `hand_curated`, so the
+    #   contamination the guard exists to stop did not occur. The defect was
+    #   that nothing checked, for a structural reason rather than a judgement
+    #   anybody made per run.
+    #
+    #   Refused HERE rather than at each write site: a refusal that arrives
+    #   after E2 has harvested and E5 has paid for extraction is a refusal
+    #   that costs money to deliver.
+    # ⚠ AND `--development-write` IS WHY THIS IS A BRANCH RATHER THAN A CALL.
+    #   `check()` refuses ENVIRONMENT=development against a remote database,
+    #   which is how every fetch against staging is run today - all five runs
+    #   of #432, and the admin page's Fetch button with the backend local. A
+    #   bare guard here would leave exactly one way through, the
+    #   `ENVIRONMENT=staging` edit the refusal message itself disowns, and that
+    #   edit is invisible: nothing records that somebody made it.
+    #
+    #   So the flag swaps the PROXY for the CONDITION it stands in for, per
+    #   run, and prints itself into the run log. Same shape as
+    #   `run_extraction_batched.py`'s (#383, ruled on #328). The condition for
+    #   this path is narrow and exact: a fetch writes derived evidence about
+    #   ONE model, so the only fixture exposure it can have is that model being
+    #   a seeded row. Checked below, once the registry row is in hand and still
+    #   before E2 harvests anything.
+    from judge.writeguard import UnsafeWriteRefused
+    from judge.writeguard import check as writeguard_check
+
+    if not args.development_write:
+        try:
+            writeguard_check(dsn, command=f"fetch_model {args.model_version_id}")
+        except UnsafeWriteRefused as refusal:
+            prog.stage("E1", "Registry", "error", detail=str(refusal).splitlines()[0])
+            prog.done("error", "refused: unsafe write target")
+            print(refusal, file=sys.stderr)
+            return 1
+    else:
+        print("write gate  : --development-write, so judge/writeguard.py's "
+              "ENVIRONMENT proxy is replaced by the seeded-model check below "
+              "(#328, #383)", file=sys.stderr)
+
     try:
         db = _Db(dsn)  # NO drop, NO disposability wipe — append-only
         conn = db.raw
         row = conn.execute(
-            "SELECT canonical_id, display_name, release_date FROM model_version WHERE id = %s",
+            "SELECT canonical_id, display_name, release_date, provenance "
+            "FROM model_version WHERE id = %s",
             (args.model_version_id,),
         ).fetchone()
         if row is None:
@@ -2601,7 +2710,26 @@ def main(argv: list[str] | None = None) -> int:
                        detail=f"{args.model_version_id} is not in the registry")
             prog.done("error", "unknown model")
             return 1
-        canonical_id, display_name, release_date = row
+        canonical_id, display_name, release_date, provenance = row
+
+        # ── THE FIXTURE-EXPOSURE CHECK, when the flag replaced the proxy ────
+        # BEFORE E2, because a harvest already run is a harvest already paid
+        # for in rate limit, and before E5, which costs money. Refuses by
+        # naming the model, so the answer is actionable.
+        #
+        # The database is NOT fixture-clean, which is why this is live rather
+        # than theoretical: `model_version` rows carry provenance='seed' with
+        # claims and cells already pointing at them (#382).
+        if args.development_write and provenance == "seed":
+            detail = (
+                f"refusing: {display_name or canonical_id} is a seeded "
+                f"(build-fixture) model_version, and --development-write "
+                f"replaced the ENVIRONMENT proxy with exactly this check"
+            )
+            prog.stage("E1", "Registry", "error", detail=detail)
+            prog.done("error", "refused: seeded model")
+            print(detail, file=sys.stderr)
+            return 1
         variants = _variants_for(conn, args.model_version_id, canonical_id)
         prog.stage("E1", "Registry", "ok",
                    model=display_name or canonical_id, variants=len(variants),

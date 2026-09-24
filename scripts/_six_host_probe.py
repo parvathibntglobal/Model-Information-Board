@@ -231,6 +231,37 @@ def _is_feed(content: bytes):
     return parsed, bool(version) and len(parsed.entries) > 0
 
 
+def _site(host: str | None) -> str:
+    """A host and its `www.` twin are ONE SITE (#442).
+
+    ⚠ AN EXACT HOSTNAME COMPARISON PRODUCED THE ABSENCE IT THEN REPORTED.
+      `geoffreylitt.com` serves its feed from `www.geoffreylitt.com/feed.xml`
+      and links every entry to the apex, which redirects back to `www.`. The
+      probe called all eleven links off-host, fetched none of them, and
+      printed:
+
+          WARNING: 11/11 entry links are OFF-HOST. NOT FETCHED.
+          0 pages examined
+          NAMES A TRACKED MODEL   0/0
+
+      `0/0` reads as "no evidence" and means "nothing measured" - rule 4, with
+      the probe as the cause. Five of the twenty hosts probed on 2026-09-24
+      redirect to their `www.` twin, so this is not a corner case.
+
+    ⚠ ONLY THE `www.` PREFIX, AND NOTHING CLEVERER. `matt-rickard.com` ->
+      `mattrickard.com` is a DIFFERENT host rather than a twin, and the probe
+      handled it correctly by calling it off-host. A rule that normalised
+      punctuation as well would have folded two real sites into one, which is
+      the opposite error and a silent one.
+
+    The six hosts of 2026-09-21 are unaffected: all six fetched 10 articles at
+    an on-host ratio of 1.0, and `fast.ai` redirects to `www.fast.ai` with its
+    entries on `www.` too, so there was no split to find.
+    """
+    host = (host or "").lower()
+    return host[4:] if host.startswith("www.") else host
+
+
 def probe_host(host, client, ua, pages, delay, threshold, finder, resolver,
                canonical, out_root) -> dict:
     out = out_root / host
@@ -387,7 +418,7 @@ def probe_host(host, client, ua, pages, delay, threshold, finder, resolver,
     feed_host = urllib.parse.urlparse(chosen).hostname or ""
     all_links = [e.get("link") for e in entries if e.get("link")]
     offhost = [u for u in all_links
-               if (urllib.parse.urlparse(u).hostname or "") != feed_host]
+               if _site(urllib.parse.urlparse(u).hostname) != _site(feed_host)]
     r["offhost_entry_links"] = offhost
     r["offhost_hosts"] = sorted({urllib.parse.urlparse(u).hostname or "" for u in offhost})
     r["onhost_ratio"] = (
@@ -486,7 +517,9 @@ def probe_host(host, client, ua, pages, delay, threshold, finder, resolver,
     r["article_embed_origins"] = embeds
     # The ruling-relevant conclusion, stated as the conjunction it actually is.
     r["self_served_articles"] = (
-        r["article_canonical_hosts"] in ([], [feed_host])
+        # THE SAME COMPARISON, AND IT HAD THE SAME FLAW. A canonical on the
+        # apex under a `www.` feed read as served from somewhere else.
+        all(_site(h) == _site(feed_host) for h in r["article_canonical_hosts"])
         and not any(("substack" in e or "medium.com" in e) for e in embeds)
     )
     print("  article canonicals: " + str(r["article_canonical_hosts"])
