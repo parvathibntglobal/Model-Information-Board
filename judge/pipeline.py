@@ -107,6 +107,7 @@ which is a different fix with a different reason.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from collections import Counter
@@ -474,6 +475,27 @@ class _CellRefused(Exception):
     """
 
 
+def _what_the_write_says(stored: StoredClaim) -> tuple:
+    """Every field `ClaimStore.write`'s upsert would overwrite, plus the model.
+
+    The model is here although the upsert does not set it: two claims about
+    two models that collide keep the FIRST model on the row, so a board entry
+    from the second would name a model its claim does not. That was 26 of the
+    43 claims found carrying a foreign entry on 2026-09-24.
+    """
+    c = stored.claim
+    return (
+        stored.model_version_id,
+        stored.quote.display_text,
+        tuple(stored.quote.flat_offset),
+        tuple(stored.quote.raw_offset),
+        stored.condition_bucket,
+        json.dumps(c.conditions.model_dump(exclude_none=True), sort_keys=True, default=str),
+        c.polarity,
+        c.severity,
+    )
+
+
 @dataclass
 class PipelineResult:
     """What one thread produced, all the way through."""
@@ -516,6 +538,28 @@ class PipelineResult:
           about a table that gained 100.
         """
         return len(self.stored_claim_ids) - self.stored_claims
+
+    #: `merged_claims`, split by what the later claim was. Both sum to it.
+    #:
+    #: DUPLICATE: every field the upsert would overwrite is identical - same
+    #: model, quote, span, conditions, polarity, severity. The same claim
+    #: emitted twice. Its board entries attach to the surviving row, because
+    #: they agree with it.
+    #:
+    #: DISTINCT: anything differs. The claim is NOT written - the upsert would
+    #: have overwritten the first claim's polarity and conditions with this
+    #: one's, leaving the first claim's board entries pointing at a row that no
+    #: longer says what they say. Its board entries are written DETACHED
+    #: (`claim_id` NULL), the standalone path `board_entry` already has.
+    #:
+    #: ⚠ THIS DOES NOT RECOVER THE DISTINCT CLAIM. It stops the damage from
+    #:   spreading into rows that were right. Which id to give a second claim
+    #:   in one comment is the id decision, and it is not taken here.
+    merged_duplicate_claims: int = 0
+    merged_distinct_claims: int = 0
+    #: Board entries written with `claim_id` NULL because their claim was a
+    #: DISTINCT merge. Counted apart from entries detached by a failed write.
+    board_entries_detached_on_merge: int = 0
 
     #: (document_id, error) for claims that could not be written. NOT silent:
     #: a claim lost to a schema constraint is a finding about our own
@@ -773,6 +817,10 @@ class Pipeline:
         rejected = self._vet(result, facts, release_dates or {})
 
         board_rows: list[dict] = []
+        #: id -> what that write said, for THIS extraction only. A re-run over
+        #: rows an earlier run wrote is still an upsert, as `claim_id_for`
+        #: intends; only two claims from one read colliding is refused.
+        written_here: dict[str, tuple] = {}
         for claim, quote in result.extraction.verified:
             if quote.document_id in rejected:
                 continue
@@ -980,9 +1028,28 @@ class Pipeline:
                 # `conn.transaction()` opens a SAVEPOINT when a transaction is
                 # already open, which it is: the caller owns the outer one and
                 # commits after the loop.
-                with self._conn.transaction():
-                    _claim_id = self._claims.write(stored)
-                result.stored_claim_ids.append(_claim_id)
+                # ⚠ A SECOND CLAIM ON AN ID THIS READ ALREADY WROTE IS NOT
+                #   WRITTEN. The upsert overwrites quote, polarity, conditions
+                #   and severity and leaves the first claim's board entries
+                #   pointing at the result - 43 e5.5 claims on staging carried
+                #   an entry whose quote, polarity or model was not theirs
+                #   (2026-09-24). See `merged_distinct_claims`.
+                _said = _what_the_write_says(stored)
+                _prior = written_here.get(stored.id)
+                if _prior is None:
+                    with self._conn.transaction():
+                        _claim_id = self._claims.write(stored)
+                    written_here[_claim_id] = _said
+                elif _prior == _said:
+                    _claim_id = stored.id
+                    result.merged_duplicate_claims += 1
+                else:
+                    _claim_id = None
+                    result.merged_distinct_claims += 1
+                    result.board_entries_detached_on_merge += len(claim.board_entries)
+                # Appended in all three cases, so `merged_claims` still counts
+                # every collision (#444), which the two counters above split.
+                result.stored_claim_ids.append(stored.id)
             except _CellRefused:
                 # Already recorded in `cell_refusals` with its reason. Not added
                 # to `claim_write_failures` as well, because nothing was
@@ -1096,7 +1163,8 @@ class Pipeline:
             result.cells = self._cells.rebuild_all(as_of=as_of)
 
         log.info(
-            "thread %s: %d proposed, %d verified, %d stored, %d merged, "
+            "thread %s: %d proposed, %d verified, %d stored, %d merged "
+            "(%d duplicate, %d distinct, %d board entries detached), "
             "%d cells, %d published",
             thread.thread_context_id,
             result.extraction.proposed,
@@ -1106,6 +1174,9 @@ class Pipeline:
             #   two writes and one row.
             result.stored_claims,
             result.merged_claims,
+            result.merged_duplicate_claims,
+            result.merged_distinct_claims,
+            result.board_entries_detached_on_merge,
             len(result.cells),
             result.published,
         )

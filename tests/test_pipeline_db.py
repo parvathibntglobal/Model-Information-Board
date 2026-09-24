@@ -501,3 +501,98 @@ class TestAThreadIsKeptAsSoonAsItIsDone:
         # Once, and AFTER the write. A hook firing before it would commit an
         # empty transaction and lose the thread just as completely.
         assert seen == [1]
+
+
+def _two_on_one_hint(fixture, document_id: str, *, second_polarity: str, shift: int) -> str:
+    """Two claims in one comment carrying the SAME `quote_offset` hint.
+
+    The hint is what `claim_id_for` hashes, and it is advisory: `verify()`
+    locates the quote itself. So two claims with one hint collide however far
+    apart their quotes are - which is what e5.5 did on 303 claims over 74
+    threads (2026-09-24), 168 of them with a different quote.
+    """
+    base = json.loads(scripted(fixture, document_id))["claims"][0]
+    start, end = span_in(fixture, document_id)
+    second = json.loads(json.dumps(base))
+    second["quote"] = fixture["flattened_text"][start + shift:end + shift]
+    second["polarity"] = second_polarity
+    second["board_entries"] = [{"section": "capability", "slug": "second-reading",
+                                "name": "Second reading", "definition": "The later claim."}]
+    return json.dumps({"claims": [base, second]})
+
+
+class TestAMergedClaimDoesNotOverwriteTheFirst:
+    """The board-entry pointer. An overwritten claim's entries used to survive
+    and point at a row whose quote and polarity came from the other claim."""
+
+    def _run(self, world, fixture, response):
+        result = pipeline_for(world, response).run(
+            thread_input(fixture),
+            facts=facts_for(fixture),
+            model_version_of={"google/gemini-2.5-flash": MODEL},
+        )
+        world.commit()
+        return result
+
+    def test_a_distinct_second_claim_leaves_the_first_intact(self, world, fixture):
+        document_id = fixture["member_document_ids"][0]
+        result = self._run(world, fixture, _two_on_one_hint(
+            fixture, document_id, second_polarity="positive", shift=3))
+
+        assert result.merged_claims == 1
+        assert (result.merged_distinct_claims, result.merged_duplicate_claims) == (1, 0)
+        assert result.board_entries_detached_on_merge == 1
+        (polarity,) = world.execute("SELECT polarity FROM claim").fetchall()
+        assert polarity == ("negative",), "the first claim's polarity was overwritten"
+
+    def test_every_attached_entry_agrees_with_its_claim(self, world, fixture):
+        document_id = fixture["member_document_ids"][0]
+        self._run(world, fixture, _two_on_one_hint(
+            fixture, document_id, second_polarity="positive", shift=3))
+
+        disagree = world.execute(
+            "SELECT count(*) FROM board_entry be JOIN claim c ON c.id = be.claim_id "
+            "WHERE be.polarity <> c.polarity OR be.quote <> c.quote"
+        ).fetchone()[0]
+        assert disagree == 0
+        detached = world.execute(
+            "SELECT slug, polarity FROM board_entry WHERE claim_id IS NULL"
+        ).fetchall()
+        assert detached == [("second-reading", "positive")], (
+            "the second claim's entry is kept, detached")
+
+    def test_the_same_claim_twice_is_a_duplicate_and_stays_attached(self, world, fixture):
+        document_id = fixture["member_document_ids"][0]
+        one = json.loads(scripted(fixture, document_id))["claims"][0]
+        result = self._run(world, fixture, json.dumps({"claims": [one, one]}))
+
+        assert (result.merged_duplicate_claims, result.merged_distinct_claims) == (1, 0)
+        assert result.board_entries_detached_on_merge == 0
+        assert world.execute(
+            "SELECT count(*) FROM board_entry WHERE claim_id IS NULL").fetchone()[0] == 0
+
+    def test_a_different_model_is_distinct_even_on_identical_text(self, world, fixture):
+        """The upsert never set `model_version_id`, so the first model stayed on
+        the row and the second model's entry pointed at it."""
+        world.execute(
+            "INSERT INTO model_version (id, canonical_id, provider, family, display_name, "
+            "lifecycle, provenance, sources) VALUES ('mv2','google/gemini-3-flash','google',"
+            "'gemini','Gemini 3 Flash','ga','seed','{}')"
+        )
+        world.commit()
+        document_id = fixture["member_document_ids"][0]
+        one = json.loads(scripted(fixture, document_id))["claims"][0]
+        two = json.loads(json.dumps(one))
+        two["model_ref"]["resolved_version_id"] = "google/gemini-3-flash"
+        result = pipeline_for(world, json.dumps({"claims": [one, two]})).run(
+            thread_input(fixture),
+            facts=facts_for(fixture),
+            model_version_of={"google/gemini-2.5-flash": MODEL, "google/gemini-3-flash": "mv2"},
+        )
+        world.commit()
+        assert result.merged_distinct_claims == 1
+        foreign = world.execute(
+            "SELECT count(*) FROM board_entry be JOIN claim c ON c.id = be.claim_id "
+            "WHERE be.model_version_id IS DISTINCT FROM c.model_version_id"
+        ).fetchone()[0]
+        assert foreign == 0
