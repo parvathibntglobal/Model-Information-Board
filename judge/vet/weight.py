@@ -128,9 +128,10 @@ INPUT_GAPS: dict[str, _Gap] = {
         kind=NOT_CARRIED,
         writer="document.has_numbers, written by collect/triage/",
         fix=(
-            "build DocumentFacts from the document table. The column IS "
-            "populated - True on 6 of 7 non-NULL rows - so this one is carriage "
-            "and not measurement. It may NOT be derived from the claim: rule 2 "
+            "build DocumentFacts from the document table. The column is "
+            "written by collect/triage/ on every document it scores, so this "
+            "one is carriage and not measurement. It may NOT be derived from "
+            "the claim: rule 2 "
             "forbids weighting on the extractor's own boolean. Since 2026-08-30 "
             "this column has a SECOND job - it vetoes a tier promotion that "
             "`claim.has_numbers` proposes, and it can only veto, never confirm "
@@ -143,11 +144,12 @@ INPUT_GAPS: dict[str, _Gap] = {
         kind=NOT_CARRIED,
         writer="document.has_conditions, written by collect/triage/",
         fix=(
-            "build DocumentFacts from the document table - AND note the column "
-            "is False on all 7 populated rows and NULL on 57, so carrying it "
-            "changes nothing until something sets it True. It may NOT be "
-            "derived from claim.conditions: an absent condition is not a stated "
-            "absence (rule 6)"
+            "build DocumentFacts from the document table. CARRYING IT MOVES "
+            "WEIGHTS on every document whose column is True, and something "
+            "does set it True - `SELECT has_conditions, count(*) FROM document "
+            "GROUP BY 1` is the figure, and it is not this message's to hold. "
+            "It may NOT be derived from claim.conditions: an absent condition "
+            "is not a stated absence (rule 6)"
         ),
     ),
     "version_named": _Gap(
