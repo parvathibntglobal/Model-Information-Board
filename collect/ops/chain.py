@@ -269,6 +269,22 @@ def _open_ledger_row(context, stage_name: str):
         return None
 
 
+def _rollback_if_aborted(context) -> None:
+    """Roll back a connection a stage left in a failed transaction.
+
+    Only the aborted state, not every ERROR: a stage that returns ERROR by its
+    own decision has written nothing it did not mean to, and its work commits
+    with its `job_run` row exactly as before.
+    """
+    conn = (context or {}).get("conn")
+    if conn is None:
+        return
+    from psycopg.pq import TransactionStatus
+
+    if conn.info.transaction_status == TransactionStatus.INERROR:
+        conn.rollback()
+
+
 def _close_ledger_row(context, opened, result) -> None:
     """Conclude the row. A ledger failure never fails the stage it describes."""
     if opened is None:
@@ -341,6 +357,14 @@ def run_chain(stages, context: dict | None = None, journal: Journal | None = Non
             result = stage.run(context)
         except Exception as error:  # noqa: BLE001 - the chain records, it does not judge
             result = StageResult(outcome=ERROR, detail=f"{type(error).__name__}: {error}")
+        # ⚠ ONE STAGE'S FAILURE MUST NOT ABORT THE NEXT ONE'S TRANSACTION. The
+        #   stages share a connection, and a stage that dies mid-statement
+        #   leaves it in an aborted transaction - so on 2026-09-24 the poll's
+        #   FK violation also failed its own `job_run` close, the next stage's
+        #   `job_run` open, and `recompute-window` itself, which does not depend
+        #   on the poll. Rolling back discards only the failed stage's
+        #   uncommitted work: `job_run` commits before a stage starts.
+        _rollback_if_aborted(context)
         run.results[stage.name] = result
         journal.write(event="stage-finished", stage=stage.name,
                       outcome=result.outcome, counts=result.counts, detail=result.detail)

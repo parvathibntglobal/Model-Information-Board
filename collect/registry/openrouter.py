@@ -545,7 +545,7 @@ def write_model_versions(
                 provenance                 = 'polled',
                 updated_at                 = now()
                 -- last_swept_at is NOT touched. See the docstring.
-            RETURNING id, (xmax = 0) AS was_insert
+            RETURNING id, (xmax = 0) AS was_insert, canonical_id
             """
 
     # The id travels back with the verdict rather than the caller re-deriving it
@@ -553,6 +553,7 @@ def write_model_versions(
     # the wrong model by an off-by-one is a defect nobody would see: it would
     # read as a real price change on a real model.
     verdicts: dict[str, bool] = {}
+    row_id_of: dict[str, str] = {}
     with conn.cursor() as cur:
         for start in range(0, len(params), batch):
             cur.executemany(statement, params[start:start + batch], returning=True)
@@ -562,8 +563,27 @@ def write_model_versions(
                 outcome = cur.fetchone() if cur.pgresult is not None else None
                 if outcome is not None:
                     verdicts[outcome[0]] = bool(outcome[1])
+                    row_id_of[outcome[2]] = outcome[0]
                 if not cur.nextset():
                     break
+
+    # ⚠ THE ROW'S ID, NOT THE ONE COMPUTED ABOVE. The upsert matches on
+    #   `canonical_id`, so a row that already exists under a DIFFERENT id - a
+    #   hand-entered model the catalogue has since started listing - is updated
+    #   in place and keeps its own id. Everything written after this point
+    #   (`pricing_history`, `model_event`) is keyed on `model_version_id`, and
+    #   keying it on `stable_id` pointed it at a row that does not exist: the
+    #   first scheduled poll, 2026-09-24, died on a foreign-key violation for
+    #   `anthropic/claude-fable-5.1`, whose row id is `anthropic/claude-fable-5-1`.
+    #   Re-keying the row instead would move every claim that points at it.
+    #   A canonical_id the upsert returned no row for is a defect, so it raises.
+    missing = [p["canonical_id"] for p in params if p["canonical_id"] not in row_id_of]
+    if missing:
+        raise RuntimeError(
+            f"upsert returned no row for {len(missing)} model(s): {missing[:5]}"
+        )
+    for p in params:
+        p["id"] = row_id_of[p["canonical_id"]]
 
     counts = {
         "inserted": sum(1 for was_insert in verdicts.values() if was_insert),
