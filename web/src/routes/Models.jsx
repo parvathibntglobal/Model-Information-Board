@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { listModels, listCapabilities, capabilityPage, fetchAll, capLabel, fmtTokens, BoardUnreadable } from '../api'
+import { listModels, fetchAll, capLabel, fmtTokens, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 
@@ -124,10 +124,21 @@ function matches(models, query) {
 
 export default function Models() {
   const [roster, setRoster] = useState(null)
-  const [evidence, setEvidence] = useState({})   // model id -> [{capability, voices, phrases}]
-  const [checked, setChecked] = useState(0)
-  const [failed, setFailed] = useState(0)
-  const [total, setTotal] = useState(0)
+  // ⚠ THERE IS NO CAPABILITY SWEEP HERE ANY MORE (#438). This page used to
+  //   loop the twelve ratified `capability_key`s and call `capabilityPage`
+  //   for each, folding the result into a per-model evidence column.
+  //
+  //   `capabilityPage` is a local stub that resolves with an empty list, so
+  //   the loop made twelve no-op round trips and the column was empty for all
+  //   348 models — and the notice below it, which says "that is a gap in this
+  //   page, not a fact about the model", fires on `failed > 0` and therefore
+  //   COULD NOT FIRE. A call that succeeds with nothing is indistinguishable
+  //   from a capability nobody has reported on, which is the one distinction
+  //   that notice existed to keep.
+  //
+  //   Not replaced with a real `cell` query: e5.5 writes no cells and all 258
+  //   of its claims carry a NULL `capability_key`, so a real query returns the
+  //   same empty column with a round trip attached. Ruled 2026-09-24.
   const [err, setErr] = useState(null)
   const [unreadable, setUnreadable] = useState(null)
   const [query, setQuery] = useState('')
@@ -177,46 +188,7 @@ export default function Models() {
         else setErr(e.message)
         return
       }
-
-      // then the evidence, which is a separate kind of fact and a separate
-      // set of calls. A capability page failing must not blank the roster.
-      let vocabulary
-      try {
-        vocabulary = await listCapabilities()
-      } catch { return }
-      if (!alive) return
-      setTotal(vocabulary.length)
-
-      for (const key of vocabulary.map((c) => c.key)) {
-        if (!alive) return
-        try {
-          const page = await fetchAll((l, o) => capabilityPage(key, l, o))
-          if (!alive) return
-          fold(page)
-          setChecked((n) => n + 1)
-        } catch {
-          // A capability that could not be READ is not a capability with
-          // nothing in it, and counting it as checked would let the page
-          // conclude "no model has a single report" from requests that never
-          // returned. One failure must not blank the roster, and it must not
-          // quietly join the tally either.
-          if (alive) setFailed((n) => n + 1)
-        }
-      }
     })()
-
-    function fold(page) {
-      setEvidence((prev) => {
-        const next = { ...prev }
-        for (const m of page.models) {
-          if (m.state === 'unreported') continue
-          const rows = next[m.model_version_id] ? [...next[m.model_version_id]] : []
-          rows.push({ capability: page.key, voices: m.voices, phrases: m.phrases, conditional: m.conditional })
-          next[m.model_version_id] = rows
-        }
-        return next
-      })
-    }
 
     return () => { alive = false }
   }, [])
@@ -271,25 +243,26 @@ export default function Models() {
               conditional notices and nothing else, and an unconditional wrapper
               renders an empty box whenever neither fires - which is most of the
               time. */}
-          {(checked + failed < total || failed > 0) && (
-            <Reveal>
-              <div className="card">
-                {checked + failed < total && (
-                  <p className="dim" style={{ fontSize: 'var(--fs-xs)', marginTop: 'var(--s3)' }}>
-                    Still reading capability pages — the evidence column fills in as they land.
-                  </p>
-                )}
-                {failed > 0 && (
-                  <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--warn)', marginTop: 'var(--s3)' }}>
-                    {failed} of {total} capability {failed === 1 ? 'page' : 'pages'} could not
-                    be read, so the evidence column below is incomplete. A model showing
-                    “no reports” here may have reports under a capability that failed to
-                    load — that is a gap in this page, not a fact about the model.
-                  </p>
-                )}
-              </div>
-            </Reveal>
-          )}
+          {/* ⚠ SAID ONCE, ABOUT THE SECTION, RATHER THAN 348 TIMES OR NOT AT
+              ALL. Dropping the sweep removes the empty evidence column AND the
+              only thing on this page whose job was to account for it — and a
+              page that is silently silent is harder to notice than one that is
+              silently wrong, because nothing looks unfinished.
+
+              So the fact the sweep could not state is stated here directly: it
+              is a property of the board, it is not per-model, and it does not
+              wait on a request that never fails. */}
+          <div className="card">
+            <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch',
+                                        margin: 0, lineHeight: 1.6 }}>
+              This list is the registry and what each provider advertises about itself.
+              It carries <strong style={{ color: 'var(--text)' }}>no engineer evidence
+              per model</strong>: the capability cells that would fill that column are
+              not being written by the current pipeline, so the absence is ours and not
+              a finding about any model here. The board's own sections are where
+              collected evidence appears.
+            </p>
+          </div>
 
           <label className="searchbar">
             <IconSearch width={15} height={15} />
@@ -331,7 +304,6 @@ export default function Models() {
               <ModelRow
                 key={m.model_version_id}
                 m={m}
-                rows={evidence[m.model_version_id]}
                 picked={picked.includes(compareId(m))}
                 onPick={togglePick}
                 atCap={picked.length >= COMPARE_MAX}
@@ -389,7 +361,7 @@ export default function Models() {
   )
 }
 
-function ModelRow({ m, rows, picked, onPick, atCap }) {
+function ModelRow({ m, picked, onPick, atCap }) {
 
   return (
     <div className={`mrow-wrap${picked ? ' mrow-picked' : ''}`}>
@@ -426,15 +398,13 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
             {m.provider}
             {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
           </span>
-          {/* Which capability, from the roster row itself — so it is on screen
-              the moment the list is, rather than 26 seconds later when the
-              capability sweep lands. `rows` upgrades it with voice counts if and
-              when that finishes. */}
+          {/* Which capability, from the roster row itself — on screen the
+              moment the list is. The voice counts that used to upgrade this
+              came from the capability sweep, which returned nothing on every
+              call (#438). */}
           {m.evidence?.capabilities?.length > 0 && (
             <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-              {rows
-                ? rows.map((r) => `${capLabel(r.capability)} · ${r.voices} ${r.voices === 1 ? 'voice' : 'voices'}`).join('  ·  ')
-                : m.evidence.capabilities.map(capLabel).join('  ·  ')}
+              {m.evidence.capabilities.map(capLabel).join('  ·  ')}
             </span>
           )}
         </span>
@@ -450,8 +420,8 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
 
           {/* From the roster's own `evidence`, not from the capability sweep.
               The sweep takes 26 seconds and can fail per-page; this arrives with
-              the row. `rows` still supplies WHICH capability once it lands. */}
-          <EvidenceBadge e={m.evidence} rows={rows} />
+              the row. */}
+          <EvidenceBadge e={m.evidence} />
           {/* BESIDE THE BADGE, NEVER INSTEAD OF IT. A cell has been through the
               gate; a board entry has not. Collapsing them breaks rule 4 in
               whichever direction you collapse - see BoardBadge.
@@ -484,15 +454,13 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
             {m.provider}
             {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
           </span>
-          {/* Which capability, from the roster row itself — so it is on screen
-              the moment the list is, rather than 26 seconds later when the
-              capability sweep lands. `rows` upgrades it with voice counts if and
-              when that finishes. */}
+          {/* Which capability, from the roster row itself — on screen the
+              moment the list is. The voice counts that used to upgrade this
+              came from the capability sweep, which returned nothing on every
+              call (#438). */}
           {m.evidence?.capabilities?.length > 0 && (
             <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-              {rows
-                ? rows.map((r) => `${capLabel(r.capability)} · ${r.voices} ${r.voices === 1 ? 'voice' : 'voices'}`).join('  ·  ')
-                : m.evidence.capabilities.map(capLabel).join('  ·  ')}
+              {m.evidence.capabilities.map(capLabel).join('  ·  ')}
             </span>
           )}
         </span>
@@ -508,8 +476,8 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
 
           {/* From the roster's own `evidence`, not from the capability sweep.
               The sweep takes 26 seconds and can fail per-page; this arrives with
-              the row. `rows` still supplies WHICH capability once it lands. */}
-          <EvidenceBadge e={m.evidence} rows={rows} />
+              the row. */}
+          <EvidenceBadge e={m.evidence} />
           {/* BESIDE THE BADGE, NEVER INSTEAD OF IT. A cell has been through the
               gate; a board entry has not. Collapsing them breaks rule 4 in
               whichever direction you collapse - see BoardBadge.
@@ -574,14 +542,14 @@ function BoardBadge({ b }) {
 }
 
 
-function EvidenceBadge({ e, rows }) {
+function EvidenceBadge({ e }) {
   const state = e?.state || 'unreported'
 
   // The board has no publication gate any more, so these badges COUNT reports
   // rather than announcing a gate verdict. A count says how many people spoke;
   // it never says who was right.
   if (state === 'published') {
-    return <Badge tone="pass">reported{rows ? ` · ${rows.length}` : ''}</Badge>
+    return <Badge tone="pass">reported</Badge>
   }
   if (state === 'insufficient') {
     // ⚠ "FEW REPORTS" WAS A CONSTANT WEARING A VERDICT'S CLOTHES.
