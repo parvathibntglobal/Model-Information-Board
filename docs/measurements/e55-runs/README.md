@@ -2,7 +2,7 @@
 
 Eight `scripts/fetch_model.py` runs against the shared staging database, the
 first under `pipeline_version` e5.5. Three were announced on #427, five on
-#432. All ran on ANOOJ.
+#432. All ran on one machine (host-a).
 
 **Why these are committed.** The raw logs live in `var/runs/`, which is
 gitignored, so until now they existed on one machine only.
@@ -17,13 +17,13 @@ per thread payload stored on another machine (#316, #321). The first
 occurrence is kept, with a count line in its place:
 
 ```
-[committed form: 2843 'raw store: ... missing with no tombstone' line(s) collapsed; full log in var/runs/<name> on ANOOJ. First:]
+[committed form: 2843 'raw store: ... missing with no tombstone' line(s) collapsed; full log in var/runs/<name> on host-a. First:]
 ```
 
 Everything else is kept: stage lines, per-thread lines (where retries,
 ceiling stops and 502s appear), the closing box and `PIPESTATUS`. The eight
 come to 696 KB, against about 5.6 MB raw. The full logs remain in `var/runs/`
-on ANOOJ.
+on host-a.
 
 `batch-2026-09-24-figures.jsonl` is the batch driver's before and after
 snapshot of the shared database for each of 2026-09-24's runs. Run 2's
@@ -126,3 +126,10 @@ key usage_daily for 2026-09-24, all calls on this key:   $0.4426
 - **Ledger rows over these windows are about 4-5 times the billed spend**
   (#381), and about 30% of this machine's rows never reached the shared table
   (#393).
+
+## Machine names are pseudonyms
+
+`host-a`, `host-b` and `host-c` stand in for the three machine names that wrote
+to staging in these windows. They are stable across every snapshot and log
+here, which is all the figures need: `other_machines_since: []` means no other
+host wrote. The mapping is kept off the repository.
