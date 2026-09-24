@@ -69,13 +69,17 @@ import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, NamedTuple, Protocol, runtime_checkable
 
 from collect.assemble.flatten import Flattened, flatten
 from collect.config import settings
 from collect.ids import stable_id
 from collect.rawstore import FLATTENED, RawStore
-from collect.triage.specificity import score_document
+from collect.triage.specificity import (
+    names_version,
+    score_document,
+    score_if_version_inherited,
+)
 
 
 @runtime_checkable
@@ -175,6 +179,16 @@ class AssembledThread:
     hidden_branches_unsized: int
     pipeline_version: str
     selection_method: str = SELECTION_METHOD
+    #: How many SELECTED children scored on the root's version token rather
+    #: than their own text (#307). Not a column - `as_row()` does not carry it,
+    #: for the same reason `flattened` is not carried.
+    #:
+    #: ⚠ `None`, NOT 0, WHERE NOTHING ASKED (rule 6). A GitHub issue ranks with
+    #:   `_rank_issue_comments`, which does not inherit at all, and an article
+    #:   has no children - so "0 inherited" there would answer a question the
+    #:   path never put. A reader summing these must skip None rather than
+    #:   coalesce it.
+    subject_inherited_children: int | None = None
 
     @property
     def child_count(self) -> int:
@@ -203,9 +217,41 @@ class AssembledThread:
         }
 
 
+class RankedChild(NamedTuple):
+    """One scored comment, and the two facts a caller needs about its score.
+
+    ⚠ THREE FIELDS RATHER THAN A `(score, member)` PAIR, WHICH IS WHY EVERY
+      CALLER CHANGED. `subject_inherited` has to travel with the row it
+      describes: a count of inherited children recomputed anywhere else would
+      be a second implementation of the same rule, and rule 9 wants the value
+      to have a named consumer rather than a place it could be derived.
+    """
+
+    #: `specificity x log1p(engagement)` — what the ranking sorts on.
+    score: float
+    member: ThreadMember
+    #: WOULD this comment reach its subject through the ROOT's version token
+    #: rather than its own text? Derived, never set independently — true when
+    #: the root names a version and the comment does not. Same shape and the
+    #: same reason as `TriageRun.subject_was_inherited`.
+    #:
+    #: ⚠ IT DOES NOT AFFECT `score`. See `rank_children` for the measurement
+    #:   that stopped it being spent. Consumer named, per rule 9:
+    #:   `RedditAssemblyReport.comments_inherited_subject`.
+    subject_inherited: bool
+    #: The specificity term alone, before engagement multiplies it. Consumer
+    #: named: the tie-break below, which is the whole of #307's option 1.
+    specificity: float
+    #: What `score` would have been built from had the inheritance been spent —
+    #: `specificity` plus the `names_version` weight, or `specificity` where the
+    #: comment names it already. Carried so the size of the change can be read
+    #: off a real sweep rather than argued about (#307, option 3).
+    would_score: float
+
+
 def rank_children(
-    comments: tuple[ThreadMember, ...], *, version_aliases
-) -> list[tuple[float, ThreadMember]]:
+    comments: tuple[ThreadMember, ...], *, version_aliases, root_text: str
+) -> list[RankedChild]:
     """`specificity_score x log(1 + engagement)`, highest first.
 
     Engagement is `max(score, 0)`: a comment at -3 is not negatively relevant,
@@ -213,15 +259,63 @@ def rank_children(
     it multiplies. `log1p` so one very popular joke cannot outrank several
     specific corrections.
 
-    Ties break on `external_id`, so two comments with identical scores select
-    deterministically and a re-run produces the same row.
+    ⚠ `root_text` IS REQUIRED AND IS DELIBERATELY NOT IN THE SCORE (#307).
+      Option 4 on that issue was to let a child inherit its thread's version
+      token — "it still drops the tool call at 40k" is about whatever the root
+      was about — and implementing it regressed the acceptance case that
+      justifies this ranking existing at all:
+
+          claude sonnet 4 throws JSONDecodeError at 6 tools, tool_choice=auto
+              own 0.800   x log1p(1)   = 0.555        1 vote
+
+          same lol
+              own 0.000   x log1p(500) = 0.000        500 votes
+              INHERITED 0.150 x log1p(500) = 0.932    outranks the correction
+
+      The reason is general and not a tuning accident. Inheritance adds a flat
+      `names_version` weight to every child that does not name the version, so
+      a comment whose specificity was zero becomes `0.15 x log1p(votes)` — and
+      the whole zero tail is then ranked BY VOTES ALONE. That is precisely the
+      "one very popular joke outranks several specific corrections" failure
+      `log1p` is here to damp, arriving through the term meant to fix it.
+
+      `names_version` does double duty: it identifies the SUBJECT and it earns
+      SPECIFICITY weight. A reply inherits the first and has not earned the
+      second, and nothing in the composite can separate them. That separation
+      is #307's option 3, deferred.
+
+      So inheritance is MEASURED and NOT SPENT: `subject_inherited` records
+      which children would inherit, `RedditAssemblyReport` reports the share,
+      and the score is untouched until there is a number to decide on.
+
+      No default, for the reason `child_document_id` has none: a default of
+      `""` would silently report that no thread names anything.
+
+    ⚠ TIES BREAK ON SPECIFICITY BEFORE `external_id` (#307, option 1). The
+      product is zero for every comment with no votes, and on the measured
+      population that is 84% of them — so the previous `(-score, external_id)`
+      ordered the overwhelming majority of the corpus ALPHABETICALLY and called
+      it a relevance ranking. `external_id` remains the final key, because a
+      re-run must still produce the same row.
     """
+    #: Scored once for the thread rather than once per comment: the root's text
+    #: does not change between children, and `names_version` walks every alias.
+    root_names_version = names_version(root_text, version_aliases)
+
     ranked = []
     for comment in comments:
-        specificity = score_document(comment.body, version_aliases=version_aliases)
+        own = score_document(comment.body, version_aliases=version_aliases)
         engagement = math.log1p(max(comment.score or 0, 0))
-        ranked.append((specificity.score * engagement, comment))
-    ranked.sort(key=lambda pair: (-pair[0], pair[1].external_id))
+        ranked.append(RankedChild(
+            score=own.score * engagement,
+            member=comment,
+            #: OBSERVED, NOT APPLIED. See the note above: spending this raises
+            #: the zero tail off zero and hands the ranking to vote count.
+            subject_inherited=root_names_version and not own.names_version,
+            specificity=own.score,
+            would_score=score_if_version_inherited(own),
+        ))
+    ranked.sort(key=lambda r: (-r.score, -r.specificity, r.member.external_id))
     return ranked
 
 
@@ -256,9 +350,10 @@ def assemble(
     """
     version = pipeline_version or settings().pipeline_version
 
-    selected = [comment for _score, comment in rank_children(
-        thread.comments, version_aliases=version_aliases
-    )[:max_children]]
+    ranked = rank_children(
+        thread.comments, version_aliases=version_aliases, root_text=root_text
+    )[:max_children]
+    selected = [r.member for r in ranked]
 
     documents: list[tuple[str, str]] = [(root_document_id, root_text)]
     documents.extend((child_document_id(c), c.body) for c in selected)
@@ -279,6 +374,7 @@ def assemble(
         observed_children=thread.coverage.observed_children,
         hidden_children_min=thread.coverage.hidden_children_min,
         hidden_branches_unsized=thread.coverage.hidden_branches_unsized,
+        subject_inherited_children=sum(r.subject_inherited for r in ranked),
         pipeline_version=version,
     )
 

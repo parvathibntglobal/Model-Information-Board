@@ -202,8 +202,10 @@ def assemble_reddit_thread(
     # Rank over what we OBSERVED. `rank_children` scores body specificity times
     # log(1+score); a comment whose body did not resolve is excluded upstream, so
     # everything here has text to score.
-    ranked = rank_children(tuple(comments), version_aliases=version_aliases)
-    selected = [comment for _score, comment in ranked[:max_children]]
+    ranked = rank_children(
+        tuple(comments), version_aliases=version_aliases, root_text=root_text
+    )
+    selected = [r.member for r in ranked[:max_children]]
 
     documents: list[tuple[str, str]] = [(root_document_id, root_text)]
     documents.extend((reddit_document_id(c.external_id), c.body) for c in selected)
@@ -224,6 +226,7 @@ def assemble_reddit_thread(
         hidden_branches_unsized=None,
         pipeline_version=version,
         selection_method=SELECTION_METHOD,
+        subject_inherited_children=sum(r.subject_inherited for r in ranked[:max_children]),
     )
 
 
@@ -246,6 +249,16 @@ class RedditAssemblyReport:
     #: does not have to be recomputed from the rows.
     comments_unread: int = 0
     posts_with_unread_comments: int = 0
+    #: Selected children that name no version of their own and would take
+    #: their thread's - "it still drops the tool call at 40k" under a root that
+    #: named the model (#307, option 4).
+    #:
+    #: ⚠ THE POPULATION, NOT A CHANGE THAT WAS MADE. Inheritance is measured
+    #:   and not spent: applying it regressed the acceptance case (a 500-vote
+    #:   "same lol" outranking a version+error correction), because it lifts
+    #:   every zero-specificity child to a flat 0.15 and hands the tail to vote
+    #:   count. This number is what option 3 needs to be argued on.
+    comments_inherited_subject: int = 0
     refusals: list[str] = field(default_factory=list)
 
     def summary(self) -> str:
@@ -261,6 +274,16 @@ class RedditAssemblyReport:
                 f"carry comments we never fetched, {self.comments_unread} in "
                 f"total, recorded as hidden_children_min so coverage_ratio reads "
                 f"0.0 rather than NULL or 1.0"
+            )
+        if self.comments_inherited_subject:
+            share = 100 * self.comments_inherited_subject / max(self.comments_selected, 1)
+            lines.append(
+                f"subject  : {self.comments_inherited_subject} of "
+                f"{self.comments_selected} selected comment(s) "
+                f"({share:.1f}%) name no version of their own and WOULD "
+                f"inherit their thread's - measured, not applied: spending it "
+                f"raises the zero tail off zero and ranks it by vote count "
+                f"(#307, see rank_children)"
             )
         if self.comments_held:
             lines.append(
@@ -433,6 +456,11 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
         report.assembled += 1
         report.comments_held += len(comments)
         report.comments_selected += assembled.child_count
+        # SKIPPED WHEN None, NEVER COALESCED. None means the path did not ask
+        # (see `AssembledThread.subject_inherited_children`); a body-only
+        # assembly selected no children at all.
+        if assembled.subject_inherited_children is not None:
+            report.comments_inherited_subject += assembled.subject_inherited_children
 
     return report
 
