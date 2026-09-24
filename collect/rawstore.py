@@ -88,12 +88,34 @@ class PayloadTombstoned(RawStoreError):
 
 
 class PayloadMissing(RawStoreError):
-    """A payload that should exist does not. Corruption or a bug.
+    """A payload this store should be able to read, it cannot.
 
     **This is an ops alert, not a routine condition.** NFR-4 guarantees a full
-    rebuild from the raw store; that guarantee is void the moment a blob
-    disappears without a tombstone, and it is void silently unless somebody is
-    told. Raised loudly and logged at ERROR.
+    rebuild from the raw store; that guarantee is void *here* the moment a blob
+    is unreadable without a tombstone, and it is void silently unless somebody
+    is told. Raised loudly and logged at ERROR.
+
+    ⚠ IT USED TO SAY "CORRUPTION OR A BUG", AND THE STORE CANNOT KNOW THAT
+      (#303). Two very different states present as the same absent file:
+
+          the blob was corrupted or deleted here      a broken guarantee
+          the blob was written on another machine      a sync gap, and the
+            and never synced to this one               store is intact
+
+      And the second demonstrably exists: the 2026-09-15 dedupe stage reported
+      **465 payloads not on this machine**, and `fetch_model.py`'s selection
+      already treats an unreadable payload as "not this fetch's thread" rather
+      than as damage. Measured the same day: 151 of 4,144 `thread_context`
+      rows (3.6%) had unreadable flattened text on one laptop.
+
+      There is no manifest to check against — no `raw_object`, `blob` or
+      `tombstone` table exists, and nothing records which machine wrote which
+      blob. So the store has no way to tell the two apart, and rule 6 says an
+      absence it cannot explain must not be reported as a definite finding.
+
+      What it CAN say is what it did: this store could not read this ref, and
+      there is no tombstone, so the removal was not deliberate. That is true
+      in both states and is what the message now says.
     """
 
 
@@ -283,14 +305,22 @@ class RawStore:
             # The requirement id is in the message on purpose: it is the one
             # token here that will not be rephrased, so monitoring and tests
             # can key on it without breaking every time the prose improves.
+            # THE REQUIREMENT ID STAYS IN THE MESSAGE on purpose: it is the
+            # one token here that will not be rephrased, so monitoring and
+            # tests can key on it without breaking every time the prose
+            # improves.
             log.error(
-                "raw store: %s is missing with no tombstone. NFR-4 rebuild-from-raw "
-                "is no longer guaranteed. This is corruption or a bug, not a takedown.",
+                "raw store: %s is not readable on this machine and carries no "
+                "tombstone, so NFR-4 rebuild-from-raw is not available here. "
+                "This store cannot tell a lost blob from one written on "
+                "another machine and never synced (#303).",
                 ref,
             )
             raise PayloadMissing(
-                f"{ref} is absent from the raw store and carries no tombstone. "
-                "Either the store is corrupt or something deleted it directly."
+                f"{ref} is not readable in this raw store and carries no "
+                f"tombstone, so its removal was not deliberate. This store "
+                f"cannot tell whether it was lost or was written elsewhere "
+                f"and never synced here (#303)."
             )
 
         return path.read_bytes()
