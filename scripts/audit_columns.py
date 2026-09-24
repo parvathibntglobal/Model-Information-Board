@@ -37,6 +37,7 @@ import json
 import logging
 import pathlib
 import re
+import subprocess
 import sys
 
 log = logging.getLogger(__name__)
@@ -242,22 +243,68 @@ def columns_of(conn) -> dict[str, list[str]]:
     return dict(out)
 
 
+class NotACheckout(RuntimeError):
+    """This audit was asked to measure a repository and was not given one."""
+
+
+def _tracked(*patterns: str) -> list[pathlib.Path]:
+    """Files git tracks, matching `patterns`. THE POPULATION IS THE REPOSITORY.
+
+    ⚠ THIS USED TO BE `rglob`, AND rglob WALKS THE FILESYSTEM (#428). Every
+      untracked file in whoever's working directory counted as a reader of
+      every column it mentioned, so `main` was green for one of us and red for
+      the other three times in one day — same commit, different answers, and
+      the failure message cited the scratch file as evidence.
+
+      Demonstrated there in two commands: a two-line untracked probe naming
+      `answer.abstained` turned that column from `write_only` into
+      `written+read` and took the gate red. Deleting the file made it green.
+
+      It failed in the expensive direction. An untracked probe makes a
+      write-only column look read, so **the audit that exists to enforce rule 9
+      goes quiet about a column whose only reader is a file nobody else has.**
+
+    ⚠ AND IT RAISES RATHER THAN FALLING BACK. A `rglob` fallback for the
+      not-a-checkout case would reintroduce the defect wherever it fired, and
+      it would fire silently — rule 12: a fallback that can succeed on a wrong
+      input is not a fallback. An audit run outside a checkout has no
+      repository to measure and must say so.
+
+    `git ls-files` includes staged-but-uncommitted files, which is correct: a
+    file you are about to commit is a real reader.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(ROOT), "ls-files", "-z", "--", *patterns],
+            capture_output=True, check=True,
+        )
+    except FileNotFoundError as exc:
+        raise NotACheckout(
+            "`git` is not on PATH, so this audit cannot read the population it "
+            "measures. It does not fall back to walking the filesystem: that "
+            "counts untracked scratch files as readers and is the defect #428 "
+            "was opened for."
+        ) from exc
+    except subprocess.CalledProcessError as exc:
+        raise NotACheckout(
+            f"`git ls-files` failed under {ROOT}, so this is not a checkout and "
+            f"there is no repository to audit: {exc.stderr.decode(errors='replace').strip()}"
+        ) from exc
+
+    names = [n for n in result.stdout.decode("utf-8").split("\0") if n]
+    return [ROOT / n for n in names if not SKIP.search(n)]
+
+
 def _source_files() -> list[pathlib.Path]:
-    files: list[pathlib.Path] = []
-    for d in SRC_DIRS:
-        files += [p for p in (ROOT / d).rglob("*.py") if not SKIP.search(str(p))]
-    files += [p for p in ROOT.glob("*.py") if not SKIP.search(str(p))]
-    return files
+    #: `*.py` on its own matches at any depth in `git ls-files`, so the
+    #: top-level scripts the old code globbed separately are already included.
+    return _tracked(*(f"{d}/*.py" for d in SRC_DIRS), "*.py")
 
 
 def _web_files() -> list[pathlib.Path]:
-    files: list[pathlib.Path] = []
-    for d in WEB_DIRS:
-        base = ROOT / d
-        if base.exists():
-            for ext in ("*.js", "*.jsx"):
-                files += [f for f in base.rglob(ext) if not SKIP.search(str(f))]
-    return files
+    return _tracked(*(
+        f"{d}/*.{ext}" for d in WEB_DIRS for ext in ("js", "jsx")
+    ))
 
 
 def _string_literals(path: pathlib.Path) -> list[tuple[int, str]]:
