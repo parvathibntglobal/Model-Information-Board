@@ -706,3 +706,83 @@ tombstoned:
     deleted_on: 2026-09-24
     reason: released more than a year before 2026-09-24; deleted by ruling
     backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: deepseek/deepseek-r1
+    release_date: 2025-01-20
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; held for the twelve cross-model entries, then deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: google/gemini-2.5-flash
+    release_date: 2025-06-17
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; held for the twelve cross-model entries, then deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: meta-llama/llama-4-scout
+    release_date: 2025-04-05
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; held for the twelve cross-model entries, then deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: openai/gpt-4.1
+    release_date: 2025-04-14
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; held for the twelve cross-model entries, then deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: ~anthropic/claude-fable-latest
+    release_date: null
+    deleted_on: 2026-09-24
+    reason: a ~latest pointer (catalogue alias_target), not a model; gave one model two ids. No evidence carried.
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: ~anthropic/claude-haiku-latest
+    release_date: null
+    deleted_on: 2026-09-24
+    reason: a ~latest pointer (catalogue alias_target), not a model; gave one model two ids. No evidence carried.
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: ~anthropic/claude-opus-latest
+    release_date: null
+    deleted_on: 2026-09-24
+    reason: a ~latest pointer (catalogue alias_target), not a model; gave one model two ids. No evidence carried.
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: ~anthropic/claude-sonnet-latest
+    release_date: null
+    deleted_on: 2026-09-24
+    reason: a ~latest pointer (catalogue alias_target), not a model; gave one model two ids. No evidence carried.
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: ~deepseek/deepseek-v4-flash-latest
+    release_date: null
+    deleted_on: 2026-09-24
+    reason: a ~latest pointer (catalogue alias_target), not a model; gave one model two ids. No evidence carried.
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: ~google/gemini-flash-latest
+    release_date: null
+    deleted_on: 2026-09-24
+    reason: a ~latest pointer (catalogue alias_target), not a model; gave one model two ids. No evidence carried.
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: ~google/gemini-pro-latest
+    release_date: null
+    deleted_on: 2026-09-24
+    reason: a ~latest pointer (catalogue alias_target), not a model; gave one model two ids. No evidence carried.
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: ~moonshotai/kimi-latest
+    release_date: null
+    deleted_on: 2026-09-24
+    reason: a ~latest pointer (catalogue alias_target), not a model; gave one model two ids. No evidence carried.
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: ~openai/gpt-latest
+    release_date: null
+    deleted_on: 2026-09-24
+    reason: a ~latest pointer (catalogue alias_target), not a model; gave one model two ids. No evidence carried.
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: ~openai/gpt-mini-latest
+    release_date: null
+    deleted_on: 2026-09-24
+    reason: a ~latest pointer (catalogue alias_target), not a model; gave one model two ids. No evidence carried.
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: ~x-ai/grok-latest
+    release_date: null
+    deleted_on: 2026-09-24
+    reason: a ~latest pointer (catalogue alias_target), not a model; gave one model two ids. No evidence carried.
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
+  - canonical_id: ~z-ai/glm-latest
+    release_date: null
+    deleted_on: 2026-09-24
+    reason: a ~latest pointer (catalogue alias_target), not a model; gave one model two ids. No evidence carried.
+    backup: docs/backups/old-models-backup-2026-09-24-part2.json
