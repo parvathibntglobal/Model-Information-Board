@@ -99,6 +99,14 @@ def main() -> int:
     # the row because no poll carries it, not because the build needed a stand-in.
     # Until #382 this loader wrote `seed`, which made `assert_no_fixtures` refuse
     # four real models correctly by its own definition and wrongly by intent.
+    # A deliberately deleted model is not re-created by hand either.
+    import yaml as _yaml
+
+    from collect.registry.tombstones import load_tombstones, refuse_if_tombstoned
+
+    _stones = load_tombstones()
+    for _m in _yaml.safe_load(contract.read_text(encoding="utf-8"))["models"]:
+        refuse_if_tombstoned(_m["canonical_id"], _stones)
     report = load_seed(conn, path=contract, provenance="unpolled")
     print(report.summary())
 

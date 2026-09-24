@@ -414,8 +414,18 @@ def _poll_registry_stage(context) -> StageResult:
                     "expected order of magnitude",
         )
 
+    # TOMBSTONES, BEFORE THE WRITE. A deleted polled model is re-inserted by
+    # the very next poll unless it is named here; `load_tombstones` raises on a
+    # missing or malformed file rather than returning an empty set, because an
+    # empty set is exactly the silent failure this exists to prevent. The count
+    # goes on the stage line: skipped models must not read as a catalogue that
+    # stopped listing them.
+    from collect.registry.tombstones import apply_tombstones, load_tombstones
+
+    result, tombstoned = apply_tombstones(result, load_tombstones())
     counts = write_model_versions(conn, result)
-    return StageResult(OK, counts={"models": len(result.models), **counts})
+    return StageResult(OK, counts={"models": len(result.models),
+                                   "tombstoned_skipped": len(tombstoned), **counts})
 
 
 def _recompute_window_stage(context) -> StageResult:

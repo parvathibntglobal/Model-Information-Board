@@ -1,0 +1,708 @@
+# ============================================================================
+#  Tombstoned models - canonical ids the registry must NOT re-create.
+#
+#  SHARED. Changes go through a PR and get two eyes (contract/).
+#
+#  WHY THIS EXISTS. Deleting a `provenance='polled'` model_version row does not
+#  remove the model: the OpenRouter poll upserts every model the catalogue
+#  lists, so the next poll re-inserts it with an empty history. On 2026-09-24
+#  107 of the first 140 models deleted were still in the catalogue. Without
+#  this file the deletion undoes itself on the first scheduled poll.
+#
+#  WHAT READS IT
+#    collect/ops/chain.py        poll-registry: drops these ids between
+#                                parse_models and write_model_versions, and
+#                                REPORTS how many it dropped (never silent)
+#    scripts/load_unpolled_models.py   refuses to hand-load a tombstoned id
+#
+#  MATCHING IS ON THE BASE ID, after service tiers are folded in, so
+#  `openai/gpt-4o:batch` is covered by `openai/gpt-4o`.
+#
+#  UNDOING ONE: remove its entry here (a PR), and the next poll re-inserts it
+#  as a NEW row with no history. The deleted history is only in the backup
+#  named below; nothing in the database remembers it.
+# ============================================================================
+
+version: "1.0"
+
+tombstoned:
+  - canonical_id: ai21/jamba-large-1.7
+    release_date: 2025-08-08
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: aion-labs/aion-rp-llama-3.1-8b
+    release_date: 2025-02-04
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: amazon/nova-lite-v1
+    release_date: 2024-12-05
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: amazon/nova-micro-v1
+    release_date: 2024-12-05
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: amazon/nova-pro-v1
+    release_date: 2024-12-05
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: anthracite-org/magnum-v4-72b
+    release_date: 2024-10-22
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: anthropic/claude-3-haiku
+    release_date: 2024-03-13
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: anthropic/claude-opus-4
+    release_date: 2025-05-22
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: anthropic/claude-opus-4.1
+    release_date: 2025-08-05
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: anthropic/claude-sonnet-4
+    release_date: 2025-05-22
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: arcee-ai/virtuoso-large
+    release_date: 2025-05-05
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: baidu/ernie-4.5-vl-424b-a47b
+    release_date: 2025-06-30
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: bytedance/ui-tars-1.5-7b
+    release_date: 2025-07-22
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: cognitivecomputations/dolphin-mistral-24b-venice-edition
+    release_date: 2025-07-09
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: cohere/command-a
+    release_date: 2025-03-13
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: cohere/command-r-08-2024
+    release_date: 2024-08-30
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: cohere/command-r-plus-08-2024
+    release_date: 2024-08-30
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: cohere/command-r7b-12-2024
+    release_date: 2024-12-14
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: deepseek/deepseek-chat
+    release_date: 2024-12-26
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: deepseek/deepseek-chat-v3-0324
+    release_date: 2025-03-24
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: deepseek/deepseek-chat-v3.1
+    release_date: 2025-08-21
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: deepseek/deepseek-r1-0528
+    release_date: 2025-05-28
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: deepseek/deepseek-r1-distill-llama-70b
+    release_date: 2025-01-23
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: deepseek/deepseek-v3.1-terminus
+    release_date: 2025-09-22
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: google/gemini-2.5-flash-lite
+    release_date: 2025-07-22
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: google/gemini-2.5-pro
+    release_date: 2025-06-17
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: google/gemini-2.5-pro-preview
+    release_date: 2025-06-05
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: google/gemini-2.5-pro-preview-05-06
+    release_date: 2025-05-07
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: google/gemma-2-27b-it
+    release_date: 2024-07-13
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: google/gemma-3-12b-it
+    release_date: 2025-03-13
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: google/gemma-3-27b-it
+    release_date: 2025-03-12
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: google/gemma-3-4b-it
+    release_date: 2025-03-13
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: google/gemma-3n-e4b-it
+    release_date: 2025-05-20
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: gryphe/mythomax-l2-13b
+    release_date: 2023-07-02
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: mancer/weaver
+    release_date: 2023-08-02
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: meta-llama/llama-3.1-70b-instruct
+    release_date: 2024-07-23
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: meta-llama/llama-3.1-8b-instruct
+    release_date: 2024-07-23
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: meta-llama/llama-3.2-1b-instruct
+    release_date: 2024-09-25
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: meta-llama/llama-3.2-3b-instruct
+    release_date: 2024-09-25
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: meta-llama/llama-3.3-70b-instruct
+    release_date: 2024-12-06
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: meta-llama/llama-4-maverick
+    release_date: 2025-04-05
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: meta-llama/llama-guard-4-12b
+    release_date: 2025-04-30
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: microsoft/phi-4
+    release_date: 2025-01-10
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: microsoft/wizardlm-2-8x22b
+    release_date: 2024-04-16
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: minimax/minimax-01
+    release_date: 2025-01-15
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: minimax/minimax-m1
+    release_date: 2025-06-17
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: mistralai/codestral-2508
+    release_date: 2025-08-01
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: mistralai/mistral-large
+    release_date: 2024-02-26
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: mistralai/mistral-large-2407
+    release_date: 2024-11-19
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: mistralai/mistral-medium-3
+    release_date: 2025-05-07
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: mistralai/mistral-medium-3.1
+    release_date: 2025-08-13
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: mistralai/mistral-nemo
+    release_date: 2024-07-19
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: mistralai/mistral-saba
+    release_date: 2025-02-17
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: mistralai/mistral-small-24b-instruct-2501
+    release_date: 2025-01-30
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: mistralai/mistral-small-3.1-24b-instruct
+    release_date: 2025-03-17
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: mistralai/mistral-small-3.2-24b-instruct
+    release_date: 2025-06-20
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: mistralai/mixtral-8x22b-instruct
+    release_date: 2024-04-17
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: moonshotai/kimi-k2
+    release_date: 2025-07-11
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: moonshotai/kimi-k2-0905
+    release_date: 2025-09-04
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: morph/morph-v3
+    release_date: 2025-07-07
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: morph/morph-v3-large
+    release_date: 2025-07-07
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: nousresearch/hermes-3-llama-3.1-405b
+    release_date: 2024-08-16
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: nousresearch/hermes-3-llama-3.1-70b
+    release_date: 2024-08-18
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: nousresearch/hermes-4-405b
+    release_date: 2025-08-26
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: nousresearch/hermes-4-70b
+    release_date: 2025-08-26
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: nvidia/nemotron-nano-9b-v2
+    release_date: 2025-09-05
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-3.5-turbo
+    release_date: 2023-05-28
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-3.5-turbo-0613
+    release_date: 2024-01-25
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-3.5-turbo-16k
+    release_date: 2023-08-28
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-3.5-turbo-instruct
+    release_date: 2023-09-28
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-4
+    release_date: 2023-05-28
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-4-turbo
+    release_date: 2024-04-09
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-4-turbo-preview
+    release_date: 2024-01-25
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-4.1-mini
+    release_date: 2025-04-14
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-4.1-nano
+    release_date: 2025-04-14
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-4o
+    release_date: 2024-05-13
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-4o-2024-05-13
+    release_date: 2024-05-13
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-4o-2024-08-06
+    release_date: 2024-08-06
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-4o-2024-11-20
+    release_date: 2024-11-20
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-4o-mini
+    release_date: 2024-07-18
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-4o-mini-2024-07-18
+    release_date: 2024-07-18
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-5
+    release_date: 2025-08-07
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-5-codex
+    release_date: 2025-09-23
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-5-mini
+    release_date: 2025-08-07
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-5-nano
+    release_date: 2025-08-07
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-oss-120b
+    release_date: 2025-08-05
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/gpt-oss-20b
+    release_date: 2025-08-05
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/o1
+    release_date: 2024-12-17
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/o1-pro
+    release_date: 2025-03-19
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/o3
+    release_date: 2025-04-16
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/o3-mini
+    release_date: 2025-01-31
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/o3-mini-high
+    release_date: 2025-02-12
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/o3-pro
+    release_date: 2025-06-10
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/o4-mini
+    release_date: 2025-04-16
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openai/o4-mini-high
+    release_date: 2025-04-16
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: openrouter/auto
+    release_date: 2023-11-08
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: perplexity/sonar
+    release_date: 2025-01-27
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: perplexity/sonar-deep-research
+    release_date: 2025-03-07
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: perplexity/sonar-pro
+    release_date: 2025-03-07
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: perplexity/sonar-reasoning-pro
+    release_date: 2025-03-07
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen-2.5-72b-instruct
+    release_date: 2024-09-19
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen-2.5-7b-instruct
+    release_date: 2024-10-16
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen-2.5-coder-32b-instruct
+    release_date: 2024-11-11
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen-plus
+    release_date: 2025-02-01
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen-plus-2025-07-28
+    release_date: 2025-09-08
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen2.5-vl-72b-instruct
+    release_date: 2025-02-01
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-14b
+    release_date: 2025-04-28
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-235b-a22b
+    release_date: 2025-04-28
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-235b-a22b-2507
+    release_date: 2025-07-21
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-235b-a22b-thinking-2507
+    release_date: 2025-07-25
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-30b-a3b
+    release_date: 2025-04-28
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-30b-a3b-instruct-2507
+    release_date: 2025-07-29
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-30b-a3b-thinking-2507
+    release_date: 2025-08-28
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-32b
+    release_date: 2025-04-28
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-8b
+    release_date: 2025-04-28
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-coder
+    release_date: 2025-07-23
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-coder-30b-a3b-instruct
+    release_date: 2025-07-31
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-coder-flash
+    release_date: 2025-09-17
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-coder-plus
+    release_date: 2025-09-23
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-max
+    release_date: 2025-09-23
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-next-80b-a3b-instruct
+    release_date: 2025-09-11
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-next-80b-a3b-thinking
+    release_date: 2025-09-11
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-vl-235b-a22b-instruct
+    release_date: 2025-09-23
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: qwen/qwen3-vl-235b-a22b-thinking
+    release_date: 2025-09-23
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: rekaai/reka-flash-3
+    release_date: 2025-03-12
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: sao10k/l3-lunaris-8b
+    release_date: 2024-08-13
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: sao10k/l3.1-euryale-70b
+    release_date: 2024-08-28
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: sao10k/l3.3-euryale-70b
+    release_date: 2024-12-18
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: tencent/hunyuan-a13b-instruct
+    release_date: 2025-07-08
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: thedrummer/rocinante-12b
+    release_date: 2024-09-30
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: thedrummer/skyfall-36b-v2
+    release_date: 2025-03-10
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: thedrummer/unslopnemo-12b
+    release_date: 2024-11-08
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: undi95/remm-slerp-l2-13b
+    release_date: 2023-07-22
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: z-ai/glm-4.5
+    release_date: 2025-07-25
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: z-ai/glm-4.5-air
+    release_date: 2025-07-25
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
+  - canonical_id: z-ai/glm-4.5v
+    release_date: 2025-08-11
+    deleted_on: 2026-09-24
+    reason: released more than a year before 2026-09-24; deleted by ruling
+    backup: docs/backups/old-models-backup-2026-09-24.json
