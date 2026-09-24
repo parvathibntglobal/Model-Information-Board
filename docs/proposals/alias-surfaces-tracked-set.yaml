@@ -655,12 +655,14 @@ proposals:
   - canonical_id: qwen/qwen3.8-27b
     status: mechanical-only
     seated_by: launch-window          # released inside the launch window; no attested surface, so every form below is derived
-    surface: INCOMPLETE   # no attested surface; recall is unmeasured, not zero
+    reviewed_by: anooj
+    reviewed_on: '2026-09-24'
+    surface: qwen3.8-27b              # 190 threads name it whole, of 5,723 readable here (2026-09-24); see the section at the end
     variants:
       - qwen3.8 27b                   # mechanical, unattested
       - qwen3.8-27b                   # mechanical, unattested
       - qwen3.827b                    # mechanical, unattested
-    incomplete: [family_surface, attested_surfaces]
+    incomplete: [family_surface]
 
   - canonical_id: sakana/sakana-namazu
     status: mechanical-only
@@ -917,4 +919,107 @@ proposals:
     # Counts are measured over 8,848 documents readable on one machine of the
     # 12,779 carrying a text_ref, so each is a FLOOR (see #321).
     # Argument and method: docs/proposals/for-the-team-seating-gpt-5-6-sol.md
+    incomplete: [family_surface]
+
+# ── SIX ENTRIES ADDED AND REVIEWED BY HAND, 2026-09-24 ──────────────────────
+#
+# Added by hand for the same reason as the 2026-09-14 three: `--out` refuses to
+# overwrite this file. Chosen by @anoojntglobal-sudo from the registry diff of
+# the first scheduled poll (#450).
+#
+# THE COUNTS ARE THREADS, NOT MENTIONS OR DOCUMENTS, which is a third
+# measurement in this file (rule 7): kept thread_contexts whose flattened text
+# names the model as a WHOLE name (no version or name-word continuing it), out of
+# 5,723 of 6,612 readable on one machine, 2026-09-24. The corpus was built by
+# searching models already seated, so a model released this week scores low
+# whatever is being said about it; the HN figure (Algolia phrase hits since
+# 2026-09-01, an upper bound) is the outside check.
+#
+# No bare name-word is a variant: not `sol`, `luna`, `astra`, `fable`. Each is an
+# ordinary word or one token from a sibling (CLAUDE.md rule 10).
+#
+# ⚠ `fable 5` / `fable5` SITS INSIDE Fable 5.1's `fable 5.1`. Measured before
+#   seating: fetch_model's selection key (a normalised substring) puts 508
+#   unread threads first for this model, and 45 of them (9%) name only a longer
+#   name - `fable 5.1` 69 times, `claude fable 5.1` 21. A 100-thread Fable 5 run
+#   would spend about 9 threads on them. Attribution is unaffected: the resolver
+#   reads model_version, not these rows. Seated anyway on the corpus count below.
+  - canonical_id: openai/gpt-6-sol
+    status: reviewed
+    seated_by: reviewed
+    reviewed_by: anooj
+    reviewed_on: '2026-09-24'
+    surface: gpt-6 sol               # 9 threads; HN 49
+    variants:
+      - gpt 6 sol
+      - gpt-6 sol
+      - gpt-6-sol
+      - gpt6sol
+    incomplete: [family_surface]
+
+  - canonical_id: openai/gpt-5.6-luna
+    status: reviewed
+    seated_by: reviewed
+    reviewed_by: anooj
+    reviewed_on: '2026-09-24'
+    surface: gpt-5.6 luna            # 143 threads; HN 49
+    variants:
+      - gpt 5.6 luna
+      - gpt-5.6 luna
+      - gpt-5.6-luna
+      - gpt5.6luna
+    incomplete: [family_surface]
+
+  - canonical_id: deepseek/deepseek-v4.1-flash
+    status: reviewed
+    seated_by: reviewed
+    reviewed_by: anooj
+    reviewed_on: '2026-09-24'
+    surface: deepseek v4.1 flash     # 46 threads; HN 76
+    variants:
+      - deepseek v4.1 flash
+      - deepseek-v4.1-flash
+      - deepseekv4.1flash
+    incomplete: [family_surface]
+
+  - canonical_id: anthropic/claude-opus-5.5
+    status: reviewed
+    seated_by: reviewed
+    reviewed_by: anooj
+    reviewed_on: '2026-09-24'
+    surface: claude opus 5.5         # 19 threads; HN 26; released 2026-09-22
+    variants:
+      - claude opus 5.5
+      - claude-opus-5.5
+      - claudeopus5.5
+      - opus 5.5
+      - opus-5.5
+      - opus5.5
+    incomplete: [family_surface]
+
+  - canonical_id: x-ai/grok-4.7
+    status: reviewed
+    seated_by: reviewed
+    reviewed_by: anooj
+    reviewed_on: '2026-09-24'
+    surface: grok 4.7                # 7 threads; HN 34
+    variants:
+      - grok 4.7
+      - grok-4.7
+      - grok4.7
+    incomplete: [family_surface]
+
+  - canonical_id: anthropic/claude-fable-5
+    status: reviewed
+    seated_by: reviewed
+    reviewed_by: anooj
+    reviewed_on: '2026-09-24'
+    surface: claude fable 5          # 168 threads; HN 91; 52 claims already
+    variants:
+      - claude fable 5
+      - claude-fable-5
+      - claudefable5
+      - fable 5
+      - fable-5
+      - fable5
     incomplete: [family_surface]
