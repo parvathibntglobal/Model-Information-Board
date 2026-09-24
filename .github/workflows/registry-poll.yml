@@ -1,0 +1,86 @@
+name: Registry poll
+
+# Every three days: post what the poll is about to change, THEN poll.
+#
+# WHY THIS EXISTS. The registry poll is wired into the nightly chain and nothing
+# ever scheduled the chain: it last ran on 2026-08-20, and by 2026-09-24 the
+# OpenRouter catalogue held 143 models the registry did not, Claude Opus 5.5
+# among them. Models arrived only when somebody added them by hand, 4-7 days
+# late, and one of them with the wrong id.
+#
+# WHAT IT DOES AND DOES NOT DO
+#   poll-registry     upsert every catalogue model (tombstoned ids skipped and
+#                     counted: contract/tombstoned_models.yaml)
+#   recompute-window  refresh model_version.in_window
+#   NOT seating       aliases stay manual: seat() with its collision check. A
+#                     polled model is RECOGNISED in documents the day it lands
+#                     and is not SEARCHED for until a person seats it.
+#
+# REQUIRES, AND FAILS LOUDLY WITHOUT (rule 12 - a skipped poll must not look
+# like a quiet one):
+#   secrets.STAGING_DATABASE_URL   the shared staging DSN
+#   vars.USER_AGENT or secrets.USER_AGENT   identifying UA with a contact URL
+#   vars.REGISTRY_DIFF_ISSUE       the issue the diff is posted to (#450)
+
+on:
+  schedule:
+    - cron: "23 5 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: registry-poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    env:
+      ENVIRONMENT: staging
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      USER_AGENT: ${{ vars.USER_AGENT || secrets.USER_AGENT }}
+      DIFF_ISSUE: ${{ vars.REGISTRY_DIFF_ISSUE }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Refuse if anything required is missing
+        run: |
+          missing=""
+          [ -n "$DATABASE_URL" ] || missing="$missing STAGING_DATABASE_URL"
+          [ -n "$USER_AGENT" ]   || missing="$missing USER_AGENT"
+          [ -n "$DIFF_ISSUE" ]   || missing="$missing REGISTRY_DIFF_ISSUE"
+          if [ -n "$missing" ]; then
+            echo "::error::registry poll refused, not configured:$missing"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -e .
+
+      - name: Diff, before the poll writes
+        run: python scripts/registry_diff.py --out diff.md
+
+      - name: Post the diff where a person sees it
+        run: gh issue comment "$DIFF_ISSUE" --body-file diff.md
+
+      - name: Poll the registry and refresh the window
+        run: >
+          python -m collect.cli ops run
+          --only poll-registry --only recompute-window
+          --journal poll-journal.jsonl
+
+      - name: Keep the journal
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registry-poll-journal
+          path: poll-journal.jsonl
+          if-no-files-found: warn
