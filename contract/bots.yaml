@@ -172,6 +172,22 @@ sources:
     # of them, so GitHub does not agree these are bots — we inferred it from
     # the login, on a population we selected ourselves.
     #
+    # ⚠ IF THIS FILE IS EVER PUBLISHED, THESE SEVEN LINES ARE THE ONES THAT
+    #   NEED READING FIRST. Everything in `declared` above carries the
+    #   platform's own `[bot]` suffix — listing those repeats what GitHub
+    #   already says. These seven are REAL ACCOUNTS WE NAMED, on our reading
+    #   of their logins, against the platform's explicit disagreement.
+    #
+    #   Publishing a list that calls an account a bot on our own judgement is
+    #   a different act from publishing one that repeats a self-declaration,
+    #   and a reader arriving at a file called `bots.yaml` will not make the
+    #   distinction unless it is made for them. Raised by
+    #   @anoojntglobal-sudo, 2026-09-25, reviewing what going public exposes.
+    #
+    #   Marked rather than removed: the entries are doing real work, the
+    #   count below says how much, and hiding the inference would leave the
+    #   same judgement in place with nothing saying it was one.
+    #
     # MEASURED EFFECT IF PROMOTED, 2026-09-08, AND IT IS MUCH SMALLER THAN THE
     # ACCOUNT COUNTS SUGGEST. These 7 accounts flag 48 of the 5,010 triaged
     # documents - but only 3 OF THOSE 48 ARE KEPT. The other 45 are already
