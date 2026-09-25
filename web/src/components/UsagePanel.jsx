@@ -219,7 +219,7 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
           // missing" on every healthy render.
           //
           // ⚠ THE COUNT, NOT THE ROSTER. This used to append the hostnames -
-          //   "ANOOJ, LenovoPB" beside four container ids - which is rule 7's
+          //   "machine-A, machine-B" beside four container ids - which is rule 7's
           //   denominator answered with a guest list. The count IS the
           //   denominator; the names were never acted on and this is a web
           //   page. `spend_ledger.machine` still records them.
@@ -302,7 +302,7 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
           board say so. */}
       {/* THE POPULATION IS NAMED ONLY WHEN IT QUALIFIES SOMETHING.
       
-          This printed "Ledger totals cover all 2 machines (ANOOJ, LenovoPB)."
+          This printed "Ledger totals cover all 2 machines (machine-A, machine-B)."
           on every render of a healthy panel - a sentence whose entire content
           is "nothing is missing", which is what a reader already assumes. A
           caveat that is always on screen stops being read, and then the one
@@ -593,7 +593,7 @@ function RapidApiTab({ rapid, which }) {
       {/* ⚠ THE COUNTER BELONGS TO A SUBSCRIPTION, NOT TO A MACHINE, AND THIS
           CAPTION USED TO LEAD WITH THE MACHINE.
 
-          It opened "Showing the shared table reading, taken on ANOOJ…", which
+          It opened "Showing the shared table reading, taken on machine-A…", which
           reads as though a laptop owned the quota. It does not. The board is
           hosted: anybody signed in can start a fetch, and it draws down one
           RapidAPI subscription whoever clicked. Parvathi, 2026-09-16 — "anybody

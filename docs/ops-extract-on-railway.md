@@ -34,7 +34,7 @@ Regenerating the export is the only step that touches the store. That asymmetry
 is why the file travels instead of the run moving to the file.
 
 > **Unmeasured, and cheap to measure.** I have not checked what the container's
-> store holds; I cannot from a laptop. On ANOOJ,
+> store holds; I cannot from a laptop. On machine-A,
 > `scripts/_blob_presence_check.py` reports **151 of 4,144 thread_contexts with
 > an unreadable flattened ref** (hackernews 58, devto 56, reddit 25,
 > huggingface 10, blog 1, one malformed root). That is this machine's number and
@@ -107,7 +107,7 @@ thread text, not source, and rebuildable on a machine that has the store.
 python -m judge.cli extract --dry-run
 ```
 
-No export needed and nothing charged. Real output, run from ANOOJ against the
+No export needed and nothing charged. Real output, run from machine-A against the
 shared database on 2026-09-18 with `ENVIRONMENT=development` — which is the
 pairing that was refused until the change that added this section:
 

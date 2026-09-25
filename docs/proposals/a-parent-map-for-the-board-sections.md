@@ -488,8 +488,8 @@ three answers, and nobody did anything wrong.
 Two other machines were extracting into staging in that window:
 
 ```
-LenovoPB          49 extract calls   05:05Z - 05:32Z
-LAPTOP-TA28DHTF   17 extract calls   06:02Z - 06:09Z
+machine-B          49 extract calls   05:05Z - 05:32Z
+machine-C   17 extract calls   06:02Z - 06:09Z
 22 new board_entry rows              05:04Z - 06:09Z
 ```
 

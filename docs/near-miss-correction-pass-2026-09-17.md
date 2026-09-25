@@ -247,8 +247,8 @@ all, and refusing was right. It was not stepped around.
 container hostnames beside the two laptops:
 
 ```
-LenovoPB       314   2026-09-17     laptop
-ANOOJ          932   2026-09-16     laptop
+machine-B       314   2026-09-17     laptop
+machine-A          932   2026-09-16     laptop
 1fb1c6863ef5   128   2026-09-16     container
 a2aa987f50e8    98   2026-09-16     container
 7f713664b611    67   2026-09-15     container
