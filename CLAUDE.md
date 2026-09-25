@@ -101,6 +101,12 @@ These are the rules a helpful refactor will otherwise quietly violate.
       or a number on screen is the breach, however it is computed.
    2. **The page says in words what the order rewards**, and names no formula.
       The reader can check the words against the counts on every row.
+
+      The reader cannot reconstruct the order from the page. The words say
+      what the order **rewards**, not by how much, so a row's position is not
+      checkable against the counts beside it. That is the cost of this
+      permission, and it is why it is one permission and not a general
+      licence. (@parvathibntglobal, #472 review, 2026-09-25.)
    3. **Its weight lives in `contract/`** (rule 5) and has no default in code
       (rule 12).
    4. **It orders within a group that a stated rule defines, never across the
