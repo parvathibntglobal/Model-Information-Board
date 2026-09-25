@@ -1,6 +1,6 @@
 # Surface resolver coverage: 320 of 342 models resolve, 0 to the wrong one
 
-**Measured read-only against the shared registry** (`52.17.75.29`, 342
+**Measured read-only against the shared registry** (`203.0.113.5`, 342
 `model_version` rows), building `RegistrySurfaceResolver.from_connection` and
 asking it to resolve each model. No writes, no network beyond the DB, and the
 resolver is the exact object the extraction pipeline now uses.

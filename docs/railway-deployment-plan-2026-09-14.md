@@ -304,7 +304,7 @@ currently overlap and nobody has ruled on which is the door.**
 
 ### Does the database move off AWS?
 
-Today both DSNs point at `52.17.75.29:5432`, and **`DATABASE_URL` and
+Today both DSNs point at `203.0.113.5:5432`, and **`DATABASE_URL` and
 `STAGING_DATABASE_URL` are byte-identical** — the hazard `run-backend.py`
 already refuses to default around.
 

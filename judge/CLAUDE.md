@@ -82,7 +82,7 @@ than for the publisher.
 > NULL`, repeatable in one line.
 >
 > **CLOSED FOR THE DATABASE PATH, still open for the export.** On
-> `52.17.75.29/Model-information-Board`: **30 of 30 blog documents and 27 of 27
+> `203.0.113.5/Model-information-Board`: **30 of 30 blog documents and 27 of 27
 > GitHub documents carry a `url`.** So a claim extracted from a document read out
 > of the database is renderable, and the page is no longer where it stops.
 >

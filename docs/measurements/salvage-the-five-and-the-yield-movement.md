@@ -40,7 +40,7 @@ constraint was written rather than from anything about the corpus.**
 ## 1 · The migration
 
 ```
-DSN          postgresql://bv_agent:***@52.17.75.29:5432/Model-information-Board
+DSN          postgresql://example_user:***@203.0.113.5:5432/Model-information-Board
 ENVIRONMENT  staging
 ```
 

@@ -4,7 +4,7 @@
 result.** Recorded because both were about to be compared to earlier measurements
 that answer different questions.
 
-*Engineer 1 · 2026-08-20 · `postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`
+*Engineer 1 · 2026-08-20 · `postgresql://example_user@203.0.113.5:5432/Model-information-Board`
 except where the local harness is named · code on branch `load-tracked-set`, not
 yet on `origin/main`*
 
@@ -14,7 +14,7 @@ yet on `origin/main`*
 
 | | run A, local harness | run B, staging |
 |---|---|---|
-| DSN | `localhost:5433/modelboard_harvest_test` | `52.17.75.29/Model-information-Board` |
+| DSN | `localhost:5433/modelboard_harvest_test` | `203.0.113.5/Model-information-Board` |
 | model | `google/gemini-2.5-flash` (seed) | `openai/gpt-4` (seated) |
 | aliases | 6, from `seed_models.yaml` in memory | from `model_alias` |
 | entries | 6 (3 capabilities) | 18 (daily cadence) |
