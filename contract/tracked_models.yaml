@@ -68,7 +68,9 @@
 #
 # THIRTEEN, AND THE ARITHMETIC IS WORTH KEEPING: thirty on 2026-09-15, less
 # fifteen Parvathi named after seeing them on the page, less three more the same
-# day, plus Gemini 3.8 Flash on 2026-09-16.
+# day, plus Gemini 3.8 Flash on 2026-09-16. Sixteen from 2026-09-25, plus GPT-6
+# Sol, Claude Opus 5.5 and Grok 4.7 (their block below). A record, not a count
+# of this file: `grep -c '^  - name:'` is the count.
 #
 # The fifteen were not chosen by a rule - eleven were image, video and speech
 # models, but two were language models the registry prices perfectly well
@@ -292,6 +294,21 @@ models:
   #   poll supplies one. FR-2 refuses a figure nothing measured.
   - name: Gemini 3.8 Flash
     registry: google/gemini-3.8-flash
+    kind: text
+
+  # ── added 2026-09-25: three released 2026-09-21/22 ───────────────────────
+  # `registry` values READ FROM `model_version.canonical_id` on staging on
+  # 2026-09-25, not typed from the names: Opus 5.5 is `claude-opus-5.5` with a
+  # dot, where Fable 5.1's row is `claude-fable-5-1`. All three are `polled`,
+  # were seated 2026-09-24 (#461), and had live aliases when read.
+  - name: GPT-6 Sol
+    registry: openai/gpt-6-sol
+    kind: text
+  - name: Claude Opus 5.5
+    registry: anthropic/claude-opus-5.5
+    kind: text
+  - name: Grok 4.7
+    registry: x-ai/grok-4.7
     kind: text
 
   # ── image ────────────────────────────────────────────────────────────────
