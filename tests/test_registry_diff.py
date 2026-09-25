@@ -22,13 +22,14 @@ REG = {"anthropic/claude-opus-5": {"provenance": "polled", "retirement_date": No
        "hand/unpolled-model": {"provenance": "unpolled", "retirement_date": None}}
 
 
-def test_arrivals_fold_tiers_filter_pro_and_skip_tombstones():
+def test_arrivals_fold_tiers_list_pro_apart_and_skip_tombstones():
     cat = [_m("anthropic/claude-opus-5"), _m("anthropic/claude-opus-5.5"),
            _m("anthropic/claude-opus-5.5:batch"), _m("openai/gpt-6-astra-pro"),
            _m("openai/gpt-4o")]
     d = rd.compute_diff(cat, REG, frozenset({"openai/gpt-4o"}), base_id)
     assert [b for b, _ in d["arrivals"]] == ["anthropic/claude-opus-5.5"]
-    assert d["pro_dropped"] == ["openai/gpt-6-astra-pro"], "filtered, counted, not hidden"
+    assert [b for b, _ in d["pro_arrivals"]] == ["openai/gpt-6-astra-pro"], (
+        "listed apart, and as an ARRIVAL: the poll inserts -pro ids (#463)")
     assert d["tombstoned_in_catalogue"] == ["openai/gpt-4o"]
 
 
@@ -74,3 +75,14 @@ def test_the_poll_skips_latest_pointers_and_counts_them():
     r = parse_models(feed, retrieved_at=datetime.now(UTC))
     assert [m.canonical_id for m in r.models] == ["openai/gpt-6-astra"]
     assert r.alias_entries == 1 and "1 alias pointer entries skipped" in r.describe()
+
+
+def test_the_report_does_not_say_pro_ids_are_filtered():
+    """#463: it said "filtered out as asked" while the poll inserted them. The
+    report exists to show what the write does, so it must not say otherwise."""
+    cat = [_m("anthropic/claude-opus-5"), _m("openai/gpt-6-astra-pro")]
+    d = rd.compute_diff(cat, REG, frozenset(), base_id)
+    text = rd.render(d, catalogue_size=2, registry_size=len(REG))
+    assert "filtered out" not in text
+    assert "`-pro` tier: 1" in text and "The poll inserts these too" in text
+    assert "`openai/gpt-6-astra-pro`" in text
