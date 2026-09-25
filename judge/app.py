@@ -4015,6 +4015,27 @@ def admin_sources() -> dict:
     #   would make them identical (rule 6).
     harvested: dict[str, int] = {}
     counts_unreadable: str | None = None
+    #: ⚠ WHAT EACH PLATFORM ACTUALLY PRODUCED, which this page described and
+    #:   never counted. It listed every arm, how it is reached and whether it
+    #:   uses a key - and said nothing about whether any of it brought
+    #:   anything back. A source that has been configured and a source that
+    #:   has harvested 11,807 documents rendered identically.
+    #:
+    #: ⚠ POSTS AND COMMENTS ARE COUNTED APART, because they are not the same
+    #:   act and the split is the shape of each platform. Reddit is 1,678
+    #:   posts under 10,129 comments; dev.to and blogs are posts only, since
+    #:   `include_comments=False` on those adapters. A single `documents`
+    #:   figure would make a comment-heavy platform and an article-only one
+    #:   look like the same kind of coverage.
+    #:
+    #: ⚠ AND `readable` IS NOT DECORATION. It is the count whose gap says this
+    #:   machine cannot read part of its own corpus (#303, #316, #321): the
+    #:   raw store is content-addressed files on disk, so a payload harvested
+    #:   elsewhere is absent here with nothing recording that it ever arrived.
+    #:   Equal to `documents` on the machine that harvested them and lower
+    #:   everywhere else, which is the fact the column exists to carry.
+    corpus: list[dict] = []
+    threads: int | None = None
     try:
         with _conn() as conn:
             for host, n in conn.execute(
@@ -4024,6 +4045,25 @@ def admin_sources() -> dict:
             ).fetchall():
                 if host:
                     harvested[str(host)] = int(n)
+            corpus = [
+                {"platform": row[0], "documents": row[1], "posts": row[2],
+                 "comments": row[3], "readable": row[4]}
+                for row in conn.execute(
+                    "SELECT source, count(*), "
+                    "       count(*) FILTER (WHERE parent_id IS NULL), "
+                    "       count(*) FILTER (WHERE parent_id IS NOT NULL), "
+                    "       count(*) FILTER (WHERE text_ref IS NOT NULL) "
+                    "FROM document GROUP BY source ORDER BY count(*) DESC"
+                ).fetchall()
+            ]
+            # ONE FIGURE, NOT A COLUMN. A `thread_context` is a flattened root
+            # plus its selected children, and it carries no `source` - the
+            # members can span platforms. Rendering it per platform would
+            # require picking one, which is the kind of quiet attribution this
+            # page is supposed to make visible rather than perform.
+            threads = conn.execute(
+                "SELECT count(*) FROM thread_context"
+            ).fetchone()[0]
     except Exception as exc:  # noqa: BLE001
         counts_unreadable = _safe_detail(exc)
 
@@ -4087,6 +4127,13 @@ def admin_sources() -> dict:
         "blog_feeds": feed_rows,
         "blog_feed_count": len(feed_rows),
         "blog_counts_unreadable": counts_unreadable,
+        # WHAT EACH PLATFORM PRODUCED. Under its own key rather than folded
+        # into `sources`: a platform row describes how an arm is REACHED and
+        # this describes what came back, and a source configured but never run
+        # has to stay distinguishable from one that harvested nothing.
+        "corpus": corpus,
+        # NOT PER PLATFORM, deliberately - see the comment at the query.
+        "threads": threads,
         "by_method": {
             m: sorted(r["id"] for r in rows if r.get("method") == m)
             for m in sorted({r.get("method") for r in rows if r.get("method")})
@@ -4376,6 +4423,91 @@ def admin_prompts() -> dict:
                 ),
             },
         ],
+    }
+
+
+@app.get("/admin/discussed-models")
+def admin_discussed_models() -> dict:
+    """Models the board holds evidence about that the models page does not show.
+
+    ⚠ 1,076 BOARD ENTRIES ABOUT 66 MODELS WERE INVISIBLE ON EVERY SURFACE.
+      `contract/tracked_models.yaml` decides the models page; `board_entry`
+      records what engineers actually wrote about. Those two populations were
+      never compared, so evidence collected about a model nobody had chosen to
+      track had nowhere to appear:
+
+          models with board entries        78
+            on the models page             12
+            DISCUSSED but not tracked      66
+          board entries on those        1,076
+
+    ⚠ IT IS NOT A BACKLOG AND MUST NOT READ AS ONE. Nothing here is waiting to
+      be approved. A model appears because somebody wrote about it and the
+      extractor resolved the mention - which is the pipeline working, not a
+      queue forming. What the list answers is "what did we learn about things
+      we were not watching", and it is the only place that question has an
+      answer.
+
+    ⚠ AND IT IS THE SHORTLIST FOR WHAT TO TRACK NEXT, which is why the counts
+      travel with it. #464 adds three models by hand; this is where that
+      decision should be made from rather than from memory of what looked busy.
+
+    `tracked` is matched on `registry`, the `model_version.canonical_id`, not
+    on the display name: two models can share a name and one model's name
+    changes when a provider renames it, so a name match would both over- and
+    under-count and neither would be visible.
+    """
+    from judge.config import tracked_models
+
+    tracked = {t.registry for t in tracked_models() if t.registry}
+
+    try:
+        with _conn() as conn:
+            rows = conn.execute(
+                "SELECT mv.canonical_id, mv.display_name, mv.provider, "
+                "       count(*) AS entries, "
+                "       count(DISTINCT be.section) AS sections, "
+                "       count(DISTINCT be.document_id) AS documents, "
+                "       max(be.created_at) AS newest "
+                "FROM board_entry be "
+                "JOIN model_version mv ON mv.id = be.model_version_id "
+                "WHERE be.ruling IS DISTINCT FROM 'declined' "
+                "GROUP BY mv.canonical_id, mv.display_name, mv.provider "
+                "ORDER BY count(*) DESC"
+            ).fetchall()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=503, detail=_safe_detail(exc)) from exc
+
+    models = [
+        {
+            "canonical_id": r[0],
+            "display_name": r[1],
+            "provider": r[2],
+            "entries": r[3],
+            "sections": r[4],
+            "documents": r[5],
+            "newest": r[6].isoformat() if r[6] else None,
+            "tracked": r[0] in tracked,
+        }
+        for r in rows
+    ]
+    discussed = [m for m in models if not m["tracked"]]
+    return {
+        "models": discussed,
+        "count": len(discussed),
+        "entries": sum(m["entries"] for m in discussed),
+        # BOTH SIDES, so the page can say "66 of 78" rather than a bare 66.
+        # A count with no denominator is the defect this board keeps finding
+        # in its own figures (rule 7).
+        "with_entries": len(models),
+        "tracked_with_entries": len(models) - len(discussed),
+        # A TRACKED MODEL WITH NO ENTRIES IS ALSO A FACT, and it is the one a
+        # reader of the models page cannot see: the row is there and empty.
+        "tracked_total": len(tracked),
+        "note": (
+            "Evidence the board holds about models the models page does not "
+            "list. Not a queue: nothing here is awaiting approval."
+        ),
     }
 
 

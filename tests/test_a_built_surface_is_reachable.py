@@ -21,7 +21,15 @@ TWO COMPLETE SURFACES WERE IN THE TREE AND COULD NOT BE REACHED, found by
   reading. A test that says "mount every orphan" would have got one of them
   wrong.
 
-    PipelinePanel            MOUNTED. The counts had no other home.
+    PipelinePanel            MOUNTED — and REMOVED again on 2026-09-25, for a
+                             reason the mounting exposed. Rendered, its seven
+                             rows turned out to count different units against
+                             different denominators: E2's 19,834 documents
+                             beside E3's 6,629 threads, in identical bars. Not
+                             a funnel, two populations. `items_in`/`items_out`
+                             are null on every stage, so the view that would
+                             make them comparable is pipeline work. Mounting
+                             it is what made that legible.
 
     capability-candidates    REMOVED, ruled 2026-09-24 by @parvathibntglobal:
                              `capability_key` is the CLOSED twelve from the
@@ -86,17 +94,15 @@ def reachable_components() -> set[str]:
 
 class TestEveryAdminPanelIsMounted:
     def test_no_panel_component_is_an_orphan(self):
-        """⚠ `PipelinePanel.jsx` was 100 lines of finished component that
-        nothing imported, over an endpoint returning real counts. It did not
-        fail — it was never called.
+        """⚠ A 100-LINE FINISHED COMPONENT NOTHING IMPORTED, over an endpoint
+        returning real counts. It did not fail — it was never called.
 
         ⚠ AND REACHABILITY IS TRANSITIVE, WHICH THE FIRST VERSION MISSED. It
-          asked only whether `Admin.jsx` names the component, so the moment
-          `PipelinePanel` moved INSIDE `StagesPanel` — mounted, rendered,
-          visible on the page — it reported an orphan. A panel rendered by a
-          reachable panel is reachable, and a test that cannot see one level
-          down would push every future panel into the top-level list to stay
-          green."""
+          asked only whether `Admin.jsx` names the component, so the moment a
+          panel moved INSIDE another — mounted, rendered, visible on the page
+          — it reported an orphan. A panel rendered by a reachable panel is
+          reachable, and a test that cannot see one level down would push
+          every future panel into the top-level list to stay green."""
         orphans = [
             p.stem for p in sorted(COMPONENTS.glob("*.jsx"))
             if p.stem not in NOT_ADMIN_PANELS and p.stem not in reachable_components()
@@ -106,8 +112,14 @@ class TestEveryAdminPanelIsMounted:
             f"or add it to NOT_ADMIN_PANELS with the reason it is not a panel."
         )
 
-    def test_the_counts_panel_is_mounted(self):
-        assert "PipelinePanel" in reachable_components()
+    def test_the_panel_that_was_removed_stays_removed(self):
+        """⚠ THIS ASSERTED THE OPPOSITE UNTIL 2026-09-25, and both versions
+        were right in turn. Mounted, it fixed an orphan; rendered, it showed
+        seven incomparable populations as seven comparable bars. Removing it
+        is not a regression back to the orphan — the component is deleted,
+        not merely unmounted, so there is nothing to be orphaned."""
+        assert not (COMPONENTS / "PipelinePanel.jsx").exists()
+        assert "PipelinePanel" not in reachable_components()
 
 
 class TestEveryAdminEndpointHasAWayIn:

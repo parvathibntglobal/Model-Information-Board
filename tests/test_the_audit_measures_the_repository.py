@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import subprocess
 import sys
 
 import pytest
@@ -94,6 +95,43 @@ class TestTheUntrackedFileIsNotEvidence:
         JS side reading the disk."""
         found = audit_columns._web_files()
         assert ROOT / "web" / "src" / "api" / "index.js" in found
+
+    def test_a_tracked_file_deleted_on_disk_is_not_in_the_population(self):
+        """⚠ `git ls-files` LISTS A DELETION UNTIL IT IS STAGED, and every
+        caller opens what the collector returns. Deleting `PipelinePanel.jsx`
+        therefore errored six checks with `FileNotFoundError` — a crash, not a
+        finding, and one that says nothing about the deletion being right or
+        wrong.
+
+        The direction matters: a file that is not on disk can only stop
+        crediting a reader, never invent one, so this moves the audit's answer
+        toward `no_consumer` — the state the gate complains about. That is why
+        it is not #428 running backwards.
+        """
+        gone = ROOT / "web" / "src" / "components" / "_deleted_on_disk_probe.jsx"
+        gone.write_text("export default function P() { return null }\n", encoding="utf-8")
+        try:
+            subprocess.run(
+                ["git", "-C", str(ROOT), "add", "--intent-to-add", str(gone)],
+                check=True, capture_output=True,
+            )
+            gone.unlink()
+            listed = subprocess.run(
+                ["git", "-C", str(ROOT), "ls-files", "--", "web/src/components/*.jsx"],
+                check=True, capture_output=True, text=True,
+            ).stdout
+            assert "_deleted_on_disk_probe.jsx" in listed, (
+                "the control failed: git no longer lists the deleted file, so "
+                "this test would pass without the filter"
+            )
+            assert gone not in audit_columns._web_files()
+        finally:
+            subprocess.run(
+                ["git", "-C", str(ROOT), "rm", "--cached", "--force",
+                 "--ignore-unmatch", "-q", str(gone)],
+                capture_output=True,
+            )
+            gone.unlink(missing_ok=True)
 
     def test_tests_and_vendored_directories_are_still_skipped(self):
         """`SKIP` now filters git's paths rather than the walker's. Its job did
