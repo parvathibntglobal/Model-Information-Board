@@ -63,6 +63,8 @@ from __future__ import annotations
 
 import pathlib
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 STORE = ROOT / "judge" / "store" / "board_entries.py"
 DB = ROOT / "web" / "src" / "board" / "db.js"
@@ -278,124 +280,24 @@ class TestTheQuoteCapIsGone:
         assert "negative" in {q["polarity"] for q in quotes}
 
 
-class TestBestForSaysWhatItDropped:
-    def test_the_hidden_count_travels_with_the_model_row(self):
-        out = build(
-            [row(section="best_for", slug="coding-agent", doc="d1")],
-            hidden=[("coding-agent", "mv_a", "Model A", 3)],
-        )
-        assert out["best_for"][0]["models"][0]["hidden_negative_reports"] == 3
+class TestNothingIsHiddenSoNothingIsCountedAsHidden:
+    """`best_for` filtered problem reports out until 2026-09-25 and counted what
+    it hid (`hidden_negative_reports`, `suppressed_models`). Nothing is hidden
+    now - those models are the third group - so both fields are gone rather
+    than left emitting zeros nobody reads (rule 9)."""
 
-    def test_zero_is_written_rather_than_left_absent(self):
-        # A reader of this payload cannot otherwise tell "no complaints were
-        # filtered" from "nobody counted", and keeping those apart is the whole
-        # job of this board.
-        out = build([row(section="best_for", slug="coding-agent")], hidden=[])
-        assert out["best_for"][0]["models"][0]["hidden_negative_reports"] == 0
-
-    def test_the_filter_itself_is_unchanged(self):
-        # The count is a second query precisely so this clause stays readable
-        # and stays the only place the rule is expressed.
-        assert (
-            "AND NOT (be.section = 'best_for' AND be.polarity = 'negative')"
-            in _store()
-        )
-
-    def test_the_page_names_the_count_and_links_to_where_they_are(self):
-        js = _views()
-        assert "row.hidden || 0" in js
-        assert "report${hidden===1?'':'s'} of a problem" in js
-        assert 'data-go="model:${esc(key)}"' in js
-
-    def test_capability_rows_are_never_given_a_hidden_count(self):
-        # Nothing is filtered there, and a caveat about nothing is noise.
-        out = build([row(section="capability")],
-                    hidden=[("reasoning", "mv_a", "Model A", 2)])
-        assert "hidden_negative_reports" not in out["capability"][0]["models"][0]
-
-
-class TestAModelDroppedEntirelyIsStillNamed:
-    """The worse half of the same absence, and the half a row cannot carry.
-
-    A model with SOME positive reports gets a row and a shortened list, and the
-    drill-down page says how many are missing. A model whose every report on
-    this job is a problem report gets NO ROW - it is not on the page, and a
-    reader cannot tell that from a model nobody has discussed. 4 of the 12
-    (slug, model) pairs are in that state.
-    """
-
-    def test_a_model_with_only_negatives_is_named_on_the_category_page(self):
-        out = build(
-            [row(section="best_for", slug="coding-agent", mv="mv_a",
-                 registry="mv_a", label="Model A")],
-            hidden=[("coding-agent", "mv_a", "Model A", 2),
-                    ("coding-agent", "mv_b", "Model B", 4)],
-        )
+    def test_the_payload_carries_neither_field(self):
+        out = build([row(section="best_for", slug="coding-agent", polarity="negative")])
         item = out["best_for"][0]
-        assert [m["model_key"] for m in item["models"]] == ["mv_a"]
-        assert item["suppressed_models"] == [
-            {"model_key": "mv_b", "model_label": "Model B", "reports": 4}
-        ]
+        assert "suppressed_models" not in item
+        assert "hidden_negative_reports" not in item["models"][0]
 
-    def test_a_model_that_has_a_row_is_not_also_listed_as_suppressed(self):
-        # It is already carrying `hidden_negative_reports`; saying it twice
-        # would double-count the same absence in two different words.
-        out = build(
-            [row(section="best_for", slug="coding-agent", mv="mv_a",
-                 registry="mv_a")],
-            hidden=[("coding-agent", "mv_a", "Model A", 2)],
-        )
-        assert out["best_for"][0]["suppressed_models"] == []
-        assert out["best_for"][0]["models"][0]["hidden_negative_reports"] == 2
-
-    def test_the_list_is_empty_rather_than_absent(self):
-        out = build([row(section="best_for", slug="coding-agent")])
-        assert out["best_for"][0]["suppressed_models"] == []
-
-    def test_it_is_sorted_by_name_so_the_line_does_not_reshuffle(self):
-        out = build(
-            [row(section="best_for", slug="coding-agent", mv="mv_z",
-                 registry="mv_z", label="Z")],
-            hidden=[("coding-agent", "mv_b", "Beta", 1),
-                    ("coding-agent", "mv_a", "Alpha", 1)],
-        )
-        assert [m["model_label"] for m in out["best_for"][0]["suppressed_models"]] == [
-            "Alpha", "Beta"]
-
-    def test_capability_sections_never_get_one(self):
-        out = build([row(section="capability")],
-                    hidden=[("reasoning", "mv_b", "Model B", 2)])
-        assert "suppressed_models" not in out["capability"][0]
-
-    def test_the_page_names_each_model_and_links_it(self):
-        # A count alone is not something a reader can act on. The link goes to
-        # the model page, where the reports it does have are shown.
-        js = _views()
-        assert "function suppressedNote(item)" in js
-        assert "not listed above" in js
-        assert 'data-go="model:${esc(x.key)}"' in js
-        assert "esc(x.m)" in js
-
-    def test_it_renders_on_both_category_pages_or_neither(self):
-        # It is wired to `vJob` and `vCap` alike and stays empty on capability
-        # by the data rather than by the caller - so the day a second section
-        # learns to filter, the line is already there.
-        js = _views()
-        assert "orphanNote(j) + suppressedNote(j)" in js
-        assert "orphanNote(c) + suppressedNote(c)" in js
-
-    def test_it_says_nothing_when_there_is_nothing_to_say(self):
-        js = _views()
-        block = js[js.index("function suppressedNote(item)"):js.index("function conds(")]
-        assert "if(!list.length) return '';" in block
-
-    def test_a_suppressed_model_still_gets_a_name_rather_than_an_id(self):
-        # The label is fetched in the second query precisely because these
-        # models have no row in `models[]` to carry one - and printing
-        # `mv_4247e801b57d22e3` where a model name belongs is #278 by a third
-        # route.
-        assert "COALESCE(v.display_name, v.canonical_id, be.model_version_id)," in _store()
-        assert "String(m.model_key || '').split('/').pop()" in _db()
+    def test_no_code_still_reads_them(self):
+        for src in (_store_code(), _db(), _views()):
+            assert "hidden_negative_reports" not in src
+            assert "suppressed_models" not in src
+        assert "function suppressedNote(" not in _views()
+        assert "hiddenNote" not in _views()
 
 
 class TestTheBadgeIsTheModelsOwn:
@@ -567,13 +469,12 @@ class TestThePolaritySplitOnTheCapabilityRow:
         assert out["capability"][0]["models"][0]["report_split"] == {
             "positive": 0, "negative": 0, "both": 0, "neutral": 2}
 
-    def test_only_the_parts_that_exist_are_named_on_the_row(self):
-        # 128 of 297 groups are positive-only and 99 negative-only; "0
-        # negative" on those is the noise `evidenceLabel` already avoids one
-        # column to the left.
+    def test_positive_and_negative_are_always_named_zero_included(self):
+        # The list is ORDERED on these two numbers now, so "0 negative" is the
+        # evidence for where a row sits rather than noise. Neutral stays
+        # conditional.
         js = _db()
-        assert "if (sp.positive) parts.push(" in js
-        assert "if (sp.negative) parts.push(" in js
+        assert "`${sp.positive || 0} positive`, `${sp.negative || 0} negative`" in js
         assert "if (sp.neutral) parts.push(" in js
 
     def test_both_is_appended_only_where_it_applies(self):
@@ -604,32 +505,104 @@ class TestThePolaritySplitOnTheCapabilityRow:
         assert "counts a report under every polarity it states" in js
 
 
-class TestTheOrderingDidNotBecomeAJudgement:
-    """Ordering by POSITIVE reports was weighed and refused. See the argument
-    in `listIntro`: on `capability/vision` it moves DeepSeek V4 Flash 0423 -
-    8 reports from 7 voices, the strongest agreement on that page - from #1
-    to #6, below five models holding one positive report from one voice."""
+class TestTheOrderingIsThreeGroups:
+    """At least one positive, then neutral-only, then negatives and none
+    positive. Within each group, report count; ties keep their position.
+    Ordering by POSITIVE COUNT is still refused - see `listIntro`."""
 
-    def test_the_sort_is_still_the_report_count(self):
-        out = build([
-            row(mv="mv_a", registry="mv_a", label="A", doc="d1",
-                author="au_1", polarity="negative"),
-            row(mv="mv_a", registry="mv_a", label="A", doc="d2",
-                author="au_2", polarity="negative"),
-            row(mv="mv_b", registry="mv_b", label="B", doc="d3",
-                author="au_3", polarity="positive"),
-        ])
-        # A has 2 negative reports, B has 1 positive. A is first.
-        assert [m["model_label"] for m in out["capability"][0]["models"]] == ["A", "B"]
+    @staticmethod
+    def _order(section, rows):
+        return [m["model_label"] for m in build(rows)[section][0]["models"]]
 
-    def test_the_intro_still_says_the_order_is_not_a_score(self):
+    @staticmethod
+    def _r(mv, doc, author, polarity):
+        """One capability row for model `mv`, labelled with its own id."""
+        return row(mv=mv, registry=mv, label=mv, doc=doc, author=author, polarity=polarity)
+
+    def test_one_positive_goes_above_any_number_of_negatives(self):
+        rows = [row(mv="mv_a", registry="mv_a", label="A", doc=f"d{i}",
+                    author=f"au_{i}", polarity="negative") for i in range(5)]
+        rows.append(row(mv="mv_b", registry="mv_b", label="B", doc="d9",
+                        author="au_9", polarity="positive"))
+        assert self._order("capability", rows) == ["B", "A"]
+
+    def test_neutral_only_goes_above_negatives_whatever_the_count(self):
+        # capability/vision on 2026-09-25: under a two-group split, 8 negatives
+        # sat above five neutral-only models. An absence of praise is not a
+        # verdict worse than a complaint.
+        rows = [row(mv="mv_a", registry="mv_a", label="EightNegatives", doc=f"d{i}",
+                    author=f"au_{i}", polarity="negative") for i in range(8)]
+        rows.append(row(mv="mv_b", registry="mv_b", label="OneNeutral", doc="d9",
+                        author="au_9", polarity="neutral"))
+        assert self._order("capability", rows) == ["OneNeutral", "EightNegatives"]
+
+    def test_a_single_positive_is_enough_however_many_problems(self):
+        # Claude Opus 5 on instruction-following: +1 and -11, first group.
+        rows = [row(mv="mv_a", registry="mv_a", label="OnePlusElevenMinus", doc=f"d{i}",
+                    author=f"au_{i}", polarity="negative") for i in range(11)]
+        rows.append(row(mv="mv_a", registry="mv_a", label="OnePlusElevenMinus", doc="d99",
+                        author="au_99", polarity="positive"))
+        rows += [row(mv="mv_b", registry="mv_b", label="TwoNeutral", doc=f"n{i}",
+                     author=f"au_n{i}", polarity="neutral") for i in range(2)]
+        out = build(rows)["capability"][0]["models"]
+        assert [m["model_label"] for m in out] == ["OnePlusElevenMinus", "TwoNeutral"]
+        assert out[0]["group"] == "working"
+
+    def test_the_first_group_is_ordered_by_the_lower_bound_not_by_count(self):
+        # A has 1 positive in 3 reports, B 2 of 2. By count A was first; by the
+        # lower bound B is (0.34 against 0.06).
+        r = self._r
+        rows = [r("A", "a1", "au_1", "positive"), r("A", "a2", "au_2", "negative"),
+                r("A", "a3", "au_3", "negative"),
+                r("B", "b1", "au_4", "positive"), r("B", "b2", "au_5", "positive")]
+        assert self._order("capability", rows) == ["B", "A"]
+
+    def test_a_tie_keeps_the_position_it_arrived_in(self):
+        r = self._r
+        rows = [r("Z", "z1", "au_1", "positive"), r("A", "a1", "au_2", "positive")]
+        assert self._order("capability", rows) == ["Z", "A"]
+
+    def test_best_for_follows_the_same_rule(self):
+        rows = [row(section="best_for", slug="coding-agent", mv="mv_a", registry="mv_a",
+                    label="Neg", doc="d1", author="au_1", polarity="negative"),
+                row(section="best_for", slug="coding-agent", mv="mv_b", registry="mv_b",
+                    label="Neu", doc="d2", author="au_2", polarity="neutral"),
+                row(section="best_for", slug="coding-agent", mv="mv_c", registry="mv_c",
+                    label="Pos", doc="d3", author="au_3", polarity="positive")]
+        models = build(rows)["best_for"][0]["models"]
+        assert [m["model_label"] for m in models] == ["Pos", "Neu", "Neg"]
+        assert [m["group"] for m in models] == ["working", "neutral", "problems"]
+
+    def test_metric_rows_carry_no_group(self):
+        out = build([row(section="metric", slug="swe-bench", value="38.8%")])
+        assert "group" not in out["metric"][0]["models"][0]
+
+    def test_the_intro_states_the_rule_in_words(self):
         js = _views()
-        assert "which is a count" in js
-        assert "and not a score" in js
+        assert "Listed in three groups" in js
+        assert "more`" in js and "consistently say it worked come first" in js
+        assert "counts`" in js and "for less than the same record on many" in js
+        assert "No score is shown: each row shows its counts." in js
+        assert "single positive report, however many problem reports it also has" in js
+        assert "extractor\u2019s reading of each quote" in js
+
+    def test_the_intro_names_no_formula(self):
+        # The order is described, never computed on the page.
+        intro = _views()[_views().index("function listIntro(item)"):]
+        intro = intro[:intro.index("\nfunction ")]
+        rendered = "\n".join(ln for ln in intro.splitlines() if not ln.strip().startswith("//"))
+        for word in ("Wilson", "lower bound", "1.96", "confidence", "interval"):
+            assert word not in rendered
+
+    def test_the_boundary_is_drawn_on_the_page(self):
+        js = _views()
+        assert "function groupHead(g, n)" in js
+        for title in ("Reported working", "Only neutral reports", "Reported problems"):
+            assert title in js
+        css = (ROOT / "web" / "src" / "styles" / "board.css").read_text(encoding="utf-8")
+        assert ".rank-group{" in css
 
     def test_no_rendered_section_calls_any_of_this_a_ranking(self):
-        # The same check `test_best_for_needs_a_positive_report` makes, run
-        # over the lines this change added.
         rendered = [ln for ln in _views().splitlines()
                     if "sec(" in ln and not ln.lstrip().startswith("//")]
         assert rendered
@@ -637,43 +610,21 @@ class TestTheOrderingDidNotBecomeAJudgement:
             assert "ranking" not in line
 
 
-class TestBestForGetsNoSplitAndWouldBeADefectIfItDid:
-    """Negatives are filtered out of `best_for` upstream, so a split there is
-    all-positive by construction and says nothing a reader can use.
+class TestBestForNowCarriesItsSplit:
+    """`best_for` shows its problem reports since 2026-09-25, so its rows carry
+    the same split as capability's. Metric still carries none."""
 
-    A negative appearing there would be a defect in the FILTER rather than in
-    a display, so the guard is over the payload rather than over the SQL - the
-    SQL clause has its own test and passing it is not the same as the rows
-    arriving clean.
-    """
-
-    def test_no_split_is_emitted_for_best_for(self):
-        out = build([row(section="best_for", slug="coding-agent")])
-        assert "report_split" not in out["best_for"][0]["models"][0]
+    def test_a_split_is_emitted_for_best_for(self):
+        out = build([row(section="best_for", slug="coding-agent", polarity="negative")])
+        assert out["best_for"][0]["models"][0]["report_split"]["negative"] == 1
 
     def test_no_split_is_emitted_for_metric(self):
         out = build([row(section="metric", slug="swe-bench", value="38.8%")])
         assert "report_split" not in out["metric"][0]["models"][0]
 
-    def test_a_negative_reaching_a_best_for_row_is_a_filter_defect(self):
-        # The fake feeds a negative row past the filter the real query
-        # applies, which is exactly the state this asserts cannot happen in
-        # the payload. If `board_sections` ever stops filtering, this fails
-        # here rather than on the page.
-        out = build([row(section="best_for", slug="coding-agent",
-                         polarity="negative")])
-        polarities = out["best_for"][0]["models"][0]["polarities"]
-        assert "negative" in polarities, (
-            "the fake bypasses the SQL filter, so this documents what the "
-            "payload would look like if the filter were removed"
-        )
-
-    def test_the_page_renders_no_split_and_no_sentence_about_one(self):
-        js = _views()
-        # `r.sp` is '' for best-for rows, so both the span and the sentence
-        # are conditional on the data rather than on which view called them.
-        assert "const sp = r.sp ?" in js
-        assert "anySplit" in js
+    def test_a_negative_reaches_a_best_for_row(self):
+        out = build([row(section="best_for", slug="coding-agent", polarity="negative")])
+        assert "negative" in out["best_for"][0]["models"][0]["polarities"]
 
 
 class TestNothingIsLostOnTheWayDown:
@@ -881,3 +832,76 @@ class TestTheTabSaysWhatIsBehindEachCard:
         met = met[:met.index("grid:")]
         assert "single model" in met, "the metrics tab no longer says it"
         assert "none of them is a comparison" in met
+
+
+class TestTheFirstGroupIsOrderedByAnUnshownLowerBound:
+    """The four cases checked on the live board 2026-09-25, as fixtures, and the
+    properties that keep the score off the page and out of the other groups."""
+
+    @staticmethod
+    def _rows(section, slug, spec):
+        """spec: [(label, positives, negatives, neutrals)], one document each."""
+        out, n = [], 0
+        for label, pos, neg, neu in spec:
+            for polarity, count in (("positive", pos), ("negative", neg), ("neutral", neu)):
+                for _ in range(count):
+                    n += 1
+                    out.append(row(section=section, slug=slug, mv=label, registry=label,
+                                   label=label, doc=f"d{n}", author=f"au_{n}",
+                                   polarity=polarity))
+        return out
+
+    def _order(self, section, slug, spec):
+        models = build(self._rows(section, slug, spec))[section][0]["models"]
+        return [m["model_label"] for m in models]
+
+    def test_astra_above_opus_5_on_coding_agent(self):
+        # +6 -1 of 8 against +7 -3 of 11: count put Opus 5 first.
+        spec = [("Opus5", 7, 3, 1), ("Astra", 6, 1, 1)]
+        order = self._order("best_for", "coding-agent", spec)
+        assert order.index("Astra") < order.index("Opus5")
+
+    def test_opus_4_6_above_opus_5_on_instruction_following(self):
+        # +2 -0 of 3 against +1 -11 of 12: count put Opus 5 first.
+        spec = [("Opus5", 1, 11, 0), ("Opus46", 2, 0, 1)]
+        assert self._order("capability", "instruction-following", spec) == ["Opus46", "Opus5"]
+
+    def test_kimi_above_sol_pro_on_reasoning(self):
+        spec = [("SolPro", 1, 0, 1), ("Kimi", 10, 2, 0)]
+        assert self._order("capability", "reasoning", spec)[0] == "Kimi"
+
+    def test_glm_above_deepseek_on_vision(self):
+        spec = [("DeepSeek", 0, 8, 0), ("GLM", 6, 0, 0)]
+        assert self._order("capability", "vision", spec) == ["GLM", "DeepSeek"]
+
+    def test_neutral_only_has_no_score_and_keeps_its_own_group(self):
+        from judge.store.board_entries import _wilson_lower
+        assert _wilson_lower(0, 0, 1.96) is None
+        spec = [("Neg", 0, 8, 0), ("Neu", 0, 0, 1), ("Pos", 1, 0, 0)]
+        models = build(self._rows("capability", "vision", spec))["capability"][0]["models"]
+        assert [m["model_label"] for m in models] == ["Pos", "Neu", "Neg"]
+        assert [m["group"] for m in models] == ["working", "neutral", "problems"]
+
+    def test_the_problems_group_is_ordered_by_report_count(self):
+        # Every score there is 0; count decides, as before.
+        spec = [("TwoNeg", 0, 2, 0), ("FiveNeg", 0, 5, 0)]
+        assert self._order("capability", "vision", spec) == ["FiveNeg", "TwoNeg"]
+
+    def test_the_score_is_never_emitted(self):
+        spec = [("A", 3, 1, 0), ("B", 1, 0, 0)]
+        for model in build(self._rows("capability", "reasoning", spec))["capability"][0]["models"]:
+            for key, value in model.items():
+                assert not isinstance(value, float), f"{key}={value!r} looks like a score"
+            assert not {"score", "wilson", "lower_bound", "rank"} & set(model)
+
+    def test_the_weight_is_read_from_contract_and_has_no_default(self, monkeypatch):
+        import judge.config as config
+        assert config.board_ordering_z() == 1.96
+        config.board_ordering_z.cache_clear()
+        monkeypatch.setattr(config, "_read", lambda name: {"version": 1})
+        try:
+            with pytest.raises(ValueError, match="wilson_z"):
+                config.board_ordering_z()
+        finally:
+            monkeypatch.undo()
+            config.board_ordering_z.cache_clear()

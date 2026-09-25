@@ -68,6 +68,11 @@
    NOT colour-coded: green for positive and red for negative would make the
    row a verdict, and the two numbers are evidence of the same standing. */
 .rank .split{display:block;margin-top:3px;font:400 .7rem var(--mono);color:var(--text-3)}
+/* The three-group boundary: where board_sections' ordering rule acts. */
+.rank-group{margin:22px 0 6px;padding-top:14px;border-top:1px solid var(--border);font-size:.85rem;color:var(--text-2)}
+.rank-group:first-child{margin-top:0;padding-top:0;border-top:0}
+.rank-group b{color:var(--text);font-weight:600;margin-right:8px}
+.rank-group span{font:400 .72rem var(--mono);color:var(--text-3)}
 @media(max-width:660px){.rank{grid-template-columns:14px 1fr}.rank .right{grid-column:2;text-align:left;margin-top:8px}}
 
 .conds{margin:0;padding:0;list-style:none;max-width:72ch}

@@ -1,4 +1,4 @@
-"""A complaint must never fill a surface that recommends.
+"""A complaint must never read as a recommendation.
 
 WHAT THE BOARD SAID ON 2026-09-11, from one Hacker News comment:
 
@@ -10,33 +10,23 @@ WHAT THE BOARD SAID ON 2026-09-11, from one Hacker News comment:
 
 One person's bug report, rendered as the top recommendation for the job.
 
-NOTHING IN THE PIPELINE WAS WRONG. The classifier recorded
-`polarity: negative` correctly and filed the quote under the job the writer
-named. The defect was in what `best_for` MEANS: the prompt defined it purely
-topically — "does it say what they were trying to do?" — while the board
-renders it as "BEST FOR <job>", a recommendation a reader acts on. Only a
-positive report can say that.
+TWO FIXES, FOURTEEN DAYS APART, AND THIS FILE HOLDS BOTH.
 
-THE FIX IS IN TWO PLACES ON PURPOSE.
+  2026-09-11   the read surface FILTERED negatives out of `best_for`. It fixed
+               the page by hiding the evidence: 25 rows, 6 models dropped from
+               their job entirely, 3 jobs with no page at all.
+  2026-09-25   the filter is gone and the SURFACE changed instead. Every
+               category page lists models in three named groups (reported
+               working / only neutral / reported problems, none working) with
+               both counts on every row. A complaint cannot read as a
+               recommendation when it sits under
+               "Reported problems" with its count beside it.
 
-  prompt          `judge/extract/prompt.py` stops PROPOSING a best_for entry
-                  for a negative claim, so the row is not created.
-  read surface    `board_sections` stops SHOWING one, so rows already written —
-                  and any future misclassification — cannot reach the page.
+`judge/extract/prompt.py` still declines to PROPOSE a negative best_for entry
+(tested below, unchanged). That is a separate decision about a paid model call.
 
-A prompt is an instruction to a model that may not follow it, so it cannot be
-the only guard (rule 2: an LLM may propose, it may never decide). The rule
-itself is ours, stated in code; the model only supplies the polarity label.
-
-WHAT IS DELIBERATELY NOT DONE:
-
-  * the rows are not deleted, and the write is not refused. The finding is
-    real, and the model's own page shows it with its polarity — removing it
-    would be the caused absence rule 4 forbids.
-  * `capability` and `metric` are not filtered. Those describe BEHAVIOUR and
-    FIGURES, where a bad result is evidence of the same standing as a good one.
-    "it has failed to test the fixes" is a real finding about code-testing.
-    Only "best for" claims suitability.
+WHAT IS DELIBERATELY NOT DONE: the rows are not deleted and the write is not
+refused, exactly as before.
 """
 
 from __future__ import annotations
@@ -51,48 +41,63 @@ PROMPT = ROOT / "judge" / "extract" / "prompt.py"
 VIEWS = ROOT / "web" / "src" / "board" / "views.js"
 
 
-class TestTheBoardQueryRefusesIt:
+class TestTheBoardQueryFiltersNothing:
     @staticmethod
     def _sql() -> str:
         return STORE.read_text(encoding="utf-8")
 
-    def test_the_filter_is_in_the_query_that_defines_the_board(self):
-        assert (
-            "AND NOT (be.section = 'best_for' AND be.polarity = 'negative')"
-            in self._sql()
-        )
-
-    def test_it_names_only_best_for(self):
-        # A filter on every section would delete real findings from
-        # `capability` and `metric`, where a bad result is the same kind of
-        # evidence as a good one.
+    def test_no_section_is_polarity_filtered(self):
         sql = self._sql()
-        for section in ("capability", "metric"):
+        assert "AND NOT (be.section = 'best_for' AND be.polarity = 'negative')" not in sql
+        for section in ("best_for", "capability", "metric"):
             assert f"be.section = '{section}' AND be.polarity" not in sql
 
-    def test_an_unknown_or_absent_polarity_stays_visible(self):
-        # Written as NOT(... = 'negative') rather than an allow-list of
-        # 'positive'/'neutral'. A NULL polarity means "we could not tell", and
-        # deleting a finding for that is rule 6 — an absent value becoming a
-        # definite one.
-        sql = self._sql()
-        assert "be.polarity IN ('positive'" not in sql
-        assert "be.polarity = 'positive'" not in sql
-
-    def test_the_docstring_says_why_capability_is_different(self):
+    def test_the_docstring_records_what_the_filter_was_and_what_replaced_it(self):
         doc = self._sql()
-        assert "capability` and `metric` are NOT filtered" in doc
-        assert "suitability" in doc
+        assert "NO SECTION IS POLARITY-FILTERED ANY MORE" in doc
+        assert "3d-art" in doc and "proof-based-programming" in doc
 
     def test_the_write_path_is_untouched(self):
-        # The row must still be stored: the model page is where it belongs.
+        # The row must still be stored, and the writer must not learn a rule
+        # about sections - a refused write loses the finding.
         src = self._sql()
         store_fn = src[src.index("def store_entries("):src.index("def board_sections")]
         assert "polarity" in store_fn
-        assert "best_for" not in store_fn, (
-            "the writer must not learn about this rule - a refused write loses "
-            "the finding the model page needs"
-        )
+        assert "best_for" not in store_fn
+
+
+class TestTheSurfaceNoLongerPromisesSuitability:
+    @staticmethod
+    def _js() -> str:
+        return VIEWS.read_text(encoding="utf-8")
+
+    def test_the_tab_is_named_for_what_it_holds(self):
+        # "Jobs" says what the section is organised by and promises nothing.
+        # "Best for" promised suitability over a list that admits a model on one
+        # positive report, with its problems now visible underneath - the label
+        # and the content disagreed. Restored for one revision of #469 and
+        # changed back 2026-09-25.
+        js = self._js()
+        assert 'data-tab="best">Jobs</button>' in js
+        assert ">Best for</button>" not in js
+
+    def test_no_visible_label_says_best_for(self):
+        # Comments may quote the old heading to explain why it went; rendered
+        # strings may not. The route keys (`board:best`, /board/jobs/) stay.
+        for path in (VIEWS, ROOT / "web" / "src" / "components" / "ModelEvidence.jsx",
+                     ROOT / "web" / "src" / "components" / "BoardReview.jsx",
+                     ROOT / "web" / "src" / "routes" / "Compare.jsx"):
+            for line in path.read_text(encoding="utf-8").splitlines():
+                code = line.strip()
+                if code.startswith(("//", "*", "/*", "{/*")):
+                    continue
+                assert "Best for" not in code, f"{path.name}: {code[:90]}"
+
+    def test_the_tab_intro_no_longer_promises_a_pick(self):
+        js = self._js()
+        assert "names the cheapest model" not in js
+        assert "criticisms that did not disqualify it" not in js
+        assert "Problem reports are shown, not filtered." in js
 
 
 class TestThePromptStopsProposingIt:
@@ -175,25 +180,11 @@ class TestThePageStopsClaimingARanking:
         assert "isNegative, url]" in db
 
 
-@pytest.mark.parametrize(
-    "section,polarity,visible",
-    [
-        ("best_for", "negative", False),
-        ("best_for", "positive", True),
-        ("best_for", "neutral", True),
-        ("best_for", None, True),
-        ("capability", "negative", True),
-        ("metric", "negative", True),
-    ],
-)
-def test_the_rule_as_a_table(section, polarity, visible):
-    """The whole rule in one place, so a future reader can see its shape.
-
-    Expressed against the SQL rather than a live database, because the filter
-    is one clause and the point is which combinations it names.
-    """
+@pytest.mark.parametrize("section", ["best_for", "capability", "metric"])
+@pytest.mark.parametrize("polarity", ["negative", "positive", "neutral", None])
+def test_every_polarity_reaches_every_section(section, polarity):
+    """The whole rule in one place: nothing is excluded by polarity anywhere.
+    The ORDER is where polarity acts now - see `_group_of`."""
     sql = STORE.read_text(encoding="utf-8")
-    clause = "AND NOT (be.section = 'best_for' AND be.polarity = 'negative')"
-    assert clause in sql
-    hidden = section == "best_for" and polarity == "negative"
-    assert hidden is not visible
+    query = sql[sql.index("def board_sections("):sql.index("def _group_of(")]
+    assert "be.polarity =" not in query.split('"""', 2)[-1]
