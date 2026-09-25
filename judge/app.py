@@ -1123,7 +1123,50 @@ def compare_page(ids: str = "") -> dict:
                 "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined'",
                 (m["model_version_id"],),
             ).fetchone()[0]
+            # ⚠ WHERE IT WAS SAID, AND WHAT KIND OF THING IT WAS. A
+            #   "document" here is a Reddit post, a Hacker News COMMENT, a
+            #   dev.to article or a GitHub issue reply - 29 of Claude Opus 5's
+            #   92 are replies rather than posts. Rendering that as
+            #   "92 documents" is both jargon and wrong in the direction that
+            #   flatters: it reads as 92 articles.
+            #
+            #   The platform split is also the comparative fact. One model
+            #   discussed across five platforms and another across one are
+            #   different kinds of evidence, and `cell.platform_count` already
+            #   treats that as load-bearing for `n_eff`.
+            platforms = conn.execute(
+                "SELECT d.source, count(DISTINCT d.id) FROM board_entry b "
+                "JOIN document d ON d.id = b.document_id "
+                "WHERE b.model_version_id = %s "
+                "  AND b.ruling IS DISTINCT FROM 'declined' "
+                "GROUP BY d.source ORDER BY 2 DESC",
+                (m["model_version_id"],),
+            ).fetchall()
+            replies = conn.execute(
+                "SELECT count(DISTINCT d.id) FROM board_entry b "
+                "JOIN document d ON d.id = b.document_id "
+                "WHERE b.model_version_id = %s "
+                "  AND b.ruling IS DISTINCT FROM 'declined' "
+                "  AND d.parent_id IS NOT NULL",
+                (m["model_version_id"],),
+            ).fetchone()[0]
+            # ⚠ THE PER-AXIS POLARITY QUERY IS GONE WITH ITS ONLY READER.
+            #   It grouped `board_entry` by (section, slug, polarity) so the
+            #   compare page could draw a bar per axis. @parvathibntglobal
+            #   removed that column on 2026-09-25, so the query, the
+            #   `by_axis` key and the extra round trip go with it rather than
+            #   being left as a produced value nobody consumes (rule 9).
+            #
+            #   The finding it surfaced is not lost, only unrendered: 6 of 155
+            #   `best_for` model-axis pairs have zero positive reports, and
+            #   this page still lists them under a heading that recommends.
+            #   See #469, which groups on exactly that.
             polarity[m["model_version_id"]] = {
+                "platforms": [{"source": src, "documents": n} for src, n in platforms],
+                # REPLIES SEPARATELY, because a comment under somebody else's
+                # post and a post somebody wrote are not the same act, and the
+                # board's own `is_self_post` distinction exists for it.
+                "replies": replies,
                 "positive": counts.get("positive", 0),
                 "negative": counts.get("negative", 0),
                 "neutral": counts.get("neutral", 0),
@@ -1150,10 +1193,24 @@ def compare_page(ids: str = "") -> dict:
         # `evidence_for_model` returns the three discovered sections at the top
         # level - `best_for`, `capabilities`, `metrics` - not under a `sections`
         # key. Each item carries its own `reports` count and its quotes.
+        # ⚠ UNFILTERED, AS `evidence_for_model` RETURNS IT, and that is a known
+        #   gap rather than an oversight. `board_sections` drops negative
+        #   `best_for` rows so the heading "Best for" can be true, counts what
+        #   it dropped, and tells the reader "the complaint exists and the
+        #   board kept it — read it on the model page". The model page
+        #   therefore must NOT filter, or that link leads nowhere; this page
+        #   reads the model page's data and inherits its honesty under the
+        #   board's heading.
+        #
+        #   Measured 2026-09-24: 6 of 155 model-axis pairs are entirely
+        #   negative. The polarity now renders beside each row, so the
+        #   mismatch is at least VISIBLE rather than silent, which is all this
+        #   change claims. Resolving it is the open section question.
         best_for = [
-            {"name": s.get("name") or s.get("slug"), "slug": s.get("slug"),
-             "reports": s.get("reports", 0)}
-            for s in (ev.get("best_for") or [])
+            {"name": section.get("name") or section.get("slug"),
+             "slug": section.get("slug"),
+             "reports": section.get("reports", 0)}
+            for section in (ev.get("best_for") or [])
         ]
         models.append({
             "model_version_id": m["model_version_id"],
@@ -1183,7 +1240,19 @@ def compare_page(ids: str = "") -> dict:
                 "state": (m.get("evidence") or {}).get("state", "unreported"),
                 "reports": (m.get("evidence") or {}).get("reports", 0),
                 "polarity": polarity.get(m["model_version_id"], {}),
-                "capabilities": list((m.get("evidence") or {}).get("capabilities") or ()),
+                # ⚠ REMOVED, NOT LEFT UNREAD (rule 9). This carried
+                #   `cell.capability_key` - the CLOSED twelve from the first
+                #   plan - and the compare page's "Discussed under" row read
+                #   it and printed "nothing yet" for every model, always:
+                #   every cell on the board is `insufficient` and e5.5 writes
+                #   none at all. Claude Opus 5 has 63 discovered capabilities
+                #   and the row rendered three identical empties beside them.
+                #
+                #   The page now reads `discovered.capabilities`, which is the
+                #   board's own open vocabulary. Leaving this key in the
+                #   payload with no reader is the defect #438 was opened for,
+                #   one layer down.
+                #: removed 2026-09-24, see the note above
                 "best_for": best_for,
                 # The discovered sections in full, so the compare page can show
                 # a metric figure with its basis rather than a bare number.
@@ -1192,6 +1261,22 @@ def compare_page(ids: str = "") -> dict:
                     "capabilities": ev.get("capabilities") or [],
                     "metrics": ev.get("metrics") or [],
                 },
+                # ⚠ ENTRIES PER SECTION, WHICH IS NOT THE LENGTH OF THE LISTS
+                #   ABOVE (rule 7). Those are DISTINCT AXES - "63 capabilities"
+                #   means 63 different things people discussed. This is how
+                #   many entries produced them, and one axis can carry twenty.
+                #
+                #   Both belong on the page and neither substitutes: 63 axes
+                #   from 70 entries is a broad, thinly-evidenced picture, and
+                #   12 axes from 70 is a narrow, heavily-discussed one. The
+                #   compare page showed the first number and not the second,
+                #   so those two models rendered as the more-covered one.
+                #
+                #   Read from the roster's own per-section counts rather than
+                #   recomputed, so this figure and the models list cannot
+                #   disagree about the same model.
+                "entries": (m.get("board") or {}).get("entries", 0),
+                "entries_by_section": dict((m.get("board") or {}).get("sections") or {}),
             },
         })
 

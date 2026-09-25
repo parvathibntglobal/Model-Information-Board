@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { comparePage, capLabel, fmtPrice, fmtTokens, BoardUnreadable } from '../api'
+import {
+  comparePage, listModels, fetchAll, fmtPrice, fmtTokens, BoardUnreadable,
+} from '../api'
 import { Badge, Notice, Unreadable } from '../components/ui'
-import { IconAlert } from '../components/Icons'
+import { IconAlert, IconSearch } from '../components/Icons'
+
+//: The endpoint's own cap (`COMPARE_MAX` in judge/app.py). Repeated here rather
+//: than fetched because the picker has to refuse BEFORE the request: a reader
+//: who ticks a fourth model should be told by the control, not by a 422.
+const COMPARE_MAX = 3
 
 /**
  * Two or three models side by side — `/compare?ids=a,b[,c]`.
@@ -28,9 +35,13 @@ import { IconAlert } from '../components/Icons'
  * reports on every model, a comparison IS a spec sheet and says so.
  */
 export default function Compare() {
-  const [sp] = useSearchParams()
+  const [sp, setSp] = useSearchParams()
   const ids = (sp.get('ids') || '').split(',').map((s) => s.trim()).filter(Boolean)
   const [state, setState] = useState({ data: null, err: null, unreadable: null })
+  //: The registry, for the picker. Loaded lazily - a reader who never opens
+  //: the picker never pays for it, and a comparison that renders is more
+  //: urgent than a list nobody has asked for yet.
+  const [roster, setRoster] = useState(null)
 
   useEffect(() => {
     if (ids.length < 2) { setState({ data: null, err: null, unreadable: null }); return }
@@ -48,6 +59,25 @@ export default function Compare() {
     return () => { alive = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp.get('ids')])
+
+  //: ⚠ THE COMPARISON COULD NOT BE CHANGED FROM THE COMPARISON. `?ids=` was
+  //:   read once and never written, so swapping one model meant going back to
+  //:   /models, re-ticking two or three, and submitting again. The page you
+  //:   land on to answer "which of these" was the one page that could not
+  //:   answer "what about that one instead".
+  //:
+  //:   Writing the URL rather than local state on purpose: the URL IS the
+  //:   comparison. A picker that held its own list would make the address bar
+  //:   describe a different page from the one on screen, and this page's whole
+  //:   value is that it can be sent to somebody.
+  const setIds = (next) => {
+    const trimmed = next.slice(0, COMPARE_MAX)
+    if (trimmed.length < 2) return   // the endpoint needs two; refuse here
+    setSp({ ids: trimmed.join(',') })
+  }
+
+  const dropModel = (id) => setIds(ids.filter((x) => x !== id))
+  const addModel = (id) => { if (!ids.includes(id)) setIds([...ids, id]) }
 
   if (ids.length < 2) {
     return (
@@ -114,6 +144,17 @@ export default function Compare() {
         <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '76ch' }}>{summary}</p>
       </div>
 
+      <ChangeModels
+        ids={ids}
+        models={models}
+        roster={roster}
+        onLoad={() => fetchAll((l, o) => listModels(l, o))
+          .then((d) => setRoster(d.models))
+          .catch(() => setRoster([]))}
+        onAdd={addModel}
+        onDrop={dropModel}
+      />
+
       {missing?.length > 0 && (
         <Notice icon={<IconAlert />}>
           <strong style={{ color: 'var(--text)' }}>
@@ -153,12 +194,40 @@ export default function Compare() {
         <Table
           models={models}
           rows={[
-            ['Documents', (m) => {
+            // ⚠ THIS ROW SAID "DOCUMENTS" AND MEANT SOMETHING ELSE. A
+            //   document here is a Reddit post, a Hacker News COMMENT, a
+            //   dev.to article or a GitHub issue reply — 29 of Claude Opus
+            //   5's 92 are replies rather than posts. "92 documents" reads as
+            //   92 articles, which is jargon and an overstatement at once.
+            //
+            //   So it names what they are, says how many are replies, and
+            //   splits by platform — the last being the comparative fact,
+            //   since one model discussed across five platforms and another
+            //   across one are different kinds of evidence.
+            ['Posts and comments', (m) => {
               const p = m.reported?.polarity || {}
               const n = p.documents || 0
-              return n === 0
-                ? <span className="dim">none yet</span>
-                : <span className="tnum">{n} {n === 1 ? 'document' : 'documents'}</span>
+              if (!n) return <span className="dim">none yet</span>
+              const replies = p.replies || 0
+              const platforms = p.platforms || []
+              return (
+                <div className="stack stack-1" style={{ gap: 2 }}>
+                  <span className="tnum">
+                    <strong>{n}</strong>{' '}
+                    <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+                      {replies > 0
+                        ? `— ${n - replies} post${n - replies === 1 ? '' : 's'}, `
+                          + `${replies} comment${replies === 1 ? '' : 's'}`
+                        : `post${n === 1 ? '' : 's'}`}
+                    </span>
+                  </span>
+                  {platforms.length > 0 && (
+                    <span className="dim" style={{ fontSize: 10, lineHeight: 1.5 }}>
+                      {platforms.map((x) => `${x.source} ${x.documents}`).join(' · ')}
+                    </span>
+                  )}
+                </div>
+              )
             }],
             // ⚠ THREE NUMBERS AND NEVER A RATIO. A net score, a percentage
             //   positive or a "sentiment" figure would be the 0-100 capability
@@ -187,18 +256,63 @@ export default function Compare() {
             ['— out of', (m) => {
               const p = m.reported?.polarity || {}
               return p.entries
-                ? <span className="dim tnum">{p.entries} entries, from {p.documents} documents</span>
+                ? <span className="dim tnum">{p.entries} entries, from {p.documents} posts and comments</span>
                 : <span className="dim">—</span>
             }],
+            // ⚠ ENTRIES PER SECTION, BECAUSE THE LIST LENGTHS BELOW ARE AXES
+            //   AND NOT ENTRIES (rule 7). "63 capabilities" is 63 different
+            //   things people discussed; it says nothing about how much was
+            //   said. 63 axes from 70 entries is broad and thin, 12 axes from
+            //   70 is narrow and heavily discussed, and the page showed only
+            //   the first — so the broader model read as the better-covered
+            //   one whatever the evidence behind it.
+            ['Entries on the board', (m) => {
+              const by = m.reported?.entries_by_section || {}
+              const total = m.reported?.entries || 0
+              if (!total) return <span className="dim">none</span>
+              const order = ['capability', 'metric', 'best_for']
+              const label = { capability: 'capability', metric: 'metric', best_for: 'best-for' }
+              const parts = order.filter((k) => by[k]).map((k) => `${by[k]} ${label[k]}`)
+              // Any section the order above does not know about, rather than
+              // dropping it: a new section would otherwise vanish from a total
+              // that still counts it.
+              Object.keys(by).filter((k) => !order.includes(k)).forEach(
+                (k) => parts.push(`${by[k]} ${k}`),
+              )
+              return (
+                <span className="tnum">
+                  <strong>{total}</strong>
+                  {parts.length > 0 && (
+                    <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+                      {' '}— {parts.join(', ')}
+                    </span>
+                  )}
+                </span>
+              )
+            }],
+            // ⚠ THE HEADING SAYS "BEST FOR" AND THE ROWS ARE NOT ALL
+            //   RECOMMENDATIONS. `evidence_for_model` does not filter negative
+            //   `best_for` rows - deliberately, because the board's own caveat
+            //   sends readers to the model page to read them - so this row can
+            //   show a job whose every report is a complaint. 6 of 155
+            //   model-axis pairs are in that state.
+            //
+            //   Not resolved here. What IS new is that the polarity renders
+            //   beside each row, so a reader can see `2 of 2 negative` instead
+            //   of a bare count that reads as endorsement.
             ['Best for — discovered', (m) => {
               const bf = m.reported?.best_for || []
               if (!bf.length) return <span className="dim">no job named yet</span>
-              return bf.map((b) => `${b.name} (${b.reports})`).join(', ')
+              return <Listed unit="job" items={bf.map((b) => ({
+                label: b.name, reports: b.reports,
+              }))} />
             }],
             ['Discussed under', (m) => {
-              const caps = m.reported?.capabilities || []
-              return caps.length ? caps.map(capLabel).join(', ')
-                                 : <span className="dim">nothing yet</span>
+              const caps = m.reported?.discovered?.capabilities || []
+              if (!caps.length) return <span className="dim">nothing yet</span>
+              return <Listed unit="capability" items={caps.map((c) => ({
+                label: c.name || c.slug, reports: c.reports,
+              }))} />
             }],
             ['Metrics reported', (m) => {
               const mets = m.reported?.discovered?.metrics || []
@@ -206,10 +320,13 @@ export default function Compare() {
               // A FIGURE TRAVELS WITH ITS BASIS (rule 7). `stated` is what the
               // vendor advertised, `reported` is what somebody measured, and
               // they are never merged into one number.
-              return mets.slice(0, 3).map((x) => {
+              return <Listed unit="metric" items={mets.map((x) => {
                 const f = (x.figures || [])[0]
-                return `${x.name}${f ? `: ${f.value} (${f.basis})` : ''}`
-              }).join('; ')
+                return {
+                  label: `${x.name}${f ? `: ${f.value} (${f.basis})` : ''}`,
+                  reports: x.reports,
+                }
+              })} />
             }],
           ]}
         />
@@ -273,7 +390,217 @@ export default function Compare() {
  * fact at a time — they scan a row, not a column — and because two or three
  * columns fit where two or three of these tables stacked would not.
  */
+/**
+ * Change the comparison without leaving it.
+ *
+ * ⚠ IT WRITES THE URL, NOT LOCAL STATE. The address bar IS the comparison —
+ *   this page's value is that it can be sent to somebody — so a picker holding
+ *   its own list would put a different comparison on screen from the one the
+ *   link describes.
+ *
+ * ⚠ AND IT REFUSES BEFORE THE REQUEST. The endpoint caps at three and answers
+ *   422 above it; a reader who clicks a fourth should be told by the control
+ *   rather than by an error. Dropping below two is refused for the same
+ *   reason, and the last two chips say so instead of going dead silently.
+ */
+/**
+ * Every item, one per line, under a count.
+ *
+ * ⚠ THREE VERSIONS, AND THE FIRST TWO WERE BOTH WRONG. `mets.slice(0, 3)`
+ *   showed three of nine and read as three — a count with no denominator
+ *   (rule 7), where a model with three metrics and one with thirty render
+ *   identically. Replacing it with `+6 more` in a `title` attribute fixed the
+ *   honesty and not the usefulness: a tooltip is not openable, it is invisible
+ *   on touch, and @parvathibntglobal's reading is the right one — **on a
+ *   comparison page the list IS the content.** Hiding it behind a hover is
+ *   hiding the thing somebody came to compare.
+ *
+ * ⚠ AND SEMICOLON-JOINED PROSE WAS THE OTHER HALF OF THE PROBLEM. `reasoning;
+ *   code generation; long context; tool use` in one cell beside the same shape
+ *   in the next cell cannot be read across — the eye has no line to follow. A
+ *   comparison of lists wants lists.
+ *
+ * So: the count first, because that is what makes two columns comparable at a
+ * glance, then every item on its own line. Nothing is cut and nothing needs
+ * opening. A cell with forty entries is tall, and a tall cell a reader can
+ * read beats a short one they cannot.
+ */
+//: ⚠ "15 capabilitys" WAS ON THE PAGE. Two of the three units this component
+//:   is given do not take a bare `s`, and they are the two most common.
+const PLURALS = { capability: 'capabilities', job: 'jobs', metric: 'metrics' }
+
+//: ⚠ THE POLARITY BAR IS GONE FROM THIS PAGE, and so are `PolarityBar`,
+//:   `axisPolarity` and the `POLARITY_ORDER` beside them. Removed rather than
+//:   left unread: a component nothing renders is the orphan of #438 one layer
+//:   down, and it reads as wired from either end.
+//:
+//:   It showed positive/neutral/negative per axis as a proportional bar.
+//:   @parvathibntglobal removed the column 2026-09-25 - the page now shows the
+//:   axis and its report count, and nothing else.
+//:
+//: ⚠ ONE THING WENT WITH IT THAT WAS DOING REAL WORK. The bar was the only
+//:   surface on which a `best_for` row whose every report is a complaint was
+//:   legible: `2 of 2 negative` under a heading that recommends. 6 of 155
+//:   model-axis pairs are in that state, `evidence_for_model` does not filter
+//:   them, and this page renders them under the board's heading. That
+//:   over-claim is now silent again rather than fixed. It is the open section
+//:   question - see @anoojntglobal-sudo's #469, which groups by exactly this.
+
+function Listed({ items, unit, upTo = 12 }) {
+  if (!items.length) return null
+  const shown = items.slice(0, upTo)
+  const rest = items.slice(upTo)
+
+  //: ⚠ NOT `unit + "s"`. That rendered "15 capabilitys" on the page. English
+  //:   plurals are not a string operation, and two of the three words this
+  //:   component is given are exactly the ones that break it.
+  const plural = items.length === 1 ? unit : PLURALS[unit] || `${unit}s`
+
+  const line = (x, i) => (
+    <li key={i} className="cmp-line">
+      <span className="cmp-line-name">{typeof x === 'string' ? x : x.label}</span>
+      {typeof x !== 'string' && (
+        <span className="cmp-line-n tnum">{x.reports}</span>
+      )}
+    </li>
+  )
+
+  return (
+    <div className="stack stack-1" style={{ gap: 4 }}>
+      {/* ⚠ THE REPEATED WORDS LIVE HERE NOW, SAID ONCE. Every line used to
+          carry "reports" and "positive" — two words times thirty rows times
+          three columns, and the numbers they labelled were the part a reader
+          was actually trying to compare. */}
+      <div className="cmp-line cmp-line-head dim">
+        <span className="cmp-line-name">{items.length} {plural}</span>
+        <span className="cmp-line-n">reports</span>
+      </div>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+        {shown.map(line)}
+      </ul>
+      {rest.length > 0 && (
+        <details>
+          <summary className="dim" style={{ fontSize: 11, cursor: 'pointer' }}>
+            show the other {rest.length}
+          </summary>
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+            {rest.map((x, i) => line(x, i + upTo))}
+          </ul>
+        </details>
+      )}
+    </div>
+  )
+}
+
+
+function ChangeModels({ ids, models, roster, onLoad, onAdd, onDrop }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (open && !roster) onLoad()
+    if (open) inputRef.current?.focus()
+  }, [open, roster, onLoad])
+
+  const atCap = ids.length >= COMPARE_MAX
+  const atFloor = ids.length <= 2
+
+  const matches = useMemo(() => {
+    if (!roster) return []
+    const q = query.trim().toLowerCase()
+    return roster
+      .filter((m) => !ids.includes(m.model_version_id) && !ids.includes(m.canonical_id))
+      .filter((m) => !q
+        || (m.display_name || '').toLowerCase().includes(q)
+        || (m.canonical_id || '').toLowerCase().includes(q))
+      .slice(0, 8)
+  }, [roster, query, ids])
+
+  return (
+    <div className="stack stack-2">
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {models.map((m) => (
+          <span key={m.model_version_id} className="chip" style={{ gap: 6 }}>
+            {m.display_name}
+            <button
+              type="button"
+              onClick={() => onDrop(m.model_version_id)}
+              disabled={atFloor}
+              title={atFloor
+                ? 'A comparison needs two models. Add one before removing this.'
+                : `Remove ${m.display_name} from the comparison`}
+              aria-label={`Remove ${m.display_name}`}
+              style={{
+                background: 'none', border: 0, padding: 0, lineHeight: 1,
+                cursor: atFloor ? 'not-allowed' : 'pointer',
+                color: atFloor ? 'var(--text-3)' : 'var(--text-2)',
+              }}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <button
+          type="button"
+          className="chip"
+          onClick={() => setOpen((v) => !v)}
+          disabled={atCap && !open}
+          title={atCap
+            ? `Three models is the maximum — a comparison of more is a table, not a comparison.`
+            : 'Add another model to this comparison'}
+        >
+          {open ? 'Done' : atCap ? `${COMPARE_MAX} is the maximum` : '+ Add a model'}
+        </button>
+      </div>
+
+      {open && !atCap && (
+        <div className="stack stack-1" style={{ maxWidth: '46ch' }}>
+          <label className="searchbar" style={{ margin: 0 }}>
+            <IconSearch width={15} height={15} />
+            <input
+              ref={inputRef}
+              type="search"
+              value={query}
+              placeholder="Search the registry"
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
+          {!roster && <div className="skel" style={{ height: 80 }} />}
+          {roster && matches.length === 0 && (
+            <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0 }}>
+              {query.trim()
+                ? `No model in the registry matches "${query.trim()}".`
+                : 'Every model in the registry is already in this comparison.'}
+            </p>
+          )}
+          {roster && matches.map((m) => (
+            <button
+              key={m.model_version_id}
+              type="button"
+              className="chip"
+              style={{ justifyContent: 'flex-start', width: '100%' }}
+              onClick={() => { onAdd(m.canonical_id || m.model_version_id); setOpen(false); setQuery('') }}
+            >
+              {m.display_name}
+              <span className="dim mono" style={{ fontSize: 10, marginLeft: 6 }}>
+                {m.canonical_id}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 function Table({ models, rows }) {
+  const rendered = rows.map(([label, cell]) => ({
+    label,
+    cells: models.map((m) => cell(m)),
+  }))
+
   return (
     <div style={{ overflowX: 'auto' }}>
       <table className="cmp-table">
@@ -308,10 +635,10 @@ function Table({ models, rows }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map(([label, cell]) => (
-            <tr key={label}>
-              <th scope="row">{label}</th>
-              {models.map((m) => <td key={m.model_version_id}>{cell(m)}</td>)}
+          {rendered.map((r) => (
+            <tr key={r.label}>
+              <th scope="row">{r.label}</th>
+              {models.map((m, i) => <td key={m.model_version_id}>{r.cells[i]}</td>)}
             </tr>
           ))}
         </tbody>

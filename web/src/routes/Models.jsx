@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { listModels, fetchAll, capLabel, fmtTokens, BoardUnreadable } from '../api'
+import { listModels, fetchAll, fmtTokens, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 
@@ -398,15 +398,16 @@ function ModelRow({ m, picked, onPick, atCap }) {
             {m.provider}
             {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
           </span>
-          {/* Which capability, from the roster row itself — on screen the
-              moment the list is. The voice counts that used to upgrade this
-              came from the capability sweep, which returned nothing on every
-              call (#438). */}
-          {m.evidence?.capabilities?.length > 0 && (
-            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-              {m.evidence.capabilities.map(capLabel).join('  ·  ')}
-            </span>
-          )}
+          {/* ⚠ THE CAPABILITY CHIPS ARE GONE, AND THEY NEVER RENDERED. They
+              read `evidence.capabilities`, which is `cell.capability_key` —
+              the CLOSED twelve from the first plan. Measured 2026-09-24:
+              0 of 196 models on this roster carry a non-empty list, because
+              every cell is `insufficient` and e5.5 writes none at all.
+
+              So this was a conditional that could not fire, beside a sweep
+              that returned nothing (#438). Removed on the ruling that the
+              closed vocabulary is not what this board counts — the board's
+              own open sections are. */}
         </span>
 
         <span className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -454,15 +455,6 @@ function ModelRow({ m, picked, onPick, atCap }) {
             {m.provider}
             {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
           </span>
-          {/* Which capability, from the roster row itself — on screen the
-              moment the list is. The voice counts that used to upgrade this
-              came from the capability sweep, which returned nothing on every
-              call (#438). */}
-          {m.evidence?.capabilities?.length > 0 && (
-            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-              {m.evidence.capabilities.map(capLabel).join('  ·  ')}
-            </span>
-          )}
         </span>
 
         <span className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>

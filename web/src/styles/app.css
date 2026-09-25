@@ -743,6 +743,22 @@ tbody tr:hover{background:var(--surface-2)}
 /* Models across the top, facts down the side: a reader compares one fact at a
    time, scanning a row. Wrapped in an overflow-x container by the component, so
    a narrow screen scrolls the TABLE and never the page. */
+/* ── one axis per line, in columns ──────────────────────────────────────────
+   The cell used to be free text: `Reasoning — 5 reports  3 of 5 positive`,
+   repeated up to 33 times per column. The words that repeat moved to a header
+   and the numbers became columns, so the eye has a straight edge to run down
+   and two cells can be compared across.
+
+   `--cmp-n` is the numeric column and is shared by the header and the rows;
+   changing it in one place keeps them aligned, which a per-row width would
+   not. */
+.cmp-line{display:flex;align-items:center;gap:10px;padding:1.5px 0;
+  --cmp-n:2.4em}
+.cmp-line-name{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;
+  font-size:var(--fs-xs);line-height:1.5}
+.cmp-line-n{flex:0 0 var(--cmp-n);text-align:right;font-size:var(--fs-xs)}
+.cmp-line-head{font-size:10px;letter-spacing:.02em;padding-bottom:3px;
+  border-bottom:1px solid var(--border-soft);margin-bottom:2px}
 .cmp-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
 .cmp-table th,.cmp-table td{
   border:1px solid var(--border);
