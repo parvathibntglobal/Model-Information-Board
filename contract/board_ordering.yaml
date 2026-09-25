@@ -1,0 +1,40 @@
+# How the board orders the models on a best-for or capability page.
+#
+# ⚠ A WEIGHT, NOT A THRESHOLD, AND IT IS NEVER SHOWN. Rule 5 puts weights in
+#   versioned YAML so a change is reviewable. Nothing here is displayed: every
+#   row still shows its counts (`6 positive · 1 negative`), and this value only
+#   decides the ORDER of the first group. Changing it re-orders pages and
+#   changes no figure on them.
+#
+# THE RULE THIS SERVES (judge/store/board_entries.py, `_group_of` and the sort
+# in `board_sections`):
+#
+#   1. at least one positive report       ordered by the lower bound below
+#   2. only neutral reports               ordered by report count
+#   3. negatives and no positive          ordered by report count
+#
+# The groups are not replaced by the score, and cannot be. A neutral-only model
+# has no report that took a side, so it has no score at all; a missing value
+# must not become a zero (rule 6), and a zero would file it beside the models
+# people complained about. In group 3 every score is exactly zero, so the score
+# would order nothing there.
+#
+# THE ORDERING KEY IN GROUP 1: the lower bound of the Wilson score interval on
+# (positive reports) / (reports that took a side), where a report that says
+# both counts once in the denominator and once in the numerator. It rewards a
+# high share of positive reports and treats a share drawn from few reports as
+# weaker evidence than the same share from many. Ties fall back to report
+# count, then to the position the row arrived in.
+#
+# `wilson_z` IS THE CONFIDENCE LEVEL. 1.96 is the two-sided 95% normal
+# quantile, the conventional choice. Larger values punish small samples harder:
+# at 1.96, one positive of one scores 0.21, two of two 0.34, six of six 0.61.
+#
+# Measured 2026-09-25 on the live board, 20 slugs (the top ten best-for and top
+# ten capability pages), 206 model rows: against the three-group report-count
+# order this moves 98 rows, 64 of them three or more places, and changes three
+# #1s (instruction-following, agentic-tool-use, latency). A record, not a
+# count of today's board.
+
+version: 1
+wilson_z: 1.96
