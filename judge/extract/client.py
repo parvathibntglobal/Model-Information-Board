@@ -74,8 +74,23 @@ class Completion:
     """
 
     raw_arguments: str
+    #: ALL prompt tokens, cached ones included (OpenRouter's `prompt_tokens`).
     input_tokens: int = 0
     output_tokens: int = 0
+    #: The part of `input_tokens` served from the provider's prompt cache,
+    #: from `usage.prompt_tokens_details.cached_tokens`. A subset, not an
+    #: addition: it is priced at the cache-read rate instead of the input rate.
+    #: 0 when the provider reported no cache detail, which prices the call at
+    #: full input rate - the direction that over-states spend, not under.
+    cached_input_tokens: int = 0
+    #: The part of `output_tokens` the model spent THINKING before it answered,
+    #: from `usage.completion_tokens_details.reasoning_tokens`. A subset of
+    #: `output_tokens`, billed at the output rate and counted against
+    #: `max_tokens` - so a model that reasons by default can hit the ceiling
+    #: before writing its tool call. Recorded 2026-09-24 after a 16,384-token
+    #: truncation on a 10,859-char dev.to post under `deepseek-v4-flash-0731`.
+    #: None when the provider did not report it - never 0 by default.
+    reasoning_tokens: int | None = None
     model: str = DEFAULT_MODEL
     #: The provider's own word for why generation stopped - `stop`, `length`,
     #: `tool_calls`, or None when nothing said.
@@ -256,6 +271,25 @@ class OpenRouterClient:
     #: runs - which is the direction rule 8 requires, the field first and any
     #: gate later on evidence.
     max_output_tokens: int = int(os.getenv("EXTRACT_MAX_OUTPUT_TOKENS", "16384"))
+    #: REASONING IS OFF BY DEFAULT, AND THAT IS A DECISION THE MODEL SWITCH MADE
+    #: FOR US UNTIL 2026-09-24.
+    #:
+    #: OpenRouter's metadata for `deepseek-v4-flash-0731` reads
+    #: `reasoning: {mandatory: False, default_enabled: True, default_effort:
+    #: 'high'}`. The undated `deepseek-v4-flash` (0423) - the one the A/B chose -
+    #: has no `default_enabled`, so moving `EXTRACTOR_MODEL` to 0731 silently
+    #: turned on high-effort thinking for every extraction. Reasoning tokens
+    #: are output tokens: billed at the output rate AND counted against
+    #: `max_tokens`, so a 10,859-char dev.to post hit the 16,384 ceiling before
+    #: its tool call closed.
+    #:
+    #: `none` disables it ("the model won't perform reasoning", OpenRouter
+    #: docs). NOT `exclude: true`, which only hides the reasoning and still bills
+    #: it. `EXTRACT_REASONING_EFFORT=default` sends nothing and takes the
+    #: model's own default; any other value (`low`, `high`) is sent as the effort.
+    #: Whether it took effect is visible: the fetch log prints each thread's
+    #: reasoning tokens, which should read 0 once this holds.
+    reasoning_effort: str = os.getenv("EXTRACT_REASONING_EFFORT", "none")
     #: Called while a response is arriving. MAY RAISE, and raising is the point.
     #:
     #: `Progress.checkpoint()` raises `RunStopped` when somebody has pressed
@@ -364,6 +398,12 @@ class OpenRouterClient:
                 # one, in the flattering direction, in the only place this
                 # project records what it spends (rule 6).
                 "stream_options": {"include_usage": True},
+                # See `reasoning_effort`. Omitted only for `default`.
+                **(
+                    {}
+                    if self.reasoning_effort.strip().lower() == "default"
+                    else {"reasoning": {"effort": self.reasoning_effort.strip().lower()}}
+                ),
             },
         ) as response:
             # THE STATUS IS CHECKED BEFORE THE STREAM IS READ. An error response
@@ -389,62 +429,73 @@ class OpenRouterClient:
             # far faster than a person can regret pressing Stop, and costs
             # nothing.
             next_check = 0.0
-            for line in response.iter_lines():
-                now = time.monotonic()
-                if self.on_progress is not None and now >= next_check:
-                    next_check = now + 1.0
-                    # Deliberately NOT wrapped: this is how a stop leaves the
-                    # call, and swallowing it here would restore the defect.
-                    self.on_progress()
-                if now > deadline:
-                    # NAMES WHAT WAS MEASURED, not a guess at the cause. With
-                    # `max_tokens` set, reaching this is no longer "a long
-                    # document" - so the message says how much answer had
-                    # arrived, which is the number that separates a provider
-                    # that stopped sending from one that is still working.
-                    raise ExtractorUnavailable(
-                        f"the provider was still sending after "
-                        f"{self.total_timeout_seconds:.0f}s "
-                        f"({sum(len(f) for f in fragments)} chars of tool-call "
-                        f"arguments received); abandoned so the batch is not held "
-                        f"open by one call. `max_tokens` is "
-                        f"{self.max_output_tokens}, which bounds a legitimate "
-                        f"answer well inside this window, so this is the provider "
-                        f"rather than the document."
-                    )
-                if not line or line.startswith(":"):
-                    continue          # SSE comment / keep-alive
-                if not line.startswith("data:"):
-                    continue
-                data = line[len("data:"):].strip()
-                if data == "[DONE]":
-                    break
-                try:
-                    event = _json.loads(data)
-                except ValueError:
-                    continue          # a partial frame; the next one carries it
-                # A PROVIDER ERROR ARRIVES INSIDE THE STREAM, as an event with
-                # no `choices`. Recorded and raised after the loop rather than
-                # here, so whatever already arrived is still counted.
-                if "error" in event and not event.get("choices"):
-                    stream_error = event["error"]
-                    continue
-                if event.get("model"):
-                    model_name = event["model"]
-                if event.get("usage"):
-                    usage = event["usage"]
-                for choice in event.get("choices") or []:
-                    if choice.get("finish_reason"):
-                        finish_reason = choice["finish_reason"]
-                    # The upstream's own word, which OpenRouter overwrites in
-                    # the field above. See `Completion.native_finish_reason`.
-                    if choice.get("native_finish_reason"):
-                        native_finish = choice["native_finish_reason"]
-                    delta = choice.get("delta") or {}
-                    for call in delta.get("tool_calls") or []:
-                        piece = (call.get("function") or {}).get("arguments")
-                        if piece:
-                            fragments.append(piece)
+            # THE SPEND ROW IS WRITTEN IN `finally`, ON EVERY EXIT FROM HERE ON.
+            # Once the stream is open the provider may be generating, and a
+            # generated token is billed whether or not we keep the answer. The
+            # write used to sit after the loop and after the mid-stream error
+            # raise, so a 502/504 mid-stream, an abandon at the deadline, or a
+            # Stop all left the ledger without a row. A call that died before
+            # any usage event records zeros, which `Call.unmetered` flags, so
+            # the total says it is a floor rather than reading as complete.
+            try:
+                for line in response.iter_lines():
+                    now = time.monotonic()
+                    if self.on_progress is not None and now >= next_check:
+                        next_check = now + 1.0
+                        # Deliberately NOT wrapped: this is how a stop leaves the
+                        # call, and swallowing it here would restore the defect.
+                        self.on_progress()
+                    if now > deadline:
+                        # NAMES WHAT WAS MEASURED, not a guess at the cause. With
+                        # `max_tokens` set, reaching this is no longer "a long
+                        # document" - so the message says how much answer had
+                        # arrived, which is the number that separates a provider
+                        # that stopped sending from one that is still working.
+                        raise ExtractorUnavailable(
+                            f"the provider was still sending after "
+                            f"{self.total_timeout_seconds:.0f}s "
+                            f"({sum(len(f) for f in fragments)} chars of tool-call "
+                            f"arguments received); abandoned so the batch is not held "
+                            f"open by one call. `max_tokens` is "
+                            f"{self.max_output_tokens}, which bounds a legitimate "
+                            f"answer well inside this window, so this is the provider "
+                            f"rather than the document."
+                        )
+                    if not line or line.startswith(":"):
+                        continue          # SSE comment / keep-alive
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[len("data:"):].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        event = _json.loads(data)
+                    except ValueError:
+                        continue          # a partial frame; the next one carries it
+                    # A PROVIDER ERROR ARRIVES INSIDE THE STREAM, as an event with
+                    # no `choices`. Recorded and raised after the loop rather than
+                    # here, so whatever already arrived is still counted.
+                    if "error" in event and not event.get("choices"):
+                        stream_error = event["error"]
+                        continue
+                    if event.get("model"):
+                        model_name = event["model"]
+                    if event.get("usage"):
+                        usage = event["usage"]
+                    for choice in event.get("choices") or []:
+                        if choice.get("finish_reason"):
+                            finish_reason = choice["finish_reason"]
+                        # The upstream's own word, which OpenRouter overwrites in
+                        # the field above. See `Completion.native_finish_reason`.
+                        if choice.get("native_finish_reason"):
+                            native_finish = choice["native_finish_reason"]
+                        delta = choice.get("delta") or {}
+                        for call in delta.get("tool_calls") or []:
+                            piece = (call.get("function") or {}).get("arguments")
+                            if piece:
+                                fragments.append(piece)
+            finally:
+                _record_spend(usage, model_name or self.model)
 
         if stream_error is not None:
             raise ExtractorUnavailable(
@@ -453,37 +504,70 @@ class OpenRouterClient:
 
         arguments = "".join(fragments)
         model_name = model_name or self.model
-
-        # RECORDED HERE, BECAUSE THIS IS WHERE THE USAGE IS. E5 has been calling
-        # a paid model since August and writing nothing to the ledger - the only
-        # caller of `spend_ledger.record` was the Ask box - which is why the
-        # usage panel showed one model and had to derive the other from the
-        # provider's key total minus what it knew. Next to the response is the
-        # only place that cannot forget, and `record` swallows write failures so
-        # a full disk cannot end a corpus run.
-        #
-        # A TRUNCATED ANSWER IS STILL BILLED, so it is recorded here too, before
-        # any of the truncation handling downstream. The two abandoned calls of
-        # 2026-09-14 wrote no ledger row at all, because the old code reached
-        # this line only on success - roughly 30,000 generated tokens each,
-        # invisible in our own figures.
-        from judge import spend_ledger
-
-        spend_ledger.record(
-            stage=spend_ledger.STAGE_EXTRACT,
-            model=model_name,
-            input_tokens=usage.get("prompt_tokens", 0),
-            output_tokens=usage.get("completion_tokens", 0),
-        )
+        cached = _cached_tokens(usage)
         return Completion(
             raw_arguments=arguments,
             input_tokens=usage.get("prompt_tokens", 0),
             output_tokens=usage.get("completion_tokens", 0),
+            cached_input_tokens=cached,
+            reasoning_tokens=_reasoning_tokens(usage),
             model=model_name,
             finish_reason=finish_reason,
             native_finish_reason=native_finish,
             ceiling_tokens=self.max_output_tokens,
         )
+
+
+def _cached_tokens(usage: dict) -> int:
+    """The cached part of `prompt_tokens`, or 0 when the provider gave no detail.
+
+    PROMPT CACHING NEEDS NOTHING IN THE REQUEST. DeepSeek caches the prompt
+    prefix automatically and OpenRouter routes follow-up calls to the same
+    provider while the cache is warm. The prefix here - system prompt, then tool
+    schema - is identical on every call of a run, so from the second call on it
+    bills at the cache-read rate. What was missing was on our side: the cached
+    count was never read, so every input token was charged at full rate.
+    """
+    details = usage.get("prompt_tokens_details") or {}
+    return details.get("cached_tokens") or 0
+
+
+def _reasoning_tokens(usage: dict) -> int | None:
+    """`usage.completion_tokens_details.reasoning_tokens`, or None when unreported.
+
+    None, NOT 0: a provider that sends no detail has not said the model did no
+    thinking (rule 6), and the log prints `?` for it.
+    """
+    details = usage.get("completion_tokens_details") or {}
+    value = details.get("reasoning_tokens")
+    return int(value) if isinstance(value, int | float) else None
+
+
+def _record_spend(usage: dict, model_name: str) -> None:
+    """One `spend_ledger` row for one call, from whatever usage arrived.
+
+    RECORDED HERE, BECAUSE THIS IS WHERE THE USAGE IS. E5 has been calling a
+    paid model since August and writing nothing to the ledger - the only caller
+    of `spend_ledger.record` was the Ask box - which is why the usage panel
+    showed one model and had to derive the other from the provider's key total
+    minus what it knew. Next to the response is the only place that cannot
+    forget, and `record` swallows write failures so a full disk cannot end a
+    corpus run.
+
+    A TRUNCATED OR ABANDONED ANSWER IS STILL BILLED. The two abandoned calls of
+    2026-09-14 wrote no ledger row at all, because the old code reached the
+    write only on success - roughly 30,000 generated tokens each, invisible in
+    our own figures. Called from `complete()`'s `finally` for that reason.
+    """
+    from judge import spend_ledger
+
+    spend_ledger.record(
+        stage=spend_ledger.STAGE_EXTRACT,
+        model=model_name,
+        input_tokens=usage.get("prompt_tokens", 0),
+        output_tokens=usage.get("completion_tokens", 0),
+        cached_input_tokens=_cached_tokens(usage),
+    )
 
 
 #: Where the closed capability vocabulary lives in the generated schema.
@@ -528,11 +612,17 @@ def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
 
     found = []
 
+    def _is_string(value: dict) -> bool:
+        # `str | None` (optional since 2026-09-24, for the legacy-off mode)
+        # renders as `anyOf: [{type: string}, {type: null}]`, not `type: string`.
+        return value.get("type") == "string" or any(
+            isinstance(b, dict) and b.get("type") == "string" for b in value.get("anyOf", ())
+        )
+
     def walk(node: object, path: tuple[str, ...] = ()) -> None:
         if isinstance(node, dict):
             for key, value in node.items():
-                if key == "capability" and isinstance(value, dict) \
-                        and value.get("type") == "string":
+                if key == "capability" and isinstance(value, dict) and _is_string(value):
                     found.append(path + (key,))
                 walk(value, path + (key,))
         elif isinstance(node, list):
@@ -548,14 +638,61 @@ def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
             "Refusing rather than returning a schema that looks closed and is not."
         )
 
-    node = schema
-    for step in _CAPABILITY_PATH:
-        node = node[step]
+    parent = schema
+    for step in _CAPABILITY_PATH[:-1]:
+        parent = parent[step]
+    item = schema
+    for step in _CAPABILITY_PATH[:-2]:   # properties.claims.items
+        item = item[step]
+    node = parent[_CAPABILITY_PATH[-1]]
+    # A CLOSED, REQUIRED STRING, exactly as before the field became optional.
+    # Optional exists for the legacy-OFF mode, where the field is stripped; in
+    # this mode a missing or null key would reach `compute()` and be refused, so
+    # the null branch is dropped and the key put back in `required`.
+    if "anyOf" in node:
+        node.pop("anyOf")
+        node.pop("default", None)
+    node["type"] = "string"
     node["enum"] = list(capability_keys)
+    required = item.setdefault("required", [])
+    if "capability" not in required:
+        required.append("capability")
     # The description still carries the instruction, because an enum tells the
     # model WHAT is allowed and not what to do when nothing fits. The answer to
     # that - pick the closest and propose the missing one - is the part that
     # keeps discovery working, and it only exists in prose.
+    return schema
+
+
+#: Fields that exist only for the legacy capability-card path (`judge/legacy.py`).
+#: Stripped from the tool schema when it is off, so the extractor is never asked
+#: for them and pays no output tokens producing them.
+_LEGACY_CLAIM_FIELDS = ("capability",)
+_LEGACY_RESULT_FIELDS = ("proposed_capabilities", "unclassified")
+
+
+def strip_legacy_fields(schema: dict) -> dict:
+    """Remove the ratified-twelve fields from an `ExtractionResult` tool schema.
+
+    The paths are asserted like `_close_capability`'s: a schema whose shape has
+    moved raises rather than returning one that still asks for the old fields.
+    """
+    props = schema.get("properties") or {}
+    claim = (((props.get("claims") or {}).get("items")) or {})
+    if "properties" not in claim or not all(f in claim["properties"] for f in _LEGACY_CLAIM_FIELDS):
+        raise ValueError(
+            "expected `claims.items.properties.capability` in the tool schema; the "
+            "shape moved, so the legacy field was NOT stripped. Refusing rather than "
+            "sending a schema that still asks for it."
+        )
+    for name in _LEGACY_CLAIM_FIELDS:
+        claim["properties"].pop(name, None)
+        if name in (claim.get("required") or []):
+            claim["required"] = [r for r in claim["required"] if r != name]
+    for name in _LEGACY_RESULT_FIELDS:
+        props.pop(name, None)
+        if name in (schema.get("required") or []):
+            schema["required"] = [r for r in schema["required"] if r != name]
     return schema
 
 

@@ -17,6 +17,8 @@ import inspect
 import json
 from types import SimpleNamespace
 
+import pytest
+
 import scripts.fetch_model as fetch_model
 
 
@@ -234,6 +236,44 @@ def test_build_thread_inputs_is_empty_when_nothing_resolves(monkeypatch):
         _Conn(thread_rows, {"dB": "rawB"}), seen=set(), limit=200
     )
     assert inputs == [] and doc_ids == set()
+
+
+def _two_readable_threads(monkeypatch):
+    """tcNamed names the model; tcOther is backlog. Both fully readable."""
+    payload = json.dumps({"title": "t", "selftext": "b"})
+    monkeypatch.setattr(fetch_model, "RawStore", _fake_store(
+        {"flatN": "flattened N", "flatO": "flattened O", "rawN": payload, "rawO": payload}))
+    monkeypatch.setattr(fetch_model, "settings", lambda: SimpleNamespace(raw_store_path="unused"))
+    return _Conn([("tcNamed", "flatN", None, ["dN"]), ("tcOther", "flatO", None, ["dO"])],
+                 {"dN": "rawN", "dO": "rawO"})
+
+
+def test_backlog_off_reads_only_threads_naming_the_model(monkeypatch):
+    """The 2026-09-24 GPT-5.5 fetch read 22 of 24 threads about other models.
+
+    With the backlog off, a thread that neither names the model nor came from
+    this run's harvest is not selected - left unread for the nightly batch.
+    """
+    inputs, _d, _g, _o, (named, _own) = fetch_model.build_thread_inputs(
+        _two_readable_threads(monkeypatch), seen=set(), limit=25,
+        naming={"tcNamed"}, include_backlog=False)
+    assert [t.thread_context_id for t in inputs] == ["tcNamed"]
+    assert named == 1
+
+
+def test_backlog_on_still_fills_the_cap(monkeypatch):
+    inputs, *_ = fetch_model.build_thread_inputs(
+        _two_readable_threads(monkeypatch), seen=set(), limit=25,
+        naming={"tcNamed"}, include_backlog=True)
+    assert [t.thread_context_id for t in inputs] == ["tcNamed", "tcOther"]
+
+
+def test_backlog_is_off_unless_asked_for():
+    """The default is what the Fetch button does, so it is pinned."""
+    import os
+    if os.getenv("FETCH_BACKLOG"):
+        pytest.skip("FETCH_BACKLOG is set in this environment")
+    assert fetch_model.FETCH_BACKLOG is False
 
 
 class TestTheArtifactGuard:

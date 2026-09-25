@@ -306,9 +306,55 @@ a failure. A document you had to reach for is a document with no claim in it.\
 """
 
 
+#: The two passages of `SYSTEM_PROMPT` that exist only for the legacy
+#: capability-card path (`judge/legacy.py`), and what each becomes when it is
+#: off. Exact substrings, ASSERTED present: a prompt edit that moves one makes
+#: `legacy_free_prompt` raise instead of silently keeping the old instruction.
+_LEGACY_PASSAGES = (
+    (
+        "One entry per claim a human made about a named model. A claim needs four \\\n"
+        "things and you emit nothing without all four:",
+        "One entry per claim a human made about a named model. A claim needs three \\\n"
+        "things and you emit nothing without all three:",
+    ),
+    (
+        "  4. A `capability` key from the ratified list at the end of this prompt. That \\\n"
+        "one field feeds an older scoring path and is NOT what the board displays; pick \\\n"
+        "the closest key and move on.\n",
+        "",
+    ),
+    (
+        "Do not stretch a quote to fit a key.",
+        None,  # from here up to "WHAT YOU NEVER DECIDE" - see below
+    ),
+)
+
+
+def legacy_free_prompt(prompt: str) -> str:
+    """`prompt` with every instruction about the ratified twelve removed."""
+    for old, new in _LEGACY_PASSAGES[:2]:
+        rendered_old = old.replace("\\\n", "")
+        if rendered_old not in prompt:
+            raise ValueError(
+                f"legacy passage not found in the system prompt: {rendered_old[:60]!r}. "
+                "The prompt moved; refusing rather than asking for the old field."
+            )
+        prompt = prompt.replace(rendered_old, new.replace("\\\n", ""))
+    start = prompt.find(_LEGACY_PASSAGES[2][0])
+    end = prompt.find("WHAT YOU NEVER DECIDE")
+    if start < 0 or end < start:
+        raise ValueError(
+            "the 'stretch a quote to fit a key' passage was not found before "
+            "'WHAT YOU NEVER DECIDE'; refusing rather than keeping it."
+        )
+    return prompt[:start] + prompt[end:]
+
+
 def build_system_prompt(
     capability_keys: list[str],
     exemplars: dict | None = None,
+    *,
+    legacy: bool | None = None,
 ) -> str:
     """The classifier prompt: one CLOSED list, three OPEN sections.
 
@@ -334,7 +380,11 @@ def build_system_prompt(
     gain yet. The parameter exists so a run can still be reproduced against an
     older calibration.
     """
-    if not capability_keys:
+    if legacy is None:
+        from judge.legacy import legacy_cells_enabled
+
+        legacy = legacy_cells_enabled()
+    if legacy and not capability_keys:
         raise ValueError(
             "no capability keys: the legacy cell path indexes by capability_key, "
             "so a claim could not be scored. The BOARD sections are discovered "
@@ -362,10 +412,15 @@ def build_system_prompt(
             + "\n".join(rows)
         )
 
-    return (
-        SYSTEM_PROMPT.format(open=BLOCK_OPEN, close=BLOCK_CLOSE)
+    base = SYSTEM_PROMPT.format(open=BLOCK_OPEN, close=BLOCK_CLOSE)
+    if not legacy:
+        # NOTHING ABOUT THE RATIFIED TWELVE. See `judge/legacy.py`: with the
+        # capability-card path off the field is not in the tool schema either,
+        # so an instruction to fill it would ask for something with no slot.
+        base = legacy_free_prompt(base)
+    open_half = (
         # ── the OPEN half ───────────────────────────────────────────────────
-        + "\n\n"
+        "\n\n"
         + "=" * 70
         + "\nEXEMPLARS FOR THE THREE BOARD SECTIONS - NOT A LIST TO CHOOSE FROM\n"
         + "=" * 70
@@ -383,8 +438,12 @@ def build_system_prompt(
         + _section("best_for", "SECTION 1 - BEST FOR (jobs somebody runs)")
         + _section("capabilities", "SECTION 2 - CAPABILITIES (one named behaviour)")
         + _section("metrics", "SECTION 3 - METRICS (a measured axis with a unit)")
+    )
+    if not legacy:
+        return base + open_half
+    closed_half = (
         # ── the CLOSED half ─────────────────────────────────────────────────
-        + "\n\n"
+        "\n\n"
         + "=" * 70
         + "\nTHE RATIFIED CAPABILITY KEYS (`capability`) - CLOSED, use these and "
           "no others\n"
@@ -395,6 +454,7 @@ def build_system_prompt(
           "missing key in\n`proposed_capabilities`.\n"
         + "\n".join(f"  - {key}" for key in capability_keys)
     )
+    return base + open_half + closed_half
 
 
 def wrap_untrusted(flattened_text: str) -> str:

@@ -7,10 +7,13 @@ landed the four coverage columns on 2026-08-18, so it can now state it.
 
 WHAT THE SELECTION IS, AND WHAT IT IS NOT
 ------------------------------------------
-Children ranked by `specificity_score x log(1 + engagement)`, per
-`collect/CLAUDE.md`. The top-voted replies are agreement and jokes; the two-line
-correction — *"you had `tool_choice` misconfigured"* — sits at +2 and is the one
-that carries the condition.
+Children ranked by `specificity + w x log1p(engagement) + first_hand +
+relevance`, in `collect/assemble/ranking.py` with every weight in
+`contract/harvest.yaml:child_ranking`. It was `specificity_score x log(1 +
+engagement)` until 2026-09-24; the product ranked every unscored child at 0.
+The top-voted replies are agreement and jokes; the two-line correction — *"you
+had `tool_choice` misconfigured"* — sits at +2 and is the one that carries the
+condition.
 
 **But that ranking is over WHAT WE OBSERVED, and the data cannot support a
 global one.** One `getPostComments` call returned 200 of 4,833 comments; Reddit
@@ -22,6 +25,9 @@ scoring 6. So the last-seen score bounds nothing unseen.
 
     specificity_x_log_engagement            asserts a global ranking
     specificity_x_log_engagement@observed   asserts what actually happened
+                                            (rows assembled before 2026-09-24)
+    specificity_plus_engagement_firsthand_relevance@observed
+                                            the additive ranking, after it
 
 The schema's DEFAULT is the bare form and this never writes it. A row reading
 the default would be claiming the thing the refusal spent eighteen days
@@ -65,17 +71,17 @@ NO MODEL PARTICIPATES.
 
 from __future__ import annotations
 
-import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Protocol, runtime_checkable
 
+from collect.assemble import ranking as _ranking
 from collect.assemble.flatten import Flattened, flatten
+from collect.assemble.ranking import ModelLexicon, RankedChild, Selection, select_children
 from collect.config import settings
 from collect.ids import stable_id
 from collect.rawstore import FLATTENED, RawStore
-from collect.triage.specificity import score_document
 
 
 @runtime_checkable
@@ -107,7 +113,14 @@ class ThreadInput(Protocol):
 
 #: What `selection_method` records. The `@observed` suffix is load-bearing: the
 #: bare value asserts a global ranking, and 200 of 4,833 comments is not one.
-SELECTION_METHOD = "specificity_x_log_engagement@observed"
+#:
+#: A NEW VALUE FOR A NEW RULE, 2026-09-24. Rows written under the multiplicative
+#: ranking keep `specificity_x_log_engagement@observed`, so the two selections
+#: stay separable by this column. `PIPELINE_VERSION` was NOT bumped: it is
+#: stamped on every `collect/` row, not only thread contexts, and assembly only
+#: builds roots that have no `thread_context` yet - so no root is re-selected
+#: under the same id and the stale-row case recorded above cannot recur here.
+SELECTION_METHOD = "specificity_plus_engagement_firsthand_relevance@observed"
 
 #: What a ONE-MEMBER thread records. Ruled 2026-08-18.
 #:
@@ -147,8 +160,10 @@ WHOLE_DOCUMENT = "whole_document"
 #: inputs. That is her display side and rule 4's territory.
 BLOG_COVERAGE_HIDDEN_CHILDREN_MIN = None
 
-#: `thread_context.member_document_ids` is "root + the 3-5 selected children".
-MAX_CHILDREN = 5
+#: Children per thread, from `contract/harvest.yaml:child_ranking.max_children`
+#: (25 since 2026-09-24; was a code constant of 5). Read at import so callers
+#: that default a parameter to it keep working.
+MAX_CHILDREN = _ranking.max_children()
 
 
 @dataclass(frozen=True)
@@ -175,6 +190,12 @@ class AssembledThread:
     hidden_branches_unsized: int
     pipeline_version: str
     selection_method: str = SELECTION_METHOD
+    #: How the children were ranked - every observed child's score and terms.
+    #: NOT PERSISTED and not part of `as_row`. Consumer (rule 9): the E3 block
+    #: `scripts/fetch_model.py:assemble_stage` prints via
+    #: `ranking.selection_lines`. None on paths that rank nothing (articles,
+    #: body-only issues and posts).
+    selection: Selection | None = None
 
     @property
     def child_count(self) -> int:
@@ -204,25 +225,21 @@ class AssembledThread:
 
 
 def rank_children(
-    comments: tuple[ThreadMember, ...], *, version_aliases
-) -> list[tuple[float, ThreadMember]]:
-    """`specificity_score x log(1 + engagement)`, highest first.
+    comments: tuple[ThreadMember, ...],
+    *,
+    version_aliases,
+    root_text: str = "",
+    lexicon: ModelLexicon | None = None,
+) -> list[RankedChild]:
+    """Every child scored, highest first. See `collect/assemble/ranking.py`.
 
-    Engagement is `max(score, 0)`: a comment at -3 is not negatively relevant,
-    it is unpopular, and a negative multiplier would invert the specificity term
-    it multiplies. `log1p` so one very popular joke cannot outrank several
-    specific corrections.
-
-    Ties break on `external_id`, so two comments with identical scores select
-    deterministically and a re-run produces the same row.
+    Engagement is still `max(score, 0)`: a comment at -3 is unpopular, not
+    negatively relevant. Ties break on `external_id`, so a re-run produces the
+    same row.
     """
-    ranked = []
-    for comment in comments:
-        specificity = score_document(comment.body, version_aliases=version_aliases)
-        engagement = math.log1p(max(comment.score or 0, 0))
-        ranked.append((specificity.score * engagement, comment))
-    ranked.sort(key=lambda pair: (-pair[0], pair[1].external_id))
-    return ranked
+    return _ranking.rank_children(
+        comments, version_aliases=version_aliases, root_text=root_text, lexicon=lexicon
+    )
 
 
 def assemble(
@@ -235,8 +252,12 @@ def assemble(
     version_aliases,
     max_children: int = MAX_CHILDREN,
     pipeline_version: str | None = None,
+    lexicon: ModelLexicon | None = None,
 ) -> AssembledThread:
     """Build the row. Writes the flattened text to the store; touches no database.
+
+    `lexicon` is what relevance is measured with; `ranking.load_lexicon(conn)`
+    builds it once per run. None makes every child `unknown` (scores 0).
 
     `root_text` is passed rather than read from the payload because the root is
     a `document` the caller already has — assembly does not re-parse what
@@ -256,9 +277,11 @@ def assemble(
     """
     version = pipeline_version or settings().pipeline_version
 
-    selected = [comment for _score, comment in rank_children(
-        thread.comments, version_aliases=version_aliases
-    )[:max_children]]
+    selection = select_children(
+        thread.comments, version_aliases=version_aliases, root_text=root_text,
+        lexicon=lexicon, limit=max_children,
+    )
+    selected = [child.member for child in selection.selected]
 
     documents: list[tuple[str, str]] = [(root_document_id, root_text)]
     documents.extend((child_document_id(c), c.body) for c in selected)
@@ -280,6 +303,7 @@ def assemble(
         hidden_children_min=thread.coverage.hidden_children_min,
         hidden_branches_unsized=thread.coverage.hidden_branches_unsized,
         pipeline_version=version,
+        selection=selection,
     )
 
 

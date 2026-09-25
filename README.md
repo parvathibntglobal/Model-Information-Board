@@ -77,3 +77,19 @@ of that file.
 5. **Config in versioned YAML, not code.**
 
 Full context in `CLAUDE.md`.
+
+
+# sign in credentials
+demo@modelboard.dev
+modelboard-demo
+
+# start backend 
+& "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe" run-backend.py --write
+
+# start frontend
+cd web
+npm run dev
+
+demo@modelboard.dev
+modelboard-demo
+

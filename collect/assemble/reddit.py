@@ -61,7 +61,8 @@ from dataclasses import dataclass, field
 from collect.adapters.reddit import reddit_document_id
 from collect.assemble.flatten import flatten
 from collect.assemble.prose import reddit_prose
-from collect.assemble.thread import MAX_CHILDREN, SELECTION_METHOD, AssembledThread, rank_children
+from collect.assemble.ranking import select_children
+from collect.assemble.thread import MAX_CHILDREN, SELECTION_METHOD, AssembledThread
 from collect.config import settings
 from collect.ids import stable_id
 from collect.rawstore import FLATTENED
@@ -177,6 +178,7 @@ def assemble_reddit_thread(
     version_aliases,
     max_children: int = MAX_CHILDREN,
     pipeline_version: str | None = None,
+    lexicon=None,
 ) -> AssembledThread:
     """Build one `thread_context` from a stored post and its stored comments.
 
@@ -199,11 +201,14 @@ def assemble_reddit_thread(
 
     version = pipeline_version or settings().pipeline_version
 
-    # Rank over what we OBSERVED. `rank_children` scores body specificity times
-    # log(1+score); a comment whose body did not resolve is excluded upstream, so
+    # Rank over what we OBSERVED - see `collect/assemble/ranking.py` for the
+    # score. A comment whose body did not resolve is excluded upstream, so
     # everything here has text to score.
-    ranked = rank_children(tuple(comments), version_aliases=version_aliases)
-    selected = [comment for _score, comment in ranked[:max_children]]
+    selection = select_children(
+        tuple(comments), version_aliases=version_aliases, root_text=root_text,
+        lexicon=lexicon, limit=max_children,
+    )
+    selected = [child.member for child in selection.selected]
 
     documents: list[tuple[str, str]] = [(root_document_id, root_text)]
     documents.extend((reddit_document_id(c.external_id), c.body) for c in selected)
@@ -224,6 +229,7 @@ def assemble_reddit_thread(
         hidden_branches_unsized=None,
         pipeline_version=version,
         selection_method=SELECTION_METHOD,
+        selection=selection,
     )
 
 
@@ -247,6 +253,9 @@ class RedditAssemblyReport:
     comments_unread: int = 0
     posts_with_unread_comments: int = 0
     refusals: list[str] = field(default_factory=list)
+    #: `(root document id, Selection)` per ranked thread, for the E3 log.
+    #: Consumer: `scripts/fetch_model.py:assemble_stage`.
+    selections: list = field(default_factory=list)
 
     def summary(self) -> str:
         lines = [
@@ -296,7 +305,7 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
     """Assemble every stored Reddit thread that has no `thread_context` yet.
 
     A thread is a post (`thread_root_id IS NULL`) plus every comment whose
-    `thread_root_id` is that post's `external_id`. Selected by the ABSENCE of a
+    `thread_root_id` is that post's document `id` (`reddit:t3_…`). Selected by the ABSENCE of a
     context on the ROOT, so a re-run is a no-op and `write_thread_context`'s
     `ON CONFLICT DO NOTHING` makes it safe rather than merely tidy.
     """
@@ -327,8 +336,12 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
     # a version token in a comment is the specificity signal. Read once, not
     # per thread.
     version_aliases = _version_aliases(conn)
+    # Every current alias, for the relevance term. Also read once.
+    from collect.assemble.ranking import load_lexicon
 
-    for root_document_id, root_external_id, root_text_ref, root_engagement in roots:
+    lexicon = load_lexicon(conn)
+
+    for root_document_id, _root_external_id, root_text_ref, root_engagement in roots:
         if not root_text_ref:
             report.refusals.append(
                 f"{root_document_id}: the post has no text_ref, so there is no "
@@ -348,12 +361,18 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
         # The platform's own comment count, read once per root.
         root_comment_count = int((root_engagement or {}).get("comments") or 0)
 
+        # THE ROOT'S DOCUMENT ID, NOT ITS EXTERNAL ID. `reddit_write.py` has
+        # written `thread_root_id = 'reddit:t3_…'` since 2026-09-08 and the
+        # migration `20260908T1100_reddit_thread_link_prefix.sql` rewrote every
+        # older row to match, but this query kept asking for the bare `t3_…`.
+        # It matched nothing, so every Reddit thread assembled as
+        # `post_body_only` with its fetched comments "never fetched".
         comment_rows = conn.execute(
             "SELECT external_id, text_ref, engagement "
             "FROM document "
             "WHERE source = %s AND thread_root_id = %s AND status = 'kept' "
             "ORDER BY external_id",
-            (REDDIT_SOURCE, root_external_id),
+            (REDDIT_SOURCE, root_document_id),
         ).fetchall()
 
         comments: list[StoredComment] = []
@@ -424,6 +443,7 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
                 comments=comments,
                 store=store,
                 version_aliases=version_aliases,
+                lexicon=lexicon,
             )
         except ValueError as refusal:
             report.refusals.append(str(refusal))
@@ -433,6 +453,8 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
         report.assembled += 1
         report.comments_held += len(comments)
         report.comments_selected += assembled.child_count
+        if assembled.selection is not None:
+            report.selections.append((root_document_id, assembled.selection))
 
     return report
 

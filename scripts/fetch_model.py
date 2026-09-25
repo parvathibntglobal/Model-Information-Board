@@ -30,6 +30,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import sys
 import threading
 import time
@@ -129,6 +130,17 @@ DEDUPE_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "hugg
 #: ever be extracted.
 MAX_FETCH_THREADS = int(os.getenv("FETCH_MAX_THREADS", "25"))
 
+#: WHETHER A PER-MODEL FETCH FILLS ITS CAP FROM THE BACKLOG. Off by default.
+#:
+#: The backlog is every unread thread that neither names this model nor holds a
+#: document this run harvested. Filling the cap from it spent the 2026-09-24
+#: GPT-5.5 fetch on 22 of 24 threads about other models - 27 minutes of LLM calls
+#: for a button that says "fetch GPT-5.5". Off, the fetch reads this model's
+#: threads only and the backlog waits for the nightly batch, which reads the
+#: whole unread pool. Deferred, not dropped (rule 8): nothing is marked read.
+#: `FETCH_BACKLOG=on` restores the old fill.
+FETCH_BACKLOG = os.getenv("FETCH_BACKLOG", "").strip().lower() in {"1", "on", "true", "yes"}
+
 #: How far `len(prose(payload))` may differ from what `thread_context.offset_map`
 #: says that member was, before the member is dropped rather than sliced.
 #:
@@ -162,6 +174,294 @@ MAX_GITHUB_SEARCHES = int(os.getenv("FETCH_MAX_GITHUB_SEARCHES", "60"))
 #: X 100,000/month ceiling, which is a TENTH of Reddit and the reason this is
 #: bounded at all.
 X_PAGES_PER_MODEL = int(os.getenv("FETCH_X_PAGES", "3"))
+
+
+# ── THE TERMINAL ACCOUNT OF A RUN ───────────────────────────────────────────
+#
+# `judge/app.py` spawns this script with its streams INHERITED, so everything
+# written here lands in the terminal running the backend. That is the only place
+# a person can watch a fetch WITHOUT the model page open, and until those streams
+# stopped going to DEVNULL there was no such place: a run harvested, called a
+# paid model and wrote rows for up to twenty minutes in complete silence.
+#
+# THIS IS A SECOND RENDERING OF THE JSONL LOG, NEVER A SECOND SOURCE. Every line
+# below is formatted from a record `Progress._write` has already put on disk, so
+# the terminal cannot say something the log does not - and losing the terminal
+# (a closed window, a redirect to a full disk) costs the rendering and not the
+# record. That is the same reason the log is a file rather than a table.
+#
+# ASCII ONLY, DELIBERATELY. An arrow or a box-drawing character is one cp1252
+# console away from a `UnicodeEncodeError` raised inside a print, which would end
+# a run over its own progress report. This project has already paid for one
+# UTF-8/cp1252 round trip (FRONTEND.md, the double-encoded em dashes); a log line
+# is not worth a second.
+CONSOLE_WIDTH = 100
+
+#: Stage `detail` strings in this file are paragraphs - they are written for the
+#: fetch panel, which has a column to put them in. Wrapped to this many lines on
+#: the console and then cut, because the terminal is a step-by-step account and
+#: not the place to read a caveat in full. The whole text is always in the JSONL
+#: and on the page; the cut is marked so nobody mistakes it for the end.
+CONSOLE_DETAIL_LINES = 3
+
+#: How far a stage's counts and detail sit under its heading.
+INDENT = 4
+
+
+#: Where `_say` also writes, once `open_transcript` has been called. The
+#: terminal is the point of this output and the file is the copy: a scrollback
+#: is gone the moment somebody closes the window, and an on-demand fetch is
+#: exactly the thing you want to read AFTER it went wrong.
+#:
+#: NOT the same file as `logs/backend.log`. A fetch is one run with a beginning
+#: and an end, so it gets one file per run named after it, the way
+#: `var/fetch/<run_id>.jsonl` already is - interleaving twenty minutes of one
+#: run into a rolling backend log would make both harder to read.
+_TRANSCRIPT = None
+
+
+def open_transcript(run_id: str) -> Path | None:
+    """Start copying console output to `logs/fetch-<run_id>.log`.
+
+    Never raises: a read-only checkout or a full disk costs the copy, not the
+    run. Returns the path so the header can name it, or None when it could not
+    be opened - which the header then says rather than implying a file exists.
+    """
+    global _TRANSCRIPT
+    try:
+        import logging_setup
+
+        directory = logging_setup.logs_dir()
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / f"fetch-{run_id}.log"
+        _TRANSCRIPT = path.open("a", encoding="utf-8")
+        return path
+    except Exception:  # noqa: BLE001 - see the docstring
+        _TRANSCRIPT = None
+        return None
+
+
+def transcript_name(run_id: str, model_slug: str | None = None) -> str:
+    """`fetch-<model>-<run_id>.log`, or `fetch-<run_id>.log` when no name is known.
+
+    THE MODEL NAME IS IN THE FILE NAME since 2026-09-24. A run started from the
+    page gets a run id built on the registry id (`mv_1bb208f033c7ce0f-072e3516`),
+    so a Grok 4.6 run was invisible to anyone looking for "grok" in `logs/`.
+    `model_slug` is the canonical id with `/` as `_` (`x-ai_grok-4.6`); it is
+    not repeated when the run id already starts with it, as it does for a run
+    started by slug (`openai_gpt-6-astra-b6c576d3`).
+    """
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "_", (model_slug or "").replace("/", "_")).strip("_.")
+    if slug and not run_id.startswith(slug):
+        return f"fetch-{slug}-{run_id}.log"
+    return f"fetch-{run_id}.log"
+
+
+def name_transcript(run_id: str, model_slug: str | None) -> Path | None:
+    """Rename the open transcript once E1 knows which model this is. Never raises.
+
+    The name is not known when the transcript opens - that is before E1 - so the
+    file starts as `fetch-<run_id>.log` and is renamed here. CLOSED FIRST:
+    Windows will not rename a file that is open. On any failure the copy keeps
+    its first name and the run carries on; the header says which name it has.
+    """
+    global _TRANSCRIPT
+    if _TRANSCRIPT is None:
+        return None
+    current = Path(_TRANSCRIPT.name)
+    target = current.with_name(transcript_name(run_id, model_slug))
+    if target == current:
+        return current
+    try:
+        _TRANSCRIPT.close()
+        current.rename(target)
+        _TRANSCRIPT = target.open("a", encoding="utf-8")
+        return target
+    except Exception:  # noqa: BLE001 - see the docstring
+        try:
+            _TRANSCRIPT = current.open("a", encoding="utf-8")
+        except Exception:  # noqa: BLE001
+            _TRANSCRIPT = None
+        return None
+
+
+def _use_utf8_console() -> None:
+    """Write UTF-8 to the terminal, replacing what it cannot take. Never raises.
+
+    ⚠ ASCII IN OUR OWN STRINGS IS NOT ENOUGH, BECAUSE THE EVIDENCE IS NOT OURS.
+      A thread title reads `Bend - A language...` with a real em dash, and
+      quotes carry whatever an engineer typed. On Windows `sys.stderr` defaults
+      to cp1252, so U+2014 goes out as the single byte 0x97 - which a terminal
+      reading UTF-8 renders as a replacement character. Every quote this log
+      prints was arriving visibly corrupted, and a log of VERBATIM QUOTES that
+      silently mangles them is worse than one that prints nothing.
+
+      Note the failure is not a crash here: cp1252 HAS an em dash, so nothing
+      raised and the test over `_say` literals stayed green. It is a mismatch
+      between what we encode and what the terminal decodes, which no check on
+      our own string constants can see.
+
+    `errors="replace"` keeps the guarantee this file cares about more: a
+    character no encoding can carry becomes a `?` rather than an exception that
+    ends a paid run inside its own progress report.
+    """
+    for stream in (sys.stderr, sys.stdout):
+        # A redirected, wrapped or already-detached stream has no `reconfigure`.
+        with contextlib.suppress(Exception):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
+def _say(line: str = "") -> None:
+    """One line to the inherited terminal, and to the transcript. NEVER raises.
+
+    A closed console, a full pipe or an encoding the stream will not take must
+    not end a run that is otherwise fine. This is the REPORT of the work, not
+    the work, and the record it is rendering is already on disk.
+
+    The two writes are guarded SEPARATELY so a failing file cannot silence the
+    terminal, and a closed terminal cannot stop the file.
+    """
+    try:
+        sys.stderr.write(line + "\n")
+        sys.stderr.flush()
+    except Exception:  # noqa: BLE001 - see the docstring
+        pass
+    if _TRANSCRIPT is not None:
+        try:
+            _TRANSCRIPT.write(line + "\n")
+            _TRANSCRIPT.flush()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def _rule(char: str = "-") -> None:
+    _say(char * CONSOLE_WIDTH)
+
+
+def _n(value) -> str:
+    """A count with thousands separators, or `?` when we were given nothing.
+
+    `?` rather than `0`, per rule 6: a token count we never received is not a
+    call that used no tokens, and this line is read as a spend report.
+    """
+    return f"{value:,}" if isinstance(value, int) else "?"
+
+
+def _usd(
+    model: str, input_tokens: int, output_tokens: int, cached_input_tokens: int = 0
+) -> str:
+    """What this call cost, or why no figure is shown.
+
+    MEASURED TIMES PUBLISHED, and neither half is invented: the tokens come from
+    the provider's own usage block and the rate from `MODEL_PRICING`. A model we
+    hold no rate for prints the tokens and says `unpriced` - it does NOT print
+    `$0.0000`, which is rule 6 exactly (a missing price is not a free call) and
+    is the same answer `spend_ledger.record` gives the ledger.
+    """
+    from judge.extract.budget import pricing_for
+    from judge.spend_ledger import cost_of
+
+    rate = pricing_for(model)
+    if rate is None:
+        return f"unpriced (no published rate for {model})"
+    return f"${cost_of(input_tokens, output_tokens, rate, cached_input_tokens):.6f}"
+
+
+#: The (id, status) of the last stage line rendered, so a heading is printed
+#: when the run MOVES rather than once per record.
+#:
+#: E5 writes five or six `running` lines as it selects, screens and reads
+#: threads. A heading on each would put the same title on the screen six times
+#: and make the section breaks meaningless - the heading is there to say "a new
+#: thing is happening", so it prints when the stage or its status changes and
+#: the rest of the lines hang underneath it as continuation.
+_LAST_STAGE: tuple[str, str] | None = None
+
+
+#: How much of a quote reaches the terminal. The schema permits quotes far
+#: longer than a line, and the point here is to let a reader RECOGNISE what the
+#: model found - the verbatim span is stored in `claim.quote` and rendered in
+#: full on the board, which is where it is read as evidence.
+CONSOLE_QUOTE_CHARS = 150
+
+#: The board's three sections as the page names them, in the page's order.
+#: Keys are `BoardEntry.section` (`judge/extract/schema.py`).
+BOARD_SECTION_LABELS = {
+    "best_for": "Best for",
+    "capability": "Capabilities",
+    "metric": "Metrics",
+}
+
+#: `FETCH_LOG_TEXT=1` also dumps the flattened text of every thread before its
+#: call. Off by default and deliberately so: 20 threads x up to 30,000 chars is
+#: the whole corpus in the scrollback, and the text is already on disk under
+#: `raw_store/flattened/`. On when somebody is debugging what the model was
+#: actually shown, which is the one question the summary cannot answer.
+LOG_SENT_TEXT = os.getenv("FETCH_LOG_TEXT", "").strip().lower() in {"1", "true", "yes"}
+
+
+def _title_of(thread) -> str:
+    """The thread's title - the first line of what the model is shown.
+
+    `prose.py` composes every document as `title + TITLE_SEPARATOR + body`, so
+    the first non-empty line is the root post's title on every platform. Falls
+    back to the opening of the body for a document that genuinely has no title,
+    rather than printing an empty string that would read as a missing thread.
+    """
+    for line in (thread.flattened_text or "").splitlines():
+        line = line.strip()
+        if line:
+            return line if len(line) <= 88 else line[:85] + "..."
+    return "(no title - empty flattened text)"
+
+
+def _console_stage(rec: dict) -> None:
+    """Render one `kind: "stage"` record as one step of the run."""
+    global _LAST_STAGE
+    import textwrap
+
+    at = (rec.get("at") or "")[11:19] or "--:--:--"
+    sid = str(rec.get("id", "?"))
+    name = str(rec.get("name", ""))
+    status = str(rec.get("status", ""))
+
+    if (sid, status) != _LAST_STAGE:
+        _LAST_STAGE = (sid, status)
+        # A HEADING, NOT A PREFIXED LINE. Twenty-odd stages of flat text is a
+        # wall that a reader has to parse to find where one thing ended and the
+        # next began; the rule does that for them. ASCII only - see the module
+        # note on cp1252.
+        title = f" {sid}  {name} "
+        tail = f" {status}  {at}"
+        fill = max(3, CONSOLE_WIDTH - len(title) - len(tail) - 2)
+        _say("")
+        _say("--" + title + "-" * fill + tail)
+
+    # The counts a stage reported, on their own line. Same selection the fetch
+    # panel makes (`SKIP_FIELDS` in FetchPanel.jsx): the bookkeeping fields
+    # identify the record, the rest is what the stage found.
+    skip = {"kind", "id", "name", "status", "at", "detail"}
+    nums = [f"{k.replace('_', ' ')}={v:,}" if isinstance(v, int) and not isinstance(v, bool)
+            else f"{k.replace('_', ' ')}={v}"
+            for k, v in rec.items()
+            if k not in skip and isinstance(v, (int, float, bool))]
+    if nums:
+        # Wrapped like the detail. A stage reporting eight counts ran to 117
+        # characters on one line and wrapped wherever the terminal happened to
+        # be, which breaks a `name=value` pair across the fold.
+        for line in textwrap.wrap(" ".join(nums), width=CONSOLE_WIDTH - INDENT):
+            _say(" " * INDENT + line)
+
+    detail = (rec.get("detail") or "").strip()
+    if detail:
+        lines = textwrap.wrap(detail, width=CONSOLE_WIDTH - INDENT) or []
+        for line in lines[:CONSOLE_DETAIL_LINES]:
+            _say(" " * INDENT + line)
+        if len(lines) > CONSOLE_DETAIL_LINES:
+            # SAID, NOT SILENTLY TRUNCATED. A caveat cut off mid-sentence with
+            # no mark reads as the whole caveat, and these details are where a
+            # stage explains what it could NOT do.
+            _say(" " * INDENT + "... (cut; full text in var/fetch/ and on the page)")
 
 
 class RunStopped(BaseException):
@@ -232,8 +532,32 @@ class Progress:
         #: line and hand the same seq to both.
         self._lock = threading.Lock()
         self._stop_beating = threading.Event()
+        #: WHAT THE PAID STAGE ACTUALLY SPENT, accumulated by the E5 hooks and
+        #: printed by `done()`. Kept here rather than in `extract_and_curate`
+        #: because the footer belongs to the RUN: a run that is stopped, or that
+        #: dies in E6, has still spent whatever E5 spent, and a total printed
+        #: only on the happy path would report the least when it matters most.
+        #:
+        #: `threads`/`posts` count what was SENT, `verified`/`stored` what came
+        #: back. They are four numbers and not one, because a thread that
+        #: returned nothing is a finding and averaging it away hides that.
+        self.llm = {"model": None, "threads": 0, "posts": 0, "chars": 0,
+                    "input_tokens": 0, "output_tokens": 0, "cached_input_tokens": 0,
+                    "verified": 0, "stored": 0, "truncated": 0}
         self._write({"kind": "run", "run_id": run_id,
                      "model_version_id": model_version_id, "at": _now()})
+        # OPENED BEFORE THE HEADER so the header is the transcript's first line
+        # too - a copy that starts halfway through the run it is a copy of is
+        # the kind of thing nobody notices until they need it.
+        _use_utf8_console()
+        transcript = open_transcript(run_id)
+        _rule("=")
+        _say(f"  FETCH   {model_version_id}")
+        _say(f"  run     {run_id}")
+        _say(f"  records var/fetch/{run_id}.jsonl")
+        _say(f"  log     {transcript}" if transcript
+             else "  log     (logs/ could not be opened - terminal only)")
+        _rule("=")
         self._start_heartbeat()
 
     # ── the heartbeat ────────────────────────────────────────────────────────
@@ -280,13 +604,21 @@ class Progress:
         )
         self._heart.start()
 
-    def _write(self, rec: dict) -> None:
+    def _write(self, rec: dict, *, console: bool = True) -> None:
         with self._lock:
             seq = self._seq
             self._seq += 1
             with self.path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(rec) + "\n")
             mirror = self._mirror
+        # THE TERMINAL, AFTER THE FILE AND INSIDE NOTHING. The disk write above
+        # is what a run is judged on; this is a rendering of it for whoever is
+        # watching, so it happens once the record is safe and it cannot raise.
+        # `alive` heartbeats are skipped: they exist so the reaper can tell a
+        # wedged run from a dead one, and a minute tick in the terminal is the
+        # definition of a junk line.
+        if console and rec.get("kind") == "stage":
+            _console_stage(rec)
         if mirror:
             # OUTSIDE THE LOCK. The mirror opens a connection and can wait on the
             # network; holding the lock across it would let a slow database stall
@@ -323,11 +655,20 @@ class Progress:
             self._stop_raised = True
             raise RunStopped
 
-    def stage(self, id_: str, name: str, status: str, **fields) -> None:
+    def stage(self, id_: str, name: str, status: str, _console: bool = True,
+              **fields) -> None:
         # status: running | ok | skipped | error. Counts and detail ride along
         # so the log line is a finding, not just a heartbeat.
+        #
+        # `_console` SUPPRESSES THE TERMINAL RENDERING OF THIS LINE AND NOTHING
+        # ELSE. It is a parameter rather than a field, so it never reaches the
+        # JSONL, `fetch_log` or the page - the record is identical either way,
+        # and only the second rendering of it is skipped. Used by E5's
+        # per-thread line, which the console prints in a richer form (posts,
+        # tokens, cost) immediately afterwards; printing both would say the same
+        # thing twice with one of them missing the numbers.
         self._write({"kind": "stage", "id": id_, "name": name,
-                     "status": status, "at": _now(), **fields})
+                     "status": status, "at": _now(), **fields}, console=_console)
         # AFTER the write, never before: the stage that just finished is a real
         # finding and belongs in the log whether or not the run continues.
         self.checkpoint()
@@ -341,6 +682,49 @@ class Progress:
         # came back from the dead.
         self._stop_beating.set()
         self._write({"kind": "end", "status": status, "detail": detail, "at": _now()})
+        self._console_footer(status, detail)
+
+    def _console_footer(self, status: str, detail: str) -> None:
+        """The run's totals, on the terminal only. Never raises - `_say` swallows.
+
+        PRINTED FOR EVERY ENDING, including `stopped` and `error`. A stopped run
+        has already paid for the threads it read, and a footer that appeared only
+        on success would report nothing in the one case somebody needs the number
+        - which is the shape of defect rule 4 names: an absence we caused reading
+        as an absence we found.
+        """
+        s = self.llm
+        _rule("=")
+        _say(f"  RUN {status.upper()}   {detail}")
+        _say(f"  model   {self.model_version_id}")
+        if s["threads"] == 0:
+            # NOT "cost $0.00". No thread reached the model, so there is no
+            # spend to report rather than a spend of zero - and E5's own stage
+            # line above has already said WHY (nothing new, all deferred, or
+            # every thread dropped at the pre-LLM gates).
+            _say("  llm     no thread reached the model - see the E5 line above for why")
+            _rule("=")
+            return
+        _say(f"  llm     {s['model']}")
+        _say(f"  sent    {_n(s['threads'])} thread(s) - {_n(s['posts'])} post(s), "
+             f"{_n(s['chars'])} chars")
+        _say(f"  tokens  in {_n(s['input_tokens'])} ({_n(s.get('cached_input_tokens', 0))} "
+             f"cached)  out {_n(s['output_tokens'])} "
+             f"({_n(s.get('reasoning_tokens'))} reasoning)")
+        cost = _usd(s["model"], s["input_tokens"], s["output_tokens"],
+                    s.get("cached_input_tokens", 0))
+        _say(f"  cost    {cost}")
+        from judge.legacy import legacy_cells_enabled
+        _say(f"  back    {_n(s['verified'])} claim(s) verified, "
+             f"{_n(s.get('board', 0))} board entr(ies) stored"
+             + (f", {_n(s['stored'])} legacy claim row(s)"
+                if legacy_cells_enabled() else ""))
+        if s["truncated"]:
+            # Rule 4 at the footer. A truncated thread produced claims, so it
+            # looks like a complete read in every other number on this block.
+            _say(f"  ! {s['truncated']} thread(s) stopped at the token ceiling and were "
+                 f"not read to the end")
+        _rule("=")
 
 
 def _now() -> str:
@@ -1233,13 +1617,18 @@ def assemble_stage(conn, prog: Progress) -> None:
                assemble_platform_documents(conn_, source=_s, store=store, limit=limit)))
         for src in PLATFORMS
     ]
+    from collect.assemble.ranking import ranking_config
+
     ran = failed = 0
+    selection_blocks: list[tuple[str, list]] = []
     for name, fn in stages:
         try:
             report = fn(conn, store=store, limit=200)
             conn.commit()
             ran += 1
             notes.append(f"{name}: {report.summary()}")
+            if getattr(report, "selections", None):
+                selection_blocks.append((name, report.selections))
         except Exception as exc:
             # `_safe_rollback`, not `conn.rollback()`: one assembler failing
             # because the connection died must not stop the other six from
@@ -1273,10 +1662,37 @@ def assemble_stage(conn, prog: Progress) -> None:
                assemblers_ran=ran, assemblers_failed=failed,
                detail=(f"{failed} of {ran + failed} assembler(s) failed · " if failed else "")
                       + " · ".join(notes))
+    _say_selections(selection_blocks, ranking_config())
 
 
-def threads_naming_the_model(conn, store, surfaces) -> set[str]:
-    """Unread thread ids whose flattened text literally names one of `surfaces`.
+def _say_selections(blocks, config) -> None:
+    """WHICH COMMENTS EACH THREAD KEPT, AND WHY - printed in full, not in `detail`.
+
+    The stage's `detail` is truncated for the page, and this block is the only
+    place the child ranking is visible at all: the score of every kept child
+    split into its four terms, and how the whole thread split by relevance tier.
+    A lexical tier that misfires ("flash" in "flash attention") is caught by
+    reading these lines, which is why they are printed rather than summarised.
+    """
+    if not blocks:
+        return
+    from collect.assemble.ranking import selection_lines
+
+    rel = " ".join(f"{t} {w:+.2f}" for t, w in config.relevance.items())
+    _say("  child ranking (E3): score = specificity"
+         f" + {config.engagement_weight:g} x log1p(votes)"
+         f" + first-hand {config.first_hand_bonus:g} + relevance [{rel}]"
+         f" | keep top {config.max_children}")
+    for source, selections in blocks:
+        _say(f"  {source}: {len(selections)} ranked thread(s)")
+        for thread_id, selection in selections:
+            for line in selection_lines(thread_id, selection):
+                _say(line)
+
+
+def threads_naming_the_model(conn, store, surfaces) -> tuple[set[str], int]:
+    """Unread thread ids whose flattened text literally names one of `surfaces`,
+    and how many unread threads were scanned - the denominator for the first.
 
     WHY A TIMESTAMP COULD NOT ANSWER THIS, MEASURED RATHER THAN ARGUED
     -------------------------------------------------------------------
@@ -1330,7 +1746,7 @@ def threads_naming_the_model(conn, store, surfaces) -> set[str]:
     #: the `free` inside "freeze" finding, one layer up.
     keys = {normalize(x) for x in surfaces if x and len(normalize(x)) >= 4}
     if not keys:
-        return set()
+        return set(), 0
     rows = conn.execute(
         "SELECT tc.id, tc.flattened_text_ref FROM thread_context tc "
         "WHERE EXISTS (SELECT 1 FROM document d "
@@ -1350,10 +1766,11 @@ def threads_naming_the_model(conn, store, surfaces) -> set[str]:
         hay = normalize(text)
         if any(k in hay for k in keys):
             naming.add(tc_id)
-    return naming
+    return naming, len(rows)
 
 
-def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=()):
+def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=(),
+                        include_backlog: bool = True):
     """ThreadInputs for threads this fetch can actually read — the E5 input.
 
     This is the composition-root stand-in for the deferred RawTextResolver (#6):
@@ -1361,6 +1778,10 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=()):
     outside both lanes may. A thread whose flattened payload is not in the local
     store (harvested elsewhere) raises on read and is skipped — so this naturally
     scopes to the threads this fetch just harvested and assembled.
+
+    `include_backlog=False` keeps only threads that name the model (`naming`) or
+    hold a document this run harvested (`since`); the rest of the unread pool
+    is left for a later reader, not marked. See `FETCH_BACKLOG`.
     """
     from judge.extract.runner import ThreadInput
     from judge.extract.verify import OffsetMapping
@@ -1533,7 +1954,12 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=()):
     #: name them - "deferred to the nightly batch" is only honest if somebody
     #: can see WHICH threads are waiting.
     oversized: list[str] = []
+    naming_set = set(naming)
     for tc_id, flat_ref, omap, members in rows:
+        if not include_backlog and tc_id not in naming_set and tc_id not in own_ids:
+            # Backlog. Skipped BEFORE the payload read, so a fetch that does
+            # not want it does not pay the disk for it either.
+            continue
         try:
             flattened = store.get_text(flat_ref)
         except Exception:
@@ -1671,7 +2097,6 @@ def build_thread_inputs(conn, seen, *, limit: int, since=None, naming=()):
         doc_ids.update(members)
         if len(inputs) >= limit:
             break
-    naming_set = set(naming)
     named = sum(1 for t in inputs if t.thread_context_id in naming_set)
     from_own_harvest = sum(
         1 for t in inputs
@@ -1927,9 +2352,10 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     prog.stage("E5", "Extract", "running",
                detail="scanning unread threads for this model's surfaces "
                       "(local reads, no network)")
-    naming = threads_naming_the_model(conn, store, surfaces)
+    naming, unread_total = threads_naming_the_model(conn, store, surfaces)
     threads, doc_ids, gated_out, oversized, (named, own) = build_thread_inputs(
-        conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming)
+        conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming,
+        include_backlog=FETCH_BACKLOG)
     # SAID, NOT IMPLIED. A run that reads 50 threads of which 2 name the model
     # whose page was clicked has done almost nothing for it, and "50 thread(s)
     # to read" is the same sentence either way. Three tiers because they are
@@ -1959,12 +2385,25 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
                          f"(FETCH_MAX_THREADS raises it)."
                          if cap_bound else
                          f"The cap of {MAX_FETCH_THREADS} did not bind: this is every "
-                         f"thread there was to read."))
+                         + ("thread there was to read." if FETCH_BACKLOG else
+                            "unread thread for this model and this run's harvest.")))
+    if not FETCH_BACKLOG:
+        # SAID, because a 2-thread run must not read as a model with 2 threads
+        # of evidence in the world when it is a run that chose not to read the
+        # rest (rule 4). The denominator is the unread pool the scan covered.
+        prog.stage("E5", "Extract", "running",
+                   backlog_read=False, unread_threads=unread_total,
+                   detail=f"backlog NOT read by this fetch: of {unread_total:,} unread "
+                          f"thread(s) scanned, {len(naming)} name this model; the "
+                          f"others are left unread for the nightly batch "
+                          f"(FETCH_BACKLOG=on reads them here)")
     if not naming:
         # Rule 4: an empty scan is a finding, not a fallback to be silent about.
         prog.stage("E5", "Extract", "running",
                    detail="no unread thread anywhere in the corpus names this "
-                          "model's seated surfaces — everything below is backlog")
+                          "model's seated surfaces — "
+                          + ("everything below is backlog" if FETCH_BACKLOG else
+                             "only this run's own harvest can be read"))
     if gated_out:
         # Said, not implied. A smaller corpus reaching the LLM because the gates
         # worked reads identically to a smaller corpus because the harvest was
@@ -2033,7 +2472,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         prog.stage("E5", "Extract", "skipped",
                    detail="no new readable threads to read now — "
                           "nothing local, or all deferred as oversized")
-        for id_, name in [("E6", "Vet"), ("E7", "Curate")]:
+        from judge.legacy import legacy_cells_enabled
+        stages = [("E6", "Vet")] + ([("E7", "Curate")] if legacy_cells_enabled() else [])
+        for id_, name in stages:
             prog.stage(id_, name, "skipped", detail="no claims to curate")
         return
 
@@ -2049,10 +2490,189 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     total = len(threads)
     counter = {"n": 0}
 
+    extractor_model = os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash")
+    prog.llm["model"] = extractor_model
+
+    # WHAT IS ABOUT TO BE SENT, COUNTED IN POSTS AND NOT ONLY IN THREADS.
+    #
+    # A thread is what the model reads; a POST is what somebody wrote, and the
+    # two differ by an order of magnitude. "8 threads" and "8 threads holding 47
+    # posts" are different statements about how much evidence this call is worth,
+    # and only the second one can be compared with the harvest lines above it.
+    # `raw_text_of` is document id -> text, so its length IS the post count.
+    posts_of = {t.thread_context_id: len(t.raw_text_of) for t in threads}
+    # WHAT THE THREAD IS ABOUT, NOT ONLY WHICH ROW IT IS. A line reading
+    # `thread_context_3845c1e30b51815d  3 post(s)` identifies the row and tells a
+    # reader nothing about what was just paid for - and the id is the ONE thing
+    # about a thread they cannot look up without a database.
+    #
+    # The title is the flattened text's first line by construction: `prose.py`
+    # builds every document as `title + TITLE_SEPARATOR + body`, so the first
+    # line IS the root post's title on every platform. Derived rather than
+    # queried - E5 must not open a connection to write a log line.
+    titles_of = {t.thread_context_id: _title_of(t) for t in threads}
+    # `hackernews:49746163` -> `hackernews`. Which platform a thread came from
+    # is the other thing the id hides, and it is already in the document keys.
+    sources_of = {
+        t.thread_context_id: (next(iter(t.raw_text_of), "") or "").split(":")[0] or "?"
+        for t in threads
+    }
+    chars_of = {t.thread_context_id: len(t.flattened_text) for t in threads}
+    #: Only populated when FETCH_LOG_TEXT is on - holding every thread's full
+    #: text for a run that will not print it is megabytes kept for nothing.
+    text_of = {t.thread_context_id: t.flattened_text for t in threads} if LOG_SENT_TEXT else {}
+    _rule()
+    _say(f"  LLM     {extractor_model}")
+    _say(f"  sending {_n(total)} thread(s) - {_n(sum(posts_of.values()))} post(s), "
+         f"{_n(sum(len(t.flattened_text) for t in threads))} chars")
+    _say("          one call per thread; tokens and cost are printed per call below")
+    _rule()
+
     def _on_thread(tc_id: str) -> None:
         counter["n"] += 1
-        prog.stage("E5", "Extract", "running",
+        # `_console=False`: the terminal gets the richer line below instead, with
+        # the post count on it. The RECORD is unchanged and the fetch panel still
+        # shows this exactly as before.
+        prog.stage("E5", "Extract", "running", _console=False,
                    detail=f"reading thread {counter['n']}/{total} (LLM) — {tc_id}")
+        _say("")
+        _say(f"  -> [{counter['n']}/{total}] {titles_of.get(tc_id, '?')}")
+        _say(f"     sent  {sources_of.get(tc_id, '?')} | "
+             f"{_n(posts_of.get(tc_id, 0))} post(s) | "
+             f"{_n(chars_of.get(tc_id, 0))} chars | {tc_id}")
+        if LOG_SENT_TEXT:
+            # EXACTLY WHAT THE MODEL IS SHOWN, fenced the way the request fences
+            # it. Printing our own paraphrase of the input would defeat the one
+            # reason to turn this on.
+            _say("     --- flattened text begins " + "-" * 40)
+            for line in (text_of.get(tc_id) or "").splitlines():
+                _say("     | " + line)
+            _say("     --- flattened text ends " + "-" * 42)
+
+    def _on_result(thread, result) -> None:
+        """What came back for one thread. Rendering only - it stores nothing.
+
+        SUMMARY, NOT THE PAYLOAD. The raw tool-call arguments are up to
+        `EXTRACT_MAX_OUTPUT_TOKENS` (16,384 today) and one measured draw hit
+        65,536, which would bury every other line of the run in a single thread's
+        output. What a reader needs from a response is what it CLAIMED, what
+        survived quote verification, and what it cost; all three are counts.
+
+        WRAPPED, AND HERE RATHER THAN IN `Pipeline.run_all`. The thread this
+        describes is extracted, stored and committed by the time this runs, and
+        the call behind it is paid for and cannot be refunded - so an
+        `AttributeError` in a format string must not be what ends the run. The
+        guard is at this consumer and not around the hook, because a hook that
+        raises IS a caller's bug and the pipeline should not quietly absorb one
+        on everybody's behalf.
+        """
+        # THE TOTALS FIRST, AND OUTSIDE THE GUARD. They are what the footer
+        # reports, and a thread whose LINE could not be formatted has still been
+        # read and still been paid for - dropping it from the spend total
+        # because of a rendering fault would under-report the bill, which is the
+        # one direction a cost figure must never be wrong in.
+        run = result.extraction
+        prog.llm["threads"] += 1
+        prog.llm["posts"] += len(thread.raw_text_of)
+        prog.llm["chars"] += len(thread.flattened_text)
+        prog.llm["input_tokens"] += run.input_tokens or 0
+        prog.llm["output_tokens"] += run.output_tokens or 0
+        prog.llm["cached_input_tokens"] += run.cached_input_tokens or 0
+        # Stays None (printed `?`) until some thread's provider reports it.
+        if getattr(run, "reasoning_tokens", None) is not None:
+            prog.llm["reasoning_tokens"] = (
+                (prog.llm.get("reasoning_tokens") or 0) + run.reasoning_tokens
+            )
+        prog.llm["verified"] += len(run.verified)
+        prog.llm["stored"] += len(result.stored_claim_ids)
+        prog.llm["board"] = prog.llm.get("board", 0) + (result.board_entries_stored or 0)
+        prog.llm["truncated"] += 1 if run.truncated else 0
+        try:
+            _print_result(result)
+        except Exception:  # noqa: BLE001 - see the docstring
+            log.warning("could not render the E5 line for %s",
+                        getattr(thread, "thread_context_id", "?"), exc_info=True)
+
+    from judge.legacy import legacy_cells_enabled
+
+    legacy_on = legacy_cells_enabled()
+
+    def _entry_line(e) -> str:
+        """One board entry as the board will file it: section, heading, slug.
+
+        `Metrics  Time to first token (time-to-first-token) = 300ms [reported]`.
+        The heading is the model's `name` - what the page renders - and the slug
+        is the grouping key, printed beside it because two headings that share
+        a slug land in ONE section and that is the thing worth seeing here.
+        """
+        label = BOARD_SECTION_LABELS.get(e.section, e.section)
+        line = f"{label:<12}  {e.name} ({e.slug})"
+        if e.section == "metric":
+            line += f" = {e.value_verbatim} {e.unit} [{e.basis}]"
+        return line
+
+    def _print_result(result) -> None:
+        run = result.extraction
+        # VERIFIED AND REJECTED SEPARATELY. `verified` is the claims whose quote
+        # was found byte for byte in the text the model was shown (rule 1) and
+        # `rejected` is the ones where it was not - a model that proposes ten
+        # claims of which two verify has told us something quite different from
+        # one that proposes two, and a single "2 claims" line says neither.
+        _say(f"     <- {len(run.verified)} verified, {len(run.rejected)} rejected, "
+             f"{len(run.unsalvaged)} unsalvaged, {len(run.unclassified)} unclassified"
+             + (f", {len(run.proposed_capabilities)} proposed" if legacy_on else ""))
+        if run.verified:
+            # Tallied by SECTION, in the board's order, zeros included: "no
+            # metric" is a finding about this thread, not a line to leave out.
+            per_section = Counter(e.section for claim, _q in run.verified
+                                  for e in claim.board_entries)
+            _say("        " + ", ".join(
+                f"{label} x{per_section.get(key, 0)}"
+                for key, label in BOARD_SECTION_LABELS.items()))
+            # THE QUOTES, WHICH ARE THE ANSWER. A capability tally says the model
+            # found three things about `code.generation`; it does not say what
+            # anybody actually reported, and that is the only part a person can
+            # judge. Rule 1 is that a claim IS its quote - so a log of what came
+            # back that omits them logs the filing and not the finding.
+            #
+            # Every one printed here has already passed verification: the span
+            # was found byte for byte in the text above. Truncated for width
+            # only, and the cut is marked so a shortened quote is never mistaken
+            # for a short one.
+            #
+            # Then WHERE EACH ONE IS FILED - every board entry the model named
+            # for it, one line each, since one quote can land in all three.
+            for i, (claim, _q) in enumerate(run.verified, 1):
+                quote = " ".join((claim.quote or "").split())
+                if len(quote) > CONSOLE_QUOTE_CHARS:
+                    quote = quote[:CONSOLE_QUOTE_CHARS - 3] + "..."
+                _say(f"        claim {i} [{claim.polarity}]"
+                     + (f"  legacy key {claim.capability}"
+                        if legacy_on and claim.capability else ""))
+                _say(f"          \"{quote}\"")
+                for e in claim.board_entries:
+                    _say(f"          -> {_entry_line(e)}")
+        elif run.no_claim_reason:
+            # WHY NOTHING CAME BACK, in the model's own words. An empty thread
+            # and a thread the model read and found nothing in are different
+            # facts, and this is the line that tells them apart.
+            _say(f"        no claim: {run.no_claim_reason[:CONSOLE_WIDTH - 20]}")
+        cost = _usd(extractor_model, run.input_tokens or 0, run.output_tokens or 0,
+                    run.cached_input_tokens or 0)
+        reasoning = getattr(run, "reasoning_tokens", None)
+        _say(f"        in {_n(run.input_tokens)} ({_n(run.cached_input_tokens)} cached)"
+             f" / out {_n(run.output_tokens)} ({_n(reasoning)} reasoning) tok"
+             f"   {cost}"
+             + (f"   retries {run.schema_retries}" if run.schema_retries else ""))
+        if run.truncated:
+            _say("        ! stopped at the token ceiling - this thread was NOT read "
+                 "to the end")
+            # WHICH KIND OF CEILING HIT. Reasoning counts against `max_tokens`,
+            # so a truncation that is mostly reasoning is the model thinking
+            # itself out of room, not a long answer - and the fix differs.
+            if reasoning and run.output_tokens:
+                _say(f"          {reasoning * 100 // run.output_tokens}% of the output "
+                     f"was reasoning ({_n(reasoning)} of {_n(run.output_tokens)} tokens)")
 
     # THE STOP BUTTON REACHES INSIDE A THREAD, WHICH IT DID NOT.
     #
@@ -2073,7 +2693,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         conn,
         client=extractor,
         capability_keys=list(capabilities().keys()),
-        extractor_model=os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
+        extractor_model=extractor_model,
         # BOTH ID SHAPES for this run's subject. `board_entry.model_version_id`
         # holds the canonical id when a run names its own model and the
         # internal `mv_` key when the entry came out of a thread, so a single
@@ -2083,6 +2703,7 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         threads, facts=facts, model_version_of=mvo, budget=budget,
         already_extracted=seen, driver=Driver("new-evidence"), resolve_surface=resolver,
         on_thread=_on_thread,
+        on_result=_on_result,
         # COMMIT EACH THREAD AS IT LANDS. This batch used to commit once, after
         # every thread, so a run that was stopped or died at thread 20 of 24
         # discarded all 19 that had finished — measured E5 durations reach 13.8
@@ -2115,7 +2736,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # that most look like a finished read.
     truncated = [r.extraction.thread_context_id for r in results
                  if r.extraction.truncated]
-    detail = f"{verified} claim(s) verified, {stored} stored"
+    board_stored = sum(r.board_entries_stored or 0 for r in results)
+    detail = (f"{verified} claim(s) verified, {board_stored} board entr(ies) stored"
+              + (f", {stored} legacy claim row(s)" if legacy_on else ""))
     if truncated:
         detail += (
             f"; {len(truncated)} of {len(results)} thread(s) STOPPED AT THE "
@@ -2174,6 +2797,24 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
                 f"merged by a person at /admin/board-entries, never here."
             ),
         )
+        # EVERY SECTION NAMED, by category, with how many verified claims were
+        # filed under it. Printed in full rather than in `detail`, which is cut
+        # at three lines - this list is the answer to "what did the board learn".
+        _names: dict[tuple[str, str], str] = {}
+        _per_slug = _Counter()
+        for r in results:
+            for claim, _q in r.extraction.verified:
+                for e in claim.board_entries:
+                    _names.setdefault((e.section, e.slug), e.name)
+                    _per_slug[(e.section, e.slug)] += 1
+        for key, label in BOARD_SECTION_LABELS.items():
+            rows = sorted(((n, slug) for (sec, slug), n in _per_slug.items() if sec == key),
+                          key=lambda t: (-t[0], t[1]))
+            _say(f"    {label} ({len(rows)} section(s))")
+            if not rows:
+                _say("      none named this run")
+            for n, slug in rows:
+                _say(f"      {n:>3} x  {_names[(key, slug)]} ({slug})")
     else:
         # NOT THE SAME AS "no capabilities proposed", which is what this used to
         # say. Nothing was named on ANY of the three sections.
@@ -2185,6 +2826,15 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # The store must never break a fetch. If the migration has not reached this
     # database yet, the proposals are named in the log and dropped for this run
     # rather than crashing extraction on a missing table.
+    if not legacy_on:
+        # The capability-card stages (E5b proposals, E7 cells) print nothing
+        # with the legacy path off: they did not run, and `judge/legacy.py` is
+        # where that is said. E6's hard rejection still runs for the board.
+        prog.stage("E6", "Vet", "ok",
+                   detail="hard rejection ran over every document: promotional, affiliate "
+                          "and pre-release claims dropped, and their board entries with "
+                          "them")
+        return
     table_present = conn.execute(
         "SELECT to_regclass('public.capability_candidate')"
     ).fetchone()[0] is not None
@@ -2238,9 +2888,19 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     run_id = args.run_id or f"{args.model_version_id}-{uuid.uuid4().hex[:8]}"
+    # THE BACKEND DOES NOT READ THIS, AND THE COMMENT SAYING SO WAS WRONG.
+    #
+    # A bare `print(run_id)` stood here under "the backend reads this to know
+    # which log to poll". `start_fetch` GENERATES the run id and passes it in
+    # with `--run-id`; it never reads a byte of this process's stdout, and
+    # nothing else in the repo invokes this script either. The line was a
+    # leftover from a design where the child chose the id.
+    #
+    # It goes rather than moves because `Progress.__init__` has just printed the
+    # id in the header - and while it was harmless when both streams went to
+    # DEVNULL, it now lands on stdout while the header lands on stderr, so the
+    # two interleave and the id appears twice in the wrong order.
     prog = Progress(run_id, args.model_version_id)
-    print(run_id)  # the backend reads this to know which log to poll
-    sys.stdout.flush()
 
     dsn = os.getenv("DATABASE_URL")
     if not dsn:
@@ -2266,6 +2926,9 @@ def main(argv: list[str] | None = None) -> int:
                    model=display_name or canonical_id, variants=len(variants),
                    detail=f"resolved {display_name or canonical_id} — "
                           f"{len(variants)} search-eligible name variant(s)")
+        renamed = name_transcript(run_id, canonical_id)
+        if renamed is not None:
+            _say(f"  log     {renamed}")
         if not variants:
             prog.stage("E2", "Harvest", "skipped",
                        detail="no search variants for this model — nothing to search for")

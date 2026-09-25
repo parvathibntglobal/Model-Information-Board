@@ -134,6 +134,31 @@ class TestIntegrity:
         result = verify(claim, flattened_text=FLAT, offset_map=OFFSET_MAP, raw_text_of=RAW)
         assert isinstance(result, VerifiedQuote), result
 
+    def test_an_empty_hint_is_repaired_not_rejected(self):
+        """`(0, 0)` failed the whole answer and cost a retry, over a hint.
+
+        The start is kept, the end comes from the quote, and verification still
+        locates and exact-matches the quote itself.
+        """
+        quote = "silently missing things"
+        claim = make_claim(quote, (0, 0))
+
+        assert claim.quote_offset == (0, len(quote))
+        result = run(claim)
+        assert isinstance(result, VerifiedQuote), result
+        assert FLAT[result.flat_offset[0]:result.flat_offset[1]] == quote
+
+    def test_a_backward_hint_is_repaired_too(self):
+        claim = make_claim("Fine under ~50k.", (40, 12))
+        assert claim.quote_offset == (40, 40 + len("Fine under ~50k."))
+
+    def test_a_negative_start_still_fails_the_schema(self):
+        import pytest
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="negative start"):
+            make_claim("Fine under ~50k.", (-1, 10))
+
 
 class TestAttribution:
     def test_resolves_to_the_right_comment(self):

@@ -63,7 +63,11 @@ from judge.extract.client import Completion
 #: A BUILD FIXTURE, like the seed registry it comes from - a hardcoded price is
 #: exactly the seeded row `assert_no_fixtures` exists to refuse. When the
 #: OpenRouter poller lands, prices come from `model_version` and this goes too.
-DEFAULT_PRICING = Pricing(price_in=0.065, price_out=0.14)
+#:
+#: 2026-09-24: set to the `deepseek/deepseek-v4-flash-0731` rate below, because
+#: that is `EXTRACTOR_MODEL` now. Was 0.065 / 0.14, which matched neither the
+#: DeepSeek rate in `MODEL_PRICING` (0.14 / 0.28) nor the comment above.
+DEFAULT_PRICING = Pricing(price_in=0.03, price_out=0.32, price_cached_read=0.016)
 
 #: PER-MODEL RATES, USD PER MILLION TOKENS, as the provider publishes them.
 #:
@@ -79,7 +83,50 @@ DEFAULT_PRICING = Pricing(price_in=0.065, price_out=0.14)
 MODEL_PRICING: dict[str, Pricing] = {
     "google/gemini-2.5-flash": Pricing(price_in=0.065, price_out=0.14),
     "deepseek/deepseek-v4-flash": Pricing(price_in=0.14, price_out=0.28),
+    #: OpenRouter endpoints listing, retrieved 2026-09-24: Relace's endpoint,
+    #: the lowest input price of the 29 providers listed. NOT what every call
+    #: pays - the client pins no provider, and the listed range runs to
+    #: $0.14 / $0.70 (OpenInference). A call routed elsewhere costs more than
+    #: this records, so spend and the cap read LOW until a provider is pinned.
+    #:
+    #: `price_cached_read` is Relace's cache-read rate from the same listing.
+    #: DeepSeek caches the prompt prefix automatically, so the system prompt and
+    #: tool schema - identical on every call in a run - are billed at this rate
+    #: once warm. Other providers' cache rates differ (StreamLake $0.00168).
+    "deepseek/deepseek-v4-flash-0731": Pricing(
+        price_in=0.03, price_out=0.32, price_cached_read=0.016
+    ),
 }
+
+
+def cost_of_tokens(
+    pricing: Pricing,
+    input_tokens: int,
+    output_tokens: int,
+    cached_input_tokens: int = 0,
+) -> float:
+    """USD for one call. `cached_input_tokens` is a SUBSET of `input_tokens`.
+
+    OpenRouter reports `prompt_tokens` inclusive of the cached part and
+    `prompt_tokens_details.cached_tokens` as the cached part, the OpenAI usage
+    convention. So the cached tokens are moved from the input rate to the
+    cache-read rate, never added on top.
+
+    A model with no published cache-read rate prices its cached tokens at the
+    full input rate. That over-states the cost rather than inventing a discount
+    nobody published (rule 6).
+    """
+    cached = min(max(cached_input_tokens, 0), input_tokens)
+    cached_rate = (
+        pricing.price_cached_read
+        if pricing.price_cached_read is not None
+        else pricing.price_in
+    )
+    return (
+        (input_tokens - cached) * pricing.price_in
+        + cached * cached_rate
+        + output_tokens * pricing.price_out
+    ) / 1_000_000
 
 
 def pricing_for(model: str) -> Pricing | None:
@@ -188,10 +235,12 @@ class Budget:
             return None
         return max(0.0, self.limit_usd - self.spent_usd)
 
-    def cost_of(self, input_tokens: int, output_tokens: int) -> float:
-        return (
-            input_tokens * self.pricing.price_in + output_tokens * self.pricing.price_out
-        ) / 1_000_000
+    def cost_of(
+        self, input_tokens: int, output_tokens: int, cached_input_tokens: int = 0
+    ) -> float:
+        return cost_of_tokens(
+            self.pricing, input_tokens, output_tokens, cached_input_tokens
+        )
 
     @property
     def estimated_next_call_usd(self) -> float:
@@ -200,6 +249,11 @@ class Budget:
         Kept separate from `spent_usd`, which is measured from what the
         completions reported. Enforcing on estimates while reporting them as
         measurements is rule 7 with the halves swapped.
+
+        ASSUMES NO CACHE HIT. The first call of a run, and any call after the
+        provider's cache expires, pays full input rate, so the guard prices every
+        call that way and stops early rather than late. `charge()` applies the
+        discount from what the completion reports.
         """
         return self.cost_of(ESTIMATED_INPUT_TOKENS, ESTIMATED_OUTPUT_TOKENS)
 
@@ -223,7 +277,11 @@ class Budget:
         usage silently disables this cap. `unmetered_calls` counts them so the
         condition is visible instead of inferred from a suspiciously low total.
         """
-        cost = self.cost_of(completion.input_tokens, completion.output_tokens)
+        cost = self.cost_of(
+            completion.input_tokens,
+            completion.output_tokens,
+            completion.cached_input_tokens,
+        )
         self.spent_usd += cost
         self.calls += 1
         self._by_model[completion.model] = self._by_model.get(completion.model, 0.0) + cost

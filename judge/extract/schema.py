@@ -8,9 +8,12 @@ verified in ordinary Python (see verify.py).
 
 from __future__ import annotations
 
+import logging
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
+
+log = logging.getLogger(__name__)
 
 Polarity = Literal["positive", "negative", "neutral"]
 Severity = Literal["mild", "clear", "severe"]
@@ -389,7 +392,11 @@ class ExtractedClaim(BaseModel):
     #:
     #: Pick the closest ratified key. Where none is close, that is a signal
     #: rather than a failure: say so in `proposed_capabilities`.
-    capability: str = Field(
+    #: OPTIONAL SINCE 2026-09-24. With `LEGACY_CELLS` off (the default) the
+    #: field is stripped from the tool schema and the prompt, so the extractor
+    #: never emits it and it arrives as None. See `judge/legacy.py`.
+    capability: str | None = Field(
+        default=None,
         description=(
             "a key from contract/capabilities.yaml. This feeds the legacy cell "
             "score, NOT the board's capability section - the board reads "
@@ -467,10 +474,30 @@ class ExtractedClaim(BaseModel):
         What remains checked here is only that the hint is not nonsense: a
         forward range at a plausible position. A wrong-by-two hint is fine and
         is exactly what arrives.
+
+        AN EMPTY OR BACKWARD RANGE IS REPAIRED, NOT REJECTED. A model answering
+        `(0, 0)` for one claim used to fail the WHOLE answer, costing a paid
+        retry and, if the retry failed too, every good claim in the thread -
+        over a hint verification only uses to pick between repeated
+        occurrences. The start is kept and the end is derived from the quote:
+        code computing a length, not a position being invented, and `verify()`
+        still locates and exact-matches the quote whatever the hint says. The
+        repair is logged so how often it happens stays countable.
+
+        A NEGATIVE START STILL RAISES. There is no start to keep, and no answer
+        has produced one yet, so it stays the retry it always was.
         """
         start, end = self.quote_offset
-        if start < 0 or end <= start:
-            raise ValueError(f"quote_offset {self.quote_offset} is not a forward range")
+        if start < 0:
+            raise ValueError(f"quote_offset {self.quote_offset} has a negative start")
+        if end <= start:
+            repaired = (start, start + max(len(self.quote), 1))
+            log.warning(
+                "quote_offset %s is not a forward range; repaired to %s from the "
+                "quote's length (a hint only - verify() locates the quote)",
+                self.quote_offset, repaired,
+            )
+            self.quote_offset = repaired
         return self
 
     @property

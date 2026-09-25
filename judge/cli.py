@@ -455,8 +455,25 @@ def _extract_from_export(
     return 0
 
 
+def _refuse_if_legacy_off(command: str) -> int | None:
+    """Exit code 2 and a message when the legacy capability cards are off."""
+    from judge.legacy import LEGACY_CELLS_ENV, legacy_cells_enabled
+
+    if legacy_cells_enabled():
+        return None
+    print(
+        f"  judge {command} refused: the legacy capability cards are off. Set "
+        f"{LEGACY_CELLS_ENV}=on to run it. See judge/legacy.py.",
+        file=sys.stderr,
+    )
+    return 2
+
+
 def _cmd_rebuild_cells(args: argparse.Namespace) -> int:
     """Recompute every cell from existing claims. Spends nothing."""
+    refused = _refuse_if_legacy_off("rebuild-cells")
+    if refused is not None:
+        return refused
     from judge.curate.labels import Driver
     from judge.curate.nightly import close_the_night
     from judge.store.cells import CellStore
@@ -550,6 +567,9 @@ def _cmd_reweight(args: argparse.Namespace) -> int:
     from judge.store.cells import CellStore
     from judge.store.claims import PIPELINE_VERSION
 
+    refused = _refuse_if_legacy_off("reweight")
+    if refused is not None:
+        return refused
     to_version = args.to_version or PIPELINE_VERSION
     with _connect(writing="judge reweight" if args.apply else None) as conn:
         report = plan(

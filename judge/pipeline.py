@@ -119,7 +119,7 @@ from judge.config import bucket_for
 from judge.curate.labels import Driver
 from judge.curate.nightly import close_the_night
 from judge.extract.budget import Budget
-from judge.extract.client import Completion, ExtractionClient
+from judge.extract.client import Completion, ExtractionClient, ExtractorUnavailable
 from judge.extract.runner import ExtractionRefused, ExtractionRun, ThreadInput, extract
 from judge.store.cells import CellOutcome, CellStore
 from judge.store.claims import ClaimStore, StoredClaim
@@ -460,6 +460,14 @@ class _CellRefused(Exception):
     """
 
 
+class _LegacyOff(Exception):
+    """The capability-card path is switched off (`judge/legacy.py`).
+
+    Distinct from `_CellRefused`: nothing refused this claim, so nothing is
+    added to `cell_refusals`. Never raised outside this module.
+    """
+
+
 @dataclass
 class PipelineResult:
     """What one thread produced, all the way through."""
@@ -536,8 +544,20 @@ class PipelineResult:
         return sum(1 for cell in self.cells if cell.publishes)
 
 
+#: Attempts per thread when the provider answers with something other than a
+#: completion. One retry, the same bound as the schema retry in `runner.py`: a
+#: 502/504 is often transient, and a provider down for a second attempt is not
+#: having a bad moment, so the batch moves on and tomorrow's Fetch retries it.
+PROVIDER_ATTEMPTS = 2
+
+
 class Pipeline:
-    """E5 through E7 for one thread. Holds no state between calls."""
+    """E5 through E7 for one thread.
+
+    Holds no state between calls EXCEPT `unattempted`, which `run_all` resets at
+    the start of each batch and fills with the threads the provider never
+    answered for.
+    """
 
     def __init__(
         self,
@@ -559,9 +579,25 @@ class Pipeline:
         self._capabilities = capability_keys
         self._extractor_model = extractor_model
         self._searched_model_version_id = searched_model_version_id
+        # READ ONCE PER PIPELINE, so one batch cannot mix the two modes if the
+        # environment changes mid-run. See `judge/legacy.py`.
+        from judge.legacy import legacy_cells_enabled
+
+        self._legacy = legacy_cells_enabled()
         self._claims = ClaimStore(conn)
         self._ledger = ExtractionLedger(conn)
         self._cells = CellStore(conn)
+        #: `(thread_context_id, error)` for every thread in the LAST `run_all`
+        #: whose extraction the provider failed twice. These are UNATTEMPTED,
+        #: not empty: no extraction-ledger row is written for them, so they stay
+        #: unread and the next Fetch retries them. A thread the model read and
+        #: found nothing in is a finding; one it never read is not (rule 4).
+        #:
+        #: Intended reader (rule 9): the callers' run reports - `cli.py`,
+        #: `scripts/run_extraction_batched.py`, `scripts/fetch_model.py`. None
+        #: reads it yet; until one does, a skipped thread is visible only as the
+        #: `log.error` line `run_all` writes for it.
+        self.unattempted: list[tuple[str, str]] = []
 
     def _vet(
         self,
@@ -658,7 +694,10 @@ class Pipeline:
         """
         as_of = as_of or date.today()
         result = PipelineResult(
-            extraction=extract(thread, client=self._client, capability_keys=self._capabilities)
+            extraction=extract(
+                thread, client=self._client, capability_keys=self._capabilities,
+                legacy=self._legacy,
+            )
         )
 
         # ── E6 REJECT, which had no caller until now ────────────────────────
@@ -825,6 +864,12 @@ class Pipeline:
             # fix chose one statement later.
             stored: StoredClaim | None = None
             try:
+                if not self._legacy:
+                    # THE LEGACY PATH IS OFF (`judge/legacy.py`): no weighting,
+                    # no claim row, no cell. Not a refusal and not counted as
+                    # one - the claim is not wrong, the path is retired. The
+                    # board entry below is written exactly as before.
+                    raise _LegacyOff
                 weights = compute(
                     evidence_tier=evidence_tier,
                     platform=document.platform,
@@ -866,6 +911,8 @@ class Pipeline:
                     claim_date=document.created_at,
                     extractor_model=self._extractor_model,
                 )
+            except _LegacyOff:
+                stored = None
             except (ValueError, KeyError, LookupError) as exc:
                 # NAMED, NOT COUNTED. A bare tally would say "3 claims lost" and
                 # leave nobody able to tell an unratified capability from a
@@ -1016,6 +1063,7 @@ class Pipeline:
         resolve_surface: SurfaceResolver | None = None,
         find_surfaces: SurfaceFinder | None = None,
         on_thread: Callable[[str], None] | None = None,
+        on_result: Callable[[ThreadInput, PipelineResult], None] | None = None,
         after_thread: Callable[[], None] | None = None,
     ) -> list[PipelineResult]:
         """A batch. A refused thread is skipped, never fatal.
@@ -1029,6 +1077,7 @@ class Pipeline:
         which is today's behaviour and is stated rather than defaulted into.
         """
         results: list[PipelineResult] = []
+        self.unattempted = []
         # DERIVED, not defaulted. `already_extracted=None` used to mean "extract
         # everything" because nothing could work the set out; the ledger can, so
         # the default is now the correct answer rather than the safe one. An
@@ -1051,20 +1100,49 @@ class Pipeline:
                 # BEFORE the call. Spend cannot be undone, so a check after it
                 # is a report rather than a cap.
                 budget.check_before_call()
-            try:
-                result = self.run(
-                    thread,
-                    facts=facts,
-                    model_version_of=model_version_of,
-                    release_dates=release_dates,
-                    as_of=as_of,
-                    resolve_surface=resolve_surface,
-                    find_surfaces=find_surfaces,
-                    # ONCE AFTER THE BATCH, not once per thread. See below.
-                    rebuild_cells=False,
-                )
-            except ExtractionRefused as exc:
-                log.error("thread %s refused: %s", thread.thread_context_id, exc)
+            # A PROVIDER FAILURE SKIPS THE THREAD, IT DOES NOT END THE BATCH.
+            # `ExtractorUnavailable` used to propagate out of this loop, so one
+            # 502 threw away every thread after it. Safe to retry because the
+            # model call is the first thing `run()` does - nothing has been
+            # written for this thread when it raises. The spend for each failed
+            # attempt is already in `spend_ledger`: the client writes it in a
+            # `finally`. It is NOT charged to `budget`, which only sees results.
+            result: PipelineResult | None = None
+            for attempt in range(1, PROVIDER_ATTEMPTS + 1):
+                try:
+                    result = self.run(
+                        thread,
+                        facts=facts,
+                        model_version_of=model_version_of,
+                        release_dates=release_dates,
+                        as_of=as_of,
+                        resolve_surface=resolve_surface,
+                        find_surfaces=find_surfaces,
+                        # ONCE AFTER THE BATCH, not once per thread. See below.
+                        rebuild_cells=False,
+                    )
+                    break
+                except ExtractionRefused as exc:
+                    log.error("thread %s refused: %s", thread.thread_context_id, exc)
+                    break
+                except ExtractorUnavailable as exc:
+                    if attempt == PROVIDER_ATTEMPTS:
+                        self.unattempted.append((thread.thread_context_id, str(exc)))
+                        log.error(
+                            "thread %s UNATTEMPTED after %d provider failures; no "
+                            "extraction-ledger row written, so the next Fetch "
+                            "retries it: %s",
+                            thread.thread_context_id, attempt, exc,
+                        )
+                        break
+                    log.warning(
+                        "thread %s: provider failure on attempt %d, retrying: %s",
+                        thread.thread_context_id, attempt, exc,
+                    )
+                    if budget is not None:
+                        # The retry is a second paid call. Same rule as above.
+                        budget.check_before_call()
+            if result is None:
                 continue
             results.append(result)
             # Same transaction as the claims. A ledger row that survived a
@@ -1089,6 +1167,7 @@ class Pipeline:
                         raw_arguments="",
                         input_tokens=result.extraction.input_tokens,
                         output_tokens=result.extraction.output_tokens,
+                        cached_input_tokens=result.extraction.cached_input_tokens,
                         model=self._extractor_model,
                     )
                 )
@@ -1102,7 +1181,27 @@ class Pipeline:
                 model=self._extractor_model,
                 input_tokens=result.extraction.input_tokens or 0,
                 output_tokens=result.extraction.output_tokens or 0,
+                cached_input_tokens=result.extraction.cached_input_tokens or 0,
             )
+            # WHAT CAME BACK, FOR A CALLER THAT IS WATCHING. `on_thread` fires
+            # BEFORE the call and carries only an id, so nothing downstream of
+            # this loop could report what one thread actually returned - a
+            # person watching an on-demand fetch saw "reading thread 3/8" and
+            # then, minutes later, only the batch total.
+            #
+            # SEPARATE FROM `after_thread` RATHER THAN A WIDER SIGNATURE. That
+            # hook is the caller's COMMIT and its contract is "everything for
+            # this thread is written, you may commit now"; handing it the result
+            # as well would invite a caller to do reporting work inside the one
+            # callback whose failure loses a thread's extraction. This one is
+            # told what happened and owns nothing.
+            #
+            # Consumer named, per rule 9: `scripts/fetch_model.py::_on_result`,
+            # which prints the per-thread LLM line. Placed after the ledger
+            # writes so the tokens it reports are the ones that were recorded,
+            # not a subset that a later line would contradict.
+            if on_result is not None:
+                on_result(thread, result)
             # THE THREAD IS NOW COMPLETE AND CONSISTENT, AND THE CALLER MAY SAY SO.
             #
             # This is the last statement of the iteration on purpose: the claims,
@@ -1140,12 +1239,16 @@ class Pipeline:
         # This also fixes a quieter bug: `as_of_cells` below used to receive the
         # same cells once per claim-bearing thread - the whole board, duplicated
         # up to a thousand times - and now receives each cell once.
-        if any(r.stored_claim_ids for r in results):
+        if self._legacy and any(r.stored_claim_ids for r in results):
             outcomes = self._cells.rebuild_all(as_of=as_of)
             if results:
                 results[-1].cells = outcomes
 
-        if driver is not None:
+        # SKIPPED WITH THE LEGACY PATH OFF (`judge/legacy.py`). Labels and the
+        # changelog are derived from cells, and reported context from `claim`
+        # rows - neither is written when it is off, so running this would diff
+        # frozen cells and record "no change" as if it had looked.
+        if driver is not None and self._legacy:
             # THE CALLER, and the reason this parameter exists. Labels, the
             # changelog and reported context all had a writer and none had
             # anything calling it, so the changelog page would have reported

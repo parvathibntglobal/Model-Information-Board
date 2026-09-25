@@ -93,7 +93,9 @@ class TestItIsActuallyCalled:
         from judge.pipeline import Pipeline
 
         source = inspect.getsource(Pipeline.run_all)
-        assert "if driver is not None:" in source
+        # `and self._legacy` since 2026-09-24: the stage reads cells, which are
+        # not written with the legacy capability cards off (`judge/legacy.py`).
+        assert "if driver is not None and self._legacy:" in source
 
     def test_labels_are_written_from_cells(self):
         conn = Conn(cells=[a_cell()])

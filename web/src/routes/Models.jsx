@@ -561,6 +561,11 @@ function BoardBadge({ b }) {
 
 
 function EvidenceBadge({ e, rows }) {
+  // NULL MEANS THE LEGACY CAPABILITY CARDS ARE OFF (LEGACY_CELLS, judge/legacy.py),
+  // not "nobody has discussed this". Cells are no longer rebuilt, so rendering the
+  // rows still in `cell` would show a frozen verdict as live, and a missing one
+  // would contradict the board badge beside it. BoardBadge carries the evidence.
+  if (e === null) return null
   const state = e?.state || 'unreported'
 
   // The board has no publication gate any more, so these badges COUNT reports

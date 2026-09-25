@@ -1423,12 +1423,26 @@ def start_fetch(req: FetchRequest) -> dict:
     script = _REPO_ROOT / "scripts" / "fetch_model.py"
     # Detached: we do not wait. env carries DATABASE_URL / GITHUB_TOKEN etc.,
     # which run-backend.py loaded from .env into this process's environment.
+    #
+    # THE CHILD INHERITS THIS TERMINAL, AND THAT IS THE POINT. Both streams went
+    # to DEVNULL, so the only account of a run was `var/fetch/<run_id>.jsonl` -
+    # readable through /fetch/log, as collapsed stage rows, and only with the
+    # page open. Somebody watching the backend they had just started saw nothing
+    # at all while a fetch spent money for twenty minutes.
+    #
+    # `None` rather than a pipe: a pipe nobody drains fills its buffer and blocks
+    # the run at whatever line filled it, and there is no reader here - the
+    # `Popen` handle is discarded on the next statement. Inheriting hands the
+    # child the same console the backend writes to, with nothing in between.
+    #
+    # NOTHING PARSES THIS OUTPUT. `run_id` is generated above and passed in with
+    # `--run-id`, so stdout is for a person and may be redirected freely.
     subprocess.Popen(
         [sys.executable, str(script), mv, "--run-id", run_id],
         cwd=str(_REPO_ROOT),
         env=os.environ.copy(),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=None,
+        stderr=None,
     )
     # NAMED IN THE RESPONSE, not done quietly. Marking another machine's run
     # dead is a visible change to shared history, and a caller that can see it

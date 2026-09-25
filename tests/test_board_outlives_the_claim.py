@@ -208,7 +208,8 @@ class TestTheClosedVocabularyIsInTheSchemaNotOnlyThePrompt:
         # and NOT to the schema is the defect this closes, and it reads as fixed
         # from either call site alone.
         src = pathlib.Path("judge/extract/runner.py").read_text(encoding="utf-8")
-        assert "build_system_prompt(capability_keys)" in src
+        # `legacy=` since 2026-09-24; with it off neither consumer gets the list.
+        assert "build_system_prompt(capability_keys, legacy=legacy)" in src
         assert "tool_schema_for(ExtractionResult, capability_keys=capability_keys)" in src
 
     def test_a_moved_schema_shape_refuses_rather_than_silently_not_closing(self):

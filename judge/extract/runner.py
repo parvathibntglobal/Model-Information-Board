@@ -36,6 +36,7 @@ from judge.extract.client import (
     MAX_SCHEMA_RETRIES,
     Completion,
     ExtractionClient,
+    strip_legacy_fields,
     tool_schema_for,
 )
 from judge.extract.placeholder import has_nothing_to_extract
@@ -180,6 +181,13 @@ class ExtractionRun:
     schema_retries: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
+    #: The part of `input_tokens` served from the prompt cache, summed the same
+    #: way. Read by `scripts/fetch_model.py`'s cost line.
+    cached_input_tokens: int = 0
+    #: The part of `output_tokens` spent reasoning, summed over the calls that
+    #: REPORTED it; None when none did. Read by `scripts/fetch_model.py`'s
+    #: per-thread token line.
+    reasoning_tokens: int | None = None
     #: True when any call for this thread stopped at `max_tokens`.
     #:
     #: SEPARATE FROM `zero_kind` ON PURPOSE. A truncated answer can still carry
@@ -252,8 +260,12 @@ def extract(
     *,
     client: ExtractionClient,
     capability_keys: list[str],
+    legacy: bool | None = None,
 ) -> ExtractionRun:
     """Run E5 over one thread.
+
+    `legacy` - whether to ask for the ratified-twelve fields. None reads
+    `LEGACY_CELLS` (off unless set); see `judge/legacy.py`.
 
     Raises `ExtractionRefused` when the document cannot be safely presented -
     which today means it forges a block marker. Everything else is reported in
@@ -280,11 +292,20 @@ def extract(
     except ValueError as exc:
         raise ExtractionRefused(str(exc)) from exc
 
-    system = build_system_prompt(capability_keys)
-    # THE SAME LIST REACHES BOTH, which is the point. It used to reach only the
-    # prompt, so "CLOSED, use these and no others" was an instruction with no
-    # enforcement anywhere until E6 - and E6's refusal killed the batch.
-    schema = tool_schema_for(ExtractionResult, capability_keys=capability_keys)
+    from judge.legacy import legacy_cells_enabled
+
+    legacy = legacy_cells_enabled() if legacy is None else legacy
+    system = build_system_prompt(capability_keys, legacy=legacy)
+    if legacy:
+        # THE SAME LIST REACHES BOTH, which is the point. It used to reach only
+        # the prompt, so "CLOSED, use these and no others" was an instruction
+        # with no enforcement anywhere until E6 - and E6's refusal killed the
+        # batch.
+        schema = tool_schema_for(ExtractionResult, capability_keys=capability_keys)
+    else:
+        # The prompt and the schema drop the ratified-twelve fields together, so
+        # the model is neither told about them nor given a slot for them.
+        schema = strip_legacy_fields(tool_schema_for(ExtractionResult))
 
     result, completions, retries = _call_with_one_retry(
         client, system=system, user=user_message, schema=schema
@@ -293,6 +314,9 @@ def extract(
     # SUMMED ACROSS EVERY CALL. Counting the last one alone under-reported the
     # spend by one call per retry, in the flattering direction.
     run.input_tokens = sum(c.input_tokens for c in completions)
+    run.cached_input_tokens = sum(c.cached_input_tokens for c in completions)
+    reported = [c.reasoning_tokens for c in completions if c.reasoning_tokens is not None]
+    run.reasoning_tokens = sum(reported) if reported else None
     run.output_tokens = sum(c.output_tokens for c in completions)
     # ANY call, not the last one. `completions` already exists because a retry's
     # tokens were being under-counted; truncation has the same shape - a first
@@ -327,8 +351,8 @@ def extract(
             if run.truncated:
                 run.zero_kind = ZERO_TRUNCATED
                 run.no_claim_reason = (
-                    f"the extractor was cut off at the {run.output_tokens}-token "
-                    f"ceiling before it finished answering, so its answer could "
+                    f"the extractor was cut off at {_ceiling_phrase(completions)} "
+                    f"before it finished answering, so its answer could "
                     f"not be read ({envelope_error}). THIS IS NOT A DOCUMENT THAT "
                     f"SAID NOTHING - it is a read we stopped. Nothing can be said "
                     f"about what the thread contains until it is read again."
@@ -344,8 +368,8 @@ def extract(
             if run.truncated:
                 run.zero_kind = ZERO_TRUNCATED
                 run.no_claim_reason = (
-                    f"the extractor was cut off at the {run.output_tokens}-token "
-                    f"ceiling; all {len(lost)} claim(s) that had arrived failed "
+                    f"the extractor was cut off at {_ceiling_phrase(completions)}; "
+                    f"all {len(lost)} claim(s) that had arrived failed "
                     f"the schema. Not a document that said nothing."
                 )
                 return run
@@ -452,6 +476,26 @@ def extract(
             run.zero_kind = ZERO_UNSALVAGED if run.unsalvaged else ZERO_SILENT
 
     return run
+
+
+def _ceiling_phrase(completions) -> str:
+    """`the 16384-token ceiling (20097 output tokens over 2 calls)`.
+
+    NAMES THE CEILING, NOT THE SUM. This read `run.output_tokens`, which is summed
+    over every call including retries, so a first answer of 3,713 tokens plus a
+    retry cut at 16,384 printed "cut off at the 20097-token ceiling" - a ceiling
+    that does not exist, on the one line that says why a thread went unread.
+    """
+    cut = [c for c in completions if c.stopped_at_ceiling]
+    # The call that was cut stopped AT the ceiling, so its own output count is
+    # the ceiling whenever the requested bound was not carried on it.
+    ceiling = next((c.ceiling_tokens or c.output_tokens for c in cut
+                    if c.ceiling_tokens or c.output_tokens), None)
+    total = sum(c.output_tokens for c in completions)
+    head = f"the {ceiling}-token ceiling" if ceiling else "the token ceiling"
+    if len(completions) > 1:
+        return f"{head} ({total} output tokens over {len(completions)} calls)"
+    return head
 
 
 def extract_all(

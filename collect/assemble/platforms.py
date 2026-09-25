@@ -98,6 +98,9 @@ class PlatformAssemblyReport:
     as_article: int = 0
     as_thread: int = 0
     refusals: list[str] = field(default_factory=list)
+    #: `(root document id, Selection)` per ranked thread, for the E3 log.
+    #: Consumer: `scripts/fetch_model.py:assemble_stage`.
+    selections: list = field(default_factory=list)
 
     def summary(self) -> str:
         parts = [
@@ -110,20 +113,6 @@ class PlatformAssemblyReport:
         return ", ".join(parts)
 
 
-def _version_aliases(conn) -> dict:
-    """Alias surfaces per model version, for child specificity ranking.
-
-    Read once per run rather than per thread: it is the same table every time and
-    a per-thread read turns one query into one per root.
-    """
-    rows = conn.execute(
-        "SELECT model_version_id, surface FROM model_alias "
-        "WHERE valid_until IS NULL"
-    ).fetchall()
-    out: dict[str, set] = {}
-    for mv_id, surface in rows:
-        out.setdefault(mv_id, set()).add(surface)
-    return out
 
 
 def assemble_platform_documents(
@@ -174,7 +163,16 @@ def assemble_platform_documents(
     if not roots:
         return report
 
-    aliases = _version_aliases(conn)
+    from collect.assemble.ranking import load_lexicon, version_surfaces
+
+    # A SET OF VERSION SURFACES, which is what `names_version` iterates. This
+    # passed `_version_aliases(conn)` - a DICT of model id -> surfaces - and
+    # iterating a dict yields its KEYS, so `names_version` matched
+    # model_version ids against comment text and never hit. `names_version`
+    # scored 0 on every Hacker News, Hugging Face and X child until 2026-09-24.
+    aliases = version_surfaces(conn)
+    # Every current alias, for the relevance term.
+    lexicon = load_lexicon(conn)
 
     for root_id, _root_external, root_url, root_text_ref, root_engagement in roots:
         if not root_text_ref:
@@ -307,8 +305,11 @@ def assemble_platform_documents(
                     child_document_id=(lambda m, _ids=child_ids: _ids[m.external_id]),
                     store=store,
                     version_aliases=aliases,
+                    lexicon=lexicon,
                 )
                 report.as_thread += 1
+                if assembled.selection is not None:
+                    report.selections.append((root_id, assembled.selection))
             else:
                 assembled = assemble_article(
                     ArticleInput(entry_id=root_id, text=root_text, url=root_url),

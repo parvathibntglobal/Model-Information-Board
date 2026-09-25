@@ -295,8 +295,12 @@ def test_assembly_over_the_real_thread_selects_and_maps():
         version_aliases=(),
     )
 
-    assert assembled.child_count == 5
-    assert len(assembled.member_document_ids) == 6
+    # The contract's cap (`child_ranking.max_children`, 25 since 2026-09-24),
+    # reached because 195 comments were observed.
+    from collect.assemble.thread import MAX_CHILDREN
+
+    assert assembled.child_count == MAX_CHILDREN
+    assert len(assembled.member_document_ids) == MAX_CHILDREN + 1
     assert assembled.observed_children == 195
     assert assembled.hidden_children_min == 623
 

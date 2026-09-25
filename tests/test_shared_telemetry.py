@@ -156,9 +156,22 @@ class TestTheFileRemainsTheSurvivor:
         assert "return False" in body
 
     def test_the_file_is_written_before_the_mirror(self):
+        # MATCHED ON THE NAME, AND SLICED TO THE REAL END OF THE METHOD.
+        #
+        # This pinned the full signature `def _write(self, rec: dict)` and took a
+        # fixed 900-character window after it. Both broke on a change that left
+        # the property intact: `_write` grew a keyword argument and a few lines,
+        # and the test failed with `ValueError: substring not found` - which
+        # reads as the seam being gone rather than as the matcher being brittle.
+        #
+        # A source test earns its brittleness only where the source IS the
+        # subject. Here the subject is the ORDER of two statements, so the
+        # matcher should survive anything that does not reorder them.
         src = (ROOT / "scripts" / "fetch_model.py").read_text(encoding="utf-8")
-        write = src.index("def _write(self, rec: dict)")
-        body = src[write: write + 900]
+        write = src.index("    def _write(self")
+        body = src[write:]
+        # The next method at the same indent ends this one.
+        body = body[: body.index("\n    def ", 1)]
         assert body.index("self.path.open") < body.index("_mirror_fetch_line"), (
             "the file write must come first: it is the one that still works "
             "when the database is what has failed"

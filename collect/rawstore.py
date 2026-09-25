@@ -194,8 +194,28 @@ def parse_ref(ref: str) -> tuple[Namespace, str]:
 class RawStore:
     """Content-addressed blobs on the filesystem."""
 
+    #: How many missing payloads this store reports in full before it stops.
+    #:
+    #: THE ERROR IS RIGHT AND REPEATING IT IS NOT. One miss is a broken NFR-4
+    #: guarantee and belongs at `error`; two thousand of them are ONE broken
+    #: guarantee reported two thousand times, and the run that produced them
+    #: scrolled its own account off the screen. Measured on this project: a
+    #: fetch against the shared database from a machine holding only its own
+    #: blobs logged 2,210 of these in a single E4.
+    #:
+    #: SUPPRESSED HERE AND COUNTED BY THE CALLER, which is why silence after
+    #: the limit is not a lost signal. Every reader of this class already
+    #: tallies the failures it swallows - `collect/triage/run.py` and
+    #: `collect/assemble/dedupe_write.py` both carry an `unreadable` counter
+    #: onto their stage line - so the TOTAL is reported by the stage that knows
+    #: how many documents it was working through. This log's job is to say
+    #: which refs and why, and three of those answer the question.
+    MISSING_LOG_LIMIT = 3
+
     def __init__(self, root: Path | str | None = None) -> None:
         self.root = Path(root) if root is not None else settings().raw_store_path
+        #: Per instance, and instances are per run - see `MISSING_LOG_LIMIT`.
+        self._missing_logged = 0
 
     # ── write ────────────────────────────────────────────────────────────
 
@@ -283,11 +303,46 @@ class RawStore:
             # The requirement id is in the message on purpose: it is the one
             # token here that will not be rephrased, so monitoring and tests
             # can key on it without breaking every time the prose improves.
-            log.error(
-                "raw store: %s is missing with no tombstone. NFR-4 rebuild-from-raw "
-                "is no longer guaranteed. This is corruption or a bug, not a takedown.",
-                ref,
-            )
+            #
+            # ⚠ IT USED TO SAY "This is corruption or a bug, not a takedown."
+            #   THE SECOND HALF IS TRUE AND THE FIRST IS NOT.
+            #
+            #   There is a third cause and it is by far the commonest one here:
+            #   the database is SHARED and the blob store is NOT. A `text_ref`
+            #   written by another machine names bytes that only ever existed
+            #   in that machine's store, so this one is asked for a blob it was
+            #   never given and nothing is corrupt anywhere. Observed 2,210
+            #   times in one run against the shared database from a laptop
+            #   holding only its own 585 blobs.
+            #
+            #   A message that names two causes and omits the likely one sends
+            #   the reader looking for a bug that is not there - and the store
+            #   root is printed because that is the value which decides which
+            #   of the three it is.
+            self._missing_logged += 1
+            if self._missing_logged <= self.MISSING_LOG_LIMIT:
+                log.error(
+                    "raw store: %s is missing with no tombstone. NFR-4 "
+                    "rebuild-from-raw is no longer guaranteed for it. NOT a "
+                    "takedown - a takedown leaves a tombstone. Either this store "
+                    "is corrupt, or it never held the blob: a database shared "
+                    "with other machines carries refs whose bytes were written "
+                    "to THEIR store. This store is %s.",
+                    ref,
+                    self.root,
+                )
+            elif self._missing_logged == self.MISSING_LOG_LIMIT + 1:
+                # SAID ONCE, AND IT SAYS WHERE THE TOTAL IS. Falling silent
+                # without this would make a suppressed flood look like a store
+                # that had stopped failing.
+                log.error(
+                    "raw store: more than %d payloads missing from %s. Further "
+                    "misses will not be logged - each caller counts the ones it "
+                    "swallows and reports the total on its own stage line "
+                    "(`unreadable`).",
+                    self.MISSING_LOG_LIMIT,
+                    self.root,
+                )
             raise PayloadMissing(
                 f"{ref} is absent from the raw store and carries no tombstone. "
                 "Either the store is corrupt or something deleted it directly."

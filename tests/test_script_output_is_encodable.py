@@ -37,6 +37,27 @@ SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
 #: which is the one worth testing against - passing here passes on utf-8 too.
 CONSOLE_ENCODING = "cp1252"
 
+#: FUNCTIONS THAT REACH A CONSOLE, NOT ONLY `print`.
+#:
+#: ⚠ THIS GUARD WENT BLIND THE DAY A SCRIPT STOPPED USING `print`.
+#:   `scripts/fetch_model.py` renders a whole run through its own `_say()`
+#:   helper - header, per-stage headings, per-thread lines, footer - and every
+#:   one of them was invisible here, because the walk matched the NAME `print`
+#:   and nothing else. A `·` separator went in, rendered as `?` on this console,
+#:   and 72 tests passed over it.
+#:
+#:   It is the shape this file already records twice: a check whose population
+#:   is narrower than the thing it protects. The population was "calls to
+#:   print", the thing protected is "text that reaches a stream", and a helper
+#:   is all it takes for those to stop being the same set.
+#:
+#:   NAMES RATHER THAN RESOLUTION, for the reason the returned-string note
+#:   gives: matching a name over-collects and needs no call graph, and a guard
+#:   that needs a call graph is a guard nobody maintains. A new console helper
+#:   must be added here - which is a real gap, and a smaller one than matching
+#:   a single builtin.
+WRITERS = frozenset({"print", "_say"})
+
 
 def _printed_literals(tree: ast.AST):
     """Every string constant that reaches a `print` call, or is returned to one.
@@ -65,7 +86,7 @@ def _printed_literals(tree: ast.AST):
             continue
         func = node.func
         name = getattr(func, "id", None) or getattr(func, "attr", None)
-        if name != "print":
+        if name not in WRITERS:
             continue
         for argument in node.args:
             for inner in ast.walk(argument):
