@@ -201,7 +201,7 @@ class TestTheFetchWriter:
 
 
 class TestTheQuotaBelongsToASubscriptionNotAMachine:
-    """The panel opened "Showing the shared table reading, taken on ANOOJ…".
+    """The panel opened "Showing the shared table reading, taken on machine-A…".
 
     That reads as though a laptop owned the counter. It does not: the board is
     hosted, anybody signed in can start a fetch, and it draws down one RapidAPI
@@ -299,14 +299,14 @@ class TestTheQuotaBelongsToASubscriptionNotAMachine:
 
 
 class TestNoMachineNameReachesTheAdminPage:
-    """The panel printed "observed by ANOOJ" on a hosted admin screen.
+    """The panel printed "observed by machine-A" on a hosted admin screen.
 
     Parvathi, 2026-09-16: *"do you think on a web admin page is it oky to show
     up these names? cant you remove this or any machine name from being showed
     up?"*
 
     ⚠ THIS WAS THE SECOND ASK. The first removed one line — "Ledger totals cover
-      all 2 machines (ANOOJ, LenovoPB)" — by moving the roster into a `title`
+      all 2 machines (machine-A, machine-B)" — by moving the roster into a `title`
       tooltip, which still rendered the names on hover and left four other sites
       alone. Fixing the instance rather than the class is why it came back, so
       these pin the CLASS: no hostname on the page, from any field.
@@ -375,7 +375,7 @@ class TestNoMachineNameReachesTheAdminPage:
 
         The first pass swept for fields whose NAME contained "machine" and
         cleared them. `source_of_record` is a prose sentence and read "...last
-        written from ANOOJ", so the hostname shipped anyway - found by dumping
+        written from machine-A", so the hostname shipped anyway - found by dumping
         the whole payload to JSON and searching it as text, which is the check
         that does not depend on my guessing the field names.
 

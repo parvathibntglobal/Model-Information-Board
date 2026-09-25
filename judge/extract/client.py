@@ -71,7 +71,7 @@ def extractor_model() -> str:
     WHAT THIS DOES NOT CHECK, AND WHAT WOULD HAVE CAUGHT IT. Nothing here
     compares the value against the extractor the team agreed on - only against
     the registry, which contains every polled model including gemini. The check
-    that would have refused `LAPTOP-TA28DHTF` is a comparison with a RECORDED
+    that would have refused `machine-C` is a comparison with a RECORDED
     CHOICE, and rule 5 says where a recorded choice lives: `contract/`, not a
     Python literal. Proposed in
     `docs/proposals/the-agreed-extractor-belongs-in-contract.md`, not taken.

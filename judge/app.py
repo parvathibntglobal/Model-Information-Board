@@ -2336,7 +2336,7 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
         #   being showed up?"
         #
         #   ⚠ AND THIS IS THE SECOND ASK. The first removed one line - "Ledger
-        #     totals cover all 2 machines (ANOOJ, LenovoPB)" - by moving the
+        #     totals cover all 2 machines (machine-A, machine-B)" - by moving the
         #     roster into a tooltip, which kept rendering the names on hover and
         #     left four other sites untouched. Fixing the instance and not the
         #     class is why it came back.
@@ -5029,7 +5029,7 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
         # ⚠ THE RELATION, NOT THE NAME. "this machine" or "another host" is the
         #   whole of what a reader acts on - is my cached figure the stale one,
         #   or somebody else's - and it is the only part that survives onto a
-        #   web page. The hostname itself said "ANOOJ" on an admin screen and
+        #   web page. The hostname itself said "machine-A" on an admin screen and
         #   bought nothing; `rapidapi_quota.machine` still records it.
         "reading_host": ("this machine" if taken_on == _this_machine_name()
                          else "another host"),

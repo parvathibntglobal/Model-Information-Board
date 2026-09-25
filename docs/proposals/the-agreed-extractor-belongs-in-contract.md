@@ -1,4 +1,4 @@
-# The check that would have caught LAPTOP-TA28DHTF
+# The check that would have caught machine-C
 
 **Validating `EXTRACTOR_MODEL` against the registry does not help: the registry
 contains gemini. The check that helps compares it against a CHOSEN extractor,
@@ -14,7 +14,7 @@ shipped in #362 answered a failure that had not happened.*
 
 ```
 2026-09-18 06:39Z   thread_context_ada128ab...  5 claims  extractor_model=gemini
-2026-09-18 06:41Z   LAPTOP-TA28DHTF             4 extract calls, gemini
+2026-09-18 06:41Z   machine-C             4 extract calls, gemini
 2026-09-18 06:42Z   thread_context_ab6426ef...  5 claims  extractor_model=gemini
 ```
 
