@@ -38,10 +38,19 @@ than enforced here:
     docs 44 times — the password is masked, so publishing hands an attacker
     everything but one factor
 
-    531 social handles and 33 personal email addresses sit in `articles/`,
-    3.8 MB of harvested posts — a privacy and copyright question, not a
-    security one, and "each was public individually" is not the same as
-    republishing them as a dataset
+    530 social handles sit in `articles/`, 3.8 MB of harvested posts, and 39
+    email addresses sit in `_github_shape_experiment.json` at the root — a
+    privacy and copyright question rather than a security one, and "each was
+    public individually" is not the same claim as "we republished them as a
+    dataset"
+
+⚠ THE EMAILS AND THE HANDLES ARE IN DIFFERENT PLACES, and my first audit said
+  both were in `articles/`. They are not: `articles/` holds ONE email, a
+  corporate customer-service address. 24 of the real ones are at the
+  repository root in a file whose name gives no hint it carries anyone's
+  contact details, so removing the directory would not have removed them.
+  The correction is @anoojntglobal-sudo's, and it is the reason an exclusion
+  list has to be measured rather than assumed from directory names.
 """
 
 from __future__ import annotations
@@ -58,10 +67,28 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 #: the finding the passage exists to record.
 MACHINE_NAMES = ("ANOOJ", "LenovoPB", "LAPTOP-TA28DHTF")
 
-#: ⚠ A PLANTED FAKE, AND THE OPPOSITE OF A LEAK. `test_admin_operations_
-#:   surfaces.py` asserts that a hostname never reaches a page, so it needs a
-#:   hostname to plant. Excluding the file by name rather than the string, so
-#:   a real name appearing there still fails.
+#: Files that must contain a device name to do their job. Excluded BY NAME
+#: rather than by the string, so an unrelated real name appearing in one of
+#: them still fails.
+#:
+#: ⚠ THIS FILE IS ON THE LIST, AND IT FAILED CI BECAUSE IT WAS NOT. The scan
+#:   reads `git ls-files`, which does not list untracked files - so while this
+#:   test was new and uncommitted it could not see itself, passed locally, and
+#:   failed the moment the commit made it tracked. It names the three devices
+#:   in `MACHINE_NAMES` in order to search for them, which is the
+#:   mention-versus-use trap in the one test written to catch device names.
+#:   Sixteenth instance in this repository.
+#:
+#:   The general lesson, worth more than this fix: A TEST THAT READS
+#:   `git ls-files` CANNOT SEE ITSELF UNTIL IT IS COMMITTED, so a green local
+#:   run of a brand-new file proves less than it appears to.
+MAY_NAME_A_MACHINE = {
+    # asserts a hostname never reaches a page, so it plants one
+    "test_admin_operations_surfaces.py",
+    # defines the names being searched for
+    "test_this_repository_could_be_made_public.py",
+}
+
 PLANTED = "SOMEONES-LAPTOP-9000"
 
 CREDENTIALS = {
@@ -107,7 +134,7 @@ class TestNoTrackedFileNamesAMachine:
         a default Windows name rather than a project one."""
         offenders = []
         for path in tracked_text_files():
-            if path.name == "test_admin_operations_surfaces.py":
+            if path.name in MAY_NAME_A_MACHINE:
                 continue
             try:
                 text = path.read_text(encoding="utf-8")
@@ -123,15 +150,25 @@ class TestNoTrackedFileNamesAMachine:
         )
 
     def test_the_planted_fake_is_still_planted(self):
-        """⚠ THE CONTROL. If the exclusion above ever silently covered a real
-        name, this is what says the excluded file is still the test it was
-        excluded for."""
+        """⚠ THE CONTROL. If the exclusion ever silently covered a real name,
+        this is what says the excluded file is still the test it was excluded
+        for."""
         source = (ROOT / "tests" / "test_admin_operations_surfaces.py").read_text(
             encoding="utf-8",
         )
         assert PLANTED in source
         for name in MACHINE_NAMES:
             assert name not in source
+
+    def test_the_exemption_list_stays_two_files(self):
+        """⚠ AN EXEMPTION LIST IS A HOLE AND GROWS QUIETLY. Two files have a
+        reason to carry a device name: the one that plants a fake, and this
+        one, which defines the names it searches for. A third is a mistake or
+        a decision, and either way somebody should have to write it here."""
+        assert {
+            "test_admin_operations_surfaces.py",
+            "test_this_repository_could_be_made_public.py",
+        } == MAY_NAME_A_MACHINE
 
 
 class TestNoTrackedFileCarriesACredential:
