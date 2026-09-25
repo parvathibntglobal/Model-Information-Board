@@ -1,0 +1,126 @@
+# What each job IS, for the lead line under its heading on the board's Jobs tab.
+#
+# ⚠ HAND-WRITTEN, NEVER GENERATED. Rule 2 allows exactly two stages to call a
+#   model (judge/extract/, judge/ask/); a description generator would be a
+#   third. So every line here is written by a person and reviewed, like any
+#   other contract file.
+#
+# ⚠ A DESCRIPTION OF THE SUBJECT, NOT OF THE EVIDENCE. Each entry says what the
+#   job is and what people use a model for in it - a sentence somebody could
+#   read with no report existing at all. It names no model, claims nothing about
+#   quality, and states no count: the rows below it do that, from the evidence.
+#
+# ⚠ A JOB WITH NO ENTRY SHOWS NO LEAD LINE. That is the intended state rather
+#   than a gap to fill with the extractor's text. The extractor's `definition`
+#   is the TEST a report has to meet to be filed here (judge/extract/schema.py
+#   instructs it so); it now renders in the page's side column under "What
+#   counts here", labelled as the extractor's counting rule, and is never shown
+#   as a description.
+#
+# KEYS are board slugs as the page resolves them (after rulings). A key the
+# board does not currently show renders nothing and is not an error.
+#
+# SELECTION, 2026-09-25, and it is a stated rule rather than a ranking: only 13
+# of 98 job pages had two or more reports, and everything below that was a
+# 1-report tie. So: the 13 with two or more reports, less two that are not jobs,
+# plus nine single-report jobs chosen as the most general (three of them have a
+# hand-written exemplar in board_surfaces.yaml already).
+#
+#   not written, and why
+#     reasoning          a capability filed as a job; its page belongs under
+#                        Capabilities, and describing it as a job would ratify
+#                        the misfiling
+#     general-purpose    a catch-all (on slug_parents.yaml's forbidden list as a
+#                        parent name); there is no subject to describe
+#
+# Drafted 2026-09-25 for @parvathibntglobal's review.
+
+version: 1
+
+about:
+  coding-agent: >-
+    A coding agent is a model run in a loop with tools: it reads a repository,
+    edits files, runs the tests and opens pull requests, rather than answering a
+    single prompt. People use one to make multi-file changes, refactor, and fix
+    failing builds with little supervision.
+  code-review: >-
+    Code review is reading a proposed change, usually a diff or pull request, and
+    saying what is wrong with it: bugs, missed cases, risky patterns. Teams use a
+    model for a first pass before a human reviewer, or to review every change
+    automatically.
+  creative-writing: >-
+    Creative writing is producing fiction, poetry, scripts and other text where
+    voice and imagination matter more than facts. People use a model to draft
+    stories, develop characters, write narration and brainstorm.
+  rag: >-
+    Retrieval-augmented generation (RAG) answers a question from documents fetched
+    at query time, such as a company wiki, a manual or a set of contracts, rather
+    than from what the model already knows. It is how most internal question-answering
+    and support assistants are built.
+  translation: >-
+    Translation is turning text in one language into another while keeping its
+    meaning, tone and terminology. People use a model for documents, product text,
+    support messages and subtitles; how well it does depends on the language pair.
+  extraction: >-
+    Data extraction is pulling specific fields, such as names, dates, amounts and
+    line items, out of unstructured text like emails, invoices or reports into a
+    fixed format a system can store. It usually runs at volume, so cost per
+    document and consistency matter.
+  cybersecurity: >-
+    Cybersecurity work is defending systems: reviewing code and configuration for
+    weaknesses, validating patches, analysing incidents and hardening
+    infrastructure. Security teams use a model to speed up review and triage.
+  svg-generation: >-
+    SVG generation is producing vector graphics, such as icons, diagrams and
+    illustrations, as SVG code from a text description. Designers and developers
+    use it for assets that must scale cleanly and stay editable by hand.
+  terminal-agent: >-
+    A terminal agent is a model working in a command-line shell: it runs commands,
+    reads the output and keeps going, compiling, testing and debugging, until a task
+    is done. Developers use one for build fixes, environment setup and scripted
+    maintenance.
+  video-indexing: >-
+    Video indexing is making video searchable: transcribing speech, describing
+    frames and tagging content so a specific moment can be found later. It is used
+    for media libraries, recorded meetings and lecture archives.
+  vulnerability-discovery: >-
+    Vulnerability discovery is finding security flaws in source code, running
+    systems or configuration before an attacker does. It covers code auditing,
+    supporting fuzzing and reasoning about how a flaw could be exploited.
+  classification: >-
+    Classification is sorting text into a fixed set of labels, such as spam or not,
+    ticket category, sentiment or topic. It usually runs at high volume, so cost per
+    item and consistent labelling matter more than eloquence.
+  summarization: >-
+    Summarization is condensing long text, such as reports, threads, transcripts or
+    papers, into something shorter that keeps what matters. The failure that counts
+    is leaving out, or inventing, an important detail.
+  sql-generation: >-
+    SQL generation is turning a question asked in plain language into a database
+    query that runs against a known schema. It is used for analytics assistants and
+    for letting people who do not write SQL query data themselves.
+  code-generation: >-
+    Code generation is writing new code from a description, from a single function
+    or script to a small complete program, as opposed to changing an existing
+    codebase.
+  prototyping: >-
+    Prototyping is getting from an idea to something that runs, fast: a demo app, a
+    proof of concept, a clickable interface, where speed matters more than
+    production polish.
+  vibe-coding: >-
+    Vibe coding is building software by describing what you want in conversation
+    and letting the model write most of the code, iterating on the result rather
+    than writing it line by line. It is used for side projects, prototypes and quick
+    internal tools.
+  search-agent: >-
+    A search agent is a model that looks things up for itself: it issues searches,
+    reads the results and answers, or says it could not find an answer. It is used
+    for research questions and assistants that need current information.
+  computer-use: >-
+    Computer use is a model operating a desktop or a browser the way a person would,
+    reading the screen, clicking and typing, to complete a task in software that has
+    no API.
+  code-editing: >-
+    Code editing is changing an existing codebase: fixing a bug, adding a feature or
+    refactoring, where the model has to understand code it did not write and keep
+    the rest working.
