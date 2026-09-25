@@ -53,15 +53,18 @@ def test_the_parse_still_finds_its_inputs():
 
 
 def test_a_model_outside_the_tracked_set_is_refused_not_invented():
-    """`anthropic/claude-fable-5` is in the FEED and not in the artifact.
+    """`openai/gpt-6-sol-pro` is in the FEED and not in the artifact.
 
-    Nothing in the 5,546-document corpus was observed naming it — no surface in
-    the extract contains "fable" at all — so it fell below the mention floor and
-    outside the launch window. Seating it would mean inventing surfaces, which is
-    what the artifact exists to prevent.
+    The registry poll inserted it on 2026-09-24 (#463) and nobody reviewed its
+    surfaces, so seating it would mean inventing them - what the artifact exists
+    to prevent.
+
+    ⚠ THIS EXAMPLE WAS `anthropic/claude-fable-5` UNTIL #461, which seated it.
+      An example of "not in the artifact" goes stale the day the artifact grows;
+      if this one is ever seated, pick another the artifact does not list.
     """
     with pytest.raises(SeatRefused, match="not in alias-surfaces-tracked-set"):
-        read_entry("anthropic/claude-fable-5")
+        read_entry("openai/gpt-6-sol-pro")
 
 
 def test_a_nonexistent_id_names_the_artifact_size_rather_than_shrugging():
