@@ -272,6 +272,17 @@ def _tracked(*patterns: str) -> list[pathlib.Path]:
 
     `git ls-files` includes staged-but-uncommitted files, which is correct: a
     file you are about to commit is a real reader.
+
+    ⚠ IT ALSO INCLUDES A FILE DELETED IN THE WORKING TREE but whose deletion is
+      not staged yet, and that one has no contents to read. Every caller opens
+      what this returns, so the deletion crashed the audit with
+      `FileNotFoundError` rather than failing a check — which is how deleting
+      `PipelinePanel.jsx` took six tests to error at once.
+
+      Dropping it is the safe direction and not a reintroduction of #428.
+      A missing file can only stop crediting a reader; it can never invent
+      one, so the audit's answer moves toward "no consumer" — the state the
+      gate complains about — never away from it.
     """
     try:
         result = subprocess.run(
@@ -292,7 +303,8 @@ def _tracked(*patterns: str) -> list[pathlib.Path]:
         ) from exc
 
     names = [n for n in result.stdout.decode("utf-8").split("\0") if n]
-    return [ROOT / n for n in names if not SKIP.search(n)]
+    paths = [ROOT / n for n in names if not SKIP.search(n)]
+    return [p for p in paths if p.is_file()]
 
 
 def _source_files() -> list[pathlib.Path]:

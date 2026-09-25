@@ -211,6 +211,13 @@ export default function SourcesPanel() {
           </div>
         )}
 
+        {/* ⚠ WHAT EACH ARM ACTUALLY BROUGHT BACK, which this panel described
+            and never counted. Above is how a platform is REACHED; a source
+            configured and a source that harvested 11,807 documents rendered
+            identically, and the difference is the only thing a reader can
+            act on. */}
+        <Corpus data={data} />
+
         {/* DRIFT IN THE OTHER DIRECTION. A platform described here but absent
             from the contract would otherwise look live. */}
         {data?.described_but_not_in_contract?.length > 0 && (
@@ -227,6 +234,119 @@ export default function SourcesPanel() {
     </section>
   )
 }
+
+/**
+ * What each platform produced, counted.
+ *
+ * ⚠ POSTS AND COMMENTS ARE SEPARATE COLUMNS because they are not the same act
+ *   and the split is the shape of each platform. Reddit is 1,678 posts under
+ *   10,129 comments; dev.to and blogs are posts only, because
+ *   `include_comments=False` on those adapters. A single "documents" figure
+ *   would make a comment-heavy platform and an article-only one look like the
+ *   same kind of coverage, which is the question this table exists to answer.
+ *
+ * ⚠ AND `readable` IS THE COLUMN THAT DIFFERS PER MACHINE. The raw store is
+ *   content-addressed files on disk, so a payload harvested on another machine
+ *   is absent here with nothing recording that it ever arrived (#303, #316,
+ *   #321). Equal to `documents` on the machine that harvested them and lower
+ *   everywhere else — so a gap in that column is this machine's coverage, not
+ *   the corpus's.
+ *
+ * Threads are one figure rather than a column: a `thread_context` is a
+ * flattened root plus its selected children and carries no platform of its
+ * own, because its members can span several.
+ */
+function Corpus({ data }) {
+  const rows = data?.corpus || []
+  if (!data) return null
+  if (data.blog_counts_unreadable) {
+    return (
+      <Notice icon={<IconAlert />}>
+        The corpus could not be counted: {data.blog_counts_unreadable}. That is this
+        page failing to read, not a corpus with nothing in it.
+      </Notice>
+    )
+  }
+  if (!rows.length) {
+    return (
+      <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+        No document has been harvested yet. A measurement, not a page that failed
+        to load.
+      </p>
+    )
+  }
+  const total = rows.reduce(
+    (a, r) => ({
+      documents: a.documents + r.documents,
+      posts: a.posts + r.posts,
+      comments: a.comments + r.comments,
+      readable: a.readable + r.readable,
+    }),
+    { documents: 0, posts: 0, comments: 0, readable: 0 },
+  )
+  const n = (v) => v.toLocaleString()
+  return (
+    <div className="stack stack-2">
+      <div className="row" style={{ gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+        <span className="label">What each platform has produced</span>
+        <span className="dim tnum" style={{ fontSize: 11 }}>
+          {n(total.documents)} documents · {data.threads != null
+            ? `${n(data.threads)} threads` : 'threads not counted'}
+        </span>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="cmp-table" style={{ fontSize: 'var(--fs-xs)' }}>
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th style={{ textAlign: 'right' }}>Documents</th>
+              <th style={{ textAlign: 'right' }}>Posts</th>
+              <th style={{ textAlign: 'right' }}>Comments</th>
+              <th style={{ textAlign: 'right' }}>Readable here</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.platform}>
+                <th scope="row" style={{ fontWeight: 500 }}>{r.platform}</th>
+                <td className="tnum" style={{ textAlign: 'right' }}>{n(r.documents)}</td>
+                <td className="tnum" style={{ textAlign: 'right' }}>{n(r.posts)}</td>
+                <td className="tnum" style={{ textAlign: 'right' }}>
+                  {r.comments ? n(r.comments) : <span className="dim">—</span>}
+                </td>
+                {/* A GAP HERE IS THIS MACHINE, NOT THE CORPUS, and it is
+                    marked rather than left for a reader to notice by
+                    subtracting two columns. */}
+                <td className="tnum" style={{ textAlign: 'right',
+                                              color: r.readable < r.documents
+                                                ? 'var(--warn)' : undefined }}>
+                  {n(r.readable)}
+                  {r.readable < r.documents && (
+                    <span className="dim" style={{ fontSize: 10 }}>
+                      {' '}({n(r.documents - r.readable)} not on this machine)
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+            <tr>
+              <th scope="row" className="dim">all</th>
+              <td className="tnum" style={{ textAlign: 'right' }}>{n(total.documents)}</td>
+              <td className="tnum" style={{ textAlign: 'right' }}>{n(total.posts)}</td>
+              <td className="tnum" style={{ textAlign: 'right' }}>{n(total.comments)}</td>
+              <td className="tnum" style={{ textAlign: 'right' }}>{n(total.readable)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <span className="dim" style={{ fontSize: 10 }}>
+        A comment is a reply to something; a post is not. Blogs and dev.to carry no
+        comments because those adapters do not fetch them.
+      </span>
+    </div>
+  )
+}
+
 
 /** The blog feeds seated in the contract, inside the `blogs` row's dropdown.
  *

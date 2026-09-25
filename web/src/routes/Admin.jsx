@@ -4,6 +4,7 @@ import { health, coveragePage, listModels, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
 import BoardReview from '../components/BoardReview'
+import DiscussedModels from '../components/DiscussedModels'
 import KeywordsPanel from '../components/KeywordsPanel'
 import PromptsPanel from '../components/PromptsPanel'
 import SourcesPanel from '../components/SourcesPanel'
@@ -147,13 +148,37 @@ const SECTIONS = [
     id: 'models',
     title: 'Models',
     blurb: 'Sweep a model on demand, add one, or stop tracking one',
-    render: () => <CollectEvidence />,
+    render: () => (
+      <div className="stack stack-4">
+        <CollectEvidence />
+        {/* ⚠ BELOW THE TRACKED LIST, AND THE ORDER IS THE POINT. This
+            section is "the models we watch"; the panel underneath is
+            everything the board learned about models we did not. A reader
+            who has just scrolled thirteen folds is exactly the reader who
+            should see that 66 more have evidence. */}
+        <hr style={{ border: 0, borderTop: '1px solid var(--border-soft)', margin: 0 }} />
+        <DiscussedModels />
+      </div>
+    ),
   },
   {
     id: 'board',
     title: 'Board sections',
     blurb: 'Discovered by the classifier, and already live',
-    render: () => <BoardReview />,
+    render: () => (
+      <div className="stack stack-4">
+        <BoardReview />
+        {/* ⚠ THE SAME PANEL AS UNDER MODELS, AND ONE ENDPOINT BEHIND BOTH.
+            It answers a question each section raises and neither owns: the
+            review shows which AXES the board discovered, this shows which
+            MODELS it discovered them about, and a reviewer consolidating a
+            slug wants to know whether the models under it are ones anybody
+            is watching. Two components reading two endpoints would
+            eventually disagree about the same number. */}
+        <hr style={{ border: 0, borderTop: '1px solid var(--border-soft)', margin: 0 }} />
+        <DiscussedModels heading="Models these entries are about, that the models page does not list" />
+      </div>
+    ),
   },
   // ⚠ THERE IS NO 'Capability candidates' SECTION, AND ITS ABSENCE IS A
   //   DECISION RATHER THAN THE OVERSIGHT IT LOOKS LIKE. `capability_key` is

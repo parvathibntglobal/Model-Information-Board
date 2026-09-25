@@ -162,6 +162,11 @@ fields:
     routes:
     - /admin/stages
     state: consumed
+  corpus:
+    reviewed: false
+    routes:
+    - /admin/sources
+    state: consumed
   cost_per_task:
     reviewed: false
     routes:
@@ -227,6 +232,11 @@ fields:
     reviewed: false
     routes:
     - /fetch/log
+    state: consumed
+  entries:
+    reviewed: false
+    routes:
+    - /admin/discussed-models
     state: consumed
   environment:
     reviewed: false
@@ -376,11 +386,16 @@ fields:
     - /board
     state: consumed
   pipeline_version:
-    reviewed: false
+    reviewed: true
     routes:
     - /admin/pipeline
     - /coverage
-    state: consumed
+    state: no_consumer
+    why: 'its only reader was `PipelinePanel.jsx`, the per-stage counts panel on the admin
+      page, deleted 2026-09-25. The panel drew seven stage rows as comparable bars when the
+      rows count different units against different denominators - E2 counts 19,834 documents,
+      E3 counts 6,629 threads - and `items_in`/`items_out`, which would have made it a funnel,
+      are null on every stage. Both endpoints still emit the field and no page asks for it'
   platforms:
     reviewed: false
     routes:
@@ -665,6 +680,11 @@ fields:
     routes:
     - /documents/{document_id:path}/source
     state: consumed
+  threads:
+    reviewed: false
+    routes:
+    - /admin/sources
+    state: consumed
   today:
     reviewed: false
     routes:
@@ -700,6 +720,16 @@ fields:
     routes:
     - /admin/runs
     state: no_consumer
+  tracked_total:
+    reviewed: false
+    routes:
+    - /admin/discussed-models
+    state: consumed
+  tracked_with_entries:
+    reviewed: false
+    routes:
+    - /admin/discussed-models
+    state: consumed
   tracked_without_a_registry_id:
     reviewed: false
     routes:
@@ -765,3 +795,8 @@ fields:
     routes:
     - /changelog
     state: no_consumer
+  with_entries:
+    reviewed: false
+    routes:
+    - /admin/discussed-models
+    state: consumed

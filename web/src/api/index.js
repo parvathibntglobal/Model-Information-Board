@@ -366,7 +366,12 @@ export const adminUsage = (hours = 24, days = 14) =>
  * in each stage grouped by its status column, plus the job_run ledger for the
  * last pass. An empty stage reports as not-yet-run, never a clean zero.
  */
-export const pipelineStatus = () => request('/admin/pipeline')
+// ⚠ NOTHING CALLS `/admin/pipeline` ANY MORE. `PipelinePanel` was its only
+//   reader and was removed 2026-09-25: its seven rows counted different units
+//   against different denominators and rendered as seven comparable bars.
+//   The endpoint still answers; no page asks it. Removed rather than left
+//   exported, because an uncalled client function is the same orphan one
+//   layer down (rule 9).
 
 /**
  * Capabilities the extractor PROPOSED that none of the current keys name. The
@@ -394,6 +399,13 @@ export const pipelineStatus = () => request('/admin/pipeline')
 export const modelEvidence = (id) => request(`/models/${modelPath(id)}/evidence`)
 
 export const boardEntries = () => request('/admin/board-entries')
+
+//: Models the board holds evidence about that the models page does not list.
+//: Read by TWO panels - Models and Board sections - because it answers a
+//: question each of them raises and neither owns: the models list shows what
+//: we chose to watch, the board shows what people wrote about, and this is
+//: the gap between them.
+export const discussedModels = () => request('/admin/discussed-models')
 
 // Every prompt this project sends to a model, COMPOSED by the backend from the
 // real builders rather than transcribed. A copy in the frontend would drift the
