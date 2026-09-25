@@ -36,11 +36,15 @@ from collect.registry.openrouter import NEVER_EXPIRES  # noqa: E402
 SENTINEL = NEVER_EXPIRES.isoformat()
 
 
-def _filtered_out(model_id: str) -> bool:
-    """`:batch`-style service tiers fold into their base id; `-pro` is dropped.
+def _pro_tier(model_id: str) -> bool:
+    """`-pro` ids, listed APART from the other arrivals because that was asked for.
 
-    `-pro` is dropped because it is asked for, and it is a real loss: some -pro
-    ids are distinct models (openai/gpt-6-astra-pro). They are counted, not hidden.
+    ⚠ LISTED APART, NOT FILTERED OUT. This said "filtered out as asked" until
+      2026-09-25, while `poll-registry` inserted them anyway: 5 of 10 were in
+      `model_version` after the 2026-09-24 poll (#463). A report that exists so
+      we see what arrives before it writes must describe what the write does, so
+      these are arrivals, in their own subsection. Some are distinct models
+      (openai/gpt-6-astra-pro), which is why the poll is right to keep them.
     """
     return model_id.endswith("-pro")
 
@@ -53,12 +57,13 @@ def compute_diff(catalogue: list[dict], registry: dict[str, dict], tombstoned: f
         if m.get("alias_target"):   # a ~...-latest pointer, not a model; the poll skips it too
             continue
         by_base.setdefault(base_id(m["id"]), m)
-    pro_dropped = sorted(b for b in by_base if _filtered_out(b) and b not in registry)
-    arrivals = sorted(
-        (b for b in by_base
-         if b not in registry and b not in tombstoned and not _filtered_out(b)),
-        key=lambda b: -(by_base[b].get("created") or 0),
-    )
+    new = [b for b in by_base if b not in registry and b not in tombstoned]
+
+    def newest_first(ids):
+        return sorted(ids, key=lambda b: -(by_base[b].get("created") or 0))
+
+    arrivals = newest_first(b for b in new if not _pro_tier(b))
+    pro_arrivals = newest_first(b for b in new if _pro_tier(b))
     departures = sorted(cid for cid, row in registry.items()
                         if row.get("provenance") == "polled" and cid not in by_base)
     expiring, sentinel = [], []
@@ -72,7 +77,7 @@ def compute_diff(catalogue: list[dict], registry: dict[str, dict], tombstoned: f
         (sentinel if exp == SENTINEL else expiring).append((b, exp, current))
     return {"arrivals": [(b, by_base[b]) for b in arrivals], "departures": departures,
             "expiring": sorted(expiring), "sentinel": sorted(sentinel),
-            "pro_dropped": pro_dropped, "tombstoned_in_catalogue":
+            "pro_arrivals": [(b, by_base[b]) for b in pro_arrivals], "tombstoned_in_catalogue":
                 sorted(b for b in by_base if b in tombstoned)}
 
 
@@ -89,9 +94,14 @@ def render(d: dict, *, catalogue_size: int, registry_size: int) -> str:
     out += [f"- `{b}` - {m.get('name') or ''} (created {day(m)})" for b, m in d["arrivals"][:60]]
     if len(d["arrivals"]) > 60:
         out.append(f"- ... and {len(d['arrivals']) - 60} more")
-    out.append(f"\n{len(d['pro_dropped'])} `-pro` id(s) filtered out as asked, not hidden: "
-               + (", ".join(f"`{x}`" for x in d["pro_dropped"][:20]) or "none"))
-    out.append(f"{len(d['tombstoned_in_catalogue'])} tombstoned id(s) still in the catalogue, "
+    out.append(f"\n### Arrivals, `-pro` tier: {len(d['pro_arrivals'])}")
+    out.append("Listed apart, as asked. **The poll inserts these too** - they are not filtered, "
+               "and some are distinct models rather than billing tiers.")
+    out += [f"- `{b}` - {m.get('name') or ''} (created {day(m)})"
+            for b, m in d["pro_arrivals"][:20]]
+    if len(d["pro_arrivals"]) > 20:
+        out.append(f"- ... and {len(d['pro_arrivals']) - 20} more")
+    out.append(f"\n{len(d['tombstoned_in_catalogue'])} tombstoned id(s) still in the catalogue, "
                "which the poll skips.")
     out.append(f"\n### Departures: {len(d['departures'])}")
     out.append("Polled models the catalogue no longer lists. **Nothing is deleted automatically.**")
