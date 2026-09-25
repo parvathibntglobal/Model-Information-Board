@@ -30,6 +30,13 @@
 # quantile, the conventional choice. Larger values punish small samples harder:
 # at 1.96, one positive of one scores 0.21, two of two 0.34, six of six 0.61.
 #
+# ⚠ WHAT THIS VALUE DECIDES (@parvathibntglobal, #471 review, 2026-09-25):
+#
+#   At this value a 3-of-3 record outranks a 7-of-10 one. That is deliberate:
+#   on a page read to pick a model, reports of failure count against a model
+#   more than volume counts for it. A larger z reverses it — at 2.58, 7 of 10
+#   wins.
+#
 # Measured 2026-09-25 on the live board, 20 slugs (the top ten best-for and top
 # ten capability pages), 206 model rows: against the three-group report-count
 # order this moves 98 rows, 64 of them three or more places, and changes three
