@@ -2372,7 +2372,11 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     # THE DIFFERENCE BETWEEN WRITES AND ROWS, ON THE LINE THAT REPORTS THE
     # ROWS (#444). Said only when it happened.
     if merged:
-        detail += f", {merged} merged into an existing row"
+        dup = sum(r.merged_duplicate_claims for r in results)
+        dis = sum(r.merged_distinct_claims for r in results)
+        detached = sum(r.board_entries_detached_on_merge for r in results)
+        detail += (f", {merged} merged ({dup} duplicate, {dis} distinct and not "
+                   f"written; {detached} board entr(ies) detached)")
     if truncated:
         detail += (
             f"; {len(truncated)} of {len(results)} thread(s) STOPPED AT THE "
