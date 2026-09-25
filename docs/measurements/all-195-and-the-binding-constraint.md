@@ -13,7 +13,7 @@ And the survival estimate met a corpus for the first time: **8.7%, below the
 inherited-subject problem, which extraction solves by inheriting and triage
 solves by discarding.
 
-*Engineer 1 · 2026-08-21 · no model calls; writes to `52.17.75.29`*
+*Engineer 1 · 2026-08-21 · no model calls; writes to `203.0.113.5`*
 
 ---
 

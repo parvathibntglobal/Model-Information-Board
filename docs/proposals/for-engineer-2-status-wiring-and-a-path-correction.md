@@ -4,7 +4,7 @@
 the one where your fallback is dead by construction.**
 
 *Engineer 1 · 2026-08-20 · `contract/` change proposed, not taken ·
-`postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`*
+`postgresql://example_user@203.0.113.5:5432/Model-information-Board`*
 
 ---
 

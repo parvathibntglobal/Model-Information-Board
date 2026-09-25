@@ -182,7 +182,7 @@ claims and still cite them in `quote_ids`.**
 It was refused, correctly:
 
 > refusing `judge rebuild-cells`: ENVIRONMENT=development and the database is
-> 52.17.75.29, which is not this machine.
+> 203.0.113.5, which is not this machine.
 
 ### Which environment satisfies the writeguard, honestly: none, from here
 
@@ -197,7 +197,7 @@ is_local(url)                       a database on this machine
 Against the shared database from a laptop, **two of those doors are shut and the
 third is the one the refusal itself disowns**:
 
-- `is_local` is out — the rows are on 52.17.75.29, which is the whole point.
+- `is_local` is out — the rows are on 203.0.113.5, which is the whole point.
 - **Unsetting `ENVIRONMENT` does not help.** `environment()` is
   `(os.getenv("ENVIRONMENT") or DEV)`, so unset resolves to `development` — the
   refused value. There is no neutral setting.

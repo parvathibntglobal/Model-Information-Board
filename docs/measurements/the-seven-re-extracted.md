@@ -5,7 +5,7 @@ over-extraction rather than yield — and the eight land in almost exactly the
 place `the-eight-claims-and-their-input.md` said they would, from the input
 alone, before any of them existed.**
 
-*Engineer 1 · 2026-08-20 · `postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`*
+*Engineer 1 · 2026-08-20 · `postgresql://example_user@203.0.113.5:5432/Model-information-Board`*
 
 ---
 
@@ -162,7 +162,7 @@ guess.**
 
 ## 5 · What was written to staging, and what deliberately was not
 
-**DSN: `postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`**
+**DSN: `postgresql://example_user@203.0.113.5:5432/Model-information-Board`**
 (`environment=staging`; preflight passed 3, failed 0, skipped 1 and named it).
 
 | table | rows added | why |

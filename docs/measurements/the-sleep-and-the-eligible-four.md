@@ -172,7 +172,7 @@ A database where `load-tracked-set` never ran would have only seed-loaded
 aliases, and a sweep there really would query a handful of models. **That is the
 scenario worth ruling out, because it is about the environment the sweep runs
 in rather than about the code.** This repo configures exactly one
-`DATABASE_URL` — the shared instance at `52.17.75.29` — and the 40 above are
+`DATABASE_URL` — the shared instance at `203.0.113.5` — and the 40 above are
 measured on it. If the sweep is ever pointed somewhere else, this is the query
 that answers it in one line:
 

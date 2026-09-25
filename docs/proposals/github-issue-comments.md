@@ -6,7 +6,7 @@ treating an issue as a whole document asserts a completeness nothing established
 and 7 of the 27 stored issues carry 74 comments between them, one of them 46.
 
 *Engineer 1 · 2026-08-20 · a scope, nothing built ·
-`postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`*
+`postgresql://example_user@203.0.113.5:5432/Model-information-Board`*
 
 ---
 

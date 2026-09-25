@@ -6,7 +6,7 @@ needs stripping and two pages of the first feed the rule was missing. Then the
 re-assembly was DROPPED by the database — 30 of 30 — which answers the identity
 question with a measurement rather than a reading.**
 
-*Engineer 1 · 2026-08-20 · `postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`*
+*Engineer 1 · 2026-08-20 · `postgresql://example_user@203.0.113.5:5432/Model-information-Board`*
 
 ---
 

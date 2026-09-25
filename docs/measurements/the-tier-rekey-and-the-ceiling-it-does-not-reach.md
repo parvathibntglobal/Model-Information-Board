@@ -15,7 +15,7 @@ staging was unreachable all afternoon.*
 
 ## 1 · What is not in this document, and why
 
-**The re-weight did not run.** `52.17.75.29:5432` refused to answer for the whole
+**The re-weight did not run.** `203.0.113.5:5432` refused to answer for the whole
 session — 40 probes over 35 minutes, three of them with a 25-second timeout, zero
 connections. So there are no measured per-cell before/after figures here, and the
 `n_eff per cell` table E2 asked for is the one thing this cannot supply today.

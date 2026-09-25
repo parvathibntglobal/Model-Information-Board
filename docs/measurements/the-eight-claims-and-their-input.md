@@ -11,7 +11,7 @@ extracted from — which answers the harder question the request was really abou
 ## 1 · No database holds them, and there is no artifact either
 
 ```
-staging        52.17.75.29:5432/Model-information-Board    claim=0 cell=0 thread_extraction=0
+staging        203.0.113.5:5432/Model-information-Board    claim=0 cell=0 thread_extraction=0
 local test     localhost:5433/modelboard_test              claim=0 cell=0 thread_extraction=0
 local harvest  localhost:5433/modelboard_harvest_test      claim=0 cell=0 thread_extraction=0
 ```

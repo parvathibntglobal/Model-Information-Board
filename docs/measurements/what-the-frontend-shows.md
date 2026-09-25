@@ -1,6 +1,6 @@
 # What the frontend shows: two lines, and a rollup cannot add a third
 
-**Measured against `52.17.75.29/Model-information-Board`. The board renders two
+**Measured against `203.0.113.5/Model-information-Board`. The board renders two
 sentences, both of them "not yet corroborated", on one model out of 342.**
 
 ```

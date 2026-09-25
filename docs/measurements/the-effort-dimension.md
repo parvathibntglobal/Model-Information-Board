@@ -382,7 +382,7 @@ Three, all E2's call and all recorded in the file:
 | `docs/how-it-works.md`, `docs/logic-and-workflow.md` | the retry-is-not-a-second-chance rule, at both places retries are described | |
 
 **Suite: 2,003 passed, 0 failures.** 58 errors, all fixture setup against
-`52.17.75.29`, which stopped answering partway through the run — the same host
+`203.0.113.5`, which stopped answering partway through the run — the same host
 the migration and this run's document load both used successfully earlier.
 
 Not changed: the capability vocabulary, the system prompt's bare-keys assembly

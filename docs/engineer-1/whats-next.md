@@ -8,7 +8,7 @@ blog documents, storage path proved, salvage in, capability choice with a
 labeller — and **none of it can produce a single publishable cell**, because
 every claim in the corpus comes from the same person.
 
-*Engineer 1 · 2026-08-21 · measured against `52.17.75.29/Model-information-Board`*
+*Engineer 1 · 2026-08-21 · measured against `203.0.113.5/Model-information-Board`*
 
 ---
 

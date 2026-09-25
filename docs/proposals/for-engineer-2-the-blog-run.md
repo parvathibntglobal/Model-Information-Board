@@ -5,7 +5,7 @@ and neither is about extraction quality, and one number that reached me was
 inverted in a way that would have set the wrong expectation.**
 
 *Engineer 1 · 2026-08-20 ·
-`postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`*
+`postgresql://example_user@203.0.113.5:5432/Model-information-Board`*
 
 ---
 
