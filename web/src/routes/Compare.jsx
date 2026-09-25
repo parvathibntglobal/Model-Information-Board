@@ -271,7 +271,7 @@ export default function Compare() {
               const total = m.reported?.entries || 0
               if (!total) return <span className="dim">none</span>
               const order = ['capability', 'metric', 'best_for']
-              const label = { capability: 'capability', metric: 'metric', best_for: 'best-for' }
+              const label = { capability: 'capability', metric: 'metric', best_for: 'job' }
               const parts = order.filter((k) => by[k]).map((k) => `${by[k]} ${label[k]}`)
               // Any section the order above does not know about, rather than
               // dropping it: a new section would otherwise vanish from a total
@@ -290,7 +290,7 @@ export default function Compare() {
                 </span>
               )
             }],
-            // ⚠ THE HEADING SAYS "BEST FOR" AND THE ROWS ARE NOT ALL
+            // ⚠ THE HEADING SAID "BEST FOR" (NOW "JOBS", #469) AND THE ROWS ARE NOT ALL
             //   RECOMMENDATIONS. `evidence_for_model` does not filter negative
             //   `best_for` rows - deliberately, because the board's own caveat
             //   sends readers to the model page to read them - so this row can
@@ -300,7 +300,7 @@ export default function Compare() {
             //   Not resolved here. What IS new is that the polarity renders
             //   beside each row, so a reader can see `2 of 2 negative` instead
             //   of a bare count that reads as endorsement.
-            ['Best for — discovered', (m) => {
+            ['Jobs — discovered', (m) => {
               const bf = m.reported?.best_for || []
               if (!bf.length) return <span className="dim">no job named yet</span>
               return <Listed unit="job" items={bf.map((b) => ({

@@ -524,12 +524,12 @@ function vBoard(tab){
   const note = p.note || '';
   return `<div class="shell phead">${crumb([['Board',null]])}
     <h1>The board</h1>
-    <p class="sub">Three ways into the same evidence. <b>Best for</b> lists what was reported on a job.
+    <p class="sub">Three ways into the same evidence. <b>Jobs</b> lists what was reported on a job.
     <b>Capabilities</b> defines what a claim means, so a claim on one model page can be compared with a
     claim on another. <b>Metrics</b> are the axes, and what each one refuses to average.</p></div>
     <div class="shell">
       <div class="tabs" role="tablist">
-        <button role="tab" aria-selected="${tab==='best'}" data-tab="best">Best for</button>
+        <button role="tab" aria-selected="${tab==='best'}" data-tab="best">Jobs</button>
         <button role="tab" aria-selected="${tab==='cap'}" data-tab="cap">Capabilities</button>
         <button role="tab" aria-selected="${tab==='met'}" data-tab="met">Metrics</button>
       </div>
@@ -552,7 +552,7 @@ function vJob(slug){
   // slice with nothing on the page saying it was a slice. Every one of those
   // reports is now on the page of the model it was reported about, and this
   // page is the way to them.
-  return `<div class="shell phead">${crumb([['Board','board'],['Best for','board:best'],[j.name,null]])}
+  return `<div class="shell phead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
     <h1>${esc(j.h1)}</h1><p class="sub">${esc(j.sub)}</p></div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
       <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
@@ -633,7 +633,7 @@ function vModelIn(kind, item, key, crumbs){
 function vJobModel(slug, key){
   const j = byS(DB.jobs,slug); if(!j) return vBoard('best');
   return vModelIn('job', j, key,
-    [['Board','board'],['Best for','board:best'],[j.name,'job:'+j.slug],
+    [['Board','board'],['Jobs','board:best'],[j.name,'job:'+j.slug],
      [(j.rows.find(r=>r.key===key)||{}).m || key, null]]);
 }
 

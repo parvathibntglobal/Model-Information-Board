@@ -2233,7 +2233,7 @@ def board_page() -> dict:
     }
 
     return {
-        # The demo board's three tabs, in its own order: Best for, Capabilities,
+        # The demo board's three tabs, in its own order: Jobs (key `best_for`), Capabilities,
         # Metrics. The frontend renders these keys directly.
         "jobs": sections["best_for"],
         "caps": sections["capability"],

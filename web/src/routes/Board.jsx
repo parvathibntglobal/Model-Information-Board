@@ -6,7 +6,7 @@ import { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel } from '../bo
 import BoardView from '../board/BoardView'
 
 /**
- * The board: three ways into the same evidence — Best for, Capabilities,
+ * The board: three ways into the same evidence — Jobs (key `best_for`), Capabilities,
  * Metrics — plus a page per discovered section.
  *
  * THE SECTIONS ARE DISCOVERED, NOT CONFIGURED. `GET /board` returns whatever the

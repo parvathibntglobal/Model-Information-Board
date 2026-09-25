@@ -71,12 +71,27 @@ class TestTheSurfaceNoLongerPromisesSuitability:
     def _js() -> str:
         return VIEWS.read_text(encoding="utf-8")
 
-    def test_the_heading_is_best_for_by_decision(self):
-        # "Jobs" was proposed on #469 and declined 2026-09-25: the heading stays
-        # "Best for", and what keeps a complaint from reading as a pick is the
-        # three named groups with both counts on every row, not the tab's name.
+    def test_the_tab_is_named_for_what_it_holds(self):
+        # "Jobs" says what the section is organised by and promises nothing.
+        # "Best for" promised suitability over a list that admits a model on one
+        # positive report, with its problems now visible underneath - the label
+        # and the content disagreed. Restored for one revision of #469 and
+        # changed back 2026-09-25.
         js = self._js()
-        assert 'data-tab="best">Best for</button>' in js
+        assert 'data-tab="best">Jobs</button>' in js
+        assert ">Best for</button>" not in js
+
+    def test_no_visible_label_says_best_for(self):
+        # Comments may quote the old heading to explain why it went; rendered
+        # strings may not. The route keys (`board:best`, /board/jobs/) stay.
+        for path in (VIEWS, ROOT / "web" / "src" / "components" / "ModelEvidence.jsx",
+                     ROOT / "web" / "src" / "components" / "BoardReview.jsx",
+                     ROOT / "web" / "src" / "routes" / "Compare.jsx"):
+            for line in path.read_text(encoding="utf-8").splitlines():
+                code = line.strip()
+                if code.startswith(("//", "*", "/*", "{/*")):
+                    continue
+                assert "Best for" not in code, f"{path.name}: {code[:90]}"
 
     def test_the_tab_intro_no_longer_promises_a_pick(self):
         js = self._js()
