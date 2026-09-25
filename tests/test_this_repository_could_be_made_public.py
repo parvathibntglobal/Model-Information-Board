@@ -30,6 +30,20 @@ the pushed refs — 2,729 blobs:
 Every other credential-shaped string is a placeholder inside harvested article
 text (`YOUR_DEEPSEEK_API_KEY`) or a test fixture (`user:pw`).
 
+⚠ WHAT A SCAN CANNOT FIND, AND THIS IS THE LIMIT THAT MATTERS MOST. Every
+  check below is a pattern over text. A real person's name in plain prose,
+  with no marker, in no harvested set, matches nothing and never will.
+
+  @anoojntglobal-sudo's reading pass on 2026-09-25 found **1,073 handles in
+  `_github_comments.json`** that no scan here could have matched: staging
+  stores GitHub authors as numeric ids, and the values carry no marker at all.
+  Not one of them would have appeared in the blob scan that produced the
+  summary above.
+
+  So the audit above says what the PATTERNS found, and nothing about what is
+  there. Reading was the only check that found the 1,073, and the next person
+  will assume otherwise unless this paragraph stops them.
+
 WHAT THIS FILE DELIBERATELY DOES NOT DECIDE. Two findings from that audit are
 judgement calls rather than defects, and they are recorded on the issue rather
 than enforced here:
