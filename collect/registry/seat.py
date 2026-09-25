@@ -159,6 +159,52 @@ class _Aliases:
     variants: list[str]
 
 
+def table_claims(conn, normalized_keys) -> list[AliasRow]:
+    """Every row already in `model_alias` for these normalised keys, as AliasRows.
+
+    ⚠ CLOSED ROWS INCLUDED, AND THAT IS THE FIX (#455). A row with a
+      `valid_until` still claims its key for the window it covered, so a new
+      seat whose window overlaps that one is two models on one surface over the
+      same dates - exactly what `find_collisions` refuses. The collision that
+      surfaced this was `fable5`: Claude Fable 5.1's CLOSED row (NULL
+      `valid_from`, so open-ended before 2026-09-17) against Claude Fable 5's
+      new one from 2026-06-09. A check against live rows only, by hand or in
+      code, saw nothing.
+
+    NULL `valid_from` is read as open-ended by `intervals_overlap` (date.min),
+    never as "no claim". Only the fields `find_collisions` reads are filled;
+    the rest are placeholders, because these rows are compared, never written.
+    """
+    keys = sorted({k for k in normalized_keys if k})
+    if not keys:
+        return []
+    rows = conn.execute(
+        "SELECT a.id, a.normalized, a.valid_from, a.valid_until, a.model_version_id, "
+        "       COALESCE(v.canonical_id, a.model_version_id) "
+        "FROM model_alias a LEFT JOIN model_version v ON v.id = a.model_version_id "
+        "WHERE a.normalized = ANY(%s)",
+        (keys,),
+    ).fetchall()
+    return [
+        AliasRow(id=rid, surface=normalized, normalized=normalized, variants=[],
+                 provider_hint=None, model_version_id=mv_id, family=None,
+                 specificity="unknown", valid_from=valid_from, valid_until=valid_until,
+                 canonical_id=canonical)
+        for rid, normalized, valid_from, valid_until, mv_id, canonical in rows
+    ]
+
+
+def check_against_table(conn, rows: list[AliasRow]) -> None:
+    """Refuse if any of `rows` shares a key with ANOTHER model's row over an
+    overlapping window - new rows against each other and against the table.
+
+    Same-model rows are skipped by `find_collisions` (a model holding one
+    surface across two windows is the append-only handover), so re-seating a
+    model does not collide with itself.
+    """
+    check_no_collisions([*rows, *table_claims(conn, (r.normalized for r in rows))])
+
+
 def rows_for(conn, entry: ReviewedEntry) -> list[AliasRow]:
     """Build the alias rows. Facts from `model_version`, surfaces from the artifact."""
     row = conn.execute(
@@ -189,7 +235,8 @@ def seat(conn, canonical_id: str, *, path: Path | None = None) -> dict[str, obje
 
     Refuses on any blocking `INCOMPLETE` slot, on a missing entry, on a missing
     primary surface, on a model absent from `model_version`, and on a collision
-    with an alias already live for a different model — five reasons, each named.
+    with an alias another model holds over an overlapping window, live or closed
+    (#455) — five reasons, each named.
     """
     entry = read_entry(canonical_id, path)
     if entry.blocking_incomplete:
@@ -207,7 +254,10 @@ def seat(conn, canonical_id: str, *, path: Path | None = None) -> dict[str, obje
             f"{entry.surface!r} and {len(entry.variants)} variant(s). Zero rows "
             f"and no entry look identical in a count, so this refuses."
         )
-    check_no_collisions(rows)
+    # AGAINST THE TABLE, NOT ONLY THE NEW ROWS (#455). The docstring above has
+    # always promised "a collision with an alias already live for a different
+    # model"; until 2026-09-25 this compared the new model's rows with each other.
+    check_against_table(conn, rows)
 
     from collect.registry.load import _sync_alias
 
