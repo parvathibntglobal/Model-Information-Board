@@ -328,7 +328,7 @@ class TestTheFirstRowNamesWhatTheEvidenceIs:
         assert block.count("ruling IS DISTINCT FROM 'declined'") >= 2
 
 
-class TestTheListIsColumnsAndAMarkRatherThanProse:
+class TestTheListIsColumnsRatherThanProse:
     """⚠ THREE WORDS PER ROW ON UP TO 33 ROWS IN THREE COLUMNS.
 
     Each line read `Reasoning — 5 reports  3 of 5 positive`. "reports" and
@@ -336,57 +336,36 @@ class TestTheListIsColumnsAndAMarkRatherThanProse:
     with the name so the eye had no edge to run down, and the numbers being
     compared were buried in the sentence.
 
-    Per the visualization guidance, positive/neutral/negative is an
-    ordered-scale share and its default form is a stacked bar with a neutral
-    midpoint — not a number, and not words. The repeated words moved to a
-    header said once, the counts became a column, and the split became a mark.
+    ⚠ AND THE POLARITY COLUMN THAT REPLACED THE WORDS IS ALSO GONE.
+      @parvathibntglobal removed it on 2026-09-25: the page shows the axis and
+      its report count, and nothing else.
+
+      What went with it was doing real work, and this is the place that says
+      so. The bar was the only surface on which a `best_for` row whose every
+      report is a complaint was legible — `2 of 2 negative` under a heading
+      that recommends. 6 of 155 model-axis pairs are in that state,
+      `evidence_for_model` does not filter them, and this page renders them
+      under the board's heading. That over-claim is silent again rather than
+      fixed, and #469 is where it is being resolved.
     """
 
     def test_the_repeated_words_are_in_a_header_not_on_each_row(self):
         assert '<span className="cmp-line-n">reports</span>' in code()
-        assert "how it went" in code()
 
-    def test_the_polarity_is_a_bar(self):
-        assert "function PolarityBar({ counts })" in code()
-        assert "(x.n / total) * 100" in code()
+    def test_the_polarity_column_is_gone(self):
+        assert "how it went" not in code()
+        assert "PolarityBar" not in code()
 
-    def test_the_segments_are_separated_by_a_gap(self):
-        """⚠ IDENTITY MUST NOT REST ON HUE ALONE. A reader who cannot tell the
-        two poles apart still sees three segments, because the guidance asks
-        for a 2px surface gap between stacked fills."""
-        block = code()[code().index("function PolarityBar("):]
-        block = block[:block.index("function axisPolarity(")]
-        assert "gap: 2" in block
+    def test_nothing_it_needed_is_left_unread(self):
+        """⚠ RULE 9. A component nothing renders, a lookup nothing calls and a
+        payload key nothing reads are the same orphan at three layers, and
+        each looks wired from either end."""
+        assert "axisPolarity" not in code()
+        assert "POLARITY_ORDER" not in code()
+        assert '"by_axis"' not in app()
 
-    def test_the_bar_has_a_text_alternative(self):
-        """A mark with no label is color-alone. `aria-label` carries the same
-        split the title does, so a screen reader gets the numbers."""
-        assert 'role="img"' in code()
-        assert "aria-label={segments.map(" in code()
-
-    def test_the_exact_counts_and_their_denominator_are_on_the_title(self):
-        """Rule 7, kept off the line: `reports` counts documents and the split
-        counts entries, and one document can carry nine. A proportion has no
-        denominator to contradict the number beside it."""
-        assert "board entr${total === 1 ? 'y' : 'ies'}" in code()
-
-    def test_zero_counts_are_not_drawn(self):
-        assert "filter(([key]) => counts[key] > 0)" in code()
-
-    def test_the_bar_uses_the_repositorys_own_polarity_tokens(self):
-        """`--fail` and `--pass` with a neutral grey between them: a diverging
-        pair with a grey midpoint, which is the rule for polarity. Validated
-        against the dark surface — CVD ΔE 8.5 protan, normal-vision 16.7,
-        contrast ≥ 3:1 on all three."""
-        assert "['negative', 'var(--fail)']" in code()
-        assert "['positive', 'var(--pass)']" in code()
-        assert "['neutral', 'var(--text-3)']" in code()
-
-    def test_unrecorded_is_drawn_as_neutral_but_named_apart(self):
-        """Rule 6. It shares the grey because a reader cannot act on the
-        difference in a 64px bar, and it keeps its own word in the title where
-        they can."""
-        assert "['unrecorded', 'var(--text-3)']" in code()
+    def test_the_row_still_shows_its_report_count(self):
+        assert '<span className="cmp-line-n tnum">{x.reports}</span>' in code()
 
 
 class TestThePluralIsNotStringConcatenation:

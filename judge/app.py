@@ -1150,34 +1150,18 @@ def compare_page(ids: str = "") -> dict:
                 "  AND d.parent_id IS NOT NULL",
                 (m["model_version_id"],),
             ).fetchone()[0]
-            # ⚠ PER AXIS, NOT ONLY PER MODEL. The section lists carried a
-            #   `reports` count and nothing else, so `instruction-following`
-            #   on Claude Opus 5 rendered as "12 reports" while the entries
-            #   behind it are 1 positive and 24 NEGATIVE. A count of how many
-            #   people spoke, with no sign of what they said, is the half of
-            #   the figure that flatters.
+            # ⚠ THE PER-AXIS POLARITY QUERY IS GONE WITH ITS ONLY READER.
+            #   It grouped `board_entry` by (section, slug, polarity) so the
+            #   compare page could draw a bar per axis. @parvathibntglobal
+            #   removed that column on 2026-09-25, so the query, the
+            #   `by_axis` key and the extra round trip go with it rather than
+            #   being left as a produced value nobody consumes (rule 9).
             #
-            #   ⚠ AND IT IS COUNTED AGAINST ITS OWN DENOMINATOR. `reports` is
-            #     distinct voices (12 here); these are ENTRIES (27). Printing
-            #     "12 reports · 24 negative" would put two populations on one
-            #     line, which is the defect this page exists to avoid - so the
-            #     entry total travels with the split.
-            by_axis = conn.execute(
-                "SELECT section, slug, polarity, count(*) FROM board_entry "
-                "WHERE model_version_id = %s "
-                "  AND ruling IS DISTINCT FROM 'declined' "
-                "GROUP BY section, slug, polarity",
-                (m["model_version_id"],),
-            ).fetchall()
-            axis_polarity: dict[str, dict[str, int]] = {}
-            for section, slug, pol, n in by_axis:
-                row = axis_polarity.setdefault(f"{section}:{slug}", {})
-                # NULL polarity is UNRECORDED, not neutral (rule 6). An
-                # extractor that did not say is a different fact from one that
-                # said "neither praise nor complaint".
-                row[pol or "unrecorded"] = row.get(pol or "unrecorded", 0) + n
+            #   The finding it surfaced is not lost, only unrendered: 6 of 155
+            #   `best_for` model-axis pairs have zero positive reports, and
+            #   this page still lists them under a heading that recommends.
+            #   See #469, which groups on exactly that.
             polarity[m["model_version_id"]] = {
-                "by_axis": axis_polarity,
                 "platforms": [{"source": src, "documents": n} for src, n in platforms],
                 # REPLIES SEPARATELY, because a comment under somebody else's
                 # post and a post somebody wrote are not the same act, and the

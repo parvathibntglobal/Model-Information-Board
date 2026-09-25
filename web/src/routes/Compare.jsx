@@ -305,7 +305,6 @@ export default function Compare() {
               if (!bf.length) return <span className="dim">no job named yet</span>
               return <Listed unit="job" items={bf.map((b) => ({
                 label: b.name, reports: b.reports,
-                polarity: axisPolarity(m, 'best_for', b.slug),
               }))} />
             }],
             ['Discussed under', (m) => {
@@ -313,7 +312,6 @@ export default function Compare() {
               if (!caps.length) return <span className="dim">nothing yet</span>
               return <Listed unit="capability" items={caps.map((c) => ({
                 label: c.name || c.slug, reports: c.reports,
-                polarity: axisPolarity(m, 'capability', c.slug),
               }))} />
             }],
             ['Metrics reported', (m) => {
@@ -327,7 +325,6 @@ export default function Compare() {
                 return {
                   label: `${x.name}${f ? `: ${f.value} (${f.basis})` : ''}`,
                   reports: x.reports,
-                  polarity: axisPolarity(m, 'metric', x.slug),
                 }
               })} />
             }],
@@ -428,86 +425,26 @@ export default function Compare() {
  * opening. A cell with forty entries is tall, and a tall cell a reader can
  * read beats a short one they cannot.
  */
-/**
- * How one axis was phrased, as a proportional bar.
- *
- * FORM CHOSEN BEFORE COLOR, per the visualization guidance: positive /
- * neutral / negative is an ordered-scale share — Likert-shaped — and the
- * default form for that is a **stacked bar with a neutral midpoint**, not a
- * number and not a pie of two slices.
- *
- * ⚠ THREE WORDS PER ROW, ON UP TO 33 ROWS, IN THREE COLUMNS WAS THE PROBLEM.
- *   Each line read `Reasoning — 5 reports  3 of 5 positive`: the words
- *   "reports" and "positive" repeated on every line of every column, and the
- *   eye had nothing to compare because line lengths varied with the name. The
- *   repeated words move to the column header, said once, and the numbers
- *   become a mark the eye can scan down.
- *
- * ⚠ AND THE BAR IS A PROPORTION, WHICH REMOVES A CONTRADICTION. The line used
- *   to carry `1 report · 9 of 9 positive` — true twice over, since `reports`
- *   counts documents and the split counts entries, and one document can carry
- *   nine. A proportion has no denominator to disagree with the number beside
- *   it, and the exact counts are in the title.
- *
- * COLOR: the repository's own `--fail` / `--pass` with a neutral grey between
- * them — a diverging pair with a grey midpoint, which is the rule for
- * polarity. Validated against the dark surface with the skill's script: CVD
- * separation ΔE 8.5 (protan), normal-vision 16.7, contrast ≥ 3:1 on all
- * three. Its lightness-band and chroma-floor checks fail by design on a
- * diverging ramp and are not applicable here.
- *
- * A 2px surface gap separates the segments, so identity does not rest on hue
- * alone for a reader who cannot tell the two poles apart.
- */
 //: ⚠ "15 capabilitys" WAS ON THE PAGE. Two of the three units this component
 //:   is given do not take a bare `s`, and they are the two most common.
 const PLURALS = { capability: 'capabilities', job: 'jobs', metric: 'metrics' }
 
-const POLARITY_ORDER = [
-  ['negative', 'var(--fail)'],
-  ['neutral', 'var(--text-3)'],
-  ['unrecorded', 'var(--text-3)'],
-  ['positive', 'var(--pass)'],
-]
-
-function PolarityBar({ counts }) {
-  if (!counts) return null
-  const total = Object.values(counts).reduce((a, b) => a + b, 0)
-  if (!total) return null
-  const segments = POLARITY_ORDER
-    .filter(([key]) => counts[key] > 0)
-    .map(([key, color]) => ({ key, color, n: counts[key] }))
-  return (
-    <span
-      role="img"
-      aria-label={segments.map((x) => `${x.n} ${x.key}`).join(', ')}
-      title={`${segments.map((x) => `${x.n} ${x.key}`).join(' · ')}`
-             + ` — ${total} board entr${total === 1 ? 'y' : 'ies'}`}
-      style={{
-        display: 'inline-flex', gap: 2, width: 64, height: 6,
-        borderRadius: 3, overflow: 'hidden', flex: '0 0 auto',
-      }}
-    >
-      {segments.map((x) => (
-        <span
-          key={x.key}
-          style={{ background: x.color, width: `${(x.n / total) * 100}%`,
-                   borderRadius: 2 }}
-        />
-      ))}
-    </span>
-  )
-}
-
-
-//: `{section}:{slug}` is the key the endpoint builds, and the section names
-//: are the DATABASE's - `capability`, singular - not the payload's plural
-//: `capabilities`. Getting that wrong returns undefined and renders nothing,
-//: which looks exactly like an axis with no entries.
-function axisPolarity(m, section, slug) {
-  return (m.reported?.polarity?.by_axis || {})[`${section}:${slug}`]
-}
-
+//: ⚠ THE POLARITY BAR IS GONE FROM THIS PAGE, and so are `PolarityBar`,
+//:   `axisPolarity` and the `POLARITY_ORDER` beside them. Removed rather than
+//:   left unread: a component nothing renders is the orphan of #438 one layer
+//:   down, and it reads as wired from either end.
+//:
+//:   It showed positive/neutral/negative per axis as a proportional bar.
+//:   @parvathibntglobal removed the column 2026-09-25 - the page now shows the
+//:   axis and its report count, and nothing else.
+//:
+//: ⚠ ONE THING WENT WITH IT THAT WAS DOING REAL WORK. The bar was the only
+//:   surface on which a `best_for` row whose every report is a complaint was
+//:   legible: `2 of 2 negative` under a heading that recommends. 6 of 155
+//:   model-axis pairs are in that state, `evidence_for_model` does not filter
+//:   them, and this page renders them under the board's heading. That
+//:   over-claim is now silent again rather than fixed. It is the open section
+//:   question - see @anoojntglobal-sudo's #469, which groups by exactly this.
 
 function Listed({ items, unit, upTo = 12 }) {
   if (!items.length) return null
@@ -523,10 +460,7 @@ function Listed({ items, unit, upTo = 12 }) {
     <li key={i} className="cmp-line">
       <span className="cmp-line-name">{typeof x === 'string' ? x : x.label}</span>
       {typeof x !== 'string' && (
-        <>
-          <span className="cmp-line-n tnum">{x.reports}</span>
-          <PolarityBar counts={x.polarity} />
-        </>
+        <span className="cmp-line-n tnum">{x.reports}</span>
       )}
     </li>
   )
@@ -540,7 +474,6 @@ function Listed({ items, unit, upTo = 12 }) {
       <div className="cmp-line cmp-line-head dim">
         <span className="cmp-line-name">{items.length} {plural}</span>
         <span className="cmp-line-n">reports</span>
-        <span style={{ width: 64, flex: '0 0 auto' }}>how it went</span>
       </div>
       <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
         {shown.map(line)}
