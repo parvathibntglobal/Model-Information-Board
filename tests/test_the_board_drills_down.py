@@ -63,6 +63,8 @@ from __future__ import annotations
 
 import pathlib
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 STORE = ROOT / "judge" / "store" / "board_entries.py"
 DB = ROOT / "web" / "src" / "board" / "db.js"
@@ -546,13 +548,14 @@ class TestTheOrderingIsThreeGroups:
         assert [m["model_label"] for m in out] == ["OnePlusElevenMinus", "TwoNeutral"]
         assert out[0]["group"] == "working"
 
-    def test_within_a_group_the_order_is_still_report_count(self):
-        # Not positive count: A has 1 positive in 3 reports, B 2 positives in 2.
+    def test_the_first_group_is_ordered_by_the_lower_bound_not_by_count(self):
+        # A has 1 positive in 3 reports, B 2 of 2. By count A was first; by the
+        # lower bound B is (0.34 against 0.06).
         r = self._r
         rows = [r("A", "a1", "au_1", "positive"), r("A", "a2", "au_2", "negative"),
                 r("A", "a3", "au_3", "negative"),
                 r("B", "b1", "au_4", "positive"), r("B", "b2", "au_5", "positive")]
-        assert self._order("capability", rows) == ["A", "B"]
+        assert self._order("capability", rows) == ["B", "A"]
 
     def test_a_tie_keeps_the_position_it_arrived_in(self):
         r = self._r
@@ -574,12 +577,22 @@ class TestTheOrderingIsThreeGroups:
         out = build([row(section="metric", slug="swe-bench", value="38.8%")])
         assert "group" not in out["metric"][0]["models"][0]
 
-    def test_the_intro_states_the_rule_rather_than_calling_it_a_count(self):
+    def test_the_intro_states_the_rule_in_words(self):
         js = _views()
         assert "Listed in three groups" in js
-        assert "a model enters the first group on a single positive report" in js
-        assert "however many problem reports it also has" in js
+        assert "more`" in js and "consistently say it worked come first" in js
+        assert "counts`" in js and "for less than the same record on many" in js
+        assert "No score is shown: each row shows its counts." in js
+        assert "single positive report, however many problem reports it also has" in js
         assert "extractor\u2019s reading of each quote" in js
+
+    def test_the_intro_names_no_formula(self):
+        # The order is described, never computed on the page.
+        intro = _views()[_views().index("function listIntro(item)"):]
+        intro = intro[:intro.index("\nfunction ")]
+        rendered = "\n".join(ln for ln in intro.splitlines() if not ln.strip().startswith("//"))
+        for word in ("Wilson", "lower bound", "1.96", "confidence", "interval"):
+            assert word not in rendered
 
     def test_the_boundary_is_drawn_on_the_page(self):
         js = _views()
@@ -819,3 +832,76 @@ class TestTheTabSaysWhatIsBehindEachCard:
         met = met[:met.index("grid:")]
         assert "single model" in met, "the metrics tab no longer says it"
         assert "none of them is a comparison" in met
+
+
+class TestTheFirstGroupIsOrderedByAnUnshownLowerBound:
+    """The four cases checked on the live board 2026-09-25, as fixtures, and the
+    properties that keep the score off the page and out of the other groups."""
+
+    @staticmethod
+    def _rows(section, slug, spec):
+        """spec: [(label, positives, negatives, neutrals)], one document each."""
+        out, n = [], 0
+        for label, pos, neg, neu in spec:
+            for polarity, count in (("positive", pos), ("negative", neg), ("neutral", neu)):
+                for _ in range(count):
+                    n += 1
+                    out.append(row(section=section, slug=slug, mv=label, registry=label,
+                                   label=label, doc=f"d{n}", author=f"au_{n}",
+                                   polarity=polarity))
+        return out
+
+    def _order(self, section, slug, spec):
+        models = build(self._rows(section, slug, spec))[section][0]["models"]
+        return [m["model_label"] for m in models]
+
+    def test_astra_above_opus_5_on_coding_agent(self):
+        # +6 -1 of 8 against +7 -3 of 11: count put Opus 5 first.
+        spec = [("Opus5", 7, 3, 1), ("Astra", 6, 1, 1)]
+        order = self._order("best_for", "coding-agent", spec)
+        assert order.index("Astra") < order.index("Opus5")
+
+    def test_opus_4_6_above_opus_5_on_instruction_following(self):
+        # +2 -0 of 3 against +1 -11 of 12: count put Opus 5 first.
+        spec = [("Opus5", 1, 11, 0), ("Opus46", 2, 0, 1)]
+        assert self._order("capability", "instruction-following", spec) == ["Opus46", "Opus5"]
+
+    def test_kimi_above_sol_pro_on_reasoning(self):
+        spec = [("SolPro", 1, 0, 1), ("Kimi", 10, 2, 0)]
+        assert self._order("capability", "reasoning", spec)[0] == "Kimi"
+
+    def test_glm_above_deepseek_on_vision(self):
+        spec = [("DeepSeek", 0, 8, 0), ("GLM", 6, 0, 0)]
+        assert self._order("capability", "vision", spec) == ["GLM", "DeepSeek"]
+
+    def test_neutral_only_has_no_score_and_keeps_its_own_group(self):
+        from judge.store.board_entries import _wilson_lower
+        assert _wilson_lower(0, 0, 1.96) is None
+        spec = [("Neg", 0, 8, 0), ("Neu", 0, 0, 1), ("Pos", 1, 0, 0)]
+        models = build(self._rows("capability", "vision", spec))["capability"][0]["models"]
+        assert [m["model_label"] for m in models] == ["Pos", "Neu", "Neg"]
+        assert [m["group"] for m in models] == ["working", "neutral", "problems"]
+
+    def test_the_problems_group_is_ordered_by_report_count(self):
+        # Every score there is 0; count decides, as before.
+        spec = [("TwoNeg", 0, 2, 0), ("FiveNeg", 0, 5, 0)]
+        assert self._order("capability", "vision", spec) == ["FiveNeg", "TwoNeg"]
+
+    def test_the_score_is_never_emitted(self):
+        spec = [("A", 3, 1, 0), ("B", 1, 0, 0)]
+        for model in build(self._rows("capability", "reasoning", spec))["capability"][0]["models"]:
+            for key, value in model.items():
+                assert not isinstance(value, float), f"{key}={value!r} looks like a score"
+            assert not {"score", "wilson", "lower_bound", "rank"} & set(model)
+
+    def test_the_weight_is_read_from_contract_and_has_no_default(self, monkeypatch):
+        import judge.config as config
+        assert config.board_ordering_z() == 1.96
+        config.board_ordering_z.cache_clear()
+        monkeypatch.setattr(config, "_read", lambda name: {"version": 1})
+        try:
+            with pytest.raises(ValueError, match="wilson_z"):
+                config.board_ordering_z()
+        finally:
+            monkeypatch.undo()
+            config.board_ordering_z.cache_clear()

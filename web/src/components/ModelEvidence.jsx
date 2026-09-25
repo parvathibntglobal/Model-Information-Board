@@ -22,7 +22,7 @@ import { IconAlert, IconLayers } from './Icons'
  */
 
 const SECTIONS = [
-  ['best_for', 'Jobs', 'Jobs engineers report running on this model.'],
+  ['best_for', 'Best for', 'Jobs engineers report running on this model.'],
   ['capabilities', 'Capabilities', 'Behaviours reported, well or badly.'],
   ['metrics', 'Metrics', 'Figures, copied as written. Stated and reported are never merged.'],
 ]

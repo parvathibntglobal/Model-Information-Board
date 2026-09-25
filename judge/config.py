@@ -246,6 +246,24 @@ def bucket_for(capability_key: str, conditions_seen: dict[str, int | bool | None
     return f"{dim}:{band_for(dim, conditions_seen.get(dim))}"
 
 
+@lru_cache(maxsize=1)
+def board_ordering_z() -> float:
+    """`contract/board_ordering.yaml`'s `wilson_z`: the confidence level the
+    board's first group is ordered by.
+
+    NO DEFAULT. A missing or non-positive value raises rather than falling back
+    to 1.96, because a fallback that succeeds would order every page by a
+    number nobody chose and nothing on the page would say so (rule 12).
+    """
+    raw = _read("board_ordering.yaml")
+    z = raw.get("wilson_z") if isinstance(raw, dict) else None
+    if isinstance(z, bool) or not isinstance(z, (int, float)) or z <= 0:
+        raise ValueError(
+            f"contract/board_ordering.yaml: wilson_z must be a positive number, got {z!r}"
+        )
+    return float(z)
+
+
 def _read(name: str) -> dict:
     path = CONTRACT_DIR / name
     if not path.exists():

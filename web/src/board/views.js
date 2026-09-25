@@ -161,14 +161,22 @@ function listIntro(item){
     return `${head} Ordered by report count, which is a count and not a score.${split}`
       + ` Open one to read every report it holds.`;
   }
+  // THE FIRST GROUP'S ORDER IS DESCRIBED IN WORDS, NEVER AS A FORMULA OR A
+  //   NUMBER. `board_sections` orders it by a Wilson lower bound it does not
+  //   emit (z in contract/board_ordering.yaml); this sentence is what a reader
+  //   gets instead, and "the same record" is deliberate: at these sample sizes
+  //   three of three still sits above seven of ten, so a line claiming that few
+  //   reports always lose to many would be false.
   return `${head} Listed in three groups: models with at least one report of it working,`
     + ` then models with only neutral reports, then models with reports of problems and`
-    + ` none of it working. Within each group, ordered by report count. Neither is a score`
-    + ` or a recommendation: a model enters the first group on a single positive report,`
-    + ` however many problem reports it also has, and each row shows how many of each.`
-    + ` Positive and negative are the extractor’s reading of each quote, so one`
-    + ` mislabelled report can move a model into a different group.${split}`
-    + ` Open one to read every report it holds.`;
+    + ` none of it working. Within the first group, models whose reports more`
+    + ` consistently say it worked come first, and a record built on few reports counts`
+    + ` for less than the same record on many, so two reports of it working, with none`
+    + ` against, sit below six of six. The other two groups are ordered by report count.`
+    + ` No score is shown: each row shows its counts. A model enters the first group on a`
+    + ` single positive report, however many problem reports it also has. Positive and`
+    + ` negative are the extractor’s reading of each quote, so one mislabelled report`
+    + ` can move a model.${split} Open one to read every report it holds.`;
 }
 
 /** Reports that name no model, and so appear under none.
@@ -516,12 +524,12 @@ function vBoard(tab){
   const note = p.note || '';
   return `<div class="shell phead">${crumb([['Board',null]])}
     <h1>The board</h1>
-    <p class="sub">Three ways into the same evidence. <b>Jobs</b> lists what was reported on a job.
+    <p class="sub">Three ways into the same evidence. <b>Best for</b> lists what was reported on a job.
     <b>Capabilities</b> defines what a claim means, so a claim on one model page can be compared with a
     claim on another. <b>Metrics</b> are the axes, and what each one refuses to average.</p></div>
     <div class="shell">
       <div class="tabs" role="tablist">
-        <button role="tab" aria-selected="${tab==='best'}" data-tab="best">Jobs</button>
+        <button role="tab" aria-selected="${tab==='best'}" data-tab="best">Best for</button>
         <button role="tab" aria-selected="${tab==='cap'}" data-tab="cap">Capabilities</button>
         <button role="tab" aria-selected="${tab==='met'}" data-tab="met">Metrics</button>
       </div>
@@ -544,7 +552,7 @@ function vJob(slug){
   // slice with nothing on the page saying it was a slice. Every one of those
   // reports is now on the page of the model it was reported about, and this
   // page is the way to them.
-  return `<div class="shell phead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
+  return `<div class="shell phead">${crumb([['Board','board'],['Best for','board:best'],[j.name,null]])}
     <h1>${esc(j.h1)}</h1><p class="sub">${esc(j.sub)}</p></div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
       <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
@@ -625,7 +633,7 @@ function vModelIn(kind, item, key, crumbs){
 function vJobModel(slug, key){
   const j = byS(DB.jobs,slug); if(!j) return vBoard('best');
   return vModelIn('job', j, key,
-    [['Board','board'],['Jobs','board:best'],[j.name,'job:'+j.slug],
+    [['Board','board'],['Best for','board:best'],[j.name,'job:'+j.slug],
      [(j.rows.find(r=>r.key===key)||{}).m || key, null]]);
 }
 

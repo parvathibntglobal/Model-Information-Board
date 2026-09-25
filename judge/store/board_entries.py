@@ -37,6 +37,7 @@ import re
 from collections.abc import Iterable
 from typing import Any
 
+from judge.config import board_ordering_z
 from judge.store.claims import PIPELINE_VERSION
 
 SECTIONS = ("best_for", "capability", "metric")
@@ -940,10 +941,16 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
 
     `report_split` AND `group` ARE ON EVERY BEST-FOR AND CAPABILITY ROW, and
     the model list is ordered in THREE GROUPS (`_group_of`): at least one
-    positive report, then neutral-only, then negatives and no positive. Within
-    a group the order is what it always was - report count, ties keeping their
-    position. See `_group_of` for why three and not two. `metric` is ordered as
-    before and carries neither field.
+    positive report, then neutral-only, then negatives and no positive. Inside
+    the FIRST group the order is the Wilson lower bound on the share of reports
+    that took a side and said it worked (`_working_key`, z from
+    `contract/board_ordering.yaml`); inside the other two it is report count.
+    Ties keep their position. See `_group_of` for why three groups.
+
+    ⚠ THE SCORE IS NEVER EMITTED. It orders the list and appears in no field
+      of this payload, so nothing downstream can render it; every figure a
+      page shows is still a count (rule 3, as amended - see CLAUDE.md). `metric`
+      is ordered as before and carries neither field.
 
     `declined` rows are excluded and `merged` rows are counted under their
     target, so a person's consolidation shows up here without rewriting history
@@ -1291,11 +1298,13 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             # the place a model name belongs. Where a group could hold two
             # raw shapes the join resolved, so a label is present and that
             # fallback never fires.
-            # THE ORDER: group first (`_group_of`), then report count. `sorted`
-            # is stable, so a tie keeps the position it had - rows arrive
-            # newest first - exactly as the count-only order always did.
-            # `metric` keeps the count-only order: its page is a figure table.
+            # THE ORDER: group first (`_group_of`); inside the first group the
+            # Wilson lower bound (`_working_key`), which is NEVER EMITTED; then
+            # report count. `sorted` is stable, so a remaining tie keeps the
+            # position it had - rows arrive newest first. `metric` keeps the
+            # count-only order: its page is a figure table.
             grouped_order = section in GROUPED_SECTIONS
+            z = board_ordering_z() if grouped_order else None
             item["models"] = [
                 {"model_key": key, "model_version_id": m["raw"],
                  "model_label": m["label"],
@@ -1310,6 +1319,7 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
                     item.pop("_models").items(),
                     key=lambda kv: (
                         GROUP_ORDER.index(_group_of(kv[1]["docs"])) if grouped_order else 0,
+                        -_working_key(kv[1]["docs"], z) if grouped_order else 0,
                         -len(kv[1]["docs"]),
                     ),
                 )
@@ -1368,6 +1378,43 @@ def _group_of(docs: dict[str, set[str]]) -> str:
     if "negative" in polarities:
         return "problems"
     return "neutral"
+
+
+def _wilson_lower(positive: int, sided: int, z: float) -> float | None:
+    """Lower bound of the Wilson score interval on positive / sided, or None.
+
+    None, NOT 0, WHEN NO REPORT TOOK A SIDE. A neutral-only model has no share
+    of anything, and filing that absence as a zero would put it beside the
+    models people complained about (rule 6) - which is why the neutral group is
+    a separate group rather than a low score.
+    """
+    if sided <= 0:
+        return None
+    p = positive / sided
+    zz = z * z
+    centre = p + zz / (2 * sided)
+    spread = z * ((p * (1 - p) + zz / (4 * sided)) / sided) ** 0.5
+    return (centre - spread) / (1 + zz / sided)
+
+
+def _working_key(docs: dict[str, set[str]], z: float | None) -> float:
+    """What orders the FIRST group, and nothing else. Never emitted, never shown.
+
+    The first group is "at least one report of it working", so every model in
+    it has a positive and therefore a score above zero. The other two groups
+    return 0 here and are ordered by report count: a neutral-only model has no
+    score (see `_wilson_lower`), and a problems-only model's is exactly 0.
+
+    `sided` counts each report once however many polarities it states, so a
+    report saying both is one in the denominator and one positive - the same
+    identity `_split` states (positive + negative - both + neutral = reports).
+    """
+    if z is None or _group_of(docs) != "working":
+        return 0.0
+    split = _split(docs)
+    sided = split["positive"] + split["negative"] - split["both"]
+    score = _wilson_lower(split["positive"], sided, z)
+    return 0.0 if score is None else score
 
 
 def _split(docs: dict[str, set[str]]) -> dict[str, int]:
