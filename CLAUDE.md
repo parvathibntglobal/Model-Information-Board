@@ -91,6 +91,35 @@ These are the rules a helpful refactor will otherwise quietly violate.
    a phrase assembled from counts, never a score. There is no 0-100 capability
    figure anywhere in the schema or the UI.
 
+   **An unshown score may ORDER a list, when every figure the list displays is
+   a count.** This is the one place a computed comparison is allowed, and the
+   conditions are what keep it from being the thing this rule forbids:
+
+   1. **The score is in no payload field.** A score in the API is one render
+      away from a page, so it is computed where the list is sorted and
+      discarded there. A score that reaches a field, a tooltip, a sort label
+      or a number on screen is the breach, however it is computed.
+   2. **The page says in words what the order rewards**, and names no formula.
+      The reader can check the words against the counts on every row.
+   3. **Its weight lives in `contract/`** (rule 5) and has no default in code
+      (rule 12).
+   4. **It orders within a group that a stated rule defines, never across the
+      groups.** A score must not decide that "nobody reported this" ranks with
+      "people reported it failing" (rule 6) - the groups do that, in words.
+
+   The instance, from 2026-09-25: the first group of a best-for or capability
+   page ("at least one report of it working") is ordered by a Wilson lower
+   bound on positive reports over reports that took a side
+   (`judge/store/board_entries.py`, `_working_key`; z in
+   `contract/board_ordering.yaml`). Neutral-only and problems-only models keep
+   their own groups, ordered by report count. It supersedes the `listIntro`
+   ruling that refused any merit ordering; ordering by positive COUNT stays
+   refused, because it rewards volume and ignores the negatives beside it.
+
+   Written into the rule rather than left in a PR because the next reader of
+   `board_entries.py` will find a score there and, reading only the first
+   paragraph, report it as a violation - correctly.
+
 4. **Silence is not criticism.** "Nobody has discussed this" must render
    distinctly from "engineers report problems". Absence of evidence must never
    read as evidence of capability.
