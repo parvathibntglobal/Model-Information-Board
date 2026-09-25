@@ -152,7 +152,7 @@ questions:
 withheld:
   - id: best-for-coding
     needs: >-
-      a best_for section on the board naming a model for a coding job, with two or more independent reports behind it
+      a coding job on the board's Jobs tab (key best_for) where a model is in the reported-working group with two or more independent reports behind it
     basis: live
     q: What is the best AI model for coding?
     claims:
