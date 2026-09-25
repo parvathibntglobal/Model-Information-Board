@@ -539,6 +539,57 @@ function vBoard(tab){
     </div>`;
 }
 
+/** One line of figures under a job's heading: the evidence, counted.
+ *
+ * Models, reports (a floor, so ≥), voices, and how many models sit in each of
+ * the three groups. Only groups that exist are named, so a page with no neutral
+ * model does not print "0 only neutral". */
+function jobStatLine(j){
+  const rows = j.rows || [];
+  if(!rows.length) return '';
+  const n = rows.length, rep = j.repTotal, voi = j.voiTotal;
+  const by = {};
+  rows.forEach(r => { if(r.g) by[r.g] = (by[r.g] || 0) + 1; });
+  const groups = [['working','reported working'],['neutral','only neutral'],['problems','reported problems']]
+    .filter(([k]) => by[k]).map(([k, label]) => `${by[k]} ${label}`);
+  return `<p class="statline"><span>${n} model${n===1?'':'s'} · ≥${rep} report${rep===1?'':'s'}`
+    + ` · ${voi} voice${voi===1?'':'s'}</span>${groups.length ? `<span>${groups.join(' · ')}</span>` : ''}</p>`;
+}
+
+/** The rules the page must state, beside the list rather than above it.
+ *
+ * ⚠ EVERY SENTENCE HERE IS LOAD-BEARING, AND SHORTER IS THE ONLY LICENCE TAKEN.
+ *   The order in words and "no score is shown" are rule 3's conditions (#472);
+ *   the single-positive clause is the one the order has to be true of (Claude
+ *   Opus 5 heads a working group on 1 positive and 11 negatives); the
+ *   extractor's-reading clause is rule 2's disclosure; the floor and the
+ *   both-counted note keep the counts honest (rule 7). The group headings in the
+ *   list mark where the rule acts.
+ *
+ * "What counts here" is the extractor's `definition`, LABELLED as its counting
+ * rule. It was rendered as the page's description, and it is not one: the
+ * extractor is told to write the test a report has to meet. */
+function jobAside(j){
+  const rule = j.rule ? `<h3>What counts here</h3><p>${esc(j.rule)}</p>
+      <p class="fine">The extractor’s counting rule: the test a report had to meet to be filed
+      under this job. It is not a description of the job.</p>` : '';
+  return `<aside class="jobaside">
+      <h3>How this list is ordered</h3>
+      <p>Three groups: models with at least one report of it working, then models with only
+      neutral reports, then models with reports of problems and none of it working.</p>
+      <p>Within the first group, models whose reports more consistently say it worked come
+      first, and a record built on few reports counts for less than the same record on many.
+      The other two groups are ordered by report count.</p>
+      <p>No score is shown: each row shows its counts. A model enters the first group on a
+      single positive report, however many problem reports it also has.</p>
+      <p class="fine">Positive and negative are the extractor’s reading of each quote, so one
+      mislabelled report can move a model. A report that says both is counted under each.
+      Report counts are floors (≥).</p>
+      ${rule}
+      <p class="fine">Open a model to read every report it holds.</p>
+    </aside>`;
+}
+
 function vJob(slug){
   const j = byS(DB.jobs,slug); if(!j) return vBoard('best');
   // `pick` names ONE model the winner, and that is an editorial judgement no
@@ -552,12 +603,28 @@ function vJob(slug){
   // slice with nothing on the page saying it was a slice. Every one of those
   // reports is now on the page of the model it was reported about, and this
   // page is the way to them.
-  return `<div class="shell phead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
-    <h1>${esc(j.h1)}</h1><p class="sub">${esc(j.sub)}</p></div>
+  // THE PAGE SHAPE (2026-09-25): a full-width lead saying what the job IS, one
+  // line of figures, then the list with the rules beside it in small print.
+  // The ~800-character ordering paragraph used to sit above the list at 64ch,
+  // identical on every job page but for the numbers, and the page read as a
+  // wall of text above a grid. The rules are still ON THE PAGE - rule 3 (as
+  // amended, #472) requires the words, and hiding them behind a toggle would
+  // mean most readers never saw them - just beside the list instead of above.
+  //
+  // THREE KINDS OF TEXT, KEPT APART:
+  //   the job        `about`, hand-written (contract/job_about.yaml), or nothing
+  //   the evidence   the stat line, the group headings, each row's counts
+  //   the rules      the side column: how the list is ordered, what counts here
+  return `<div class="shell phead jobhead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
+    <h1>${esc(j.h1)}</h1>
+    ${j.about ? `<p class="lead">${esc(j.about)}</p>` : ''}
+    ${jobStatLine(j)}</div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
       <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
-    ${sec('Every model reported on this job','In three groups, by what the reports say',
-      listIntro(j), ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j))}
+    <div class="shell jobbody">
+      <div class="joblist">${ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j)}</div>
+      ${jobAside(j)}
+    </div>
     ${sec('Conditions that change the answer','Where the pick stops holding',
       'Most disagreements between engineers are condition mismatches rather than contradictions. These are the ones the reports keep naming.',conds(j.conds))}
     ${sec('Related','','',related(j.rel))}`;

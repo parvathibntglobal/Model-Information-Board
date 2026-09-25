@@ -476,7 +476,18 @@ export function setBoardData(payload) {
   DB.jobs = (d.jobs || []).map((j) => ({
     ...commonFields(j),
     h1: j.name,
-    sub: j.definition,
+    // WHAT THE JOB IS: hand-written in contract/job_about.yaml, or null. A job
+    // with none shows NO lead line - the extractor's text is never promoted into
+    // this role, because it is not a description.
+    about: j.about || null,
+    // THE EXTRACTOR'S COUNTING RULE: the test a report had to meet to be filed
+    // here. Rendered in the side column under "What counts here", labelled as
+    // what it is. `board_sections` picks the text most rows carry, so it does
+    // not change with each new report.
+    rule: j.definition || '',
+    // The Jobs-tab card describes the job, so it gets `about` or nothing - not
+    // the counting rule wearing a description's place.
+    card: j.about || '',
     pick: null, // hand-written editorial; omitted rather than invented
     conds: [],
   }))

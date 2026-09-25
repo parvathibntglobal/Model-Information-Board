@@ -247,6 +247,22 @@ def bucket_for(capability_key: str, conditions_seen: dict[str, int | bool | None
 
 
 @lru_cache(maxsize=1)
+def job_about() -> dict[str, str]:
+    """`contract/job_about.yaml`: slug -> what the job IS, hand-written.
+
+    A slug with no entry has no lead line, and that is the intended state: the
+    extractor's `definition` is a counting rule, not a description, and is never
+    promoted into this role. The file itself must exist (`_read` raises), so a
+    missing contract fails loudly instead of silently blanking every lead line.
+    """
+    raw = _read("job_about.yaml") or {}
+    about = raw.get("about") or {}
+    if not isinstance(about, dict):
+        raise ValueError("contract/job_about.yaml: `about` must map slug -> text")
+    return {str(k).strip().lower(): " ".join(str(v).split()) for k, v in about.items() if v}
+
+
+@lru_cache(maxsize=1)
 def board_ordering_z() -> float:
     """`contract/board_ordering.yaml`'s `wilson_z`: the confidence level the
     board's first group is ordered by.

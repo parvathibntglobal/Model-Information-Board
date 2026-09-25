@@ -1105,6 +1105,15 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
                 # whose title flips between `exploitbench` and `exploit-bench`
                 # as evidence arrives has a URL that changes for no reason.
                 "_spellings": {},
+                # ⚠ THE DEFINITION SHOWN IS THE ONE MOST ROWS CARRY, not the
+                #   first row's. Rows arrive newest first, so the first row's
+                #   text changed whenever a report was filed: on 2026-09-25, 13
+                #   of 98 job pages had rows carrying more than one definition
+                #   (creative-writing six), and the page showed whichever was
+                #   newest. text -> [rows carrying it, earliest created_at];
+                #   ties go to the text written first, so a new row cannot
+                #   flip a tie.
+                "_definitions": {},
                 # SETS, COUNTED AT THE END. `reports` used to be incremented
                 # once per ROW, and a row is one quote - so three figures
                 # stated in one comment by one person counted as three
@@ -1115,6 +1124,11 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             },
         )
         bucket["_spellings"][slug] = bucket["_spellings"].get(slug, 0) + 1
+        if definition:
+            seen = bucket["_definitions"].setdefault(definition, [0, _created_at])
+            seen[0] += 1
+            if _created_at is not None and (seen[1] is None or _created_at < seen[1]):
+                seen[1] = _created_at
         bucket["_docs"].add(doc_id)
         if author_id:
             bucket["_voices"].add(author_id)
@@ -1264,6 +1278,12 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             # rather than by dict order. This is the URL as well as the title:
             # a page whose address changed because a fourth report arrived
             # spelled differently would break every link to it.
+            definitions = item.pop("_definitions", {}) or {}
+            if definitions:
+                item["definition"] = min(
+                    definitions.items(),
+                    key=lambda kv: (-kv[1][0], kv[1][1] is None, kv[1][1] or 0, kv[0]),
+                )[0]
             spellings = item.pop("_spellings", {}) or {}
             if spellings:
                 item["slug"] = min(spellings.items(), key=lambda kv: (-kv[1], kv[0]))[0]
