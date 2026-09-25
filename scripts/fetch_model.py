@@ -109,8 +109,13 @@ DEDUPE_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "hugg
 #: swap them. A single 580s thread is not an anomaly to discount - it is why the
 #: mean is what a wait is built from.
 #:
-#: AT THE MEAN, THEN: 25 x 33s is ~14 minutes expected, and the tail can double
-#: it. 40 would be ~22 minutes.
+#: AT THE MEAN, THEN: 50 x 33s is ~28 minutes expected, and the tail can double
+#: it. The default was 25 (~14 minutes) until 2026-09-25, when it was raised to
+#: 50 so an admin-page click reads 50 threads; the page sends no cap of its own
+#: (`/fetch/start` passes only the model id), so this default IS the button's.
+#: A long run is not reaped as abandoned: the reaper keys on silence (no new
+#: line for FETCH_ABANDONED_AFTER_SECONDS, `judge/fetch_reaper.py`), not on
+#: elapsed time, and a live run heartbeats every FETCH_HEARTBEAT_SECONDS.
 #:
 #: ⚠ THIS LINE SAID "~28 minutes" AND THAT WAS THIS COMMENT CONTRADICTING
 #:   ITSELF. 28 minutes is 25 x 67s - the "~65 seconds per thread" figure the
@@ -131,7 +136,7 @@ DEDUPE_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "hugg
 #: threads already read at this pipeline version, so the next click continues
 #: from here instead of re-reading. This is a pause, not a ceiling on what can
 #: ever be extracted.
-MAX_FETCH_THREADS = int(os.getenv("FETCH_MAX_THREADS", "25"))
+MAX_FETCH_THREADS = int(os.getenv("FETCH_MAX_THREADS", "50"))
 
 #: How far `len(prose(payload))` may differ from what `thread_context.offset_map`
 #: says that member was, before the member is dropped rather than sliced.

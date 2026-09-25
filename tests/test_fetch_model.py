@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import os
 from types import SimpleNamespace
 
 import scripts.fetch_model as fetch_model
@@ -364,12 +365,43 @@ class TestTheThreadCapIsVisible:
         disavows by name four lines further down. Pinned because a stale number
         sitting beside its own retraction is the hardest kind to notice.
         """
+        # CHECKS THE ARITHMETIC, NOT A STRING. This asserted "~28 minutes
+        # expected" was absent, which was right while the cap was 25 (28 min
+        # was 25 x 67s) and wrong the day it became 50, where 28 min IS
+        # 50 x 33s. A test that bans a number pins the number's coincidence
+        # with one cap; this pins the relation that was actually violated.
+        import re
+
         source = self._source()
-        assert "~28 minutes expected" not in source, (
-            "28 minutes derives from the disavowed 65s-per-thread figure"
+        m = re.search(r"AT THE MEAN, THEN: (\d+) x (\d+)s is ~(\d+) minutes", source)
+        assert m, "the sizing sentence moved; keep 'N x 33s is ~M minutes' together"
+        threads, per_thread, minutes = (int(g) for g in m.groups())
+        assert per_thread == 33, "size a cap with the MEAN (33s), never p50 or 65s"
+        assert abs(threads * per_thread / 60 - minutes) <= 1, (
+            f"{threads} x {per_thread}s is {threads * per_thread / 60:.1f} min, "
+            f"not ~{minutes}"
         )
-        assert "25 x 33s is ~14 minutes" in source, (
-            "the wait must be derived from the mean the file actually measured"
+        assert threads == fetch_model.MAX_FETCH_THREADS or "FETCH_MAX_THREADS" in os.environ, (
+            "the sizing sentence must describe the default cap it sits above"
+        )
+
+    def test_the_admin_settings_default_is_the_scripts_default(self):
+        """`judge/app.py` restates the default for the Settings panel's
+        DEFAULT/OVERRIDE badge. Two copies of one value drift silently, and the
+        badge would then call the real default an override. Read from source
+        because the env may override the constant in a test process."""
+        import re
+        from pathlib import Path
+
+        root = Path(fetch_model.__file__).resolve().parents[1]
+        script = re.search(r'getenv\("FETCH_MAX_THREADS", "(\d+)"\)',
+                           (root / "scripts" / "fetch_model.py").read_text(encoding="utf-8"))
+        app = re.search(r'\("FETCH_MAX_THREADS", "(\d+)",',
+                        (root / "judge" / "app.py").read_text(encoding="utf-8"))
+        assert script and app
+        assert script.group(1) == app.group(1), (
+            f"fetch_model.py defaults to {script.group(1)}, the Settings panel "
+            f"says {app.group(1)}"
         )
 
 
