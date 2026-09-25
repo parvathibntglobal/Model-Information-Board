@@ -3770,8 +3770,8 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
     # weaken the guard, a cap can be RULED public by a person, here, one at a
     # time. The guard still refuses everything nobody has ruled on.
     cap_specs = (
-        ("FETCH_MAX_THREADS", "25",
-         "documents one fetch sends the model — the 'x of 25' on the button"),
+        ("FETCH_MAX_THREADS", "50",
+         "documents one fetch sends the model — the 'x of 50' on the button"),
         ("EXTRACT_TOTAL_TIMEOUT_SECONDS", "1200",
          "ceiling on one extraction call before it is abandoned"),
         ("EXTRACT_MAX_OUTPUT_TOKENS", "16384",
