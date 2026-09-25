@@ -14,7 +14,7 @@ to 1. A poller that omits a column rather than passing NULL re-creates it.
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
@@ -165,9 +165,22 @@ def test_release_date_comes_from_created_as_a_real_date(feed):
     assert model.release_date.year >= 2023
 
 
-def test_an_expiration_date_becomes_retirement_date(feed):
+def test_an_expiration_date_becomes_retirement_date():
+    """A real announced date. The live catalogue carried 21 of them on
+    2026-09-24 (`2026-10-20` x5, `2026-09-28` x4, ...) beside 4 sentinels."""
+    model = map_model({"id": "x/y", "pricing": {}, "expiration_date": "2026-10-20"},
+                      retrieved_at=RETRIEVED)
+    assert model.retirement_date == date(2026, 10, 20)
+
+
+def test_the_never_expires_value_is_no_retirement_date(feed):
+    """#460. This test used to be the one above, on the fixture's ONLY
+    expiration date - `z-ai/glm-5v-turbo`'s `2098-12-31`, which is OpenRouter's
+    "never expires". So the suite asserted the sentinel was a retirement date,
+    and the poll stored it on 4 models and copied it into GLM-5.3's aliases."""
     model = map_model(entry(feed, "z-ai/glm-5v-turbo"), retrieved_at=RETRIEVED)
-    assert model.retirement_date is not None
+    assert entry(feed, "z-ai/glm-5v-turbo")["expiration_date"] == "2098-12-31"
+    assert model.retirement_date is None
 
 
 def test_no_field_is_ever_stamped_with_the_fetch_time():

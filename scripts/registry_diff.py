@@ -29,8 +29,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 #: The catalogue's "never expires" value. Real on the wire, meaningless as a date,
-#: so it is listed apart rather than mixed into announced retirements.
-SENTINEL = "2098-12-31"
+#: so it is listed apart rather than mixed into announced retirements. One
+#: definition, the parser's: the poll now stores it as NULL (#460).
+from collect.registry.openrouter import NEVER_EXPIRES  # noqa: E402
+
+SENTINEL = NEVER_EXPIRES.isoformat()
 
 
 def _filtered_out(model_id: str) -> bool:

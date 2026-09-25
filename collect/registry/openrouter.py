@@ -121,6 +121,21 @@ def _per_million(per_token: Any) -> float | None:
     return value * 1_000_000
 
 
+#: OpenRouter's `expiration_date` for "never expires". On the wire it is a
+#: date; as a retirement date it is a placeholder for ABSENCE, and storing it
+#: made a definite claim the feed never made (rule 6). It reached
+#: `model_alias.valid_until` through `alias_rows`, and the sweep - which reads
+#: `valid_until IS NULL` - stopped searching GLM-5.3 while fetch_model, which
+#: reads `> now()`, kept searching it (#460).
+NEVER_EXPIRES = date(2098, 12, 31)
+
+
+def _retirement_of(value: Any) -> date | None:
+    """`expiration_date` to a retirement date, with the never-expires value absent."""
+    parsed = _date_of(value)
+    return None if parsed == NEVER_EXPIRES else parsed
+
+
 def _date_of(value: Any) -> date | None:
     """An epoch or an ISO string to a date, or None. Never today's date."""
     if value in (None, "", 0):
@@ -244,7 +259,7 @@ def map_model(entry: dict[str, Any], *, retrieved_at: datetime,
     values: dict[str, Any] = {
         "display_name": entry.get("name") or None,
         "release_date": _date_of(entry.get("created")),
-        "retirement_date": _date_of(entry.get("expiration_date")),
+        "retirement_date": _retirement_of(entry.get("expiration_date")),
         "knowledge_cutoff": _date_of(entry.get("knowledge_cutoff")),
         "advertised_context": entry.get("context_length") or None,
         "max_output_tokens": top.get("max_completion_tokens") or None,
