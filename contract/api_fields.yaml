@@ -244,10 +244,15 @@ fields:
     - /admin/runs
     state: consumed
   failure_mode:
-    reviewed: false
+    reviewed: true
     routes:
     - /capabilities/{capability_key}
-    state: consumed
+    state: no_consumer
+    why: 'its only reader was `capabilityPage` in web/src/api/index.js, a local stub that
+      resolved with an empty list and never called the endpoint. Removed 2026-09-24 with the
+      rest of the UI''s reads of the closed capability vocabulary, measured that day at 0 of
+      196 models carrying a non-empty list. The endpoint still emits the field; no page asks
+      for it'
   gates_unreadable:
     reviewed: false
     routes:

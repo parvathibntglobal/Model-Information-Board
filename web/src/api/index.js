@@ -97,7 +97,15 @@ async function request(path, { method = 'GET', body, signal } = {}) {
 /* ------------------------------------------------------------------ reads */
 
 export const health = () => request('/health')
-export const listCapabilities = () => request('/capabilities')
+
+// ⚠ NOTHING HERE READS THE CLOSED CAPABILITY VOCABULARY ANY MORE, ruled
+//   2026-09-24. `listCapabilities`, `capabilityPage` and `capLabel` are gone:
+//   they served `cell.capability_key`, the ratified twelve from the first
+//   plan, and measured that day 0 of 196 models on the roster carried a
+//   non-empty list — every cell is `insufficient` and e5.5 writes none.
+//
+//   The board's own open sections (`board_entry.slug`) are what this UI
+//   reads. `/capabilities` still answers; no page asks it.
 
 // ── Tracked registry (UI-only narrowing) ─────────────────────────────────────
 // The board is tracking exactly two models for now, and shows no evidence until
@@ -130,24 +138,6 @@ export const listCapabilities = () => request('/capabilities')
 // for exactly the reason recorded here - a polled model carries an `mv_` id and
 // its canonical id separately, and matching one field would drop the other kind.
 
-export const capabilityPage = (key) =>
-  Promise.resolve({
-    key,
-    failure_mode: 'silent',
-    // NOT A MEASUREMENT, AND IT USED TO READ AS ONE. Capability pages are keyed
-    // on `cell`, which E7 writes once per BATCH after extraction. An empty list
-    // here makes the roster's "with any evidence" stat structurally 0 for every
-    // model whatever the database holds, so that stat is a property of this
-    // function rather than of the board (rule 4). minimax/minimax-m3 has 13
-    // board entries and ZERO cells today; the fix is E7 completing, not a read
-    // that reports the absence more confidently.
-    summary:
-      'Capability pages read E7 cells, which this UI does not query yet - this ' +
-      'is not a measurement that no model has reports.',
-    models: [],
-    count: 0,
-    page: { has_more: false, returned: 0, limit: 500, offset: 0 },
-  })
 /**
  * Model ids can contain a slash — `google/gemini-2.5-flash`. The handoff is
  * explicit that the slash must NOT be percent-encoded, so each segment is
@@ -534,14 +524,6 @@ export const fmtPrice = (n) => {
   if (n < 1) return `$${n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')}`
   return `$${n % 1 === 0 ? n : n.toFixed(2)}`
 }
-
-/** Backend capability keys are dotted; this is the human label. */
-export const capLabel = (key) =>
-  (key || '')
-    .split('.')
-    .pop()
-    .replace(/_/g, ' ')
-    .replace(/^\w/, (c) => c.toUpperCase())
 
 export const TIER = {
   1: { label: 'Trivial', note: 'almost anything qualifies — pick on price' },
