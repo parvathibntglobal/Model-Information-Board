@@ -172,3 +172,34 @@ class TestTheVersionsTravelWithTheCount:
         the capability keys already carry a comment about."""
         conn = _Conn([_row("x", cells=5, stale=0, stale_versions=None)])
         assert RosterReader(conn).all().models[0]["evidence"]["not_recounted_since"] == []
+
+
+class TestTheFactIsOffThePageAndStillInTheApi:
+    """2026-09-25, @parvathibntglobal's call: "not recounted" no longer renders
+    on the models page (65 of 241 rows, all at cells=0, read as noise). The
+    fact stays in `GET /models` - the "say what was dropped" half of #302."""
+
+    PAGE = ROOT / "web" / "src" / "routes" / "Models.jsx"
+
+    def _rendered(self):
+        return "\n".join(ln for ln in self.PAGE.read_text(encoding="utf-8").splitlines()
+                         if not ln.strip().startswith(("//", "*", "/*")))
+
+    def test_the_page_renders_no_not_recounted_text(self):
+        page = self._rendered()
+        assert "not recounted" not in page
+        assert "<NotRecounted" not in page
+
+    def test_a_row_counted_earlier_gets_no_badge_rather_than_a_false_one(self):
+        # "nobody has discussed this" is false for these rows (rule 4), so the
+        # branch returns nothing before it reaches that badge.
+        page = self._rendered()
+        guard = page.index("if (notRecounted) return null")
+        assert guard < page.index("nobody has discussed this")
+
+    def test_the_api_still_carries_both_fields_on_every_state(self):
+        for cells, published in ((0, 0), (3, 0), (3, 1)):
+            e = _evidence(cells=cells, published=published, capability_keys=["k"],
+                          stale=2, stale_versions=["e5.1"])
+            assert e["not_recounted"] == 2
+            assert e["not_recounted_since"] == ["e5.1"]

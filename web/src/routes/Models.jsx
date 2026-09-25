@@ -542,30 +542,15 @@ function BoardBadge({ b }) {
 }
 
 
-/**
- * "5 cells (1 not recounted since e5.1)" — the half of #302 that is not the
- * filter.
- *
- * ⚠ BESIDE THE COUNT, NEVER FOLDED INTO IT. Adding the older cells back would
- *   produce a number belonging to no generation, which is the defect being
- *   fixed; hiding them would make the fix silently lose coverage. It renders
- *   nothing at zero, because most models have no fork and a permanent "0 not
- *   recounted" on every row is furniture.
- */
-function NotRecounted({ n, versions }) {
-  if (!n) return null
-  const since = (versions || []).join(', ')
-  return (
-    <span
-      className="dim"
-      style={{ fontSize: 11 }}
-      title={'Counted under an earlier extractor and not recounted since. '
-             + 'A gap in our coverage, not a finding about this model.'}
-    >
-      {n} not recounted{since ? ` since ${since}` : ''}
-    </span>
-  )
-}
+// `NotRecounted` WAS HERE (#302, option B), rendering "N not recounted since
+// e5.1" beside a model's badge. REMOVED FROM THE PAGE 2026-09-25, at
+// @parvathibntglobal's call: it showed on 65 of 241 rows, every one at
+// cells=0, and read as noise rather than as something a reader could act on.
+//
+// THE FACT IS KEPT, OFF THE PAGE. `GET /models` still carries
+// `evidence.not_recounted` and `evidence.not_recounted_since` on every model,
+// every state (`judge/pages/roster.py`) - the "say what was dropped" half of
+// the ruling, for whoever audits coverage rather than for a reader choosing.
 
 
 function EvidenceBadge({ e }) {
@@ -582,7 +567,6 @@ function EvidenceBadge({ e }) {
     return (
       <>
         <Badge tone="pass">reported</Badge>
-        <NotRecounted n={notRecounted} versions={e?.not_recounted_since} />
       </>
     )
   }
@@ -623,7 +607,6 @@ function EvidenceBadge({ e }) {
           ? `${reports} report${reports === 1 ? '' : 's'}`
           : 'reported'}
       </Badge>
-        <NotRecounted n={notRecounted} versions={e?.not_recounted_since} />
       </>
     )
   }
@@ -636,18 +619,12 @@ function EvidenceBadge({ e }) {
   //
   //   That is rule 4: an absence we caused, rendered as a fact about the
   //   world. So what was dropped is said here rather than resolved away.
-  return (
-    <Badge
-      tone="mute"
-      title={notRecounted
-        ? `Not counted under the current extractor. ${notRecounted} cell`
-          + `${notRecounted === 1 ? '' : 's'} were counted under `
-          + `${(e.not_recounted_since || []).join(', ')} and have not been `
-          + 'recounted since - that is a gap in our coverage, not a finding '
-          + 'about this model.'
-        : undefined}
-    >
-      {notRecounted ? `not recounted (${notRecounted})` : 'nobody has discussed this'}
-    </Badge>
-  )
+  //
+  //   2026-09-25: the "not recounted (N)" label that said so is gone from the
+  //   page (see the note above `EvidenceBadge`). What must NOT replace it is
+  //   "nobody has discussed this", which is false for these rows. So they
+  //   render NO badge - distinct from the explicit "nobody has discussed
+  //   this", and true: the current extractor has counted nothing for them.
+  if (notRecounted) return null
+  return <Badge tone="mute">nobody has discussed this</Badge>
 }
