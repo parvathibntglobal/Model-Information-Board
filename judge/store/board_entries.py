@@ -938,15 +938,12 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     table, not a model list. It receives the new fields because they come off
     one query, and nothing on it reads them.
 
-    `report_split` IS CAPABILITY-ONLY, and the omission is the finding rather
-    than an oversight. `best_for` filters negative reports out before any of
-    this, so a split there would read "6 positive" on every row - true, and
-    carrying no information a reader can use. Verified rather than assumed:
-    0 of the 230 quotes reaching `best_for` are negative, 0 of its model rows
-    carry `negative` in `polarities`, and 0 of its documents are both. A
-    negative appearing there would be a defect in the FILTER, not in a
-    display, which is why a test asserts it against the payload rather than
-    against the SQL.
+    `report_split` AND `group` ARE ON EVERY BEST-FOR AND CAPABILITY ROW, and
+    the model list is ordered in THREE GROUPS (`_group_of`): at least one
+    positive report, then neutral-only, then negatives and no positive. Within
+    a group the order is what it always was - report count, ties keeping their
+    position. See `_group_of` for why three and not two. `metric` is ordered as
+    before and carries neither field.
 
     `declined` rows are excluded and `merged` rows are counted under their
     target, so a person's consolidation shows up here without rewriting history
@@ -986,36 +983,34 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
           quote_count  rows, so a page can say "3 figures from 1 report"
                        rather than having to pick one of those numbers
 
-    ⚠ A NEGATIVE QUOTE NEVER REACHES `best_for`. It reached it until
-      2026-09-11, and the board said this:
+    ⚠ NO SECTION IS POLARITY-FILTERED ANY MORE, and `best_for` was, from
+      2026-09-11 to 2026-09-25. The board had said this:
 
           Board / Best for / Coding agents
           What engineers actually ran        01  claude-fable-5-1
           The quotes behind the ranking      "it has created 20+ bugs"
 
-      One complaint, rendered as the top recommendation for the job. The
-      pipeline was not wrong - it recorded `polarity: negative` correctly - the
-      SURFACE was, because `best_for` means "evidence this model SUITS this
-      job" and only a positive report can say that. A problem report names the
-      job it happened on; it does not recommend it.
+      One complaint, rendered as the top recommendation for the job - so
+      negatives were filtered out of `best_for`. That filter fixed the page by
+      hiding the evidence: 25 rows, 6 models dropped from their slug entirely,
+      and 3 slugs (`3d-art`, `api-usage`, `proof-based-programming`) with no
+      page at all, because every report on them was a problem report.
 
-      `capability` and `metric` are NOT filtered, and the difference is the
-      point. Those sections describe BEHAVIOUR and FIGURES, where a bad result
-      is evidence of exactly the same standing as a good one - "it has failed
-      to test the fixes" is a real finding about code-testing. Only "best for"
-      makes a claim of suitability, so only "best for" needs the evidence to
-      support one.
+      THE DEFECT WAS THE SURFACE PROMISING SUITABILITY, and that is what
+      changed instead. The section is no longer headed "Best for"; each
+      category page lists every model in three named groups, the problem-only
+      group included, with both counts on every row. A complaint cannot read as
+      a recommendation when it sits under "Reported problems, none working"
+      with its count beside it.
 
-      THE ROWS ARE NOT DELETED AND NOT REFUSED AT WRITE TIME. They stay, and
-      the model page still shows them with their polarity badge, because the
-      finding is real and losing it would be the caused absence rule 4 forbids.
-      What changes is that a surface promising suitability stops being filled
-      by evidence of the opposite.
+      `judge/extract/prompt.py` STILL declines to propose a negative `best_for`
+      entry, so new problem reports keep going to `capability` and the job
+      pages' third group stays thin by construction. That is a separate
+      decision about a paid model call and is not taken here.
 
-      This is a rule WE state, not one the classifier infers - the LLM only
-      supplies the polarity label (rule 2: it may propose, it may never
-      decide). `judge/extract/prompt.py` now also declines to propose these, so
-      this filter is the second line rather than the only one.
+      This is still a rule WE state - the group is a threshold on the
+      extractor's polarity label (rule 2: it proposes the label, code applies
+      the rule). No number is synthesised (rule 3).
     """
     rows = conn.execute(
         # LEFT JOIN, not JOIN. `document_id` is NOT NULL and references
@@ -1053,13 +1048,8 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         "LEFT JOIN model_version v "
         "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
         "WHERE be.ruling IS DISTINCT FROM 'declined' "
-        # See the docstring. `best_for` claims suitability, so a negative
-        # report cannot fill it. Written as NOT(...) rather than a polarity
-        # allow-list on purpose: a row whose polarity is NULL or an unseen
-        # value stays VISIBLE, because "we could not tell" must not silently
-        # delete a finding (rule 6). Only an explicit `negative` is excluded,
-        # and only from this one section.
-        "  AND NOT (be.section = 'best_for' AND be.polarity = 'negative') "
+        # NO POLARITY CLAUSE. `best_for` excluded `negative` here until
+        # 2026-09-25; see the docstring for what replaced it.
         "ORDER BY be.section, COALESCE(be.ruling_target, be.slug), be.created_at DESC"
     ).fetchall()
 
@@ -1301,17 +1291,27 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             # the place a model name belongs. Where a group could hold two
             # raw shapes the join resolved, so a label is present and that
             # fallback never fires.
+            # THE ORDER: group first (`_group_of`), then report count. `sorted`
+            # is stable, so a tie keeps the position it had - rows arrive
+            # newest first - exactly as the count-only order always did.
+            # `metric` keeps the count-only order: its page is a figure table.
+            grouped_order = section in GROUPED_SECTIONS
             item["models"] = [
                 {"model_key": key, "model_version_id": m["raw"],
                  "model_label": m["label"],
                  "reports": len(m["docs"]), "voices": len(m["voices"]),
                  "polarities": sorted(m["polarities"]),
                  **(
-                     {"report_split": _split(m["docs"])}
-                     if section == "capability" else {}
+                     {"report_split": _split(m["docs"]),
+                      "group": _group_of(m["docs"])}
+                     if grouped_order else {}
                  )}
                 for key, m in sorted(
-                    item.pop("_models").items(), key=lambda kv: -len(kv[1]["docs"])
+                    item.pop("_models").items(),
+                    key=lambda kv: (
+                        GROUP_ORDER.index(_group_of(kv[1]["docs"])) if grouped_order else 0,
+                        -len(kv[1]["docs"]),
+                    ),
                 )
             ]
             if section != "metric":
@@ -1322,12 +1322,52 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         items.sort(key=lambda i: (-i["reports"], i["slug"]))
         out[section] = items
 
-    _attach_hidden_negatives(conn, out["best_for"])
     # Under a reserved key rather than a section: `SECTIONS` is the contract
     # this dict is keyed by, and a fourth section name here would be read as a
     # fourth tab by anything iterating it.
     out["_withheld"] = withheld
     return out
+
+
+#: The sections whose model lists are ordered in groups. `metric` is not: its
+#: page is a figure table, and a figure has no polarity worth ordering on.
+GROUPED_SECTIONS = ("best_for", "capability")
+
+#: The three groups, in page order.
+#:
+#:   working    at least one report of it working
+#:   neutral    reports, and none of them either way
+#:   problems   reports of it failing, and none of it working
+GROUP_ORDER = ("working", "neutral", "problems")
+
+
+def _group_of(docs: dict[str, set[str]]) -> str:
+    """Which of the three groups a model's reports put it in. A rule, not a count.
+
+    ⚠ THREE, NOT TWO, BECAUSE "NOBODY REPORTED THIS WORKING" AND "PEOPLE
+      REPORTED IT FAILING" ARE DIFFERENT FACTS. A two-group split (any positive
+      / none) ordered its second group by report count, which put DeepSeek V4
+      Flash 0423's 8 negatives on `capability/vision` ABOVE five models whose
+      only report was neutral - measured 2026-09-25 on the live board. An
+      absence of praise was being read as a verdict worse than a complaint.
+
+    ⚠ ONE POSITIVE IS ENOUGH FOR THE FIRST GROUP, however many problems sit
+      beside it, and the page says so. Claude Opus 5 on `instruction-following`
+      is in it on 1 positive and 11 negatives. That is the rule working as
+      stated, not a defect: the group answers "has anyone reported this
+      working?", and the counts on the row answer the rest.
+
+    The label is the EXTRACTOR'S reading of each quote. Code applies the
+    threshold (rule 2); a mislabelled report now moves a model across a group
+    boundary rather than one place, which the page also says. A polarity other
+    than positive or negative counts as neither, the same as `_split` does.
+    """
+    polarities = set().union(*docs.values()) if docs else set()
+    if "positive" in polarities:
+        return "working"
+    if "negative" in polarities:
+        return "problems"
+    return "neutral"
 
 
 def _split(docs: dict[str, set[str]]) -> dict[str, int]:
@@ -1371,92 +1411,6 @@ def _split(docs: dict[str, set[str]]) -> dict[str, int]:
         "neutral": sum(1 for p in docs.values()
                        if "positive" not in p and "negative" not in p),
     }
-
-
-def _attach_hidden_negatives(conn: Any, best_for: list[dict]) -> None:
-    """How many reports of a PROBLEM each best-for model row is not showing.
-
-    The filter above is right and stays: `best_for` claims suitability, and a
-    complaint cannot fill a surface that promises one. What was wrong is that
-    it was SILENT. A model row opening onto a page headed "every report the
-    board holds" while four of that model's reports were dropped upstream is
-    the caused absence rule 4 forbids - an absence we made, reading as one we
-    found.
-
-    So the count travels to the page and the page says it, with a link to the
-    model page where those reports are shown in full. Measured 2026-09-18:
-    19 negative best-for rows across 12 (slug, model) pairs.
-
-    TWO COUNTS, BECAUSE THE ABSENCE HAS TWO SHAPES.
-
-      `hidden_negative_reports` on a model row  the model IS listed, and some
-                                                of its reports are not shown
-      `suppressed_models` on the section        the model is NOT listed at
-                                                all, because every report it
-                                                has on this job is a problem
-                                                report
-
-    The second is the worse one and it is the one the first cannot reach: a
-    model with no positive row is not in `models[]`, so it has no row to carry
-    a caveat and no drill-down page for that caveat to sit on. It is invisible
-    rather than incomplete, which is the difference between a page that
-    understates and a page that omits. 4 of the 12 pairs are in this state.
-
-    ⚠ AND TWO OF THOSE FOUR ARE STILL OUT OF REACH. `api-usage` and
-      `proof-based-programming` hold NOTHING BUT negative rows, so the slug
-      produces no section at all and there is no category page for this list
-      to appear on - 2 of 64 best-for slugs on the board, plus these 2 that
-      are not. `code-review`/Grok 4.6 and `translation`/DeepSeek V4 Flash 0423
-      are the two this reaches. Recorded rather than rounded off, because
-      "the category page now says it" is true of half the cases and reads as
-      true of all of them.
-    """
-    if not best_for:
-        return
-    # A SECOND QUERY RATHER THAN A WIDENED FIRST ONE. Folding this into the
-    # main query means dropping the `NOT (...)` clause and re-applying it in
-    # Python, and that clause is the one thing about this rule a reader can
-    # check by reading the SQL. Counted here, filtered there, and the two do
-    # not have to agree about anything except the section name.
-    rows = conn.execute(
-        "SELECT COALESCE(be.ruling_target, be.slug) AS slug,"
-        "       COALESCE(v.id, be.model_version_id) AS model_key,"
-        # The LABEL as well, because a suppressed model has no row in
-        # `models[]` to carry one - and a line naming `mv_4247e801b57d22e3`
-        # where a model name belongs is #278 arriving by a third route.
-        "       COALESCE(v.display_name, v.canonical_id, be.model_version_id),"
-        "       count(DISTINCT be.document_id) "
-        "FROM board_entry be "
-        "LEFT JOIN model_version v "
-        "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
-        "WHERE be.section = 'best_for' AND be.polarity = 'negative' "
-        "  AND be.ruling IS DISTINCT FROM 'declined' "
-        "GROUP BY 1, 2, 3"
-    ).fetchall()
-    hidden = {(slug, key): (label, n) for slug, key, label, n in rows}
-    for item in best_for:
-        listed = set()
-        for model in item["models"]:
-            listed.add(model["model_key"])
-            # 0 is written rather than left absent. A reader of this payload
-            # cannot otherwise tell "no complaints were filtered" from "nobody
-            # counted", and those are the two things this board exists to keep
-            # apart. Distinct DOCUMENTS, so it counts the same unit as
-            # `reports` beside it.
-            model["hidden_negative_reports"] = hidden.get(
-                (item["slug"], model["model_key"]), (None, 0)
-            )[1]
-        # The models this section drops ENTIRELY - see the docstring. Sorted by
-        # name so the line does not reshuffle between requests; an empty list
-        # is written rather than omitted, for the same reason the 0 above is.
-        item["suppressed_models"] = sorted(
-            (
-                {"model_key": key, "model_label": label, "reports": n}
-                for (slug, key), (label, n) in hidden.items()
-                if slug == item["slug"] and key not in listed
-            ),
-            key=lambda m: m["model_label"] or m["model_key"],
-        )
 
 
 # ── the admin review surface ─────────────────────────────────────────────────

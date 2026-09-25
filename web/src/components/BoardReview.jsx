@@ -40,7 +40,7 @@ import { IconAlert, IconLayers } from './Icons'
 const SECTION_ORDER = ['best_for', 'capability', 'metric']
 
 const SECTION_LABEL = {
-  best_for: 'Best for',
+  best_for: 'Jobs',
   capability: 'Capabilities',
   metric: 'Metrics',
 }

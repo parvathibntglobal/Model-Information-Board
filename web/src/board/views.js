@@ -77,18 +77,44 @@ function ranked(rows, route){
   //
   // THE STATE ON EACH ROW IS NOW THAT ROW'S OWN — see `commonFields` in
   // db.js, which used to stamp the section's state onto every model.
+  //
+  // THE GROUP BOUNDARY IS DRAWN WHERE THE RULE ACTS. Rows carrying `g` arrive
+  // in `board_sections`' three groups, and a heading opens each one, so the
+  // reader sees the threshold rather than inferring it from the order. Rows
+  // without `g` (metric) render as they always did.
+  const counts = {};
+  rows.forEach(r => { if(r.g) counts[r.g] = (counts[r.g]||0) + 1; });
+  let open = null;
   return '<div class="ranked">'+rows.map((r)=>{
     const [cls,lbl]=stOf(r.s);
     const go = route && r.key ? ` data-go="${esc(route)}:${esc(r.key)}"` : '';
     // THE SPLIT IS ITS OWN LINE, not more words inside `.st`. That span
     // already carries two counts and a state label, and `.right` is
     // `white-space:nowrap` - a fourth clause in it would push the row wider
-    // than a phone. Empty on best-for and metric, where there is no split.
+    // than a phone. Empty on metric, where there is no split.
     const sp = r.sp ? `<span class="split">${esc(r.sp)}</span>` : '';
-    return `<div class="rank${r.dim?' dim':''}${go?' open':''}"${go}><span class="n">${go?'›':'·'}</span>
+    const head = r.g && r.g !== open ? groupHead(r.g, counts[r.g]) : '';
+    open = r.g || open;
+    return `${head}<div class="rank${r.dim?' dim':''}${go?' open':''}"${go}><span class="n">${go?'›':'·'}</span>
       <div><b>${esc(r.m)}</b><span class="vend">${esc(r.v)}</span><p>${esc(r.d)}</p></div>
       <div class="right"><span class="price">${esc(r.p)}</span><span class="st ${cls}">${esc(r.e)} · ${esc(lbl)}</span>${sp}</div></div>`;
   }).join('')+'</div>';
+}
+
+/** The three group headings, in the words the intro line uses for them.
+ *
+ * Keyed on `board_sections`' GROUP_ORDER. An unknown key renders its own name
+ * rather than nothing, so a fourth group added upstream shows up as a heading
+ * somebody has to name instead of vanishing into the one above it. */
+const GROUPS = {
+  working: ['Reported working', 'at least one report of it working'],
+  neutral: ['Only neutral reports', 'nobody reported it working or failing'],
+  problems: ['Reported problems', 'reports of it failing, none of it working'],
+};
+function groupHead(g, n){
+  const [title, gloss] = GROUPS[g] || [g, ''];
+  return `<p class="rank-group" role="heading" aria-level="3"><b>${esc(title)}</b>
+    <span>${n} model${n===1?'':'s'}${gloss ? ` · ${esc(gloss)}` : ''}</span></p>`;
 }
 
 /** The line above a model list, carrying what the list was drawn from.
@@ -114,17 +140,35 @@ function listIntro(item){
     ? ` The split counts a report under every polarity it states, so one that`
       + ` says both is counted under each and the row says so.`
     : '';
-  // ⚠ THE ORDERING SENTENCE IS LOAD-BEARING AND STAYS. Ordering by POSITIVE
-  //   reports was weighed and refused: on `capability/vision` it moves
-  //   DeepSeek V4 Flash 0423 - 8 reports from 7 voices, the strongest
-  //   agreement on the page - from #1 to #6, below five models holding one
-  //   positive report from one voice. An ordering that answers "who does this
-  //   best" is a merit ranking whatever it is counted from, and this section
-  //   is deliberately not polarity-filtered (see `board_sections`) precisely
-  //   because a bad result is evidence of the same standing as a good one.
-  return `${n} model${n===1?'':'s'}, named in ≥${rep} report${rep===1?'':'s'}`
-    + ` by ${voi} voice${voi===1?'':'s'}. Ordered by report count, which is a count`
-    + ` and not a score.${split} Open one to read every report it holds.`;
+  const head = `${n} model${n===1?'':'s'}, named in ≥${rep} report${rep===1?'':'s'}`
+    + ` by ${voi} voice${voi===1?'':'s'}.`;
+  // ⚠ THE ORDERING SENTENCE IS LOAD-BEARING. It said "ordered by report count,
+  //   which is a count and not a score" until 2026-09-25, and that stopped
+  //   being true when the first sort key became a threshold on a polarity
+  //   label: a judgement, not a count. So it states the rule instead.
+  //
+  //   Ordering by POSITIVE COUNT was weighed and is still refused: it put
+  //   Claude Sonnet 5 (+2 −6) at #1 on `instruction-following` and answers
+  //   "who does this best", which is a merit ranking whatever it is counted
+  //   from. The groups answer the narrower question "has anyone reported this
+  //   working?", and the last clause is what keeps that honest: Claude Opus 5
+  //   heads that page on 1 positive and 11 negatives, and the sentence has to
+  //   be true of that row.
+  //
+  //   An older payload with no groups keeps the old sentence, which is true of
+  //   it.
+  if(!(item.rows || []).some(r => r.g)){
+    return `${head} Ordered by report count, which is a count and not a score.${split}`
+      + ` Open one to read every report it holds.`;
+  }
+  return `${head} Listed in three groups: models with at least one report of it working,`
+    + ` then models with only neutral reports, then models with reports of problems and`
+    + ` none of it working. Within each group, ordered by report count. Neither is a score`
+    + ` or a recommendation: a model enters the first group on a single positive report,`
+    + ` however many problem reports it also has, and each row shows how many of each.`
+    + ` Positive and negative are the extractor’s reading of each quote, so one`
+    + ` mislabelled report can move a model into a different group.${split}`
+    + ` Open one to read every report it holds.`;
 }
 
 /** Reports that name no model, and so appear under none.
@@ -141,32 +185,10 @@ function orphanNote(item){
     report${n===1?' names':'s name'} no model, so ${n===1?'it is':'they are'} not listed
     above. ${n===1?'It is':'They are'} held by the board and counted in the total.</p>`;
 }
-/** The models this job drops entirely, named and linked.
- *
- * `best_for` claims suitability, so a problem report cannot fill it - and for
- * most models that means a row with some reports missing, which the drill-down
- * page says. For a model whose every report here is a problem report it means
- * NO ROW: the model is not on the page at all, and a reader cannot tell that
- * from a model nobody has ever discussed. Rule 4 on the largest thing this
- * filter can remove.
- *
- * It names each model rather than only counting them, because "1 model is not
- * listed" is not something a reader can act on and a link to what was actually
- * said is. Renders nothing on a capability page, where nothing is filtered.
- */
-function suppressedNote(item){
-  const list = item.suppressed || [];
-  if(!list.length) return '';
-  const names = list.map(x =>
-    `<a data-go="model:${esc(x.key)}">${esc(x.m)}</a> (${x.n} report${x.n===1?'':'s'})`
-  ).join(', ');
-  return `<p class="muted" style="margin-top:14px;max-width:74ch;line-height:1.6">
-    <b>${list.length} model${list.length===1?' is':'s are'} not listed above.</b>
-    ${list.length===1?'Every report it has':'Every report they have'} on this job is a report of
-    a problem, and <b>Best for</b> lists evidence that a model suits a job — so
-    ${list.length===1?'it has':'they have'} no row here. The reports exist and the board kept them:
-    ${names}.</p>`;
-}
+// `suppressedNote` WAS HERE, naming the models `best_for` dropped entirely
+// because every report they had on a job was a problem report. Nothing is
+// dropped any more - those models are the third group - so there is nothing
+// for it to say (2026-09-25).
 function conds(list){
   if(!list || !list.length) return '';
   return '<ul class="conds">'+list.map(([a,b])=>`<li><b>${esc(a)}</b><span>${esc(b)}</span></li>`).join('')+'</ul>';
@@ -467,7 +489,7 @@ function vBoard(tab){
   //   inside one it has to cut open. Anything added here that returns bare
   //   cards must wrap them in `gridBlock` or they will render as a column.
   const panes = {
-    best: {intro:'Jobs with enough reports to rank. Each opens a page that names the cheapest model engineers report doing it, the conditions that change the answer, and the criticisms that did not disqualify it.',
+    best: {intro:'Jobs engineers named when they said what they were running a model for. Each opens a page listing every model reported on that job, in three groups: reported working, only neutral reports, and reported problems with none of it working. Problem reports are shown, not filtered.',
       grid: DB.jobs.length ? gridBlock(DB.jobs.map(j=>card(j,'job')).join('')) : empty},
     cap: {intro:'A capability means one thing across every model page. These are the definitions the board rules by — written so an answer engine can quote them, and so two claims can be compared without arguing about words.',
       note: parentNote('caps'),
@@ -494,12 +516,12 @@ function vBoard(tab){
   const note = p.note || '';
   return `<div class="shell phead">${crumb([['Board',null]])}
     <h1>The board</h1>
-    <p class="sub">Three ways into the same evidence. <b>Best for</b> answers a job.
+    <p class="sub">Three ways into the same evidence. <b>Jobs</b> lists what was reported on a job.
     <b>Capabilities</b> defines what a claim means, so a claim on one model page can be compared with a
     claim on another. <b>Metrics</b> are the axes, and what each one refuses to average.</p></div>
     <div class="shell">
       <div class="tabs" role="tablist">
-        <button role="tab" aria-selected="${tab==='best'}" data-tab="best">Best for</button>
+        <button role="tab" aria-selected="${tab==='best'}" data-tab="best">Jobs</button>
         <button role="tab" aria-selected="${tab==='cap'}" data-tab="cap">Capabilities</button>
         <button role="tab" aria-selected="${tab==='met'}" data-tab="met">Metrics</button>
       </div>
@@ -522,12 +544,12 @@ function vJob(slug){
   // slice with nothing on the page saying it was a slice. Every one of those
   // reports is now on the page of the model it was reported about, and this
   // page is the way to them.
-  return `<div class="shell phead">${crumb([['Board','board'],['Best for','board:best'],[j.name,null]])}
+  return `<div class="shell phead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
     <h1>${esc(j.h1)}</h1><p class="sub">${esc(j.sub)}</p></div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
       <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
-    ${sec('Every model reported working for this job','Who got this working',
-      listIntro(j), ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j) + suppressedNote(j))}
+    ${sec('Every model reported on this job','In three groups, by what the reports say',
+      listIntro(j), ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j))}
     ${sec('Conditions that change the answer','Where the pick stops holding',
       'Most disagreements between engineers are condition mismatches rather than contradictions. These are the ones the reports keep naming.',conds(j.conds))}
     ${sec('Related','','',related(j.rel))}`;
@@ -545,7 +567,7 @@ function vCap(slug){
     ${sec('What this is not','Three things filed elsewhere',
       'Capability boundaries exist so a disagreement is a disagreement rather than two people using one word for two things.',conds(c.nots))}
     ${sec('Models with evidence','Who has been reported doing this',
-      listIntro(c), ranked(c.rows,'capmodel:'+c.slug) + orphanNote(c) + suppressedNote(c))}
+      listIntro(c), ranked(c.rows,'capmodel:'+c.slug) + orphanNote(c))}
     ${sec('Related','','',related(c.rel))}`;
 }
 
@@ -581,28 +603,20 @@ function vModelIn(kind, item, key, crumbs){
   // is the page where the difference between a report and a quote is visible
   // on the screen - one block, two quotes inside it.
   const counts = `${esc(row.e)} \u00b7 ${qs.length} quote${qs.length===1?'':'s'} \u00b7 ${esc(lbl)}`;
-  // BEST FOR DROPS THE COMPLAINTS, AND A PAGE SAYING "EVERY REPORT" HAS TO
-  // SAY SO. The filter is right - `best_for` claims suitability and a problem
-  // report cannot support one - but until now it was silent, and an absence we
-  // caused reading as one we found is rule 4 exactly. The count is distinct
-  // documents, the same unit as the report count beside it, and the link goes
-  // where those reports are shown in full.
-  const hidden = row.hidden || 0;
-  const hiddenNote = hidden ? `<p class="muted" style="margin-top:12px;max-width:74ch;line-height:1.6">
-    <b>${hidden} report${hidden===1?'':'s'} of a problem</b> with this model on this job
-    ${hidden===1?'is':'are'} not shown here. <b>Best for</b> lists evidence that a model suits a
-    job, so a complaint cannot fill it \u2014 but the complaint exists and the board kept it.
-    <a data-go="model:${esc(key)}">Read it on the model page \u2192</a></p>` : '';
+  // THE SPLIT RIDES WITH THE COUNTS. Nothing is filtered from this page any
+  // more - `best_for` hid its problem reports until 2026-09-25 and this page
+  // said how many - so the honest line is the row's own positive and negative
+  // counts, the same ones the category page ordered it by.
+  const split = row.sp ? ` · ${esc(row.sp)}` : '';
   const empty = `<p class="muted" style="padding:8px 0">The board holds no readable report for this
     model under this ${kind === 'job' ? 'job' : 'capability'}. That is what the board has, not a page
     that failed to load.</p>`;
   return `<div class="shell phead">${crumb(crumbs)}
     <h1>${esc(row.m)} on ${esc(item.name)}</h1>
     <p class="sub">Every report the board holds for this model under this
-    ${kind === 'job' ? 'job' : 'capability'}: ${counts}. One report is one source document, so two
+    ${kind === 'job' ? 'job' : 'capability'}: ${counts}${split}. One report is one source document, so two
     quotes from one comment are one report. The report count is a floor \u2014 an open vocabulary can
     name one section two ways until the duplicates are merged.</p>
-    ${hiddenNote}
     <p style="margin-top:14px"><a data-go="model:${esc(key)}">Everything said about
     ${esc(row.m)}, across every job, capability and metric \u2192</a></p></div>
     ${qs.length ? sec('Reports',reportsHeading(qs),'',quotes(qs)) : sec('Reports','','',empty)}`;
@@ -611,7 +625,7 @@ function vModelIn(kind, item, key, crumbs){
 function vJobModel(slug, key){
   const j = byS(DB.jobs,slug); if(!j) return vBoard('best');
   return vModelIn('job', j, key,
-    [['Board','board'],['Best for','board:best'],[j.name,'job:'+j.slug],
+    [['Board','board'],['Jobs','board:best'],[j.name,'job:'+j.slug],
      [(j.rows.find(r=>r.key===key)||{}).m || key, null]]);
 }
 
