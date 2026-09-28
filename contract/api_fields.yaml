@@ -339,6 +339,11 @@ fields:
     routes:
     - /compare
     state: no_consumer
+  model_callers:
+    reviewed: false
+    routes:
+    - /admin/prompts
+    state: consumed
   model_version_id:
     reviewed: false
     routes:
