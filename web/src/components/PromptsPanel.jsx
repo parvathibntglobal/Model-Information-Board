@@ -32,6 +32,9 @@ export default function PromptsPanel() {
   // ONE OPEN AT A TIME, across all three groups: the list is what a
   // reader scans, and two open prompts is the wall this replaced.
   const [openId, setOpenId] = useState(null)
+  // WHICH HALF IS SHOWING. `uses` first: "where is a model used at all" is the
+  // question a reader arrives with, and the prompts are the detail behind it.
+  const [tab, setTab] = useState('uses')
 
   useEffect(() => {
     let alive = true
@@ -50,12 +53,54 @@ export default function PromptsPanel() {
       <div className="card-head">
         <div className="row" style={{ gap: 8 }}>
           <IconLayers width={14} height={14} style={{ color: 'var(--text-3)' }} />
-          <span className="label">Prompts — what we actually send a model</span>
+          <span className="label">The AI model — where it is used, and what it is sent</span>
         </div>
-        {data && <span className="label">{data.count} prompt(s)</span>}
       </div>
 
-      <div style={{ padding: '0 var(--s4)' }}>
+      <div className="card-body stack stack-3">
+        {err && <Notice icon={<IconAlert />}>{err}</Notice>}
+        {!data && !err && <div className="skel" style={{ height: 160 }} />}
+
+        {/* ⚠ TWO TABS, NOT ONE LONG STACK. The overview sat above the prompt
+            list, and the list is long - four prompts, seventeen field
+            instructions, the rules and what is not shown - so the overview read
+            as a preamble to scroll past. As tabs, each half is a thing you open:
+            "Model uses" answers where a model is used and what it is for, and
+            "Prompts" is the exact text behind it.
+
+            Same full-width strip as the model page's Jobs / Capabilities /
+            Metrics, and the count is on each tab so what is behind it is
+            visible before a click. */}
+        {data && (
+          <div className="tabstrip" role="tablist" aria-label="Model uses and prompts">
+            {[
+              ['uses', 'Model uses', (data.model_callers?.stages || []).length],
+              ['prompts', 'Prompts', data.count],
+            ].map(([key, label, n]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                id={`prompts-tab-${key}`}
+                aria-selected={tab === key}
+                aria-controls="prompts-panel"
+                onClick={() => setTab(key)}
+              >
+                {label} <span className="x">{n}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {data && tab === 'uses' && (
+          <div id="prompts-panel" role="tabpanel" aria-labelledby="prompts-tab-uses">
+            <WhereAModelIsUsed callers={data.model_callers} />
+          </div>
+        )}
+
+        {data && tab === 'prompts' && (
+          <div id="prompts-panel" role="tabpanel" aria-labelledby="prompts-tab-prompts"
+               className="stack stack-3">
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           Every one of these is read by the model. Composed by the backend from the
           same builders the pipeline calls, so this is the text that was sent and
@@ -64,20 +109,6 @@ export default function PromptsPanel() {
           inside the delimited block at call time, which is the first of the five
           defences against a post trying to give instructions.
         </p>
-      </div>
-
-      <div className="card-body stack stack-3">
-        {err && <Notice icon={<IconAlert />}>{err}</Notice>}
-        {!data && !err && <div className="skel" style={{ height: 160 }} />}
-
-        {/* ⚠ WHERE BEFORE WHAT. The list below answers "what exactly do we
-            send"; the question a reader arrives with is "where is a model used
-            at all". The overview answers that first, in plain words, and the
-            prompts it summarises are right underneath to check it against. */}
-        {data && <WhereAModelIsUsed callers={data.model_callers} />}
-        {data && (
-          <hr style={{ border: 0, borderTop: '1px solid var(--border-soft)', margin: 0 }} />
-        )}
 
         {/* ── SENT TO THE MODEL ──────────────────────────────────────────
             ONE LINE EACH, OPENED ON CLICK. Every prompt used to render in
@@ -290,6 +321,8 @@ export default function PromptsPanel() {
                 </p>
               </div>
             ))}
+          </div>
+        )}
           </div>
         )}
       </div>

@@ -142,3 +142,44 @@ class TestTheRouteStillServesThePrompts:
             and d.args and getattr(d.args[0], "value", None) == "/admin/prompts"
         ]
         assert owners == ["admin_prompts"], f"/admin/prompts decorates {owners}"
+
+
+PANEL = ROOT / "web" / "src" / "components" / "PromptsPanel.jsx"
+
+
+def _panel() -> str:
+    text = re.sub(r"/\*[\s\S]*?\*/", " ", PANEL.read_text(encoding="utf-8"))
+    return re.sub(r"//[^\n]*", " ", text)
+
+
+class TestThePanelIsTwoTabs:
+    """"Model uses" and "Prompts" as two tabs rather than one long stack. The
+    overview sat above a long prompt list and read as a preamble to scroll past;
+    as a tab it is a thing you open."""
+
+    def test_both_tabs_exist_with_their_labels(self):
+        panel = _panel()
+        assert "['uses', 'Model uses'," in panel
+        assert "['prompts', 'Prompts'," in panel
+        assert 'role="tablist"' in panel and 'role="tab"' in panel
+
+    def test_each_tab_carries_its_count(self):
+        """The same rule as the model page's tabs: what is behind a tab is
+        visible before the click."""
+        panel = _panel()
+        assert "(data.model_callers?.stages || []).length" in panel
+        assert "data.count]" in panel
+        assert '<span className="x">{n}</span>' in panel
+
+    def test_it_opens_on_model_uses(self):
+        """Where a model is used is the question a reader arrives with; the
+        prompts are the detail behind it."""
+        assert "useState('uses')" in _panel()
+
+    def test_the_prompt_material_is_all_inside_the_prompts_tab(self):
+        """The rules and the not-shown list describe the prompts, so they belong
+        behind that tab rather than under both."""
+        panel = _panel()
+        opens = panel.index("tab === 'prompts'")
+        for marker in ("Sent to the model", "data?.not_shown"):
+            assert panel.index(marker) > opens, f"{marker!r} renders outside the Prompts tab"
