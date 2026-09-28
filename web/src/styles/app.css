@@ -743,22 +743,16 @@ tbody tr:hover{background:var(--surface-2)}
 /* Models across the top, facts down the side: a reader compares one fact at a
    time, scanning a row. Wrapped in an overflow-x container by the component, so
    a narrow screen scrolls the TABLE and never the page. */
-/* ── one axis per line, in columns ──────────────────────────────────────────
-   The cell used to be free text: `Reasoning — 5 reports  3 of 5 positive`,
-   repeated up to 33 times per column. The words that repeat moved to a header
-   and the numbers became columns, so the eye has a straight edge to run down
-   and two cells can be compared across.
+/* ── the lists inside a cell are gone ───────────────────────────
+   `.cmp-line`, `.cmp-line-name`, `.cmp-line-n` and `.cmp-line-head` styled
+   `Listed`, which rendered ONE model's axes as a list inside ONE cell. They
+   went with it: the axes are table rows now, aligned on the slug across every
+   column, so a cell holds one model's count and nothing needs a list.
 
-   `--cmp-n` is the numeric column and is shared by the header and the rows;
-   changing it in one place keeps them aligned, which a per-row width would
-   not. */
-.cmp-line{display:flex;align-items:center;gap:10px;padding:1.5px 0;
-  --cmp-n:2.4em}
-.cmp-line-name{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;
-  font-size:var(--fs-xs);line-height:1.5}
-.cmp-line-n{flex:0 0 var(--cmp-n);text-align:right;font-size:var(--fs-xs)}
-.cmp-line-head{font-size:10px;letter-spacing:.02em;padding-bottom:3px;
-  border-bottom:1px solid var(--border-soft);margin-bottom:2px}
+   What those rules were solving is worth remembering, because the table now
+   has to solve it instead: the cell used to be free text repeated up to 33
+   times per column, and the fix was to give the eye a straight edge to run
+   down. A row per axis is a straighter edge than a list ever was. */
 .cmp-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
 .cmp-table th,.cmp-table td{
   border:1px solid var(--border);
@@ -771,6 +765,23 @@ tbody tr:hover{background:var(--surface-2)}
   white-space:nowrap;width:1%;
 }
 .cmp-table td .dim{color:var(--text-3)}
+
+/* ⚠ THE AXIS NAME WRAPS AND THE FACT NAME DOES NOT. `tbody th` is
+   `white-space:nowrap; width:1%` because the fixed rows down the side - "Posts
+   and comments", "Entries on the board" - are short labels that should not
+   break. The aligned rows put an EXTRACTOR-WRITTEN axis name in the same
+   column, and those run long: `unauthorized-data-exfiltration`. Left to nowrap
+   they force the label column wide enough to squeeze the model columns the
+   page exists to compare. */
+.cmp-table tbody tr.cmp-axis th{white-space:normal;width:22%;font-weight:500;
+  overflow-wrap:anywhere;line-height:1.45}
+
+/* The group divider: one row spanning the table, naming the section the rows
+   under it belong to. Quieter than a column header and louder than a row, so
+   three groups read as three groups without competing with the model names. */
+.cmp-table tr.cmp-group th{background:var(--bg);border-left:0;border-right:0;
+  padding:16px 12px 7px;white-space:normal;width:auto}
+.cmp-table tr.cmp-group:first-child th{padding-top:6px}
 
 /* ── the closed-vocabulary view, folded ─────────────────────────────────────
    Quieter than a card on purpose. The evidence panel above it is the page; this

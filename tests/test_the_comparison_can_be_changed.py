@@ -58,6 +58,19 @@ def source() -> str:
     return PAGE.read_text(encoding="utf-8")
 
 
+def _axis_cell() -> str:
+    """Just the cell renderer for an aligned axis row.
+
+    Narrower than `axisRows`, deliberately. The section HEADING is in that
+    function too and carries an em dash - "nothing named yet - an absence we
+    found" - which is correct prose in a heading and a score in a cell. The
+    slice runs from the lookup to the row's class so only the cell is read.
+    """
+    src = code()
+    start = src.index("const it = a.per[")
+    return src[start:src.index("'cmp-axis'", start)]
+
+
 def code() -> str:
     """The page with comments stripped.
 
@@ -160,7 +173,11 @@ class TestDiscussedUnderReadsTheBoardAndNotTheDeadChain:
     """
 
     def test_the_row_reads_the_discovered_vocabulary(self):
-        assert "m.reported?.discovered?.capabilities" in code()
+        """Read through a COMPUTED key now - `alignAxes` takes the section
+        name - because the same alignment runs for all three. What matters
+        is unchanged: `discovered`, the board's open vocabulary, and never
+        `reported.capabilities`, the closed twelve that is always empty."""
+        assert "m.reported?.discovered?.[section]" in code()
 
     def test_it_no_longer_reads_the_closed_twelve(self):
         assert "m.reported?.capabilities" not in code()
@@ -174,21 +191,67 @@ class TestDiscussedUnderReadsTheBoardAndNotTheDeadChain:
     def test_each_capability_carries_its_report_count(self):
         """A list of names says which things were discussed; the counts say
         how much, and on a comparison that is the difference."""
-        assert "reports: c.reports" in code()
+        assert "<strong>{it.reports}</strong>" in code()
 
 
-class TestAListIsListedRatherThanTruncated:
-    """⚠ THREE VERSIONS, AND THE FIRST TWO WERE BOTH WRONG.
+class TestTheSameAxisIsOnOneLine:
+    """⚠ THE PAGE WAS NOT COMPARING ANYTHING, AND THAT SURVIVED THREE
+    REWRITES OF HOW THE LISTS WERE DRAWN.
 
-    `mets.slice(0, 3)` showed three of nine and read as three — a count with no
-    denominator (rule 7). Replacing it with `+6 more` in a `title` attribute
-    fixed the honesty and not the usefulness: **a tooltip is not openable**, it
-    is invisible on touch, and on a comparison page the list IS the content.
+    Each model's jobs, capabilities and metrics rendered as three INDEPENDENT
+    lists in three cells. `coding-agent 7` for one model and `coding-agent 3`
+    for another sat at different positions in different lists, and the reader
+    aligned them by eye. Every earlier fix here - truncation, then a `title`
+    tooltip, then `<details>`, then columns instead of prose - improved how a
+    LIST was drawn and left that untouched.
 
-    Semicolon-joined prose was the other half: `reasoning; code generation;
-    long context` beside the same shape in the next cell cannot be read across,
-    because the eye has no line to follow. A comparison of lists wants lists.
+    The rows align on the slug now, which is the first version of this page on
+    which two cells side by side are about the same thing.
+
+    ⚠ AND THE EMPTY CELL IS WHAT THE ALIGNMENT PUTS AT RISK (rule 6). A
+      blank, a dash or a 0 beside "7" reads as nought out of seven. "not
+      reported" is the only one of the four that says what is true: nobody
+      wrote about this model in these terms, and for most axes nobody asked.
+      The stacked lists could not raise the question, because nothing lined up.
     """
+
+    def test_the_axes_are_aligned_on_the_slug(self):
+        assert "function alignAxes" in code()
+        assert "it.slug || it.name" in code(), (
+            "the union is no longer keyed on the slug, so two models' rows for "
+            "the same axis can land on different lines again"
+        )
+
+    def test_a_model_with_no_entry_says_so_in_words(self):
+        """⚠ THE LOAD-BEARING ASSERTION IN THIS FILE. An empty cell is the
+        one place this page can state a verdict it has no evidence for.
+
+        Scoped to `axisRows`, because a dash is a correct answer elsewhere on
+        the page - the `— out of` row renders one when there is no
+        denominator to give. It is only beside an aligned count that a dash
+        becomes a score.
+        """
+        body = _axis_cell()
+        assert 'not reported' in body, (
+            "the no-entry cell no longer says 'not reported'"
+        )
+        assert re.search(r"if \(!it\) return", body), (
+            "the no-entry branch is gone from the axis cell"
+        )
+        for wrong in ('—', '>0<'):
+            assert wrong not in body, (
+                f"{wrong!r} appears in the aligned axis cell; a dash or a zero "
+                f"beside a 7 reads as nought out of seven rather than as "
+                f"'nobody wrote about this'"
+            )
+
+    def test_the_shared_axes_are_never_truncated(self):
+        """An axis two models were discussed on is the only row that compares
+        anything. Capping those would hide the thing the page is for."""
+        assert "axes.filter((a) => a.named_by > 1)" in code()
+        assert "solo.slice(0, SOLO_SHOWN)" in code(), (
+            "the cap is no longer applied to the single-model axes only"
+        )
 
     def test_nothing_is_cut(self):
         assert "slice(0, max)" not in code()
@@ -199,45 +262,26 @@ class TestAListIsListedRatherThanTruncated:
         linked to, and it cannot be read beside the column next to it."""
         assert "title={items.slice" not in code()
 
-    def test_every_item_gets_its_own_line(self):
-        assert "shown.map(line)" in code()
-        assert "<li key={i}" in code()
-
     def test_the_overflow_is_a_control_a_reader_can_press(self):
-        """⚠ THE THIRD VERSION, AND THE SECOND WAS THE ONE @parvathibntglobal
-        rejected. `+4 more` in a `title` is not openable - invisible on touch,
-        unreachable by keyboard. `<details>` is a button, and the rest of the
-        list renders in the cell where it belongs.
+        """⚠ THE SECOND VERSION WAS THE ONE @parvathibntglobal REJECTED:
+        `+4 more` in a `title` is not openable, invisible on touch and
+        unreachable by keyboard. Whatever is withheld has to open.
 
-        The cut is about HEIGHT, not importance: Claude Opus 5 carries 63
-        discovered capabilities, and rendering all of them inline makes one
-        table row 63 lines tall and buries every row under it."""
-        assert "<details>" in code()
-        assert "show the other {rest.length}" in code()
-        assert "{rest.map((x, i) => line(x, i + upTo))}" in code()
+        The cut is about HEIGHT, not importance - Claude Opus 5 alone carries
+        63 discovered capabilities, and a full union across three models is a
+        table nobody reads."""
+        assert "setExpanded((e) => ({ ...e, [section]: !open }))" in code()
+        assert "named by one model only" in code()
 
-    def test_the_count_counts_all_of_them_not_the_shown_ones(self):
-        """Rule 7. A count that shrank to match what is displayed would make
-        the one comparable number on the cell describe the layout."""
-        assert "{items.length} {plural}" in code()
+    def test_the_hidden_count_is_the_real_one(self):
+        """Rule 7. A count that shrank to match what is displayed would
+        describe the layout rather than the evidence."""
+        assert "solo.length - shownSolo.length" in code()
 
-    def test_the_count_leads_the_cell(self):
-        """⚠ THE COMPARABLE PART. Two cells of ten lines look alike until you
-        count them; "12 capabilities" against "3 capabilities" is the
-        difference a reader is looking for before reading either list."""
-        assert "{items.length} {plural}" in code()
-
-    def test_the_unit_is_named_per_row_rather_than_generic(self):
-        """"6 items" says nothing. Jobs, capabilities and metrics are three
-        different things and the row already knows which."""
-        for unit in ('unit="job"', 'unit="capability"', 'unit="metric"'):
-            assert unit in code(), unit
-
-    def test_an_empty_list_renders_nothing_and_the_row_says_so_itself(self):
-        """Each row already has its own empty sentence — "no job named yet",
-        "nothing yet", "none". A second empty state inside the helper would
-        make two of them disagree."""
-        assert "if (!items.length) return null" in code()
+    def test_opening_one_section_does_not_open_the_others(self):
+        """59 capabilities and 2 metrics are different problems, and a reader
+        opening the first has not asked for the second."""
+        assert "expanded[section]" in code()
 
 
 class TestTheEntryCountsTravelWithTheAxisCounts:
@@ -350,7 +394,21 @@ class TestTheListIsColumnsRatherThanProse:
     """
 
     def test_the_repeated_words_are_in_a_header_not_on_each_row(self):
-        assert '<span className="cmp-line-n">reports</span>' in code()
+        """⚠ SOLVED BY THE TABLE ITSELF NOW, which is why this no longer
+        looks for `cmp-line-n`. The words repeated because a cell held a LIST
+        and every line in it had to name its own unit. An axis is a table row,
+        so the axis name is written once in the row header and each model's
+        count sits in its own column - the straight edge the columns inside a
+        cell were an attempt to fake.
+
+        What is asserted is that the old shape has not come back."""
+        assert "cmp-line" not in code(), (
+            "the lists-inside-a-cell markup is back; `Listed` put the same "
+            "words on every line of every column"
+        )
+        assert "<th scope=\"row\">{r.label}</th>" in code(), (
+            "the axis name is no longer the row's header"
+        )
 
     def test_the_polarity_column_is_gone(self):
         assert "how it went" not in code()
@@ -365,19 +423,38 @@ class TestTheListIsColumnsRatherThanProse:
         assert '"by_axis"' not in app()
 
     def test_the_row_still_shows_its_report_count(self):
-        assert '<span className="cmp-line-n tnum">{x.reports}</span>' in code()
+        """The count is the comparable part and survives every rewrite of how
+        the rows are drawn."""
+        assert "<strong>{it.reports}</strong>" in code()
 
 
-class TestThePluralIsNotStringConcatenation:
-    def test_the_two_units_that_break_are_mapped(self):
-        """⚠ "15 capabilitys" WAS ON THE PAGE. `unit + "s"` is not English,
-        and the unit it breaks on is the one with the most rows."""
-        assert "capability: 'capabilities'" in code()
+class TestTheUnitIsNotBuiltByConcatenation:
+    """⚠ "15 capabilitys" WAS ON THE PAGE, from `unit + "s"`. English
+    plurals are not a string operation, and the unit it broke on was the one
+    with the most rows.
 
-    def test_a_single_item_keeps_the_singular(self):
-        assert "items.length === 1 ? unit :" in code()
+    `PLURALS` was the fix and it is gone, because nothing pluralises a unit any
+    more: the three section headings are fixed strings. That is a better fix
+    than a lookup table - the bug cannot occur in text nobody computes - and it
+    is only better while it stays true, which is what this class is for.
+    """
 
-    def test_an_unmapped_unit_still_gets_something(self):
-        """A missing key must not render `undefined`; the naive plural is a
-        worse answer than the map and a better one than nothing."""
-        assert "PLURALS[unit] || `${unit}s`" in code()
+    def test_the_section_headings_are_written_out(self):
+        for word in ("'Jobs'", "'Capabilities'", "'Metrics'"):
+            assert word in code(), word
+
+    def test_no_unit_is_pluralised_by_adding_an_s(self):
+        """The exact expression that produced it, and the shape of it.
+
+        `report{n === 1 ? '' : 's'}` is allowed and present: "report" is a
+        regular plural and a fixed word, not a unit read from data. What is
+        refused is appending to a VARIABLE."""
+        assert '`${unit}s`' not in code()
+        assert "unit + 's'" not in code()
+        assert 'unit + "s"' not in code()
+
+    def test_the_lookup_is_not_quietly_back(self):
+        """A reinstated PLURALS would mean something is computing a unit again,
+        and the note in Compare.jsx says where the trap is if it ever needs to
+        be."""
+        assert "PLURALS" not in code()
