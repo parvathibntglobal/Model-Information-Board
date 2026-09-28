@@ -1135,14 +1135,24 @@ def compare_page(ids: str = "") -> dict:
         #
         #   It does not always. Measured 2026-09-28 over the 15 models with the
         #   most entries: of 572 (model, axis) pairs `evidence_for_model`
-        #   returns, 4 have no board page at all, for two different reasons:
+        #   returns, 4 have no board page at all - and all four for ONE reason:
+        #   the board and this reader name the same axis differently.
         #
-        #     metric/exploitgym, capability/overthinking   MERGE CYCLES - rows
-        #         merged both ways (`exploit-gym` -> `exploitgym` and back), so
-        #         the board and this reader resolve them to different names
-        #     metric/exploit-bench                         a metric the board
-        #         withholds under one of its validity gates (`_withheld`),
-        #         which `evidence_for_model` deliberately does not apply
+        #     metric/exploitgym, capability/overthinking   rows MERGED BOTH
+        #         WAYS (`exploit-gym` -> `exploitgym` and back), so the two
+        #         readers land on opposite ends of the cycle
+        #     metric/exploit-bench                         a SPELLING FOLD - the
+        #         board lists it as `exploitbench`, no hyphen, while the row and
+        #         this reader keep `exploit-bench`
+        #
+        #   ⚠ CORRECTED BEFORE PUSH. The first version of this comment said
+        #     `exploit-bench` was withheld by a metric validity gate that
+        #     `evidence_for_model` does not apply. Both halves were wrong: the
+        #     metric gates ARE applied to both reads (see the comment above the
+        #     query in `evidence_for_model`), and the row is not withheld at all
+        #     - the board has it under another name. Found by querying the row
+        #     rather than reasoning from `_withheld`, whose counts looked like
+        #     an explanation and were not one.
         #
         #   Linking all 572 would put four dead links on the page, each looking
         #   like a board that lost its data. Asking `board_sections` is the one

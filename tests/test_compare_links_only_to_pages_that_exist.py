@@ -10,10 +10,16 @@ already are. Compare stays counts, the board stays order, one click apart.
   Measured 2026-09-28 over the 15 models with the most entries: of 572 (model,
   axis) pairs `evidence_for_model` returns, 4 have no board page at all.
 
-    metric/exploitgym, capability/overthinking   MERGE CYCLES: rows merged both
-        ways, so the board and this reader resolve them to different names
-    metric/exploit-bench                         withheld by one of the board's
-        metric validity gates, which `evidence_for_model` does not apply
+  All four for one reason: the board and this reader name the same axis
+  differently.
+
+    metric/exploitgym, capability/overthinking   rows merged both ways, so the
+        two readers land on opposite ends of the cycle
+    metric/exploit-bench                         a spelling fold: the board lists
+        it as `exploitbench`, the row keeps `exploit-bench`
+
+  (An earlier draft blamed a metric validity gate for `exploit-bench`. The
+  gates are applied to both reads; the row is not withheld, it is renamed.)
 
   So the backend asks `board_sections` - the function that IS what the board
   renders - and a path is None exactly where the board has no page. A second
