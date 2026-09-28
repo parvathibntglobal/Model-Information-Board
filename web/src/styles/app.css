@@ -180,17 +180,28 @@ button.chip-on:hover{background:var(--text);color:var(--bg);border-color:var(--t
    stray line under a button. */
 .tabstrip{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
   margin:0 calc(var(--card-pad) * -1);border-bottom:1px solid var(--border)}
+/* THEY ARE HEADINGS, SO THEY ARE SET LIKE HEADINGS. These started at
+   `--text-3`, the same grey as the body copy beneath them, and an unselected
+   tab was quieter than the sentence it was supposed to be titling - the strip
+   disappeared into the card. Weight 600 and `--text-2` at rest: the unselected
+   two are still secondary to the selected one, but they read as the section
+   names they are rather than as hint text. */
 .tabstrip button{display:flex;align-items:baseline;justify-content:center;gap:8px;
-  padding:11px 10px;background:none;border:0;border-bottom:2px solid transparent;
-  margin-bottom:-1px;color:var(--text-3);font-size:var(--fs-sm);
-  transition:color .16s var(--ease),border-color .16s var(--ease)}
-.tabstrip button:hover{color:var(--text-2)}
-/* The selected tab is marked TWICE, by weight and by rule. Colour alone is the
-   one signal a reader may not have - and on a strip of three, "which one am I
-   looking at" is the only question the strip answers. */
-.tabstrip button[aria-selected="true"]{color:var(--text);font-weight:600;
-  border-bottom-color:var(--text)}
-.tabstrip .x{font-family:var(--font-mono);font-size:11px;color:var(--text-3)}
+  padding:12px 10px;background:none;border:0;border-bottom:2px solid transparent;
+  margin-bottom:-1px;color:var(--text-2);font-size:var(--fs-sm);font-weight:600;
+  letter-spacing:.01em;
+  transition:color .16s var(--ease),border-color .16s var(--ease),
+             background .16s var(--ease)}
+.tabstrip button:hover{color:var(--text);background:var(--surface-2)}
+/* The selected tab is marked THREE ways - weight, rule and a tinted panel -
+   because colour alone is the one signal a reader may not have, and on a strip
+   of three "which one am I looking at" is the only question the strip answers.
+   The tint also ties the tab to the body below it, so the strip reads as the
+   heading OF that panel rather than as a control sitting above it. */
+.tabstrip button[aria-selected="true"]{color:var(--text);font-weight:700;
+  border-bottom-color:var(--text);background:var(--surface-2)}
+.tabstrip .x{font-family:var(--font-mono);font-size:11px;font-weight:600;
+  color:var(--text-3)}
 /* ⚠ A ZERO STAYS LEGIBLE. `Metrics 0` is the only place an empty section is
    visible before a click, so it must not fade into the rule beneath it. */
 .tabstrip button[aria-selected="true"] .x{color:var(--text-2)}

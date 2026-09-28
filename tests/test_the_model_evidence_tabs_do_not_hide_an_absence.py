@@ -95,14 +95,34 @@ class TestTheThreeTabsAreTheThreeSections:
 
     def test_the_selected_tab_is_marked_by_more_than_colour(self):
         """Colour alone is the one signal a reader may not have, and on a strip
-        of three "which am I looking at" is the only question it answers."""
-        css = (ROOT / "web" / "src" / "styles" / "app.css").read_text(encoding="utf-8")
-        rule = re.search(
-            r'\.tabstrip button\[aria-selected="true"\]\{([^}]*)\}', css)
-        assert rule, "the selected-tab rule is gone"
-        body = rule.group(1).replace(" ", "")
-        assert "font-weight:600" in body and "border-bottom-color" in body, (
-            "the selected tab is distinguished by colour alone"
+        of three "which am I looking at" is the only question it answers.
+
+        The weights are COMPARED rather than pinned to literals, so restyling
+        the strip does not fail this - only flattening it does.
+        """
+        css = (ROOT / "web" / "src" / "styles" / "app.css").read_text(
+            encoding="utf-8").replace(" ", "")
+        base = re.search(r"\.tabstripbutton\{([^}]*)\}", css)
+        sel = re.search(r'\.tabstripbutton\[aria-selected="true"\]\{([^}]*)\}', css)
+        assert base and sel, "the tab strip's rules are gone from app.css"
+
+        weights = {}
+        for name, rule in (("base", base), ("selected", sel)):
+            found = re.search(r"font-weight:(\d+)", rule.group(1))
+            assert found, f"the {name} tab has no font-weight"
+            weights[name] = int(found.group(1))
+
+        assert weights["base"] >= 600, (
+            f"unselected tabs are set at {weights['base']}; they are the "
+            f"section's heading and were losing against the body copy under "
+            f"them at lighter weights"
+        )
+        assert weights["selected"] > weights["base"], (
+            f"the selected tab ({weights['selected']}) is no heavier than the "
+            f"others ({weights['base']}), so weight has stopped marking it"
+        )
+        assert "border-bottom-color" in sel.group(1), (
+            "the selected tab lost its rule, leaving colour and weight only"
         )
 
 
