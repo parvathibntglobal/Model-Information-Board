@@ -71,6 +71,40 @@ class TestTheThreeTabsAreTheThreeSections:
             "exist with no tab to reach it"
         )
 
+    def test_the_strip_divides_the_width_equally(self):
+        """⚠ EQUAL COLUMNS, NOT CONTENT-SIZED BUTTONS, and it is a legibility
+        property rather than a decorative one. Sized to their labels,
+        `Capabilities` comes out half again as wide as `Jobs` and the three sit
+        in the left third of a full-width panel — which reads as a filter
+        somebody applied, not as the three ways into the panel below.
+
+        Asserted against the stylesheet because that is where it lives; the
+        component only names the class.
+        """
+        code = _code()
+        assert 'className="tabstrip"' in code, (
+            "the tab bar no longer uses the .tabstrip class, so whatever "
+            "divides its width is not the rule this test checks"
+        )
+        css = (ROOT / "web" / "src" / "styles" / "app.css").read_text(encoding="utf-8")
+        strip = re.search(r"\.tabstrip\{([^}]*)\}", css)
+        assert strip, ".tabstrip is gone from app.css"
+        assert "grid-auto-columns:1fr" in strip.group(1).replace(" ", ""), (
+            "the tab strip no longer divides its width into equal columns"
+        )
+
+    def test_the_selected_tab_is_marked_by_more_than_colour(self):
+        """Colour alone is the one signal a reader may not have, and on a strip
+        of three "which am I looking at" is the only question it answers."""
+        css = (ROOT / "web" / "src" / "styles" / "app.css").read_text(encoding="utf-8")
+        rule = re.search(
+            r'\.tabstrip button\[aria-selected="true"\]\{([^}]*)\}', css)
+        assert rule, "the selected-tab rule is gone"
+        body = rule.group(1).replace(" ", "")
+        assert "font-weight:600" in body and "border-bottom-color" in body, (
+            "the selected tab is distinguished by colour alone"
+        )
+
 
 class TestTheCountIsNeverSuppressed:
     """⚠ THE LOAD-BEARING TEST IN THIS FILE."""

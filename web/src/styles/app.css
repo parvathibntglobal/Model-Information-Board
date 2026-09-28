@@ -166,6 +166,35 @@ button.chip-on:hover{background:var(--text);color:var(--bg);border-color:var(--t
    keeps it secondary without making it unreadable. */
 .chip-on .x{color:var(--bg);opacity:.72}
 
+/* ================================================================= tab strip */
+/* THREE EQUAL COLUMNS, NOT THREE CHIPS. A chip row sizes each button to its own
+   label, so `Capabilities` came out half again as wide as `Jobs` and the group
+   sat in the left third of a full-width panel - it read as a filter someone had
+   applied, not as the three ways into the panel below it.
+   `repeat(N,1fr)` divides whatever width the card has, so the strip is the
+   heading for its section rather than a control floating above it.
+
+   FULL-BLEED INSIDE A PADDED BODY. The negative margin pulls the strip out to
+   the card's own edges so its underline meets both sides, the way `.card-head`
+   does. Without it the rule stops short by the body's padding and reads as a
+   stray line under a button. */
+.tabstrip{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
+  margin:0 calc(var(--card-pad) * -1);border-bottom:1px solid var(--border)}
+.tabstrip button{display:flex;align-items:baseline;justify-content:center;gap:8px;
+  padding:11px 10px;background:none;border:0;border-bottom:2px solid transparent;
+  margin-bottom:-1px;color:var(--text-3);font-size:var(--fs-sm);
+  transition:color .16s var(--ease),border-color .16s var(--ease)}
+.tabstrip button:hover{color:var(--text-2)}
+/* The selected tab is marked TWICE, by weight and by rule. Colour alone is the
+   one signal a reader may not have - and on a strip of three, "which one am I
+   looking at" is the only question the strip answers. */
+.tabstrip button[aria-selected="true"]{color:var(--text);font-weight:600;
+  border-bottom-color:var(--text)}
+.tabstrip .x{font-family:var(--font-mono);font-size:11px;color:var(--text-3)}
+/* ⚠ A ZERO STAYS LEGIBLE. `Metrics 0` is the only place an empty section is
+   visible before a click, so it must not fade into the rule beneath it. */
+.tabstrip button[aria-selected="true"] .x{color:var(--text-2)}
+
 .badge{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:6px;
   font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.04em;
   text-transform:uppercase;border:1px solid}

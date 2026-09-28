@@ -183,14 +183,21 @@ export default function ModelEvidence({ modelVersionId }) {
             is why the count is never suppressed when zero, and why an empty
             tab still renders a sentence rather than nothing. */}
         {data && totals.sections > 0 && (
-          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+          /* `tablist` AND `tab`, NOT THREE PRESSED BUTTONS. A chip row is a set
+             of independent toggles and announces itself that way; these are one
+             choice of three, and the roles are what carry that to a reader who
+             is not looking at the underline. */
+          <div className="tabstrip" role="tablist"
+               aria-label="Evidence by section">
             {tabs.map((t) => (
               <button
                 key={t.key}
                 type="button"
-                className={`chip${t.key === active ? ' chip-on' : ''}`}
+                role="tab"
+                id={`evidence-tab-${t.key}`}
+                aria-selected={t.key === active}
+                aria-controls="evidence-panel"
                 onClick={() => setPicked(t.key)}
-                aria-pressed={t.key === active}
               >
                 {t.title} <span className="x">{t.items.length}</span>
               </button>
@@ -199,7 +206,9 @@ export default function ModelEvidence({ modelVersionId }) {
         )}
 
         {data && totals.sections > 0 && (
-          <div key={shown.key} className="stack stack-2">
+          <div key={shown.key} className="stack stack-2"
+               id="evidence-panel" role="tabpanel"
+               aria-labelledby={`evidence-tab-${shown.key}`}>
             <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
               {shown.blurb}
             </span>
