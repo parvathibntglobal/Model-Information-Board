@@ -89,7 +89,7 @@ def summarise_runs(records: list[dict]) -> str:
 
     ⚠ STRUCTURED FIELDS ONLY, BECAUSE THE ISSUE IS PUBLIC. An end record's
       `detail` string can carry the database host (a write-guard refusal reads
-      "the database is 52.17.75.29"), so this never reads `detail`. It reads the
+      "the database is 203.0.113.5"), so this never reads `detail`. It reads the
       counted fields from #489 and the model name, and nothing else. A field
       that is absent is shown as "-", never 0 (rule 6).
     """

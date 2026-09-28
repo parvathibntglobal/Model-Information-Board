@@ -57,11 +57,11 @@ class TestWhatIsDue:
 class TestTheSummaryIsHostFree:
     def test_a_detail_with_a_host_never_reaches_the_summary(self):
         raw = {"model": "GPT-6 Astra", "status": "error", "documents_appended": 0,
-               "detail": "refusing: the database is 52.17.75.29, which is not this machine"}
+               "detail": "refusing: the database is 203.0.113.5, which is not this machine"}
         safe = scheduler.safe_record(raw)
         assert "detail" not in safe
         summary = scheduler.summarise_runs([safe])
-        assert "52.17.75.29" not in summary and "database is" not in summary
+        assert "203.0.113.5" not in summary and "database is" not in summary
 
     def test_an_absent_count_is_a_dash_not_zero(self):
         summary = scheduler.summarise_runs([{"model": "A", "status": "ok"}])
@@ -76,7 +76,7 @@ class TestTheSummaryIsHostFree:
 
     def test_safe_record_keeps_no_field_outside_the_allowlist(self):
         raw = {"model": "A", "status": "ok", "run_id": "r-1", "machine": "LAPTOP-X",
-               "detail": "host 10.0.0.1", "documents_appended": 3}
+               "detail": "host 203.0.113.7", "documents_appended": 3}
         safe = scheduler.safe_record(raw)
         allowed = set(scheduler._SAFE_FIELDS) | {"model", "model_version_id", "display_name"}
         assert set(safe) <= allowed
