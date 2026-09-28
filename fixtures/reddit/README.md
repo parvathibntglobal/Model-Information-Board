@@ -1,16 +1,34 @@
-# A real Reddit thread, unpolished — for `offset_map`
+# A Reddit thread's SHAPE, unpolished — for `offset_map`
 
-**`thread-1u1b22l-getPostComments.json`** · 444,807 bytes · V1 `getPostComments`
-· fetched 2026-08-17 · content hash `1694ae60…f69bfa35f`
+> **`thread-1u1b22l-getPostComments.json` IS SYNTHETIC.** The structure —
+> nesting, counts, the three deleted accounts, scores, timestamps, the offset
+> hazards below — is a real thread's; every author, account id, comment id,
+> body and title is invented. The harvested original is not in this repository,
+> public or private; it stays in the raw store.
+>
+> This replaced the real payload on 2026-09-28. The real one held 195 comment
+> bodies from 152 named authors, and it was in a repository that had gone
+> public — full text republished, which `contract/sources.yaml`'s
+> `reddit-via-rapidapi` records as `false`. Swapping it makes that record
+> honest again. The 195/153/6-member structure is preserved, so the tests that
+> read this file are unchanged.
 
-> Engineer 2 asked for messy rather than clean. This is a live payload with
-> nothing removed, because every case that makes `offset_map` hard is a case a
-> constructed fixture would not have thought of.
+**`thread-1u1b22l-getPostComments.json`** · 402,038 bytes · V1 `getPostComments`
+· structure of a thread fetched 2026-08-17 · this file's sha256
+`0c248b3e…151bb2ce1`
 
-**Source:** `https://www.reddit.com/r/ClaudeAI/comments/1u1b22l/introducing_claude_fable_5/`
+> Engineer 2 asked for messy rather than clean. The structure is a live
+> payload's with nothing simplified, because every case that makes `offset_map`
+> hard is a case a from-scratch fixture would not have thought of — so the
+> shape is kept and only the words are invented.
 
-Retained for verification and reprocessing, like anything in `raw/`. **Never
-republished** — published content is quote + attribution + link.
+**Source of the structure:** an `r/ClaudeAI` thread announcing a model in this
+project's invented landscape. The URL is not reproduced, because it resolves to
+real authors this file no longer names.
+
+The bodies are invented, so this file may live in the tree. Published board
+content is quote + attribution + link, never full text — and now neither is
+this fixture.
 
 ---
 
