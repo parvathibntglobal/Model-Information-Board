@@ -59,6 +59,24 @@ const SPEND_BEFORE_THE_LEDGER = {
   'google/gemini-2.5-flash': { usd: 2.478, asof: '2026-09-01' },
 }
 
+// ── STAGES THAT READ ZERO BECAUSE NOTHING CALLS THEM YET ─────────────────────
+//
+// A stage in here is stated as "(never ran)". A stage NOT in here that has
+// never recorded keeps the warning, because the two look identical in the
+// ledger and only one of them is harmless.
+//
+// ⚠ MEMBERSHIP IS A CLAIM ABOUT THE FRONTEND, NOT THE BACKEND, and it is the
+//   claim that rots. `ask` is here because no component calls `askUnderstand`
+//   and there is no /ask route in the app — the Ask box is a plan, not a
+//   surface. Its backend half is wired and correct: `/ask/understand` is the
+//   only route in that flow that calls a model, and it records STAGE_ASK ahead
+//   of the budget branch.
+//
+//   `tests/test_the_unwired_stage_notice_cannot_rot.py` fails the day a caller
+//   appears, which is the day "(never ran)" stops being true and starts being
+//   the reassuring reading of a real fault.
+const NEVER_RAN = new Set(['ask'])
+
 // The extractor running now. Kept beside the names above so a switch is one
 // edit in one file — and it must match `EXTRACTOR_MODEL` in the backend, which
 // is what actually spends the money.
@@ -316,16 +334,19 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
         <Notice icon={<IconAlert />}>
           <strong>
             {unwired.length === 1 ? 'One stage has' : `${unwired.length} stages have`} never
-            recorded a call: {unwired.join(', ')}.
-          </strong>{' '}
-          Either nothing has ever reached it, or it is not wired to the ledger —
-          this figure cannot tell you which, and the second would mean anything
-          it spends is missing from every number here.{' '}
-          {unwired.length === 1 && unwired[0] === 'ask' && (
+            recorded a call: {unwired.map((s) => NEVER_RAN.has(s) ? `${s} (never ran)` : s).join(', ')}.
+          </strong>
+          {/* ⚠ ONLY THE STAGES NOT IN `NEVER_RAN` GET THE WARNING, and that is
+              the whole reason the set exists rather than the sentence being
+              deleted. "(never ran)" is a checked fact about `ask` and would be
+              a reassuring guess about anything else — a stage that spends and
+              records nothing, wearing the same label, is the alarm going
+              quiet. */}
+          {unwired.some((s) => !NEVER_RAN.has(s)) && (
             <>
-              For <strong>ask</strong> it is the first: the Ask box is not built,
-              no page calls it, and the one route in that flow that calls a model
-              does charge the ledger.
+              {' '}Either nothing has reached it, or it is not wired to the
+              ledger — this figure cannot tell you which, and the second would
+              mean anything it spends is missing from every number here.
             </>
           )}
         </Notice>
