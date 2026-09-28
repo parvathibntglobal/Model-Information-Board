@@ -32,6 +32,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from datetime import UTC, datetime  # noqa: E402
+
 from collect.adapters.blog.fetch import (  # noqa: E402
     NotAFetchTargetError,
     fetcher_for_source,
@@ -41,8 +43,71 @@ from collect.adapters.blog.robots import RobotsGate  # noqa: E402
 from collect.adapters.blog.write import write_blog_run  # noqa: E402
 from collect.config import settings  # noqa: E402
 from collect.http import build_client  # noqa: E402
+from collect.ids import stable_id  # noqa: E402
+from collect.ops.ledger import close_harvest_run, open_harvest_run  # noqa: E402
 from collect.rawstore import RawStore  # noqa: E402
 from collect.registry.sources import load_sources  # noqa: E402
+
+#: `FeedRun.outcome` AND `harvest_run.outcome` ARE DIFFERENT VOCABULARIES, and
+#: passing one where the other belongs has already cost this project a sweep.
+#: `harvest_run_outcome_ck` allows `ok | refused | error`; the fetch path speaks
+#: `fetched | not-modified | robots-blocked | error`. `github.py` records what
+#: happened when they were confused: **121 rows were opened and none closed**,
+#: every close raised, and the run reported success.
+#:
+#: So the mapping is a TABLE rather than a conditional. A `KeyError` on an
+#: unmapped value is the right failure - a new fetch outcome should stop here
+#: and be ruled on, not be silently filed as `error`.
+_LEDGER_OUTCOME = {
+    "fetched": "ok",
+    "not-modified": "ok",   # a 304 is a run that happened and found nothing new
+    "robots-blocked": "refused",
+    "error": "error",
+}
+
+
+def _close(conn, opened, run, totals) -> None:
+    """Fill in what the feed did. Silent when no row was opened.
+
+    WHAT A FEED-ONLY ROW CARRIES, AND WHAT IT LEAVES NULL. NULL and 0 are
+    different claims here, and the ledger already says so for `items_fetched`:
+    zero is a measurement, NULL is reserved for what did not happen. So a
+    column a feed cannot answer stays NULL rather than being zeroed:
+
+        pages_fetched    NULL. A feed is ONE request, not a paginated result
+        pages_stored     NULL.   set. `0` would assert we paginated and got
+                                 nothing - a measurement nobody made.
+        sieve_pass_rate  NULL. There is no sieve on this path. A feed offers
+                               what it offers, no keyword filter runs, so a
+                               pass rate has no denominator (rule 7).
+        exhausted        NULL. `FeedRun` argues this already: a feed has no
+                               end, it is current or it is stale.
+        truncated_by     NULL. Nothing cut this short. The window is the
+                               publisher's choice, not our budget - and the
+                               CHECK's five values are all OUR limits.
+
+    What it DOES carry is the four that mean the same thing on every arm:
+    `items_fetched` (entries the feed offered), `items_kept` (bodies stored -
+    FR-10's figure, and honest only since the carve), `http_errors`, and
+    `outcome`.
+
+    A FAILURE HERE IS PRINTED, NOT RAISED. The documents are already committed;
+    losing the ledger row is worse than losing nothing and better than losing
+    the harvest.
+    """
+    if opened is None:
+        return
+    try:
+        close_harvest_run(
+            conn,
+            opened,
+            {k: v for k, v in run.harvest_run_fields().items() if k != "outcome"},
+            outcome=_LEDGER_OUTCOME[run.outcome],
+        )
+        conn.commit()
+        totals["harvest_runs_closed"] += 1
+    except Exception as error:  # noqa: BLE001 - a run that wrote documents stands
+        print(f"  harvest_run not closed: {type(error).__name__}: {error}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -125,7 +190,8 @@ def main(argv: list[str] | None = None) -> int:
     totals = {"feeds": 0, "refused": 0, "articles": 0, "documents": 0,
               "contexts": 0, "nothing_extracted": 0, "already_present": 0,
               "members_unresolved": 0, "unreadable_after_write": 0,
-              "author_rows": 0, "authors_attached_to_existing": 0}
+              "author_rows": 0, "authors_attached_to_existing": 0,
+              "harvest_runs_opened": 0, "harvest_runs_closed": 0}
 
     try:
         with build_client() as client:
@@ -145,10 +211,40 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"  {feed_id:38s} REFUSED {type(error).__name__}")
                     continue
 
+                # ── THE LEDGER ROW OPENS BEFORE THE FIRST REQUEST ────────
+                #
+                # Every other adapter does this and this script did not, so
+                # `items_kept` - FR-10's whole yield figure - was computed on
+                # the `FeedRun` and discarded. Measured 2026-09-17:
+                # `harvest_run` held 1,061 github rows, 102 reddit rows and
+                # ZERO for any blog feed, against 175 blog documents.
+                #
+                # BEFORE, not after, for `open_harvest_run`'s own reason: a
+                # process that dies cannot write its own failure, so a killed
+                # harvest has to leave `finished_at IS NULL` behind.
+                opened = None
+                if not args.dry_run:
+                    started_at = datetime.now(UTC)
+                    try:
+                        opened = open_harvest_run(conn, {
+                            "id": stable_id("hr", feed_id, feed["endpoint"],
+                                            started_at.isoformat()),
+                            "source_id": feed_id,
+                            "query_key": feed["endpoint"],
+                            "started_at": started_at,
+                            "pipeline_version": settings().pipeline_version,
+                        })
+                        conn.commit()
+                        totals["harvest_runs_opened"] += 1
+                    except Exception as error:  # noqa: BLE001 - the harvest goes on
+                        print(f"  {feed_id:38s} harvest_run not opened: "
+                              f"{type(error).__name__}: {error}")
+
                 run = fetcher.harvest_feed(feed["endpoint"])
                 totals["feeds"] += 1
                 if run.outcome != "fetched":
                     print(f"  {feed_id:38s} {run.outcome}")
+                    _close(conn, opened, run, totals)
                     continue
 
                 if args.dry_run:
@@ -162,8 +258,12 @@ def main(argv: list[str] | None = None) -> int:
                 # authors. `write_blog_run` documents the default as "author_id
                 # NULL, honestly unknown" — honest, and not what a sweep wants.
                 # The writer supported this the whole time; nothing passed it.
-                report = write_blog_run(conn, run, store=store, feed=feed)
+                report = write_blog_run(
+                    conn, run, store=store, feed=feed,
+                    harvest_run_id=opened.id if opened is not None else None,
+                )
                 conn.commit()
+                _close(conn, opened, run, totals)
                 totals["articles"] += report.articles_seen
                 totals["documents"] += report.documents_inserted
                 totals["contexts"] += report.contexts_inserted

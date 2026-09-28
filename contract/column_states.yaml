@@ -88,6 +88,40 @@ columns:
       reviewed: false
       state: reserved
   board_entry:
+    axis_quoted:
+      known_gap: the writer is #368 item 3 (store_entries, beside axis_slug) and the renderer is item 4 (db.js/views.js) - both hers, both held until this column exists
+      reviewed: true
+      state: unwired
+      why: >-
+        Added by 20260921T1330 for #368. Three states - NULL predates the
+        check, true means the axis was copied and found in the quote, false
+        means checked and not backed by it. UNWIRED on purpose and briefly:
+        the writer is item 3 and the page is item 4, both hers, and she is
+        holding them until this column exists rather than writing against one
+        that does not. Declared rather than deferred (rule 9): the readers are
+        named and the reason they cannot read yet is that the column landed
+        first, by agreement.
+    axis_verbatim:
+      known_gap: the writer is #368 item 3; the value already exists on the extraction schema and is discarded at write time
+      reviewed: true
+      state: unwired
+      why: >-
+        Added by 20260921T1330. The benchmark name copied from the quote.
+        Carried on the extraction schema since #385 and thrown away at write
+        time - `axis_slug()` used it to set `slug` and discarded it - so a
+        stored row could not be asked what its slug came from. Intended reader
+        is the metrics page via #368 item 4.
+    subject_verbatim:
+      known_gap: the writer is #368 item 3; same discard, and it is the field the Spotify/Gemini misattribution turns on
+      reviewed: true
+      state: unwired
+      why: >-
+        Added by 20260921T1330. The model name copied from the quote, NULL
+        when the quote named none. The live case: three entries attribute a
+        capability to google/gemini-2.5-flash from a Spotify post whose quotes
+        say only "the worker model". NULL here beside a non-NULL
+        model_version_id means the attribution was inferred from the document
+        rather than read from the quote. Intended reader is the same page.
     basis:
       reviewed: true
       state: read
@@ -310,8 +344,12 @@ columns:
       reviewed: false
       state: read
     pipeline_version:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: 'judge/pages/roster.py reads it as of #302 - the roster scoped its cell counts
+        to one generation, because a version bump forks the cell table and an unfiltered
+        count belongs to no version. It also counts the cells at OTHER versions, so the
+        page can say what it dropped rather than silently resolving it'
     platform_count:
       reviewed: false
       state: read
@@ -1340,11 +1378,19 @@ columns:
       reviewed: false
       state: reserved
     content_hash:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: written_not_by_query
+      why: written by collect/migrate.py (INSERT INTO {LEDGER}, an f-string the audit cannot read as
+        SQL, which is why it reports this UNWRITTEN); read by /admin/database (judge/app.py,
+        _migration_state) from 2026-09-17, comparing each applied migration against the sha256 of the
+        file still on disk. A mismatch means the database ran something this repo no longer contains
     filename:
-      reviewed: false
-      state: reserved
+      reviewed: true
+      state: written_not_by_query
+      why: written by collect/migrate.py (INSERT INTO {LEDGER}, an f-string the audit cannot read as
+        SQL); read by /admin/database (judge/app.py, _migration_state) from 2026-09-17, to say which
+        migrations are pending and which were applied from a branch this checkout does not have.
+        18 files against 20 applied is not "2 pending", so the names are needed and not just a count
   source:
     base_trust:
       reviewed: false
@@ -1541,8 +1587,18 @@ columns:
       reviewed: false
       state: read
     schema_retries:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: >-
+        Gained its first reader 2026-09-21: `scripts/_blog_extraction_yield.py`
+        reports the retry rate per feed. It was write_only because nothing had
+        ever needed it, and what needed it was a question nobody could answer
+        - the 15.8% retry rate used to price the blog extraction was borrowed
+        from other sources, because no blog context had run at e5.4 and the
+        column that would have said so was written and unread. Measured on the
+        first blog run at e5.4: 4 of 79, 5.1%, concentrated on two feeds
+        (jack-clark.net 3 of 8) rather than spread.
+        Writer unchanged: `judge/store/extractions.py:147`.
     thread_context_id:
       reviewed: false
       state: read

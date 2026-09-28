@@ -12,8 +12,8 @@ to whoever owns the deployment.
 In `.env`:
 
 ```
-DATABASE_URL=postgresql://bv_agent:***@52.17.75.29:5432/Model-information-Board
-STAGING_DATABASE_URL=postgresql://bv_agent:***@52.17.75.29:5432/Model-information-Board
+DATABASE_URL=postgresql://example_user:***@203.0.113.5:5432/Model-information-Board
+STAGING_DATABASE_URL=postgresql://example_user:***@203.0.113.5:5432/Model-information-Board
 ENVIRONMENT=development
 ```
 

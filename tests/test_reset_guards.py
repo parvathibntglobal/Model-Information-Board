@@ -41,7 +41,7 @@ def test_local_hosts_and_sockets_are_local(host):
 
 
 @pytest.mark.parametrize("host", [
-    "52.17.75.29", "db.internal", "10.0.0.5", "rds.amazonaws.com",
+    "203.0.113.5", "db.internal", "10.0.0.5", "rds.amazonaws.com",
     "localhost.evil.com", "127.0.0.1.nip.io",
 ])
 def test_everything_else_is_not(host):
@@ -64,7 +64,7 @@ def test_the_host_guard_is_not_reading_the_dsn_argument(conn, monkeypatch):
     argument stays local. The refusal must still fire.
     """
     class RemoteInfo:
-        host = "52.17.75.29"
+        host = "203.0.113.5"
 
     monkeypatch.setattr(type(conn), "info", property(lambda self: RemoteInfo()))
     with pytest.raises(UnsafeReset, match="not localhost"):

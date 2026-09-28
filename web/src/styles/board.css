@@ -50,6 +50,13 @@
 .rank{display:grid;grid-template-columns:14px 1fr auto;gap:16px;align-items:start;
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 19px}
 .rank.dim{opacity:.58}
+/* A ROW THAT OPENS A PAGE SAYS SO. `.rank` had no cursor and no hover, because
+   until the drill-down nothing behind it was clickable. `.open` rather than a
+   bare `.rank` rule: a list rendered without a route is still inert, and a
+   pointer over something that does nothing is the worse half of the bug. */
+.rank.open{cursor:pointer;transition:.18s var(--ease)}
+.rank.open:hover{border-color:var(--border-strong);background:var(--surface-2)}
+.rank.open:hover .n{color:var(--info)}
 .rank .n{font:400 .8rem var(--mono);color:var(--text-3);padding-top:3px}
 .rank b{font-size:1.02rem;font-weight:650}
 .rank .vend{color:var(--text-3);font-size:.8rem;font-weight:400;margin-left:8px}
@@ -57,6 +64,15 @@
 .rank .right{text-align:right;white-space:nowrap}
 .rank .price{font:500 .82rem var(--mono);color:var(--pass)}
 .rank .st{display:block;margin-top:5px;font:400 .72rem var(--mono)}
+/* The polarity split, under the counts and quieter than them. Deliberately
+   NOT colour-coded: green for positive and red for negative would make the
+   row a verdict, and the two numbers are evidence of the same standing. */
+.rank .split{display:block;margin-top:3px;font:400 .7rem var(--mono);color:var(--text-3)}
+/* The three-group boundary: where board_sections' ordering rule acts. */
+.rank-group{margin:22px 0 6px;padding-top:14px;border-top:1px solid var(--border);font-size:.85rem;color:var(--text-2)}
+.rank-group:first-child{margin-top:0;padding-top:0;border-top:0}
+.rank-group b{color:var(--text);font-weight:600;margin-right:8px}
+.rank-group span{font:400 .72rem var(--mono);color:var(--text-3)}
 @media(max-width:660px){.rank{grid-template-columns:14px 1fr}.rank .right{grid-column:2;text-align:left;margin-top:8px}}
 
 .conds{margin:0;padding:0;list-style:none;max-width:72ch}
@@ -85,6 +101,15 @@
 .qb .qi+.qi{margin-top:12px;padding-top:12px;border-top:1px solid var(--border-soft)}
 .qb .qi{margin-bottom:10px}
 .qb .qi:last-of-type{margin-bottom:10px}
+/* The sentence a figure was taken from, under the report that said it.
+   Indented and quiet: it is evidence for the number in the same row, not a
+   second column of content. `pre-wrap` because a quote keeps its own line
+   breaks and flattening them can join two sentences into one that was never
+   written. */
+.figq{margin:4px 0 8px 0;padding-left:8px;border-left:2px solid var(--border);
+  font-size:.82rem;line-height:1.5;color:var(--text-2,#9a9aa2);white-space:pre-wrap;
+  max-width:62ch}
+
 .qmeta{display:block;font:400 .72rem var(--mono);color:var(--text-2);
   letter-spacing:.02em;line-height:1.5;margin-bottom:12px;max-width:70ch}
 /* Same contrast problem as the breadcrumb, and one worse thing: this line
@@ -151,6 +176,184 @@
 .evrow u{font:400 .72rem var(--mono);color:var(--info);text-decoration:none;white-space:nowrap;padding-top:2px;cursor:pointer}
 @media(max-width:620px){.evrow{grid-template-columns:30px 1fr}.evrow u{grid-column:2}}
 
+/* ── the three additions for the metrics rework ──────────────────────────────
+ *
+ * ⚠ THE FIRST VERSION OF ALL THREE WAS INVISIBLE, and it is worth recording
+ *   why rather than just fixing it. They were written with `var(--fg,#1f2328)`,
+ *   `var(--muted,#57606a)`, `var(--line,#d0d7de)` and `var(--soft,…)` — none of
+ *   which exist in `tokens.css`. Every one fell through to its light-theme
+ *   fallback, and this board is dark (`--bg:#0C0C0E`). Near-black text on a
+ *   near-black background: the markup was correct, the tests passed, the build
+ *   was clean, and the column could not be read.
+ *
+ *   The real tokens are `--text`, `--text-2`, `--text-3`, `--border`,
+ *   `--border-soft`, `--surface`..`--surface-3`, and the status pairs
+ *   `--warn`/`--warn-dim`. A fallback in `var()` is not a safety net — it is
+ *   the branch that runs when the name is wrong, and it hides the mistake. */
 
+/* WHAT A FIGURE MEASURED (#368). */
+.bv .subax{
+  display:inline-block;
+  padding:3px 9px;
+  border-radius:999px;
+  font:600 .72rem var(--mono);
+  letter-spacing:.02em;
+  white-space:nowrap;
+  background:var(--surface-3);
+  color:var(--text);
+  border:1px solid var(--border);
+}
+/* "not stated" IS A VALUE AND IS STYLED AS ONE — dimmed and dashed, never
+   blank. A blank cell reads as an oversight; this reads as the evidence
+   declining to say, which is what actually happened for 69 of 113 figures. */
+.bv .subax.none{
+  font-weight:400;
+  font-style:italic;
+  color:var(--text-3);
+  background:transparent;
+  border-style:dashed;
+}
+.bv .subax.disp{
+  color:var(--warn);
+  background:var(--warn-dim);
+  border-color:var(--warn-dim);
+  white-space:normal;
+}
 
-  
+/* THE WITHHELD NOTICE (rule 4). Deliberately not an error colour: nothing has
+   gone wrong, and a red banner would read as a fault rather than as the page
+   declining to publish a figure it cannot stand behind. */
+.bv .withheld{
+  max-width:74ch;
+  margin:0 0 22px;
+  padding:13px 16px;
+  border:1px solid var(--border);
+  border-left:3px solid var(--border-strong);
+  border-radius:var(--r);
+  background:var(--surface);
+  font-size:.9rem;
+  line-height:1.6;
+  color:var(--text-2);
+}
+.bv .withheld b{ color:var(--text); font-weight:600 }
+
+/* A PARENT HEADING. It sits BETWEEN two grids rather than inside one, so the
+   leaves sit under their heading as cards rather than beside it.
+
+   ⚠ NO `grid-column` HERE, and its absence is load-bearing rather than tidy.
+     This used to be a grid item spanning `1 / -1`, which is what made it
+     plausible for `parentHead` to splice `</div>…<div class="igrid">` around
+     itself - and that splice filed every ungrouped leaf under the heading
+     above it (#431). It is now a block-level sibling of the grids. If a
+     `grid-column` comes back here, the splice has come back with it.
+
+   The heading is NOT clickable and has no route: a parent is a way to read the
+   list, and anything you can click into reads as a category. */
+.bv .phead-row{
+  max-width:74ch;
+  margin:30px 0 4px;
+}
+.bv .parent-h{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:16px;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
+.bv .parent-h h3{
+  margin:0;
+  font-size:1.05rem;
+  font-weight:600;
+  color:var(--text);
+  letter-spacing:.01em;
+}
+/* THE ONLY NUMBER A HEADING CARRIES. Deliberately quiet - it is a count of
+   headings below it, not an amount of evidence, and styling it like a metric
+   would invite it to be read as one. */
+.bv .parent-h span{
+  flex:none;
+  font-size:.82rem;
+  color:var(--text-2);
+  font-variant-numeric:tabular-nums;
+}
+.bv .phead-row p{
+  margin:8px 0 0;
+  font-size:.86rem;
+  line-height:1.6;
+  color:var(--text-2);
+}
+
+/* THE FOLDED TAIL OF A HEADING'S LEAVES.
+
+   ⚠ THERE IS DELIBERATELY NO `display:none` HERE, AND NO `display:contents`.
+     The markup sets `hidden="until-found"`, whose UA rule is
+     `content-visibility:hidden` - so find-in-page can match inside it and the
+     browser reveals it. An author `display:none` OVERRIDES that and silently
+     takes the feature away; `display:contents` generates no box, so there is
+     nothing for `content-visibility` to apply to. Either one turns the tail
+     back into content that Ctrl+F and a screen reader cannot reach, which is
+     the defect this replaced.
+
+   So the tail is its own full-width grid with the SAME template as `.igrid`,
+   which is what lets it generate a box and still lay the cards out on the
+   same column rhythm as the ones above it. */
+.bv .leaf-rest{
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(262px,1fr));
+  gap:12px;
+}
+
+.bv .leaf-fold{
+  grid-column:1 / -1;
+  margin:4px 0 0;
+}
+.bv .leaf-fold button{
+  background:none;
+  border:0;
+  padding:6px 0;
+  font:inherit;
+  font-size:.86rem;
+  color:var(--info);
+  cursor:pointer;
+  text-align:left;
+}
+.bv .leaf-fold button:hover{ text-decoration:underline }
+
+/* The divider between axes that compare models and axes that hold one. */
+.bv .axisdiv{
+  grid-column:1 / -1;
+  max-width:74ch;
+  margin:28px 0 18px;
+  padding-top:20px;
+  border-top:1px solid var(--border);
+  font-size:.9rem;
+  line-height:1.6;
+  color:var(--text-2);
+}
+.bv .axisdiv b{ color:var(--text); font-weight:600 }
+
+/* THE QUOTE IS THE EVIDENCE; THE LINK IS NAVIGATION.
+   These were the wrong way round - `open the source` rendered in the link
+   colour above a quote in `--text-2`, so the brightest thing in the cell was
+   the least informative. A reader deciding whether $0.25 is an output price
+   or a cache read price needs the words, not the anchor. */
+.bv .figsrc{ margin-bottom:14px }
+.bv .figsrc:last-child{ margin-bottom:0 }
+.bv .figsrc .figq{
+  color:var(--text);
+  font-size:.88rem;
+  border-left-color:var(--border-strong);
+  margin:0 0 4px;
+}
+.bv .figsrc .srclink{
+  display:inline-block;
+  padding-left:11px;
+  font:400 .72rem var(--mono);
+  letter-spacing:.02em;
+  color:var(--text-3);
+  text-decoration:none;
+  border-bottom:1px solid transparent;
+}
+.bv .figsrc .srclink:hover{ color:var(--text-2); border-bottom-color:var(--border-strong) }

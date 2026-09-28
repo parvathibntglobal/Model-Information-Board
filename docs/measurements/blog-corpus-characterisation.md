@@ -6,7 +6,7 @@ block from the site template, every one of those blocks names models, and 13
 documents mention a model ONLY there.**
 
 *Engineer 1 · 2026-08-20 ·
-`postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`, read-only ·
+`postgresql://example_user@203.0.113.5:5432/Model-information-Board`, read-only ·
 surfaces resolved with `entity.resolve` against the live 1,224-surface population*
 
 ---

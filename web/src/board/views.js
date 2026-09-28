@@ -1,6 +1,12 @@
 // Board + blogs view builders, ported verbatim from the SEO demo.
 // They return HTML strings; BoardView renders them and wires clicks to the router.
-import { DB } from './db'
+// `./db.js` WITH THE EXTENSION, so `node` can load this file directly and a
+// test can render the board instead of reading its source. Vite resolves an
+// explicit extension unchanged; node will not resolve one that is missing, and
+// every one of the 28 tests over this file was a string search for that
+// reason. A defect in WHERE a card lands is not visible in the source text
+// (#431), so the render has to be executable.
+import { DB } from './db.js'
 
 // ── ESCAPING, WHICH THIS FILE DID NOT HAVE ─────────────────────────────────
 // Every builder below returns an HTML STRING and BoardView renders it through
@@ -52,7 +58,7 @@ const stOf = (k) => ST[k] || ST.n;
 function crumb(parts){
   return '<p class="crumb">'+parts.map(([t,h])=>h?`<a data-go="${esc(h)}">${esc(t)}</a>`:t).join('<i>/</i>')+'</p>';
 }
-function ranked(rows){
+function ranked(rows, route){
   if(!rows || !rows.length) return '';
   // NO RANK NUMERAL. This printed 01, 02, 03 from the array index, and the
   // heading above it said "the quotes behind the ranking" — so a list ordered
@@ -61,13 +67,136 @@ function ranked(rows){
   // path: `board_sections` sorts by count and says so ("the ordering is a
   // COUNT, never a score"). The count is already on the right of every row,
   // which is the honest version of what the numeral was pretending to be.
+  //
+  // `route` MAKES THE ROW THE WAY IN. Given one, each row opens that model's
+  // own page under this category and the marker becomes a chevron; without
+  // one the list renders exactly as it did. It is a parameter rather than
+  // always-on because the row is only worth clicking where a page exists to
+  // land on, and inventing that link everywhere would be a promise this file
+  // cannot keep.
+  //
+  // THE STATE ON EACH ROW IS NOW THAT ROW'S OWN — see `commonFields` in
+  // db.js, which used to stamp the section's state onto every model.
+  //
+  // THE GROUP BOUNDARY IS DRAWN WHERE THE RULE ACTS. Rows carrying `g` arrive
+  // in `board_sections`' three groups, and a heading opens each one, so the
+  // reader sees the threshold rather than inferring it from the order. Rows
+  // without `g` (metric) render as they always did.
+  const counts = {};
+  rows.forEach(r => { if(r.g) counts[r.g] = (counts[r.g]||0) + 1; });
+  let open = null;
   return '<div class="ranked">'+rows.map((r)=>{
     const [cls,lbl]=stOf(r.s);
-    return `<div class="rank${r.dim?' dim':''}"><span class="n">·</span>
+    const go = route && r.key ? ` data-go="${esc(route)}:${esc(r.key)}"` : '';
+    // THE SPLIT IS ITS OWN LINE, not more words inside `.st`. That span
+    // already carries two counts and a state label, and `.right` is
+    // `white-space:nowrap` - a fourth clause in it would push the row wider
+    // than a phone. Empty on metric, where there is no split.
+    const sp = r.sp ? `<span class="split">${esc(r.sp)}</span>` : '';
+    const head = r.g && r.g !== open ? groupHead(r.g, counts[r.g]) : '';
+    open = r.g || open;
+    return `${head}<div class="rank${r.dim?' dim':''}${go?' open':''}"${go}><span class="n">${go?'›':'·'}</span>
       <div><b>${esc(r.m)}</b><span class="vend">${esc(r.v)}</span><p>${esc(r.d)}</p></div>
-      <div class="right"><span class="price">${esc(r.p)}</span><span class="st ${cls}">${esc(r.e)} · ${esc(lbl)}</span></div></div>`;
+      <div class="right"><span class="price">${esc(r.p)}</span><span class="st ${cls}">${esc(r.e)} · ${esc(lbl)}</span>${sp}</div></div>`;
   }).join('')+'</div>';
 }
+
+/** The three group headings, in the words the intro line uses for them.
+ *
+ * Keyed on `board_sections`' GROUP_ORDER. An unknown key renders its own name
+ * rather than nothing, so a fourth group added upstream shows up as a heading
+ * somebody has to name instead of vanishing into the one above it. */
+const GROUPS = {
+  working: ['Reported working', 'at least one report of it working'],
+  neutral: ['Only neutral reports', 'nobody reported it working or failing'],
+  problems: ['Reported problems', 'reports of it failing, none of it working'],
+};
+function groupHead(g, n){
+  const [title, gloss] = GROUPS[g] || [g, ''];
+  return `<p class="rank-group" role="heading" aria-level="3"><b>${esc(title)}</b>
+    <span>${n} model${n===1?'':'s'}${gloss ? ` · ${esc(gloss)}` : ''}</span></p>`;
+}
+
+/** The line above a model list, carrying what the list was drawn from.
+ *
+ * Rule 7 on a page rather than in an argument: "20 models" answers nothing
+ * without saying 20 of what, counted how. The three numbers here are the
+ * section's own — models listed, reports behind them, voices among those —
+ * and the ordering is named as a count so the top row is not read as a pick.
+ */
+function listIntro(item){
+  const n = (item.rows||[]).length;
+  if(!n) return '';
+  const rep = item.repTotal, voi = item.voiTotal;
+  // WHAT `both` MEANS, SAID ONCE. The split counts a report under each
+  // polarity it states, so a report saying both is counted twice and the row
+  // names it - and that has to be explained somewhere a reader will see
+  // before the arithmetic fails for them. Here rather than on 16 of 297 rows.
+  //
+  // Conditional on a split being present, so best-for and metric do not carry
+  // a sentence about a column they do not have.
+  const anySplit = (item.rows || []).some(r => r.sp);
+  const split = anySplit
+    ? ` The split counts a report under every polarity it states, so one that`
+      + ` says both is counted under each and the row says so.`
+    : '';
+  const head = `${n} model${n===1?'':'s'}, named in ≥${rep} report${rep===1?'':'s'}`
+    + ` by ${voi} voice${voi===1?'':'s'}.`;
+  // ⚠ THE ORDERING SENTENCE IS LOAD-BEARING. It said "ordered by report count,
+  //   which is a count and not a score" until 2026-09-25, and that stopped
+  //   being true when the first sort key became a threshold on a polarity
+  //   label: a judgement, not a count. So it states the rule instead.
+  //
+  //   Ordering by POSITIVE COUNT was weighed and is still refused: it put
+  //   Claude Sonnet 5 (+2 −6) at #1 on `instruction-following` and answers
+  //   "who does this best", which is a merit ranking whatever it is counted
+  //   from. The groups answer the narrower question "has anyone reported this
+  //   working?", and the last clause is what keeps that honest: Claude Opus 5
+  //   heads that page on 1 positive and 11 negatives, and the sentence has to
+  //   be true of that row.
+  //
+  //   An older payload with no groups keeps the old sentence, which is true of
+  //   it.
+  if(!(item.rows || []).some(r => r.g)){
+    return `${head} Ordered by report count, which is a count and not a score.${split}`
+      + ` Open one to read every report it holds.`;
+  }
+  // THE FIRST GROUP'S ORDER IS DESCRIBED IN WORDS, NEVER AS A FORMULA OR A
+  //   NUMBER. `board_sections` orders it by a Wilson lower bound it does not
+  //   emit (z in contract/board_ordering.yaml); this sentence is what a reader
+  //   gets instead, and "the same record" is deliberate: at these sample sizes
+  //   three of three still sits above seven of ten, so a line claiming that few
+  //   reports always lose to many would be false.
+  return `${head} Listed in three groups: models with at least one report of it working,`
+    + ` then models with only neutral reports, then models with reports of problems and`
+    + ` none of it working. Within the first group, models whose reports more`
+    + ` consistently say it worked come first, and a record built on few reports counts`
+    + ` for less than the same record on many, so two reports of it working, with none`
+    + ` against, sit below six of six. The other two groups are ordered by report count.`
+    + ` No score is shown: each row shows its counts. A model enters the first group on a`
+    + ` single positive report, however many problem reports it also has. Positive and`
+    + ` negative are the extractor’s reading of each quote, so one mislabelled report`
+    + ` can move a model.${split} Open one to read every report it holds.`;
+}
+
+/** Reports that name no model, and so appear under none.
+ *
+ * Renders nothing when there are none — a caveat about nothing is noise, and
+ * 0 of 1,249 rows are in this state today. It exists because the alternative
+ * to saying it is losing them silently, which is the one thing this board
+ * must not do with an absence of its own making.
+ */
+function orphanNote(item){
+  const n = item.orphans || 0;
+  if(!n) return '';
+  return `<p class="muted" style="margin-top:10px;max-width:74ch;font-size:.9rem">${n}
+    report${n===1?' names':'s name'} no model, so ${n===1?'it is':'they are'} not listed
+    above. ${n===1?'It is':'They are'} held by the board and counted in the total.</p>`;
+}
+// `suppressedNote` WAS HERE, naming the models `best_for` dropped entirely
+// because every report they had on a job was a problem report. Nothing is
+// dropped any more - those models are the third group - so there is nothing
+// for it to say (2026-09-25).
 function conds(list){
   if(!list || !list.length) return '';
   return '<ul class="conds">'+list.map(([a,b])=>`<li><b>${esc(a)}</b><span>${esc(b)}</span></li>`).join('')+'</ul>';
@@ -168,36 +297,245 @@ function card(x, route){
     <div class="meta"><span class="${cls}">${esc(x.ev)} · ${esc(lbl)}</span><span>${esc(x.vol)}</span></div></div>`;
 }
 function mcard(x){
+  // HOW MANY MODELS, ON THE CARD, BEFORE THE CLICK.
+  //
+  // Measured 2026-09-21: 62 of 84 axes hold exactly ONE model. Every card
+  // looked alike, so a reader opened three of them to find three single
+  // observations presented as comparison tables. The count is the one fact
+  // that decides whether opening it is worth doing, and it was the one fact
+  // the card did not carry.
+  const n = (x.mrows || []).length;
+  const who = n === 1 ? '1 model' : `${n} models`;
   return `<div class="icard" data-go="metric:${esc(x.slug)}"><b>${esc(x.name)}</b><p>${esc(x.card)}</p>
-    <div class="meta"><span>unit · ${esc(x.unit)}</span><span>${esc(x.vol)}</span></div></div>`;
+    <div class="meta"><span>unit · ${esc(x.unit)}</span><span>${esc(who)}</span></div></div>`;
+}
+
+/* ---------- parent headings ---------- */
+//
+// A PARENT IS A HEADING ON THE GRID AND NEVER A ROUTE, and that is the whole
+// design rather than a simplification of it. `contract/slug_parents.yaml`:
+//
+//     A parent groups for reading and never implies the leaves are the same
+//     measurement.
+//
+// A heading renders its leaves UNDERNEATH, visible without a click, so a
+// reader can never mistake the parent for the thing being measured. A parent
+// PAGE would read as a category - you would click it, see leaves, click a
+// leaf - and that shape says the leaves are one measurement however the prose
+// denies it. It would also add a fourth level to board -> category -> model.
+//
+// ⚠ THE COUNT ON A HEADING IS `leaves` AND NOTHING ELSE. Never reports, never
+//   models, never voices. Summing the children double-counts every document
+//   under two leaves (55 against a true union of 51 on `software-engineering`)
+//   and sums a figure that is already a floor. The line under the heading says
+//   there is no total, because a reader who wants one should be told it does
+//   not exist rather than left looking for it.
+//
+// ⚠ IT RETURNS A BLOCK AND SPLICES NOTHING, AND THAT IS THE WHOLE OF #431.
+//   This used to return `</div>…<div class="igrid">` - closing the caller's
+//   grid and opening one nothing ever closed. The grid a card landed in was
+//   then whichever heading had opened one LAST, so an ungrouped leaf ranking
+//   below the first parent was drawn inside that parent's grid, under its
+//   heading. Every one of the 69 ungrouped leaves rendered that way and none
+//   at the top level: `instruction-following` (38 reports, rank 2 of 215) read
+//   as belonging to "Reasoning and maths", and the last heading in each
+//   section absorbed the tail - 35 cards under a "Writing and language" that
+//   printed its own, smaller, leaf count directly above them.
+//
+//   A heading that swallows leaves it does not own is the one thing a parent
+//   must never look like, so the markup is now well-formed by construction:
+//   this emits a heading and `groupedGrid` wraps each RUN of cards in its own
+//   `.igrid`. Nothing here opens an element it does not close.
+function parentHead(g){
+  return `<div class="phead-row"><div class="parent-h">
+    <h3>${esc(g.name)}</h3><span>${g.leaves} ${g.leaves===1?'leaf':'leaves'}</span></div>
+    <p>Grouped for reading. Each of these is its own measurement — nothing here is
+    merged, and there is no total for the group.</p></div>`;
+}
+
+//: HOW MANY LEAVES A HEADING SHOWS BEFORE THE REST ARE FOLDED.
+//
+// ⚠ GROUPING DID NOT SHORTEN THIS PAGE AND WAS NEVER GOING TO. Every leaf
+//   still draws: capability renders 199 cards under 8 headings, metric 112
+//   under 6, and the biggest single heading holds 33 and 50. The headings made
+//   the list navigable and made it EIGHT ROWS LONGER.
+//
+// The obvious fix is to make a heading clickable, and it is refused: behind a
+// click the leaves exist only for a reader who already suspected they were
+// there, which is the reader who does not need them. The one who reads the
+// heading and moves on sees a category — a merge, which is the one thing a
+// parent must never look like.
+//
+// So the leaves stay on the page and the TAIL folds. Six is enough to show
+// what kind of thing is under a heading and short enough that eight headings
+// fit on a screen. The fold says how many it is hiding, never just "more".
+const LEAF_PREVIEW = 6;
+
+/** Cards in a grid of their own, or nothing at all when there are none.
+
+    EVERY RUN OF CARDS GETS ITS OWN `.igrid`, rather than one grid the headings
+    cut holes in. An empty run emits NO element: an `.igrid` with no children
+    still takes its `gap` and would leave a 12px hole under a heading. */
+const gridBlock = (cards) => cards ? `<div class="igrid">${cards}</div>` : '';
+
+/** One section, leaves under their headings, ungrouped leaves in their own rank.
+
+    ⚠ AN UNGROUPED LEAF IS NOT THE LAST HEADING'S (#431). Consecutive ungrouped
+      leaves are collected into a run and emitted as their OWN grid, outside
+      every heading - which is what "interleave by rank with no heading" meant
+      and what the previous splice could not express. A leaf with `parent: null`
+      is not an unfiled leaf waiting for a heading; it is a leaf ruled to sit
+      beside the headings, and 37 capability and 32 metric slugs are that
+      deliberately (2026-09-23). Rendering them under the nearest heading above
+      is the same error as merging them into it, arrived at by punctuation. */
+function groupedGrid(groups, flat, draw){
+  // NO GROUPS MEANS RENDER AS BEFORE. An older payload carries no `grouped`,
+  // and a board that silently showed nothing would be worse than one that
+  // shows what it always did.
+  if(!groups || !groups.length) return gridBlock(flat.map(draw).join(''));
+  const out = [];
+  let run = [];
+  const flushRun = () => { if(run.length){ out.push(gridBlock(run.join(''))); run = []; } };
+  for(const g of groups){
+    if(g.kind !== 'parent'){ run.push(draw(g.leaf)); continue; }
+    // THE RUN CLOSES BEFORE THE HEADING OPENS. Otherwise the leaves standing
+    // in their own rank would be swept under the heading that follows them,
+    // which is the same defect as the one above it, facing the other way.
+    flushRun();
+    const hidden = g.children.length - LEAF_PREVIEW;
+    // ⚠ `hidden="until-found"`, NOT `hidden`, AND THE DIFFERENCE IS THE WHOLE
+    //   CLAIM. Plain `hidden` resolves to `display:none`, which removes the
+    //   tail from FIND-IN-PAGE and from the ACCESSIBILITY TREE — so a comment
+    //   promising those two while the CSS says `display:none` is promising
+    //   the opposite of what ships. `until-found` keeps the tail folded,
+    //   lets Ctrl+F match inside it, and makes the browser reveal it and fire
+    //   `beforematch`. Where it is unsupported it degrades to plain `hidden`,
+    //   which is no worse than having no fold at all.
+    //
+    //   `board.css` must NOT set `display:none` on this element: the UA rule
+    //   for `[hidden=until-found]` is `content-visibility:hidden`, and an
+    //   author `display:none` overrides it and takes the feature away. Nor
+    //   `display:contents`, which generates no box for `content-visibility`
+    //   to apply to. Tested in `test_the_board_renders_its_parents.py`.
+    const shown = g.children.slice(0, LEAF_PREVIEW).map(draw).join('');
+    if(hidden <= 0){ out.push(parentHead(g) + gridBlock(shown)); continue; }
+    const rest = g.children.slice(LEAF_PREVIEW).map(draw).join('');
+    const id = `leaves-${esc(g.parent)}`;
+    // THE TAIL AND ITS BUTTON STAY INSIDE THIS HEADING'S GRID, which is what
+    // their `grid-column:1 / -1` is for. They belong to this parent; an
+    // ungrouped leaf does not, and that is the distinction the splice lost.
+    out.push(parentHead(g) + gridBlock(shown
+      + `<div class="leaf-rest" id="${id}" data-rest="${esc(g.parent)}"
+              hidden="until-found">${rest}</div>`
+      // NAMES THE COUNT, NOT "MORE". "+27 more" is a number a reader can
+      // decide on; "more" is a promise they have to spend a click to price.
+      //
+      // `aria-expanded` and `aria-controls` because without them a screen
+      // reader announces the label and nothing else — not that this is a
+      // disclosure, and not what it opens.
+      + `<p class="leaf-fold"><button type="button" data-expand="${esc(g.parent)}"
+           aria-expanded="false" aria-controls="${id}">
+         Show the other ${hidden} under ${esc(g.name)}</button></p>`));
+  }
+  flushRun();
+  return out.join('');
+}
+
+/** How much of a section has a heading. READ, NOT REMEMBERED - the ungrouped
+ *  count was 19, 20 and 21 within one day. */
+function parentNote(key){
+  const c = (DB.parentCoverage || {})[key];
+  if(!c || !c.parents) return '';
+  return `<p class="axisdiv"><b>${c.parents} headings over ${c.grouped} of ${c.leaves}.</b>
+    The other ${c.ungrouped} sit on their own — a heading is a way to read the list, not a
+    claim about what belongs together, and nothing is filed under a catch-all.</p>`;
+}
+
+/* ---------- the withheld notice ---------- */
+//
+// A CAUSED ABSENCE HAS TO SAY IT WAS CAUSED (rule 4), AND IT TRAVELS WITH ITS
+// DENOMINATOR (rule 7). This tab shows fewer figures than the database stores,
+// and the reason is not that the models were never measured - it is that a
+// stored figure has to be able to support itself before it is published.
+//
+// The reasons are listed rather than totalled because they send a reader to
+// different places: "no quantity" and "figure not in its quote" are the
+// extractor's prompt, while a relative claim is a figure filed in the wrong
+// section. One number would send everybody to the same wrong place.
+//
+// AND IT SAYS NOTHING WAS DELETED, because that is the question a reader who
+// remembers a figure will actually have.
+const WITHHELD_WORDING = {
+  'no quantity': 'state no quantity at all',
+  'figure not in its quote': 'give a figure that is not in the quote beside it',
+  'axis not in its quote': 'name a benchmark their own quote does not contain',
+  'a relative claim, not a value on this axis':
+    'are a comparison with another model, not a value on this axis',
+  'the unit says money and the value carries no amount':
+    'carry a unit their value cannot fill',
+}
+
+export function withheldNote(){
+  const w = DB.metsWithheld || {}
+  const entries = Object.entries(w).filter(([, n]) => n > 0)
+  if(!entries.length) return ''
+  entries.sort((a, b) => b[1] - a[1])
+  const total = entries.reduce((t, [, n]) => t + n, 0)
+  const parts = entries.map(([k, n]) => `${n} ${WITHHELD_WORDING[k] || k}`)
+  return `<p class="withheld"><b>${total} recorded figure${total === 1 ? ' is' : 's are'} held back from this tab.</b>
+    Of those, ${parts.join('; ')}.
+    Nothing has been deleted &mdash; every one is still stored with its quote, and it appears here
+    as soon as it can support itself.</p>`
 }
 
 /* ---------- views ---------- */
 function vBoard(tab){
   tab = tab||'best';
   const empty = '<p class="muted" style="padding:8px 0">Nothing here yet.</p>';
+  // ⚠ THE PANE NO LONGER WRAPS `grid` IN AN `.igrid` (#431). Each builder
+  //   emits its own grids, so a heading can sit BETWEEN two of them instead of
+  //   inside one it has to cut open. Anything added here that returns bare
+  //   cards must wrap them in `gridBlock` or they will render as a column.
   const panes = {
-    best: {intro:'Jobs with enough reports to rank. Each opens a page that names the cheapest model engineers report doing it, the conditions that change the answer, and the criticisms that did not disqualify it.',
-      grid: DB.jobs.length ? DB.jobs.map(j=>card(j,'job')).join('') : empty},
+    best: {intro:'Jobs engineers named when they said what they were running a model for. Each opens a page listing every model reported on that job, in three groups: reported working, only neutral reports, and reported problems with none of it working. Problem reports are shown, not filtered.',
+      grid: DB.jobs.length ? gridBlock(DB.jobs.map(j=>card(j,'job')).join('')) : empty},
     cap: {intro:'A capability means one thing across every model page. These are the definitions the board rules by — written so an answer engine can quote them, and so two claims can be compared without arguing about words.',
-      grid: DB.caps.length ? DB.caps.map(c=>card(c,'cap')).join('') : empty},
-    met: {intro:'The axes recorded on every model. Each page states the unit, where the figure came from, and the thing the number cannot tell you — which is usually more useful than the number.',
-      grid: DB.mets.length ? DB.mets.map(m=>mcard(m)).join('') : empty}
+      note: parentNote('caps'),
+      grid: DB.caps.length ? groupedGrid(DB.capGroups, DB.caps, c=>card(c,'cap')) : empty},
+    met: {intro:'The axes recorded on every model. Each page states the unit, where the figure came from, and the thing the number cannot tell you — which is usually more useful than the number. '
+      // ⚠ THIS SENTENCE CAME OFF `metGrid`'s DIVIDER AND MUST NOT BE LOST.
+      // That divider split the grid into comparing axes and single-model ones;
+      // parents now group the same grid by subject and the two cannot both
+      // own it. The SPLIT is redundant - `mcard` has printed "1 model" /
+      // "N models" on every card since 2026-09-21, which is the same fact per
+      // card - but the sentence is rule 4 content and is not redundant: an
+      // axis holding one model is a real recorded figure, and a reader must
+      // not read it as a failed comparison.
+      + 'Many axes hold a single model. Each is a real recorded figure, and none of them is a comparison — there is nothing else measured on that axis yet.',
+      note: withheldNote() + parentNote('mets'),
+      // AXES THAT CAN COMPARE SOMETHING COME FIRST, and the rest are marked
+      // rather than mixed in. An axis holding one model is a real observation
+      // and belongs on the page; listing it between two comparisons implies it
+      // is one. Stable within each half - `board_sections` already ordered
+      // these by report count, and that ordering is a COUNT, never a score.
+      grid: DB.mets.length ? groupedGrid(DB.metGroups, DB.mets, m=>mcard(m)) : empty}
   };
   const p = panes[tab];
+  const note = p.note || '';
   return `<div class="shell phead">${crumb([['Board',null]])}
     <h1>The board</h1>
-    <p class="sub">Three ways into the same evidence. <b>Best for</b> answers a job.
+    <p class="sub">Three ways into the same evidence. <b>Jobs</b> lists what was reported on a job.
     <b>Capabilities</b> defines what a claim means, so a claim on one model page can be compared with a
     claim on another. <b>Metrics</b> are the axes, and what each one refuses to average.</p></div>
     <div class="shell">
       <div class="tabs" role="tablist">
-        <button role="tab" aria-selected="${tab==='best'}" data-tab="best">Best for</button>
+        <button role="tab" aria-selected="${tab==='best'}" data-tab="best">Jobs</button>
         <button role="tab" aria-selected="${tab==='cap'}" data-tab="cap">Capabilities</button>
         <button role="tab" aria-selected="${tab==='met'}" data-tab="met">Metrics</button>
       </div>
       <p class="muted" style="max-width:70ch;margin-bottom:20px;line-height:1.6">${p.intro}</p>
-      <div class="igrid">${p.grid}</div>
+      ${note}
+      ${p.grid}
     </div>`;
 }
 
@@ -207,19 +545,28 @@ function vJob(slug){
   // classifier makes. Absent by default, so the block below is skipped rather
   // than filled with a guess.
   const [w,pr,ev,why] = j.pick || [];
-  return `<div class="shell phead">${crumb([['Board','board'],['Best for','board:best'],[j.name,null]])}
+  // THE VERBATIM-QUOTE BLOCK IS GONE FROM THIS LEVEL, and it is not lost.
+  //
+  // It rendered the 12 quotes the API sent - grouped by document, so 6 blocks
+  // - of the 64 reports `best_for/coding-agent` actually holds. A 6-of-64
+  // slice with nothing on the page saying it was a slice. Every one of those
+  // reports is now on the page of the model it was reported about, and this
+  // page is the way to them.
+  return `<div class="shell phead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
     <h1>${esc(j.h1)}</h1><p class="sub">${esc(j.sub)}</p></div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
       <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
-    ${sec('Every model reported working for this job','Who got this working','',ranked(j.rows))}
+    ${sec('Every model reported on this job','In three groups, by what the reports say',
+      listIntro(j), ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j))}
     ${sec('Conditions that change the answer','Where the pick stops holding',
       'Most disagreements between engineers are condition mismatches rather than contradictions. These are the ones the reports keep naming.',conds(j.conds))}
-    ${sec('The reports this list is built from','What they said, verbatim','',quotes(j.qs))}
     ${sec('Related','','',related(j.rel))}`;
 }
 
 function vCap(slug){
   const c = byS(DB.caps,slug); if(!c) return vBoard('cap');
+  // The quote block left this page too - see `vJob` above for why. On
+  // `capability/reasoning` it was 9 blocks of the 43 reports the page holds.
   return `<div class="shell phead">${crumb([['Board','board'],['Capabilities','board:cap'],[c.name,null]])}
     <h1>${esc(c.name)}</h1><p class="sub">A capability the board found engineers discussing. This page is
     the definition every model page resolves against, so a report about one model can be compared with a
@@ -227,54 +574,119 @@ function vCap(slug){
     ${sec('','','',`<div class="defbox"><div class="l">definition</div><p>${esc(c.d1)}</p><p>${esc(c.d2)}</p></div>`)}
     ${sec('What this is not','Three things filed elsewhere',
       'Capability boundaries exist so a disagreement is a disagreement rather than two people using one word for two things.',conds(c.nots))}
-    ${sec('Models with evidence','Who has been reported doing this','',ranked(c.rows))}
-    ${sec('Reports',reportsHeading(c.qs),'',quotes(c.qs))}
+    ${sec('Models with evidence','Who has been reported doing this',
+      listIntro(c), ranked(c.rows,'capmodel:'+c.slug) + orphanNote(c))}
     ${sec('Related','','',related(c.rel))}`;
 }
 
-function vMet(slug){
-  const m = byS(DB.mets,slug); if(!m) return vBoard('met');
-  const srcs = m.srcs || [];
-  // EVERY FIGURE NAMES THE REPORT IT CAME FROM, AND LINKS IT.
-  //
-  // The table rendered Model/Figure/Basis/Unit and nothing else, so thirteen
-  // SWE-bench figures drawn from THREE articles read as thirteen findings, and
-  // a reader could not open any of them. `open the source` already exists for
-  // quotes 120 lines up in this file; figures could not have it because the API
-  // sent no url. Both halves are fixed — the url now travels with the figure.
-  const head = m.cols.map((c,i)=>`<th${m.num[i]?' class="r"':''}>${esc(c)}</th>`).join('')
-    + (srcs.length ? '<th>Reported by</th>' : '');
-  // ONE ROW PER FIGURE, LISTING EVERY REPORT THAT STATES IT.
-  //
-  // `db.js` groups on model + figure + basis + unit, so the repeats are gone
-  // before they reach here and what arrives is a LIST of sources per row.
-  // Marking them was the first attempt and it was the weaker half: it told a
-  // reader two lines were one report and still made them read two lines.
-  //
-  // A row with two sources is CORROBORATION and says so. A row with one says
-  // nothing extra, because "1 report" on every line is noise. The count is
-  // distinct DOCUMENTS, de-duplicated upstream - an article stating a figure
-  // twice contributes one entry, which is the whole reason this counts reports
-  // rather than rows.
-  const corroborated = srcs.filter(s => (s || []).length > 1).length;
-  const body = m.rows.map((r,i)=>{
-    const list = srcs[i] || [];
-    // THE LINK, AND NOT THE INTERNAL ID.
-    //
-    // This printed `devto:4646093` beside every link. That is a row key from
-    // our own database - it identifies the document to US and means nothing to
-    // a reader, who wants the article and not its filing reference. It is the
-    // same mistake as `mv_a2b4f7fc3fa679c2` appearing where a model name
-    // belongs (#278): an internal identifier reaching a page because it was
-    // convenient to the code that had it.
-    //
-    // KEPT IN `title`, not discarded. Hovering still names the document, so the
-    // trace from a published figure back to its stored row survives without
-    // being printed at a reader who did not ask for it.
-    // WHICH REPORT WAS WHICH, when a figure is both claimed and confirmed.
-    // The rows group on the FIGURE now, so one row can hold a provider's
-    // statement and an independent measurement. Labelling each source keeps
-    // that mapping rather than leaving two identical links.
+/* ---------- the drill-down: one model, inside one category ---------- */
+
+/** Every report the board holds for one model under one section.
+ *
+ * WHAT "EVERY" MEANS HERE, because the page says the word. Every non-declined
+ * `board_entry` row for this (section, slug, model), grouped by source
+ * document, newest document first. No cap: the 12-quote cap that produced the
+ * category page's slice is gone from the API, so this list is the whole of
+ * what the board holds.
+ *
+ * It is scoped to this category, not to this model. The model's whole corpus
+ * across every job, capability and metric has its own page already, and the
+ * link out says so rather than this page quietly meaning one and saying the
+ * other.
+ *
+ * ONE REPORT IS ONE SOURCE DOCUMENT. `quotes()` groups on document id, so two
+ * figures from one comment render as one block with both inside it - the same
+ * rule the counts on the row above were built on, applied to what the reader
+ * sees.
+ */
+function vModelIn(kind, item, key, crumbs){
+  const row = (item.rows||[]).find(r => r.key === key);
+  // AN UNKNOWN MODEL GOES BACK, rather than rendering a page about nothing. A
+  // hand-typed or stale key is not evidence that nobody discussed this model.
+  if(!row) return kind === 'job' ? vJob(item.slug) : vCap(item.slug);
+  const qs = row.qs || [];
+  const [,lbl] = stOf(row.s);
+  // THE COUNTS, AND WHAT EACH ONE COUNTED. `row.e` already reads
+  // "at least N reports, M voices"; the quote count joins it here because this
+  // is the page where the difference between a report and a quote is visible
+  // on the screen - one block, two quotes inside it.
+  const counts = `${esc(row.e)} \u00b7 ${qs.length} quote${qs.length===1?'':'s'} \u00b7 ${esc(lbl)}`;
+  // THE SPLIT RIDES WITH THE COUNTS. Nothing is filtered from this page any
+  // more - `best_for` hid its problem reports until 2026-09-25 and this page
+  // said how many - so the honest line is the row's own positive and negative
+  // counts, the same ones the category page ordered it by.
+  const split = row.sp ? ` · ${esc(row.sp)}` : '';
+  const empty = `<p class="muted" style="padding:8px 0">The board holds no readable report for this
+    model under this ${kind === 'job' ? 'job' : 'capability'}. That is what the board has, not a page
+    that failed to load.</p>`;
+  return `<div class="shell phead">${crumb(crumbs)}
+    <h1>${esc(row.m)} on ${esc(item.name)}</h1>
+    <p class="sub">Every report the board holds for this model under this
+    ${kind === 'job' ? 'job' : 'capability'}: ${counts}${split}. One report is one source document, so two
+    quotes from one comment are one report. The report count is a floor \u2014 an open vocabulary can
+    name one section two ways until the duplicates are merged.</p>
+    <p style="margin-top:14px"><a data-go="model:${esc(key)}">Everything said about
+    ${esc(row.m)}, across every job, capability and metric \u2192</a></p></div>
+    ${qs.length ? sec('Reports',reportsHeading(qs),'',quotes(qs)) : sec('Reports','','',empty)}`;
+}
+
+function vJobModel(slug, key){
+  const j = byS(DB.jobs,slug); if(!j) return vBoard('best');
+  return vModelIn('job', j, key,
+    [['Board','board'],['Jobs','board:best'],[j.name,'job:'+j.slug],
+     [(j.rows.find(r=>r.key===key)||{}).m || key, null]]);
+}
+
+function vCapModel(slug, key){
+  const c = byS(DB.caps,slug); if(!c) return vBoard('cap');
+  return vModelIn('capability', c, key,
+    [['Board','board'],['Capabilities','board:cap'],[c.name,'cap:'+c.slug],
+     [(c.rows.find(r=>r.key===key)||{}).m || key, null]]);
+}
+
+/* ---------- metrics: the axis lists models, the leaf holds the figures -----
+ *
+ * WHY THIS CHANGED SHAPE, AND IT IS A MISSING LEVEL RATHER THAN A NEW DESIGN.
+ *
+ * Best-for and capabilities both go  board -> category -> MODEL -> reports.
+ * Metrics went  board -> axis -> one flat table of every figure, and stopped.
+ * `db.js` overwrote `commonFields`' model rows with the figure table, so the
+ * model level was not merely unused here - it was discarded, which is why
+ * `vJobModel` and `vCapModel` had no `vMetModel` beside them.
+ *
+ * WHAT A READER MET, on one axis, in one column, under one unit:
+ *
+ *     Claude Fable 5.1   $0.25 / MTok   stated   USD per 1M tokens
+ *     Claude Fable 5.1   $50   / MTok   stated   USD per 1M tokens
+ *
+ * Those do not disagree. One is a cache read price and the other an output
+ * price, and only the quote said so. Measured 2026-09-21 over the 269 figures
+ * the board publishes, 34 (axis, model) cells hold two or more DIFFERENT
+ * figures like that - the worst being six values over nineteen rows.
+ *
+ * AND 62 OF 84 AXES HOLD EXACTLY ONE MODEL. A table is a claim that its rows
+ * are comparable; on three quarters of these pages there was nothing to
+ * compare and the format was saying otherwise.
+ *
+ * So: the axis page lists each model ONCE, and the figures that were colliding
+ * in one column move to that model's own page, where there is room to say what
+ * each one measured.
+ */
+
+/** The figure table for one model on one axis.
+ *
+ * Every comment that was on the flat table applies here unchanged - the
+ * grouping, the source list, the printed quote - because this IS that table,
+ * scoped to one model instead of holding all of them at once.
+ */
+function figureRows(groups){
+  // WHAT WAS MEASURED COMES FIRST, because on this page the model is fixed and
+  // the sub-axis is the only thing telling two rows apart. On the old table it
+  // did not exist as a column at all, which is the whole defect.
+  const head = '<th>What was measured</th><th class="r">Figure</th><th>Basis</th><th>Unit</th>'
+    + '<th>Reported by</th>';
+  const body = groups.map((g)=>{
+    const list = g.sources || [];
     const mixed = new Set(list.flatMap(s => s.bases || [])).size > 1;
     const one = (s) => {
       const href = safeHref(s.url);
@@ -282,40 +694,124 @@ function vMet(slug){
       const tag = mixed && (s.bases || []).length
         ? `<span class="qmeta">${esc(s.bases.join(' · '))}</span> `
         : '';
-      return tag + (href
-        ? `<a href="${esc(href)}"${ref} target="_blank" rel="noopener noreferrer">open the source</a>`
-        : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>');
+      const link = href
+        ? `<a class="srclink" href="${esc(href)}"${ref} target="_blank" rel="noopener noreferrer">open the source</a>`
+        : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>';
+      // THE QUOTE LEADS AND THE LINK FOLLOWS, and that ordering is the finding
+      // rather than a preference. The words are what let a reader decide
+      // whether $0.25 is an output price or a cache read price; "open the
+      // source" is navigation, and it was set above the evidence in the
+      // brighter of the two styles. So the quote comes first and carries the
+      // readable colour, and the link sits under it dimmed.
+      //
+      // PRINTED, NOT PUT IN A `title`. A figure whose words are only in a
+      // tooltip cannot be checked on a phone, and checking it is the point.
+      const q = s.quote ? `<div class="figq">&ldquo;${esc(s.quote)}&rdquo;</div>` : '';
+      return tag + q + link;
     };
-    // AGREEMENT IS THE FINDING, so it is named rather than counted. A provider
-    // claiming a number and somebody who measured it arriving at the same one
-    // is the strongest thing this board holds; "2 reports" undersold it.
     const many = mixed
       ? '<span class="qmeta">claimed by the provider and confirmed by a measurement</span>'
       : list.length > 1
         ? `<span class="qmeta">${list.length} reports state this figure</span>`
         : '';
-    const cell = !srcs.length ? ''
-      : `<td>${many}${list.map(s=>`<div>${one(s)}</div>`).join('')}</td>`;
-    return '<tr>'+r.map((v,j)=>`<td${m.num[j]?' class="r"':''}>${esc(v)}</td>`).join('')+cell+'</tr>';
+    // WHY ONE ROW NOW HOLDS WORDINGS THAT LOOK DIFFERENT. `$0.25/M` and
+    // `$0.25 per million output tokens` are one price, and splitting them
+    // made fifteen agreeing reports read as four separate findings. Saying so
+    // is what stops the merge looking like a figure that was tidied up.
+    const spell = g.otherSpellings
+      ? `<span class="qmeta">also written ${g.otherSpellings} other way${g.otherSpellings === 1 ? '' : 's'}, same figure</span>`
+      : '';
+    // "not stated" IS A VALUE AND IS RENDERED AS ONE (rule 6). 69 of the 113
+    // `cost-per-token` figures name no side, and 14 of 15
+    // `time-to-first-token` figures name nothing at all. Leaving the cell
+    // blank would read as an oversight; filling it with the likely answer
+    // would be the substitution that put a Terminal-bench figure on the
+    // SWE-bench page. The evidence does not say, so the page does not say.
+    const sub = g.subAxisDisputed
+      ? '<span class="subax disp">reports disagree on what this measured</span>'
+      : g.subAxis
+        ? `<span class="subax">${esc(g.subAxis)}</span>`
+        : '<span class="subax none">not stated</span>';
+    return `<tr><td>${sub}</td><td class="r">${esc(g.value)}</td><td>${esc(g.basis)}</td>`
+      + `<td>${esc(g.unit)}</td><td>${many}${spell}`
+      + `${list.map(s=>`<div class="figsrc">${one(s)}</div>`).join('')}</td></tr>`;
   }).join('');
-  // SAID ONLY WHEN IT IS TRUE OF SOMETHING. A line explaining corroboration on a
-  // page where nothing is corroborated would be a caveat about nothing.
-  const dupNote = corroborated
-    ? `<p class="muted" style="margin-top:10px;max-width:76ch;font-size:.9rem">${corroborated}
-       figure${corroborated===1?' is':'s are'} stated by more than one report. Each row is one figure,
-       and the reports beneath it are <b>distinct articles</b> - an article stating the same figure
-       twice is counted once, because two quotes from one report are one report.</p>`
+  return `<div class="tblwrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function vMet(slug){
+  const m = byS(DB.mets,slug); if(!m) return vBoard('met');
+  const rows = m.mrows || [];
+  // ONE MODEL, ONE ROW. `ranked` is the same renderer the other two sections
+  // use and it already allows for this one - "Empty on best-for and metric,
+  // where there is no split".
+  const list = rows.length
+    ? ranked(rows, 'metmodel:' + m.slug)
+    : `<p class="muted" style="padding:8px 0">The board holds no published figure on this axis.
+       That is what the board has, not a page that failed to load.</p>`;
+  // A COMPARISON IS ONLY CLAIMED WHERE ONE EXISTS. 62 of 84 axes hold a single
+  // model, and a heading promising every model tracked, above one row,
+  // overstates what was found.
+  const only = rows.length === 1
+    ? `<p class="muted" style="margin-top:10px;max-width:74ch;line-height:1.6;font-size:.9rem">
+       <b>One model has a published figure on this axis.</b> This is an observation, not a
+       ranking — there is nothing here to compare it against yet.</p>`
+    : '';
+  // SAID, NOT ASSUMED. Two writers spelling one benchmark two ways produce
+  // two slugs, because the extractor is required to copy the name character
+  // for character - that rule is what stops a Terminal-bench figure being
+  // filed as SWE-bench. The spellings are folded here and the fold is
+  // declared, so a reader who searched for the other one knows where it went.
+  const alsoSpelled = (m.spelledAlso || []).length
+    ? `<p class="muted" style="margin-top:8px;max-width:74ch;line-height:1.6;font-size:.9rem">
+       Also written ${m.spelledAlso.map(x=>`<code>${esc(x)}</code>`).join(', ')} in the evidence.
+       Those are the same axis and their figures are on this page &mdash; only the spelling differed.</p>`
     : '';
   return `<div class="shell phead">${crumb([['Board','board'],['Metrics','board:met'],[m.name,null]])}
-    <h1>${esc(m.name)}</h1><p class="sub">An axis the board found figures for. Every figure is shown as the
-    text wrote it, with whether it was <b>stated</b> by the provider or <b>reported</b> by somebody who
-    measured it — the two are never merged.</p></div>
+    <h1>${esc(m.name)}</h1>${alsoSpelled}<p class="sub">An axis the board found figures for. Open a model to see every
+    figure recorded for it here, what each one measured, and the words it came from — an output price
+    and a cache-read price can share a unit without being the same measurement.</p></div>
     ${sec('','','',`<div class="defbox"><div class="l">unit · ${esc(m.unit)}</div><p>${esc(m.d1)}</p><p>${esc(m.d2)}</p></div>`)}
-    ${sec('The number\u2019s limits','What this metric cannot tell you',
+    ${sec('The number’s limits','What this metric cannot tell you',
       'Four things that change the figure and never appear beside it.',conds(m.lim))}
-    ${sec('Every model tracked','Recorded figures',
-      'Each figure is copied verbatim from the evidence and names the report it came from. A stated figure and a reported one are different facts from different sources, so they sit side by side rather than being averaged — and two rows citing one report are one report, not two.',
-      `<div class="tblwrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${dupNote}`)}
+    ${sec('Models with figures on this axis','Who has been measured',
+      listIntro(m), list + only)}
+    ${sec('Related','','',related(m.rel))}`;
+}
+
+/** One model's figures on one axis - the level metrics never had. */
+function vMetModel(slug, key){
+  const m = byS(DB.mets,slug); if(!m) return vBoard('met');
+  const row = (m.mrows||[]).find(r => r.key === key);
+  // AN UNKNOWN MODEL GOES BACK to the axis, rather than rendering a page about
+  // nothing. Same reasoning as `vModelIn`: a stale key is not evidence that
+  // nobody measured this model.
+  if(!row) return vMet(slug);
+  const groups = (m.groups||[]).filter(g => (g.modelKey || '') === key);
+  const named = groups.filter(g => g.subAxis).length;
+  // RULE 7: THE FIGURE TRAVELS WITH ITS DENOMINATOR. "3 of 7 say what they
+  // measured" is a different statement from "3 say what they measured", and
+  // this page exists because the missing four are the problem.
+  const coverage = groups.length
+    ? `<p class="muted" style="margin-top:10px;max-width:74ch;line-height:1.6;font-size:.9rem">
+       <b>${named} of ${groups.length} figure${groups.length===1?'':'s'}</b> say what they measured, in
+       their own words. The rest are recorded as <b>not stated</b> — the evidence did not say which
+       side of the axis it was on, and filing them under the likely one would be a guess wearing a
+       label.</p>`
+    : '';
+  const empty = `<p class="muted" style="padding:8px 0">The board holds no published figure for this
+    model on this axis.</p>`;
+  return `<div class="shell phead">${crumb([['Board','board'],['Metrics','board:met'],
+      [m.name,'metric:'+m.slug],[row.m,null]])}
+    <h1>${esc(row.m)} on ${esc(m.name)}</h1>
+    <p class="sub">Every figure the board publishes for this model on this axis: ${esc(row.e)}. Each is
+    copied as the text wrote it, beside the words it came from. A stated figure and a reported one are
+    different facts from different sources, so they sit side by side rather than being averaged.</p>
+    <p style="margin-top:14px"><a data-go="model:${esc(key)}">Everything said about
+    ${esc(row.m)}, across every job, capability and metric →</a></p></div>
+    ${groups.length ? sec('Recorded figures','What was measured, and what it came to',
+      'Two figures under one unit are not necessarily two answers to one question. Where the evidence names what it measured, that name is copied here; where it does not, the row says so.',
+      figureRows(groups) + coverage) : sec('Recorded figures','','',empty)}
     ${sec('Related','','',related(m.rel))}`;
 }
 
@@ -355,4 +851,4 @@ function vPost(slug){
       ${related(p.rel)}
     </div>`;
 }
-export { vBoard, vJob, vCap, vMet, vBlogs, vPost }
+export { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel, vBlogs, vPost }

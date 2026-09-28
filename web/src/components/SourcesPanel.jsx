@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { adminSources } from '../api'
 import { Badge, Notice } from './ui'
-import { IconAlert, IconLayers } from './Icons'
+import { IconAlert, IconCaret, IconLayers } from './Icons'
 
 /**
  * Every platform the harvest reaches, and how it reaches it.
@@ -31,6 +31,10 @@ const METHOD_TONE = (m) => {
 
 export default function SourcesPanel() {
   const [state, setState] = useState({ data: null, err: null })
+  // Which platform's prose is open. One at a time: these are read to answer a
+  // question about ONE row, and several open at once rebuilds the wall of
+  // paragraphs the table replaced.
+  const [open, setOpen] = useState(null)
 
   useEffect(() => {
     let alive = true
@@ -42,6 +46,7 @@ export default function SourcesPanel() {
 
   const { data, err } = state
   const sources = data?.sources || []
+  const feeds = data?.blog_feeds || []
 
   return (
     <section className="card card-flush">
@@ -58,7 +63,7 @@ export default function SourcesPanel() {
           Read from <span className="mono">contract/sources.yaml</span>, the same file
           the harvest reads — so this is what actually runs, not a description of it.
           Each row says how the platform is reached and whether a key is used.{' '}
-          <strong style={{ color: 'var(--text-1)' }}>No key is shown anywhere</strong>,
+          <strong style={{ color: 'var(--text)' }}>No key is shown anywhere</strong>,
           and none is in the payload behind this page.
         </p>
       </div>
@@ -78,60 +83,140 @@ export default function SourcesPanel() {
           </div>
         )}
 
-        {sources.map((s) => (
-          <div key={s.id} className="stack stack-1"
-               style={{ borderLeft: '2px solid var(--line)', paddingLeft: 12 }}>
-            <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
-              <strong style={{ fontSize: 'var(--fs-sm)' }}>{s.id}</strong>
-              {s.method
-                ? <Badge tone={METHOD_TONE(s.method)}>{s.method}</Badge>
-                : <Badge tone="fail">not described</Badge>}
-              {/* THE WHOLE OF WHAT IS SAID ABOUT CREDENTIALS. */}
-              <Badge tone="mute">{s.uses_credential ? 'uses a key' : 'no key'}</Badge>
-              {s.metered && <Badge tone="warn">metered quota</Badge>}
-            </div>
+        {/* A TABLE, BECAUSE THE QUESTION IS A COMPARISON. Every row answers the
+            same four questions - how is it reached, does it use a key, is it
+            metered, have its terms been read - and the answers were buried in
+            four paragraphs each, one platform after another. Twelve platforms
+            made a page you had to read rather than scan, to compare things that
+            differ in one column.
 
-            {s.detail && (
-              <p className="muted" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0 }}>
-                {s.detail}
-              </p>
-            )}
+            The prose is not deleted; it moves behind the caret. The detail, the
+            credential note and the ruling are what you read about ONE platform
+            after the table has told you which one to look at. */}
+        {sources.length > 0 && (
+          <div className="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Platform</th>
+                  <th>How it is reached</th>
+                  <th>Key</th>
+                  <th>Quota</th>
+                  <th>Terms</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sources.map((s) => (
+                  <Fragment key={s.id}>
+                    <tr>
+                      <td>
+                        <button type="button" className="rowtoggle"
+                                aria-expanded={open === s.id}
+                                onClick={() => setOpen(open === s.id ? null : s.id)}>
+                          <IconCaret width={13} height={13}
+                                     className={`caret${open === s.id ? ' on' : ''}`} />
+                          <strong>{s.id}</strong>
+                        </button>
+                      </td>
+                      <td>
+                        {s.method
+                          ? <Badge tone={METHOD_TONE(s.method)}>{s.method}</Badge>
+                          : <Badge tone="fail">not described</Badge>}
+                      </td>
+                      {/* THE WHOLE OF WHAT IS SAID ABOUT CREDENTIALS. Not the
+                          key, not a fingerprint, not a prefix. */}
+                      <td className="dim">{s.uses_credential ? 'uses a key' : 'no key'}</td>
+                      <td>
+                        {s.metered
+                          ? <Badge tone="warn">metered</Badge>
+                          : <span className="dim">unmetered</span>}
+                      </td>
+                      {/* ⚠ RULE 4. `terms_document_read: false` means NOBODY HAS
+                          READ the platform's terms document - not that it was
+                          read and found wanting. Two opposite claims, and only
+                          one of them is about the platform, so the cell says
+                          "not read by us" rather than anything shorter. */}
+                      <td>
+                        {s.terms_document_read === false
+                          ? <span style={{ color: 'var(--warn)', fontSize: 'var(--fs-xs)' }}>
+                              not read by us
+                            </span>
+                          : s.terms_reviewed_on
+                            ? <span className="dim mono" style={{ fontSize: 11 }}>
+                                {s.terms_reviewed_on}
+                              </span>
+                            : <span className="dim">—</span>}
+                      </td>
+                    </tr>
 
-            {s.credential_note && (
-              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0 }}>
-                {s.credential_note}
-              </p>
-            )}
+                    {open === s.id && (
+                      <tr>
+                        <td colSpan={5} style={{ background: 'var(--surface-2)' }}>
+                          <div className="stack stack-1">
+                            {s.detail && (
+                              <p className="muted" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0, lineHeight: 1.6 }}>
+                                {s.detail}
+                              </p>
+                            )}
+                            {s.credential_note && (
+                              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0, lineHeight: 1.6 }}>
+                                {s.credential_note}
+                              </p>
+                            )}
+                            {s.terms_document_read === false && (
+                              <p style={{ fontSize: 11, color: 'var(--warn)', maxWidth: '76ch', margin: 0, lineHeight: 1.6 }}>
+                                The platform&rsquo;s terms document has not been read. That is
+                                an absence on our side, not a finding about them — what was
+                                checked is in the ruling below.
+                              </p>
+                            )}
+                            {s.undescribed && (
+                              <Notice icon={<IconAlert />}>
+                                This platform is in the contract and this page has not been
+                                taught how it is reached. Unknown, which is different from
+                                &ldquo;no key&rdquo;.
+                              </Notice>
+                            )}
+                            <span className="dim mono" style={{ fontSize: 11 }}>
+                              {s.endpoint || 'no single endpoint — feed-based'}
+                            </span>
 
-            {/* ⚠ RULE 4. `terms_document_read: false` means NOBODY HAS READ the
-                platform's terms document — not that it was read and found
-                wanting. The two are opposite claims and only one is about the
-                platform. */}
-            {s.terms_document_read === false && (
-              <span className="dim" style={{ fontSize: 11, color: 'var(--warn)' }}>
-                The platform&rsquo;s terms document has not been read. That is an
-                absence on our side, not a finding about them — what was checked
-                is recorded in the ruling below.
-              </span>
-            )}
+                            {/* ⚠ THE FEEDS BELONG IN THIS ROW'S OWN DROPDOWN,
+                                and the first version put them in a separate
+                                table further down the page. A reader looking
+                                for "which blogs" opens the blogs row - that is
+                                what the caret is for - and finding the answer
+                                somewhere else on the page is the same as not
+                                finding it.
 
-            {s.undescribed && (
-              <Notice icon={<IconAlert />}>
-                This platform is in the contract and this page has not been taught
-                how it is reached. Unknown, which is different from &ldquo;no key&rdquo;.
-              </Notice>
-            )}
-
-            <span className="dim mono" style={{ fontSize: 11 }}>
-              {s.endpoint || 'no single endpoint — feed-based'}
-            </span>
-            <span className="dim mono" style={{ fontSize: 11 }}>
-              ruling {s.terms_ruling || '—'}
-              {s.terms_reviewed_on ? ` · reviewed ${s.terms_reviewed_on}` : ''}
-              {s.evidence ? ` · ${s.evidence}` : ''}
-            </span>
+                                `blogs` is the only platform with feeds under
+                                it, so this is keyed on the id rather than on
+                                the list being non-empty: if `feeds` ever
+                                arrives empty, the row should say so here
+                                rather than silently render nothing. */}
+                            {s.id === 'blogs' && <BlogFeeds data={data} feeds={feeds} />}
+                            <span className="dim mono" style={{ fontSize: 11 }}>
+                              ruling {s.terms_ruling || '—'}
+                              {s.terms_reviewed_on ? ` · reviewed ${s.terms_reviewed_on}` : ''}
+                              {s.evidence ? ` · ${s.evidence}` : ''}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
+        )}
+
+        {/* ⚠ WHAT EACH ARM ACTUALLY BROUGHT BACK, which this panel described
+            and never counted. Above is how a platform is REACHED; a source
+            configured and a source that harvested 11,807 documents rendered
+            identically, and the difference is the only thing a reader can
+            act on. */}
+        <Corpus data={data} />
 
         {/* DRIFT IN THE OTHER DIRECTION. A platform described here but absent
             from the contract would otherwise look live. */}
@@ -147,5 +232,251 @@ export default function SourcesPanel() {
         )}
       </div>
     </section>
+  )
+}
+
+/**
+ * What each platform produced, counted.
+ *
+ * ⚠ POSTS AND COMMENTS ARE SEPARATE COLUMNS because they are not the same act
+ *   and the split is the shape of each platform. Reddit is 1,678 posts under
+ *   10,129 comments; dev.to and blogs are posts only, because
+ *   `include_comments=False` on those adapters. A single "documents" figure
+ *   would make a comment-heavy platform and an article-only one look like the
+ *   same kind of coverage, which is the question this table exists to answer.
+ *
+ * ⚠ AND `readable` IS THE COLUMN THAT DIFFERS PER MACHINE. The raw store is
+ *   content-addressed files on disk, so a payload harvested on another machine
+ *   is absent here with nothing recording that it ever arrived (#303, #316,
+ *   #321). Equal to `documents` on the machine that harvested them and lower
+ *   everywhere else — so a gap in that column is this machine's coverage, not
+ *   the corpus's.
+ *
+ * Threads are one figure rather than a column: a `thread_context` is a
+ * flattened root plus its selected children and carries no platform of its
+ * own, because its members can span several.
+ */
+function Corpus({ data }) {
+  const rows = data?.corpus || []
+  if (!data) return null
+  if (data.blog_counts_unreadable) {
+    return (
+      <Notice icon={<IconAlert />}>
+        The corpus could not be counted: {data.blog_counts_unreadable}. That is this
+        page failing to read, not a corpus with nothing in it.
+      </Notice>
+    )
+  }
+  if (!rows.length) {
+    return (
+      <p className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
+        No document has been harvested yet. A measurement, not a page that failed
+        to load.
+      </p>
+    )
+  }
+  const total = rows.reduce(
+    (a, r) => ({
+      documents: a.documents + r.documents,
+      posts: a.posts + r.posts,
+      comments: a.comments + r.comments,
+      readable: a.readable + r.readable,
+    }),
+    { documents: 0, posts: 0, comments: 0, readable: 0 },
+  )
+  const n = (v) => v.toLocaleString()
+  return (
+    <div className="stack stack-2">
+      <div className="row" style={{ gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+        <span className="label">What each platform has produced</span>
+        <span className="dim tnum" style={{ fontSize: 11 }}>
+          {n(total.documents)} documents · {data.threads != null
+            ? `${n(data.threads)} threads` : 'threads not counted'}
+        </span>
+      </div>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="cmp-table" style={{ fontSize: 'var(--fs-xs)' }}>
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th style={{ textAlign: 'right' }}>Documents</th>
+              <th style={{ textAlign: 'right' }}>Posts</th>
+              <th style={{ textAlign: 'right' }}>Comments</th>
+              <th style={{ textAlign: 'right' }}>Readable here</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.platform}>
+                <th scope="row" style={{ fontWeight: 500 }}>{r.platform}</th>
+                <td className="tnum" style={{ textAlign: 'right' }}>{n(r.documents)}</td>
+                <td className="tnum" style={{ textAlign: 'right' }}>{n(r.posts)}</td>
+                <td className="tnum" style={{ textAlign: 'right' }}>
+                  {r.comments ? n(r.comments) : <span className="dim">—</span>}
+                </td>
+                {/* A GAP HERE IS THIS MACHINE, NOT THE CORPUS, and it is
+                    marked rather than left for a reader to notice by
+                    subtracting two columns. */}
+                <td className="tnum" style={{ textAlign: 'right',
+                                              color: r.readable < r.documents
+                                                ? 'var(--warn)' : undefined }}>
+                  {n(r.readable)}
+                  {r.readable < r.documents && (
+                    <span className="dim" style={{ fontSize: 10 }}>
+                      {' '}({n(r.documents - r.readable)} not on this machine)
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+            <tr>
+              <th scope="row" className="dim">all</th>
+              <td className="tnum" style={{ textAlign: 'right' }}>{n(total.documents)}</td>
+              <td className="tnum" style={{ textAlign: 'right' }}>{n(total.posts)}</td>
+              <td className="tnum" style={{ textAlign: 'right' }}>{n(total.comments)}</td>
+              <td className="tnum" style={{ textAlign: 'right' }}>{n(total.readable)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <span className="dim" style={{ fontSize: 10 }}>
+        A comment is a reply to something; a post is not. Blogs and dev.to carry no
+        comments because those adapters do not fetch them.
+      </span>
+    </div>
+  )
+}
+
+
+/** The blog feeds seated in the contract, inside the `blogs` row's dropdown.
+ *
+ * ⚠ WHERE THIS RENDERS IS THE WHOLE POINT, and the first version got it
+ *   wrong. The feeds were a separate table below the platform list, so a
+ *   reader who opened the blogs row - which is exactly what the caret invites
+ *   - saw the platform's endpoint and nothing else, and reported that the
+ *   feeds were not there. They were, six hundred pixels down.
+ *
+ *   An answer in the wrong place is not a smaller version of the right
+ *   answer. It is the same as no answer, and the reader is the one who
+ *   discovers that.
+ *
+ * THE COUNT IS WHY IT IS WORTH RENDERING, not the list of names. Two of the
+ * eighteen have harvested nothing and `swyx.io` alone is 432 documents,
+ * roughly a third of the blog corpus. A list of names says neither.
+ */
+function BlogFeeds({ data, feeds }) {
+  if (!feeds.length) {
+    // RULE 4. The contract carrying no feeds is a state worth naming; an
+    // empty dropdown would read as a component that failed to load.
+    return (
+      <p className="dim" style={{ fontSize: 11, margin: 0 }}>
+        No feeds are seated in <span className="mono">contract/sources.yaml</span>.
+      </p>
+    )
+  }
+  const totalDocs = feeds.reduce((t, f) => t + (f.documents || 0), 0)
+  return (
+          <div className="stack stack-2">
+            <div className="row-between">
+              <span className="label">Blog feeds seated in the contract</span>
+              <span className="label">
+                {feeds.length} feed{feeds.length === 1 ? '' : 's'}
+                {data.blog_counts_unreadable ? '' : ` · ${totalDocs.toLocaleString()} documents`}
+              </span>
+            </div>
+
+            {/* RULE 6. A count we could not take is not a zero, and the page
+                must not print one. */}
+            {data.blog_counts_unreadable && (
+              <Notice icon={<IconAlert />}>
+                The per-feed document counts could not be read, so they are shown as
+                <strong> unknown</strong> rather than zero: {data.blog_counts_unreadable}
+              </Notice>
+            )}
+
+            <div className="tblwrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Feed</th>
+                    <th className="r">Documents</th>
+                    <th>Byline</th>
+                    <th>Terms</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {feeds.map((f) => (
+                    <tr key={f.id}>
+                      <td>
+                        <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
+                          {/* The site, not the feed URL: a reader checking a
+                              claim wants the blog, and the endpoint is an
+                              atom file. Both are public; neither is a key. */}
+                          {f.site
+                            ? (
+                              <a href={f.site} target="_blank" rel="noopener noreferrer"
+                                 className="mono" style={{ fontSize: 11 }}>
+                                {f.id.replace(/^blog:/, '')}
+                              </a>
+                            )
+                            : <span className="mono" style={{ fontSize: 11 }}>{f.id.replace(/^blog:/, '')}</span>}
+                          {f.provenance === 'seed' && <Badge tone="mute">seed</Badge>}
+                        </div>
+                      </td>
+                      <td className="r">
+                        {f.documents == null
+                          ? <span className="dim">unknown</span>
+                          : (
+                            <>
+                              {f.documents.toLocaleString()}
+                              {/* RULE 7. `medium.com/airbnb-engineering` is one
+                                  feed on a host the harvester keys by, so this
+                                  number is the host's and the row says so
+                                  rather than claiming it. */}
+                              {f.count_is_for_the_host && (
+                                <span className="dim" title="Counted by host, which this feed shares with another">
+                                  {' '}· host
+                                </span>
+                              )}
+                            </>
+                          )}
+                      </td>
+                      <td>
+                        {/* ⚠ `entry` IS THE ONE WITH A KNOWN DEFECT (#373):
+                            several voices in one run, so the author row is
+                            written and nothing links a document to it. Marked
+                            here so the affected feeds are visible without
+                            opening the issue. */}
+                        {f.byline_source === 'entry'
+                          ? <Badge tone="warn">entry</Badge>
+                          : <span className="dim" style={{ fontSize: 11 }}>{f.byline_source || 'not recorded'}</span>}
+                      </td>
+                      <td>
+                        {/* RULE 4, the same as the platform rows above: `false`
+                            means nobody has read the terms document, NOT that
+                            it was read and found wanting. */}
+                        <span className="dim" style={{ fontSize: 11 }}>
+                          {f.terms_document_read === true
+                            ? 'document read'
+                            : f.terms_document_read === false
+                              ? 'robots only'
+                              : 'not recorded'}
+                          {f.terms_reviewed_on ? ` · ${f.terms_reviewed_on}` : ''}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="dim" style={{ fontSize: 11, maxWidth: '78ch', lineHeight: 1.6, margin: 0 }}>
+              Read from <span className="mono">contract/sources.yaml</span> when this page
+              loaded; the counts are live from <span className="mono">document</span>.
+              A feed reading <strong>0</strong> is seated and has harvested nothing — which
+              is a measurement, not a gap. <strong>entry</strong> under Byline marks the
+              feeds whose author rows are written and linked to nothing (#373).
+            </p>
+          </div>
   )
 }

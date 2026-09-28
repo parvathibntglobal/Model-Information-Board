@@ -83,6 +83,16 @@ _PRICE_COLUMNS = ("price_in", "price_out", "price_cached_read")
 _NEVER_UPDATED = ("in_window",)
 
 
+#: The provenance values a CONTRACT FILE can write. `polled` is the poller's
+#: and no YAML may claim it; everything here is a row a person typed.
+#:
+#: This set is what `_refuse_provenance_downgrade` and `_upsert_model` test
+#: against, so adding a fourth hand-written value protects it automatically
+#: rather than needing both call sites found. Before #382 the set had one
+#: member and both sites spelled it `"seed"` inline.
+HAND_WRITTEN_PROVENANCE = frozenset({"seed", "unpolled"})
+
+
 class ProvenanceDowngradeError(RuntimeError):
     """A polled row was about to be overwritten by seed data.
 
@@ -98,6 +108,14 @@ class ProvenanceDowngradeError(RuntimeError):
 
     Promotion in the other direction is allowed. `seed` becoming `polled` is
     exactly what week 5 is for.
+
+    ⚠ `unpolled` IS REFUSED FOR THE SAME REASON AND PROMOTES THE SAME WAY.
+    A hand-entered row must never overwrite a polled one - that is the whole
+    hazard above, and it does not care which of the two hand-written values is
+    doing the overwriting. But `unpolled -> polled` is ALLOWED and is the
+    expected end state for `awaiting_poll_models.yaml`: the day OpenRouter
+    lists Gemini 3.8 Flash, the poll owns that row and the contract file should
+    stop asserting it. #382.
     """
 
     def __init__(self, canonical_ids: list[str]) -> None:
@@ -253,6 +271,12 @@ def model_row(
 ) -> dict[str, Any]:
     """The `model_version` row for one seeded model.
 
+    `provenance` DEFAULTS TO THE FIXTURE VALUE ON PURPOSE. The default caller
+    is `contract/seed_models.yaml`, which genuinely is a build fixture, and a
+    default of `unpolled` would quietly exempt eleven fixtures from
+    `assert_no_fixtures`. A caller loading a non-fixture contract passes
+    `unpolled` explicitly - see `scripts/load_unpolled_models.py`.
+
     `as_of` is explicit so the window boundary can be pinned in a test. It
     defaults to today because that is what a nightly run means, not because
     the caller may safely ignore it.
@@ -322,10 +346,15 @@ def _upsert_model(conn: psycopg.Connection[Any], row: dict[str, Any]) -> tuple[s
         )
         existing = cur.fetchone()
 
+    # HAND-WRITTEN IS ANY OF THE TWO, NOT JUST `seed`. Before #382 the only
+    # value a contract file could write was `seed`, so naming it directly was
+    # exact. `unpolled` is written by the same loader from the same kind of
+    # file, and a load that flipped a polled row to `unpolled` would be the
+    # identical defect wearing the new word.
     if (
         existing is not None
         and existing["provenance"] == "polled"
-        and row["provenance"] == "seed"
+        and row["provenance"] in HAND_WRITTEN_PROVENANCE
     ):
         raise ProvenanceDowngradeError([row["canonical_id"]])
 
@@ -503,9 +532,19 @@ def _write_price_tiers(conn: psycopg.Connection[Any], model: SeedModel) -> int:
 
 
 def _refuse_provenance_downgrade(
-    conn: psycopg.Connection[Any], models: list[SeedModel]
+    conn: psycopg.Connection[Any],
+    models: list[SeedModel],
+    *,
+    provenance: str = "seed",
 ) -> None:
-    """Raise before writing anything if this load would downgrade polled rows."""
+    """Raise before writing anything if this load would downgrade polled rows.
+
+    `provenance` is what THIS load intends to write. A load writing `polled`
+    cannot downgrade anything and skips the check; the two hand-written values
+    both can, and both are refused.
+    """
+    if provenance not in HAND_WRITTEN_PROVENANCE:
+        return
     rows = conn.execute(
         "SELECT canonical_id FROM model_version "
         "WHERE provenance = 'polled' AND canonical_id = ANY(%s)",
@@ -652,12 +691,20 @@ def load_seed(
     strict_sources: bool = True,
     strict_spelling: bool = True,
     as_of: date | None = None,
+    provenance: str = "seed",
 ) -> LoadReport:
     """Load `contract/seed_models.yaml` into the registry.
 
     Args:
         conn: an open connection. The caller commits.
         path: override the seed file, for tests.
+        provenance: what to write on every row this load creates. Defaults to
+            the fixture value because the default `path` is the fixture file.
+            A caller pointing `path` at `unpolled_models.yaml` or
+            `awaiting_poll_models.yaml` MUST pass `"unpolled"` - those hold
+            real models, and labelling them `seed` is the defect #382 fixed.
+            Refused outright if it is not a hand-written value: this function
+            loads contract files, and `polled` belongs to the poller.
         strict_sources: refuse to load any field that asserts a value without
             citing where it came from (FR-2). The seed file ships with known
             gaps; passing False loads anyway and records them in the report,
@@ -668,6 +715,14 @@ def load_seed(
             fix rather than a code one.
     """
     from collect.registry.seed import check_source_coverage
+
+    if provenance not in HAND_WRITTEN_PROVENANCE:
+        raise ValueError(
+            f"load_seed cannot write provenance={provenance!r}. This loader "
+            f"reads contract files, and only "
+            f"{sorted(HAND_WRITTEN_PROVENANCE)} are values a person may type. "
+            "`polled` is the poller's and is written by collect/registry/poll.py."
+        )
 
     seed = load_seed_file(path)
     if strict_sources:
@@ -680,7 +735,7 @@ def load_seed(
 
     # Pre-flight, so the refusal can name every affected row rather than
     # whichever one the loop reached first.
-    _refuse_provenance_downgrade(conn, seed.models)
+    _refuse_provenance_downgrade(conn, seed.models, provenance=provenance)
 
     policy = load_registry_policy()
     window = window_report(
@@ -694,7 +749,7 @@ def load_seed(
     )
 
     for model in seed.models:
-        row = model_row(model, provenance="seed", as_of=as_of, policy=policy)
+        row = model_row(model, provenance=provenance, as_of=as_of, policy=policy)
         verdict, changed = _upsert_model(conn, row)
 
         if verdict == "inserted":

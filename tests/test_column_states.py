@@ -48,10 +48,23 @@ MANIFEST = CONTRACT_DIR / "column_states.yaml"
 #: definition invisible to the audit — so it is the one state that requires a
 #: `why` naming the reader, enforced below. Without that requirement it would be
 #: a hole big enough to file every awkward column through.
+#:
+#: `written_not_by_query` IS THE SAME BLIND SPOT ON THE OTHER SIDE, and it took a
+#: real column to notice the gap. The audit reads SQL out of string literals, so
+#: `f"INSERT INTO {LEDGER} ..."` (collect/migrate.py) is a write it cannot see —
+#: exactly as a read routed through YAML is a read it cannot see. Before this the
+#: only declarations that accepted `UNWRITTEN, read` were `generated`,
+#: `defaulted` and `unwired`, and a written column is none of those three: filing
+#: it under one would have recorded the wrong reason for the right state.
+#:
+#: It carries the same requirement as its twin — name the writer, enforced below
+#: — for the same reason. A hatch nobody has to justify is a hatch everything
+#: goes through.
 CONSISTENT_WITH = {
     "read": {WRITTEN_READ},
     "write_only": {WRITTEN_UNREAD},
     "read_not_by_query": {WRITTEN_READ, WRITTEN_UNREAD, UNWRITTEN_READ, NEITHER},
+    "written_not_by_query": {WRITTEN_READ, UNWRITTEN_READ},
     "generated": {UNWRITTEN_READ, NEITHER},
     "defaulted": {UNWRITTEN_READ, NEITHER},
     "unwired": {UNWRITTEN_READ, NEITHER},
@@ -212,6 +225,25 @@ class TestDeclaredMatchesDiscovered:
             f"{silent} declare `read_not_by_query` and name no reader. The audit "
             f"cannot see this reader by definition, so the `why` is the only "
             f"evidence it exists."
+        )
+
+    def test_written_not_by_query_names_its_writer(self, manifest):
+        """The other escape hatch, and it requires saying who writes it.
+
+        Same argument as `read_not_by_query`: the audit cannot see this writer by
+        definition, so the `why` is the only evidence it exists. Narrower than its
+        twin, though — it accepts only the two discovered states that have a
+        reader in them, because a column with NO reader and no visible writer is
+        `reserved` or `neither` and this would be a way to dress that up.
+        """
+        silent = [
+            f"{t}.{c}" for t, cols in sorted(manifest.items()) for c, e in (cols or {}).items()
+            if (e or {}).get("state") == "written_not_by_query" and not (e or {}).get("why")
+        ]
+        assert not silent, (
+            f"{silent} declare `written_not_by_query` and name no writer. The "
+            f"audit cannot see this writer by definition, so the `why` is the "
+            f"only evidence it exists."
         )
 
     def test_unwired_names_what_is_missing(self, manifest):

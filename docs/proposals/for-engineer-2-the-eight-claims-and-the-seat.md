@@ -11,7 +11,7 @@ instance on purpose.
 
 *Engineer 1 · 2026-08-20 · no code in this document*
 
-**DSN for every figure below:** `postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`
+**DSN for every figure below:** `postgresql://example_user@203.0.113.5:5432/Model-information-Board`
 — read-only except where §5 says otherwise.
 
 ---
@@ -241,7 +241,7 @@ Here is the accurate version of the drift:
 
 ## 6 · Migrations applied to that DSN, and what the third one was hiding
 
-**Write, on `postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`.**
+**Write, on `postgresql://example_user@203.0.113.5:5432/Model-information-Board`.**
 Code: `collect/migrate.py` and the three files below, **all on `origin/main`**.
 `preflight ok in 'staging': 3 passed, 0 failed, 1 skipped`, then `6 applied, none
 pending`.
@@ -285,7 +285,7 @@ So they are a command now (`scripts/write_report.py`):
 python -m scripts.write_report --path collect/migrate.py --commit ee5b702
 
 WRITE REPORT
-  DSN            postgresql://bv_agent@52.17.75.29:5432/Model-information-Board
+  DSN            postgresql://example_user@203.0.113.5:5432/Model-information-Board
   ENVIRONMENT    staging
   branch         for-e2-eight-claims-and-the-seat  HEAD 76dbf81
   HEAD on origin/main?  NO   (ahead 2, behind 0)

@@ -53,6 +53,9 @@ class _Trickle:
     """A response that keeps sending, one line at a time, for ever."""
 
     status_code = 200
+    #: A real httpx.Response always has headers; the client reads
+    #: `X-Generation-Id` from them.
+    headers: dict = {}
 
     def __init__(self, chunks, clock):
         self._chunks = chunks

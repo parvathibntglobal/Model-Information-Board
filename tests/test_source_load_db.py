@@ -69,17 +69,19 @@ def test_every_source_row_lands(conn):
     contract renders as an absence rather than as an error (rule 4).
     """
     report = load_source_rows(conn)
-    assert (report.inserted, report.updated, report.unchanged) == (17, 0, 0)
+    # 17 until the 2026-09-21 class A re-review seated nine more blogs.
+    assert (report.inserted, report.updated, report.unchanged) == (26, 0, 0)
 
     rows = _rows(conn)
-    assert len(rows) == 17
+    assert len(rows) == 26
     # THE SET, which the docstring says is the assertion that matters. A count
     # passes on a file that lost `reddit` and gained two others; this does not.
     assert {r["platform"] for r in rows.values()} == {
         "github", "blog", "reddit", "arxiv", "x",
         "devto", "hackernews", "huggingface",
     }
-    assert sum(1 for r in rows.values() if r["platform"] == "blog") == 10  # 9 + umbrella
+    # 10 until the 2026-09-21 class A re-review; 19 = 18 feeds + umbrella.
+    assert sum(1 for r in rows.values() if r["platform"] == "blog") == 19
 
 
 def test_a_second_load_changes_nothing(conn):
@@ -92,7 +94,7 @@ def test_a_second_load_changes_nothing(conn):
     conn.commit()
 
     again = load_source_rows(conn)
-    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 17)
+    assert (again.inserted, again.updated, again.unchanged) == (0, 0, 26)
     assert again.changed_columns == {}
 
 
@@ -105,7 +107,7 @@ def test_a_changed_ruling_shows_up_as_one_updated_row(conn):
     conn.commit()
 
     report = load_source_rows(conn)
-    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 16)
+    assert (report.inserted, report.updated, report.unchanged) == (0, 1, 25)
     assert report.changed_columns == {"blog:hamel.dev": ["tos_notes"]}
 
 

@@ -104,6 +104,68 @@ class Unsalvaged:
     raw: dict
 
 
+#: How many distinct shapes a thread record carries before the rest become a
+#: count. Five is enough to see whether one defect repeated or twenty differed,
+#: which is the only question this field exists to answer.
+UNSALVAGED_SHAPES_SHOWN = 5
+
+
+def _shape_of(error: str) -> str:
+    """One validation error reduced to its SHAPE. `board_entries.3.slug: too
+    long` and `board_entries.7.slug: too long` are one shape, not two.
+
+    ⚠ INSTANCES ANSWER THE WRONG QUESTION, WHICH IS WHY THIS EXISTS. A count of
+      instances says "how many times did something fail". The question is "how
+      many THINGS are wrong", and one defect x 21 and twenty-one defects x 1
+      want opposite fixes - a prompt change for the first, a schema change or a
+      model change for the second. Reported raw, a thread that lost 40 claims
+      to one repeated error is indistinguishable from one that lost 40 to forty
+      different ones.
+
+    The list index is the only part that varies per instance, so dropping the
+    numeric path segments is the whole normalisation. The message is left
+    alone: pydantic's are templates, and the numbers inside them (`at most 300
+    characters`) are part of the rule rather than part of the instance.
+    """
+    loc, sep, msg = error.partition(": ")
+    if not sep:
+        # ⚠ NOT EVERY ERROR HAS A LOCATION. `claim was not an object` is raised
+        #   whole, with no `loc` to strip, and splitting on a separator that is
+        #   not there made it `claim was not an object: ` - a trailing colon on
+        #   the shape that stands for a WHOLE CLAIM being unreadable, which is
+        #   the one most worth recognising at a glance.
+        return error
+    kept = [p for p in loc.split(".") if p and not p.isdigit()]
+    return f"{'.'.join(kept)}: {msg}" if kept else (msg or error)
+
+
+def unsalvaged_shapes(lost: list[Unsalvaged]) -> tuple[dict[str, int], int]:
+    """`({shape: count}, how many fell outside the cap)`. Counts only.
+
+    ⚠ NEVER THE CLAIM TEXT, AND THE REASON IS NOT SYMMETRY WITH THE OTHER
+      FIELDS. `Unsalvaged.raw` holds the model's own dict, quote included - and
+      a quote is a passage from a harvested document that has been through no
+      ruling and carries no attribution at that point. The terminal is the one
+      surface in this system with no quote-plus-attribution contract on it. The
+      error shape is ours; the quote is the writer's, and it stays in memory
+      where the debugger can reach it and the log cannot.
+
+    ⚠ AND THE CAP SAYS WHEN IT BINDS. A truncated list with nothing saying it
+      was truncated reads as a complete one (rule 4), so the overflow is
+      returned rather than dropped - a long tail has to look like a long tail.
+    """
+    counts: dict[str, int] = {}
+    for item in lost:
+        for error in item.errors or ("no error recorded",):
+            shape = _shape_of(error)
+            counts[shape] = counts.get(shape, 0) + 1
+    if len(counts) <= UNSALVAGED_SHAPES_SHOWN:
+        return counts, 0
+    ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    shown = dict(ranked[:UNSALVAGED_SHAPES_SHOWN])
+    return shown, sum(n for _, n in ranked[UNSALVAGED_SHAPES_SHOWN:])
+
+
 @dataclass
 class ProposedCapability:
     """A capability-discovery proposal from the extractor, quote-verified.
@@ -200,6 +262,21 @@ class ExtractionRun:
     #: Consumer named, per rule 9: `scripts/fetch_model.py`'s E5 stage line
     #: counts it and says so.
     truncated: bool = False
+    #: The upstream that served EACH call for this thread, in order, so a
+    #: schema retry that went somewhere else says so. None where a call's
+    #: stream never named one. See `Completion.provider`.
+    #:
+    #: Consumer named, per rule 9: `scripts/fetch_model.py`'s `_on_result`
+    #: puts it on the thread record, and `judge/fetch_console.py` prints it.
+    upstreams: list[str | None] = field(default_factory=list)
+    #: OpenRouter generation ids, one per call, in the same order. Consumer
+    #: named: the same thread record, where it is the key for looking up a
+    #: call's billed cost after the fact (#381).
+    generation_ids: list[str | None] = field(default_factory=list)
+    #: What OpenRouter reported billing for each call, same order; None where
+    #: it reported nothing. See `Completion.reported_cost_usd`. Consumer
+    #: named: the thread record and its console line.
+    reported_costs: list[float | None] = field(default_factory=list)
 
     @property
     def proposed(self) -> int:
@@ -322,6 +399,9 @@ def extract(
     # tokens were being under-counted; truncation has the same shape - a first
     # answer cut at the ceiling is still a cut answer even if a retry completed.
     run.truncated = any(c.stopped_at_ceiling for c in completions)
+    run.upstreams = [c.provider for c in completions]
+    run.generation_ids = [c.generation_id for c in completions]
+    run.reported_costs = [c.reported_cost_usd for c in completions]
 
     if result is None:
         # SALVAGE. The envelope did not validate, which until 2026-08-21 ended the

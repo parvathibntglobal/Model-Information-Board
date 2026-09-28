@@ -15,6 +15,20 @@ _control_sweep/
 _blog_so_sweep/
 _handoff/
 handoff.zip
+
+# EXPORT DIRECTORIES, AND THEY ARE THREAD TEXT RATHER THAN SOURCE.
+# `scripts/export_contexts_for_extract.py` writes one JSON per thread with
+# `flattened_text` and `raw_text_of` INLINED - the export is a copy of the
+# corpus, not a pointer into it. Measured on this host 2026-09-18:
+# `_export_extract` is 17.8 MB over 1,655 threads, `_export_modelonly` 3.2 MB.
+#
+# They are gitignored (.gitignore:106), so a build from a git checkout never
+# sees them. A build from a working tree does, and that is the whole reason
+# these two lines exist: `.gitignore` and `.dockerignore` are different files
+# answering different questions, and every other store above is listed in both.
+_export_extract/
+_export_modelonly/
+
 data/raw/
 *.warc
 *.warc.gz

@@ -42,6 +42,11 @@ export default function App() {
   }, [])
 
   const onLogin = loc.pathname === '/login'
+  // THE ONE ROUTE THAT IS NOT A DOCUMENT. /admin fills the viewport and scrolls
+  // inside its own panes, so that its side nav cannot move - see `.adm-page`.
+  // A footer under a viewport-locked layout would put the page back into the
+  // scroll it just left, and the nav would ride up with it again.
+  const onAdmin = loc.pathname === '/admin'
 
   return (
     <>
@@ -73,7 +78,7 @@ export default function App() {
         </Routes>
       </main>
 
-      {!onLogin && <Footer />}
+      {!onLogin && !onAdmin && <Footer />}
     </>
   )
 }

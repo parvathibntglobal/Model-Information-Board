@@ -9,7 +9,7 @@ unit rather than at the harvest.**
 ```
 
 *Engineer 1 · 2026-08-20 · corroborated independently against
-`postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`*
+`postgresql://example_user@203.0.113.5:5432/Model-information-Board`*
 
 ---
 

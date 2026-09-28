@@ -80,6 +80,14 @@ _SEATED_BY = re.compile(r"seated_by:\s*(\S+)")
 
 PROVISIONAL = "launch-window"
 ATTESTED = "attested"
+#: The third ground, from #461: a person checked the surfaces against every
+#: live alias before seating. It says nothing about mentions, so the floor
+#: check treats it like `launch-window` - a reviewed seat that clears the floor
+#: is flagged to reseat as attested, the same as a provisional one.
+REVIEWED = "reviewed"
+#: The grounds the floor check applies to: seated on something other than
+#: counted mentions.
+NOT_BY_COUNT = (PROVISIONAL, REVIEWED)
 
 
 def _entries() -> list[tuple[str, str | None, list[tuple[str, int]]]]:
@@ -164,7 +172,7 @@ def test_no_provisional_entry_already_qualifies_by_count(entries, floor):
     """
     caught = []
     for canonical_id, seat, mentions in entries:
-        if seat != PROVISIONAL or not mentions or _total(mentions) < floor:
+        if seat not in NOT_BY_COUNT or not mentions or _total(mentions) < floor:
             continue
         top = max(mentions, key=lambda row: row[1])[0]
         caught.append((canonical_id, top, _total(mentions), _slice_share(mentions)))
@@ -188,9 +196,9 @@ def test_no_provisional_entry_already_qualifies_by_count(entries, floor):
 def test_an_attested_seat_is_never_also_provisional(entries):
     """The two grounds are exclusive, so one entry cannot claim both."""
     for canonical_id, seat, _ in entries:
-        assert seat in (ATTESTED, PROVISIONAL), (
-            f"{canonical_id} has seated_by={seat!r}, which is neither "
-            f"{ATTESTED!r} nor {PROVISIONAL!r} — a third ground was added without "
+        assert seat in (ATTESTED, PROVISIONAL, REVIEWED), (
+            f"{canonical_id} has seated_by={seat!r}, which is none of "
+            f"{ATTESTED!r}, {PROVISIONAL!r}, {REVIEWED!r} — a new ground was added without "
             "deciding what the seating check does with it"
         )
 
@@ -250,7 +258,7 @@ def _fires(rows, floor):
     return [
         cid
         for cid, seat, mentions in rows
-        if seat == PROVISIONAL and mentions and _total(mentions) >= floor
+        if seat in NOT_BY_COUNT and mentions and _total(mentions) >= floor
     ]
 
 

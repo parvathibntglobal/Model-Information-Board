@@ -37,8 +37,58 @@ from typing import Protocol
 #: threads: clean schema/tool-calls, 100% quote-verify, no fabrication —
 #: docs/measurements/extractor-ab-deepseek-v4-flash-vs-gemini.md. Undated alias;
 #: pin a dated build (…-0731) if a run needs to be exactly reproducible.
+#: THE AGREED EXTRACTOR. OpenRouter resolves this undated slug to the 0423
+#: snapshot (2026-04-24) and it is pinned there, so the vendor cannot move it
+#: underneath a run. Moving to 0731 costs a PIPELINE_VERSION bump and a
+#: re-extraction of ~531 threads at ~$1.18 - the fork is the cost, not the
+#: money. We are on 0423 on purpose; see
+#: `docs/proposals/the-blended-cells-and-what-extractor-model-means.md` §6.
+#:
+#: Changing this line changes what `claim.extractor_model` records on every row
+#: written afterwards, so it is a provenance change and not a constant edit.
 DEFAULT_MODEL = "deepseek/deepseek-v4-flash"
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
+
+
+def extractor_model() -> str:
+    """`EXTRACTOR_MODEL`, or the agreed extractor.
+
+    THE DEFAULT IS THE CHOICE, NOT A GUESS, and that distinction is the whole
+    of this docstring. `DEFAULT_MODEL` is `deepseek/deepseek-v4-flash`, which
+    OpenRouter resolves to the **0423** snapshot - pinned, not floating, because
+    `deepseek/deepseek-v4-flash-0731` and `~deepseek/deepseek-v4-flash-latest`
+    both exist separately and a route would be redundant otherwise. Staying on
+    0423 is a decision with a date on it, recorded in
+    `docs/proposals/the-blended-cells-and-what-extractor-model-means.md` §6.
+
+    So writing it into `claim.extractor_model` records the agreed extractor
+    rather than inventing one. THIS BRIEFLY REFUSED ON UNSET INSTEAD, and that
+    was wrong: it answered a failure that had not happened. The gemini mixture
+    on the board was not produced by an unset variable. It was produced by a
+    machine with this variable EXPLICITLY SET to gemini, which a
+    refuse-on-unset check cannot see and does not touch.
+
+    WHAT THIS DOES NOT CHECK, AND WHAT WOULD HAVE CAUGHT IT. Nothing here
+    compares the value against the extractor the team agreed on - only against
+    the registry, which contains every polled model including gemini. The check
+    that would have refused `machine-C` is a comparison with a RECORDED
+    CHOICE, and rule 5 says where a recorded choice lives: `contract/`, not a
+    Python literal. Proposed in
+    `docs/proposals/the-agreed-extractor-belongs-in-contract.md`, not taken.
+
+    ONE FUNCTION, SO THE CALL AND THE RECORD CANNOT DIVERGE. This is the part
+    worth keeping whatever the default is. `client.py` used to read the variable
+    with `DEFAULT_MODEL` as its fallback and `cli.py` read it again with the
+    literal string as its own, and they agreed by coincidence. Had they stopped
+    agreeing, the call would use one model and the claim would record the other,
+    and nothing would be wrong enough to notice because both values are
+    plausible model ids.
+
+    IT IS STILL WHAT WE ASKED FOR, NOT WHAT RAN. `Completion.model` carries what
+    the provider reported and NOTHING READS IT (`judge/pipeline.py` sets
+    `self._extractor_model` once, from here).
+    """
+    return (os.getenv("EXTRACTOR_MODEL") or "").strip() or DEFAULT_MODEL
 
 #: One retry, not three. A model that violates a forced schema twice is not
 #: having a bad moment, and paying for a third attempt is how a daily budget
@@ -48,6 +98,66 @@ MAX_SCHEMA_RETRIES = 1
 #: The single tool in the extraction context. An injected "use the web tool"
 #: has nothing to reach for, which is defence 3 in `prompt.py`.
 TOOL_NAME = "emit_claims"
+
+
+#: Everything httpx raises when a connection fails part-way through a
+#: response. `RemoteProtocolError` is the one measured — "peer closed
+#: connection without sending complete message body" — and the siblings are
+#: here because they arrive at the same place for the same reason and
+#: classifying only the one we have seen is how the next one escapes too.
+#:
+#: ⚠ NOT `httpx.HTTPError`, WHICH WOULD SWALLOW TOO MUCH. That base class also
+#:   covers `HTTPStatusError`, and a status is already classified above with
+#:   the code that produced it. A broad catch here would take a precise
+#:   classification and replace it with a vague one.
+#: IMPORTED LAZILY, like every other use of httpx in this module. The top of
+#: the file deliberately has no `import httpx`, and a module-level tuple of its
+#: exception classes would quietly reintroduce one.
+def _stream_died() -> tuple[type[BaseException], ...]:
+    import httpx
+
+    return (
+        httpx.RemoteProtocolError,
+        httpx.ReadError,
+        httpx.ReadTimeout,
+        httpx.ConnectError,
+    )
+
+
+def _upstream(provider: str | None, generation_id: str | None) -> str:
+    """Which upstream served the attempt, for a failure message.
+
+    ⚠ SAID AS ABSENT WHEN ABSENT (rule 6). OpenRouter puts `provider` on every
+      streamed chunk and the generation id on each chunk and on the
+      `X-Generation-Id` header, but a call that fails before its first chunk
+      has neither - and "upstream not reported" is a different fact from any
+      upstream's name.
+    """
+    return (f" [upstream {provider or 'not reported'}, "
+            f"generation {generation_id or 'not reported'}]")
+
+
+def _stream_lines(response, *, chars_so_far, upstream_so_far=lambda: ""):
+    """`response.iter_lines()`, with a dead connection named as our own failure.
+
+    ⚠ A GENERATOR RAISES WHERE IT IS CONSUMED, NOT WHERE IT IS CREATED, and my
+      first version got this wrong: it wrapped the CALL in a try, which catches
+      nothing, because `iter_lines()` returns immediately and the socket dies
+      later inside the caller's `for`. Wrapping the `yield from` puts the guard
+      where the exception actually arrives.
+
+    `chars_so_far` is a callable rather than a number for the same reason: the
+    count is only meaningful at the moment of failure, and that moment is after
+    this function has already returned its generator.
+    """
+    try:
+        yield from response.iter_lines()
+    except _stream_died() as exc:
+        raise ExtractorUnavailable(
+            f"the connection died while the answer was streaming "
+            f"({chars_so_far()} chars of tool-call arguments received): {exc}"
+            f"{upstream_so_far()}"
+        ) from exc
 
 
 class ExtractorUnavailable(RuntimeError):
@@ -61,7 +171,41 @@ class ExtractorUnavailable(RuntimeError):
 
     That distinction is rule 4 in the harvest layer: a document the extractor
     never read must not join the documents that were read and said nothing.
+
+    ⚠ `transient` IS SET AT THE RAISE SITE, NOT GUESSED BY A CALLER. Two
+      failures arrive through this one exception and they want opposite
+      handling:
+
+        502 from an upstream, 504 idle timeout, a stream that stopped
+            -> another attempt is routed afresh and usually succeeds
+
+        the provider rejecting our TOOL SCHEMA
+            -> fails identically every time, for as long as the schema says
+               what it says. Measured over 33 run logs: two runs died on
+               `GenerateContentRequest...properties[quote_offset].items:
+               missing field`, which is Gemini refusing an array with no
+               item type (#397).
+
+      Retrying the second is spending money to receive the same sentence, so
+      the caller must be able to tell them apart without reading the message.
     """
+
+    def __init__(self, *args, transient: bool = False) -> None:
+        super().__init__(*args)
+        #: Could another attempt plausibly differ, AND is it worth paying for?
+        #:
+        #: ⚠ `False` BY DEFAULT, AND THE FIRST VERSION HAD IT THE OTHER WAY.
+        #:   I argued a new raise site should "fail toward retrying rather than
+        #:   toward giving up silently". @anoojntglobal-sudo pointed at the
+        #:   raise that disproves it: a call abandoned after 300s had a LIVE
+        #:   CONNECTION PRODUCING BYTES, and retrying it re-pays for a call
+        #:   that was working slowly. Defaulting to retry turns a bounded
+        #:   retry into paying twice for every long thread.
+        #:
+        #:   Failing toward not-spending is the safer default when the cost of
+        #:   being wrong is money rather than a lost thread - and a thread not
+        #:   retried is not lost, because it is never recorded as read.
+        self.transient = transient
 
 
 @dataclass(frozen=True)
@@ -128,6 +272,49 @@ class Completion:
     #: What we asked for, so `stopped_at_ceiling` can do arithmetic rather than
     #: trust a label. None when no bound was set.
     ceiling_tokens: int | None = None
+
+    #: ⚠ WHICH UPSTREAM SERVED THIS CALL, AND IT WAS BEING THROWN AWAY.
+    #:
+    #: OpenRouter routes one model across ~15 endpoints and names the one it
+    #: used on every streamed chunk (`"provider"`). This client read `model`
+    #: and dropped `provider`, so whether a retry lands on the upstream that
+    #: just failed - sticky routing or bad luck, open on #397 for three days -
+    #: could not be read from any log. 2026-09-24: seven NextBit failures, five
+    #: unread, and nothing to say where the retries went.
+    #:
+    #: It is also a PRICE: OpenRouter passes through each endpoint's own rate,
+    #: $0.0886 to $0.21 per million input tokens for deepseek-v4-flash that
+    #: day, so a constant cannot price a call whose upstream is unknown (#381).
+    #:
+    #: None when the stream never said - not "unknown", not a default.
+    #: Consumer named, per rule 9: `ExtractionRun.upstreams`, printed on the
+    #: per-thread line by `judge/fetch_console.py`.
+    provider: str | None = None
+
+    #: OpenRouter's generation id (`gen-...`), the key to its per-generation
+    #: record of what the call actually cost and who served it. Consumer named:
+    #: `ExtractionRun.generation_ids`, carried to the run's JSONL record.
+    generation_id: str | None = None
+
+    #: ⚠ WHAT THE CALL WAS BILLED, AS OPENROUTER REPORTED IT - not tokens times
+    #:   a constant. The streamed `usage` chunk carries `cost` in USD, and this
+    #:   client read the token counts from that same chunk and dropped the price
+    #:   beside them.
+    #:
+    #:   Measured 2026-09-24 against the key's own usage figure: the day's
+    #:   ledger, priced as tokens x one constant, overstated billed spend
+    #:   several-fold, because the price depends on which of ~15 endpoints served
+    #:   the call and on how much of the prompt was cached. A repeat of the same
+    #:   prompt on the same upstream was billed a third of the first ($0.00050
+    #:   against $0.00151) with 8,960 of 9,210 input tokens cached. No constant
+    #:   can express that; the reported figure already does (#381).
+    #:
+    #:   None when the provider did not report one - never 0, which would read
+    #:   as free (rule 6). RECORDED, NOT YET USED FOR THE LEDGER OR THE CAP:
+    #:   moving the spend ledger onto it is #381's fix, alongside choosing the
+    #:   single record site. Consumer named, per rule 9: `ExtractionRun.
+    #:   reported_costs`, printed on the per-thread line.
+    reported_cost_usd: float | None = None
 
     @property
     def stopped_at_ceiling(self) -> bool:
@@ -316,7 +503,7 @@ class OpenRouterClient:
                 "document halfway through a batch."
             )
         return cls(
-            model=os.getenv("EXTRACTOR_MODEL", DEFAULT_MODEL),
+            model=extractor_model(),
             base_url=os.getenv("OPENROUTER_BASE_URL", DEFAULT_BASE_URL),
             api_key=key,
         )
@@ -410,11 +597,28 @@ class OpenRouterClient:
             # is a short JSON body, not an SSE stream, and iterating it as lines
             # would yield nothing recognisable and report the failure as an empty
             # answer.
+            # THE HEADER IS THE ONE PLACE A GENERATION ID EXISTS BEFORE ANY
+            # CHUNK, including on a refusal, so it is taken first and a chunk's
+            # own `id` overrides it below.
+            #: MUTATED, NOT REBOUND, so the failure paths below read whatever
+            #: the stream had said by the moment it failed - the same reason
+            #: `chars_so_far` reads `fragments` through a callable.
+            seen: dict[str, str | None] = {
+                "provider": None, "id": response.headers.get("X-Generation-Id"),
+            }
             if response.status_code != 200:
                 response.read()
+                # THE STATUS DECIDES WHETHER ANOTHER ATTEMPT IS WORTH PAYING
+                # FOR. 429 and the 5xx family are the router or an upstream
+                # having a bad minute, and OpenRouter re-routes; 4xx is our
+                # request being wrong, and sending it again buys the same
+                # refusal. Nothing was streamed, so no tokens have been
+                # charged for this attempt either way.
                 raise ExtractorUnavailable(
                     f"the provider returned HTTP {response.status_code}: "
                     f"{response.text[:300]!r}"
+                    f"{_upstream(seen['provider'], seen['id'])}",
+                    transient=response.status_code in {429, 500, 502, 503, 504},
                 )
 
             fragments: list[str] = []
@@ -438,7 +642,39 @@ class OpenRouterClient:
             # any usage event records zeros, which `Call.unmetered` flags, so
             # the total says it is a floor rather than reading as complete.
             try:
-                for line in response.iter_lines():
+                # ⚠ THE STREAM CAN DIE UNDER THIS LOOP, AND HTTPX RAISES ITS OWN
+                #   EXCEPTION WHEN IT DOES — which nothing in `judge/` caught, so
+                #   it walked out past `pipeline.py`'s `except ExtractorUnavailable`
+                #   and ended the run. Found by @anoojntglobal-sudo on run 3 of the
+                #   e5.5 batch (#427), 2026-09-23:
+                #
+                #       E5 Extract  error  peer closed connection without sending
+                #       complete message body (incomplete chunked read)
+                #       RUN ERROR   1 stage(s) errored — thread 14 of 23
+                #
+                #   Ten threads unread, and E5b, E5c, E5d, E6 and E7 never ran.
+                #   That is #397's original defect — one bad response ending the
+                #   batch — arriving through a door #399's fix did not cover,
+                #   because the taxonomy only classifies exceptions we raise
+                #   ourselves and this one is httpx's.
+                #
+                # ⚠ CAUGHT, NOT CLASSIFIED. Whether to RETRY this is a genuinely
+                #   open question and one instance cannot answer it: a connection
+                #   dying mid-stream reads as "a bad minute", and it is also the
+                #   closest shape to the 300s timeout above, which is deliberately
+                #   NOT retried because the call was working and a retry re-pays
+                #   for it in full. Telling them apart needs to know how far
+                #   through the response it died, which nothing records.
+                #
+                #   So `transient` takes its default of False: the thread is lost,
+                #   the batch survives, and the thread is NOT written to the
+                #   extraction ledger — so the next ordinary run reads it again.
+                #   Not retrying costs one thread on one run. Not catching costs
+                #   every thread behind it.
+                for line in _stream_lines(
+                    response, chars_so_far=lambda: sum(len(f) for f in fragments),
+                    upstream_so_far=lambda: _upstream(seen["provider"], seen["id"]),
+                ):
                     now = time.monotonic()
                     if self.on_progress is not None and now >= next_check:
                         next_check = now + 1.0
@@ -460,7 +696,15 @@ class OpenRouterClient:
                             f"{self.max_output_tokens}, which bounds a legitimate "
                             f"answer well inside this window, so this is the provider "
                             f"rather than the document."
+                            f"{_upstream(seen['provider'], seen['id'])}"
                         )
+                        # NOT RETRIED, and `transient` defaults to False so this
+                        # needs no argument - but it needs the reason. The
+                        # connection was open and producing bytes when this fired:
+                        # the call was WORKING, just slowly. A retry re-pays for it
+                        # in full and is as likely to be slow again, so this is the
+                        # one failure shape where trying again is strictly worse
+                        # than giving up.
                     if not line or line.startswith(":"):
                         continue          # SSE comment / keep-alive
                     if not line.startswith("data:"):
@@ -472,6 +716,13 @@ class OpenRouterClient:
                         event = _json.loads(data)
                     except ValueError:
                         continue          # a partial frame; the next one carries it
+                    # TAKEN BEFORE THE ERROR CHECK, because the error event is the
+                    # one that matters most: it is the attempt that failed, and
+                    # knowing which upstream failed it is the whole point.
+                    if event.get("provider"):
+                        seen["provider"] = event["provider"]
+                    if event.get("id"):
+                        seen["id"] = event["id"]
                     # A PROVIDER ERROR ARRIVES INSIDE THE STREAM, as an event with
                     # no `choices`. Recorded and raised after the loop rather than
                     # here, so whatever already arrived is still counted.
@@ -498,8 +749,21 @@ class OpenRouterClient:
                 _record_spend(usage, model_name or self.model)
 
         if stream_error is not None:
+            # A REJECTION OF OUR REQUEST IS NOT A BAD MINUTE. When the upstream
+            # complains about the tool schema itself, every retry re-sends the
+            # same schema and receives the same complaint - so it is marked
+            # permanent and the thread is given up on rather than paid for
+            # twice. Everything else here is a provider fault and is retried.
+            text = str(stream_error)
+            permanent = (
+                "function_declarations" in text
+                or "GenerateContentRequest" in text
+                or "tools[0]" in text
+            )
             raise ExtractorUnavailable(
                 f"the provider reported an error mid-stream: {stream_error!r}"
+                f"{_upstream(seen['provider'], seen['id'])}",
+                transient=not permanent,
             )
 
         arguments = "".join(fragments)
@@ -515,6 +779,10 @@ class OpenRouterClient:
             finish_reason=finish_reason,
             native_finish_reason=native_finish,
             ceiling_tokens=self.max_output_tokens,
+            provider=seen["provider"],
+            generation_id=seen["id"],
+            reported_cost_usd=(float(usage["cost"])
+                               if usage.get("cost") is not None else None),
         )
 
 
@@ -573,7 +841,13 @@ def _record_spend(usage: dict, model_name: str) -> None:
 #: Where the closed capability vocabulary lives in the generated schema.
 #:
 #: Exactly one node, asserted rather than assumed — see `_close_capability`.
-_CAPABILITY_PATH = ("properties", "claims", "items", "properties", "capability")
+_CAPABILITY_PATH = (
+    "properties", "claims", "items", "properties", "legacy_score_key",
+)
+
+#: The field name the walk looks for. Renamed from `capability` on 2026-09-22 —
+#: `judge/extract/schema.py` carries the reason.
+_CAPABILITY_FIELD = "legacy_score_key"
 
 
 def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
@@ -601,6 +875,28 @@ def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
     exactly as weak as it was while looking fixed, which is worse than not
     doing it - so a schema whose shape has moved raises here rather than
     returning an unclosed schema.
+
+    ⚠ THE FIELD BECAME OPTIONAL ON 2026-09-22 AND THE NODE SHAPE CHANGED WITH
+      IT. `legacy_score_key: str | None` renders as
+      `{"anyOf": [{"type": "string"}, {"type": "null"}]}`, not as a flat
+      `{"type": "string"}` - so the walk below accepts BOTH shapes, and a walk
+      that only knew the old one would have found nothing and raised on every
+      call.
+
+      The node is then FLATTENED back to `{"type": "string", "enum": [...]}`
+      and the field is asserted ABSENT from `required`. Two reasons, and the
+      first is this file's own scar tissue:
+
+        - `prefixItems` taught it that a schema construct some backends
+          validate and others ignore presents as an intermittent provider
+          outage. `anyOf` carrying an `enum` on one branch is exactly that
+          shape. A flat type with an enum, absent from `required`, says "one of
+          these twelve, or nothing" in the plainest JSON Schema there is.
+        - OPTIONALITY MUST NOT BE PROSE EITHER. The closure was prose until
+          2026-09-14 and cost two runs. The new prompt tells the model to leave
+          this empty; if `required` still named it, the schema would be
+          contradicting the prompt, which is the defect this whole change is
+          about. So it is asserted rather than assumed.
     """
     if not capability_keys:
         raise ValueError(
@@ -612,17 +908,22 @@ def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
 
     found = []
 
-    def _is_string(value: dict) -> bool:
-        # `str | None` (optional since 2026-09-24, for the legacy-off mode)
-        # renders as `anyOf: [{type: string}, {type: null}]`, not `type: string`.
-        return value.get("type") == "string" or any(
-            isinstance(b, dict) and b.get("type") == "string" for b in value.get("anyOf", ())
-        )
+    def _is_string_or_optional_string(value: object) -> bool:
+        """A flat string node, or pydantic's `str | None` anyOf."""
+        if not isinstance(value, dict):
+            return False
+        if value.get("type") == "string":
+            return True
+        branches = value.get("anyOf")
+        if not isinstance(branches, list):
+            return False
+        types = {b.get("type") for b in branches if isinstance(b, dict)}
+        return types == {"string", "null"}
 
     def walk(node: object, path: tuple[str, ...] = ()) -> None:
         if isinstance(node, dict):
             for key, value in node.items():
-                if key == "capability" and isinstance(value, dict) and _is_string(value):
+                if key == _CAPABILITY_FIELD and _is_string_or_optional_string(value):
                     found.append(path + (key,))
                 walk(value, path + (key,))
         elif isinstance(node, list):
@@ -632,8 +933,9 @@ def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
     walk(schema)
     if found != [_CAPABILITY_PATH]:
         raise ValueError(
-            f"expected exactly one string `capability` property at "
-            f"{'.'.join(_CAPABILITY_PATH)}, found {[('.'.join(p)) for p in found]}. "
+            f"expected exactly one string (or str|None) `{_CAPABILITY_FIELD}` "
+            f"property at {'.'.join(_CAPABILITY_PATH)}, found "
+            f"{[('.'.join(p)) for p in found]}. "
             "The schema shape moved, so the closed vocabulary was NOT applied. "
             "Refusing rather than returning a schema that looks closed and is not."
         )
@@ -641,33 +943,43 @@ def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
     parent = schema
     for step in _CAPABILITY_PATH[:-1]:
         parent = parent[step]
-    item = schema
-    for step in _CAPABILITY_PATH[:-2]:   # properties.claims.items
-        item = item[step]
     node = parent[_CAPABILITY_PATH[-1]]
-    # A CLOSED, REQUIRED STRING, exactly as before the field became optional.
-    # Optional exists for the legacy-OFF mode, where the field is stripped; in
-    # this mode a missing or null key would reach `compute()` and be refused, so
-    # the null branch is dropped and the key put back in `required`.
-    if "anyOf" in node:
-        node.pop("anyOf")
-        node.pop("default", None)
-    node["type"] = "string"
-    node["enum"] = list(capability_keys)
-    required = item.setdefault("required", [])
-    if "capability" not in required:
-        required.append("capability")
+
+    # FLATTENED, not annotated in place. `anyOf` branches are dropped and the
+    # node becomes a plain optional-string-with-enum; everything else pydantic
+    # wrote (description, title) is kept.
+    flat = {k: v for k, v in node.items() if k not in ("anyOf", "type", "enum")}
+    flat["type"] = "string"
+    flat["enum"] = list(capability_keys)
+    parent[_CAPABILITY_PATH[-1]] = flat
+
+    # ASSERTED, NOT ASSUMED. The prompt now tells the model to leave this empty
+    # when no key fits; a `required` naming it would make the schema contradict
+    # the prompt, and the model would resolve that by inventing a value - which
+    # is the defect being fixed. Checked here because this is the one place
+    # holding both facts.
+    container = schema
+    for step in _CAPABILITY_PATH[:-2]:
+        container = container[step]
+    required = container.get("required", [])
+    if _CAPABILITY_FIELD in required:
+        raise ValueError(
+            f"`{_CAPABILITY_FIELD}` is in `required` at "
+            f"{'.'.join(_CAPABILITY_PATH[:-2])}, so the schema demands a value "
+            "the prompt tells the model to omit. One of the two moved. Refusing "
+            "rather than sending a schema that contradicts its own instructions."
+        )
+
     # The description still carries the instruction, because an enum tells the
-    # model WHAT is allowed and not what to do when nothing fits. The answer to
-    # that - pick the closest and propose the missing one - is the part that
-    # keeps discovery working, and it only exists in prose.
+    # model WHAT is allowed and not when to answer at all. That empty is correct
+    # - and that the nearest key is worse than none - only exists in prose.
     return schema
 
 
 #: Fields that exist only for the legacy capability-card path (`judge/legacy.py`).
 #: Stripped from the tool schema when it is off, so the extractor is never asked
 #: for them and pays no output tokens producing them.
-_LEGACY_CLAIM_FIELDS = ("capability",)
+_LEGACY_CLAIM_FIELDS = (_CAPABILITY_FIELD,)
 _LEGACY_RESULT_FIELDS = ("proposed_capabilities", "unclassified")
 
 
@@ -681,7 +993,7 @@ def strip_legacy_fields(schema: dict) -> dict:
     claim = (((props.get("claims") or {}).get("items")) or {})
     if "properties" not in claim or not all(f in claim["properties"] for f in _LEGACY_CLAIM_FIELDS):
         raise ValueError(
-            "expected `claims.items.properties.capability` in the tool schema; the "
+            f"expected `claims.items.properties.{_CAPABILITY_FIELD}` in the tool schema; the "
             "shape moved, so the legacy field was NOT stripped. Refusing rather than "
             "sending a schema that still asks for it."
         )

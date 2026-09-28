@@ -107,7 +107,9 @@ which is a different fix with a different reason.
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -138,6 +140,19 @@ from judge.vet.weight import (
 )
 
 log = logging.getLogger(__name__)
+
+#: How many times one thread may be sent before it is given up on.
+#:
+#: TWO, NOT MORE, AND IT IS A COST DECISION. Every attempt is a paid model
+#: call and the first has already been charged when a retry fires, so this is
+#: the difference between "the upstream had a bad minute" and "we will keep
+#: paying until it stops". Measured on 33 run logs (#397): 7 runs died on a
+#: transient provider failure, all of them on the first attempt at a thread -
+#: so one more attempt is where the evidence says the value is.
+#:
+#: The daily cap still governs: `check_before_call` runs again before each
+#: attempt, so a retry cannot push a run past `EXTRACTION_DAILY_BUDGET_USD`.
+EXTRACT_ATTEMPTS = max(1, int(os.getenv("EXTRACT_ATTEMPTS", "2")))
 
 #: Until E4's tier assignment lands, every claim is weighted as a bare
 #: first-hand opinion. D is the LOWEST first-hand tier, chosen deliberately:
@@ -460,12 +475,25 @@ class _CellRefused(Exception):
     """
 
 
-class _LegacyOff(Exception):
-    """The capability-card path is switched off (`judge/legacy.py`).
+def _what_the_write_says(stored: StoredClaim) -> tuple:
+    """Every field `ClaimStore.write`'s upsert would overwrite, plus the model.
 
-    Distinct from `_CellRefused`: nothing refused this claim, so nothing is
-    added to `cell_refusals`. Never raised outside this module.
+    The model is here although the upsert does not set it: two claims about
+    two models that collide keep the FIRST model on the row, so a board entry
+    from the second would name a model its claim does not. That was 26 of the
+    43 claims found carrying a foreign entry on 2026-09-24.
     """
+    c = stored.claim
+    return (
+        stored.model_version_id,
+        stored.quote.display_text,
+        tuple(stored.quote.flat_offset),
+        tuple(stored.quote.raw_offset),
+        stored.condition_bucket,
+        json.dumps(c.conditions.model_dump(exclude_none=True), sort_keys=True, default=str),
+        c.polarity,
+        c.severity,
+    )
 
 
 @dataclass
@@ -473,7 +501,65 @@ class PipelineResult:
     """What one thread produced, all the way through."""
 
     extraction: ExtractionRun
+    #: ⚠ ONE ENTRY PER UPSERT, NOT PER ROW THE TABLE GAINED (#444). The id is
+    #:   a content hash of `(thread_context_id, source_comment_id,
+    #:   capability_key, quote_flat_offset, pipeline_version)`, and the write
+    #:   is `ON CONFLICT ... DO UPDATE` - so two claims hashing the same way
+    #:   append twice here and leave ONE row behind, with the second
+    #:   overwriting the first's quote, polarity and conditions.
+    #:
+    #:   Measured by @anoojntglobal-sudo across today's batch: E5 reported 154
+    #:   stored against +100 rows, 166 against +84, 89 against +50 - a gap of
+    #:   35-49%. Under e5.4 the same gap was 14% (#386). The counter did not
+    #:   change; `capability_key` did. It is empty on 306 of 308 e5.5 claims,
+    #:   so two claims on one span that used to differ by key now hash
+    #:   identically.
+    #:
+    #:   USE `stored_claims` AND `merged_claims` BELOW rather than the length
+    #:   of this list. The raw list is kept because the ORDER is the evidence:
+    #:   which of two colliding claims survived depends on extraction order,
+    #:   and that is unreconstructible from a set.
     stored_claim_ids: list[str] = field(default_factory=list)
+
+    @property
+    def stored_claims(self) -> int:
+        """Rows the table actually holds from this thread. Distinct ids."""
+        return len(set(self.stored_claim_ids))
+
+    @property
+    def merged_claims(self) -> int:
+        """Claims that overwrote an earlier one on the same span (#444).
+
+        ⚠ NOT A LOSS THIS CAN REPAIR, AND NOT ONE IT SHOULD HIDE. What
+          distinguishes two claims on one span once `capability_key` is gone
+          is a decision, not a defect to patch here (#434 decides whether the
+          key comes back at all). Until then the number is reported so the run
+          says "154 written, 100 stored, 54 merged" rather than "154 stored"
+          about a table that gained 100.
+        """
+        return len(self.stored_claim_ids) - self.stored_claims
+
+    #: `merged_claims`, split by what the later claim was. Both sum to it.
+    #:
+    #: DUPLICATE: every field the upsert would overwrite is identical - same
+    #: model, quote, span, conditions, polarity, severity. The same claim
+    #: emitted twice. Its board entries attach to the surviving row, because
+    #: they agree with it.
+    #:
+    #: DISTINCT: anything differs. The claim is NOT written - the upsert would
+    #: have overwritten the first claim's polarity and conditions with this
+    #: one's, leaving the first claim's board entries pointing at a row that no
+    #: longer says what they say. Its board entries are written DETACHED
+    #: (`claim_id` NULL), the standalone path `board_entry` already has.
+    #:
+    #: ⚠ THIS DOES NOT RECOVER THE DISTINCT CLAIM. It stops the damage from
+    #:   spreading into rows that were right. Which id to give a second claim
+    #:   in one comment is the id decision, and it is not taken here.
+    merged_duplicate_claims: int = 0
+    merged_distinct_claims: int = 0
+    #: Board entries written with `claim_id` NULL because their claim was a
+    #: DISTINCT merge. Counted apart from entries detached by a failed write.
+    board_entries_detached_on_merge: int = 0
 
     #: (document_id, error) for claims that could not be written. NOT silent:
     #: a claim lost to a schema constraint is a finding about our own
@@ -496,11 +582,54 @@ class PipelineResult:
     #: remaining board entry with it. Now the board entry for the same quote is
     #: still written, so a run reporting cell refusals still produced evidence.
     cell_refusals: list[tuple[str, str, str]] = field(default_factory=list)
+
+    #: Claims the extractor correctly declined to key, since 2026-09-22.
+    #:
+    #: ⚠ A COUNT, NOT A LIST, AND NOT A REFUSAL. This is the one number in
+    #: `PipelineResult` that going UP is good news about: it is the extractor
+    #: saying "no ratified key names this quote" instead of picking the nearest
+    #: of twelve, which it did 1,385 times and got wrong in roughly two of
+    #: three (`docs/measurements/the-key-that-takes-anything-2026-09-22.md`).
+    #:
+    #: SEPARATE FROM `cell_refusals` BECAUSE THEY ARGUE OPPOSITE THINGS. That
+    #: list is the vocabulary failing to resolve a key the extractor supplied -
+    #: a defect in our machinery. This is the vocabulary being honestly reported
+    #: as not containing one, which is the signal `capabilities.yaml`'s own
+    #: "growing the vocabulary" note asks for. Folding them would produce a
+    #: single number that rises both when the pipeline breaks and when it starts
+    #: telling the truth.
+    #:
+    #: A count rather than a list because the quote is not lost: the claim row
+    #: is written with `capability_key` NULL and its board entries land as
+    #: normal, so `SELECT ... WHERE capability_key IS NULL` recovers every one
+    #: of them with more detail than a tuple here could carry.
+    cell_skipped_no_key: int = 0
     #: How many `board_entry` rows this thread produced. Counted rather
     #: than inferred from the claims: one claim can inform three board
     #: sections, so the two numbers are legitimately different and a
     #: reader comparing them should see why.
     board_entries_stored: int = 0
+    #: Whether this thread's metric figures could QUOTE their own axis and
+    #: subject. Measured and reported, never enforced - the question it answers
+    #: is whether the extractor can be made to copy those two the way it copies
+    #: the figure, and a gate built before that is known would be rule 8's
+    #: "unmeasured check shipped as a gate". See `quoted_support`.
+    metric_support: dict[str, int] = field(default_factory=dict)
+    #: A few of the figures behind `metric_support`, worst first, so the counts
+    #: can be checked rather than believed. Telemetry only - it reaches the run's
+    #: stage record and no board table.
+    metric_examples: list[dict] = field(default_factory=list)
+    #: How many attempts at this thread FAILED before the one that produced
+    #: this result - `ExtractorUnavailable` raised, the bounded retry (#399)
+    #: tried again. Those attempts never became a `Completion`, so they are
+    #: missing from `extraction.reported_costs` entirely rather than present as
+    #: None, and nothing reading that list can see them.
+    #:
+    #: Measured 2026-09-24: the retry fired on 13+ threads in one batch, and
+    #: several recovered, so this is not a future case. Consumer named, per
+    #: rule 9: `scripts/fetch_model.py`'s thread record, where the console
+    #: says the billed figure excludes them.
+    failed_attempts: int = 0
     cells: list[CellOutcome] = field(default_factory=list)
     extractor_disagreements: list[str] = field(default_factory=list)
     #: Claims whose subject came from outside their own quote. DERIVED in code,
@@ -544,20 +673,8 @@ class PipelineResult:
         return sum(1 for cell in self.cells if cell.publishes)
 
 
-#: Attempts per thread when the provider answers with something other than a
-#: completion. One retry, the same bound as the schema retry in `runner.py`: a
-#: 502/504 is often transient, and a provider down for a second attempt is not
-#: having a bad moment, so the batch moves on and tomorrow's Fetch retries it.
-PROVIDER_ATTEMPTS = 2
-
-
 class Pipeline:
-    """E5 through E7 for one thread.
-
-    Holds no state between calls EXCEPT `unattempted`, which `run_all` resets at
-    the start of each batch and fills with the threads the provider never
-    answered for.
-    """
+    """E5 through E7 for one thread. Holds no state between calls."""
 
     def __init__(
         self,
@@ -587,17 +704,6 @@ class Pipeline:
         self._claims = ClaimStore(conn)
         self._ledger = ExtractionLedger(conn)
         self._cells = CellStore(conn)
-        #: `(thread_context_id, error)` for every thread in the LAST `run_all`
-        #: whose extraction the provider failed twice. These are UNATTEMPTED,
-        #: not empty: no extraction-ledger row is written for them, so they stay
-        #: unread and the next Fetch retries them. A thread the model read and
-        #: found nothing in is a finding; one it never read is not (rule 4).
-        #:
-        #: Intended reader (rule 9): the callers' run reports - `cli.py`,
-        #: `scripts/run_extraction_batched.py`, `scripts/fetch_model.py`. None
-        #: reads it yet; until one does, a skipped thread is visible only as the
-        #: `log.error` line `run_all` writes for it.
-        self.unattempted: list[tuple[str, str]] = []
 
     def _vet(
         self,
@@ -719,6 +825,10 @@ class Pipeline:
         rejected = self._vet(result, facts, release_dates or {})
 
         board_rows: list[dict] = []
+        #: id -> what that write said, for THIS extraction only. A re-run over
+        #: rows an earlier run wrote is still an upsert, as `claim_id_for`
+        #: intends; only two claims from one read colliding is refused.
+        written_here: dict[str, tuple] = {}
         for claim, quote in result.extraction.verified:
             if quote.document_id in rejected:
                 continue
@@ -838,95 +948,76 @@ class Pipeline:
             for signal in verdict.unconfirmed:
                 result.tier_signals_unconfirmed[signal] += 1
 
-            # ── THE CELL HALF, GUARDED AS ONE REGION ─────────────────────────
+            # ── THE CELL HALF, TWO BRANCHES ──────────────────────────────────
             #
-            # TWO SITES READ THE LEGACY CLOSED KEY AND BOTH RAISE ON ONE IT DOES
-            # NOT KNOW, and until 2026-09-14 neither was guarded:
-            #
-            #   compute()     ValueError "unknown capability 'vision' - it must
-            #                 exist in contract/capabilities.yaml"
-            #   bucket_for()  KeyError 'vision', from a bare dict lookup on
-            #                 `dominant_dimension()`. The worse of the two: its
-            #                 message is the key and nothing else.
-            #
-            # `capability` is a closed vocabulary enforced in the tool schema
-            # since 2026-09-14 (`tool_schema_for(..., capability_keys=...)`), so
-            # a non-compliant key should no longer arrive. Should is not a
-            # guarantee - providers differ on whether they validate an enum, the
-            # lesson `prefixItems` already taught this codebase - so the
-            # assertion stays and is now survivable.
-            #
-            # WRAPPING `compute()` ALONE WOULD NOT HAVE BEEN ENOUGH, and neither
-            # would `try: ... continue`. `continue` skips the board write below,
-            # which is exactly what the 2026-09-10 fix exists to prevent: "A
-            # CLAIM FAILING MUST NOT COST THE BOARD." So this sets the cell
-            # aside and falls THROUGH to the board, which is the same shape that
-            # fix chose one statement later.
+            # Both fall THROUGH to the board rather than `continue`-ing, which
+            # is what the 2026-09-10 fix exists to prevent: "A CLAIM FAILING
+            # MUST NOT COST THE BOARD." The refusal path and its reasons now
+            # live in `_stored_with_cell_weight`.
             stored: StoredClaim | None = None
-            try:
-                if not self._legacy:
-                    # THE LEGACY PATH IS OFF (`judge/legacy.py`): no weighting,
-                    # no claim row, no cell. Not a refusal and not counted as
-                    # one - the claim is not wrong, the path is retired. The
-                    # board entry below is written exactly as before.
-                    raise _LegacyOff
-                weights = compute(
-                    evidence_tier=evidence_tier,
-                    platform=document.platform,
-                    capability_key=claim.capability,
-                    relevance=claim.relevance,
-                    specificity=claim.model_ref.specificity,
-                    claim_date=document.created_at,
-                    release_date=(release_dates or {}).get(model_version_id),
-                    as_of=as_of,
-                    # DERIVED FROM THE CLAIM, not read from the document.
-                    # `DocumentFacts` has exactly one constructor in the repository
-                    # and it is a test, so this was a required argument supplied
-                    # from a dataclass default. See the module docstring.
-                    version_named=claim.model_ref.specificity in ("snapshot", "version"),
-                    # NOT DERIVED, DELIBERATELY. See the module docstring: there is
-                    # no honest claim-side source for this one, and a wrong
-                    # derivation is worse than a missing input.
-                    has_conditions=document.has_conditions,
-                    has_numbers=document.has_numbers,
-                    has_repro_steps=claim.has_repro_steps,
-                )
+            if not self._legacy:
+                # THE LEGACY PATH IS OFF (`judge/legacy.py`): no weighting,
+                # no claim row, no cell. Not a refusal and not counted as one -
+                # the claim is not wrong, the path is retired. `stored` stays
+                # None and the board entry below is written exactly as before.
+                pass
 
+            # ── NO RATIFIED KEY: KEEP THE CLAIM, SKIP THE CELL ───────────────
+            #
+            # ⚠ THIS BRANCH IS WHY THE SCHEMA CHANGE IS SAFE, AND WITHOUT IT THE
+            #   RENAME WOULD HAVE SILENTLY DELETED MOST OF THE CORPUS.
+            #
+            # `legacy_score_key` became optional on 2026-09-22 so the extractor
+            # could stop forcing a nearest-fit key (measured: the key did not
+            # name what the quote described in 38 of 60 claims read). But both
+            # readers of the key refuse an absent one - `compute()` with a
+            # ValueError and `bucket_for()` with a KeyError, in
+            # `_stored_with_cell_weight` - and its handler returns None, which
+            # would mean NO CLAIM ROW WRITTEN AT ALL: no claim, no weight, no
+            # quote, only a board entry with a null `claim_id`.
+            #
+            # So making the field optional without this branch would have turned
+            # "the extractor may say it does not know" into "the pipeline
+            # discards every claim it does not know", which is rule 4 at the
+            # worst possible stage - an absence we caused, in the table the
+            # whole board counts from, looking exactly like an absence we found.
+            #
+            # It is NOT an error and is not counted as one. `cell_refusals` is
+            # for a key the vocabulary could not resolve; this is the extractor
+            # correctly reporting that no key applies, so it gets its own tally.
+            elif claim.legacy_score_key is None:
+                result.cell_skipped_no_key += 1
                 stored = StoredClaim(
                     claim=claim,
                     quote=quote,
-                    weights=weights,
+                    # See `StoredClaim.weights`: no cell, so nothing to rank
+                    # within, so no weight rather than a defaulted one.
+                    weights=None,
                     document_id=quote.document_id,
-                    # From the RESOLVED document (verify step 2 picked which comment),
-                    # so a Reddit thread's claims carry the author of the comment the
-                    # quote came from — distinct people, distinct voices. Without this
-                    # every claim was one anonymous voice and no cell could publish.
                     author_id=document.author_id,
                     thread_context_id=thread.thread_context_id,
                     model_version_id=model_version_id,
-                    condition_bucket=bucket_for(
-                        claim.capability, claim.conditions.model_dump(exclude_none=True)
-                    ),
+                    # `claim.condition_bucket` is NOT NULL and a bucket is
+                    # `<dimension>:<band>` for a CAPABILITY. With no capability
+                    # there is no dominant dimension, so this names the absence
+                    # instead of borrowing a dimension that would read as a real
+                    # slice (rule 6). Nothing groups on it: no cell exists.
+                    condition_bucket="none:no_ratified_key",
                     evidence_tier=evidence_tier,
                     claim_date=document.created_at,
                     extractor_model=self._extractor_model,
                 )
-            except _LegacyOff:
-                stored = None
-            except (ValueError, KeyError, LookupError) as exc:
-                # NAMED, NOT COUNTED. A bare tally would say "3 claims lost" and
-                # leave nobody able to tell an unratified capability from a
-                # missing tier - rule 4 on what the pipeline discards. `KeyError`
-                # stringifies to just the key, so the type is carried too.
-                result.cell_refusals.append(
-                    (quote.document_id, claim.capability,
-                     f"{type(exc).__name__}: {str(exc).splitlines()[0][:160]}")
-                )
-                log.warning(
-                    "claim on %r refused by the legacy cell path (%s: %s); the "
-                    "board entry is still written",
-                    claim.capability, type(exc).__name__,
-                    str(exc).splitlines()[0][:120],
+            else:
+                stored = self._stored_with_cell_weight(
+                    claim=claim,
+                    quote=quote,
+                    thread=thread,
+                    document=document,
+                    model_version_id=model_version_id,
+                    evidence_tier=evidence_tier,
+                    release_dates=release_dates,
+                    as_of=as_of,
+                    result=result,
                 )
             # CAPTURED PER ITERATION, not read back off the tail of the list.
             # The board rows below used `stored_claim_ids[-1]`, which is the
@@ -951,9 +1042,28 @@ class Pipeline:
                 # `conn.transaction()` opens a SAVEPOINT when a transaction is
                 # already open, which it is: the caller owns the outer one and
                 # commits after the loop.
-                with self._conn.transaction():
-                    _claim_id = self._claims.write(stored)
-                result.stored_claim_ids.append(_claim_id)
+                # ⚠ A SECOND CLAIM ON AN ID THIS READ ALREADY WROTE IS NOT
+                #   WRITTEN. The upsert overwrites quote, polarity, conditions
+                #   and severity and leaves the first claim's board entries
+                #   pointing at the result - 43 e5.5 claims on staging carried
+                #   an entry whose quote, polarity or model was not theirs
+                #   (2026-09-24). See `merged_distinct_claims`.
+                _said = _what_the_write_says(stored)
+                _prior = written_here.get(stored.id)
+                if _prior is None:
+                    with self._conn.transaction():
+                        _claim_id = self._claims.write(stored)
+                    written_here[_claim_id] = _said
+                elif _prior == _said:
+                    _claim_id = stored.id
+                    result.merged_duplicate_claims += 1
+                else:
+                    _claim_id = None
+                    result.merged_distinct_claims += 1
+                    result.board_entries_detached_on_merge += len(claim.board_entries)
+                # Appended in all three cases, so `merged_claims` still counts
+                # every collision (#444), which the two counters above split.
+                result.stored_claim_ids.append(stored.id)
             except _CellRefused:
                 # Already recorded in `cell_refusals` with its reason. Not added
                 # to `claim_write_failures` as well, because nothing was
@@ -996,6 +1106,14 @@ class Pipeline:
                     "unit": _entry.unit,
                     "value_verbatim": _entry.value_verbatim,
                     "basis": _entry.basis,
+                    # CARRIED, NOT STORED. `board_entry` has no column for
+                    # either yet, and adding one is a shared-schema migration
+                    # that has not been agreed (#370). They ride this far so the
+                    # run can MEASURE whether the extractor will quote its axis
+                    # and its subject at all - which is the question that decides
+                    # whether the column is worth adding.
+                    "axis_verbatim": _entry.axis_verbatim,
+                    "subject_verbatim": _entry.subject_verbatim,
                     "model_version_id": model_version_id,
                     "document_id": quote.document_id,
                     "claim_id": _claim_id,
@@ -1016,11 +1134,31 @@ class Pipeline:
                 searched_model_version_id=self._searched_model_version_id,
             )
             result.board_entries_stored = outcome["stored"]
+            # ⚠ RULE 7. Counts out of the metrics in THIS batch. A run is the
+            # only place the denominator is known, so the denominator is printed
+            # beside the counts rather than a percentage that outlives it.
+            from judge.store.board_entries import support_samples, support_tally
+
+            result.metric_support = support_tally(board_rows)
+            # THE FIGURES BEHIND THE COUNTS. Nothing new is stored this round,
+            # so without these the counts are the only evidence - and a count
+            # cannot be checked against itself.
+            result.metric_examples = support_samples(board_rows)
             log.info(
                 "thread %s: %d board entr(ies) proposed, %d stored, %d skipped",
                 thread.thread_context_id, outcome["proposed"],
                 outcome["stored"], outcome["skipped_unverified"],
             )
+            if result.metric_support["metrics"]:
+                t = result.metric_support
+                log.info(
+                    "thread %s: %d metric(s) - axis %d quoted / %d absent / %d "
+                    "unsupported, subject %d quoted / %d absent / %d unsupported",
+                    thread.thread_context_id, t["metrics"],
+                    t["axis_quoted"], t["axis_absent"], t["axis_unsupported"],
+                    t["subject_quoted"], t["subject_absent"],
+                    t["subject_unsupported"],
+                )
 
         if result.stored_claim_ids and rebuild_cells:
             # Whole-table, for the reason in cells.py: a cell is a view of the
@@ -1039,15 +1177,122 @@ class Pipeline:
             result.cells = self._cells.rebuild_all(as_of=as_of)
 
         log.info(
-            "thread %s: %d proposed, %d verified, %d stored, %d cells, %d published",
+            "thread %s: %d proposed, %d verified, %d stored, %d merged "
+            "(%d duplicate, %d distinct, %d board entries detached), "
+            "%d cells, %d published",
             thread.thread_context_id,
             result.extraction.proposed,
             len(result.extraction.verified),
-            len(result.stored_claim_ids),
+            # ⚠ ROWS, NOT UPSERTS (#444). This said `len(stored_claim_ids)`,
+            #   which counts writes - and two claims hashing the same way are
+            #   two writes and one row.
+            result.stored_claims,
+            result.merged_claims,
+            result.merged_duplicate_claims,
+            result.merged_distinct_claims,
+            result.board_entries_detached_on_merge,
             len(result.cells),
             result.published,
         )
         return result
+
+    def _stored_with_cell_weight(
+        self,
+        *,
+        claim: Any,
+        quote: Any,
+        thread: ThreadInput,
+        document: Any,
+        model_version_id: str,
+        evidence_tier: str,
+        release_dates: dict[str, date] | None,
+        as_of: date,
+        result: PipelineResult,
+    ) -> StoredClaim | None:
+        """The cell half, for a claim that DOES carry a ratified key.
+
+        Extracted from `run_one` on 2026-09-22 when `legacy_score_key` became
+        optional, so the key-less branch could be read beside it rather than
+        threaded through the same try. The body is unchanged; only its home is.
+
+        TWO SITES READ THE LEGACY CLOSED KEY AND BOTH RAISE ON ONE THEY DO NOT
+        KNOW, and until 2026-09-14 neither was guarded:
+
+          compute()     ValueError "unknown capability 'vision' - it must exist
+                        in contract/capabilities.yaml"
+          bucket_for()  KeyError 'vision', from a bare dict lookup on
+                        `dominant_dimension()`. The worse of the two: its
+                        message is the key and nothing else.
+
+        The key is closed in the tool schema since 2026-09-14
+        (`tool_schema_for(..., capability_keys=...)`), so a non-compliant key
+        should no longer arrive. Should is not a guarantee - providers differ on
+        whether they validate an enum, the lesson `prefixItems` already taught
+        this codebase - so the assertion stays and is survivable.
+
+        Returns None when the cell half refused, having recorded WHY in
+        `result.cell_refusals`. The caller falls through to the board either
+        way: "A CLAIM FAILING MUST NOT COST THE BOARD."
+        """
+        try:
+            weights = compute(
+                evidence_tier=evidence_tier,
+                platform=document.platform,
+                capability_key=claim.legacy_score_key,
+                relevance=claim.relevance,
+                specificity=claim.model_ref.specificity,
+                claim_date=document.created_at,
+                release_date=(release_dates or {}).get(model_version_id),
+                as_of=as_of,
+                # DERIVED FROM THE CLAIM, not read from the document.
+                # `DocumentFacts` has exactly one constructor in the repository
+                # and it is a test, so this was a required argument supplied
+                # from a dataclass default. See the module docstring.
+                version_named=claim.model_ref.specificity in ("snapshot", "version"),
+                # NOT DERIVED, DELIBERATELY. See the module docstring: there is
+                # no honest claim-side source for this one, and a wrong
+                # derivation is worse than a missing input.
+                has_conditions=document.has_conditions,
+                has_numbers=document.has_numbers,
+                has_repro_steps=claim.has_repro_steps,
+            )
+
+            return StoredClaim(
+                claim=claim,
+                quote=quote,
+                weights=weights,
+                document_id=quote.document_id,
+                # From the RESOLVED document (verify step 2 picked which comment),
+                # so a Reddit thread's claims carry the author of the comment the
+                # quote came from — distinct people, distinct voices. Without this
+                # every claim was one anonymous voice and no cell could publish.
+                author_id=document.author_id,
+                thread_context_id=thread.thread_context_id,
+                model_version_id=model_version_id,
+                condition_bucket=bucket_for(
+                    claim.legacy_score_key,
+                    claim.conditions.model_dump(exclude_none=True),
+                ),
+                evidence_tier=evidence_tier,
+                claim_date=document.created_at,
+                extractor_model=self._extractor_model,
+            )
+        except (ValueError, KeyError, LookupError) as exc:
+            # NAMED, NOT COUNTED. A bare tally would say "3 claims lost" and
+            # leave nobody able to tell an unratified capability from a
+            # missing tier - rule 4 on what the pipeline discards. `KeyError`
+            # stringifies to just the key, so the type is carried too.
+            result.cell_refusals.append(
+                (quote.document_id, claim.legacy_score_key,
+                 f"{type(exc).__name__}: {str(exc).splitlines()[0][:160]}")
+            )
+            log.warning(
+                "claim on %r refused by the legacy cell path (%s: %s); the "
+                "board entry is still written",
+                claim.legacy_score_key, type(exc).__name__,
+                str(exc).splitlines()[0][:120],
+            )
+            return None
 
     def run_all(
         self,
@@ -1063,7 +1308,10 @@ class Pipeline:
         resolve_surface: SurfaceResolver | None = None,
         find_surfaces: SurfaceFinder | None = None,
         on_thread: Callable[[str], None] | None = None,
-        on_result: Callable[[ThreadInput, PipelineResult], None] | None = None,
+        #: Called with each finished thread and what it cost. `on_thread`
+        #: fires BEFORE the call and carries only an id, so this is the
+        #: only place a caller can see what came back.
+        on_result: Callable[..., None] | None = None,
         after_thread: Callable[[], None] | None = None,
     ) -> list[PipelineResult]:
         """A batch. A refused thread is skipped, never fatal.
@@ -1077,12 +1325,17 @@ class Pipeline:
         which is today's behaviour and is stated rather than defaulted into.
         """
         results: list[PipelineResult] = []
-        self.unattempted = []
         # DERIVED, not defaulted. `already_extracted=None` used to mean "extract
         # everything" because nothing could work the set out; the ledger can, so
         # the default is now the correct answer rather than the safe one. An
         # explicit frozenset() still forces a full re-extraction.
         seen = self._ledger.already_extracted() if already_extracted is None else already_extracted
+        # RULE 4 AT THE BATCH LEVEL. A run that read 20 of 23 threads and one
+        # that read 23 must not report the same thing, so what was retried and
+        # what was never read is counted and handed back rather than logged and
+        # forgotten.
+        self.retried_threads = 0
+        self.unread_threads: list[str] = []
         for thread in threads:
             if ExtractionLedger.should_skip(seen, thread.thread_context_id, thread.flattened_text):
                 log.info(
@@ -1100,15 +1353,30 @@ class Pipeline:
                 # BEFORE the call. Spend cannot be undone, so a check after it
                 # is a report rather than a cap.
                 budget.check_before_call()
-            # A PROVIDER FAILURE SKIPS THE THREAD, IT DOES NOT END THE BATCH.
-            # `ExtractorUnavailable` used to propagate out of this loop, so one
-            # 502 threw away every thread after it. Safe to retry because the
-            # model call is the first thing `run()` does - nothing has been
-            # written for this thread when it raises. The spend for each failed
-            # attempt is already in `spend_ledger`: the client writes it in a
-            # `finally`. It is NOT charged to `budget`, which only sees results.
-            result: PipelineResult | None = None
-            for attempt in range(1, PROVIDER_ATTEMPTS + 1):
+            # ── ONE BAD RESPONSE ENDS THE THREAD, NOT THE BATCH ──────────
+            #
+            # `ExtractorUnavailable` used to escape this loop, so a single 502
+            # from one upstream ended E5 and, with it, E5c, E5b, E6 and E7.
+            # Measured over 33 run logs (#397): 7 runs died this way and
+            # **145 threads were never attempted** - several of them on thread
+            # 1 or 2 of 23, after the documents had been harvested, assembled,
+            # triaged and one model call paid for.
+            #
+            # ⚠ RETRIED, THEN GIVEN UP ON - NEVER RECORDED AS READ. The
+            #   `continue` below skips `self._ledger.record(...)`, so a thread
+            #   this could not read stays unread and the next run tries it
+            #   again. Recording it would mark the thread done and lose its
+            #   evidence permanently, which is the same rule 4 distinction the
+            #   exception's own docstring makes: a document the extractor
+            #   never read must not join the documents that were read and said
+            #   nothing.
+            #
+            # ⚠ BOUNDED, BECAUSE EVERY ATTEMPT IS PAID FOR. The first call has
+            #   already been charged when this fires, and an unbounded retry
+            #   turns a provider outage into a budget event. `check_before_call`
+            #   runs again on each attempt, so the daily cap still governs.
+            result = None
+            for attempt in range(1, EXTRACT_ATTEMPTS + 1):
                 try:
                     result = self.run(
                         thread,
@@ -1121,29 +1389,82 @@ class Pipeline:
                         # ONCE AFTER THE BATCH, not once per thread. See below.
                         rebuild_cells=False,
                     )
+                    result.failed_attempts = attempt - 1
                     break
                 except ExtractionRefused as exc:
                     log.error("thread %s refused: %s", thread.thread_context_id, exc)
                     break
                 except ExtractorUnavailable as exc:
-                    if attempt == PROVIDER_ATTEMPTS:
-                        self.unattempted.append((thread.thread_context_id, str(exc)))
+                    # A REJECTION OF OUR OWN REQUEST IS NOT RETRIED. The
+                    # upstream that refuses our tool schema will refuse it
+                    # identically on every attempt, so trying again buys the
+                    # same sentence and pays for it (#397).
+                    if not getattr(exc, "transient", True):
+                        self.unread_threads.append(thread.thread_context_id)
                         log.error(
-                            "thread %s UNATTEMPTED after %d provider failures; no "
-                            "extraction-ledger row written, so the next Fetch "
-                            "retries it: %s",
+                            "thread %s: provider rejected the request itself, "
+                            "not retried: %s", thread.thread_context_id, exc,
+                        )
+                        break
+                    if attempt >= EXTRACT_ATTEMPTS:
+                        self.unread_threads.append(thread.thread_context_id)
+                        log.error(
+                            "thread %s unread after %d attempt(s): %s",
                             thread.thread_context_id, attempt, exc,
                         )
                         break
+                    self.retried_threads += 1
                     log.warning(
-                        "thread %s: provider failure on attempt %d, retrying: %s",
+                        "thread %s attempt %d failed (%s); retrying",
                         thread.thread_context_id, attempt, exc,
                     )
                     if budget is not None:
-                        # The retry is a second paid call. Same rule as above.
                         budget.check_before_call()
             if result is None:
                 continue
+            # ⚠ WHAT THE THREAD COST AND WHAT IT PRODUCED, HANDED BACK AS IT
+            #   FINISHES. `on_thread` fires BEFORE the call with only an id, so
+            #   everything a reader wants - how many claims survived, which
+            #   capabilities, what the call cost - existed in this loop and died
+            #   in it. The run could say it had read thread 8 of 20 and not what
+            #   came back.
+            #
+            #   ⚠ READ OFF THE THREAD, NEVER DIFFERENCED OFF THE BUDGET. The
+            #     first version took `budget.spent_usd` before the call and
+            #     again here and reported the difference - and `budget.charge()`
+            #     is THIRTY LINES BELOW THIS, so the difference was always
+            #     exactly zero. Measured on the ElevenLabs v3 run of
+            #     2026-09-23: all 20 threads reported `0 tokens, $0.000000`
+            #     while the run total was right at 407,396 in / 81,238 out /
+            #     $0.037854, because the total is read after the loop by which
+            #     time every charge has landed.
+            #
+            #     The defect is not the ordering, it is asking a MUTABLE
+            #     ACCUMULATOR a question whose answer depends on when you ask.
+            #     Moving the call below `charge` would fix this instance and
+            #     leave the trap armed for the next person to insert a line.
+            #     `result.extraction` already carries this thread's own totals -
+            #     retries included, which is exactly what `charge` is handed
+            #     below - so there is nothing to difference and no order to get
+            #     right.
+            if on_result is not None:
+                thread_in = result.extraction.input_tokens
+                thread_out = result.extraction.output_tokens
+                on_result(
+                    result,
+                    tokens_in=thread_in,
+                    tokens_out=thread_out,
+                    # `cost_of` is pure arithmetic over the pricing table and
+                    # moves nothing. Without a Budget there is no pricing, so
+                    # the cost is UNKNOWN rather than zero (rule 6).
+                    usd=(
+                        budget.cost_of(thread_in or 0, thread_out or 0)
+                        if budget is not None else None
+                    ),
+                    posts=len(thread.raw_text_of),
+                    index=len(results) + 1,
+                    total=len(threads),
+                )
             results.append(result)
             # Same transaction as the claims. A ledger row that survived a
             # rolled-back extraction would mark a thread read that produced
@@ -1152,7 +1473,7 @@ class Pipeline:
             self._ledger.record(
                 ExtractionRecord(
                     thread_context_id=thread.thread_context_id,
-                    claims_written=len(result.stored_claim_ids),
+                    claims_written=result.stored_claims,
                     input_tokens=result.extraction.input_tokens or None,
                     output_tokens=result.extraction.output_tokens or None,
                     schema_retries=result.extraction.schema_retries,
@@ -1183,25 +1504,6 @@ class Pipeline:
                 output_tokens=result.extraction.output_tokens or 0,
                 cached_input_tokens=result.extraction.cached_input_tokens or 0,
             )
-            # WHAT CAME BACK, FOR A CALLER THAT IS WATCHING. `on_thread` fires
-            # BEFORE the call and carries only an id, so nothing downstream of
-            # this loop could report what one thread actually returned - a
-            # person watching an on-demand fetch saw "reading thread 3/8" and
-            # then, minutes later, only the batch total.
-            #
-            # SEPARATE FROM `after_thread` RATHER THAN A WIDER SIGNATURE. That
-            # hook is the caller's COMMIT and its contract is "everything for
-            # this thread is written, you may commit now"; handing it the result
-            # as well would invite a caller to do reporting work inside the one
-            # callback whose failure loses a thread's extraction. This one is
-            # told what happened and owns nothing.
-            #
-            # Consumer named, per rule 9: `scripts/fetch_model.py::_on_result`,
-            # which prints the per-thread LLM line. Placed after the ledger
-            # writes so the tokens it reports are the ones that were recorded,
-            # not a subset that a later line would contradict.
-            if on_result is not None:
-                on_result(thread, result)
             # THE THREAD IS NOW COMPLETE AND CONSISTENT, AND THE CALLER MAY SAY SO.
             #
             # This is the last statement of the iteration on purpose: the claims,

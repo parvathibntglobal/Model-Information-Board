@@ -110,7 +110,7 @@ class TestADeadRunStopsReadingAsRunning:
     the machine that STARTED a run, the reaper's verdict was invisible and the
     UI polled forever.
 
-    Measured on LenovoPB 2026-09-16, five days after the reaper had ruled:
+    Measured on machine-B 2026-09-16, five days after the reaper had ruled:
 
         GET /fetch/log?run_id=anthropic_claude-fable-5-1-fcb1e17b
           source : local file

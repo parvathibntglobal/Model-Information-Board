@@ -9,7 +9,7 @@ being handed the wrong unit and no amount of harvest changes it.
 than the numbers.**
 
 *Engineer 1 · 2026-08-20 ·
-`postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`, read-only ·
+`postgresql://example_user@203.0.113.5:5432/Model-information-Board`, read-only ·
 surface population read from `model_alias`: 105 normalised surfaces over 41 models*
 
 ---

@@ -80,6 +80,76 @@ main{flex:1}
   padding:14px var(--card-pad);border-bottom:1px solid var(--border-soft)}
 .card-body{padding:var(--card-pad)}
 
+/* ==================================================================== rail */
+/* A SEQUENCE DRAWN AS A SEQUENCE. The evidence stages are a pipeline - E1 then
+   E2 then E2R - and a stack of bordered blocks says "here are some items", not
+   "these happen in this order". A rail with the stage id hanging off it reads
+   as the thing it describes.
+
+   Two grid columns rather than absolute positioning: the line is the left
+   border of the content column, so it cannot drift out of alignment with the
+   text at any font size, and it joins up between rows on its own because the
+   row gap is zero. */
+.rail{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 12px}
+.rail-id{font-family:var(--font-mono);font-size:10px;font-weight:600;
+  letter-spacing:.04em;color:var(--text-2);background:var(--surface-2);
+  border:1px solid var(--border);border-radius:var(--r-pill);
+  padding:2px 8px;justify-self:end;margin-top:1px;white-space:nowrap}
+.rail-body{border-left:2px solid var(--line);padding:0 0 var(--s3) var(--s3)}
+.rail > .rail-body:last-child{padding-bottom:2px}
+/* The last stage of a phase stops the line rather than trailing past it. */
+.rail-body.last{border-left-color:transparent;
+  background:linear-gradient(var(--line),var(--line)) left top/2px 10px no-repeat}
+
+/* =============================================================== matchlist */
+/* The registry typeahead. Absolutely positioned so opening it does not push the
+   controls beside it down the page, and `z-index` above the cards it covers. */
+.matchlist{position:absolute;top:100%;left:0;z-index:40;margin-top:4px;
+  min-width:min(420px,86vw);max-height:280px;overflow-y:auto;
+  border:1px solid var(--border);border-radius:var(--r2);
+  background:var(--surface);box-shadow:var(--shadow-lift);scrollbar-width:thin}
+.matchrow{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;
+  padding:7px 10px;border:0;background:transparent;color:var(--text);
+  font:inherit;cursor:pointer}
+.matchrow:hover:not(:disabled){background:var(--surface-2)}
+.matchrow:disabled{cursor:not-allowed;opacity:.55}
+.matchrow .t{font-size:var(--fs-xs)}
+.matchrow .n{font-size:10px;color:var(--text-3);margin-left:auto;white-space:nowrap}
+
+/* ================================================================= confirm */
+/* A NATIVE <dialog>, NOT A DIV WITH A HIGH z-index.
+   `showModal()` gives focus trapping, Escape, inertness of the page behind and
+   a real `::backdrop` - four things a hand-rolled overlay has to reimplement
+   and usually gets two of. It is also announced as a dialog to a screen reader
+   without any aria plumbing.
+
+   `padding:0` because the body and the actions row carry their own, so the
+   separator between them can run the full width. */
+dialog.confirm{border:1px solid var(--border);border-radius:var(--r-card);
+  background:var(--surface);color:var(--text);padding:0;
+  max-width:min(560px,92vw);box-shadow:var(--shadow-lift)}
+dialog.confirm::backdrop{background:rgba(8,8,10,.5)}
+.confirm-body{padding:var(--s3);display:flex;flex-direction:column;gap:var(--s2)}
+.confirm-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;
+  padding:var(--s2) var(--s3);border-top:1px solid var(--border-soft);
+  background:var(--surface-2)}
+
+/* ============================================================ row disclosure */
+/* A FOLD THAT COSTS NO LINE OF ITS OWN.
+   The alternative is a control under the thing it opens - "Show what each
+   platform gets" - which reads as another row of content, and thirteen models
+   put thirteen of them on one page. The heading IS the control here, and the
+   caret is the only new ink. */
+.rowtoggle{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+  padding:3px 0;background:none;border:0;color:inherit;font:inherit;cursor:pointer;
+  border-radius:var(--r2)}
+.rowtoggle:hover .caret{color:var(--text)}
+.caret{flex:0 0 auto;color:var(--text-3);transition:transform .16s var(--ease),
+  color .16s var(--ease)}
+.caret.on{transform:rotate(90deg)}
+/* Respect a reader who has asked the interface to stop moving. */
+@media (prefers-reduced-motion:reduce){ .caret{transition:none} }
+
 /* ================================================================ chips + badges */
 .chip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;
   border-radius:var(--r-pill);border:1px solid var(--border);background:var(--surface);
@@ -90,6 +160,11 @@ button.chip:hover{border-color:var(--border-strong);color:var(--text);background
 /* a selected chip keeps its dark-on-light text when hovered; without this the
    base hover rule forces color:var(--text) and paints white-on-white */
 button.chip-on:hover{background:var(--text);color:var(--bg);border-color:var(--text);opacity:.88}
+/* The count inside a SELECTED chip. `.chip .x` is a grey meant for a light
+   chip, and a selected one is near-black - so the count was grey on black and
+   effectively gone. Dimmed against the chip's own text colour instead, which
+   keeps it secondary without making it unreadable. */
+.chip-on .x{color:var(--bg);opacity:.72}
 
 .badge{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:6px;
   font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.04em;
@@ -668,6 +743,22 @@ tbody tr:hover{background:var(--surface-2)}
 /* Models across the top, facts down the side: a reader compares one fact at a
    time, scanning a row. Wrapped in an overflow-x container by the component, so
    a narrow screen scrolls the TABLE and never the page. */
+/* ── one axis per line, in columns ──────────────────────────────────────────
+   The cell used to be free text: `Reasoning — 5 reports  3 of 5 positive`,
+   repeated up to 33 times per column. The words that repeat moved to a header
+   and the numbers became columns, so the eye has a straight edge to run down
+   and two cells can be compared across.
+
+   `--cmp-n` is the numeric column and is shared by the header and the rows;
+   changing it in one place keeps them aligned, which a per-row width would
+   not. */
+.cmp-line{display:flex;align-items:center;gap:10px;padding:1.5px 0;
+  --cmp-n:2.4em}
+.cmp-line-name{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;
+  font-size:var(--fs-xs);line-height:1.5}
+.cmp-line-n{flex:0 0 var(--cmp-n);text-align:right;font-size:var(--fs-xs)}
+.cmp-line-head{font-size:10px;letter-spacing:.02em;padding-bottom:3px;
+  border-bottom:1px solid var(--border-soft);margin-bottom:2px}
 .cmp-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
 .cmp-table th,.cmp-table td{
   border:1px solid var(--border);
@@ -808,9 +899,22 @@ tbody tr:hover{background:var(--surface-2)}
 
    `max-height` + `overflow-y` so a nav taller than the viewport scrolls
    inside itself instead of having its last entries permanently unreachable. */
+/* ⚠ STICKY WAS THE WRONG TOOL AND THE MEASUREMENT IS WHY.
+   A sticky box travels only inside its own containing block - here the grid
+   row - so its travel is (row height - its own height). Measured in Chromium
+   at 1440x900 on 2026-09-17: the nav is 796px and the row 812px, so it had
+   SIXTEEN PIXELS to move in, and the page scrolls 413. It pinned for 16px and
+   rode up with everything else, which is exactly "it is not frozen".
+
+   Raising the row to a viewport did not help and could not have: the nav's own
+   max-height is a viewport too, so both grew together and the 16px stayed 16px.
+   That fix was reasoned about rather than measured, and this one is not.
+
+   The console layout below replaces it. This rule is the fallback for browsers
+   without the media query and for the narrow layout. */
 .adm-nav{display:flex;flex-direction:column;gap:2px;position:sticky;
          top:88px;align-self:start;min-width:0;
-         max-height:calc(100vh - 104px);overflow-y:auto;
+         max-height:calc(100dvh - 104px);overflow-y:auto;
          scrollbar-width:thin}
 
 .adm-nav button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;
@@ -831,6 +935,50 @@ tbody tr:hover{background:var(--surface-2)}
 
 .adm-body{min-width:0}
 
+/* THE ADMIN PAGE IS A CONSOLE, NOT A DOCUMENT - and that is what finally
+   freezes the nav.
+
+   Sticky asks "how far may this box travel inside its row"; the answer was 16px
+   (see above). This asks nothing: the page itself does not scroll. The route
+   fills the viewport, and the two columns each scroll INSIDE their own pane, so
+   the nav has nowhere to go. It is frozen by construction rather than by a
+   calculation that has to keep coming out right.
+
+   The cost is deliberate and small: on this one route the footer is not below
+   the fold, it is not there at all (App.jsx drops it), because a pane that
+   scrolls to a footer is a page again. An operations console is the one surface
+   where that trade is obviously right - you come here to watch something, not
+   to read to the end.
+
+   `min-height:0` on the grid is the part that is easy to miss: a flex child
+   defaults to `min-height:auto`, which refuses to shrink below its content, so
+   without it the grid grows past the viewport and the panes never scroll.
+
+   Desktop only. Under 860px the nav is a chip row that belongs in the document
+   flow, and a viewport-locked pane on a phone fights the browser's own chrome. */
+@media (min-width:861px){
+  /* THE HEIGHT A CONSOLE SPENDS ON ITS CHROME IT CANNOT SPEND ON ITS PANES, and
+     in a viewport-locked layout that is a straight subtraction rather than
+     something the reader can scroll past. `section-tight` gives this page 56px
+     of padding top and bottom and the title renders at `--fs-display`, which
+     together cost about 100px of pane - fine on a document, expensive here.
+
+     Measured at 1280x720 before this: the panes were 402px. The page header
+     stays (it says what the page is read from, which is not decoration); it is
+     the padding and the display size that go. */
+  .adm-page{height:calc(100dvh - 64px);display:flex;flex-direction:column;
+            overflow:hidden;padding-block:var(--s3) var(--s2);gap:var(--s3)}
+  .adm-page h1{font-size:var(--fs-h2)}
+  .adm-page > .stack:first-child{gap:2px}
+  .adm{flex:1;min-height:0;overflow:hidden;align-items:stretch}
+  /* Not sticky any more: there is no page scroll to stick against. */
+  .adm-nav{position:static;align-self:stretch;height:100%;max-height:none;
+           overflow-y:auto;padding-right:2px}
+  /* The pane that does scroll. The padding keeps a card's border off the
+     scrollbar, which otherwise sits on top of it. */
+  .adm-body{height:100%;overflow-y:auto;padding-right:var(--s2)}
+}
+
 /* ONE COLUMN UNDER 860px, and the nav becomes a scrolling row of chips.
    `min-width:0` on the grid child is what stops a wide table inside a panel
    from pushing the whole layout sideways. */
@@ -846,4 +994,150 @@ tbody tr:hover{background:var(--surface-2)}
   .adm-nav button .d{display:none}
   .adm-nav button[aria-current="page"]{background:var(--text);color:var(--bg);
     border-color:var(--text);box-shadow:none}
+}
+
+/* ── .input, which did not exist ─────────────────────────────────────────────
+ *
+ * ⚠ RULE 12. `className="input"` appeared once in the tree, in the board
+ *   review's merge box, and NO `.input` rule was ever written. So the element
+ *   took the browser default - a white background - with `color:inherit` from
+ *   `app.css:16` handing it this board's white text. **White on white: a
+ *   reviewer could not see what they were typing**, and the control looked
+ *   entirely normal otherwise.
+ *
+ *   Same family as `var(--fg, #1f2328)` rendering a column unreadable: the
+ *   markup names something that is not there and the result is plausible
+ *   rather than broken. A class that does not exist cannot warn you.
+ *
+ * Matches `.field input`, which is the styling that already worked, rather
+ * than inventing a second look for the same control. */
+.input{
+  height:36px;
+  padding:0 12px;
+  border-radius:var(--r-control);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--text);
+  font-size:var(--fs-sm);
+  transition:border-color .16s var(--ease), box-shadow .16s var(--ease);
+}
+.input::placeholder{ color:var(--text-3) }
+.input:focus{
+  outline:none;
+  border-color:var(--border-strong);
+  box-shadow:0 0 0 3px rgba(255,255,255,.055);
+}
+/* The suggestion list's own arrow, so it is visible that there is one. */
+.input[list]{ padding-right:8px }
+
+/* ── .fold: a compact <details> row for the settings contract ────────────────
+ *
+ * ⚠ RULE 12 AGAIN, CAUGHT BEFORE IT SHIPPED THIS TIME. The first draft used
+ *   `className="fold"` with no such rule in the tree - the same mistake as
+ *   `className="input"`, which rendered white on white in the board review
+ *   because nobody had ever written `.input`. A class that does not exist
+ *   does not warn you; it just looks slightly wrong and reads as a style
+ *   nobody finished.
+ *
+ * Modelled on `.faq-item`, which is the same control - a native <details>
+ * with a rotating chevron drawn from borders - but tighter, because these
+ * rows carry a field name rather than a sentence, and there are seventeen.
+ * The marker is on the left so seventeen summaries align. */
+.fold{
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  background:var(--surface);
+  overflow:hidden;
+}
+.fold + .fold{ margin-top:-1px }
+.fold > summary{
+  cursor:pointer;
+  list-style:none;
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  padding:9px 12px 9px 30px;
+  position:relative;
+  color:var(--text);
+  transition:background var(--t-fast) var(--ease);
+}
+.fold > summary::-webkit-details-marker{ display:none }
+.fold > summary:hover{ background:var(--surface-2) }
+.fold > summary:focus-visible{ outline:2px solid var(--info); outline-offset:-2px }
+.fold > summary::before{
+  content:'';
+  position:absolute;
+  left:12px; top:50%;
+  width:5px; height:5px;
+  border-right:1.5px solid var(--text-3);
+  border-bottom:1.5px solid var(--text-3);
+  transform:translateY(-70%) rotate(-45deg);
+  transition:transform var(--t-fast) var(--ease);
+}
+.fold[open] > summary::before{ transform:translateY(-50%) rotate(45deg) }
+.fold[open] > summary{ background:var(--surface-2) }
+.fold > p{ padding:0 12px 12px 30px }
+
+/* ── the board review's axis list ────────────────────────────────────────────
+ *
+ * WHAT THIS REPLACED: every group expanded, so a tab with thirty slugs was
+ * thirty definitions and thirty fold headers before the one you came for. The
+ * panel exists to catch duplicates, and two names being compared have to be
+ * on screen together to be compared. */
+.axis{ border-bottom:1px solid var(--border-soft) }
+.axis:last-child{ border-bottom:0 }
+.axis-row{
+  display:flex; align-items:baseline; gap:10px; width:100%;
+  padding:10px 4px 10px 26px; position:relative; text-align:left;
+  background:transparent; border:0; border-radius:var(--r-sm); cursor:pointer;
+  transition:background var(--t-fast) var(--ease);
+}
+.axis-row:hover{ background:var(--surface-2) }
+.axis-row:focus-visible{ outline:2px solid var(--info); outline-offset:-2px }
+/* the chevron, drawn from borders so it needs no asset */
+.axis-row::before{
+  content:''; position:absolute; left:8px; top:50%;
+  width:5px; height:5px;
+  border-right:1.5px solid var(--text-3);
+  border-bottom:1.5px solid var(--text-3);
+  transform:translateY(-70%) rotate(-45deg);
+  transition:transform var(--t-fast) var(--ease);
+}
+.axis-row[aria-expanded="true"]::before{ transform:translateY(-50%) rotate(45deg) }
+.axis-name{ font-size:var(--fs-sm); font-weight:600; color:var(--text) }
+.axis-slug{ font-size:11px; color:var(--text-3) }
+/* PUSHED RIGHT, so thirty rows have their counts in one column and the eye can
+   run down them rather than hunting along each line. */
+.axis-counts{ margin-left:auto; font-size:11px; color:var(--text-2); white-space:nowrap }
+.axis-left{
+  font-family:var(--font-mono); font-size:11px; color:var(--text-3);
+  white-space:nowrap; min-width:9ch; text-align:right;
+}
+.axis-body{ padding:4px 4px 16px 26px }
+
+/* ── the quotes of one model, inside an open section ─────────────────────── */
+.qmodel{ border-left:2px solid var(--border); padding-left:12px; margin-bottom:14px }
+.qmodel:last-child{ margin-bottom:0 }
+.qmodel-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:6px; flex-wrap:wrap }
+.qmodel-name{ font-size:var(--fs-xs); font-weight:600; color:var(--text) }
+/* A button that reads as a link: this is a selection shortcut, not a ruling,
+   and giving it a chip would put it beside the four controls that DO rule. */
+.linkish{
+  background:none; border:0; padding:0; cursor:pointer;
+  font-family:var(--font-mono); font-size:11px; color:var(--info);
+  text-decoration:underline; text-underline-offset:2px;
+}
+.linkish:hover{ color:var(--text) }
+.linkish:focus-visible{ outline:2px solid var(--info); outline-offset:2px }
+
+/* The full text of a prompt. Whitespace is load-bearing — the delimiters and
+   the indented examples — so it is preserved and wraps rather than scrolling
+   sideways on a phone. Was an inline style using `var(--r2)`, which is not a
+   token that exists (rule 12), so the radius silently did nothing. */
+.prompt-text{
+  font-size:11px; line-height:1.55;
+  white-space:pre-wrap; word-break:break-word;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r-sm); padding:var(--s3);
+  margin:0; max-width:100%;
 }

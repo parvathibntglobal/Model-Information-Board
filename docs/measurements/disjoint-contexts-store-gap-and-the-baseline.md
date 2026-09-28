@@ -102,7 +102,7 @@ not independent; the first stage feeds the second.
 referenced by nothing. Zero tombstone markers exist.**
 
 That pattern is not decay. `ENVIRONMENT=staging`,
-`DATABASE_URL=postgresql://…@52.17.75.29:5432/…`, `RAW_STORE_PATH=./raw_store` —
+`DATABASE_URL=postgresql://…@203.0.113.5:5432/…`, `RAW_STORE_PATH=./raw_store` —
 **the database is remote and the store is local.** Which is precisely the second
 meaning of MISSING that `RawStoreReader` names in its own docstring:
 

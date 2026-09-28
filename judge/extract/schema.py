@@ -8,12 +8,9 @@ verified in ordinary Python (see verify.py).
 
 from __future__ import annotations
 
-import logging
 from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
-
-log = logging.getLogger(__name__)
 
 Polarity = Literal["positive", "negative", "neutral"]
 Severity = Literal["mild", "clear", "severe"]
@@ -230,7 +227,13 @@ class BoardEntry(BaseModel):
             "capability ONE NAMED BEHAVIOUR a model does or fails at, defined "
             "the same way for every model so two reports can be compared.\n"
             "metric     a MEASURED AXIS WITH A UNIT, where the text states a "
-            "figure. Requires `unit`, `value_verbatim` and `basis`."
+            "figure. Requires `unit`, `value_verbatim` and `basis`.\n\n"
+            "A FIGURE IS A QUANTITY. \"much cheaper\", \"much faster\", "
+            "\"Blazing Fast\" and \"token burn remained low\" state none, and "
+            "all four were filed as metrics with those words in the figure "
+            "column. They are real things somebody said about how the model "
+            "behaved, so they are capability entries; under a heading reading "
+            "MILLISECONDS they are a measurement nobody took."
         )
     )
     slug: str = Field(
@@ -242,7 +245,27 @@ class BoardEntry(BaseModel):
             "reduce to the same slug or the board grows two sections where there "
             "is one. So prefer the plainest, most common form of the term. Code "
             "normalises case and spacing; it cannot decide that \"tool-calling\" "
-            "and \"function-calling\" were one idea."
+            "and \"function-calling\" were one idea.\n\n"
+            "⚠ ON A METRIC, THE AXIS IS WHAT WAS MEASURED — NEVER WHICH WORDS "
+            "SIT BESIDE THE FIGURE. Every one of these was filed by matching a "
+            "word rather than a measurement, and each put a real number on the "
+            "wrong page:\n"
+            "  \"10.59M tokens\" across 90 tasks is a TOTAL. Filed as "
+            "cost-per-token, for containing the word tokens. It is not a cost "
+            "and it is not per token.\n"
+            "  \"118K per task\" is a per-task average. Filed as "
+            "tokens-per-second, because both are rates. They are not the same "
+            "rate.\n"
+            "  \"about 75 minutes\" is how long a task took. Filed as "
+            "time-to-first-token, which is the pause before a reply starts.\n"
+            "  \"$0.013880\" is what ONE RUN cost. Filed as cost-per-token.\n"
+            "A total is not a rate, an elapsed time is not a latency, and a "
+            "per-task figure is not a per-second one. WHERE NO FAMILIAR AXIS "
+            "FITS, NAME THE ONE THAT DOES — `task-duration`, `total-tokens`, "
+            "`cost-per-task`. A new axis costs one row on a new page and a "
+            "reviewer can merge it; a figure filed under a familiar wrong axis "
+            "is a wrong number on a page people read, and nothing about it "
+            "looks wrong."
         )
     )
     name: str = Field(
@@ -269,7 +292,13 @@ class BoardEntry(BaseModel):
         description=(
             "REQUIRED when section is metric. What the figure is measured in — "
             "\"milliseconds\", \"USD per 1M tokens\", \"tokens\", \"percent "
-            "resolved\". An axis with no unit is not a metric."
+            "resolved\". An axis with no unit is not a metric.\n\n"
+            "THE UNIT THE FIGURE IS ACTUALLY WRITTEN IN, not the one the axis "
+            "usually carries. \"about 40 minutes per task\" is minutes; it was "
+            "stored as milliseconds, so a 40-minute task duration rendered as a "
+            "latency. Code now compares the two and withholds the row when they "
+            "disagree, which means a unit copied from the axis loses the figure "
+            "rather than mis-labelling it."
         ),
     )
     value_verbatim: str | None = Field(
@@ -283,9 +312,117 @@ class BoardEntry(BaseModel):
             "number nobody measured and rule 3 forbids it reaching a page — code "
             "converts afterwards, from the characters you copied. KEEP THE HEDGE "
             "IF THE WRITER HEDGED: \"about 200k\" is the finding; the precise "
-            "number is a claim they did not make."
+            "number is a claim they did not make.\n\n"
+            "AND THE QUOTE YOU OFFER HAS TO CONTAIN THE FIGURE — CHOOSE THE "
+            "QUOTE THAT DOES. A `cost-per-benchmark-point` entry reading "
+            "\"$0.0076 per point\" was filed against a quote that stops twelve "
+            "words before the writer wrote the figure: the document really does "
+            "say \"cost per benchmark point and DeepSeek costs $0.0076 per "
+            "point\", so the axis and the number are both published and both "
+            "sound. Code compares the value with the quote and withholds the "
+            "row, which means that figure is lost by WHERE THE QUOTE WAS CUT "
+            "and by nothing else. Where one sentence carries the measurement "
+            "and its neighbour carries the subject, QUOTE BOTH."
         ),
     )
+    #: ⚠ TWO FIELDS THAT EXIST TO BE CHECKED, NOT TO BE TRUSTED.
+    #:
+    #: A metric figure needs four things true together, and only two were ever
+    #: verifiable: that it is a quantity, and that it appears in its own quote.
+    #: The other two — that it belongs to THIS model and THIS axis — were asked
+    #: for and never shown, so nothing could check them.
+    #:
+    #: Measured 2026-09-18 over 440 stored figures: nine different benchmarks
+    #: sat under one `swe-bench` slug (SWE-bench Verified, SWE-Bench Pro,
+    #: Terminal-Bench 4.0, AutomationBench, CursorBench 3.2.0, OSWorld-2.0,
+    #: DeepSWE v1.1, "the hard biology set"), and 58.2% of figures had a quote
+    #: naming no model at all.
+    #:
+    #: ⚠ BOTH ARE OPTIONAL, AND THE FIRST VERSION SAID "REQUIRED" WHILE ALSO
+    #: SAYING "LEAVE THIS EMPTY". Measured on the first run that asked for them:
+    #: 22 metric figures, 0 ABSENT and 19 naming an axis the quote does not
+    #: contain. The extractor was never allowed to say "the quote names none",
+    #: so it named something every time - 'API pricing' for a quote reading
+    #: "Input: $10 per million tokens", 'GPT-6 Astra' for one reading "Astra".
+    #:
+    #: A field that cannot be left empty is a field that will be guessed, and a
+    #: guess here is indistinguishable from a copy until code checks it. Empty
+    #: is now stated first, and stated as correct.
+    #:
+    #: ⚠ RULE 10. COPYING A PREFIX SPLITS AN AXIS IN TWO. Measured 2026-09-21 over
+    #: the 290 published figures: one model's 97.1% was filed under `aime` from
+    #: the quote "97.1% on AIME 2026 math" and under `aime-2026` from
+    #: "97.1% on AIME 2026". Same model, same figure, same benchmark, two axis
+    #: pages - because the copy stopped at different depths and BOTH copies
+    #: really are in their quotes, so the substring check passes either way.
+    #:
+    #: A MACHINE CANNOT FINISH THE NAME FOR YOU, WHICH IS WHY THIS IS ASKED OF
+    #: THE MODEL. `axis_specificity` already detects a name that continues, and
+    #: on the same 290 figures it fired 5 times - of which 3 were the SCORE
+    #: rather than the name (`CyberGym 84.5`, `ExploitBench 54.4`). Extending
+    #: the copy automatically would invent three axes named after measurements
+    #: to repair two. Telling a year from a score is a reading task, so it is
+    #: asked here and reported as a weight there (rule 8).
+    #:
+    #: THE FIX IS THE ONE THAT ALREADY WORKS HERE. `value_verbatim` is reliable
+    #: not because its instruction is emphatic — it is, and 10% of figures still
+    #: were not in their quote — but because code can check the copy against the
+    #: text. So these ask for the same thing: COPY THE WORDS, and code verifies
+    #: them the same way. A field nothing can check is a field that goes wrong
+    #: eventually and silently.
+    axis_verbatim: str | None = Field(
+        default=None,
+        description=(
+            "OPTIONAL, and empty is a correct answer. Most quotes carrying a "
+            "figure do not name a benchmark, and those must be left empty. "
+            "COPY, NEVER NAME. If the quote names a benchmark or axis, copy it "
+            "character for character from the quote: 'SWE-bench Verified', "
+            "'Terminal-bench 4.0', 'OSWorld-2.0'. Code checks that what you "
+            "write appears in the quote and discards anything else, so there is "
+            "nothing to gain by filling this in. "
+            "COPY THE WHOLE NAME, INCLUDING A VERSION OR YEAR THAT IS PART OF "
+            "IT. 'AIME 2026', not 'AIME'. 'Terminal Bench 2.1', not "
+            "'Terminal Bench'. 'OSWorld-2.0', not 'OSWorld'. A truncated "
+            "name is a DIFFERENT axis from the full one - the board filed one "
+            "model's 97.1% under 'AIME' and the same model's 97.1% under "
+            "'AIME 2026', as two benchmarks, because two quotes were copied to "
+            "different depths. "
+            "BUT STOP AT THE NAME. The number that follows a benchmark is the "
+            "SCORE, not part of what it is called: in 'CyberGym 84.5%' the "
+            "axis is 'CyberGym', and in 'ExploitBench 54.4% vs Mythos 5' it "
+            "is 'ExploitBench'. A year and a version belong to the name; a "
+            "measurement does not. If you cannot tell which you are looking "
+            "at, copy the shorter name. "
+            "LEAVE IT EMPTY when the quote names no benchmark. 'Input: $10 per "
+            "million tokens' names none — 'API pricing' is a category you "
+            "inferred, not a name the text wrote, and it is worse than empty. "
+            "Do not expand an abbreviation, do not add a version the text did "
+            "not write, and never substitute the better-known benchmark you "
+            "think was meant: a Terminal-bench figure filed as SWE-bench is a "
+            "wrong number on a page, not a near miss. "
+            "An unnamed axis is a fact about the evidence; a guessed one is a "
+            "fact about nothing."
+        ),
+    )
+    subject_verbatim: str | None = Field(
+        default=None,
+        description=(
+            "OPTIONAL, and empty is a correct answer. "
+            "COPY, NEVER NAME. If the quote names the model this figure is "
+            "about, copy it exactly as the quote spells it. Write 'Astra' if "
+            "the quote says Astra — do NOT expand it to 'GPT-6 Astra', even "
+            "though that is the fuller name, because code checks your copy "
+            "against the quote and an expansion is not a copy. "
+            "LEAVE IT EMPTY when the quote names no model — a table cell "
+            "reading '1M context' names none. The figure is then recorded as "
+            "unattributed, which is honest. Naming the model the thread happens "
+            "to be about would attach somebody else's number to it, and that is "
+            "the defect this field exists to end. "
+            "Where a quote compares several models, give the one THIS figure "
+            "belongs to and no other."
+        ),
+    )
+
     basis: MetricBasis | None = Field(
         default=None,
         description=(
@@ -297,7 +434,16 @@ class BoardEntry(BaseModel):
             "Never merged, so a guess here corrupts the one distinction the "
             "metric pages exist to show. It usually agrees with "
             "`model_ref.speaking`: own-experience is reported, "
-            "vendor-about-own-product is stated."
+            "vendor-about-own-product is stated.\n\n"
+            "⚠ AND A FIGURE FROM SOMEBODY'S OWN TASK IS NOT THE PUBLISHED "
+            "FIGURE — THE AXIS DIFFERS, NOT ONLY THE BASIS. \"took 8.566 "
+            "seconds\" on one person's run is `reported`, and what it measures "
+            "is how long THAT task took. The vendor's published "
+            "time-to-first-token is `stated`, and is a different measurement "
+            "that happens to be a duration too. Record each the way the text "
+            "expresses it: one person's timing stays one person's timing, and "
+            "is never promoted onto the axis the number superficially "
+            "resembles."
         ),
     )
 
@@ -342,8 +488,8 @@ class BoardEntry(BaseModel):
 #: describes is the classifier's entire output channel.
 _BOARD_ENTRIES_DESC = (
     "EVERY board section this quote belongs on — DISCOVERED, not chosen from a "
-    "list. One entry per section; a quote answering two questions produces two "
-    "entries.\n\n"
+    "list. A quote answering two of the three questions produces two entries, "
+    "and a quote naming three tasks produces three in one section.\n\n"
     "Ask all three questions of the quote and add an entry for each one the "
     "quote itself answers:\n"
     "  best_for   — does it say what they were TRYING TO DO?\n"
@@ -357,6 +503,44 @@ _BOARD_ENTRIES_DESC = (
     "output\" is a metric and nothing else — no behaviour is reported and no "
     "task is named — and that is a complete, useful record. Do not invent a "
     "capability to pad it out.\n\n"
+    "⚠ EVERY ENTRY IS READ BACK AGAINST THIS QUOTE ALONE, with the rest of "
+    "the document covered up. Several entries in one section is right when "
+    "the quote names several things — \"classification, short summaries, and "
+    "simple extraction\" is three best_for entries and all three are in it. "
+    "What is never right is an entry for something the quote does not say. "
+    "The other sentences of the thread are not evidence for THIS quote; they "
+    "have their own quotes and will produce their own entries. Checked against "
+    "the source documents: \"targeted enhancements for code generation, "
+    "debugging, and orchestrating complex tasks\" produced a capability entry "
+    "for `reasoning`, and the post does discuss reasoning — in a different "
+    "paragraph, \"long-running agents, multi-step reasoning, and software "
+    "engineering tasks\". Two sound entries were merged into one unsupported "
+    "one. The fix is two entries with two quotes, not one quote carrying both."
+    "\n\n"
+    "Measured 2026-09-22, over the 56 quotes in undeclined entries that had "
+    "produced two or more entries in one section, read one at a time by a "
+    "reviewer: 40 were sound and 16 carried at least one entry naming "
+    "something its quote does not support. \"DeepSeek V4 Flash at $0.25/M "
+    "output is the real story\" produced best_for/extraction and "
+    "best_for/rag; it names a price and no task. \"the quality was "
+    "indistinguishable from GPT-4o for about 90% of what I needed\" "
+    "produced code-review and summarization, and names neither. "
+    "\"it communicates clearly\" produced communication-clarity, "
+    "which it says, and instruction-following, which it does not.\n\n"
+    "⚠ A QUOTE THAT NAMES SEVERAL MODELS SPLITS BETWEEN THEM, and only the "
+    "part about THIS model is an entry. \"Haiku for routing, Sonnet for "
+    "reasoning, Opus for long chains\" says exactly one thing about Haiku. It "
+    "produced three capability entries on Haiku — routing, reasoning and "
+    "long-tool-chains — so the board credited one model with what the writer "
+    "said about two others. A comma-separated sentence is not a list of "
+    "things one model does; read whose clause each one is.\n\n"
+    "⚠ NAME EVERY ITEM IN A LIST, not the two you recognise. \"significant "
+    "advance in reasoning, coding, cybersecurity and professional work\" is "
+    "four named things and produced two entries; \"code review, vulnerability "
+    "detection, and long-horizon software engineering\" is three and produced "
+    "two. A list read short is the quieter defect — nothing on the page is "
+    "wrong, so nothing prompts anyone to look — and it is rule 4 applied to "
+    "what the extractor drops rather than to what the page renders.\n\n"
     "Never empty: a claim that belongs on no section cannot be shown, so it is "
     "not a claim. Put its quote in `unclassified` instead."
 )
@@ -378,11 +562,9 @@ class ExtractedClaim(BaseModel):
     #: THE LEGACY CLOSED KEY, and it does not decide what the board shows.
     #:
     #: This is a key from `contract/capabilities.yaml` — the ratified twelve. It
-    #: is still required because the CELL path reads it (`judge/pipeline.py`,
-    #: `judge/store/claims.py`, `judge/vet/weight.py` all index cells by
-    #: `capability_key`, and `bucket_for` looks the key up to find its failure
-    #: mode). Removing it would break scoring for every claim, so it stays until
-    #: that path is retired.
+    #: feeds the CELL path (`judge/pipeline.py`, `judge/store/claims.py`,
+    #: `judge/vet/weight.py` all index cells by `capability_key`, and
+    #: `bucket_for` looks the key up to find its failure mode).
     #:
     #: WHAT IT IS NOT is the board's capability section. That comes from
     #: `board_entries` below, which is discovered and unbounded. Keeping the two
@@ -390,20 +572,54 @@ class ExtractedClaim(BaseModel):
     #: ratified twelve do not contain — without either inventing a ratified key
     #: or dropping the evidence.
     #:
-    #: Pick the closest ratified key. Where none is close, that is a signal
-    #: rather than a failure: say so in `proposed_capabilities`.
-    #: OPTIONAL SINCE 2026-09-24. With `LEGACY_CELLS` off (the default) the
-    #: field is stripped from the tool schema and the prompt, so the extractor
-    #: never emits it and it arrives as None. See `judge/legacy.py`.
-    capability: str | None = Field(
+    #: ⚠ IT WAS `capability: str` AND IT ASKED FOR THE CLOSEST KEY. Measured
+    #: 2026-09-22 over all 1,385 stored claims: on a 60-claim read the chosen
+    #: key did not name what the quote described in **38 of 60**, and 1,194 of
+    #: the claims were written after the column became nullable with **zero**
+    #: NULLs. `docs/measurements/the-key-that-takes-anything-2026-09-22.md`.
+    #:
+    #: `minimaxir.com/2025/07/llms-identify-people/` produced 12 claims about
+    #: naming people in photographs, all 12 under `extraction.faithfulness`,
+    #: and five of the 21 cells on that key are sourced entirely from
+    #: facial-recognition quotes. Nobody discussed typed-field extraction.
+    #:
+    #: ⚠ TWO CHANGES, AND THE RENAME IS THE LOAD-BEARING ONE. `Conditions`'
+    #: docstring records the experiment: adding `reasoning_effort` with a better
+    #: description changed nothing, and renaming `structured_mode` to
+    #: `schema_enforced` stopped misfiling dead — **a field name is a stronger
+    #: instruction than any field's description.** A field named `capability`
+    #: could not be left empty, because `capability` is also the board's
+    #: discovered section, `contract/capabilities.yaml` and
+    #: `capability_candidate`: the prompt spends most of its length teaching the
+    #: OPEN vocabulary under that exact word. `legacy_score_key` names what it
+    #: feeds and claims nothing about capability.
+    #:
+    #: `None` is now a correct answer and the common one. A claim with no key is
+    #: written with `capability_key` NULL, no `claim_weight` row and no cell —
+    #: see `judge/pipeline.py`, which keeps the claim and skips the cell.
+    #:
+    #: AND WITH `LEGACY_CELLS` OFF (the default) IT IS NEVER ASKED FOR. The
+    #: field is stripped from the tool schema and its instructions from the
+    #: prompt, so it arrives as None and no claim row or cell is written. See
+    #: `judge/legacy.py`.
+    legacy_score_key: str | None = Field(
         default=None,
         description=(
-            "a key from contract/capabilities.yaml. This feeds the legacy cell "
-            "score, NOT the board's capability section - the board reads "
-            "`board_entries`. Pick the closest ratified key; if none is close, "
-            "still pick the closest AND propose the missing one in "
-            "`proposed_capabilities`."
-        )
+            "OPTIONAL, and empty is a correct answer - the common one. A key "
+            "from contract/capabilities.yaml, which feeds an older scoring "
+            "path and is NOT what the board displays; the board reads "
+            "`board_entries`.\n\n"
+            "LEAVE IT EMPTY unless one of the ratified keys names what the "
+            "quote is about. DO NOT PICK THE CLOSEST. A key that is merely "
+            "nearest files this quote into a count about something the writer "
+            "never discussed - five people discussing one model's vision and "
+            "Chinese OCR were counted as '5 people mentioned following "
+            "instructions', because `instruction.adherence` was the nearest of "
+            "twelve.\n\n"
+            "Where no key names it, leave this empty AND propose the missing "
+            "key in `proposed_capabilities`. An empty key is a fact about the "
+            "vocabulary; a nearest-fit key is a fact about nothing."
+        ),
     )
 
     #: ── WHAT THE BOARD ACTUALLY RENDERS ───────────────────────────────────
@@ -471,33 +687,43 @@ class ExtractedClaim(BaseModel):
         supplies a position anything trusts, and a span code computed is a span
         code verified.
 
-        What remains checked here is only that the hint is not nonsense: a
-        forward range at a plausible position. A wrong-by-two hint is fine and
-        is exactly what arrives.
+        ⚠ AND SINCE 2026-09-23 IT REFUSES NOTHING. It used to require a
+          forward range and raise on anything else, which discarded the WHOLE
+          CLAIM over the one value in it that nothing reads.
 
-        AN EMPTY OR BACKWARD RANGE IS REPAIRED, NOT REJECTED. A model answering
-        `(0, 0)` for one claim used to fail the WHOLE answer, costing a paid
-        retry and, if the retry failed too, every good claim in the thread -
-        over a hint verification only uses to pick between repeated
-        occurrences. The start is kept and the end is derived from the quote:
-        code computing a length, not a position being invented, and `verify()`
-        still locates and exact-matches the quote whatever the hint says. The
-        repair is logged so how often it happens stays countable.
+          Measured on the Nano Banana 2 run of 2026-09-23
+          (`mv_de3e701e07b8bfa9-554826d4`): the extractor returned
+          `quote_offset (0, 0)` on **44 claims in one thread**, every one of
+          them lost to this line. That thread used more input tokens than the
+          other three in the run combined, retried once and failed identically,
+          cost $0.004608 - **64% of the whole run** - and stored nothing.
 
-        A NEGATIVE START STILL RAISES. There is no start to keep, and no answer
-        has produced one yet, so it stays the retry it always was.
+        ⚠ THE VALUE IT REJECTED ON HAS NO READER. `verify.py:322` passes
+          `quote_offset[0]` to `_locate` as a tiebreak hint and NOTHING reads
+          `quote_offset[1]` anywhere, outside one error message. `_locate`
+          finds every occurrence of the quote itself and takes the one nearest
+          the hint, so `start=0` is a usable hint meaning "prefer the earliest
+          occurrence" - and `end` was the half this raised on.
+
+          A wrong-by-two hint was fine and a hint of zero was fatal, in a
+          docstring that says the model "no longer supplies a position anything
+          trusts". The check contradicted the design it was written under.
+
+        ⚠ WHAT STILL CATCHES A FABRICATED QUOTE, WHICH IS THE ONLY REASON TO
+          HESITATE. Rule 1 is untouched: `verify()` requires the quote to
+          appear character for character in the text the model was shown, and
+          an invented one is rejected as NOT_FOUND by the check built for it.
+          Every integrity test downstream runs on the span CODE computed
+          (`start, end = located`), never on this one. Removing a check that
+          can only produce false alarms is not removing a check that catches
+          fabrication.
+
+          What is genuinely lost: on a quote appearing TWICE, a zero hint takes
+          the earlier occurrence rather than the right one. That is a worse
+          attribution than a good hint would give and a far better outcome than
+          discarding the claim - and it is identical to what any model guessing
+          low already produces.
         """
-        start, end = self.quote_offset
-        if start < 0:
-            raise ValueError(f"quote_offset {self.quote_offset} has a negative start")
-        if end <= start:
-            repaired = (start, start + max(len(self.quote), 1))
-            log.warning(
-                "quote_offset %s is not a forward range; repaired to %s from the "
-                "quote's length (a hint only - verify() locates the quote)",
-                self.quote_offset, repaired,
-            )
-            self.quote_offset = repaired
         return self
 
     @property

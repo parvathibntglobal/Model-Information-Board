@@ -160,8 +160,10 @@ class _ReturningCursor(_Cursor):
     def executemany(self, statement, params_seq, *, returning=False):
         rows = list(params_seq)
         self._log.append(("executemany", len(rows)))
-        # `id` first, then the insert verdict, matching the real RETURNING.
-        self._pending = [(row.get("id") or row.get("model_version_id"), True)
+        # `id` first, then the insert verdict, then `canonical_id`, matching the
+        # real RETURNING - the poller keys its history on the row id it gets back.
+        self._pending = [(row.get("id") or row.get("model_version_id"), True,
+                          row.get("canonical_id"))
                          for row in rows]
         self.pgresult = object() if returning else None
         return None

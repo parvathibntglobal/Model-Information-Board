@@ -1,0 +1,430 @@
+# Parent headings for the board sections. #410.
+#
+# A READ-TIME grouping of `board_entry.slug` for navigation. Nothing here is a
+# counting unit and nothing here rewrites a leaf.
+#
+# THE PROPERTY THIS FILE EXISTS TO HOLD, AND THE ONE TO CHECK A CHANGE AGAINST:
+#
+#     A PARENT GROUPS FOR READING AND NEVER IMPLIES THE LEAVES ARE THE SAME
+#     MEASUREMENT.
+#
+#   It is why a wrong member list is cheap - it costs a reader one click, not
+#   the board a wrong number - and it is the only part of this file reviewable
+#   by reading, since the member lists are one reader's judgement over 296
+#   slugs. The check it licenses: DOES A PARENT PUT TWO SLUGS TOGETHER THAT A
+#   QUOTE PROVES ARE DIFFERENT THINGS? `osworld-verified` beside `osworld-2`
+#   passes, because a parent is not a merge and filing them adjacently is how a
+#   reader notices three of the four are one benchmark (#407).
+#
+# ⚠ THIS IS NOT `capabilities.yaml`. That file is the CLOSED, 12-key counting
+#   vocabulary: it keys `cell`, it drives `n_eff`, and `judge/pages/capability.py`
+#   refuses a key it does not contain. THIS FILE KEYS NOTHING. It maps the open
+#   display vocabulary onto headings, and the capability page never reads it.
+#
+# THREE CONSTRAINTS SERVING THE PROPERTY, EACH WITH A TEST:
+#   1. no voice counts   - this schema has no field for one, and
+#                          `test_a_parent_counts_leaves_not_voices` refuses any
+#                          key matching voices|n_eff|weight|score|consensus.
+#                          A parent renders HOW MANY LEAVES, never how many
+#                          reports: summing leaf reports double-counts every
+#                          document that appears under two leaves (measured:
+#                          55 against a true union of 51 on `coding`, 7.8% over)
+#                          AND sums a figure that is already a floor.
+#   2. no catch-all      - `forbidden_parents` below, and no parent name may
+#                          equal an existing leaf slug. `extraction.faithfulness`
+#                          took 12 facial-recognition claims without complaint;
+#                          `quality`, `reliability`, `judgment` and
+#                          `general-purpose` are live leaves today and are
+#                          harmless only because each is a singleton.
+#   3. no rewriting      - leaf -> parent only. There is no field that could
+#                          name a replacement slug. `normalise_slug` still
+#                          refuses synonym folds; a parent is not a fold, and
+#                          `merged` COLLAPSES a leaf while a parent does not.
+#
+# A slug absent from this file is UNGROUPED and renders at the top level beside
+# the parents. Absence is the default and is not a defect (rule 6). There is
+# deliberately NO `other` PARENT: 19 capability slugs and 20 metric slugs are
+# ungrouped on purpose, including the two largest capability slugs
+# (`instruction-following`, `long-context`), and forcing them under a heading to
+# complete the taxonomy is the forcing defect this file exists downstream of.
+#
+# ⚠ `best_for` IS ABSENT ON PURPOSE AND IS NOT AN OVERSIGHT. Parents there are
+#   DEFERRED pending #412: `coding-agent` holds 142 of 282 entries and, read in
+#   full on 2026-09-23, 106 of the 142 (74.6%) do not belong under it at all -
+#   51.4% name no task of any kind. A parent map over a section whose largest
+#   leaf is three-quarters misfiled is tidiness above a broken leaf. That
+#   section wants `coding-agent` SPLIT, and before that the extractor repair.
+#
+# NO COUNTS IN THIS FILE, per rule 11 and by demonstration: the proposal behind
+# it went stale three times in 47 minutes (capability 710 -> 712 -> 716). Every
+# figure quoted above is a dated record from that document, and the live ones
+# are recomputable with
+# `docs/measurements/slug-parent-clustering-2026-09-23.py`.
+#
+# Clustering made 2026-09-23 by anooj. Reviewed by parvathibntglobal on #410,
+# who took the shape and supplied the property above.
+
+version: 1
+clustered_on: 2026-09-23
+clustered_by: anooj
+
+#: Names a parent may never take. Each is wide enough to accept anything, which
+#: is the property that made `extraction.faithfulness` absorb facial
+#: recognition silently and positively.
+forbidden_parents:
+  - general
+  - general-purpose
+  - general-intelligence
+  - overall
+  - misc
+  - other
+  - quality
+  - capabilities
+
+#: THE HEADING A READER SEES. Every leaf has a display `name` because the
+#: extractor is told to produce one - "Two to four words, title case ... This is
+#: the heading the board renders" - and parents were the one heading with no
+#: such rule, so the board would have put `reasoning-and-math` directly above
+#: `Reasoning`, `CoT controllability` and `Over-thinking`. A hyphenated machine
+#: string on top of title-cased human ones. Raised by @parvathibntglobal on
+#: #416, and added here rather than later because this file is the reviewed
+#: artefact and a field added afterwards is a second contract change.
+#:
+#: KEPT SEPARATE FROM `sections` ON PURPOSE. Those lists are generated from
+#: `docs/measurements/slug-parent-clustering-2026-09-23.py` and are compared
+#: against it; interleaving hand-written display text into machine-generated
+#: structure is how the two drift. This block is hand-written and nothing else
+#: is.
+#:
+#: The LOADER falls back to the slug when a name is missing, so a new parent
+#: renders rather than crashing. A TEST requires every parent to have one, so a
+#: new parent cannot quietly ship nameless. Permissive code, complete contract.
+parent_names:
+  software-engineering: Software engineering
+  security: Security
+  reasoning-and-math: Reasoning and maths
+  agentic: Agentic and tool use
+  vision-media: Vision and media
+  writing-language: Writing and language
+  reliability-safety: Reliability and safety
+  performance-cost: Performance and cost
+  price: Price
+  speed-latency: Speed and latency
+  token-volume: Token volume
+  capacity-spec: Capacity and specs
+  reliability-rate: Reliability rates
+  benchmark: Benchmarks
+
+sections:
+  capability:
+    software-engineering:
+      - code-generation
+      - code-review
+      - code-quality
+      - coding
+      - code-fixing
+      - code-editing-diff-fidelity
+      - frontend-code-generation
+      - debugging
+      - test-generation
+      - code-completeness
+      - code-convention-adherence
+      - code-regression
+      - repository-level-coding
+      - repository-level-editing
+      - long-refactors
+      - surgical-fixes
+      - sql-generation
+      - ui-generation
+      - software-architecture
+      - design-planning
+      - design-review
+      - adversarial-review
+      - no-code-generation
+      - api-migration
+      - automated-patching
+      - n-plus-one-detection
+      - gpu-compiler-writing
+      - development-speed
+      - architectural-reasoning
+    security:
+      - cybersecurity
+      - vulnerability-discovery
+      - vulnerability-detection
+      - vulnerability-exploitation
+      - exploit-development
+      - autonomous-exploit-generation
+      - smart-contract-exploitation
+      - jailbreak-resistance
+      - prompt-injection-resistance
+      - prompt-injection-robustness
+      - security-refusal
+      - security-pauses
+      - multi-host-red-team
+      - long-horizon-cyber
+      - cyber-capability
+      - proof-of-concept-generation
+      - reasoning-trace-injection
+      - reasoning-trace-security
+      - sandbox-compliance
+      - internet-connected-code-execution
+    reasoning-and-math:
+      - reasoning
+      - mathematical-reasoning
+      - spatial-reasoning
+      - long-horizon-reasoning
+      - persistent-reasoning
+      - no-cot-reasoning
+      - cot-controllability
+      - reasoning-effort
+      - proof-writing
+      - serial-arithmetic
+      - letter-counting
+      - over-thinking
+      - overthinking
+      - overcomplication
+      - chain-of-thought-monitorability
+      - chain-of-thought-monitoring
+    agentic:
+      - agentic-tool-use
+      - agentic-behavior
+      - agentic-testing
+      - agentic-workflow
+      - agentic-game-play
+      - computer-use
+      - function-calling
+      - tool-calling
+      - tool-use
+      - long-tool-chains
+      - flow-orchestration
+      - loop-until-dry
+      - long-unattended-work
+      - premature-completion
+      - scope-adherence
+      - routing
+      - triage
+    vision-media:
+      - vision
+      - multimodal
+      - image-editing
+      - image-generation
+      - visual-design
+      - visual-quality
+      - visual-coherence
+      - 3d-generation
+      - svg-quality
+      - text-in-image
+      - style-transfer
+      - style-diversity
+      - public-figure-identification
+      - schematic-building
+      - schematic-editing
+      - audio-understanding
+      - speech-to-text
+      - text-to-speech-japanese
+    writing-language:
+      - creative-writing
+      - writing
+      - writing-quality
+      - uncensored-writing
+      - communication-clarity
+      - output-clarity
+      - output-verbosity
+      - output-completeness
+      - summarization
+      - dialogue
+      - multi-turn-dialogue
+      - condescending-tone
+      - warmth-and-listening
+      - language-quality
+      - english-language
+      - english-quality
+      - chinese-language
+      - chinese-quality
+      - chinese-language-output
+      - multilingual
+      - multi-lingual-quality
+      - long-form-consistency
+      - detail-retention
+      - document-generation
+      - editorial-craft
+    reliability-safety:
+      - hallucination
+      - abstention
+      - citation-accuracy
+      - false-positive-control
+      - self-verification
+      - self-audit
+      - independent-audit
+      - evidence-quality
+      - consistency
+      - reliability
+      - production-reliability
+      - api-reliability
+      - crash-handling
+      - response-emptiness
+      - model-drift
+      - model-downgrade
+      - model-version-fidelity
+      - verification-degradation
+      - compaction-loss
+      - sandbagging
+      - reward-hacking
+      - deceptive-behavior
+      - sabotage
+      - shutdown-enforcement
+      - situational-awareness
+      - self-awareness
+      - alignment-safety
+      - safety-evaluation
+      - over-refusal
+      - refusal-configuration
+      - contrarian-behavior
+      - analysis-bias
+      - gotcha-question-handling
+    performance-cost:
+      - latency
+      - speed
+      - execution-speed
+      - speed-of-delivery
+      - throughput
+      - streaming
+      - token-efficiency
+      - token-counting
+      - tokenizer
+      - cost-efficiency
+      - usage-limits
+      - local-deployment
+      - parameter-support
+      - parameter-forwarding
+      - sampling-parameter-handling
+      - toolchain-assumption-error
+      - system-configuration
+      - one-shot-accuracy
+      - quality
+      - output-quality
+      - generation-quality
+      - judgment
+  metric:
+    price:
+      - cost-per-token
+      - cost-per-task
+      - cost-per-character
+      - cost-per-generation
+      - cost-per-review
+      - cost-per-run
+      - cost-per-image
+      - cost-per-million-characters
+      - cost-per-minute
+      - cost-per-shot
+      - cost-per-benchmark-point
+      - cache-read-cost
+      - eval-cost
+      - token-cost
+    speed-latency:
+      - time-to-first-token
+      - tokens-per-second
+      - execution-time
+      - completion-time
+      - time-to-completion
+      - task-duration
+      - wall-clock-time
+      - added-latency
+      - chip-design-time
+      - fast-mode
+      - time-horizon
+    token-volume:
+      - token-usage
+      - tokens-per-output
+      - output-tokens
+      - output-token-inflation
+      - output-size
+      - token-consumption
+      - tokens-per-task
+      - token-count-accuracy
+      - tokenizer-efficiency
+      - turns-per-run
+    capacity-spec:
+      - context-window
+      - licence
+      - parameters
+      - usage-quota
+      - aic-usage
+    reliability-rate:
+      - failure-rate
+      - http-error-rate
+      - error-status-code
+      - regression-rate
+      - pass-rate
+      - hallucination-rate
+      - false-positive-rate
+      - precision
+      - accuracy
+      - task-completion
+      - continuous-score
+      - score
+      - other
+    benchmark:
+      - swe-bench
+      - swe-bench-pro
+      - swe-bench-verified
+      - terminal-bench
+      - terminal-bench-2-1
+      - osworld
+      - osworld-2
+      - osworld-2-0
+      - osworld-verified
+      - gpqa-diamond
+      - aime
+      - aime-2025
+      - aime-2026
+      - arc-agi
+      - arc-agi-2
+      - arc-agi-3
+      - mmlu-pro
+      - mmmu
+      - mmmu-pro
+      - hle-text
+      - hle-with-tools
+      - frontiermath
+      - livecodebench-v6
+      - ifbench
+      - browsecomp
+      - simpleqa-verified
+      - healthbench
+      - mmau
+      - voicebench
+      - global-mmlu-lite
+      - charxiv-rq
+      - charxiv-rq-python
+      - mrcr-v2
+      - posttrainbench
+      - posttrainbench-plus
+      - exploitbench
+      - exploit-bench
+      - exploitgym
+      - exploit-gym
+      - cybergym
+      - agents-last-exam
+      - mcp-atlas
+      - gdpval-aa-v2
+      - aa-omniscience
+      - tau-3-banking
+      - dig-bench-tier-7
+      - fortress-benign
+      - fortress-adversarial
+      - strongreject
+      - sre-bench-reverse-engineering-tasks
+      - audio-mc
+      - medical-benchmark
+      - benchmark-performance
+      - benchmark-rank
+      - intelligence-index
+      - artificial-analysis-intelligence-index
+      - agentic-index
+      - blind-judge-score
+      - chess-rating
+      - odds-ratio
+      - compiler-performance
+      - pretraining-efficiency
+      - pretraining-quality

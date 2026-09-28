@@ -21,6 +21,7 @@
  */
 
 import { sessionToken } from '../auth'
+import { cached } from './cache'
 
 const BASE = import.meta.env.VITE_API_URL || '/api'
 
@@ -96,7 +97,15 @@ async function request(path, { method = 'GET', body, signal } = {}) {
 /* ------------------------------------------------------------------ reads */
 
 export const health = () => request('/health')
-export const listCapabilities = () => request('/capabilities')
+
+// ⚠ NOTHING HERE READS THE CLOSED CAPABILITY VOCABULARY ANY MORE, ruled
+//   2026-09-24. `listCapabilities`, `capabilityPage` and `capLabel` are gone:
+//   they served `cell.capability_key`, the ratified twelve from the first
+//   plan, and measured that day 0 of 196 models on the roster carried a
+//   non-empty list — every cell is `insufficient` and e5.5 writes none.
+//
+//   The board's own open sections (`board_entry.slug`) are what this UI
+//   reads. `/capabilities` still answers; no page asks it.
 
 // ── Tracked registry (UI-only narrowing) ─────────────────────────────────────
 // The board is tracking exactly two models for now, and shows no evidence until
@@ -129,24 +138,6 @@ export const listCapabilities = () => request('/capabilities')
 // for exactly the reason recorded here - a polled model carries an `mv_` id and
 // its canonical id separately, and matching one field would drop the other kind.
 
-export const capabilityPage = (key) =>
-  Promise.resolve({
-    key,
-    failure_mode: 'silent',
-    // NOT A MEASUREMENT, AND IT USED TO READ AS ONE. Capability pages are keyed
-    // on `cell`, which E7 writes once per BATCH after extraction. An empty list
-    // here makes the roster's "with any evidence" stat structurally 0 for every
-    // model whatever the database holds, so that stat is a property of this
-    // function rather than of the board (rule 4). minimax/minimax-m3 has 13
-    // board entries and ZERO cells today; the fix is E7 completing, not a read
-    // that reports the absence more confidently.
-    summary:
-      'Capability pages read E7 cells, which this UI does not query yet - this ' +
-      'is not a measurement that no model has reports.',
-    models: [],
-    count: 0,
-    page: { has_more: false, returned: 0, limit: 500, offset: 0 },
-  })
 /**
  * Model ids can contain a slash — `google/gemini-2.5-flash`. The handoff is
  * explicit that the slash must NOT be percent-encoded, so each segment is
@@ -283,7 +274,20 @@ export const fetchRuns = (modelVersionId) =>
 export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
 /**
  * The board's three sections, DISCOVERED by the classifier rather than chosen
- * from a list. Returns { jobs, caps, mets, counts, report_counts_are_a_floor }.
+ * from a list. Returns { jobs, caps, mets, counts, report_counts_are_a_floor,
+ * grouped, parent_coverage }.
+ *
+ * `grouped` is the SAME leaves under their parent headings - `{jobs, caps,
+ * mets}`, each a list of `{kind:'parent', name, leaves, children}` or
+ * `{kind:'leaf', …}`. It is additive: `caps`/`mets`/`jobs` are unchanged and
+ * still authoritative for anything that looks a leaf up by slug.
+ *
+ * `best_for` is DELIBERATELY UNGROUPED (#412), so `grouped.jobs` comes back as
+ * flat leaves with `parent: null` - confirmed against staging rather than
+ * assumed, 74 rows, 0 parents.
+ *
+ * `parent_coverage` is computed per request and MUST NOT be copied into the
+ * UI as a literal: the ungrouped count read 19, 20 and 21 within one day.
  *
  * `reports` on each section IS A FLOOR and the UI must say so: the vocabulary
  * is open, so one section can arrive under two names until the duplicates are
@@ -362,7 +366,12 @@ export const adminUsage = (hours = 24, days = 14) =>
  * in each stage grouped by its status column, plus the job_run ledger for the
  * last pass. An empty stage reports as not-yet-run, never a clean zero.
  */
-export const pipelineStatus = () => request('/admin/pipeline')
+// ⚠ NOTHING CALLS `/admin/pipeline` ANY MORE. `PipelinePanel` was its only
+//   reader and was removed 2026-09-25: its seven rows counted different units
+//   against different denominators and rendered as seven comparable bars.
+//   The endpoint still answers; no page asks it. Removed rather than left
+//   exported, because an uncalled client function is the same orphan one
+//   layer down (rule 9).
 
 /**
  * Capabilities the extractor PROPOSED that none of the current keys name. The
@@ -391,27 +400,75 @@ export const modelEvidence = (id) => request(`/models/${modelPath(id)}/evidence`
 
 export const boardEntries = () => request('/admin/board-entries')
 
+//: Models the board holds evidence about that the models page does not list.
+//: Read by TWO panels - Models and Board sections - because it answers a
+//: question each of them raises and neither owns: the models list shows what
+//: we chose to watch, the board shows what people wrote about, and this is
+//: the gap between them.
+export const discussedModels = () => request('/admin/discussed-models')
+
 // Every prompt this project sends to a model, COMPOSED by the backend from the
 // real builders rather than transcribed. A copy in the frontend would drift the
 // first time somebody edits a prompt and not this file, and then the page would
 // be confidently wrong about the one thing it exists to show.
-export const adminPrompts = () => request('/admin/prompts')
+export const adminPrompts = () => cached('prompts', () => request('/admin/prompts'))
 
+// CACHED, like the three reference surfaces beside it. Each is derived from a
+// contract file or the registry, so nothing a reader does on this page can
+// change one - and the admin page remounts a section on every click, so without
+// this each visit paid the full remote round trip again. Runs, Usage, Database
+// and Board sections are deliberately NOT cached: see web/src/api/cache.js.
+//
 // Every platform the harvest reaches, read from `contract/sources.yaml` - the
 // same file the harvest reads. Whether an arm uses a key is a BOOLEAN in this
 // payload; no key, fingerprint or prefix is in it.
-export const adminSources = () => request('/admin/sources')
+export const adminSources = () => cached('sources', () => request('/admin/sources'))
 
 // What each fetch stage does, in words. The LIST is parsed from the file that
 // emits the stages and the WORDS come from contract/pipeline_stages.yaml, so a
 // new stage shows up described as undescribed rather than silently missing.
 // Carries no counts - those are on the fetch log, attached to their run.
-export const adminStages = () => request('/admin/stages')
+export const adminStages = () => cached('stages', () => request('/admin/stages'))
 
 // The search terms each platform is actually sent, per tracked model. Composed
 // through the same `_variants_for` the harvest calls, and sliced by each arm's
 // real budget - so these are the terms that would go out on the next fetch.
-export const adminKeywords = () => request('/admin/keywords')
+export const adminKeywords = () => cached('keywords', () => request('/admin/keywords'))
+
+// What adding or dropping a tracked model would mean. WRITES NOTHING - it
+// derives the spellings, counts what the corpus attests, finds alias collisions
+// and composes the exact contract entry, and a person commits it.
+//
+// The board's model list is versioned config (rule 5). A button that wrote it
+// from here would put it in two places that can disagree, and on the hosted
+// deployment the filesystem is ephemeral, so the YAML edit would die at the next
+// deploy while any rows it caused survived.
+export const proposeModel = ({ action, registry = '', name = '', kind = 'text' }) =>
+  request(
+    `/admin/models/propose?action=${encodeURIComponent(action)}`
+    + `&registry=${encodeURIComponent(registry)}`
+    + `&name=${encodeURIComponent(name)}&kind=${encodeURIComponent(kind)}`,
+  )
+
+// Every fetch run this database has seen, newest first and across machines.
+// The host is a RELATION ("this machine" / "another host"), never a name.
+//
+// `looks_dead` is a MEASUREMENT, not a status: a run with no end record may be
+// a corpse, since a killed process writes nothing, and the missed heartbeats
+// beside it are the evidence for that reading.
+export const adminRuns = (limit) => request(`/admin/runs${limit ? `?limit=${limit}` : ''}`)
+
+// Which database this is, what is in it, and whether the schema matches the
+// migration files. The target is `host:port/dbname` from `writeguard.describe`
+// - there is no credential in this payload and none can be derived from it.
+export const adminDatabase = () => request('/admin/database')
+
+// The signed-in account, the stack this runs on, the running commit and every
+// operational cap - with whether each cap is the default or an override.
+//
+// CREDENTIALS ARE BOOLEANS HERE. `set` / `not set`, never a value, a prefix or
+// a hash, in the payload as much as on the page.
+export const adminSettings = () => request('/admin/settings')
 
 // `entry_ids` IS OMITTED, NOT EMPTIED, when the whole section is meant.
 //
@@ -432,22 +489,17 @@ export const unruleBoardEntry = (section, slug, entry_ids = null) =>
     body: { section, slug, ruling: 'adopted', entry_ids: entry_ids?.length ? entry_ids : null },
   })
 
-export const capabilityCandidates = () => request('/admin/capability-candidates')
-export const ruleCapability = (proposed_key, ruling, ruling_target = null) =>
-  request('/admin/capability-candidates/rule', {
-    method: 'POST',
-    body: { proposed_key, ruling, ruling_target },
-  })
-export const editCapability = (proposed_key, { new_key = null, new_definition = null }) =>
-  request('/admin/capability-candidates/edit', {
-    method: 'POST',
-    body: { proposed_key, new_key, new_definition },
-  })
-export const deleteCapability = (proposed_key) =>
-  request('/admin/capability-candidates/delete', {
-    method: 'POST',
-    body: { proposed_key },
-  })
+// ⚠ NOTHING HERE REACHES `/admin/capability-candidates`, ON PURPOSE. Four
+//   functions did — list, rule, edit, delete — and no component ever called
+//   them. Rather than wire them up, the surface was ruled unwanted on
+//   2026-09-24: `capability_key` is the closed twelve from the first plan,
+//   and discovery moved to `board_entries`, whose vocabulary is open. Board
+//   sections is the review surface; capabilities get no separate one.
+//
+//   The endpoint still answers and the extractor still proposes into it, so
+//   this is a client that declines to call a live route rather than a route
+//   that went away. The upstream half — the prompt field and the endpoint —
+//   is #434, not deleted from this side.
 
 /* ------------------------------------------------------------------ display */
 
@@ -484,14 +536,6 @@ export const fmtPrice = (n) => {
   if (n < 1) return `$${n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '')}`
   return `$${n % 1 === 0 ? n : n.toFixed(2)}`
 }
-
-/** Backend capability keys are dotted; this is the human label. */
-export const capLabel = (key) =>
-  (key || '')
-    .split('.')
-    .pop()
-    .replace(/_/g, ' ')
-    .replace(/^\w/, (c) => c.toUpperCase())
 
 export const TIER = {
   1: { label: 'Trivial', note: 'almost anything qualifies — pick on price' },

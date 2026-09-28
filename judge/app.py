@@ -12,18 +12,22 @@ degrades this surface.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
+import re
 import subprocess
 import sys
+import threading
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import NamedTuple
+from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from judge import fetch_reaper, login
@@ -727,7 +731,135 @@ def recommend(req: AskRequest) -> dict:
 # caveat a separate call would make dropping it the easy path.
 
 
+class _ConnectionPool:
+    """A few connections, kept open and handed round.
+
+    ⚠ THE HANDSHAKE WAS THE PAGE'S BIGGEST SINGLE COST, and nothing was
+      measuring it. Measured 2026-09-17 against the shared database:
+
+          psycopg.connect        1.58s
+          one trivial query      0.25s
+
+      The database is remote, and `_conn()` dialled a new one for every request.
+      `/admin/usage` opened FOUR - its own, plus one each inside
+      `spend_ledger.read_everywhere`, `spend_ledger.report` and the meter read -
+      so more than five seconds of a sixteen-second endpoint was TCP and TLS for
+      connections that had just been thrown away.
+
+    BOUNDED, AND SMALL ON PURPOSE. A hosted Postgres has a connection limit that
+    is somebody else's to raise, and an unbounded pool trades a slow page for an
+    outage under load. Eight is more than the admin page can use at once; past
+    that, callers wait for a connection rather than opening a ninth.
+
+    LIFO, because a connection just returned is the one most likely to still be
+    alive - the server or something between it and us may have dropped the ones
+    that have been idle longest, and reaching for the coldest first is how a pool
+    finds that out the slow way.
+    """
+
+    #: Small enough to be a good guest on a shared database. See above.
+    MAX = 8
+
+    def __init__(self) -> None:
+        self._free: list[object] = []
+        self._lock = threading.Lock()
+        self._slots = threading.Semaphore(self.MAX)
+        self._url: str | None = None
+
+    def take(self, url: str):
+        """A live connection for this DSN. Blocks if all slots are in use."""
+        # Imported here for the same reason `_open_connection` does: the app
+        # module is imported by tooling that has no database driver installed.
+        import psycopg
+
+        from judge.store.claims import CONNECT_TIMEOUT_SECONDS
+
+        self._slots.acquire()
+        try:
+            with self._lock:
+                # A CHANGED DSN EMPTIES THE POOL. Tests point the app at a
+                # different database mid-process, and handing back a connection
+                # to the previous one would be a silent read of the wrong data -
+                # far worse than the reconnection it saves.
+                if url != self._url:
+                    stale, self._free, self._url = self._free, [], url
+                    for conn in stale:
+                        with contextlib.suppress(Exception):
+                            conn.close()
+                conn = self._free.pop() if self._free else None
+            if conn is not None:
+                if self._is_usable(conn):
+                    return conn
+                with contextlib.suppress(Exception):
+                    conn.close()
+            return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
+        except BaseException:
+            # The slot is only held by a connection that reached a caller.
+            self._slots.release()
+            raise
+
+    @staticmethod
+    def _is_usable(conn) -> bool:
+        """Cheap liveness, and it must not raise.
+
+        A pooled connection can be dead in a way `closed` does not show - the
+        server restarted, a NAT dropped it, a transaction was left broken. The
+        rollback both answers the question and clears any transaction state the
+        last caller left behind, which is the other thing a reused connection
+        must never carry.
+        """
+        if getattr(conn, "closed", True):
+            return False
+        try:
+            conn.rollback()
+        except Exception:  # noqa: BLE001
+            return False
+        return True
+
+    def give_back(self, conn, *, reusable: bool) -> None:
+        try:
+            if not reusable or not self._is_usable(conn) or len(self._free) >= self.MAX:
+                with contextlib.suppress(Exception):
+                    conn.close()
+                return
+            with self._lock:
+                self._free.append(conn)
+        finally:
+            self._slots.release()
+
+
+_POOL = _ConnectionPool()
+
+
+@contextmanager
 def _conn():
+    """A pooled connection, committed on success and returned to the pool.
+
+    SAME SHAPE AS BEFORE, deliberately: every call site says
+    `with _conn() as conn:` and psycopg's own connection context manager also
+    committed on a clean exit. What changes is the ending - the connection goes
+    back to the pool instead of being closed.
+
+    ⚠ A FAILED CONNECTION IS NOT REUSED. An exception may have left the session
+      mid-transaction or the socket half-dead, and a pool's whole risk is handing
+      that to the next request as if it were fresh. Cheap to reconnect; a wrong
+      read is not cheap at all.
+    """
+    conn = _open_connection()
+    reusable = True
+    try:
+        yield conn
+        conn.commit()
+    except BaseException:
+        reusable = False
+        with contextlib.suppress(Exception):
+            conn.rollback()
+        raise
+    finally:
+        _POOL.give_back(conn, reusable=reusable)
+
+
+def _open_connection():
     """A read connection, or a 503 that says the board is not readable.
 
     503 rather than 500: no database is an operational state, not a fault in
@@ -772,7 +904,7 @@ def _conn():
             ),
         )
     try:
-        return psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS)
+        return _POOL.take(url)
     except psycopg.OperationalError as error:
         # LOGGED AND RE-RAISED, NOT CONVERTED. An unreachable database may well
         # deserve the same 503 as an unconfigured one, but that is a change to
@@ -931,14 +1063,119 @@ def compare_page(ids: str = "") -> dict:
         )
 
     with _conn() as conn:
-        roster = {m["model_version_id"]: m for m in RosterReader(conn).all().models}
+        all_models = RosterReader(conn).all().models
+        # ⚠ EITHER ID RESOLVES, AND THE URL SHOULD CARRY THE READABLE ONE.
+        #   `/compare?ids=mv_de3e701e07b8bfa9,mv_9a53a616c98d9f6b` is what the
+        #   models list used to produce: an internal key in a link people
+        #   share, which says nothing about what is being compared and cannot
+        #   be typed or checked by eye. `canonical_id` is the same fact in the
+        #   form the provider uses - `google/gemini-3.1-flash-image` - so the
+        #   link reads as the comparison it is.
+        #
+        #   BOTH ARE ACCEPTED RATHER THAN SWAPPED. Links already sent, and any
+        #   bookmark holding the old form, keep working - a URL that 404s
+        #   because we improved it is a URL we broke.
+        roster: dict[str, dict] = {}
+        for m in all_models:
+            roster[m["model_version_id"]] = m
+            if m.get("canonical_id"):
+                roster.setdefault(m["canonical_id"], m)
         # UNKNOWN IDS ARE NAMED, NOT DROPPED. A comparison that silently
         # renders two of the three asked for is a different comparison, and
         # the reader has no way to tell.
         missing = [i for i in wanted if i not in roster]
-        found = [roster[i] for i in wanted if i in roster]
+        # DE-DUPLICATED ON THE MODEL, not on the string. Asking for a model by
+        # both of its ids is one column, not two identical ones.
+        found = []
+        for i in wanted:
+            m = roster.get(i)
+            if m is not None and not any(
+                x["model_version_id"] == m["model_version_id"] for x in found
+            ):
+                found.append(m)
         evidence = {m["model_version_id"]: evidence_for_model(conn, m["model_version_id"])
                     for m in found}
+        # ⚠ HOW ENGINEERS SPOKE, COUNTED. The comparison's whole subject is
+        #   what people reported, and "12 reports" says nothing about whether
+        #   twelve people were pleased or twelve were complaining. `polarity`
+        #   is already on every entry and was reaching no page.
+        #
+        #   COUNTS, NEVER A SCORE (rule 3). No ratio, no net, no "sentiment
+        #   index" - three numbers and the denominator they came from, so a
+        #   reader does the comparing. A single figure here would be exactly
+        #   the 0-100 capability score this board refuses to compute.
+        #
+        #   DECLINED ROWS ARE EXCLUDED, because a reviewer has ruled them off
+        #   the board and counting them would put them back in through an
+        #   arithmetic side door.
+        polarity = {}
+        for m in found:
+            rows = conn.execute(
+                "SELECT polarity, count(*), count(DISTINCT document_id) "
+                "FROM board_entry "
+                "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined' "
+                "GROUP BY polarity",
+                (m["model_version_id"],),
+            ).fetchall()
+            counts = {p: n for p, n, _ in rows if p}
+            docs = conn.execute(
+                "SELECT count(DISTINCT document_id) FROM board_entry "
+                "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined'",
+                (m["model_version_id"],),
+            ).fetchone()[0]
+            # ⚠ WHERE IT WAS SAID, AND WHAT KIND OF THING IT WAS. A
+            #   "document" here is a Reddit post, a Hacker News COMMENT, a
+            #   dev.to article or a GitHub issue reply - 29 of Claude Opus 5's
+            #   92 are replies rather than posts. Rendering that as
+            #   "92 documents" is both jargon and wrong in the direction that
+            #   flatters: it reads as 92 articles.
+            #
+            #   The platform split is also the comparative fact. One model
+            #   discussed across five platforms and another across one are
+            #   different kinds of evidence, and `cell.platform_count` already
+            #   treats that as load-bearing for `n_eff`.
+            platforms = conn.execute(
+                "SELECT d.source, count(DISTINCT d.id) FROM board_entry b "
+                "JOIN document d ON d.id = b.document_id "
+                "WHERE b.model_version_id = %s "
+                "  AND b.ruling IS DISTINCT FROM 'declined' "
+                "GROUP BY d.source ORDER BY 2 DESC",
+                (m["model_version_id"],),
+            ).fetchall()
+            replies = conn.execute(
+                "SELECT count(DISTINCT d.id) FROM board_entry b "
+                "JOIN document d ON d.id = b.document_id "
+                "WHERE b.model_version_id = %s "
+                "  AND b.ruling IS DISTINCT FROM 'declined' "
+                "  AND d.parent_id IS NOT NULL",
+                (m["model_version_id"],),
+            ).fetchone()[0]
+            # ⚠ THE PER-AXIS POLARITY QUERY IS GONE WITH ITS ONLY READER.
+            #   It grouped `board_entry` by (section, slug, polarity) so the
+            #   compare page could draw a bar per axis. @parvathibntglobal
+            #   removed that column on 2026-09-25, so the query, the
+            #   `by_axis` key and the extra round trip go with it rather than
+            #   being left as a produced value nobody consumes (rule 9).
+            #
+            #   The finding it surfaced is not lost, only unrendered: 6 of 155
+            #   `best_for` model-axis pairs have zero positive reports, and
+            #   this page still lists them under a heading that recommends.
+            #   See #469, which groups on exactly that.
+            polarity[m["model_version_id"]] = {
+                "platforms": [{"source": src, "documents": n} for src, n in platforms],
+                # REPLIES SEPARATELY, because a comment under somebody else's
+                # post and a post somebody wrote are not the same act, and the
+                # board's own `is_self_post` distinction exists for it.
+                "replies": replies,
+                "positive": counts.get("positive", 0),
+                "negative": counts.get("negative", 0),
+                "neutral": counts.get("neutral", 0),
+                # THE DENOMINATOR TRAVELS WITH THE FIGURE (rule 7). Entries are
+                # not people: one document can produce several, so a reader
+                # needs both numbers or "74 negative" means nothing.
+                "entries": sum(counts.values()),
+                "documents": docs,
+            }
 
     if len(found) < 2:
         raise HTTPException(
@@ -956,13 +1193,32 @@ def compare_page(ids: str = "") -> dict:
         # `evidence_for_model` returns the three discovered sections at the top
         # level - `best_for`, `capabilities`, `metrics` - not under a `sections`
         # key. Each item carries its own `reports` count and its quotes.
+        # ⚠ UNFILTERED, AS `evidence_for_model` RETURNS IT, and that is a known
+        #   gap rather than an oversight. `board_sections` drops negative
+        #   `best_for` rows so the heading "Best for" can be true, counts what
+        #   it dropped, and tells the reader "the complaint exists and the
+        #   board kept it — read it on the model page". The model page
+        #   therefore must NOT filter, or that link leads nowhere; this page
+        #   reads the model page's data and inherits its honesty under the
+        #   board's heading.
+        #
+        #   Measured 2026-09-24: 6 of 155 model-axis pairs are entirely
+        #   negative. The polarity now renders beside each row, so the
+        #   mismatch is at least VISIBLE rather than silent, which is all this
+        #   change claims. Resolving it is the open section question.
         best_for = [
-            {"name": s.get("name") or s.get("slug"), "slug": s.get("slug"),
-             "reports": s.get("reports", 0)}
-            for s in (ev.get("best_for") or [])
+            {"name": section.get("name") or section.get("slug"),
+             "slug": section.get("slug"),
+             "reports": section.get("reports", 0)}
+            for section in (ev.get("best_for") or [])
         ]
         models.append({
             "model_version_id": m["model_version_id"],
+            # THE NAME THE PROVIDER USES, so the page can show it and the URL
+            # can carry it instead of an internal key. `None` where the
+            # registry has none - the client falls back rather than printing
+            # the database id at a reader.
+            "canonical_id": m.get("canonical_id"),
             "display_name": m["display_name"],
             "provider": m["provider"],
             # ADVERTISED. Kept under its own key so no client can fold it in
@@ -983,7 +1239,20 @@ def compare_page(ids: str = "") -> dict:
             "reported": {
                 "state": (m.get("evidence") or {}).get("state", "unreported"),
                 "reports": (m.get("evidence") or {}).get("reports", 0),
-                "capabilities": list((m.get("evidence") or {}).get("capabilities") or ()),
+                "polarity": polarity.get(m["model_version_id"], {}),
+                # ⚠ REMOVED, NOT LEFT UNREAD (rule 9). This carried
+                #   `cell.capability_key` - the CLOSED twelve from the first
+                #   plan - and the compare page's "Discussed under" row read
+                #   it and printed "nothing yet" for every model, always:
+                #   every cell on the board is `insufficient` and e5.5 writes
+                #   none at all. Claude Opus 5 has 63 discovered capabilities
+                #   and the row rendered three identical empties beside them.
+                #
+                #   The page now reads `discovered.capabilities`, which is the
+                #   board's own open vocabulary. Leaving this key in the
+                #   payload with no reader is the defect #438 was opened for,
+                #   one layer down.
+                #: removed 2026-09-24, see the note above
                 "best_for": best_for,
                 # The discovered sections in full, so the compare page can show
                 # a metric figure with its basis rather than a bare number.
@@ -992,6 +1261,22 @@ def compare_page(ids: str = "") -> dict:
                     "capabilities": ev.get("capabilities") or [],
                     "metrics": ev.get("metrics") or [],
                 },
+                # ⚠ ENTRIES PER SECTION, WHICH IS NOT THE LENGTH OF THE LISTS
+                #   ABOVE (rule 7). Those are DISTINCT AXES - "63 capabilities"
+                #   means 63 different things people discussed. This is how
+                #   many entries produced them, and one axis can carry twenty.
+                #
+                #   Both belong on the page and neither substitutes: 63 axes
+                #   from 70 entries is a broad, thinly-evidenced picture, and
+                #   12 axes from 70 is a narrow, heavily-discussed one. The
+                #   compare page showed the first number and not the second,
+                #   so those two models rendered as the more-covered one.
+                #
+                #   Read from the roster's own per-section counts rather than
+                #   recomputed, so this figure and the models list cannot
+                #   disagree about the same model.
+                "entries": (m.get("board") or {}).get("entries", 0),
+                "entries_by_section": dict((m.get("board") or {}).get("sections") or {}),
             },
         })
 
@@ -1000,9 +1285,11 @@ def compare_page(ids: str = "") -> dict:
         "missing": missing,
         "unsourced": [{"row": k, "why": v} for k, v in COMPARE_UNSOURCED.items()],
         "summary": (
-            f"{len(models)} models compared on advertised specification and counted "
-            f"reports. Nothing here is a score: where every model has 0 reports the "
-            f"comparison is a spec sheet, and it says so rather than ranking them."
+            f"{len(models)} models, compared on what engineers reported about them. "
+            f"Every figure here is counted - entries, documents, how each one was "
+            f"phrased - and none is a score. No winner is picked and no total is "
+            f"computed, because the board has no way to weigh a complaint against a "
+            f"recommendation without inventing one."
         ),
     }
 
@@ -1423,26 +1710,29 @@ def start_fetch(req: FetchRequest) -> dict:
     script = _REPO_ROOT / "scripts" / "fetch_model.py"
     # Detached: we do not wait. env carries DATABASE_URL / GITHUB_TOKEN etc.,
     # which run-backend.py loaded from .env into this process's environment.
+    # ⚠ INHERITED, NOT DISCARDED, AND THAT IS THE POINT OF THE CHANGE.
+    #   This was `stdout=DEVNULL, stderr=DEVNULL`, so a run started from the
+    #   admin page threw away every word it said. The console that started the
+    #   backend went silent for forty minutes and then the board had changed,
+    #   and reading what happened meant opening `var/fetch/<run>.jsonl` and
+    #   decoding it by eye. `fetch_model.py` now renders itself as it goes, and
+    #   passing the streams through is what lets that reach a person.
     #
-    # THE CHILD INHERITS THIS TERMINAL, AND THAT IS THE POINT. Both streams went
-    # to DEVNULL, so the only account of a run was `var/fetch/<run_id>.jsonl` -
-    # readable through /fetch/log, as collapsed stage rows, and only with the
-    # page open. Somebody watching the backend they had just started saw nothing
-    # at all while a fetch spent money for twenty minutes.
+    #   THE RUN IS STILL DETACHED AND NOTHING IS READ BACK. These are not
+    #   pipes: the child writes to the same console as the parent and nobody
+    #   waits on it, so there is no buffer to fill and no reader to block. A
+    #   PIPE here would deadlock the moment a long run filled it with nobody
+    #   draining, which is the version of this change that looks equivalent
+    #   and is not.
     #
-    # `None` rather than a pipe: a pipe nobody drains fills its buffer and blocks
-    # the run at whatever line filled it, and there is no reader here - the
-    # `Popen` handle is discarded on the next statement. Inheriting hands the
-    # child the same console the backend writes to, with nothing in between.
-    #
-    # NOTHING PARSES THIS OUTPUT. `run_id` is generated above and passed in with
-    # `--run-id`, so stdout is for a person and may be redirected freely.
+    #   A BACKEND WITH NO CONSOLE - a service, a container - inherits whatever
+    #   it was given, which is the right answer there too: the same place its
+    #   own logs go. `FETCH_QUIET=1` turns the rendering off without changing
+    #   how the process is spawned.
     subprocess.Popen(
         [sys.executable, str(script), mv, "--run-id", run_id],
         cwd=str(_REPO_ROOT),
         env=os.environ.copy(),
-        stdout=None,
-        stderr=None,
     )
     # NAMED IN THE RESPONSE, not done quietly. Marking another machine's run
     # dead is a visible change to shared history, and a caller that can see it
@@ -1918,13 +2208,32 @@ def board_page() -> dict:
     Nothing here ranks or scores. Sections are ordered by report count, which is
     a count, and each carries the models named in it and the quotes behind it.
     """
+    from judge.board_grouping import coverage as parent_coverage
+    from judge.board_grouping import group_section
     from judge.store.board_entries import board_sections
 
     with _conn() as conn:
         sections = board_sections(conn)
 
+    # ADDITIVE, AND THE EXISTING KEYS ARE UNTOUCHED ON PURPOSE. `jobs`, `caps`
+    # and `mets` are rendered directly by the frontend; changing their shape to
+    # deliver headings would be a schema change to a page in the same commit
+    # that introduces the headings. `grouped` carries the same leaves in the
+    # same order, wrapped, so the frontend can adopt it when it is ready and
+    # nothing breaks while it is not.
+    #
+    # ⚠ A PARENT CARRIES `leaves` AND NOTHING ELSE NUMERIC. Not a sum of its
+    #   children's `reports`: that double-counts every document appearing under
+    #   two leaves (55 against a true union of 51 on `software-engineering`,
+    #   measured 2026-09-23) and sums a figure that is already a floor.
+    grouped = {
+        "jobs": group_section(sections["best_for"], section="best_for"),
+        "caps": group_section(sections["capability"], section="capability"),
+        "mets": group_section(sections["metric"], section="metric"),
+    }
+
     return {
-        # The demo board's three tabs, in its own order: Best for, Capabilities,
+        # The demo board's three tabs, in its own order: Jobs (key `best_for`), Capabilities,
         # Metrics. The frontend renders these keys directly.
         "jobs": sections["best_for"],
         "caps": sections["capability"],
@@ -1934,7 +2243,25 @@ def board_page() -> dict:
             "caps": len(sections["capability"]),
             "mets": len(sections["metric"]),
         },
+        # RULE 4, AND IT TRAVELS WITH ITS DENOMINATOR (rule 7). The metrics
+        # tab is thinner than the stored rows because figures that cannot
+        # support themselves are held back, and a page that simply showed
+        # fewer rows would be making the opposite claim: that nobody measured
+        # these models. Counted by reason so a reader can tell a prompt
+        # problem from a labelling one.
+        "metrics_withheld": sections.get("_withheld", {}),
         "report_counts_are_a_floor": True,
+        # The same sections under their headings. `best_for` is deliberately
+        # unmapped (#412), so its rows come back as leaves and render as now.
+        "grouped": grouped,
+        # COMPUTED, NEVER RECORDED (rule 11). The proposal behind
+        # `contract/slug_parents.yaml` went stale three times in 47 minutes, so
+        # the file carries no counts and coverage is recomputed per request.
+        "parent_coverage": {
+            "jobs": parent_coverage(sections["best_for"], section="best_for"),
+            "caps": parent_coverage(sections["capability"], section="capability"),
+            "mets": parent_coverage(sections["metric"], section="metric"),
+        },
         "summary": (
             "Discovered from the evidence, not chosen from a list. Report counts "
             "are a floor: an open vocabulary can name one section two ways until "
@@ -2094,7 +2421,7 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
         #   being showed up?"
         #
         #   ⚠ AND THIS IS THE SECOND ASK. The first removed one line - "Ledger
-        #     totals cover all 2 machines (ANOOJ, LenovoPB)" - by moving the
+        #     totals cover all 2 machines (machine-A, machine-B)" - by moving the
         #     roster into a tooltip, which kept rendering the names on hover and
         #     left four other sites untouched. Fixing the instance and not the
         #     class is why it came back.
@@ -2467,6 +2794,211 @@ def _fetch_stages_in_code() -> dict[str, str]:
     return found
 
 
+#: A gate family that could not be imported is NAMED, never dropped. Rule 6 at
+#: the page level: a stage listing no gates because the import failed and one
+#: that genuinely runs none render identically otherwise, and the first is a
+#: broken page while the second is a fact about the pipeline.
+def _triage_gates_in_source() -> tuple[tuple, dict, dict]:
+    """E4's gate names and meanings, PARSED FROM `collect/triage/gates.py`.
+
+    ⚠ PARSED RATHER THAN IMPORTED, AND THE RULE IS NOT NEGOTIABLE. `judge/`
+      may never import `collect/` - `test_lane_boundary.py` enforces it, and
+      the reason it exists is that two implementations of one storage contract
+      can only be byte-compared while neither can see the other. An `import`
+      here passed every test I ran locally and failed that one, which is the
+      test doing its job.
+
+      It is also what this file ALREADY does one function up:
+      `_fetch_stages_in_code` parses the stage list out of
+      `scripts/fetch_model.py` rather than importing the script. Same reason,
+      same shape - the list has one home, and this reads it.
+
+    ⚠ LITERALS ONLY, WHICH CONSTRAINS THE OTHER SIDE AND SHOULD. `literal_eval`
+      cannot evaluate an f-string, so a meaning written as
+      `f"Under {MIN_TOKENS} tokens"` would arrive here as a parse failure and
+      the whole family would report unreadable. The dict names the constant
+      instead of interpolating it, which is the better sentence anyway: a
+      number copied into prose is a number that goes stale (rule 11).
+    """
+    import ast
+
+    tree = ast.parse(
+        (_REPO_ROOT / "collect" / "triage" / "gates.py").read_text(encoding="utf-8")
+    )
+    # `LANGUAGE = "wrong-language"` and friends, so the dict keys resolve.
+    consts: dict[str, str] = {}
+    wanted: dict[str, object] = {}
+    for node in tree.body:
+        # ⚠ BOTH ASSIGNMENT FORMS. `GATE_MEANING: dict[str, str] = {...}` is an
+        #   AnnAssign and `LANGUAGE = "wrong-language"` is an Assign; a loop
+        #   that knows only the second finds the keys and none of the values,
+        #   and reports the whole family unreadable rather than failing loudly.
+        if isinstance(node, ast.AnnAssign):
+            target, value = node.target, node.value
+        elif isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target, value = node.targets[0], node.value
+        else:
+            continue
+        if not isinstance(target, ast.Name) or value is None:
+            continue
+        if isinstance(value, ast.Constant) and isinstance(value.value, str):
+            consts[target.id] = value.value
+        if target.id in {"GATE_ORDER", "GATE_MEANING", "FLAG_MEANING"}:
+            wanted[target.id] = value
+
+    def resolve(node):
+        """A tuple of names, or a dict keyed by them."""
+        if isinstance(node, ast.Tuple):
+            return tuple(consts[e.id] for e in node.elts if isinstance(e, ast.Name))
+        out = {}
+        for key, value in zip(node.keys, node.values, strict=True):
+            name = consts[key.id] if isinstance(key, ast.Name) else ast.literal_eval(key)
+            out[name] = ast.literal_eval(value)
+        return out
+
+    return (
+        resolve(wanted["GATE_ORDER"]),
+        resolve(wanted["GATE_MEANING"]),
+        resolve(wanted["FLAG_MEANING"]),
+    )
+
+
+def _gates_at_each_stage() -> tuple[dict[str, dict], list[str]]:
+    """`{stage id: {...}}` and the gate families that could not be read.
+
+    ⚠ READ FROM THE MODULES THAT RUN THEM, LIKE THE PROMPTS PAGE. Four
+      vocabularies, each already declared in the code that enforces it:
+
+        collect.triage.gates.GATE_ORDER        the six hard gates at E4
+        judge.extract.verify.VerificationFailure  why a quote fails rule 1
+        judge.vet.reject.RejectionTrigger      what E6 drops after the model
+        judge.store.board_entries.METRIC_GATES why a figure is not stored/shown
+
+      A list written out here instead would be a transcription, and this
+      project has already paid for one of those - see `_what_the_extractor_is_asked`.
+
+    ⚠ NO COUNTS, AND THAT IS THE PAGE'S EXISTING RULE, NOT A NEW ONE. How many
+      documents a gate dropped is a figure that needs its denominator and its
+      run (rules 3 and 7); the fetch log carries it. This answers the question
+      the log cannot: WHICH gates exist, and what each one refuses.
+
+    ⚠ A FLAG IS NOT A GATE and the page says so. `known-bot-counted` and
+      `near-miss-not-registered` are recorded on documents that are KEPT,
+      because the judgement behind each was measured on a population we chose
+      ourselves - rule 8's one-way direction, visible rather than remembered.
+    """
+    stages: dict[str, dict] = {}
+    unreadable: list[str] = []
+
+    try:
+        GATE_ORDER, GATE_MEANING, FLAG_MEANING = _triage_gates_in_source()
+
+        stages["E4"] = {
+            "runs": [
+                {
+                    "name": g,
+                    "kind": "gate",
+                    "drops": GATE_MEANING.get(g),
+                    "undescribed": g not in GATE_MEANING,
+                }
+                for g in GATE_ORDER
+            ] + [
+                {"name": n, "kind": "flag", "drops": why, "undescribed": False}
+                for n, why in FLAG_MEANING.items()
+            ],
+            "source": "collect/triage/gates.py:GATE_ORDER",
+        }
+        # THE SAME SIX, ONE LEVEL UP. Repeating the rows would say there are
+        # twelve gates; a pointer says there are six, run twice.
+        stages["E4b"] = {
+            "runs": [],
+            "same_as": "E4",
+            "note": (
+                "The same six gates, applied to the assembled thread rather "
+                "than to each document. The last check that costs no tokens."
+            ),
+            "source": "collect/triage/gates.py:GATE_ORDER",
+        }
+    except Exception as exc:  # noqa: BLE001
+        unreadable.append(f"E4 triage gates: {exc}")
+
+    try:
+        from judge.extract.verify import VerificationFailure
+
+        stages["E5"] = {
+            "runs": [
+                {"name": v.value, "kind": "gate", "drops": v.explain(),
+                 "undescribed": False}
+                for v in VerificationFailure
+            ],
+            "note": (
+                "Rule 1, checked in plain Python against the text the model "
+                "was given. These are the ways a quote fails that check - a "
+                "claim whose quote cannot be found is never stored."
+            ),
+            "source": "judge/extract/verify.py:VerificationFailure",
+        }
+    except Exception as exc:  # noqa: BLE001
+        unreadable.append(f"E5 quote verification: {exc}")
+
+    try:
+        from judge.vet.reject import RejectionTrigger
+
+        stages["E6"] = {
+            "runs": [
+                {"name": t.value, "kind": "gate", "drops": t.explain(),
+                 "undescribed": False}
+                for t in RejectionTrigger
+            ],
+            "note": (
+                "Runs AFTER the model rather than before it, because deciding "
+                "a quote is sarcastic or sponsored needs the quote."
+            ),
+            "source": "judge/vet/reject.py:RejectionTrigger",
+        }
+    except Exception as exc:  # noqa: BLE001
+        unreadable.append(f"E6 claim rejections: {exc}")
+
+    try:
+        from judge.store.board_entries import METRIC_GATES
+
+        stages["E5c"] = {
+            "runs": [
+                {"name": g.get("shows_as") or g["reason"], "kind": "gate",
+                 "drops": g["means"], "undescribed": False}
+                for g in METRIC_GATES if g["when"] == "write"
+            ],
+            "note": (
+                "Asked of every metric entry before it is stored as a figure. "
+                "A refused entry is counted by reason rather than dropped "
+                "silently."
+            ),
+            "source": "judge/store/board_entries.py:metric_refusal",
+        }
+    except Exception as exc:  # noqa: BLE001
+        unreadable.append(f"E5c metric refusals: {exc}")
+
+    return stages, unreadable
+
+
+#: ⚠ NOT A FETCH STAGE, AND FILING IT AS ONE WOULD BE WRONG. These run when
+#:   somebody OPENS A PAGE, over rows that are already stored - so they belong
+#:   beside the stages rather than inside them. A row held here is untouched in
+#:   the database and returns the moment its unit or axis is corrected.
+def _gates_after_the_run() -> tuple[list[dict], str | None]:
+    try:
+        from judge.store.board_entries import METRIC_GATES
+    except Exception as exc:  # noqa: BLE001
+        return [], str(exc)
+    return [
+        # A TEMPLATE IS NOT A NAME. `shows_as` exists for the one reason that
+        # fills in its two families at the point of refusal.
+        {"name": g.get("shows_as") or g["reason"], "kind": "gate",
+         "drops": g["means"], "undescribed": False}
+        for g in METRIC_GATES if g["when"] == "read"
+    ], None
+
+
 @app.get("/admin/stages")
 def admin_stages() -> dict:
     """What happens at each stage of a fetch, in words rather than counts.
@@ -2502,18 +3034,30 @@ def admin_stages() -> dict:
     except Exception as exc:  # noqa: BLE001
         contract_error = str(exc)
 
+    gates_by_stage, gates_unreadable = _gates_at_each_stage()
+    after_the_run, after_error = _gates_after_the_run()
+
     ids = [x for x in _STAGE_ORDER if x in stages_in_code]
     ids += sorted(set(stages_in_code) - set(_STAGE_ORDER))
 
     rows = []
     for sid in ids:
         words = described.get(sid) or {}
+        g = gates_by_stage.get(sid) or {}
         rows.append({
             "id": sid,
             "name": stages_in_code.get(sid),
             "what": (words.get("what") or "").strip() or None,
             "why": (words.get("why") or "").strip() or None,
             "undescribed": not words,
+            # WHICH GATES THIS STAGE RUNS, read from the module that runs them.
+            # Absent rather than empty where a stage gates nothing: [] would
+            # say "this stage refuses nothing", and for most stages that is
+            # true but unasked - only the stages that DO gate carry a list.
+            "gates": g.get("runs") or None,
+            "gates_same_as": g.get("same_as"),
+            "gates_note": g.get("note"),
+            "gates_source": g.get("source"),
         })
 
     return {
@@ -2524,9 +3068,862 @@ def admin_stages() -> dict:
         "contract_unreadable": contract_error,
         # A description with nothing emitting it. Named rather than dropped.
         "described_but_not_emitted": sorted(set(described) - set(stages_in_code)),
+        # ⚠ THE READ-TIME GATES, BESIDE THE STAGES RATHER THAN INSIDE THEM.
+        #   They run when somebody OPENS A PAGE, over rows already stored, so
+        #   filing them under a fetch stage would say a run refuses them. A row
+        #   held here is untouched and returns when its unit or axis is fixed.
+        "after_the_run": after_the_run or None,
+        "after_the_run_unreadable": after_error,
+        "gates_unreadable": gates_unreadable or None,
+        "source_of_gates": (
+            "the modules that enforce them - collect/triage/gates.py, "
+            "judge/extract/verify.py, judge/vet/reject.py, "
+            "judge/store/board_entries.py"
+        ),
         "note": (
             "Counts are not shown here on purpose - they are on the fetch log "
             "beside each stage, where they carry the run they belong to."
+        ),
+    }
+
+
+#: Variables whose VALUE may never leave this process. The page says "set" or
+#: "not set" and nothing else — not a prefix, not a length, not a fingerprint.
+#:
+#: MATCHED BY SUBSTRING, NOT BY EXACT NAME, deliberately. An exact list is a
+#: list somebody forgets to extend, and the cost of forgetting is a published
+#: credential. A non-secret caught by this reads as "set", which is a smaller
+#: loss than the reverse by every measure.
+_SECRET_MARKERS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "DSN", "URL", "HASH")
+
+
+def _is_secretish(name: str) -> bool:
+    return any(marker in name.upper() for marker in _SECRET_MARKERS)
+
+
+def _safe_detail(exc: BaseException) -> str:
+    """An error message with everything private to this deployment removed.
+
+    ⚠ AN EXCEPTION IS A PAYLOAD, AND THAT IS HOW A HOSTNAME GOT OUT. psycopg's
+      OperationalError names the host it failed to resolve, so an endpoint that
+      answered `503 the run log could not be read: {exc}` published the database
+      hostname to anyone who could load the page while the database was down.
+
+      Caught by this module's own sweep test in CI, where there is no database
+      and every read fails exactly that way - which is the case nobody tests by
+      hand, because locally the database answers. A message is as public as the
+      page that renders it.
+
+    Redacted by VALUE rather than by pattern: the DSN's host, user, password and
+    port are known here, so they are removed wherever they appear, including
+    inside a sentence no format string put them in.
+    """
+    text = f"{type(exc).__name__}: {exc}".strip()
+    url = (os.getenv("DATABASE_URL") or "").strip()
+    pieces: list[str] = []
+    if url:
+        pieces.append(url)
+        try:
+            parsed = urlparse(url)
+        except ValueError:
+            parsed = None
+        if parsed is not None:
+            # A password is redacted at ANY length; a one-character host is not
+            # a real risk and blanket-replacing it would mangle every message.
+            if parsed.password:
+                pieces.append(parsed.password)
+            pieces += [p for p in (parsed.hostname, parsed.username) if p and len(p) > 2]
+            try:
+                if parsed.port:
+                    pieces.append(str(parsed.port))
+            except ValueError:
+                pass
+    # Longest first, so redacting the host does not leave the full DSN
+    # half-matched and partly readable.
+    for piece in sorted(set(pieces), key=len, reverse=True):
+        text = text.replace(piece, "<withheld>")
+    # The checkout path names the account this runs under - the same objection
+    # as a machine name, reached by a different route.
+    return text.replace(str(_REPO_ROOT), "<repo>")
+
+
+@app.get("/admin/models/propose")
+def admin_models_propose(
+    action: str, registry: str = "", name: str = "", kind: str = "text"
+) -> dict:
+    """What adding or dropping a tracked model would mean. Writes nothing.
+
+    ⚠ A GET, AND THAT IS THE CONTRACT RATHER THAN AN OVERSIGHT. This surface
+      composes a proposal and changes nothing - no file, no row, no alias. The
+      thing it proposes is a change to `contract/tracked_models.yaml`, which is
+      versioned config (rule 5), so it ends in a commit somebody reviews.
+
+      `recallable` lists what the board used to show and no longer does, read
+      from that file's git history - the only record of it. Two database
+      proxies were measured and rejected: "has evidence" returns 71 models
+      that were mostly never tracked, and "has seated aliases" returns 40.
+      The history returns six.
+
+      `add` is reached only through that list. The "Add a model" control was
+      removed: it worked only for a model the registry already held, and even
+      then the board did not change until the contract edit was committed and
+      deployed - so a button reading "Add this model" left the models page
+      saying 13. See the issue for what moving tracked membership into the
+      database would cost.
+
+      A button that wrote the board's model list somewhere else would put it in
+      two places that can disagree, and the second copy would carry no review,
+      no diff and no history. On the deployment it would be worse still: the
+      filesystem is ephemeral, so a YAML edit made by the hosted UI dies at the
+      next deploy while any rows it caused survive - the contract and the
+      database disagreeing, which is the shape of the Recraft mess.
+
+    ⚠ RUN AS A SUBPROCESS BECAUSE `judge/` MAY NOT IMPORT `collect/`. Both
+      things the preview needs - `query_variants`, the project's own speller,
+      and `model_version_id`, the id the registry keys on - live on the collect
+      side. Same pattern as `/fetch/start` and `/admin/keywords`.
+    """
+    if action not in ("add", "untrack", "recallable"):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"action must be `add`, `untrack` or `recallable`, not {action!r}"
+            ),
+        )
+    if action != "recallable" and not registry.strip():
+        raise HTTPException(
+            status_code=400, detail=f"`{action}` needs a registry id"
+        )
+
+    script = _REPO_ROOT / "scripts" / "propose_model.py"
+    args = [sys.executable, str(script), f"--{action}"]
+    if registry.strip():
+        args += ["--registry", registry]
+    if action == "add":
+        args += ["--name", name, "--kind", kind]
+    try:
+        done = subprocess.run(  # noqa: S603
+            args,
+            cwd=str(_REPO_ROOT),
+            env=os.environ.copy(),
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="composing the proposal took longer than 120s and was abandoned",
+        ) from exc
+
+    # THE SCRIPT'S OWN REFUSALS COME BACK AS 400s, not as a 500. A canonical id
+    # in the wrong shape is a caller's mistake and the script already says so in
+    # a sentence; wrapping that in a server error would hide the sentence.
+    try:
+        payload = json.loads(done.stdout or "{}")
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "the proposal script produced no readable output. "
+                f"{_safe_detail(exc)}"
+            ),
+        ) from exc
+    if "error" in payload:
+        raise HTTPException(status_code=400, detail=payload["error"])
+    if done.returncode != 0:
+        raise HTTPException(
+            status_code=502,
+            detail=f"the proposal script exited {done.returncode}",
+        )
+    return payload
+
+
+@app.get("/admin/runs")
+def admin_runs(limit: int = 60) -> dict:
+    """Every fetch run this database has seen, newest first.
+
+    THE QUESTION THIS ANSWERS AND NOTHING ELSE DID. `/fetch/log` answers "how is
+    THIS run going" and needs the run_id, which you have only if you started it.
+    "What has been running, and did any of it finish?" had no reader at all — a
+    run that died was found by someone noticing a stale page.
+
+    ⚠ THE TRACKED MODELS ONLY, WHICH IS A NARROWER LIST THAN THE TABLE HOLDS.
+      `fetch_log` keeps every run ever started, including runs against models
+      since dropped from the board. A page listing those answers a question
+      nobody has: the board shows 13 models, so this shows runs for those 13.
+      How many rows that excluded is reported rather than silently dropped.
+
+    ⚠ ALIVE IS A MEASUREMENT, NOT A STATUS. A run with no `end` record is not
+      alive: a killed process writes nothing, and 22 of the 51 end records in
+      this table were written by the reaper rather than by the run. So this
+      reports SILENCE — the heartbeat beats every 60s and the gap since the last
+      line is the evidence. `looks_dead` is that measurement, stated as such,
+      and never merged with `status`.
+
+    ⚠ NO MACHINE, NOT EVEN AS A RELATION. An earlier version reported "this
+      machine" / "another host", which was already a relation rather than a
+      name. It is gone entirely: this board is hosted and has one account, so
+      every run a reader sees is simply a run of this board, and "another host"
+      was a distinction with nothing on the other side of it. The `machine`
+      column still exists and is still written; nothing reads it onto a page.
+    """
+    try:
+        rows_limit = max(1, min(int(limit), 300))
+    except (TypeError, ValueError):
+        rows_limit = 60
+
+    from judge.config import tracked_models
+
+    # WHICH MODELS THE BOARD SHOWS, from the contract rather than from a list
+    # kept here - rule 5, and the same source `/models?tracked=true` reads, so
+    # dropping a model from the board drops its runs from this page too.
+    tracked = tracked_models()
+    wanted = {t.registry for t in tracked if t.registry}
+    # ⚠ RULE 4. A tracked model with no registry id CANNOT match a run, because
+    # a run is filed under one. Gemini 3.8 Flash is that case - the poll does not
+    # carry it yet - so its absence from this page is caused by us and says so,
+    # rather than reading as "it has never been fetched".
+    unmatchable = sorted(t.name for t in tracked if not t.registry)
+
+    try:
+        with _conn() as conn:
+            # `fetch_log.model_version_id` holds an `mv_` id on newer runs and a
+            # bare canonical name on older ones, so BOTH spellings of every
+            # tracked model are matched. Resolved by query rather than by
+            # recomputing the id: the hash lives in `collect/ids.py` and the
+            # lane boundary forbids importing it.
+            ids = {
+                row[0] for row in conn.execute(
+                    "SELECT id FROM model_version WHERE canonical_id = ANY(%s)",
+                    (list(wanted),),
+                ).fetchall()
+            } | wanted
+            runs_raw = conn.execute(
+                "SELECT run_id, min(at), max(at), count(*), "
+                "       max(model_version_id) "
+                "FROM fetch_log WHERE model_version_id = ANY(%s) "
+                "GROUP BY run_id ORDER BY max(at) DESC LIMIT %s",
+                (list(ids), rows_limit),
+            ).fetchall()
+            # ⚠ RULE 7 / RULE 4. The runs this page is NOT showing, counted, so
+            # "52 runs" is not read as "every run there has ever been".
+            untracked = conn.execute(
+                "SELECT count(DISTINCT run_id) FROM fetch_log "
+                "WHERE model_version_id IS NULL OR NOT (model_version_id = ANY(%s))",
+                (list(ids),),
+            ).fetchone()[0]
+            ends = dict(
+                conn.execute(
+                    "SELECT run_id, payload FROM fetch_log WHERE kind = 'end'"
+                ).fetchall()
+            )
+            # The LAST stage line per run — where an unfinished run got to,
+            # which is the whole value of a row with no end record.
+            lasts = dict(
+                conn.execute(
+                    "SELECT DISTINCT ON (run_id) run_id, payload FROM fetch_log "
+                    "WHERE kind = 'stage' ORDER BY run_id, seq DESC"
+                ).fetchall()
+            )
+            # Documents are reported per stage; a run's total is their sum.
+            inserted = dict(
+                conn.execute(
+                    "SELECT run_id, sum((payload->>'documents_inserted')::int) "
+                    "FROM fetch_log WHERE kind = 'stage' "
+                    "  AND payload ? 'documents_inserted' GROUP BY run_id"
+                ).fetchall()
+            )
+            names = dict(
+                conn.execute(
+                    "SELECT id, coalesce(display_name, canonical_id) "
+                    "FROM model_version"
+                ).fetchall()
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=503, detail=f"the run log could not be read. {_safe_detail(exc)}"
+        ) from exc
+
+    now = datetime.now(UTC)
+    runs = []
+    for run_id, first_at, last_at, lines, mv in runs_raw:
+        end = ends.get(run_id) or {}
+        last = lasts.get(run_id) or {}
+        silent = (now - last_at).total_seconds() if last_at else None
+        finished = bool(end)
+        runs.append(
+            {
+                "run_id": run_id,
+                # `model_version_id` holds an mv_ id on newer runs and a bare
+                # canonical name on older ones. Resolved where it resolves;
+                # otherwise the raw value, which is already the name.
+                "model": names.get(mv) or mv,
+                "started_at": first_at.isoformat() if first_at else None,
+                "last_at": last_at.isoformat() if last_at else None,
+                "ran_minutes": (
+                    round((last_at - first_at).total_seconds() / 60, 1)
+                    if first_at and last_at
+                    else None
+                ),
+                "lines": lines,
+                "documents_inserted": inserted.get(run_id),
+                "finished": finished,
+                "status": end.get("status"),
+                "detail": end.get("detail"),
+                # ⚠ RULE 4. The reaper's verdict is not the run's own word, and a
+                # reader deciding whether to trust "abandoned" needs to know
+                # which of the two wrote it.
+                "ruled_by_reaper": bool(end.get("reaped")),
+                "last_stage": last.get("id"),
+                "last_stage_name": last.get("name"),
+                "last_stage_detail": last.get("detail"),
+                # THE EVIDENCE, not a second status.
+                "silent_minutes": (
+                    round(silent / 60, 1) if silent is not None else None
+                ),
+                "missed_heartbeats": (
+                    int(silent // 60)
+                    if silent is not None and not finished
+                    else None
+                ),
+                "looks_dead": bool(
+                    not finished and silent is not None and silent > 180
+                ),
+            }
+        )
+
+    return {
+        "runs": runs,
+        "count": len(runs),
+        "running_now": len(
+            [r for r in runs if not r["finished"] and not r["looks_dead"]]
+        ),
+        "unfinished_and_silent": len([r for r in runs if r["looks_dead"]]),
+        "heartbeat_seconds": 60,
+        "reaper_threshold_minutes": 45,
+        "note": (
+            "A run with no end record is not necessarily alive — a killed "
+            "process writes nothing. Missed heartbeats are the measurement. "
+            "The reaper only rules `abandoned` after 45 minutes of silence, so "
+            "between the two a corpse and a slow thread read the same."
+        ),
+        # ⚠ RULE 7. These runs out of what, and what was left out.
+        "denominator": (
+            "the shared fetch log, filtered to the models the board tracks. A "
+            "run whose database write failed is in its own file and not here."
+        ),
+        "tracked_models": len(tracked),
+        "tracked_models_matchable": len(wanted),
+        "tracked_without_a_registry_id": unmatchable,
+        **({"unmatchable_note": (
+            "No run can be listed for "
+            + ", ".join(unmatchable)
+            + ": a run is filed under a registry id and "
+            + ("these have" if len(unmatchable) > 1 else "this one has")
+            + " none yet. That is an absence this page causes, not one it found."
+        )} if unmatchable else {}),
+        "runs_for_untracked_models": untracked,
+        "excluded_note": (
+            f"{untracked} further run(s) are in the log for models the board no "
+            f"longer tracks. They are excluded, not missing."
+        ),
+    }
+
+
+def _database_target(url: str | None) -> dict[str, object]:
+    """The database NAME, and the host as a relation rather than an address.
+
+    ⚠ NOT `writeguard.describe`, AND THE DIFFERENCE IS THE AUDIENCE. `describe`
+      is right for what it is for - a log line, on the machine that wrote it -
+      and it returns `host:port/dbname`. A page is not a log line: this one is
+      served over the network, and the host is a reachable address, so printing
+      it tells every reader where to point something. The same objection that
+      removed laptop names from the usage panel applies harder to an address.
+
+      What the reader actually needs is "is this the database I meant", and the
+      NAME answers that. Whether it is local or remote answers the rest.
+    """
+    if not url or not url.strip():
+        return {"database": None, "host": None, "unset": True}
+    try:
+        parsed = urlparse(url)
+        if (parsed.scheme or "").strip().lower() not in ("postgres", "postgresql"):
+            return {"database": None, "host": None,
+                    "unreadable": "not a postgresql:// DSN"}
+        name = (parsed.path or "").lstrip("/") or None
+        host = (parsed.hostname or "").strip().lower()
+    except ValueError as exc:
+        return {"database": None, "host": None,
+                "unreadable": _safe_detail(exc)}
+    return {
+        "database": name,
+        # SAYS WHAT IT MEANS FOR THE READER. This read "a remote host", which is
+        # a phrase about the SERVER and left a reader asking what it was being
+        # told. What they can act on is that every query crosses a network -
+        # measured here at 250ms per round trip, which is the whole reason the
+        # admin page needed a connection pool.
+        "host": (
+            "this machine" if not host or host in ("localhost", "127.0.0.1", "::1")
+            else "another machine, over the network"
+        ),
+        # SAID, so that a reader does not go looking for a field that was
+        # deliberately left out and conclude it was forgotten.
+        "host_withheld": (
+            "The host and port are deliberately not shown: they are a reachable "
+            "address, and this page is served over a network."
+        ),
+    }
+
+
+@app.get("/admin/database")
+def admin_database() -> dict:
+    """Which database this is, what is in it, and whether its schema matches.
+
+    ⚠ NO CREDENTIAL. `writeguard.describe` returns `host:port/dbname` and says in
+      its own docstring why: "A DSN carries a password, so the string itself may
+      not be logged". Nothing else about the connection is reported.
+    """
+    import yaml
+
+    url = os.getenv("DATABASE_URL")
+    out: dict[str, object] = {
+        # 1 · WHICH DATABASE, AND CAN IT WRITE. The failure this answers: every
+        # INSERT in a fetch refused with "cannot execute INSERT in a read-only
+        # transaction" and no page said the connection was read-only.
+        **_database_target(url),
+        "read_only_dsn": is_read_only_dsn(url) if url else None,
+        "read_only_note": (
+            "A statement about the DSN, not about the server. A server-side "
+            "default or a role setting can make a session read-only without "
+            "appearing here — this answers only 'did we ask for read-only'."
+        ),
+        "environment": os.getenv("ENVIRONMENT", "development"),
+    }
+
+    # 2 · ROW COUNTS. The counts matter less than their RATIOS: thread_context
+    # against thread_extraction is the unread backlog, and claim against
+    # board_entry is how much of what was read reached a page.
+    tables = (
+        "model_version", "model_alias", "source",
+        "document", "thread_context", "thread_extraction", "dedup_cluster",
+        "claim", "board_entry", "cell", "capability_candidate",
+        "harvest_run", "job_run", "fetch_log", "spend_ledger", "rapidapi_quota",
+    )
+    counts: dict[str, object] = dict.fromkeys(tables)
+    applied: dict[str, str] = {}
+    ledger_error = None
+    try:
+        with _conn() as conn:
+            # ⚠ TWO QUERIES, NOT SIXTEEN, AND THE REASON IS LATENCY NOT TIDINESS.
+            #   The database is remote: measured 2026-09-17 at 250ms per round
+            #   trip and 1.58s to open a connection. A count per table is
+            #   sixteen trips - four seconds of an endpoint that answered in
+            #   under six - and the count itself is instant at these row counts.
+            #
+            #   ASKING WHICH TABLES EXIST FIRST IS WHAT KEEPS RULE 6. One query
+            #   counting all sixteen would fail ENTIRELY if any one table were
+            #   missing, and the obvious repair - fall back to zero - is exactly
+            #   the conversion rule 6 bans: a table this build does not have and
+            #   a table holding nothing are different facts. So existence is
+            #   established separately, and a table that is absent stays `None`
+            #   all the way to the page.
+            present = [
+                row[0] for row in conn.execute(
+                    "SELECT table_name FROM information_schema.tables "
+                    "WHERE table_schema = current_schema() "
+                    "AND table_name = ANY(%s)",
+                    (list(tables),),
+                ).fetchall()
+            ]
+            if present:
+                counted = conn.execute(
+                    "SELECT " + ", ".join(
+                        f'(SELECT count(*) FROM "{t}")' for t in present  # noqa: S608
+                    )
+                ).fetchone()
+                counts.update(dict(zip(present, counted, strict=True)))
+            # 4 · MIGRATIONS.
+            try:
+                applied = dict(
+                    conn.execute(
+                        "SELECT filename, content_hash FROM schema_migration"
+                    ).fetchall()
+                )
+            except Exception as exc:  # noqa: BLE001
+                conn.rollback()
+                ledger_error = _safe_detail(exc)
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=503, detail=f"the database could not be read. {_safe_detail(exc)}"
+        ) from exc
+
+    out["counts"] = counts
+    out["counts_absent_note"] = (
+        "A null is a table this database does not have. It is not zero."
+    )
+    out["migrations"] = _migration_state(applied, ledger_error)
+
+    # 5 · THE COLUMN CONTRACT.
+    try:
+        contract = yaml.safe_load(
+            (_REPO_ROOT / "contract" / "column_states.yaml").read_text(
+                encoding="utf-8"
+            )
+        ) or {}
+        states: dict[str, int] = {}
+        unreviewed = 0
+        for table in (contract.get("columns") or {}).values():
+            for column in (table or {}).values():
+                state = (column or {}).get("state")
+                if isinstance(state, str):
+                    states[state] = states.get(state, 0) + 1
+                if not (column or {}).get("reviewed"):
+                    unreviewed += 1
+        out["column_states"] = dict(sorted(states.items(), key=lambda kv: -kv[1]))
+        # ⚠ RULE 7. "256 unreviewed" is a different fact at 370 columns than at
+        # 260, so the figure travels with what it is out of.
+        out["columns_unreviewed"] = unreviewed
+        out["columns_total"] = sum(states.values())
+        out["column_states_note"] = (
+            "`write_only` is the bucket to read first: a column something "
+            "computes and nothing reads, so a value going wrong in it would be "
+            "noticed by nobody. `reserved` is declared and deliberately unused; "
+            "`unwired` is declared and not connected yet — a different repair."
+        )
+    except Exception as exc:  # noqa: BLE001
+        # ⚠ RULE 4. Said, not shown as zero columns.
+        out["column_states"] = None
+        out["column_states_unreadable"] = _safe_detail(exc)
+
+    return out
+
+
+def _migration_state(
+    applied: dict[str, str], ledger_error: str | None
+) -> dict[str, object]:
+    """Files on disk against the ledger, in the three ways they can disagree.
+
+    ⚠ THIS RECOMPUTES A HASH `collect/migrate.py` ALSO COMPUTES, AND MUST. The
+      lane boundary forbids `judge/` importing `collect/`, so the rule "sha256
+      of the file read as utf-8 text" is written twice. Verified against this
+      database on 2026-09-17: all 18 shared filenames matched, so the two
+      descriptions agree today.
+
+      The mitigation for the day they stop agreeing is that this is the READER,
+      and drift is REPORTED rather than acted on. A false alarm costs a look at
+      two files; the reverse would be a silent wrong schema.
+    """
+    import hashlib
+
+    directory = _REPO_ROOT / "contract" / "migrations"
+    disk: dict[str, str] = {}
+    try:
+        for path in sorted(directory.glob("*.sql")):
+            if path.name == "baseline.sql":
+                continue
+            disk[path.name] = hashlib.sha256(
+                path.read_text(encoding="utf-8").encode("utf-8")
+            ).hexdigest()
+    except Exception as exc:  # noqa: BLE001
+        return {"readable": False,
+                "why": f"the migration files: {_safe_detail(exc)}"}
+
+    if ledger_error is not None:
+        # A database with no ledger has had no migrations applied — the same
+        # statement, and `collect/migrate.py` says so where it creates the table
+        # on demand. But a ledger that exists and refused to be READ is a
+        # different fact, and this cannot tell the two apart, so it claims
+        # neither.
+        return {
+            "readable": False,
+            "why": f"the ledger could not be read: {ledger_error}",
+            "files_on_disk": len(disk),
+        }
+
+    pending = sorted(set(disk) - set(applied))
+    ahead = sorted(set(applied) - set(disk))
+    drifted = sorted(n for n in set(disk) & set(applied) if disk[n] != applied[n])
+    return {
+        "readable": True,
+        "files_on_disk": len(disk),
+        "applied": len(applied),
+        "agreeing": len(set(disk) & set(applied)) - len(drifted),
+        # ON DISK, NOT APPLIED. The schema is behind the code, and the failure
+        # shape is a column that does not exist, at request time.
+        "pending": pending,
+        # APPLIED, NOT ON DISK. Someone else's branch reached this database
+        # first. Harmless to read, and the reason a count alone would mislead:
+        # 18 files against 20 applied is not "2 pending".
+        "applied_not_on_disk": ahead,
+        # SAME NAME, DIFFERENT CONTENT. The one that is never benign: a file
+        # edited after it was applied means the database ran something this
+        # repo no longer contains.
+        "drifted": drifted,
+        "in_step": not pending and not drifted,
+    }
+
+
+def _what_the_extractor_is_asked() -> list[dict]:
+    """Every field the extraction schema asks a model for, and the words it
+    asks in — READ FROM THE SCHEMA AT REQUEST TIME, never transcribed.
+
+    ⚠ RULE 11, WHICH IS WHY THIS IS NOT A PAGE SOMEBODY MAINTAINS. A copy of
+      a prompt on an admin page is a count in prose with extra steps: it is
+      true the day it is pasted and silently wrong afterwards, and the reader
+      it misleads is the one person who went looking for the current wording.
+
+      `axis_verbatim`'s description has been rewritten twice in a week - once
+      because it said "REQUIRED" and "leave this empty" in one paragraph
+      (0 absent, 19 unsupported of 22 on the run that followed), and once to
+      say where a benchmark name stops. A transcription would be describing
+      neither version by now.
+
+    The descriptions ARE the prompt for these fields: they are what the
+    provider is sent as the tool-call schema. So this is the instruction
+    itself rather than a summary of it.
+    """
+    from judge.extract.schema import BoardEntry, ExtractedClaim
+
+    out: list[dict] = []
+    for model, where in ((ExtractedClaim, "claim"), (BoardEntry, "board entry")):
+        for name, field in model.model_fields.items():
+            if not field.description:
+                continue
+            out.append({
+                "object": where,
+                "field": name,
+                "required": field.is_required(),
+                "asks": field.description,
+            })
+    return out
+
+
+#: The non-negotiables, by number and headline, read out of `CLAUDE.md`.
+#:
+#: ⚠ DOTALL, AND IT RETURNED 8 OF 12 WITHOUT IT. A headline wraps when it is
+#:   long - rule 9's headline runs `A produced value has a named consumer,
+#:   or a declared reason it has none.` across two lines, so a pattern whose
+#:   `.` stopped at the line break
+#:   silently skipped every rule from 9 up. Rule 12's own shape: it did not
+#:   fail, it returned a shorter list that looked like the whole one.
+_RULE_LINE = re.compile(r"^(\d+)\. \*\*(.+?)\*\*", re.MULTILINE | re.DOTALL)
+
+
+def _the_rules() -> list[dict]:
+    """The rule numbers and headlines, parsed from the file that holds them.
+
+    HEADLINES ONLY, AND THE LINK IS THE POINT. The argument under each rule is
+    what makes it followable and it is long; reproducing it here would make
+    this endpoint a second copy of the document, which is the failure the
+    rules themselves are about. A reader who needs the reasoning opens the
+    file, and this page tells them the file exists, what is in it, and that
+    nothing here was retyped.
+    """
+    path = Path(__file__).resolve().parents[1] / "CLAUDE.md"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        # Not on the container: `.dockerignore` ships the code and not the
+        # repository. An empty list with `source_readable: false` beside it is
+        # the honest answer; a hardcoded fallback would be the stale copy this
+        # whole function exists to avoid (rule 6).
+        return []
+    start = text.find("## Non-negotiable rules")
+    end = text.find("\n## ", start + 1) if start != -1 else -1
+    if start == -1:
+        return []
+    body = text[start:end if end != -1 else len(text)]
+    # A wrapped headline arrives with its indentation in the middle of it.
+    return [{"n": int(n), "rule": " ".join(headline.split())}
+            for n, headline in _RULE_LINE.findall(body)]
+
+
+@app.get("/admin/settings")
+def admin_settings(authorization: str | None = Header(default=None)) -> dict:
+    """Who is signed in, what this is built on, and every operational cap.
+
+    ⚠ NO SECRET VALUE LEAVES THIS FUNCTION. Anything whose NAME looks
+      credential-shaped reports `set` or `not set` and nothing else — not a
+      prefix, not a length, not a hash. `AUTH_PASSWORD_HASH` is in that set: a
+      hash of a guessable password is not a safe thing to publish.
+
+    THE CAPS ARE THE POINT. "What is the current LLM reading limit?" has been
+    asked and answered by reading source. This answers it, and says whether the
+    value is the DEFAULT or an OVERRIDE — which is how you would see that a
+    `FETCH_MAX_THREADS=40` written in a file never reached the process.
+    """
+    import platform
+
+    from judge import login
+
+    # (name, default, what it does). The defaults are the ones the code falls
+    # back to when the variable is unset, so `overridden` below is a fact.
+    # A cap is listed (name, default, what it does). `EXTRACT_MAX_OUTPUT_TOKENS`
+    # is the reason the fourth field exists: it contains "TOKEN", so the
+    # substring guard below catches it and blanks it - correct as a DEFAULT, and
+    # wrong for this one, which is a number with no secret in it. Rather than
+    # weaken the guard, a cap can be RULED public by a person, here, one at a
+    # time. The guard still refuses everything nobody has ruled on.
+    cap_specs = (
+        ("FETCH_MAX_THREADS", "50",
+         "documents one fetch sends the model — the 'x of 50' on the button"),
+        ("EXTRACT_TOTAL_TIMEOUT_SECONDS", "1200",
+         "ceiling on one extraction call before it is abandoned"),
+        ("EXTRACT_MAX_OUTPUT_TOKENS", "16384",
+         "output ceiling per call; a truncated answer is refused, not trimmed",
+         # RULED PUBLIC: a token COUNT, not a token. Nothing about it narrows a
+         # guess at any credential.
+         True),
+        ("FETCH_HEARTBEAT_SECONDS", "60",
+         "how often a live run says so — and how a dead one is detected"),
+        ("FETCH_ABANDONED_AFTER_SECONDS", "2700",
+         "silence before the reaper rules a run abandoned"),
+        ("FETCH_MAX_GITHUB_SEARCHES", "60",
+         "a runaway guard, not a budget — the GitHub API is free"),
+        ("FETCH_X_PAGES", "3",
+         "X pages per model; its quota is a tenth of Reddit's"),
+        ("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash",
+         "which model reads the evidence"),
+        ("ENVIRONMENT", "development",
+         "development turns the build-fixture guard off and opens this API"),
+    )
+    caps = []
+    for spec in cap_specs:
+        name, default, why = spec[0], spec[1], spec[2]
+        ruled_public = spec[3] if len(spec) > 3 else False
+        raw = os.getenv(name)
+        secretish = _is_secretish(name) and not ruled_public
+        caps.append(
+            {
+                "name": name,
+                # The guard runs on every entry, so adding a credential to the
+                # list above cannot publish it by accident - it would have to be
+                # ruled public by hand, which is a decision with a name on it.
+                "value": None if secretish else (raw if raw is not None else default),
+                "default": None if secretish else default,
+                "overridden": raw is not None and raw != default,
+                "why": why,
+            }
+        )
+
+    # CREDENTIALS: PRESENCE ONLY. Never a value, never a prefix, never a length.
+    credentials = [
+        {"name": name, "set": bool((os.getenv(name) or "").strip())}
+        for name in (
+            "DATABASE_URL", "API_TOKEN", "SESSION_SECRET", "AUTH_PASSWORD_HASH",
+            "OPENROUTER_API_KEY", "RAPIDAPI_KEY", "GITHUB_TOKEN",
+        )
+    ]
+
+    def _installed(package: str) -> str | None:
+        try:
+            from importlib.metadata import version
+
+            return version(package)
+        except Exception:  # noqa: BLE001
+            # ⚠ RULE 6. Not installed and not askable read the same here, so
+            # this claims neither — the page says "not reported".
+            return None
+
+    web: dict[str, str] = {}
+    try:
+        manifest = json.loads(
+            (_REPO_ROOT / "web" / "package.json").read_text(encoding="utf-8")
+        )
+        declared = {
+            **(manifest.get("dependencies") or {}),
+            **(manifest.get("devDependencies") or {}),
+        }
+        web = {
+            name: declared[name]
+            for name in ("react", "react-dom", "react-router-dom", "vite")
+            if name in declared
+        }
+    except Exception:  # noqa: BLE001
+        web = {}
+
+    def _git(*args: str) -> str | None:
+        try:
+            done = subprocess.run(  # noqa: S603
+                ["git", *args],
+                cwd=str(_REPO_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except Exception:  # noqa: BLE001
+            return None
+        return (done.stdout.strip() or None) if done.returncode == 0 else None
+
+    # WHO IS ACTUALLY HOLDING THIS SESSION, read from the caller's own token
+    # rather than from configuration. `login.read` returns the email it signed,
+    # or None; the shared API_TOKEN carries no identity, and that reads as such
+    # rather than as the configured account.
+    supplied = (authorization or "").removeprefix("Bearer ").strip()
+    signed_in_as = login.read(supplied) if supplied else None
+    configured_email, configured_hash = login.account()
+
+    return {
+        "account": {
+            # The email, which the person reading this page already typed.
+            # Never the hash beside it.
+            "signed_in_as": signed_in_as,
+            "via": (
+                "a signed session"
+                if signed_in_as
+                else (
+                    "the shared API_TOKEN, which carries no identity"
+                    if supplied
+                    else "no credential — this API is open"
+                )
+            ),
+            "configured_account": configured_email or None,
+            "password_configured": bool(configured_hash),
+            "sign_in_configured": login.is_configured(),
+            "session_hours": round(login.ttl_seconds() / 3600, 1),
+            "on_demo_credentials": login.uses_published_credentials(),
+        },
+        # Whether the board is exposed at all, and why. `auth_state` already
+        # reports the demo-credentials case, which is the one that matters on
+        # anything reachable.
+        "auth": auth_state(),
+        "runtime": {
+            "python": platform.python_version(),
+            "fastapi": _installed("fastapi"),
+            "psycopg": _installed("psycopg"),
+            "pydantic": _installed("pydantic"),
+            "httpx": _installed("httpx"),
+            "uvicorn": _installed("uvicorn"),
+        },
+        "web": web,
+        "web_note": (
+            "Declared in web/package.json — the range the build resolves, not "
+            "the version a particular install pinned."
+        ),
+        # WHICH COMMIT IS RUNNING. "Is the host on the code I merged?" has been
+        # unanswerable twice, and it is two git calls.
+        "build": {
+            "commit": _git("rev-parse", "--short", "HEAD"),
+            "branch": _git("rev-parse", "--abbrev-ref", "HEAD"),
+            "committed_at": _git("log", "-1", "--format=%cI"),
+            # A deploy built from a dirty tree is not the commit it names.
+            "uncommitted_changes": bool(_git("status", "--porcelain")),
+        },
+        "build_note": (
+            "Read from the git checkout this process runs out of. A container "
+            "built without the .git directory reports nulls, which means not "
+            "askable — not that there is no commit."
+        ),
+        "caps": caps,
+        "credentials": credentials,
+        "credentials_note": (
+            "Presence only. No value, prefix, length or hash of any credential "
+            "is returned by this endpoint or rendered by this page."
         ),
     }
 
@@ -2568,6 +3965,14 @@ def admin_sources() -> dict:
 
     rulings = {str(r.get("id")): r for r in (doc.get("terms_rulings") or [])}
     platforms = list(doc.get("sources") or [])
+    # ⚠ `feeds` IS A SEPARATE TOP-LEVEL KEY AND THIS ENDPOINT NEVER READ IT.
+    #   `sources` holds the eight PLATFORMS - github, reddit, blogs, … - so the
+    #   page rendered one row reading "blogs · public feeds, then the article"
+    #   and could not name a single one of them. Eighteen feeds are seated and
+    #   producing a real share of the corpus; which ones, and whether a given
+    #   one has ever yielded anything, was answerable only by reading the
+    #   contract file.
+    feeds = list(doc.get("feeds") or [])
 
     rows: list[dict] = []
     for src in platforms:
@@ -2599,11 +4004,136 @@ def admin_sources() -> dict:
             "undescribed": access is None,
         })
 
+    # HOW MANY DOCUMENTS EACH FEED HAS ACTUALLY PRODUCED.
+    #
+    # ⚠ BEST-EFFORT, AND A FAILURE IS SAID RATHER THAN RENDERED AS ZEROS. This
+    #   endpoint answered from the contract alone and so could not fail on the
+    #   database; keeping that property matters more than the counts. If the
+    #   read fails every feed reports `documents: None` and
+    #   `counts_unreadable` carries the reason - because "this feed has
+    #   harvested nothing" and "we could not ask" are opposite claims and a 0
+    #   would make them identical (rule 6).
+    harvested: dict[str, int] = {}
+    counts_unreadable: str | None = None
+    #: ⚠ WHAT EACH PLATFORM ACTUALLY PRODUCED, which this page described and
+    #:   never counted. It listed every arm, how it is reached and whether it
+    #:   uses a key - and said nothing about whether any of it brought
+    #:   anything back. A source that has been configured and a source that
+    #:   has harvested 11,807 documents rendered identically.
+    #:
+    #: ⚠ POSTS AND COMMENTS ARE COUNTED APART, because they are not the same
+    #:   act and the split is the shape of each platform. Reddit is 1,678
+    #:   posts under 10,129 comments; dev.to and blogs are posts only, since
+    #:   `include_comments=False` on those adapters. A single `documents`
+    #:   figure would make a comment-heavy platform and an article-only one
+    #:   look like the same kind of coverage.
+    #:
+    #: ⚠ AND `readable` IS NOT DECORATION. It is the count whose gap says this
+    #:   machine cannot read part of its own corpus (#303, #316, #321): the
+    #:   raw store is content-addressed files on disk, so a payload harvested
+    #:   elsewhere is absent here with nothing recording that it ever arrived.
+    #:   Equal to `documents` on the machine that harvested them and lower
+    #:   everywhere else, which is the fact the column exists to carry.
+    corpus: list[dict] = []
+    threads: int | None = None
+    try:
+        with _conn() as conn:
+            for host, n in conn.execute(
+                "SELECT substring(external_id from 'https?://([^/]+)') AS host, "
+                "       count(*) "
+                "FROM document WHERE source = 'blog' GROUP BY 1"
+            ).fetchall():
+                if host:
+                    harvested[str(host)] = int(n)
+            corpus = [
+                {"platform": row[0], "documents": row[1], "posts": row[2],
+                 "comments": row[3], "readable": row[4]}
+                for row in conn.execute(
+                    "SELECT source, count(*), "
+                    "       count(*) FILTER (WHERE parent_id IS NULL), "
+                    "       count(*) FILTER (WHERE parent_id IS NOT NULL), "
+                    "       count(*) FILTER (WHERE text_ref IS NOT NULL) "
+                    "FROM document GROUP BY source ORDER BY count(*) DESC"
+                ).fetchall()
+            ]
+            # ONE FIGURE, NOT A COLUMN. A `thread_context` is a flattened root
+            # plus its selected children, and it carries no `source` - the
+            # members can span platforms. Rendering it per platform would
+            # require picking one, which is the kind of quiet attribution this
+            # page is supposed to make visible rather than perform.
+            threads = conn.execute(
+                "SELECT count(*) FROM thread_context"
+            ).fetchone()[0]
+    except Exception as exc:  # noqa: BLE001
+        counts_unreadable = _safe_detail(exc)
+
+    feed_rows: list[dict] = []
+    for feed in feeds:
+        fid = str(feed.get("id") or "")
+        ruling_id = feed.get("terms_ruling")
+        ruling = rulings.get(str(ruling_id)) or {}
+        evidence = feed.get("terms_evidence") or {}
+        # The host as the harvester stores it, which is what the count is keyed
+        # on. `blog:medium.com/airbnb-engineering` is one feed on a shared host,
+        # so the path is dropped and the count is the host's - said on the row
+        # rather than silently attributed to this feed alone.
+        host = fid.removeprefix("blog:").split("/")[0]
+        shared_host = sum(
+            1 for f in feeds
+            if str(f.get("id") or "").removeprefix("blog:").split("/")[0] == host
+        ) > 1
+        feed_rows.append({
+            "id": fid,
+            "site": feed.get("site"),
+            "endpoint": feed.get("endpoint"),
+            "base_trust": feed.get("base_trust"),
+            "provenance": feed.get("provenance"),
+            # WHOSE NAME GOES ON A CLAIM FROM THIS FEED, and the reason
+            # `entry` matters: it is the one value whose author is not wired
+            # (#373), so a reader of this page can see which feeds are
+            # affected without opening the issue.
+            "byline_source": ((feed.get("measured") or {}).get("byline_source")),
+            "terms_ruling": ruling_id,
+            "terms_reviewed_on": (
+                str(ruling["reviewed_on"]) if ruling.get("reviewed_on") else None
+            ),
+            # ⚠ RULE 4, AS ON THE PLATFORM ROWS. `false` means nobody read the
+            # terms document - NOT that it was read and found wanting.
+            "terms_document_read": evidence.get("terms_document_read"),
+            "robots_allows_article_path": evidence.get("robots_allows_article_path"),
+            # ⚠ `0` WHEN WE ASKED, `None` ONLY WHEN WE COULD NOT. The first
+            # version was `harvested.get(host)`, which returns None for a feed
+            # with no documents - so `mattrickard.com`, seated and genuinely
+            # empty, reported the same value as a feed we failed to count.
+            # That is precisely the conflation the comment above claims to
+            # avoid, written four lines under it.
+            "documents": (
+                harvested.get(host, 0) if counts_unreadable is None else None
+            ),
+            "count_is_for_the_host": shared_host,
+            "template_block": (feed.get("template_block") or {}).get("status"),
+        })
+    feed_rows.sort(key=lambda r: (-(r["documents"] or 0), r["id"]))
+
     described = {k for k in _ACCESS}
     in_contract = {str(x.get("id")) for x in platforms}
     return {
         "sources": rows,
         "count": len(rows),
+        # UNDER THEIR OWN KEY, not appended to `sources`. A feed is not a
+        # platform: it has no access method, no credential and no quota, and
+        # eighteen of them in a list of eight platforms would make the
+        # platform count meaningless.
+        "blog_feeds": feed_rows,
+        "blog_feed_count": len(feed_rows),
+        "blog_counts_unreadable": counts_unreadable,
+        # WHAT EACH PLATFORM PRODUCED. Under its own key rather than folded
+        # into `sources`: a platform row describes how an arm is REACHED and
+        # this describes what came back, and a source configured but never run
+        # has to stay distinguishable from one that harvested nothing.
+        "corpus": corpus,
+        # NOT PER PLATFORM, deliberately - see the comment at the query.
+        "threads": threads,
         "by_method": {
             m: sorted(r["id"] for r in rows if r.get("method") == m)
             for m in sorted({r.get("method") for r in rows if r.get("method")})
@@ -2842,9 +4372,30 @@ def admin_prompts() -> dict:
             "built_by": "judge/extract/prompt.py",
         })
 
+    # Read once per request on purpose (rule 11 - a cached copy is the
+    # stale copy), but not twice in one response.
+    rules = _the_rules()
     return {
         "prompts": prompts,
         "count": len(prompts),
+        # ⚠ THE TOOL-CALL SCHEMA IS PART OF THE PROMPT, and it was the missing
+        # half of this page. `prompts` above is the system message, the user
+        # message and the two retry corrections; the FIELD DESCRIPTIONS are
+        # sent in the same call and are what the model is actually asked to
+        # fill in. A page listing four strings and omitting seventeen field
+        # instructions describes a fraction of what the model reads.
+        #
+        # Read from the Pydantic model on every request, like everything else
+        # here. `axis_verbatim` has been rewritten twice in a week; a
+        # transcription would be describing neither version (rule 11).
+        "schema_fields": _what_the_extractor_is_asked(),
+        # NOT SENT TO A MODEL, and the page must say so. These are the
+        # constraints the pipeline is built under, not instructions the
+        # extractor reads - putting them on this page without that distinction
+        # would imply the model has been told them.
+        "rules": rules,
+        "rules_source_readable": bool(rules),
+        "read_from_source_at": datetime.now(UTC).isoformat(),
         # SAID, BECAUSE A LIST THAT LOOKS EXHAUSTIVE AND IS NOT IS WORSE THAN NO
         # LIST. Both groups are named so their absence is a statement.
         "not_shown": [
@@ -2875,6 +4426,91 @@ def admin_prompts() -> dict:
     }
 
 
+@app.get("/admin/discussed-models")
+def admin_discussed_models() -> dict:
+    """Models the board holds evidence about that the models page does not show.
+
+    ⚠ 1,076 BOARD ENTRIES ABOUT 66 MODELS WERE INVISIBLE ON EVERY SURFACE.
+      `contract/tracked_models.yaml` decides the models page; `board_entry`
+      records what engineers actually wrote about. Those two populations were
+      never compared, so evidence collected about a model nobody had chosen to
+      track had nowhere to appear:
+
+          models with board entries        78
+            on the models page             12
+            DISCUSSED but not tracked      66
+          board entries on those        1,076
+
+    ⚠ IT IS NOT A BACKLOG AND MUST NOT READ AS ONE. Nothing here is waiting to
+      be approved. A model appears because somebody wrote about it and the
+      extractor resolved the mention - which is the pipeline working, not a
+      queue forming. What the list answers is "what did we learn about things
+      we were not watching", and it is the only place that question has an
+      answer.
+
+    ⚠ AND IT IS THE SHORTLIST FOR WHAT TO TRACK NEXT, which is why the counts
+      travel with it. #464 adds three models by hand; this is where that
+      decision should be made from rather than from memory of what looked busy.
+
+    `tracked` is matched on `registry`, the `model_version.canonical_id`, not
+    on the display name: two models can share a name and one model's name
+    changes when a provider renames it, so a name match would both over- and
+    under-count and neither would be visible.
+    """
+    from judge.config import tracked_models
+
+    tracked = {t.registry for t in tracked_models() if t.registry}
+
+    try:
+        with _conn() as conn:
+            rows = conn.execute(
+                "SELECT mv.canonical_id, mv.display_name, mv.provider, "
+                "       count(*) AS entries, "
+                "       count(DISTINCT be.section) AS sections, "
+                "       count(DISTINCT be.document_id) AS documents, "
+                "       max(be.created_at) AS newest "
+                "FROM board_entry be "
+                "JOIN model_version mv ON mv.id = be.model_version_id "
+                "WHERE be.ruling IS DISTINCT FROM 'declined' "
+                "GROUP BY mv.canonical_id, mv.display_name, mv.provider "
+                "ORDER BY count(*) DESC"
+            ).fetchall()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=503, detail=_safe_detail(exc)) from exc
+
+    models = [
+        {
+            "canonical_id": r[0],
+            "display_name": r[1],
+            "provider": r[2],
+            "entries": r[3],
+            "sections": r[4],
+            "documents": r[5],
+            "newest": r[6].isoformat() if r[6] else None,
+            "tracked": r[0] in tracked,
+        }
+        for r in rows
+    ]
+    discussed = [m for m in models if not m["tracked"]]
+    return {
+        "models": discussed,
+        "count": len(discussed),
+        "entries": sum(m["entries"] for m in discussed),
+        # BOTH SIDES, so the page can say "66 of 78" rather than a bare 66.
+        # A count with no denominator is the defect this board keeps finding
+        # in its own figures (rule 7).
+        "with_entries": len(models),
+        "tracked_with_entries": len(models) - len(discussed),
+        # A TRACKED MODEL WITH NO ENTRIES IS ALSO A FACT, and it is the one a
+        # reader of the models page cannot see: the row is there and empty.
+        "tracked_total": len(tracked),
+        "note": (
+            "Evidence the board holds about models the models page does not "
+            "list. Not a queue: nothing here is awaiting approval."
+        ),
+    }
+
+
 @app.get("/admin/board-entries")
 def admin_board_entries() -> dict:
     """Discovered board sections awaiting consolidation, grouped by slug.
@@ -2891,13 +4527,43 @@ def admin_board_entries() -> dict:
     that silently merges two real sections the day it is wrong. So a person
     merges, and `documents` is the evidence they rule on.
     """
+    from judge.board_grouping import coverage, parent_of
+    from judge.config import parent_heading
     from judge.store.board_entries import list_for_review
 
     with _conn() as conn:
         groups = list_for_review(conn)
+
+    # ⚠ THE SAME HEADINGS THE BOARD RENDERS, ATTACHED HERE AT READ TIME. The
+    #   reviewer and the reader have to be looking at one arrangement: a
+    #   duplicate is found by seeing two names beside each other, and if the
+    #   admin list orders by slug while the board orders by parent, the pair a
+    #   reviewer needs to compare can be thirty rows apart here and adjacent
+    #   there.
+    #
+    # ⚠ A PARENT IS NOT A MERGE, AND THIS SURFACE IS WHERE THAT MATTERS MOST -
+    #   it is the one page with a MERGE BUTTON on it. Grouping two slugs under
+    #   one heading must not read as a proposal to merge them: `osworld-2` and
+    #   `osworld-verified` sit under `benchmark` together and are different
+    #   measurements. The heading is a way to find things, never a ruling.
+    #
+    #   `None` for an unmapped slug, and the page renders those plainly rather
+    #   than under an "other" heading - there is no catch-all parent by design
+    #   (rule 6: unmapped is absent, not a category).
+    for g in groups:
+        g["parent"] = parent_of(g["slug"], section=g["section"])
+        g["parent_name"] = parent_heading(g["parent"]) if g["parent"] else None
+
     unruled = [g for g in groups if g["ruling"] is None]
     return {
         "groups": groups,
+        # COMPUTED PER REQUEST, NEVER RECORDED (rule 11). The proposal behind
+        # `slug_parents.yaml` went stale three times in 47 minutes, and this
+        # list grows with every extraction run.
+        "parent_coverage": {
+            sec: coverage([g for g in groups if g["section"] == sec], section=sec)
+            for sec in ("best_for", "capability", "metric")
+        },
         "summary": {
             "sections": len(groups),
             "unruled": len(unruled),
@@ -3580,7 +5246,7 @@ def _rapidapi_quota(read_on: str = "reddit") -> dict:
         # ⚠ THE RELATION, NOT THE NAME. "this machine" or "another host" is the
         #   whole of what a reader acts on - is my cached figure the stale one,
         #   or somebody else's - and it is the only part that survives onto a
-        #   web page. The hostname itself said "ANOOJ" on an admin screen and
+        #   web page. The hostname itself said "machine-A" on an admin screen and
         #   bought nothing; `rapidapi_quota.machine` still records it.
         "reading_host": ("this machine" if taken_on == _this_machine_name()
                          else "another host"),

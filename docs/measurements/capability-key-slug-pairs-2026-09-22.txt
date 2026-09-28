@@ -1,0 +1,252 @@
+
+### code.editing_diff_fidelity
+    12  code-review
+     2  code-editing-diff-fidelity
+     1  n-plus-one-detection
+     1  repository-level-coding
+     1  repository-level-editing
+     1  surgical-fixes
+
+### code.generation
+    55  code-generation
+    12  agentic-tool-use
+     9  development-speed
+     7  automated-ai-rd
+     7  reasoning
+     6  instruction-following
+     5  token-efficiency
+     4  code-review
+     4  creative-writing
+     4  vision
+     3  code-fixing
+     3  coding
+     3  computer-use
+     3  cybersecurity
+     3  exploit-development
+     3  function-calling
+     3  long-context
+     3  proof-writing
+     3  visual-design
+     2  agentic-testing
+     2  automated-patching
+     2  code-quality
+     2  debugging
+     2  flow-orchestration
+     2  frontend-code-generation
+     2  generation-quality
+     2  overcomplication
+     2  proof-of-concept-generation
+     2  smart-contract-exploitation
+     2  spatial-reasoning
+     2  test-generation
+     2  vulnerability-detection
+     2  vulnerability-exploitation
+     1  3d-generation
+     1  agentic-game-play
+     1  agentic-workflow
+     1  chip-design
+     1  code-completeness
+     1  code-convention-adherence
+     1  code-regression
+     1  communication-clarity
+     1  dialogue
+     1  document-generation
+     1  gpu-compiler-writing
+     1  image-generation
+     1  long-refactors
+     1  model-downgrade
+     1  multi-host-red-team
+     1  multi-lingual-quality
+     1  no-code-generation
+     1  one-shot-accuracy
+     1  output-quality
+     1  production-reliability
+     1  reliability
+     1  research
+     1  schematic-building
+     1  schematic-editing
+     1  scientific-replication
+     1  self-verification
+     1  software-architecture
+     1  speed-of-delivery
+     1  sql-generation
+     1  svg-quality
+     1  text-to-speech-japanese
+     1  tool-use
+     1  ui-generation
+     1  visual-coherence
+     1  visual-quality
+     1  writing
+
+### context.effective_window
+    25  long-context
+     2  cyber-capability
+     2  multimodal
+     1  compaction-loss
+     1  token-counting
+
+### extraction.faithfulness
+    12  public-figure-identification
+     5  vision
+     2  false-positive-control
+     1  citation-accuracy
+     1  evidence-quality
+
+### format.structured_output
+     6  streaming
+     3  structured-output
+
+### instruction.adherence
+    67  instruction-following
+    11  vision
+     6  jailbreak-resistance
+     5  chinese-language
+     5  parameter-support
+     4  contrarian-behavior
+     4  prompt-injection-resistance
+     4  sampling-parameter-handling
+     3  agentic-behavior
+     3  agentic-testing
+     3  communication-clarity
+     3  output-clarity
+     3  output-verbosity
+     3  scope-adherence
+     2  chinese-quality
+     2  condescending-tone
+     2  cot-controllability
+     2  creative-writing
+     2  cybersecurity
+     2  english-language
+     2  image-editing
+     2  multimodal
+     2  parameter-forwarding
+     2  reasoning
+     2  reasoning-trace-security
+     2  warmth-and-listening
+     1  api-migration
+     1  audio-understanding
+     1  chain-of-thought-monitoring
+     1  chinese-language-output
+     1  consistency
+     1  english-quality
+     1  gotcha-question-handling
+     1  internet-connected-code-execution
+     1  judgment
+     1  language-quality
+     1  local-deployment
+     1  long-unattended-work
+     1  multilingual
+     1  output-completeness
+     1  quality
+     1  reasoning-trace-injection
+     1  response-emptiness
+     1  sandbox-compliance
+     1  security-refusal
+     1  style-transfer
+     1  text-in-image
+     1  writing-quality
+
+### ops.latency_ttft
+     7  latency
+     5  reasoning
+     4  speed
+     2  agentic-tool-use
+     2  api-reliability
+     2  long-context
+     2  throughput
+     1  computer-use
+     1  cost-efficiency
+     1  execution-speed
+     1  function-calling
+     1  instruction-following
+     1  persistent-reasoning
+     1  speech-to-text
+     1  tokenizer
+
+### over_refusal
+    13  vision
+     4  over-refusal
+     3  premature-completion
+     2  agentic-tool-use
+     2  biology-discussion
+     2  cybersecurity
+     2  instruction-following
+     2  safety-evaluation
+     2  sandbagging
+     2  toolchain-assumption-error
+     1  abstention
+     1  biology-classification
+     1  chain-of-thought-monitorability
+     1  communication-clarity
+     1  crash-handling
+     1  false-positive-control
+     1  hallucination
+     1  jailbreak-resistance
+     1  long-form-consistency
+     1  model-drift
+     1  over-thinking
+     1  overthinking
+     1  prompt-injection-robustness
+     1  reasoning
+     1  reasoning-effort
+     1  refusal-configuration
+     1  sabotage
+     1  security-pauses
+     1  security-refusal
+     1  self-audit
+     1  uncensored-writing
+     1  usage-limits
+     1  verification-degradation
+
+### reasoning.multistep
+    64  reasoning
+     6  mathematical-reasoning
+     5  agentic-tool-use
+     4  discovery-in-games
+     4  vulnerability-discovery
+     2  adversarial-review
+     2  investigation-depth
+     2  no-cot-reasoning
+     2  situational-awareness
+     1  architectural-reasoning
+     1  code-review
+     1  computer-use
+     1  design-planning
+     1  design-review
+     1  explainable-recommendations
+     1  game-economy-management
+     1  incident-analysis
+     1  independent-audit
+     1  investigation-breadth
+     1  letter-counting
+     1  long-horizon-cyber
+     1  long-horizon-reasoning
+     1  loop-until-dry
+     1  medical-knowledge
+     1  multi-turn-dialogue
+     1  persistent-reasoning
+     1  reasoning-effort
+     1  self-awareness
+     1  serial-arithmetic
+     1  steerable-recommendations
+     1  synthesis
+     1  tool-calling
+     1  triage
+
+### summarization.fidelity
+     3  summarization
+     1  analysis-bias
+     1  detail-retention
+
+### tool_calling.long_chain_reliability
+    12  agentic-tool-use
+     2  computer-use
+     2  long-tool-chains
+     1  autonomous-exploit-generation
+     1  reward-hacking
+     1  tool-free-recommendation
+
+### tool_calling.schema_accuracy
+     6  function-calling
+     1  agentic-tool-use
+     1  routing

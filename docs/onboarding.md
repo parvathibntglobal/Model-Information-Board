@@ -38,7 +38,7 @@ figure that could not be confirmed are different things, and only one of them
 tells you to go and check. Look for **⚠ NOT VERIFIED**.
 
 Figures below are of **2026-08-31** unless dated otherwise. Database counts are
-from `52.17.75.29/Model-information-Board`, the shared staging instance — **a row
+from `203.0.113.5/Model-information-Board`, the shared staging instance — **a row
 count is a property of an instance, never of a commit.**
 
 ---
@@ -1489,7 +1489,7 @@ non-DB set is slow.** If you were told 21 minutes, that is not reproducible here
 
 Two caveats on that, both of which could make your number differ from mine.
 The DB half's 61.6 s is **177 tests each doing `DROP SCHEMA public CASCADE`
-against a remote Postgres at `52.17.75.29`** — it is entirely
+against a remote Postgres at `203.0.113.5`** — it is entirely
 round-trip-bound, so on a worse link it will dominate, and this is the half
 most likely to have produced a 21-minute run on a bad afternoon. And that host
 was **unreachable for a whole session on 2026-08-30** (40 probes over 35

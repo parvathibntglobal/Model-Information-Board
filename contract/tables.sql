@@ -54,7 +54,18 @@ CREATE TABLE model_version (
   sources                     jsonb NOT NULL,         -- {field: {url, retrieved_at}}
 
   possibly_changed            boolean NOT NULL DEFAULT false,
-  provenance                  text NOT NULL,          -- seed | polled
+  -- seed | polled | unpolled. THREE STATES, AND ONLY ONE IS A FIXTURE.
+  --   polled    OpenRouter carries it.
+  --   seed      a BUILD FIXTURE polling replaces. `assert_no_fixtures`
+  --             refuses these outside development, and means only these.
+  --   unpolled  a real model hand-entered because no poll carries it - either
+  --             never will (Recraft, ElevenLabs, Qwen Omni: OpenRouter lists
+  --             no standalone image or speech vendor) or has not yet (Gemini
+  --             3.8 Flash). Nothing about it is a fixture and it carries real
+  --             evidence: 65 claims and 11 cells on 2026-09-23.
+  -- Added by 20260923T0500_model_version_unpolled_provenance.sql, #382. Before
+  -- it, the third state was labelled with the word that means fixture.
+  provenance                  text NOT NULL,
   in_window                   boolean NOT NULL DEFAULT true,
 
   first_seen_at               timestamptz NOT NULL DEFAULT now(),
@@ -83,7 +94,7 @@ CREATE TABLE model_version (
   last_swept_at               timestamptz,
 
   CONSTRAINT model_version_provenance_ck
-    CHECK (provenance IN ('seed', 'polled'))
+    CHECK (provenance IN ('seed', 'polled', 'unpolled'))
 );
 
 -- ============================================================================
@@ -902,6 +913,38 @@ CREATE TABLE board_entry (
   -- when the read path learned to resolve both. NULL is not backfilled:
   -- guessing from the old shape would bake an accident in as a decision.
   model_scope       text,
+
+  -- ── was this row's SLUG backed by its own quote? #368 ────────────────────
+  -- `axis_verbatim` and `subject_verbatim` are the words COPIED from the
+  -- quote, or NULL when the quote named none. They existed on the extraction
+  -- schema from #385 and were thrown away at write time: `axis_slug()` used
+  -- the axis to set `slug` and discarded it, so a stored row could not be
+  -- asked what its slug was derived from (rule 9).
+  --
+  -- The live case for `subject_verbatim`: three entries attribute a
+  -- capability to `google/gemini-2.5-flash` from a Spotify post whose quotes
+  -- say only "the worker model". A NULL here beside a non-NULL
+  -- `model_version_id` means the attribution was inferred from the document
+  -- rather than read from the quote.
+  --
+  -- ⚠ `axis_quoted` HAS THREE STATES AND NULL IS NOT false.
+  --     NULL   no check ran - created_at < 2026-09-21T10:29:16Z, when #385
+  --            merged and `axis_slug()` began running. `pipeline_version`
+  --            cannot discriminate: it is `e5.4` on both sides.
+  --     true   axis_verbatim copied AND found in the quote.
+  --     false  checked, slug not backed by the quote - either the quote named
+  --            no benchmark, or it named one that is not in it. Both are
+  --            `false` because the page's question is the same for both; the
+  --            two are counted apart per run as `axis_absent` and
+  --            `axis_unsupported` in judge/store/board_entries.py.
+  -- No DEFAULT, deliberately: `DEFAULT false` would assert that every
+  -- pre-existing row was checked and failed (rule 6). RENDER all three,
+  -- never filter on `= true`, or every NULL row vanishes from the page
+  -- silently (rule 4).
+  axis_verbatim     text,
+  subject_verbatim  text,
+  axis_quoted       boolean,
+
   pipeline_version  text NOT NULL,
   created_at        timestamptz NOT NULL DEFAULT now(),
 

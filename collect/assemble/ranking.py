@@ -265,6 +265,20 @@ class RankedChild:
     first_hand_term: float
     relevance: str
     relevance_term: float
+    #: WOULD this comment reach its subject through the ROOT's version token
+    #: rather than its own text? True when the root names a version and the
+    #: comment does not (#307, from `main`).
+    #:
+    #: ⚠ MEASURED, NOT SPENT. It does not enter `score`: inheriting the root's
+    #:   `names_version` weight would lift every zero-specificity reply off zero
+    #:   and let votes alone order that tail. The `relevance` term reads model
+    #:   names in the comment's OWN text, which is a different fact. Consumer
+    #:   (rule 9): `RedditAssemblyReport.comments_inherited_subject`, via
+    #:   `AssembledThread.subject_inherited_children`.
+    subject_inherited: bool = False
+    #: `specificity` had the inheritance been spent - carried so the size of
+    #: that change can be read off a real sweep (#307, option 3).
+    would_score: float = 0.0
 
     @property
     def external_id(self) -> str:
@@ -312,18 +326,25 @@ def rank_children(
     lexicon: ModelLexicon | None = None,
     config: RankingConfig | None = None,
 ) -> list[RankedChild]:
-    """Every child scored, highest first. Ties break on `external_id`.
+    """Every child scored, highest first. Ties break on specificity, then `external_id`.
 
     `lexicon=None` is legitimate - a caller with no registry - and makes every
     child `unknown` for relevance, which scores 0 rather than a penalty.
     """
-    from collect.triage.specificity import score_document
+    from collect.triage.specificity import (
+        names_version,
+        score_document,
+        score_if_version_inherited,
+    )
 
     config = config or ranking_config()
     subjects = thread_subjects(root_text, lexicon)
+    #: Once per thread: the root's text is the same for every child.
+    root_names_version = bool(root_text) and names_version(root_text, version_aliases)
     ranked: list[RankedChild] = []
     for comment in comments:
-        specificity = score_document(comment.body, version_aliases=version_aliases).score
+        own = score_document(comment.body, version_aliases=version_aliases)
+        specificity = own.score
         upvotes = comment.score if isinstance(comment.score, int) else None
         engagement = config.engagement_weight * math.log1p(max(upvotes or 0, 0))
         first_hand = is_first_hand(comment.body, config.first_hand_phrases)
@@ -340,8 +361,13 @@ def rank_children(
             first_hand_term=first_hand_term,
             relevance=tier,
             relevance_term=relevance_term,
+            subject_inherited=root_names_version and not own.names_version,
+            would_score=score_if_version_inherited(own),
         ))
-    ranked.sort(key=lambda r: (-r.score, r.external_id))
+    # SPECIFICITY BEFORE `external_id` (#307, option 1): equal scores are
+    # ordered by content rather than alphabetically. `external_id` stays last
+    # so a re-run produces the same row.
+    ranked.sort(key=lambda r: (-r.score, -r.specificity, r.external_id))
     return ranked
 
 

@@ -91,6 +91,41 @@ These are the rules a helpful refactor will otherwise quietly violate.
    a phrase assembled from counts, never a score. There is no 0-100 capability
    figure anywhere in the schema or the UI.
 
+   **An unshown score may ORDER a list, when every figure the list displays is
+   a count.** This is the one place a computed comparison is allowed, and the
+   conditions are what keep it from being the thing this rule forbids:
+
+   1. **The score is in no payload field.** A score in the API is one render
+      away from a page, so it is computed where the list is sorted and
+      discarded there. A score that reaches a field, a tooltip, a sort label
+      or a number on screen is the breach, however it is computed.
+   2. **The page says in words what the order rewards**, and names no formula.
+      The reader can check the words against the counts on every row.
+
+      The reader cannot reconstruct the order from the page. The words say
+      what the order **rewards**, not by how much, so a row's position is not
+      checkable against the counts beside it. That is the cost of this
+      permission, and it is why it is one permission and not a general
+      licence. (@parvathibntglobal, #472 review, 2026-09-25.)
+   3. **Its weight lives in `contract/`** (rule 5) and has no default in code
+      (rule 12).
+   4. **It orders within a group that a stated rule defines, never across the
+      groups.** A score must not decide that "nobody reported this" ranks with
+      "people reported it failing" (rule 6) - the groups do that, in words.
+
+   The instance, from 2026-09-25: the first group of a best-for or capability
+   page ("at least one report of it working") is ordered by a Wilson lower
+   bound on positive reports over reports that took a side
+   (`judge/store/board_entries.py`, `_working_key`; z in
+   `contract/board_ordering.yaml`). Neutral-only and problems-only models keep
+   their own groups, ordered by report count. It supersedes the `listIntro`
+   ruling that refused any merit ordering; ordering by positive COUNT stays
+   refused, because it rewards volume and ignores the negatives beside it.
+
+   Written into the rule rather than left in a PR because the next reader of
+   `board_entries.py` will find a score there and, reading only the first
+   paragraph, report it as a violation - correctly.
+
 4. **Silence is not criticism.** "Nobody has discussed this" must render
    distinctly from "engineers report problems". Absence of evidence must never
    read as evidence of capability.
@@ -215,6 +250,233 @@ These are the rules a helpful refactor will otherwise quietly violate.
    itemises.
    Argument and all four instances in `docs/produced-and-never-consumed.md`.
 
+10. **An identifier is the whole identifier, and a separator is not part of
+    it.** Anything used as a grouping key — a slug, an axis name, a benchmark
+    — must be copied complete, and must be compared on its characters rather
+    than on its punctuation. A prefix is a **different** identifier, and two
+    spellings of one name are the **same** one.
+
+    Three failures, one week, all on the metrics pages, and they need
+    different fixes — which is why they are one rule rather than three
+    patches:
+
+    | | example | where the fix belongs |
+    | --- | --- | --- |
+    | truncation | `aime` vs `aime-2026` | the extractor, asked |
+    | spelling | `exploitbench` vs `exploit-bench` | code, mechanically |
+    | real versions | *none — see the test below* | **must never merge** |
+
+    ⚠ **THE THIRD ROW HAS NO EXAMPLE ON PURPOSE, AND THE TEST REPLACES IT.**
+    It read `osworld` vs `osworld-2` until 2026-09-23, and that pair is a
+    **truncation** on this corpus, not two versions: every row under slug
+    `osworld` quotes *"OSWorld 2.0"*, and **0 of 14** rows mentioning OSWorld
+    quote it without a `2` and without *"Verified"*. There is no OSWorld v1
+    evidence on this board. So the example named a correct merge as the thing
+    never to do, and anybody applying it literally reverts that merge — which
+    nearly happened on #406, by the person reading the rule.
+
+    **A worked example that a correct merge would fail is worse than no
+    example**, because the example is what gets applied and the prose is what
+    gets skipped. The replacement is a test rather than a pair:
+
+    > **A prefix and a longer name are the SAME identifier when the longer
+    > name appears in the shorter row's own quote, and DIFFERENT when it does
+    > not.**
+
+    `aime` passes it — *"97.1% on AIME **2026** math"*, filed under `aime`.
+    `osworld` passes it — *"**OSWorld 2.0** latency simulations…"*, filed
+    under `osworld`. A genuine v1-against-v2 pair fails it, because the v1
+    row's quote says v1.
+
+    ⚠ **A QUOTE THAT NAMES NO BENCHMARK DECIDES NOTHING**, and the row is
+    ruled with its siblings under the slug rather than against them. Three
+    states, not two: *names it*, *names a different one*, and *names none*.
+    Without this clause the test reads an ABSENCE as the definite answer
+    "different" — rule 6 inside the rule that replaced a bad example — and
+    un-merges a correct merge. The live case is the second `osworld` row,
+    whose quote is *"Sol's 65.7 percent in about 75 minutes"*: no benchmark,
+    same document and the tail of the same sentence as the row above it,
+    correctly merged. A literal reader of the two-state version reverses that,
+    which is #406's failure with a different cause.
+
+    ⚠ **THE TEST APPLIES TO A PROPER NOUN, AND NOT TO AN ORDINARY WORD.
+    WHERE IT DOES NOT APPLY, THERE IS NO MERGE.** A benchmark, a product, a
+    dataset — `OSWorld`, `AIME`, `ExploitBench` — appears in a quote because
+    somebody named it. An ordinary English word appears because somebody was
+    writing English, and its presence says nothing about which identifier a
+    row belongs to.
+
+    **The worked case, measured 2026-09-23 over all 32 candidate pairs:**
+
+        reasoning  ->  reasoning-effort      1 LONG of 80 rows
+
+    One quote among eighty happens to contain the words *"reasoning effort"*,
+    and the mechanical test reported SAME — proposing that `reasoning`, an
+    80-entry capability slug, is a truncation of `reasoning-effort`, which
+    holds two. It is not. The word was in the text because the sentence was
+    about reasoning.
+
+    `accuracy`, `speed`, `writing`, `math`, `sql` and `quality` are the same
+    shape and are all live slugs. **On any of them the test returns an answer
+    and the answer means nothing**, which is worse than returning none — so
+    the rule is that it does not apply, rather than that it should be applied
+    carefully.
+
+    The line is not always obvious and it does not have to be: **where it is
+    unclear whether a slug is a name or a word, the test does not apply, and
+    nothing merges.** A missed merge costs a reader one extra heading. A wrong
+    one costs the board a figure filed under a benchmark nobody measured it on.
+
+    ⚠ **AND THE TEST IS PER-ROW, NOT PER-SLUG — I WROTE IT AND IT STILL READ AS
+    SLUGGABLE.** *"A prefix and a longer name"* sounds like a question about
+    two strings, so a reader answers it once for the slug and applies the
+    answer to every row under it. Every row carries its own quote, and the
+    quote is what decides.
+
+    **What that costs, measured on this corpus:**
+
+        swe-bench  ->  swe-bench-pro        1 row of 39 names it
+                                            36 of the 39 name no benchmark
+        terminal-bench -> terminal-bench-2-1  row 1 "Terminal Bench 2.1"  MERGE
+                                              row 2 "Terminal-Bench"      KEEP
+
+    Answered per slug, the first moves thirty-nine rows — including #368's
+    nine different measurements — into `swe-bench-pro` on the strength of one
+    quote. The second moves a row whose own quote names the shorter form.
+    `judge/store/board_entries.py` has `rule_entry_ids` for exactly this;
+    `rule_entries` rules a whole slug and is the wrong instrument here.
+
+    ⚠ **ONE SLUG CAN BE THE LONG SIDE OF ONE PAIR AND THE SHORT SIDE OF
+    ANOTHER** at the same time:
+
+        osworld      ->  osworld-2        `osworld-2` is the LONGER name
+        osworld-2    ->  osworld-2-0      `osworld-2` is the SHORTER name
+
+    Both are truncations and both merge, in opposite directions, and
+    `osworld-verified` fails the test against all three and stays separate.
+    Four spellings, three outcomes. A reviewer who decides once that
+    *"`osworld-2` is the real name"* and applies it everywhere gets one of
+    those two pairs wrong — so the question is asked of a pair of rows, never
+    answered for a slug.
+
+    `osworld-2` against `osworld-2-0` is also the pair that defeats both
+    mechanisms we have: `spelling_key` folds separators only, so `osworld2`
+    and `osworld20` are different keys and the look-alike badge never pairs
+    them — correct, since it is what stops `arc-agi` folding into `arc-agi-3`,
+    and unhelpful here at the same time.
+
+    **The strings cannot tell you which case you are in.** `aime`/`aime-2026`
+    and `osworld`/`osworld-2` are identical in shape and opposite in evidence,
+    and the old table presented them as different shapes. That is why the
+    third row now carries a test and no pair: any pair put there would be a
+    claim about two strings, and the distinction is not in the strings.
+
+    ⚠ **AND TODAY THE TEST CAN ONLY BE APPLIED BY READING.** `axis_verbatim`,
+    `subject_verbatim` and `axis_quoted` landed in #392 and are NULL on every
+    `board_entry` row, because the writer is unbuilt (#368 item 3). Until it
+    runs, this test is a reviewer instruction and not a check — which is the
+    second consumer for that column and an argument for it that does not
+    depend on the metric pages. #407.
+
+    **The truncation case is not two writers disagreeing.** One model's 97.1%
+    was filed under `aime` from the quote *"97.1% on AIME 2026 math"* and
+    under `aime-2026` from *"97.1% on AIME 2026"*. The full name is in both
+    quotes; the copy stopped at different depths. Both copies pass
+    `metric_refusal`'s substring check, because a substring test cannot tell a
+    complete name from a prefix.
+
+    **⚠ AND THE MECHANICAL REPAIR IS A TRAP, WHICH IS THE PART WORTH
+    REMEMBERING.** `axis_specificity` already detects a name that continues.
+    Over the 314 published figures on 2026-09-21 it fired five times and
+    **three of the five continuations were the score, not the name**:
+
+        'CyberGym'      ->  'CyberGym 84.5'       84.5% is the result
+        'ExploitBench'  ->  'ExploitBench 54.4'   54.4% is the result
+        'AIME'          ->  'AIME 2026'           a year, genuinely the name
+
+    Extending the copy automatically would invent three axes named after
+    measurements in order to repair two. Telling a year from a score is a
+    reading task, so it is **asked of the extractor** (`axis_verbatim`'s
+    description, which now says where the name stops) and **reported as a
+    weight** here, per rule 8.
+
+    **The spelling case is the opposite: code must do it, because the prompt
+    cannot.** The extractor is required to copy the axis character for
+    character — that rule is what stops a Terminal-bench figure being filed as
+    SWE-bench (#368). Two documents spelling one benchmark two ways therefore
+    *must* produce two spellings, and asking the model to normalise would be
+    asking it to write something the text does not say. `spelling_key` folds
+    separators and nothing else; it left `osworld`/`osworld-2` alone and
+    caught `over-thinking`/`overthinking` in a section nobody had looked at.
+
+    **The boundary that keeps this from becoming rule 2's problem**:
+    `normalise_slug` refuses to fold `tool-calling` into `function-calling`,
+    because that is a judgement about **meaning** and belongs to a person
+    through `ruling`. Folding a hyphen is a judgement about **nothing**. The
+    day this rule is read as licence for a synonym table it has been
+    misunderstood.
+
+11. **A count in prose is a measurement with a date, or it is a defect.** Any
+    number written into a comment, a docstring, a refusal message or a README
+    must either be **computed where it is shown**, or **stated as a record**:
+    what was counted, over what population, on what date. Never a bare present
+    tense about state the file does not own.
+
+    **Six instances, and "be more careful" has demonstrably been tried.**
+    `CLAUDE.md`'s preflight entry was wrong three times in a row, each
+    correction smaller than the last. The fixtures table above said *"ZERO
+    seed (verified 2026-08-28)"* while four seeded rows carried 65 claims
+    (#382). `weight.py`'s refusal told a reader that carrying `has_conditions`
+    *"changes nothing"* when it had come to change 1,005 documents (#384).
+
+    **The fastest instance took thirty-five minutes and was written by someone
+    who had spent that morning measuring this exact class.**
+    `board_entries.py` shipped `447 stored / 269 shown` at 10:15 on
+    2026-09-21; by 10:50 it was `471 / 290`, because a run wrote in between.
+    That comment was not decoration — it was the justification for withholding
+    at all, so a reader checking whether the trade was still fair got a number
+    two runs out of date with nothing to tell them.
+
+    The two honest forms, and they are different:
+
+    - a count the code **can** recompute — compute it, or state none. The
+      module holding an open connection can count its own rows.
+    - a count from **elsewhere** — date it and name the population, and phrase
+      it as a record: *"was 269 of 447 on 2026-09-21"*, not *"269 shown"*.
+
+    No test catches this, for rule 7's reason: a stale number is not a
+    behaviour. It is a **reviewer question** — *does this number describe now,
+    and what recounts it?* The mechanism for enforcing it in refusal messages
+    is being decided on #384.
+
+12. **A fallback that can succeed on a wrong input is not a fallback.** A
+    default, a permissive pattern or a silent coercion must fail loudly when
+    the thing it is standing in for is wrong. If it can quietly produce a
+    plausible result, it is not protecting the code — it is hiding the branch
+    where the code is broken.
+
+    **Two instances on one page, both of which passed the suite, passed the
+    linter and built clean.**
+
+    `What was measured` shipped **unreadable**. It was styled
+    `color: var(--fg, #1f2328)`, and there is no `--fg` in `tokens.css`, so
+    every cell fell through to a light-theme fallback on a board whose
+    background is `#0C0C0E`. The markup was right, the class was right, the
+    text was in the DOM. A `var()` fallback is exactly the branch that runs
+    when the name is wrong. `test_a_figure_is_one_measurement.py` now fails on
+    any rule naming an undefined custom property, and found five more.
+
+    `_HAS_QUANTITY` was `re.compile(r"\d")` — *is there a digit anywhere?* On
+    2026-09-21 it published `'matches or trails Claude Fable 5 and GPT 5.6
+    Sol'` as a measurement, because **Fable 5** and **GPT 5.6** contain
+    digits. Every modern model name does. The check had been wrong since it
+    was written and only became visible when a value arrived whose sole digits
+    were a version number (#386).
+
+    The question to ask of any default: **what does this do when I am wrong?**
+    If the answer is "produces something that looks fine", it needs to fail
+    instead.
+
 ## Stack decisions already made - do not relitigate
 
 - Python 3.11+. Postgres plus an object store. `httpx` for fetching.
@@ -227,6 +489,42 @@ These are the rules a helpful refactor will otherwise quietly violate.
 - Published content is *quote + attribution + link*, never full text.
 
 ## Conventions
+
+- **MERGE WITH A MERGE COMMIT. NEVER `--squash`, NEVER `--rebase`.**
+
+  ```
+  gh pr merge <n> --merge --delete-branch      yes
+  gh pr merge <n> --squash                     no - see below
+  ```
+
+  A squash rewrites the head commit, so the PR's `headRefOid` is no longer an
+  ancestor of `main`. `Merged PRs reached main` compares exactly that, and it
+  is the check that exists because four PRs once merged into base branches that
+  never reached `main` and nobody noticed for weeks.
+
+  **A squash turns that check red and it does not self-heal.** The check reports
+  the whole set on every run, so ONE squashed PR fails every later run and names
+  only itself - #405 and #410 were ordinary merge commits and their runs failed
+  too, pointing at #404. **A check that is red for a benign reason stops being
+  read**, which costs more than the case it was built to catch.
+
+  Measured 2026-09-23: three squash merges in one morning (#404, #414, #416),
+  two of them an hour after somebody had cleared the list for the first. The
+  only repair is a hand-verified entry in `SQUASHED_ONTO_MAIN` per PR, proving
+  base, merge-commit ancestry and patch equality - which is real work to undo a
+  keystroke.
+
+  ⚠ **AND `--squash-tolerant` IS NOT THE FIX**, though the checker offers it.
+  It compares `mergeCommit` instead, and it cannot tell a squash onto `main`
+  from a squash of a base branch that never reached `main` - **the second is
+  the defect the whole check exists for.** Turning it on globally would make
+  the check quiet and useless.
+
+  ⚠ **AND DO NOT MERGE TWO PRs IN THE SAME MINUTE.** They land in one CI
+  concurrency group and the second cancels the first, so `main` keeps a
+  `cancelled` CI result for a commit that was never tested on `main`. #414 and
+  #416 went in thirteen seconds apart on 2026-09-23 and #414's run was
+  cancelled. Wait for the first to go green.
 
 - **A RED CHECK IS `UNSTABLE`, NOT `DIRTY`, UNTIL `gh` SAYS OTHERWISE.** Read
   the state before reading the X. Three times in a row a red PR was described as
@@ -272,14 +570,35 @@ These are the rules a helpful refactor will otherwise quietly violate.
   nobody predicted - which is the only case worth running a suite for.
 
   So: **scope ruff to the diff, and scope pytest to everything.** The local
-  obstacle is that ~23 test files need Postgres and HANG rather than skip when
+  obstacle is that ~29 test files need Postgres and HANG rather than skip when
   it is absent, so an unscoped run looks like a hang rather than a result.
-  Excluding them by name is the workaround and it is the thing that goes stale
-  - the list is discoverable with
-  `grep -rln "def conn\|TEST_DATABASE_URL\|psycopg.connect" tests/`, and a
-  file added to it after that grep is the next wrong claim.
-  **A local Postgres on :5433 removes the problem rather than working around
-  it**, and is the durable fix.
+
+  **START THE DATABASE. DO NOT BUILD AN EXCLUSION LIST.**
+  `.\scripts\dev-postgres.ps1` — it is already provisioned on most machines
+  here, port 5433, `docs/dev-database.md`. Then `pytest tests` with no
+  `--ignore` at all, which is the only run that answers "did anything break".
+
+  **THE EXCLUSION GREP MISSED A FILE, WHICH IS THE THIRD INSTANCE OF THIS
+  ENTRY'S OWN LESSON.** The documented discovery command was
+  `grep -rln "def conn\|TEST_DATABASE_URL\|psycopg.connect" tests/`, and on
+  2026-09-22 it returned 27 files and **not** `tests/test_column_states.py`,
+  which needs Postgres as much as any of them. That file contains none of the
+  three patterns: its fixture is not named `conn`, it never says
+  `psycopg.connect`, and it reaches the database through
+  `from collect.db import apply_schema, connect`. So a run scoped by that grep
+  reported a clean suite while erroring on four tests it had not excluded and
+  could not have found.
+
+  If a list is unavoidable, this one is wider and still not a guarantee:
+
+  ```
+  grep -rlnE "def conn|TEST_DATABASE_URL|psycopg\.connect|[^.]\bconnect\(|apply_schema|assert_disposable" tests/ --include=*.py
+  ```
+
+  It finds 29 including `test_column_states.py`. **It is still a workaround**,
+  and the reason to keep the sentence above it is that the next file will reach
+  Postgres through a fourth spelling nobody grepped for. A list that has been
+  wrong once is evidence about the method, not about the pattern.
 
   Say which scope a claim came from. "737 tests pass" and "CI is green" are
   different statements and only one of them is about the branch.
@@ -436,6 +755,34 @@ These are the rules a helpful refactor will otherwise quietly violate.
   a follow-up commit written *because a review comment asked for it* - the moment
   you are most sure the PR is open is right after it closed.
 
+  **⚠ THIRD INSTANCE, 2026-09-21, AND THE CHECK WAS RUN. That is the part worth
+  adding.** `7ea2798` pushed to `feat/fixture-exposure-gate` after #383 merged
+  at 08:40; two measurement scripts, invisible on `main`, found only by a sweep
+  hours later. The command above WAS run first, and it printed nothing, and the
+  nothing was read as clearance.
+
+  ```
+  gh pr list --head "$(git branch --show-current)" --state open ...
+      prints a number   the PR is open, push
+      PRINTS NOTHING    there is no open PR. STOP. This is the warning.
+  ```
+
+  An empty result is the failure signal and it looks exactly like a clean
+  check - same silence, opposite meaning, and the two-command form makes it
+  worse by putting the push on the same line with `&&`. So the rule is no
+  longer "run the check"; it is **read the empty result as a refusal**, and
+  prefer a form that cannot be misread:
+
+  ```
+  gh pr list --head "$(git branch --show-current)" --state open --json number \
+    --jq 'if length == 0 then error("no open PR for this branch") else .[0].number end'
+  ```
+
+  Same family as the `UNSTABLE`/`DIRTY` entry above and as rule 4: an absence
+  that reads as a pass. The two earlier instances were a habit not followed;
+  this one was the habit followed and the output misread, which no amount of
+  remembering to run it would have caught.
+
 ## Build fixtures currently in place
 
 Load-bearing during the build and poisonous afterwards.
@@ -444,14 +791,68 @@ Load-bearing during the build and poisonous afterwards.
 |---|---|---|
 | `contract/seed_models.yaml` | 10 hardcoded models so work starts without the registry poller | When OpenRouter polling lands |
 
-**The shared database is already fully polled: 342 `model_version` rows,
-`provenance='polled'`, ZERO `seed` (verified 2026-08-28).** So on the one
-database the poisoning risk matters for, it is absent - polling has landed
-there. The file has NOT been removed, because code still references it (the
-seed loader, and `scripts/fetch_model.py`'s alias fallback), so a fresh or
-local DB can still be seeded. A fixture nobody loaded looks identical from the
-file to a fixture nobody removed, which is why this row now carries the count
-rather than only the trigger.
+**The shared database carries NO `provenance='seed'` row.** The four that did
+are now `unpolled`, which is what they always were (#382, below). That is
+stated as a rule rather than a count, because this row has already been wrong
+in both directions — read it with
+`SELECT provenance, count(*) FROM model_version GROUP BY 1`. The file has NOT
+been removed, because code
+still references it (the seed loader, and `scripts/fetch_model.py`'s alias
+fallback), so a fresh or local DB can still be seeded. A fixture nobody loaded
+looks identical from the file to a fixture nobody removed, which is why this
+row names the query rather than only the trigger.
+
+⚠ **THE FOUR WERE NOT FIXTURES, AND THAT WAS THE DEFECT.** Kept in the past
+tense as a record of what happened, not as a statement about the database
+today. This line read "ZERO
+`seed` (verified 2026-08-28)" until 2026-09-21, and went stale on 09-15 and
+again on 09-17 when Recraft V4.1 Pro, ElevenLabs v3, Qwen3.5 Omni Flash and
+Gemini 3.8 Flash were seated by `3e1c343` and `dc45b47`. They are real models
+OpenRouter does not list and never will, hand-entered so the board can link
+them; every one of the 65 claims traces to a harvested document with a real
+quote. Nothing about them is a build fixture.
+
+`provenance` allowed only `seed|polled`, so there was no value for
+"hand-entered and never going to be polled" - the third state got labelled with
+the word that means fixture, and `assert_no_fixtures` then refused it correctly
+by its own definition and wrongly by intent. Three contract files fed that one
+value (`seed_models.yaml`, `unpolled_models.yaml`, `awaiting_poll_models.yaml`),
+each added to dodge a load refusal rather than to mean something different.
+
+**`unpolled` is the third value, and both steps have landed.** The CHECK, the
+loader and the guard shipped as code, and the migration has been run:
+`provenance` on this database is now `polled` and `unpolled` with **no `seed`
+row at all**, so `assert_no_fixtures` refuses nothing it should permit.
+
+⚠ **DO NOT REPLACE THAT WITH A COUNT.** This row has now been wrong in BOTH
+directions — it claimed zero seeded rows while four existed, and it would
+claim four while zero exist. The state is a property of the database, not of
+this file, and the query is one line:
+
+```sql
+SELECT provenance, count(*) FROM model_version GROUP BY 1;
+```
+
+What this file owns is the *rule*: `seed` means build fixture and nothing
+else, `unpolled` means hand-entered and never going to be polled, and a model
+that is real but unlistable must never be labelled with the word that means
+fixture.
+
+```
+20260923T0500_model_version_unpolled_provenance.sql
+```
+
+⚠ **UNTIL THAT MIGRATION IS APPLIED TO A GIVEN DATABASE, THE WRITER IS AHEAD OF
+THE SCHEMA THERE.** `scripts/load_unpolled_models.py` now writes
+`provenance='unpolled'`, and against an un-migrated database that is a
+`CHECK` violation rather than a mislabelled row - the #260 shape, where the
+writer reached another machine on a pull and the migration reached it as a file
+nobody had run. Pull, then migrate, then load.
+
+**Do not read `provenance='seed'` as "this row is a fixture" on a database that
+has not been migrated.** After it has, `seed` means fixture again and
+`assert_no_fixtures` is unchanged in code and stricter in intent - it always
+queried `seed` exactly, which is why it needed no edit.
 
 `fixtures/hand_cells.yaml` was listed here until the Ask box was parked and the
 file deleted. The section documenting our guard against stale fixtures had gone

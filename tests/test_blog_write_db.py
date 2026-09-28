@@ -198,3 +198,53 @@ def test_a_blog_row_and_a_reddit_row_reach_platform_count_two(conn, store):
         "judge/store/cells.py counts DISTINCT document.source as platform_count; "
         "two here is what takes a cell off `insufficient` for the right reason"
     )
+
+
+# ── the harvest_run link, wired 2026-09-17 ──────────────────────────────
+
+
+def test_no_run_id_writes_no_run_for_source_and_a_null_link(conn, store):
+    """The default, and it stays TRUE for a caller with no run.
+
+    `write_blog_run` is reachable without a ledger row - every test above does
+    it - so the absence of a run must remain expressible. Replacing the old
+    hardcoded literal with the other literal would have made those callers
+    assert a run that never happened.
+    """
+    write_blog_run(conn, _run(store), store=store)
+    conn.commit()
+
+    provenance, run_id = conn.execute(
+        "SELECT retrieval_provenance, harvest_run_id FROM document"
+    ).fetchone()
+    assert provenance == "no_run_for_source"
+    assert run_id is None
+
+
+def test_a_run_id_writes_run_recorded_and_the_link(conn, store):
+    """The pair the schema refuses to let disagree.
+
+    `document_retrieval_provenance_agrees_ck` asserts
+    `(retrieval_provenance = 'run_recorded') = (harvest_run_id IS NOT NULL)`,
+    so this would be refused by the database if `_provenance` set one without
+    the other. Asserted here rather than trusted, because the constraint only
+    fires on the WRONG combination and a test that never writes the right one
+    proves nothing about the writer.
+    """
+    conn.execute(
+        "INSERT INTO source (id, platform, endpoint, base_trust, tos_notes, provenance) "
+        "VALUES ('blog:t.example', 'blog', 'https://t.example/feed', 0.9, 'x', 'seed') "
+        "ON CONFLICT (id) DO NOTHING"
+    )
+    conn.execute(
+        "INSERT INTO harvest_run (id, source_id, query_key, pipeline_version) "
+        "VALUES ('hr_test_blog', 'blog:t.example', 'https://t.example/feed', 'test')"
+    )
+    write_blog_run(conn, _run(store), store=store, harvest_run_id="hr_test_blog")
+    conn.commit()
+
+    provenance, run_id = conn.execute(
+        "SELECT retrieval_provenance, harvest_run_id FROM document"
+    ).fetchone()
+    assert provenance == "run_recorded"
+    assert run_id == "hr_test_blog"

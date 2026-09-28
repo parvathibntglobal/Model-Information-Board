@@ -168,12 +168,22 @@ def main() -> int:
     conn.rollback()
 
     verified = sum(len(r.extraction.verified) for r in results)
-    stored = sum(len(r.stored_claim_ids) for r in results)
+    # ROWS, NOT UPSERTS (#444). `len(stored_claim_ids)` counts writes, and
+    # two claims hashing to one id are two writes and one row - 35-49% of
+    # them on today's batch, because e5.5 leaves `capability_key` empty and
+    # it is part of the hash. `merged` is the difference, reported rather
+    # than hidden: which of two colliding claims survives depends on
+    # extraction order.
+    stored = sum(r.stored_claims for r in results)
+    merged = sum(r.merged_claims for r in results)
     cells = sum(len(r.cells) for r in results)
     label = f"run_all over {len(threads)} threads" if args.batch else thread.thread_context_id
     print(f"measured          {label}")
     print(f"verified claims   {verified}")
     print(f"stored claims     {stored}")
+    if merged:
+        print(f"  merged          {merged}  (same id, second write overwrote "
+              f"the first - #444)")
     print(f"cells touched     {cells}")
     if args.batch:
         print(f"per-thread wall   {total/len(threads):7.2f}s   "

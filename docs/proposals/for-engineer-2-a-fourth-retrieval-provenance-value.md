@@ -117,7 +117,7 @@ is no second shared instance.
 Three homes exist for a write in this project and only one of them is shared:
 
 ```
-DATABASE_URL / STAGING_DATABASE_URL   52.17.75.29  Model-information-Board   shared
+DATABASE_URL / STAGING_DATABASE_URL   203.0.113.5  Model-information-Board   shared
 TEST_DATABASE_URL                     localhost:5433  modelboard_test        PER MACHINE,
                                                                              DISPOSABLE
 ```

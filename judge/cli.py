@@ -24,9 +24,14 @@ WHAT THIS REFUSES TO DO
                     not "spend freely" - it is "nobody decided", and an
                     extraction run is the one command here that spends money.
 
-  --dry-run         reports what WOULD be extracted, spends nothing, and is
-                    the honest way to find out how many threads are pending
-                    without paying to find out.
+  --dry-run         reports the ledger and the budget, spends nothing, and
+                    TAKES NO WRITE GATE - `writing=` is None on this path, so
+                    it runs from a development laptop pointed at the shared
+                    database, which is where the question is usually asked.
+
+                    It does NOT report pending threads and does not open the
+                    export. Both need something this command does not have,
+                    and saying "what WOULD be extracted" claimed otherwise.
 
 THE DATABASE IS NOT GUESSED
 
@@ -117,18 +122,32 @@ def _cmd_extract(args: argparse.Namespace, *, resolver_factory=None) -> int:
             "--dry-run to see what is pending without paying to find out."
         )
 
-    with _connect(writing="judge extract") as conn:
+    # `writing=` ON A REAL RUN ONLY. It turns on `judge/writeguard.py`, which
+    # refuses ENVIRONMENT=development against a database that is not this
+    # machine - correct for a run that spends money and writes claims, and
+    # wrong for one that returns before it opens a transaction. `judge
+    # reweight` already spells it this way, and its dry run is the weaker case:
+    # that one writes inside a transaction and rolls it back, while everything
+    # this path touches below is a SELECT.
+    with _connect(writing=None if args.dry_run else "judge extract") as conn:
         ledger = ExtractionLedger(conn)
         seen = ledger.already_extracted()
         zero_yield, read = ledger.yield_rate()
         print(
             f"  {read} threads read at this pipeline version, {zero_yield} of them yielding nothing"
         )
+        # ABOVE THE DRY-RUN RETURN, so both paths report it. Below, `seen` was
+        # a query the dry run paid for and nothing read - and it is the count a
+        # dry run is being asked for.
+        print(f"  {len(seen)} threads already extracted and will be skipped")
 
         if args.dry_run:
             # Reports and spends nothing. Deliberately does NOT report a count
             # of pending threads, because that needs the thread list `collect/`
             # owns and inventing one here would be a figure with no population.
+            # The line above is ALREADY-EXTRACTED, read from `thread_extraction`
+            # at this pipeline version; it is not pending and must not be read
+            # as pending.
             print("  --dry-run: nothing extracted, nothing charged")
             if budget is not None:
                 affordable = int(budget.limit_usd / budget.estimated_next_call_usd)
@@ -143,7 +162,6 @@ def _cmd_extract(args: argparse.Namespace, *, resolver_factory=None) -> int:
                 "this run to new-evidence when you did not say so would blame "
                 "the world for a change we may have made."
             )
-        print(f"  {len(seen)} threads already extracted and will be skipped")
         if getattr(args, "from_export", None):
             resolve_surface = resolver_factory(conn) if resolver_factory is not None else None
             return _extract_from_export(
@@ -167,6 +185,70 @@ def _cmd_extract(args: argparse.Namespace, *, resolver_factory=None) -> int:
             "to catch, and cannot catch across lanes."
         )
 
+
+
+#: `collect/registry/propose.py:150`'s ROUTE_PREFIX, restated rather than
+#: imported: `tests/test_lane_boundary.py` forbids judge/ importing collect/ in
+#: either direction, with no allowlist. One character, one ruling, and the
+#: ruling is named below so a reader can find the original.
+_ROUTE_PREFIX = "~"
+
+
+def _assert_model_is_registered(conn: Any, model: str) -> None:
+    """Refuse an extractor id the registry has never polled, before paying.
+
+    WHAT THIS CATCHES. A typo, a renamed slug, or a model the vendor withdrew.
+    All three currently fail at the first API call, after the run has started,
+    the budget has been seeded and the ledger has an open row - and the error
+    that comes back is a provider 404 about a model id, which reads as an
+    outage rather than as a configuration mistake.
+
+    THREE OUTCOMES AND THEY ARE DISTINCT, because collapsing them is the defect
+    (rule 6). An empty registry is SKIPPED AND NAMED rather than counted as a
+    pass: a fresh database has no `model_version` rows, and refusing there would
+    block a legitimate first run on the absence of a poller.
+
+        registry has no rows      skipped, and says so
+        id present and a ROUTE    refused - routes are not models
+        id absent                 refused
+        id present                proceeds, and says which
+
+    A ROUTE IS REFUSED ON PURPOSE. `~vendor/model-latest` points at whatever the
+    vendor currently ships, so the model that served the request is unknown BY
+    CONSTRUCTION - which is precisely what `claim.extractor_model` exists to
+    record. Ruled 2026-08-18, `collect/registry/propose.py`: routes are not
+    models.
+    """
+    total = conn.execute("SELECT count(*) FROM model_version").fetchone()[0]
+    if not total:
+        print(
+            "  extractor not checked against the registry: model_version has 0 "
+            "rows on this database. SKIPPED, not passed - seed or poll it and "
+            "this check becomes real."
+        )
+        return
+
+    row = conn.execute(
+        "SELECT canonical_id FROM model_version WHERE canonical_id = %s", (model,)
+    ).fetchone()
+    if row is None:
+        raise SystemExit(
+            f"EXTRACTOR_MODEL is {model!r} and no row in `model_version` has that "
+            f"canonical_id, across {total} polled models. Refusing before the "
+            f"first call rather than taking a provider 404 mid-run.\n\n"
+            f"Check the spelling against the registry. If the id is right and the "
+            f"registry is stale, poll it - do not edit this check."
+        )
+    if model.startswith(_ROUTE_PREFIX):
+        raise SystemExit(
+            f"EXTRACTOR_MODEL is {model!r}, which is a ROUTE rather than a model: "
+            f"it points at whatever the vendor currently ships, so the model that "
+            f"served each request is unknown by construction.\n\n"
+            f"`claim.extractor_model` exists to record what produced a row, and a "
+            f"route makes that unanswerable. Name the model instead. "
+            f"(Routes are not models - ruled 2026-08-18.)"
+        )
+    print(f"  extractor {model} is in the registry ({total} polled models)")
 
 
 def _document_facts(
@@ -335,7 +417,7 @@ def _extract_from_export(
 
     from judge.config import capabilities
     from judge.extract import export_source
-    from judge.extract.client import OpenRouterClient
+    from judge.extract.client import OpenRouterClient, extractor_model
     from judge.pipeline import Pipeline
 
     loaded = export_source.load(Path(args.from_export))
@@ -381,11 +463,18 @@ def _extract_from_export(
     else:
         print("  surface resolver wired (registry): claims resolve by the surface written")
 
+    # ONE RESOLUTION, USED TWICE. `from_env()` calls the same function, so the
+    # model we CALL and the model we RECORD cannot diverge. They used to be two
+    # `os.getenv` reads with two separately-hardcoded fallbacks that agreed by
+    # coincidence.
+    model = extractor_model()
+    _assert_model_is_registered(conn, model)
+
     results = Pipeline(
         conn,
         client=OpenRouterClient.from_env(),
         capability_keys=list(capabilities().keys()),
-        extractor_model=os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash"),
+        extractor_model=model,
     ).run_all(
         loaded.threads,
         facts=facts,
@@ -402,7 +491,14 @@ def _extract_from_export(
     encoding = sum(r.extraction.encoding_mismatches for r in results)
     unclassified = sum(len(r.extraction.unclassified) for r in results)
     proposed = verified + rejected + unclassified
-    stored = sum(len(r.stored_claim_ids) for r in results)
+    # ROWS, NOT UPSERTS (#444). `len(stored_claim_ids)` counts writes, and
+    # two claims hashing to one id are two writes and one row - 35-49% of
+    # them on today's batch, because e5.5 leaves `capability_key` empty and
+    # it is part of the hash. `merged` is the difference, reported rather
+    # than hidden: which of two colliding claims survives depends on
+    # extraction order.
+    stored = sum(r.stored_claims for r in results)
+    merged = sum(r.merged_claims for r in results)
     cells = sum(len(r.cells) for r in results)
     retries = sum(r.extraction.schema_retries for r in results)
 
@@ -428,7 +524,12 @@ def _extract_from_export(
             f"    of which fabricated {fabricated} (absent even normalised) · "
             f"encoding {encoding} (present re-encoded, recoverable) · other {other}"
         )
-    print(f"  stored {stored} · cells {cells} · schema retries {retries}")
+    # `merged` printed only when it happened: a permanent "0 merged" on every
+    # line is furniture, and a non-zero one is the difference between what E5
+    # wrote and what the table holds (#444).
+    merged_note = f" · {merged} merged into an existing row" if merged else ""
+    print(f"  stored {stored} · cells {cells} · schema retries {retries}"
+          f"{merged_note}")
     if verified and not stored:
         # TWO CAUSES, AND THIS MUST NOT PICK ONE. `pipeline.run` drops a verified
         # claim either because the document has no facts (unweightable) or

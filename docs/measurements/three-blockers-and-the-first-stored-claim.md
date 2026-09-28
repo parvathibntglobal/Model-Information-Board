@@ -5,7 +5,7 @@ fourth, found in the render path once the first three were cleared. Nothing
 regressed — the path had never been walked end to end, and each blocker was the
 next thing to fail once the previous one stopped failing first.**
 
-*Engineer 1 · 2026-08-20 · `postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`*
+*Engineer 1 · 2026-08-20 · `postgresql://example_user@203.0.113.5:5432/Model-information-Board`*
 
 ---
 
@@ -237,7 +237,7 @@ is on a page now rather than in a column.
 
 ## 4 · Rows on staging, and the delete
 
-**DSN: `postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`**
+**DSN: `postgresql://example_user@203.0.113.5:5432/Model-information-Board`**
 
 | table | rows | added by |
 |---|---|---|

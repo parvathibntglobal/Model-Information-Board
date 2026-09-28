@@ -209,7 +209,7 @@ def main() -> int:
           f"   |  wall {secs:.1f}s  |  refused {agg['refused']}  errors {agg['errors']}")
 
     print("\ncapability   baseline:", dist(base, lambda r: r[2]))
-    print("capability  candidate:", dist(cand_claims, lambda x: x[1].capability))
+    print("capability  candidate:", dist(cand_claims, lambda x: x[1].legacy_score_key))
     print("\nspeaking     baseline:", dist(base, lambda r: r[3]))
     print("speaking    candidate:", dist(cand_claims, lambda x: x[1].model_ref.speaking))
 
@@ -222,7 +222,7 @@ def main() -> int:
         hit = b_idx.get(tc, {}).get(c.quote)
         if hit:
             shared += 1
-            cap_ok += hit[0] == c.capability
+            cap_ok += hit[0] == c.legacy_score_key
             spk_ok += hit[1] == c.model_ref.speaking
     print(f"\nverbatim-quote overlap (same sentence both extracted): {shared}")
     if shared:

@@ -152,13 +152,30 @@ class TestTheReviewListCanAddressAQuote:
         ) == {"be1", "be2", "be3"}
 
     def test_a_quote_shows_its_own_ruling(self, conn, board):
+        """⚠ MOVED, NOT WEAKENED: a ruled quote now leaves the queue.
+
+        This asserted that `quotes` carried `be3` with its `declined` ruling,
+        which was right while `quotes` held the 5 newest rows REGARDLESS of
+        ruling. It does not any more: `quotes` is the unruled queue, so that a
+        reviewer who rules five sees the next five instead of the same five
+        (see tests/test_the_review_queue_drains.py).
+
+        The claim is unchanged - a quote states its own ruling and an unruled
+        one states None - and both halves are still asserted. Only where the
+        ruled quote lives has changed, and it is asserted to have LEFT the
+        queue rather than merely to be findable, because that is the part a
+        future change could break without noticing.
+        """
         rule_entry_ids(conn, ids=["be3"], ruling="declined")
         conn.commit()
 
         [item] = list_for_review(conn)
-        by_id = {q["id"]: q["ruling"] for q in item["quotes"]}
-        assert by_id["be3"] == "declined"
-        assert by_id["be1"] is None
+        queue = {q["id"]: q["ruling"] for q in item["quotes"]}
+        receipt = {q["id"]: q["ruling"] for q in item["ruled_sample"]}
+
+        assert receipt["be3"] == "declined"
+        assert "be3" not in queue, "a ruled quote is still in the queue"
+        assert queue["be1"] is None
 
 
 class TestAMixedSlugDoesNotClaimOneRuling:

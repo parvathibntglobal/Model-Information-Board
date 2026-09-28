@@ -230,6 +230,7 @@ def assemble_reddit_thread(
         pipeline_version=version,
         selection_method=SELECTION_METHOD,
         selection=selection,
+        subject_inherited_children=sum(r.subject_inherited for r in selection.selected),
     )
 
 
@@ -252,6 +253,16 @@ class RedditAssemblyReport:
     #: does not have to be recomputed from the rows.
     comments_unread: int = 0
     posts_with_unread_comments: int = 0
+    #: Selected children that name no version of their own and would take
+    #: their thread's - "it still drops the tool call at 40k" under a root that
+    #: named the model (#307, option 4).
+    #:
+    #: ⚠ THE POPULATION, NOT A CHANGE THAT WAS MADE. Inheritance is measured
+    #:   and not spent: applying it regressed the acceptance case (a 500-vote
+    #:   "same lol" outranking a version+error correction), because it lifts
+    #:   every zero-specificity child to a flat 0.15 and hands the tail to vote
+    #:   count. This number is what option 3 needs to be argued on.
+    comments_inherited_subject: int = 0
     refusals: list[str] = field(default_factory=list)
     #: `(root document id, Selection)` per ranked thread, for the E3 log.
     #: Consumer: `scripts/fetch_model.py:assemble_stage`.
@@ -270,6 +281,16 @@ class RedditAssemblyReport:
                 f"carry comments we never fetched, {self.comments_unread} in "
                 f"total, recorded as hidden_children_min so coverage_ratio reads "
                 f"0.0 rather than NULL or 1.0"
+            )
+        if self.comments_inherited_subject:
+            share = 100 * self.comments_inherited_subject / max(self.comments_selected, 1)
+            lines.append(
+                f"subject  : {self.comments_inherited_subject} of "
+                f"{self.comments_selected} selected comment(s) "
+                f"({share:.1f}%) name no version of their own and WOULD "
+                f"inherit their thread's - measured, not applied: spending it "
+                f"raises the zero tail off zero and ranks it by vote count "
+                f"(#307, see rank_children)"
             )
         if self.comments_held:
             lines.append(
@@ -455,6 +476,11 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
         report.comments_selected += assembled.child_count
         if assembled.selection is not None:
             report.selections.append((root_document_id, assembled.selection))
+        # SKIPPED WHEN None, NEVER COALESCED. None means the path did not ask
+        # (see `AssembledThread.subject_inherited_children`); a body-only
+        # assembly selected no children at all.
+        if assembled.subject_inherited_children is not None:
+            report.comments_inherited_subject += assembled.subject_inherited_children
 
     return report
 

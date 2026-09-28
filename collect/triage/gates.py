@@ -195,11 +195,16 @@ KNOWN_BOT_COUNTED = "known-bot-counted"
 #: matched inside a longer VERSION string, so the model it will be filed against
 #: is not the model it discusses - `fable 5` inside `fable 5.1`.
 #:
-#: RECORDED AND NOT ACTED ON, which is rule 8's direction. Resolution is
-#: unchanged: the document is still attributed, still wrongly, and now COUNTED.
-#: The count is what a refusal would be promoted on, and it is also the registry
-#: work-list - N documents flagged on `fable 5` is the signal that says register
-#: Fable 5.1, arriving without anybody going looking.
+#: ACTED ON SINCE 2026-09-17, when (b) landed. The refused surface no longer
+#: attributes the document, so this flag now says what was SUBTRACTED rather
+#: than what was silently accepted. Still a flag and not a reason: a document
+#: with one clean surface and one refused surface is KEPT, and only a document
+#: left with nothing drops - through `NO_ENTITY`, which is the gate that owns
+#: that decision.
+#:
+#: It remains the registry work-list: N documents flagged on `fable 5` is the
+#: signal that says register Fable 5.1, arriving without anybody going looking.
+#: `TriageRun.near_miss_by_surface` is where that list is actually read.
 NEAR_MISS = "near-miss-not-registered"
 
 #: Every gate §8 names. An ORDER FOR REPORTING, not for execution - `triage`
@@ -211,6 +216,78 @@ GATE_ORDER = (LANGUAGE, PURE_LINK, TOO_SHORT, NO_ENTITY, OUT_OF_WINDOW, KNOWN_BO
 #: an artifact, because `TypeError: 'NoneType'` is eleven tokens and is the
 #: highest-signal thing in the corpus.
 MIN_TOKENS = 15
+
+#: ⚠ WHAT EACH GATE DROPS, IN ONE LINE, BESIDE THE GATE ITSELF. Read by
+#:   `/admin/stages` so the page can name the gates a stage runs without
+#:   transcribing them. A second copy on the page would be true the day it was
+#:   written and quietly wrong afterwards (rule 11), and the reader it misled
+#:   would be the one person who went looking for what E4 currently refuses.
+#:
+#:   A gate in `GATE_ORDER` with no entry here renders as UNDESCRIBED rather
+#:   than being omitted - the same direction `/admin/stages` already reports
+#:   drift in for stages, because a gap is the useful thing to show.
+GATE_MEANING: dict[str, str] = {
+    LANGUAGE: (
+        "Not written in a language the board reads. RECORDED, NOT GATING: no "
+        "detector is installed, and `document.lang` was NULL on 6,502 of 6,502 "
+        "rows when it was measured, so a check against it would silently pass "
+        "everything. Rule 8 - it stays a field until a distribution is "
+        "published."
+    ),
+    PURE_LINK: (
+        "A bare link with no text of its own. There is no claim to read and no "
+        "quote to verify, so sending it to the model would be paying to be "
+        "told nothing."
+    ),
+    # ⚠ THE THRESHOLD IS NAMED AND NOT COPIED. `f"Under {MIN_TOKENS} tokens"`
+    #   read better and made this dict uninterpolatable from outside the
+    #   process - and `judge/` may never import `collect/`, so the page that
+    #   shows these reads the file rather than the module. Writing `15` here
+    #   instead would be the same number in two places, which is how it comes
+    #   to be two different numbers.
+    TOO_SHORT: (
+        "Under the minimum token count (`MIN_TOKENS`) and carrying no "
+        "artifact. Below that a document is a reaction rather than a report - "
+        "unless it holds an error string, a number, code or a condition, "
+        "because `TypeError: 'NoneType'` is eleven tokens and is the "
+        "highest-signal thing in the corpus."
+    ),
+    NO_ENTITY: (
+        "Names no model this board can resolve. A document about nothing we "
+        "track cannot produce a claim about anything we show."
+    ),
+    OUT_OF_WINDOW: (
+        "Published outside the window the run asked for. The document is fine; "
+        "it answers a different question than the one being asked."
+    ),
+    KNOWN_BOT: (
+        "Posted by an account the PLATFORM ITSELF declares a bot - GitHub's "
+        "`user.type == \"Bot\"`. A generated comment is not a person "
+        "reporting, and counting it would inflate the voice count behind every "
+        "figure."
+    ),
+}
+
+#: NOT GATES, AND THE DISTINCTION IS RULE 8 IN TWO NAMES. Both are recorded on a
+#: KEPT document, because the judgement behind each was measured on a population
+#: we chose ourselves. Listed for the page so a reader can see what is watched
+#: without being dropped.
+FLAG_MEANING: dict[str, str] = {
+    KNOWN_BOT_COUNTED: (
+        "An account carrying `bot` in its login that the platform does NOT "
+        "declare a bot. Seven of them, found by grepping our own corpus - so "
+        "the document is kept and the hit is counted."
+    ),
+    NEAR_MISS: (
+        "Every surface this document resolved through was matched inside a "
+        "longer version string - `fable 5` inside `fable 5.1`. The refused "
+        "surface no longer attributes the document, and a document left with "
+        "nothing drops through NO_ENTITY, which owns that decision. This is "
+        "also the registry work-list: N documents flagged on `fable 5` is the "
+        "signal that says register Fable 5.1."
+    ),
+}
+
 
 _TOKEN = re.compile(r"\S+")
 
@@ -361,10 +438,17 @@ class TriageResult:
     #: `subject_was_inherited`, or read `all_surfaces` for the union.
     matched_surfaces: tuple[str, ...] = ()
     #: Surfaces matched ONLY inside a longer version string - `fable 5` in
-    #: `fable 5.1`. A SUBSET of `matched_surfaces`, never disjoint from it, which
-    #: is the reading three separate counts have now got wrong: these surfaces
-    #: DID resolve and DID attribute the document. The flag `NEAR_MISS` fires
-    #: only when every matched surface is one of these.
+    #: `fable 5.1` - and therefore REFUSED.
+    #:
+    #: ⚠  DISJOINT FROM `matched_surfaces` SINCE (b) LANDED 2026-09-17, and a
+    #:    SUBSET of it before. These surfaces no longer resolve and no longer
+    #:    attribute the document. Any reading that assumes the old relation is
+    #:    reading a version of this dataclass that no longer exists.
+    #:
+    #: READ BY `triage_all`, which tallies them into
+    #: `TriageRun.near_miss_by_surface` - the registry work-list. Rule 9: this
+    #: field was set here and read by NOTHING, anywhere, including tests, from
+    #: 2026-09-08 until that tally was written.
     near_miss_surfaces: tuple[str, ...] = ()
     #: Surfaces matched in the THREAD ROOT'S text and not in this document's.
     #: Empty unless the platform supplied a root (Hacker News alone today) and
@@ -697,7 +781,7 @@ def triage(
         inherited_surfaces=inherited,
         flags=(
             (KNOWN_BOT_COUNTED,) if counted is True else ()
-        ) + ((NEAR_MISS,) if resolution.only_near_misses else ()),
+        ) + ((NEAR_MISS,) if resolution.has_near_miss else ()),
         near_miss_surfaces=resolution.near_misses,
         population_fingerprint=population.fingerprint,
     )
@@ -721,6 +805,14 @@ class TriageRun:
     #: JUDGEMENT SHOULD BECOME A GATE: it is what the check WOULD have dropped,
     #: measured on documents it did not drop. Rule 8's evidence, in a counter.
     by_flag: dict[str, int] = field(default_factory=dict)
+    #: refused surface -> documents it was refused on. THE REGISTRY WORK-LIST,
+    #: and the reader `TriageResult.near_miss_surfaces` did not have.
+    #:
+    #: Per SURFACE rather than a total, because the total says a number and the
+    #: breakdown says what to do: `fable 5` on 157 documents names the model to
+    #: register. Rule 7 applies to the entries - each is a count of documents
+    #: within this run, not a rate over the corpus.
+    near_miss_by_surface: dict[str, int] = field(default_factory=dict)
     #: Documents the subject gate kept on their THREAD'S subject rather than
     #: their own text. Counted separately because they were triaged at a
     #: DIFFERENT READING UNIT, and a survival rate that pools two units is a
@@ -778,6 +870,20 @@ class TriageRun:
                 "cost, measured on the documents it did not drop - which is "
                 "the evidence rule 8 asks for before a weight becomes a gate."
             )
+        if self.near_miss_by_surface:
+            top = ", ".join(
+                f"{surface} ({n})"
+                for surface, n in sorted(
+                    self.near_miss_by_surface.items(), key=lambda kv: -kv[1]
+                )[:8]
+            )
+            lines.append(
+                f"  SURFACES REFUSED AS NEAR MISSES: {top}. Each is a surface "
+                "that matched only inside a longer version string, so it did "
+                "NOT attribute the document. This is the registry work-list: a "
+                "surface here in quantity names a model somebody should "
+                "register, and it arrives without anybody going looking."
+            )
         if self.subject_inherited:
             share = 100 * self.subject_inherited / self.total
             lines.append(
@@ -809,6 +915,10 @@ def triage_all(documents, **kwargs) -> tuple[list[TriageResult], TriageRun]:
             run.not_applicable[gate] = run.not_applicable.get(gate, 0) + 1
         for flag in r.flags:
             run.by_flag[flag] = run.by_flag.get(flag, 0) + 1
+        for surface in r.near_miss_surfaces:
+            run.near_miss_by_surface[surface] = (
+                run.near_miss_by_surface.get(surface, 0) + 1
+            )
         if r.subject_was_inherited:
             run.subject_inherited += 1
     return results, run

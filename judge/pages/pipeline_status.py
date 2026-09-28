@@ -117,6 +117,35 @@ def _one(conn: Any, sql: str) -> tuple:
     return row if row is not None else ()
 
 
+def _provenance_caveat(*, total: int, seed: int, polled: int,
+                       unpolled: int) -> str:
+    """The E1 breakdown, always said, and it admits when it does not add up.
+
+    ⚠ UNCONDITIONAL, WHICH IS THE POINT. The version this replaced was
+      `... if r[3] else None` - it spoke only while fixtures were present, so
+      the moment #404's migration took `seed` to 0 the line vanished and a
+      reader lost the polled count too. A breakdown that disappears when one
+      of its parts is empty is a breakdown that is absent exactly when the
+      absence is the interesting fact (rule 4).
+
+    ⚠ AND A FOURTH VALUE WOULD ARRIVE THE SAME WAY THIS ONE DID. The CHECK
+      allows three today; if a fifth provenance is added and this function is
+      not, the named counts stop summing to the total. So it checks, and says
+      so in the caveat rather than rendering three numbers that quietly do not
+      add up. That is the whole defect being repaired here, and it costs one
+      comparison to make it impossible to repeat silently.
+    """
+    parts = f"{seed} seeded, {polled} polled, {unpolled} unpolled"
+    tail = " — seeded rows are refused outside development." if seed else "."
+    named = seed + polled + unpolled
+    if named != total:
+        return (
+            f"{parts}{tail} ⚠ {total - named} row(s) carry a provenance this "
+            "page does not name, so the breakdown does not sum to the total."
+        )
+    return parts + tail
+
+
 class PipelineStatus:
     """Reads counts and the run ledger. Writes nothing."""
 
@@ -168,12 +197,29 @@ class PipelineStatus:
             {
                 "id": "E1", "name": "Registry", "lane": "collect",
                 "flow": "OpenRouter poll / seed → model_version", "unit": "models",
+                # ⚠ THREE PROVENANCES, AND THIS COUNTED TWO UNTIL #404 (2026-09-23).
+                #   `unpolled` arrived with the migration - a real model no poll
+                #   will ever carry, hand-entered, and NOT a fixture. Four rows
+                #   took it. This query named `seed` and `polled` and nothing
+                #   else, so those four fell out of the breakdown while staying
+                #   in the total, and `r[3] + r[4]` silently stopped equalling
+                #   `r[0]`.
+                #
+                # ⚠ THE CAVEAT WAS ALSO GATED ON `if r[3]`, WHICH IS THE WORSE
+                #   HALF. After the migration `seed` is 0 on staging, so the
+                #   whole line disappeared - taking the polled count with it -
+                #   and a reader could not tell "no unpolled models" from "this
+                #   page cannot see unpolled models". Rule 4 at the page, and
+                #   the same shape #404 was fixing in the data one layer down.
+                #   It is unconditional now: the breakdown is a fact about the
+                #   registry whether or not any fixture is present.
                 "sql": """
                     SELECT count(*),
                       count(*) FILTER (WHERE in_window),
                       count(*) FILTER (WHERE NOT in_window),
                       count(*) FILTER (WHERE provenance = 'seed'),
-                      count(*) FILTER (WHERE provenance = 'polled')
+                      count(*) FILTER (WHERE provenance = 'polled'),
+                      count(*) FILTER (WHERE provenance = 'unpolled')
                     FROM model_version
                 """,
                 "map": lambda r: (
@@ -182,8 +228,8 @@ class PipelineStatus:
                         b("out_window", "out of window", r[2], "mute"),
                     ],
                     r[0],
-                    (f"{r[3]} seeded, {r[4]} polled — seeded rows are refused outside "
-                     "development." if r[3] else None),
+                    _provenance_caveat(total=r[0], seed=r[3], polled=r[4],
+                                       unpolled=r[5]),
                 ),
             },
             {

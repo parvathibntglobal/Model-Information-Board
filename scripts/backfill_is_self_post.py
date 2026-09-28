@@ -185,6 +185,13 @@ def main(argv=None) -> int:
     )
     args = parser.parse_args(argv)
 
+    # THE WRITEGUARD, BEFORE THE CONNECTION (#328). The dsn arrives as an
+    # argument here rather than from the environment, which is exactly why it
+    # needs checking: `--database-url` defaults to DATABASE_URL and a caller
+    # can also pass a shared host explicitly.
+    from judge.writeguard import check as writeguard_check
+    writeguard_check(args.database_url, command="backfill_is_self_post.py")
+
     store = RawStore(Path(settings().raw_store_path))
     conn = connect(args.database_url)
     try:

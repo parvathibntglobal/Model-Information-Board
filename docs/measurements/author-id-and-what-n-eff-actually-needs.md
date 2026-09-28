@@ -18,7 +18,7 @@ Three results, in the order they were measured:
    cell** during a launch window, or 112 outside one. The thread has 152
    commenters in total.
 
-*Engineer 1 · 2026-08-21 · measured against `52.17.75.29/Model-information-Board`*
+*Engineer 1 · 2026-08-21 · measured against `203.0.113.5/Model-information-Board`*
 
 ---
 

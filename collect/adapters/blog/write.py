@@ -85,21 +85,49 @@ from collect.adapters.blog.parse import (
 from collect.assemble.article import ArticleInput, assemble_article, document_row
 from collect.rawstore import RawStore
 
+#: THE LITERAL BECAME A PARAMETER, WHICH IS THE MIGRATION IT WAS WRITTEN FOR.
+#:
+#: This SQL carried `'no_run_for_source'` hardcoded, with a comment saying a feed
+#: fetch "could become a run row later and move these documents to
+#: `run_recorded` — this literal is what makes that a VISIBLE migration rather
+#: than a silent reinterpretation of NULLs". `harvest_blogs.py` opens a
+#: `harvest_run` row as of 2026-09-17, so that is what this is.
+#:
+#: BOTH VALUES STAY REACHABLE, and that is deliberate rather than transitional.
+#: A caller with no run — `write_blog_run` called directly, as the tests do —
+#: still writes `no_run_for_source`, which remains TRUE for it. Replacing the
+#: literal with the other literal would have made every such caller assert a run
+#: that did not happen.
+#:
+#: `document_retrieval_provenance_agrees_ck` forbids the two columns
+#: disagreeing, so they are computed together in `_provenance` and never passed
+#: separately.
 _DOCUMENT_SQL = (
     "INSERT INTO document (id, source, external_id, url, created_at, fetched_at, "
-    "text_ref, content_hash, author_id, status, retrieval_provenance) "
+    "text_ref, content_hash, author_id, status, retrieval_provenance, "
+    "harvest_run_id) "
     "VALUES (%(id)s, %(source)s, %(external_id)s, %(url)s, %(created_at)s, now(), "
-    # `no_run_for_source`, TYPED RATHER THAN DEFAULTED, and not permanent. A feed
-    # fetch renders no query and writes no `harvest_run` row, so a NULL
-    # `harvest_run_id` here is complete rather than missing. `validators.py`
-    # already names `feed_url` as the natural `watermark.query_key`, so a feed
-    # fetch could become a run row later and move these documents to
-    # `run_recorded` — this literal is what makes that a VISIBLE migration
-    # rather than a silent reinterpretation of NULLs that were never
-    # distinguishable in the first place.
-    "%(text_ref)s, %(content_hash)s, %(author_id)s, %(status)s, 'no_run_for_source') "
+    "%(text_ref)s, %(content_hash)s, %(author_id)s, %(status)s, "
+    "%(retrieval_provenance)s, %(harvest_run_id)s) "
     "ON CONFLICT (source, external_id) DO NOTHING"
 )
+
+
+def _provenance(harvest_run_id: str | None) -> dict[str, object]:
+    """The two columns the schema refuses to let disagree, decided once.
+
+    `document_retrieval_provenance_agrees_ck` asserts
+    `(retrieval_provenance = 'run_recorded') = (harvest_run_id IS NOT NULL)`,
+    so a caller that set one and forgot the other would be refused by the
+    database. Computing both here means no call site can reach that refusal.
+
+    `not_recorded` is NOT produced here. It is the column DEFAULT and means
+    "written before anybody recorded provenance" — a state about the past that
+    a live writer must never claim.
+    """
+    if harvest_run_id is None:
+        return {"retrieval_provenance": "no_run_for_source", "harvest_run_id": None}
+    return {"retrieval_provenance": "run_recorded", "harvest_run_id": harvest_run_id}
 
 #: Read the row back by the key the INSERT used, not by the id we computed.
 #: See `write_blog_run` — this is the whole point of the two-step.
@@ -188,7 +216,12 @@ class BlogAssembleReport:
 
 
 def write_blog_run(
-    conn, run, *, store: RawStore, feed: Mapping[str, Any] | None = None
+    conn,
+    run,
+    *,
+    store: RawStore,
+    feed: Mapping[str, Any] | None = None,
+    harvest_run_id: str | None = None,
 ) -> BlogAssembleReport:
     """Assemble and write every stored article in one `FeedRun`.
 
@@ -289,13 +322,17 @@ def write_blog_run(
         # computed — and assembly is handed the id THE DATABASE HOLDS. If the
         # two conventions ever disagree, the read returns a different id and the
         # member list is wrong in a way the check below can see.
-        document = document_row(
-            article,
-            text_ref=article_fetch.artifact.ref,
-            content_hash=article_fetch.artifact.content_hash,
-            published_at=article_fetch.entry.published_at,
-            author_id=author_id,
-        )
+        document = {
+            **document_row(
+                article,
+                text_ref=article_fetch.artifact.ref,
+                content_hash=article_fetch.artifact.content_hash,
+                published_at=article_fetch.entry.published_at,
+                author_id=author_id,
+            ),
+            # Both columns or neither - see `_provenance`.
+            **_provenance(harvest_run_id),
+        }
         cursor = conn.execute(_DOCUMENT_SQL, document)
         inserted = max(0, cursor.rowcount)
         report.documents_inserted += inserted

@@ -1,6 +1,6 @@
 # The RapidAPI window is 30 days, measured — and the projection is stable
 
-*2026-09-16 · ANOOJ · two metered requests, one per arm · bodies discarded*
+*2026-09-16 · machine-A · two metered requests, one per arm · bodies discarded*
 
 ## The answer
 

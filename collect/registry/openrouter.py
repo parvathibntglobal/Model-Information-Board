@@ -121,6 +121,21 @@ def _per_million(per_token: Any) -> float | None:
     return value * 1_000_000
 
 
+#: OpenRouter's `expiration_date` for "never expires". On the wire it is a
+#: date; as a retirement date it is a placeholder for ABSENCE, and storing it
+#: made a definite claim the feed never made (rule 6). It reached
+#: `model_alias.valid_until` through `alias_rows`, and the sweep - which reads
+#: `valid_until IS NULL` - stopped searching GLM-5.3 while fetch_model, which
+#: reads `> now()`, kept searching it (#460).
+NEVER_EXPIRES = date(2098, 12, 31)
+
+
+def _retirement_of(value: Any) -> date | None:
+    """`expiration_date` to a retirement date, with the never-expires value absent."""
+    parsed = _date_of(value)
+    return None if parsed == NEVER_EXPIRES else parsed
+
+
 def _date_of(value: Any) -> date | None:
     """An epoch or an ISO string to a date, or None. Never today's date."""
     if value in (None, "", 0):
@@ -244,7 +259,7 @@ def map_model(entry: dict[str, Any], *, retrieved_at: datetime,
     values: dict[str, Any] = {
         "display_name": entry.get("name") or None,
         "release_date": _date_of(entry.get("created")),
-        "retirement_date": _date_of(entry.get("expiration_date")),
+        "retirement_date": _retirement_of(entry.get("expiration_date")),
         "knowledge_cutoff": _date_of(entry.get("knowledge_cutoff")),
         "advertised_context": entry.get("context_length") or None,
         "max_output_tokens": top.get("max_completion_tokens") or None,
@@ -298,6 +313,8 @@ class PollResult:
     tier_entries: int
     content_hash: str | None = None
     ref: str | None = None
+    #: `~vendor/family-latest` pointer entries skipped (they carry `alias_target`).
+    alias_entries: int = 0
 
     @property
     def distinct_models(self) -> int:
@@ -306,7 +323,8 @@ class PollResult:
     def describe(self) -> str:
         return (
             f"{self.raw_entries} feed entries -> {self.distinct_models} models "
-            f"({self.tier_entries} service-tier entries folded in)"
+            f"({self.tier_entries} service-tier entries folded in, "
+            f"{self.alias_entries} alias pointer entries skipped)"
         )
 
 
@@ -355,11 +373,20 @@ def parse_models(payload: Any, *, retrieved_at: datetime) -> PollResult:
     by_base: dict[str, dict[str, Any]] = {}
     batch_by_base: dict[str, dict[str, Any]] = {}
     tier_count = 0
+    alias_count = 0
     for entry in entries:
         if not isinstance(entry, dict):
             continue
         model_id = str(entry.get("id") or "")
         if not model_id:
+            continue
+        # ⚠ A `~vendor/family-latest` ENTRY IS A POINTER, NOT A MODEL. The
+        #   catalogue marks it with `alias_target` naming the real model -
+        #   `~openai/gpt-astra-latest` -> `openai/gpt-6-astra` - and writing it
+        #   as a row gives one model two registry ids and splits its evidence.
+        #   12 such rows were written by the 2026-08 polls. Skipped and COUNTED.
+        if entry.get("alias_target"):
+            alias_count += 1
             continue
         base = base_id(model_id)
         if model_id.endswith(":batch"):
@@ -377,7 +404,8 @@ def parse_models(payload: Any, *, retrieved_at: datetime) -> PollResult:
                   batch_sibling=batch_by_base.get(base))
         for base, entry in sorted(by_base.items())
     )
-    return PollResult(retrieved_at, len(entries), models, tier_count)
+    return PollResult(retrieved_at, len(entries), models, tier_count,
+                      alias_entries=alias_count)
 
 
 def undeclared_models(models: tuple[PolledModel, ...], declared: Any) -> tuple[str, ...]:
@@ -532,7 +560,7 @@ def write_model_versions(
                 provenance                 = 'polled',
                 updated_at                 = now()
                 -- last_swept_at is NOT touched. See the docstring.
-            RETURNING id, (xmax = 0) AS was_insert
+            RETURNING id, (xmax = 0) AS was_insert, canonical_id
             """
 
     # The id travels back with the verdict rather than the caller re-deriving it
@@ -540,6 +568,7 @@ def write_model_versions(
     # the wrong model by an off-by-one is a defect nobody would see: it would
     # read as a real price change on a real model.
     verdicts: dict[str, bool] = {}
+    row_id_of: dict[str, str] = {}
     with conn.cursor() as cur:
         for start in range(0, len(params), batch):
             cur.executemany(statement, params[start:start + batch], returning=True)
@@ -549,8 +578,27 @@ def write_model_versions(
                 outcome = cur.fetchone() if cur.pgresult is not None else None
                 if outcome is not None:
                     verdicts[outcome[0]] = bool(outcome[1])
+                    row_id_of[outcome[2]] = outcome[0]
                 if not cur.nextset():
                     break
+
+    # ⚠ THE ROW'S ID, NOT THE ONE COMPUTED ABOVE. The upsert matches on
+    #   `canonical_id`, so a row that already exists under a DIFFERENT id - a
+    #   hand-entered model the catalogue has since started listing - is updated
+    #   in place and keeps its own id. Everything written after this point
+    #   (`pricing_history`, `model_event`) is keyed on `model_version_id`, and
+    #   keying it on `stable_id` pointed it at a row that does not exist: the
+    #   first scheduled poll, 2026-09-24, died on a foreign-key violation for
+    #   `anthropic/claude-fable-5.1`, whose row id is `anthropic/claude-fable-5-1`.
+    #   Re-keying the row instead would move every claim that points at it.
+    #   A canonical_id the upsert returned no row for is a defect, so it raises.
+    missing = [p["canonical_id"] for p in params if p["canonical_id"] not in row_id_of]
+    if missing:
+        raise RuntimeError(
+            f"upsert returned no row for {len(missing)} model(s): {missing[:5]}"
+        )
+    for p in params:
+        p["id"] = row_id_of[p["canonical_id"]]
 
     counts = {
         "inserted": sum(1 for was_insert in verdicts.values() if was_insert),

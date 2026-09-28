@@ -49,8 +49,9 @@ import sys
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlsplit
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT =Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from dotenv import load_dotenv  # noqa: E402
@@ -125,8 +126,14 @@ def main(argv=None) -> int:
     ap.add_argument("--out", type=Path, default=ROOT / "docs" / "corpus-inventory.md")
     args = ap.parse_args(argv)
 
-    dsn = os.environ.get("DATABASE_URL", "")
-    host = dsn.split("@")[-1] if "@" in dsn else "(unset)"
+    # THE DATABASE NAME, NEVER THE HOST. This wrote `host:port/db` into a
+    # committed doc, so regenerating it re-published the staging address after
+    # the tree had been redacted. The name says which database; where it lives
+    # is not this file's to publish.
+    parts = urlsplit(os.environ.get("DATABASE_URL", ""))
+    local = parts.hostname in ("localhost", "127.0.0.1", "::1")
+    where = "this machine" if local else "a remote host"
+    host = f"{parts.path.strip('/')} on {where}" if parts.path.strip("/") else "(unset)"
 
     conn = connect()
     rows = conn.execute(

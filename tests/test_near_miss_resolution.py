@@ -82,7 +82,7 @@ def test_offsets_survive_a_stripped_separator_run():
 
 def test_a_version_continuation_is_a_near_miss():
     r = resolve_with_near_misses("Claude Code fable 5.1 is seriously flawed", population())
-    assert r.only_near_misses
+    assert r.has_near_miss
     assert "fable 5" in r.near_misses
 
 
@@ -112,7 +112,7 @@ def test_a_WORD_suffix_is_NOT_a_near_miss_and_that_is_deliberate():
 def test_a_bare_mention_is_not_a_near_miss():
     r = resolve_with_near_misses("fable 5 is fine for this", population())
     assert r.near_misses == ()
-    assert not r.only_near_misses
+    assert not r.has_near_miss
 
 
 def test_a_non_version_suffix_is_not_a_near_miss():
@@ -130,22 +130,27 @@ def test_one_bare_occurrence_makes_it_a_real_mention():
     """
     r = resolve_with_near_misses("we tried fable 5.1 and also fable 5 alone", population())
     assert r.near_misses == ()
-    assert not r.only_near_misses
+    assert not r.has_near_miss
 
 
 # ── the subset trap, which cost a correction ─────────────────────────────
 
 
-def test_near_misses_are_a_subset_of_hits_and_only_near_compares_sets():
-    """`only_near_misses` tested `not self.hits` once, which is never true.
+def test_near_misses_are_DISJOINT_from_hits_since_b_landed():
+    """The relation INVERTED on 2026-09-17, and both directions cost a defect.
 
-    `near_misses` is a SUBSET of `hits` - those surfaces did resolve and did
-    attribute the document - so a truthiness test on `hits` returned False
-    always, including on the document that motivated the whole change.
+    Before (b), `near_misses` was a SUBSET of `hits` - the surfaces resolved
+    and attributed the document, and `only_near_misses` had to compare the two
+    SETS because a truthiness test on `hits` was never true.
+
+    After (b) they are DISJOINT: a refused surface is removed from `hits`. The
+    old subset assertion would now pass vacuously on any document with no near
+    miss, so it is replaced rather than kept.
     """
     r = resolve_with_near_misses("Claude Code fable 5.1 is broken", population())
-    assert set(r.near_misses) <= set(r.hits)
-    assert r.only_near_misses is True
+    assert r.near_misses, "the fixture must produce a near miss for this to test anything"
+    assert not (set(r.near_misses) & set(r.hits)), "refused surfaces must not remain in hits"
+    assert r.has_near_miss is True
 
 
 def test_owners_answers_at_the_model_level_not_the_surface_level():
@@ -156,22 +161,28 @@ def test_owners_answers_at_the_model_level_not_the_surface_level():
     """
     pop = population()
     r = resolve_with_near_misses("fable 5.1 is worse than claude opus 5", pop)
-    clean, misattributed = r.owners(pop)
+    clean, refused = r.owners(pop)
     assert clean == {"anthropic/claude-opus-5"}
-    assert misattributed == {"anthropic/claude-fable-5"}
-    # The document DOES name a model, so it is not certainly-wrong...
-    assert not r.only_near_misses
-    # ...and is still misattributed, which is the 1,621-document class.
-    assert misattributed
+    assert refused == {"anthropic/claude-fable-5"}
+    # THE DOCUMENT IS KEPT - it names Opus 5 cleanly - AND THE FLAG FIRES.
+    # Those two go together now, and under the old `only_near_misses` they
+    # could not: a clean hit made the sets differ and the flag went silent on
+    # exactly this shape, which is the 2,330-document class.
+    assert r.has_near_miss is True
+    assert "fable 5" not in r.hits, "the refused surface must not attribute"
 
 
 # ── resolution is unchanged, which is the whole promise ──────────────────
 
 
-def test_resolution_is_byte_for_byte_what_resolve_returns():
-    """Rule 8: the near miss is a RECORDED field, not yet a refusal.
+def test_resolution_is_resolve_MINUS_the_near_misses():
+    """(b) landed 2026-09-17. This test is the INVERSE of the one it replaces.
 
-    If this ever fails, somebody flipped (b) without the ruling.
+    It used to assert `hits == resolve(...)` byte for byte, and its docstring
+    said: *"If this ever fails, somebody flipped (b) without the ruling."* The
+    ruling was given, so the guard is rewritten rather than deleted - deleting
+    it would leave nothing asserting the new relation, which is the same hole
+    one direction later.
     """
     pop = population()
     for text in (
@@ -181,11 +192,69 @@ def test_resolution_is_byte_for_byte_what_resolve_returns():
         "fable 5-preview versus claude opus 5",
         "nothing about models here at all",
     ):
-        assert resolve_with_near_misses(text, pop).hits == resolve(text, pop), text
+        r = resolve_with_near_misses(text, pop)
+        refused = set(r.near_misses)
+        expected = tuple(h for h in resolve(text, pop) if h not in refused)
+        assert r.hits == expected, text
+
+
+def test_a_document_whose_only_surface_is_refused_resolves_to_nothing():
+    """The 47-document class: no clean surface left, so NO_ENTITY drops it.
+
+    This is the loss (b) accepts, and it is the direction that is right: the
+    document names a model we do not track, and `near-miss-not-registered`
+    says which. Losing it is visible and carries its own fix; attributing it
+    to Fable 5 was neither.
+    """
+    pop = population()
+    r = resolve_with_near_misses("Claude Code fable 5.1 is seriously flawed", pop)
+    clean, refused = r.owners(pop)
+    assert "anthropic/claude-fable-5" in refused
+    assert "anthropic/claude-fable-5" not in clean
 
 
 def test_a_text_naming_nothing_reports_no_near_misses():
     r = resolve_with_near_misses("a document about cooking", population())
     assert r.hits == ()
     assert r.near_misses == ()
-    assert not r.only_near_misses
+    assert not r.has_near_miss
+
+
+# ── `X.0` is `X`, found by reading the documents (b) would drop ──────────
+
+
+def test_a_dot_zero_is_the_SAME_model_and_not_a_near_miss():
+    """`Sonnet 5.0` names Sonnet 5. The `.0` restates the version.
+
+    The first version of (b) refused these, and it cost whole documents rather
+    than a stray attribution: 14 of the 47 documents that lost every surface
+    were a `.0`, so nearly a third of the drops were a model we do track.
+    """
+    pop = population()
+    for text in (
+        "opus 5.0 is out and it is a disaster",
+        "claude fable 5.0 shipped last week",
+        "we moved to opus 5.0 last month",
+    ):
+        r = resolve_with_near_misses(text, pop)
+        assert r.near_misses == (), text
+        assert r.hits, text
+
+
+def test_a_dot_zero_followed_by_another_digit_is_still_a_near_miss():
+    """`5.01` is not `5`. The lookahead is the whole difference, and a
+    two-character window could not evaluate it."""
+    r = resolve_with_near_misses("opus 5.01 broke our pipeline", population())
+    assert "opus 5" in r.near_misses
+
+
+def test_a_dated_snapshot_suffix_is_a_KNOWN_EXCLUSION_and_still_refuses():
+    """22 documents (0.9%) - recorded rather than ruled on.
+
+    Whether a dated build may speak for its line is a different question from
+    whether `5.0` is `5`, and deciding it inside this rule would decide it
+    silently.
+    """
+    pop = population()
+    r = resolve_with_near_misses("fable 5-0731 on the bench", pop)
+    assert "fable 5" in r.near_misses

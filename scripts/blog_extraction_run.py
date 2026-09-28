@@ -213,7 +213,7 @@ def main(argv=None) -> int:
             else "ABOVE 6 - the pre-registration calls this over-extraction")
     print(f"  §3 expected yield 0-4    -> {n} claims: {band}")
 
-    caps_seen = Counter(c.capability for _, c, _ in verified)
+    caps_seen = Counter(c.legacy_score_key for _, c, _ in verified)
     bad_caps = {k: v for k, v in caps_seen.items()
                 if k.startswith(UNSUPPORTED_PREFIXES)}
     print(f"  §4 unsupported keys      -> {bad_caps or 'none'}"
@@ -280,7 +280,7 @@ def main(argv=None) -> int:
                 "document_id": d["member"],
                 "slug": d["root"].rsplit("/", 2)[-2],
                 "quote": c.quote,
-                "capability": c.capability,
+                "capability": c.legacy_score_key,
                 "polarity": c.polarity,
                 "surface": c.model_ref.surface,
                 "specificity": c.model_ref.specificity,
@@ -303,7 +303,7 @@ def main(argv=None) -> int:
                 "index": u.index,
                 "errors": u.errors,
                 "raw_quote": (u.raw or {}).get("quote"),
-                "raw_capability": (u.raw or {}).get("capability"),
+                "raw_capability": (u.raw or {}).get("legacy_score_key"),
             }
             for d, r in results for u in r.unsalvaged
         ],

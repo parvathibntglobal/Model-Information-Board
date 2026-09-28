@@ -6,7 +6,7 @@ extraction — recorded here so that a run producing good claims and publishing
 nothing is not read as a failure.**
 
 *Engineer 1 · 2026-08-20 · agreed with Engineer 2 before the run ·
-`postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`*
+`postgresql://example_user@203.0.113.5:5432/Model-information-Board`*
 
 ---
 

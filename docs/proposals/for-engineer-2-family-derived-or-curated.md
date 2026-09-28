@@ -8,7 +8,7 @@ nothing for a family surface to be derived *from*.
 
 *Engineer 1 · 2026-08-20 · a question, not a proposal · `contract/` unchanged*
 
-**DSN for every figure:** `postgresql://bv_agent@52.17.75.29:5432/Model-information-Board`,
+**DSN for every figure:** `postgresql://example_user@203.0.113.5:5432/Model-information-Board`,
 read-only. No writes behind this document.
 
 ---

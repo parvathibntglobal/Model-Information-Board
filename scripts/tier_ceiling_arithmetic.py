@@ -1,7 +1,7 @@
 """What the tier re-key can and cannot do, computed rather than estimated.
 
 WHY THIS EXISTS. The re-weight itself needs the staging database, which was
-unreachable on 2026-08-30 (TCP timeout to 52.17.75.29:5432, three probes over
+unreachable on 2026-08-30 (TCP timeout to 203.0.113.5:5432, three probes over
 twenty minutes, and a watcher that never saw it open). The claim-level output of
 the 150-thread run was never persisted - only the DB has it - so the empirical
 before/after cannot be produced from this checkout.
@@ -85,7 +85,7 @@ def main() -> int:
     out = {
         "as_of": "2026-08-30",
         "why_not_the_database": (
-            "staging unreachable (TCP timeout, 52.17.75.29:5432); the 150-thread "
+            "staging unreachable (TCP timeout, 203.0.113.5:5432); the 150-thread "
             "run's per-claim output was never persisted, so the empirical "
             "before/after cannot be produced from this checkout"
         ),

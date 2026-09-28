@@ -70,6 +70,29 @@ shown both. So a `no-key-fits` label may say the vocabulary is wrong, or it may
 say *the extractor picked a key it could not have picked well*, and those have
 opposite fixes. This is the single largest confound and it is not small.
 
+> **⚠ CLOSED IN THE CODE ON 2026-09-22, AND THAT DOES NOT RETIRE THE CONFOUND —
+> IT CONVERTS IT INTO A MEASUREMENT.** `build_system_prompt` now sends each
+> key's `description` and `sounds_like` (`_keys_block`), so a future extraction
+> no longer has this handicap.
+>
+> **Round 3 is unaffected and still worth labelling.** Its pool was built
+> against the bare-key prompt and its sidecar froze that extractor's choices, so
+> labelling it measures the bare-key extractor — which is exactly the *before*
+> arm. `build_system_prompt(keys, definitions={})` still reproduces that prompt
+> and a test pins it.
+>
+> What changes is what a disagreement licenses you to conclude. Before, a
+> `no-key-fits` majority could not separate "wrong vocabulary" from "extractor
+> never told what the keys mean". Now the second explanation is testable: label
+> once, re-run the same 15 documents under the new prompt, score both against
+> the same gold. The gap between the two arms IS the confound, measured instead
+> of argued.
+>
+> So the labelling is no longer blocking the prompt change — it is what turns
+> the prompt change from a hope into a number. At the measured $0.00208/thread
+> the re-run is cents; the labelling is the expensive half and the only half a
+> model must not do.
+
 **One labelling is not a measurement.** Round 1's claim-row labels had to be
 discarded entirely once it emerged that three of four disagreements were quotes
 from a vendor-authored root post that no row identified. A first labelling
@@ -109,13 +132,55 @@ the extractor picked), not a 15-way kappa on 36 rows. Report `no-key-fits` and
 **Would follow:** the keys get re-derived from the corpus rather than extended.
 That is a `contract/capabilities.yaml` rewrite, two queries per key in
 `queries.yaml`, a half-life per key in `judge/vet/weight.py`, and every stored
-claim re-filed — a re-run, not an edit. Expensive, and cheaper now than at any
-later point, since the table holds **4 claims**.
+claim re-filed — a re-run, not an edit. Expensive, and cheaper the earlier it
+is done. **The table held 4 claims when this was written and holds 1,385 on
+2026-09-22**; that sentence used to read "since the table holds 4 claims" in the
+present tense, which is rule 11 — a count in prose about state this file does
+not own. Recounted rather than re-asserted.
 
 **Would not follow:** that the board cannot be built. Rule 4 already covers a
-capability nobody has discussed. A vocabulary that misses most of what people
-write about does not produce wrong cells — it produces **empty** ones, which
-render as silence and are honest. The cost is coverage, not correctness.
+capability nobody has discussed.
+
+> ### ⚠ CORRECTED 2026-09-22 — the next two sentences were false
+>
+> They read:
+>
+> > *A vocabulary that misses most of what people write about does not produce
+> > wrong cells — it produces **empty** ones, which render as silence and are
+> > honest. The cost is coverage, not correctness.*
+>
+> **That is true only if the mis-fitting claim is DROPPED, and the prompt
+> forced it to be FILED.** `judge/extract/prompt.py` said "pick the closest key
+> and move on", so a quote no key named did not become an empty cell — it
+> became a populated wrong one. Measured over all 1,385 stored claims
+> (`the-key-that-takes-anything-2026-09-22.md`):
+>
+> ```
+> cells                                     302
+>   containing >=1 provably mis-keyed claim   56   (18.5%)
+>   sourced ENTIRELY from them                16   ( 5.3%)
+> ```
+>
+> The sharpest: **GLM 4.6V, `instruction.adherence`, 5 independent voices,
+> +5/-0 — and all five quotes are about vision or Chinese OCR.** The models
+> roster renders `capLabel(capability) · N voices`, so it reads "Adherence · 5
+> voices" today. Five people discussed vision; nobody discussed following
+> instructions.
+>
+> So the cost was coverage **and** correctness, and the correctness half was the
+> worse one — it is rule 4 inverted. Not an absence we caused reading as one we
+> found, but a **presence we manufactured**, which no amount of silence-handling
+> downstream can undo.
+>
+> This is a correction to the reasoning, **not to the hypothesis**, which §1
+> still states and which round 3 still tests. It also does not weaken the
+> "would follow" above: if anything a re-derivation gets cheaper to justify,
+> because the status quo is not costless.
+>
+> **`legacy_score_key` became optional on 2026-09-22** and the prompt no longer
+> asks for the closest key, so claims extracted from now on CAN produce the
+> empty cell this paragraph assumed. The 1,385 e5.4 rows keep their keys; the
+> `PIPELINE_VERSION` bump to e5.5 is what stops them reaching cells.
 
 **And it is not the reason the board currently says nothing.** That is one
 author across 64 documents, against a gate needing three effective voices across

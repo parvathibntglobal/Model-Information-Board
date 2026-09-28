@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { adminUsage } from '../api'
+import { prettyModel } from '../modelNames'
 import { Badge, Notice, Stat } from './ui'
 import { IconAlert, IconGauge } from './Icons'
 
@@ -21,23 +22,19 @@ import { IconAlert, IconGauge } from './Icons'
  * cost and the new one side by side rather than as one blurred total.
  */
 
-const POLL_MS = 15000
+// ⚠ LONGER THAN THE REQUEST TAKES, WHICH 15s WAS NOT. Measured 2026-09-17:
+// `/admin/usage` answers in about 10s - it reads the whole spend ledger twice,
+// each read opening its own connection to a remote database. A 15s poll against
+// a 10s request leaves the panel loading two thirds of the time, which is most
+// of what "the admin page is laggy" was.
+//
+// The number to fix is the 10s, not this; until then a poll that overlaps its
+// own previous request is just a slower page and a busier database.
+const POLL_MS = 45000
 const usd = (n, dp = 4) => (n == null ? '—' : `$${Number(n).toFixed(dp)}`)
 
-// Friendly label for an OpenRouter model id. Known extractors are pinned; any
-// other id (e.g. a new deepseek/… once EXTRACTOR_MODEL switches) is title-cased
-// from its slug so it still reads properly. The raw id is shown beside it.
-const MODEL_NAMES = {
-  'google/gemini-2.5-flash': 'Gemini 2.5 Flash',          // previous extractor
-  'deepseek/deepseek-v4-flash': 'DeepSeek V4 Flash',       // current extractor
-  'deepseek/deepseek-v4-flash:free': 'DeepSeek V4 Flash (free)',
-  'deepseek/deepseek-v4-flash-0731': 'DeepSeek V4 Flash 0731',
-}
-function prettyModel(id) {
-  if (MODEL_NAMES[id]) return MODEL_NAMES[id]
-  const slug = String(id).split('/').pop() || String(id)
-  return slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-}
+// MOVED TO src/modelNames.js, because Settings names the same model and was
+// printing the raw id - so one page called the extractor two different things.
 
 // Corrected per-model total. The local ledger only logged a fraction of the
 // pre-switch Gemini spend ($0.0783); the real total on the key while Gemini
@@ -222,7 +219,7 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
           // missing" on every healthy render.
           //
           // ⚠ THE COUNT, NOT THE ROSTER. This used to append the hostnames -
-          //   "ANOOJ, LenovoPB" beside four container ids - which is rule 7's
+          //   "machine-A, machine-B" beside four container ids - which is rule 7's
           //   denominator answered with a guest list. The count IS the
           //   denominator; the names were never acted on and this is a web
           //   page. `spend_ledger.machine` still records them.
@@ -305,7 +302,7 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
           board say so. */}
       {/* THE POPULATION IS NAMED ONLY WHEN IT QUALIFIES SOMETHING.
       
-          This printed "Ledger totals cover all 2 machines (ANOOJ, LenovoPB)."
+          This printed "Ledger totals cover all 2 machines (machine-A, machine-B)."
           on every render of a healthy panel - a sentence whose entire content
           is "nothing is missing", which is what a reader already assumes. A
           caveat that is always on screen stops being read, and then the one
@@ -362,7 +359,12 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
         </>
       )}
 
-      <span className="label">By extractor model — Gemini 2.5 Flash (used so far) → DeepSeek V4 Flash (current)</span>
+      {/* Through `prettyModel` like the rows below it, so the heading and the
+          row it describes cannot disagree about what the extractor is called. */}
+      <span className="label">
+        By extractor model — {prettyModel('google/gemini-2.5-flash')} (used so far)
+        {' → '}{prettyModel(CURRENT_EXTRACTOR)} (current)
+      </span>
       {rows.length === 0 ? (
         <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>No model calls recorded yet.</span>
       ) : (
@@ -420,7 +422,7 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
 
       <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
         Spend to date ran on <strong>Gemini 2.5 Flash</strong>; the extractor is now{' '}
-        <strong>DeepSeek V4 Flash</strong>, so new spend accrues under it — the two stay
+        <strong>{prettyModel(CURRENT_EXTRACTOR)}</strong>, so new spend accrues under it — the two stay
         separated above.
       </span>
       {currentSpend != null && !alreadyListed && (
@@ -466,8 +468,26 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
  *   1,000,000 and 100,000, each returning 403 on the other's provider.
  *   `read_on` identifies WHICH METER a reading belongs to.
  */
+/** A count, or an em dash. — rather than 0, because rule 6: a reading nobody
+ *  took and a reading of zero are different facts.
+ *
+ *  ⚠ HOISTED, AND RENAMED FROM `n`. It lived inside `RapidApiTab`, and
+ *    `QuotaSeries` — a sibling, not a child — called `n(s.consumed)` anyway.
+ *    That threw `ReferenceError` and React unmounted the whole page: a dark
+ *    empty screen with nothing to read.
+ *
+ *    It survived review because it is UNREACHABLE until an arm has two quota
+ *    readings. Reddit had none, so its tab returned early and rendered fine;
+ *    X reached its second reading and the tab stopped working. Not an X bug —
+ *    Reddit was one reading away from the same crash.
+ *
+ *    `count`, not `n`, because `<Stat n={...}>` takes a prop of that name, so
+ *    `n={n(x)}` reads as correct at a glance. Two things one letter apart in
+ *    one expression is how this got written in the first place.
+ */
+const count = (v) => (typeof v === 'number' ? v.toLocaleString() : '—')
+
 function RapidApiTab({ rapid, which }) {
-  const n = (v) => (typeof v === 'number' ? v.toLocaleString() : '—')
   if (!rapid.instrumented) {
     // AN UNATTRIBUTED READING IS RENDERED, NOT JUST CARRIED. `_rapidapi_quota`
     // publishes `unattributed_reading` when the store holds a record written
@@ -495,10 +515,10 @@ function RapidApiTab({ rapid, which }) {
                 is not mistaken for this tab's quota. */}
             <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
               <strong style={{ color: 'var(--text)' }}>
-                {n(orphan.quota_remaining)} requests remaining
+                {count(orphan.quota_remaining)} requests remaining
               </strong>
               {typeof orphan.quota_limit === 'number'
-                ? ` of ${n(orphan.quota_limit)}`
+                ? ` of ${count(orphan.quota_limit)}`
                 : ', against a limit this reading did not carry'}
               , read {orphan.as_of || 'at an unrecorded time'}.
             </span>
@@ -542,13 +562,13 @@ function RapidApiTab({ rapid, which }) {
           a dash three times would bury the one measured number on the tab. */}
       {knownLimit ? (
         <div className="grid g3">
-          <Stat n={n(used)} l="requests spent" />
+          <Stat n={count(used)} l="requests spent" />
           <Stat n={share == null ? '—' : `${share.toFixed(2)}%`} l="of the quota" />
-          <Stat n={n(remaining)} l="left" />
+          <Stat n={count(remaining)} l="left" />
         </div>
       ) : (
         <div className="grid g2">
-          <Stat n={n(remaining)} l="requests remaining — measured" />
+          <Stat n={count(remaining)} l="requests remaining — measured" />
           <Stat n="not established" l="monthly limit" />
         </div>
       )}
@@ -567,13 +587,13 @@ function RapidApiTab({ rapid, which }) {
         RapidAPI sells this as a request quota and the per-request price is not in
         our config, so a dollar figure would be invented rather than measured.{' '}
         {knownLimit
-          ? `${n(used)} of ${n(limit)} requests is the spend.`
-          : `${n(remaining)} requests remaining is what the gateway last reported.`}
+          ? `${count(used)} of ${count(limit)} requests is the spend.`
+          : `${count(remaining)} requests remaining is what the gateway last reported.`}
       </span>
       {/* ⚠ THE COUNTER BELONGS TO A SUBSCRIPTION, NOT TO A MACHINE, AND THIS
           CAPTION USED TO LEAD WITH THE MACHINE.
 
-          It opened "Showing the shared table reading, taken on ANOOJ…", which
+          It opened "Showing the shared table reading, taken on machine-A…", which
           reads as though a laptop owned the quota. It does not. The board is
           hosted: anybody signed in can start a fetch, and it draws down one
           RapidAPI subscription whoever clicked. Parvathi, 2026-09-16 — "anybody
@@ -655,8 +675,8 @@ function RapidApiTab({ rapid, which }) {
           now, which presented one counter as two and explained a gap that is
           usually not there. */}
       {rapid.also_held && !rapid.subscriptions_differ && (
-        <span className="dim" style={{ fontSize: 'var(--fs-2xs, var(--fs-xs))', opacity: 0.75 }}
-              title={`${n(rapid.also_held.quota_remaining)} remaining, read by ${rapid.also_held.host || 'an unrecorded host'} at ${rapid.also_held.as_of || 'an unrecorded time'}`}>
+        <span className="dim" style={{ fontSize: 'var(--fs-xs))', opacity: 0.75 }}
+              title={`${count(rapid.also_held.quota_remaining)} remaining, read by ${rapid.also_held.host || 'an unrecorded host'} at ${rapid.also_held.as_of || 'an unrecorded time'}`}>
           An older reading of this same meter is also held — hover for it. It is
           not a second figure: the counter only falls, so the newest reading is
           the truest one.
@@ -674,11 +694,11 @@ function RapidApiTab({ rapid, which }) {
             from). */}
         {which === 'Reddit' ? (
           knownLimit
-            ? `The billed tier remains unverified: the gateway header says ${n(limit)} and the plan page says 500,000. Only the RapidAPI subscription page settles it.`
+            ? `The billed tier remains unverified: the gateway header says ${count(limit)} and the plan page says 500,000. Only the RapidAPI subscription page settles it.`
             : 'The billed tier has never been verified either — the plan page said 500,000, an older header said 1,000,000, and this reading fits neither. One look at the RapidAPI subscription page settles it, and no request can.'
         ) : (
           knownLimit
-            ? `The billed tier is unverified for this arm: the gateway header says ${n(limit)}, and nobody has read X's plan page. Reddit's 500,000/1,000,000 discrepancy is NOT quoted here — that figure was measured on the Reddit subscription and these are separate accounts. Only the RapidAPI subscription page settles it.`
+            ? `The billed tier is unverified for this arm: the gateway header says ${count(limit)}, and nobody has read X's plan page. Reddit's 500,000/1,000,000 discrepancy is NOT quoted here — that figure was measured on the Reddit subscription and these are separate accounts. Only the RapidAPI subscription page settles it.`
             : "The billed tier is unverified for this arm, and no plan figure has ever been read for it. Reddit's discrepancy is not this arm's — they are separate subscriptions."
         )}
       </span>
@@ -795,7 +815,7 @@ function WindowBar({ w, which }) {
         </span>
       )}
       {w.source && (
-        <span className="dim" style={{ fontSize: 'var(--fs-2xs, var(--fs-xs))', opacity: 0.75 }}>
+        <span className="dim" style={{ fontSize: 'var(--fs-xs))', opacity: 0.75 }}>
           {w.source}
           {w.boundary_from ? ` · boundary from ${w.boundary_from}` : ''}
         </span>
@@ -851,7 +871,7 @@ function QuotaSeries({ s, which }) {
       <div className="grid g2">
         <Stat n={`${s.per_day.toFixed(1)}/day`}
               l={`over ${s.span_days.toFixed(1)} days`} />
-        <Stat n={n(s.consumed)} l={`requests across ${s.readings} readings`} />
+        <Stat n={count(s.consumed)} l={`requests across ${s.readings} readings`} />
       </div>
       <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch' }}>
         Measured between {s.first_at} and {s.last_at}. The span is stated because

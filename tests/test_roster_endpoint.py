@@ -22,9 +22,14 @@ class _FakeConn:
         self._rows = rows
         self._observed_at = observed_at
         self.queries = []
+        #: The parameters each query was given. #302 scoped the roster to one
+        #: `pipeline_version`, and a fake that swallowed the parameters would
+        #: let a future unscoped query pass every test in this file.
+        self.params = []
 
-    def execute(self, sql):
+    def execute(self, sql, params=None):
         self.queries.append(sql)
+        self.params.append(params)
         if "pricing_history" in sql:
             return _Result([(self._observed_at,)])
         return _Result(self._rows)
@@ -42,13 +47,17 @@ class _Result:
 
 
 def _row(name, price_in, price_out, *, cells=0, published=0, capabilities=None,
-         entries=0, sections=None):
+         entries=0, sections=None, stale=0, stale_versions=None):
     return (
         f"mv_{name}", name, "vendor", f"vendor/{name}",
         price_in, price_out, None,
         128000, 4096,
         True, False, True, None, None,
-        cells, published, capabilities,
+        # ⚠ `stale` AND `stale_versions` SIT BETWEEN THE CELL COUNTS AND THE
+        #   CAPABILITY KEYS, because that is where #302 put them in the SQL.
+        #   Appending them at the end here instead would pass this file and
+        #   read a version array as a capability list against the real query.
+        cells, published, stale, stale_versions, capabilities,
         # BOARD ENTRIES, and they are the last two on purpose: the SQL appends
         # them, so a row built here that forgets them fails loudly on an
         # IndexError rather than shifting a cell count into a board count.
@@ -125,6 +134,12 @@ def test_no_cells_is_unreported():
     m = RosterReader(conn).all().models[0]
     assert m["evidence"] == {
         "state": "unreported", "cells": 0, "published": 0, "capabilities": [],
+        # ⚠ CARRIED ON `unreported` TOO, AND ZERO IS A MEASUREMENT HERE (#302).
+        #   0 says we looked at every other generation and found nothing. The
+        #   state that needs this most is exactly this one: a model whose only
+        #   cells are older reads `unreported`, and without the count that says
+        #   "nobody has discussed this" about a model we have not re-fetched.
+        "not_recounted": 0, "not_recounted_since": [],
     }
 
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { listModels, listCapabilities, capabilityPage, fetchAll, capLabel, fmtTokens, BoardUnreadable } from '../api'
+import { listModels, fetchAll, fmtTokens, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 
@@ -35,6 +35,17 @@ import { IconAlert, IconArrow, IconSearch } from '../components/Icons'
 //: makes the table scroll sideways, which is where a comparison stops being
 //: read. The backend refuses a fourth independently - this is not the only
 //: guard, it is the one that explains itself before the request.
+// ⚠ WHAT A COMPARISON URL CARRIES. `canonical_id` is the provider's own name
+//   for the model — `anthropic/claude-opus-5` — so `/compare?ids=...` reads as
+//   the comparison it is and can be typed, checked and shared. It used to
+//   carry `model_version_id`, an internal key that says nothing about what is
+//   being compared and leaks a database id into a link people send each other.
+//
+//   FALLS BACK TO THE INTERNAL ID rather than dropping the model: a row whose
+//   canonical id never loaded is still comparable, and the endpoint accepts
+//   both forms (see `compare_page`).
+const compareId = (m) => m.canonical_id || m.model_version_id
+
 const COMPARE_MAX = 3
 
 // PRICE IS NOT SHOWN ON THIS PAGE, SO IT DOES NOT SORT IT EITHER.
@@ -113,10 +124,21 @@ function matches(models, query) {
 
 export default function Models() {
   const [roster, setRoster] = useState(null)
-  const [evidence, setEvidence] = useState({})   // model id -> [{capability, voices, phrases}]
-  const [checked, setChecked] = useState(0)
-  const [failed, setFailed] = useState(0)
-  const [total, setTotal] = useState(0)
+  // ⚠ THERE IS NO CAPABILITY SWEEP HERE ANY MORE (#438). This page used to
+  //   loop the twelve ratified `capability_key`s and call `capabilityPage`
+  //   for each, folding the result into a per-model evidence column.
+  //
+  //   `capabilityPage` is a local stub that resolves with an empty list, so
+  //   the loop made twelve no-op round trips and the column was empty for all
+  //   348 models — and the notice below it, which says "that is a gap in this
+  //   page, not a fact about the model", fires on `failed > 0` and therefore
+  //   COULD NOT FIRE. A call that succeeds with nothing is indistinguishable
+  //   from a capability nobody has reported on, which is the one distinction
+  //   that notice existed to keep.
+  //
+  //   Not replaced with a real `cell` query: e5.5 writes no cells and all 258
+  //   of its claims carry a NULL `capability_key`, so a real query returns the
+  //   same empty column with a round trip attached. Ruled 2026-09-24.
   const [err, setErr] = useState(null)
   const [unreadable, setUnreadable] = useState(null)
   const [query, setQuery] = useState('')
@@ -166,46 +188,7 @@ export default function Models() {
         else setErr(e.message)
         return
       }
-
-      // then the evidence, which is a separate kind of fact and a separate
-      // set of calls. A capability page failing must not blank the roster.
-      let vocabulary
-      try {
-        vocabulary = await listCapabilities()
-      } catch { return }
-      if (!alive) return
-      setTotal(vocabulary.length)
-
-      for (const key of vocabulary.map((c) => c.key)) {
-        if (!alive) return
-        try {
-          const page = await fetchAll((l, o) => capabilityPage(key, l, o))
-          if (!alive) return
-          fold(page)
-          setChecked((n) => n + 1)
-        } catch {
-          // A capability that could not be READ is not a capability with
-          // nothing in it, and counting it as checked would let the page
-          // conclude "no model has a single report" from requests that never
-          // returned. One failure must not blank the roster, and it must not
-          // quietly join the tally either.
-          if (alive) setFailed((n) => n + 1)
-        }
-      }
     })()
-
-    function fold(page) {
-      setEvidence((prev) => {
-        const next = { ...prev }
-        for (const m of page.models) {
-          if (m.state === 'unreported') continue
-          const rows = next[m.model_version_id] ? [...next[m.model_version_id]] : []
-          rows.push({ capability: page.key, voices: m.voices, phrases: m.phrases, conditional: m.conditional })
-          next[m.model_version_id] = rows
-        }
-        return next
-      })
-    }
 
     return () => { alive = false }
   }, [])
@@ -260,25 +243,26 @@ export default function Models() {
               conditional notices and nothing else, and an unconditional wrapper
               renders an empty box whenever neither fires - which is most of the
               time. */}
-          {(checked + failed < total || failed > 0) && (
-            <Reveal>
-              <div className="card">
-                {checked + failed < total && (
-                  <p className="dim" style={{ fontSize: 'var(--fs-xs)', marginTop: 'var(--s3)' }}>
-                    Still reading capability pages — the evidence column fills in as they land.
-                  </p>
-                )}
-                {failed > 0 && (
-                  <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--warn)', marginTop: 'var(--s3)' }}>
-                    {failed} of {total} capability {failed === 1 ? 'page' : 'pages'} could not
-                    be read, so the evidence column below is incomplete. A model showing
-                    “no reports” here may have reports under a capability that failed to
-                    load — that is a gap in this page, not a fact about the model.
-                  </p>
-                )}
-              </div>
-            </Reveal>
-          )}
+          {/* ⚠ SAID ONCE, ABOUT THE SECTION, RATHER THAN 348 TIMES OR NOT AT
+              ALL. Dropping the sweep removes the empty evidence column AND the
+              only thing on this page whose job was to account for it — and a
+              page that is silently silent is harder to notice than one that is
+              silently wrong, because nothing looks unfinished.
+
+              So the fact the sweep could not state is stated here directly: it
+              is a property of the board, it is not per-model, and it does not
+              wait on a request that never fails. */}
+          <div className="card">
+            <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch',
+                                        margin: 0, lineHeight: 1.6 }}>
+              This list is the registry and what each provider advertises about itself.
+              It carries <strong style={{ color: 'var(--text)' }}>no engineer evidence
+              per model</strong>: the capability cells that would fill that column are
+              not being written by the current pipeline, so the absence is ours and not
+              a finding about any model here. The board's own sections are where
+              collected evidence appears.
+            </p>
+          </div>
 
           <label className="searchbar">
             <IconSearch width={15} height={15} />
@@ -320,8 +304,7 @@ export default function Models() {
               <ModelRow
                 key={m.model_version_id}
                 m={m}
-                rows={evidence[m.model_version_id]}
-                picked={picked.includes(m.model_version_id)}
+                picked={picked.includes(compareId(m))}
                 onPick={togglePick}
                 atCap={picked.length >= COMPARE_MAX}
               />
@@ -378,7 +361,7 @@ export default function Models() {
   )
 }
 
-function ModelRow({ m, rows, picked, onPick, atCap }) {
+function ModelRow({ m, picked, onPick, atCap }) {
 
   return (
     <div className={`mrow-wrap${picked ? ' mrow-picked' : ''}`}>
@@ -389,7 +372,7 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
           type="checkbox"
           checked={picked}
           disabled={!picked && atCap}
-          onChange={() => onPick(m.model_version_id)}
+          onChange={() => onPick(compareId(m))}
           aria-label={`Select ${m.display_name || m.model_version_id} to compare`}
           title={!picked && atCap
             ? `${COMPARE_MAX} is the maximum — a fourth column makes the table scroll sideways`
@@ -415,17 +398,16 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
             {m.provider}
             {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
           </span>
-          {/* Which capability, from the roster row itself — so it is on screen
-              the moment the list is, rather than 26 seconds later when the
-              capability sweep lands. `rows` upgrades it with voice counts if and
-              when that finishes. */}
-          {m.evidence?.capabilities?.length > 0 && (
-            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-              {rows
-                ? rows.map((r) => `${capLabel(r.capability)} · ${r.voices} ${r.voices === 1 ? 'voice' : 'voices'}`).join('  ·  ')
-                : m.evidence.capabilities.map(capLabel).join('  ·  ')}
-            </span>
-          )}
+          {/* ⚠ THE CAPABILITY CHIPS ARE GONE, AND THEY NEVER RENDERED. They
+              read `evidence.capabilities`, which is `cell.capability_key` —
+              the CLOSED twelve from the first plan. Measured 2026-09-24:
+              0 of 196 models on this roster carry a non-empty list, because
+              every cell is `insufficient` and e5.5 writes none at all.
+
+              So this was a conditional that could not fire, beside a sweep
+              that returned nothing (#438). Removed on the ruling that the
+              closed vocabulary is not what this board counts — the board's
+              own open sections are. */}
         </span>
 
         <span className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -439,8 +421,8 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
 
           {/* From the roster's own `evidence`, not from the capability sweep.
               The sweep takes 26 seconds and can fail per-page; this arrives with
-              the row. `rows` still supplies WHICH capability once it lands. */}
-          <EvidenceBadge e={m.evidence} rows={rows} />
+              the row. */}
+          <EvidenceBadge e={m.evidence} />
           {/* BESIDE THE BADGE, NEVER INSTEAD OF IT. A cell has been through the
               gate; a board entry has not. Collapsing them breaks rule 4 in
               whichever direction you collapse - see BoardBadge.
@@ -473,17 +455,6 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
             {m.provider}
             {m.advertised_context ? ` · ${fmtTokens(m.advertised_context)} context` : ''}
           </span>
-          {/* Which capability, from the roster row itself — so it is on screen
-              the moment the list is, rather than 26 seconds later when the
-              capability sweep lands. `rows` upgrades it with voice counts if and
-              when that finishes. */}
-          {m.evidence?.capabilities?.length > 0 && (
-            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>
-              {rows
-                ? rows.map((r) => `${capLabel(r.capability)} · ${r.voices} ${r.voices === 1 ? 'voice' : 'voices'}`).join('  ·  ')
-                : m.evidence.capabilities.map(capLabel).join('  ·  ')}
-            </span>
-          )}
         </span>
 
         <span className="row" style={{ gap: 'var(--s3)', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -497,8 +468,8 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
 
           {/* From the roster's own `evidence`, not from the capability sweep.
               The sweep takes 26 seconds and can fail per-page; this arrives with
-              the row. `rows` still supplies WHICH capability once it lands. */}
-          <EvidenceBadge e={m.evidence} rows={rows} />
+              the row. */}
+          <EvidenceBadge e={m.evidence} />
           {/* BESIDE THE BADGE, NEVER INSTEAD OF IT. A cell has been through the
               gate; a board entry has not. Collapsing them breaks rule 4 in
               whichever direction you collapse - see BoardBadge.
@@ -540,9 +511,12 @@ function ModelRow({ m, rows, picked, onPick, atCap }) {
  *   The second is what this page did until now, which is why a fetch that
  *   produced 50 board entries changed nothing a reader could see.
  *
- * NO STATE WORD HERE, deliberately. `EvidenceBadge` says `few reports` because
- * a cell has a gate verdict behind it. An entry has been through nothing, so
+ * NO STATE WORD HERE, deliberately. A board entry has been through no gate, so
  * this says only how many and where - a count, never a judgement (rule 3).
+ *
+ * `EvidenceBadge` now agrees with it, arrived at from the other direction: it
+ * said `few reports` because a cell DOES have a gate verdict behind it, and the
+ * verdict turned out to be the same one every time. Two badges, one rule.
  */
 function BoardBadge({ b }) {
   if (!b || !b.entries) return null
@@ -560,26 +534,94 @@ function BoardBadge({ b }) {
 }
 
 
-function EvidenceBadge({ e, rows }) {
+// `NotRecounted` WAS HERE (#302, option B), rendering "N not recounted since
+// e5.1" beside a model's badge. REMOVED FROM THE PAGE 2026-09-25, at
+// @parvathibntglobal's call: it showed on 65 of 241 rows, every one at
+// cells=0, and read as noise rather than as something a reader could act on.
+//
+// THE FACT IS KEPT, OFF THE PAGE. `GET /models` still carries
+// `evidence.not_recounted` and `evidence.not_recounted_since` on every model,
+// every state (`judge/pages/roster.py`) - the "say what was dropped" half of
+// the ruling, for whoever audits coverage rather than for a reader choosing.
+
+
+function EvidenceBadge({ e }) {
   // NULL MEANS THE LEGACY CAPABILITY CARDS ARE OFF (LEGACY_CELLS, judge/legacy.py),
   // not "nobody has discussed this". Cells are no longer rebuilt, so rendering the
   // rows still in `cell` would show a frozen verdict as live, and a missing one
   // would contradict the board badge beside it. BoardBadge carries the evidence.
   if (e === null) return null
   const state = e?.state || 'unreported'
+  //: Cells this generation has not recounted. 0 is a measurement - we looked
+  //: at every other generation and found nothing - so the absent case and the
+  //: none-found case are the same here on purpose.
+  const notRecounted = e?.not_recounted || 0
 
   // The board has no publication gate any more, so these badges COUNT reports
   // rather than announcing a gate verdict. A count says how many people spoke;
   // it never says who was right.
   if (state === 'published') {
-    return <Badge tone="pass">reported{rows ? ` · ${rows.length}` : ''}</Badge>
-  }
-  if (state === 'insufficient') {
     return (
-      <Badge tone="warn" title="Somebody has reported on this. A low count is not a verdict.">
-        few reports{e.reports ? ` · ${e.reports}` : ''}
-      </Badge>
+      <>
+        <Badge tone="pass">reported</Badge>
+      </>
     )
   }
+  if (state === 'insufficient') {
+    // ⚠ "FEW REPORTS" WAS A CONSTANT WEARING A VERDICT'S CLOTHES.
+    //
+    //   Measured against the shared database 2026-09-17: 268 cells, 268
+    //   `insufficient`, ZERO published - and not narrowly. The gate wants
+    //   `n_eff >= 3.0`; the best cell on the board reaches 0.448 with 19
+    //   independent voices, and 70 cells already clear the platform rule. So
+    //   every capability of every model carried the same two words, identically
+    //   for one voice and for twenty.
+    //
+    //   That is a sentence about US, not about the model - #194, where the tier
+    //   table makes A and B unreachable by construction. Rendering it as a
+    //   judgement of the model is rule 4 in miniature: an absence we caused,
+    //   read as a fact about the world.
+    //
+    //   THE COUNT STAYS, AND IT IS THE HALF THAT WAS ALWAYS TRUE. It varies, it
+    //   is measured, and it is the only thing here a reader can act on. Dropping
+    //   the badge outright would have made 1 voice and 20 look the same, which
+    //   is the same defect with the evidence removed as well.
+    //
+    //   `mute`, not `warn`: amber said "look at this", and there is nothing to
+    //   look at until the gate moves.
+    const reports = e.reports
+    return (
+      <>
+      <Badge
+        tone="mute"
+        title={
+          'How many people have reported on this. Not a verdict and not a score: '
+          + 'nothing on this board has yet cleared the publication bar (issue '
+          + '#194), so a count is the only honest thing to show.'
+        }
+      >
+        {typeof reports === 'number'
+          ? `${reports} report${reports === 1 ? '' : 's'}`
+          : 'reported'}
+      </Badge>
+      </>
+    )
+  }
+  // ⚠ "NOBODY HAS DISCUSSED THIS" IS FALSE WHERE AN OLDER GENERATION COUNTED
+  //   SOMETHING (#302). The roster is now scoped to one `pipeline_version`,
+  //   which is right - a bump forks the cell table and an unfiltered count
+  //   belongs to no version - but filtering alone would move a model whose
+  //   only cells are older from `insufficient` to `unreported`, and say
+  //   nobody discussed it about a model we simply have not re-fetched.
+  //
+  //   That is rule 4: an absence we caused, rendered as a fact about the
+  //   world. So what was dropped is said here rather than resolved away.
+  //
+  //   2026-09-25: the "not recounted (N)" label that said so is gone from the
+  //   page (see the note above `EvidenceBadge`). What must NOT replace it is
+  //   "nobody has discussed this", which is false for these rows. So they
+  //   render NO badge - distinct from the explicit "nobody has discussed
+  //   this", and true: the current extractor has counted nothing for them.
+  if (notRecounted) return null
   return <Badge tone="mute">nobody has discussed this</Badge>
 }

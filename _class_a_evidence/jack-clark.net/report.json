@@ -1,0 +1,37 @@
+{
+ "host": "jack-clark.net",
+ "feed": "https://jack-clark.net/feed/",
+ "robots_http": 200,
+ "robots_status": "rules",
+ "feed_path_allowed": true,
+ "feed_http": 200,
+ "feed_type": "rss20",
+ "malformed": false,
+ "entries": 10,
+ "declared_author": null,
+ "entry_bylines_present": 10,
+ "distinct_entry_bylines": 1,
+ "offhost_entry_links": [],
+ "offhost_hosts": [],
+ "articles_requested": 10,
+ "robots_refused_article_paths": [],
+ "article_http": [
+  200
+ ],
+ "articles_fetched": 10,
+ "median_body_chars": 16731,
+ "paywall_observed": false,
+ "pages_examined": 10,
+ "template_threshold": 0.8,
+ "repeated_lines": [
+  {
+   "line": "Thanks for reading!",
+   "in_pages": 10
+  },
+  {
+   "line": "Welcome to Import AI, a newsletter about AI research. Import AI runs on arXiv, cappuccinos, and feedback from readers. If you\u2019d like to support this, please subscribe.",
+   "in_pages": 10
+  }
+ ],
+ "template_block_status": "block-found"
+}

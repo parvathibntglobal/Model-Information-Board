@@ -28,7 +28,9 @@ import { IconAlert, IconLayers } from './Icons'
  */
 export default function PromptsPanel() {
   const [state, setState] = useState({ data: null, err: null })
-  const [open, setOpen] = useState(null)
+  // ONE OPEN AT A TIME, across all three groups: the list is what a
+  // reader scans, and two open prompts is the wall this replaced.
+  const [openId, setOpenId] = useState(null)
 
   useEffect(() => {
     let alive = true
@@ -40,6 +42,7 @@ export default function PromptsPanel() {
 
   const { data, err } = state
   const prompts = data?.prompts || []
+  const fields = data?.schema_fields || []
 
   return (
     <section className="card card-flush">
@@ -55,7 +58,7 @@ export default function PromptsPanel() {
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           Every one of these is read by the model. Composed by the backend from the
           same builders the pipeline calls, so this is the text that was sent and
-          <strong style={{ color: 'var(--text-1)' }}> not a copy of it</strong> — nothing
+          <strong style={{ color: 'var(--text)' }}> not a copy of it</strong> — nothing
           here is transcribed. The harvested document is never part of a prompt: it goes
           inside the delimited block at call time, which is the first of the five
           defences against a post trying to give instructions.
@@ -66,111 +69,210 @@ export default function PromptsPanel() {
         {err && <Notice icon={<IconAlert />}>{err}</Notice>}
         {!data && !err && <div className="skel" style={{ height: 160 }} />}
 
-        {prompts.map((p) => (
-          <div key={p.id} className="stack stack-1"
-               style={{ borderLeft: '2px solid var(--line)', paddingLeft: 12 }}>
-            <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
-              <strong style={{ fontSize: 'var(--fs-sm)' }}>{p.title}</strong>
-              {p.role && <Badge tone="mute">{p.role}</Badge>}
-              {p.unreadable
-                ? <Badge tone="fail">unreadable</Badge>
-                : p.text
-                  ? <span className="label">{p.text.length.toLocaleString()} chars</span>
-                  : null}
-            </div>
+        {/* ── SENT TO THE MODEL ──────────────────────────────────────────
+            ONE LINE EACH, OPENED ON CLICK. Every prompt used to render in
+            full, one after another: four texts totalling thousands of
+            characters, each with its metadata, its vocabulary fold and its
+            read button, so the page was a wall before you had chosen what to
+            read. A reader arrives here wanting ONE of these.
 
-            {p.used_for && (
-              <p className="muted" style={{ fontSize: 'var(--fs-xs)', maxWidth: '74ch', margin: 0 }}>
-                {p.used_for}
-              </p>
-            )}
+            The row carries what decides which one: what it is, when it is
+            sent, and how big. */}
+        {data && <span className="label">Sent to the model</span>}
 
-            <span className="dim mono" style={{ fontSize: 11 }}>
-              {p.built_by}{p.called_from ? ` · called from ${p.called_from}` : ''}
-            </span>
+        {prompts.map((p) => {
+          const open = openId === p.id
+          return (
+            <div key={p.id} className="axis">
+              <button type="button" className="axis-row" aria-expanded={open}
+                      onClick={() => setOpenId(open ? null : p.id)}>
+                <span className="axis-name">{p.title}</span>
+                {p.role && <Badge tone="mute">{p.role}</Badge>}
+                <span className="axis-counts">
+                  {p.unreadable
+                    ? 'could not be composed'
+                    : p.text
+                      ? `${p.text.length.toLocaleString()} chars`
+                      : 'no text'}
+                </span>
+              </button>
 
-            {/* WHICH PART OF THIS TEXT VARIES, said plainly.
-                The two retries are built per failure, so what is shown is the
-                real wording with illustrative values in it — and a reader
-                comparing this against a log needs to know which numbers move.
+              {open && (
+                <div className="axis-body stack stack-2">
+                  {p.used_for && (
+                    <p className="muted" style={{ fontSize: 'var(--fs-xs)', maxWidth: '74ch', margin: 0 }}>
+                      {p.used_for}
+                    </p>
+                  )}
 
-                This replaced a "transcribed, not composed" warning, which
-                described a weakness in THIS PAGE (the wording had been copied
-                out of runner.py) and read as though the prompt were somehow
-                less real. It is not: the model reads every one of these. The
-                wording moved into prompt.py and the page composes it. */}
-            {p.example_input && (
-              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '74ch', margin: 0 }}>
-                <strong style={{ color: 'var(--text-2)' }}>Shown with example values.</strong>{' '}
-                {p.example_input}
-              </p>
-            )}
+                  <span className="dim mono" style={{ fontSize: 11 }}>
+                    {p.built_by}{p.called_from ? ` · called from ${p.called_from}` : ''}
+                  </span>
 
-            {/* RULE 4 AT THE PANEL LEVEL. A prompt that could not be composed
-                renders as a NAMED failure, not as a missing row — "we could not
-                build it" and "there is no such prompt" are opposite claims. */}
-            {p.unreadable && (
-              <Notice icon={<IconAlert />}>
-                This prompt could not be composed: {p.unreadable}
-              </Notice>
-            )}
+                  {/* WHICH PART OF THIS TEXT VARIES, said plainly. The two
+                      retries are built per failure, so what is shown is the
+                      real wording with illustrative values in it — and a
+                      reader comparing this against a log needs to know which
+                      numbers move. */}
+                  {p.example_input && (
+                    <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '74ch', margin: 0 }}>
+                      <strong style={{ color: 'var(--text)' }}>Shown with example values.</strong>{' '}
+                      {p.example_input}
+                    </p>
+                  )}
 
-            {p.closed_vocabulary && (
-              <details className="disc">
-                <summary>
-                  The closed vocabulary appended to it
-                  <span className="n">{p.closed_vocabulary.length} keys</span>
-                </summary>
-                <div className="disc-body stack stack-1">
-                  <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
-                    One closed list, three open sections — the prompt&rsquo;s own
-                    asymmetry. These keys feed the legacy cell score; the board&rsquo;s
-                    sections are discovered and bounded by nothing.
-                  </p>
-                  <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                    {p.closed_vocabulary.map((k) => (
-                      <span key={k} className="mono dim" style={{ fontSize: 11 }}>{k}</span>
-                    ))}
-                  </div>
+                  {/* RULE 4 AT THE PANEL LEVEL. A prompt that could not be
+                      composed renders as a NAMED failure, not as a missing
+                      row — "we could not build it" and "there is no such
+                      prompt" are opposite claims. */}
+                  {p.unreadable && (
+                    <Notice icon={<IconAlert />}>
+                      This prompt could not be composed: {p.unreadable}
+                    </Notice>
+                  )}
+
+                  {p.closed_vocabulary && (
+                    <details className="fold">
+                      <summary>
+                        <span className="mono" style={{ fontSize: 11 }}>closed vocabulary</span>
+                        <span className="dim" style={{ fontSize: 11 }}>
+                          {p.closed_vocabulary.length} keys
+                        </span>
+                      </summary>
+                      <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
+                        One closed list, three open sections — the prompt&rsquo;s own
+                        asymmetry. These keys feed the legacy cell score; the
+                        board&rsquo;s sections are discovered and bounded by nothing.
+                      </p>
+                      <div className="row" style={{ gap: 6, flexWrap: 'wrap', padding: '0 12px 12px 30px' }}>
+                        {p.closed_vocabulary.map((k) => (
+                          <span key={k} className="mono dim" style={{ fontSize: 11 }}>{k}</span>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+
+                  {p.text && (
+                    // `pre` with wrapping, not a scrolling box: the whitespace
+                    // in these prompts is load-bearing — the delimiters, the
+                    // indented examples — so it is preserved, and it wraps
+                    // rather than scrolling sideways on a phone.
+                    <pre className="mono prompt-text">{p.text}</pre>
+                  )}
                 </div>
-              </details>
-            )}
+              )}
+            </div>
+          )
+        })}
 
-            {p.text && (
-              <>
-                <button
-                  type="button"
-                  className="chip"
-                  onClick={() => setOpen(open === p.id ? null : p.id)}
-                >
-                  {open === p.id ? 'Hide the prompt' : 'Read the prompt'}
-                </button>
-                {open === p.id && (
-                  // `pre` with wrapping, not a scrolling box: the whitespace in
-                  // these prompts is load-bearing — the delimiters, the indented
-                  // examples — so it is preserved, and it wraps rather than
-                  // scrolling sideways on a phone.
-                  <pre className="mono" style={{
-                    fontSize: 11, lineHeight: 1.55, whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word', background: 'var(--surface)',
-                    border: '1px solid var(--border)', borderRadius: 'var(--r2)',
-                    padding: 'var(--s3)', margin: 0, maxWidth: '100%',
-                  }}>{p.text}</pre>
-                )}
-              </>
+        {/* ── THE TOOL-CALL SCHEMA, WHICH IS ALSO THE PROMPT ─────────────
+            THE MISSING HALF OF THIS PAGE. The four texts above are the
+            system message, the user message and two retry corrections; these
+            seventeen field descriptions go in the same call and are what the
+            model is asked to FILL IN. A page listing four strings and
+            omitting these was describing a fraction of what the model reads.
+
+            One row, opening to a list of folds, rather than seventeen rows:
+            they are one object and a reader wants the field they came for. */}
+        {fields.length > 0 && (
+          <div className="axis">
+            <button type="button" className="axis-row" aria-expanded={openId === '_schema'}
+                    onClick={() => setOpenId(openId === '_schema' ? null : '_schema')}>
+              <span className="axis-name">The tool-call schema</span>
+              <Badge tone="mute">tool</Badge>
+              <span className="axis-counts">{fields.length} fields</span>
+            </button>
+            {openId === '_schema' && (
+              <div className="axis-body stack stack-2">
+                <p className="muted" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0 }}>
+                  These descriptions <em>are</em> instructions — they are sent as the
+                  tool-call schema, so this is the wording itself and not a summary.
+                  Read from <span className="mono">judge/extract/schema.py</span> when
+                  this page loaded.
+                </p>
+                {fields.map((f) => (
+                  <details key={`${f.object}:${f.field}`} className="fold">
+                    <summary>
+                      <span className="mono" style={{ fontSize: 11 }}>{f.field}</span>
+                      <Badge tone={f.required ? 'warn' : 'mute'}>
+                        {f.required ? 'required' : 'optional'}
+                      </Badge>
+                      <span className="dim" style={{ fontSize: 11 }}>{f.object}</span>
+                    </summary>
+                    <p style={{
+                      fontSize: 'var(--fs-xs)', lineHeight: 1.65, maxWidth: '82ch',
+                      margin: 0, color: 'var(--text-2)', whiteSpace: 'pre-wrap',
+                    }}>
+                      {f.asks}
+                    </p>
+                  </details>
+                ))}
+              </div>
             )}
           </div>
-        ))}
+        )}
+
+        {/* ── NOT SENT TO A MODEL ────────────────────────────────────────
+            ⚠ THE HEADING IS THE POINT. These are the constraints the
+            pipeline is built under, not instructions the extractor reads.
+            Putting them on a page headed "prompts" without saying so would
+            imply the model has been told them, which it has not. */}
+        {data && (
+          <div className="axis">
+            <button type="button" className="axis-row" aria-expanded={openId === '_rules'}
+                    onClick={() => setOpenId(openId === '_rules' ? null : '_rules')}>
+              <span className="axis-name">The rules this is built under</span>
+              <Badge tone="info">not sent</Badge>
+              <span className="axis-counts">
+                {data.rules_source_readable ? `${(data.rules || []).length} rules` : 'unreadable here'}
+              </span>
+            </button>
+            {openId === '_rules' && (
+              <div className="axis-body stack stack-2">
+                {data.rules_source_readable ? (
+                  <>
+                    <ol style={{
+                      margin: 0, paddingLeft: '1.5em', fontSize: 'var(--fs-xs)',
+                      lineHeight: 1.7, color: 'var(--text-2)', maxWidth: '82ch',
+                    }}>
+                      {(data.rules || []).map((r) => (
+                        <li key={r.n} value={r.n} style={{ marginBottom: 6 }}>{r.rule}</li>
+                      ))}
+                    </ol>
+                    <p className="dim" style={{ fontSize: 11, margin: 0, maxWidth: '78ch', lineHeight: 1.6 }}>
+                      Headlines only. The argument under each one is what makes it
+                      followable and it is long; a second copy of it here is the exact
+                      failure the rules are about. Read from{' '}
+                      <span className="mono">CLAUDE.md</span> at{' '}
+                      <span className="mono">{data.read_from_source_at}</span>.
+                    </p>
+                  </>
+                ) : (
+                  /* RULE 4. A container ships the code without the repository,
+                     so the file genuinely is not there — a different thing
+                     from there being no rules, and a blank list says the
+                     second. */
+                  <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', lineHeight: 1.6 }}>
+                    <span className="mono">CLAUDE.md</span> is not readable from this
+                    process, so the rules cannot be listed. That is this deployment
+                    shipping code without the repository around it — not an absence of
+                    rules.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* WHAT IS NOT HERE, NAMED. A list that looks exhaustive and is not is
             worse than no list — so the measurement scripts are named rather
             than quietly omitted. */}
         {data?.not_shown?.length > 0 && (
-          <div className="stack stack-2">
+          <div className="stack stack-2" style={{ marginTop: 8 }}>
             <span className="label">Built, but not sent by anything on this board</span>
             {data.not_shown.map((x) => (
               <div key={x.what} className="stack stack-1"
-                   style={{ borderLeft: '2px solid var(--line)', paddingLeft: 12 }}>
+                   style={{ borderLeft: '2px solid var(--border)', paddingLeft: 12 }}>
                 <strong style={{ fontSize: 'var(--fs-xs)' }}>{x.what}</strong>
                 <span className="dim mono" style={{ fontSize: 11 }}>{x.where}</span>
                 <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '74ch', margin: 0 }}>

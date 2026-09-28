@@ -4,11 +4,16 @@ import { health, coveragePage, listModels, BoardUnreadable } from '../api'
 import { Badge, Notice, Reveal, Stat } from '../components/ui'
 import UsagePanel from '../components/UsagePanel'
 import BoardReview from '../components/BoardReview'
+import DiscussedModels from '../components/DiscussedModels'
 import KeywordsPanel from '../components/KeywordsPanel'
 import PromptsPanel from '../components/PromptsPanel'
 import SourcesPanel from '../components/SourcesPanel'
 import StagesPanel from '../components/StagesPanel'
+import RunsPanel from '../components/RunsPanel'
+import DatabasePanel from '../components/DatabasePanel'
+import SettingsPanel from '../components/SettingsPanel'
 import FetchPanel from '../components/FetchPanel'
+import ModelProposal from '../components/ModelProposal'
 import { IconAlert, IconGauge } from '../components/Icons'
 
 /**
@@ -61,6 +66,17 @@ function CollectEvidence() {
       </div>
       {err && <Notice icon={<IconAlert />}>{err}</Notice>}
       {!models && !err && <div className="skel" style={{ height: 120 }} />}
+
+      {/* AT THE TOP, AS CHIPS, because these are what you come to this section
+          to do that is not "run a fetch" - and below thirteen model folds they
+          were somewhere you had to scroll to find. Each opens in place; neither
+          add nor stop-tracking acts on one click. */}
+      {models && (
+        <div style={{ borderBottom: '1px solid var(--border-soft)',
+                      paddingBottom: 'var(--s3)' }}>
+          <ModelProposal models={models} />
+        </div>
+      )}
       {models && models.length === 0 && (
         <p className="dim" style={{ fontSize: 'var(--fs-sm)' }}>No models tracked yet.</p>
       )}
@@ -87,12 +103,13 @@ function CollectEvidence() {
           </div>
         </details>
       ))}
+
     </div>
   )
 }
 
 /**
- * THE FOUR SECTIONS, AND THE NAV IS BUILT FROM THIS RATHER THAN BESIDE IT.
+ * THE SECTIONS, AND THE NAV IS BUILT FROM THIS RATHER THAN BESIDE IT.
  *
  * One list, so a section cannot appear in the nav and not render, or render
  * with a heading that disagrees with the one you clicked. Adding a fifth panel
@@ -130,15 +147,57 @@ const SECTIONS = [
   {
     id: 'models',
     title: 'Models',
-    blurb: 'Collect evidence — sweep a model on demand',
-    render: () => <CollectEvidence />,
+    blurb: 'Sweep a model on demand, add one, or stop tracking one',
+    render: () => (
+      <div className="stack stack-4">
+        <CollectEvidence />
+        {/* ⚠ BELOW THE TRACKED LIST, AND THE ORDER IS THE POINT. This
+            section is "the models we watch"; the panel underneath is
+            everything the board learned about models we did not. A reader
+            who has just scrolled thirteen folds is exactly the reader who
+            should see that 66 more have evidence. */}
+        <hr style={{ border: 0, borderTop: '1px solid var(--border-soft)', margin: 0 }} />
+        <DiscussedModels />
+      </div>
+    ),
   },
   {
     id: 'board',
     title: 'Board sections',
     blurb: 'Discovered by the classifier, and already live',
-    render: () => <BoardReview />,
+    render: () => (
+      <div className="stack stack-4">
+        <BoardReview />
+        {/* ⚠ THE SAME PANEL AS UNDER MODELS, AND ONE ENDPOINT BEHIND BOTH.
+            It answers a question each section raises and neither owns: the
+            review shows which AXES the board discovered, this shows which
+            MODELS it discovered them about, and a reviewer consolidating a
+            slug wants to know whether the models under it are ones anybody
+            is watching. Two components reading two endpoints would
+            eventually disagree about the same number. */}
+        <hr style={{ border: 0, borderTop: '1px solid var(--border-soft)', margin: 0 }} />
+        <DiscussedModels heading="Models these entries are about, that the models page does not list" />
+      </div>
+    ),
   },
+  // ⚠ THERE IS NO 'Capability candidates' SECTION, AND ITS ABSENCE IS A
+  //   DECISION RATHER THAN THE OVERSIGHT IT LOOKS LIKE. `capability_key` is
+  //   the CLOSED twelve from the first plan, where discovering capabilities
+  //   was its own surface. The board replaced that: discovery now happens in
+  //   `board_entries`, whose vocabulary is open and needs no ruling, and
+  //   `schema.py` itself calls the closed path "an older scoring path and is
+  //   NOT what the board displays".
+  //
+  //   So capabilities get no privilege the other two sections lack. Board
+  //   sections above is the whole review surface. Ruled 2026-09-24 by
+  //   @parvathibntglobal, after measuring that 24 of the 53 keys e5.5
+  //   proposed ALREADY EXIST as a board slug — one observation, written
+  //   into two vocabularies, only one of which anybody reads.
+  //
+  //   What still writes to `capability_candidate` is upstream of this file:
+  //   the `proposed_capabilities` prompt field and the endpoint behind it.
+  //   Both are shared code mid-batch, so they are raised on #434 rather
+  //   than deleted from this side.
   {
     id: 'pipeline',
     title: 'Evidence stages',
@@ -150,6 +209,29 @@ const SECTIONS = [
     title: 'Prompts',
     blurb: 'Every prompt we send a model, composed not copied',
     render: () => <PromptsPanel />,
+  },
+  // APPENDED RATHER THAN SLOTTED IN BESIDE `models`, WHERE `runs` BELONGS BY
+  // SUBJECT. Keywords was asked for in fourth place and Evidence stages in
+  // seventh, and both are counted from the top of this list — so inserting a
+  // section above them would quietly move the two that were positioned on
+  // purpose.
+  {
+    id: 'runs',
+    title: 'Runs',
+    blurb: 'Every fetch, across machines — and whether it finished',
+    render: () => <RunsPanel />,
+  },
+  {
+    id: 'database',
+    title: 'Database',
+    blurb: 'Which database, what is in it, and whether the schema matches',
+    render: () => <DatabasePanel />,
+  },
+  {
+    id: 'settings',
+    title: 'Settings',
+    blurb: 'Account, stack, running commit and every operational cap',
+    render: () => <SettingsPanel />,
   },
 ]
 
@@ -202,7 +284,7 @@ export default function Admin() {
   const active = SECTIONS.find((x) => x.id === wanted) || SECTIONS[0]
 
   return (
-    <div className="shell section-tight stack stack-4">
+    <div className="shell section-tight stack stack-4 adm-page">
       <div className="stack stack-1">
         <span className="eyebrow">Operations</span>
         <h1 style={{ fontSize: 'var(--fs-display)' }}>Pipeline health</h1>

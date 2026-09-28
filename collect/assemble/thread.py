@@ -196,6 +196,16 @@ class AssembledThread:
     #: `ranking.selection_lines`. None on paths that rank nothing (articles,
     #: body-only issues and posts).
     selection: Selection | None = None
+    #: How many SELECTED children would reach their subject through the root's
+    #: version token rather than their own text (#307). Recorded, not scored -
+    #: see `ranking.RankedChild.subject_inherited`. Not a column: `as_row()`
+    #: does not carry it, for the same reason `flattened` is not carried.
+    #:
+    #: ⚠ `None`, NOT 0, WHERE NOTHING ASKED (rule 6). An article has no
+    #:   children and a body-only post selected none, so "0 inherited" there
+    #:   would answer a question the path never put. A reader summing these
+    #:   must skip None rather than coalesce it.
+    subject_inherited_children: int | None = None
 
     @property
     def child_count(self) -> int:
@@ -302,6 +312,7 @@ def assemble(
         observed_children=thread.coverage.observed_children,
         hidden_children_min=thread.coverage.hidden_children_min,
         hidden_branches_unsized=thread.coverage.hidden_branches_unsized,
+        subject_inherited_children=sum(r.subject_inherited for r in selection.selected),
         pipeline_version=version,
         selection=selection,
     )

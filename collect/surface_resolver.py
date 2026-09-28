@@ -93,7 +93,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 
-from collect.triage.entity import SurfacePopulation, build_population, normalize, resolve
+from collect.triage.entity import (
+    SurfacePopulation,
+    build_population,
+    normalize,
+    resolve,
+    resolve_with_near_misses,
+)
 
 
 @dataclass
@@ -322,4 +328,41 @@ class RegistrySurfaceFinder:
         return cls(build_population([(r[0], r[1]) for r in rows]))
 
     def __call__(self, text: str) -> tuple[str, ...]:
-        return resolve(text or "", self._population)
+        """Surfaces this text names, with near misses SUBTRACTED (#441).
+
+        ⚠ THIS WAS `resolve`, WHICH MATCHES A MODEL INSIDE A LONGER NAME.
+          #341 fixed exactly this shape on 2026-09-17 and the fix reached E4's
+          gate and not this path, so one lane held two resolutions of one text:
+
+              "I switched to GPT-5.2-Codex."  ->  gpt-5, gpt-5.2, gpt-5.2-codex
+              "GPT-5.5 was slower."           ->  gpt-5, gpt-5.5
+              "Opus 4.8 wrote the migration." ->  claude-opus-4, claude-opus-4.8
+
+          `quote_subject_verdict`'s docstring argues for ONE resolution
+          precisely so two consumers cannot disagree, and across the lane they
+          did: E4 said a document named X, this said the same text named X and
+          a prefix of X.
+
+        ⚠ AND THE STORED DAMAGE IS ONE CLAIM OF 1,781, WHICH IS NOT THE REASON
+          TO FIX IT. @anoojntglobal-sudo measured before filing: 290 quotes
+          carry a prefix artefact, 1,780 verdicts are unchanged because the
+          longer correct name matches too, and the feared false agreement — a
+          "GPT-5.6 Luna" quote filed under `gpt-5` reading as "names the
+          model" — occurs ZERO times.
+
+          The reason is that it biases every "names exactly one model"
+          measurement DOWNWARD, because a sentence naming only "GPT-5.5"
+          counts as naming two. Recomputed with the longest-match rule on the
+          same text, the blog probe's seating criterion moves a long way:
+
+              lucumr.pocoo.org   0.40 -> 0.80      antirez.com      0.81 -> 0.93
+              timdettmers.com    0.64 -> 0.82      sh-reya.com      0.82 -> 1.00
+
+          The 2026-09-21 six-host figures read through the same finder, so
+          their "resolves to exactly one" is low by this mechanism.
+
+        `.hits` rather than the whole `Resolution`: callers of this finder ask
+        "what does this text name", and the near misses are the answer to a
+        different question that E4's gate is the one to act on.
+        """
+        return resolve_with_near_misses(text or "", self._population).hits

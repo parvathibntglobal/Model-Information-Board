@@ -136,15 +136,33 @@ class TestTheReadSurfaceOnlyReads:
 
         import judge.app as app_module
 
-        source = inspect.getsource(app_module._conn)
+        # EVERY FUNCTION ON THE WAY TO A SOCKET, not just the one the call sites
+        # name. `_conn` was both the context manager and the dialler until the
+        # connection pool split them on 2026-09-17; asserting on `_conn` alone
+        # then passed while reading nothing, because the DSN had moved to
+        # `_open_connection` and this test could no longer see it.
+        readers = (app_module._conn, app_module._open_connection,
+                   app_module._ConnectionPool.take)
         # COMMENTS AND DOCSTRINGS STRIPPED FIRST. The first version asserted
         # `"localhost" not in source` and failed on this function's own comment
         # explaining why there is no localhost default - the third time in one
         # session I have written a substring check that caught my own prose,
         # after "complete" in "completeness" and "commit" in "never commits".
-        code = re.sub(r"#.*", "", re.sub(r'"""[\s\S]*?"""', "", source))
-        assert "localhost" not in code
-        assert 'os.getenv("DATABASE_URL")' in code
+        bodies = {
+            fn.__name__: re.sub(
+                r"#.*", "", re.sub(r'"""[\s\S]*?"""', "", inspect.getsource(fn))
+            )
+            for fn in readers
+        }
+        for name, code in bodies.items():
+            assert "localhost" not in code, f"{name} can reach localhost"
+        # The DSN is read in exactly one place and it comes from the environment.
+        assert 'os.getenv("DATABASE_URL")' in bodies["_open_connection"]
+        # ⚠ AND THE POOL TAKES IT AS AN ARGUMENT RATHER THAN READING ITS OWN. A
+        #   pool that resolved the DSN separately could hand back a connection to
+        #   a different database than the caller asked for, and nothing would say
+        #   so - see `test_changing_the_dsn_empties_the_pool`.
+        assert "getenv" not in bodies["take"]
 
 
 class TestAnUnknownCapabilityIs404:

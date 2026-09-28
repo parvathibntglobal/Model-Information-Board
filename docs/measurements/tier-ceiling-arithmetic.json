@@ -1,6 +1,6 @@
 {
  "as_of": "2026-08-30",
- "why_not_the_database": "staging unreachable (TCP timeout, 52.17.75.29:5432); the 150-thread run's per-claim output was never persisted, so the empirical before/after cannot be produced from this checkout",
+ "why_not_the_database": "staging unreachable (TCP timeout, 203.0.113.5:5432); the 150-thread run's per-claim output was never persisted, so the empirical before/after cannot be produced from this checkout",
  "gate": 3.0,
  "lift_D_to_B": 5.416666666666667,
  "lift_D_to_A": 8.333333333333334,
