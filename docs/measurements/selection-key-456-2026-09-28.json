@@ -1,0 +1,195 @@
+{
+ "measured_at": "2026-09-28T08:52:02+00:00",
+ "pipeline_version": "e5.5",
+ "population_unread_kept": 6109,
+ "readable_here": 5205,
+ "models": [
+  {
+   "model": "Anthropic: Claude Fable 5",
+   "model_version_id": "mv_86c0c8bf10aa4a0d",
+   "surfaces": [
+    "fable 5",
+    "claude fable 5",
+    "fable-5",
+    "fable5",
+    "claude-fable-5",
+    "claudefable5"
+   ],
+   "longer_subtracted": [
+    "Anthropic: Claude Fable 5.1",
+    "Claude Fable 5.1",
+    "Claude-Fable-5.1",
+    "Fable 5.1",
+    "anthropic/claude-fable-5-1",
+    "claude fable 5.1",
+    "claude-fable-5-1",
+    "claude-fable-5.1",
+    "claudefable5.1",
+    "claudefable51",
+    "fable 5.1",
+    "fable-5.1",
+    "fable5.1",
+    "fable51"
+   ],
+   "old_key_first": 509,
+   "new_key_first": 465,
+   "old_only": 44,
+   "new_only": 0,
+   "old_only_ids": [
+    "thread_context_03111212dcdaa074",
+    "thread_context_0755563d78997d76",
+    "thread_context_1706b2c585c5a471",
+    "thread_context_2b9a3d8aa0bb8975",
+    "thread_context_371cc76181362a7b",
+    "thread_context_3a9ef815d015cb18",
+    "thread_context_409733cba950c7b7",
+    "thread_context_40bf59e6b47a27e6",
+    "thread_context_431c757579c4ae82",
+    "thread_context_4e1b6f7740f8c391",
+    "thread_context_54a647d409d69ebc",
+    "thread_context_606655fdddf087b1",
+    "thread_context_675dfe769d01fc21",
+    "thread_context_6a61ac84aa80c8dd",
+    "thread_context_71caa83f103e9622",
+    "thread_context_7c8313163ce0a065",
+    "thread_context_86d54a571f31b369",
+    "thread_context_8aafecc812e54c1e",
+    "thread_context_8f1bbd18b2e2d71e",
+    "thread_context_8f6053b0420e8593",
+    "thread_context_9c1953b774ba396f",
+    "thread_context_9e6ac96b203bb91f",
+    "thread_context_a3e2eac1d551fcae",
+    "thread_context_a5f5efe205b138ca",
+    "thread_context_ab3c93d6bff4b837",
+    "thread_context_ad2a087d7cbdc9c5",
+    "thread_context_aebf1738c2baa919",
+    "thread_context_b8f013312cced8fa",
+    "thread_context_b9d93887ec5206b5",
+    "thread_context_bdd3710f7701afcc",
+    "thread_context_c04c178105b3ae3b",
+    "thread_context_c341d72c51bd2cba",
+    "thread_context_c428e0fad54dd1c1",
+    "thread_context_c6caf85cc6279dd4",
+    "thread_context_c751550145908f4c",
+    "thread_context_e0ee1e79dbe454e3",
+    "thread_context_e2d6af4c587a94a7",
+    "thread_context_e4cde262c117c44f",
+    "thread_context_ec5492da946aa114",
+    "thread_context_f4513a406f00a91e"
+   ]
+  },
+  {
+   "model": "Z.ai: GLM 5.3",
+   "model_version_id": "mv_0691ed45b103d0df",
+   "surfaces": [
+    "glm 5.3",
+    "glm-5.3",
+    "glm5.3"
+   ],
+   "longer_subtracted": [
+    "GLM 5.3 Flash",
+    "GLM 5.3 FlashX",
+    "GLM 5.3 Prime",
+    "Z.ai: GLM 5.3 Flash",
+    "Z.ai: GLM 5.3 FlashX",
+    "Z.ai: GLM 5.3 Prime"
+   ],
+   "old_key_first": 42,
+   "new_key_first": 32,
+   "old_only": 10,
+   "new_only": 0,
+   "old_only_ids": [
+    "thread_context_40847121006d64c0",
+    "thread_context_5f631d4ae02130c1",
+    "thread_context_625effd258aeb81e",
+    "thread_context_6ceabee9e48ac4de",
+    "thread_context_6e094ecc760a6e80",
+    "thread_context_9558082e6927d920",
+    "thread_context_a1faa06a5ab18d5e",
+    "thread_context_c341f5dfca9b9b34",
+    "thread_context_df25d9b1e6900bb7",
+    "thread_context_fa05dbe7d430e56d"
+   ]
+  },
+  {
+   "model": "OpenAI: GPT-5.6 Luna",
+   "model_version_id": "mv_65a8fc1dec61133f",
+   "surfaces": [
+    "gpt 5.6 luna",
+    "gpt-5.6 luna",
+    "gpt-5.6-luna",
+    "gpt5.6luna"
+   ],
+   "longer_subtracted": [
+    "GPT-5.6 Luna Pro",
+    "OpenAI: GPT-5.6 Luna Pro"
+   ],
+   "old_key_first": 134,
+   "new_key_first": 132,
+   "old_only": 2,
+   "new_only": 0,
+   "old_only_ids": [
+    "thread_context_15c50dcad784fc30",
+    "thread_context_228feddeb29f1e5f"
+   ]
+  },
+  {
+   "model": "Anthropic: Claude Opus 5.5",
+   "model_version_id": "mv_0a9d29c4ba3e27c8",
+   "surfaces": [
+    "opus 5.5",
+    "claude opus 5.5",
+    "opus-5.5",
+    "opus5.5",
+    "claude-opus-5.5",
+    "claudeopus5.5"
+   ],
+   "longer_subtracted": [],
+   "old_key_first": 12,
+   "new_key_first": 7,
+   "old_only": 5,
+   "new_only": 0,
+   "old_only_ids": [
+    "thread_context_407dfb89157b03f0",
+    "thread_context_8de3706c48497fbb",
+    "thread_context_91b84b0a6aaea00c",
+    "thread_context_c3f54fad92aaf5ed",
+    "thread_context_e6927492d7a9f57f"
+   ]
+  },
+  {
+   "model": "Anthropic: Claude Opus 5",
+   "model_version_id": "mv_568e0eb3a95b5113",
+   "surfaces": [
+    "opus 5",
+    "claude opus 5",
+    "opus-5",
+    "opus5",
+    "claude-opus-5",
+    "claudeopus5"
+   ],
+   "longer_subtracted": [
+    "Anthropic: Claude Opus 5.5",
+    "Claude Opus 5.5",
+    "anthropic/claude-opus-5.5",
+    "claude opus 5.5",
+    "claude-opus-5.5",
+    "claudeopus5.5",
+    "opus 5.5",
+    "opus-5.5",
+    "opus5.5"
+   ],
+   "old_key_first": 240,
+   "new_key_first": 239,
+   "old_only": 1,
+   "new_only": 0,
+   "old_only_ids": [
+    "thread_context_2a8d656f3d1e0577"
+   ]
+  },
+  {
+   "model": "Google: Gemini 2.5 Flash",
+   "absent": true
+  }
+ ]
+}

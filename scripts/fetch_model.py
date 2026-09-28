@@ -1409,7 +1409,120 @@ def assemble_stage(conn, prog: Progress) -> None:
                       + " · ".join(notes))
 
 
-def threads_naming_the_model(conn, store, surfaces) -> set[str]:
+#: Characters that may sit between the tokens of a surface in running text:
+#: `GPT-5.6 Sol`, `gpt 5.6 sol`, `gpt-5.6-sol` and `gpt56sol` are one name.
+_SURFACE_GAP = r"[\s\-_./]*"
+
+
+def _surface_pattern(surface: str) -> str | None:
+    """A regex for one surface in raw lowercased text, bounded at both ends.
+
+    ⚠ THE RIGHT BOUNDARY REFUSES A FOLLOWING `.digit` OR `-digit`, because a
+      plain word boundary does not: `opus 5` followed by `.5` is Opus 5.5, and
+      `claude-fable-5` followed by `-1` is Fable 5.1, and `\b` sits happily
+      between the `5` and either. That is the case the normalised key could not
+      see at all - it joined "Opus 5 / 5.5" into one string.
+    """
+    import re
+
+    tokens = re.findall(r"[a-z0-9]+", surface.casefold())
+    if not tokens:
+        return None
+    body = _SURFACE_GAP.join(re.escape(t) for t in tokens)
+    # `.0` alone is the SAME version, as the finder's `_SAME_VERSION` rule has it
+    # ("Sonnet 5.0 is another disaster" names Sonnet 5): measured 2026-09-28,
+    # refusing it dropped 3 of 4 threads from Opus 5 that said "Opus 5.0".
+    return rf"(?<![a-z0-9]){body}(?![a-z0-9])(?![.,\-_](?:[1-9]|0\d))"
+
+
+def _compile_surfaces(surfaces):
+    import re
+
+    parts = [p for p in (_surface_pattern(x) for x in surfaces) if p]
+    return re.compile("|".join(parts)) if parts else None
+
+
+def names_the_model(text: str, own, longer) -> bool:
+    """Does `text` name the model, with the longer registry names subtracted?
+
+    `own` and `longer` are compiled by `_compile_surfaces`. A match of the
+    model's own surface COUNTS unless it lies inside a match of a longer name
+    that another registry model owns - `gemini 2.5 flash` inside
+    `gemini 2.5 flash lite`. One surviving match is enough: a thread naming both
+    Flash and Flash Lite names Flash.
+
+    ⚠ THIS IS NOT THE FINDER'S RULE, ON PURPOSE (#456). #341's rule, which the
+      finder implements, refuses a match only when a DIGIT follows it, and treats
+      a word suffix as naming the base model - `GPT-5.2-Codex` names `GPT-5.2`,
+      and `test_the_finder_does_not_match_inside_a_longer_name` pins that. That
+      is right for attribution. This is an ORDERING key for the run's cap, where
+      the question is narrower: which threads are about THIS model. So the
+      subtraction lives here and the finder is untouched.
+    """
+    if own is None or not text:
+        return False
+    hay = text.casefold()
+    spans = [m.span() for m in longer.finditer(hay)] if longer is not None else []
+    for m in own.finditer(hay):
+        a, b = m.span()
+        if not any(la <= a and b <= lb for la, lb in spans):
+            return True
+    return False
+
+
+def longer_registry_surfaces(conn, model_version_id: str | None, surfaces) -> list[str]:
+    """Other models' registry names that CONTAIN one of this model's surfaces.
+
+    Every alias surface and variant, plus each model's display name, for every
+    OTHER `model_version` - retired rows included, because a thread naming a
+    retired longer model is still not about this one. Filtered to names whose
+    normalised form contains one of `surfaces`' and is longer, since only those
+    can contain a match.
+
+    ⚠ A DISPLAY NAME COUNTS WITHOUT ITS VENDOR PREFIX TOO. `Z.ai: GLM 5.3 Flash`
+      is how the registry spells a model with no alias rows, and no thread
+      writes the `Z.ai:` - so, measured 2026-09-28, GLM 5.3 and GPT-5.6 Luna
+      subtracted nothing until the part after `: ` was added.
+    """
+    from collect.registry.aliases import normalize
+
+    keys = {normalize(x) for x in surfaces if x and len(normalize(x)) >= 4}
+    if not keys:
+        return []
+    #: ⚠ A NAME THIS MODEL ANSWERS TO IS NEVER "LONGER", even when another row
+    #:   also carries it. Measured 2026-09-28: `claude fable 5` sits in another
+    #:   model's alias row, is longer than Fable 5's own `fable 5`, and without
+    #:   this line subtracted Fable 5 from its own threads.
+    own = {normalize(x) for x in surfaces if x}
+    rows = conn.execute(
+        "SELECT a.surface, a.variants FROM model_alias a "
+        "WHERE a.model_version_id IS DISTINCT FROM %s",
+        (model_version_id,),
+    ).fetchall()
+    names = conn.execute(
+        "SELECT display_name FROM model_version WHERE id IS DISTINCT FROM %s "
+        "AND display_name IS NOT NULL",
+        (model_version_id,),
+    ).fetchall()
+    candidates: set[str] = set()
+    for surface, variants in rows:
+        candidates.add(surface)
+        candidates.update(variants or [])
+    for (name,) in names:
+        candidates.add(name)
+        if ": " in name:
+            candidates.add(name.split(": ", 1)[1])
+    out = []
+    for c in candidates:
+        n = normalize(c or "")
+        if n in own:
+            continue
+        if any(k in n and len(n) > len(k) for k in keys):
+            out.append(c)
+    return sorted(out)
+
+
+def threads_naming_the_model(conn, store, surfaces, *, longer=()) -> set[str]:
     """Unread thread ids whose flattened text literally names one of `surfaces`.
 
     WHY A TIMESTAMP COULD NOT ANSWER THIS, MEASURED RATHER THAN ARGUED
@@ -1455,6 +1568,12 @@ def threads_naming_the_model(conn, store, surfaces) -> set[str]:
     A surface that is absent from the whole corpus returns an empty set, which
     is a real answer - "nothing stored names this model" - and the caller says
     so rather than silently falling back (rule 4).
+
+    ⚠ IT WAS A NORMALISED SUBSTRING TEST, AND A KEY MATCHED INSIDE ANY LONGER
+      NAME (#456). `gemini25flash` inside `gemini25flashlite` put 302 threads
+      first against 208 on a boundary check (#441). Now: raw lowercased text, a
+      boundary at both ends, and `longer` - other models' names containing this
+      one's - subtracted. See `names_the_model`.
     """
     from collect.registry.aliases import normalize
     from judge.store.extractions import PIPELINE_VERSION
@@ -1462,9 +1581,11 @@ def threads_naming_the_model(conn, store, surfaces) -> set[str]:
     #: 4 characters is the floor the resolver already uses for a surface to be
     #: worth matching. Below it a normalised key reaches inside unrelated words -
     #: the `free` inside "freeze" finding, one layer up.
-    keys = {normalize(x) for x in surfaces if x and len(normalize(x)) >= 4}
-    if not keys:
+    kept = [x for x in surfaces if x and len(normalize(x)) >= 4]
+    own = _compile_surfaces(kept)
+    if own is None:
         return set()
+    longer_rx = _compile_surfaces(longer)
     rows = conn.execute(
         "SELECT tc.id, tc.flattened_text_ref FROM thread_context tc "
         "WHERE EXISTS (SELECT 1 FROM document d "
@@ -1481,8 +1602,7 @@ def threads_naming_the_model(conn, store, surfaces) -> set[str]:
             text = store.get_text(ref)
         except Exception:
             continue  # payload not on this machine - not this fetch's to judge
-        hay = normalize(text)
-        if any(k in hay for k in keys):
+        if names_the_model(text, own, longer_rx):
             naming.add(tc_id)
     return naming
 
@@ -2051,7 +2171,7 @@ def _subject_ids(conn, given: str) -> frozenset[str]:
 
 
 def extract_and_curate(conn, prog: Progress, *, release_date=None,
-                       surfaces=()) -> None:
+                       surfaces=(), model_version_id=None) -> None:
     """E5–E7 — extract claims from this fetch's threads, vet, and curate cells.
 
     Spends (capped) OpenRouter money and writes claims + cells. Scoped to the
@@ -2081,7 +2201,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     prog.stage("E5", "Extract", "running",
                detail="scanning unread threads for this model's surfaces "
                       "(local reads, no network)")
-    naming = threads_naming_the_model(conn, store, surfaces)
+    naming = threads_naming_the_model(
+        conn, store, surfaces,
+        longer=longer_registry_surfaces(conn, model_version_id, surfaces))
     threads, doc_ids, gated_out, oversized, unreadable, (named, own) = build_thread_inputs(
         conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming)
     # SAID, NOT IMPLIED. A run that reads 50 threads of which 2 name the model
@@ -2840,7 +2962,7 @@ def main(argv: list[str] | None = None) -> int:
 
         try:
             extract_and_curate(db.live(prog), prog, release_date=release_date,
-                               surfaces=variants)
+                               surfaces=variants, model_version_id=args.model_version_id)
         except Exception as exc:
             _safe_rollback(db.raw)
             prog.stage("E5", "Extract", "error", detail=str(exc).splitlines()[0][:200])
