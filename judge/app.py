@@ -3806,6 +3806,11 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
          "which model reads the evidence"),
         ("ENVIRONMENT", "development",
          "development turns the build-fixture guard off and opens this API"),
+        ("SCHEDULER_ENABLED", "not set",
+         "the scheduled fetch runner harvests only when this is truthy; unset = "
+         "nothing runs on a schedule (scripts/run_scheduled_fetches.py)"),
+        ("SCHEDULER_ISSUE", "not set",
+         "the issue the scheduled runner posts its host-free summary to"),
     )
     caps = []
     for spec in cap_specs:

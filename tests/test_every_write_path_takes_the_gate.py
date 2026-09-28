@@ -66,6 +66,10 @@ READ_ONLY: dict[str, str] = {
     "measure_signal_demotion_platforms.py": "measurement only; no write verb",
     "registry_diff.py": ("diffs the catalogue against model_version for #450; one SELECT, "
                          "over a default_transaction_read_only connection; no write verb"),
+    "run_scheduled_fetches.py": ("plans which models are due over a "
+                                 "default_transaction_read_only connection; the WRITES are "
+                                 "fetch_model's subprocess, which carries the fixture gate; "
+                                 "no write verb here"),
     "triage_stored_corpus.py": "re-triages in memory and reports; no write verb",
     "write_report.py": "writes a FILE, not the database; no SQL write verb",
 }
