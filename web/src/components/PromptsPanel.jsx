@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { adminPrompts } from '../api'
 import { Badge, Notice } from './ui'
 import { IconAlert, IconLayers } from './Icons'
+import WhereAModelIsUsed from './WhereAModelIsUsed'
 
 /**
  * Every prompt the LIVE PIPELINE sends a language model.
@@ -68,6 +69,15 @@ export default function PromptsPanel() {
       <div className="card-body stack stack-3">
         {err && <Notice icon={<IconAlert />}>{err}</Notice>}
         {!data && !err && <div className="skel" style={{ height: 160 }} />}
+
+        {/* ⚠ WHERE BEFORE WHAT. The list below answers "what exactly do we
+            send"; the question a reader arrives with is "where is a model used
+            at all". The overview answers that first, in plain words, and the
+            prompts it summarises are right underneath to check it against. */}
+        {data && <WhereAModelIsUsed callers={data.model_callers} />}
+        {data && (
+          <hr style={{ border: 0, borderTop: '1px solid var(--border-soft)', margin: 0 }} />
+        )}
 
         {/* ── SENT TO THE MODEL ──────────────────────────────────────────
             ONE LINE EACH, OPENED ON CLICK. Every prompt used to render in
