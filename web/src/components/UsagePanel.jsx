@@ -36,11 +36,27 @@ const usd = (n, dp = 4) => (n == null ? '—' : `$${Number(n).toFixed(dp)}`)
 // MOVED TO src/modelNames.js, because Settings names the same model and was
 // printing the raw id - so one page called the extractor two different things.
 
-// Corrected per-model total. The local ledger only logged a fraction of the
-// pre-switch Gemini spend ($0.0783); the real total on the key while Gemini
-// 2.5 Flash was the sole extractor is $2.4780 (it matches the key total above).
-const MODEL_SPEND_OVERRIDE = {
-  'google/gemini-2.5-flash': 2.478,
+// ── A CLOSED FIGURE, NOT A LIVE ONE ───────────────────────────────────────────
+//
+// Gemini 2.5 Flash stopped being the extractor on 2026-09-01, so its total is
+// history and cannot move. The ledger holds only $0.0975 of it, because E5 was
+// not writing to the shared ledger for most of the period Gemini ran; the real
+// figure is the key total on the day of the switch, when Gemini was the only
+// thing spending from it.
+//
+// ⚠ IT IS A MEASUREMENT WITH A DATE, AND THE PAGE MUST SAY SO (rule 11). It
+//   read as though the ledger had produced it, which is the one thing it did
+//   not: a constant typed into a component, indistinguishable on screen from
+//   the live row beside it. `SPEND_BEFORE_THE_LEDGER` is named for what it is,
+//   the row is marked, and the date travels with the number.
+//
+// ⚠ AND IT IS A CEILING FOR GEMINI, NOT A TOTAL. 207 Gemini calls are in the
+//   ledger AFTER the switch, running to 2026-09-18 — machines with
+//   EXTRACTOR_MODEL still set to Gemini, which `judge/extract/client.py`
+//   describes as having happened before. Those are inside the key total and
+//   are not inside this figure.
+const SPEND_BEFORE_THE_LEDGER = {
+  'google/gemini-2.5-flash': { usd: 2.478, asof: '2026-09-01' },
 }
 
 // The extractor running now. Kept beside the names above so a switch is one
@@ -162,7 +178,12 @@ export default function UsagePanel() {
  */
 function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, ledger, byStage }) {
   const rows = Object.entries(byModel)
-    .map(([model, spent]) => [model, MODEL_SPEND_OVERRIDE[model] ?? spent])
+    .map(([model, spent]) => {
+      const closed = SPEND_BEFORE_THE_LEDGER[model]
+      return closed
+        ? [model, closed.usd, closed.asof]   // third slot: the date, rendered
+        : [model, spent, null]
+    })
     .sort((a, b) => b[1] - a[1])
 
   // ── THE CURRENT EXTRACTOR'S SPEND, which the ledger does not have ─────────
@@ -188,6 +209,23 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
   // Only shown when there IS unledgered spend. A zero row would imply we had
   // checked and DeepSeek had cost nothing, which is a different claim.
   const currentSpend = remainder != null && remainder > 0.00005 ? remainder : null
+
+  // ⚠ THE LEDGER CAN EXCEED THE KEY, AND SAYING NOTHING IS THE WRONG ANSWER.
+  //   `remainder` goes NEGATIVE when the rows below add up to more than the
+  //   provider has ever charged, and every use of it above tests `> 0` — so
+  //   the page fell silent on the one arithmetic it is here to check.
+  //
+  //   Measured 2026-09-28: the rows read $9.5690 against a key that had spent
+  //   $4.1570. Two causes, both real and neither visible from this component:
+  //   every extraction call was written to the ledger twice (fixed — one
+  //   writer, `judge/extract/client.py`), and every dollar in the ledger is
+  //   tokens x a constant, with the two constants for DeepSeek disagreeing by
+  //   2.11x (#381, open).
+  //
+  //   So this is a LIVE CHECK, not a note about a past defect: the moment the
+  //   rows outrun the key again, the page says so instead of quietly dropping
+  //   the difference.
+  const overstated = remainder != null && remainder < -CENT ? -remainder : null
   const alreadyListed = rows.some(([m]) => m === CURRENT_EXTRACTOR)
 
   // ── THE THREE QUALIFIERS ON TODAY'S FIGURE ────────────────────────────────
@@ -250,17 +288,46 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
         </Notice>
       )}
 
-      {/* A STAGE THAT HAS NEVER RECORDED IS A WIRING FAULT, NOT A QUIET DAY.
-          Without this the stage simply reads $0.00, which is the more
-          reassuring of the two available readings. */}
+      {/* ⚠ THIS SAID "NOT WIRED TO THE LEDGER", AND THAT WAS FALSE. Checked
+          2026-09-28: `/ask/understand` is the only route in the ask flow that
+          calls a model at all — `/ask/recommend` and `/ask/revise` run no LLM —
+          and it charges the ledger through `judge/ask/spend.py:charge`, which
+          records STAGE_ASK unconditionally, before the budget branch.
+
+          The stage reads zero because THE ASK BOX IS NOT BUILT. No component
+          calls `askUnderstand`, and there is no /ask route in the app; the
+          backend half exists ahead of the surface.
+
+          So the panel took an absence and made it a definite mechanical claim,
+          which is rule 6 pointed at ourselves — and this notice exists to stop
+          exactly that. Three states, not two:
+
+              never recorded, no caller exists      not built yet
+              never recorded, a caller exists       A WIRING FAULT
+              recorded zero                         a quiet day
+
+          THE MIDDLE ONE IS STILL THE ALARM and the wording below keeps it,
+          because the day someone builds the Ask box this has to go back to
+          being a warning without anybody remembering to change it. What the
+          ledger cannot tell us is which of the first two we are in — that
+          needs a record of whether the route has ever been REACHED, which
+          nothing keeps. Until then the page names both and asserts neither. */}
       {unwired.length > 0 && (
         <Notice icon={<IconAlert />}>
           <strong>
             {unwired.length === 1 ? 'One stage has' : `${unwired.length} stages have`} never
             recorded a call: {unwired.join(', ')}.
           </strong>{' '}
-          That is a stage not wired to the ledger, not a stage that has cost
-          nothing — anything it spends is missing from every figure here.
+          Either nothing has ever reached it, or it is not wired to the ledger —
+          this figure cannot tell you which, and the second would mean anything
+          it spends is missing from every number here.{' '}
+          {unwired.length === 1 && unwired[0] === 'ask' && (
+            <>
+              For <strong>ask</strong> it is the first: the Ask box is not built,
+              no page calls it, and the one route in that flow that calls a model
+              does charge the ledger.
+            </>
+          )}
         </Notice>
       )}
 
@@ -359,20 +426,77 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
         </>
       )}
 
+      {/* ⚠ THE ROWS ADD UP TO MORE THAN THE KEY HAS EVER BEEN CHARGED. Stated
+          before the rows rather than after them, because a reader who has
+          already added them up has drawn the conclusion. */}
+      {/* ⚠ MEASURED AGAINST THE PROVIDER, 2026-09-28, NOT REASONED ABOUT.
+          `/api/v1/key` reports `usage` $4.157033986 and `limit_remaining`
+          25.842966014 against a limit of 30 — two routes to the same figure,
+          agreeing to nine places, so the number at the top of this panel is
+          exact and the rows below are what is wrong.
+
+          `usage_monthly` $1.680758006 covers 2026-09-01 onward, which is the
+          day the extractor switched, so the lifetime total decomposes:
+          $4.1570 - $1.6808 = $2.4763 before the switch, when Gemini was the
+          only thing spending. That is the closed Gemini row's $2.4780 arrived
+          at independently, off by $0.0017 — the 185 Gemini calls that ran on
+          after the switch.
+
+          Which leaves at most $1.5287 for DeepSeek against $7.08 displayed.
+          The implied blended rate is $0.0509 per 1M tokens over 30.0M; both
+          rates in `budget.py` are above it (0.14/0.28 gives $0.1608, and even
+          0.065/0.14 gives $0.0762), most likely because 13,200 input tokens
+          per call are nearly all the same prompt and cache hits do not bill at
+          list. So #381's 2.11x is necessary and not sufficient. */}
+      {overstated != null && (
+        <Notice icon={<IconAlert />}>
+          <strong style={{ color: 'var(--text)' }}>
+            These rows exceed the key total by {usd(overstated)}.
+          </strong>{' '}
+          They are not what the provider charged. Every dollar below is the
+          call&rsquo;s tokens multiplied by a rate held in{' '}
+          <span className="mono">judge/extract/budget.py</span>, and measured
+          against the provider on 2026-09-28 that rate is about{' '}
+          <strong>3&times; too high</strong> — the extraction prompt is largely
+          identical call to call, and cache hits are not billed at list price
+          (#381). The figure at the top of this panel comes straight from the
+          provider and is the one to trust. Treat the split below as{' '}
+          <strong>which model, not how much</strong>.
+        </Notice>
+      )}
+
       {/* Through `prettyModel` like the rows below it, so the heading and the
           row it describes cannot disagree about what the extractor is called. */}
       <span className="label">
         By extractor model — {prettyModel('google/gemini-2.5-flash')} (used so far)
         {' → '}{prettyModel(CURRENT_EXTRACTOR)} (current)
       </span>
+      {/* ⚠ WHAT WAS SERVED, NOT WHAT WAS ASKED FOR, and the page has to say
+          which because the two can differ. `judge/extract/client.py` records
+          the model id the PROVIDER reported on the response; `claim.extractor_
+          model` records the id we sent. A row here for a build nobody
+          configured is therefore not proof that anything was misconfigured —
+          on 2026-09-24 four calls from one host recorded `-0731` while every
+          claim written that day recorded the undated alias, and the ledger
+          cannot tell you which of the two happened. #481. */}
+      <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', lineHeight: 1.6 }}>
+        The model named on each row is the one{' '}
+        <strong style={{ color: 'var(--text)' }}>the provider reported serving</strong>,
+        which is not always the id we sent — an undated alias resolves to a dated
+        build. What we asked for is recorded on the claims, not here.
+      </span>
       {rows.length === 0 ? (
         <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>No model calls recorded yet.</span>
       ) : (
-        rows.map(([model, spent]) => (
+        rows.map(([model, spent, asof]) => (
           <div key={model} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
             <span>
               <strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(model)}</strong>{' '}
               <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{model}</span>
+              {/* A CLOSED ROW LOOKS IDENTICAL TO A LIVE ONE, which is the whole
+                  problem with a constant on a live panel. This says which it
+                  is, in the row, where a reader comparing the two will be. */}
+              {asof && <> <Badge tone="mute">closed {asof}</Badge></>}
             </span>
             <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
               <span className="tnum">

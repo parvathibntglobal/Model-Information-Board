@@ -116,7 +116,6 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Protocol, runtime_checkable
 
-from judge import spend_ledger
 from judge.config import bucket_for
 from judge.curate.labels import Driver
 from judge.curate.nightly import close_the_night
@@ -1477,17 +1476,37 @@ class Pipeline:
                         model=self._extractor_model,
                     )
                 )
-            # AND to the shared ledger, unconditionally - not inside the
-            # `budget is not None` branch above. The $1/day cap is shared with
-            # the ask box, so a run without a Budget object still spends from
-            # the same pot, and a call this file declined to record is a call
-            # the ask box is then allowed to make on top of it.
-            spend_ledger.record(
-                stage=spend_ledger.STAGE_EXTRACT,
-                model=self._extractor_model,
-                input_tokens=result.extraction.input_tokens or 0,
-                output_tokens=result.extraction.output_tokens or 0,
-            )
+            # ⚠ NO SHARED-LEDGER WRITE HERE. `judge/extract/client.py` records
+            #   the call beside the response, and this file used to record it
+            #   again once the thread had stored — so every extraction call
+            #   bought one API call and wrote TWO rows.
+            #
+            #   MEASURED 2026-09-28 over the shared ledger: 3,288 rows for
+            #   2,131 distinct calls — 1,139 duplicated pairs, median 2.3s
+            #   apart. The dollar total read $7.1101 against $5.1152 once the
+            #   pairs were collapsed, and the key itself had only ever spent
+            #   $4.1570.
+            #
+            #   `Call.id` CANNOT DEDUPLICATE THEM and is not the place to try.
+            #   It hashes the timestamp on purpose — "two machines can make the
+            #   same call in the same microsecond ... hashing content alone
+            #   would record one of them and lose the other's money" — so the
+            #   two writes, milliseconds apart, are two different ids by
+            #   design. The fix is one writer, not a cleverer hash.
+            #
+            #   THE CLIENT IS THE WRITER THAT SURVIVES, for three reasons this
+            #   file cannot match: it sees the provider's `usage` (the billed
+            #   cost #381 wants recorded), it fires on truncated and abandoned
+            #   calls that never reach this line but are billed anyway, and it
+            #   covers callers that use the extractor without this pipeline.
+            #
+            #   The claim the second writer was added under — "the only caller
+            #   of `spend_ledger.record` was the Ask box" (client.py, 85c5638,
+            #   2026-09-09) — was not true when it was written. This line had
+            #   been recording E5 since 19e14c4, three weeks earlier.
+            #
+            #   The cap is still shared and still charged: the client's row
+            #   lands in the same ledger the ask box reads.
             # THE THREAD IS NOW COMPLETE AND CONSISTENT, AND THE CALLER MAY SAY SO.
             #
             # This is the last statement of the iteration on purpose: the claims,
