@@ -309,6 +309,11 @@ fields:
     routes:
     - /coverage
     state: no_consumer
+  last_fetch:
+    reviewed: false
+    routes:
+    - /models/{model_version_id:path}
+    state: consumed
   ledger:
     reviewed: false
     routes:
