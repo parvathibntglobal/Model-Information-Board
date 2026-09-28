@@ -814,16 +814,51 @@ function CommonAxes({ models }) {
                       </span>
                     </th>
                   </tr>
-                  {g.every.map((a) => (
+                  {g.every.map((a) => {
+                    // The axis page is the same for every model, so it is read
+                    // off whichever model's item carries it.
+                    const axisPath = Object.values(a.per).find((it) => it.board_path)?.board_path
+                    return (
                     <tr key={a.slug} className="cmp-axis">
-                      <th scope="row">{a.name}</th>
+                      <th scope="row">
+                        {/* ⚠ THE AXIS LINKS TO WHERE ITS RANKING ALREADY LIVES,
+                            rather than this page ranking it again. The board
+                            orders every Jobs and Capabilities page by the rule in
+                            `contract/board_ordering.yaml`; a second copy here would
+                            be one more place for the two to disagree. Compare
+                            stays counts, the board stays order, one click apart.
+
+                            Plain text where the board has no page for this axis -
+                            never a link that lands on nothing. `board_path` is
+                            None exactly then, because the backend asked the
+                            board's own function rather than assuming. */}
+                        {axisPath
+                          ? <Link to={`/board/${axisPath}`} className="mb-link"
+                                  state={{ from: '/compare' }}
+                                  title="See every model reported on this, in the board's order">
+                              {a.name}
+                            </Link>
+                          : a.name}
+                      </th>
                       {models.map((m) => {
                         const it = a.per[m.model_version_id]
                         const f = (it.figures || [])[0]
                         const split = polarityOf(it)
                         return (
                           <td key={m.model_version_id}>
-                            <Polarity split={split} />
+                            {/* ⚠ THE CELL OPENS THIS MODEL'S REPORTS ON THIS AXIS,
+                                which is where the quotes already are. The board's
+                                claim is verbatim evidence and this table shows
+                                counts; the link is what makes a count checkable
+                                without a second copy of the quotes living here. */}
+                            {it.board_model_path
+                              ? <Link to={`/board/${it.board_model_path}`}
+                                      state={{ from: '/compare' }}
+                                      className="cmp-cell-link"
+                                      title="Read what was said about this model here">
+                                  <Polarity split={split} />
+                                </Link>
+                              : <Polarity split={split} />}
                             {/* ⚠ THREE COUNTS, ALL MEASURED, NONE DERIVED, and
                                 the second and third are what stop the first
                                 being read as people.
@@ -860,7 +895,8 @@ function CommonAxes({ models }) {
                         )
                       })}
                     </tr>
-                  ))}
+                    )
+                  })}
                 </Fragment>
               ))}
             </tbody>

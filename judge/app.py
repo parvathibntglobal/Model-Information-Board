@@ -1028,6 +1028,39 @@ COMPARE_UNSOURCED = {
 COMPARE_MAX = 3
 
 
+def _with_board_paths(items: list[dict], section: str, url_seg: str,
+                      model_version_id: str,
+                      on_board: dict[tuple[str, str], dict[str, str]]) -> list[dict]:
+    """Each item, plus the board pages it can honestly link to.
+
+    `board_path` is the axis page - `jobs/coding-agent` - and `board_model_path`
+    is this model's reports on it - `jobs/coding-agent/<model key>`. Either is
+    None where the board has no such page, and the compare page renders plain
+    text there rather than a link that lands on nothing.
+
+    ⚠ THE MODEL KEY COMES FROM THE BOARD'S ROW, NOT FROM `model_version_id`.
+      They are the same string on most rows and not on all of them - the board's
+      own route comment records `model_version.id` holding a canonical id for
+      166 of 1,249 board rows - so the key the board routes on is read off the
+      board rather than assumed equal to ours.
+
+    COPIES, NOT MUTATIONS. `evidence_for_model` is shared with the model page,
+    and adding link fields to its dicts in place would put them on a payload
+    nothing there reads.
+    """
+    out = []
+    for item in items:
+        models = on_board.get((section, item.get("slug")))
+        key = (models or {}).get(model_version_id)
+        out.append({
+            **item,
+            "board_path": f"{url_seg}/{item['slug']}" if models is not None else None,
+            "board_model_path": (f"{url_seg}/{item['slug']}/{key}"
+                                 if models is not None and key else None),
+        })
+    return out
+
+
 @app.get("/compare")
 def compare_page(ids: str = "") -> dict:
     """Two or three models side by side — registry facts and counted evidence.
@@ -1095,6 +1128,41 @@ def compare_page(ids: str = "") -> dict:
                 found.append(m)
         evidence = {m["model_version_id"]: evidence_for_model(conn, m["model_version_id"])
                     for m in found}
+        # ⚠ WHICH OF THESE THE BOARD ACTUALLY HAS A PAGE FOR, asked of the
+        #   board's own function rather than assumed. The compare page links
+        #   each axis to its board page and each cell to that model's reports
+        #   there, and a link is only honest if the page renders.
+        #
+        #   It does not always. Measured 2026-09-28 over the 15 models with the
+        #   most entries: of 572 (model, axis) pairs `evidence_for_model`
+        #   returns, 4 have no board page at all, for two different reasons:
+        #
+        #     metric/exploitgym, capability/overthinking   MERGE CYCLES - rows
+        #         merged both ways (`exploit-gym` -> `exploitgym` and back), so
+        #         the board and this reader resolve them to different names
+        #     metric/exploit-bench                         a metric the board
+        #         withholds under one of its validity gates (`_withheld`),
+        #         which `evidence_for_model` deliberately does not apply
+        #
+        #   Linking all 572 would put four dead links on the page, each looking
+        #   like a board that lost its data. Asking `board_sections` is the one
+        #   source that cannot disagree with what the board renders, because it
+        #   IS what the board renders - a second implementation of "is this on
+        #   the board" would drift from the first the next time a gate changed.
+        #
+        #   ⚠ IT COSTS ~1.2s warm against the shared database, on an endpoint
+        #     that already takes ~2.5s. Paid on purpose: this is not a hot path,
+        #     and a faster answer that is sometimes wrong is the thing the page
+        #     exists not to be.
+        from judge.store.board_entries import board_sections
+        board = {k: v for k, v in board_sections(conn).items() if not k.startswith("_")}
+        on_board: dict[tuple[str, str], dict[str, str]] = {}
+        for sec, items in board.items():
+            for item in items:
+                on_board[(sec, item.get("slug"))] = {
+                    r.get("model_version_id"): r.get("model_key")
+                    for r in item.get("models") or []
+                }
         # ⚠ HOW ENGINEERS SPOKE, COUNTED. The comparison's whole subject is
         #   what people reported, and "12 reports" says nothing about whether
         #   twelve people were pleased or twelve were complaining. `polarity`
@@ -1257,9 +1325,13 @@ def compare_page(ids: str = "") -> dict:
                 # The discovered sections in full, so the compare page can show
                 # a metric figure with its basis rather than a bare number.
                 "discovered": {
-                    "best_for": ev.get("best_for") or [],
-                    "capabilities": ev.get("capabilities") or [],
-                    "metrics": ev.get("metrics") or [],
+                    key: _with_board_paths(ev.get(key) or [], section, url_seg,
+                                           m["model_version_id"], on_board)
+                    for key, section, url_seg in (
+                        ("best_for", "best_for", "jobs"),
+                        ("capabilities", "capability", "capabilities"),
+                        ("metrics", "metric", "metrics"),
+                    )
                 },
                 # ⚠ ENTRIES PER SECTION, WHICH IS NOT THE LENGTH OF THE LISTS
                 #   ABOVE (rule 7). Those are DISTINCT AXES - "63 capabilities"
