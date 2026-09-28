@@ -868,8 +868,6 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
     from collect.adapters.reddit_write import write_documents as reddit_write
     from collect.ids import content_hash
 
-    contract = load_sources()
-    reddit_src = next(s for s in contract.platforms if s.get("id") == "reddit")
     store = RawStore(Path(settings().raw_store_path))
     queries = variants[:max_searches]
     prog.stage("E2R", "Harvest · Reddit", "running", queries=len(queries),
@@ -879,8 +877,26 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
     inserted = hits = threads = errors = 0
     failures: list[str] = []
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
-    with build_client() as client:
-        searcher = harvester_for_source(reddit_src, client=client, store=store)
+    # NOT RUN IS NOT AN ERROR, which is what X already does (#327). A missing
+    # RAPIDAPI_KEY or a terms refusal is a decision about this source, not a
+    # fault of this run - and under #327 one `error` stage turns the whole run
+    # red, so a source we chose not to run would have failed every run that did
+    # not run it. Both now write `skipped` with the reason. Measured 2026-09-28:
+    # all 5 E2R errors in the shared log since 2026-09-20 were the missing key.
+    from collect.adapters.reddit import RedditConfigError
+
+    try:
+        client = build_client()
+    except RedditConfigError as exc:
+        prog.stage("E2R", "Harvest · Reddit", "skipped",
+                   detail=str(exc).splitlines()[0][:180])
+        return 0
+    with client:
+        searcher, why = _gated_harvester("reddit", harvester_for_source,
+                                         client=client, store=store)
+        if searcher is None:
+            prog.stage("E2R", "Harvest · Reddit", "skipped", detail=why)
+            return 0
         for variant in queries:
             if threads >= max_threads:
                 break
