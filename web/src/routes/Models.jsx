@@ -243,26 +243,17 @@ export default function Models() {
               conditional notices and nothing else, and an unconditional wrapper
               renders an empty box whenever neither fires - which is most of the
               time. */}
-          {/* ⚠ SAID ONCE, ABOUT THE SECTION, RATHER THAN 348 TIMES OR NOT AT
-              ALL. Dropping the sweep removes the empty evidence column AND the
-              only thing on this page whose job was to account for it — and a
-              page that is silently silent is harder to notice than one that is
-              silently wrong, because nothing looks unfinished.
+          {/* ⚠ A CARD EXPLAINING A MISSING COLUMN USED TO SIT HERE, AND THE
+              COLUMN IS GONE. It said the list "carries no engineer evidence per
+              model: the capability cells that would fill that column are not
+              being written by the current pipeline". That was true of the
+              evidence column fed by the closed twelve — which is no longer on
+              this page — so the card had outlived the thing it accounted for,
+              and read as an apology for an absence the reader could not see.
 
-              So the fact the sweep could not state is stated here directly: it
-              is a property of the board, it is not per-model, and it does not
-              wait on a request that never fails. */}
-          <div className="card">
-            <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch',
-                                        margin: 0, lineHeight: 1.6 }}>
-              This list is the registry and what each provider advertises about itself.
-              It carries <strong style={{ color: 'var(--text)' }}>no engineer evidence
-              per model</strong>: the capability cells that would fill that column are
-              not being written by the current pipeline, so the absence is ours and not
-              a finding about any model here. The board's own sections are where
-              collected evidence appears.
-            </p>
-          </div>
+              Removed at @parvathibntglobal's request, 2026-09-28. Evidence per
+              model lives on each model's own page, under Jobs, Capabilities and
+              Metrics; this list is how you get there. */}
 
           <label className="searchbar">
             <IconSearch width={15} height={15} />
