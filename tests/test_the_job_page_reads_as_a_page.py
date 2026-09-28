@@ -32,7 +32,7 @@ DB = ROOT / "web" / "src" / "board" / "db.js"
 CSS = ROOT / "web" / "src" / "styles" / "board.css"
 ABOUT = ROOT / "contract" / "job_about.yaml"
 CAP_ABOUT = ROOT / "contract" / "capability_about.yaml"
-_SENTENCE = re.compile(r"(?<=\.)\s+")  # the split db.js `firstSentence` makes
+_SENTENCE = re.compile(r"(?<=\.)\s+")
 
 
 def _row(definition, created_at, doc):
@@ -105,7 +105,7 @@ class TestThePageKeepsTheThreeKindsApart:
         assert "It is not a description of the job." in js
         db = DB.read_text(encoding="utf-8")
         assert "rule: j.definition || ''" in db
-        assert "card: firstSentence(j.about)," in db, "one sentence of the description"
+        assert "card: j.definition || ''," in db, "the card keeps the hosted board's text"
         assert "const body = x.card ? `<p>${esc(x.card)}</p>` : '';" in js, "no empty paragraph"
 
     def test_every_load_bearing_rule_is_still_on_the_page(self):
@@ -145,10 +145,10 @@ class TestTheCapabilityPageHasTheSameShape:
         js = _js()
         return js[js.index("function vCap(slug){"):js.index("function splitNote(item)")]
 
-    def test_the_card_carries_the_first_sentence_or_the_definition(self):
+    def test_the_card_carries_the_definition(self):
         db = DB.read_text(encoding="utf-8")
         caps = db[db.index("DB.caps = "):]
-        assert "card: firstSentence(c.about) || c.definition || ''," in caps[:caps.index("}))")]
+        assert "card: c.definition || ''," in caps[:caps.index("}))")]
         assert "about: c.about || null," in caps[:caps.index("}))")]
 
     def test_the_page_says_what_its_order_rewards_and_links_to_the_panel(self):
@@ -176,10 +176,9 @@ class TestTheCapabilityPageHasTheSameShape:
         assert ".jobhead .lead{" in css and "max-width:110ch" in css
 
 
-class TestTheDescriptionsFitTheCardAndThePage:
-    """The card shows sentence 1; the page shows all of it, at most four
-    sentences (2026-09-28 review). Both files are held to the shape the card's
-    split relies on, so the split is tested on the real text."""
+class TestTheDescriptionsFitThePage:
+    """The page shows the whole description, at most four sentences (2026-09-28
+    review). Cards carry the definition, not this text."""
 
     FILES = (ABOUT, CAP_ABOUT)
 
@@ -188,14 +187,13 @@ class TestTheDescriptionsFitTheCardAndThePage:
             for k, v in yaml.safe_load(f.read_text(encoding="utf-8"))["about"].items():
                 yield f.name, k, " ".join(str(v).split())
 
-    def test_two_to_four_sentences_and_a_card_sized_first(self):
+    def test_two_to_four_sentences(self):
         for name, k, v in self._entries():
             parts = _SENTENCE.split(v)
             assert 2 <= len(parts) <= 4, f"{name}:{k}: {len(parts)} sentences"
-            assert len(parts[0]) <= 150, f"{name}:{k}: first sentence {len(parts[0])} chars"
             assert v.endswith("."), f"{name}:{k}"
 
-    def test_no_abbreviation_can_cut_the_card_short(self):
+    def test_no_dotted_abbreviation_so_the_sentence_count_is_honest(self):
         dotted = re.compile(r"(e\.g|i\.e|etc|vs|approx|incl)\.", re.I)
         for name, k, v in self._entries():
             assert not dotted.search(v), f"{name}:{k}: {dotted.search(v).group(0)!r}"

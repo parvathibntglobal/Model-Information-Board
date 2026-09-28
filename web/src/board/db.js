@@ -469,17 +469,6 @@ function groupFigures(m) {
   })
 }
 
-/** The first sentence of a hand-written description: what a card shows.
- *
- * The contract files keep sentence 1 standalone and short, and
- * `tests/test_the_job_page_reads_as_a_page.py` holds every entry to that, so
- * this split is exercised on the real text rather than trusted. `''` for no
- * text - never a stand-in. */
-export function firstSentence(text) {
-  if (!text) return ''
-  return String(text).split(/(?<=\.)\s+/)[0]
-}
-
 /** Populate `DB` from the `/board` payload. Called once, before the views render. */
 export function setBoardData(payload) {
   const d = payload || {}
@@ -496,10 +485,11 @@ export function setBoardData(payload) {
     // it is. `board_sections` picks the text most rows carry, so it does not
     // change with each new report.
     rule: j.definition || '',
-    // The Jobs-tab card carries ONE sentence of the description: a paragraph on
-    // each of 98 cards read as a wall, and no text read as bare (2026-09-28
-    // reviews). The whole description, up to four sentences, is on the page.
-    card: firstSentence(j.about),
+    // THE CARD CARRIES THE ONE-SENTENCE DEFINITION, as the hosted board always
+    // has. Tried and reverted on 2026-09-28: no text read as bare, and a line of
+    // the hand-written description read as too plain on a card. The
+    // description is the page's, not the card's.
+    card: j.definition || '',
     pick: null, // hand-written editorial; omitted rather than invented
     conds: [],
   }))
@@ -511,11 +501,8 @@ export function setBoardData(payload) {
     // WHAT THE CAPABILITY IS: hand-written in contract/capability_about.yaml, or
     // null. It sits above the definition on the page and does not replace it.
     about: c.about || null,
-    // As on the Jobs tab: one sentence on the card. A capability with no
-    // hand-written text shows its definition there, which it always did - for a
-    // capability the definition is the board's own statement of what it means,
-    // not a counting rule standing in for a description.
-    card: firstSentence(c.about) || c.definition || '',
+    // As on the Jobs tab: the card carries the definition, as it always did.
+    card: c.definition || '',
     nots: [],
   }))
 
