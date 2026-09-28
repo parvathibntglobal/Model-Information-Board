@@ -221,7 +221,11 @@ export default function Models() {
           onClick={() => navigate(`/compare?ids=${encodeURIComponent(picked.join(','))}`)}
           title={
             picked.length === 0
-              ? `Tick 2–${COMPARE_MAX} models to compare what providers advertise against what engineers reported`
+              // ⚠ THIS SAID "compare what providers advertise against what engineers
+              //   reported". The provider's spec sheet came off the compare page on
+              //   2026-09-23 - it is the one thing there nobody reported - so the
+              //   button was promising a comparison the page no longer makes.
+              ? `Tick 2–${COMPARE_MAX} models to compare what engineers reported about them`
               : picked.length === 1
                 ? 'Tick one more — a single model is its own page, not a comparison'
                 : `Compare ${picked.length} models side by side`
@@ -251,9 +255,45 @@ export default function Models() {
               this page — so the card had outlived the thing it accounted for,
               and read as an apology for an absence the reader could not see.
 
-              Removed at @parvathibntglobal's request, 2026-09-28. Evidence per
-              model lives on each model's own page, under Jobs, Capabilities and
-              Metrics; this list is how you get there. */}
+              Removed at @parvathibntglobal's request, 2026-09-28, and replaced
+              by what the page is FOR, below.
+
+              ⚠ WHAT THIS SAYS, IT CAN BACK. Each line names something the page
+                or the page it links to actually does today: the model page's
+                three tabs, the compare cap of three, the shared-axes table,
+                and that compare counts rather than ranks. The card it replaces
+                failed exactly there - it described a column that had gone. */}
+          <div className="card">
+            <div className="stack stack-2">
+              <p style={{ fontSize: 'var(--fs-sm)', margin: 0, maxWidth: '78ch', lineHeight: 1.6 }}>
+                Every model the board tracks.{' '}
+                <strong>Open one</strong> to read what engineers have said about
+                it, verbatim and with a link to each source — split into the{' '}
+                <strong>jobs</strong> they used it for, the{' '}
+                <strong>capabilities</strong> they reported, and the{' '}
+                <strong>metrics</strong> they quoted.
+              </p>
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0,
+                                          maxWidth: '78ch', lineHeight: 1.6 }}>
+                <strong style={{ color: 'var(--text)' }}>Tick two or three to
+                compare them.</strong> The comparison shows what was said about
+                each model, counted, and then the jobs, capabilities and metrics
+                they were <em>all</em> discussed on, side by side — with how each
+                report was phrased. Every row links back to the board, where the
+                models are ranked.
+              </p>
+              {/* ⚠ THE LIMIT, SAID UP FRONT. A reader who compares three models
+                  with nothing in common gets an empty shared table, and needs
+                  to have been told that is a fact about what has been written
+                  rather than about the models. */}
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0,
+                                          maxWidth: '78ch', lineHeight: 1.6 }}>
+                Nothing here is scored and no winner is picked: a bigger number is
+                more people writing, not a better model. A model nobody has
+                written about yet is an absence we found, not a verdict.
+              </p>
+            </div>
+          </div>
 
           <label className="searchbar">
             <IconSearch width={15} height={15} />

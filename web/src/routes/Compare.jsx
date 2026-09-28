@@ -86,9 +86,14 @@ export default function Compare() {
         <h1>Compare models side by side</h1>
         <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '70ch' }}>
           Tick two or three models on the{' '}
-          <Link to="/models" className="mb-link">models list</Link> to compare what their
-          providers advertise against what engineers have actually reported — in one view,
-          with no synthesised score and no winner picked for you.
+          <Link to="/models" className="mb-link">models list</Link> to compare what
+          engineers have actually reported about them — counted, side by side, with no
+          synthesised score and no winner picked for you.
+          {/* ⚠ THIS PROMISED "what their providers advertise against what
+              engineers have actually reported". The spec sheet came off this
+              page on 2026-09-23, so the page's own empty state described a
+              comparison it no longer makes - the first thing a reader sees
+              before picking anything. */}
         </p>
       </div>
     )
