@@ -31,6 +31,8 @@ VIEWS = ROOT / "web" / "src" / "board" / "views.js"
 DB = ROOT / "web" / "src" / "board" / "db.js"
 CSS = ROOT / "web" / "src" / "styles" / "board.css"
 ABOUT = ROOT / "contract" / "job_about.yaml"
+CAP_ABOUT = ROOT / "contract" / "capability_about.yaml"
+_SENTENCE = re.compile(r"(?<=\.)\s+")  # the split db.js `firstSentence` makes
 
 
 def _row(definition, created_at, doc):
@@ -103,7 +105,7 @@ class TestThePageKeepsTheThreeKindsApart:
         assert "It is not a description of the job." in js
         db = DB.read_text(encoding="utf-8")
         assert "rule: j.definition || ''" in db
-        assert "card: ''," in db, "a Jobs-tab card is the name and its counts, no text"
+        assert "card: firstSentence(j.about)," in db, "one sentence of the description"
         assert "const body = x.card ? `<p>${esc(x.card)}</p>` : '';" in js, "no empty paragraph"
 
     def test_every_load_bearing_rule_is_still_on_the_page(self):
@@ -143,10 +145,11 @@ class TestTheCapabilityPageHasTheSameShape:
         js = _js()
         return js[js.index("function vCap(slug){"):js.index("function splitNote(item)")]
 
-    def test_the_card_carries_no_text(self):
+    def test_the_card_carries_the_first_sentence_or_the_definition(self):
         db = DB.read_text(encoding="utf-8")
         caps = db[db.index("DB.caps = "):]
-        assert "card: ''," in caps[:caps.index("}))")]
+        assert "card: firstSentence(c.about) || c.definition || ''," in caps[:caps.index("}))")]
+        assert "about: c.about || null," in caps[:caps.index("}))")]
 
     def test_the_page_says_what_its_order_rewards_and_links_to_the_panel(self):
         vcap = self._vcap()
@@ -156,6 +159,11 @@ class TestTheCapabilityPageHasTheSameShape:
 
     def test_the_definition_is_labelled_as_one(self):
         assert '<p class="deflabel">Definition</p>' in self._vcap()
+
+    def test_the_description_leads_and_the_definition_stays(self):
+        vcap = self._vcap()
+        assert "${c.about ? `<p class=\"lead\">${esc(c.about)}</p>` : ''}" in vcap
+        assert vcap.index("esc(c.about)") < vcap.index("esc(c.d1)")
         assert ".deflabel{" in CSS.read_text(encoding="utf-8")
 
     def test_the_both_clause_survives_the_paragraph(self):
@@ -166,3 +174,44 @@ class TestTheCapabilityPageHasTheSameShape:
         css = CSS.read_text(encoding="utf-8")
         assert ".jobbody{display:grid;grid-template-columns:minmax(0,1fr) 300px" in css
         assert ".jobhead .lead{" in css and "max-width:110ch" in css
+
+
+class TestTheDescriptionsFitTheCardAndThePage:
+    """The card shows sentence 1; the page shows all of it, at most four
+    sentences (2026-09-28 review). Both files are held to the shape the card's
+    split relies on, so the split is tested on the real text."""
+
+    FILES = (ABOUT, CAP_ABOUT)
+
+    def _entries(self):
+        for f in self.FILES:
+            for k, v in yaml.safe_load(f.read_text(encoding="utf-8"))["about"].items():
+                yield f.name, k, " ".join(str(v).split())
+
+    def test_two_to_four_sentences_and_a_card_sized_first(self):
+        for name, k, v in self._entries():
+            parts = _SENTENCE.split(v)
+            assert 2 <= len(parts) <= 4, f"{name}:{k}: {len(parts)} sentences"
+            assert len(parts[0]) <= 150, f"{name}:{k}: first sentence {len(parts[0])} chars"
+            assert v.endswith("."), f"{name}:{k}"
+
+    def test_no_abbreviation_can_cut_the_card_short(self):
+        dotted = re.compile(r"(e\.g|i\.e|etc|vs|approx|incl)\.", re.I)
+        for name, k, v in self._entries():
+            assert not dotted.search(v), f"{name}:{k}: {dotted.search(v).group(0)!r}"
+
+    def test_the_capability_file_names_no_model_and_no_evidence(self):
+        banned = re.compile(
+            r"(claude|gpt|gemini|deepseek|qwen|kimi|grok|llama|mistral|opus|sonnet"
+            r"|openai|anthropic|google|reported|reports? (say|show|of)"
+            r"|(engineers|people|users) (say|report)|best|better than)",
+            re.I,
+        )
+        for k, v in yaml.safe_load(CAP_ABOUT.read_text(encoding="utf-8"))["about"].items():
+            assert not banned.search(str(v)), f"{k}: {banned.search(str(v)).group(0)!r}"
+
+    def test_the_capability_file_loads_and_the_board_attaches_it(self):
+        from judge.config import capability_about
+        assert capability_about()
+        app = (ROOT / "judge" / "app.py").read_text(encoding="utf-8")
+        assert '(("best_for", job_about()), ("capability", capability_about()))' in app

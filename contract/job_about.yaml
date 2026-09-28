@@ -20,6 +20,11 @@
 # KEYS are board slugs as the page resolves them (after rulings). A key the
 # board does not currently show renders nothing and is not an error.
 #
+# SHAPE, held by tests/test_the_job_page_reads_as_a_page.py: two to four
+# sentences. SENTENCE 1 STANDS ALONE - it is what the Jobs-tab card shows - and
+# is at most 150 characters. No abbreviation with a period in it ("e.g.",
+# "i.e."), because the card takes the text up to the first full stop.
+#
 # COVERAGE: every job page the board showed on 2026-09-28, 98 of 98 (staging,
 # read-only). A job that appears after that has no entry until somebody writes
 # one, and shows no lead line until then.
@@ -38,361 +43,626 @@ version: 1
 
 about:
   coding-agent: >-
-    A coding agent is a model run in a loop with tools: it reads a repository,
-    edits files, runs the tests and opens pull requests, rather than answering a
-    single prompt. People use one to make multi-file changes, refactor, and fix
-    failing builds with little supervision.
+    A coding agent is a model run in a loop with tools that reads a repository,
+    edits files, runs tests and opens pull requests. People use one to make
+    multi-file changes, refactor code and fix failing builds with little
+    supervision. What matters is whether the change works and passes the tests,
+    and whether the agent stops when it is stuck rather than guessing. Cost per
+    finished task counts more than cost per call, because one task can take many
+    calls.
   code-review: >-
-    Code review is reading a proposed change, usually a diff or pull request, and
-    saying what is wrong with it: bugs, missed cases, risky patterns. Teams use a
-    model for a first pass before a human reviewer, or to review every change
-    automatically.
+    Code review is reading a proposed change, usually a diff or pull request,
+    and saying what is wrong with it. Teams use a model for a first pass before
+    a human reviewer, or to review every change automatically. The hard part is
+    finding real bugs and missed cases without burying them under noise. A
+    review that flags too much is ignored, and one that misses a serious defect
+    gives false comfort.
   creative-writing: >-
     Creative writing is producing fiction, poetry, scripts and other text where
     voice and imagination matter more than facts. People use a model to draft
-    stories, develop characters, write narration and brainstorm.
+    stories, develop characters, write narration and brainstorm ideas. What
+    matters is a distinct voice, avoiding stock phrasing, and keeping characters
+    and plot consistent over a long piece.
   rag: >-
-    Retrieval-augmented generation (RAG) answers a question from documents fetched
-    at query time, such as a company wiki, a manual or a set of contracts, rather
-    than from what the model already knows. It is how most internal question-answering
-    and support assistants are built.
+    Retrieval-augmented generation (RAG) answers a question from documents
+    fetched at query time rather than from what the model already knows. It is
+    how most internal question-answering and support assistants are built, over
+    sources such as a company wiki, a manual or a set of contracts. The model
+    has to answer from the passages it is given, cite them, and say so when they
+    do not contain the answer. An answer the documents do not support is the
+    failure that matters.
   translation: >-
     Translation is turning text in one language into another while keeping its
-    meaning, tone and terminology. People use a model for documents, product text,
-    support messages and subtitles; how well it does depends on the language pair.
+    meaning, tone and terminology. People use a model for documents, product
+    text, support messages and subtitles. Quality depends heavily on the
+    language pair and the subject. Consistent terminology across a long document
+    and a natural register in the target language matter as much as literal
+    accuracy.
   extraction: >-
-    Data extraction is pulling specific fields, such as names, dates, amounts and
-    line items, out of unstructured text like emails, invoices or reports into a
-    fixed format a system can store. It usually runs at volume, so cost per
-    document and consistency matter.
+    Data extraction is pulling specific fields, such as names, dates and
+    amounts, out of unstructured text into a fixed format. It is used on emails,
+    invoices, reports and forms so that a system can store and act on the
+    result. It usually runs at volume, so cost per document and consistency
+    matter. A field copied wrongly, or filled in when the source does not
+    contain it, is the error that counts.
   cybersecurity: >-
-    Cybersecurity work is defending systems: reviewing code and configuration for
-    weaknesses, validating patches, analysing incidents and hardening
-    infrastructure. Security teams use a model to speed up review and triage.
+    Cybersecurity work is defending systems: reviewing code and configuration
+    for weaknesses, analysing incidents and hardening infrastructure. Security
+    teams use a model to speed up review, validate patches and triage alerts.
+    Correctness of the technical detail matters, because a confident but wrong
+    finding wastes an analyst's time. A model also has to handle legitimate
+    defensive requests without refusing them.
   svg-generation: >-
     SVG generation is producing vector graphics, such as icons, diagrams and
     illustrations, as SVG code from a text description. Designers and developers
-    use it for assets that must scale cleanly and stay editable by hand.
+    use it for assets that must scale cleanly and stay editable by hand. The
+    output has to be valid SVG, with the shapes where the description puts them.
+    Clean, minimal markup matters when a person will edit the file afterwards.
   terminal-agent: >-
-    A terminal agent is a model working in a command-line shell: it runs commands,
-    reads the output and keeps going, compiling, testing and debugging, until a task
-    is done. Developers use one for build fixes, environment setup and scripted
-    maintenance.
+    A terminal agent is a model working in a command-line shell that runs
+    commands, reads the output and keeps going until a task is done. Developers
+    use one for build fixes, environment setup, compiling, testing and scripted
+    maintenance. What matters is reading error output correctly and recovering
+    from it rather than repeating a failing command. Because it runs real
+    commands, care with destructive operations matters too.
   video-indexing: >-
-    Video indexing is making video searchable: transcribing speech, describing
-    frames and tagging content so a specific moment can be found later. It is used
-    for media libraries, recorded meetings and lecture archives.
+    Video indexing is making video searchable by transcribing speech, describing
+    frames and tagging content so a moment can be found later. It is used for
+    media libraries, recorded meetings and lecture archives. What matters is
+    accurate timestamps and descriptions specific enough to search on. Cost per
+    hour of video decides whether a large archive can be indexed at all.
   vulnerability-discovery: >-
     Vulnerability discovery is finding security flaws in source code, running
-    systems or configuration before an attacker does. It covers code auditing,
-    supporting fuzzing and reasoning about how a flaw could be exploited.
+    systems or configuration before an attacker does. It covers auditing code,
+    supporting fuzzing and reasoning about how a flaw could be exploited. The
+    hard part is telling a real, reachable flaw from a pattern that only looks
+    dangerous. A finding is worth most when it comes with enough detail to
+    reproduce and fix it.
   classification: >-
-    Classification is sorting text into a fixed set of labels, such as spam or not,
-    ticket category, sentiment or topic. It usually runs at high volume, so cost per
-    item and consistent labelling matter more than eloquence.
+    Classification is sorting text into a fixed set of labels, such as spam or
+    not, ticket category, sentiment or topic. It is used to route tickets,
+    moderate content and tag records at scale. It usually runs at high volume,
+    so cost per item and consistent labelling matter more than eloquence. Output
+    must stay inside the allowed labels so that a pipeline can read it without
+    cleanup.
   summarization: >-
-    Summarization is condensing long text, such as reports, threads, transcripts or
-    papers, into something shorter that keeps what matters. The failure that counts
-    is leaving out, or inventing, an important detail.
+    Summarization is condensing long text, such as reports, threads, transcripts
+    or papers, into something shorter that keeps what matters. People use a
+    model to catch up on material they do not have time to read in full. The
+    failure that counts is leaving out, or inventing, an important detail.
+    Length control and faithfulness to the source matter more than polished
+    prose.
   sql-generation: >-
     SQL generation is turning a question asked in plain language into a database
-    query that runs against a known schema. It is used for analytics assistants and
-    for letting people who do not write SQL query data themselves.
+    query that runs against a known schema. It is used for analytics assistants
+    and for letting people who do not write SQL query data themselves. A query
+    can run cleanly and still answer the wrong question, so correct joins,
+    filters and aggregation are what matter. Knowing the dialect and the
+    schema's real column names matters too.
   code-generation: >-
-    Code generation is writing new code from a description, from a single function
-    or script to a small complete program, as opposed to changing an existing
-    codebase.
+    Code generation is writing new code from a description, from a single
+    function to a small complete program. It differs from code editing, which
+    changes an existing codebase. People use it for scripts, utilities,
+    boilerplate and first drafts of new modules. What matters is whether the
+    code runs and handles edge cases, and whether it uses libraries and APIs
+    that actually exist.
   prototyping: >-
-    Prototyping is getting from an idea to something that runs, fast: a demo app, a
-    proof of concept, a clickable interface, where speed matters more than
-    production polish.
+    Prototyping is getting from an idea to something that runs, fast, such as a
+    demo app, a proof of concept or a clickable interface. Speed matters more
+    than production polish. People use a model to produce a working first
+    version in one or two sessions and then iterate on it. What counts is how
+    quickly a usable result appears and how easily it can be changed.
   vibe-coding: >-
     Vibe coding is building software by describing what you want in conversation
-    and letting the model write most of the code, iterating on the result rather
-    than writing it line by line. It is used for side projects, prototypes and quick
-    internal tools.
+    and letting the model write most of the code. The person iterates on the
+    result rather than writing it line by line. It is used for side projects,
+    prototypes and quick internal tools. What matters is whether each round of
+    changes keeps what already worked, since the person often does not read the
+    code closely.
   search-agent: >-
-    A search agent is a model that looks things up for itself: it issues searches,
-    reads the results and answers, or says it could not find an answer. It is used
-    for research questions and assistants that need current information.
+    A search agent is a model that looks things up for itself: it issues
+    searches, reads the results and answers. It is used for research questions
+    and assistants that need current information. What matters is whether the
+    answer is supported by the sources it found, and whether it says so when it
+    could not find one. Cost and time per question grow with the number of
+    searches it makes.
   computer-use: >-
-    Computer use is a model operating a desktop or a browser the way a person would,
-    reading the screen, clicking and typing, to complete a task in software that has
-    no API.
+    Computer use is a model operating a desktop or a browser the way a person
+    would, reading the screen, clicking and typing. It is used to complete tasks
+    in software that has no API. The hard parts are reading the screen
+    accurately, recovering when a click lands in the wrong place, and knowing
+    when a task is finished. Each step is slow and needs a fresh view of the
+    screen, so the number of steps per task matters.
   code-editing: >-
-    Code editing is changing an existing codebase: fixing a bug, adding a feature or
-    refactoring, where the model has to understand code it did not write and keep
-    the rest working.
+    Code editing is changing an existing codebase: fixing a bug, adding a
+    feature or refactoring. The model has to understand code it did not write
+    and keep the rest working. What matters is making the smallest change that
+    does the job, following the conventions already in the code, and not
+    breaking what depends on it. Edits that apply cleanly to the file matter as
+    much as the idea behind them.
   reasoning: >-
     Reasoning is working a problem through several dependent steps, such as a
-    proof, a diagnosis or a plan, where a slip early on makes the conclusion
-    wrong. People use a model for it when the answer cannot simply be looked up.
+    proof, a diagnosis or a plan. People use a model for it when the answer
+    cannot simply be looked up. A slip early on makes the conclusion wrong, so
+    each step has to hold. Longer thinking usually costs more tokens and time,
+    which matters when weighing it against the gain.
   general-purpose: >-
-    General-purpose use is relying on one model for whatever comes up in a day,
-    from questions and drafting to small coding and analysis tasks, rather than
-    choosing a model for a specific job.
+    General-purpose use is relying on one model for whatever comes up in a day
+    rather than choosing a model for a specific job. It covers questions,
+    drafting, small coding tasks and analysis. What matters is doing acceptably
+    across all of them without switching tools. Breadth, reliability and price
+    usually matter more here than peak performance on any one task.
   3d-art: >-
     3D art is creating and editing 3D models, scenes and assets for games, film,
-    illustration or printing, usually by driving a 3D tool or writing the scene
-    as code.
+    illustration or printing. It is usually done by having a model drive a 3D
+    tool or write the scene as code. What matters is whether the result looks as
+    intended and holds up when opened in the tool. Correct geometry, scale and
+    materials matter as much as appearance.
   3d-asset-generation: >-
     3D asset generation is producing meshes, models and similar assets from a
-    text description or a reference image, for use in games, visualisation or
-    prototyping.
+    text description or a reference image. The assets are used in games,
+    visualisation and prototyping. What matters is clean geometry, usable
+    topology and textures that fit, so the asset can go into a scene without
+    heavy repair. Cost and time per asset matter when many are needed.
   3d-modeling: >-
     3D modeling is building scenes, objects and environments in tools like
-    Blender, often by having a model write the scripts that construct them.
+    Blender, often by having a model write the scripts that build them. It
+    overlaps with 3D art, with the emphasis on constructing the geometry itself.
+    The script has to run without errors against the tool's own API. Correct
+    proportions and a scene structure a person can keep editing matter too.
   adversarial-review: >-
     Adversarial review is attacking a claim, a finding or an explanation to find
-    the input or argument that would defeat it, rather than checking that it
-    reads well.
+    the input or argument that would defeat it. People use a model for it to
+    test work before it is relied on, rather than to check that it reads well.
+    What matters is finding real weaknesses rather than surface objections. A
+    review that agrees too easily is of little use here.
   agentic-development: >-
-    Agentic development is handing a model a software task it plans and carries
-    out on its own, using tools and running code, with a person checking the
-    result rather than each step.
+    Agentic development is handing a model a software task that it plans and
+    carries out on its own, using tools and running code. A person checks the
+    result rather than each step. What matters is whether the plan is sound,
+    whether the agent verifies its own work, and whether it stops and asks when
+    it should. Total cost and time per finished task matter more than cost per
+    call.
   agentic-systems: >-
-    Building agentic systems is designing software in which models plan and carry
-    out multi-step tasks with tools: the loop, the tools, the memory and the
-    checks around them.
+    Building agentic systems is designing software in which models plan and
+    carry out multi-step tasks with tools. The work covers the loop, the tools,
+    the memory and the checks around them. The model in such a system has to
+    follow a tool schema exactly and behave predictably across many runs. Cost,
+    latency and failure handling across a whole run decide whether the system is
+    practical.
   agentic-testing: >-
     Agentic testing is end-to-end testing driven by an agent that looks at the
-    interface, decides what to do next and checks whether a goal was reached,
-    instead of following a fixed script.
+    interface and decides what to do next. Instead of following a fixed script,
+    it checks whether a goal was reached. It is used where scripted tests break
+    every time the interface changes. What matters is telling a real failure
+    from a flaky one and producing a result a person can trust.
   agentic-tool-use: >-
     Agentic tool use is a model choosing and calling tools, such as search, code
-    execution or company APIs, across a loop of many steps, and using what each
-    call returns to decide the next.
+    execution or company APIs, across many steps. It uses what each call returns
+    to decide the next. What matters is calling the right tool with valid
+    arguments, reading the result correctly, and stopping when the task is done.
+    Errors compound over a long loop, so consistency at each step matters.
   api-usage: >-
     API usage is calling a model programmatically from your own code, paying per
-    token, rather than through a subscription or a chat interface. It is how
-    models are built into products and pipelines.
+    token, rather than through a subscription or chat interface. It is how
+    models are built into products and pipelines. What matters is price per
+    token, rate limits, latency and how reliably the service stays up. Features
+    such as structured output, caching and batch pricing also shape what it
+    costs to run.
   application-use: >-
     Application use is embedding a model inside a product, behind a feature
-    rather than a chat window, where per-request cost, latency and predictable
-    output decide what is usable.
+    rather than a chat window. The model runs on every request a user makes,
+    often without the user knowing it is there. Per-request cost, latency and
+    predictable output decide what is usable. Output that changes format from
+    one call to the next breaks the feature around it.
   biology: >-
     Biology work is answering and reasoning about biological and biomedical
-    questions: mechanisms, experiments, sequences and the literature around them.
+    questions. It covers mechanisms, experiments, sequences and the literature
+    around them. People use a model to explain findings, plan experiments and
+    read papers. Correctness of a detail, such as a gene, a pathway or a dosage,
+    matters more than fluency.
   browser-control: >-
     Browser control is a model driving a web browser, navigating, clicking,
-    filling forms and reading pages, to complete a task on sites that offer no
-    API.
+    filling forms and reading pages, to complete a task. It is used on sites
+    that offer no API. The hard parts are pages that change as they load,
+    pop-ups and forms that reject input. What matters is finishing the task
+    correctly in as few steps as possible, since each step costs time.
   buildroot-system-setup: >-
     Buildroot system setup is configuring, building and troubleshooting embedded
-    Linux images with Buildroot: toolchains, packages, board configuration and
-    the errors in between.
+    Linux images with Buildroot. It covers toolchains, packages, board
+    configuration and the errors in between. Builds are slow, so a wrong
+    suggestion can cost a long rebuild. What matters is reading build logs
+    correctly and knowing the configuration options for the specific board and
+    version.
   business-simulation: >-
     Business simulation is running a simulated business over time, making
-    operational and financial decisions and living with their consequences. It is
-    used as a test of long-running planning and judgement.
+    operational and financial decisions and living with their consequences. It
+    is used as a test of long-running planning and judgement. What matters is
+    staying coherent over many turns, tracking stock and money correctly, and
+    not drifting into repeated or contradictory decisions.
   business-software-development: >-
-    Business software development is building custom internal applications from a
-    specification: forms, data models, workflows and views for how a particular
-    organisation works.
+    Business software development is building custom internal applications from
+    a specification of how an organisation works. It covers forms, data models,
+    workflows and views. What matters is following the specification closely,
+    getting the data model right, and producing something the organisation can
+    maintain. Business rules that are stated once and must hold everywhere are
+    where mistakes appear.
   cad-design: >-
     CAD design is producing or modifying precise 3D parts, often as STL files or
-    parametric code, for functional or hobby 3D printing and manufacturing.
+    parametric code, for 3D printing and manufacturing. It is used for
+    functional parts as well as hobby prints. Dimensions and tolerances have to
+    be exact, because a part that is slightly off does not fit. The output has
+    to be valid geometry that the slicer or CAD tool can open.
   chat: >-
     Chat is a general conversational assistant behind a customer-facing or
-    internal chat feature, answering questions and holding a conversation.
+    internal chat feature. It answers questions and holds a conversation over
+    several turns. What matters is response speed, a consistent tone, and
+    staying accurate as the conversation goes on. Cost per conversation matters
+    when the feature serves many users.
   chatbots: >-
     Chatbots are conversational interfaces for customer support, Q&A and general
-    dialogue, where the model has to stay on topic, stay polite and know when to
-    hand over.
+    dialogue. The model has to stay on topic, stay polite and know when to hand
+    over to a person. It also has to keep to what the business allows it to say.
+    Response speed and cost per conversation matter because a chatbot often
+    serves many users at once.
   chinese-language: >-
-    Chinese-language work is reading and writing Chinese for production use,
-    where idioms, regional variation and cultural context matter as much as
-    grammar.
+    Chinese-language work is reading and writing Chinese for production use.
+    Idioms, regional variation and cultural context matter as much as grammar.
+    People use a model for documents, customer communication and content aimed
+    at Chinese-speaking readers. Choosing between Simplified and Traditional
+    characters, and a register that suits the reader, is part of getting it
+    right.
   chinese-language-work: >-
     Chinese-language work is producing output in Chinese with the right idiom,
-    register and business terminology, for documents, marketing and
-    communication.
+    register and business terminology. It is used for documents, marketing and
+    communication aimed at Chinese-speaking readers. Text that is grammatical
+    but reads as translated is the common failure. Consistent terminology and a
+    register suited to the audience matter as much as accuracy.
   chinese-ocr: >-
     Chinese OCR is reading Chinese text from screenshots, photos and scanned
-    documents, including mixed scripts, dense layouts and handwriting.
+    documents. It has to cope with mixed scripts, dense layouts and handwriting.
+    People use it to digitise documents, receipts and forms. A single wrong
+    character can change a meaning or a figure, so character-level accuracy is
+    what matters.
   chip-design: >-
     Chip design is producing chip layouts and driving electronic design
-    automation (EDA) toolchains, from specification through synthesis and
-    verification.
+    automation (EDA) toolchains. It runs from specification through synthesis
+    and verification. People use a model to write hardware description code,
+    scripts for the tools and test benches. Errors are expensive to find late,
+    so correctness and passing verification matter far more than speed.
   classification-extraction: >-
     Classification and extraction is the high-volume work of tagging text with
-    labels and pulling fields out of it into a fixed structure, where cost per
-    item and consistency matter most.
+    labels and pulling fields out of it into a fixed structure. It combines both
+    tasks in one pass, often over support tickets, documents or records. Cost
+    per item and consistency matter most. Output has to stay in the expected
+    format so that it can be loaded without cleanup.
   code-audit: >-
     A code audit is inspecting a whole repository and producing an
-    evidence-backed account of bugs, missing pieces and reliability risks, rather
-    than reviewing a single change.
+    evidence-backed account of bugs, missing pieces and reliability risks. It
+    differs from code review, which looks at a single change. The model has to
+    read widely, keep track of how parts connect and point to the code behind
+    each finding. Findings that cannot be traced to a line are hard to act on.
   code-porting: >-
     Code porting is moving code from one language, framework or paradigm to
-    another while keeping its behaviour the same.
+    another while keeping its behaviour the same. It is used for migrations,
+    rewrites and moving off an unsupported stack. The hard part is preserving
+    behaviour in the corners, such as error handling, numeric types and
+    concurrency. Tests that pass on both sides are the usual way to judge it.
   coding-assistance: >-
     Coding assistance is a model working alongside a developer in an interactive
-    loop, suggesting, explaining, reviewing and editing code while the developer
-    stays in control.
+    loop while the developer stays in control. It suggests, explains, reviews
+    and edits code on request. What matters is quick responses, suggestions that
+    fit the code already there, and plain answers when the model is unsure.
+    Latency matters more here than in agent work, because a person is waiting.
   coding-assistants: >-
     Coding assistants are tools that help developers write, debug and refactor
-    code interactively, usually inside an editor or a chat panel.
+    code interactively, usually inside an editor or chat panel. The developer
+    stays in control and accepts or rejects each suggestion. What matters is
+    fast responses, suggestions that fit the surrounding code, and explanations
+    a developer can check. Cost matters for a tool that is used all day.
   companion-app-development: >-
     Companion app development is building the mobile, desktop or web app that
-    sits alongside an existing system, giving its users a way to see and act on
-    it from their own device.
+    sits alongside an existing system. It gives users a way to see and act on
+    that system from their own device. The app has to use the system's API or
+    data correctly and follow the platform's own rules. Keeping the app and the
+    system in step as either changes is where the work lies.
   compiler-development: >-
     Compiler development is writing compilers and code-generation tooling, such
-    as parsers, optimisation passes and back ends for specific hardware like GPUs.
+    as parsers, optimisation passes and back ends. Back ends may target specific
+    hardware such as GPUs. Correctness is strict, because a compiler bug
+    silently produces wrong programs. What matters is precise handling of the
+    language's semantics and the target's instruction set, backed by tests.
   computational-biology: >-
     Computational biology is heavy data analysis in the life sciences, such as
-    evolutionary, genomic and statistical work, usually written as code and run
-    at scale.
+    evolutionary, genomic and statistical work. It is usually written as code
+    and run at scale. People use a model to write analysis pipelines, choose
+    statistical methods and interpret results. A method that runs but is wrong
+    for the data is the error that matters, so knowing the field's tools and
+    conventions counts.
   content-rewriting: >-
     Content rewriting is reworking existing text, such as product descriptions,
-    marketing copy and documentation, so that it reads differently but keeps its
-    meaning and quality.
+    marketing copy and documentation, so it reads differently. It has to keep
+    the original meaning and quality. It is often done at volume, so cost per
+    item and consistency matter. What counts is changing the wording without
+    changing the facts, and matching a requested tone or length.
   conversational-ui: >-
     Conversational UI is an interface people talk or type to, such as an
-    interactive agent or chat feature, where response speed shapes the
-    experience as much as the answer.
+    interactive agent or chat feature. Response speed shapes the experience as
+    much as the answer does. What matters is time to the first word, short and
+    natural replies, and handling interruptions or changes of topic. Cost per
+    exchange matters when many people use it.
   data-consistency-checking: >-
     Data consistency checking is testing whether an explanation, a summary or a
-    claim agrees with the data and results it is supposed to describe.
+    claim agrees with the data it is supposed to describe. It is used to catch
+    figures, trends or conclusions that the underlying results do not support.
+    The model has to read both the claim and the data carefully and point to the
+    specific mismatch. Missing a real inconsistency matters more than flagging a
+    doubtful one.
   desktop-automation: >-
     Desktop automation is a model operating desktop software through its
-    interface, reading windows, clicking buttons and typing into fields, to
-    complete repetitive tasks.
+    interface to complete repetitive tasks. It reads windows, clicks buttons and
+    types into fields. It is used where software has no API or scripting
+    support. What matters is doing the same task reliably every time and
+    recovering when a window or dialog appears unexpectedly.
   document-analysis: >-
     Document analysis is reading long documents, such as contracts and filings,
-    to answer questions that need several passages combined, and to find where
-    they contradict each other.
+    to answer questions that need several passages combined. It also covers
+    finding where documents contradict each other. The model has to hold a long
+    text in view and cite the passages it relies on. A missed clause, or a
+    detail taken from the wrong section, is the error that counts.
   driving: >-
     Driving is operating a vehicle in real road conditions, handling traffic,
-    unusual situations and decisions that have to be made in real time.
+    unusual situations and decisions made in real time. It is the task behind
+    autonomous and assisted driving systems. Decisions have to be made within
+    fractions of a second, so latency is critical. Rare situations matter more
+    than common ones, because that is where errors are dangerous.
   finance: >-
-    Finance work is analysis and automated workflows over financial data, such as
-    statements, models, filings and market data, where a wrong figure is
-    expensive.
+    Finance work is analysis and automated workflows over financial data, such
+    as statements, models, filings and market data. People use a model to read
+    filings, build and check models and summarise results. A wrong figure is
+    expensive, so numeric accuracy and tracing each number to its source matter
+    most. Consistent output across repeated runs matters for workflows that run
+    every day.
   frontend-testing: >-
     Frontend testing is checking a user interface by using it as a person would,
-    clicking through flows and confirming what appears on screen.
+    clicking through flows and confirming what appears. It is used to catch
+    broken layouts, flows and interactions before users do. What matters is
+    noticing what is actually on screen, not what the code suggests should be
+    there. Tests that fail for real reasons rather than timing noise are what
+    make it useful.
   game-development: >-
     Game development is building interactive games: game logic, physics and
-    collision, rendering and the loop that ties them together.
+    collision, rendering and the loop that ties them together. People use a
+    model to write game code, prototype mechanics and fix bugs in engines and
+    frameworks. Whether a game works often only shows when it is played, so bugs
+    in timing and state are easy to miss. Knowing the specific engine's API
+    matters too.
   general-purpose-chat: >-
-    General-purpose chat is open-ended conversation, questions and everyday help,
-    with no task-specific setup or tuning.
+    General-purpose chat is open-ended conversation, questions and everyday
+    help, with no task-specific setup or tuning. People use it for explanations,
+    advice, drafting and quick lookups. What matters is clear, accurate answers
+    across many topics and a tone that suits the question. Speed and price
+    matter because it is used often and casually.
   incident-analysis: >-
     Incident analysis is working out what happened during an outage by
-    correlating logs, metrics and deployment history into a timeline and a likely
-    cause.
+    correlating logs, metrics and deployment history. The result is a timeline
+    and a likely cause. Engineers use a model to sift large volumes of logs
+    quickly during and after an incident. What matters is tying each conclusion
+    to evidence in the data rather than to a plausible story.
   instruction-following: >-
-    Instruction following is doing what was asked and only that: keeping to the
-    stated constraints, including what not to do, over a long exchange.
+    Instruction following is doing what was asked and only that, keeping to the
+    stated constraints over a long exchange. Constraints include what not to do,
+    as well as format, length and scope. It matters in every job, and most in
+    pipelines where the output is read by code. A constraint that holds at the
+    start but is forgotten later is the common failure.
   legacy-code-revival: >-
-    Legacy code revival is bringing old code back to life, porting, fixing or
-    rebuilding software that no longer compiles or runs on current systems.
+    Legacy code revival is bringing old code back to life by porting, fixing or
+    rebuilding software that no longer runs on current systems. It often
+    involves old languages, missing dependencies and build systems nobody
+    maintains. The model has to understand how the code was meant to work, often
+    with little documentation. What matters is getting it to build and run again
+    without changing what it does.
   local-inference: >-
     Local inference is running a model on your own hardware, such as a laptop, a
-    desktop GPU or a small server, with no cloud dependency, usually for privacy,
-    cost or offline use.
+    desktop GPU or a small server, with no cloud dependency. It is usually
+    chosen for privacy, cost or offline use. What matters is how well a model
+    fits in the memory available, how fast it generates, and how much quality is
+    lost to quantisation. Ease of setup and support in common runtimes also
+    matter.
   long-horizon-agent: >-
     A long-horizon agent is an agent loop that runs for hours or days, producing
-    versioned work, surviving restarts and keeping track of the project it is
-    part of.
+    versioned work and surviving restarts. It has to keep track of the project
+    it is part of across many sessions. What matters is staying on goal, keeping
+    notes it can resume from, and not repeating or undoing earlier work. Cost
+    over a whole run, not per call, is what decides whether it is practical.
   long-horizon-software-engineering: >-
-    Long-horizon software engineering is complex, multi-step engineering work,
-    such as a large feature or a migration, carried out over many sessions rather
-    than in one prompt.
+    Long-horizon software engineering is complex, multi-step engineering work
+    carried out over many sessions rather than in one prompt. Typical cases are
+    a large feature or a migration across a codebase. What matters is keeping a
+    coherent plan, tracking what is done and what is left, and keeping the
+    codebase working between steps. Mistakes made early compound, so checking
+    the work as it goes matters.
   math: >-
     Math is solving mathematical problems, from applied calculation to
-    competition-level problems and proofs.
+    competition-level problems and proofs. People use a model to check working,
+    solve problems and explain methods. For a proof, a correct final answer
+    reached by a wrong argument is still a failure. Arithmetic slips in long
+    calculations are a common error.
   meeting-summarization: >-
     Meeting summarization is turning meeting notes or transcripts into action
-    items, decisions and status updates that people who were not there can use.
+    items, decisions and status updates. The output is for people who were not
+    there. What matters is attributing decisions and tasks to the right people
+    and not inventing agreements that were never made. Transcripts are long and
+    messy, so coping with crosstalk and speaker errors matters.
   multi-file-refactoring: >-
     Multi-file refactoring is restructuring code across many files of a
-    repository, such as renames, migrations and API changes, without breaking
-    what depends on it.
+    repository, such as renames, migrations and API changes. It has to be done
+    without breaking what depends on the changed code. The model has to find
+    every place a change reaches, including ones not named in the request. What
+    matters is that the build and tests still pass and that the change is
+    complete rather than partial.
   multi-lingual-inference: >-
     Multilingual inference is working in languages other than English, and often
-    other than Chinese, where training data is thinner and quality varies by
-    language.
+    other than Chinese, where training data is thinner. Quality varies widely by
+    language. People use a model to answer, write and translate for speakers of
+    those languages. What matters is correct grammar and natural phrasing in the
+    target language, and not slipping back into English.
   multi-tool-agents: >-
     Multi-tool agents orchestrate several tool servers, often three or more MCP
-    servers, in a single agent loop, choosing between them and combining their
-    results.
+    servers, in a single agent loop. They choose between the tools and combine
+    their results. The more tools there are, the harder it is to pick the right
+    one and pass valid arguments. Tool descriptions also take up context, so
+    cost and focus both matter as the number of tools grows.
   personal-chatbot: >-
     A personal chatbot is a bot that replies as a specific person, in their
-    voice, inside a messaging app.
+    voice, inside a messaging app. People use one to answer routine messages or
+    to keep a persona running. What matters is matching the person's style and
+    knowing what it should not say on their behalf. Replies have to be fast and
+    cheap, since messaging is constant.
   presentation-creation: >-
     Presentation creation is building slide decks, often from template slides,
-    while keeping tone, layout and branding consistent.
+    while keeping tone, layout and branding consistent. People use a model to
+    turn notes or documents into slides. What matters is fitting content to the
+    layout without overflowing, keeping the template's styles, and cutting text
+    down to what a slide can carry. Output that opens correctly in the
+    presentation software matters too.
   product-photography: >-
     Product photography is generating advertising-style product images from a
-    product photo and a description of the shoot, instead of staging the shoot.
+    product photo and a description of the shoot. It replaces staging a real
+    shoot. What matters is keeping the product itself exact, including its
+    shape, colour, label and text, while changing the scene around it. Cost per
+    image and consistency across a set of images matter for catalogues.
   programming: >-
     Programming is writing, debugging and refactoring code in general, across
-    languages and project types.
+    languages and project types. It is the broad category that the more specific
+    coding jobs sit within. What matters is correct code, sound explanations and
+    awareness of each language's idioms and libraries. Knowing when an answer is
+    uncertain matters as much as producing one.
   proof-based-programming: >-
     Proof-based programming is writing code together with a formal proof that it
-    satisfies stated properties, in a proof language or proof assistant.
+    satisfies stated properties. It is done in a proof language or proof
+    assistant. The checker either accepts the proof or rejects it, so there is
+    no partial credit. What matters is knowing the proof assistant's libraries
+    and tactics and breaking a proof into steps it can check.
   quick-one-shot-work: >-
     Quick one-shot work is a single request answered in one go, with no
-    follow-up and no agent loop, where turnaround time matters more than depth.
+    follow-up and no agent loop. Turnaround time matters more than depth. It
+    covers quick questions, small edits and short snippets. What matters is a
+    usable answer on the first try, at low latency and low cost.
   research-assistant: >-
     A research assistant gathers and synthesises information on a question, such
-    as sources, summaries and an outline, for a person to check and edit.
+    as sources, summaries and an outline. The output is for a person to check
+    and edit. What matters is that sources are real and say what they are cited
+    for. Covering the question broadly without padding, and marking what is
+    uncertain, also matters.
   roleplaying: >-
     Roleplaying is interactive, character-driven storytelling in which the model
-    takes on a persona and stays in character as the conversation goes on.
+    takes on a persona and stays in character. It is used for interactive
+    fiction, games and companionship. What matters is keeping the character's
+    voice and the story's facts consistent over a long conversation. Following
+    the user's direction without repeating itself matters too.
   sales-call-prep: >-
-    Sales call prep is pulling together what is known about a prospect, from the
-    CRM, the calendar and the web, into a briefing before a call.
+    Sales call prep is pulling together what is known about a prospect into a
+    briefing before a call. Sources include the CRM, the calendar and the web.
+    What matters is accurate facts about the right company and person, and a
+    briefing short enough to read before the call. Mixing up two similar
+    companies is the error that costs most.
   security-review: >-
     Security review is examining code or a system design for weaknesses and
-    giving adversarial feedback on how it could be attacked.
+    giving adversarial feedback on how it could be attacked. Teams use a model
+    for it before release or during design. What matters is finding weaknesses
+    that are real and reachable, and explaining how an attack would work. A
+    review that lists generic warnings without tying them to the design is of
+    little use.
   sentence-extraction: >-
-    Sentence extraction is splitting a document into its individual sentences, a
-    preprocessing step that has to cope with abbreviations, lists and
-    formatting.
+    Sentence extraction is splitting a document into its individual sentences,
+    as a preprocessing step. It has to cope with abbreviations, lists and
+    formatting that make simple splitting fail. It often runs over whole
+    corpora, so cost and speed matter. The text has to come back exactly as
+    written, with no words changed or dropped.
   sprite-generation: >-
     Sprite generation is producing pixel-art sprites for games, often by having
-    the model drive a pixel editor such as Aseprite.
+    the model drive a pixel editor such as Aseprite. It covers characters, items
+    and animation frames. What matters is a clean pixel grid, a consistent
+    palette and frames that line up when animated. Output has to match the size
+    and style the game already uses.
   support-triage: >-
-    Support triage is reading an incoming support ticket, attaching context from
-    billing and bug trackers, and summarising it before a person picks it up.
+    Support triage is reading an incoming support ticket, attaching context and
+    summarising it before a person picks it up. Context comes from sources such
+    as billing systems and bug trackers. It runs on every ticket, so cost and
+    speed matter. What matters is routing to the right team and a summary that
+    states the problem accurately.
   tax-preparation: >-
     Tax preparation is reading tax documents, extracting the figures they hold
-    and entering them into the right forms.
+    and entering them into the right forms. People use a model to gather figures
+    from statements and slips and fill in returns. A figure in the wrong box, or
+    a rule applied from the wrong year, is expensive. Rules depend on the
+    jurisdiction and the year, so getting those details right matters most.
   terraform-code-generation: >-
-    Terraform code generation is writing infrastructure-as-code in Terraform from
-    a description of the infrastructure wanted.
+    Terraform code generation is writing infrastructure-as-code in Terraform
+    from a description of the infrastructure wanted. It is used to set up cloud
+    resources, networks and permissions reproducibly. The code has to use real
+    provider resources and arguments for the version in use. Secure defaults
+    matter, because a misconfigured permission or open port is easy to miss in
+    review.
   ui-prototyping: >-
     UI prototyping is producing several interface design concepts side by side
-    and iterating on them until one is settled on.
+    and iterating on them until one is settled on. Designers and developers use
+    a model to explore layouts quickly, often as working code. What matters is
+    variety between concepts, attention to visual detail and the speed of each
+    iteration. The chosen concept should be easy to carry forward into the real
+    product.
   value-for-price: >-
     Value for price is weighing what a model delivers against what it costs to
-    run, per token, per task or per month.
+    run, per token, per task or per month. It matters most for work that runs at
+    volume or all day. The useful comparison is cost per finished task, since a
+    cheaper model that needs retries may cost more overall. Quality, speed and
+    price have to be judged together for a specific job.
   video-editing: >-
     Video editing is cutting and finishing video through automated workflows,
-    such as trimming, effects and other repetitive edits.
+    such as trimming, effects and other repetitive edits. People use a model to
+    plan edits, write scripts for editing tools or pick cut points from a
+    transcript. What matters is precise timing and edits that match the
+    instruction. Processing time and cost per minute of video matter at volume.
   video-processing: >-
     Video processing is taking video in as input and reasoning over it, such as
-    describing it, answering questions or extracting events, often in a single
-    prompt.
+    describing it, answering questions or extracting events. It is often done in
+    a single prompt. What matters is noticing what actually happens on screen,
+    placing events at the right time, and not describing things that are not
+    there. Long videos are costly to process, so cost per minute matters.
   visual-exploration: >-
-    Visual exploration is trying out a product's visual identity: artwork, styles
-    and aesthetic directions, before one is chosen.
+    Visual exploration is trying out a product's visual identity, such as
+    artwork, styles and aesthetic directions, before one is chosen. People use a
+    model to produce many varied options quickly. What matters is range between
+    options and the ability to refine a chosen direction without losing it.
+    Consistency across a set of images matters once a direction is settled.
   voice-pipeline: >-
     A voice pipeline joins speech-to-text, a language model and text-to-speech
-    into one system for voice agents, where latency across the whole chain
-    matters.
+    into one system for voice agents. Latency across the whole chain matters,
+    because a pause of a second feels long in conversation. The language model's
+    part is short, spoken-style replies and coping with interruptions. Cost per
+    minute of conversation decides whether it can run at scale.
   vulnerability-detection: >-
     Vulnerability detection is finding security flaws in a codebase, whether by
-    reading the code, running tools over it or both.
+    reading the code, running tools over it or both. Teams use a model to audit
+    code and triage the output of scanners. The hard part is separating real,
+    exploitable flaws from false alarms. A finding is useful when it names the
+    location and explains how the flaw could be triggered.
   web-and-mobile-development: >-
     Web and mobile development is building web applications, mobile apps and the
-    backend services behind them.
+    backend services behind them. People use a model to write interface code,
+    APIs and data handling across a full stack. What matters is working code on
+    the target platforms and frameworks, including their current versions.
+    Layout, state and platform rules are where errors appear.
   website-creation: >-
     Website creation is building sites for small and medium businesses: pages,
-    content, forms and the basics of hosting them.
+    content, forms and the basics of hosting them. People use a model to produce
+    a complete site from a description of the business. What matters is a site
+    that works on phones and desktops, reads well and is simple to update.
+    Getting forms and hosting set up correctly matters as much as the design.
   writing: >-
     Writing is drafting prose, such as articles, posts and documentation, from a
-    brief.
+    brief. People use a model for first drafts, restructuring and editing. What
+    matters is following the brief, clear structure and avoiding stock phrasing.
+    Accuracy of any facts in the text matters too, since fluent prose can hide
+    an error.

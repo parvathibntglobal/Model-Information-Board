@@ -665,13 +665,15 @@ function vCap(slug){
   // already, and the ordering paragraph that sat above the list is stated once
   // beside the cards there (`orderPanel`).
   //
-  // THE LEAD IS THE DEFINITION, AND THAT IS NOT THE JOB PAGE'S DEFECT REPEATED.
-  // A job's extractor text is a counting rule shown as a description; a
-  // capability's IS meant to be the definition every model page resolves
-  // against, so it is labelled as one rather than moved to the fine print.
+  // THE LEAD IS WHAT THE CAPABILITY IS, THEN ITS DEFINITION, LABELLED. The
+  // hand-written `about` (contract/capability_about.yaml) says what it is; the
+  // definition is the rule every model page resolves against, so unlike a
+  // job's counting rule it stays at the top rather than in the fine print. With
+  // no `about`, the definition is the lead on its own.
   return `<div class="shell phead jobhead">${crumb([['Board','board'],['Capabilities','board:cap'],[c.name,null]])}
     <h1>${esc(c.name)}</h1>
-    ${c.d1 ? `<p class="deflabel">Definition</p><p class="lead">${esc(c.d1)}</p>` : ''}
+    ${c.about ? `<p class="lead">${esc(c.about)}</p>` : ''}
+    ${c.d1 ? `<p class="deflabel">Definition</p><p class="${c.about ? 'defline' : 'lead'}">${esc(c.d1)}</p>` : ''}
     ${c.d2 ? `<p class="lead">${esc(c.d2)}</p>` : ''}
     ${statLine(c)}
     ${c.rows && c.rows.length ? orderLine('cap') + splitNote(c) : ''}</div>

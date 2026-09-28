@@ -255,10 +255,26 @@ def job_about() -> dict[str, str]:
     promoted into this role. The file itself must exist (`_read` raises), so a
     missing contract fails loudly instead of silently blanking every lead line.
     """
-    raw = _read("job_about.yaml") or {}
+    return _about("job_about.yaml")
+
+
+@lru_cache(maxsize=1)
+def capability_about() -> dict[str, str]:
+    """`contract/capability_about.yaml`: slug -> what the capability IS,
+    hand-written, as `job_about` is for jobs.
+
+    A slug with no entry keeps the extractor's `definition` as its page's
+    definition - which for a capability is what it is meant to be - and simply
+    has no longer description above it.
+    """
+    return _about("capability_about.yaml")
+
+
+def _about(name: str) -> dict[str, str]:
+    raw = _read(name) or {}
     about = raw.get("about") or {}
     if not isinstance(about, dict):
-        raise ValueError("contract/job_about.yaml: `about` must map slug -> text")
+        raise ValueError(f"contract/{name}: `about` must map slug -> text")
     return {str(k).strip().lower(): " ".join(str(v).split()) for k, v in about.items() if v}
 
 
