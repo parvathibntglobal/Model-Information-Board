@@ -638,6 +638,47 @@ queries:
       The domain is described. "Never refuses anything" is not credible and
       not useful; "ran 40k medical-summary prompts, no refusals" is both.
 
+  - capability: cost.efficiency
+    stance: negative
+    intent: >
+      The rate was not worth it. A property of the PROVIDER and tier, never
+      of the weights, and it moves whenever a vendor reprices.
+    terms:
+      subject: ["{alias}"]
+      topic: ["price", "pricing", "cost per token", "per million",
+              "input price", "output price", "cache read", "cache write"]
+      signal: ["too expensive", "not worth the price", "priced itself out",
+               "cheaper elsewhere", "hard to justify the cost",
+               "the bill", "burned through the budget"]
+    records_condition: context_size
+    yields_claim_when: >
+      A RATE IS QUOTED, with its side. "Expensive" alone is worthless here
+      for the same reason "slow" is worthless under `ops.latency_ttft`: this
+      capability's entire content is the number. Input and output are priced
+      separately and a quote that does not say which is not a rate. And the
+      figure decays - a repriced tier makes a true claim false without
+      anybody editing it, so an old claim needs its date read beside it.
+
+  - capability: cost.per_task
+    stance: negative
+    intent: >
+      What one real job cost end to end, and it was worse than expected.
+      Separate from the rate because a model with the better rate can still
+      cost more per task by taking more steps.
+    terms:
+      subject: ["{alias}"]
+      topic: ["cost per task", "monthly bill", "spend", "token usage",
+              "tokens to finish", "agent run", "per session"]
+      signal: ["cost me", "burned the budget", "more tokens to finish",
+               "ran up", "blew through", "ended up costing"]
+    records_condition: context_size
+    yields_claim_when: >
+      THE TASK IS DESCRIBED WELL ENOUGH TO BE COMPARED, and a total is given.
+      A spend figure with no job behind it is a number about somebody's month
+      rather than about a model - the same failure `over_refusal` has when the
+      request is not described. A total that does not say what was bought
+      cannot be set against another model's total.
+
   - capability: ops.latency_ttft
     stance: positive
     intent: >
@@ -654,6 +695,37 @@ queries:
       content is the number, and for open weights it is a property of the
       host. Claims decay on a 30-day half-life, so an old positive is close
       to worthless.
+
+
+  - capability: cost.efficiency
+    stance: positive
+    intent: >
+      The rate was worth it, with the number and the side it applies to.
+    terms:
+      subject: ["{alias}"]
+      topic: ["price", "pricing", "cost per token", "per million",
+              "input price", "output price", "cache read"]
+      signal: ["cheaper per token", "best value", "great price for",
+               "price cut", "price reduction", "cheapest way to"]
+    records_condition: context_size
+    yields_claim_when: >
+      A RATE AND ITS SIDE, same as the negative. A price cut is a claim about
+      a MOMENT, so an undated one is not usable.
+
+  - capability: cost.per_task
+    stance: positive
+    intent: >
+      A real job came in cheaper than the alternative, with the total.
+    terms:
+      subject: ["{alias}"]
+      topic: ["cost per task", "monthly bill", "spend", "token usage",
+              "agent run", "per session"]
+      signal: ["cheaper in cost per task", "came in under budget",
+               "for the whole month", "fewer tokens to finish"]
+    records_condition: context_size
+    yields_claim_when: >
+      THE JOB AND THE TOTAL, same as the negative. A favourable total with no
+      task behind it cannot be compared with anything.
 
 
 # ----------------------------------------------------------------------------

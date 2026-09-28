@@ -164,6 +164,51 @@ capabilities:
       - "fast enough for chat"
       - "times out under load"
 
+  # ── Cost, proposed 2026-09-15 ────────────────────────────────────────────
+  #
+  # DISCOVERED FROM EVIDENCE, which is what §2 below asks for. Both keys were
+  # PROPOSED BY THE EXTRACTOR and are sitting in `capability_candidate`
+  # awaiting a person; neither was decreed. The accumulation §2 describes is
+  # measurable: 36 of 336 claims carry a price figure in their quote and every
+  # one is filed under a key about something else, because the closed enum
+  # offers nothing closer.
+  #
+  # `failure_mode: loud` IS THE FIELD TO ARGUE WITH. Cost behaves like
+  # `ops.latency_ttft` - an operational property you observe directly, with a
+  # real mitigation (change model) - so `loud` is the closer of the two. The
+  # counter-argument is real and belongs here rather than in a PR comment: per
+  # task spend inside an agent loop accumulates without anybody watching, and
+  # "you find out at the end of the month" is not "you find out in seconds".
+  # If that reading wins, `cost.per_task` is `silent` and demands positive
+  # consensus, and `cost.efficiency` probably follows it.
+
+  - key: cost.efficiency
+    failure_mode: loud
+    description: >
+      Price per unit of useful work, as engineers actually compare it —
+      list price against what a task really consumed. A property of the
+      PROVIDER and the tier, not of the weights, and it moves whenever a
+      vendor reprices.
+    sounds_like:
+      - "cheaper per token"
+      - "not worth the price"
+      - "best value for the money"
+      - "75% price reduction"
+
+  - key: cost.per_task
+    failure_mode: loud
+    description: >
+      What one real job cost end to end — a month of agent runs, a single
+      refactor, a batch. Distinct from `cost.efficiency` because a model with
+      the better rate can still cost more per task by taking more steps, and
+      that inversion is exactly what engineers report.
+    sounds_like:
+      - "cost $28 for the month"
+      - "3x cheaper in cost per task"
+      - "burns more tokens to finish"
+      - "612.9 million tokens for $28.35"
+
+
 
 # ----------------------------------------------------------------------------
 #  Growing the vocabulary
@@ -174,8 +219,25 @@ capabilities:
 #     tagged `unclassified` and left to accumulate. A growing unclassified
 #     cluster is the signal that engineers are discussing something we do
 #     not track — and the trigger to add it.
-#  3. Adding one BACKFILLS: re-read from the immutable raw store. Costs
-#     nothing, because collect/ already paid for it.
+#  3. Adding one BACKFILLS, and it is NOT free. This said "Costs nothing,
+#     because collect/ already paid for it", which is true of COLLECTION and
+#     false of the only paid stage. Measured 2026-09-15 while proposing
+#     `cost.*`:
+#
+#       - Extraction is re-run, not re-read. `claim.capability_key` is written
+#         by the model, so an existing claim cannot be refiled by adding a key.
+#       - `claim_id_for` hashes `pipeline_version`, so a bump FORKS the claim
+#         table rather than replacing it. Old claims stay; `CellStore` defaults
+#         to the current version so the board renders one generation.
+#       - `already_extracted()` is version-scoped, so a bump re-reads THE WHOLE
+#         CORPUS - not the threads behind the affected claims. For `cost.*`
+#         that was 20 threads' worth of benefit against a full-corpus cost.
+#       - And the raw store is not guaranteed to hold it. 4 flattened blobs of
+#         those 20 threads' are missing with no tombstone, which the store
+#         itself calls corruption rather than a takedown.
+#
+#     So the backfill question to ask before proposing a key is "what does
+#     re-extracting the corpus cost today", not "is the text still there".
 #
 #  Capabilities worth tracking now were not worth tracking eighteen months
 #  ago — computer use, thinking-budget control, prompt-cache effectiveness.

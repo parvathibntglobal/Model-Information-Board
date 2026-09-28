@@ -152,6 +152,13 @@ dominant_dimension:
   "reasoning.multistep":                  context_size
   "over_refusal":                         context_size
   "ops.latency_ttft":                     context_size
+  # Cost scales with what was sent and generated, so the bucket that
+  # discriminates is the same one latency uses. NOT a cost-specific
+  # dimension: adding one multiplies every cell in the table, and
+  # `conditions.yaml` already argues three is the minimum that captures
+  # what people report.
+  "cost.efficiency":                      context_size
+  "cost.per_task":                        context_size
 
 
 # ----------------------------------------------------------------------------

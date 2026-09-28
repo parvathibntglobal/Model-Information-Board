@@ -23,8 +23,16 @@ from collect.registry.capabilities import (
     parse_capabilities,
 )
 
+#: How many keys `contract/capabilities.yaml` ratifies.
+#:
+#: 12 until 2026-09-15, when `cost.efficiency` and `cost.per_task` were
+#: ratified. ASSERTED rather than read from the contract on purpose: reading it
+#: would make this test agree with any vocabulary, including one a bad merge
+#: shrank. Moving it is the deliberate half of a vocabulary change.
+RATIFIED = 14
 
-def test_the_live_contract_parses_and_carries_all_twelve():
+
+def test_the_live_contract_parses_and_carries_every_ratified_key():
     """Against `contract/capabilities.yaml`, not a fixture.
 
     A loader tested only against a hand-built document is a loader tested
@@ -33,7 +41,11 @@ def test_the_live_contract_parses_and_carries_all_twelve():
     version, rows = load_capability_file()
 
     assert version == "1.0"
-    assert len(rows) == 12, "FR-7 and the query contract both count on twelve"
+    assert len(rows) == RATIFIED, (
+        "FR-7 and the query contract both count on this number, so it is "
+        "asserted rather than derived - a key that vanishes from the contract "
+        "must fail here rather than quietly shrink the vocabulary."
+    )
     assert {r.failure_mode for r in rows} == {"loud", "silent"}
     assert sum(1 for r in rows if r.failure_mode == "silent") == 4, (
         "the four silent-failure capabilities are what make positive queries "
@@ -132,4 +144,4 @@ def test_absence_from_the_contract_does_not_deactivate():
 
     assert report.absent_from_contract == ["retired.capability"]
     assert "left active and untouched" in report.summary()
-    assert conn.writes == 12, "the twelve declared keys are still written"
+    assert conn.writes == RATIFIED, "every declared key is still written"
