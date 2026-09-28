@@ -772,6 +772,26 @@ tbody tr:hover{background:var(--surface-2)}
 }
 .cmp-table td .dim{color:var(--text-3)}
 
+/* ── the shared-axes table ─────────────────────────────────────
+   The table above has FIXED labels down its side - "Posts and comments",
+   "Entries on the board" - which are short and should not break, hence
+   `tbody th{white-space:nowrap;width:1%}`.
+
+   ⚠ THE SHARED-AXES TABLE PUTS AN EXTRACTOR-WRITTEN NAME IN THAT SAME
+     COLUMN, and those run long: `unauthorized-data-exfiltration`. Left to
+     nowrap they push the label column wide enough to squeeze the model columns
+     the table exists to compare, which is the one thing it must not do. */
+.cmp-table tr.cmp-axis th{white-space:normal;width:22%;font-weight:500;
+  overflow-wrap:anywhere;line-height:1.45}
+
+/* The group divider: one row spanning the table, naming the section its rows
+   belong to. Quieter than a column header and louder than a row, so Jobs,
+   Capabilities and Metrics read as three groups without competing with the
+   model names above them. */
+.cmp-table tr.cmp-group th{background:var(--bg);border-left:0;border-right:0;
+  padding:16px 12px 7px;white-space:normal;width:auto}
+.cmp-table tbody tr.cmp-group:first-child th{padding-top:6px}
+
 /* ── the closed-vocabulary view, folded ─────────────────────────────────────
    Quieter than a card on purpose. The evidence panel above it is the page; this
    is the older capability-keyed view kept because the Ask box still reads its

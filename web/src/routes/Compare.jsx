@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   comparePage, listModels, fetchAll, fmtPrice, fmtTokens, BoardUnreadable,
@@ -330,6 +330,8 @@ export default function Compare() {
             }],
           ]}
         />
+
+        <CommonAxes models={models} />
       </div>
       )}
 
@@ -594,6 +596,182 @@ function ChangeModels({ ids, models, roster, onLoad, onAdd, onDrop }) {
   )
 }
 
+
+//: The three discovered sections, in the order the model page's tabs use.
+//: `best_for` is the stored key and "Jobs" is the word a reader sees.
+const SECTIONS = [
+  ['best_for', 'Jobs'],
+  ['capabilities', 'Capabilities'],
+  ['metrics', 'Metrics'],
+]
+
+/**
+ * The axes EVERY compared model was discussed on, keyed by slug.
+ *
+ * ⚠ THE TABLE ABOVE LISTS THREE MODELS AND COMPARES NONE OF THEM. Each cell
+ *   holds one model's own axes, so `coding-agent 7` and `coding-agent 3` sit at
+ *   different positions in two different lists and the reader aligns them by
+ *   eye. That view is worth keeping — it is what each model was discussed on,
+ *   in full — but the comparison is a different question and needs its own
+ *   answer.
+ *
+ * ⚠ ALL OF THEM, NOT MOST. An axis two of three models share still leaves a
+ *   cell to fill for the third, and the only honest thing to put there is
+ *   "nobody wrote about this" — which is a real fact and reads as a zero
+ *   (rule 6). Restricting to axes every model carries means every cell in this
+ *   table is a count somebody reported, and no cell needs a caveat.
+ *
+ *   The cost is stated rather than hidden: axes held by some-but-not-all are
+ *   counted in the note and are not rows here. They are in the table above.
+ *
+ * ⚠ THE SLUG IS THE KEY AND THE NAME IS THE LABEL. `COALESCE(ruling_target,
+ *   slug)` is what the store groups by, so a reviewer merging two slugs merges
+ *   these rows with it. `name` is the extractor's phrasing and can differ
+ *   between models for one slug, so the first is used and the slug decides
+ *   they are the same row.
+ */
+function sharedAxes(models, section) {
+  const bySlug = new Map()
+  models.forEach((m) => {
+    (m.reported?.discovered?.[section] || []).forEach((it) => {
+      const slug = it.slug || it.name
+      if (!slug) return
+      if (!bySlug.has(slug)) bySlug.set(slug, { slug, name: it.name || slug, per: {} })
+      bySlug.get(slug).per[m.model_version_id] = it
+    })
+  })
+
+  const all = [...bySlug.values()]
+  const every = all.filter(
+    (r) => models.every((m) => r.per[m.model_version_id])
+  )
+  // Ordered by total reports, which is a COUNT and not a score (rule 3): the
+  // axis people wrote about most across these models leads. Every number it
+  // sorts on is printed on the row.
+  every.sort((a, b) => {
+    const t = (r) => Object.values(r.per).reduce((s, it) => s + (it.reports || 0), 0)
+    return t(b) - t(a) || a.name.localeCompare(b.name)
+  })
+  return { every, total: all.length }
+}
+
+/**
+ * Only the axes all the compared models share, as a count-against-count table.
+ *
+ * Separate from the table above on purpose. That one answers "what was each of
+ * these discussed on"; this one answers "where can these actually be compared",
+ * and merging them produced a table where most cells said "not reported".
+ */
+function CommonAxes({ models }) {
+  const groups = SECTIONS.map(([section, heading]) => ({
+    section, heading, ...sharedAxes(models, section),
+  }))
+  const shared = groups.reduce((s, g) => s + g.every.length, 0)
+  const named = groups.reduce((s, g) => s + g.total, 0)
+
+  return (
+    <div className="stack stack-2" style={{ marginTop: 'var(--s4)' }}>
+      <span className="label">Where they can be compared directly</span>
+      <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0,
+                                  lineHeight: 1.6 }}>
+        The axes <strong style={{ color: 'var(--text)' }}>every model here was
+        discussed on</strong>, so each row is a count against a count with nothing
+        missing. {/* RULE 7: the denominator. "4 shared" means one thing out of 12
+                     and another out of 200. */}
+        <span className="tnum">{shared}</span> of{' '}
+        <span className="tnum">{named}</span> axes named across these{' '}
+        {models.length} models. The rest were named for some and not others — they
+        are in the table above, where an absent axis is simply not listed rather
+        than being shown as a nought.
+      </p>
+
+      {shared === 0 ? (
+        /* ⚠ AN EMPTY TABLE HERE IS A FINDING, AND IT IS ABOUT THE CORPUS AND
+           NOT THE MODELS. Engineers wrote about these models on different
+           things; that is what the evidence says, and it is why the board
+           cannot rank them against each other. Rendering an empty table with
+           three column headings would say "we compared them and found
+           nothing", which is a different and false claim. */
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0,
+                                    lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--text)' }}>No axis is shared by all{' '}
+          {models.length}.</strong> Nobody has written about these models on the
+          same job, behaviour or figure, so there is nothing to put side by side —
+          a fact about what has been written, not about the models. Comparing two
+          instead of three usually finds more.
+        </p>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table className="cmp-table">
+            <thead>
+              <tr>
+                <th />
+                {models.map((m) => (
+                  <th key={m.model_version_id}>{m.display_name}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {groups.filter((g) => g.every.length).map((g) => (
+                <Fragment key={g.section}>
+                  <tr className="cmp-group">
+                    <th scope="colgroup" colSpan={models.length + 1}>
+                      <span className="label">{g.heading}</span>
+                      <span className="dim" style={{ fontSize: 11, fontWeight: 400,
+                                                     textTransform: 'none', letterSpacing: 0 }}>
+                        {' '}· {g.every.length} of {g.total} shared
+                      </span>
+                    </th>
+                  </tr>
+                  {g.every.map((a) => (
+                    <tr key={a.slug} className="cmp-axis">
+                      <th scope="row">{a.name}</th>
+                      {models.map((m) => {
+                        const it = a.per[m.model_version_id]
+                        const f = (it.figures || [])[0]
+                        return (
+                          <td key={m.model_version_id}>
+                            <span className="tnum">
+                              <strong>{it.reports}</strong>{' '}
+                              <span className="dim" style={{ fontSize: 11 }}>
+                                report{it.reports === 1 ? '' : 's'}
+                              </span>
+                            </span>
+                            {/* A FIGURE TRAVELS WITH ITS BASIS (rule 7).
+                                `stated` is the vendor's claim and `reported` is
+                                somebody's measurement; they are never merged. */}
+                            {f && (
+                              <span className="dim" style={{ display: 'block', fontSize: 11 }}>
+                                {f.value} {f.basis}
+                              </span>
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ⚠ NO ROW IS MARKED AS A WINNER, and the higher count is not the
+          better model. It is how many people wrote about it, which tracks how
+          widely a model is used at least as much as how well it works — and
+          the polarity of those reports is not on this table at all. */}
+      {shared > 0 && (
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0,
+                                    lineHeight: 1.6 }}>
+          A higher count is more reports, not a better model: it tracks how widely
+          something is used as much as how well it works, and whether those reports
+          were complaints is not on this table. Open a model to read them.
+        </p>
+      )}
+    </div>
+  )
+}
 
 function Table({ models, rows }) {
   const rendered = rows.map(([label, cell]) => ({
