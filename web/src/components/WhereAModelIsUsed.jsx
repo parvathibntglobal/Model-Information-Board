@@ -40,10 +40,13 @@ export default function WhereAModelIsUsed({ callers }) {
         </p>
       </div>
 
-      {/* Two cards side by side where there is room, stacked where there is
-          not. Same shape for both, so the two can be compared at a glance: what
-          it is for, whether it runs, how big its prompt is, what it is told. */}
-      <div className="grid g2" style={{ gap: 'var(--s3)', alignItems: 'start' }}>
+      {/* ONE UNDER THE OTHER, EXTRACTION FIRST. They were side by side, which
+          gave the Ask box - a step no page reaches yet - the same weight as the
+          one that runs on every fetch. Stacked, the order says which matters:
+          the live use leads, the planned one follows. Same shape for both, so
+          they still read the same way: what it is for, whether it runs, how
+          big its prompt is, what it is told. */}
+      <div className="stack stack-3">
         <Caller
           n={1}
           title="Extraction"
