@@ -56,12 +56,19 @@ def _calls_named(path: pathlib.Path, name: str) -> list[int]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
     out = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call):
-            fn = node.func
-            if isinstance(fn, ast.Name) and fn.id == name:
-                out.append(node.lineno)
-            elif isinstance(fn, ast.Attribute) and fn.attr == name:
-                out.append(node.lineno)
+        if not isinstance(node, ast.Call):
+            continue
+        #: BOTH SPELLINGS OF THE SAME CALL. `store_proposals(...)` when it was
+        #: imported by name and `module.store_proposals(...)` when it was not,
+        #: because the import style is not the question - whether the call
+        #: happens is.
+        fn = node.func
+        called = (
+            (isinstance(fn, ast.Name) and fn.id == name)
+            or (isinstance(fn, ast.Attribute) and fn.attr == name)
+        )
+        if called:
+            out.append(node.lineno)
     return sorted(out)
 
 
