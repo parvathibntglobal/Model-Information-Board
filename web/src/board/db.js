@@ -497,6 +497,9 @@ export function setBoardData(payload) {
     ...commonFields(c),
     d1: c.definition,
     d2: '',
+    // As on the Jobs tab: the card is the name and the counts. The definition
+    // is the first thing on the capability's own page.
+    card: '',
     nots: [],
   }))
 

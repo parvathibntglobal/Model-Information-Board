@@ -108,7 +108,7 @@ class TestThePageKeepsTheThreeKindsApart:
 
     def test_every_load_bearing_rule_is_still_on_the_page(self):
         js = _js()
-        aside = js[js.index("function jobsOrderPanel()"):js.index("function jobOrderLine()")]
+        aside = js[js.index("function orderPanel(noun)"):js.index("function orderLine(tab)")]
         for clause in ("Three groups", "more consistently say it worked come",
                        "counts for less than the same record on many",
                        "No score is shown: each row shows its counts.",
@@ -118,11 +118,12 @@ class TestThePageKeepsTheThreeKindsApart:
 
     def test_the_full_statement_is_beside_the_jobs_cards_once(self):
         js = _js()
-        assert "side: jobsOrderPanel()," in js
+        assert "side: orderPanel('job')," in js
+        assert "side: orderPanel('capability')," in js
         assert "<aside class=\"jobaside\">" in js
         vjob = js[js.index("function vJob(slug)"):js.index("function vCap(slug)")]
-        assert "jobsOrderPanel" not in vjob, "not repeated on every job page"
-        panel = js[js.index("function jobsOrderPanel()"):js.index("function vJob(slug)")]
+        assert "orderPanel(" not in vjob, "not repeated on every job page"
+        panel = js[js.index("function orderPanel(noun)"):js.index("function vJob(slug)")]
         assert "<details" not in panel, "stated, not tucked away"
 
     def test_each_job_page_still_says_what_its_order_rewards(self):
@@ -130,11 +131,38 @@ class TestThePageKeepsTheThreeKindsApart:
         # Moving the full statement to the Jobs tab must not take that away.
         js = _js()
         vjob = js[js.index("function vJob(slug)"):js.index("function vCap(slug)")]
-        assert "jobOrderLine()" in vjob and "jobRule(j)" in vjob
-        line = js[js.index("function jobOrderLine()"):js.index("function jobRule(j)")]
+        assert "orderLine('best')" in vjob and "jobRule(j)" in vjob
+        line = js[js.index("function orderLine(tab)"):js.index("function jobRule(j)")]
         for clause in ("more consistently say it worked", "No score is shown.",
-                       'data-go="board:best"'):
+                       'data-go="board:${tab}"'):
             assert clause in " ".join(line.split()), clause
+
+
+class TestTheCapabilityPageHasTheSameShape:
+    def _vcap(self):
+        js = _js()
+        return js[js.index("function vCap(slug){"):js.index("function splitNote(item)")]
+
+    def test_the_card_carries_no_text(self):
+        db = DB.read_text(encoding="utf-8")
+        caps = db[db.index("DB.caps = "):]
+        assert "card: ''," in caps[:caps.index("}))")]
+
+    def test_the_page_says_what_its_order_rewards_and_links_to_the_panel(self):
+        vcap = self._vcap()
+        assert "orderLine('cap')" in vcap and "statLine(c)" in vcap
+        assert "listIntro(c)" not in vcap, "the paragraph is stated once, on the tab"
+        assert "orderPanel(" not in vcap
+
+    def test_the_definition_is_labelled_as_one(self):
+        assert '<p class="deflabel">Definition</p>' in self._vcap()
+        assert ".deflabel{" in CSS.read_text(encoding="utf-8")
+
+    def test_the_both_clause_survives_the_paragraph(self):
+        js = _js()
+        note = js[js.index("function splitNote(item)"):]
+        assert "counted under each" in note[:600]
+        assert "splitNote(c)" in self._vcap()
         css = CSS.read_text(encoding="utf-8")
         assert ".jobbody{display:grid;grid-template-columns:minmax(0,1fr) 300px" in css
         assert ".jobhead .lead{" in css and "max-width:110ch" in css

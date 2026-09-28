@@ -501,11 +501,13 @@ function vBoard(tab){
   const panes = {
     best: {intro:'Jobs engineers named when they said what they were running a model for. Each opens a page listing every model reported on that job. Problem reports are shown, not filtered.',
       // The ordering statement sits BESIDE the cards: one rule for every job
-      // page, stated once where the pages are chosen (see jobsOrderPanel).
-      side: jobsOrderPanel(),
+      // page, stated once where the pages are chosen (see orderPanel).
+      side: orderPanel('job'),
       grid: DB.jobs.length ? gridBlock(DB.jobs.map(j=>card(j,'job')).join('')) : empty},
     cap: {intro:'A capability means one thing across every model page. These are the definitions the board rules by — written so an answer engine can quote them, and so two claims can be compared without arguing about words.',
       note: parentNote('caps'),
+      // Same rule, same place, as the Jobs tab (2026-09-28).
+      side: orderPanel('capability'),
       grid: DB.caps.length ? groupedGrid(DB.capGroups, DB.caps, c=>card(c,'cap')) : empty},
     met: {intro:'The axes recorded on every model. Each page states the unit, where the figure came from, and the thing the number cannot tell you — which is usually more useful than the number. '
       // ⚠ THIS SENTENCE CAME OFF `metGrid`'s DIVIDER AND MUST NOT BE LOST.
@@ -549,7 +551,7 @@ function vBoard(tab){
  * Models, reports (a floor, so ≥), voices, and how many models sit in each of
  * the three groups. Only groups that exist are named, so a page with no neutral
  * model does not print "0 only neutral". */
-function jobStatLine(j){
+function statLine(j){
   const rows = j.rows || [];
   if(!rows.length) return '';
   const n = rows.length, rep = j.repTotal, voi = j.voiTotal;
@@ -561,12 +563,14 @@ function jobStatLine(j){
     + ` · ${voi} voice${voi===1?'':'s'}</span>${groups.length ? `<span>${groups.join(' · ')}</span>` : ''}</p>`;
 }
 
-/** How every job's list is ordered, ONCE, beside the cards on the Jobs tab.
+/** How every job's or capability's list is ordered, ONCE, beside the cards on
+ * its tab.
  *
  * It sat in a side column on every job page, identical on all 98, and read as
- * part of each job (2026-09-28 review). It is one rule for every page, so it is
+ * part of each job (2026-09-28 review); capability pages carried the same rule
+ * as a paragraph above the list. It is one rule for every page, so it is
  * stated once where the pages are chosen, and each page keeps the one sentence
- * rule 3 requires of it - `jobOrderLine` - with a link back here.
+ * rule 3 requires of it - `orderLine` - with a link back here.
  *
  * ⚠ EVERY SENTENCE HERE IS LOAD-BEARING, AND SHORTER IS THE ONLY LICENCE TAKEN.
  *   The order in words and "no score is shown" are rule 3's conditions (#472);
@@ -574,9 +578,9 @@ function jobStatLine(j){
  *   Opus 5 heads a working group on 1 positive and 11 negatives); the
  *   extractor's-reading clause is rule 2's disclosure; the floor and the
  *   both-counted note keep the counts honest (rule 7). */
-function jobsOrderPanel(){
+function orderPanel(noun){
   return `<aside class="jobaside">
-      <h3>How each job’s list is ordered</h3>
+      <h3>How each ${noun}’s list is ordered</h3>
       <p>Three groups: models with at least one report of it working, then models with only
       neutral reports, then models with reports of problems and none of it working.</p>
       <p>Within the first group, models whose reports more consistently say it worked come
@@ -587,7 +591,7 @@ function jobsOrderPanel(){
       <p class="fine">Positive and negative are the extractor’s reading of each quote, so one
       mislabelled report can move a model. A report that says both is counted under each.
       Report counts are floors (≥).</p>
-      <p class="fine">Open a job, then a model, to read every report it holds.</p>
+      <p class="fine">Open a ${noun}, then a model, to read every report it holds.</p>
     </aside>`;
 }
 
@@ -595,10 +599,10 @@ function jobsOrderPanel(){
  *  "the page says in words what the order rewards"). The full statement is on
  *  the Jobs tab; this is not a summary of it that may drift, it is the part the
  *  rule requires on the page itself. */
-function jobOrderLine(){
+function orderLine(tab){
   return `<p class="orderline">Models with a report of it working come first, those whose
     reports more consistently say it worked ahead; then only-neutral, then problems only.
-    No score is shown. <a data-go="board:best">How this list is ordered</a></p>`;
+    No score is shown. <a data-go="board:${tab}">How this list is ordered</a></p>`;
 }
 
 /** "What counts here" is the extractor's `definition`, LABELLED as its counting
@@ -639,8 +643,8 @@ function vJob(slug){
   return `<div class="shell phead jobhead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
     <h1>${esc(j.h1)}</h1>
     ${j.about ? `<p class="lead">${esc(j.about)}</p>` : ''}
-    ${jobStatLine(j)}
-    ${j.rows && j.rows.length ? jobOrderLine() : ''}</div>
+    ${statLine(j)}
+    ${j.rows && j.rows.length ? orderLine('best') : ''}</div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
       <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
     <div class="shell">${ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j)}</div>
@@ -654,16 +658,36 @@ function vCap(slug){
   const c = byS(DB.caps,slug); if(!c) return vBoard('cap');
   // The quote block left this page too - see `vJob` above for why. On
   // `capability/reasoning` it was 9 blocks of the 43 reports the page holds.
-  return `<div class="shell phead">${crumb([['Board','board'],['Capabilities','board:cap'],[c.name,null]])}
-    <h1>${esc(c.name)}</h1><p class="sub">A capability the board found engineers discussing. This page is
-    the definition every model page resolves against, so a report about one model can be compared with a
-    report about another.</p></div>
-    ${sec('','','',`<div class="defbox"><div class="l">definition</div><p>${esc(c.d1)}</p><p>${esc(c.d2)}</p></div>`)}
+  //
+  // THE JOB PAGE'S SHAPE (2026-09-28): the definition as the lead, one line of
+  // figures, one sentence on the order, then the list at full width. The
+  // subtitle that was identical on all 297 pages is on the Capabilities tab
+  // already, and the ordering paragraph that sat above the list is stated once
+  // beside the cards there (`orderPanel`).
+  //
+  // THE LEAD IS THE DEFINITION, AND THAT IS NOT THE JOB PAGE'S DEFECT REPEATED.
+  // A job's extractor text is a counting rule shown as a description; a
+  // capability's IS meant to be the definition every model page resolves
+  // against, so it is labelled as one rather than moved to the fine print.
+  return `<div class="shell phead jobhead">${crumb([['Board','board'],['Capabilities','board:cap'],[c.name,null]])}
+    <h1>${esc(c.name)}</h1>
+    ${c.d1 ? `<p class="deflabel">Definition</p><p class="lead">${esc(c.d1)}</p>` : ''}
+    ${c.d2 ? `<p class="lead">${esc(c.d2)}</p>` : ''}
+    ${statLine(c)}
+    ${c.rows && c.rows.length ? orderLine('cap') + splitNote(c) : ''}</div>
     ${sec('What this is not','Three things filed elsewhere',
       'Capability boundaries exist so a disagreement is a disagreement rather than two people using one word for two things.',conds(c.nots))}
-    ${sec('Models with evidence','Who has been reported doing this',
-      listIntro(c), ranked(c.rows,'capmodel:'+c.slug) + orphanNote(c))}
+    <div class="shell">${ranked(c.rows,'capmodel:'+c.slug) + orphanNote(c)}</div>
     ${sec('Related','','',related(c.rel))}`;
+}
+
+/** WHAT `both` MEANS, said once, on a page whose rows carry a split. It was a
+ *  clause of `listIntro`'s paragraph; the paragraph is gone from this page and
+ *  the clause is not, because a row reading "+2 −1 (1 both)" does not add up
+ *  without it. */
+function splitNote(item){
+  if(!(item.rows || []).some(r => r.sp)) return '';
+  return `<p class="orderline">A report that says both is counted under each, and the row says so.</p>`;
 }
 
 /* ---------- the drill-down: one model, inside one category ---------- */

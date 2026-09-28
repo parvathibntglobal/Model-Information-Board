@@ -89,6 +89,8 @@
 .jobaside h3:not(:first-child){margin-top:20px}
 .jobaside p{margin:0 0 9px}
 .jobaside .fine{font-size:.78rem;color:var(--text-3)}
+/* The capability page's lead is its definition, and says so. */
+.deflabel{font:600 .7rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:6px 0 2px}
 /* The job page's one sentence on its own order (rule 3), linking to the full statement on the Jobs tab. */
 .orderline{margin:10px 0 0;max-width:110ch;font-size:.84rem;line-height:1.55;color:var(--text-3)}
 .orderline a{cursor:pointer;color:var(--info);white-space:nowrap}
