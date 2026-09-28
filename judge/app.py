@@ -1685,11 +1685,22 @@ def model_page(model_version_id: str) -> dict:
         quote_ids = tuple(q for c in page.capabilities for s in c.slices for q in s.quote_ids)
         quotes = ModelPageReader(conn).quotes_for(quote_ids)
 
+        # WHEN THIS MODEL WAS LAST FETCHED, from the shared `fetch_log`
+        # (`judge/fetch_history.py`). A read failure is `None`, rendered as
+        # "could not be read" - never the empty summary, which would say "no
+        # per-model fetch recorded" about a log nobody managed to open (rule 12).
+        from judge import fetch_history
+        try:
+            last_fetch = fetch_history.read(conn, mv_id)
+        except Exception:
+            last_fetch = None
+
     return {
         # BOTH, because the caller asked by one and the cells are keyed by the
         # other, and a client that cannot tell which it received cannot build a
         # link back.
         "model_version_id": page.model_version_id,
+        "last_fetch": last_fetch,
         "canonical_id": canonical_id,
         "display_name": display_name,
         "summary": page.summary,

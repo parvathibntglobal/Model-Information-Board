@@ -6,6 +6,51 @@ import ModelEvidence from '../components/ModelEvidence'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow } from '../components/Icons'
 
+/** "Last fetched N days ago", from the shared fetch log (judge/fetch_history.py).
+ *
+ * THREE STATES AND TWO FACTS, never merged:
+ *   no run recorded      "No per-model fetch recorded" - never "0 days"
+ *   the log unreadable   said so, never rendered as "none recorded" (rule 12)
+ *   runs recorded        the last fetch that ended ok, and, separately, a
+ *                        LATER attempt that failed, stopped or was abandoned -
+ *                        34 of 87 runs ended ok on 2026-09-28, so "the last
+ *                        run" and "the last successful run" usually differ
+ * Every line ends "as recorded in the shared log": a run whose database write
+ * failed exists only in its own machine's file. */
+function ago(iso) {
+  const at = Date.parse(iso)
+  if (Number.isNaN(at)) return null
+  const days = Math.floor((Date.now() - at) / 86400000)
+  const when = days <= 0 ? 'today' : days === 1 ? '1 day ago' : `${days} days ago`
+  return `${when} (${iso.slice(0, 10)})`
+}
+
+const OUTCOME = {
+  error: 'ended in an error',
+  stopped: 'was stopped',
+  abandoned: 'was abandoned (no progress, marked by the reaper)',
+  'no end recorded': 'has no end recorded',
+}
+
+function LastFetched({ value }) {
+  const style = { fontSize: 'var(--fs-sm)' }
+  const where = ', as recorded in the shared log.'
+  if (value == null) {
+    return <p className="dim" style={style}>When this model was last fetched could not be read from the shared log.</p>
+  }
+  if (!value.runs_recorded) {
+    return <p className="dim" style={style}>No per-model fetch recorded{where}</p>
+  }
+  const ok = value.succeeded && ago(value.succeeded.at)
+  const later = value.later_attempt
+  return (
+    <p className="dim" style={style}>
+      {ok ? `Last fetched ${ok}` : 'No per-model fetch has completed'}{where}
+      {later && ` ${ok ? 'A later attempt' : 'The last attempt'} ${ago(later.at) || ''} ${OUTCOME[later.outcome] || `ended "${later.outcome}"`}.`}
+    </p>
+  )
+}
+
 export default function ModelDetail() {
   // `/models/*` rather than `/models/:id`, because an id can contain a
   // slash — google/gemini-2.5-flash is one path segment to us, two to the router.
@@ -82,6 +127,8 @@ export default function ModelDetail() {
           `spec` is still fetched - the heading above reads its display_name
           and provider, which are the model's identity rather than its
           advertised numbers. */}
+
+      {page && <LastFetched value={page.last_fetch} />}
 
       <FetchPanel modelVersionId={id} onDone={() => modelPage(id).then(setPage).catch(() => {})} />
 
