@@ -24,12 +24,19 @@ import { IconAlert } from './Icons'
  *   (capability candidates, removed #434), so the distinction is worth making
  *   in words rather than trusting the layout to carry it.
  *
- * ⚠ RENDERED IN TWO SECTIONS ON PURPOSE. It answers a question that Models
- *   and Board sections each raise and neither owns — "what did we learn about
- *   things we were not watching" — and a reader arriving at either one has
- *   that question. One component, one endpoint, so the two cannot disagree.
+ * ⚠ ONE SECTION, AND IT USED TO BE TWO. It was mounted under Models and again
+ *   under Board sections, on the argument that the question belongs to neither
+ *   — the review shows which AXES the board discovered, this shows which
+ *   MODELS it discovered them about.
+ *
+ *   That argument left out that they are the same list under two headings, one
+ *   screen apart, with the same counts. A reader who meets
+ *   `64 of 78 models with evidence` twice does not read it as two views of one
+ *   fact; they read it as one of the two being stale, and go and check.
+ *
+ *   So it lives under Models, which is the section that owns them.
  */
-export default function DiscussedModels({ heading }) {
+export default function DiscussedModels() {
   const [state, setState] = useState({ data: null, err: null, unreadable: null })
   const [all, setAll] = useState(false)
 
@@ -54,7 +61,7 @@ export default function DiscussedModels({ heading }) {
   return (
     <div className="stack stack-2">
       <div className="row" style={{ gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-        <span className="label">{heading || 'Discussed, and not on the models page'}</span>
+        <span className="label">Discussed, and not on the models page</span>
         {data && (
           <span className="dim tnum" style={{ fontSize: 11 }}>
             {/* RULE 7: the denominator travels. "66 models" alone says

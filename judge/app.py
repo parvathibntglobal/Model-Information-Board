@@ -3779,8 +3779,14 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
     # weaken the guard, a cap can be RULED public by a person, here, one at a
     # time. The guard still refuses everything nobody has ruled on.
     cap_specs = (
+        # ⚠ THE NUMBER IS NOT IN THE PROSE, and it was: this read "the 'x of
+        # 50' on the button". 50 is the DEFAULT; production runs 25, so the
+        # page displayed `25` in the value column and told the reader 50 in the
+        # sentence beside it. A description that restates a figure shown next
+        # to it has two ways to be right and one of them is always stale.
         ("FETCH_MAX_THREADS", "50",
-         "documents one fetch sends the model — the 'x of 50' on the button"),
+         "documents one fetch sends the model — the denominator in the "
+         "'x of …' on the Fetch button"),
         ("EXTRACT_TOTAL_TIMEOUT_SECONDS", "1200",
          "ceiling on one extraction call before it is abandoned"),
         ("EXTRACT_MAX_OUTPUT_TOKENS", "16384",
