@@ -21,9 +21,10 @@
 # board does not currently show renders nothing and is not an error.
 #
 # SHAPE, held by tests/test_the_job_page_reads_as_a_page.py: two to four
-# sentences. SENTENCE 1 STANDS ALONE - it is what the Jobs-tab card shows - and
-# is at most 150 characters. No abbreviation with a period in it ("e.g.",
-# "i.e."), because the card takes the text up to the first full stop.
+# sentences, shown whole at the top of the page. No abbreviation with a period
+# in it ("e.g.", "i.e."), so the sentence count stays honest. Cards do NOT show
+# this text: they carry the definition, as the hosted board always has (a line
+# of this on each card was tried and reverted, 2026-09-28).
 #
 # COVERAGE: every job page the board showed on 2026-09-28, 98 of 98 (staging,
 # read-only). A job that appears after that has no entry until somebody writes
