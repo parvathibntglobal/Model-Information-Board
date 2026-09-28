@@ -476,7 +476,20 @@ export function setBoardData(payload) {
   DB.jobs = (d.jobs || []).map((j) => ({
     ...commonFields(j),
     h1: j.name,
-    sub: j.definition,
+    // WHAT THE JOB IS: hand-written in contract/job_about.yaml, or null. A job
+    // with none shows NO lead line - the extractor's text is never promoted into
+    // this role, because it is not a description.
+    about: j.about || null,
+    // THE EXTRACTOR'S COUNTING RULE: the test a report had to meet to be filed
+    // here. Rendered below the list under "What counts here", labelled as what
+    // it is. `board_sections` picks the text most rows carry, so it does not
+    // change with each new report.
+    rule: j.definition || '',
+    // THE CARD CARRIES THE ONE-SENTENCE DEFINITION, as the hosted board always
+    // has. Tried and reverted on 2026-09-28: no text read as bare, and a line of
+    // the hand-written description read as too plain on a card. The
+    // description is the page's, not the card's.
+    card: j.definition || '',
     pick: null, // hand-written editorial; omitted rather than invented
     conds: [],
   }))
@@ -485,6 +498,11 @@ export function setBoardData(payload) {
     ...commonFields(c),
     d1: c.definition,
     d2: '',
+    // WHAT THE CAPABILITY IS: hand-written in contract/capability_about.yaml, or
+    // null. It sits above the definition on the page and does not replace it.
+    about: c.about || null,
+    // As on the Jobs tab: the card carries the definition, as it always did.
+    card: c.definition || '',
     nots: [],
   }))
 

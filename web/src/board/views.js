@@ -293,7 +293,9 @@ function sec(eyebrow,h2,intro,inner){
 }
 function card(x, route){
   const [cls,lbl]=stOf(x.st);
-  return `<div class="icard" data-go="${route}:${esc(x.slug)}"><b>${esc(x.name)}</b><p>${esc(x.card)}</p>
+  // No text, no empty paragraph: a job card is the name and its counts.
+  const body = x.card ? `<p>${esc(x.card)}</p>` : '';
+  return `<div class="icard" data-go="${route}:${esc(x.slug)}"><b>${esc(x.name)}</b>${body}
     <div class="meta"><span class="${cls}">${esc(x.ev)} · ${esc(lbl)}</span><span>${esc(x.vol)}</span></div></div>`;
 }
 function mcard(x){
@@ -497,10 +499,15 @@ function vBoard(tab){
   //   inside one it has to cut open. Anything added here that returns bare
   //   cards must wrap them in `gridBlock` or they will render as a column.
   const panes = {
-    best: {intro:'Jobs engineers named when they said what they were running a model for. Each opens a page listing every model reported on that job, in three groups: reported working, only neutral reports, and reported problems with none of it working. Problem reports are shown, not filtered.',
+    best: {intro:'Jobs engineers named when they said what they were running a model for. Each opens a page listing every model reported on that job. Problem reports are shown, not filtered.',
+      // The ordering statement sits BESIDE the cards: one rule for every job
+      // page, stated once where the pages are chosen (see orderPanel).
+      side: orderPanel('job'),
       grid: DB.jobs.length ? gridBlock(DB.jobs.map(j=>card(j,'job')).join('')) : empty},
     cap: {intro:'A capability means one thing across every model page. These are the definitions the board rules by — written so an answer engine can quote them, and so two claims can be compared without arguing about words.',
       note: parentNote('caps'),
+      // Same rule, same place, as the Jobs tab (2026-09-28).
+      side: orderPanel('capability'),
       grid: DB.caps.length ? groupedGrid(DB.capGroups, DB.caps, c=>card(c,'cap')) : empty},
     met: {intro:'The axes recorded on every model. Each page states the unit, where the figure came from, and the thing the number cannot tell you — which is usually more useful than the number. '
       // ⚠ THIS SENTENCE CAME OFF `metGrid`'s DIVIDER AND MUST NOT BE LOST.
@@ -535,8 +542,78 @@ function vBoard(tab){
       </div>
       <p class="muted" style="max-width:70ch;margin-bottom:20px;line-height:1.6">${p.intro}</p>
       ${note}
-      ${p.grid}
+      ${p.side ? `<div class="jobbody"><div class="joblist">${p.grid}</div>${p.side}</div>` : p.grid}
     </div>`;
+}
+
+/** One line of figures under a job's heading: the evidence, counted.
+ *
+ * Models, reports (a floor, so ≥), voices, and how many models sit in each of
+ * the three groups. Only groups that exist are named, so a page with no neutral
+ * model does not print "0 only neutral". */
+function statLine(j){
+  const rows = j.rows || [];
+  if(!rows.length) return '';
+  const n = rows.length, rep = j.repTotal, voi = j.voiTotal;
+  const by = {};
+  rows.forEach(r => { if(r.g) by[r.g] = (by[r.g] || 0) + 1; });
+  const groups = [['working','reported working'],['neutral','only neutral'],['problems','reported problems']]
+    .filter(([k]) => by[k]).map(([k, label]) => `${by[k]} ${label}`);
+  return `<p class="statline"><span>${n} model${n===1?'':'s'} · ≥${rep} report${rep===1?'':'s'}`
+    + ` · ${voi} voice${voi===1?'':'s'}</span>${groups.length ? `<span>${groups.join(' · ')}</span>` : ''}</p>`;
+}
+
+/** How every job's or capability's list is ordered, ONCE, beside the cards on
+ * its tab.
+ *
+ * It sat in a side column on every job page, identical on all 98, and read as
+ * part of each job (2026-09-28 review); capability pages carried the same rule
+ * as a paragraph above the list. It is one rule for every page, so it is
+ * stated once where the pages are chosen, and each page keeps the one sentence
+ * rule 3 requires of it - `orderLine` - with a link back here.
+ *
+ * ⚠ EVERY SENTENCE HERE IS LOAD-BEARING, AND SHORTER IS THE ONLY LICENCE TAKEN.
+ *   The order in words and "no score is shown" are rule 3's conditions (#472);
+ *   the single-positive clause is the one the order has to be true of (Claude
+ *   Opus 5 heads a working group on 1 positive and 11 negatives); the
+ *   extractor's-reading clause is rule 2's disclosure; the floor and the
+ *   both-counted note keep the counts honest (rule 7). */
+function orderPanel(noun){
+  return `<aside class="jobaside">
+      <h3>How each ${noun}’s list is ordered</h3>
+      <p>Three groups: models with at least one report of it working, then models with only
+      neutral reports, then models with reports of problems and none of it working.</p>
+      <p>Within the first group, models whose reports more consistently say it worked come
+      first, and a record built on few reports counts for less than the same record on many.
+      The other two groups are ordered by report count.</p>
+      <p>No score is shown: each row shows its counts. A model enters the first group on a
+      single positive report, however many problem reports it also has.</p>
+      <p class="fine">Positive and negative are the extractor’s reading of each quote, so one
+      mislabelled report can move a model. A report that says both is counted under each.
+      Report counts are floors (≥).</p>
+      <p class="fine">Open a ${noun}, then a model, to read every report it holds.</p>
+    </aside>`;
+}
+
+/** The ONE sentence a job page must carry about its own order (rule 3, #472:
+ *  "the page says in words what the order rewards"). The full statement is on
+ *  the Jobs tab; this is not a summary of it that may drift, it is the part the
+ *  rule requires on the page itself. */
+function orderLine(tab){
+  return `<p class="orderline">Models with a report of it working come first, those whose
+    reports more consistently say it worked ahead; then only-neutral, then problems only.
+    No score is shown. <a data-go="board:${tab}">How this list is ordered</a></p>`;
+}
+
+/** "What counts here" is the extractor's `definition`, LABELLED as its counting
+ *  rule. It was rendered as the page's description, and it is not one: the
+ *  extractor is told to write the test a report has to meet. Below the list,
+ *  because it is the fine print of how rows got onto it. */
+function jobRule(j){
+  if(!j.rule) return '';
+  return `<div class="shell jobrule"><h3>What counts here</h3><p>${esc(j.rule)}</p>
+    <p class="fine">The extractor’s counting rule: the test a report had to meet to be filed
+    under this job. It is not a description of the job.</p></div>`;
 }
 
 function vJob(slug){
@@ -552,12 +629,26 @@ function vJob(slug){
   // slice with nothing on the page saying it was a slice. Every one of those
   // reports is now on the page of the model it was reported about, and this
   // page is the way to them.
-  return `<div class="shell phead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
-    <h1>${esc(j.h1)}</h1><p class="sub">${esc(j.sub)}</p></div>
+  // THE PAGE SHAPE (2026-09-28): a full-width lead saying what the job IS, one
+  // line of figures, one sentence on the order, then the list at full width.
+  // The full ordering statement is on the Jobs tab beside the cards, once,
+  // rather than in a side column repeated on all 98 pages. What stays here is
+  // what rule 3 (as amended, #472) requires of THIS page: the words saying what
+  // its order rewards.
+  //
+  // THREE KINDS OF TEXT, KEPT APART:
+  //   the job        `about`, hand-written (contract/job_about.yaml), or nothing
+  //   the evidence   the stat line, the group headings, each row's counts
+  //   the rules      the order line, and "What counts here" below the list
+  return `<div class="shell phead jobhead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
+    <h1>${esc(j.h1)}</h1>
+    ${j.about ? `<p class="lead">${esc(j.about)}</p>` : ''}
+    ${statLine(j)}
+    ${j.rows && j.rows.length ? orderLine('best') : ''}</div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
       <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
-    ${sec('Every model reported on this job','In three groups, by what the reports say',
-      listIntro(j), ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j))}
+    <div class="shell">${ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j)}</div>
+    ${jobRule(j)}
     ${sec('Conditions that change the answer','Where the pick stops holding',
       'Most disagreements between engineers are condition mismatches rather than contradictions. These are the ones the reports keep naming.',conds(j.conds))}
     ${sec('Related','','',related(j.rel))}`;
@@ -567,16 +658,38 @@ function vCap(slug){
   const c = byS(DB.caps,slug); if(!c) return vBoard('cap');
   // The quote block left this page too - see `vJob` above for why. On
   // `capability/reasoning` it was 9 blocks of the 43 reports the page holds.
-  return `<div class="shell phead">${crumb([['Board','board'],['Capabilities','board:cap'],[c.name,null]])}
-    <h1>${esc(c.name)}</h1><p class="sub">A capability the board found engineers discussing. This page is
-    the definition every model page resolves against, so a report about one model can be compared with a
-    report about another.</p></div>
-    ${sec('','','',`<div class="defbox"><div class="l">definition</div><p>${esc(c.d1)}</p><p>${esc(c.d2)}</p></div>`)}
+  //
+  // THE JOB PAGE'S SHAPE (2026-09-28): the definition as the lead, one line of
+  // figures, one sentence on the order, then the list at full width. The
+  // subtitle that was identical on all 297 pages is on the Capabilities tab
+  // already, and the ordering paragraph that sat above the list is stated once
+  // beside the cards there (`orderPanel`).
+  //
+  // THE LEAD IS WHAT THE CAPABILITY IS, THEN ITS DEFINITION, LABELLED. The
+  // hand-written `about` (contract/capability_about.yaml) says what it is; the
+  // definition is the rule every model page resolves against, so unlike a
+  // job's counting rule it stays at the top rather than in the fine print. With
+  // no `about`, the definition is the lead on its own.
+  return `<div class="shell phead jobhead">${crumb([['Board','board'],['Capabilities','board:cap'],[c.name,null]])}
+    <h1>${esc(c.name)}</h1>
+    ${c.about ? `<p class="lead">${esc(c.about)}</p>` : ''}
+    ${c.d1 ? `<p class="deflabel">Definition</p><p class="${c.about ? 'defline' : 'lead'}">${esc(c.d1)}</p>` : ''}
+    ${c.d2 ? `<p class="lead">${esc(c.d2)}</p>` : ''}
+    ${statLine(c)}
+    ${c.rows && c.rows.length ? orderLine('cap') + splitNote(c) : ''}</div>
     ${sec('What this is not','Three things filed elsewhere',
       'Capability boundaries exist so a disagreement is a disagreement rather than two people using one word for two things.',conds(c.nots))}
-    ${sec('Models with evidence','Who has been reported doing this',
-      listIntro(c), ranked(c.rows,'capmodel:'+c.slug) + orphanNote(c))}
+    <div class="shell">${ranked(c.rows,'capmodel:'+c.slug) + orphanNote(c)}</div>
     ${sec('Related','','',related(c.rel))}`;
+}
+
+/** WHAT `both` MEANS, said once, on a page whose rows carry a split. It was a
+ *  clause of `listIntro`'s paragraph; the paragraph is gone from this page and
+ *  the clause is not, because a row reading "+2 −1 (1 both)" does not add up
+ *  without it. */
+function splitNote(item){
+  if(!(item.rows || []).some(r => r.sp)) return '';
+  return `<p class="orderline">A report that says both is counted under each, and the row says so.</p>`;
 }
 
 /* ---------- the drill-down: one model, inside one category ---------- */

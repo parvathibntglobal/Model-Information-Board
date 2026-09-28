@@ -247,6 +247,38 @@ def bucket_for(capability_key: str, conditions_seen: dict[str, int | bool | None
 
 
 @lru_cache(maxsize=1)
+def job_about() -> dict[str, str]:
+    """`contract/job_about.yaml`: slug -> what the job IS, hand-written.
+
+    A slug with no entry has no lead line, and that is the intended state: the
+    extractor's `definition` is a counting rule, not a description, and is never
+    promoted into this role. The file itself must exist (`_read` raises), so a
+    missing contract fails loudly instead of silently blanking every lead line.
+    """
+    return _about("job_about.yaml")
+
+
+@lru_cache(maxsize=1)
+def capability_about() -> dict[str, str]:
+    """`contract/capability_about.yaml`: slug -> what the capability IS,
+    hand-written, as `job_about` is for jobs.
+
+    A slug with no entry keeps the extractor's `definition` as its page's
+    definition - which for a capability is what it is meant to be - and simply
+    has no longer description above it.
+    """
+    return _about("capability_about.yaml")
+
+
+def _about(name: str) -> dict[str, str]:
+    raw = _read(name) or {}
+    about = raw.get("about") or {}
+    if not isinstance(about, dict):
+        raise ValueError(f"contract/{name}: `about` must map slug -> text")
+    return {str(k).strip().lower(): " ".join(str(v).split()) for k, v in about.items() if v}
+
+
+@lru_cache(maxsize=1)
 def board_ordering_z() -> float:
     """`contract/board_ordering.yaml`'s `wilson_z`: the confidence level the
     board's first group is ordered by.

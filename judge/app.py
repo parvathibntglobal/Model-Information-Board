@@ -2215,6 +2215,15 @@ def board_page() -> dict:
     with _conn() as conn:
         sections = board_sections(conn)
 
+    # WHAT EACH JOB OR CAPABILITY IS, hand-written in contract/job_about.yaml
+    # and contract/capability_about.yaml. `None` where there is no entry -
+    # never the extractor's `definition` standing in, which renders separately
+    # (as a counting rule on a job, as the definition on a capability).
+    from judge.config import capability_about, job_about
+    for key, about in (("best_for", job_about()), ("capability", capability_about())):
+        for item in sections[key]:
+            item["about"] = about.get(str(item.get("slug") or "").lower())
+
     # ADDITIVE, AND THE EXISTING KEYS ARE UNTOUCHED ON PURPOSE. `jobs`, `caps`
     # and `mets` are rendered directly by the frontend; changing their shape to
     # deliver headings would be a schema change to a page in the same commit
