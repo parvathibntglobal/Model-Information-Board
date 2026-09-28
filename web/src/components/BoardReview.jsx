@@ -69,8 +69,13 @@ const FILTERS = [
     why: 'reviewed and kept as is' },
   { key: 'declined', label: 'declined', match: (g) => g.ruling === 'declined',
     why: 'taken off the board; the rows and their evidence are kept' },
-  { key: 'merged', label: 'merged', match: (g) => g.ruling === 'merged',
-    why: 'folded into another slug, which the badge names' },
+  // ⚠ A WHOLLY MERGED SECTION IS NO LONGER A ROW OF ITS OWN - it sits under
+  //   the section it merged into (`_fold_merged`). So this matches where merges
+  //   now LIVE: sections carrying something merged in, plus any pair merged
+  //   into each other, which stays visible because it needs a person.
+  { key: 'merged', label: 'merged',
+    match: (g) => (g.merged_in || []).length > 0 || !!g.merge_cycle,
+    why: 'sections something was merged into, and any merged into each other' },
 ]
 
 export default function BoardReview() {
@@ -380,10 +385,28 @@ export default function BoardReview() {
                 <span className="axis-left">
                   {g.unruled > 0 ? `${g.unruled} to rule` : 'all ruled'}
                 </span>
-                {g.ruling && (
+                {g.ruling && !g.merge_cycle && (
                   <Badge tone={g.ruling === 'declined' ? 'fail' : 'pass'}>
                     {g.ruling}{g.ruling_target ? ` → ${g.ruling_target}` : ''}
                   </Badge>
+                )}
+                {/* ⚠ A CYCLE IS SAID OUT LOUD, ON THE LINE. Two sections merged
+                    into each other both defer to the other, so neither shows
+                    on the board - and without this the line read "merged →
+                    exploitgym", which is true, and hides that exploitgym says
+                    "merged → exploit-gym" right back. */}
+                {g.merge_cycle && (
+                  <Badge tone="fail" title={g.merge_cycle.join(' → ')}>
+                    merged into each other
+                  </Badge>
+                )}
+                {/* WHAT FOLDED IN HERE, counted apart from this section's own
+                    entries. Adding them would count a document twice where it
+                    sits under both names. */}
+                {g.merged_in_entries > 0 && (
+                  <span className="dim tnum" style={{ fontSize: 11 }}>
+                    +{g.merged_in_entries} merged in
+                  </span>
                 )}
                 {/* ⚠ THE SAME LETTERS IN THE SAME ORDER, AS ANOTHER ROW.
                     `exploit-bench` and `exploitbench` are one benchmark and
@@ -602,6 +625,60 @@ export default function BoardReview() {
                     </span>
                   </div>
                 </details>
+              )}
+
+              {/* ⚠ A CYCLE, SAID IN WORDS WITH THE WAY OUT. Measured
+                  2026-09-28: three pairs were merged into each other, because
+                  this list used to keep a merged section as its own row and
+                  merging again from the other side looked like the fix. The
+                  data is not repaired for you - which name survives is a ruling
+                  - but one undo breaks it, and it is the button below. */}
+              {g.merge_cycle && (
+                <Notice icon={<IconAlert />}>
+                  <strong style={{ color: 'var(--text)' }}>
+                    These are merged into each other:
+                  </strong>{' '}
+                  <span className="mono" style={{ fontSize: 11 }}>
+                    {g.merge_cycle.join(' → ')}
+                  </span>
+                  . Each points at the other, so neither shows on the board. Undo
+                  this section's merge below, then merge the other way if you want
+                  the other name to survive — merging is now refused whenever it
+                  would point two sections at each other.
+                </Notice>
+              )}
+
+              {/* WHAT HAS BEEN MERGED INTO THIS SECTION, each with its own undo.
+                  They used to sit in the list as separate rows reading "merged
+                  → here"; now they sit here, where the evidence went, and the
+                  undo puts one back in the queue under its own name. */}
+              {(g.merged_in || []).length > 0 && (
+                <div className="stack stack-1">
+                  <span className="label">Merged into this section</span>
+                  {g.merged_in.map((m) => (
+                    <div key={m.slug} className="row"
+                         style={{ gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                      <span className="mono" style={{ fontSize: 11 }}>{m.slug}</span>
+                      <span className="dim tnum" style={{ fontSize: 11 }}>
+                        {m.entries} entr{m.entries === 1 ? 'y' : 'ies'} · {m.documents} doc
+                        {m.documents === 1 ? '' : 's'}
+                      </span>
+                      {/* A MERGE THAT LANDED SOMEWHERE ELSE SAYS WHERE IT WENT
+                          THROUGH. Merging into a section that was itself merged
+                          follows it on; the hop is shown so nobody wonders why
+                          it is here and not where they pointed it. */}
+                      {m.via && (
+                        <span className="dim" style={{ fontSize: 11 }}>
+                          via {m.via.join(' → ')}
+                        </span>
+                      )}
+                      <button type="button" className="linkish" disabled={busy === key}
+                        onClick={() => act(() => unruleBoardEntry(g.section, m.slug), key)}>
+                        undo merge
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
 
               <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
