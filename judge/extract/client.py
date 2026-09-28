@@ -110,9 +110,24 @@ def extractor_model() -> str:
     and nothing would be wrong enough to notice because both values are
     plausible model ids.
 
-    IT IS STILL WHAT WE ASKED FOR, NOT WHAT RAN. `Completion.model` carries what
-    the provider reported and NOTHING READS IT (`judge/pipeline.py` sets
-    `self._extractor_model` once, from here).
+    IT IS STILL WHAT WE ASKED FOR, NOT WHAT RAN, and that is now true of
+    `Completion.model` as well: it carries this value rather than the
+    provider's answer, so the two cannot differ silently. What the provider
+    served goes to the ledger or nowhere.
+
+    ⚠ THIS SAID `Completion.model` "CARRIES WHAT THE PROVIDER REPORTED AND
+      NOTHING READS IT", AND BOTH HALVES WERE WRONG.
+
+      The second half was false when it was written on 2026-09-18:
+      `judge/extract/budget.py:243` has read it since 08-18, keying
+      `Budget.spend_by_model` on it, and
+      `scripts/classify_capability_reports.py:375` files it as
+      `proposer_model`. Nothing made it false later
+      (@anoojntglobal-sudo, #381, 2026-09-28).
+
+      The first half stopped being true here, deliberately. A field described
+      as unread is a field people feel free to change — and this one prices a
+      cap and stamps a provenance column.
     """
     return (os.getenv("EXTRACTOR_MODEL") or "").strip() or DEFAULT_MODEL
 

@@ -157,6 +157,35 @@ class TestTheUnsupportedPinClaimIsCorrected:
         )
 
 
+class TestTheDocstringNamesItsReaders:
+    """⚠ "NOTHING READS IT" WAS FALSE WHEN WRITTEN, on 2026-09-18.
+    `budget.py` has read `Completion.model` since 08-18. A field documented as
+    unread is a field people feel free to change, and this one prices a cap
+    and stamps a provenance column (@anoojntglobal-sudo, #381)."""
+
+    def test_the_unread_claim_is_gone(self):
+        assert "NOTHING READS IT" not in _source().upper().replace(
+            'SAID `COMPLETION.MODEL` "CARRIES WHAT THE PROVIDER REPORTED AND', ''
+        ).replace('NOTHING READS IT", AND BOTH HALVES WERE WRONG.', ''), (
+            "the docstring asserts again that nothing reads Completion.model"
+        )
+
+    def test_both_readers_are_named(self):
+        source = _source()
+        for reader in ("judge/extract/budget.py:243",
+                       "scripts/classify_capability_reports.py:375"):
+            assert reader in source, f"{reader} is not named as a reader"
+
+    def test_those_readers_still_exist(self):
+        """⚠ NAMING A READER IS A CLAIM WITH A LINE NUMBER, which rots.
+        Checked against the files rather than trusted."""
+        budget = (ROOT / "judge" / "extract" / "budget.py").read_text(encoding="utf-8")
+        assert "completion.model" in budget
+        classify = (ROOT / "scripts" / "classify_capability_reports.py").read_text(
+            encoding="utf-8")
+        assert "completion.model" in classify
+
+
 class TestTheEmptyNameRendersAsAReading:
     def test_the_page_does_not_render_a_blank(self):
         """⚠ A BLANK CELL BESIDE REAL NAMES READS AS A LAYOUT FAULT, and the
