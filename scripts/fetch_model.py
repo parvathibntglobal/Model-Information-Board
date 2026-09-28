@@ -262,6 +262,10 @@ class Progress:
         #: get it from one place and a replay of an old log shows exactly what
         #: the terminal showed at the time.
         self._summary: dict = {}
+        #: THE LAST LINE EACH HARVEST ARM WROTE, for the harvest half of the
+        #: summary (`harvest_summary`). The last, not the first: an arm's own
+        #: verdict can be followed by `main`'s error line when it raised.
+        self._arms: dict[str, tuple[str, dict]] = {}
         #: ⚠ THE THIRD DESTINATION, AND THE ONE A PERSON READS. The file is the
         #: survivor and `fetch_log` is the shared view; both are for machines.
         #: A run started from the admin page was spawned with `stdout=DEVNULL`,
@@ -361,6 +365,43 @@ class Progress:
                 {"kind": "thread", **fields},
                 model_version_id=self.model_version_id))
 
+    def harvest_summary(self) -> dict:
+        """The harvest half of the end record, as fields rather than text.
+
+        ⚠ "EMPTY" AND "ERRORED" WERE THE SAME RECORD. A run's end line said
+          `fetch complete` or named its errored stages, and how many documents
+          it appended lived only in each arm's detail string. So a run that
+          found nothing and a run whose harvest failed looked alike to anything
+          but a person reading every stage - and on 2026-09-28, 7 of the 29 runs
+          that appended nothing were harvest errors rather than exhausted pools.
+          A selection rule reading "empty" off the old record would have treated
+          a broken harvest as a dry one.
+
+        ABSENT IS UNKNOWN, NEVER 0 (rule 6). `documents_appended` sums only the
+        arms that reported `documents_inserted`; if none did it is omitted, not
+        written as 0. `harvest_arms` lists every arm that finished, so a reader
+        can tell "no arm ran" from "arms ran and appended nothing".
+        """
+        if not self._arms:
+            return {}
+        counted = [f["documents_inserted"] for _, f in self._arms.values()
+                   if isinstance(f.get("documents_inserted"), int)]
+        http = [f["http_errors"] for _, f in self._arms.values()
+                if isinstance(f.get("http_errors"), int)]
+        def arms_that(status: str) -> list[str]:
+            return sorted(a for a, (st, _) in self._arms.items() if st == status)
+
+        out = {
+            "harvest_arms": sorted(self._arms),
+            "harvest_arms_errored": arms_that("error"),
+            "harvest_arms_skipped": arms_that("skipped"),
+        }
+        if counted:
+            out["documents_appended"] = sum(counted)
+        if http:
+            out["harvest_http_errors"] = sum(http)
+        return out
+
     def record_summary(self, **fields) -> None:
         """Totals for the closing box. Merged, so a later stage can add to an
         earlier one's without either having to know about the other."""
@@ -422,6 +463,8 @@ class Progress:
                 record, model_version_id=self.model_version_id))
         if status == "error" and id_ not in self._errored:
             self._errored.append(id_)
+        if id_.startswith("E2") and status != "running":
+            self._arms[id_] = (status, fields)
         # AFTER the write, never before: the stage that just finished is a real
         # finding and belongs in the log whether or not the run continues.
         self.checkpoint()
@@ -469,7 +512,7 @@ class Progress:
         # came back from the dead.
         self._stop_beating.set()
         record = {"kind": "end", "status": status, "detail": detail,
-                  "at": _now(), **self._summary}
+                  "at": _now(), **self.harvest_summary(), **self._summary}
         self._write(record)
         if self._console:
             self._say([""] + fetch_console.render(
@@ -2470,6 +2513,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     prog.record_summary(
         llm=extractor_model(),
         sent_threads=len(threads),
+        # WHAT CAME BACK, beside what was sent. A thread the provider never
+        # answered is sent and not read, and the next run tries it again.
+        threads_read=len(results),
         sent_posts=sum(len(t.raw_text_of) for t in threads),
         sent_chars=sum(len(t.flattened_text) for t in threads),
         claims_verified=verified,

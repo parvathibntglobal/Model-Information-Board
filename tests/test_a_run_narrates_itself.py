@@ -226,7 +226,9 @@ class TestTheTotalsAreRecordedNotDerived:
         """On the record rather than printed, so the terminal, the UI and a
         replay of an old log all read the same numbers from one place."""
         src = SCRIPT.read_text(encoding="utf-8")
-        assert '"at": _now(), **self._summary}' in src
+        # The harvest half rides on the same record (`harvest_summary`), ahead of
+        # the stage totals so a stage cannot be shadowed by the rollup.
+        assert '"at": _now(), **self.harvest_summary(), **self._summary}' in src
         assert "prog.record_summary(" in src
 
     def test_a_run_with_no_budget_still_reports_what_it_sent(self):
