@@ -2692,6 +2692,13 @@ def main(argv: list[str] | None = None) -> int:
     #   before E2 harvests anything.
     from judge.writeguard import UnsafeWriteRefused
     from judge.writeguard import check as writeguard_check
+    from judge.writeguard import fixture_check_required
+
+    # WHETHER THE SEEDED-MODEL CHECK BELOW RUNS: always against a shared
+    # database, and under the flag even against a local one. It used to run only
+    # under the flag, so ENVIRONMENT=production on a container ran NO fixture
+    # check - `fixture_check_required`'s docstring has the six hostnames.
+    fixture_reason = fixture_check_required(dsn, development_write=args.development_write)
 
     if not args.development_write:
         try:
@@ -2705,6 +2712,9 @@ def main(argv: list[str] | None = None) -> int:
         print("write gate  : --development-write, so judge/writeguard.py's "
               "ENVIRONMENT proxy is replaced by the seeded-model check below "
               "(#328, #383)", file=sys.stderr)
+    if fixture_reason and not args.development_write:
+        print(f"fixture gate: the seeded-model check runs - {fixture_reason}",
+              file=sys.stderr)
 
     try:
         db = _Db(dsn)  # NO drop, NO disposability wipe — append-only
@@ -2721,19 +2731,26 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         canonical_id, display_name, release_date, provenance = row
 
-        # ── THE FIXTURE-EXPOSURE CHECK, when the flag replaced the proxy ────
+        # ── THE FIXTURE-EXPOSURE CHECK, on any shared target or under the flag ─
         # BEFORE E2, because a harvest already run is a harvest already paid
         # for in rate limit, and before E5, which costs money. Refuses by
         # naming the model, so the answer is actionable.
         #
+        # ⚠ NARROWER THAN THE RUN. This checks the model being fetched. E5 also
+        #   reads backlog threads that name OTHER models (`build_thread_inputs`'
+        #   third tier), and a backlog thread naming a seeded model is not
+        #   checked here. With no seeded rows today it cannot fire; it is
+        #   recorded rather than fixed because the ruling on this path (#328)
+        #   scoped the check to the one model.
+        #
         # The database is NOT fixture-clean, which is why this is live rather
         # than theoretical: `model_version` rows carry provenance='seed' with
         # claims and cells already pointing at them (#382).
-        if args.development_write and provenance == "seed":
+        if fixture_reason and provenance == "seed":
             detail = (
                 f"refusing: {display_name or canonical_id} is a seeded "
-                f"(build-fixture) model_version, and --development-write "
-                f"replaced the ENVIRONMENT proxy with exactly this check"
+                f"(build-fixture) model_version, and this check runs because "
+                f"{fixture_reason}"
             )
             prog.stage("E1", "Registry", "error", detail=detail)
             prog.done("error", "refused: seeded model")
