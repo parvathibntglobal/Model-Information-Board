@@ -1273,6 +1273,33 @@ UNIFORM_PLATFORMS = (
     ("huggingface", "E2F", "Harvest · Hugging Face", 1),
 )
 
+#: Every per-model harvest source, by the id `--sources` selects on. `blogs` is
+#: not here: it is feed-based, never runs per model, and is always a named skip.
+ALL_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "huggingface")
+
+
+def selected_sources(raw: str | None) -> set[str]:
+    """The harvest sources a run should attempt. `None` -> all of them.
+
+    An unknown name is refused rather than ignored: a typo in `--sources gihtub`
+    that silently harvested everything, or nothing, is the shape rule 12 warns
+    about - a permissive default that succeeds on a wrong input. A source NOT in
+    the returned set is skipped-with-a-reason by the caller (the #491 path), so
+    it reads as a decision rather than a fault.
+    """
+    if raw is None:
+        return set(ALL_SOURCES)
+    names = {s.strip().lower() for s in raw.split(",") if s.strip()}
+    unknown = names - set(ALL_SOURCES)
+    if unknown:
+        raise SystemExit(
+            f"--sources: unknown source(s) {sorted(unknown)}. "
+            f"Known: {', '.join(ALL_SOURCES)}."
+        )
+    if not names:
+        raise SystemExit("--sources was given but named no known source.")
+    return names
+
 
 def _harvester_factory(platform_id: str):
     """The adapter's own gate-and-build entry point, imported lazily.
@@ -2642,6 +2669,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fetch-cap", type=int, default=20,
                         help="max GitHub REST calls this fetch may spend (default 20)")
     parser.add_argument(
+        "--sources", default=None,
+        help="comma-separated harvest sources to run; the rest are SKIPPED with a "
+             f"reason, never errored. Default: all ({','.join(ALL_SOURCES)}). "
+             "`--sources github` is the one scope that harvests nothing routed "
+             "through the internal-development-only undertaking, so it is the "
+             "safe end-to-end test while that basis is being made honest.",
+    )
+    parser.add_argument(
         "--development-write", action="store_true",
         help="replace judge/writeguard.py's ENVIRONMENT proxy with the check it "
              "stands in for: refuse if THIS model_version is a seeded "
@@ -2760,27 +2795,49 @@ def main(argv: list[str] | None = None) -> int:
 
         # Each platform in its own guard: a Reddit quota error or a stale terms
         # ruling must not throw away a GitHub harvest that already succeeded.
-        try:
-            harvest_github(db.live(prog), prog, variants, fetch_cap=args.fetch_cap)
-        except Exception as exc:
-            prog.stage("E2", "Harvest", "error", detail=str(exc).splitlines()[0][:200])
-        try:
-            harvest_reddit(db.live(prog), prog, variants, max_searches=3, max_threads=5)
-        except Exception as exc:
-            prog.stage("E2R", "Harvest · Reddit", "error",
-                       detail=str(exc).splitlines()[0][:200])
+        # WHICH SOURCES THIS RUN ATTEMPTS. A source outside `--sources` is a
+        # decision, not a fault, so it is `skipped` with a reason (the #491
+        # shape) rather than left absent. `--sources github` is how the pipeline
+        # is tested end to end without harvesting anything routed through the
+        # internal-development-only undertaking.
+        sources = selected_sources(args.sources)
+        scope_skip = "not in this run's --sources scope"
 
-        try:
-            harvest_arxiv(db.live(prog), prog, variants, max_queries=2)
-        except Exception as exc:
-            prog.stage("E2A", "Harvest · arXiv", "error", detail=str(exc).splitlines()[0][:200])
-        try:
-            # ALL the surfaces, in ONE request - `max_queries` bounds how many
-            # are clubbed, not how many requests are spent. 6 is the adapter's
-            # MAX_CLUBBED_SURFACES and covers every alias set in seed_models.
-            harvest_x(db.live(prog), prog, variants, max_queries=6)
-        except Exception as exc:
-            prog.stage("E2X", "Harvest · X", "error", detail=str(exc).splitlines()[0][:200])
+        if "github" in sources:
+            try:
+                harvest_github(db.live(prog), prog, variants, fetch_cap=args.fetch_cap)
+            except Exception as exc:
+                prog.stage("E2", "Harvest", "error", detail=str(exc).splitlines()[0][:200])
+        else:
+            prog.stage("E2", "Harvest", "skipped", detail=scope_skip)
+
+        if "reddit" in sources:
+            try:
+                harvest_reddit(db.live(prog), prog, variants, max_searches=3, max_threads=5)
+            except Exception as exc:
+                prog.stage("E2R", "Harvest · Reddit", "error",
+                           detail=str(exc).splitlines()[0][:200])
+        else:
+            prog.stage("E2R", "Harvest · Reddit", "skipped", detail=scope_skip)
+
+        if "arxiv" in sources:
+            try:
+                harvest_arxiv(db.live(prog), prog, variants, max_queries=2)
+            except Exception as exc:
+                prog.stage("E2A", "Harvest · arXiv", "error", detail=str(exc).splitlines()[0][:200])
+        else:
+            prog.stage("E2A", "Harvest · arXiv", "skipped", detail=scope_skip)
+
+        if "x" in sources:
+            try:
+                # ALL the surfaces, in ONE request - `max_queries` bounds how many
+                # are clubbed, not how many requests are spent. 6 is the adapter's
+                # MAX_CLUBBED_SURFACES and covers every alias set in seed_models.
+                harvest_x(db.live(prog), prog, variants, max_queries=6)
+            except Exception as exc:
+                prog.stage("E2X", "Harvest · X", "error", detail=str(exc).splitlines()[0][:200])
+        else:
+            prog.stage("E2X", "Harvest · X", "skipped", detail=scope_skip)
 
         # Blogs have no per-model search — they are RSS/feed-based, harvested
         # wholesale, so a model-name query cannot target them (rule 7: say what
@@ -2793,6 +2850,9 @@ def main(argv: list[str] | None = None) -> int:
         # preconditions stop holding turns the arm back into a named skip rather
         # than a silent absence.
         for _pid, _sid, _sname, _cap in UNIFORM_PLATFORMS:
+            if _pid not in sources:
+                prog.stage(_sid, _sname, "skipped", detail=scope_skip)
+                continue
             try:
                 harvest_uniform(db.live(prog), prog, variants, platform_id=_pid,
                                 stage_id=_sid, stage_name=_sname, max_queries=_cap)
