@@ -221,7 +221,11 @@ export default function Models() {
           onClick={() => navigate(`/compare?ids=${encodeURIComponent(picked.join(','))}`)}
           title={
             picked.length === 0
-              ? `Tick 2–${COMPARE_MAX} models to compare what providers advertise against what engineers reported`
+              // ⚠ THIS SAID "compare what providers advertise against what engineers
+              //   reported". The provider's spec sheet came off the compare page on
+              //   2026-09-23 - it is the one thing there nobody reported - so the
+              //   button was promising a comparison the page no longer makes.
+              ? `Tick 2–${COMPARE_MAX} models to compare what engineers reported about them`
               : picked.length === 1
                 ? 'Tick one more — a single model is its own page, not a comparison'
                 : `Compare ${picked.length} models side by side`
@@ -243,25 +247,45 @@ export default function Models() {
               conditional notices and nothing else, and an unconditional wrapper
               renders an empty box whenever neither fires - which is most of the
               time. */}
-          {/* ⚠ SAID ONCE, ABOUT THE SECTION, RATHER THAN 348 TIMES OR NOT AT
-              ALL. Dropping the sweep removes the empty evidence column AND the
-              only thing on this page whose job was to account for it — and a
-              page that is silently silent is harder to notice than one that is
-              silently wrong, because nothing looks unfinished.
+          {/* ⚠ A CARD EXPLAINING A MISSING COLUMN USED TO SIT HERE, AND THE
+              COLUMN IS GONE. It said the list "carries no engineer evidence per
+              model: the capability cells that would fill that column are not
+              being written by the current pipeline". That was true of the
+              evidence column fed by the closed twelve — which is no longer on
+              this page — so the card had outlived the thing it accounted for,
+              and read as an apology for an absence the reader could not see.
 
-              So the fact the sweep could not state is stated here directly: it
-              is a property of the board, it is not per-model, and it does not
-              wait on a request that never fails. */}
+              Removed at @parvathibntglobal's request, 2026-09-28, and replaced
+              by what the page is FOR, below.
+
+              ⚠ WHAT THIS SAYS, IT CAN BACK. Each line names something the page
+                or the page it links to actually does today: the model page's
+                three tabs, the compare cap of three, the shared-axes table,
+                and that compare counts rather than ranks. The card it replaces
+                failed exactly there - it described a column that had gone. */}
           <div className="card">
-            <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch',
-                                        margin: 0, lineHeight: 1.6 }}>
-              This list is the registry and what each provider advertises about itself.
-              It carries <strong style={{ color: 'var(--text)' }}>no engineer evidence
-              per model</strong>: the capability cells that would fill that column are
-              not being written by the current pipeline, so the absence is ours and not
-              a finding about any model here. The board's own sections are where
-              collected evidence appears.
-            </p>
+            <div className="stack stack-2">
+              <p style={{ fontSize: 'var(--fs-sm)', margin: 0, maxWidth: '78ch', lineHeight: 1.6 }}>
+                Every model the board tracks.{' '}
+                <strong>Open one</strong> to read what engineers have said about
+                it, verbatim and with a link to each source — split into the{' '}
+                <strong>jobs</strong> they used it for, the{' '}
+                <strong>capabilities</strong> they reported, and the{' '}
+                <strong>metrics</strong> they quoted.
+              </p>
+              {/* ⚠ HOW TO START A COMPARISON LIVES HERE; WHAT A COMPARISON
+                  SHOWS LIVES ON THE COMPARE PAGE. The two paragraphs that
+                  explained the comparison - what it counts, the shared-axes
+                  table, that nothing is scored - moved there at
+                  @parvathibntglobal's request, 2026-09-28. They describe a page
+                  the reader is not on yet, and belong where they can be read
+                  against it. */}
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0,
+                                          maxWidth: '78ch', lineHeight: 1.6 }}>
+                <strong style={{ color: 'var(--text)' }}>Tick two or three to
+                compare them.</strong>
+              </p>
+            </div>
           </div>
 
           <label className="searchbar">
