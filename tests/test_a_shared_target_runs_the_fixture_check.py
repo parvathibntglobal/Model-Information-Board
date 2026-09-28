@@ -24,7 +24,9 @@ from judge.writeguard import fixture_check_required
 from tests.conftest import assert_disposable, assert_safe_target
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-REMOTE = "postgresql://example_user:x@203.0.113.5:5432/modelboard"
+#: No password: `is_local` reads the hostname only, and a DSN carrying one - even
+#: `x` - trips `test_no_dsn_carries_an_unmasked_password` once this file is tracked.
+REMOTE = "postgresql://example_user@203.0.113.5:5432/modelboard"
 LOCAL = "postgresql://postgres:postgres@localhost:5433/modelboard_test"
 
 
