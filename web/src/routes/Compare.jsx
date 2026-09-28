@@ -142,6 +142,26 @@ export default function Compare() {
         <span className="eyebrow">AI model comparison</span>
         <h1>{models.map((m) => m.display_name).join('  vs  ')}</h1>
         <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '76ch' }}>{summary}</p>
+        {/* ⚠ MOVED HERE FROM THE MODELS PAGE, 2026-09-28. It described this
+            page to a reader still on the list, where it could not be checked
+            against anything. Here it sits above the two tables it describes.
+
+            "Every row links back to the board" is only true because this
+            branch adds the links - which is why the text arrived with them
+            rather than before. */}
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch',
+                                    margin: 0, lineHeight: 1.6 }}>
+          The comparison shows what was said about each model, counted, and then the
+          jobs, capabilities and metrics they were <em>all</em> discussed on, side by
+          side — with how each report was phrased. Every row links back to the board,
+          where the models are ranked.
+        </p>
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch',
+                                    margin: 0, lineHeight: 1.6 }}>
+          Nothing here is scored and no winner is picked: a bigger number is more
+          people writing, not a better model. A model nobody has written about yet is
+          an absence we found, not a verdict.
+        </p>
       </div>
 
       <ChangeModels
@@ -814,16 +834,51 @@ function CommonAxes({ models }) {
                       </span>
                     </th>
                   </tr>
-                  {g.every.map((a) => (
+                  {g.every.map((a) => {
+                    // The axis page is the same for every model, so it is read
+                    // off whichever model's item carries it.
+                    const axisPath = Object.values(a.per).find((it) => it.board_path)?.board_path
+                    return (
                     <tr key={a.slug} className="cmp-axis">
-                      <th scope="row">{a.name}</th>
+                      <th scope="row">
+                        {/* ⚠ THE AXIS LINKS TO WHERE ITS RANKING ALREADY LIVES,
+                            rather than this page ranking it again. The board
+                            orders every Jobs and Capabilities page by the rule in
+                            `contract/board_ordering.yaml`; a second copy here would
+                            be one more place for the two to disagree. Compare
+                            stays counts, the board stays order, one click apart.
+
+                            Plain text where the board has no page for this axis -
+                            never a link that lands on nothing. `board_path` is
+                            None exactly then, because the backend asked the
+                            board's own function rather than assuming. */}
+                        {axisPath
+                          ? <Link to={`/board/${axisPath}`} className="mb-link"
+                                  state={{ from: '/compare' }}
+                                  title="See every model reported on this, in the board's order">
+                              {a.name}
+                            </Link>
+                          : a.name}
+                      </th>
                       {models.map((m) => {
                         const it = a.per[m.model_version_id]
                         const f = (it.figures || [])[0]
                         const split = polarityOf(it)
                         return (
                           <td key={m.model_version_id}>
-                            <Polarity split={split} />
+                            {/* ⚠ THE CELL OPENS THIS MODEL'S REPORTS ON THIS AXIS,
+                                which is where the quotes already are. The board's
+                                claim is verbatim evidence and this table shows
+                                counts; the link is what makes a count checkable
+                                without a second copy of the quotes living here. */}
+                            {it.board_model_path
+                              ? <Link to={`/board/${it.board_model_path}`}
+                                      state={{ from: '/compare' }}
+                                      className="cmp-cell-link"
+                                      title="Read what was said about this model here">
+                                  <Polarity split={split} />
+                                </Link>
+                              : <Polarity split={split} />}
                             {/* ⚠ THREE COUNTS, ALL MEASURED, NONE DERIVED, and
                                 the second and third are what stop the first
                                 being read as people.
@@ -860,7 +915,8 @@ function CommonAxes({ models }) {
                         )
                       })}
                     </tr>
-                  ))}
+                    )
+                  })}
                 </Fragment>
               ))}
             </tbody>
