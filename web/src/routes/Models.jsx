@@ -273,24 +273,17 @@ export default function Models() {
                 <strong>capabilities</strong> they reported, and the{' '}
                 <strong>metrics</strong> they quoted.
               </p>
+              {/* ⚠ HOW TO START A COMPARISON LIVES HERE; WHAT A COMPARISON
+                  SHOWS LIVES ON THE COMPARE PAGE. The two paragraphs that
+                  explained the comparison - what it counts, the shared-axes
+                  table, that nothing is scored - moved there at
+                  @parvathibntglobal's request, 2026-09-28. They describe a page
+                  the reader is not on yet, and belong where they can be read
+                  against it. */}
               <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0,
                                           maxWidth: '78ch', lineHeight: 1.6 }}>
                 <strong style={{ color: 'var(--text)' }}>Tick two or three to
-                compare them.</strong> The comparison shows what was said about
-                each model, counted, and then the jobs, capabilities and metrics
-                they were <em>all</em> discussed on, side by side — with how each
-                report was phrased. Every row links back to the board, where the
-                models are ranked.
-              </p>
-              {/* ⚠ THE LIMIT, SAID UP FRONT. A reader who compares three models
-                  with nothing in common gets an empty shared table, and needs
-                  to have been told that is a fact about what has been written
-                  rather than about the models. */}
-              <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0,
-                                          maxWidth: '78ch', lineHeight: 1.6 }}>
-                Nothing here is scored and no winner is picked: a bigger number is
-                more people writing, not a better model. A model nobody has
-                written about yet is an absence we found, not a verdict.
+                compare them.</strong>
               </p>
             </div>
           </div>
