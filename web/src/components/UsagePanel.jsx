@@ -61,7 +61,7 @@ const SPEND_BEFORE_THE_LEDGER = {
 
 // ── STAGES THAT READ ZERO BECAUSE NOTHING CALLS THEM YET ─────────────────────
 //
-// A stage in here is stated as "(never ran)". A stage NOT in here that has
+// A stage in here is stated as "(not built yet)". A stage NOT in here that has
 // never recorded keeps the warning, because the two look identical in the
 // ledger and only one of them is harmless.
 //
@@ -73,9 +73,9 @@ const SPEND_BEFORE_THE_LEDGER = {
 //   of the budget branch.
 //
 //   `tests/test_the_unwired_stage_notice_cannot_rot.py` fails the day a caller
-//   appears, which is the day "(never ran)" stops being true and starts being
+//   appears, which is the day "(not built yet)" stops being true and starts being
 //   the reassuring reading of a real fault.
-const NEVER_RAN = new Set(['ask'])
+const NOT_BUILT_YET = new Set(['ask'])
 
 // The extractor running now. Kept beside the names above so a switch is one
 // edit in one file — and it must match `EXTRACTOR_MODEL` in the backend, which
@@ -334,15 +334,15 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
         <Notice icon={<IconAlert />}>
           <strong>
             {unwired.length === 1 ? 'One stage has' : `${unwired.length} stages have`} never
-            recorded a call: {unwired.map((s) => NEVER_RAN.has(s) ? `${s} (never ran)` : s).join(', ')}.
+            recorded a call: {unwired.map((s) => NOT_BUILT_YET.has(s) ? `${s} (not built yet)` : s).join(', ')}.
           </strong>
-          {/* ⚠ ONLY THE STAGES NOT IN `NEVER_RAN` GET THE WARNING, and that is
+          {/* ⚠ ONLY THE STAGES NOT IN `NOT_BUILT_YET` GET THE WARNING, and that is
               the whole reason the set exists rather than the sentence being
-              deleted. "(never ran)" is a checked fact about `ask` and would be
+              deleted. "(not built yet)" is a checked fact about `ask` and would be
               a reassuring guess about anything else — a stage that spends and
               records nothing, wearing the same label, is the alarm going
               quiet. */}
-          {unwired.some((s) => !NEVER_RAN.has(s)) && (
+          {unwired.some((s) => !NOT_BUILT_YET.has(s)) && (
             <>
               {' '}Either nothing has reached it, or it is not wired to the
               ledger — this figure cannot tell you which, and the second would

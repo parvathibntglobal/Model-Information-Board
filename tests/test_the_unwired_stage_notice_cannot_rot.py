@@ -118,8 +118,8 @@ class TestTheNoticeStatesBothReadingsAndAssertsNeither:
             "the notice no longer says what an unwired stage would cost you"
         )
 
-    def test_never_ran_is_a_named_set_and_not_the_default(self):
-        """⚠ "(never ran)" MUST BE EARNED, ONE STAGE AT A TIME.
+    def test_not_built_yet_is_a_named_set_and_not_the_default(self):
+        """⚠ "(not built yet)" MUST BE EARNED, ONE STAGE AT A TIME.
 
         The short label is right for `ask` and is a guess about anything else.
         Applied to every unwired stage it would read as reassurance over the
@@ -131,16 +131,16 @@ class TestTheNoticeStatesBothReadingsAndAssertsNeither:
         the warning branch is asserted to still exist for everything else.
         """
         code = _jsx_without_comments(PANEL.read_text(encoding="utf-8"))
-        assert re.search(r"NEVER_RAN\s*=\s*new Set\(\[", code), (
-            "NEVER_RAN is no longer an explicit set; '(never ran)' must name "
+        assert re.search(r"NOT_BUILT_YET\s*=\s*new Set\(\[", code), (
+            "NOT_BUILT_YET is no longer an explicit set; '(not built yet)' must name "
             "the stages it has been checked for, never default on"
         )
-        assert re.search(r"NEVER_RAN\s*=\s*new Set\(\[\s*'ask'\s*\]\)", code), (
-            "the NEVER_RAN set no longer holds exactly ['ask']. If a stage was "
+        assert re.search(r"NOT_BUILT_YET\s*=\s*new Set\(\[\s*'ask'\s*\]\)", code), (
+            "the NOT_BUILT_YET set no longer holds exactly ['ask']. If a stage was "
             "added, check the same way `ask` was checked: no component calls "
             "it, and the route that spends does reach the ledger."
         )
-        assert "!NEVER_RAN.has(s)" in code, (
+        assert "!NOT_BUILT_YET.has(s)" in code, (
             "the warning branch for stages OUTSIDE the set is gone, so an "
             "unwired stage would render as harmlessly as an unbuilt one"
         )
