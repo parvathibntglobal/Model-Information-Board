@@ -21,6 +21,14 @@ name: Registry poll
 #   secrets.STAGING_DATABASE_URL   the shared staging DSN
 #   vars.USER_AGENT or secrets.USER_AGENT   identifying UA with a contact URL
 #   vars.REGISTRY_DIFF_ISSUE       the issue the diff is posted to (#450)
+#   vars.PROMOTION_ISSUE           the issue the promotion report is posted to.
+#                                  Checked by its own step, AFTER the poll, so a
+#                                  missing one fails that step loudly without
+#                                  stopping the registry from being polled.
+#
+# THE PROMOTION REPORT (scripts/promotion_report.py), after the poll: every
+# untracked model the corpus already holds claims about, ranked by distinct
+# authors, then documents. Read-only, no threshold - a person picks from it.
 
 on:
   schedule:
@@ -43,6 +51,7 @@ jobs:
       DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
       USER_AGENT: ${{ vars.USER_AGENT || secrets.USER_AGENT }}
       DIFF_ISSUE: ${{ vars.REGISTRY_DIFF_ISSUE }}
+      PROMOTION_ISSUE: ${{ vars.PROMOTION_ISSUE }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Refuse if anything required is missing
@@ -76,6 +85,15 @@ jobs:
           python -m collect.cli ops run
           --only poll-registry --only recompute-window
           --journal poll-journal.jsonl
+
+      - name: Post the promotion report where a person sees it
+        run: |
+          if [ -z "$PROMOTION_ISSUE" ]; then
+            echo "::error::promotion report not posted: vars.PROMOTION_ISSUE is not set"
+            exit 1
+          fi
+          python scripts/promotion_report.py --out promotion.md
+          gh issue comment "$PROMOTION_ISSUE" --body-file promotion.md
 
       - name: Keep the journal
         if: always()

@@ -65,6 +65,8 @@ READ_ONLY: dict[str, str] = {
     "dump_keywords.py": "prints what each platform is sent; no write verb",
     "measure_key_constraint.py": "measurement only; no write verb",
     "measure_signal_demotion_platforms.py": "measurement only; no write verb",
+    "promotion_report.py": ("ranks untracked models by the claims already held; one SELECT, "
+                            "over a default_transaction_read_only connection; no write verb"),
     "registry_diff.py": ("diffs the catalogue against model_version for #450; one SELECT, "
                          "over a default_transaction_read_only connection; no write verb"),
     "run_scheduled_fetches.py": ("plans which models are due over a "
