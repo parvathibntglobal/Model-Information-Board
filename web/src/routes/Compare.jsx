@@ -142,6 +142,26 @@ export default function Compare() {
         <span className="eyebrow">AI model comparison</span>
         <h1>{models.map((m) => m.display_name).join('  vs  ')}</h1>
         <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '76ch' }}>{summary}</p>
+        {/* ⚠ MOVED HERE FROM THE MODELS PAGE, 2026-09-28. It described this
+            page to a reader still on the list, where it could not be checked
+            against anything. Here it sits above the two tables it describes.
+
+            "Every row links back to the board" is only true because this
+            branch adds the links - which is why the text arrived with them
+            rather than before. */}
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch',
+                                    margin: 0, lineHeight: 1.6 }}>
+          The comparison shows what was said about each model, counted, and then the
+          jobs, capabilities and metrics they were <em>all</em> discussed on, side by
+          side — with how each report was phrased. Every row links back to the board,
+          where the models are ranked.
+        </p>
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch',
+                                    margin: 0, lineHeight: 1.6 }}>
+          Nothing here is scored and no winner is picked: a bigger number is more
+          people writing, not a better model. A model nobody has written about yet is
+          an absence we found, not a verdict.
+        </p>
       </div>
 
       <ChangeModels
