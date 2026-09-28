@@ -2690,9 +2690,8 @@ def main(argv: list[str] | None = None) -> int:
     #   ONE model, so the only fixture exposure it can have is that model being
     #   a seeded row. Checked below, once the registry row is in hand and still
     #   before E2 harvests anything.
-    from judge.writeguard import UnsafeWriteRefused
+    from judge.writeguard import UnsafeWriteRefused, fixture_check_required
     from judge.writeguard import check as writeguard_check
-    from judge.writeguard import fixture_check_required
 
     # WHETHER THE SEEDED-MODEL CHECK BELOW RUNS: always against a shared
     # database, and under the flag even against a local one. It used to run only

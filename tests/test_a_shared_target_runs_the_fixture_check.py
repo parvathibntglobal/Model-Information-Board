@@ -68,7 +68,8 @@ class TestBothScriptsAskIt:
 
     def test_the_batch_keys_the_exposure_check_on_it(self):
         src = (ROOT / "scripts" / "run_extraction_batched.py").read_text(encoding="utf-8")
-        assert "fixture_check_required(\n        database_url, development_write=args.development_write)" in src
+        assert ("fixture_check_required(\n        database_url, "
+                "development_write=args.development_write)") in src
         block = src[src.index("THE FIXTURE-EXPOSURE CHECK"):]
         assert block.index("if fixture_reason:") < block.index("fixture_exposure(")
         assert "    if args.development_write:\n        from collect.surface_resolver" not in src
