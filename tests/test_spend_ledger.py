@@ -97,7 +97,18 @@ class TestBothStagesActuallyRecord:
         return re.sub(r"#.*", "", source)
 
     def test_the_extraction_path_records(self):
-        code = self._code("judge/pipeline.py")
+        """⚠ THE FILE MOVED, AND THE REQUIREMENT DID NOT. This read
+        `judge/pipeline.py` while `judge/extract/client.py` was recording the
+        same call, so it was green on a state where E5 wrote TWO rows per call
+        and the ledger totalled more than the key had ever been charged
+        (measured 2026-09-28: 1,139 duplicated pairs, $7.1101 against $4.1570).
+
+        Pinning the stage to a FILE is what let that pass. What the requirement
+        has always been is that the extraction stage has exactly one writer,
+        which is `tests/test_one_call_writes_one_ledger_row.py`; this keeps the
+        half that file cannot see - that the writer names E5.
+        """
+        code = self._code("judge/extract/client.py")
         assert "spend_ledger.record(" in code
         assert "STAGE_EXTRACT" in code
 
@@ -106,16 +117,26 @@ class TestBothStagesActuallyRecord:
         assert "spend_ledger.record(" in code
         assert "STAGE_ASK" in code
 
-    def test_the_extraction_record_is_not_inside_the_budget_branch(self):
-        """Recorded even with no `Budget`, because the pot is shared.
+    def test_the_extraction_record_is_not_behind_a_success_check(self):
+        """Recorded from the USAGE, not from a good outcome, because the pot is
+        shared and a truncated answer is billed like any other.
 
-        A call the batch declined to record is a call the ask box is then
-        allowed to make on top of it.
+        The old form of this checked the record was not nested under
+        `if budget is not None` in the pipeline - a run without a Budget still
+        spends from the same $1. The writer moved to the client, where there is
+        no budget at all, and the equivalent hazard is recording only on
+        success: the two abandoned calls of 2026-09-14 generated ~30,000 tokens
+        each and wrote no row, because the old code reached the line only when
+        the extraction had parsed.
         """
-        code = self._code("judge/pipeline.py")
-        after = code.split("spend_ledger.record(")[0]
-        tail = after.rstrip().splitlines()[-1]
-        assert "if budget is not None" not in tail
+        code = self._code("judge/extract/client.py")
+        before = code.split("spend_ledger.record(")[0]
+        tail = before.rstrip().splitlines()[-1]
+        assert "if " not in tail, (
+            "the ledger write is guarded by a condition on the same line; a "
+            "call that is billed and not recorded is spend the ask box is "
+            "then allowed to make on top of"
+        )
 
     def test_a_third_stage_is_refused(self):
         """Rule 2 permits two. A third caller is a violation, not a new series."""
