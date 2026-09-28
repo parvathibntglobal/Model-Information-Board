@@ -778,7 +778,27 @@ function CommonAxes({ models }) {
               <tr>
                 <th />
                 {models.map((m) => (
-                  <th key={m.model_version_id}>{m.display_name}</th>
+                  <th key={m.model_version_id}>
+                    {m.display_name}
+                    {/* ⚠ THE PROVIDER'S NAME, NOT OURS, AND OMITTED RATHER
+                        THAN FALLEN BACK. Same rule as the table above: a
+                        reader cannot look up `mv_de3e701e07b8bfa9`, check it
+                        or use it anywhere, so printing it is worse than
+                        printing nothing.
+
+                        This header shipped without it and the page's own test
+                        did not catch it, because that test sliced the FIRST
+                        `<thead>` and this table now comes first in the file.
+                        It checks every header now. */}
+                    {m.canonical_id && (
+                      <span className="mono" style={{
+                        display: 'block', fontSize: 10,
+                        color: 'var(--text-3)', fontWeight: 400,
+                      }}>
+                        {m.canonical_id}
+                      </span>
+                    )}
+                  </th>
                 ))}
               </tr>
             </thead>

@@ -76,6 +76,22 @@ class TestTheUrlCarriesTheProvidersName:
         assert 'x["model_version_id"] == m["model_version_id"] for x in found' in body
 
 
+def _theads(src: str) -> list[str]:
+    """Every `<thead>...</thead>` block on the page, not just the first.
+
+    The page carries two tables now - the counted rows and the shared axes -
+    and a rule about how a model is NAMED applies to both.
+    """
+    out, at = [], 0
+    while True:
+        start = src.find("<thead>", at)
+        if start < 0:
+            return out
+        end = src.index("</thead>", start)
+        out.append(src[start:end])
+        at = end
+
+
 class TestThePageDoesNotPrintADatabaseIdAtTheReader:
     def test_the_column_header_shows_the_canonical_id(self):
         src = jsx(COMPARE)
@@ -84,11 +100,29 @@ class TestThePageDoesNotPrintADatabaseIdAtTheReader:
     def test_it_omits_the_line_rather_than_falling_back_to_the_internal_id(self):
         """⚠ THE FALLBACK IS THE DEFECT HERE, not the safety net it is
         elsewhere. A reader cannot look up `mv_de3e701e07b8bfa9`, check it, or
-        use it anywhere — showing it is worse than showing nothing."""
-        src = jsx(COMPARE)
-        head = src[src.index("<thead>"):src.index("</thead>")]
-        assert "m.canonical_id &&" in head
-        assert "m.model_version_id}\n" not in head
+        use it anywhere — showing it is worse than showing nothing.
+
+        ⚠ EVERY `<thead>` ON THE PAGE, WHICH IS NOT WHAT THIS CHECKED. It
+        sliced from the FIRST `<thead>` to the FIRST `</thead>`, so it covered
+        whichever table was defined earliest in the file. When the shared-axes
+        table was added above `Table`, this test moved onto the new header
+        without saying so and stopped watching the old one — and the new one
+        had shipped with no canonical id at all.
+
+        A check that silently changes what it covers is worse than one that
+        covers less, because it keeps passing either way.
+        """
+        heads = _theads(jsx(COMPARE))
+        assert len(heads) >= 2, (
+            f"expected a header on both compare tables, found {len(heads)}"
+        )
+        for i, head in enumerate(heads):
+            assert "m.canonical_id &&" in head, (
+                f"table {i} names its models without the provider's id"
+            )
+            assert "m.model_version_id}" + chr(10) not in head, (
+                f"table {i} prints the internal database id at the reader"
+            )
 
     def test_the_payload_carries_it(self):
         src = APP.read_text(encoding="utf-8")
