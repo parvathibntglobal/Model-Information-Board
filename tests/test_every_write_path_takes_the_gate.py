@@ -58,6 +58,7 @@ READ_ONLY: dict[str, str] = {
     "_blob_presence_check.py": "counts blobs present in the raw store; no write verb",
     "_blog_extraction_yield.py": "measures yield from stored rows; no write verb",
     "_comparison_post_extraction.py": "measurement only; no write verb",
+    "_measure_selection_key_456.py": "measurement only; connects read-only, no write verb",
     "_normaliser_disagreement.py": "measurement only; no write verb",
     "_six_host_probe.py": "measurement only; no write verb",
     "corpus_inventory.py": "counts the corpus; no write verb",
