@@ -112,6 +112,51 @@ class TestTheCountsTravelWithTheirDenominator:
     def test_each_group_states_its_own_split(self):
         assert "{g.every.length} of {g.total} shared" in code()
 
+    def test_the_polarity_chips_and_the_report_count_are_not_one_number(self):
+        """⚠ THE PAGE SAID `1 report · 9 of 9 positive` ONCE - two
+        populations on one line, the second reading as a proportion of the
+        first. `polarity` is a column on `board_entry`, so the chips split
+        ENTRIES; `reports` counts DOCUMENTS, and one document carries several
+        entries.
+
+        Measured 2026-09-28: `metric/swe-bench` is 8 entries from ONE document
+        by ONE person, and 82 of 495 axis rows run at 2x or more. So the entry
+        count alone would let one voluble writer outrank four people, and the
+        cell states all three rather than choosing.
+        """
+        body = _common()
+        assert "{split.total}" in body and "'entries'" in body, (
+            "the chips no longer name their own unit, so they read as a split "
+            "of whatever number is nearest"
+        )
+        assert "{it.reports} post" in body, (
+            "the document count is gone from the cell; an entry count with no "
+            "post count beside it reads as a count of people"
+        )
+        assert "{it.voices}" in body, (
+            "the voice count is gone - it is the least inflatable of the three "
+            "and the one that answers 'is this eight people or one person "
+            "eight times'"
+        )
+
+    def test_the_split_is_counted_over_entries_not_invented(self):
+        """A document with one positive and two negative entries has no
+        polarity of its own. Giving it one would be a synthesised value."""
+        assert "item?.quotes || []" in code()
+
+    def test_an_unlabelled_entry_is_not_silently_dropped(self):
+        """⚠ MEASURED AS ZERO AND HANDLED ANYWAY. board_entry holds 931
+        positive, 638 neutral, 502 negative and no nulls today; an unlabelled
+        entry appearing later would be missing from the chips and present in
+        the total, so the chips would stop adding up with nothing saying why."""
+        assert "out.other += 1" in code()
+        assert "'unlabelled'" in code()
+
+    def test_the_colour_is_never_the_only_label(self):
+        """Three coloured numbers with no words is identity by colour alone,
+        and red/green is the pair most readers lose."""
+        assert "{k === 'other' ? 'unlabelled' : k}" in code()
+
     def test_a_figure_keeps_its_basis(self):
         """`stated` is the vendor's claim, `reported` is somebody's
         measurement, and a figure without its basis merges the two."""
@@ -152,11 +197,22 @@ class TestNoWinnerIsMarked:
                 f"gets marked. The counts are shown and not ranked."
             )
 
-    def test_the_page_says_what_a_higher_count_is_not(self):
-        """A bigger number is more reports. It tracks how widely something is
-        used at least as much as how well it works, and the polarity of those
-        reports is not on this table at all."""
-        assert "A higher count is more reports, not a better model" in code()
+    def test_the_page_says_what_a_bigger_number_is_not(self):
+        """A bigger number is more writing, not a better model: it tracks
+        how widely something is used as much as how well it works.
+
+        ⚠ AND THE COLOURS NEED THEIR OWN CAVEAT NOW. Before the chips
+        this said "whether those reports were complaints is not on this
+        table" - true then, false the moment polarity was rendered. What
+        the table still cannot say is whether a complaint was CORRECT, and
+        a red chip reads as a fault unless the page says otherwise.
+        """
+        code_ = code()
+        assert "A bigger number is more writing, not a better model" in code_
+        assert "not whether it was right" in code_, (
+            "the page no longer says what the colours do not mean; a red "
+            "chip reads as the board endorsing the complaint"
+        )
 
 
 class TestTheAxisNameCanWrap:

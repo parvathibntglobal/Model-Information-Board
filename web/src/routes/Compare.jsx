@@ -656,6 +656,70 @@ function sharedAxes(models, section) {
 }
 
 /**
+ * How one axis was PHRASED for one model: the three polarities, counted.
+ *
+ * ⚠ THIS COUNTS ENTRIES AND `reports` COUNTS DOCUMENTS, which is why the two
+ *   are never shown as one number. `polarity` is a column on `board_entry`, so
+ *   a split of anything else would have to be invented: a document carrying
+ *   one positive and two negative entries has no polarity of its own, and
+ *   giving it one is a synthesised value (rule 3).
+ *
+ *   The page said `1 report · 9 of 9 positive` once, which is two populations
+ *   on one line reading as a proportion of the first. The fix is not to pick
+ *   one - both are true and they answer different questions - it is to name
+ *   the unit each belongs to.
+ *
+ * ⚠ NO NULLS TO HANDLE, VERIFIED RATHER THAN ASSUMED. Measured 2026-09-28 over
+ *   `board_entry`: 931 positive, 638 neutral, 502 negative, zero null. An
+ *   unlabelled entry would be missing from the chips and present in the total,
+ *   so `other` catches anything that is not one of the three rather than
+ *   letting it disappear.
+ */
+function polarityOf(item) {
+  const q = item?.quotes || []
+  const out = { positive: 0, negative: 0, neutral: 0, other: 0, total: q.length }
+  q.forEach((x) => {
+    const p = x.polarity
+    if (p === 'positive' || p === 'negative' || p === 'neutral') out[p] += 1
+    else out.other += 1
+  })
+  return out
+}
+
+/**
+ * The three counts as chips, in the board's own polarity colours.
+ *
+ * ⚠ A ZERO IS DROPPED, NOT DIMMED, and that is the one judgement call here.
+ *   `3 positive · 2 neutral` is read correctly as "no negatives"; a `0
+ *   negative` chip beside it says the same thing louder and turns a scannable
+ *   cell into nine chips across three columns. What must never be dropped is a
+ *   non-zero, which is why every count present is rendered whatever its size.
+ */
+function Polarity({ split }) {
+  if (!split.total) return <span className="dim" style={{ fontSize: 11 }}>none</span>
+  const chips = [
+    ['positive', 'pass'],
+    ['negative', 'fail'],
+    ['neutral', 'mute'],
+    ['other', 'mute'],
+  ].filter(([k]) => split[k] > 0)
+
+  return (
+    <span className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
+      {chips.map(([k, tone]) => (
+        <Badge key={k} tone={tone}>
+          <span className="tnum">{split[k]}</span>{' '}
+          {/* ⚠ THE WORD, NOT JUST THE COLOUR. Three coloured numbers with no
+              labels is identity by colour alone, and red/green is the pair
+              most readers lose. */}
+          {k === 'other' ? 'unlabelled' : k}
+        </Badge>
+      ))}
+    </span>
+  )
+}
+
+/**
  * Only the axes all the compared models share, as a count-against-count table.
  *
  * Separate from the table above on purpose. That one answers "what was each of
@@ -683,6 +747,13 @@ function CommonAxes({ models }) {
         {models.length} models. The rest were named for some and not others — they
         are in the table above, where an absent axis is simply not listed rather
         than being shown as a nought.
+        {/* ⚠ SAID ONCE HERE RATHER THAN IN EVERY CELL. Three columns times
+            however many rows is no place to explain a unit, and the cells
+            carry the three numbers so a reader who wants to check can. */}
+        {' '}The chips count <strong style={{ color: 'var(--text)' }}>entries</strong>,
+        which is what a polarity belongs to. One post can carry several, so the
+        entry count is not a count of people — the posts and the people are under
+        each cell for exactly that reason.
       </p>
 
       {shared === 0 ? (
@@ -729,13 +800,33 @@ function CommonAxes({ models }) {
                       {models.map((m) => {
                         const it = a.per[m.model_version_id]
                         const f = (it.figures || [])[0]
+                        const split = polarityOf(it)
                         return (
                           <td key={m.model_version_id}>
-                            <span className="tnum">
-                              <strong>{it.reports}</strong>{' '}
-                              <span className="dim" style={{ fontSize: 11 }}>
-                                report{it.reports === 1 ? '' : 's'}
-                              </span>
+                            <Polarity split={split} />
+                            {/* ⚠ THREE COUNTS, ALL MEASURED, NONE DERIVED, and
+                                the second and third are what stop the first
+                                being read as people.
+
+                                The chips split ENTRIES, because that is the
+                                only population `polarity` exists on - it is a
+                                column on `board_entry`. A document can carry
+                                several entries for one axis, and does:
+                                `metric/swe-bench` is 8 entries from ONE
+                                document by ONE person, and 82 of 495 axis
+                                rows run at 2x or more.
+
+                                So an entry count alone would let one voluble
+                                writer outrank four people. The line says
+                                which number is which rather than picking one
+                                (rule 7). */}
+                            <span className="dim tnum"
+                                  style={{ display: 'block', fontSize: 10, marginTop: 3 }}>
+                              {split.total} {split.total === 1 ? 'entry' : 'entries'}
+                              {' · '}{it.reports} post{it.reports === 1 ? '' : 's'}
+                              {it.voices != null && (
+                                <>{' · '}{it.voices} {it.voices === 1 ? 'person' : 'people'}</>
+                              )}
                             </span>
                             {/* A FIGURE TRAVELS WITH ITS BASIS (rule 7).
                                 `stated` is the vendor's claim and `reported` is
@@ -764,9 +855,10 @@ function CommonAxes({ models }) {
       {shared > 0 && (
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0,
                                     lineHeight: 1.6 }}>
-          A higher count is more reports, not a better model: it tracks how widely
-          something is used as much as how well it works, and whether those reports
-          were complaints is not on this table. Open a model to read them.
+          A bigger number is more writing, not a better model: it tracks how widely
+          something is used as much as how well it works. The colours say how each
+          entry was phrased and not whether it was right — open a model to read
+          the quotes behind any of these.
         </p>
       )}
     </div>
