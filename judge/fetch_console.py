@@ -149,6 +149,22 @@ def ending(record: dict, *, model_version_id: str) -> list[str]:
     if record.get("llm"):
         lines.append(f"  llm     {record['llm']}")
 
+    # WHAT THE HARVEST FOUND, so a dry run and a broken one read differently
+    # here too - they were the same box, and 7 of the 29 runs that appended
+    # nothing on 2026-09-28 were harvest errors. `harvest_summary` in
+    # scripts/fetch_model.py writes these; a missing count is said, never 0.
+    arms = record.get("harvest_arms")
+    if arms:
+        got = record.get("documents_appended")
+        harvest = (f"{got:,} document(s) appended" if got is not None
+                   else "no arm reported a document count")
+        harvest += f" from {len(arms)} arm(s)"
+        if record.get("harvest_arms_errored"):
+            harvest += f"; ERRORED: {', '.join(record['harvest_arms_errored'])}"
+        if record.get("harvest_http_errors"):
+            harvest += f"; {record['harvest_http_errors']:,} HTTP error(s)"
+        lines.append(f"  harvest {harvest}")
+
     threads = record.get("sent_threads")
     if threads is not None:
         posts, chars = record.get("sent_posts"), record.get("sent_chars")
@@ -157,6 +173,8 @@ def ending(record: dict, *, model_version_id: str) -> list[str]:
             sent += f" - {posts:,} post(s)"
         if chars is not None:
             sent += f", {chars:,} chars"
+        if record.get("threads_read") is not None:
+            sent += f"; {record['threads_read']:,} came back"
         lines.append(f"  sent    {sent}")
 
     tin, tout = record.get("tokens_in"), record.get("tokens_out")
