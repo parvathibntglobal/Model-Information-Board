@@ -156,6 +156,15 @@ def main(argv: list[str] | None = None) -> int:
         print("write gate  : --development-write, so judge/writeguard.py's "
               "ENVIRONMENT proxy is replaced by the fixture-exposure check "
               "below (#328, #382)")
+    # WHETHER THE FIXTURE-EXPOSURE CHECK BELOW RUNS: always against a shared
+    # database, and under the flag even against a local one. It used to run only
+    # under the flag, so a non-development ENVIRONMENT ran none at all.
+    from judge.writeguard import fixture_check_required
+
+    fixture_reason = fixture_check_required(
+        database_url, development_write=args.development_write)
+    if fixture_reason and not args.development_write:
+        print(f"fixture gate: the fixture-exposure check runs - {fixture_reason}")
 
     limit = args.budget if args.budget is not None else None
     if limit is None:
@@ -202,7 +211,7 @@ def main(argv: list[str] | None = None) -> int:
     # Runs BEFORE the first model call, because a claim already paid for is
     # already the harm. Refuses by naming the model and the documents, so the
     # answer is actionable rather than "something matched".
-    if args.development_write:
+    if fixture_reason:
         from collect.surface_resolver import RegistrySurfaceFinder
 
         seeded = {
