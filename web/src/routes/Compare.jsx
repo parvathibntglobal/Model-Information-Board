@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   comparePage, listModels, fetchAll, fmtPrice, fmtTokens, BoardUnreadable,
@@ -330,6 +330,8 @@ export default function Compare() {
             }],
           ]}
         />
+
+        <CommonAxes models={models} />
       </div>
       )}
 
@@ -594,6 +596,294 @@ function ChangeModels({ ids, models, roster, onLoad, onAdd, onDrop }) {
   )
 }
 
+
+//: The three discovered sections, in the order the model page's tabs use.
+//: `best_for` is the stored key and "Jobs" is the word a reader sees.
+const SECTIONS = [
+  ['best_for', 'Jobs'],
+  ['capabilities', 'Capabilities'],
+  ['metrics', 'Metrics'],
+]
+
+/**
+ * The axes EVERY compared model was discussed on, keyed by slug.
+ *
+ * ⚠ THE TABLE ABOVE LISTS THREE MODELS AND COMPARES NONE OF THEM. Each cell
+ *   holds one model's own axes, so `coding-agent 7` and `coding-agent 3` sit at
+ *   different positions in two different lists and the reader aligns them by
+ *   eye. That view is worth keeping — it is what each model was discussed on,
+ *   in full — but the comparison is a different question and needs its own
+ *   answer.
+ *
+ * ⚠ ALL OF THEM, NOT MOST. An axis two of three models share still leaves a
+ *   cell to fill for the third, and the only honest thing to put there is
+ *   "nobody wrote about this" — which is a real fact and reads as a zero
+ *   (rule 6). Restricting to axes every model carries means every cell in this
+ *   table is a count somebody reported, and no cell needs a caveat.
+ *
+ *   The cost is stated rather than hidden: axes held by some-but-not-all are
+ *   counted in the note and are not rows here. They are in the table above.
+ *
+ * ⚠ THE SLUG IS THE KEY AND THE NAME IS THE LABEL. `COALESCE(ruling_target,
+ *   slug)` is what the store groups by, so a reviewer merging two slugs merges
+ *   these rows with it. `name` is the extractor's phrasing and can differ
+ *   between models for one slug, so the first is used and the slug decides
+ *   they are the same row.
+ */
+function sharedAxes(models, section) {
+  const bySlug = new Map()
+  models.forEach((m) => {
+    (m.reported?.discovered?.[section] || []).forEach((it) => {
+      const slug = it.slug || it.name
+      if (!slug) return
+      if (!bySlug.has(slug)) bySlug.set(slug, { slug, name: it.name || slug, per: {} })
+      bySlug.get(slug).per[m.model_version_id] = it
+    })
+  })
+
+  const all = [...bySlug.values()]
+  const every = all.filter(
+    (r) => models.every((m) => r.per[m.model_version_id])
+  )
+  // Ordered by total reports, which is a COUNT and not a score (rule 3): the
+  // axis people wrote about most across these models leads. Every number it
+  // sorts on is printed on the row.
+  every.sort((a, b) => {
+    const t = (r) => Object.values(r.per).reduce((s, it) => s + (it.reports || 0), 0)
+    return t(b) - t(a) || a.name.localeCompare(b.name)
+  })
+  return { every, total: all.length }
+}
+
+/**
+ * How one axis was PHRASED for one model: the three polarities, counted.
+ *
+ * ⚠ THIS COUNTS ENTRIES AND `reports` COUNTS DOCUMENTS, which is why the two
+ *   are never shown as one number. `polarity` is a column on `board_entry`, so
+ *   a split of anything else would have to be invented: a document carrying
+ *   one positive and two negative entries has no polarity of its own, and
+ *   giving it one is a synthesised value (rule 3).
+ *
+ *   The page said `1 report · 9 of 9 positive` once, which is two populations
+ *   on one line reading as a proportion of the first. The fix is not to pick
+ *   one - both are true and they answer different questions - it is to name
+ *   the unit each belongs to.
+ *
+ * ⚠ NO NULLS TO HANDLE, VERIFIED RATHER THAN ASSUMED. Measured 2026-09-28 over
+ *   `board_entry`: 931 positive, 638 neutral, 502 negative, zero null. An
+ *   unlabelled entry would be missing from the chips and present in the total,
+ *   so `other` catches anything that is not one of the three rather than
+ *   letting it disappear.
+ */
+function polarityOf(item) {
+  const q = item?.quotes || []
+  const out = { positive: 0, negative: 0, neutral: 0, other: 0, total: q.length }
+  q.forEach((x) => {
+    const p = x.polarity
+    if (p === 'positive' || p === 'negative' || p === 'neutral') out[p] += 1
+    else out.other += 1
+  })
+  return out
+}
+
+/**
+ * The three counts as chips, in the board's own polarity colours.
+ *
+ * ⚠ A ZERO IS DROPPED, NOT DIMMED, and that is the one judgement call here.
+ *   `3 positive · 2 neutral` is read correctly as "no negatives"; a `0
+ *   negative` chip beside it says the same thing louder and turns a scannable
+ *   cell into nine chips across three columns. What must never be dropped is a
+ *   non-zero, which is why every count present is rendered whatever its size.
+ */
+function Polarity({ split }) {
+  if (!split.total) return <span className="dim" style={{ fontSize: 11 }}>none</span>
+  const chips = [
+    ['positive', 'pass'],
+    ['negative', 'fail'],
+    ['neutral', 'mute'],
+    ['other', 'mute'],
+  ].filter(([k]) => split[k] > 0)
+
+  return (
+    <span className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
+      {chips.map(([k, tone]) => (
+        <Badge key={k} tone={tone}>
+          <span className="tnum">{split[k]}</span>{' '}
+          {/* ⚠ THE WORD, NOT JUST THE COLOUR. Three coloured numbers with no
+              labels is identity by colour alone, and red/green is the pair
+              most readers lose. */}
+          {k === 'other' ? 'unlabelled' : k}
+        </Badge>
+      ))}
+    </span>
+  )
+}
+
+/**
+ * Only the axes all the compared models share, as a count-against-count table.
+ *
+ * Separate from the table above on purpose. That one answers "what was each of
+ * these discussed on"; this one answers "where can these actually be compared",
+ * and merging them produced a table where most cells said "not reported".
+ */
+function CommonAxes({ models }) {
+  const groups = SECTIONS.map(([section, heading]) => ({
+    section, heading, ...sharedAxes(models, section),
+  }))
+  const shared = groups.reduce((s, g) => s + g.every.length, 0)
+  const named = groups.reduce((s, g) => s + g.total, 0)
+
+  return (
+    <div className="stack stack-2" style={{ marginTop: 'var(--s4)' }}>
+      <span className="label">Where they can be compared directly</span>
+      <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0,
+                                  lineHeight: 1.6 }}>
+        The axes <strong style={{ color: 'var(--text)' }}>every model here was
+        discussed on</strong>, so each row is a count against a count with nothing
+        missing. {/* RULE 7: the denominator. "4 shared" means one thing out of 12
+                     and another out of 200. */}
+        <span className="tnum">{shared}</span> of{' '}
+        <span className="tnum">{named}</span> axes named across these{' '}
+        {models.length} models. The rest were named for some and not others — they
+        are in the table above, where an absent axis is simply not listed rather
+        than being shown as a nought.
+        {/* ⚠ SAID ONCE HERE RATHER THAN IN EVERY CELL. Three columns times
+            however many rows is no place to explain a unit, and the cells
+            carry the three numbers so a reader who wants to check can. */}
+        {' '}The chips count <strong style={{ color: 'var(--text)' }}>entries</strong>,
+        which is what a polarity belongs to. One post can carry several, so the
+        entry count is not a count of people — the posts and the people are under
+        each cell for exactly that reason.
+      </p>
+
+      {shared === 0 ? (
+        /* ⚠ AN EMPTY TABLE HERE IS A FINDING, AND IT IS ABOUT THE CORPUS AND
+           NOT THE MODELS. Engineers wrote about these models on different
+           things; that is what the evidence says, and it is why the board
+           cannot rank them against each other. Rendering an empty table with
+           three column headings would say "we compared them and found
+           nothing", which is a different and false claim. */
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0,
+                                    lineHeight: 1.6 }}>
+          <strong style={{ color: 'var(--text)' }}>No axis is shared by all{' '}
+          {models.length}.</strong> Nobody has written about these models on the
+          same job, behaviour or figure, so there is nothing to put side by side —
+          a fact about what has been written, not about the models. Comparing two
+          instead of three usually finds more.
+        </p>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table className="cmp-table">
+            <thead>
+              <tr>
+                <th />
+                {models.map((m) => (
+                  <th key={m.model_version_id}>
+                    {m.display_name}
+                    {/* ⚠ THE PROVIDER'S NAME, NOT OURS, AND OMITTED RATHER
+                        THAN FALLEN BACK. Same rule as the table above: a
+                        reader cannot look up `mv_de3e701e07b8bfa9`, check it
+                        or use it anywhere, so printing it is worse than
+                        printing nothing.
+
+                        This header shipped without it and the page's own test
+                        did not catch it, because that test sliced the FIRST
+                        `<thead>` and this table now comes first in the file.
+                        It checks every header now. */}
+                    {m.canonical_id && (
+                      <span className="mono" style={{
+                        display: 'block', fontSize: 10,
+                        color: 'var(--text-3)', fontWeight: 400,
+                      }}>
+                        {m.canonical_id}
+                      </span>
+                    )}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {groups.filter((g) => g.every.length).map((g) => (
+                <Fragment key={g.section}>
+                  <tr className="cmp-group">
+                    <th scope="colgroup" colSpan={models.length + 1}>
+                      <span className="label">{g.heading}</span>
+                      <span className="dim" style={{ fontSize: 11, fontWeight: 400,
+                                                     textTransform: 'none', letterSpacing: 0 }}>
+                        {' '}· {g.every.length} of {g.total} shared
+                      </span>
+                    </th>
+                  </tr>
+                  {g.every.map((a) => (
+                    <tr key={a.slug} className="cmp-axis">
+                      <th scope="row">{a.name}</th>
+                      {models.map((m) => {
+                        const it = a.per[m.model_version_id]
+                        const f = (it.figures || [])[0]
+                        const split = polarityOf(it)
+                        return (
+                          <td key={m.model_version_id}>
+                            <Polarity split={split} />
+                            {/* ⚠ THREE COUNTS, ALL MEASURED, NONE DERIVED, and
+                                the second and third are what stop the first
+                                being read as people.
+
+                                The chips split ENTRIES, because that is the
+                                only population `polarity` exists on - it is a
+                                column on `board_entry`. A document can carry
+                                several entries for one axis, and does:
+                                `metric/swe-bench` is 8 entries from ONE
+                                document by ONE person, and 82 of 495 axis
+                                rows run at 2x or more.
+
+                                So an entry count alone would let one voluble
+                                writer outrank four people. The line says
+                                which number is which rather than picking one
+                                (rule 7). */}
+                            <span className="dim tnum"
+                                  style={{ display: 'block', fontSize: 10, marginTop: 3 }}>
+                              {split.total} {split.total === 1 ? 'entry' : 'entries'}
+                              {' · '}{it.reports} post{it.reports === 1 ? '' : 's'}
+                              {it.voices != null && (
+                                <>{' · '}{it.voices} {it.voices === 1 ? 'person' : 'people'}</>
+                              )}
+                            </span>
+                            {/* A FIGURE TRAVELS WITH ITS BASIS (rule 7).
+                                `stated` is the vendor's claim and `reported` is
+                                somebody's measurement; they are never merged. */}
+                            {f && (
+                              <span className="dim" style={{ display: 'block', fontSize: 11 }}>
+                                {f.value} {f.basis}
+                              </span>
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ⚠ NO ROW IS MARKED AS A WINNER, and the higher count is not the
+          better model. It is how many people wrote about it, which tracks how
+          widely a model is used at least as much as how well it works — and
+          the polarity of those reports is not on this table at all. */}
+      {shared > 0 && (
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0,
+                                    lineHeight: 1.6 }}>
+          A bigger number is more writing, not a better model: it tracks how widely
+          something is used as much as how well it works. The colours say how each
+          entry was phrased and not whether it was right — open a model to read
+          the quotes behind any of these.
+        </p>
+      )}
+    </div>
+  )
+}
 
 function Table({ models, rows }) {
   const rendered = rows.map(([label, cell]) => ({
