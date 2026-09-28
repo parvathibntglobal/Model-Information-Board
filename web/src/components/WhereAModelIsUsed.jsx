@@ -30,13 +30,20 @@ export default function WhereAModelIsUsed({ callers }) {
   return (
     <div className="stack stack-3">
       <div className="stack stack-1">
-        <span className="label">Where a model is used</span>
-        <p style={{ fontSize: 'var(--fs-sm)', margin: 0, maxWidth: '78ch', lineHeight: 1.6 }}>
-          In <strong>{stages.length === 2 ? 'exactly two places' : `${stages.length} places`}</strong>,
-          and the spend ledger refuses any other caller —{' '}
-          <span className="mono" style={{ fontSize: 11 }}>{stages.join(', ')}</span>.
-          The model <strong>proposes and the code decides</strong>: it classifies and
-          quotes, and plain code does all the counting and ranking.
+        <span className="label">Where an AI model is used</span>
+        {/* PLAIN WORDS FIRST. This read "the spend ledger refuses any other
+            caller - extract, ask": true, and written for whoever built the
+            ledger. The count still comes from `spend_ledger.STAGES`; only the
+            sentence around it changed. */}
+        <p style={{ fontSize: 'var(--fs-sm)', margin: 0, maxWidth: '72ch', lineHeight: 1.65 }}>
+          An AI model is used in{' '}
+          <strong>{stages.length === 2 ? 'two places' : `${stages.length} places`}</strong>{' '}
+          — nothing else in the project is allowed to call one.
+        </p>
+        <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0, maxWidth: '72ch', lineHeight: 1.65 }}>
+          In both, the model only <strong style={{ color: 'var(--text)' }}>reads and
+          sorts</strong>. It never decides which model is best: every count, ranking and
+          comparison on the site is worked out by our own code.
         </p>
       </div>
 
@@ -49,19 +56,19 @@ export default function WhereAModelIsUsed({ callers }) {
       <div className="stack stack-3">
         <Caller
           n={1}
-          title="Extraction"
+          title="Reading what engineers wrote"
           status="live"
-          when="Runs on every fetch — once for each post or thread the harvest collects."
-          does="Reads the post and files what engineers said onto the board: the jobs, capabilities and metrics, each with a verbatim quote."
+          does="Reads each post and puts what the writer said onto the board — the jobs they used a model for, how it behaved, and any figures they quoted — each with the writer's exact words."
+          when="Every time a model is fetched, once for each post that comes back."
           part={extract}
-          retries="Two short retry prompts sit beside it: if the answer breaks the required format, the exact error goes back once; if a quote is too long, it is told specifically how to shorten it."
+          retries="If the answer comes back in the wrong shape, the model is shown the exact error and gets one more try. If a quote is too long, it is told how to shorten it."
         />
         <Caller
           n={2}
-          title="The Ask box"
+          title="Understanding a question (the Ask box)"
           status="not built yet"
-          when="Not reachable from the site yet — the backend route is wired and charges the ledger, but no page calls it."
-          does="Turns a plain description of somebody's task into a structured list of requirements. Code does everything after that."
+          does="Turns someone's description of what they need into a clear list of requirements, so our code can find models that fit."
+          when="Not yet — the Ask box is planned but not on the site, so nothing calls this today."
           part={ask}
         />
       </div>
@@ -72,20 +79,20 @@ export default function WhereAModelIsUsed({ callers }) {
       {extract?.closed_twelve_fields?.length > 0 && (
         <div className="stack stack-1"
              style={{ borderLeft: '2px solid var(--warn)', paddingLeft: 12 }}>
-          <span className="label">Still asked for, no longer kept</span>
+          <span className="label">One thing to tidy up</span>
           <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0,
-                                      maxWidth: '78ch', lineHeight: 1.6 }}>
-            The extraction prompt still asks for{' '}
+                                      maxWidth: '72ch', lineHeight: 1.65 }}>
+            The reading step still asks the model for{' '}
             {extract.closed_twelve_fields.map((f, i) => (
               <span key={f}>
                 {i > 0 && (i === extract.closed_twelve_fields.length - 1 ? ' and ' : ', ')}
                 <span className="mono" style={{ color: 'var(--text)' }}>{f}</span>
               </span>
             ))}
-            . They belong to the old fixed list of twelve capabilities, and nothing
-            saves the answers any more — so those tokens are paid for and thrown
-            away. Removing them changes the prompt, which is why it is a separate
-            decision (#434).
+            . These belonged to the old list of twelve fixed capabilities, and nothing
+            keeps the answers any more — so we pay for them and throw them away.
+            Removing them means changing the prompt, which is being decided
+            separately in #434.
           </p>
         </div>
       )}
@@ -105,13 +112,24 @@ function Caller({ n, title, status, when, does, part, retries }) {
           <span className="dim tnum" style={{ fontSize: 11 }}>{n}</span>
           <strong style={{ fontSize: 'var(--fs-sm)' }}>{title}</strong>
           <Badge tone={status === 'live' ? 'pass' : 'mute'}>{status}</Badge>
-          {part?.stage && (
-            <span className="mono dim" style={{ fontSize: 10 }}>stage: {part.stage}</span>
-          )}
         </div>
 
-        <p style={{ fontSize: 'var(--fs-xs)', margin: 0, lineHeight: 1.6 }}>{does}</p>
-        <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0, lineHeight: 1.6 }}>{when}</p>
+        {/* LABELLED, BECAUSE TWO UNLABELLED PARAGRAPHS READ AS ONE. "What it
+            does" and "When it runs" are different questions, and a reader
+            scanning for one should not have to read the other to find it.
+
+            The internal stage key (`extract`, `ask`) is not on the card: it is
+            the name the code uses, not the name a reader uses. */}
+        <dl className="stack stack-1" style={{ margin: 0, fontSize: 'var(--fs-xs)', lineHeight: 1.6 }}>
+          <div>
+            <dt className="label" style={{ display: 'inline', marginRight: 6 }}>What it does</dt>
+            <dd style={{ display: 'inline', margin: 0 }}>{does}</dd>
+          </div>
+          <div>
+            <dt className="label" style={{ display: 'inline', marginRight: 6 }}>When it runs</dt>
+            <dd className="dim" style={{ display: 'inline', margin: 0 }}>{when}</dd>
+          </div>
+        </dl>
 
         {part?.unreadable && (
           <span className="dim" style={{ fontSize: 11 }}>
@@ -125,9 +143,12 @@ function Caller({ n, title, status, when, does, part, retries }) {
             {/* THE SIZE IS MEASURED, not typed. It was "about 22,000
                 characters" in a chat answer; on the page it is the count of the
                 prompt that was built a moment ago. */}
-            <span className="dim tnum" style={{ fontSize: 11 }}>
-              Its prompt is {part.prompt_chars.toLocaleString()} characters. In plain
-              terms it says:
+            <span className="label" style={{ marginTop: 4 }}>
+              What the model is told{' '}
+              <span className="dim tnum" style={{ textTransform: 'none', letterSpacing: 0,
+                                                   fontWeight: 400 }}>
+                · {part.prompt_chars.toLocaleString()} characters of instructions, in short
+              </span>
             </span>
 
             <ol className="stack stack-1" style={{ margin: 0, paddingLeft: 18,

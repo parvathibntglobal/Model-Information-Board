@@ -171,10 +171,12 @@ class TestThePanelIsTwoTabs:
         assert "data.count]" in panel
         assert '<span className="x">{n}</span>' in panel
 
-    def test_it_opens_on_model_uses(self):
-        """Where a model is used is the question a reader arrives with; the
-        prompts are the detail behind it."""
-        assert "useState('uses')" in _panel()
+    def test_it_opens_on_prompts_and_lists_it_first(self):
+        """This is the Prompts section, and the exact text sent is what it is
+        named for; "Model uses" is its plain-words companion one tab across."""
+        panel = _panel()
+        assert "useState('prompts')" in panel
+        assert panel.index("['prompts', 'Prompts',") < panel.index("['uses', 'Model uses',")
 
     def test_the_prompt_material_is_all_inside_the_prompts_tab(self):
         """The rules and the not-shown list describe the prompts, so they belong

@@ -32,9 +32,10 @@ export default function PromptsPanel() {
   // ONE OPEN AT A TIME, across all three groups: the list is what a
   // reader scans, and two open prompts is the wall this replaced.
   const [openId, setOpenId] = useState(null)
-  // WHICH HALF IS SHOWING. `uses` first: "where is a model used at all" is the
-  // question a reader arrives with, and the prompts are the detail behind it.
-  const [tab, setTab] = useState('uses')
+  // WHICH HALF IS SHOWING. Prompts first, at @parvathibntglobal's request: this
+  // is the Prompts section, and the exact text sent is what it is named for.
+  // "Model uses" is the plain-words companion one tab across.
+  const [tab, setTab] = useState('prompts')
 
   useEffect(() => {
     let alive = true
@@ -74,8 +75,8 @@ export default function PromptsPanel() {
         {data && (
           <div className="tabstrip" role="tablist" aria-label="Model uses and prompts">
             {[
-              ['uses', 'Model uses', (data.model_callers?.stages || []).length],
               ['prompts', 'Prompts', data.count],
+              ['uses', 'Model uses', (data.model_callers?.stages || []).length],
             ].map(([key, label, n]) => (
               <button
                 key={key}
