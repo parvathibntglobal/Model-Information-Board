@@ -42,10 +42,6 @@ export default function Compare() {
   //: the picker never pays for it, and a comparison that renders is more
   //: urgent than a list nobody has asked for yet.
   const [roster, setRoster] = useState(null)
-  //: Which sections have had their one-model axes opened, keyed by section.
-  //: Per section rather than one flag, because opening Capabilities to read 59
-  //: rows should not also open Metrics.
-  const [expanded, setExpanded] = useState({})
 
   useEffect(() => {
     if (ids.length < 2) { setState({ data: null, err: null, unreadable: null }); return }
@@ -304,14 +300,34 @@ export default function Compare() {
             //   Not resolved here. What IS new is that the polarity renders
             //   beside each row, so a reader can see `2 of 2 negative` instead
             //   of a bare count that reads as endorsement.
-            // ── THE THREE SECTIONS, ALIGNED ─────────────────────────────
-            //
-            // Each one contributes a heading row and then one row per axis,
-            // built by `alignAxes`. They used to be three cells holding three
-            // independent lists; see that function for why that was not a
-            // comparison.
-            ...SECTIONS.flatMap(([section, heading]) =>
-              axisRows(models, section, heading, expanded, setExpanded)),
+            ['Jobs — discovered', (m) => {
+              const bf = m.reported?.best_for || []
+              if (!bf.length) return <span className="dim">no job named yet</span>
+              return <Listed unit="job" items={bf.map((b) => ({
+                label: b.name, reports: b.reports,
+              }))} />
+            }],
+            ['Discussed under', (m) => {
+              const caps = m.reported?.discovered?.capabilities || []
+              if (!caps.length) return <span className="dim">nothing yet</span>
+              return <Listed unit="capability" items={caps.map((c) => ({
+                label: c.name || c.slug, reports: c.reports,
+              }))} />
+            }],
+            ['Metrics reported', (m) => {
+              const mets = m.reported?.discovered?.metrics || []
+              if (!mets.length) return <span className="dim">none</span>
+              // A FIGURE TRAVELS WITH ITS BASIS (rule 7). `stated` is what the
+              // vendor advertised, `reported` is what somebody measured, and
+              // they are never merged into one number.
+              return <Listed unit="metric" items={mets.map((x) => {
+                const f = (x.figures || [])[0]
+                return {
+                  label: `${x.name}${f ? `: ${f.value} (${f.basis})` : ''}`,
+                  reports: x.reports,
+                }
+              })} />
+            }],
           ]}
         />
       </div>
@@ -374,31 +390,6 @@ export default function Compare() {
  * fact at a time — they scan a row, not a column — and because two or three
  * columns fit where two or three of these tables stacked would not.
  */
-/* ⚠ `Listed`, `PLURALS` AND THE POLARITY BAR ALL LIVED HERE.
-
-   `Listed` rendered ONE MODEL'S items as a list inside a single cell, which is
-   what made this page three model pages side by side rather than a comparison.
-   The rows are aligned on the slug now (`alignAxes`), so a section's axes are
-   table rows and a model's count is a cell - there is no list inside a cell
-   left to render.
-
-   ⚠ ONE LESSON IS WORTH CARRYING OUT OF IT. `PLURALS` existed because
-     `unit + "s"` put "15 capabilitys" on the page: English plurals are not a
-     string operation and two of the three words here are exactly the ones that
-     break it. It is gone rather than kept because nothing pluralises a unit any
-     more - the three section headings are fixed strings, `Jobs`,
-     `Capabilities`, `Metrics`. If a unit is ever derived again, this is the
-     trap.
-
-   ⚠ AND THE POLARITY BAR IS STILL GONE, along with `PolarityBar`,
-     `axisPolarity` and `POLARITY_ORDER`. @parvathibntglobal removed the column
-     2026-09-25. What went with it was the only surface on which a `best_for`
-     row whose every report is a complaint was legible - `2 of 2 negative` under
-     a heading that recommends. 6 of 155 model-axis pairs are in that state and
-     this page still renders them under the board's heading. Silent again
-     rather than fixed; it is @anoojntglobal-sudo's #469, which groups by
-     exactly this. */
-
 /**
  * Change the comparison without leaving it.
  *
@@ -412,7 +403,94 @@ export default function Compare() {
  *   rather than by an error. Dropping below two is refused for the same
  *   reason, and the last two chips say so instead of going dead silently.
  */
+/**
+ * Every item, one per line, under a count.
+ *
+ * ⚠ THREE VERSIONS, AND THE FIRST TWO WERE BOTH WRONG. `mets.slice(0, 3)`
+ *   showed three of nine and read as three — a count with no denominator
+ *   (rule 7), where a model with three metrics and one with thirty render
+ *   identically. Replacing it with `+6 more` in a `title` attribute fixed the
+ *   honesty and not the usefulness: a tooltip is not openable, it is invisible
+ *   on touch, and @parvathibntglobal's reading is the right one — **on a
+ *   comparison page the list IS the content.** Hiding it behind a hover is
+ *   hiding the thing somebody came to compare.
+ *
+ * ⚠ AND SEMICOLON-JOINED PROSE WAS THE OTHER HALF OF THE PROBLEM. `reasoning;
+ *   code generation; long context; tool use` in one cell beside the same shape
+ *   in the next cell cannot be read across — the eye has no line to follow. A
+ *   comparison of lists wants lists.
+ *
+ * So: the count first, because that is what makes two columns comparable at a
+ * glance, then every item on its own line. Nothing is cut and nothing needs
+ * opening. A cell with forty entries is tall, and a tall cell a reader can
+ * read beats a short one they cannot.
+ */
+//: ⚠ "15 capabilitys" WAS ON THE PAGE. Two of the three units this component
+//:   is given do not take a bare `s`, and they are the two most common.
+const PLURALS = { capability: 'capabilities', job: 'jobs', metric: 'metrics' }
 
+//: ⚠ THE POLARITY BAR IS GONE FROM THIS PAGE, and so are `PolarityBar`,
+//:   `axisPolarity` and the `POLARITY_ORDER` beside them. Removed rather than
+//:   left unread: a component nothing renders is the orphan of #438 one layer
+//:   down, and it reads as wired from either end.
+//:
+//:   It showed positive/neutral/negative per axis as a proportional bar.
+//:   @parvathibntglobal removed the column 2026-09-25 - the page now shows the
+//:   axis and its report count, and nothing else.
+//:
+//: ⚠ ONE THING WENT WITH IT THAT WAS DOING REAL WORK. The bar was the only
+//:   surface on which a `best_for` row whose every report is a complaint was
+//:   legible: `2 of 2 negative` under a heading that recommends. 6 of 155
+//:   model-axis pairs are in that state, `evidence_for_model` does not filter
+//:   them, and this page renders them under the board's heading. That
+//:   over-claim is now silent again rather than fixed. It is the open section
+//:   question - see @anoojntglobal-sudo's #469, which groups by exactly this.
+
+function Listed({ items, unit, upTo = 12 }) {
+  if (!items.length) return null
+  const shown = items.slice(0, upTo)
+  const rest = items.slice(upTo)
+
+  //: ⚠ NOT `unit + "s"`. That rendered "15 capabilitys" on the page. English
+  //:   plurals are not a string operation, and two of the three words this
+  //:   component is given are exactly the ones that break it.
+  const plural = items.length === 1 ? unit : PLURALS[unit] || `${unit}s`
+
+  const line = (x, i) => (
+    <li key={i} className="cmp-line">
+      <span className="cmp-line-name">{typeof x === 'string' ? x : x.label}</span>
+      {typeof x !== 'string' && (
+        <span className="cmp-line-n tnum">{x.reports}</span>
+      )}
+    </li>
+  )
+
+  return (
+    <div className="stack stack-1" style={{ gap: 4 }}>
+      {/* ⚠ THE REPEATED WORDS LIVE HERE NOW, SAID ONCE. Every line used to
+          carry "reports" and "positive" — two words times thirty rows times
+          three columns, and the numbers they labelled were the part a reader
+          was actually trying to compare. */}
+      <div className="cmp-line cmp-line-head dim">
+        <span className="cmp-line-name">{items.length} {plural}</span>
+        <span className="cmp-line-n">reports</span>
+      </div>
+      <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+        {shown.map(line)}
+      </ul>
+      {rest.length > 0 && (
+        <details>
+          <summary className="dim" style={{ fontSize: 11, cursor: 'pointer' }}>
+            show the other {rest.length}
+          </summary>
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+            {rest.map((x, i) => line(x, i + upTo))}
+          </ul>
+        </details>
+      )}
+    </div>
+  )
+}
 
 
 function ChangeModels({ ids, models, roster, onLoad, onAdd, onDrop }) {
@@ -517,179 +595,11 @@ function ChangeModels({ ids, models, roster, onLoad, onAdd, onDrop }) {
 }
 
 
-/**
- * The union of one section's axes across the compared models, keyed by slug.
- *
- * ⚠ THIS PAGE WAS NOT COMPARING ANYTHING. Each model's jobs, capabilities and
- *   metrics rendered as three INDEPENDENT lists in three cells. If Opus 5 had
- *   `coding-agent 7` and Sonnet 5 had `coding-agent 3`, they sat at different
- *   positions in two different lists and the reader aligned them by eye. Three
- *   model pages in a row, under a heading that said comparison.
- *
- *   Aligning on the slug is what makes a row a comparison:
- *
- *       coding-agent        7            3          not reported
- *
- * ⚠ AND THE EMPTY CELL IS THE DANGEROUS PART (rule 6). "not reported" means
- *   nobody wrote about this model in these terms. It does NOT mean the model
- *   is bad at it, and it does not mean we looked and found nothing — for most
- *   of these axes we never asked. A blank, a dash or a 0 would each be read as
- *   a score of zero, which is why the cell says words instead.
- *
- *   The stacked lists could not raise this question at all, because nothing
- *   lined up. Making the comparison possible is what makes the caveat
- *   necessary.
- *
- * ⚠ THE SLUG IS THE KEY AND THE NAME IS THE LABEL. `COALESCE(ruling_target,
- *   slug)` is what the store groups by, so a reviewer merging two slugs merges
- *   these rows too. `name` is the extractor's phrasing and can differ between
- *   models for the same slug — first one wins for the label, and it is the
- *   slug that decides they are the same row.
- */
-//: The three discovered sections, in the order they appear on the model page's
-//: tabs. `best_for` is the stored key and "Jobs" is the word a reader sees.
-const SECTIONS = [
-  ['best_for', 'Jobs'],
-  ['capabilities', 'Capabilities'],
-  ['metrics', 'Metrics'],
-]
-
-//: How many single-model axes show before the rest go behind a toggle. The
-//: SHARED ones are never capped - they are the comparison, and hiding one
-//: behind "show more" would hide the thing the page is for.
-const SOLO_SHOWN = 4
-
-/**
- * One section's rows for `Table`: a heading, the aligned axes, and a toggle.
- *
- * ⚠ SHARED AXES FIRST AND NEVER TRUNCATED. An axis two models were discussed
- *   on is the only row on this page that compares anything, so all of them
- *   render however many there are.
- *
- * ⚠ THE SINGLE-MODEL AXES ARE CAPPED AND COUNTED, NOT DROPPED. Claude Opus 5
- *   alone carries 63 discovered capabilities, so a full union across three
- *   models is a table nobody reads. Four show; the rest sit behind a count
- *   that opens - a count that names what it withholds and offers no way in is
- *   the dead end this page already rejected once.
- */
-function axisRows(models, section, heading, expanded, setExpanded) {
-  const axes = alignAxes(models, section)
-  if (!axes.length) {
-    return [{
-      key: `${section}-head`,
-      head: heading,
-      note: 'nothing named yet — an absence we found, not a verdict',
-    }]
-  }
-
-  const shared = axes.filter((a) => a.named_by > 1)
-  const solo = axes.filter((a) => a.named_by === 1)
-  const open = expanded[section]
-  const shownSolo = open ? solo : solo.slice(0, SOLO_SHOWN)
-  const hidden = solo.length - shownSolo.length
-
-  const rows = [{
-    key: `${section}-head`,
-    head: heading,
-    // RULE 7: "12 axes" alone says nothing about whether this page can compare
-    // them. The split IS the finding - three models with 60 axes between them
-    // and two in common have almost nothing to compare.
-    note: shared.length
-      ? `${axes.length} named · ${shared.length} by more than one model`
-      : `${axes.length} named · none in common, so there is nothing to line up here`,
-  }]
-
-  ;[...shared, ...shownSolo].forEach((a) => {
-    rows.push([
-      a.name,
-      (m) => {
-        const it = a.per[m.model_version_id]
-        // ⚠ WORDS, NOT A DASH AND NOT A ZERO. A blank cell beside "7" reads as
-        //   nought out of seven; this model was not discussed in these terms
-        //   at all, and for most axes nobody ever asked (rule 6).
-        if (!it) return <span className="dim" style={{ fontSize: 11 }}>not reported</span>
-        const f = (it.figures || [])[0]
-        return (
-          <span className="stack stack-1" style={{ gap: 1 }}>
-            <span className="tnum">
-              <strong>{it.reports}</strong>{' '}
-              <span className="dim" style={{ fontSize: 11 }}>
-                report{it.reports === 1 ? '' : 's'}
-              </span>
-            </span>
-            {/* A FIGURE TRAVELS WITH ITS BASIS (rule 7). `stated` is the
-                vendor's claim, `reported` is somebody's measurement, and they
-                are never merged. */}
-            {f && (
-              <span className="dim" style={{ fontSize: 11 }}>
-                {f.value} <em style={{ fontStyle: 'normal', opacity: .75 }}>{f.basis}</em>
-              </span>
-            )}
-          </span>
-        )
-      },
-      'cmp-axis',
-    ])
-  })
-
-  if (hidden > 0 || (open && solo.length > SOLO_SHOWN)) {
-    rows.push([
-      '',
-      (m) => (m === models[0] ? (
-        <button
-          type="button"
-          className="mb-link"
-          style={{ background: 'none', border: 0, padding: 0, fontSize: 11, cursor: 'pointer' }}
-          onClick={() => setExpanded((e) => ({ ...e, [section]: !open }))}
-        >
-          {open
-            ? `hide the ${solo.length - SOLO_SHOWN} named by one model only`
-            : `show ${hidden} more named by one model only`}
-        </button>
-      ) : null),
-    ])
-  }
-
-  return rows
-}
-
-function alignAxes(models, section) {
-  const bySlug = new Map()
-  models.forEach((m) => {
-    const items = m.reported?.discovered?.[section] || []
-    items.forEach((it) => {
-      const slug = it.slug || it.name
-      if (!slug) return
-      if (!bySlug.has(slug)) bySlug.set(slug, { slug, name: it.name || slug, per: {} })
-      bySlug.get(slug).per[m.model_version_id] = it
-    })
-  })
-
-  return [...bySlug.values()]
-    .map((r) => ({
-      ...r,
-      named_by: Object.keys(r.per).length,
-      total: Object.values(r.per).reduce((s, it) => s + (it.reports || 0), 0),
-    }))
-    // ⚠ ORDERED BY HOW MANY MODELS NAMED IT, THEN BY REPORTS — two counts, not
-    //   a score, and both are printed on the row (rule 3). An axis two models
-    //   were discussed on is the comparison; an axis only one was discussed on
-    //   is a fact about that model, and it sorts below rather than being
-    //   dropped.
-    .sort((a, b) => b.named_by - a.named_by
-      || b.total - a.total
-      || a.name.localeCompare(b.name))
-}
-
 function Table({ models, rows }) {
-  const rendered = rows.filter(Boolean).map((row, i) => {
-    // A HEADING SPANNING THE TABLE, so the aligned sections below read as
-    // three groups rather than one 90-row list. `[label, cell]` is still the
-    // ordinary row; an object is the group divider.
-    if (!Array.isArray(row)) return { ...row, key: row.key || `head-${i}` }
-    const [label, cell, cls] = row
-    return { key: `${label}-${i}`, label, cls, cells: models.map((m) => cell(m)) }
-  })
+  const rendered = rows.map(([label, cell]) => ({
+    label,
+    cells: models.map((m) => cell(m)),
+  }))
 
   return (
     <div style={{ overflowX: 'auto' }}>
@@ -726,24 +636,10 @@ function Table({ models, rows }) {
         </thead>
         <tbody>
           {rendered.map((r) => (
-            r.head ? (
-              <tr key={r.key} className="cmp-group">
-                <th scope="colgroup" colSpan={models.length + 1}>
-                  <span className="label">{r.head}</span>
-                  {r.note && (
-                    <span className="dim" style={{ fontSize: 11, fontWeight: 400,
-                                                   textTransform: 'none', letterSpacing: 0 }}>
-                      {' '}· {r.note}
-                    </span>
-                  )}
-                </th>
-              </tr>
-            ) : (
-              <tr key={r.key} className={r.cls}>
-                <th scope="row">{r.label}</th>
-                {models.map((m, i) => <td key={m.model_version_id}>{r.cells[i]}</td>)}
-              </tr>
-            )
+            <tr key={r.label}>
+              <th scope="row">{r.label}</th>
+              {models.map((m, i) => <td key={m.model_version_id}>{r.cells[i]}</td>)}
+            </tr>
           ))}
         </tbody>
       </table>
