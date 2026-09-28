@@ -787,10 +787,15 @@ class OpenRouterClient:
         # 2026-09-14 wrote no ledger row at all, because the old code reached
         # this line only on success - roughly 30,000 generated tokens each,
         # invisible in our own figures.
+        #: BOTH LOCAL, BECAUSE `spend_ledger` AND `budget` REACH BACK INTO THIS
+        #: MODULE - `budget` imports `Completion` by name. A top-level import of
+        #: either closes the cycle, and `spend_ledger.record` takes the same
+        #: precaution on its own import of `pricing_for` for the same reason.
+        #:
+        #: The comment sits above both rather than between them: ruff reads an
+        #: import block as contiguous, so a comment in the middle makes it
+        #: un-sorted (I001) and CI refuses it.
         from judge import spend_ledger
-        #: LOCAL, BECAUSE `budget` IMPORTS `Completion` FROM THIS MODULE. A
-        #: top-level import here closes the cycle; `spend_ledger.record` takes
-        #: the same precaution for the same reason and says so.
         from judge.extract.budget import pricing_for
 
         # ⚠ THE NAME IS WHAT THE PROVIDER SAID; THE PRICE IS WHAT WE BOUGHT

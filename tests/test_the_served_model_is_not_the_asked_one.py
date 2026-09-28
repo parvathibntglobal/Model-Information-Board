@@ -59,14 +59,22 @@ def _code() -> str:
       still present. That is the mention-versus-use trap, and this repository
       has walked into it sixteen times.
     """
+    holders = (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
     tree = ast.parse(_source())
     for node in ast.walk(tree):
-        if isinstance(node, (ast.Module, ast.FunctionDef,
-                             ast.AsyncFunctionDef, ast.ClassDef)):
-            if (node.body and isinstance(node.body[0], ast.Expr)
-                    and isinstance(node.body[0].value, ast.Constant)
-                    and isinstance(node.body[0].value.value, str)):
-                node.body.pop(0)
+        #: A DOCSTRING IS THE FIRST STATEMENT AND A BARE STRING CONSTANT. Both
+        #: halves have to hold, so they are one condition rather than a nested
+        #: pair (SIM102) - and `node.body` leads, because an empty body has no
+        #: first statement to look at.
+        is_docstring = (
+            isinstance(node, holders)
+            and node.body
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(node.body[0].value, ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        )
+        if is_docstring:
+            node.body.pop(0)
     return ast.unparse(tree)
 
 
