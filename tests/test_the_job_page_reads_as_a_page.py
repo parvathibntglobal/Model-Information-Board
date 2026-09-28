@@ -9,7 +9,12 @@ but for the numbers, capped at 64ch - half the width of the list below it.
 Now:
   the job        a hand-written `about` (contract/job_about.yaml), or no lead line
   the evidence   one stat line, the group headings, each row's counts
-  the rules      a side column; the extractor's text labelled "What counts here"
+  the rules      how every list is ordered: ONCE, beside the cards on the Jobs
+                 tab; each job page keeps the one sentence rule 3 requires, and
+                 the extractor's text labelled "What counts here" below the list
+
+2026-09-28 review: the side column repeated on every job page read as part of
+each job, and a paragraph on every Jobs-tab card read as a wall.
 """
 
 from __future__ import annotations
@@ -78,9 +83,12 @@ class TestTheAboutTextIsAContract:
         for slug, text in self._about().items():
             assert not banned.search(text), f"{slug}: {banned.search(text).group(0)!r}"
 
-    def test_the_two_non_jobs_are_left_out_on_purpose(self):
-        about = self._about()
-        assert "reasoning" not in about and "general-purpose" not in about
+    def test_describing_a_questionable_slug_is_said_not_to_rule_on_it(self):
+        # Every job has an entry now, including slugs that are not really jobs.
+        # The file must say that describing one decides nothing about it.
+        head = ABOUT.read_text(encoding="utf-8").split("version:")[0]
+        assert "DOES NOT RULE" in head and "`ruling`" in head
+        assert all(str(v).strip() for v in self._about().values())
 
 
 class TestThePageKeepsTheThreeKindsApart:
@@ -95,10 +103,12 @@ class TestThePageKeepsTheThreeKindsApart:
         assert "It is not a description of the job." in js
         db = DB.read_text(encoding="utf-8")
         assert "rule: j.definition || ''" in db
-        assert "card: j.about || ''" in db, "the Jobs-tab card describes the job or says nothing"
+        assert "card: ''," in db, "a Jobs-tab card is the name and its counts, no text"
+        assert "const body = x.card ? `<p>${esc(x.card)}</p>` : '';" in js, "no empty paragraph"
 
     def test_every_load_bearing_rule_is_still_on_the_page(self):
-        aside = _js()[_js().index("function jobAside(j)"):_js().index("function vJob(slug)")]
+        js = _js()
+        aside = js[js.index("function jobsOrderPanel()"):js.index("function jobOrderLine()")]
         for clause in ("Three groups", "more consistently say it worked come",
                        "counts for less than the same record on many",
                        "No score is shown: each row shows its counts.",
@@ -106,10 +116,25 @@ class TestThePageKeepsTheThreeKindsApart:
                        "extractor’s reading of each quote", "counted under each", "floors (≥)"):
             assert clause in " ".join(aside.split()), clause
 
-    def test_the_rules_are_beside_the_list_not_hidden(self):
+    def test_the_full_statement_is_beside_the_jobs_cards_once(self):
         js = _js()
+        assert "side: jobsOrderPanel()," in js
         assert "<aside class=\"jobaside\">" in js
-        assert "<details" not in js[js.index("function jobAside"):], "stated, not tucked away"
+        vjob = js[js.index("function vJob(slug)"):js.index("function vCap(slug)")]
+        assert "jobsOrderPanel" not in vjob, "not repeated on every job page"
+        panel = js[js.index("function jobsOrderPanel()"):js.index("function vJob(slug)")]
+        assert "<details" not in panel, "stated, not tucked away"
+
+    def test_each_job_page_still_says_what_its_order_rewards(self):
+        # Rule 3 as amended (#472), condition 2: THE PAGE says it in words.
+        # Moving the full statement to the Jobs tab must not take that away.
+        js = _js()
+        vjob = js[js.index("function vJob(slug)"):js.index("function vCap(slug)")]
+        assert "jobOrderLine()" in vjob and "jobRule(j)" in vjob
+        line = js[js.index("function jobOrderLine()"):js.index("function jobRule(j)")]
+        for clause in ("more consistently say it worked", "No score is shown.",
+                       'data-go="board:best"'):
+            assert clause in " ".join(line.split()), clause
         css = CSS.read_text(encoding="utf-8")
         assert ".jobbody{display:grid;grid-template-columns:minmax(0,1fr) 300px" in css
         assert ".jobhead .lead{" in css and "max-width:110ch" in css

@@ -293,7 +293,9 @@ function sec(eyebrow,h2,intro,inner){
 }
 function card(x, route){
   const [cls,lbl]=stOf(x.st);
-  return `<div class="icard" data-go="${route}:${esc(x.slug)}"><b>${esc(x.name)}</b><p>${esc(x.card)}</p>
+  // No text, no empty paragraph: a job card is the name and its counts.
+  const body = x.card ? `<p>${esc(x.card)}</p>` : '';
+  return `<div class="icard" data-go="${route}:${esc(x.slug)}"><b>${esc(x.name)}</b>${body}
     <div class="meta"><span class="${cls}">${esc(x.ev)} · ${esc(lbl)}</span><span>${esc(x.vol)}</span></div></div>`;
 }
 function mcard(x){
@@ -497,7 +499,10 @@ function vBoard(tab){
   //   inside one it has to cut open. Anything added here that returns bare
   //   cards must wrap them in `gridBlock` or they will render as a column.
   const panes = {
-    best: {intro:'Jobs engineers named when they said what they were running a model for. Each opens a page listing every model reported on that job, in three groups: reported working, only neutral reports, and reported problems with none of it working. Problem reports are shown, not filtered.',
+    best: {intro:'Jobs engineers named when they said what they were running a model for. Each opens a page listing every model reported on that job. Problem reports are shown, not filtered.',
+      // The ordering statement sits BESIDE the cards: one rule for every job
+      // page, stated once where the pages are chosen (see jobsOrderPanel).
+      side: jobsOrderPanel(),
       grid: DB.jobs.length ? gridBlock(DB.jobs.map(j=>card(j,'job')).join('')) : empty},
     cap: {intro:'A capability means one thing across every model page. These are the definitions the board rules by — written so an answer engine can quote them, and so two claims can be compared without arguing about words.',
       note: parentNote('caps'),
@@ -535,7 +540,7 @@ function vBoard(tab){
       </div>
       <p class="muted" style="max-width:70ch;margin-bottom:20px;line-height:1.6">${p.intro}</p>
       ${note}
-      ${p.grid}
+      ${p.side ? `<div class="jobbody"><div class="joblist">${p.grid}</div>${p.side}</div>` : p.grid}
     </div>`;
 }
 
@@ -556,25 +561,22 @@ function jobStatLine(j){
     + ` · ${voi} voice${voi===1?'':'s'}</span>${groups.length ? `<span>${groups.join(' · ')}</span>` : ''}</p>`;
 }
 
-/** The rules the page must state, beside the list rather than above it.
+/** How every job's list is ordered, ONCE, beside the cards on the Jobs tab.
+ *
+ * It sat in a side column on every job page, identical on all 98, and read as
+ * part of each job (2026-09-28 review). It is one rule for every page, so it is
+ * stated once where the pages are chosen, and each page keeps the one sentence
+ * rule 3 requires of it - `jobOrderLine` - with a link back here.
  *
  * ⚠ EVERY SENTENCE HERE IS LOAD-BEARING, AND SHORTER IS THE ONLY LICENCE TAKEN.
  *   The order in words and "no score is shown" are rule 3's conditions (#472);
  *   the single-positive clause is the one the order has to be true of (Claude
  *   Opus 5 heads a working group on 1 positive and 11 negatives); the
  *   extractor's-reading clause is rule 2's disclosure; the floor and the
- *   both-counted note keep the counts honest (rule 7). The group headings in the
- *   list mark where the rule acts.
- *
- * "What counts here" is the extractor's `definition`, LABELLED as its counting
- * rule. It was rendered as the page's description, and it is not one: the
- * extractor is told to write the test a report has to meet. */
-function jobAside(j){
-  const rule = j.rule ? `<h3>What counts here</h3><p>${esc(j.rule)}</p>
-      <p class="fine">The extractor’s counting rule: the test a report had to meet to be filed
-      under this job. It is not a description of the job.</p>` : '';
+ *   both-counted note keep the counts honest (rule 7). */
+function jobsOrderPanel(){
   return `<aside class="jobaside">
-      <h3>How this list is ordered</h3>
+      <h3>How each job’s list is ordered</h3>
       <p>Three groups: models with at least one report of it working, then models with only
       neutral reports, then models with reports of problems and none of it working.</p>
       <p>Within the first group, models whose reports more consistently say it worked come
@@ -585,9 +587,29 @@ function jobAside(j){
       <p class="fine">Positive and negative are the extractor’s reading of each quote, so one
       mislabelled report can move a model. A report that says both is counted under each.
       Report counts are floors (≥).</p>
-      ${rule}
-      <p class="fine">Open a model to read every report it holds.</p>
+      <p class="fine">Open a job, then a model, to read every report it holds.</p>
     </aside>`;
+}
+
+/** The ONE sentence a job page must carry about its own order (rule 3, #472:
+ *  "the page says in words what the order rewards"). The full statement is on
+ *  the Jobs tab; this is not a summary of it that may drift, it is the part the
+ *  rule requires on the page itself. */
+function jobOrderLine(){
+  return `<p class="orderline">Models with a report of it working come first, those whose
+    reports more consistently say it worked ahead; then only-neutral, then problems only.
+    No score is shown. <a data-go="board:best">How this list is ordered</a></p>`;
+}
+
+/** "What counts here" is the extractor's `definition`, LABELLED as its counting
+ *  rule. It was rendered as the page's description, and it is not one: the
+ *  extractor is told to write the test a report has to meet. Below the list,
+ *  because it is the fine print of how rows got onto it. */
+function jobRule(j){
+  if(!j.rule) return '';
+  return `<div class="shell jobrule"><h3>What counts here</h3><p>${esc(j.rule)}</p>
+    <p class="fine">The extractor’s counting rule: the test a report had to meet to be filed
+    under this job. It is not a description of the job.</p></div>`;
 }
 
 function vJob(slug){
@@ -603,28 +625,26 @@ function vJob(slug){
   // slice with nothing on the page saying it was a slice. Every one of those
   // reports is now on the page of the model it was reported about, and this
   // page is the way to them.
-  // THE PAGE SHAPE (2026-09-25): a full-width lead saying what the job IS, one
-  // line of figures, then the list with the rules beside it in small print.
-  // The ~800-character ordering paragraph used to sit above the list at 64ch,
-  // identical on every job page but for the numbers, and the page read as a
-  // wall of text above a grid. The rules are still ON THE PAGE - rule 3 (as
-  // amended, #472) requires the words, and hiding them behind a toggle would
-  // mean most readers never saw them - just beside the list instead of above.
+  // THE PAGE SHAPE (2026-09-28): a full-width lead saying what the job IS, one
+  // line of figures, one sentence on the order, then the list at full width.
+  // The full ordering statement is on the Jobs tab beside the cards, once,
+  // rather than in a side column repeated on all 98 pages. What stays here is
+  // what rule 3 (as amended, #472) requires of THIS page: the words saying what
+  // its order rewards.
   //
   // THREE KINDS OF TEXT, KEPT APART:
   //   the job        `about`, hand-written (contract/job_about.yaml), or nothing
   //   the evidence   the stat line, the group headings, each row's counts
-  //   the rules      the side column: how the list is ordered, what counts here
+  //   the rules      the order line, and "What counts here" below the list
   return `<div class="shell phead jobhead">${crumb([['Board','board'],['Jobs','board:best'],[j.name,null]])}
     <h1>${esc(j.h1)}</h1>
     ${j.about ? `<p class="lead">${esc(j.about)}</p>` : ''}
-    ${jobStatLine(j)}</div>
+    ${jobStatLine(j)}
+    ${j.rows && j.rows.length ? jobOrderLine() : ''}</div>
     ${j.pick ? sec('The pick','','',`<div class="defbox"><div class="l">${ev}</div>
       <p><b>${esc(w)}</b> at ${esc(pr)}.</p><p>${esc(why)}</p></div>`) : ''}
-    <div class="shell jobbody">
-      <div class="joblist">${ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j)}</div>
-      ${jobAside(j)}
-    </div>
+    <div class="shell">${ranked(j.rows,'jobmodel:'+j.slug) + orphanNote(j)}</div>
+    ${jobRule(j)}
     ${sec('Conditions that change the answer','Where the pick stops holding',
       'Most disagreements between engineers are condition mismatches rather than contradictions. These are the ones the reports keep naming.',conds(j.conds))}
     ${sec('Related','','',related(j.rel))}`;

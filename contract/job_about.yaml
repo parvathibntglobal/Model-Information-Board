@@ -13,27 +13,26 @@
 # ⚠ A JOB WITH NO ENTRY SHOWS NO LEAD LINE. That is the intended state rather
 #   than a gap to fill with the extractor's text. The extractor's `definition`
 #   is the TEST a report has to meet to be filed here (judge/extract/schema.py
-#   instructs it so); it now renders in the page's side column under "What
-#   counts here", labelled as the extractor's counting rule, and is never shown
-#   as a description.
+#   instructs it so); it renders below the list under "What counts here",
+#   labelled as the extractor's counting rule, and is never shown as a
+#   description.
 #
 # KEYS are board slugs as the page resolves them (after rulings). A key the
 # board does not currently show renders nothing and is not an error.
 #
-# SELECTION, 2026-09-25, and it is a stated rule rather than a ranking: only 13
-# of 98 job pages had two or more reports, and everything below that was a
-# 1-report tie. So: the 13 with two or more reports, less two that are not jobs,
-# plus nine single-report jobs chosen as the most general (three of them have a
-# hand-written exemplar in board_surfaces.yaml already).
+# COVERAGE: every job page the board showed on 2026-09-28, 98 of 98 (staging,
+# read-only). A job that appears after that has no entry until somebody writes
+# one, and shows no lead line until then.
 #
-#   not written, and why
-#     reasoning          a capability filed as a job; its page belongs under
-#                        Capabilities, and describing it as a job would ratify
-#                        the misfiling
-#     general-purpose    a catch-all (on slug_parents.yaml's forbidden list as a
-#                        parent name); there is no subject to describe
+# ⚠ SOME OF THESE SLUGS ARE NOT REALLY JOBS, AND DESCRIBING THEM DOES NOT RULE
+#   ON THEM. `reasoning`, `agentic-tool-use` and `instruction-following` are
+#   capabilities filed as jobs; `general-purpose` is a catch-all; `api-usage`,
+#   `local-inference` and `value-for-price` describe how a model is run or paid
+#   for; `quick-one-shot-work`'s counting rule is a verdict about an unnamed
+#   model. Each gets a neutral description of its subject so the page is not
+#   blank; whether the slug should exist is a `ruling`, and is not decided here.
 #
-# Drafted 2026-09-25 for @parvathibntglobal's review.
+# Drafted 2026-09-25 (20) and 2026-09-28 (78) for @parvathibntglobal's review.
 
 version: 1
 
@@ -124,3 +123,276 @@ about:
     Code editing is changing an existing codebase: fixing a bug, adding a feature or
     refactoring, where the model has to understand code it did not write and keep
     the rest working.
+  reasoning: >-
+    Reasoning is working a problem through several dependent steps, such as a
+    proof, a diagnosis or a plan, where a slip early on makes the conclusion
+    wrong. People use a model for it when the answer cannot simply be looked up.
+  general-purpose: >-
+    General-purpose use is relying on one model for whatever comes up in a day,
+    from questions and drafting to small coding and analysis tasks, rather than
+    choosing a model for a specific job.
+  3d-art: >-
+    3D art is creating and editing 3D models, scenes and assets for games, film,
+    illustration or printing, usually by driving a 3D tool or writing the scene
+    as code.
+  3d-asset-generation: >-
+    3D asset generation is producing meshes, models and similar assets from a
+    text description or a reference image, for use in games, visualisation or
+    prototyping.
+  3d-modeling: >-
+    3D modeling is building scenes, objects and environments in tools like
+    Blender, often by having a model write the scripts that construct them.
+  adversarial-review: >-
+    Adversarial review is attacking a claim, a finding or an explanation to find
+    the input or argument that would defeat it, rather than checking that it
+    reads well.
+  agentic-development: >-
+    Agentic development is handing a model a software task it plans and carries
+    out on its own, using tools and running code, with a person checking the
+    result rather than each step.
+  agentic-systems: >-
+    Building agentic systems is designing software in which models plan and carry
+    out multi-step tasks with tools: the loop, the tools, the memory and the
+    checks around them.
+  agentic-testing: >-
+    Agentic testing is end-to-end testing driven by an agent that looks at the
+    interface, decides what to do next and checks whether a goal was reached,
+    instead of following a fixed script.
+  agentic-tool-use: >-
+    Agentic tool use is a model choosing and calling tools, such as search, code
+    execution or company APIs, across a loop of many steps, and using what each
+    call returns to decide the next.
+  api-usage: >-
+    API usage is calling a model programmatically from your own code, paying per
+    token, rather than through a subscription or a chat interface. It is how
+    models are built into products and pipelines.
+  application-use: >-
+    Application use is embedding a model inside a product, behind a feature
+    rather than a chat window, where per-request cost, latency and predictable
+    output decide what is usable.
+  biology: >-
+    Biology work is answering and reasoning about biological and biomedical
+    questions: mechanisms, experiments, sequences and the literature around them.
+  browser-control: >-
+    Browser control is a model driving a web browser, navigating, clicking,
+    filling forms and reading pages, to complete a task on sites that offer no
+    API.
+  buildroot-system-setup: >-
+    Buildroot system setup is configuring, building and troubleshooting embedded
+    Linux images with Buildroot: toolchains, packages, board configuration and
+    the errors in between.
+  business-simulation: >-
+    Business simulation is running a simulated business over time, making
+    operational and financial decisions and living with their consequences. It is
+    used as a test of long-running planning and judgement.
+  business-software-development: >-
+    Business software development is building custom internal applications from a
+    specification: forms, data models, workflows and views for how a particular
+    organisation works.
+  cad-design: >-
+    CAD design is producing or modifying precise 3D parts, often as STL files or
+    parametric code, for functional or hobby 3D printing and manufacturing.
+  chat: >-
+    Chat is a general conversational assistant behind a customer-facing or
+    internal chat feature, answering questions and holding a conversation.
+  chatbots: >-
+    Chatbots are conversational interfaces for customer support, Q&A and general
+    dialogue, where the model has to stay on topic, stay polite and know when to
+    hand over.
+  chinese-language: >-
+    Chinese-language work is reading and writing Chinese for production use,
+    where idioms, regional variation and cultural context matter as much as
+    grammar.
+  chinese-language-work: >-
+    Chinese-language work is producing output in Chinese with the right idiom,
+    register and business terminology, for documents, marketing and
+    communication.
+  chinese-ocr: >-
+    Chinese OCR is reading Chinese text from screenshots, photos and scanned
+    documents, including mixed scripts, dense layouts and handwriting.
+  chip-design: >-
+    Chip design is producing chip layouts and driving electronic design
+    automation (EDA) toolchains, from specification through synthesis and
+    verification.
+  classification-extraction: >-
+    Classification and extraction is the high-volume work of tagging text with
+    labels and pulling fields out of it into a fixed structure, where cost per
+    item and consistency matter most.
+  code-audit: >-
+    A code audit is inspecting a whole repository and producing an
+    evidence-backed account of bugs, missing pieces and reliability risks, rather
+    than reviewing a single change.
+  code-porting: >-
+    Code porting is moving code from one language, framework or paradigm to
+    another while keeping its behaviour the same.
+  coding-assistance: >-
+    Coding assistance is a model working alongside a developer in an interactive
+    loop, suggesting, explaining, reviewing and editing code while the developer
+    stays in control.
+  coding-assistants: >-
+    Coding assistants are tools that help developers write, debug and refactor
+    code interactively, usually inside an editor or a chat panel.
+  companion-app-development: >-
+    Companion app development is building the mobile, desktop or web app that
+    sits alongside an existing system, giving its users a way to see and act on
+    it from their own device.
+  compiler-development: >-
+    Compiler development is writing compilers and code-generation tooling, such
+    as parsers, optimisation passes and back ends for specific hardware like GPUs.
+  computational-biology: >-
+    Computational biology is heavy data analysis in the life sciences, such as
+    evolutionary, genomic and statistical work, usually written as code and run
+    at scale.
+  content-rewriting: >-
+    Content rewriting is reworking existing text, such as product descriptions,
+    marketing copy and documentation, so that it reads differently but keeps its
+    meaning and quality.
+  conversational-ui: >-
+    Conversational UI is an interface people talk or type to, such as an
+    interactive agent or chat feature, where response speed shapes the
+    experience as much as the answer.
+  data-consistency-checking: >-
+    Data consistency checking is testing whether an explanation, a summary or a
+    claim agrees with the data and results it is supposed to describe.
+  desktop-automation: >-
+    Desktop automation is a model operating desktop software through its
+    interface, reading windows, clicking buttons and typing into fields, to
+    complete repetitive tasks.
+  document-analysis: >-
+    Document analysis is reading long documents, such as contracts and filings,
+    to answer questions that need several passages combined, and to find where
+    they contradict each other.
+  driving: >-
+    Driving is operating a vehicle in real road conditions, handling traffic,
+    unusual situations and decisions that have to be made in real time.
+  finance: >-
+    Finance work is analysis and automated workflows over financial data, such as
+    statements, models, filings and market data, where a wrong figure is
+    expensive.
+  frontend-testing: >-
+    Frontend testing is checking a user interface by using it as a person would,
+    clicking through flows and confirming what appears on screen.
+  game-development: >-
+    Game development is building interactive games: game logic, physics and
+    collision, rendering and the loop that ties them together.
+  general-purpose-chat: >-
+    General-purpose chat is open-ended conversation, questions and everyday help,
+    with no task-specific setup or tuning.
+  incident-analysis: >-
+    Incident analysis is working out what happened during an outage by
+    correlating logs, metrics and deployment history into a timeline and a likely
+    cause.
+  instruction-following: >-
+    Instruction following is doing what was asked and only that: keeping to the
+    stated constraints, including what not to do, over a long exchange.
+  legacy-code-revival: >-
+    Legacy code revival is bringing old code back to life, porting, fixing or
+    rebuilding software that no longer compiles or runs on current systems.
+  local-inference: >-
+    Local inference is running a model on your own hardware, such as a laptop, a
+    desktop GPU or a small server, with no cloud dependency, usually for privacy,
+    cost or offline use.
+  long-horizon-agent: >-
+    A long-horizon agent is an agent loop that runs for hours or days, producing
+    versioned work, surviving restarts and keeping track of the project it is
+    part of.
+  long-horizon-software-engineering: >-
+    Long-horizon software engineering is complex, multi-step engineering work,
+    such as a large feature or a migration, carried out over many sessions rather
+    than in one prompt.
+  math: >-
+    Math is solving mathematical problems, from applied calculation to
+    competition-level problems and proofs.
+  meeting-summarization: >-
+    Meeting summarization is turning meeting notes or transcripts into action
+    items, decisions and status updates that people who were not there can use.
+  multi-file-refactoring: >-
+    Multi-file refactoring is restructuring code across many files of a
+    repository, such as renames, migrations and API changes, without breaking
+    what depends on it.
+  multi-lingual-inference: >-
+    Multilingual inference is working in languages other than English, and often
+    other than Chinese, where training data is thinner and quality varies by
+    language.
+  multi-tool-agents: >-
+    Multi-tool agents orchestrate several tool servers, often three or more MCP
+    servers, in a single agent loop, choosing between them and combining their
+    results.
+  personal-chatbot: >-
+    A personal chatbot is a bot that replies as a specific person, in their
+    voice, inside a messaging app.
+  presentation-creation: >-
+    Presentation creation is building slide decks, often from template slides,
+    while keeping tone, layout and branding consistent.
+  product-photography: >-
+    Product photography is generating advertising-style product images from a
+    product photo and a description of the shoot, instead of staging the shoot.
+  programming: >-
+    Programming is writing, debugging and refactoring code in general, across
+    languages and project types.
+  proof-based-programming: >-
+    Proof-based programming is writing code together with a formal proof that it
+    satisfies stated properties, in a proof language or proof assistant.
+  quick-one-shot-work: >-
+    Quick one-shot work is a single request answered in one go, with no
+    follow-up and no agent loop, where turnaround time matters more than depth.
+  research-assistant: >-
+    A research assistant gathers and synthesises information on a question, such
+    as sources, summaries and an outline, for a person to check and edit.
+  roleplaying: >-
+    Roleplaying is interactive, character-driven storytelling in which the model
+    takes on a persona and stays in character as the conversation goes on.
+  sales-call-prep: >-
+    Sales call prep is pulling together what is known about a prospect, from the
+    CRM, the calendar and the web, into a briefing before a call.
+  security-review: >-
+    Security review is examining code or a system design for weaknesses and
+    giving adversarial feedback on how it could be attacked.
+  sentence-extraction: >-
+    Sentence extraction is splitting a document into its individual sentences, a
+    preprocessing step that has to cope with abbreviations, lists and
+    formatting.
+  sprite-generation: >-
+    Sprite generation is producing pixel-art sprites for games, often by having
+    the model drive a pixel editor such as Aseprite.
+  support-triage: >-
+    Support triage is reading an incoming support ticket, attaching context from
+    billing and bug trackers, and summarising it before a person picks it up.
+  tax-preparation: >-
+    Tax preparation is reading tax documents, extracting the figures they hold
+    and entering them into the right forms.
+  terraform-code-generation: >-
+    Terraform code generation is writing infrastructure-as-code in Terraform from
+    a description of the infrastructure wanted.
+  ui-prototyping: >-
+    UI prototyping is producing several interface design concepts side by side
+    and iterating on them until one is settled on.
+  value-for-price: >-
+    Value for price is weighing what a model delivers against what it costs to
+    run, per token, per task or per month.
+  video-editing: >-
+    Video editing is cutting and finishing video through automated workflows,
+    such as trimming, effects and other repetitive edits.
+  video-processing: >-
+    Video processing is taking video in as input and reasoning over it, such as
+    describing it, answering questions or extracting events, often in a single
+    prompt.
+  visual-exploration: >-
+    Visual exploration is trying out a product's visual identity: artwork, styles
+    and aesthetic directions, before one is chosen.
+  voice-pipeline: >-
+    A voice pipeline joins speech-to-text, a language model and text-to-speech
+    into one system for voice agents, where latency across the whole chain
+    matters.
+  vulnerability-detection: >-
+    Vulnerability detection is finding security flaws in a codebase, whether by
+    reading the code, running tools over it or both.
+  web-and-mobile-development: >-
+    Web and mobile development is building web applications, mobile apps and the
+    backend services behind them.
+  website-creation: >-
+    Website creation is building sites for small and medium businesses: pages,
+    content, forms and the basics of hosting them.
+  writing: >-
+    Writing is drafting prose, such as articles, posts and documentation, from a
+    brief.

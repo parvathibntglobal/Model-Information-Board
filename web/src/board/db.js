@@ -481,13 +481,14 @@ export function setBoardData(payload) {
     // this role, because it is not a description.
     about: j.about || null,
     // THE EXTRACTOR'S COUNTING RULE: the test a report had to meet to be filed
-    // here. Rendered in the side column under "What counts here", labelled as
-    // what it is. `board_sections` picks the text most rows carry, so it does
-    // not change with each new report.
+    // here. Rendered below the list under "What counts here", labelled as what
+    // it is. `board_sections` picks the text most rows carry, so it does not
+    // change with each new report.
     rule: j.definition || '',
-    // The Jobs-tab card describes the job, so it gets `about` or nothing - not
-    // the counting rule wearing a description's place.
-    card: j.about || '',
+    // The Jobs-tab card carries the name and the counts and NO text. Ninety-eight
+    // cards each with a paragraph read as a wall (2026-09-28 review); the
+    // description is one click away, on the job's own page.
+    card: '',
     pick: null, // hand-written editorial; omitted rather than invented
     conds: [],
   }))

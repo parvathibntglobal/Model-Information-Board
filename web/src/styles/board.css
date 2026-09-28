@@ -74,8 +74,9 @@
 .rank-group b{color:var(--text);font-weight:600;margin-right:8px}
 .rank-group span{font:400 .72rem var(--mono);color:var(--text-3)}
 
-/* The job page (2026-09-25): a full-width lead, one line of figures, then the
-   list with its ordering rules beside it in small print rather than above it.
+/* The job page (2026-09-28): a full-width lead, one line of figures, one
+   sentence on the order, then the list at full width. The full ordering
+   statement is `.jobbody`/`.jobaside`, beside the cards on the Jobs tab.
    `.phead .sub` and `.sec-h` capped the old header text at 64-66ch - half the
    1240px shell - while the list below used all of it. */
 .jobhead .lead{color:var(--text-2);font-size:1.08rem;line-height:1.6;max-width:110ch;margin:4px 0 0}
@@ -88,9 +89,18 @@
 .jobaside h3:not(:first-child){margin-top:20px}
 .jobaside p{margin:0 0 9px}
 .jobaside .fine{font-size:.78rem;color:var(--text-3)}
-/* Narrow screens: the rules move above the list, still visible, still small. */
+/* The job page's one sentence on its own order (rule 3), linking to the full statement on the Jobs tab. */
+.orderline{margin:10px 0 0;max-width:110ch;font-size:.84rem;line-height:1.55;color:var(--text-3)}
+.orderline a{cursor:pointer;color:var(--info);white-space:nowrap}
+.orderline a:hover{text-decoration:underline}
+/* "What counts here", below the list: the fine print of how a row got onto it. */
+.jobrule{padding:6px 0 30px;font-size:.84rem;line-height:1.55;color:var(--text-2)}
+.jobrule h3{font:600 .7rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:0 0 8px}
+.jobrule p{margin:0 0 6px;max-width:110ch}
+.jobrule .fine{font-size:.78rem;color:var(--text-3)}
+/* Narrow screens: the ordering panel drops below the Jobs cards, still visible. */
 @media(max-width:1000px){.jobbody{grid-template-columns:1fr;gap:18px}
-  .jobaside{position:static;order:-1;border-left:0;padding-left:0;border-bottom:1px solid var(--border);padding-bottom:14px}}
+  .jobaside{position:static;border-left:0;padding-left:0;border-top:1px solid var(--border);padding-top:14px}}
 @media(max-width:660px){.rank{grid-template-columns:14px 1fr}.rank .right{grid-column:2;text-align:left;margin-top:8px}}
 
 .conds{margin:0;padding:0;list-style:none;max-width:72ch}
