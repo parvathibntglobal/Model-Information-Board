@@ -2443,10 +2443,10 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     )
 
     # CAPABILITY DISCOVERY. Proposals the extractor made for keys none of the 12
-    # named — appended to capability_candidate for an admin to rule on. The LLM
-    # proposes; a person adopts (a capabilities.yaml PR). Idempotent, so a
-    # re-fetch cannot inflate the count.
-    from judge.store.capability_candidates import store_proposals
+    # named. They used to be appended to `capability_candidate` for an admin to
+    # rule on; nothing stores them now (#434, see E5b below). Still counted,
+    # because how many the extractor proposes is a fact about the run whether
+    # or not anybody files them.
     proposals = [p for r in results for p in r.extraction.proposed_capabilities]
 
     # WHAT THE BOARD ACTUALLY DISCOVERED, counted by section and reported FIRST.
@@ -2580,41 +2580,49 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             detail=("no section named on any of the three surfaces - the quotes "
                     "that verified described no job, no behaviour and no figure"),
         )
-    # The store must never break a fetch. If the migration has not reached this
-    # database yet, the proposals are named in the log and dropped for this run
-    # rather than crashing extraction on a missing table.
-    table_present = conn.execute(
-        "SELECT to_regclass('public.capability_candidate')"
-    ).fetchone()[0] is not None
-    if proposals and table_present:
-        outcome = store_proposals(
-            conn, proposals,
-            proposer_model=extractor_model(),
-            prompt_label="fetch-extract",
-        )
-        conn.commit()
-        prog.stage("E5b", "Capability keys (legacy cell score)", "ok",
-                   proposed=outcome["proposed"], stored=outcome["stored"],
-                   unattributed=outcome["unattributed"],
-                   detail=f"{outcome['proposed']} proposal(s) against the ratified twelve; "
-                          f"{outcome['stored']} new candidate(s) stored for review. "
-                          f"SEPARATE from the board's sections above: this feeds the "
-                          f"legacy cell score, which is keyed to a closed vocabulary"
-                          + (f", {outcome['unattributed']} unattributable"
-                             if outcome["unattributed"] else ""))
-    elif proposals and not table_present:
-        prog.stage("E5b", "Capability keys (legacy cell score)", "skipped",
-                   proposed=len(proposals),
-                   keys=sorted({p.proposed_key for p in proposals}),
-                   detail=f"{len(proposals)} capability proposal(s) NOT stored: the "
-                          "capability_candidate table is not on this database yet "
-                          "(migration unapplied). Proposed keys: "
-                          + ", ".join(sorted({p.proposed_key for p in proposals})[:8]))
-    else:
-        prog.stage("E5b", "Capability keys (legacy cell score)", "ok",
-                   detail="no new key proposed — every claim fitted one of the ratified "
-                          "twelve. Says nothing about the board, which discovered its "
-                          "sections above without a list")
+    # ⚠ NOTHING IS STORED HERE ANY MORE (#434). `capability_candidate` was the
+    #   queue behind the Capability candidates admin panel, and that panel was
+    #   removed 2026-09-24 when capabilities stopped getting a review surface
+    #   the other board sections do not have. The queue outlived its reader by
+    #   four days and kept filling.
+    #
+    #   Measured on staging 2026-09-24, which is why it is a queue and not a
+    #   record:
+    #
+    #       capability_candidate     223 rows, 0 EVER RULED ON
+    #       of e5.5's 53 keys         24 already exist as a board slug
+    #                                    metric.osworld      beside  osworld
+    #                                    capability.computer_use beside computer-use
+    #                                 the rest mostly benchmark NAMES, which is
+    #                                 what a `metric` entry is already for
+    #
+    #   One observation written into two vocabularies, and only the open one
+    #   renders. `capability_key` is the CLOSED twelve and feeds the legacy
+    #   cell score; `board_entry.slug` is open and needs no ruling.
+    #
+    # ⚠ THE 223 ROWS STAY. 17 of the 28 keys with no matching board slug came
+    #   from a document that produced NO board entry, so those observations
+    #   exist in exactly one place — safety.instruction-manipulation,
+    #   alignment.concealment and the rest. Stopping the writer does not touch
+    #   them, and deleting them was explicitly asked against.
+    #
+    # ⚠ AND THE EXTRACTOR IS STILL ASKED FOR THEM, which is the half this does
+    #   not fix. `proposed_capabilities` is still in the schema and still in
+    #   the prompt, so the tokens are still spent and the answer is now
+    #   discarded rather than filed. Removing the field changes what the model
+    #   is asked to produce — a prompt change and a provenance change, not a
+    #   constant edit — so it is a separate decision and stays on #434.
+    #
+    # RULE 4: A CAUSED ABSENCE SAYS IT WAS CAUSED. The stage still reports,
+    # because a stage that vanishes reads as a stage that found nothing.
+    prog.stage("E5b", "Capability keys (legacy cell score)", "ok",
+               proposed=len(proposals),
+               keys=sorted({p.proposed_key for p in proposals})[:8],
+               detail=(f"{len(proposals)} proposal(s) against the ratified twelve, "
+                       f"NOT STORED — the panel that ruled on them was removed "
+                       f"(#434) and the queue was filling with nothing reading it. "
+                       f"The board's own sections, discovered above without a "
+                       f"list, are unaffected"))
 
     prog.stage("E6", "Vet", "ok",
                detail="hard rejection ran over every document: promotional, affiliate and "
