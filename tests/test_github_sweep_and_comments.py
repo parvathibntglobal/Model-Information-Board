@@ -475,15 +475,19 @@ class TestTheThirdAssemblyShape:
         five-comment thread."""
         from collect.assemble.issue import MAX_ISSUE_COMMENTS, assemble_issue_thread
 
+        # Four MORE than the cap, whatever the cap is. This said 9 when the cap
+        # was 5; the cap is now `child_ranking.max_children` (25) and 9 comments
+        # no longer reach it, so the test could not see a cap at all.
+        held = MAX_ISSUE_COMMENTS + 4
         assembled = assemble_issue_thread(
             root_document_id="doc_issue",
             root_text="gpt-5.2 drops arguments",
-            comments=self._comments(9),
-            comment_count=9,
+            comments=self._comments(held),
+            comment_count=held,
             store=self._store(tmp_path),
             version_aliases={},
         )
-        assert assembled.observed_children == 9
+        assert assembled.observed_children == held
         assert len(assembled.member_document_ids) == MAX_ISSUE_COMMENTS + 1
         assert assembled.hidden_children_min == 0
 
@@ -534,6 +538,6 @@ class TestTheThirdAssemblyShape:
             body="I tried it: `TypeError: tool_choice` after 3 calls at 128k tokens.",
             score=None,
         )
-        ranked = rank_children([plain, specific], version_aliases=set())
+        ranked = rank_children([plain, specific], version_aliases=set(), root_text="")
         assert ranked[0].member is specific, "id order would have put `plain` first"
         assert ranked[0].score > 0
