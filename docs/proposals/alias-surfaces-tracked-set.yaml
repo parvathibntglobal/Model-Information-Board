@@ -503,15 +503,50 @@ proposals:
       - qwen3.7flash                  # mechanical, unattested
     incomplete: [family_surface]
 
+  # ── PROPOSED 2026-09-29 — the deepseek-v4-flash split, awaiting @parvathibntglobal
+  #    sign-off. A CURATION DECISION, not an attested count, which is why it is
+  #    `seated_by: reviewed` and why `reviewed_by`/`reviewed_on` are unset until
+  #    she signs.
+  #
+  #    THE OLD -0731 ENTRY (below) CARRIED THE UNDATED SURFACES AS WELL AS ITS
+  #    DATED ONES. The undated id `deepseek/deepseek-v4-flash` resolves to the
+  #    0423 snapshot (`model_version` mv_6d0dcdfbe2d7fa18; it is also the pinned
+  #    extractor — judge/extract/client.py — and the model #499 put on the page).
+  #    So an undated mention (`deepseek v4 flash`, `deepseek-v4-flash`,
+  #    `deepseekv4flash`) attaches to 0423, NOT to the dated -0731 build. Those
+  #    three forms move here; -0731 keeps only its dated surfaces.
+  #
+  #    `deepseek v4` IS DELIBERATELY NOT A VARIANT of either entry. It is the bare
+  #    family word — the permanent `family_surface` INCOMPLETE slot, attributable
+  #    to no single model — and it named 31 ambiguous threads that mention no
+  #    specific model. It also lives as a live fallback variant in
+  #    contract/seed_models.yaml; this proposal drops it there too, so a Flash
+  #    harvest projects to 83 clean threads rather than 114 (the 31 family-only
+  #    threads fall away). All three forms above stay unattested: the 0423 model
+  #    is attested in the corpus (via the resolver, #492), but these surface
+  #    STRINGS were not observed as exact matches — reassigning them is the review
+  #    act, not a mention count.
+  - canonical_id: deepseek/deepseek-v4-flash
+    status: reviewed
+    seated_by: reviewed
+    reviewed_by:                      # ← @parvathibntglobal, on sign-off
+    reviewed_on:                      # ← sign-off date
+    surface: deepseek v4 flash        # undated vendor-drop form; resolves to the 0423 snapshot — reassigned from -0731, 2026-09-29
+    variants:
+      - deepseek-v4-flash             # mechanical, unattested — undated, reassigned from -0731
+      - deepseekv4flash               # mechanical, unattested — undated, reassigned from -0731
+    incomplete: [family_surface]
+
+  # -0731 KEEPS ONLY ITS DATED SURFACES after the split above. Its one attested
+  # surface (`deepseek flash 0731`, 3 mentions [slice 3]) is dated and stays; the
+  # undated forms moved to the 0423 entry. Its `status`/`seated_by` are unchanged
+  # — still attested, still below the mention floor and inside the launch window.
   - canonical_id: deepseek/deepseek-v4-flash-0731
     status: attested
     seated_by: launch-window          # inside the launch window AND below the mention floor: attested, but not by enough to seat it
-    surface: deepseek v4 flash        # by rule (vendor-drop), unattested — reseated 2026-08-19
+    surface: deepseek v4 flash 0731   # by rule (vendor-drop) + dated, unattested — undated forms moved to the 0423 entry, 2026-09-29
     variants:
       - deepseek flash 0731           # attested 3 mentions [slice 3]; DEMOTED — a bare date matches most loosely
-      - deepseek-v4-flash             # mechanical, unattested
-      - deepseekv4flash               # mechanical, unattested
-      - deepseek v4 flash 0731        # mechanical, unattested
       - deepseek-v4-flash-0731        # mechanical, unattested
       - deepseekv4flash0731           # mechanical, unattested
     incomplete: [family_surface]

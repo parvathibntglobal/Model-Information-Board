@@ -34,22 +34,23 @@ def _rows(policy: AliasSearchPolicy | None = None):
 
 
 def test_query_budget_is_pinned_not_capped():
-    """59 strings x 12 capabilities = 708 queries, about 24 minutes on GitHub.
+    """58 strings x 12 capabilities = 696 queries, about 23 minutes on GitHub.
 
     Pinned rather than bounded on purpose. Widening the alias list is a
     legitimate thing to do, and when somebody does it this test fails with
     the new number instead of silently absorbing it. A budget that quietly
     absorbs growth is how a harvest ends up truncated (FR-11).
 
-    It has earned its keep twice. Item 10 added `deepseekv4flash` and it
+    It has earned its keep three times. Item 10 added `deepseekv4flash` and it
     reported the cost as 54 -> 55 strings. Item 8 added an eleventh model
-    and it reported 55 -> 59. Neither passed unnoticed, and 708 against the
-    plan's 600 is a measured overrun rather than a discovered one.
+    and it reported 55 -> 59. Then dropping the bare family word `deepseek v4`
+    (2026-09-29, a proposal awaiting sign-off) reported 59 -> 58 — a saving,
+    the same mechanism working the other direction. None passed unnoticed.
     """
     queries = search_queries(_rows())
-    assert len(queries) == 59
-    assert len(queries) * CAPABILITIES == 708
-    assert round(len(queries) * CAPABILITIES / GITHUB_REQ_PER_MIN) == 24
+    assert len(queries) == 58
+    assert len(queries) * CAPABILITIES == 696
+    assert round(len(queries) * CAPABILITIES / GITHUB_REQ_PER_MIN) == 23
 
 
 def test_no_query_string_is_issued_twice():
@@ -125,7 +126,10 @@ def test_permissive_policy_restores_the_old_budget():
     strings, 648 queries and 22 minutes now.
     """
     permissive = AliasSearchPolicy(declared_surfaces_only=False, expand_mechanically=True)
-    assert len(search_queries(_rows(permissive))) == 161
+    # Was 161; 158 since 2026-09-29, when the bare family word `deepseek v4` was
+    # dropped (a proposal awaiting sign-off). It fell by 3 rather than 1 because
+    # under permissive+mechanical each hand variant expands into three spellings.
+    assert len(search_queries(_rows(permissive))) == 158
 
 
 def test_mechanical_expansion_only_widens_search():

@@ -465,7 +465,12 @@ models:
     max_output_tokens: 384000        # was 8192
     aliases:
       surface: "deepseek v4 flash"
-      variants: ["deepseek-v4-flash", "deepseekv4flash", "v4 flash", "deepseek v4"]
+      # 'deepseek v4' dropped 2026-09-29 (proposal, needs sign-off): it is the bare
+      # family word, not a model surface — it named 31 ambiguous threads that
+      # mention no specific model. The three styles the spelling check requires
+      # remain (spaced surface, hyphenated, concatenated). See the split in
+      # docs/proposals/alias-surfaces-tracked-set.yaml.
+      variants: ["deepseek-v4-flash", "deepseekv4flash", "v4 flash"]
     sources:
       price_in:           { url: "https://api-docs.deepseek.com/quick_start/pricing", retrieved_at: "2026-08-13", provider_page: true }
       price_out:          { url: "https://api-docs.deepseek.com/quick_start/pricing", retrieved_at: "2026-08-13", provider_page: true }
