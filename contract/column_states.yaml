@@ -979,8 +979,11 @@ columns:
       reviewed: false
       state: read
     valid_from:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: first reader is collect/registry/seat.py table_claims (#455) - seat() and tracked_load.plan()
+        compare a new alias against every row other models hold, over overlapping [valid_from, valid_until)
+        windows, NULL valid_from read as open-ended; written by collect/registry/load.py _sync_alias
     valid_until:
       reviewed: false
       state: read

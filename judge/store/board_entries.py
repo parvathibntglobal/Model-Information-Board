@@ -1105,6 +1105,15 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
                 # whose title flips between `exploitbench` and `exploit-bench`
                 # as evidence arrives has a URL that changes for no reason.
                 "_spellings": {},
+                # ⚠ THE DEFINITION SHOWN IS THE ONE MOST ROWS CARRY, not the
+                #   first row's. Rows arrive newest first, so the first row's
+                #   text changed whenever a report was filed: on 2026-09-25, 13
+                #   of 98 job pages had rows carrying more than one definition
+                #   (creative-writing six), and the page showed whichever was
+                #   newest. text -> [rows carrying it, earliest created_at];
+                #   ties go to the text written first, so a new row cannot
+                #   flip a tie.
+                "_definitions": {},
                 # SETS, COUNTED AT THE END. `reports` used to be incremented
                 # once per ROW, and a row is one quote - so three figures
                 # stated in one comment by one person counted as three
@@ -1115,6 +1124,11 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             },
         )
         bucket["_spellings"][slug] = bucket["_spellings"].get(slug, 0) + 1
+        if definition:
+            seen = bucket["_definitions"].setdefault(definition, [0, _created_at])
+            seen[0] += 1
+            if _created_at is not None and (seen[1] is None or _created_at < seen[1]):
+                seen[1] = _created_at
         bucket["_docs"].add(doc_id)
         if author_id:
             bucket["_voices"].add(author_id)
@@ -1264,6 +1278,12 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
             # rather than by dict order. This is the URL as well as the title:
             # a page whose address changed because a fourth report arrived
             # spelled differently would break every link to it.
+            definitions = item.pop("_definitions", {}) or {}
+            if definitions:
+                item["definition"] = min(
+                    definitions.items(),
+                    key=lambda kv: (-kv[1][0], kv[1][1] is None, kv[1][1] or 0, kv[0]),
+                )[0]
             spellings = item.pop("_spellings", {}) or {}
             if spellings:
                 item["slug"] = min(spellings.items(), key=lambda kv: (-kv[1], kv[0]))[0]
@@ -1637,7 +1657,171 @@ def list_for_review(conn) -> list[dict]:
             "ruled_sample": ruled_by_group.get((section, slug), []),
             "ruled": sum(n for word, n in by_ruling.items() if word != "unruled"),
         })
-    return out
+    return _fold_merged(out)
+
+
+def _fold_merged(groups: list[dict]) -> list[dict]:
+    """A wholly merged section appears UNDER the section it merged into, not beside it.
+
+    ⚠ THE LIST KEPT A MERGED SECTION AS ITS OWN ROW, and that is what made the
+      merge cycles. After merging `exploitgym` into `exploit-gym` the reviewer
+      still saw both, so merging again from the other side was the natural next
+      click - and the second merge pointed the pair at each other. Measured
+      2026-09-28: 3 cycles and 1 chain out of 9 merges, 2 clean.
+
+    Three outcomes for a section whose every row is merged:
+
+      - its target, followed to where it finally lands, is a section in this
+        list: it moves there as `merged_in`, with its own counts and its own
+        undo, and leaves the top level;
+      - following it returns to itself: it is in a CYCLE, and it stays on the top
+        level marked `merge_cycle`. The data is not repaired here - that is a
+        ruling for a person, and one undo resolves it;
+      - its target has no rows of its own: it stays where it is. There is no
+        section to fold it under, and inventing one would be a row the review
+        list made up.
+
+    ⚠ THE TARGET'S OWN COUNTS DO NOT ABSORB THE MERGED ONES. `documents` and
+      `models` are DISTINCT counts, and one document can sit under both slugs, so
+      adding them would count it twice (rule 7). The merged-in counts travel
+      separately and say whose they are.
+
+    A PARTLY merged section is untouched. Its unmerged rows still render under
+    its own name, so it is still a section with a queue.
+    """
+    by_key = {(g["section"], g["slug"]): g for g in groups}
+    edges = {
+        (g["section"], g["slug"]): g["ruling_target"]
+        for g in groups
+        if g["ruling"] == "merged" and g.get("ruling_target")
+    }
+
+    def land(key: tuple[str, str]) -> tuple[tuple[str, str] | None, list[str]]:
+        section, here = key
+        path = [here]
+        while (section, here) in edges:
+            here = edges[(section, here)]
+            if here in path:
+                return None, [*path, here]          # a cycle
+            path.append(here)
+        return (section, here), path
+
+    for g in groups:
+        g.setdefault("merged_in", [])
+        g.setdefault("merge_cycle", None)
+
+    moved: set[tuple[str, str]] = set()
+    for key in edges:
+        root, path = land(key)
+        if root is None:
+            by_key[key]["merge_cycle"] = path
+            continue
+        if root == key or root not in by_key:
+            continue
+        g = by_key[key]
+        by_key[root]["merged_in"].append({
+            "slug": g["slug"], "name": g["name"],
+            "entries": g["entries"], "documents": g["documents"],
+            "models": g["models"],
+            # The hop it was ruled to, when that is not where it landed: a merge
+            # into `osworld-2-0` that lands on `osworld-2` should say so.
+            "via": path[1:-1] or None,
+        })
+        moved.add(key)
+
+    for g in groups:
+        g["merged_in"].sort(key=lambda m: (-m["entries"], m["slug"]))
+        g["merged_in_entries"] = sum(m["entries"] for m in g["merged_in"])
+
+    return [g for g in groups if (g["section"], g["slug"]) not in moved]
+
+
+class MergeCycle(ValueError):
+    """A merge that would point two sections at each other.
+
+    A `ValueError` so every caller that already refuses a bad ruling refuses this
+    one too, and its own class so the review page can say which kind of refusal
+    it was rather than a generic "invalid".
+    """
+
+
+def _merge_edges(conn, section: str) -> dict[str, str]:
+    """`{slug: the slug it is merged into}`, for slugs that are WHOLLY merged.
+
+    ⚠ WHOLLY, NOT PARTLY. Rulings are per row (`rule_entry_ids`), so a slug can
+      have four quotes merged away and six still under its own name. Those six
+      still render, so that slug is a real place to land and must not be treated
+      as a hop to somewhere else.
+
+    ⚠ `COALESCE(ruling, '')`, NOT `ruling = 'merged'`. `bool_and` IGNORES NULLS,
+      and an unruled row's `ruling` is NULL - so a slug with one merged row and
+      nine unruled ones would otherwise read as wholly merged, and every later
+      merge would be routed past a section that is still on the board.
+    """
+    rows = conn.execute(
+        "SELECT slug, min(ruling_target) "
+        "FROM board_entry WHERE section = %s "
+        "GROUP BY slug "
+        "HAVING bool_and(COALESCE(ruling, '') = 'merged') "
+        "   AND count(DISTINCT ruling_target) = 1",
+        (section,),
+    ).fetchall()
+    return {slug: target for slug, target in rows if target}
+
+
+def resolve_merge_target(conn, *, section: str, target: str,
+                         leaving: set[str]) -> str:
+    """Where a merge into `target` actually lands, or `MergeCycle`.
+
+    ⚠ THIS DID NOT EXIST, AND THE REVIEW LIST MADE ITS ABSENCE EXPENSIVE.
+      Measured 2026-09-28: of 9 merges on the board, 2 were clean.
+
+          cycles   3   overthinking <-> over-thinking
+                       exploitgym   <-> exploit-gym
+                       osworld-2    <-> osworld-2-0
+          chain    1   osworld -> osworld-2-0 -> osworld-2
+
+      The list kept showing a merged section as its own row, so merging again
+      FROM THE OTHER SIDE was the obvious next click - and each second merge
+      pointed the pair at each other. Neither end renders once they do, because
+      each defers to the other.
+
+    Two rules, both about the target rather than the source:
+
+      - a target that is itself wholly merged is FOLLOWED to where it lands.
+        Merging into `osworld-2-0` when that already folds into `osworld-2` is a
+        merge into `osworld-2`, and saying so beats leaving a hop that renders
+        nothing;
+      - a target whose path returns to the section being merged is REFUSED.
+        That is the cycle, and there is no right answer to pick silently - the
+        reviewer has to say which name survives.
+
+    `leaving` is every slug whose rows are moving, so a per-quote merge that
+    touches two slugs is checked against both.
+    """
+    edges = _merge_edges(conn, section)
+    seen: list[str] = []
+    here = target
+    while here in edges:
+        if here in leaving or here in seen:
+            break
+        seen.append(here)
+        here = edges[here]
+    if here in leaving:
+        raise MergeCycle(
+            f"{section}/{target} is already merged into "
+            f"{' -> '.join([*seen[1:], here]) if len(seen) > 1 else here}, so "
+            f"merging {', '.join(sorted(leaving))} into it would point them at "
+            f"each other and neither would show. Undo one of the two merges first, "
+            f"then merge the other way if that is the name you want to keep."
+        )
+    if here in seen:
+        raise MergeCycle(
+            f"{section}/{target} is part of an existing merge cycle "
+            f"({' -> '.join([*seen, here])}), so nothing merged into it would show. "
+            f"Undo one of those merges first."
+        )
+    return here
 
 
 def rule_entries(conn, *, section: str, slug: str, ruling: str,
@@ -1663,6 +1847,11 @@ def rule_entries(conn, *, section: str, slug: str, ruling: str,
     target = normalise_slug(ruling_target) if ruling_target else None
     if ruling == "merged" and target == normalise_slug(slug):
         raise ValueError("cannot merge a slug into itself")
+    if ruling == "merged":
+        # FOLLOWED TO WHERE IT LANDS, and refused if that is back here. See
+        # `resolve_merge_target` for the three cycles this used to create.
+        target = resolve_merge_target(conn, section=section, target=target,
+                                      leaving={slug})
     cur = conn.execute(
         "UPDATE board_entry SET ruling = %s, ruling_target = %s, reviewed_at = now() "
         "WHERE section = %s AND slug = %s",
@@ -1714,6 +1903,21 @@ def rule_entry_ids(conn, *, ids: list[str], ruling: str,
             "evidence instead of consolidating it."
         )
     target = normalise_slug(ruling_target) if ruling_target else None
+    if ruling == "merged":
+        # THE SAME TWO RULES AS THE SLUG-LEVEL MERGE, checked against every slug
+        # the ticked quotes come from - a selection can span two, and moving a
+        # quote into a section that folds back into its own is the same cycle
+        # one row at a time.
+        found = conn.execute(
+            "SELECT DISTINCT section, slug FROM board_entry WHERE id = ANY(%s)",
+            (list(ids),),
+        ).fetchall()
+        for section in {s for s, _ in found}:
+            leaving = {slug for s, slug in found if s == section}
+            if target in leaving:
+                raise ValueError("cannot merge a quote into the section it is already in")
+            target = resolve_merge_target(conn, section=section, target=target,
+                                          leaving=leaving)
     cur = conn.execute(
         "UPDATE board_entry SET ruling = %s, ruling_target = %s, reviewed_at = now() "
         "WHERE id = ANY(%s)",

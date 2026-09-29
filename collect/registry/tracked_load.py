@@ -73,6 +73,7 @@ from collect.registry.seat import (
     SeatRefused,
     read_entry,
     rows_for,
+    table_claims,
 )
 
 #: Beside the artifact rather than in `contract/`. It is a record of a review, and
@@ -434,7 +435,11 @@ def plan(conn, manifest: Manifest, *, artifact_path: Path | None = None) -> Load
     # on row 300.
     if result.entries:
         try:
-            check_no_collisions([row for entry in result.entries for row in entry.rows])
+            union = [row for entry in result.entries for row in entry.rows]
+            # The union AND the table (#455): two entries claiming one key, or
+            # one entry claiming a key another model's row - live or closed -
+            # holds over an overlapping window.
+            check_no_collisions([*union, *table_claims(conn, (r.normalized for r in union))])
         except Exception as collision:  # AliasCollisionError, named by its own message
             result.refusals.append(
                 f"two or more entries in this manifest claim one surface: {collision}"

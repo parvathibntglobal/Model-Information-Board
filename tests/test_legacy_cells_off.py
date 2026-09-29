@@ -50,7 +50,11 @@ class TestTheSwitch:
 class TestTheExtractorIsNotAskedForTheTwelve:
     def test_the_prompt_carries_no_ratified_list(self, off):
         prompt = build_system_prompt([])
-        for gone in ("RATIFIED CAPABILITY KEYS", "ratified list", "proposed_capabilities",
+        # Both spellings of the section: main renamed it to "THE RATIFIED KEYS
+        # (`legacy_score_key`)", and checking only the old name would pass
+        # against a prompt that still carried the renamed one.
+        for gone in ("RATIFIED CAPABILITY KEYS", "RATIFIED KEYS", "legacy_score_key",
+                     "ratified list", "proposed_capabilities",
                      "stretch a quote to fit a key", "unclassified"):
             assert gone not in prompt, gone
         assert "A claim needs three things" in prompt
@@ -58,7 +62,7 @@ class TestTheExtractorIsNotAskedForTheTwelve:
 
     def test_the_legacy_prompt_is_unchanged_when_on(self):
         prompt = build_system_prompt(["code.generation"], legacy=True)
-        assert "RATIFIED CAPABILITY KEYS" in prompt
+        assert "THE RATIFIED KEYS (`legacy_score_key`)" in prompt
         assert "  - code.generation" in prompt
 
     def test_on_still_refuses_an_empty_vocabulary(self):
@@ -193,9 +197,11 @@ class _Conn:
     def execute(self, sql, *args):
         if "max(observed_at)" in sql:
             return _Rows([(None,)])
+        # cells, published, stale, stale_versions, capability_keys, then the
+        # board's entries and sections - `roster.all()` reads r[14]..r[20].
         row = ("mv_1", "Model", "acme", "acme/m", 1, 2, None, 1000, 100,
                True, False, False, False, "active",
-               3, 1, ["code.generation"], 5, {"capability": 5})
+               3, 1, 0, [], ["code.generation"], 5, {"capability": 5})
         return _Rows([row])
 
 

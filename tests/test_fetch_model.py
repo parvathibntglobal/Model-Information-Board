@@ -255,7 +255,7 @@ def test_backlog_off_reads_only_threads_naming_the_model(monkeypatch):
     With the backlog off, a thread that neither names the model nor came from
     this run's harvest is not selected - left unread for the nightly batch.
     """
-    inputs, _d, _g, _o, (named, _own) = fetch_model.build_thread_inputs(
+    inputs, _d, _g, _o, _u, (named, _own) = fetch_model.build_thread_inputs(
         _two_readable_threads(monkeypatch), seen=set(), limit=25,
         naming={"tcNamed"}, include_backlog=False)
     assert [t.thread_context_id for t in inputs] == ["tcNamed"]

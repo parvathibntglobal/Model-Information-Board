@@ -46,13 +46,60 @@ function safeHref(u) {
   } catch { return null }
 }
 
+//: How many quotes an entry shows before the rest go behind a disclosure. Four
+//: fits an entry beside its neighbours; the remainder opens, it is not dropped.
+const QUOTES_SHOWN = 4
+
+/**
+ * One verified quote, with its polarity and a link back to the source.
+ *
+ * EXTRACTED SO THE FIRST FOUR AND THE REST CANNOT DIVERGE. They were two copies
+ * of the same markup — or rather they were one copy and a count, and the count
+ * led nowhere. A reader opening the overflow must see quotes rendered exactly
+ * as the ones above them, including the link that makes a quote checkable.
+ */
+function Quote({ q }) {
+  const href = safeHref(q.url)
+  return (
+    <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+      <Badge tone={q.polarity === 'negative' ? 'fail'
+        : q.polarity === 'positive' ? 'pass' : 'mute'}>{q.polarity}</Badge>
+      <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-2)' }}>
+        “{q.quote}”
+        {/* THE SOURCE, LINKED. The payload used to carry only a document id, so
+            the quote could not be checked against what the person actually
+            wrote — which is the one thing this panel is for. */}
+        {href ? (
+          <>
+            {' '}
+            <a href={href} target="_blank" rel="noopener noreferrer"
+               className="mb-link" style={{ whiteSpace: 'nowrap' }}>
+              open the source ↗
+            </a>
+          </>
+        ) : (
+          <span className="dim" style={{ fontSize: 10 }}> · no link recorded</span>
+        )}
+      </span>
+    </div>
+  )
+}
+
 export default function ModelEvidence({ modelVersionId }) {
   const [state, setState] = useState({ data: null, err: null, unreadable: null })
+
+  // ⚠ NULL MEANS "THE READER HAS NOT CHOSEN", NOT "JOBS". The opening tab is
+  //   picked from the data once it lands — see `active` below — and a click
+  //   pins it. Storing a default here instead would open Jobs on every model,
+  //   including the ones whose Jobs section is empty and whose twelve
+  //   capabilities are one tab away and invisible.
+  const [picked, setPicked] = useState(null)
 
   useEffect(() => {
     let alive = true
     if (!modelVersionId) return undefined
     setState({ data: null, err: null, unreadable: null })
+    setPicked(null)   // a different model is a different set of empty sections
     modelEvidence(modelVersionId)
       .then((d) => alive && setState({ data: d, err: null, unreadable: null }))
       .catch((e) => alive && setState({
@@ -65,6 +112,20 @@ export default function ModelEvidence({ modelVersionId }) {
 
   const { data, err, unreadable } = state
   const totals = data?.totals ?? { sections: 0, quotes: 0 }
+
+  // One row per tab, counts included, computed once so the bar and the body
+  // cannot disagree about how many entries a section holds.
+  const tabs = SECTIONS.map(([key, title, blurb]) => ({
+    key, title, blurb, items: data?.[key] || [],
+  }))
+
+  // ⚠ OPEN ON A TAB THAT HAS SOMETHING, and fall back to the first. A fixed
+  //   default is the version where a reader lands on "Nothing named here yet"
+  //   for a model with 29 entries under the next tab, and concludes the board
+  //   has nothing. Every count is on the bar either way, so choosing a
+  //   non-empty tab hides no absence — it only stops the page opening on one.
+  const active = picked || (tabs.find((t) => t.items.length)?.key ?? tabs[0].key)
+  const shown = tabs.find((t) => t.key === active) || tabs[0]
 
   return (
     <section className="card card-flush">
@@ -109,32 +170,60 @@ export default function ModelEvidence({ modelVersionId }) {
           </p>
         )}
 
-        {/* ALL THREE, ALWAYS. Omitting an empty section made "nothing said
-            about jobs yet" indistinguishable from "this board has no jobs
-            section" — rule 4 applied to the page's own structure. An empty one
-            is listed and says so. Skipped entirely only when the model has
-            nothing at all, where the message above covers it. */}
-        {data && totals.sections > 0 && SECTIONS.map(([key, title, blurb]) => {
-          const items = data[key] || []
-          if (!items.length) {
-            return (
-              <div key={key} className="stack stack-1">
-                <span className="label">{title}</span>
-                <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0, maxWidth: '70ch' }}>
-                  Nothing named here yet. {blurb} Other sections below carry evidence, so
-                  this one is an absence rather than a gap in what the board looks for.
-                </p>
-              </div>
-            )
-          }
-          return (
-            <div key={key} className="stack stack-2">
-              <div className="stack stack-1">
-                <span className="label">{title} · {items.length}</span>
-                <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{blurb}</span>
-              </div>
+        {/* ⚠ ALL THREE TABS, ALWAYS, AND THE COUNT IS ON THE TAB. Stacked,
+            this panel showed every section including the empty ones, because
+            omitting one made "nothing said about jobs yet" indistinguishable
+            from "this board has no jobs section" — rule 4 applied to the
+            page's own structure.
 
-              {items.map((it) => (
+            TABS PUT THAT PROPERTY AT RISK, and the count is what saves it: a
+            section behind an unselected tab is hidden, so an absence would
+            cost a click to discover and would look identical to a section
+            that does not exist. `Metrics 0` on the bar is the whole fix. It
+            is why the count is never suppressed when zero, and why an empty
+            tab still renders a sentence rather than nothing. */}
+        {data && totals.sections > 0 && (
+          /* `tablist` AND `tab`, NOT THREE PRESSED BUTTONS. A chip row is a set
+             of independent toggles and announces itself that way; these are one
+             choice of three, and the roles are what carry that to a reader who
+             is not looking at the underline. */
+          <div className="tabstrip" role="tablist"
+               aria-label="Evidence by section">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                role="tab"
+                id={`evidence-tab-${t.key}`}
+                aria-selected={t.key === active}
+                aria-controls="evidence-panel"
+                onClick={() => setPicked(t.key)}
+              >
+                {t.title} <span className="x">{t.items.length}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {data && totals.sections > 0 && (
+          <div key={shown.key} className="stack stack-2"
+               id="evidence-panel" role="tabpanel"
+               aria-labelledby={`evidence-tab-${shown.key}`}>
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
+              {shown.blurb}
+            </span>
+
+            {!shown.items.length && (
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0, maxWidth: '70ch',
+                                          lineHeight: 1.6 }}>
+                <strong style={{ color: 'var(--text)' }}>Nothing named here yet.</strong>{' '}
+                The other tabs carry evidence, so this is an absence rather than a gap
+                in what the board looks for — nobody wrote about this model in these
+                terms, which is not the same as the board having nowhere to put it.
+              </p>
+            )}
+
+            {shown.items.map((it) => (
                 <div key={it.slug} className="stack stack-1"
                      style={{ borderLeft: '2px solid var(--border)', paddingLeft: 12 }}>
                   <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
@@ -189,45 +278,38 @@ export default function ModelEvidence({ modelVersionId }) {
                     </div>
                   )}
 
-                  {(it.quotes || []).slice(0, 4).map((q, i) => (
-                    <div key={i} className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-                      <Badge tone={q.polarity === 'negative' ? 'fail'
-                        : q.polarity === 'positive' ? 'pass' : 'mute'}>{q.polarity}</Badge>
-                      <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-2)' }}>
-                        “{q.quote}”
-                        {/* THE SOURCE, LINKED. The payload used to carry only a
-                            document id, so the quote could not be checked
-                            against what the person actually wrote — which is
-                            the one thing this panel is for. */}
-                        {safeHref(q.url) ? (
-                          <>
-                            {' '}
-                            <a
-                              href={safeHref(q.url)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="mb-link"
-                              style={{ whiteSpace: 'nowrap' }}
-                            >
-                              open the source ↗
-                            </a>
-                          </>
-                        ) : (
-                          <span className="dim" style={{ fontSize: 10 }}> · no link recorded</span>
-                        )}
-                      </span>
-                    </div>
+                  {(it.quotes || []).slice(0, QUOTES_SHOWN).map((q, i) => (
+                    <Quote key={i} q={q} />
                   ))}
-                  {(it.quotes || []).length > 4 && (
-                    <span className="dim" style={{ fontSize: 11 }}>
-                      +{it.quotes.length - 4} more quote(s)
-                    </span>
+
+                  {/* ⚠ "+3 MORE" WITH NOTHING BEHIND IT IS A DEAD END, and the
+                      same shape was rejected on the compare page for the same
+                      reason: it names what it is withholding and offers no way
+                      to reach it. The quotes ARE this panel — every one
+                      verified by exact substring — so the overflow opens
+                      rather than announcing itself.
+
+                      Still collapsed by default: an entry with 30 reports
+                      would otherwise bury the next entry, and the tab it sits
+                      in already made room by dropping the other two sections
+                      off the screen. */}
+                  {(it.quotes || []).length > QUOTES_SHOWN && (
+                    <details>
+                      <summary className="dim" style={{ fontSize: 11, cursor: 'pointer' }}>
+                        {it.quotes.length - QUOTES_SHOWN} more quote
+                        {it.quotes.length - QUOTES_SHOWN === 1 ? '' : 's'}
+                      </summary>
+                      <div className="stack stack-1" style={{ marginTop: 8 }}>
+                        {it.quotes.slice(QUOTES_SHOWN).map((q, i) => (
+                          <Quote key={i} q={q} />
+                        ))}
+                      </div>
+                    </details>
                   )}
                 </div>
               ))}
-            </div>
-          )
-        })}
+          </div>
+        )}
 
         {data && totals.sections > 0 && (
           <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch', lineHeight: 1.6 }}>

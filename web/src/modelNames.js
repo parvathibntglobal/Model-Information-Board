@@ -28,6 +28,15 @@ export const MODEL_NAMES = {
 }
 
 export function prettyModel(id) {
+  // ⚠ AN EMPTY ID IS A READING, NOT A MISSING LABEL. The ledger records the
+  //   model the PROVIDER named, and records nothing when it named nobody —
+  //   `judge/extract/client.py` used to copy the id we asked for into that
+  //   gap, which made one column mean two things (#481 → #381).
+  //
+  //   So this arrives here, and it must not render as an empty cell beside
+  //   real names: a blank reads as a layout fault and invites somebody to
+  //   "fix" it by restoring the fallback.
+  if (id == null || String(id).trim() === '') return 'provider named none'
   if (MODEL_NAMES[id]) return MODEL_NAMES[id]
   const slug = String(id).split('/').pop() || String(id)
   return slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())

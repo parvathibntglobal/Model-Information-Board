@@ -175,6 +175,9 @@ models:
   - name: DeepSeek V4 Pro
     registry: deepseek/deepseek-v4-pro
     kind: text
+  - name: DeepSeek V4 Flash
+    registry: deepseek/deepseek-v4-flash
+    kind: text
   - name: MiniMax M3
     registry: minimax/minimax-m3
     kind: text

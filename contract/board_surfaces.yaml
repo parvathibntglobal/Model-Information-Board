@@ -61,7 +61,10 @@ naming:
     could ever have said it, it is too narrow. If it would swallow three
     different failure modes, it is too broad.
 
-# ── SECTION 1 · BEST FOR ────────────────────────────────────────────────────
+# ── SECTION 1 · JOBS (key: best_for) ────────────────────────────────────────
+# Shown on the board as "Jobs" since #469; the key stays `best_for` everywhere
+# it is stored, sent or routed. `question` below is sent to the extractor, so
+# changing its wording is a prompt change, not a label change.
 # Answers "I have this job — which model?". A job is a TASK SOMEBODY RUNS. If it
 # cannot complete the sentence "I need a model to ___", it is not a job.
 best_for:

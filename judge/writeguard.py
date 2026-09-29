@@ -115,6 +115,35 @@ def check(url: str | None, *, command: str) -> None:
     )
 
 
+def fixture_check_required(url: str | None, *, development_write: bool) -> str | None:
+    """Why a write path must run its own fixture check, or None when it need not.
+
+    ⚠ `check()` RETURNING IS NOT A FIXTURE CHECK, and this exists because two
+      scripts read it as one. On any ENVIRONMENT other than development,
+      `check()` returns early - correctly, it refuses one pairing - and
+      `fetch_model.py`'s seeded-model check and `run_extraction_batched.py`'s
+      fixture-exposure check both ran ONLY under `--development-write`. So a
+      container (ENVIRONMENT=production) wrote claims to the shared database
+      with no fixture check at all: six container hostnames did, 2026-09-14 to
+      09-16 (`docs/ops-extract-on-railway.md`). A scheduled run on Railway would
+      have been the seventh.
+
+    THE CONDITION IS THE TARGET, NOT THE MACHINE'S LABEL. A shared database is
+    what a build fixture must never reach, so the check runs whenever the target
+    is not this machine - whatever ENVIRONMENT says, flag or no flag. The flag
+    keeps its other job: it replaces the ENVIRONMENT test in `check()`, and when
+    it is passed the check runs even against a local database, as it always did.
+
+    Returns the reason as a phrase, so the caller's refusal can say which of the
+    two it was rather than implying one.
+    """
+    if development_write:
+        return "--development-write replaced the ENVIRONMENT proxy with it"
+    if url and not is_local(url):
+        return "the target database is shared, so it runs whatever ENVIRONMENT says"
+    return None
+
+
 def describe(url: str | None) -> str:
     """`host:port/dbname` for a log line. NEVER the credentials, NEVER raises.
 

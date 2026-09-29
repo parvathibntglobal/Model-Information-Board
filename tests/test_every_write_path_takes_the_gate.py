@@ -58,14 +58,21 @@ READ_ONLY: dict[str, str] = {
     "_blob_presence_check.py": "counts blobs present in the raw store; no write verb",
     "_blog_extraction_yield.py": "measures yield from stored rows; no write verb",
     "_comparison_post_extraction.py": "measurement only; no write verb",
+    "_measure_selection_key_456.py": "measurement only; connects read-only, no write verb",
     "_normaliser_disagreement.py": "measurement only; no write verb",
     "_six_host_probe.py": "measurement only; no write verb",
     "corpus_inventory.py": "counts the corpus; no write verb",
     "dump_keywords.py": "prints what each platform is sent; no write verb",
     "measure_key_constraint.py": "measurement only; no write verb",
     "measure_signal_demotion_platforms.py": "measurement only; no write verb",
+    "promotion_report.py": ("ranks untracked models by the claims already held; one SELECT, "
+                            "over a default_transaction_read_only connection; no write verb"),
     "registry_diff.py": ("diffs the catalogue against model_version for #450; one SELECT, "
                          "over a default_transaction_read_only connection; no write verb"),
+    "run_scheduled_fetches.py": ("plans which models are due over a "
+                                 "default_transaction_read_only connection; the WRITES are "
+                                 "fetch_model's subprocess, which carries the fixture gate; "
+                                 "no write verb here"),
     "triage_stored_corpus.py": "re-triages in memory and reports; no write verb",
     "write_report.py": "writes a FILE, not the database; no SQL write verb",
 }

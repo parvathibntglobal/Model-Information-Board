@@ -37,11 +37,29 @@ from typing import Protocol
 #: threads: clean schema/tool-calls, 100% quote-verify, no fabrication —
 #: docs/measurements/extractor-ab-deepseek-v4-flash-vs-gemini.md. Undated alias;
 #: pin a dated build (…-0731) if a run needs to be exactly reproducible.
-#: THE AGREED EXTRACTOR. OpenRouter resolves this undated slug to the 0423
-#: snapshot (2026-04-24) and it is pinned there, so the vendor cannot move it
-#: underneath a run. Moving to 0731 costs a PIPELINE_VERSION bump and a
-#: re-extraction of ~531 threads at ~$1.18 - the fork is the cost, not the
-#: money. We are on 0423 on purpose; see
+#: THE AGREED EXTRACTOR, and the agreement is the part we can evidence.
+#:
+#: ⚠ THIS SAID THE SLUG RESOLVES TO THE 0423 SNAPSHOT AND "IS PINNED THERE, SO
+#:   THE VENDOR CANNOT MOVE IT UNDERNEATH A RUN". THAT CLAIM HAS NO EVIDENCE
+#:   EITHER WAY AND WAS FALSE WHEN IT WAS WRITTEN - not made false later.
+#:
+#:   Nothing tests it. The one related test checks that we ASK for the undated
+#:   alias, which is a different thing entirely.
+#:
+#:   And the ledger cannot settle it, because the provider's actual build never
+#:   appears in it: all 3,077 alias rows read `deepseek-v4-flash` and not one
+#:   reads `-0423` (@anoojntglobal-sudo, #481 -> #381, 2026-09-28). Until
+#:   `generation_id` reaches the ledger and a generation is looked up, what
+#:   served any of our calls is unknown.
+#:
+#:   It has been quoted as settled in at least two decisions - CLAUDE.md
+#:   documents two - which is why it is corrected here rather than deleted
+#:   quietly. What IS true: `-0731` and `~-latest` exist as separate ids, and
+#:   we send neither.
+#:
+#: Moving to 0731 would cost a PIPELINE_VERSION bump and a re-extraction of
+#: ~531 threads at ~$1.18 - the fork is the cost, not the money. Staying is a
+#: decision with a date on it; see
 #: `docs/proposals/the-blended-cells-and-what-extractor-model-means.md` §6.
 #:
 #: Changing this line changes what `claim.extractor_model` records on every row
@@ -54,12 +72,20 @@ def extractor_model() -> str:
     """`EXTRACTOR_MODEL`, or the agreed extractor.
 
     THE DEFAULT IS THE CHOICE, NOT A GUESS, and that distinction is the whole
-    of this docstring. `DEFAULT_MODEL` is `deepseek/deepseek-v4-flash`, which
-    OpenRouter resolves to the **0423** snapshot - pinned, not floating, because
-    `deepseek/deepseek-v4-flash-0731` and `~deepseek/deepseek-v4-flash-latest`
-    both exist separately and a route would be redundant otherwise. Staying on
-    0423 is a decision with a date on it, recorded in
+    of this docstring. `DEFAULT_MODEL` is `deepseek/deepseek-v4-flash` and
+    staying on it is a decision with a date on it, recorded in
     `docs/proposals/the-blended-cells-and-what-extractor-model-means.md` §6.
+
+    ⚠ IT DOES NOT SAY WHICH BUILD RUNS, AND IT USED TO. This read "which
+      OpenRouter resolves to the **0423** snapshot - pinned, not floating,
+      because `-0731` and `~-latest` both exist separately and a route would be
+      redundant otherwise". That is an INFERENCE FROM A NAMING SCHEME presented
+      as a measurement, and nothing in this repository can check it - see
+      `DEFAULT_MODEL` above for why the ledger cannot either.
+
+      The two dated ids do exist and we send neither. What they imply about
+      what the alias resolves to is a guess, and this function is the one place
+      that must not make one.
 
     So writing it into `claim.extractor_model` records the agreed extractor
     rather than inventing one. THIS BRIEFLY REFUSED ON UNSET INSTEAD, and that
@@ -84,9 +110,24 @@ def extractor_model() -> str:
     and nothing would be wrong enough to notice because both values are
     plausible model ids.
 
-    IT IS STILL WHAT WE ASKED FOR, NOT WHAT RAN. `Completion.model` carries what
-    the provider reported and NOTHING READS IT (`judge/pipeline.py` sets
-    `self._extractor_model` once, from here).
+    IT IS STILL WHAT WE ASKED FOR, NOT WHAT RAN, and that is now true of
+    `Completion.model` as well: it carries this value rather than the
+    provider's answer, so the two cannot differ silently. What the provider
+    served goes to the ledger or nowhere.
+
+    ⚠ THIS SAID `Completion.model` "CARRIES WHAT THE PROVIDER REPORTED AND
+      NOTHING READS IT", AND BOTH HALVES WERE WRONG.
+
+      The second half was false when it was written on 2026-09-18:
+      `judge/extract/budget.py:243` has read it since 08-18, keying
+      `Budget.spend_by_model` on it, and
+      `scripts/classify_capability_reports.py:375` files it as
+      `proposer_model`. Nothing made it false later
+      (@anoojntglobal-sudo, #381, 2026-09-28).
+
+      The first half stopped being true here, deliberately. A field described
+      as unread is a field people feel free to change — and this one prices a
+      cap and stamps a provenance column.
     """
     return (os.getenv("EXTRACTOR_MODEL") or "").strip() or DEFAULT_MODEL
 
@@ -746,7 +787,11 @@ class OpenRouterClient:
                             if piece:
                                 fragments.append(piece)
             finally:
-                _record_spend(usage, model_name or self.model)
+                # Taken HERE, when the stream is over or has failed, so the row
+                # carries whatever the provider named by then (see below).
+                served = model_name
+                asked = self.model
+                _record_spend(usage, served=served, asked=asked)
 
         if stream_error is not None:
             # A REJECTION OF OUR REQUEST IS NOT A BAD MINUTE. When the upstream
@@ -767,15 +812,39 @@ class OpenRouterClient:
             )
 
         arguments = "".join(fragments)
-        model_name = model_name or self.model
-        cached = _cached_tokens(usage)
+
+        # ⚠ THE FALLBACK WAS HERE AND IT MADE ONE COLUMN MEAN TWO THINGS.
+        #   `model_name = model_name or self.model` — so when the stream named
+        #   no model, the row quietly recorded the id we ASKED for, and nothing
+        #   downstream could tell that apart from the provider naming it.
+        #
+        #   @anoojntglobal-sudo found what that costs (#481 -> #381): all 3,077
+        #   alias rows in the shared ledger read `deepseek-v4-flash` and not one
+        #   reads `-0423`, so the column is echoing the id we sent rather than
+        #   the build that ran. A `model_asked` column beside it would have
+        #   matched on every row by construction and measured nothing.
+        #
+        #   Rule 6: a missing value must not become a definite one. `served` is
+        #   None when the provider named nobody, and stays None.
+        #
+        #   `served` and `asked` are set in the `finally` above, which is also
+        #   where the one ledger row for this call is written.
         return Completion(
             raw_arguments=arguments,
             input_tokens=usage.get("prompt_tokens", 0),
             output_tokens=usage.get("completion_tokens", 0),
-            cached_input_tokens=cached,
+            cached_input_tokens=_cached_tokens(usage),
             reasoning_tokens=_reasoning_tokens(usage),
-            model=model_name,
+            # ⚠ THE ASKED ID, WHICH IS WHAT THIS FIELD'S OWN DOCSTRING SAYS IT
+            #   IS: "IT IS STILL WHAT WE ASKED FOR, NOT WHAT RAN". It was
+            #   `model_name or self.model`, which is that on most calls and the
+            #   provider's answer on the rest — one field, two meanings, and
+            #   `Budget.spend_by_model` keyed on it either way.
+            #
+            #   Nothing observable changes: every one of the 3,077 rows we hold
+            #   has the two equal. What changes is that they can no longer
+            #   differ silently.
+            model=asked,
             finish_reason=finish_reason,
             native_finish_reason=native_finish,
             ceiling_tokens=self.max_output_tokens,
@@ -811,7 +880,7 @@ def _reasoning_tokens(usage: dict) -> int | None:
     return int(value) if isinstance(value, int | float) else None
 
 
-def _record_spend(usage: dict, model_name: str) -> None:
+def _record_spend(usage: dict, *, served: str | None, asked: str) -> None:
     """One `spend_ledger` row for one call, from whatever usage arrived.
 
     RECORDED HERE, BECAUSE THIS IS WHERE THE USAGE IS. E5 has been calling a
@@ -826,12 +895,28 @@ def _record_spend(usage: dict, model_name: str) -> None:
     2026-09-14 wrote no ledger row at all, because the old code reached the
     write only on success - roughly 30,000 generated tokens each, invisible in
     our own figures. Called from `complete()`'s `finally` for that reason.
+
+    THE ONLY LEDGER WRITER FOR AN EXTRACTION CALL (#484). `judge/pipeline.py`
+    used to write a second row per call; one API call must be one row.
+
+    ⚠ THE NAME IS WHAT THE PROVIDER SAID; THE PRICE IS WHAT WE BOUGHT UNDER,
+      and they are passed separately on purpose (#481 -> #381). `served` is
+      None when the stream named no model and is recorded as "" rather than
+      replaced by `asked` - rule 6. Pricing uses `asked`: OpenRouter bills the
+      alias we sent at the alias's rate whichever build it routes to, and an
+      unnamed model priced by its own name would record `usd: 0.0` and cost the
+      $1/day cap nothing.
     """
+    #: BOTH LOCAL, BECAUSE `spend_ledger` AND `budget` REACH BACK INTO THIS
+    #: MODULE - `budget` imports `Completion` by name. A top-level import of
+    #: either closes the cycle.
     from judge import spend_ledger
+    from judge.extract.budget import pricing_for
 
     spend_ledger.record(
         stage=spend_ledger.STAGE_EXTRACT,
-        model=model_name,
+        model=served or "",
+        pricing=pricing_for(asked),
         input_tokens=usage.get("prompt_tokens", 0),
         output_tokens=usage.get("completion_tokens", 0),
         cached_input_tokens=_cached_tokens(usage),

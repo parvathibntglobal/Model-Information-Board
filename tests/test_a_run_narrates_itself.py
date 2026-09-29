@@ -202,8 +202,15 @@ class TestBothHalvesAreWired:
         src = SCRIPT.read_text(encoding="utf-8")
         say = src[src.index("    def _say(self"):]
         say = say[:say.index(chr(10) + "    def ", 10)]
-        assert "except Exception" in say
         assert '"replace"' in say
+        if "except Exception" not in say:
+            # The method may hand each line to the module-level `_say`, which
+            # also writes the run's transcript; then THAT writer must be the
+            # one that cannot raise.
+            assert "_say(line)" in say, "Progress._say neither guards nor delegates"
+            module = src[src.index("\ndef _say("):]
+            module = module[:module.index("\ndef ", 5)]
+            assert "except Exception" in module
 
 
 class TestTheTotalsAreRecordedNotDerived:
@@ -226,7 +233,9 @@ class TestTheTotalsAreRecordedNotDerived:
         """On the record rather than printed, so the terminal, the UI and a
         replay of an old log all read the same numbers from one place."""
         src = SCRIPT.read_text(encoding="utf-8")
-        assert '"at": _now(), **self._summary}' in src
+        # The harvest half rides on the same record (`harvest_summary`), ahead of
+        # the stage totals so a stage cannot be shadowed by the rollup.
+        assert '"at": _now(), **self.harvest_summary(), **self._summary}' in src
         assert "prog.record_summary(" in src
 
     def test_a_run_with_no_budget_still_reports_what_it_sent(self):

@@ -495,6 +495,10 @@ class Progress:
         #: get it from one place and a replay of an old log shows exactly what
         #: the terminal showed at the time.
         self._summary: dict = {}
+        #: THE LAST LINE EACH HARVEST ARM WROTE, for the harvest half of the
+        #: summary (`harvest_summary`). The last, not the first: an arm's own
+        #: verdict can be followed by `main`'s error line when it raised.
+        self._arms: dict[str, tuple[str, dict]] = {}
         #: ⚠ THE THIRD DESTINATION, AND THE ONE A PERSON READS. The file is the
         #: survivor and `fetch_log` is the shared view; both are for machines.
         #: A run started from the admin page was spawned with `stdout=DEVNULL`,
@@ -600,6 +604,43 @@ class Progress:
                 {"kind": "thread", **fields},
                 model_version_id=self.model_version_id))
 
+    def harvest_summary(self) -> dict:
+        """The harvest half of the end record, as fields rather than text.
+
+        ⚠ "EMPTY" AND "ERRORED" WERE THE SAME RECORD. A run's end line said
+          `fetch complete` or named its errored stages, and how many documents
+          it appended lived only in each arm's detail string. So a run that
+          found nothing and a run whose harvest failed looked alike to anything
+          but a person reading every stage - and on 2026-09-28, 7 of the 29 runs
+          that appended nothing were harvest errors rather than exhausted pools.
+          A selection rule reading "empty" off the old record would have treated
+          a broken harvest as a dry one.
+
+        ABSENT IS UNKNOWN, NEVER 0 (rule 6). `documents_appended` sums only the
+        arms that reported `documents_inserted`; if none did it is omitted, not
+        written as 0. `harvest_arms` lists every arm that finished, so a reader
+        can tell "no arm ran" from "arms ran and appended nothing".
+        """
+        if not self._arms:
+            return {}
+        counted = [f["documents_inserted"] for _, f in self._arms.values()
+                   if isinstance(f.get("documents_inserted"), int)]
+        http = [f["http_errors"] for _, f in self._arms.values()
+                if isinstance(f.get("http_errors"), int)]
+        def arms_that(status: str) -> list[str]:
+            return sorted(a for a, (st, _) in self._arms.items() if st == status)
+
+        out = {
+            "harvest_arms": sorted(self._arms),
+            "harvest_arms_errored": arms_that("error"),
+            "harvest_arms_skipped": arms_that("skipped"),
+        }
+        if counted:
+            out["documents_appended"] = sum(counted)
+        if http:
+            out["harvest_http_errors"] = sum(http)
+        return out
+
     def record_summary(self, **fields) -> None:
         """Totals for the closing box. Merged, so a later stage can add to an
         earlier one's without either having to know about the other."""
@@ -665,6 +706,8 @@ class Progress:
                 record, model_version_id=self.model_version_id))
         if status == "error" and id_ not in self._errored:
             self._errored.append(id_)
+        if id_.startswith("E2") and status != "running":
+            self._arms[id_] = (status, fields)
         # AFTER the write, never before: the stage that just finished is a real
         # finding and belongs in the log whether or not the run continues.
         self.checkpoint()
@@ -712,7 +755,7 @@ class Progress:
         # came back from the dead.
         self._stop_beating.set()
         record = {"kind": "end", "status": status, "detail": detail,
-                  "at": _now(), **self._summary}
+                  "at": _now(), **self.harvest_summary(), **self._summary}
         self._write(record)
         if self._console:
             self._say([""] + fetch_console.render(
@@ -1111,8 +1154,6 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
     from collect.adapters.reddit_write import write_documents as reddit_write
     from collect.ids import content_hash
 
-    contract = load_sources()
-    reddit_src = next(s for s in contract.platforms if s.get("id") == "reddit")
     store = RawStore(Path(settings().raw_store_path))
     queries = variants[:max_searches]
     prog.stage("E2R", "Harvest · Reddit", "running", queries=len(queries),
@@ -1122,8 +1163,26 @@ def harvest_reddit(conn, prog: Progress, variants: list[str], *, max_searches: i
     inserted = hits = threads = errors = 0
     failures: list[str] = []
     q_remaining = q_limit = None  # latest RapidAPI quota header seen this fetch
-    with build_client() as client:
-        searcher = harvester_for_source(reddit_src, client=client, store=store)
+    # NOT RUN IS NOT AN ERROR, which is what X already does (#327). A missing
+    # RAPIDAPI_KEY or a terms refusal is a decision about this source, not a
+    # fault of this run - and under #327 one `error` stage turns the whole run
+    # red, so a source we chose not to run would have failed every run that did
+    # not run it. Both now write `skipped` with the reason. Measured 2026-09-28:
+    # all 5 E2R errors in the shared log since 2026-09-20 were the missing key.
+    from collect.adapters.reddit import RedditConfigError
+
+    try:
+        client = build_client()
+    except RedditConfigError as exc:
+        prog.stage("E2R", "Harvest · Reddit", "skipped",
+                   detail=str(exc).splitlines()[0][:180])
+        return 0
+    with client:
+        searcher, why = _gated_harvester("reddit", harvester_for_source,
+                                         client=client, store=store)
+        if searcher is None:
+            prog.stage("E2R", "Harvest · Reddit", "skipped", detail=why)
+            return 0
         for variant in queries:
             if threads >= max_threads:
                 break
@@ -1516,6 +1575,33 @@ UNIFORM_PLATFORMS = (
     ("huggingface", "E2F", "Harvest · Hugging Face", 1),
 )
 
+#: Every per-model harvest source, by the id `--sources` selects on. `blogs` is
+#: not here: it is feed-based, never runs per model, and is always a named skip.
+ALL_SOURCES = ("github", "reddit", "arxiv", "x", "devto", "hackernews", "huggingface")
+
+
+def selected_sources(raw: str | None) -> set[str]:
+    """The harvest sources a run should attempt. `None` -> all of them.
+
+    An unknown name is refused rather than ignored: a typo in `--sources gihtub`
+    that silently harvested everything, or nothing, is the shape rule 12 warns
+    about - a permissive default that succeeds on a wrong input. A source NOT in
+    the returned set is skipped-with-a-reason by the caller (the #491 path), so
+    it reads as a decision rather than a fault.
+    """
+    if raw is None:
+        return set(ALL_SOURCES)
+    names = {s.strip().lower() for s in raw.split(",") if s.strip()}
+    unknown = names - set(ALL_SOURCES)
+    if unknown:
+        raise SystemExit(
+            f"--sources: unknown source(s) {sorted(unknown)}. "
+            f"Known: {', '.join(ALL_SOURCES)}."
+        )
+    if not names:
+        raise SystemExit("--sources was given but named no known source.")
+    return names
+
 
 def _harvester_factory(platform_id: str):
     """The adapter's own gate-and-build entry point, imported lazily.
@@ -1683,7 +1769,122 @@ def _say_selections(blocks, config) -> None:
                 _say(line)
 
 
-def threads_naming_the_model(conn, store, surfaces) -> tuple[set[str], int]:
+#: Characters that may sit between the tokens of a surface in running text:
+#: `GPT-5.6 Sol`, `gpt 5.6 sol`, `gpt-5.6-sol` and `gpt56sol` are one name.
+_SURFACE_GAP = r"[\s\-_./]*"
+
+
+def _surface_pattern(surface: str) -> str | None:
+    """A regex for one surface in raw lowercased text, bounded at both ends.
+
+    ⚠ THE RIGHT BOUNDARY REFUSES A FOLLOWING `.digit` OR `-digit`, because a
+      plain word boundary does not: `opus 5` followed by `.5` is Opus 5.5, and
+      `claude-fable-5` followed by `-1` is Fable 5.1, and `\b` sits happily
+      between the `5` and either. That is the case the normalised key could not
+      see at all - it joined "Opus 5 / 5.5" into one string.
+    """
+    import re
+
+    tokens = re.findall(r"[a-z0-9]+", surface.casefold())
+    if not tokens:
+        return None
+    body = _SURFACE_GAP.join(re.escape(t) for t in tokens)
+    # `.0` alone is the SAME version, as the finder's `_SAME_VERSION` rule has it
+    # ("Sonnet 5.0 is another disaster" names Sonnet 5): measured 2026-09-28,
+    # refusing it dropped 3 of 4 threads from Opus 5 that said "Opus 5.0".
+    return rf"(?<![a-z0-9]){body}(?![a-z0-9])(?![.,\-_](?:[1-9]|0\d))"
+
+
+def _compile_surfaces(surfaces):
+    import re
+
+    parts = [p for p in (_surface_pattern(x) for x in surfaces) if p]
+    return re.compile("|".join(parts)) if parts else None
+
+
+def names_the_model(text: str, own, longer) -> bool:
+    """Does `text` name the model, with the longer registry names subtracted?
+
+    `own` and `longer` are compiled by `_compile_surfaces`. A match of the
+    model's own surface COUNTS unless it lies inside a match of a longer name
+    that another registry model owns - `gemini 2.5 flash` inside
+    `gemini 2.5 flash lite`. One surviving match is enough: a thread naming both
+    Flash and Flash Lite names Flash.
+
+    ⚠ THIS IS NOT THE FINDER'S RULE, ON PURPOSE (#456). #341's rule, which the
+      finder implements, refuses a match only when a DIGIT follows it, and treats
+      a word suffix as naming the base model - `GPT-5.2-Codex` names `GPT-5.2`,
+      and `test_the_finder_does_not_match_inside_a_longer_name` pins that. That
+      is right for attribution. This is an ORDERING key for the run's cap, where
+      the question is narrower: which threads are about THIS model. So the
+      subtraction lives here and the finder is untouched.
+    """
+    if own is None or not text:
+        return False
+    hay = text.casefold()
+    spans = [m.span() for m in longer.finditer(hay)] if longer is not None else []
+    for m in own.finditer(hay):
+        a, b = m.span()
+        if not any(la <= a and b <= lb for la, lb in spans):
+            return True
+    return False
+
+
+def longer_registry_surfaces(conn, model_version_id: str | None, surfaces) -> list[str]:
+    """Other models' registry names that CONTAIN one of this model's surfaces.
+
+    Every alias surface and variant, plus each model's display name, for every
+    OTHER `model_version` - retired rows included, because a thread naming a
+    retired longer model is still not about this one. Filtered to names whose
+    normalised form contains one of `surfaces`' and is longer, since only those
+    can contain a match.
+
+    ⚠ A DISPLAY NAME COUNTS WITHOUT ITS VENDOR PREFIX TOO. `Z.ai: GLM 5.3 Flash`
+      is how the registry spells a model with no alias rows, and no thread
+      writes the `Z.ai:` - so, measured 2026-09-28, GLM 5.3 and GPT-5.6 Luna
+      subtracted nothing until the part after `: ` was added.
+    """
+    from collect.registry.aliases import normalize
+
+    keys = {normalize(x) for x in surfaces if x and len(normalize(x)) >= 4}
+    if not keys:
+        return []
+    #: ⚠ A NAME THIS MODEL ANSWERS TO IS NEVER "LONGER", even when another row
+    #:   also carries it. Measured 2026-09-28: `claude fable 5` sits in another
+    #:   model's alias row, is longer than Fable 5's own `fable 5`, and without
+    #:   this line subtracted Fable 5 from its own threads.
+    own = {normalize(x) for x in surfaces if x}
+    rows = conn.execute(
+        "SELECT a.surface, a.variants FROM model_alias a "
+        "WHERE a.model_version_id IS DISTINCT FROM %s",
+        (model_version_id,),
+    ).fetchall()
+    names = conn.execute(
+        "SELECT display_name FROM model_version WHERE id IS DISTINCT FROM %s "
+        "AND display_name IS NOT NULL",
+        (model_version_id,),
+    ).fetchall()
+    candidates: set[str] = set()
+    for surface, variants in rows:
+        candidates.add(surface)
+        candidates.update(variants or [])
+    for (name,) in names:
+        candidates.add(name)
+        if ": " in name:
+            candidates.add(name.split(": ", 1)[1])
+    out = []
+    for c in candidates:
+        n = normalize(c or "")
+        if n in own:
+            continue
+        if any(k in n and len(n) > len(k) for k in keys):
+            out.append(c)
+    return sorted(out)
+
+
+def threads_naming_the_model(
+    conn, store, surfaces, *, longer=()
+) -> tuple[set[str], int]:
     """Unread thread ids whose flattened text literally names one of `surfaces`,
     and how many unread threads were scanned - the denominator for the first.
 
@@ -1730,6 +1931,12 @@ def threads_naming_the_model(conn, store, surfaces) -> tuple[set[str], int]:
     A surface that is absent from the whole corpus returns an empty set, which
     is a real answer - "nothing stored names this model" - and the caller says
     so rather than silently falling back (rule 4).
+
+    ⚠ IT WAS A NORMALISED SUBSTRING TEST, AND A KEY MATCHED INSIDE ANY LONGER
+      NAME (#456). `gemini25flash` inside `gemini25flashlite` put 302 threads
+      first against 208 on a boundary check (#441). Now: raw lowercased text, a
+      boundary at both ends, and `longer` - other models' names containing this
+      one's - subtracted. See `names_the_model`.
     """
     from collect.registry.aliases import normalize
     from judge.store.extractions import PIPELINE_VERSION
@@ -1737,9 +1944,11 @@ def threads_naming_the_model(conn, store, surfaces) -> tuple[set[str], int]:
     #: 4 characters is the floor the resolver already uses for a surface to be
     #: worth matching. Below it a normalised key reaches inside unrelated words -
     #: the `free` inside "freeze" finding, one layer up.
-    keys = {normalize(x) for x in surfaces if x and len(normalize(x)) >= 4}
-    if not keys:
+    kept = [x for x in surfaces if x and len(normalize(x)) >= 4]
+    own = _compile_surfaces(kept)
+    if own is None:
         return set(), 0
+    longer_rx = _compile_surfaces(longer)
     rows = conn.execute(
         "SELECT tc.id, tc.flattened_text_ref FROM thread_context tc "
         "WHERE EXISTS (SELECT 1 FROM document d "
@@ -1756,8 +1965,7 @@ def threads_naming_the_model(conn, store, surfaces) -> tuple[set[str], int]:
             text = store.get_text(ref)
         except Exception:
             continue  # payload not on this machine - not this fetch's to judge
-        hay = normalize(text)
-        if any(k in hay for k in keys):
+        if names_the_model(text, own, longer_rx):
             naming.add(tc_id)
     return naming, len(rows)
 
@@ -2335,7 +2543,7 @@ def _subject_ids(conn, given: str) -> frozenset[str]:
 
 
 def extract_and_curate(conn, prog: Progress, *, release_date=None,
-                       surfaces=()) -> None:
+                       surfaces=(), model_version_id=None) -> None:
     """E5–E7 — extract claims from this fetch's threads, vet, and curate cells.
 
     Spends (capped) OpenRouter money and writes claims + cells. Scoped to the
@@ -2365,7 +2573,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     prog.stage("E5", "Extract", "running",
                detail="scanning unread threads for this model's surfaces "
                       "(local reads, no network)")
-    naming, unread_total = threads_naming_the_model(conn, store, surfaces)
+    naming, unread_total = threads_naming_the_model(
+        conn, store, surfaces,
+        longer=longer_registry_surfaces(conn, model_version_id, surfaces))
     threads, doc_ids, gated_out, oversized, unreadable, (named, own) = build_thread_inputs(
         conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming,
         include_backlog=FETCH_BACKLOG)
@@ -2855,6 +3065,9 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     prog.record_summary(
         llm=extractor_model(),
         sent_threads=len(threads),
+        # WHAT CAME BACK, beside what was sent. A thread the provider never
+        # answered is sent and not read, and the next run tries it again.
+        threads_read=len(results),
         sent_posts=sum(len(t.raw_text_of) for t in threads),
         sent_chars=sum(len(t.flattened_text) for t in threads),
         claims_verified=verified,
@@ -2871,10 +3084,10 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     )
 
     # CAPABILITY DISCOVERY. Proposals the extractor made for keys none of the 12
-    # named — appended to capability_candidate for an admin to rule on. The LLM
-    # proposes; a person adopts (a capabilities.yaml PR). Idempotent, so a
-    # re-fetch cannot inflate the count.
-    from judge.store.capability_candidates import store_proposals
+    # named. They used to be appended to `capability_candidate` for an admin to
+    # rule on; nothing stores them now (#434, see E5b below). Still counted,
+    # because how many the extractor proposes is a fact about the run whether
+    # or not anybody files them.
     proposals = [p for r in results for p in r.extraction.proposed_capabilities]
 
     # WHAT THE BOARD ACTUALLY DISCOVERED, counted by section and reported FIRST.
@@ -3026,9 +3239,6 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
             detail=("no section named on any of the three surfaces - the quotes "
                     "that verified described no job, no behaviour and no figure"),
         )
-    # The store must never break a fetch. If the migration has not reached this
-    # database yet, the proposals are named in the log and dropped for this run
-    # rather than crashing extraction on a missing table.
     if not legacy_on:
         # The capability-card stages (E5b proposals, E7 cells) print nothing
         # with the legacy path off: they did not run, and `judge/legacy.py` is
@@ -3038,38 +3248,49 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
                           "and pre-release claims dropped, and their board entries with "
                           "them")
         return
-    table_present = conn.execute(
-        "SELECT to_regclass('public.capability_candidate')"
-    ).fetchone()[0] is not None
-    if proposals and table_present:
-        outcome = store_proposals(
-            conn, proposals,
-            proposer_model=extractor_model(),
-            prompt_label="fetch-extract",
-        )
-        conn.commit()
-        prog.stage("E5b", "Capability keys (legacy cell score)", "ok",
-                   proposed=outcome["proposed"], stored=outcome["stored"],
-                   unattributed=outcome["unattributed"],
-                   detail=f"{outcome['proposed']} proposal(s) against the ratified twelve; "
-                          f"{outcome['stored']} new candidate(s) stored for review. "
-                          f"SEPARATE from the board's sections above: this feeds the "
-                          f"legacy cell score, which is keyed to a closed vocabulary"
-                          + (f", {outcome['unattributed']} unattributable"
-                             if outcome["unattributed"] else ""))
-    elif proposals and not table_present:
-        prog.stage("E5b", "Capability keys (legacy cell score)", "skipped",
-                   proposed=len(proposals),
-                   keys=sorted({p.proposed_key for p in proposals}),
-                   detail=f"{len(proposals)} capability proposal(s) NOT stored: the "
-                          "capability_candidate table is not on this database yet "
-                          "(migration unapplied). Proposed keys: "
-                          + ", ".join(sorted({p.proposed_key for p in proposals})[:8]))
-    else:
-        prog.stage("E5b", "Capability keys (legacy cell score)", "ok",
-                   detail="no new key proposed — every claim fitted one of the ratified "
-                          "twelve. Says nothing about the board, which discovered its "
-                          "sections above without a list")
+    # ⚠ NOTHING IS STORED HERE ANY MORE (#434). `capability_candidate` was the
+    #   queue behind the Capability candidates admin panel, and that panel was
+    #   removed 2026-09-24 when capabilities stopped getting a review surface
+    #   the other board sections do not have. The queue outlived its reader by
+    #   four days and kept filling.
+    #
+    #   Measured on staging 2026-09-24, which is why it is a queue and not a
+    #   record:
+    #
+    #       capability_candidate     223 rows, 0 EVER RULED ON
+    #       of e5.5's 53 keys         24 already exist as a board slug
+    #                                    metric.osworld      beside  osworld
+    #                                    capability.computer_use beside computer-use
+    #                                 the rest mostly benchmark NAMES, which is
+    #                                 what a `metric` entry is already for
+    #
+    #   One observation written into two vocabularies, and only the open one
+    #   renders. `capability_key` is the CLOSED twelve and feeds the legacy
+    #   cell score; `board_entry.slug` is open and needs no ruling.
+    #
+    # ⚠ THE 223 ROWS STAY. 17 of the 28 keys with no matching board slug came
+    #   from a document that produced NO board entry, so those observations
+    #   exist in exactly one place — safety.instruction-manipulation,
+    #   alignment.concealment and the rest. Stopping the writer does not touch
+    #   them, and deleting them was explicitly asked against.
+    #
+    # ⚠ AND THE EXTRACTOR IS STILL ASKED FOR THEM, which is the half this does
+    #   not fix. `proposed_capabilities` is still in the schema and still in
+    #   the prompt, so the tokens are still spent and the answer is now
+    #   discarded rather than filed. Removing the field changes what the model
+    #   is asked to produce — a prompt change and a provenance change, not a
+    #   constant edit — so it is a separate decision and stays on #434.
+    #
+    # RULE 4: A CAUSED ABSENCE SAYS IT WAS CAUSED. The stage still reports,
+    # because a stage that vanishes reads as a stage that found nothing.
+    prog.stage("E5b", "Capability keys (legacy cell score)", "ok",
+               proposed=len(proposals),
+               keys=sorted({p.proposed_key for p in proposals})[:8],
+               detail=(f"{len(proposals)} proposal(s) against the ratified twelve, "
+                       f"NOT STORED — the panel that ruled on them was removed "
+                       f"(#434) and the queue was filling with nothing reading it. "
+                       f"The board's own sections, discovered above without a "
+                       f"list, are unaffected"))
 
     prog.stage("E6", "Vet", "ok",
                detail="hard rejection ran over every document: promotional, affiliate and "
@@ -3088,6 +3309,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--fetch-cap", type=int, default=20,
                         help="max GitHub REST calls this fetch may spend (default 20)")
+    parser.add_argument(
+        "--sources", default=None,
+        help="comma-separated harvest sources to run; the rest are SKIPPED with a "
+             f"reason, never errored. Default: all ({','.join(ALL_SOURCES)}). "
+             "`--sources github` is the one scope that harvests nothing routed "
+             "through the internal-development-only undertaking, so it is the "
+             "safe end-to-end test while that basis is being made honest.",
+    )
     parser.add_argument(
         "--development-write", action="store_true",
         help="replace judge/writeguard.py's ENVIRONMENT proxy with the check it "
@@ -3155,8 +3384,14 @@ def main(argv: list[str] | None = None) -> int:
     #   ONE model, so the only fixture exposure it can have is that model being
     #   a seeded row. Checked below, once the registry row is in hand and still
     #   before E2 harvests anything.
-    from judge.writeguard import UnsafeWriteRefused
+    from judge.writeguard import UnsafeWriteRefused, fixture_check_required
     from judge.writeguard import check as writeguard_check
+
+    # WHETHER THE SEEDED-MODEL CHECK BELOW RUNS: always against a shared
+    # database, and under the flag even against a local one. It used to run only
+    # under the flag, so ENVIRONMENT=production on a container ran NO fixture
+    # check - `fixture_check_required`'s docstring has the six hostnames.
+    fixture_reason = fixture_check_required(dsn, development_write=args.development_write)
 
     if not args.development_write:
         try:
@@ -3170,6 +3405,9 @@ def main(argv: list[str] | None = None) -> int:
         print("write gate  : --development-write, so judge/writeguard.py's "
               "ENVIRONMENT proxy is replaced by the seeded-model check below "
               "(#328, #383)", file=sys.stderr)
+    if fixture_reason and not args.development_write:
+        print(f"fixture gate: the seeded-model check runs - {fixture_reason}",
+              file=sys.stderr)
 
     try:
         db = _Db(dsn)  # NO drop, NO disposability wipe — append-only
@@ -3186,19 +3424,26 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         canonical_id, display_name, release_date, provenance = row
 
-        # ── THE FIXTURE-EXPOSURE CHECK, when the flag replaced the proxy ────
+        # ── THE FIXTURE-EXPOSURE CHECK, on any shared target or under the flag ─
         # BEFORE E2, because a harvest already run is a harvest already paid
         # for in rate limit, and before E5, which costs money. Refuses by
         # naming the model, so the answer is actionable.
         #
+        # ⚠ NARROWER THAN THE RUN. This checks the model being fetched. E5 also
+        #   reads backlog threads that name OTHER models (`build_thread_inputs`'
+        #   third tier), and a backlog thread naming a seeded model is not
+        #   checked here. With no seeded rows today it cannot fire; it is
+        #   recorded rather than fixed because the ruling on this path (#328)
+        #   scoped the check to the one model.
+        #
         # The database is NOT fixture-clean, which is why this is live rather
         # than theoretical: `model_version` rows carry provenance='seed' with
         # claims and cells already pointing at them (#382).
-        if args.development_write and provenance == "seed":
+        if fixture_reason and provenance == "seed":
             detail = (
                 f"refusing: {display_name or canonical_id} is a seeded "
-                f"(build-fixture) model_version, and --development-write "
-                f"replaced the ENVIRONMENT proxy with exactly this check"
+                f"(build-fixture) model_version, and this check runs because "
+                f"{fixture_reason}"
             )
             prog.stage("E1", "Registry", "error", detail=detail)
             prog.done("error", "refused: seeded model")
@@ -3220,27 +3465,49 @@ def main(argv: list[str] | None = None) -> int:
 
         # Each platform in its own guard: a Reddit quota error or a stale terms
         # ruling must not throw away a GitHub harvest that already succeeded.
-        try:
-            harvest_github(db.live(prog), prog, variants, fetch_cap=args.fetch_cap)
-        except Exception as exc:
-            prog.stage("E2", "Harvest", "error", detail=str(exc).splitlines()[0][:200])
-        try:
-            harvest_reddit(db.live(prog), prog, variants, max_searches=3, max_threads=5)
-        except Exception as exc:
-            prog.stage("E2R", "Harvest · Reddit", "error",
-                       detail=str(exc).splitlines()[0][:200])
+        # WHICH SOURCES THIS RUN ATTEMPTS. A source outside `--sources` is a
+        # decision, not a fault, so it is `skipped` with a reason (the #491
+        # shape) rather than left absent. `--sources github` is how the pipeline
+        # is tested end to end without harvesting anything routed through the
+        # internal-development-only undertaking.
+        sources = selected_sources(args.sources)
+        scope_skip = "not in this run's --sources scope"
 
-        try:
-            harvest_arxiv(db.live(prog), prog, variants, max_queries=2)
-        except Exception as exc:
-            prog.stage("E2A", "Harvest · arXiv", "error", detail=str(exc).splitlines()[0][:200])
-        try:
-            # ALL the surfaces, in ONE request - `max_queries` bounds how many
-            # are clubbed, not how many requests are spent. 6 is the adapter's
-            # MAX_CLUBBED_SURFACES and covers every alias set in seed_models.
-            harvest_x(db.live(prog), prog, variants, max_queries=6)
-        except Exception as exc:
-            prog.stage("E2X", "Harvest · X", "error", detail=str(exc).splitlines()[0][:200])
+        if "github" in sources:
+            try:
+                harvest_github(db.live(prog), prog, variants, fetch_cap=args.fetch_cap)
+            except Exception as exc:
+                prog.stage("E2", "Harvest", "error", detail=str(exc).splitlines()[0][:200])
+        else:
+            prog.stage("E2", "Harvest", "skipped", detail=scope_skip)
+
+        if "reddit" in sources:
+            try:
+                harvest_reddit(db.live(prog), prog, variants, max_searches=3, max_threads=5)
+            except Exception as exc:
+                prog.stage("E2R", "Harvest · Reddit", "error",
+                           detail=str(exc).splitlines()[0][:200])
+        else:
+            prog.stage("E2R", "Harvest · Reddit", "skipped", detail=scope_skip)
+
+        if "arxiv" in sources:
+            try:
+                harvest_arxiv(db.live(prog), prog, variants, max_queries=2)
+            except Exception as exc:
+                prog.stage("E2A", "Harvest · arXiv", "error", detail=str(exc).splitlines()[0][:200])
+        else:
+            prog.stage("E2A", "Harvest · arXiv", "skipped", detail=scope_skip)
+
+        if "x" in sources:
+            try:
+                # ALL the surfaces, in ONE request - `max_queries` bounds how many
+                # are clubbed, not how many requests are spent. 6 is the adapter's
+                # MAX_CLUBBED_SURFACES and covers every alias set in seed_models.
+                harvest_x(db.live(prog), prog, variants, max_queries=6)
+            except Exception as exc:
+                prog.stage("E2X", "Harvest · X", "error", detail=str(exc).splitlines()[0][:200])
+        else:
+            prog.stage("E2X", "Harvest · X", "skipped", detail=scope_skip)
 
         # Blogs have no per-model search — they are RSS/feed-based, harvested
         # wholesale, so a model-name query cannot target them (rule 7: say what
@@ -3253,6 +3520,9 @@ def main(argv: list[str] | None = None) -> int:
         # preconditions stop holding turns the arm back into a named skip rather
         # than a silent absence.
         for _pid, _sid, _sname, _cap in UNIFORM_PLATFORMS:
+            if _pid not in sources:
+                prog.stage(_sid, _sname, "skipped", detail=scope_skip)
+                continue
             try:
                 harvest_uniform(db.live(prog), prog, variants, platform_id=_pid,
                                 stage_id=_sid, stage_name=_sname, max_queries=_cap)
@@ -3308,7 +3578,7 @@ def main(argv: list[str] | None = None) -> int:
 
         try:
             extract_and_curate(db.live(prog), prog, release_date=release_date,
-                               surfaces=variants)
+                               surfaces=variants, model_version_id=args.model_version_id)
         except Exception as exc:
             _safe_rollback(db.raw)
             prog.stage("E5", "Extract", "error", detail=str(exc).splitlines()[0][:200])

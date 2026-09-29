@@ -39,6 +39,9 @@ def _sse(**event) -> str:
 
 class _Canned:
     status_code = 200
+    #: The client reads `X-Generation-Id` before the stream (#481); a real
+    #: response always carries headers, and none are needed here.
+    headers: dict = {}
 
     def __init__(self, lines):
         self._lines = lines

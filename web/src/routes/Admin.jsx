@@ -94,11 +94,28 @@ function CollectEvidence() {
       {models && models.map((m) => (
         <details key={m.model_version_id} className="disc">
           <summary>
-            {m.display_name || m.model_version_id}
-            <span className="n">{m.model_version_id}</span>
+            {/* ⚠ THE PROVIDER'S ID ON THE LINE, NOT OURS. This printed
+                `mv_b3508133423993d7` beside every name - an internal database
+                key, shown to a reader who cannot look it up, check it against
+                the provider, or use it anywhere. The compare page already
+                carries this rule and a test enforces it there; the admin list
+                was the surface still doing it.
+
+                `canonical_id` is the same model in the form the provider
+                writes it, and the roster has returned it all along. */}
+            {m.display_name || m.canonical_id || m.model_version_id}
+            {m.canonical_id && <span className="n">{m.canonical_id}</span>}
             {m.provider && <Badge tone="mute">{m.provider}</Badge>}
           </summary>
-          <div className="disc-body">
+          <div className="disc-body stack stack-2">
+            {/* ⚠ KEPT, AND MOVED INSIDE THE FOLD. Somebody debugging a run
+                does need the internal key - it is what `board_entry` and
+                `claim` are joined on. What it does not need is a place on the
+                scan line, where it competes with the name for the eye and
+                cannot be acted on. Open the row and it is here. */}
+            <span className="dim mono" style={{ fontSize: 10 }}>
+              {m.model_version_id}
+            </span>
             <FetchPanel modelVersionId={m.model_version_id} />
           </div>
         </details>
@@ -168,15 +185,17 @@ const SECTIONS = [
     render: () => (
       <div className="stack stack-4">
         <BoardReview />
-        {/* ⚠ THE SAME PANEL AS UNDER MODELS, AND ONE ENDPOINT BEHIND BOTH.
-            It answers a question each section raises and neither owns: the
-            review shows which AXES the board discovered, this shows which
-            MODELS it discovered them about, and a reviewer consolidating a
-            slug wants to know whether the models under it are ones anybody
-            is watching. Two components reading two endpoints would
-            eventually disagree about the same number. */}
-        <hr style={{ border: 0, borderTop: '1px solid var(--border-soft)', margin: 0 }} />
-        <DiscussedModels heading="Models these entries are about, that the models page does not list" />
+        {/* ⚠ `DiscussedModels` WAS MOUNTED HERE TOO AND IS NOT ANY MORE.
+            The argument for both was that the question belongs to neither
+            section — the review shows which AXES the board discovered, that
+            panel shows which MODELS it discovered them about.
+
+            What that argument left out is that they are the SAME LIST under
+            two headings, one screen apart, with the same counts. A reader who
+            meets `64 of 78 models with evidence` twice does not think "two
+            views of one fact"; they think one of the two is stale, and then
+            they check. Saying it once in the section that owns the models is
+            the cheaper answer, and the review still links out to it. */}
       </div>
     ),
   },
