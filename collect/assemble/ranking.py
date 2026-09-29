@@ -322,11 +322,15 @@ def rank_children(
     comments: Iterable[Any],
     *,
     version_aliases,
-    root_text: str = "",
+    root_text: str,
     lexicon: ModelLexicon | None = None,
     config: RankingConfig | None = None,
 ) -> list[RankedChild]:
     """Every child scored, highest first. Ties break on specificity, then `external_id`.
+
+    `root_text` HAS NO DEFAULT (#307). A default of `""` reports that the thread
+    names nothing, which makes every child `unknown` - the defect arriving
+    silently in whichever caller forgot. A caller with no root says `""`.
 
     `lexicon=None` is legitimate - a caller with no registry - and makes every
     child `unknown` for relevance, which scores 0 rather than a penalty.
@@ -375,7 +379,7 @@ def select_children(
     comments: Iterable[Any],
     *,
     version_aliases,
-    root_text: str = "",
+    root_text: str,
     lexicon: ModelLexicon | None = None,
     limit: int | None = None,
 ) -> Selection:

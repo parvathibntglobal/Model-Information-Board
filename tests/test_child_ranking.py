@@ -59,7 +59,7 @@ class TestASumNotAProduct:
     def test_zero_votes_no_longer_zeroes_a_specific_comment(self):
         (child,) = rank_children(
             [_c("a", "It fails with `TypeError: bad arg` after 3 calls.", score=0)],
-            version_aliases=set(),
+            version_aliases=set(), root_text="",
         )
         assert child.specificity > 0
         assert child.score == pytest.approx(child.specificity), "no votes, no penalty"
@@ -70,7 +70,7 @@ class TestASumNotAProduct:
         ranked = rank_children(
             [_c("a_first", "Nice.", None),
              _c("z_last", "Timeout: 504 after 30s at 128k tokens.", None)],
-            version_aliases=set(),
+            version_aliases=set(), root_text="",
         )
         assert ranked[0].external_id == "z_last"
         assert ranked[0].upvotes is None
@@ -79,7 +79,7 @@ class TestASumNotAProduct:
         ranked = rank_children(
             [_c("joke", "lol same", score=900),
              _c("fix", "You had `tool_choice` misconfigured, it returns error 400.", score=2)],
-            version_aliases=set(),
+            version_aliases=set(), root_text="",
         )
         assert ranked[0].external_id == "fix"
 
@@ -107,7 +107,7 @@ class TestFirstHand:
     def test_it_adds_the_bonus(self):
         plain, told = rank_children(
             [_c("a", "It is slow."), _c("b", "I tried it. It is slow.")],
-            version_aliases=set(),
+            version_aliases=set(), root_text="",
         )[::-1]
         assert told.first_hand and not plain.first_hand
         assert told.score - plain.score == pytest.approx(ranking_config().first_hand_bonus)
@@ -159,13 +159,14 @@ class TestRelevance:
 class TestTheCap:
     def test_the_top_25_are_kept_of_30(self):
         comments = [_c(f"c{i:02d}", f"Comment {i}.", score=i) for i in range(30)]
-        selection = select_children(comments, version_aliases=set())
+        selection = select_children(comments, version_aliases=set(), root_text="")
         assert len(selection.ranked) == 30
         assert len(selection.selected) == 25
 
     def test_an_explicit_limit_still_wins(self):
         comments = [_c(f"c{i}", "x") for i in range(10)]
-        assert len(select_children(comments, version_aliases=set(), limit=3).selected) == 3
+        selection = select_children(comments, version_aliases=set(), root_text="", limit=3)
+        assert len(selection.selected) == 3
 
 
 class TestTheLogLines:
@@ -197,7 +198,7 @@ class TestTheLogLines:
 
     def test_the_comments_below_the_cut_are_shown_as_dropped(self):
         comments = [_c(f"c{i:02d}", f"Comment number {i}.", score=i) for i in range(30)]
-        lines = selection_lines("t", select_children(comments, version_aliases=set()))
+        lines = selection_lines("t", select_children(comments, version_aliases=set(), root_text=""))
 
         assert "-- dropped: showing 5 of 5 below the cut --" in [line.strip() for line in lines]
         dropped = [line for line in lines if line.endswith("dropped")]

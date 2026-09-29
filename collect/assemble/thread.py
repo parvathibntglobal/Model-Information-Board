@@ -238,7 +238,7 @@ def rank_children(
     comments: tuple[ThreadMember, ...],
     *,
     version_aliases,
-    root_text: str = "",
+    root_text: str,
     lexicon: ModelLexicon | None = None,
 ) -> list[RankedChild]:
     """Every child scored, highest first. See `collect/assemble/ranking.py`.

@@ -79,12 +79,25 @@ class TestTheZeroTailIsOrderedBySpecificity:
         ranked = _rank([bare, specific])
         assert [r.member.external_id for r in ranked] == ["t1_zzz", "t1_aaa"]
 
-    def test_both_still_score_zero(self):
+    def test_the_tie_break_invents_no_score(self):
         """⚠ THE TIE-BREAK DOES NOT INVENT A SCORE. If ordering the tail had
-        been done by nudging the product off zero, every figure downstream that
-        reads `score` would have shifted with it."""
+        been done by nudging the score, every figure downstream that reads
+        `score` would have shifted with it.
+
+        Was `test_both_still_score_zero`, written against the PRODUCT
+        `specificity x log1p(votes)`, where no votes meant a score of exactly 0.
+        The ranker is now a SUM (2026-09-24, `contract/harvest.yaml:
+        child_ranking`), so a specific comment at 0 votes scores its
+        specificity rather than 0 - which is the zero tail #307 asked to fix,
+        fixed at the formula. The property the test protects is unchanged:
+        `score` is its four terms and nothing else, and no votes adds nothing.
+        """
         ranked = _rank([_Comment("t1_a", BARE, 0), _Comment("t1_z", SPECIFIC, 0)])
-        assert [r.score for r in ranked] == [0.0, 0.0]
+        for r in ranked:
+            assert r.engagement_term == 0.0, "no votes must add nothing"
+            assert r.score == (
+                r.specificity + r.engagement_term + r.first_hand_term + r.relevance_term
+            )
 
     def test_external_id_is_still_the_final_key(self):
         """A re-run must produce the same row. Two comments with identical
