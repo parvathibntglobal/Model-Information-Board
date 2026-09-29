@@ -241,9 +241,17 @@ class RosterReader:
         self._pipeline_version = pipeline_version
 
     def all(self) -> Roster:
+        from judge.legacy import legacy_cells_enabled
+
         rows = self._conn.execute(
             SQL, {"pipeline_version": self._pipeline_version}
         ).fetchall()
+        # NULL, NOT "unreported", WITH THE LEGACY CARDS OFF. Cells stop being
+        # rebuilt, so the rows still in `cell` are a frozen verdict; and a model
+        # with no cell would read "nobody has discussed this" while its board
+        # entries say otherwise - rule 4 inverted. `web/src/routes/Models.jsx`
+        # hides the badge on null. See `judge/legacy.py`.
+        legacy = legacy_cells_enabled()
         models = [
             {
                 "model_version_id": r[0],
@@ -260,10 +268,13 @@ class RosterReader:
                 "supports_structured_output": r[11],
                 "supports_caching": r[12],
                 "lifecycle": r[13],
-                "evidence": _evidence(
-                    cells=r[14], published=r[15],
-                    stale=r[16], stale_versions=r[17],
-                    capability_keys=r[18],
+                "evidence": (
+                    _evidence(
+                        cells=r[14], published=r[15],
+                        stale=r[16], stale_versions=r[17],
+                        capability_keys=r[18],
+                    )
+                    if legacy else None
                 ),
                 "board": _board(entries=r[19], sections=r[20]),
             }

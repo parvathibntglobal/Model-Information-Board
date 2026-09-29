@@ -259,8 +259,23 @@ class Completion:
     """
 
     raw_arguments: str
+    #: ALL prompt tokens, cached ones included (OpenRouter's `prompt_tokens`).
     input_tokens: int = 0
     output_tokens: int = 0
+    #: The part of `input_tokens` served from the provider's prompt cache,
+    #: from `usage.prompt_tokens_details.cached_tokens`. A subset, not an
+    #: addition: it is priced at the cache-read rate instead of the input rate.
+    #: 0 when the provider reported no cache detail, which prices the call at
+    #: full input rate - the direction that over-states spend, not under.
+    cached_input_tokens: int = 0
+    #: The part of `output_tokens` the model spent THINKING before it answered,
+    #: from `usage.completion_tokens_details.reasoning_tokens`. A subset of
+    #: `output_tokens`, billed at the output rate and counted against
+    #: `max_tokens` - so a model that reasons by default can hit the ceiling
+    #: before writing its tool call. Recorded 2026-09-24 after a 16,384-token
+    #: truncation on a 10,859-char dev.to post under `deepseek-v4-flash-0731`.
+    #: None when the provider did not report it - never 0 by default.
+    reasoning_tokens: int | None = None
     model: str = DEFAULT_MODEL
     #: The provider's own word for why generation stopped - `stop`, `length`,
     #: `tool_calls`, or None when nothing said.
@@ -484,6 +499,25 @@ class OpenRouterClient:
     #: runs - which is the direction rule 8 requires, the field first and any
     #: gate later on evidence.
     max_output_tokens: int = int(os.getenv("EXTRACT_MAX_OUTPUT_TOKENS", "16384"))
+    #: REASONING IS OFF BY DEFAULT, AND THAT IS A DECISION THE MODEL SWITCH MADE
+    #: FOR US UNTIL 2026-09-24.
+    #:
+    #: OpenRouter's metadata for `deepseek-v4-flash-0731` reads
+    #: `reasoning: {mandatory: False, default_enabled: True, default_effort:
+    #: 'high'}`. The undated `deepseek-v4-flash` (0423) - the one the A/B chose -
+    #: has no `default_enabled`, so moving `EXTRACTOR_MODEL` to 0731 silently
+    #: turned on high-effort thinking for every extraction. Reasoning tokens
+    #: are output tokens: billed at the output rate AND counted against
+    #: `max_tokens`, so a 10,859-char dev.to post hit the 16,384 ceiling before
+    #: its tool call closed.
+    #:
+    #: `none` disables it ("the model won't perform reasoning", OpenRouter
+    #: docs). NOT `exclude: true`, which only hides the reasoning and still bills
+    #: it. `EXTRACT_REASONING_EFFORT=default` sends nothing and takes the
+    #: model's own default; any other value (`low`, `high`) is sent as the effort.
+    #: Whether it took effect is visible: the fetch log prints each thread's
+    #: reasoning tokens, which should read 0 once this holds.
+    reasoning_effort: str = os.getenv("EXTRACT_REASONING_EFFORT", "none")
     #: Called while a response is arriving. MAY RAISE, and raising is the point.
     #:
     #: `Progress.checkpoint()` raises `RunStopped` when somebody has pressed
@@ -592,6 +626,12 @@ class OpenRouterClient:
                 # one, in the flattering direction, in the only place this
                 # project records what it spends (rule 6).
                 "stream_options": {"include_usage": True},
+                # See `reasoning_effort`. Omitted only for `default`.
+                **(
+                    {}
+                    if self.reasoning_effort.strip().lower() == "default"
+                    else {"reasoning": {"effort": self.reasoning_effort.strip().lower()}}
+                ),
             },
         ) as response:
             # THE STATUS IS CHECKED BEFORE THE STREAM IS READ. An error response
@@ -634,109 +674,124 @@ class OpenRouterClient:
             # far faster than a person can regret pressing Stop, and costs
             # nothing.
             next_check = 0.0
-            # ⚠ THE STREAM CAN DIE UNDER THIS LOOP, AND HTTPX RAISES ITS OWN
-            #   EXCEPTION WHEN IT DOES — which nothing in `judge/` caught, so
-            #   it walked out past `pipeline.py`'s `except ExtractorUnavailable`
-            #   and ended the run. Found by @anoojntglobal-sudo on run 3 of the
-            #   e5.5 batch (#427), 2026-09-23:
-            #
-            #       E5 Extract  error  peer closed connection without sending
-            #       complete message body (incomplete chunked read)
-            #       RUN ERROR   1 stage(s) errored — thread 14 of 23
-            #
-            #   Ten threads unread, and E5b, E5c, E5d, E6 and E7 never ran.
-            #   That is #397's original defect — one bad response ending the
-            #   batch — arriving through a door #399's fix did not cover,
-            #   because the taxonomy only classifies exceptions we raise
-            #   ourselves and this one is httpx's.
-            #
-            # ⚠ CAUGHT, NOT CLASSIFIED. Whether to RETRY this is a genuinely
-            #   open question and one instance cannot answer it: a connection
-            #   dying mid-stream reads as "a bad minute", and it is also the
-            #   closest shape to the 300s timeout above, which is deliberately
-            #   NOT retried because the call was working and a retry re-pays
-            #   for it in full. Telling them apart needs to know how far
-            #   through the response it died, which nothing records.
-            #
-            #   So `transient` takes its default of False: the thread is lost,
-            #   the batch survives, and the thread is NOT written to the
-            #   extraction ledger — so the next ordinary run reads it again.
-            #   Not retrying costs one thread on one run. Not catching costs
-            #   every thread behind it.
-            for line in _stream_lines(
-                response, chars_so_far=lambda: sum(len(f) for f in fragments),
-                upstream_so_far=lambda: _upstream(seen["provider"], seen["id"]),
-            ):
-                now = time.monotonic()
-                if self.on_progress is not None and now >= next_check:
-                    next_check = now + 1.0
-                    # Deliberately NOT wrapped: this is how a stop leaves the
-                    # call, and swallowing it here would restore the defect.
-                    self.on_progress()
-                if now > deadline:
-                    # NAMES WHAT WAS MEASURED, not a guess at the cause. With
-                    # `max_tokens` set, reaching this is no longer "a long
-                    # document" - so the message says how much answer had
-                    # arrived, which is the number that separates a provider
-                    # that stopped sending from one that is still working.
-                    raise ExtractorUnavailable(
-                        f"the provider was still sending after "
-                        f"{self.total_timeout_seconds:.0f}s "
-                        f"({sum(len(f) for f in fragments)} chars of tool-call "
-                        f"arguments received); abandoned so the batch is not held "
-                        f"open by one call. `max_tokens` is "
-                        f"{self.max_output_tokens}, which bounds a legitimate "
-                        f"answer well inside this window, so this is the provider "
-                        f"rather than the document."
-                        f"{_upstream(seen['provider'], seen['id'])}"
-                    )
-                    # NOT RETRIED, and `transient` defaults to False so this
-                    # needs no argument - but it needs the reason. The
-                    # connection was open and producing bytes when this fired:
-                    # the call was WORKING, just slowly. A retry re-pays for it
-                    # in full and is as likely to be slow again, so this is the
-                    # one failure shape where trying again is strictly worse
-                    # than giving up.
-                if not line or line.startswith(":"):
-                    continue          # SSE comment / keep-alive
-                if not line.startswith("data:"):
-                    continue
-                data = line[len("data:"):].strip()
-                if data == "[DONE]":
-                    break
-                try:
-                    event = _json.loads(data)
-                except ValueError:
-                    continue          # a partial frame; the next one carries it
-                # TAKEN BEFORE THE ERROR CHECK, because the error event is the
-                # one that matters most: it is the attempt that failed, and
-                # knowing which upstream failed it is the whole point.
-                if event.get("provider"):
-                    seen["provider"] = event["provider"]
-                if event.get("id"):
-                    seen["id"] = event["id"]
-                # A PROVIDER ERROR ARRIVES INSIDE THE STREAM, as an event with
-                # no `choices`. Recorded and raised after the loop rather than
-                # here, so whatever already arrived is still counted.
-                if "error" in event and not event.get("choices"):
-                    stream_error = event["error"]
-                    continue
-                if event.get("model"):
-                    model_name = event["model"]
-                if event.get("usage"):
-                    usage = event["usage"]
-                for choice in event.get("choices") or []:
-                    if choice.get("finish_reason"):
-                        finish_reason = choice["finish_reason"]
-                    # The upstream's own word, which OpenRouter overwrites in
-                    # the field above. See `Completion.native_finish_reason`.
-                    if choice.get("native_finish_reason"):
-                        native_finish = choice["native_finish_reason"]
-                    delta = choice.get("delta") or {}
-                    for call in delta.get("tool_calls") or []:
-                        piece = (call.get("function") or {}).get("arguments")
-                        if piece:
-                            fragments.append(piece)
+            # THE SPEND ROW IS WRITTEN IN `finally`, ON EVERY EXIT FROM HERE ON.
+            # Once the stream is open the provider may be generating, and a
+            # generated token is billed whether or not we keep the answer. The
+            # write used to sit after the loop and after the mid-stream error
+            # raise, so a 502/504 mid-stream, an abandon at the deadline, or a
+            # Stop all left the ledger without a row. A call that died before
+            # any usage event records zeros, which `Call.unmetered` flags, so
+            # the total says it is a floor rather than reading as complete.
+            try:
+                # ⚠ THE STREAM CAN DIE UNDER THIS LOOP, AND HTTPX RAISES ITS OWN
+                #   EXCEPTION WHEN IT DOES — which nothing in `judge/` caught, so
+                #   it walked out past `pipeline.py`'s `except ExtractorUnavailable`
+                #   and ended the run. Found by @anoojntglobal-sudo on run 3 of the
+                #   e5.5 batch (#427), 2026-09-23:
+                #
+                #       E5 Extract  error  peer closed connection without sending
+                #       complete message body (incomplete chunked read)
+                #       RUN ERROR   1 stage(s) errored — thread 14 of 23
+                #
+                #   Ten threads unread, and E5b, E5c, E5d, E6 and E7 never ran.
+                #   That is #397's original defect — one bad response ending the
+                #   batch — arriving through a door #399's fix did not cover,
+                #   because the taxonomy only classifies exceptions we raise
+                #   ourselves and this one is httpx's.
+                #
+                # ⚠ CAUGHT, NOT CLASSIFIED. Whether to RETRY this is a genuinely
+                #   open question and one instance cannot answer it: a connection
+                #   dying mid-stream reads as "a bad minute", and it is also the
+                #   closest shape to the 300s timeout above, which is deliberately
+                #   NOT retried because the call was working and a retry re-pays
+                #   for it in full. Telling them apart needs to know how far
+                #   through the response it died, which nothing records.
+                #
+                #   So `transient` takes its default of False: the thread is lost,
+                #   the batch survives, and the thread is NOT written to the
+                #   extraction ledger — so the next ordinary run reads it again.
+                #   Not retrying costs one thread on one run. Not catching costs
+                #   every thread behind it.
+                for line in _stream_lines(
+                    response, chars_so_far=lambda: sum(len(f) for f in fragments),
+                    upstream_so_far=lambda: _upstream(seen["provider"], seen["id"]),
+                ):
+                    now = time.monotonic()
+                    if self.on_progress is not None and now >= next_check:
+                        next_check = now + 1.0
+                        # Deliberately NOT wrapped: this is how a stop leaves the
+                        # call, and swallowing it here would restore the defect.
+                        self.on_progress()
+                    if now > deadline:
+                        # NAMES WHAT WAS MEASURED, not a guess at the cause. With
+                        # `max_tokens` set, reaching this is no longer "a long
+                        # document" - so the message says how much answer had
+                        # arrived, which is the number that separates a provider
+                        # that stopped sending from one that is still working.
+                        raise ExtractorUnavailable(
+                            f"the provider was still sending after "
+                            f"{self.total_timeout_seconds:.0f}s "
+                            f"({sum(len(f) for f in fragments)} chars of tool-call "
+                            f"arguments received); abandoned so the batch is not held "
+                            f"open by one call. `max_tokens` is "
+                            f"{self.max_output_tokens}, which bounds a legitimate "
+                            f"answer well inside this window, so this is the provider "
+                            f"rather than the document."
+                            f"{_upstream(seen['provider'], seen['id'])}"
+                        )
+                        # NOT RETRIED, and `transient` defaults to False so this
+                        # needs no argument - but it needs the reason. The
+                        # connection was open and producing bytes when this fired:
+                        # the call was WORKING, just slowly. A retry re-pays for it
+                        # in full and is as likely to be slow again, so this is the
+                        # one failure shape where trying again is strictly worse
+                        # than giving up.
+                    if not line or line.startswith(":"):
+                        continue          # SSE comment / keep-alive
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[len("data:"):].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        event = _json.loads(data)
+                    except ValueError:
+                        continue          # a partial frame; the next one carries it
+                    # TAKEN BEFORE THE ERROR CHECK, because the error event is the
+                    # one that matters most: it is the attempt that failed, and
+                    # knowing which upstream failed it is the whole point.
+                    if event.get("provider"):
+                        seen["provider"] = event["provider"]
+                    if event.get("id"):
+                        seen["id"] = event["id"]
+                    # A PROVIDER ERROR ARRIVES INSIDE THE STREAM, as an event with
+                    # no `choices`. Recorded and raised after the loop rather than
+                    # here, so whatever already arrived is still counted.
+                    if "error" in event and not event.get("choices"):
+                        stream_error = event["error"]
+                        continue
+                    if event.get("model"):
+                        model_name = event["model"]
+                    if event.get("usage"):
+                        usage = event["usage"]
+                    for choice in event.get("choices") or []:
+                        if choice.get("finish_reason"):
+                            finish_reason = choice["finish_reason"]
+                        # The upstream's own word, which OpenRouter overwrites in
+                        # the field above. See `Completion.native_finish_reason`.
+                        if choice.get("native_finish_reason"):
+                            native_finish = choice["native_finish_reason"]
+                        delta = choice.get("delta") or {}
+                        for call in delta.get("tool_calls") or []:
+                            piece = (call.get("function") or {}).get("arguments")
+                            if piece:
+                                fragments.append(piece)
+            finally:
+                # Taken HERE, when the stream is over or has failed, so the row
+                # carries whatever the provider named by then (see below).
+                served = model_name
+                asked = self.model
+                _record_spend(usage, served=served, asked=asked)
 
         if stream_error is not None:
             # A REJECTION OF OUR REQUEST IS NOT A BAD MINUTE. When the upstream
@@ -771,59 +826,15 @@ class OpenRouterClient:
         #
         #   Rule 6: a missing value must not become a definite one. `served` is
         #   None when the provider named nobody, and stays None.
-        served = model_name
-        asked = self.model
-
-        # RECORDED HERE, BECAUSE THIS IS WHERE THE USAGE IS. E5 has been calling
-        # a paid model since August and writing nothing to the ledger - the only
-        # caller of `spend_ledger.record` was the Ask box - which is why the
-        # usage panel showed one model and had to derive the other from the
-        # provider's key total minus what it knew. Next to the response is the
-        # only place that cannot forget, and `record` swallows write failures so
-        # a full disk cannot end a corpus run.
         #
-        # A TRUNCATED ANSWER IS STILL BILLED, so it is recorded here too, before
-        # any of the truncation handling downstream. The two abandoned calls of
-        # 2026-09-14 wrote no ledger row at all, because the old code reached
-        # this line only on success - roughly 30,000 generated tokens each,
-        # invisible in our own figures.
-        #: BOTH LOCAL, BECAUSE `spend_ledger` AND `budget` REACH BACK INTO THIS
-        #: MODULE - `budget` imports `Completion` by name. A top-level import of
-        #: either closes the cycle, and `spend_ledger.record` takes the same
-        #: precaution on its own import of `pricing_for` for the same reason.
-        #:
-        #: The comment sits above both rather than between them: ruff reads an
-        #: import block as contiguous, so a comment in the middle makes it
-        #: un-sorted (I001) and CI refuses it.
-        from judge import spend_ledger
-        from judge.extract.budget import pricing_for
-
-        # ⚠ THE NAME IS WHAT THE PROVIDER SAID; THE PRICE IS WHAT WE BOUGHT
-        #   UNDER, and they are passed separately on purpose.
-        #
-        #   Dropping the fallback without this would have been expensive in the
-        #   one direction that matters. `record()` prices by looking the model
-        #   up in `MODEL_PRICING`, an empty name has no rate, and an unpriced
-        #   row records `usd: 0.0`. `spent_today()` reads those rows to enforce
-        #   the $1/day cap — so every call the provider declined to name would
-        #   have cost the cap nothing and a run could quietly overspend.
-        #
-        #   Pricing against `asked` is not a workaround for that; it is the
-        #   correct basis. OpenRouter bills the alias we sent at the alias's
-        #   rate whichever build it routes to, so the id on the invoice is the
-        #   id we asked for. What the provider served is provenance, and it is
-        #   recorded as provenance or not at all.
-        spend_ledger.record(
-            stage=spend_ledger.STAGE_EXTRACT,
-            model=served or "",
-            pricing=pricing_for(asked),
-            input_tokens=usage.get("prompt_tokens", 0),
-            output_tokens=usage.get("completion_tokens", 0),
-        )
+        #   `served` and `asked` are set in the `finally` above, which is also
+        #   where the one ledger row for this call is written.
         return Completion(
             raw_arguments=arguments,
             input_tokens=usage.get("prompt_tokens", 0),
             output_tokens=usage.get("completion_tokens", 0),
+            cached_input_tokens=_cached_tokens(usage),
+            reasoning_tokens=_reasoning_tokens(usage),
             # ⚠ THE ASKED ID, WHICH IS WHAT THIS FIELD'S OWN DOCSTRING SAYS IT
             #   IS: "IT IS STILL WHAT WE ASKED FOR, NOT WHAT RAN". It was
             #   `model_name or self.model`, which is that on most calls and the
@@ -842,6 +853,74 @@ class OpenRouterClient:
             reported_cost_usd=(float(usage["cost"])
                                if usage.get("cost") is not None else None),
         )
+
+
+def _cached_tokens(usage: dict) -> int:
+    """The cached part of `prompt_tokens`, or 0 when the provider gave no detail.
+
+    PROMPT CACHING NEEDS NOTHING IN THE REQUEST. DeepSeek caches the prompt
+    prefix automatically and OpenRouter routes follow-up calls to the same
+    provider while the cache is warm. The prefix here - system prompt, then tool
+    schema - is identical on every call of a run, so from the second call on it
+    bills at the cache-read rate. What was missing was on our side: the cached
+    count was never read, so every input token was charged at full rate.
+    """
+    details = usage.get("prompt_tokens_details") or {}
+    return details.get("cached_tokens") or 0
+
+
+def _reasoning_tokens(usage: dict) -> int | None:
+    """`usage.completion_tokens_details.reasoning_tokens`, or None when unreported.
+
+    None, NOT 0: a provider that sends no detail has not said the model did no
+    thinking (rule 6), and the log prints `?` for it.
+    """
+    details = usage.get("completion_tokens_details") or {}
+    value = details.get("reasoning_tokens")
+    return int(value) if isinstance(value, int | float) else None
+
+
+def _record_spend(usage: dict, *, served: str | None, asked: str) -> None:
+    """One `spend_ledger` row for one call, from whatever usage arrived.
+
+    RECORDED HERE, BECAUSE THIS IS WHERE THE USAGE IS. E5 has been calling a
+    paid model since August and writing nothing to the ledger - the only caller
+    of `spend_ledger.record` was the Ask box - which is why the usage panel
+    showed one model and had to derive the other from the provider's key total
+    minus what it knew. Next to the response is the only place that cannot
+    forget, and `record` swallows write failures so a full disk cannot end a
+    corpus run.
+
+    A TRUNCATED OR ABANDONED ANSWER IS STILL BILLED. The two abandoned calls of
+    2026-09-14 wrote no ledger row at all, because the old code reached the
+    write only on success - roughly 30,000 generated tokens each, invisible in
+    our own figures. Called from `complete()`'s `finally` for that reason.
+
+    THE ONLY LEDGER WRITER FOR AN EXTRACTION CALL (#484). `judge/pipeline.py`
+    used to write a second row per call; one API call must be one row.
+
+    ⚠ THE NAME IS WHAT THE PROVIDER SAID; THE PRICE IS WHAT WE BOUGHT UNDER,
+      and they are passed separately on purpose (#481 -> #381). `served` is
+      None when the stream named no model and is recorded as "" rather than
+      replaced by `asked` - rule 6. Pricing uses `asked`: OpenRouter bills the
+      alias we sent at the alias's rate whichever build it routes to, and an
+      unnamed model priced by its own name would record `usd: 0.0` and cost the
+      $1/day cap nothing.
+    """
+    #: BOTH LOCAL, BECAUSE `spend_ledger` AND `budget` REACH BACK INTO THIS
+    #: MODULE - `budget` imports `Completion` by name. A top-level import of
+    #: either closes the cycle.
+    from judge import spend_ledger
+    from judge.extract.budget import pricing_for
+
+    spend_ledger.record(
+        stage=spend_ledger.STAGE_EXTRACT,
+        model=served or "",
+        pricing=pricing_for(asked),
+        input_tokens=usage.get("prompt_tokens", 0),
+        output_tokens=usage.get("completion_tokens", 0),
+        cached_input_tokens=_cached_tokens(usage),
+    )
 
 
 #: Where the closed capability vocabulary lives in the generated schema.
@@ -979,6 +1058,38 @@ def _close_capability(schema: dict, capability_keys: list[str]) -> dict:
     # The description still carries the instruction, because an enum tells the
     # model WHAT is allowed and not when to answer at all. That empty is correct
     # - and that the nearest key is worse than none - only exists in prose.
+    return schema
+
+
+#: Fields that exist only for the legacy capability-card path (`judge/legacy.py`).
+#: Stripped from the tool schema when it is off, so the extractor is never asked
+#: for them and pays no output tokens producing them.
+_LEGACY_CLAIM_FIELDS = (_CAPABILITY_FIELD,)
+_LEGACY_RESULT_FIELDS = ("proposed_capabilities", "unclassified")
+
+
+def strip_legacy_fields(schema: dict) -> dict:
+    """Remove the ratified-twelve fields from an `ExtractionResult` tool schema.
+
+    The paths are asserted like `_close_capability`'s: a schema whose shape has
+    moved raises rather than returning one that still asks for the old fields.
+    """
+    props = schema.get("properties") or {}
+    claim = (((props.get("claims") or {}).get("items")) or {})
+    if "properties" not in claim or not all(f in claim["properties"] for f in _LEGACY_CLAIM_FIELDS):
+        raise ValueError(
+            f"expected `claims.items.properties.{_CAPABILITY_FIELD}` in the tool schema; the "
+            "shape moved, so the legacy field was NOT stripped. Refusing rather than "
+            "sending a schema that still asks for it."
+        )
+    for name in _LEGACY_CLAIM_FIELDS:
+        claim["properties"].pop(name, None)
+        if name in (claim.get("required") or []):
+            claim["required"] = [r for r in claim["required"] if r != name]
+    for name in _LEGACY_RESULT_FIELDS:
+        props.pop(name, None)
+        if name in (schema.get("required") or []):
+            schema["required"] = [r for r in schema["required"] if r != name]
     return schema
 
 

@@ -53,8 +53,9 @@ class TestItActuallyStops:
     def test_a_dollar_buys_the_measured_number_of_threads(self):
         """Token means MEASURED 2026-08-19 (Gemini), RE-PRICED 2026-09-01.
 
-        At the DeepSeek V4 Flash price the Gemini 2,010/589 means cost $0.000213
-        per call, so a dollar buys ~4,692 (was ~481 at the Gemini price).
+        At the DeepSeek V4 Flash 0731 price (0.03/0.32, 2026-09-24) the Gemini
+        2,010/589 means cost $0.000249 per call, so a dollar buys ~4,019 (was
+        ~4,692 at 0.065/0.14, ~481 at the Gemini price).
         Asserted so a pricing or prompt change that moves it fails here rather
         than on a bill. The token means themselves want a DeepSeek re-measurement.
         """
@@ -65,7 +66,7 @@ class TestItActuallyStops:
                 budget.check_before_call()
                 budget.charge(completion())
                 n += 1
-        assert 4600 <= n <= 4800, f"a dollar now buys {n} threads, not ~4,692"
+        assert 3950 <= n <= 4100, f"a dollar now buys {n} threads, not ~4,019"
 
 
 class TestABudgetStopIsNotAFailureAndNotAnEmptyBatch:
@@ -131,7 +132,7 @@ class TestTheEstimateAndTheMeasurementStaySeparate:
     def test_spend_is_charged_from_reported_tokens_not_from_the_estimate(self):
         budget = Budget(limit_usd=None)
         budget.charge(completion(inp=100, out=10))
-        expected = (100 * 0.065 + 10 * 0.14) / 1_000_000
+        expected = (100 * 0.03 + 10 * 0.32) / 1_000_000
         assert budget.spent_usd == pytest.approx(expected)
         assert budget.spent_usd != budget.estimated_next_call_usd
 
@@ -159,7 +160,7 @@ class TestTheEstimateAndTheMeasurementStaySeparate:
         budget = Budget(limit_usd=None, pricing=Pricing(price_in=1.0, price_out=1.0))
         budget.charge(completion(inp=1_000_000, out=0))
         assert budget.spent_usd == pytest.approx(1.0)
-        assert DEFAULT_PRICING.price_in == 0.065
+        assert DEFAULT_PRICING.price_in == 0.03
 
 
 # ── the measured token figures, and what they buy ─────────────────────────
@@ -170,7 +171,8 @@ class TestTheMeasuredFigures:
 
     The token means (2,010/589) are the 2026-08-19 Gemini measurement, unchanged.
     The per-thread cost and threads-per-dollar were RE-PRICED 2026-09-01 for the
-    DeepSeek V4 Flash switch (0.065/0.14). `docs/measurements/extraction-token-counts.md`
+    DeepSeek V4 Flash switch (0.065/0.14), and again 2026-09-24 for the 0731
+    build (0.03/0.32). `docs/measurements/extraction-token-counts.md`
     and `docs/proposals/extraction-budget.md` §4 still quote the Gemini-price
     figures and want the same re-pricing — and the token means want a proper
     DeepSeek re-measurement, since the A/B put DeepSeek well above 2,010 on input.
@@ -181,13 +183,14 @@ class TestTheMeasuredFigures:
         assert ESTIMATED_OUTPUT_TOKENS == 589
 
     def test_the_per_thread_cost_is_what_the_docs_quote(self):
-        # Re-priced 2026-09-01: the Gemini token means (2,010/589) at the
-        # DeepSeek V4 Flash price (0.065/0.14). Was 0.00208 at the Gemini price.
+        # Re-priced 2026-09-24: the Gemini token means (2,010/589) at the
+        # DeepSeek V4 Flash 0731 price (0.03/0.32). Was 0.00021 at 0.065/0.14,
+        # 0.00208 at the Gemini price.
         budget = Budget(limit_usd=1.00)
-        assert round(budget.estimated_next_call_usd, 5) == 0.00021
+        assert round(budget.estimated_next_call_usd, 5) == 0.00025
 
     def test_one_dollar_buys_the_documented_number_of_threads(self):
-        """~4,692 at the DeepSeek price (was ~482 at the Gemini price).
+        """~4,019 at the 0731 price (~4,692 at 0.065/0.14, ~482 at Gemini's).
 
         The token estimate is unchanged (still the Gemini 2,010/589 means); only
         the price moved, so a dollar now buys ~10x more calls. The estimate wants
@@ -195,7 +198,7 @@ class TestTheMeasuredFigures:
         """
         budget = Budget(limit_usd=1.00)
         threads = int(1.00 / budget.estimated_next_call_usd)
-        assert threads == 4692, threads
+        assert threads == 4019, threads
 
     def test_the_two_errors_ran_in_opposite_directions(self):
         """The cancellation, as arithmetic rather than as a claim in prose.
@@ -209,7 +212,11 @@ class TestTheMeasuredFigures:
         assert old_in < ESTIMATED_INPUT_TOKENS, "input was UNDER-estimated"
         assert old_out > ESTIMATED_OUTPUT_TOKENS, "output was OVER-estimated"
 
-        pricing = DEFAULT_PRICING
+        # The price the 2026-08-19 measurement was taken at (Gemini 2.5 Flash),
+        # not DEFAULT_PRICING: the cancellation is a fact about that run, and
+        # re-pricing the extractor must not rewrite it. At 0.03/0.32 output
+        # dominates and the two totals sit ~16% apart, failing the < 15% below.
+        pricing = Pricing(price_in=0.30, price_out=2.50)
         def cost(i: int, o: int) -> float:
             return (i * pricing.price_in + o * pricing.price_out) / 1_000_000
 

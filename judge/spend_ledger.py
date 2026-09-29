@@ -140,6 +140,17 @@ class Call:
     #: The fetch run that spent it, where there is one. The ask box has none.
     run_id: str | None = None
 
+    #: The part of `input_tokens` billed at the cache-read rate. NONE MEANS NOT
+    #: RECORDED, not "no cache hit": file rows written before 2026-09-24 and
+    #: every row read back from the `spend_ledger` TABLE, which has no column
+    #: for it. `usd` already carries the discount on either path.
+    #:
+    #: DECLARED WRITE-ONLY (rule 9). Intended reader: the usage panel, showing
+    #: the share of input served from cache. Nothing renders it yet, and the
+    #: table cannot mirror it until a migration adds the column - which is
+    #: `contract/`-adjacent schema work, not done in this change.
+    cached_input_tokens: int | None = None
+
     @property
     def id(self) -> str:
         """A content id, so a merge is an append and a backfill is idempotent.
@@ -169,6 +180,7 @@ class Call:
                 "in": self.input_tokens,
                 "out": self.output_tokens,
                 "usd": round(self.usd, 8),
+                "cached": self.cached_input_tokens,
                 "unpriced": self.unpriced,
                 "machine": self.machine,
                 "run_id": self.run_id,
@@ -177,8 +189,15 @@ class Call:
         )
 
 
-def cost_of(input_tokens: int, output_tokens: int, pricing: Pricing = DEFAULT_PRICING) -> float:
-    return (input_tokens * pricing.price_in + output_tokens * pricing.price_out) / 1_000_000
+def cost_of(
+    input_tokens: int,
+    output_tokens: int,
+    pricing: Pricing = DEFAULT_PRICING,
+    cached_input_tokens: int = 0,
+) -> float:
+    from judge.extract.budget import cost_of_tokens
+
+    return cost_of_tokens(pricing, input_tokens, output_tokens, cached_input_tokens)
 
 
 def record(
@@ -187,6 +206,7 @@ def record(
     model: str,
     input_tokens: int,
     output_tokens: int,
+    cached_input_tokens: int = 0,
     pricing: Pricing | None = None,
     at: datetime | None = None,
     path: Path | None = None,
@@ -216,11 +236,16 @@ def record(
         model=model,
         input_tokens=input_tokens,
         output_tokens=output_tokens,
-        usd=cost_of(input_tokens, output_tokens, rate) if rate is not None else 0.0,
+        usd=(
+            cost_of(input_tokens, output_tokens, rate, cached_input_tokens)
+            if rate is not None
+            else 0.0
+        ),
         unmetered=input_tokens == 0 and output_tokens == 0,
         unpriced=rate is None,
         machine=machine(),
         run_id=run_id,
+        cached_input_tokens=cached_input_tokens,
     )
     # THE FILE FIRST, ALWAYS. It is the write that cannot fail for a reason
     # outside this machine, and it is what a run still has when the database
@@ -433,6 +458,10 @@ def read_all(path: Path | None = None) -> list[Call]:
                         # where the file is, and is true for every such row.
                         machine=str(row.get("machine") or machine()),
                         run_id=row.get("run_id"),
+                        # Absent on rows written before 2026-09-24: None, not 0.
+                        cached_input_tokens=(
+                            int(row["cached"]) if row.get("cached") is not None else None
+                        ),
                     )
                 )
             except (ValueError, KeyError, TypeError):

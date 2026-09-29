@@ -32,13 +32,20 @@ be re-run. It must exist before `judge/` runs its first extraction.
 **2 — Rank thread children by specificity, not popularity.**
 
 ```
-score = specificity_score × log(1 + engagement)
+score = specificity + 0.05 × log1p(max(votes, 0)) + first_hand + relevance[tier]
 ```
 
 The top-voted replies are agreement and jokes. The two-line correction —
 *"you had `tool_choice` misconfigured"* — sits at +2 and is the one that
 carries the condition. Ranking by engagement alone drops exactly the comment
 flattening exists to capture.
+
+**A sum since 2026-09-24, not the old `specificity × log(1 + engagement)`.**
+The product ranked every comment with no score at 0 — all of Hacker News and
+GitHub — so the id tie-break chose. The top 25 are kept (was 5). Weights and
+the first-hand phrase list are in `contract/harvest.yaml:child_ranking`, the
+code in `collect/assemble/ranking.py`, and every kept child's terms print in
+the E3 block of the fetch log.
 
 **3 — Over-clustering is worse than under-clustering.**
 Merging two genuinely independent reports destroys corroboration, which is the

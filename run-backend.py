@@ -9,6 +9,10 @@ the announcement is host, port and database name, never the credentials.
     python run-backend.py --staging      # STAGING_DATABASE_URL, forced READ ONLY
     python run-backend.py --write --reload
 
+The access log prints FAILURES ONLY - 4xx, 5xx, and any line it cannot classify.
+`--access-log` restores a line per request. See `access_log.py` for why that is a
+filter rather than a log level.
+
 THE MODE IS REQUIRED, AND THAT IS THE POINT OF THIS SCRIPT
 -----------------------------------------------------------
 There used to be a default: no flag meant DATABASE_URL, read-write. That is
@@ -55,10 +59,30 @@ env = ROOT / ".env"
 if not env.exists():
     sys.exit("No .env — copy .env.example and fill it in. See FRONTEND.md.")
 
+# ⚠ THE VALUE IS STRIPPED, AND IT DID NOT USED TO BE.
+#
+# `(.*)$` takes the rest of the line verbatim, trailing spaces included, and
+# nothing downstream trims them - so `EXTRACTOR_MODEL=deepseek/deepseek-v4-flash `
+# put a model id with a trailing space into `os.environ`, E5 sent it to
+# OpenRouter as-is, and the run died on
+#
+#     "deepseek/deepseek-v4-flash  is not a valid model ID"
+#
+# after harvesting for nine minutes. The provider's own message is the only
+# place the space was visible, and only as a DOUBLE SPACE in prose nobody reads
+# character by character.
+#
+# STRIPPED RATHER THAN VALIDATED, because this is a whole class: a DSN, a token
+# or a path picks up a trailing space from a paste or an editor just as easily,
+# and each would fail somewhere further away than this. `.strip()` on the value
+# is what every dotenv implementation does and what this hand-rolled parser
+# omitted.
+#
+# The KEY side needs no strip - `[A-Z_][A-Z0-9_]*` cannot match whitespace.
 for line in env.read_text(encoding="utf-8").splitlines():
     m = re.match(r"^([A-Z_][A-Z0-9_]*)=(.*)$", line)
     if m:
-        os.environ[m.group(1)] = m.group(2)
+        os.environ[m.group(1)] = m.group(2).strip()
 
 # ── which database, said out loud ────────────────────────────────────────────
 #
@@ -127,6 +151,28 @@ if __name__ == "__main__":
     print(announcement, flush=True)
 
 import uvicorn  # noqa: E402  (imported after the environment is in place)
+from uvicorn.config import LOGGING_CONFIG  # noqa: E402
+
+import access_log  # noqa: E402  (needs ROOT on sys.path, done above)
+import logging_setup  # noqa: E402
+
+# ── AT MODULE LEVEL, FOR THE SAME REASON THE .env LOADING IS ────────────────
+#
+# Under --reload the process that serves requests is a SPAWNED CHILD which
+# re-imports this file as `__mp_main__`, so the `__main__` guard below does not
+# run there. A handler attached inside the guard would exist only in the parent,
+# which serves nothing - the worker would log to the terminal and to no file,
+# and the failure would look like the logging not working at all rather than
+# like it being in the wrong process.
+#
+# Both processes therefore attach to the same file. The parent writes almost
+# nothing (the reloader's own lines) and `attach` is idempotent per path, so
+# this is one busy writer and one near-silent one rather than a contest.
+#
+# uvicorn's dictConfig configures `uvicorn`, `uvicorn.error` and `uvicorn.access`
+# and leaves the ROOT logger alone, so this root handler survives it and catches
+# what those do not: `collect.rawstore`, the adapters, tracebacks.
+LOG_FILE = logging_setup.attach("backend")
 
 
 # ── THE GUARD IS LOAD-BEARING ON WINDOWS, AND ONLY AROUND THIS CALL ──────────
@@ -167,6 +213,35 @@ def _wire_source_text_reader() -> bool:
 
 if __name__ == "__main__":
     reload = "--reload" in sys.argv
+
+    # ── A SUCCESSFUL REQUEST IS NOT NEWS ────────────────────────────────────
+    #
+    # The frontend polls `/fetch/log` every 1.5 seconds while a fetch runs and
+    # re-reads `/models` on every navigation, so the terminal fills with 200s -
+    # and the fetch's own step-by-step account, which is the thing somebody
+    # started this backend in a visible terminal to watch, scrolls away behind
+    # them.
+    #
+    # `--access-log` PUTS THEM BACK, because "which requests arrived" is a real
+    # question and this must not be the reason nobody can answer it. Quiet is
+    # the default rather than the only option.
+    #
+    # The filter keeps every 4xx and 5xx, and keeps any line it cannot classify
+    # - see `access_log.OnlyFailures`. So silence here means "every request
+    # succeeded" rather than "logging is off".
+    # `LOGGING_CONFIG` AND NOT `None` ON THE LOUD PATH. uvicorn reads
+    # `log_config=None` as "configure no logging", which drops its handlers
+    # and formats entirely rather than restoring them - so --access-log would
+    # have produced unformatted output, not the default output.
+    quiet = "--access-log" not in sys.argv
+    log_config = access_log.quiet_config() if quiet else LOGGING_CONFIG
+    if quiet:
+        print("access log: failures only (--access-log for every request)",
+              flush=True)
+
+    print(f"log file: {LOG_FILE}" if LOG_FILE
+          else "log file: could not open logs/ - terminal only", flush=True)
+
     # THE APP OBJECT WHEN NOT RELOADING, so the injected reader survives.
     # uvicorn's string form imports the app itself, and under --reload it does so
     # in a spawned child - either way the injection this process made would be in
@@ -175,9 +250,11 @@ if __name__ == "__main__":
     # which is why that is a real state rather than an error.
     if reload:
         print("--reload: /documents/{id}/source will report itself unwired")
-        uvicorn.run("judge.app:app", host="127.0.0.1", port=8000, reload=True)
+        uvicorn.run("judge.app:app", host="127.0.0.1", port=8000, reload=True,
+                    log_config=log_config)
     else:
         print(f"source-text reader wired: {_wire_source_text_reader()}")
         import judge.app
 
-        uvicorn.run(judge.app.app, host="127.0.0.1", port=8000)
+        uvicorn.run(judge.app.app, host="127.0.0.1", port=8000,
+                    log_config=log_config)

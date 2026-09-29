@@ -475,15 +475,19 @@ class TestTheThirdAssemblyShape:
         five-comment thread."""
         from collect.assemble.issue import MAX_ISSUE_COMMENTS, assemble_issue_thread
 
+        # Four MORE than the cap, whatever the cap is. This said 9 when the cap
+        # was 5; the cap is now `child_ranking.max_children` (25) and 9 comments
+        # no longer reach it, so the test could not see a cap at all.
+        held = MAX_ISSUE_COMMENTS + 4
         assembled = assemble_issue_thread(
             root_document_id="doc_issue",
             root_text="gpt-5.2 drops arguments",
-            comments=self._comments(9),
-            comment_count=9,
+            comments=self._comments(held),
+            comment_count=held,
             store=self._store(tmp_path),
             version_aliases={},
         )
-        assert assembled.observed_children == 9
+        assert assembled.observed_children == held
         assert len(assembled.member_document_ids) == MAX_ISSUE_COMMENTS + 1
         assert assembled.hidden_children_min == 0
 
@@ -517,19 +521,23 @@ class TestTheThirdAssemblyShape:
                 version_aliases={},
             )
 
-    def test_it_does_not_rank_on_an_engagement_score_github_does_not_return(self):
-        """`thread.rank_children` multiplies by log1p(score). A GitHub comment
-        has no score, so every product would be 0.0 and the "ranking" would be
-        a sort by comment id wearing a relevance ranking's clothes.
+    def test_vote_less_comments_are_ranked_by_content_not_by_id(self):
+        """A GitHub comment has no score. Under the old PRODUCT
+        `specificity x log1p(score)` every comment ranked 0.0 and the "ranking"
+        was a sort by comment id. The ranking is a SUM since 2026-09-24, so a
+        missing score costs the engagement term only - asserted by behaviour
+        rather than by reading source, which is what the old test did.
         """
-        import inspect
+        from types import SimpleNamespace
 
-        from collect.assemble import issue
+        from collect.assemble.ranking import rank_children
 
-        src = inspect.getsource(issue._rank_issue_comments)
-        # The DOCSTRING quotes `log1p` on purpose - it is the trap being named.
-        # Asserting on the whole source would pass the moment somebody deleted
-        # the explanation and kept the bug, so this reads the body alone.
-        body = src.split('"""')[2]
-        assert "log1p" not in body, "no engagement term"
-        assert "comment.score" not in body, "and not a defaulted one either"
+        plain = SimpleNamespace(external_id="a_first_by_id", body="Thanks, same here.", score=None)
+        specific = SimpleNamespace(
+            external_id="z_last_by_id",
+            body="I tried it: `TypeError: tool_choice` after 3 calls at 128k tokens.",
+            score=None,
+        )
+        ranked = rank_children([plain, specific], version_aliases=set(), root_text="")
+        assert ranked[0].member is specific, "id order would have put `plain` first"
+        assert ranked[0].score > 0

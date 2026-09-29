@@ -974,7 +974,8 @@ class RedditHarvester:
         *,
         thread=None,
         version_aliases=(),
-        max_children: int = 5,
+        max_children: int | None = None,
+        lexicon=None,
     ):
         """Build the `thread_context` row for a fetched thread.
 
@@ -1002,9 +1003,16 @@ class RedditHarvester:
             version_aliases: surfaces for `names_version`, which feeds the
                 specificity score child ranking uses. Empty is legitimate and
                 narrows the score rather than breaking it.
+            max_children: None takes `contract/harvest.yaml:child_ranking`
+                (25). Was a hardcoded 5.
+            lexicon: `ranking.load_lexicon(conn)` for the relevance term. None
+                makes every child `unknown`, which scores 0.
         """
         from collect.adapters.reddit_comments import parse_thread, permalink_of
-        from collect.assemble.thread import assemble
+        from collect.assemble.thread import MAX_CHILDREN, assemble
+
+        if max_children is None:
+            max_children = MAX_CHILDREN
 
         if thread is None:
             url = permalink_of(post)
@@ -1041,6 +1049,7 @@ class RedditHarvester:
             store=self._store,
             version_aliases=version_aliases,
             max_children=max_children,
+            lexicon=lexicon,
         )
 
 

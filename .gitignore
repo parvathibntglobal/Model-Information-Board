@@ -70,6 +70,10 @@ htmlcov/
 *.db
 *.sqlite3
 *.log
+# The whole directory, not only `*.log` above: rotation writes `backend.log.1`,
+# `.2`, `.3`, which that pattern does not match and which would otherwise turn
+# up as untracked files after every few runs.
+logs/
 .DS_Store
 Thumbs.db
 .idea/

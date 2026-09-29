@@ -597,6 +597,11 @@ class ExtractedClaim(BaseModel):
     #: `None` is now a correct answer and the common one. A claim with no key is
     #: written with `capability_key` NULL, no `claim_weight` row and no cell —
     #: see `judge/pipeline.py`, which keeps the claim and skips the cell.
+    #:
+    #: AND WITH `LEGACY_CELLS` OFF (the default) IT IS NEVER ASKED FOR. The
+    #: field is stripped from the tool schema and its instructions from the
+    #: prompt, so it arrives as None and no claim row or cell is written. See
+    #: `judge/legacy.py`.
     legacy_score_key: str | None = Field(
         default=None,
         description=(

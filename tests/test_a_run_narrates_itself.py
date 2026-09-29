@@ -202,8 +202,15 @@ class TestBothHalvesAreWired:
         src = SCRIPT.read_text(encoding="utf-8")
         say = src[src.index("    def _say(self"):]
         say = say[:say.index(chr(10) + "    def ", 10)]
-        assert "except Exception" in say
         assert '"replace"' in say
+        if "except Exception" not in say:
+            # The method may hand each line to the module-level `_say`, which
+            # also writes the run's transcript; then THAT writer must be the
+            # one that cannot raise.
+            assert "_say(line)" in say, "Progress._say neither guards nor delegates"
+            module = src[src.index("\ndef _say("):]
+            module = module[:module.index("\ndef ", 5)]
+            assert "except Exception" in module
 
 
 class TestTheTotalsAreRecordedNotDerived:

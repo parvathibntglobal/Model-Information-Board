@@ -394,11 +394,13 @@ def _reassemble(conn, store, comments, issue_url_to_document):
     `assemble_issue_thread` refuses them itself and a rule applied by whoever
     remembers is a rule that holds until somebody writes a second caller.
     """
+    from collect.assemble.ranking import load_lexicon
     from collect.rawstore_reader import RawStoreReader
     from collect.triage.store import version_aliases
 
     reader = RawStoreReader(store)
     aliases = version_aliases(conn)
+    lexicon = load_lexicon(conn)
 
     by_issue: dict[str, list] = collections.defaultdict(list)
     for comment in comments:
@@ -444,6 +446,7 @@ def _reassemble(conn, store, comments, issue_url_to_document):
                 store=store,
                 version_aliases=aliases,
                 pipeline_version=FORK_VERSION,
+                lexicon=lexicon,
             )
         except ValueError as refusal:
             refused.append(str(refusal))

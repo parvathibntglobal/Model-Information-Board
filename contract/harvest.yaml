@@ -506,6 +506,105 @@ specificity:
 #  and it is the population round 3 should be asked about first.
 # ============================================================================
 
+# ============================================================================
+#  child_ranking - which comments of a thread reach the extractor (E3)
+#
+#  Read by collect/assemble/ranking.py. No language model participates (rule 2).
+#
+#    score = specificity                        0..1, the five components above
+#          + engagement_weight x log1p(max(upvotes, 0))
+#          + first_hand.bonus    when the author's own words say they did it
+#          + relevance[tier]     how the comment relates to the thread's subject
+#
+#  ADDITIVE, REPLACING `specificity x log1p(engagement)` (2026-09-24). The
+#  product made any zero fatal: a comment at 0 upvotes ranked 0 however specific
+#  it was, and on platforms that publish no comment score (Hacker News, GitHub)
+#  EVERY child ranked 0 and the tie-break on external_id picked by arrival
+#  order. With a sum, a missing score costs the engagement term and nothing else.
+#
+#  ⚠ PROVISIONAL · NEVER CALIBRATED - the same standing as `specificity.weights`.
+#  Every number below is a judgement. What would calibrate them is the labelled
+#  baseline (fixtures/golden/extraction-reading-baseline--unlabelled.jsonl) and
+#  docs/measurements/what-the-specificity-weights-select.md, which found 4 of 5
+#  selected comments were relays in ONE launch thread (195 of >=818 comments).
+#  The first-hand term exists because of that finding and is not measured
+#  against it yet.
+#
+#  RULE 8: these are WEIGHTS, not gates. Nothing here drops a comment; the only
+#  drop is `max_children`, which bounds how many reach the extractor.
+# ============================================================================
+
+child_ranking:
+
+  # Children flattened per thread, root excluded. Was 5 (a code constant).
+  # Raising it costs extraction INPUT tokens roughly in proportion, and more
+  # text means more output and a higher chance of the 16,384-token ceiling
+  # (judge/extract/client.py max_output_tokens).
+  max_children: 25
+
+  # Small on purpose: log1p(500) = 6.2 becomes +0.31, log1p(2) = 1.1 becomes
+  # +0.05, so popularity breaks ties between comparably specific comments and
+  # cannot carry an unspecific one past a specific one on its own.
+  engagement_weight: 0.05
+
+  first_hand:
+    # Equal to the largest specificity component (has_error_strings).
+    bonus: 0.30
+    # Matched on the author's own prose (quotes and code fences removed first,
+    # sieve.author_prose), normalised, whole words. A PHRASE LIST, not a
+    # classifier: "I used to think" matches "i used" and is counted. That noise
+    # is visible in the E3 log line for every selected child.
+    phrases:
+      - "i tried"
+      - "i've tried"
+      - "i used"
+      - "i've used"
+      - "i've been using"
+      - "i'm using"
+      - "i use"
+      - "i tested"
+      - "i ran"
+      - "i switched"
+      - "i moved"
+      - "i found"
+      - "my experience"
+      - "in my experience"
+      - "in my testing"
+      - "my tests"
+      - "we tried"
+      - "we used"
+      - "we use"
+      - "we tested"
+      - "we switched"
+      - "we moved"
+      - "we found"
+      - "our testing"
+      - "our tests"
+      - "our experience"
+      - "our team"
+
+  # Relevance to the thread's SUBJECT, which is the set of models the thread
+  # ROOT names (model_alias surfaces, any specificity, keyed by family). A
+  # comment is in exactly one tier:
+  #
+  #   subject      names a model the root names. "Claude performance" under a
+  #                Claude thread.
+  #   topic_only   names no model but uses a capability topic term from
+  #                contract/queries.yaml. Replies rarely re-name the model.
+  #   other_model  names models, none of which the root names. "GPT pricing"
+  #                under a Claude thread - less relevant, not irrelevant.
+  #   unrelated    names no model and no capability term. "a CUDA error"
+  #                under a Claude thread.
+  #   unknown      the root names no model, so there is no subject to compare
+  #                against. NOT "unrelated": an absent subject is not evidence
+  #                that the comment is off-topic (rule 6). Scores 0.
+  relevance:
+    subject:      0.20
+    topic_only:   0.10
+    other_model:  0.00
+    unrelated:   -0.30
+    unknown:      0.00
+
 evidence_tier_rules:
 
   # ⚠ PROVISIONAL IN THE SAME SENSE AS specificity.weights: nothing has

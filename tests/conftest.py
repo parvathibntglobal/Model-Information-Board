@@ -878,3 +878,22 @@ def _isolate_shared_telemetry(monkeypatch):
         monkeypatch.setattr(
             app_module, "_rapidapi_meters_from_db", lambda: None, raising=False
         )
+
+
+@pytest.fixture(autouse=True)
+def _legacy_cells_on_for_existing_tests(monkeypatch):
+    """The suite was written against the legacy capability-card path; pin it ON.
+
+    PRODUCTION DEFAULTS TO OFF since 2026-09-24 (`judge/legacy.py`). Every test
+    written before then asserts the ON behaviour - the closed capability list in
+    the prompt, a stored claim row, a rebuilt cell - so the switch is set here
+    rather than in each file. Pinned, not left ambient: a developer `.env` with
+    `LEGACY_CELLS` set either way must not change what the suite checks.
+
+    Tests of the OFF mode set it themselves:
+
+        monkeypatch.setenv("LEGACY_CELLS", "off")
+
+    `tests/test_legacy_cells_off.py` holds them.
+    """
+    monkeypatch.setenv("LEGACY_CELLS", "on")

@@ -135,7 +135,11 @@ ISSUE_WITH_COMMENTS = "issue_with_comments"
 #: more children is more tokens against a per-call budget rather than more
 #: signal. Named separately because a shared constant would make two independent
 #: judgements look like one decision.
-MAX_ISSUE_COMMENTS = 5
+#:
+#: 25 since 2026-09-24 (was 5), raised with Reddit's to the same value by the
+#: same decision - which is now one decision, stated here rather than hidden
+#: behind a shared name.
+MAX_ISSUE_COMMENTS = 25
 
 
 @dataclass(frozen=True)
@@ -154,7 +158,8 @@ class AssemblyComment:
     #: refusal below is a property of the assembler rather than a rule the
     #: caller is trusted to have applied.
     is_bot: bool = False
-    #: There are no votes on a GitHub comment. See `_rank_issue_comments`.
+    #: There are no votes on a GitHub comment, so this stays None and the
+    #: additive ranking drops only its engagement term. See `ranking.py`.
     score: int | None = None
 
 
@@ -168,6 +173,7 @@ def assemble_issue_thread(
     version_aliases,
     max_children: int = MAX_ISSUE_COMMENTS,
     pipeline_version: str | None = None,
+    lexicon=None,
 ) -> AssembledThread:
     """One `thread_context` over an issue body AND its fetched comments.
 
@@ -209,9 +215,18 @@ def assemble_issue_thread(
     usable = [
         c for c in comments if not c.is_bot and c.body and c.body.strip()
     ]
-    selected = [c for _score, c in _rank_issue_comments(usable, version_aliases)][
-        :max_children
-    ]
+    from collect.assemble.ranking import select_children
+
+    # THE SHARED RANKER NOW, not a GitHub-only one. `_rank_issue_comments` ranked
+    # on specificity alone because the old product `specificity x log1p(score)`
+    # zeroed every vote-less comment. The ranking is a sum since 2026-09-24, so a
+    # missing score costs the engagement term only and GitHub gains the
+    # first-hand and relevance terms. `score` is None on every comment here.
+    selection = select_children(
+        usable, version_aliases=version_aliases, root_text=root_text,
+        lexicon=lexicon, limit=max_children,
+    )
+    selected = [child.member for child in selection.selected]
 
     documents: list[tuple[str, str]] = [(root_document_id, root_text)]
     documents.extend((c.document_id, c.body) for c in selected)
@@ -240,35 +255,8 @@ def assemble_issue_thread(
         hidden_branches_unsized=0,
         pipeline_version=version,
         selection_method=ISSUE_WITH_COMMENTS,
+        selection=selection,
     )
-
-
-def _rank_issue_comments(comments, version_aliases):
-    """Rank by specificity alone. There are no votes on a GitHub comment.
-
-    ⚠ NOT `thread.rank_children`, AND THE DIFFERENCE IS NOT AN OVERSIGHT.
-      That function scores `specificity x log1p(max(score, 0))`, and a GitHub
-      issue comment has no score - reactions exist but are not returned on the
-      comment list endpoint. Passing score=None through `log1p(max(None or 0,0))`
-      gives `log1p(0) = 0.0`, which multiplies EVERY comment to zero and makes
-      the ranking a tie broken on `external_id` - a selection by comment id,
-      which is arrival order, presented as a relevance ranking.
-
-      That is the failure this project keeps finding: a computation that runs,
-      produces a number, and ranks on something nobody chose. So the engagement
-      term is dropped rather than defaulted, and specificity stands alone.
-
-    Ties break on `external_id` so a re-run selects the same comments and
-    produces the same `offset_map`.
-    """
-    from collect.triage.specificity import score_document
-
-    ranked = []
-    for comment in comments:
-        specificity = score_document(comment.body, version_aliases=version_aliases)
-        ranked.append((specificity.score, comment))
-    ranked.sort(key=lambda pair: (-pair[0], pair[1].external_id))
-    return ranked
 
 
 @dataclass

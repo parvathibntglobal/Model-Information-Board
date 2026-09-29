@@ -120,6 +120,9 @@ class TestCostOfIsSafeToCallHere:
         class _C:
             raw_arguments = ""
             model = "x"
+            #: `Completion` carries this with a default of 0, and `charge`
+            #: reads it to price cached input at the cached rate.
+            cached_input_tokens = 0
 
             def __init__(self, i, o):
                 self.input_tokens, self.output_tokens = i, o

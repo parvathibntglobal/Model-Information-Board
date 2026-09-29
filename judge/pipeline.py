@@ -695,6 +695,11 @@ class Pipeline:
         self._capabilities = capability_keys
         self._extractor_model = extractor_model
         self._searched_model_version_id = searched_model_version_id
+        # READ ONCE PER PIPELINE, so one batch cannot mix the two modes if the
+        # environment changes mid-run. See `judge/legacy.py`.
+        from judge.legacy import legacy_cells_enabled
+
+        self._legacy = legacy_cells_enabled()
         self._claims = ClaimStore(conn)
         self._ledger = ExtractionLedger(conn)
         self._cells = CellStore(conn)
@@ -794,7 +799,10 @@ class Pipeline:
         """
         as_of = as_of or date.today()
         result = PipelineResult(
-            extraction=extract(thread, client=self._client, capability_keys=self._capabilities)
+            extraction=extract(
+                thread, client=self._client, capability_keys=self._capabilities,
+                legacy=self._legacy,
+            )
         )
 
         # ── E6 REJECT, which had no caller until now ────────────────────────
@@ -946,6 +954,12 @@ class Pipeline:
             # MUST NOT COST THE BOARD." The refusal path and its reasons now
             # live in `_stored_with_cell_weight`.
             stored: StoredClaim | None = None
+            if not self._legacy:
+                # THE LEGACY PATH IS OFF (`judge/legacy.py`): no weighting,
+                # no claim row, no cell. Not a refusal and not counted as one -
+                # the claim is not wrong, the path is retired. `stored` stays
+                # None and the board entry below is written exactly as before.
+                pass
 
             # ── NO RATIFIED KEY: KEEP THE CLAIM, SKIP THE CELL ───────────────
             #
@@ -970,7 +984,7 @@ class Pipeline:
             # It is NOT an error and is not counted as one. `cell_refusals` is
             # for a key the vocabulary could not resolve; this is the extractor
             # correctly reporting that no key applies, so it gets its own tally.
-            if claim.legacy_score_key is None:
+            elif claim.legacy_score_key is None:
                 result.cell_skipped_no_key += 1
                 stored = StoredClaim(
                     claim=claim,
@@ -1473,6 +1487,7 @@ class Pipeline:
                         raw_arguments="",
                         input_tokens=result.extraction.input_tokens,
                         output_tokens=result.extraction.output_tokens,
+                        cached_input_tokens=result.extraction.cached_input_tokens,
                         model=self._extractor_model,
                     )
                 )
@@ -1506,7 +1521,8 @@ class Pipeline:
             #   been recording E5 since 19e14c4, three weeks earlier.
             #
             #   The cap is still shared and still charged: the client's row
-            #   lands in the same ledger the ask box reads.
+            #   lands in the same ledger the ask box reads. Cached input tokens
+            #   travel on that row too (`client._record_spend`).
             # THE THREAD IS NOW COMPLETE AND CONSISTENT, AND THE CALLER MAY SAY SO.
             #
             # This is the last statement of the iteration on purpose: the claims,
@@ -1544,12 +1560,16 @@ class Pipeline:
         # This also fixes a quieter bug: `as_of_cells` below used to receive the
         # same cells once per claim-bearing thread - the whole board, duplicated
         # up to a thousand times - and now receives each cell once.
-        if any(r.stored_claim_ids for r in results):
+        if self._legacy and any(r.stored_claim_ids for r in results):
             outcomes = self._cells.rebuild_all(as_of=as_of)
             if results:
                 results[-1].cells = outcomes
 
-        if driver is not None:
+        # SKIPPED WITH THE LEGACY PATH OFF (`judge/legacy.py`). Labels and the
+        # changelog are derived from cells, and reported context from `claim`
+        # rows - neither is written when it is off, so running this would diff
+        # frozen cells and record "no change" as if it had looked.
+        if driver is not None and self._legacy:
             # THE CALLER, and the reason this parameter exists. Labels, the
             # changelog and reported context all had a writer and none had
             # anything calling it, so the changelog page would have reported
