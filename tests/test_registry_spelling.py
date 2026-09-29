@@ -208,8 +208,15 @@ def test_the_family_surface_does_not_gate():
 
 
 def test_declared_surfaces_deduplicates():
-    """Five distinct spellings now: the duplicated surface was replaced."""
+    """No spelling is declared twice.
+
+    Was 5 distinct spellings; now 4. `deepseek v4` was dropped 2026-09-29 (a
+    proposal awaiting sign-off) because it is the bare family word, not a model
+    surface — it named 31 ambiguous threads mentioning no specific model. The
+    dedup property this test guards is unchanged; the count moved by one, and
+    all three spelling styles remain (see `test_every_model_declares_all_three`).
+    """
     v4 = next(m for m in _models() if m.canonical_id == "deepseek/deepseek-v4-flash")
     surfaces = declared_surfaces(v4)
     assert len(surfaces) == len(set(surfaces))
-    assert len(surfaces) == 5
+    assert len(surfaces) == 4
