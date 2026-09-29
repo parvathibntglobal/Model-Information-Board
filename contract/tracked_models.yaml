@@ -313,6 +313,12 @@ models:
   - name: Grok 4.7
     registry: x-ai/grok-4.7
     kind: text
+  # Added 2026-09-29 at Parvathi's request. Already in the registry
+  # (`model_version` mv_15f79ec75cbf492e); as an untracked model it had
+  # 53 claims from 28 distinct authors on that date.
+  - name: Claude Opus 4.6
+    registry: anthropic/claude-opus-4.6
+    kind: text
 
   # ── image ────────────────────────────────────────────────────────────────
   # THE ONE IMAGE MODEL THE POLL DOES CARRY, and it is why the note above is
