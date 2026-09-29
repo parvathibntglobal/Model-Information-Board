@@ -86,6 +86,8 @@ modelboard-demo
 # start backend 
 & "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe" run-backend.py --write
 
+py -3.12 run-backend.py --write
+
 # start frontend
 cd web
 npm run dev
