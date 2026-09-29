@@ -23,7 +23,7 @@ from judge import pipeline as pipeline_mod
 from judge import spend_ledger
 from judge.extract.budget import Budget, BudgetExhausted
 from judge.extract.client import ExtractorUnavailable, OpenRouterClient
-from judge.extract.runner import ExtractionRefused, ThreadInput
+from judge.extract.runner import ThreadInput
 
 SCHEMA: dict[str, object] = {"type": "object", "properties": {}}
 
@@ -189,42 +189,14 @@ def _script(monkeypatch, outcomes: dict[str, list]):
 
 
 class TestTheBatchSurvivesAProviderFailure:
-    def test_a_thread_failing_twice_is_skipped_and_the_rest_run(self, monkeypatch, pipe):
-        calls = _script(monkeypatch, {
-            "a": [_result()],
-            "b": [ExtractorUnavailable("502"), ExtractorUnavailable("502 again")],
-            "c": [_result()],
-        })
+    """The batch-level half is main's #399 bounded retry, not this branch's.
 
-        results = pipe.run_all(
-            [_thread("a"), _thread("b"), _thread("c")],
-            facts={}, model_version_of={}, already_extracted={},
-        )
-
-        assert calls == ["a", "b", "b", "c"], "b retried once, and c still ran"
-        assert len(results) == 2
-        assert pipe.unattempted == [("b", "502 again")]
-        assert pipe.written == ["a", "c"], "no extraction-ledger row for b, so it is re-read"
-
-    def test_a_transient_failure_is_retried_once_and_kept(self, monkeypatch, pipe):
-        calls = _script(monkeypatch, {"a": [ExtractorUnavailable("504"), _result()]})
-
-        results = pipe.run_all(
-            [_thread("a")], facts={}, model_version_of={}, already_extracted={},
-        )
-
-        assert calls == ["a", "a"]
-        assert len(results) == 1
-        assert pipe.unattempted == []
-        assert pipe.written == ["a"]
-
-    def test_a_refusal_is_not_retried(self, monkeypatch, pipe):
-        calls = _script(monkeypatch, {"a": [ExtractionRefused("no")]})
-
-        pipe.run_all([_thread("a")], facts={}, model_version_of={}, already_extracted={})
-
-        assert calls == ["a"]
-        assert pipe.unattempted == [], "a refusal is not a provider failure"
+    This branch built the same fix with a `Pipeline.unattempted` list; main
+    built it with `ThreadResult.failed_attempts`, and the merge kept main's.
+    Its skip, retry and refusal cases are pinned in
+    `test_a_dead_stream_is_a_thread_not_a_run.py` and its siblings, so only
+    the case they do not cover stays here.
+    """
 
     def test_the_retry_is_checked_against_the_budget(self, monkeypatch, pipe):
         """The retry is a second paid call; a spent cap stops the batch before it."""
@@ -237,14 +209,3 @@ class TestTheBatchSurvivesAProviderFailure:
                 [_thread("a")], facts={}, model_version_of={}, already_extracted={},
                 budget=budget,
             )
-
-    def test_unattempted_is_reset_per_batch(self, monkeypatch, pipe):
-        _script(monkeypatch, {
-            "a": [ExtractorUnavailable("x"), ExtractorUnavailable("x")],
-            "b": [_result()],
-        })
-        pipe.run_all([_thread("a")], facts={}, model_version_of={}, already_extracted={})
-        assert len(pipe.unattempted) == 1
-
-        pipe.run_all([_thread("b")], facts={}, model_version_of={}, already_extracted={})
-        assert pipe.unattempted == []
