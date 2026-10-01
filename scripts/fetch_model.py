@@ -39,12 +39,18 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
-from judge import fetch_console
-from judge.extract.client import extractor_model
-from judge.pipeline import EXTRACT_ATTEMPTS
-
+# ⚠ REPO ROOT ON THE PATH BEFORE ANY FIRST-PARTY IMPORT. When this file is run
+# as a subprocess (`python scripts/fetch_model.py`, how /fetch/start spawns it),
+# sys.path[0] is scripts/, not the repo root, and there is no editable install —
+# so `import judge` / `import collect` fail unless ROOT is inserted FIRST. The
+# judge.* imports used to sit above this and crashed the subprocess at launch
+# (No module named 'judge') before E1 (#502 regression).
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+
+from judge import fetch_console  # noqa: E402
+from judge.extract.client import extractor_model  # noqa: E402
+from judge.pipeline import EXTRACT_ATTEMPTS  # noqa: E402
 
 from collect import usage  # noqa: E402
 from collect.adapters.github import GitHubHarvester  # noqa: E402

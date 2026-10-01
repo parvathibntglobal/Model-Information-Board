@@ -1822,8 +1822,26 @@ def start_fetch(req: FetchRequest) -> dict:
     #   it was given, which is the right answer there too: the same place its
     #   own logs go. `FETCH_QUIET=1` turns the rendering off without changing
     #   how the process is spawned.
+    # THE NAMED WRITE ROUTE, ONLY WHERE IT IS NEEDED.
+    #
+    # Against a SHARED/remote target, ENVIRONMENT=development would make the
+    # writeguard refuse the write, so `--development-write` is the honest way past
+    # it: it replaces the ENVIRONMENT proxy with the real seeded-model fixture
+    # check, which still fires and refuses if THIS model_version is
+    # provenance='seed' (scripts/fetch_model.py:3442). ⚠ #328 SCOPE: that check is
+    # MODEL-SCOPED, not per-thread — a backlog thread read in E5 that names
+    # ANOTHER seeded model is NOT checked here.
+    #
+    # ⚠ AGAINST A LOCAL TARGET THE FLAG IS OMITTED, DELIBERATELY. is_local() means
+    # the writeguard already permits with no flag, and local is where build
+    # fixtures legitimately live — forcing the flag there turns the seeded-model
+    # gate on and would wrongly REFUSE a local seed model (e.g. a load-seed'd
+    # deepseek/deepseek-v4-flash on modelboard_local). So the route is added only
+    # for a non-local target. The Fetch button cannot type a flag, so it lives here.
+    from judge.writeguard import is_local as _is_local
+    write_route = [] if _is_local(os.environ.get("DATABASE_URL")) else ["--development-write"]
     subprocess.Popen(
-        [sys.executable, str(script), mv, "--run-id", run_id],
+        [sys.executable, str(script), mv, "--run-id", run_id, *write_route],
         cwd=str(_REPO_ROOT),
         env=os.environ.copy(),
     )
