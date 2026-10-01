@@ -2418,6 +2418,50 @@ def coverage_page() -> dict:
     }
 
 
+@app.get("/blog-posts")
+def blog_posts_page() -> dict:
+    """Blog drafts for the Blogs section, read from BLOG_POSTS_DIR.
+
+    Read-only and no database: drafts are files until a `blog_post` table is
+    agreed (see `judge/blog_posts.py` for why). Token-gated like every route.
+    `reason` distinguishes "not configured" from "no drafts yet"; `skipped`
+    names any file that could not be read rather than dropping it.
+    """
+    from judge import blog_posts
+
+    return blog_posts.load()
+
+
+class BlogGenerateRequest(BaseModel):
+    count: int = 3
+
+
+@app.post("/blog-posts/generate")
+def blog_posts_generate(req: BlogGenerateRequest) -> dict:
+    """Start a background run that plans and writes `count` NEW drafts.
+
+    Local development only (it calls a paid model and writes files), one run
+    at a time. Returns at once; poll GET /blog-posts/generate for progress.
+    The run is `generate_sample_blogs.py --plan N --status` - see
+    `judge/blog_posts.py` for why it is a subprocess.
+    """
+    from judge import blog_posts
+
+    try:
+        return blog_posts.start_generation(req.count)
+    except blog_posts.GenerationRefused as e:
+        raise HTTPException(status_code=e.status, detail=e.detail) from None
+
+
+@app.get("/blog-posts/generate")
+def blog_posts_generate_status() -> dict:
+    """Progress of the latest generation run: state, the planned posts and
+    their states, and the OpenRouter-reported cost so far."""
+    from judge import blog_posts
+
+    return blog_posts.generation_status()
+
+
 @app.get("/changelog")
 def changelog_page(days: int = 30) -> dict:
     """FR-27. What changed, and whether it was us or the world."""

@@ -92,6 +92,15 @@ export default function BoardView({ html }) {
     }
     const tab = e.target.closest && e.target.closest('[data-tab]')
     if (tab) { e.preventDefault(); navigate(`/board?tab=${tab.getAttribute('data-tab')}`); return }
+    // AN ESSAY'S CONTENTS LIST. Scrolls in place rather than using `#hash`
+    // links, which would rewrite the app's URL and fight the router.
+    const toc = e.target.closest && e.target.closest('[data-toc]')
+    if (toc && ref.current) {
+      e.preventDefault()
+      const target = ref.current.querySelector('#' + CSS.escape(toc.getAttribute('data-toc')))
+      if (target) target.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      return
+    }
     const bm = e.target.closest && e.target.closest('.bm')
     if (bm && ref.current) {
       const row = ref.current.querySelector('#ev' + bm.getAttribute('data-ev'))

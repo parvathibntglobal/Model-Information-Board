@@ -928,40 +928,134 @@ function vMetModel(slug, key){
     ${sec('Related','','',related(m.rel))}`;
 }
 
+// ── Blogs: the essay layout from the standalone HTML drafts ─────────────────
+//
+// Everything sits under `.essay` with its own `--es-*` palette (board.css), so
+// the drafts look like the HTML pages the team reviewed without the essay CSS
+// leaking into the rest of the app — the HTML used `--bg`/`--text`/`--accent`,
+// which are app tokens here.
+
 function vBlogs(){
-  return `<div class="shell phead">${crumb([['Blogs',null]])}
-    <h1>What we found while building the board</h1>
-    <p class="sub">Not model reviews. Working notes from the engineers who built the pipeline — what broke,
-    what the measurements said, and where our own assumptions turned out to be wrong. Every figure carries
-    the population it was measured on, and every claim links to the evidence behind it.</p></div>
-    <div class="shell sec"><div class="postlist">${DB.posts.length ? DB.posts.map(p=>
-      `<div class="pcard${p.feat?' feat':''}" data-go="post:${esc(p.slug)}"><span class="tag">${esc(p.tag)}</span>
-        <h3>${esc(p.title)}</h3><p>${esc(p.dek)}</p><p class="by">${esc(p.by)}</p></div>`).join('') : '<p class="muted" style="padding:8px 0">No posts yet.</p>'}</div>
-      <p class="muted" style="margin-top:24px;max-width:70ch;line-height:1.6;font-size:.94rem">Posts are
-      written against the board's own corpus. A post may cover one model, several, a job, a capability, or a
-      change somebody noticed before a vendor announced it — and every figure in one is a bookmark into the
-      evidence it came from.</p></div>`;
+  const meta = DB.postsMeta || { reason: null, skipped: [] };
+  // THREE STATES (rule 4): drafts, a configured backend with none, and a
+  // backend that is not set up to serve them. The last two must not read alike.
+  const empty = meta.reason
+    ? `<p class="es-empty">${esc(meta.reason)}</p>`
+    : '<p class="es-empty">No posts yet.</p>';
+  const skipped = (meta.skipped || []).length
+    ? `<p class="es-empty">Could not be read: ${
+        meta.skipped.map(x=>`${esc(x.file)} (${esc(x.why)})`).join('; ')}</p>` : '';
+  const cards = DB.posts.map(p=>`<a class="es-card" data-go="post:${esc(p.slug)}">
+      <div class="es-kicker">${esc(p.kicker||p.tag)}${p.status==='draft'?' · draft':''}</div>
+      <h3>${esc(p.title)}</h3><p>${esc(p.dek)}</p>
+      <div class="es-tags">${(p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('')}</div>
+      <div class="es-sum">${essayText(p.lead)}</div>
+      <div class="es-meta"><span>${p.read?`${esc(p.read)} min read`:''}</span><span>${esc((p.meta||[])[0]||'')}</span></div>
+    </a>`).join('');
+  return `<div class="essay"><div class="es-wrap">
+    <header class="es-hub"><div class="es-kicker">Field notes · Model Information Board</div>
+      <h1>How AI models behave in production</h1>
+      <p class="es-dek">Long-form engineering essays on running frontier models in real systems — the failure
+      modes, the architecture that contains them, and the economics that decide what is worth building.</p></header>
+    ${DB.posts.length ? `<div class="es-draft"><b>Drafts for team review.</b> Written by a language model from
+      engineers' public reports and checked in code — every quote is matched against its source text and every
+      figure against the source or the price registry. None has been reviewed by a person yet.</div>
+      <div class="es-cards">${cards}</div>` : empty}
+    ${skipped}
+  </div></div>`;
+}
+
+// Inline text: escaped first, then the generator's marks — `code`, **bold**
+// and «verbatim fragment». Nothing else is markup. Posts show NO evidence
+// bookmarks (team decision, 2026-10-01); an {En} left in an older draft file is
+// dropped rather than printed.
+function essayText(v){
+  return esc(v)
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
+    .replace(/«([^»]+)»/g,'<q class="es-iq">$1</q>')
+    .replace(/\{E\d+\}/g,'');
+}
+
+function routeBadge(r){
+  const x = String(r||'').toLowerCase();
+  const tone = x.includes('opus') ? 'p' : x.includes('sonnet') ? 'b'
+    : (x.includes('haiku') || /\blow\b/.test(x)) ? 'g' : 'y';
+  // `t-` prefix: a bare `b` collided with the decision tree's `.b` branch card.
+  return `<span class="es-bdg t-${tone}">${esc(r)}</span>`;
+}
+
+function essayCode(src){
+  // Comments dimmed, as in the HTML drafts. Escaped before the span is added.
+  return esc(String(src||'').replace(/\s+$/,'')).split('\n').map(l=>{
+    const k = l.indexOf('#'); return k >= 0 ? l.slice(0,k)+`<span class="c">${l.slice(k)}</span>` : l;
+  }).join('\n');
+}
+
+function essayBlock([t,v]){
+  if(t==='h2'){
+    const h = typeof v === 'string' ? { text: v } : v;
+    // The tree's question already sits in its root box, so its heading names
+    // the block instead of printing the question twice.
+    if (h.num === 'Decision tree') return `<h2${h.id?` id="es-${esc(h.id)}"`:''}>Decision tree</h2>`;
+    return `<h2${h.id?` id="es-${esc(h.id)}"`:''}>${h.num?`<span class="num">${esc(h.num)}</span>`:''}${essayText(h.text)}</h2>`;
+  }
+  if(t==='h3') return `<h3>${esc(v)}</h3>`;
+  if(t==='ul') return '<ul>'+v.map(li=>`<li>${essayText(li)}</li>`).join('')+'</ul>';
+  if(t==='quote') return `<figure class="es-pq"><blockquote>${essayText(v)}</blockquote>
+    <figcaption>Engineer report</figcaption></figure>`;
+  // The tag already says "Illustrative"; a label that opens with it would read twice.
+  if(t==='code') return `<div class="es-codehead"><span class="es-illus">Illustrative</span>${esc(String(v.label||'').replace(/^\s*illustrative[\s:·-]*/i,'').replace(/^./,c=>c.toUpperCase()))}</div>
+    <pre class="es-pre">${essayCode(v.source)}</pre>`;
+  if(t==='table'){
+    const matrix = v.kind === 'matrix', prices = v.kind === 'prices';
+    const cell = (c,k,r) => {
+      if(matrix && k===r.length-1) return `<td class="route">${routeBadge(c)}</td>`;
+      if(prices && k>0) return `<td class="n">${esc(c)}</td>`;
+      return `<td>${k===0?`<b>${essayText(c)}</b>`:essayText(c)}</td>`;
+    };
+    return `<div class="es-tbl"><table><thead><tr>${(v.cols||[]).map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>
+      <tbody>${(v.rows||[]).map(r=>`<tr>${r.map((c,k)=>cell(c,k,r)).join('')}</tr>`).join('')}</tbody></table></div>
+      ${v.note?`<p class="es-note">${esc(v.note)}</p>`:''}`;
+  }
+  if(t==='tree') return `<div class="es-dtree"><div class="q">${essayText(v.question)}</div>
+    <div class="br">${(v.branches||[]).map(b=>`<div class="b"><div class="cond">${essayText(b.condition)}</div>
+      <div class="out">${essayText(b.outcome)}</div>${routeBadge(b.route)}</div>`).join('')}</div></div>`;
+  return '<p>'+essayText(v)+'</p>';
 }
 
 function vPost(slug){
   const p = byS(DB.posts,slug); if(!p) return vBlogs();
-  const body = p.body.map(([t,v])=>{
-    if(t==='h2') return `<h2>${esc(v)}</h2>`;
-    if(t==='ul') return '<ul>'+v.map(li=>`<li>${esc(li)}</li>`).join('')+'</ul>';
-    if(t==='quote') return `<blockquote>${esc(v)}</blockquote>`;
-    return '<p>'+esc(v).replace(/\{E(\d+)\}/g,(m,n)=>`<span class="bm" data-ev="${n}">E${n}</span>`)+'</p>';
-  }).join('');
-  const ev = p.ev.map(([n,q,src])=>`<div class="evrow" id="ev${n}"><span class="id">E${n}</span>
-    <div><q>${esc(q)}</q><span class="src">${esc(src)}</span></div><u>open evidence →</u></div>`).join('');
-  return `<div class="shell phead">${crumb([['Blogs','blogs'],[p.title.slice(0,42)+'…',null]])}
-    <h1>${esc(p.title)}</h1></div>
-    <div class="shell"><div class="artmeta">${p.meta.map(m=>`<span>${m}</span>`).join('')}</div>
-      <article class="article"><p class="lead">${p.lead}</p>${body}</article>
-      <div class="evpanel" id="evidence"><h3>Evidence behind this post</h3>
-        <p class="n">Every figure above is a bookmark into one of these. Demo data in this build — in
-        production each row opens the stored quote with its verified offset and a link to the source.</p>
-        ${ev}</div>
-      ${related(p.rel)}
-    </div>`;
+  const toc = p.body.filter(([t,v])=>t==='h2' && v && v.id)
+    .map(([,v])=>`<li><a data-toc="es-${esc(v.id)}">${essayText(v.num==='Decision tree'?'Decision tree':v.text)}</a></li>`).join('');
+  const pv = p.provenance || {};
+  const tags = (p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('');
+  const dec = (p.decisions||[]).map(d=>`<li>${essayText(d)}</li>`).join('');
+  const rel = (p.rel||[]).map(([h,t])=>`<a class="es-rel" data-go="${esc(h)}">${esc(t)}</a>`).join('');
+  return `<div class="essay"><div class="es-wrap">
+    <div class="es-crumb"><a data-go="blogs">All essays</a></div>
+    <header class="es-hero"><div class="es-kicker">${esc(p.kicker||p.tag)}</div><h1>${esc(p.title)}</h1>
+      <p class="es-dek">${esc(p.dek)}</p>
+      <div class="es-byline">${(p.meta||[]).map(m=>`<span>${esc(m)}</span>`).join('')}</div>
+      ${tags?`<div class="es-tags">${tags}</div>`:''}</header>
+    <div class="es-layout">
+      <article class="es-article">
+        <div class="es-tldr"><div class="lbl">The short answer</div><p>${essayText(p.lead)}</p></div>
+        ${p.body.map(essayBlock).join('')}
+        <footer class="es-foot">
+          <p>Written by <code>${esc(pv.model)}</code>${pv.generated_at?` on ${esc(String(pv.generated_at).slice(0,10))}`:''}
+          from engineers' public discussions, then checked in code: ${esc(pv.checks||'not recorded')}.
+          ${pv.reviewed_by?`Reviewed by ${esc(pv.reviewed_by)}.`:'<b>Not yet reviewed by a person.</b>'}
+          Code samples are illustrative patterns. Prices are published list prices. No model is scored or ranked.</p>
+          <p>Draft — not for external publication.</p>
+        </footer>
+      </article>
+      <aside class="es-side">
+        ${toc?`<div class="es-scard"><div class="lbl">In this essay</div><ol>${toc}</ol></div>`:''}
+        ${dec?`<div class="es-scard"><div class="lbl">Decisions it supports</div><ul class="dec">${dec}</ul></div>`:''}
+        ${rel?`<div class="es-scard"><div class="lbl">Continue reading</div>${rel}</div>`:''}
+      </aside>
+    </div>
+  </div></div>`;
 }
 export { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel, vBlogs, vPost }

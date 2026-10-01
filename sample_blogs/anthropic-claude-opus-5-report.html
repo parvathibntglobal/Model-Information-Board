@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Opus 5 in Production: Buy Judgment, Not a Default</title>
+<meta name="description" content="A production analysis of Claude Opus 5 integration risks, agent behavior, migration breakages, model routing, and the economics of caching and orchestration.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Claude Opus 5 in Production: Buy Judgment, Not a Default">
+<meta property="og:description" content="A production analysis of Claude Opus 5 integration risks, agent behavior, migration breakages, model routing, and the economics of caching and orchestration.">
+<meta name="robots" content="noindex,nofollow">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Claude Opus 5 in Production: Buy Judgment, Not a Default",
+  "description": "A production analysis of Claude Opus 5 integration risks, agent behavior, migration breakages, model routing, and the economics of caching and orchestration.",
+  "datePublished": "2026-10-01",
+  "dateModified": "2026-10-01",
+  "wordCount": 2761,
+  "keywords": [
+    "Claude Opus 5",
+    "LLM production",
+    "model routing",
+    "agent orchestration",
+    "prompt caching",
+    "structured output"
+  ],
+  "author": {
+    "@type": "Organization",
+    "name": "Model Information Board"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Model Information Board"
+  },
+  "isAccessibleForFree": true
+}
+</script>
+<style>
+:root{
+  --bg:#0a0c10; --panel:#10141b; --panel2:#151a23; --line:#222a36; --line2:#2c3544;
+  --text:#e8edf5; --body:#c9d2df; --muted:#95a1b4; --dim:#667286;
+  --accent:#7aa2ff; --accent2:#a78bfa; --good:#3ecf8e; --bad:#f2716b; --neu:#8492a8; --warn:#e3b341;
+  --sans:Inter,"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  --mono:"JetBrains Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:
+  radial-gradient(900px 480px at 12% -8%,rgba(122,162,255,.09),transparent 60%),
+  radial-gradient(760px 420px at 100% 0%,rgba(167,139,250,.07),transparent 60%),var(--bg);
+  color:var(--text);font:17.5px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.topbar{border-bottom:1px solid var(--line);background:rgba(10,12,16,.72);backdrop-filter:blur(8px);
+  position:sticky;top:0;z-index:5}
+.topbar .in{max-width:1200px;margin:0 auto;padding:.7rem 1.2rem;display:flex;gap:1rem;align-items:center;
+  font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.topbar b{color:var(--text);letter-spacing:.06em}
+.wrap{max-width:1200px;margin:0 auto;padding:2.8rem 1.2rem 5rem}
+.hero{max-width:880px;margin-bottom:2.4rem}
+.kicker{font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(2rem,4.4vw,3.2rem);line-height:1.08;letter-spacing:-.025em;margin:.55rem 0 .9rem;font-weight:700}
+.dek{font-size:1.22rem;line-height:1.6;color:var(--muted);max-width:62ch;margin:0}
+.byline{margin-top:1.1rem;font-family:var(--mono);font-size:.78rem;color:var(--dim);display:flex;gap:1.1rem;flex-wrap:wrap}
+.tags{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.9rem}
+.tag{font-family:var(--mono);font-size:.7rem;padding:.18rem .6rem;border:1px solid var(--line2);border-radius:999px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:3.2rem;align-items:start}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}.side{order:-1}}
+article{min-width:0;max-width:770px}
+article p{color:var(--body);margin:1.1rem 0}
+article h2{font-size:1.66rem;letter-spacing:-.015em;line-height:1.25;margin:3.4rem 0 .5rem;padding-top:.4rem}
+article h2 .num{font-family:var(--mono);font-size:.78rem;color:var(--accent);display:block;letter-spacing:.14em;margin-bottom:.35rem}
+article h3{font-size:1.14rem;margin:2.1rem 0 .2rem;color:var(--text)}
+.thesis{font-size:1.08rem;color:#dde4ef !important;border-left:2px solid var(--line2);padding-left:1rem}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel2);border:1px solid var(--line);
+  border-radius:6px;padding:.08rem .36rem;color:#dbe4ff}
+q.iq{quotes:"\201C" "\201D";color:#e9eef8;font-style:italic}
+.takeaway{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);
+  border-left:3px solid var(--accent);border-radius:var(--radius);padding:1.35rem 1.55rem;margin:0 0 2.2rem}
+.takeaway .lbl{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.takeaway p{margin:.55rem 0 0;color:#dde4ef;font-size:1.06rem}
+figure.pq{margin:1.6rem 0;padding:1.1rem 1.35rem;background:var(--panel);border:1px solid var(--line);
+  border-left:3px solid var(--accent2);border-radius:0 12px 12px 0}
+figure.pq blockquote{margin:0;font-size:1.05rem;line-height:1.62;color:#e9eef7}
+figure.pq blockquote::before{content:"\201C";color:var(--dim);margin-right:.1rem}
+figure.pq blockquote::after{content:"\201D";color:var(--dim)}
+figure.pq figcaption{margin-top:.55rem;font-family:var(--mono);font-size:.72rem;color:var(--dim);letter-spacing:.04em}
+.chart{margin:1.7rem 0 2rem;padding:1.15rem 1.15rem .75rem;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+.chart .cap{font-family:var(--mono);font-size:.74rem;color:var(--dim);margin:.45rem .2rem 0;line-height:1.55}
+.chart .ttl{font-weight:600;font-size:.96rem;margin:0 .2rem .6rem;color:var(--text)}
+svg{display:block;width:100%;height:auto}
+.svt{font-family:var(--mono);font-size:12px;fill:var(--muted)}
+.svs{font-family:var(--mono);font-size:11px;fill:var(--dim)}
+.svb{font-family:var(--sans);font-size:13px;fill:var(--text);font-weight:600}
+.svh{font-family:var(--mono);font-size:11px;fill:var(--accent);letter-spacing:.12em}
+.good{fill:var(--good)} .bad{fill:var(--bad)} .neu{fill:var(--neu)} .acc{fill:var(--accent)} .acc2{fill:var(--accent2)}
+.gridl{stroke:var(--line);stroke-width:1} .axis{stroke:var(--line2);stroke-width:1}
+.tbl{border:1px solid var(--line);border-radius:12px;overflow:hidden;overflow-x:auto;margin:1.4rem 0 1.7rem}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin:0}
+th,td{padding:.66rem .85rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-family:var(--mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);background:var(--panel2);font-weight:500}
+td{color:var(--body)} tr:last-child td{border-bottom:0}
+td.n{font-family:var(--mono);text-align:right;white-space:nowrap;color:var(--text)}
+td b{color:var(--text)}
+.bdg{font-family:var(--mono);font-size:.68rem;padding:.14rem .52rem;border-radius:999px;border:1px solid;white-space:nowrap}
+.bdg.g{color:var(--good);border-color:rgba(62,207,142,.4)} .bdg.r{color:var(--bad);border-color:rgba(242,113,107,.4)}
+.bdg.y{color:var(--warn);border-color:rgba(227,179,65,.4)} .bdg.b{color:var(--accent);border-color:rgba(122,162,255,.4)}
+.bdg.p{color:var(--accent2);border-color:rgba(167,139,250,.4)} .bdg.m{color:var(--muted);border-color:var(--line2)}
+.ratios{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:1.3rem 0}
+@media(max-width:640px){.ratios{grid-template-columns:1fr}}
+.ratio{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem}
+.ratio .v{font-family:var(--mono);font-size:1.7rem;font-weight:600;color:var(--text);line-height:1}
+.ratio .k{font-size:.82rem;color:var(--muted);margin-top:.4rem;line-height:1.45}
+.callout{border:1px solid var(--line2);background:var(--panel2);border-radius:12px;padding:1rem 1.25rem;margin:1.5rem 0}
+.callout .lbl{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--warn)}
+.callout p{margin:.45rem 0 0;font-size:.95rem}
+.codehead{font-family:var(--mono);font-size:.72rem;color:var(--dim);margin:1.6rem 0 -.9rem;letter-spacing:.06em}
+pre{background:#0d1117;border:1px solid var(--line);border-radius:12px;padding:1rem 1.15rem;overflow-x:auto;
+  font-family:var(--mono);font-size:.8rem;line-height:1.65;color:#c9d6ea;margin:1.3rem 0}
+pre .c{color:#6f7f96} pre .s{color:#8fd6a6} pre .k{color:#c4a5ff}
+.side{position:sticky;top:4.4rem}
+@media(max-width:1000px){.side{position:static}}
+.scard{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:1.1rem 1.2rem}
+.scard + .scard{margin-top:1rem}
+.scard .lbl{font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.scard ol{margin:.6rem 0 0;padding-left:1.15rem;font-size:.88rem}
+.scard ol li{margin:.32rem 0;color:var(--muted)}
+.scard ol li a{color:var(--muted)} .scard ol li a:hover{color:var(--text)}
+.scard ul.dec{list-style:none;margin:.6rem 0 0;padding:0;font-size:.88rem}
+.scard ul.dec li{position:relative;padding-left:1.15rem;margin:.55rem 0;color:var(--body);line-height:1.5}
+.scard ul.dec li::before{content:"\2192";position:absolute;left:0;color:var(--accent);font-family:var(--mono)}
+.scard a.rel{display:block;padding:.55rem .7rem;border:1px solid var(--line);border-radius:10px;margin-top:.5rem;font-size:.86rem}
+footer{margin-top:4rem;border-top:1px solid var(--line);padding-top:1.4rem;color:var(--dim);font-size:.82rem;max-width:770px}
+.hub-h{max-width:840px;margin-bottom:2.4rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:1.2rem}
+.card{display:block;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+  border-radius:var(--radius);padding:1.45rem 1.45rem 1.2rem;color:var(--text);transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--line2);transform:translateY(-2px);text-decoration:none}
+.card h3{font-size:1.3rem;line-height:1.3;margin:.55rem 0 .5rem;letter-spacing:-.01em}
+.card p{color:var(--muted);font-size:.93rem;margin:.4rem 0}
+.card .meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.72rem;color:var(--dim);margin-top:1rem}
+.card .sum{border-top:1px solid var(--line);margin-top:.9rem;padding-top:.8rem;font-size:.88rem;color:var(--body)}
+
+.tldr{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);
+  border-left:3px solid var(--accent);border-radius:var(--radius);padding:1.35rem 1.55rem;margin:0 0 2.2rem}
+.tldr .lbl{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.tldr p{margin:.55rem 0 0;color:#dde4ef;font-size:1.06rem}
+.mx td.route{white-space:nowrap}
+.dtree{margin:1.6rem 0 2.2rem}
+.dtree .q{background:var(--panel2);border:1px solid var(--accent);border-radius:12px;padding:.9rem 1.15rem;
+  font-weight:600;color:var(--text);text-align:center;max-width:560px;margin:0 auto;position:relative}
+.dtree .q::after{content:"";position:absolute;left:50%;bottom:-1.3rem;height:1.3rem;border-left:1px solid var(--line2)}
+.dtree .br{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.9rem;margin-top:1.3rem;
+  padding-top:1.3rem;border-top:1px solid var(--line2)}
+.dtree .b{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem;position:relative}
+.dtree .b::before{content:"";position:absolute;left:50%;top:-1.3rem;height:1.3rem;border-left:1px solid var(--line2)}
+.dtree .cond{font-family:var(--mono);font-size:.74rem;color:var(--warn);letter-spacing:.02em}
+.dtree .out{color:var(--body);font-size:.92rem;margin:.45rem 0 .6rem;line-height:1.5}
+.illus{font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent2);margin-right:.5rem}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="in"><b>FIELD NOTES</b><span>Model Information Board</span><span style="margin-left:auto"><a href="./index.html">All essays</a></span></div></div>
+<div class="wrap">
+<header class="hero"><div class="kicker">Model deep dive</div><h1>Claude Opus 5 in Production: Buy Judgment, Not a Default</h1>
+<p class="dek">Opus 5 can be a strong planner, tool user and architectural reviewer, but its value depends on task difficulty, output contracts and the cost of retries—not its place in a model lineup.</p><div class="byline"><span>01 October 2026</span><span>13 min read</span></div>
+<div class="tags"><span class="tag">Claude Opus 5</span><span class="tag">Agents</span><span class="tag">Migration</span><span class="tag">Cost</span></div></header>
+<div class="layout">
+<article>
+<div class="tldr"><div class="lbl">The short answer</div><p>Claude Opus 5 earns its premium when a task requires consequential judgment, difficult tool use or synthesis across a large context; it is wasteful as the default for predictable extraction, routine transformations and bulk triage. Production success depends on explicit output validation, narrow tool surfaces, task-specific evaluation and routing that accounts for cache reuse, retry costs and migration work—not just nominal token prices.</p></div>
+<h2 id="the-migration-is-a-contract-change-not-a-model-name-change"><span class="num">01</span>The migration is a contract change, not a model-name change</h2>
+<p>The tempting upgrade path is to replace a model identifier and assume the rest of the system remains stable. That assumption fails because a model is part of an application contract: prompts encode behavioral expectations, parsers depend on serialization details, and agent loops rely on the model returning usable tool calls. A new model may preserve broad capability while changing the conversational style or the exact shape of an output. Compatibility at the endpoint level is not behavioral compatibility.</p>
+<p>The sharpest operational risk appears in systems that treat generated text as structured data without enforcing a schema. A router that expects a status field cannot safely consume an explanation that happens to resemble JSON, or a value whose capitalization differs from the accepted enum. Prompt instructions are not a validation boundary. Use server-enforced structured output where available, or validate locally before allowing a result to trigger downstream actions. Parse serialized arguments as JSON rather than matching their raw characters; escaping differences can make string-level checks fail silently.</p>
+<figure class="pq"><blockquote>The old fixed thinking budget is gone and returns an error on the current generation.</blockquote><figcaption>Engineer report</figcaption></figure>
+<p>Migration also invalidates assumptions embedded in old reasoning controls. A team describing the change as <q class="iq">The old fixed thinking budget is gone and returns an error on the current generation</q> highlights a concrete failure mode: an upgrade can turn a formerly accepted request into an error before inference begins. Treat request construction as versioned integration code. Run contract tests over parameters, tool arguments, refusals, malformed responses and retries, then compare the new model on representative production records before moving live traffic.</p>
+<p>The right migration unit is therefore a workflow, not a model call. Preserve the old route until evaluation demonstrates a task-specific improvement; review prompts for instructions tuned to earlier behavior; and instrument validation failures, retries and human corrections. A model that improves reasoning but increases repair work may be a regression for the system. Conversely, when the failure is genuinely format reliability or difficult long-document handling, the cost of migration can be justified. If the root problem is vague requirements, changing vendors or model generations merely relocates the ambiguity.</p>
+<div class="codehead"><span class="illus">Illustrative</span>Illustrative routing and validation boundary</div><pre>def run_task(task, models, validate, evaluate):
+    candidate = models.route(task)
+    result = candidate.generate(task.prompt)
+
+    if not validate(result, task.schema):
+        result = models.repair_route(task).generate(task.prompt, prior=result)
+
+    if not evaluate(result, task.acceptance_check):
+        raise RuntimeError(&quot;Result requires review&quot;)
+
+    return result</pre>
+<h2 id="agent-performance-depends-on-the-tool-surface"><span class="num">02</span>Agent performance depends on the tool surface</h2>
+<p>Opus 5 is most compelling when an agent must connect evidence, choose among actions and maintain a plan across multiple steps. The distinction matters: a lookup with one obvious tool is not the same workload as diagnosing a code change, reconciling conflicting records or deciding which system to inspect next. The latter exposes judgment; the former mostly tests whether the agent can follow a narrow instruction. A capable model cannot compensate for an incoherent tool catalog or an unsafe permission model.</p>
+<p>Tool volume itself becomes an architectural constraint. Each server can contribute schemas to the model’s working context, and similar descriptions make selection harder. The operational recommendation <q class="iq">three-server rule</q> is best understood as a design warning, not a universal law: connect only the system of record, a needed context source and a destination, then measure tool-selection errors as the surface grows. Large catalogs should be split by role or exposed selectively rather than attached wholesale to every request.</p>
+<figure class="pq"><blockquote>Three servers is the ceiling</blockquote><figcaption>Engineer report</figcaption></figure>
+<p>Agent competence also does not imply authorization competence. A model may correctly identify a refund, database update or repository change as a plausible next step while still lacking the context to execute it safely. Keep read and write capabilities separate, require explicit approval for consequential writes, and validate every action at the server boundary. Untrusted ticket text, retrieved documents and code comments should not be able to expand the agent’s authority. A strong model can make a more persuasive mistake, so least privilege remains essential even when tool use improves.</p>
+<p>Long chains expose compounded failure. A single missed block, rejected move or malformed call can invalidate the downstream plan, and the cause may sit in the model, the harness, the tool response or the clock. One competitive game ended when Opus failed to block a winning threat; that outcome shows why a successful sequence of earlier tool interactions is not proof of reliable end-to-end judgment. Treat each step as a decision with observable inputs, enforce tool preconditions, and provide a stop condition when uncertainty or time pressure makes action unsafe.</p>
+<h2 id="judgment-has-value-and-a-communication-tax"><span class="num">03</span>Judgment has value—and a communication tax</h2>
+<p>The case for Opus 5 is not that it should handle every request. Its economic value arises when a better decision prevents expensive downstream work: choosing an architecture that avoids a costly rewrite, finding the missing condition in a code review, or orchestrating an investigation across tools. In a software build, Opus 5 planned a set of interconnected business features and a cheaper model carried out the implementation. The first pass missed requirements and had framework integration problems, but iterative testing and correction brought the commissioned functions into place. The lesson is leverage through decomposition and review, not autonomous delivery without verification.</p>
+<p>This distinction explains why model quality must be assessed against the task’s actual failure cost. A planning model can be worth paying for when a bad plan contaminates many implementation steps; a routine field extraction rarely earns the same premium. Teams should measure correctness, human review time, repair prompts and operational consequences on their own records. Benchmarks may test categories unlike the application’s real bottleneck, while polished prose can disguise a weak decision. Use an eval set with known outcomes and make the acceptance criteria reflect what production actually needs.</p>
+<figure class="pq"><blockquote>It has dragged me into so many unnecessary rabbit holes</blockquote><figcaption>Engineer report</figcaption></figure>
+<p>The interaction style can add a cost. Opus 5 has been described as over-explanatory, argumentative or prone to opening tangents, while other users value its reasoning and tool use enough to tolerate that friction. One complaint captures the operational symptom as <q class="iq">It has dragged me into so many unnecessary rabbit holes</q>. This is not merely a matter of taste in an interactive product: verbosity consumes output tokens, distracts human operators and can obscure the action an agent should take. Scoped prompts should state the requested artifact, prohibit unsolicited alternatives where appropriate, and ask for a concise decision with evidence.</p>
+<p>Style is not consistent across every workload, and model preference can vary by task. A creative-writing user described Opus 5 as <q class="iq">a good balance between 4.7 and 4.8</q>, while also observing that it tends to rush scenes. That is a useful caution against turning anecdotal preference into a universal quality ranking. Define separate evaluations for conversational helpfulness, task completion and tool correctness. If a model’s tone impairs operator comprehension, route that user-facing interaction elsewhere while retaining Opus 5 for the judgment step where its capability pays for itself.</p>
+<h2 id="the-economics-favor-selective-escalation"><span class="num">04</span>The economics favor selective escalation</h2>
+<p>At the supplied registry list prices, Opus 5 costs $5.00 per million input tokens and $25.00 per million output tokens, with cached input at $0.50. Sonnet 5 is $2.00 input and $10.00 output, with cached input at $0.20; Haiku 4.5 is $1.00 and $5.00, with cached input at $0.10. These rates put the design question in plain view: the highest-priced route should handle work whose judgment can change the outcome, rather than become the unexamined default for every request.</p>
+<p>The context window is advertised at 1,000,000 tokens for Opus 5 and Sonnet 5. That capacity is useful when the task genuinely needs broad context, but it is not a reason to send an entire document collection on every call. Stable prefixes can be reused through caching, while timestamps, reordered tool definitions or unstable serialized data can defeat reuse. Cache design therefore belongs in application architecture: normalize prompts, keep volatile request details out of stable prefixes, and track cached versus uncached input in cost records.</p>
+<figure class="pq"><blockquote>Plan with a strong model, execute with a cheaper one.</blockquote><figcaption>Engineer report</figcaption></figure>
+<p>Retries are a second hidden multiplier of system cost, and they also add latency. A malformed result that is blindly retried can consume more tokens without addressing the underlying failure. Validate once, distinguish transient transport failures from semantic invalidity, and use bounded repair behavior rather than replaying the entire task by default. Batch processing can help asynchronous workloads where supported, but route selection should still account for cache scope: separate model routes do not automatically share model-specific cache state.</p>
+<p>A practical stack escalates by uncertainty and consequence. Haiku can handle clear routing or predictable triage; Sonnet can serve as a general reasoning path; Opus can plan, adjudicate ambiguity or review work whose failure is costly. The pattern <q class="iq">Plan with a strong model, execute with a cheaper one</q> captures the core economics. Keep the handoff explicit: pass a bounded plan, let the execution model report evidence and unresolved items, then reserve Opus or a human for exceptions instead of repeating expensive reasoning over routine steps.</p>
+<h2 id="context-and-orchestration-need-operational-limits"><span class="num">05</span>Context and orchestration need operational limits</h2>
+<p>A million-token context window does not remove the need for retrieval and scope control. It changes the feasible size of an individual request, but oversized context still carries cost, can bury relevant evidence and may include instructions that should not govern the current task. For agents, tool schemas and retrieved content compete with the actual objective. Send context because it is relevant, not because the model can accept it; summarize or retrieve selectively when the task does not require exhaustive inspection.</p>
+<p>Long-running orchestration should be decomposed around durable checkpoints. Ask the planner for a bounded sequence of steps, persist state outside the conversation, and make each tool invocation independently observable. A session reset that forces the model to reread an entire history wastes tokens and risks losing the operative state among old discussion. Store authoritative facts and decisions in application state, then provide only the subset needed for the next transition. This also makes recovery possible when a tool fails or an agent exceeds its time budget.</p>
+<figure class="pq"><blockquote>The server can identify the harness — `initialize` carries `clientInfo`</blockquote><figcaption>Engineer report</figcaption></figure>
+<p>The same control principle applies to execution clocks. A heavy reasoning model may need more time than a lightweight response, but production systems cannot let a tool loop wait indefinitely. Define per-step deadlines, cancellation behavior and a safe fallback. In a timed game, the server started the clock when the player first read the board; that small boundary decision avoided charging time before the agent could observe its state. Real services need the equivalent: start latency accounting at a clearly defined point and distinguish model wait, tool wait and queue time.</p>
+<p>Finally, verify what the runtime actually exposes. An MCP client may reveal its harness but not reliably identify the underlying model, leaving model and effort self-reported. Do not build observability around labels that are not authoritative. Record the route selected by your own application, the request configuration you sent, tool inputs and outputs, validation outcomes, latency and token accounting. That information is what makes routing policy testable rather than aspirational.</p>
+<h2 id="migration-strategy-retain-options-measure-the-bottleneck"><span class="num">06</span>Migration strategy: retain options, measure the bottleneck</h2>
+<p>A robust architecture treats model choice as a replaceable policy decision, but it does not pretend that migration is free. Existing SDK assumptions, prompts, parsers, cache behavior and operator habits all create switching costs. A change should begin with a baseline of real traffic and known expected results. Evaluate the candidate on the same tasks, then include the cost of failures, retries and human review—not only the model’s nominal token rate.</p>
+<p>Keep an incumbent route when it is working and the proposed migration has no demonstrated advantage. When output reliability, long-document handling or difficult tool use is the actual constraint, test a targeted migration for that workflow rather than moving the whole estate. Use shadow traffic or a controlled canary where feasible, and retain a rollback path. This avoids turning an uncertain model improvement into a system-wide regression.</p>
+<p>Do not infer that Opus 5 is uniquely suited to every agentic workload. When failure is primarily tool configuration, poor server descriptions, excessive permissions or missing tests, those are engineering defects that a model switch will not solve. Reduce the tool surface, enforce schemas, scope access and construct evaluation cases first. If the model still fails on the hard judgment step after those controls are in place, escalation is evidence-based.</p>
+<p>The architectural conclusion is selective commitment: use Opus 5 where the value of a correct judgment exceeds its direct and indirect costs, and make the rest of the system cheap, constrained and inspectable. Its most defensible role is often planner, reviewer or exception handler—not universal worker. That role preserves the benefits of deep reasoning while containing the downsides of verbosity, variable latency, retry cost and migration churn.</p>
+<h2 id="matrix"><span class="num">Matrix</span>Where Opus 5 fits</h2><div class="tbl mx"><table><thead><tr><th>Production scenario</th><th>Behavioral trade-off</th><th>Recommended mitigation</th><th>Route</th></tr></thead><tbody><tr><td><b>Architecture planning for a multi-part build</b></td><td>Higher-cost judgment can expose dependencies, but a strong plan does not guarantee implementation correctness.</td><td>Have Opus produce bounded milestones and acceptance tests; execute routine work on Sonnet and verify in the target environment.</td><td class="route"><span class="bdg p">Opus 5 for planning; Sonnet 5 for implementation.</span></td></tr><tr><td><b>Hard code review or incident analysis</b></td><td>Cross-step reasoning and tool use can be valuable, while verbosity and occasional wrong decisions remain operational risks.</td><td>Limit tools to relevant repositories and system observations; require evidence for conclusions and human approval for writes.</td><td class="route"><span class="bdg p">Opus 5 for complex review; keep changes read-only until approved.</span></td></tr><tr><td><b>Bulk extraction and predictable classification</b></td><td>Opus pricing buys judgment that the task may not need; retries for invalid output can erase savings.</td><td>Enforce a schema, monitor invalid results and escalate only uncertain or consequential cases.</td><td class="route"><span class="bdg p">Haiku 4.5 for clear cases; Sonnet 5 or Opus 5 for exceptions.</span></td></tr><tr><td><b>Long-document synthesis</b></td><td>The advertised 1,000,000-token context can avoid brittle fragmentation, but indiscriminate context increases cost and can obscure relevant evidence.</td><td>Use caching for stable prefixes and retrieve or summarize irrelevant sections rather than supplying everything by default.</td><td class="route"><span class="bdg p">Opus 5 when judgment across the full document set matters; Sonnet 5 for routine synthesis.</span></td></tr><tr><td><b>MCP agent with many connected services</b></td><td>Opus may improve tool reasoning, but crowded schemas and excessive permissions create selection and safety failures.</td><td>Expose a small, role-specific tool set; start read-only and add approved writes only after evaluation.</td><td class="route"><span class="bdg p">Opus 5 for difficult tool chains; use fewer tools before upgrading.</span></td></tr><tr><td><b>User-facing conversation or creative work</b></td><td>Opus 5 has been described as overlong, argumentative or rushed for some tasks, while others prefer its style.</td><td>Evaluate tone and task completion separately; specify concise output and route style-sensitive work by observed preference.</td><td class="route"><span class="bdg p">Use Opus 5 only where its task-specific strengths win; compare Opus 4.6, 4.8 or another route on local evaluations.</span></td></tr></tbody></table></div>
+<h2 id="decision"><span class="num">Decision tree</span>Does this task need Opus 5’s judgment enough to justify its cost and operational overhead?</h2><div class="dtree"><div class="q">Does this task need Opus 5’s judgment enough to justify its cost and operational overhead?</div><div class="br"><div class="b"><div class="cond">The task is predictable, high-volume and has a narrow output contract.</div><div class="out">Use a less expensive route and enforce validation; escalate only invalid or ambiguous cases.</div><span class="bdg b">Haiku 4.5, with Sonnet 5 as an escalation path.</span></div><div class="b"><div class="cond">The task needs synthesis or reasoning, but failure is recoverable and volume matters.</div><div class="out">Benchmark Sonnet first, with caching and retry behavior included in the cost test.</div><span class="bdg b">Sonnet 5.</span></div><div class="b"><div class="cond">A wrong plan or decision is expensive, or the task requires difficult multi-step tool orchestration.</div><div class="out">Use Opus for planning, review or exception handling; constrain tools and require evidence or approval for consequential actions.</div><span class="bdg p">Opus 5, bounded by validation and human oversight.</span></div><div class="b"><div class="cond">The current model’s failures stem from unclear requirements, excessive tools, weak permissions or missing tests.</div><div class="out">Fix the system boundary before switching models; rerun task-specific evaluations afterward.</div><span class="bdg y">Retain the current route until a model-specific bottleneck is demonstrated.</span></div></div></div>
+<h3>List prices</h3><div class="tbl"><table><thead><tr><th>Model</th><th>Input $/M</th><th>Output $/M</th><th>Cached input $/M</th></tr></thead><tbody><tr><td><b>Claude Opus 5</b></td><td class="n">$5.00</td><td class="n">$25.00</td><td class="n">$0.50</td></tr><tr><td><b>Claude Sonnet 5</b></td><td class="n">$2.00</td><td class="n">$10.00</td><td class="n">$0.20</td></tr><tr><td><b>Claude Opus 4.8</b></td><td class="n">$5.00</td><td class="n">$25.00</td><td class="n">$0.50</td></tr><tr><td><b>Claude Haiku 4.5</b></td><td class="n">$1.00</td><td class="n">$5.00</td><td class="n">$0.10</td></tr><tr><td><b>Claude Opus 4.6</b></td><td class="n">$5.00</td><td class="n">$25.00</td><td class="n">$0.50</td></tr><tr><td><b>Claude Opus 4.7</b></td><td class="n">$5.00</td><td class="n">$25.00</td><td class="n">$0.50</td></tr><tr><td><b>GPT-5.6 Sol</b></td><td class="n">$2.00</td><td class="n">$10.00</td><td class="n">$0.20</td></tr><tr><td><b>Claude Sonnet 4.6</b></td><td class="n">$3.00</td><td class="n">$15.00</td><td class="n">$0.30</td></tr></tbody></table></div><p style="font-size:.85rem;color:var(--dim)">OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero.</p>
+</article>
+<aside class="side">
+<div class="scard"><div class="lbl">In this essay</div><ol><li><a href="#the-migration-is-a-contract-change-not-a-model-name-change">The migration is a contract change, not a model-name change</a></li><li><a href="#agent-performance-depends-on-the-tool-surface">Agent performance depends on the tool surface</a></li><li><a href="#judgment-has-value-and-a-communication-tax">Judgment has value—and a communication tax</a></li><li><a href="#the-economics-favor-selective-escalation">The economics favor selective escalation</a></li><li><a href="#context-and-orchestration-need-operational-limits">Context and orchestration need operational limits</a></li><li><a href="#migration-strategy-retain-options-measure-the-bottleneck">Migration strategy: retain options, measure the bottleneck</a></li><li><a href="#matrix">Where Opus 5 fits</a></li><li><a href="#decision">Decision tree</a></li></ol></div>
+<div class="scard"><div class="lbl">Decisions it supports</div><ul class="dec"><li>Whether Opus 5 should be a default, planner or exception handler.</li><li>How to migrate without silently breaking schemas, parameters or tool loops.</li><li>How to route work across Opus, Sonnet and Haiku using task difficulty and failure cost.</li><li>How to control agent permissions, tool breadth, context size, caching and retries.</li><li>How to evaluate model behavior against real production outcomes rather than a general reputation.</li></ul></div>
+<div class="scard"><div class="lbl">Continue reading</div><a class="rel" href="./anthropic-claude-sonnet-5-vs-anthropic-claude-opus-5.html">Claude Sonnet 5 vs Opus 5: A Production Routing Guide</a><a class="rel" href="./capability-reasoning.html">Reasoning Effort Is a Production Policy, Not a Model Setting</a></div>
+</aside>
+</div>
+<footer>
+<p>Published 2026-10-01 · Model Information Board. Synthesised by a language model from engineers' public
+discussions. Passages in quotation marks are verified verbatim against the source text at build time, and
+every figure in the prose is checked against the source text or the registry price sheet. Code samples are
+illustrative patterns. No model is scored or ranked on quality.</p>
+<p>Draft — not for external publication.</p>
+</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,124 @@
+# Blog formats and the planner that picks the next posts.
+#
+# DRAFT, NOT CONTRACT. Read by generate_sample_blogs.py --plan. Thresholds and
+# formats are configuration (rule 5), so the agreed home is contract/ - and a
+# contract/ change is proposed and reviewed, never taken solo. This file lives
+# at the repo root until that proposal is made.
+#
+# WHERE THE FORMATS CAME FROM. Read off the collected practitioner blogs, not
+# invented: 70 posts sampled from the 173 blog/dev.to threads whose full text
+# was readable on this machine, out of the 400 most recent blog/dev.to root
+# documents on staging (2026-10-01). Each format below names the heading
+# pattern it was taken from. A format is a SHAPE - section rhythm, voice and
+# which blocks it carries - never a topic; topics come from the planner.
+#
+# WHAT DECIDES WHAT GETS WRITTEN: code, not the model. The planner lists
+# subjects with enough evidence, pairs them with a compatible format, skips any
+# (format, subject) already written, and picks N posts in distinct formats.
+
+planner:
+  # A subject is a candidate only with this much evidence on staging
+  # (verified, non-declined board entries). Was measured 2026-10-01: 23
+  # models, 21 pairs and 10 capabilities/jobs cleared these.
+  min_threads_model: 8
+  min_threads_pair: 5
+  min_threads_topic: 8
+  min_models_topic: 3
+  # How many candidates per subject kind the planner considers, most-evidenced
+  # first. An internal ordering; nothing about it reaches a page.
+  candidates_per_kind: 25
+
+formats:
+  - key: field-report
+    name: Field report
+    subject: model
+    derived_from: "What happened / The evidence / What stayed green anyway / What I might have wrong"
+    shape: >-
+      A field report on how this model behaves once it is in a real system. Open on the
+      concrete behaviour practitioners hit, lay out the evidence, separate what is
+      established from what is not, and close on what an engineering team should change.
+    headings: "plain declarative headings such as 'What happens in practice', 'What the evidence shows', 'What it does not show', 'What to change'"
+    sections: [4, 6]
+    words: [1300, 2300]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: true}
+
+  - key: head-to-head
+    name: Head-to-head
+    subject: pair
+    derived_from: "What do the release benchmarks say? / Does the cheaper claim hold? / What happens in a tool loop?"
+    shape: >-
+      A head-to-head between the two models, organised as the questions an engineer would
+      actually ask before choosing, each answered from what practitioners measured or hit.
+    headings: "questions, e.g. 'Does the cheaper model hold up on multi-step work?'"
+    sections: [5, 7]
+    words: [1500, 2600]
+    blocks: {matrix: true, tree: false, code: [0, 1], prices: true}
+    matrix_title: "When to use {a} vs {b}"
+
+  - key: cost-teardown
+    name: Cost teardown
+    subject: model
+    derived_from: "The pricing change that matters here / The napkin math / Two breaking changes / Tokens per task is the hidden multiplier"
+    shape: >-
+      A teardown of what this model actually costs to run: which mechanics move the bill
+      (caching, verbosity, retries, effort settings, tool schemas) and what to change.
+      Use only figures stated in the discussions or the fact sheet - explain the
+      mechanics, never compute a new number.
+    headings: "mechanism-first headings, e.g. 'Where the bill actually comes from'"
+    sections: [4, 6]
+    words: [1300, 2300]
+    blocks: {matrix: true, tree: false, code: [0, 1], prices: true}
+    matrix_title: "What moves the bill"
+
+  - key: migration-guide
+    name: Migration guide
+    subject: pair
+    derived_from: "Before you start / Step 1: Pick your model / The confusing part / Breaking changes / When not to"
+    shape: >-
+      A practical guide for a team moving traffic between these two models: what breaks,
+      what to check before switching, how to run the switch safely, and when not to.
+    headings: "practical headings, e.g. 'Before you switch', 'What breaks', 'Running the switch', 'When not to migrate'"
+    sections: [5, 7]
+    words: [1400, 2500]
+    blocks: {matrix: false, tree: true, code: [1, 2], prices: true}
+    tree_question: "Should this workload move between {a} and {b}, and in which direction?"
+
+  - key: architecture-pattern
+    name: Architecture pattern
+    subject: topic
+    derived_from: "Overview: isolate generation, distrust everything / Layer 1 / Layer 2 / Design decisions worth stealing"
+    shape: >-
+      An architecture write-up for this kind of work: the pattern that holds up in
+      production, layer by layer, the failure each layer contains, and the decisions worth
+      copying.
+    headings: "layered headings, e.g. 'Layer 1: …', 'Where it fails', 'Decisions worth stealing'"
+    sections: [5, 7]
+    words: [1400, 2500]
+    blocks: {matrix: true, tree: false, code: [1, 2], prices: false}
+    matrix_title: "Pattern versus anti-pattern"
+
+  - key: release-analysis
+    name: Release analysis
+    subject: model
+    derived_from: "Grok 4.7 Shipped / The benchmark you cite is the argument you're making / Price cuts: practical migration steps"
+    shape: >-
+      An analysis of this model as it lands in practice: what engineers report after
+      adopting it, how the claims around it hold up, who should switch and who should wait.
+    headings: "claim-and-reality headings, e.g. 'What was claimed', 'What engineers found', 'Who should switch'"
+    sections: [4, 6]
+    words: [1200, 2200]
+    blocks: {matrix: false, tree: true, code: [0, 1], prices: true}
+    tree_question: "Should your team adopt {a} now?"
+
+  - key: evaluation-critique
+    name: Evaluation critique
+    subject: topic
+    derived_from: "My factual-recall tasks were scoring format, not facts / What the extra data did not buy / What I might have wrong"
+    shape: >-
+      A critique of how this capability is measured and reported: what common evaluations
+      and claims actually test, what they miss, where practitioner experience diverges
+      from the scores, and how to evaluate it for your own workload.
+    headings: "critical headings, e.g. 'What the score measures', 'What it misses', 'How to test it yourself'"
+    sections: [4, 6]
+    words: [1300, 2300]
+    blocks: {matrix: false, tree: false, code: [0, 1], prices: false}
