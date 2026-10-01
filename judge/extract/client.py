@@ -68,6 +68,37 @@ DEFAULT_MODEL = "deepseek/deepseek-v4-flash"
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 
 
+_PROVIDER_SORTS = {"throughput", "price", "latency"}
+
+
+def extractor_provider() -> dict | None:
+    """OpenRouter provider preference for extraction, from
+    `EXTRACTOR_PROVIDER_SORT`, or None to send none (the behaviour before
+    2026-10-01).
+
+    It chooses WHICH HOST serves the model, never which model: the served-model
+    checks are unchanged. An unknown value is refused rather than ignored - a
+    typo that silently fell back to "no preference" would bring back the slow
+    provider this exists to avoid (rule 12).
+    """
+    raw = os.getenv("EXTRACTOR_PROVIDER_SORT", "").strip().lower()
+    # A SORT IS A PREFERENCE, NOT A BAN. Measured 2026-10-01: with
+    # sort=throughput, a thread whose first host (Azure) failed was retried by
+    # OpenRouter's fallback on OpenInference - 9.5 minutes, truncated, no claims,
+    # $0.0216 billed. EXTRACTOR_PROVIDER_IGNORE names hosts never to use.
+    ignore = [h.strip() for h in os.getenv("EXTRACTOR_PROVIDER_IGNORE", "").split(",") if h.strip()]
+    if not raw and not ignore:
+        return None
+    if raw and raw not in _PROVIDER_SORTS:
+        raise RuntimeError(f"EXTRACTOR_PROVIDER_SORT={raw!r} is not one of {sorted(_PROVIDER_SORTS)}")
+    pref: dict = {}
+    if raw:
+        pref["sort"] = raw
+    if ignore:
+        pref["ignore"] = ignore
+    return pref
+
+
 def extractor_model() -> str:
     """`EXTRACTOR_MODEL`, or the agreed extractor.
 
@@ -632,6 +663,13 @@ class OpenRouterClient:
                     if self.reasoning_effort.strip().lower() == "default"
                     else {"reasoning": {"effort": self.reasoning_effort.strip().lower()}}
                 ),
+                # PROVIDER ROUTING, when configured - same model, same prompt.
+                # Measured 2026-10-01: with no preference OpenRouter sent
+                # deepseek-v4-flash to OpenInference, which spent ~9 minutes per
+                # thread, hit the 16,384-token ceiling with no claims, and
+                # billed $0.0205 against a $0.0064 list-price estimate. See
+                # `extractor_provider()`.
+                **({"provider": extractor_provider()} if extractor_provider() else {}),
             },
         ) as response:
             # THE STATUS IS CHECKED BEFORE THE STREAM IS READ. An error response
