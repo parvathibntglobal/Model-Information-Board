@@ -112,6 +112,36 @@ none carries over by substitution (the reasoning of
    stops on 10-18 by design, and the fetch logs say so - an outage that names
    its cause, not a silent one.
 
+## The dates that follow signing
+
+Signing clears 2026-10-18 and nothing after it. The gate
+(`collect/registry/assertions.py`) also refuses a ruling once
+`reviewed_on + review_valid_days` has passed, and re-checks every live
+precondition on every run. Read from `contract/sources.yaml` on 2026-10-05:
+
+| what | expires | if missed |
+|---|---|---|
+| the new undertaking | 30 days after it is signed (2026-11-17 if signed 10-18) | all eight non-GitHub rulings refuse |
+| `github-api-terms` | **2026-11-11** | GitHub refuses - the one source the undertaking does not cover |
+| `blog-class-b-medium` | 2026-11-12 | that source refuses |
+| `reddit-via-rapidapi` | 2026-11-16 | that source refuses |
+| `arxiv-api-terms`, `x-via-rapidapi-scraper` | 2026-12-07 | that source refuses |
+| `devto-api-terms`, `hackernews-algolia-terms`, `huggingface-api-terms` | 2026-12-08 | that source refuses |
+| `blog-class-a-self-hosted` | 2026-12-20 | that source refuses |
+
+Two more ways to refuse, on any day:
+
+- **a live precondition fails** (X's credential or provider, a blog's
+  `robots.txt`, an access path): that source only, named in the run's log;
+- **a signed condition stops being true** - the public deployment set to
+  `PUBLICATION_VIEW=internal`, `/admin` reachable publicly: the undertaking
+  voids and all eight refuse at once, by design.
+
+Each refusal is a `skipped` arm with its reason, never an error, so a run stays
+green while collecting less. With the scheduler on, that is a nightly batch
+shrinking quietly unless somebody reads the summaries - the November dates
+want a calendar entry, not a memory.
+
 **Before the board goes public**, also: the notice rendered on the page
 (`sources_withheld` has no UI reader yet), `/admin` blocked, and the cell
 phrases/counts recomputed without withheld voices - all listed in
