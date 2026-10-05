@@ -1024,24 +1024,114 @@ function essayBlock([t,v]){
   return '<p>'+essayText(v)+'</p>';
 }
 
+// ── per-format layouts (2026-10-05) ───────────────────────────────────────
+//
+// One renderer gave every post the same page, whatever its format. Each
+// format now names a layout (blog_formats.yaml): its own section label, accent,
+// where its signature block sits, and whether the rate card leads. Posts with
+// no layout (the first three) keep the original essay page.
+const LAYOUTS = {
+  report:    { label: 'Observation', lead: 'special' },
+  versus:    { label: 'Question',    lead: 'special' },
+  ledger:    { label: 'Cost line',   lead: 'prices+special' },
+  runbook:   { label: 'Step notes',  lead: 'special' },
+  blueprint: { label: 'Component',   lead: 'special' },
+  brief:     { label: 'Point',       lead: 'special' },
+  critique:  { label: 'Argument',    lead: 'special' },
+};
+
+function specialBlock(sp){
+  if(!sp || !sp.items || !sp.items.length) return '';
+  const it = sp.items, T = esc(sp.title);
+  if(sp.type==='findings'){
+    const col = (st, cls) => it.filter(x=>x.status===st)
+      .map(x=>`<li class="${cls}">${essayText(x.finding)}</li>`).join('') || '<li class="none">None recorded.</li>';
+    return `<section class="es-sp es-findings"><div class="lbl">${T}</div><div class="cols">
+      <div><h4>Established</h4><ul>${col('established','ok')}</ul></div>
+      <div><h4>Not established</h4><ul>${col('not established','open')}</ul></div></div></section>`;
+  }
+  if(sp.type==='picks'){
+    const names = [...new Set(it.map(x=>x.pick))];
+    return `<section class="es-sp es-picks"><div class="lbl">${T}</div><div class="cols">${names.map((n,k)=>
+      `<div class="pick p${k}"><h4>Pick ${esc(n)} when…</h4><ul>${it.filter(x=>x.pick===n)
+        .map(x=>`<li>${essayText(x.when)}</li>`).join('')}</ul></div>`).join('')}</div></section>`;
+  }
+  if(sp.type==='drivers'){
+    return `<section class="es-sp es-drivers"><div class="lbl">${T}</div><div class="grid">${it.map((x,k)=>
+      `<div class="drv"><div class="n">${String(k+1).padStart(2,'0')}</div><h4>${essayText(x.driver)}</h4>
+        <p>${essayText(x.mechanism)}</p><p class="lever"><b>Lever</b> ${essayText(x.lever)}</p></div>`).join('')}</div></section>`;
+  }
+  if(sp.type==='steps'){
+    return `<section class="es-sp es-steps"><div class="lbl">${T}</div><ol>${it.map((x,k)=>
+      `<li><div class="dot">${k+1}</div><div class="body"><h4>${essayText(x.step)}</h4><p>${essayText(x.action)}</p>
+        <p class="check"><span class="box"></span>${essayText(x.check)}</p></div></li>`).join('')}</ol></section>`;
+  }
+  if(sp.type==='layers'){
+    return `<section class="es-sp es-layers"><div class="lbl">${T}</div><div class="stack">${it.map((x,k)=>
+      `<div class="band" style="margin-inline:${k*14}px"><div class="name">${essayText(x.layer)}</div>
+        <div class="role">${essayText(x.role)}</div><div class="fail"><b>Contains</b> ${essayText(x.failure_contained)}</div></div>`).join('')}
+      </div></section>`;
+  }
+  if(sp.type==='claims'){
+    const chip = st => `<span class="chip ${st==='holds'?'ok':st==='partly holds'?'part':'none'}">${esc(st)}</span>`;
+    return `<section class="es-sp es-claims"><div class="lbl">${T}</div><div class="es-tbl"><table><thead><tr>
+      <th>Claim</th><th>What practitioners found</th><th>Status</th></tr></thead><tbody>${it.map(x=>
+      `<tr><td><b>${essayText(x.claim)}</b></td><td>${essayText(x.finding)}</td><td>${chip(x.status)}</td></tr>`).join('')}
+      </tbody></table></div></section>`;
+  }
+  if(sp.type==='probes'){
+    return `<section class="es-sp es-probes"><div class="lbl">${T}</div><div class="es-tbl"><table><thead><tr>
+      <th>Reported</th><th>Actually tests</th><th>Misses</th></tr></thead><tbody>${it.map(x=>
+      `<tr><td><b>${essayText(x.measure)}</b></td><td>${essayText(x.tests)}</td><td class="miss">${essayText(x.misses)}</td></tr>`).join('')}
+      </tbody></table></div></section>`;
+  }
+  return '';
+}
+
 function vPost(slug){
   const p = byS(DB.posts,slug); if(!p) return vBlogs();
+  const L = LAYOUTS[p.layout] ? p.layout : null;
+  const conf = L ? LAYOUTS[L] : null;
+  // The rate card leads on a ledger: lift the List-prices heading and table out
+  // of the body and put them first.
+  let body = p.body.slice(), rate = '';
+  if(conf && conf.lead.startsWith('prices')){
+    const k = body.findIndex(([t,v])=>t==='table' && v && v.kind==='prices');
+    if(k >= 0){
+      const prevH3 = k > 0 && body[k-1][0]==='h3' ? 1 : 0;
+      rate = `<section class="es-sp es-rate"><div class="lbl">The rate card</div>${essayBlock(body[k])}</section>`;
+      body.splice(k - prevH3, 1 + prevH3);
+    }
+  }
+  // Section labels name what a section IS in this format ("Question 2").
+  let n = 0;
+  const rendered = body.map(b=>{
+    if(conf && b[0]==='h2' && b[1] && typeof b[1]==='object' && /^\d+$/.test(b[1].num||'')){
+      n += 1; return essayBlock(['h2', {...b[1], num: `${conf.label} ${n}`}]);
+    }
+    return essayBlock(b);
+  }).join('');
+  const special = conf ? specialBlock(p.special) : '';
   const toc = p.body.filter(([t,v])=>t==='h2' && v && v.id)
     .map(([,v])=>`<li><a data-toc="es-${esc(v.id)}">${essayText(v.num==='Decision tree'?'Decision tree':v.text)}</a></li>`).join('');
   const pv = p.provenance || {};
   const tags = (p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('');
   const dec = (p.decisions||[]).map(d=>`<li>${essayText(d)}</li>`).join('');
   const rel = (p.rel||[]).map(([h,t])=>`<a class="es-rel" data-go="${esc(h)}">${esc(t)}</a>`).join('');
-  return `<div class="essay"><div class="es-wrap">
+  // A head-to-head's hero names both sides as nameplates.
+  const names = L==='versus' && p.special ? [...new Set((p.special.items||[]).map(x=>x.pick))] : [];
+  const plate = names.length===2 ? `<div class="es-vs"><span>${esc(names[0])}</span><i>vs</i><span>${esc(names[1])}</span></div>` : '';
+  return `<div class="essay${L?' layout-'+L:''}"><div class="es-wrap">
     <div class="es-crumb"><a data-go="blogs">All essays</a></div>
-    <header class="es-hero"><div class="es-kicker">${esc(p.kicker||p.tag)}</div><h1>${esc(p.title)}</h1>
+    <header class="es-hero"><div class="es-kicker">${esc(p.kicker||p.tag)}</div>${plate}<h1>${esc(p.title)}</h1>
       <p class="es-dek">${esc(p.dek)}</p>
       <div class="es-byline">${(p.meta||[]).map(m=>`<span>${esc(m)}</span>`).join('')}</div>
       ${tags?`<div class="es-tags">${tags}</div>`:''}</header>
     <div class="es-layout">
       <article class="es-article">
         <div class="es-tldr"><div class="lbl">The short answer</div><p>${essayText(p.lead)}</p></div>
-        ${p.body.map(essayBlock).join('')}
+        ${rate}${special}
+        ${rendered}
         <footer class="es-foot">
           <p>Written by <code>${esc(pv.model)}</code>${pv.generated_at?` on ${esc(String(pv.generated_at).slice(0,10))}`:''}
           from engineers' public discussions, then checked in code: ${esc(pv.checks||'not recorded')}.

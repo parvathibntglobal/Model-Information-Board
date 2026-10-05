@@ -42,6 +42,7 @@ Never touches git.
 from __future__ import annotations
 
 import argparse
+import copy
 import html
 import json
 import math
@@ -49,10 +50,8 @@ import os
 import re
 import sys
 import unicodedata
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
-
-import copy
 
 import httpx
 import psycopg
@@ -253,7 +252,22 @@ def fact_sheet(cur, post, docs) -> list[dict]:
 
 
 def money(v) -> str | None:
-    return None if v is None else f"${float(v):,.2f}"
+    """A registry price as published, never rounded into a different figure.
+
+    Was `f"${v:,.2f}"`, which turned DeepSeek V4 Flash's $0.042 into "$0.04"
+    and its $0.0084 cached-input rate into "$0.01" - 19% high (2026-10-05).
+    The fact sheet the model reads uses this too, so the rounding reached the
+    prose. Sub-dollar prices keep up to four decimals; at least two always.
+    """
+    if v is None:
+        return None
+    x = float(v)
+    if x >= 1 or x == 0:
+        return f"${x:,.2f}"
+    s = f"{x:.4f}".rstrip("0")
+    if len(s.split(".")[1]) < 2:
+        s = f"{x:.2f}"
+    return "$" + s
 
 
 def fact_lines(facts) -> str:
@@ -581,6 +595,10 @@ def prose_fields(essay: dict):
             yield f"decision_tree.branches[{i}].{k}", b.get(k, "")
     for i, d in enumerate(essay.get("decisions", [])):
         yield f"decisions[{i}]", d
+    for key, sp in SPECIALS.items():
+        for i, it in enumerate(essay.get(key) or []):
+            for f in sp["prose"]:
+                yield f"{key}[{i}].{f}", (it or {}).get(f, "")
 
 
 def has_code(section: dict) -> bool:
@@ -642,6 +660,18 @@ def check(essay: dict, context: str, rules: dict | None = None) -> list[str]:
             if not re.search(rf"(?<![\d.]){re.escape(bare)}(?![\d])", ctx_nums):
                 v.append(f"{path}: the number {num} appears in no discussion and not in the fact sheet")
         for pat, why in BANNED:
+            if why.startswith("a ratio or multiple"):
+                # A MULTIPLE THE SOURCES STATE IS A FIGURE, NOT ARITHMETIC.
+                # Measured 2026-10-05: a cost teardown failed six rounds on
+                # "0.1×" and "1.25×", which the source states verbatim ("Cache
+                # read tokens - 0.1×"). Only a multiple absent from the sources
+                # is refused - the same test every other number gets.
+                for m in re.finditer(pat, text, re.I):
+                    num = re.match(r"\s*([\d.]+)", m.group(0))
+                    if num and re.search(rf"(?<![\d.]){re.escape(num.group(1))}\s*[x×]", ctx_nums, re.I):
+                        continue
+                    v.append(f"{path}: {why}: {m.group(0)!r}")
+                continue
             m = re.search(pat, text, re.I)
             if m:
                 v.append(f"{path}: {why}: {m.group(0)!r}")
@@ -654,8 +684,10 @@ def check(essay: dict, context: str, rules: dict | None = None) -> list[str]:
     for i, s in enumerate(secs):
         if s.get("pull_quote"):
             verbatim(f"sections[{i}].pull_quote", s["pull_quote"])
-        if len(s.get("paragraphs", [])) < 3:
-            v.append(f"sections[{i}]: needs 3 to 5 paragraphs, has {len(s.get('paragraphs', []))}")
+        plo, phi = rules.get("per_section", (3, 99))
+        n_par = len(s.get("paragraphs", []))
+        if not plo <= n_par <= phi:
+            v.append(f"sections[{i}]: needs {plo} to {phi} paragraphs, has {n_par}")
     lo, hi = rules["sections"]
     if not lo <= len(secs) <= hi:
         v.append(f"needs {lo} to {hi} sections, has {len(secs)}")
@@ -675,6 +707,64 @@ def check(essay: dict, context: str, rules: dict | None = None) -> list[str]:
     wlo, whi = rules["words"]
     if (w := words_in(essay)) < wlo:
         v.append(f"essay body is {w} words; write {wlo:,} to {whi:,}")
+    if "para_words" in rules:
+        v += _distinctiveness(essay, rules)
+    return v
+
+
+def _distinctiveness(essay: dict, rules: dict) -> list[str]:
+    """The checks that keep one format's posts from reading like another's
+    (2026-10-05): paragraph size and rhythm, heading rules, headings already
+    used elsewhere, and the format's signature block."""
+    v: list[str] = []
+    secs = essay.get("sections", [])
+    paras = [p for s in secs for p in s.get("paragraphs", [])]
+    lo, hi = rules["para_words"]
+    sizes = [len(GUILLEMET.sub(r"\1", p).split()) for p in paras]
+    if sizes:
+        med = sorted(sizes)[len(sizes) // 2]
+        if not lo <= med <= hi:
+            v.append(f"paragraphs: median length is {med} words; this format wants {lo} to {hi}")
+        for i, n in enumerate(sizes):
+            if n > hi * 1.5:
+                v.append(f"paragraph {i + 1}: {n} words is far longer than this format's {lo}-{hi}; split it")
+        firsts = [re.sub(r"[^a-z]", "", (p.split() or [""])[0].lower()) for p in paras]
+        top = max(set(firsts), key=firsts.count) if firsts else ""
+        if top and firsts.count(top) >= 3 and firsts.count(top) > len(firsts) / 3:
+            v.append(f"paragraphs: {firsts.count(top)} of {len(firsts)} open with '{top}'; vary the openings")
+    heads = [s.get("heading", "") for s in secs]
+    taken = rules.get("taken_headings") or set()
+    for i, h in enumerate(heads):
+        if rules.get("heading_question") and not h.strip().endswith("?"):
+            v.append(f"sections[{i}].heading: this format's headings are questions ending with '?': {h!r}")
+        if rules.get("heading_no_wh") and _WH.match(h):
+            v.append(f"sections[{i}].heading: must not start with What/Why/How: {h!r}")
+        if norm_heading(h) in taken:
+            v.append(f"sections[{i}].heading: another post already uses {h!r}; write a different one")
+    firstw = [norm_heading(h).split(" ")[0] for h in heads if norm_heading(h)]
+    for w in set(firstw):
+        if firstw.count(w) > 2:
+            v.append(f"headings: {firstw.count(w)} start with '{w}'; vary them")
+    key = rules.get("special")
+    if key:
+        sp = SPECIALS[key]
+        items = essay.get(key) or []
+        ilo, ihi = sp["items"]
+        if not ilo <= len(items) <= ihi:
+            v.append(f"{key}: needs {ilo} to {ihi} items, has {len(items)}")
+        for i, it in enumerate(items):
+            for f in sp["fields"]:
+                if not str((it or {}).get(f, "")).strip():
+                    v.append(f"{key}[{i}].{f}: empty")
+        names = rules.get("pick_names") or []
+        if key == "picks" and names:
+            norm_names = {norm_heading(n): n for n in names}
+            for i, it in enumerate(items):
+                if norm_heading((it or {}).get("pick", "")) not in norm_names:
+                    v.append(f"picks[{i}].pick must be exactly one of {names}")
+            for n in names:
+                if sum(norm_heading((it or {}).get("pick", "")) == norm_heading(n) for it in items) < 2:
+                    v.append(f"picks: needs at least two items for {n}")
     return v
 
 
@@ -703,7 +793,7 @@ def synthesise(post, docs, facts, key, base) -> dict:
     messages = seed[:]
     best = None
     record = {"post": post["key"], "requested_model": GEN_MODEL,
-              "started": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+              "started": datetime.now(UTC).isoformat(timespec="seconds"),
               "documents": [{k: d[k] for k in ("thread_context_id", "source", "chars", "truncated")}
                             for d in docs],
               "facts": [f["canonical_id"] for f in facts], "attempts": [], "passed": False,
@@ -1095,6 +1185,16 @@ def post_slug(post) -> str:
     return post["file"].removesuffix(".html")
 
 
+def _export_special(post, essay, text):
+    key = (post.get("format_cfg") or {}).get("special")
+    if not key or not essay.get(key):
+        return None
+    sp = SPECIALS[key]
+    return {"type": key, "title": sp["title"],
+            "items": [{f: (text(str(it.get(f, ""))) if f in sp["prose"] else it.get(f))
+                       for f in sp["fields"]} for it in essay[key]]}
+
+
 def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
     """Write one post in the shape `web/src/board/views.js` `vPost` renders.
 
@@ -1161,6 +1261,10 @@ def export_post(post, essay, docs, facts, rec, mins, rel_posts) -> Path:
         "tags": post["tags"],
         "read": mins,
         "decisions": [text(d) for d in essay["decisions"]],
+        # The page structure this format renders with (views.js); absent on the
+        # first three posts, which keep the original essay layout.
+        "layout": (post.get("format_cfg") or {}).get("layout"),
+        "special": _export_special(post, essay, text),
         "meta": [TODAY.strftime("%d %B %Y"), f"~{mins} min read", "Draft — not reviewed"],
         "body": body,
         "rel": [[f"post:{slug}", title] for slug, title in rel_posts],
@@ -1199,13 +1303,87 @@ LEGACY_PLAN_KEYS = {"opus": "deep-dive:anthropic/claude-opus-5",
 VERIFIED = "be.quote_verified AND coalesce(be.ruling,'') <> 'declined'"
 
 
+#: ONE STRUCTURED BLOCK PER FORMAT, ONLY THAT FORMAT CARRIES IT (2026-10-05).
+#: The first nine posts drew on the same five blocks, so every page looked the
+#: same whatever its format. Each entry: the tool-schema item, which fields are
+#: prose (checked like any paragraph), item-count bounds, and the instruction.
+#: `status` values are categorical words chosen from a fixed list - never a
+#: number - so rule 3 is not in play.
+SPECIALS: dict[str, dict] = {
+    "findings": {
+        "title": "Findings", "items": (4, 8), "prose": ["finding"],
+        "fields": {"finding": {"type": "string"},
+                   "status": {"type": "string", "enum": ["established", "not established"]}},
+        "ask": "FINDINGS: 4 to 8 one-sentence findings about the subject, each marked 'established' "
+               "(the discussions show it) or 'not established' (claimed or suspected, not shown).",
+    },
+    "picks": {
+        "title": "Pick it when", "items": (4, 8), "prose": ["when"],
+        "fields": {"pick": {"type": "string"}, "when": {"type": "string"}},
+        "ask": "PICKS: 4 to 8 items; each names one of the two models exactly as given in SUBJECT "
+               "('pick') and one concrete situation where it is the better choice ('when'). "
+               "At least two for each model.",
+    },
+    "drivers": {
+        "title": "Cost drivers", "items": (4, 7), "prose": ["driver", "mechanism", "lever"],
+        "fields": {"driver": {"type": "string"}, "mechanism": {"type": "string"}, "lever": {"type": "string"}},
+        "ask": "DRIVERS: 4 to 7 cost drivers: the driver (a short noun phrase), the mechanism by which "
+               "it grows the bill, and the lever that reduces it. Figures only as the discussions give them.",
+    },
+    "steps": {
+        "title": "Runbook", "items": (5, 9), "prose": ["step", "action", "check"],
+        "fields": {"step": {"type": "string"}, "action": {"type": "string"}, "check": {"type": "string"}},
+        "ask": "STEPS: 5 to 9 ordered migration steps: a short imperative title, the action to take, and "
+               "the check that confirms it worked before moving on.",
+    },
+    "layers": {
+        "title": "The layers", "items": (3, 6), "prose": ["layer", "role", "failure_contained"],
+        "fields": {"layer": {"type": "string"}, "role": {"type": "string"},
+                   "failure_contained": {"type": "string"}},
+        "ask": "LAYERS: 3 to 6 architecture layers from the outside in: the layer's name, its role, and "
+               "the failure it contains.",
+    },
+    "claims": {
+        "title": "Claims against reality", "items": (3, 6), "prose": ["claim", "finding"],
+        "fields": {"claim": {"type": "string"}, "finding": {"type": "string"},
+                   "status": {"type": "string", "enum": ["holds", "partly holds", "not shown"]}},
+        "ask": "CLAIMS: 3 to 6 claims made about the subject, what practitioners found, and whether the "
+               "claim 'holds', 'partly holds' or is 'not shown' by the discussions.",
+    },
+    "probes": {
+        "title": "What is measured, and what is missed", "items": (3, 6),
+        "prose": ["measure", "tests", "misses"],
+        "fields": {"measure": {"type": "string"}, "tests": {"type": "string"}, "misses": {"type": "string"}},
+        "ask": "PROBES: 3 to 6 rows, one per evaluation or claim: what is reported ('measure'), what it "
+               "actually tests ('tests'), and what it misses for a production workload ('misses').",
+    },
+}
+_WH = re.compile(r"^\s*(what|why|how)\b", re.I)
+
+
+def norm_heading(h: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]+", " ", (h or "").lower())).strip()
+
+
 def load_formats() -> dict:
     cfg = yaml.safe_load(FORMATS_FILE.read_text(encoding="utf-8"))
-    need = {"key", "name", "subject", "shape", "headings", "sections", "words", "blocks"}
+    need = {"key", "name", "subject", "shape", "layout", "voice", "paragraphs", "heading_rules",
+            "special", "sections", "words", "blocks"}
     for f in cfg["formats"]:
         missing = need - set(f)
         if missing:  # rule 12: a half-specified format must not run on defaults
             raise BuildError(f"blog_formats.yaml: format {f.get('key')!r} is missing {sorted(missing)}")
+        if f["special"] not in SPECIALS:
+            raise BuildError(f"blog_formats.yaml: format {f['key']!r} names unknown special {f['special']!r}")
+        # A FLOOR THE FORMAT'S OWN SHAPE CANNOT REACH IS A CONTRADICTION, NOT A
+        # QUALITY BAR. Measured 2026-10-05: cost-teardown asked for 4-6
+        # sections of 2-3 paragraphs of 40-90 words (typically ~810 words) with
+        # a 1,000-word floor, and failed six rounds at ~880 words.
+        mid = (sum(f["sections"]) / 2 * sum(f["paragraphs"]["per_section"]) / 2
+               * sum(f["paragraphs"]["words"]) / 2)
+        if f["words"][0] > mid:
+            raise BuildError(f"blog_formats.yaml: format {f['key']!r} has a {f['words'][0]}-word floor, above the "
+                             f"~{mid:.0f} words its sections/paragraphs produce; lower the floor or widen the shape")
     return cfg
 
 
@@ -1216,10 +1394,17 @@ def system_for(fmt: dict) -> str:
     wlo, whi = fmt["words"]
     b = fmt["blocks"]
     clo, chi = b["code"]
+    plo, phi = fmt["paragraphs"]["per_section"]
+    pwlo, pwhi = fmt["paragraphs"]["words"]
     lines = [STRUCT_HEAD,
              f"- FORMAT: {fmt['name']}. {fmt['shape']}",
-             f"- {lo} to {hi} sections. Headings: {fmt['headings']}. Each section has 3 to 5 substantial "
-             f"paragraphs. Total length {wlo:,} to {whi:,} words.",
+             f"- VOICE FOR THIS FORMAT: {fmt['voice']} This overrides the general voice where they differ.",
+             f"- {lo} to {hi} sections, each with {plo} to {phi} paragraphs of {pwlo} to {pwhi} words. "
+             f"Total length {wlo:,} to {whi:,} words. Vary how paragraphs open: do not start more than a "
+             "third of them with the same word.",
+             f"- HEADINGS: {fmt['heading_rules']} Write your own headings for this subject; do not reuse "
+             "any heading listed under HEADINGS ALREADY USED in the brief.",
+             f"- {SPECIALS[fmt['special']]['ask']}",
              "- At most one pull quote per section, verbatim as above."]
     lines.append(f"- {clo} to {chi} code or configuration examples, attached to the section they belong to."
                  if chi else "- No code examples.")
@@ -1241,12 +1426,24 @@ def tool_for(fmt: dict) -> dict:
             params["required"].remove(field)
     if not fmt["blocks"]["code"][1]:
         params["properties"]["sections"]["items"]["properties"].pop("code")
+    sp = SPECIALS[fmt["special"]]
+    params["properties"][fmt["special"]] = {
+        "type": "array", "description": sp["ask"],
+        "items": {"type": "object", "required": list(sp["fields"]), "properties": copy.deepcopy(sp["fields"])}}
+    params["required"].append(fmt["special"])
     return t
 
 
-def rules_for(fmt: dict) -> dict:
+def rules_for(fmt: dict, a: str = "", b: str = "") -> dict:
+    question = bool(fmt.get("headings_end_with_question"))
     return {"sections": tuple(fmt["sections"]), "matrix": fmt["blocks"]["matrix"],
-            "tree": fmt["blocks"]["tree"], "code": tuple(fmt["blocks"]["code"]), "words": tuple(fmt["words"])}
+            "tree": fmt["blocks"]["tree"], "code": tuple(fmt["blocks"]["code"]), "words": tuple(fmt["words"]),
+            "per_section": tuple(fmt["paragraphs"]["per_section"]),
+            "para_words": tuple(fmt["paragraphs"]["words"]),
+            "heading_question": question, "heading_no_wh": not question,
+            "special": fmt["special"], "pick_names": [x for x in (a, b) if x],
+            # Filled per post by run_plan: every heading other posts already use.
+            "taken_headings": set()}
 
 
 def brief_for(fmt: dict, label: str, a: str, b: str) -> str:
@@ -1259,6 +1456,23 @@ def brief_for(fmt: dict, label: str, a: str, b: str) -> str:
         q = fmt.get("tree_question", "What should an architect decide here?").format(a=a, b=b)
         lines.append(f"DECISION TREE: the question is '{q}'; each branch is a condition and the resulting choice.")
     return "\n".join(lines)
+
+
+def existing_headings() -> set[str]:
+    """Every section heading the drafts already on disk use, normalised."""
+    out: set[str] = set()
+    for f in POSTS_OUT.glob("*.json"):
+        try:
+            body = json.loads(f.read_text(encoding="utf-8")).get("body") or []
+        except (OSError, json.JSONDecodeError):
+            continue
+        for t, v in body:
+            if t == "h2" and isinstance(v, dict) and v.get("num") not in ("Matrix", "Decision tree"):
+                out.add(norm_heading(v.get("text", "")))
+            elif t == "h2" and isinstance(v, str):
+                out.add(norm_heading(v))
+    out.discard("")
+    return out
 
 
 def existing_plan_keys() -> set[str]:
@@ -1322,7 +1536,8 @@ def planned_post(fmt: dict, cand: dict) -> dict:
     slug = re.sub(r"[^a-z0-9]+", "-", plan_key.lower()).strip("-")[:90]
     return {"key": slug, "file": f"{slug}.html", "kicker": fmt["name"], "where": where, "tags": tags,
             "brief": brief_for(fmt, cand["label"], cand["a"], cand["b"]), "system": system_for(fmt),
-            "tool": tool_for(fmt), "rules": rules_for(fmt), "prices": fmt["blocks"]["prices"],
+            "tool": tool_for(fmt), "rules": rules_for(fmt, cand["a"], cand["b"]),
+            "prices": fmt["blocks"]["prices"], "format_cfg": fmt,
             "plan": {"plan_key": plan_key, "format": fmt["key"], "subject": cand["label"]}, **extra}
 
 
@@ -1385,7 +1600,7 @@ def ui_status(**kw) -> None:
                 it["state"] = item_state or it.get("state")
                 if attempt:
                     it["attempt"] = attempt
-    cur["updated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    cur["updated_at"] = datetime.now(UTC).isoformat(timespec="seconds")
     RUNS.mkdir(exist_ok=True)
     UI_STATUS.write_text(json.dumps(cur, ensure_ascii=False, indent=1), encoding="utf-8")
 
@@ -1414,8 +1629,16 @@ def run_plan(args, dsn, key, base, reader) -> None:
         except (OSError, json.JSONDecodeError, KeyError):
             continue
     written, failed, total_cost = [], {}, 0.0
+    taken = existing_headings()
     for post, docs, skipped, facts in inputs:
         ui_status(item=post["key"], item_state="writing")
+        # THE BATCH AVOIDS ITSELF: each post is checked against every heading
+        # already on disk plus the ones written earlier in this run, and the
+        # brief lists them so the model can avoid them on the first draw.
+        post["rules"]["taken_headings"] = set(taken)
+        if taken:
+            post["brief"] += ("\nHEADINGS ALREADY USED (do not reuse any): "
+                              + "; ".join(sorted(taken)))
         try:
             rec = synthesise(post, docs, facts, key, base)
         except BuildError as e:
@@ -1431,12 +1654,13 @@ def run_plan(args, dsn, key, base, reader) -> None:
         out = export_post(post, essay, docs, facts, rec, mins, rel)
         written.append(post["key"])
         existing.append((post["key"], essay["title"]))
+        taken |= {norm_heading(s.get("heading", "")) for s in essay.get("sections", [])}
         ui_status(item=post["key"], item_state="done", cost_usd=round(total_cost, 4))
         print(f"  [{post['key']}] wrote {out.relative_to(ROOT)} - {len(rec['attempts'])} call(s), "
               f"cost {'$%.4f' % cost if cost is not None else 'not reported'}", flush=True)
     ui_status(state="done" if not failed else ("failed" if not written else "partial"),
               message=f"{len(written)} written, {len(failed)} failed",
-              finished_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+              finished_at=datetime.now(UTC).isoformat(timespec="seconds"))
     if failed:
         # Loud (non-zero exit) WITHOUT raising: the BuildError handler would
         # overwrite the "partial" status above with "failed", and a run that
@@ -1539,7 +1763,7 @@ def main() -> None:
                 continue
             p, i, essay, rec = found
             new = {**{k: rec[k] for k in ("post", "requested_model", "documents", "facts")},
-                   "started": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                   "started": datetime.now(UTC).isoformat(timespec="seconds"),
                    "rechecked_from": p.name, "rechecked_attempt": i + 1,
                    "attempts": [], "passed": True, "essay": essay}
             save(new)
@@ -1596,9 +1820,9 @@ if __name__ == "__main__":
         main()
     except BuildError as e:
         ui_status(state="failed", message=str(e)[:400],
-                  finished_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+                  finished_at=datetime.now(UTC).isoformat(timespec="seconds"))
         sys.exit(f"BUILD FAILED: {e}")
     except Exception as e:  # noqa: BLE001 - the page must not show "running" forever
         ui_status(state="failed", message=f"{type(e).__name__}: {str(e)[:380]}",
-                  finished_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+                  finished_at=datetime.now(UTC).isoformat(timespec="seconds"))
         raise

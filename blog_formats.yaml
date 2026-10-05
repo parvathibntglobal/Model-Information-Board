@@ -15,6 +15,20 @@
 # WHAT DECIDES WHAT GETS WRITTEN: code, not the model. The planner lists
 # subjects with enough evidence, pairs them with a compatible format, skips any
 # (format, subject) already written, and picks N posts in distinct formats.
+#
+# WHAT MAKES A BATCH LOOK DIFFERENT (added 2026-10-05). The first nine posts
+# shared one renderer, one paragraph shape (median 78-110 words, most opening
+# on "The"/"A") and one block set, so they read alike even with no heading
+# reused. Each format now also fixes:
+#   layout          its own page structure and accent (web/src/board/views.js)
+#   voice           how its paragraphs are built
+#   paragraphs      words per paragraph and paragraphs per section - CHECKED
+#   heading_rules   rules, never example headings: the old examples were copied
+#   special         one structured block only this format carries
+# A format's word floor must sit below the length its own sections and
+# paragraphs typically produce; load_formats() refuses one that does not.
+# Code also refuses a heading any other post already uses, and a draft whose
+# paragraphs open on the same word too often.
 
 planner:
   # A subject is a candidate only with this much evidence on staging
@@ -32,93 +46,156 @@ formats:
   - key: field-report
     name: Field report
     subject: model
+    layout: report
     derived_from: "What happened / The evidence / What stayed green anyway / What I might have wrong"
     shape: >-
       A field report on how this model behaves once it is in a real system. Open on the
       concrete behaviour practitioners hit, lay out the evidence, separate what is
       established from what is not, and close on what an engineering team should change.
-    headings: "plain declarative headings such as 'What happens in practice', 'What the evidence shows', 'What it does not show', 'What to change'"
+    voice: >-
+      Terse and observational, like an incident write-up. Short paragraphs of two to four
+      sentences. Lead each paragraph with the observation itself, then the condition it
+      held under. No scene-setting and no rhetorical openings.
+    paragraphs: {per_section: [2, 4], words: [35, 80]}
+    heading_rules: >-
+      Each heading states one specific observation about this model in plain words, as a
+      short sentence a reader could quote. Headings must not start with "What", "Why" or
+      "How", and must not be generic labels such as "Evidence" or "Conclusion".
+    special: findings
     sections: [4, 6]
-    words: [1300, 2300]
+    words: [750, 1900]
     blocks: {matrix: false, tree: false, code: [0, 1], prices: true}
 
   - key: head-to-head
     name: Head-to-head
     subject: pair
+    layout: versus
     derived_from: "What do the release benchmarks say? / Does the cheaper claim hold? / What happens in a tool loop?"
     shape: >-
       A head-to-head between the two models, organised as the questions an engineer would
       actually ask before choosing, each answered from what practitioners measured or hit.
-    headings: "questions, e.g. 'Does the cheaper model hold up on multi-step work?'"
+    voice: >-
+      Each section opens with a one-paragraph direct answer to its question, naming which
+      model wins that question and under what condition, then gives the reasoning. Medium
+      paragraphs; contrast the two models explicitly in every section.
+    paragraphs: {per_section: [2, 4], words: [45, 105]}
+    heading_rules: >-
+      Every heading is a specific question ending with "?", naming a concrete workload,
+      failure or cost, never a generic one such as "Which is better?".
+    headings_end_with_question: true
+    special: picks
     sections: [5, 7]
-    words: [1500, 2600]
+    words: [1150, 2400]
     blocks: {matrix: true, tree: false, code: [0, 1], prices: true}
     matrix_title: "When to use {a} vs {b}"
 
   - key: cost-teardown
     name: Cost teardown
     subject: model
+    layout: ledger
     derived_from: "The pricing change that matters here / The napkin math / Two breaking changes / Tokens per task is the hidden multiplier"
     shape: >-
       A teardown of what this model actually costs to run: which mechanics move the bill
       (caching, verbosity, retries, effort settings, tool schemas) and what to change.
       Use only figures stated in the discussions or the fact sheet - explain the
       mechanics, never compute a new number.
-    headings: "mechanism-first headings, e.g. 'Where the bill actually comes from'"
+    voice: >-
+      Mechanism first and numbers-led: every paragraph names one cost mechanism, the figure
+      the discussions or fact sheet give for it, and the lever that changes it. Compact
+      paragraphs; no narrative throat-clearing.
+    paragraphs: {per_section: [2, 3], words: [40, 90]}
+    heading_rules: >-
+      Each heading names one cost mechanism as a noun phrase (for example the thing that
+      grows the bill), never a question and never starting with "What", "Why" or "How".
+    special: drivers
     sections: [4, 6]
-    words: [1300, 2300]
+    words: [700, 1900]
     blocks: {matrix: true, tree: false, code: [0, 1], prices: true}
     matrix_title: "What moves the bill"
 
   - key: migration-guide
     name: Migration guide
     subject: pair
+    layout: runbook
     derived_from: "Before you start / Step 1: Pick your model / The confusing part / Breaking changes / When not to"
     shape: >-
       A practical guide for a team moving traffic between these two models: what breaks,
       what to check before switching, how to run the switch safely, and when not to.
-    headings: "practical headings, e.g. 'Before you switch', 'What breaks', 'Running the switch', 'When not to migrate'"
+    voice: >-
+      Second person and imperative, like a runbook: tell the reader what to do and what to
+      check. Short paragraphs; one action per paragraph; put the reason after the action.
+    paragraphs: {per_section: [1, 3], words: [30, 75]}
+    heading_rules: >-
+      Each heading is an instruction starting with a verb (for example "Pin ...",
+      "Measure ...", "Roll back ..."), never a question and never starting with "What".
+    special: steps
     sections: [5, 7]
-    words: [1400, 2500]
+    words: [550, 1800]
     blocks: {matrix: false, tree: true, code: [1, 2], prices: true}
     tree_question: "Should this workload move between {a} and {b}, and in which direction?"
 
   - key: architecture-pattern
     name: Architecture pattern
     subject: topic
+    layout: blueprint
     derived_from: "Overview: isolate generation, distrust everything / Layer 1 / Layer 2 / Design decisions worth stealing"
     shape: >-
       An architecture write-up for this kind of work: the pattern that holds up in
       production, layer by layer, the failure each layer contains, and the decisions worth
       copying.
-    headings: "layered headings, e.g. 'Layer 1: …', 'Where it fails', 'Decisions worth stealing'"
+    voice: >-
+      Structural and precise, like a design document: describe components, their
+      boundaries and the failure each one contains. Medium paragraphs; name the component
+      in the first sentence of each.
+    paragraphs: {per_section: [2, 4], words: [45, 100]}
+    heading_rules: >-
+      Each heading names a component or boundary of the architecture as a noun phrase,
+      never a question and never starting with "What", "Why" or "How".
+    special: layers
     sections: [5, 7]
-    words: [1400, 2500]
+    words: [1100, 2300]
     blocks: {matrix: true, tree: false, code: [1, 2], prices: false}
     matrix_title: "Pattern versus anti-pattern"
 
   - key: release-analysis
     name: Release analysis
     subject: model
+    layout: brief
     derived_from: "Grok 4.7 Shipped / The benchmark you cite is the argument you're making / Price cuts: practical migration steps"
     shape: >-
       An analysis of this model as it lands in practice: what engineers report after
       adopting it, how the claims around it hold up, who should switch and who should wait.
-    headings: "claim-and-reality headings, e.g. 'What was claimed', 'What engineers found', 'Who should switch'"
+    voice: >-
+      A news analyst's voice: lead with the finding, then the evidence, then what it means
+      for an adopting team. Punchy, varied sentence length; short paragraphs.
+    paragraphs: {per_section: [2, 3], words: [35, 85]}
+    heading_rules: >-
+      Each heading is a short, specific verdict-style statement about one claim or
+      consequence (a reader should know the answer from the heading alone), never a
+      question and never starting with "What", "Why" or "How".
+    special: claims
     sections: [4, 6]
-    words: [1200, 2200]
+    words: [650, 1800]
     blocks: {matrix: false, tree: true, code: [0, 1], prices: true}
     tree_question: "Should your team adopt {a} now?"
 
   - key: evaluation-critique
     name: Evaluation critique
     subject: topic
+    layout: critique
     derived_from: "My factual-recall tasks were scoring format, not facts / What the extra data did not buy / What I might have wrong"
     shape: >-
       A critique of how this capability is measured and reported: what common evaluations
       and claims actually test, what they miss, where practitioner experience diverges
       from the scores, and how to evaluate it for your own workload.
-    headings: "critical headings, e.g. 'What the score measures', 'What it misses', 'How to test it yourself'"
+    voice: >-
+      Argumentative and essayistic: build one argument across sections, each paragraph
+      advancing it; longer paragraphs are fine; concede the strongest counter-point once.
+    paragraphs: {per_section: [2, 4], words: [70, 140]}
+    heading_rules: >-
+      Each heading states a claim of the argument as a full sentence (it may be
+      contrarian), never a question and never starting with "What", "Why" or "How".
+    special: probes
     sections: [4, 6]
-    words: [1300, 2300]
+    words: [1300, 2200]
     blocks: {matrix: false, tree: false, code: [0, 1], prices: false}
