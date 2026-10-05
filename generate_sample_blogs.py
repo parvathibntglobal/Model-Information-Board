@@ -62,7 +62,10 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 from collect.rawstore import RawStore  # noqa: E402
 from collect.rawstore_reader import RawStoreReader  # noqa: E402
-from judge.publication import withheld_sources  # noqa: E402
+from judge.publication import (  # noqa: E402
+    derived_posts_may_draw_on_withheld,
+    withheld_sources,
+)
 
 OUT = ROOT / "sample_blogs"
 RUNS = ROOT / "_blog_synthesis"
@@ -209,17 +212,22 @@ def env() -> dict[str, str]:
 # ── 1 · selection (read-only) ────────────────────────────────────────────────
 
 def _public_thread_sql(thread_col: str) -> str:
-    """`NOT EXISTS ...`: the thread holds no document from a withheld source.
+    """A SQL condition on `thread_col`: may a draft draw on this thread?
 
-    BLOGS ARE PUBLIC BY DESIGN, so this applies whatever PUBLICATION_VIEW says
-    (contract/publication.yaml, agreed 2026-10-05): a draft must never draw on
-    Reddit, arXiv or X, not even in derived prose. A thread with ANY member from
-    a withheld source - or of unknown source - is excluded whole, because its
-    replies are the same platform's material as its post.
+    DECIDED BY `contract/publication.yaml` `derived_posts.may_draw_on_withheld`.
+    True (anooj, 2026-10-05): derived posts may be written from Reddit, X and
+    arXiv threads like any other, so this returns `TRUE` and selects nothing
+    out. A draft still carries no link, handle or platform name - the export and
+    banned-phrase checks refuse those whatever this says.
 
-    The sources are embedded as literals, so each must be a plain identifier;
-    anything else raises rather than reaching SQL.
+    False: a thread with ANY member from a withheld source - or of unknown
+    source - is excluded whole, because its replies are the same platform's
+    material as its post. Applies whatever PUBLICATION_VIEW says, because blogs
+    are public by design. The sources are then embedded as literals, so each
+    must be a plain identifier; anything else raises rather than reaching SQL.
     """
+    if derived_posts_may_draw_on_withheld():
+        return "TRUE"
     names = withheld_sources()
     for n in names:
         if not re.fullmatch(r"[a-z0-9_-]+", n):
@@ -1525,8 +1533,8 @@ def existing_plan_keys() -> set[str]:
 def candidates(cur, kind: str, cfg: dict) -> list[dict]:
     """Subjects with enough evidence, most-evidenced first (an internal order)."""
     lim = cfg["candidates_per_kind"]
-    # Counted over PUBLIC threads only, so a subject qualifies on evidence a
-    # draft may actually use - not on threads the selector will then refuse.
+    # Counted over the threads a draft MAY use (`_public_thread_sql`), so a
+    # subject qualifies on evidence the selector will not then refuse.
     ok = f"{VERIFIED} AND {_public_thread_sql('c.thread_context_id')}"
     if kind == "model":
         cur.execute(f"""SELECT mv.canonical_id AS id, max(mv.display_name) AS name

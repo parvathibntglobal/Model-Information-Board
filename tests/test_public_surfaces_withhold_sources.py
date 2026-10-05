@@ -135,3 +135,37 @@ class TestTheModelPage:
         text = str(page["capabilities"])
         assert all(f"quote from {d}" in text for d in ("d_dev", "d_red", "d_x"))
         assert page["withheld_sources"]["entries"] == 0
+
+
+class TestDerivedPosts:
+    """Blog drafts may draw on withheld sources (anooj, 2026-10-05), and the
+    flag is read strictly - a missing or non-boolean value never decides."""
+
+    @pytest.fixture(autouse=True)
+    def _clear(self):
+        publication.derived_posts_may_draw_on_withheld.cache_clear()
+        yield
+        publication.derived_posts_may_draw_on_withheld.cache_clear()
+
+    def test_the_contract_allows_derived_posts(self):
+        assert publication.derived_posts_may_draw_on_withheld() is True
+
+    @pytest.mark.parametrize("block", [{}, {"may_draw_on_withheld": "yes"}, None])
+    def test_absent_or_non_boolean_raises(self, monkeypatch, block):
+        import judge.config as config
+
+        monkeypatch.setattr(config, "_read", lambda name: {"derived_posts": block})
+        with pytest.raises(publication.PublicationConfigError):
+            publication.derived_posts_may_draw_on_withheld()
+
+    def test_the_generator_selects_everything_when_allowed(self):
+        import generate_sample_blogs as g
+
+        assert g._public_thread_sql("tc.id") == "TRUE"
+
+    def test_the_generator_excludes_withheld_threads_when_not(self, monkeypatch):
+        import generate_sample_blogs as g
+
+        monkeypatch.setattr(g, "derived_posts_may_draw_on_withheld", lambda: False)
+        sql = g._public_thread_sql("tc.id")
+        assert "NOT EXISTS" in sql and "'reddit'" in sql and "'x'" in sql

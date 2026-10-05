@@ -16,8 +16,19 @@ undertaking re-signed") as the answer to the terms problem that has kept the
 scheduler off. The repository is expected to move to a private account; the
 platform itself is what goes public.
 
-"Any form" is read as widely as it can be: no quote, no link, no handle, no
-derived prose (blog drafts included), and no count that includes them.
+On the board, "withheld" means no quote, no link, no handle, and no count that
+includes them.
+
+**Derived blog posts are the exception** (anooj, 2026-10-05, narrowing this
+proposal's first draft, which withheld derived prose too): we cannot write
+useful posts while avoiding Reddit, X and arXiv, and a post discussing what
+practitioners report is not a republication of their posts. A draft carries
+prose written from the threads **plus the short verbatim fragments (marked «»)
+the generator requires**, copied exactly from the source - and no link, no
+handle and no platform name, which the generator's export and banned-phrase
+checks refuse. `contract/publication.yaml` `derived_posts.may_draw_on_withheld:
+true` records it; the reviewer should rule on the verbatim fragments explicitly,
+since they are the one place a source's own words reach a public page.
 
 ## What this branch implements
 
@@ -32,8 +43,8 @@ derived prose (blog drafts included), and no count that includes them.
 | `/filtered` | `judge/pages/filtered.py` - withheld documents neither listed (their URLs) nor counted |
 | models list | `judge/pages/roster.py` - board-entry counts exclude withheld sources |
 | legacy claim quotes on a model page | `judge/pages/model.py` `quotes_for` - withheld quotes and permalinks not returned |
-| blog drafts | `generate_sample_blogs.py` - a thread with ANY member from a withheld or unknown source is never selected, and subjects qualify on public threads only. Applies whatever the view, because blogs are public by design |
-| tests | `tests/test_public_surfaces_withhold_sources.py` (11) |
+| blog drafts | `generate_sample_blogs.py` `_public_thread_sql` - reads `derived_posts.may_draw_on_withheld`. `true` (today): drafts draw on every source. `false`: a thread with ANY member from a withheld or unknown source is never selected. Either way, no link, handle or platform name reaches a draft |
+| tests | `tests/test_public_surfaces_withhold_sources.py` (16) |
 
 **The view.** `PUBLICATION_VIEW` is `public` or `internal`. Unset means
 `public`: a deployment that forgot to say what it is withholds, the safe
@@ -82,7 +93,8 @@ the team's standing rule that public material names no source platform.
    was not true while `articles/` was public.
 6. **Files with platform material are still on `main`**, and all of it stays in
    history until the repository moves. This branch deletes `articles/` (the
-   platform pulls, last at `4eab55a`) and 9 blog drafts drawn from Reddit.
+   platform pulls, last at `4eab55a`). It briefly removed 9 blog drafts drawn
+   from Reddit threads; they come back under the derived-posts exception.
    Still on `main` as of 2026-10-05: 9 files in `docs/measurements` (~2,560
    platform links), 5 in `fixtures/golden` (~889), 3 in `fixtures/reddit`, 1
    in `fixtures/threads`. The fixtures are test inputs; whether they stay
@@ -93,6 +105,9 @@ the team's standing rule that public material names no source platform.
 
 ## Reviewer questions
 
+- Do the verbatim «» fragments in derived posts fall inside the exception?
+  Recorded here as yes (the drafts as generated); it is the point a terms
+  reading of each source would turn on.
 - Is "no count that includes them" the reading we agree on? It is the widest;
   the narrower one (quotes and links only) would keep counts honest about
   volume but publish something derived from the three.

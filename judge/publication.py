@@ -43,6 +43,27 @@ def withheld_sources() -> tuple[str, ...]:
     return tuple(str(s).strip() for s in sources)
 
 
+@lru_cache(maxsize=1)
+def derived_posts_may_draw_on_withheld() -> bool:
+    """Whether a blog draft may be written from a withheld source.
+
+    `contract/publication.yaml` `derived_posts.may_draw_on_withheld`. Must be a
+    boolean; absent or anything else raises (rule 6) - the generator must never
+    infer permission from a missing key, nor refusal from a typo.
+    """
+    from judge.config import _read
+
+    raw = (_read("publication.yaml") or {}).get("derived_posts") or {}
+    value = raw.get("may_draw_on_withheld")
+    if not isinstance(value, bool):
+        raise PublicationConfigError(
+            "contract/publication.yaml `derived_posts.may_draw_on_withheld` must be "
+            f"true or false, not {value!r}. Refusing rather than guessing whether "
+            "blog drafts may draw on withheld sources."
+        )
+    return value
+
+
 def view() -> str:
     raw = os.getenv("PUBLICATION_VIEW")
     if raw is None or not raw.strip():
