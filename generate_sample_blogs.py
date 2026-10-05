@@ -62,6 +62,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 from collect.rawstore import RawStore  # noqa: E402
 from collect.rawstore_reader import RawStoreReader  # noqa: E402
+from judge.publication import withheld_sources  # noqa: E402
 
 OUT = ROOT / "sample_blogs"
 RUNS = ROOT / "_blog_synthesis"
@@ -192,10 +193,42 @@ def env() -> dict[str, str]:
         if "=" in line and not line.startswith("#"):
             k, v = line.split("=", 1)
             vals[k.strip()] = v.strip().strip('"').strip("'")
+    # THE PROCESS ENVIRONMENT WINS, as it does for `collect.config` (dotenv
+    # never overrides a set variable). Until 2026-10-05 this read the file
+    # only, so a launcher that pointed RAW_STORE_PATH at the shared store was
+    # ignored and a worktree's `.env` (`./raw_store`, relative) opened an
+    # almost-empty local store: the planner resolved nothing and planned
+    # 0 posts with no error - the Blogs page button included.
+    vals.update({k: os.environ[k] for k in vals if k in os.environ})
+    for k in ("RAW_STORE_PATH", "BLOG_POSTS_DIR", "DATABASE_URL", "STAGING_DATABASE_URL"):
+        if k in os.environ:
+            vals[k] = os.environ[k]
     return vals
 
 
 # ── 1 · selection (read-only) ────────────────────────────────────────────────
+
+def _public_thread_sql(thread_col: str) -> str:
+    """`NOT EXISTS ...`: the thread holds no document from a withheld source.
+
+    BLOGS ARE PUBLIC BY DESIGN, so this applies whatever PUBLICATION_VIEW says
+    (contract/publication.yaml, agreed 2026-10-05): a draft must never draw on
+    Reddit, arXiv or X, not even in derived prose. A thread with ANY member from
+    a withheld source - or of unknown source - is excluded whole, because its
+    replies are the same platform's material as its post.
+
+    The sources are embedded as literals, so each must be a plain identifier;
+    anything else raises rather than reaching SQL.
+    """
+    names = withheld_sources()
+    for n in names:
+        if not re.fullmatch(r"[a-z0-9_-]+", n):
+            raise BuildError(f"contract/publication.yaml: {n!r} is not a plain source id")
+    listed = ", ".join(f"'{n}'" for n in names)
+    return (f"NOT EXISTS (SELECT 1 FROM thread_context ptc "
+            f"JOIN document pd ON pd.id = ANY(ptc.member_document_ids) "
+            f"WHERE ptc.id = {thread_col} AND (pd.source IS NULL OR pd.source IN ({listed})))")
+
 
 SELECT_THREADS = """
 SELECT tc.id, tc.flattened_text_ref, max(d.source) AS source,
@@ -208,6 +241,7 @@ SELECT tc.id, tc.flattened_text_ref, max(d.source) AS source,
   JOIN document d       ON d.id = c.document_id
   JOIN model_version mv ON mv.id = be.model_version_id
  WHERE be.quote_verified AND coalesce(be.ruling,'') <> 'declined' AND {where}
+   AND {public}
  GROUP BY tc.id, tc.flattened_text_ref
  ORDER BY models DESC, themes DESC, entries DESC, tc.id
  LIMIT 60"""
@@ -222,7 +256,8 @@ SELECT mv.canonical_id
 
 
 def select_documents(cur, post, reader) -> tuple[list[dict], list[dict]]:
-    cur.execute(SELECT_THREADS.format(where=post["where"]),
+    cur.execute(SELECT_THREADS.format(where=post["where"],
+                                      public=_public_thread_sql("tc.id")),
                 {"subject": post.get("subject"), **post.get("params", {})})
     chosen, skipped = [], []
     for r in cur.fetchall():
@@ -1490,10 +1525,13 @@ def existing_plan_keys() -> set[str]:
 def candidates(cur, kind: str, cfg: dict) -> list[dict]:
     """Subjects with enough evidence, most-evidenced first (an internal order)."""
     lim = cfg["candidates_per_kind"]
+    # Counted over PUBLIC threads only, so a subject qualifies on evidence a
+    # draft may actually use - not on threads the selector will then refuse.
+    ok = f"{VERIFIED} AND {_public_thread_sql('c.thread_context_id')}"
     if kind == "model":
         cur.execute(f"""SELECT mv.canonical_id AS id, max(mv.display_name) AS name
             FROM board_entry be JOIN claim c ON c.id = be.claim_id JOIN model_version mv ON mv.id = be.model_version_id
-            WHERE {VERIFIED} GROUP BY mv.canonical_id
+            WHERE {ok} GROUP BY mv.canonical_id
             HAVING count(DISTINCT c.thread_context_id) >= %s
             ORDER BY count(DISTINCT c.thread_context_id) DESC, mv.canonical_id LIMIT %s""",
                     (cfg["min_threads_model"], lim))
@@ -1501,7 +1539,7 @@ def candidates(cur, kind: str, cfg: dict) -> list[dict]:
     if kind == "pair":
         cur.execute(f"""WITH t AS (SELECT DISTINCT c.thread_context_id AS tc, mv.canonical_id AS m, mv.display_name AS n
                 FROM board_entry be JOIN claim c ON c.id = be.claim_id JOIN model_version mv ON mv.id = be.model_version_id
-                WHERE {VERIFIED})
+                WHERE {ok})
             SELECT a.m AS m1, max(a.n) AS n1, b.m AS m2, max(b.n) AS n2 FROM t a JOIN t b ON a.tc = b.tc AND a.m < b.m
             GROUP BY a.m, b.m HAVING count(*) >= %s ORDER BY count(*) DESC, a.m, b.m LIMIT %s""",
                     (cfg["min_threads_pair"], lim))
@@ -1510,7 +1548,7 @@ def candidates(cur, kind: str, cfg: dict) -> list[dict]:
     if kind == "topic":
         cur.execute(f"""SELECT be.section, coalesce(nullif(be.ruling_target,''), be.slug) AS key, max(be.name) AS name
             FROM board_entry be JOIN claim c ON c.id = be.claim_id
-            WHERE {VERIFIED} AND be.section IN ('capability', 'best_for')
+            WHERE {ok} AND be.section IN ('capability', 'best_for')
             GROUP BY be.section, coalesce(nullif(be.ruling_target,''), be.slug)
             HAVING count(DISTINCT c.thread_context_id) >= %s AND count(DISTINCT be.model_version_id) >= %s
             ORDER BY count(DISTINCT c.thread_context_id) DESC, 2 LIMIT %s""",
