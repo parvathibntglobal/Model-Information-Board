@@ -2396,6 +2396,10 @@ def board_page() -> dict:
         # these models. Counted by reason so a reader can tell a prompt
         # problem from a labelling one.
         "metrics_withheld": sections.get("_withheld", {}),
+        # WITHHELD BY SOURCE (contract/publication.yaml), every section, on a
+        # public view. Declared unconsumed until the page renders it (rule 9):
+        # intended reader web/src/board/views.js, beside withheldNote().
+        "sources_withheld": sections.get("_withheld_sources", {}),
         "report_counts_are_a_floor": True,
         # The same sections under their headings. `best_for` is deliberately
         # unmapped (#412), so its rows come back as leaves and render as now.
