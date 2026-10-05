@@ -3987,6 +3987,9 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
          "a runaway guard, not a budget — the GitHub API is free"),
         ("FETCH_X_PAGES", "3",
          "X pages per model; its quota is a tenth of Reddit's"),
+        ("FETCH_REDDIT_THREADS", "5",
+         "Reddit threads per fetch whose comments are fetched — one thread "
+         "arrives as hundreds of documents and is read as one"),
         ("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash",
          "which model reads the evidence"),
         ("ENVIRONMENT", "development",
