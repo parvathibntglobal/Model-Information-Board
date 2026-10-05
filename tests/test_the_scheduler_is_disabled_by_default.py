@@ -134,3 +134,38 @@ class TestOffByDefault:
         monkeypatch.setattr(runner, "run_one", lambda *a, **k: launched.append(1))
         assert runner.main(["--dry-run"]) == 0
         assert launched == [], "dry-run launched a fetch"
+
+
+class TestTheRunnerNamesTheRun:
+    """The runner passes `--run-id` and reads the end record under that id.
+
+    It used to read the id back from the child's first stdout line. `fetch_model`
+    stopped printing it, so every scheduled model reported "no end record" while
+    its fetch ran - a summary that was wrong in exactly the direction nobody
+    reads (rule 4: an absence we caused, rendered as one we found).
+    """
+
+    def test_the_id_on_the_command_line_is_the_id_whose_log_is_read(self, monkeypatch):
+        seen = {}
+
+        class _Proc:
+            returncode = 0
+            stdout = "something else entirely\n"
+
+        def fake_run(cmd, **kw):
+            seen["cmd"] = cmd
+            return _Proc()
+
+        monkeypatch.setattr(runner.subprocess, "run", fake_run)
+        monkeypatch.setattr(runner, "_end_record",
+                            lambda rid: {"kind": "end", "status": "ok", "rid": rid})
+        due = scheduler.rank_due([_row("mv_a", "A")], datetime.now(UTC))[0]
+
+        result = runner.run_one(due, sources=None, development_write=False)
+
+        cmd = seen["cmd"]
+        assert "--run-id" in cmd
+        named = cmd[cmd.index("--run-id") + 1]
+        assert named.startswith("mv_a-")
+        assert result["run_id"] == named
+        assert result["_end"]["rid"] == named, "the log read is not the run launched"

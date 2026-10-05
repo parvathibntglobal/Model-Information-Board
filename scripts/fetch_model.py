@@ -48,14 +48,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from judge import fetch_console  # noqa: E402
-from judge.extract.client import extractor_model  # noqa: E402
-from judge.pipeline import EXTRACT_ATTEMPTS  # noqa: E402
-
 from collect import usage  # noqa: E402
 from collect.adapters.github import GitHubHarvester  # noqa: E402
 from collect.adapters.queries import load_queries, plan_searches  # noqa: E402
 from collect.assemble import prose  # noqa: E402
+from judge import fetch_console  # noqa: E402
+from judge.extract.client import extractor_model  # noqa: E402
+from judge.pipeline import EXTRACT_ATTEMPTS  # noqa: E402
 
 log = logging.getLogger(__name__)
 from collect.config import settings  # noqa: E402
@@ -3338,9 +3337,14 @@ def main(argv: list[str] | None = None) -> int:
     #
     # A bare `print(run_id)` stood here under "the backend reads this to know
     # which log to poll". `start_fetch` GENERATES the run id and passes it in
-    # with `--run-id`; it never reads a byte of this process's stdout, and
-    # nothing else in the repo invokes this script either. The line was a
-    # leftover from a design where the child chose the id.
+    # with `--run-id`; it never reads a byte of this process's stdout. The line
+    # was a leftover from a design where the child chose the id.
+    #
+    # ⚠ "NOTHING ELSE INVOKES THIS SCRIPT" STOOD HERE AND WAS WRONG:
+    #   `scripts/run_scheduled_fetches.py` did, and read the id from the first
+    #   stdout line - so removing the print broke every scheduled summary.
+    #   It now passes `--run-id` like the button (2026-10-05). Every caller
+    #   names the run; none parses this process's output.
     #
     # It goes rather than moves because `Progress.__init__` has just printed the
     # id in the header - and while it was harmless when both streams went to
