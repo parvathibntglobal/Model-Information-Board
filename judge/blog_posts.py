@@ -27,7 +27,7 @@ import json
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -137,31 +137,35 @@ def generation_status() -> dict:
     alive = _proc is not None and _proc.poll() is None
     if st.get("state") in ("starting", "running") and not alive:
         try:
-            age = (datetime.now(timezone.utc) - datetime.fromisoformat(st["updated_at"])).total_seconds()
+            age = (datetime.now(UTC) - datetime.fromisoformat(st["updated_at"])).total_seconds()
         except (KeyError, ValueError, TypeError):
             age = None
         if _proc is not None and _proc.poll() is not None:
             st = {**st, "state": "failed", "message": st.get("message") or
-                  f"the run exited (code {_proc.returncode}) without reporting; see {LOG_FILE.name}"}
+                  f"the run exited (code {_proc.returncode}) without reporting; "
+                  f"see {LOG_FILE.name}"}
         elif age is None or age > STALE_AFTER_S:
-            st = {**st, "state": "stalled", "message": "the run stopped reporting; it is not running from this backend"}
+            st = {**st, "state": "stalled",
+                  "message": "the run stopped reporting; it is not running from this backend"}
     return {**st, "alive": alive}
 
 
 def start_generation(count: int) -> dict:
     global _proc
     if os.getenv("ENVIRONMENT", "").strip().lower() != "development":
-        raise GenerationRefused(403, "generating posts is a local-development action; ENVIRONMENT is not development")
+        raise GenerationRefused(
+            403, "generating posts is a local-development action; ENVIRONMENT is not development")
     if not 1 <= count <= 5:
         raise GenerationRefused(422, "count must be 1 to 5")
     if _proc is not None and _proc.poll() is None:
         raise GenerationRefused(409, "a generation run is already in progress")
     script = ROOT / "generate_sample_blogs.py"
     STATUS_FILE.parent.mkdir(exist_ok=True)
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    now = datetime.now(UTC).isoformat(timespec="seconds")
     STATUS_FILE.write_text(json.dumps({"state": "starting", "count": count, "started_at": now,
                                        "updated_at": now, "items": []}), encoding="utf-8")
     log = LOG_FILE.open("w", encoding="utf-8")
     _proc = subprocess.Popen([sys.executable, "-u", str(script), "--plan", str(count), "--status"],
-                             cwd=str(ROOT), env=os.environ.copy(), stdout=log, stderr=subprocess.STDOUT)
+                             cwd=str(ROOT), env=os.environ.copy(), stdout=log,
+                             stderr=subprocess.STDOUT)
     return generation_status()

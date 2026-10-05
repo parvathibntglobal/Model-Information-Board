@@ -29,7 +29,8 @@ def _post(slug="a-post", **over):
         "slug": slug, "title": "T", "dek": "D", "tag": "Model deep dive", "by": "Draft",
         "lead": "L", "meta": ["01 October 2026"], "ev": [[1, "q", "Engineer report"]],
         "body": [["h2", "H"], ["p", "text {E1}"], ["table", {"cols": ["a"], "rows": [["b"]]}],
-                 ["tree", {"question": "Q", "branches": []}], ["code", {"label": "x", "source": "y"}]],
+                 ["tree", {"question": "Q", "branches": []}],
+                 ["code", {"label": "x", "source": "y"}]],
         "provenance": {"model": "openai/gpt-6-luna", "generated_at": "2026-10-01T06:00:00+00:00"},
     }
     doc.update(over)
@@ -67,7 +68,8 @@ def test_a_broken_file_is_named_not_dropped(monkeypatch, tmp_path):
     (tmp_path / "good.json").write_text(json.dumps(_post("good")), encoding="utf-8")
     (tmp_path / "bad.json").write_text("{not json", encoding="utf-8")
     (tmp_path / "short.json").write_text(json.dumps({"slug": "short"}), encoding="utf-8")
-    (tmp_path / "odd.json").write_text(json.dumps(_post("odd", body=[["marquee", "x"]])), encoding="utf-8")
+    (tmp_path / "odd.json").write_text(json.dumps(_post("odd", body=[["marquee", "x"]])),
+                                       encoding="utf-8")
     monkeypatch.setenv("BLOG_POSTS_DIR", str(tmp_path))
     body = client.get("/blog-posts").json()
     assert [p["slug"] for p in body["posts"]] == ["good"]
@@ -80,7 +82,8 @@ def test_a_broken_file_is_named_not_dropped(monkeypatch, tmp_path):
 
 def test_featured_post_comes_first(monkeypatch, tmp_path):
     (tmp_path / "a.json").write_text(json.dumps(_post("a", title="Alpha")), encoding="utf-8")
-    (tmp_path / "z.json").write_text(json.dumps(_post("z", title="Zulu", feat=True)), encoding="utf-8")
+    (tmp_path / "z.json").write_text(json.dumps(_post("z", title="Zulu", feat=True)),
+                                     encoding="utf-8")
     monkeypatch.setenv("BLOG_POSTS_DIR", str(tmp_path))
     assert [p["slug"] for p in client.get("/blog-posts").json()["posts"]] == ["z", "a"]
 
@@ -90,7 +93,8 @@ def test_featured_post_comes_first(monkeypatch, tmp_path):
 def test_generate_refuses_outside_development(monkeypatch):
     monkeypatch.setenv("ENVIRONMENT", "production")
     monkeypatch.setenv("API_TOKEN", "t")
-    r = client.post("/blog-posts/generate", json={"count": 3}, headers={"Authorization": "Bearer t"})
+    r = client.post("/blog-posts/generate", json={"count": 3},
+                    headers={"Authorization": "Bearer t"})
     assert r.status_code == 403
 
 
@@ -113,7 +117,8 @@ def test_status_does_not_report_a_dead_run_as_running(monkeypatch, tmp_path):
     from judge import blog_posts
 
     f = tmp_path / "_ui_status.json"
-    f.write_text(json.dumps({"state": "running", "updated_at": "2026-01-01T00:00:00+00:00"}), encoding="utf-8")
+    f.write_text(json.dumps({"state": "running", "updated_at": "2026-01-01T00:00:00+00:00"}),
+                 encoding="utf-8")
     monkeypatch.setattr(blog_posts, "STATUS_FILE", f)
     monkeypatch.setattr(blog_posts, "_proc", None)
     body = client.get("/blog-posts/generate").json()

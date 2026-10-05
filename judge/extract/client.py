@@ -90,7 +90,8 @@ def extractor_provider() -> dict | None:
     if not raw and not ignore:
         return None
     if raw and raw not in _PROVIDER_SORTS:
-        raise RuntimeError(f"EXTRACTOR_PROVIDER_SORT={raw!r} is not one of {sorted(_PROVIDER_SORTS)}")
+        raise RuntimeError(
+            f"EXTRACTOR_PROVIDER_SORT={raw!r} is not one of {sorted(_PROVIDER_SORTS)}")
     pref: dict = {}
     if raw:
         pref["sort"] = raw
