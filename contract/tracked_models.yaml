@@ -320,6 +320,26 @@ models:
     registry: anthropic/claude-opus-4.6
     kind: text
 
+  # ── added 2026-10-05: Anthropic and OpenAI arrivals from the registry poll ──
+  # Listed as arrivals on #450 (polls of 2026-09-24 and 2026-10-01). `registry`
+  # values READ FROM `model_version.canonical_id` on staging on 2026-10-05; all
+  # four are `polled` and were seated the same day (alias rows written and read
+  # back live). anooj's request on branch anooj_001; a contract/ change, so it
+  # needs review before main. GPT-6.1 Sol Pro is a `-pro` arrival tracked as its
+  # own model, not folded into GPT-6.1 Sol.
+  - name: GPT-6 Luna
+    registry: openai/gpt-6-luna
+    kind: text
+  - name: Claude Sonnet 5.5
+    registry: anthropic/claude-sonnet-5.5
+    kind: text
+  - name: GPT-6.1 Sol
+    registry: openai/gpt-6.1-sol
+    kind: text
+  - name: GPT-6.1 Sol Pro
+    registry: openai/gpt-6.1-sol-pro
+    kind: text
+
   # ── image ────────────────────────────────────────────────────────────────
   # THE ONE IMAGE MODEL THE POLL DOES CARRY, and it is why the note above is
   # worded the way it is. OpenRouter lists image GENERATION from the big LLM
