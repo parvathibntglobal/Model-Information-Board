@@ -1,0 +1,390 @@
+{
+ "slug": "capability-reasoning",
+ "status": "draft",
+ "tag": "Capability analysis",
+ "feat": false,
+ "title": "Reasoning Effort Is a Production Policy, Not a Model Setting",
+ "dek": "More inference can rescue hard, multi-step work, but it can also inflate latency, distort scope, and reduce accuracy. Treat effort as a per-task budget governed by evidence and escalation.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "Reasoning effort is not a universal quality dial: deeper inference can improve difficult algorithms, code fixes, and tool-mediated investigation, while simple requests may become slower, longer, or less faithful. Set a low default, measure task-specific quality and completion time, and escalate only when the task’s uncertainty or failure cost justifies the added generation.",
+ "kicker": "Capability analysis",
+ "tags": [
+  "Reasoning",
+  "Effort settings",
+  "Latency",
+  "Cost"
+ ],
+ "read": 12,
+ "decisions": [
+  "Set a low default and route effort by task class.",
+  "Escalate on observable uncertainty or failed validation, not habit.",
+  "Measure quality, output tokens, latency, retries, and scope compliance together.",
+  "Use specialized tools and human checks where model reasoning is not the bottleneck."
+ ],
+ "meta": [
+  "01 October 2026",
+  "~12 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Effort changes the work, not just its polish",
+    "num": "01",
+    "id": "effort-changes-the-work-not-just-its-polish"
+   }
+  ],
+  [
+   "p",
+   "A reasoning setting is often treated as a scalar quality control: turn it up and the model thinks harder, so the answer should improve. Production behavior is less tidy. More effort changes the number of generated tokens, the time spent decoding, the space the model occupies in a conversation, and sometimes the task the model chooses to perform. The operator’s question is therefore not whether the model can reason deeply, but whether additional internal work produces value on this specific class of task."
+  ],
+  [
+   "p",
+   "The clearest failure mode is disproportionate deliberation on a bounded request. A local Qwen 3.8 27B run spent 22,276 reasoning tokens to produce 3,223 tokens for an SVG, taking 21 minutes; the same request with reasoning off produced 3,715 tokens in 137 seconds. The longer answer may have been more elaborate, but the request did not warrant the extra design decisions. On a request to draw a circle, the model expanded a simple shape into an animated composition. This is not merely verbosity: added reasoning can alter scope and impose a long tail on response time."
+  ],
+  [
+   "quote",
+   "Was that worth waiting 21 minutes for? Absolutely not."
+  ],
+  [
+   "p",
+   "There is also a counterexample to the assumption that less effort is always safer. In a bounding-box labeling interface task, reasoning-off behavior nearly worked but misplaced boxes; the more deliberative attempt built an over-engineered application yet got the core implementation further. In a separate evaluation, medium effort completed all easy repository tasks while xhigh missed one and took 4 times longer, whereas xhigh excelled on extremely hard algorithm tasks that medium did not finish. These observations support task-conditioned effort, not a global winner."
+  ],
+  [
+   "p",
+   "A useful architecture separates three decisions that are often collapsed. The model determines capability and its cost profile; effort controls how much inference the model spends; the orchestration layer determines whether it can inspect evidence, call tools, retry, or stop. A stronger model or more effort cannot replace a deterministic engine when the hard part is CPU-bound search, nor does a higher reasoning setting fix a broken tool integration. Treat effort as a budget within a system, and measure whether it changes the outcome that matters."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative task-class effort policy",
+    "language": "python",
+    "source": "def effort_for(task):\n    if task.kind in {\"format\", \"lookup\", \"routine_summary\"}:\n        return \"low\"\n    if task.kind in {\"multi_source\", \"routine_code_change\"}:\n        return \"medium\"\n    if task.failure_cost == \"high\" or task.requires_novel_search:\n        return \"high\"\n    return \"medium\""
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Where more reasoning earns its cost",
+    "num": "02",
+    "id": "where-more-reasoning-earns-its-cost"
+   }
+  ],
+  [
+   "p",
+   "Deep effort is most defensible when the solution space is difficult, the task has interacting constraints, and a wrong answer is expensive to discover. Extremely hard algorithms are an example: the evaluation found medium effort failing to complete the hard algorithm tasks while xhigh excelled there. Surgical code changes can also benefit. The same evaluation reported that xhigh produced the strongest quality of surgical fixes and patches, where tracing a root cause through existing behavior matters more than generating a plausible new feature."
+  ],
+  [
+   "p",
+   "Tool-using agents create another case for selective depth. A multi-step investigation may need to inspect files, compare evidence, choose among tools, and verify the result. Reasoning can help coordinate those steps, but tool access does not itself guarantee reliability. For SQL against an unfamiliar schema, a model must ground its query in actual table and column evidence; for an incident analysis, it must reconcile logs and timelines. The engineering response is to pair deeper effort with constrained, observable tool access and explicit verification, rather than to expect hidden deliberation alone to produce correctness."
+  ],
+  [
+   "quote",
+   "there are some instances in which less thinking is actually more accurate."
+  ],
+  [
+   "p",
+   "The opposite case is routine transformation. Ticket triage, meeting-note restructuring, one-tool lookups, and straightforward summaries have little uncertainty to resolve. The practical recommendation to use a lightweight model for routing and triage, and reserve stronger reasoning for code review or hard chains, reflects the distinction between task ambiguity and task volume. A high-volume routine task magnifies even small per-request token and latency overhead. Routing such work through a high-effort path spends capacity without evidence that the additional reasoning improves the decision."
+  ],
+  [
+   "p",
+   "An effort escalation should be triggered by task evidence: unresolved ambiguity, conflicting sources, hidden dependencies, failed validation, or a consequence that warrants an additional check. It should not be triggered solely by a user asking for greater deliberation or by a task looking intellectually impressive. A production workflow can make the first attempt conservative, then escalate when an observable check fails. This lets difficult cases receive deeper inference without making every ordinary request pay its cost."
+  ],
+  [
+   "h2",
+   {
+    "text": "Token and latency economics compound in serving",
+    "num": "03",
+    "id": "token-and-latency-economics-compound-in-serving"
+   }
+  ],
+  [
+   "p",
+   "Reasoning tokens are generated output, and generation speed determines how directly they turn into wait time. A local Qwen 3.8 27B setup reported roughly 15–30 tokens per second, while the same discussion reported hosted comparison speeds of 74 tokens per second for GPT-5.6 Sol and 184 for GPT-5.6 Luna. Those figures are observations from particular configurations, not a service-level guarantee, but they illustrate why identical token counts need not mean identical user latency across hardware and serving paths."
+  ],
+  [
+   "p",
+   "Aggregate benchmark totals can conceal this effect. In one comparison, Qwen 3.8 27B xhigh used 160M output tokens across a benchmark suite, medium used 75M, and low used 43M. The corresponding intelligence scores were 52.0, 44, and 43. Those results are not a universal exchange rate between quality and tokens; they show a concrete frontier where the extra generation bought some benchmark performance. The decision depends on the workload’s quality threshold and whether the additional wait is acceptable."
+  ],
+  [
+   "p",
+   "Price makes the same policy visible in another dimension. The supplied registry prices list Qwen3.8 27B at $0.42 per million input tokens and $3.00 per million output tokens, while GPT-6 Astra is listed at $10.00 input and $50.00 output. GPT-5.6 Sol and Claude Sonnet 5 are listed at $2.00 input and $10.00 output; MiniMax M3 is listed at $0.30 input and $1.20 output. These are per-token rates, not estimates of a request’s bill. The request cost still depends on actual input, cached input, and generated output, so an effort policy that expands output can change spend even when the prompt and model remain fixed."
+  ],
+  [
+   "p",
+   "Long context compounds decoding pressure rather than abolishing it. A reported local run described slowdown as total context plus response approached 50–60k tokens. Another local benchmark used long contexts and reported a 15–30 tokens-per-second generation range, while an individual local-hardware report cautioned that memory capacity alone does not remove bandwidth and decoding constraints. A million-token advertised context is not equivalent to cheap or fast use of that context. Budget reasoning and context separately, and monitor end-to-end completion time rather than treating context length as a proxy for useful capacity."
+  ],
+  [
+   "h2",
+   {
+    "text": "More thought can reduce reliability and task fidelity",
+    "num": "04",
+    "id": "more-thought-can-reduce-reliability-and-task-fidelity"
+   }
+  ],
+  [
+   "p",
+   "The most important counterintuitive effect is that extra reasoning can make an answer worse. In the repository evaluation, medium completed 8/8 tasks while xhigh completed 7/8 and took 4 times longer. The account does not establish a general mechanism for that failure, so it would be unsound to claim that deliberation caused the miss. As an architectural interpretation, however, longer inference creates more opportunities for the model to pursue a mistaken hypothesis, reinterpret the request, or produce an unnecessary change. The evaluation is enough to reject the presumption that maximum effort is monotonically better."
+  ],
+  [
+   "p",
+   "Scope drift is easier to observe directly. The circle request became an animated geometric study; the bounding-box interface acquired a demo scene that was not requested. Extra elaboration can be valuable when the user wants exploration, but it is a liability in workflows with strict schemas, minimal patches, or downstream parsers. If the output contract is narrow, a policy should reward exactness and minimality rather than aesthetic richness. Validate structure and scope after generation, and ask the model to repair only the failed constraint instead of restarting with an unbounded prompt."
+  ],
+  [
+   "p",
+   "Long-running agent failures must not be casually diagnosed as reasoning overload. A Copilot Agent report describes Claude Sonnet 5 on High Reasoning freezing in Thinking for hours, sometimes resuming briefly after restart. The cause is not established. It could be an application, service, tool, or model-path failure; the available account does not identify which. For production, that uncertainty argues for timeouts, cancellation, durable checkpoints, and a bounded retry policy. A spinner is not evidence that useful reasoning is continuing, and retrying without preserving state can waste tokens and discard cached context."
+  ],
+  [
+   "p",
+   "Higher effort may also interact with model and harness behavior. A high-scoring computer-use evaluation reported materially different results between a provider-specific harness that preserved opaque reasoning state and a stateless, provider-neutral harness. The lesson is not that one setting causes a benchmark gap, but that reasoning is part of a larger inference protocol: state retention, tool loop, and evaluation harness can change observed performance. Benchmark the deployed path, not merely the model name and effort label."
+  ],
+  [
+   "h2",
+   {
+    "text": "Build an effort policy around evidence and escalation",
+    "num": "05",
+    "id": "build-an-effort-policy-around-evidence-and-escalation"
+   }
+  ],
+  [
+   "p",
+   "A robust policy starts from the cheapest setting that meets the quality requirement, then uses a measurable trigger to escalate. For low-ambiguity transformations, use low or non-reasoning mode where available. For multi-source synthesis, routine repository work, or moderate planning, begin at medium. Reserve high or xhigh for novel search, difficult algorithmic reasoning, or high-consequence work where verification shows that extra effort helps. Model-specific labels are not standardized; a “high” setting in one deployment should not be assumed equivalent to another model’s “xhigh.”"
+  ],
+  [
+   "p",
+   "Evaluation should separate task families and outcomes. Measure correctness, exact contract compliance, number of tool calls, output and reasoning tokens when available, wall-clock completion time, retries, and human correction. Compare settings on the same representative tasks, including easy cases and difficult tail cases. A single aggregate score can obscure that a setting wins on hard algorithms yet loses on routine repository tasks. Include failed and unfinished tasks in the accounting rather than measuring only completed answers."
+  ],
+  [
+   "p",
+   "The routing design should preserve a cheap path to escalation. Start at low or medium effort; run deterministic checks, tests, schema validation, or evidence consistency checks; escalate only when those checks identify uncertainty or failure. If the second attempt remains unresolved, route to a stronger model, human review, or a domain-specific tool. This prevents a model from consuming a large reasoning budget while repeating an unverified line of thought. For agents with write access, keep proposal and execution separated so that additional deliberation does not silently expand authority."
+  ],
+  [
+   "p",
+   "Operationally, cap both elapsed time and generated tokens, and make the cap visible to the caller as a policy rather than a model promise. Log model, effort, context size, tool path, and outcome so a change can be rolled back when latency or quality regresses. The precise caps should come from workload SLOs and observed distributions; the evidence here does not justify a universal numeric threshold. Effort policies should be versioned and reviewed like routing rules, because model behavior, serving speed, and task mix can all change."
+  ],
+  [
+   "h2",
+   {
+    "text": "Reasoning cannot substitute for the right computational engine",
+    "num": "06",
+    "id": "reasoning-cannot-substitute-for-the-right-computational-engi"
+   }
+  ],
+  [
+   "p",
+   "A reasoning model can plan a workflow, inspect a design, or operate an interface, but that does not mean it performs every underlying computation. PCB routing, for example, is described as constrained geometric search across board space and layers, involving many grid evaluations. A language model operating KiCad still relies on the router to do that work. Paying for more generated reasoning does not itself reduce the router’s computation. This distinction generalizes: use model effort to select, configure, and verify tools, not as a presumed replacement for specialized computation."
+  ],
+  [
+   "p",
+   "The same separation applies to agent orchestration. A high-effort model cannot compensate for a server that exposes the wrong tools, fails authentication, or injects a large set of similar tool descriptions into context. Adding tools can consume context and make tool selection less accurate. Those are architecture and interface problems, not necessarily reasoning deficits. Before escalating effort, establish that the model has the right evidence and usable actions, and that the path can return observable results."
+  ],
+  [
+   "p",
+   "Model selection and effort selection should therefore be independent controls. A cheaper model at medium effort may be adequate for routine summaries, while a more capable model at low effort may be the right choice for latency-sensitive work. A hard code review may justify a stronger model and higher effort, but a geometry engine or test suite remains the authority for its own domain. The system should choose the computational substrate that matches the bottleneck, then allocate model inference to the parts that genuinely require interpretation."
+  ],
+  [
+   "p",
+   "In practice, the best policy is asymmetric: conservative on common requests, generous only when the expected value of deeper inference is clear, and strict about verification for consequential actions. More thinking is useful when it resolves hard uncertainty; it hurts when it amplifies routine work, delays feedback, or encourages unrequested invention. That is why production effort belongs in routing and evaluation policy—not in a global default chosen once and forgotten."
+  ],
+  [
+   "h2",
+   {
+    "text": "Choosing a reasoning budget",
+    "num": "Matrix",
+    "id": "matrix"
+   }
+  ],
+  [
+   "table",
+   {
+    "kind": "matrix",
+    "cols": [
+     "Production scenario",
+     "Behavioral trade-off",
+     "Recommended mitigation",
+     "Route"
+    ],
+    "rows": [
+     [
+      "One-tool lookup, routing, or simple classification",
+      "High effort adds generated tokens and wait time to a task with little uncertainty; low effort may be sufficient when evidence is clear.",
+      "Use a low-effort path and validate the returned field or classification against the tool result.",
+      "Low effort; lightweight model where quality tests support it."
+     ],
+     [
+      "Routine ticket triage or meeting-note restructuring",
+      "More reasoning may add little accuracy at high volume; too little can omit a needed context field.",
+      "Use a fixed output schema and sample for omissions, escalating only on ambiguity or conflicting evidence.",
+      "Low effort by default; medium on ambiguous cases."
+     ],
+     [
+      "Multi-source sales, finance, or analytics synthesis",
+      "More effort can help reconcile sources, but longer tool chains and context increase latency and failure surface.",
+      "Limit tools to relevant sources, require evidence references, and validate calculations or query results.",
+      "Medium effort; stronger model or high effort when uncertainty persists."
+     ],
+     [
+      "Routine repository fix with tests available",
+      "Medium may be faster and can outperform higher effort on some repository tasks; xhigh can improve surgical patch quality in other cases.",
+      "Run tests and inspect diff scope; escalate only after failed checks or unresolved root cause.",
+      "Medium first; high/xhigh for hard diagnosis or verified need."
+     ],
+     [
+      "Extremely hard algorithm or novel constrained search",
+      "Lower effort may fail to finish, while deeper reasoning can improve success at significant latency and token cost.",
+      "Set explicit time/token ceilings and validate against a deterministic harness.",
+      "High or xhigh, with test-based stopping."
+     ],
+     [
+      "Strict-format SVG, JSON, or minimal text transformation",
+      "Extra reasoning can expand scope or add unsolicited features; low effort may miss subtle implementation requirements.",
+      "Specify exact contract, reject extra fields/features, and run structural validation.",
+      "Low for simple output; medium if implementation complexity is demonstrated."
+     ],
+     [
+      "High-consequence action or incident analysis",
+      "Deeper analysis may catch interactions, but reasoning alone is not a safety control and can still be wrong.",
+      "Separate proposal from execution, use independent checks, and require human approval for consequential writes.",
+      "Medium/high plus strong model and mandatory verification; escalate to human when unresolved."
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "What effort level should this task receive?",
+    "num": "Decision tree",
+    "id": "decision"
+   }
+  ],
+  [
+   "tree",
+   {
+    "question": "What effort level should this task receive?",
+    "branches": [
+     {
+      "condition": "The task is a bounded lookup, simple transformation, or routine summary with clear evidence.",
+      "outcome": "Use low effort and a narrow output contract.",
+      "route": "Low"
+     },
+     {
+      "condition": "The task combines sources, requires moderate planning, or modifies code with available tests.",
+      "outcome": "Start at medium; escalate only if validation fails or ambiguity remains.",
+      "route": "Medium, then conditional escalation"
+     },
+     {
+      "condition": "The task involves novel search, an extremely difficult algorithm, or substantial interacting constraints, and added latency is acceptable.",
+      "outcome": "Allocate a larger reasoning budget and define a deterministic or human verification step.",
+      "route": "High or xhigh"
+     },
+     {
+      "condition": "The action is consequential, evidence conflicts, or the model remains uncertain after a bounded attempt.",
+      "outcome": "Do not treat more hidden reasoning as sufficient; require verification, human review, or a domain-specific engine.",
+      "route": "Escalate model/tool path and require oversight"
+     }
+    ]
+   }
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "Qwen3.8 27B",
+      "$0.42",
+      "$3.00",
+      "$0.09"
+     ],
+     [
+      "GPT-6 Astra",
+      "$10.00",
+      "$50.00",
+      "$1.00"
+     ],
+     [
+      "GPT-5.6 Sol",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "Claude Sonnet 5",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "Claude Opus 5",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Haiku 4.5",
+      "$1.00",
+      "$5.00",
+      "$0.10"
+     ],
+     [
+      "MiniMax M3",
+      "$0.30",
+      "$1.20",
+      "$0.06"
+     ],
+     [
+      "Claude Sonnet 4.6",
+      "$3.00",
+      "$15.00",
+      "$0.30"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "rel": [
+  [
+   "post:anthropic-claude-opus-5-report",
+   "Claude Opus 5 in Production: Buy Judgment, Not a Default"
+  ],
+  [
+   "post:anthropic-claude-sonnet-5-vs-anthropic-claude-opus-5",
+   "Claude Sonnet 5 vs Opus 5: A Production Routing Guide"
+  ]
+ ],
+ "provenance": {
+  "model": "openai/gpt-6-luna",
+  "served_as": [
+   "openai/gpt-6-luna"
+  ],
+  "generated_at": "2026-10-01T06:39:45+00:00",
+  "rechecked_from": "2026-10-01T062809+0000.json",
+  "documents": [
+   "thread_context_bbcef3ec44ce5ffe",
+   "thread_context_e2b31946ae0e0ff6",
+   "thread_context_14111de6edf79a81",
+   "thread_context_2b9a3d8aa0bb8975",
+   "thread_context_f5cd14cace344c3e",
+   "thread_context_4852ae2535e24610",
+   "thread_context_2a43730ad7eeb09a",
+   "thread_context_083fcd9bad388761",
+   "thread_context_44fa985999d8cf54",
+   "thread_context_6e094ecc760a6e80"
+  ],
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "reviewed_by": null
+ }
+}
