@@ -185,8 +185,33 @@ def main(argv: list[str] | None = None) -> int:
     if not due:
         return 0
 
+    # THE DAILY BUDGET IS ONE TEAM-WIDE FIGURE, so the runner checks it before
+    # each model rather than letting fetch_model find out at E5. Once spent,
+    # a further model would still HARVEST - using platform quota - and then
+    # extract nothing, and the summary would show it as an ordinary run with
+    # zero quotes. So the runner stops launching and names every model it did
+    # not run, with the reason (rule 4: an absence we caused says so).
+    # An unset budget refuses (rule 6): fetch_model would run uncapped-by-cap.
+    from judge import spend_ledger
+
+    raw_cap = os.getenv("EXTRACTION_DAILY_BUDGET_USD")
+    if raw_cap is None or not raw_cap.strip():
+        raise SystemExit(
+            "EXTRACTION_DAILY_BUDGET_USD is not set; refusing to run a batch whose "
+            "spend nothing caps (docs/ops-scheduled-fetches.md, step 2)"
+        )
+    cap = float(raw_cap)
+
     records = []
-    for d in due:
+    for i, d in enumerate(due):
+        spent = spend_ledger.spent_today()
+        if spent >= cap:
+            for rest in due[i:]:
+                records.append({"model": rest.display_name,
+                                "status": "not run: daily budget spent"})
+            print(f"daily budget spent (${spent:.4f} of ${cap:.2f}); "
+                  f"{len(due) - i} model(s) not run")
+            break
         result = run_one(d, sources=args.sources, development_write=args.development_write)
         end = result["_end"]
         rec = scheduler.safe_record(end) if end else {"status": "no end record"}

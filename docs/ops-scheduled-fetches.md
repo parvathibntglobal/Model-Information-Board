@@ -44,6 +44,20 @@ Railway.
   nobody discusses (rule 4). Yield-ordering within a night is a later refinement
   and waits for the end-record fields (#489) to accumulate.
 
+The cadence (7 days) and the two caps (100, 25) live in `contract/scheduler.yaml`
+since 2026-10-05; there is no default in code, so a missing value refuses.
+
+**The daily budget stops the batch.** `EXTRACTION_DAILY_BUDGET_USD` is one
+team-wide figure. The runner checks today's spend before each model; once it
+is spent, the remaining models are not launched and each is listed in the
+summary as `not run: daily budget spent` - a launched model would harvest,
+using platform quota, and extract nothing. An unset budget refuses the batch.
+
+**Reddit depth per fetch** is `FETCH_REDDIT_THREADS` (default 5): how many
+Reddit threads have their comments fetched. One thread arrives as hundreds of
+documents and is extracted as one thread, so this - not the thread cap - is
+usually what bounds a fetch's Reddit evidence.
+
 New models reach the list by being added to `contract/tracked_models.yaml`; the
 promotion report (#492) is how a person decides which untracked models earn that.
 
