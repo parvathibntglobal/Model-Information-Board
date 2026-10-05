@@ -1187,19 +1187,28 @@ def compare_page(ids: str = "") -> dict:
         #   the board and counting them would put them back in through an
         #   arithmetic side door.
         polarity = {}
+        # WITHHELD SOURCES ARE NOT COUNTED on a public view
+        # (contract/publication.yaml): a count that includes them is data from
+        # them, and the platform split below would name them outright.
+        from judge import publication
+
+        pub_sql, pub_args = publication.sql_public_document("board_entry.document_id")
+        pub_sql_b, pub_args_b = publication.sql_public_document("b.document_id")
         for m in found:
             rows = conn.execute(
                 "SELECT polarity, count(*), count(DISTINCT document_id) "
                 "FROM board_entry "
                 "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined' "
+                + pub_sql +
                 "GROUP BY polarity",
-                (m["model_version_id"],),
+                (m["model_version_id"], *pub_args),
             ).fetchall()
             counts = {p: n for p, n, _ in rows if p}
             docs = conn.execute(
                 "SELECT count(DISTINCT document_id) FROM board_entry "
-                "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined'",
-                (m["model_version_id"],),
+                "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined'"
+                + pub_sql,
+                (m["model_version_id"], *pub_args),
             ).fetchone()[0]
             # ⚠ WHERE IT WAS SAID, AND WHAT KIND OF THING IT WAS. A
             #   "document" here is a Reddit post, a Hacker News COMMENT, a
@@ -1217,16 +1226,18 @@ def compare_page(ids: str = "") -> dict:
                 "JOIN document d ON d.id = b.document_id "
                 "WHERE b.model_version_id = %s "
                 "  AND b.ruling IS DISTINCT FROM 'declined' "
+                + pub_sql_b +
                 "GROUP BY d.source ORDER BY 2 DESC",
-                (m["model_version_id"],),
+                (m["model_version_id"], *pub_args_b),
             ).fetchall()
             replies = conn.execute(
                 "SELECT count(DISTINCT d.id) FROM board_entry b "
                 "JOIN document d ON d.id = b.document_id "
                 "WHERE b.model_version_id = %s "
                 "  AND b.ruling IS DISTINCT FROM 'declined' "
-                "  AND d.parent_id IS NOT NULL",
-                (m["model_version_id"],),
+                "  AND d.parent_id IS NOT NULL"
+                + pub_sql_b,
+                (m["model_version_id"], *pub_args_b),
             ).fetchone()[0]
             # ⚠ THE PER-AXIS POLARITY QUERY IS GONE WITH ITS ONLY READER.
             #   It grouped `board_entry` by (section, slug, polarity) so the
@@ -1436,6 +1447,21 @@ def document_source(document_id: str) -> dict:
             ),
         )
     source, url, text_ref = ref_row
+
+    # A WITHHELD SOURCE IS NOT SERVED HERE AT ALL on a public view
+    # (contract/publication.yaml): this route returns the full passage and the
+    # permalink, which is the most a page can publish from one document. The
+    # refusal names no platform, for the same reason `publication.notice` does.
+    from judge import publication
+
+    if publication.withheld(source):
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"{document_id!r} comes from a source this deployment does not "
+                f"publish, so its text and link are not served here."
+            ),
+        )
 
     base = {"document_id": document_id, "source": source, "url": url}
     if not text_ref:

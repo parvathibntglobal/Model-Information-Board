@@ -1050,7 +1050,7 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
         # split across both shapes, so this closes a latent split rather than
         # repairing a live one - worth saying, because the same sentence with
         # no denominator would read as a defect being fixed.
-        "       v.canonical_id, v.display_name, v.id "
+        "       v.canonical_id, v.display_name, v.id, d.source "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
         "LEFT JOIN model_version v "
         "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
@@ -1067,9 +1067,19 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     #: ever measured the model - those are opposite statements and the empty
     #: page looks identical.
     withheld: dict[str, int] = {}
+    # WITHHELD BY SOURCE, counted apart from the metric gate above because it
+    # means something else: not "this figure failed a check" but "this source
+    # is not published here" (contract/publication.yaml). Every section, not
+    # only metrics. Carried under `_withheld_sources` (rule 4).
+    from judge import publication
+
+    by_source = 0
     for (section, slug, name, definition, unit, value, basis,
          mv_id, doc_id, quote, polarity, _created_at, url, author_id,
-         canonical, display, registry_id) in rows:
+         canonical, display, registry_id, source) in rows:
+        if publication.withheld(source):
+            by_source += 1
+            continue
         held = metric_withholding({
             "section": section, "slug": slug, "unit": unit,
             "value_verbatim": value, "quote": quote,
@@ -1356,6 +1366,7 @@ def board_sections(conn: Any) -> dict[str, list[dict]]:
     # this dict is keyed by, and a fourth section name here would be read as a
     # fourth tab by anything iterating it.
     out["_withheld"] = withheld
+    out["_withheld_sources"] = publication.notice(by_source)
     return out
 
 
@@ -1977,10 +1988,14 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
     verified — the table CHECKs `quote_verified` — so what reaches the reader is
     what the engineer wrote, resolved back to the raw span.
     """
+    from judge import publication
+
+    hidden = list(publication.hidden_here())
     rows = conn.execute(
         "SELECT be.section, COALESCE(be.ruling_target, be.slug) AS slug, be.name,"
         "       be.definition, be.unit, be.value_verbatim, be.basis, be.quote,"
-        "       be.polarity, be.document_id, be.created_at, d.url, d.author_id "
+        "       be.polarity, be.document_id, be.created_at, d.url, d.author_id,"
+        "       d.source "
         "FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
         "LEFT JOIN model_version v "
         "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
@@ -2001,15 +2016,32 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
         # "the figure appears in its own quote" is a string comparison between
         # two columns, and expressing it here would be a second implementation
         # of `metric_withholding` that could drift from the first.
+        #
+        # THE SOURCE GATE, BY CONTRAST, IS IN SQL: it compares one column with
+        # a list, so there is nothing to drift, and in Python it would let
+        # withheld rows use up the LIMIT - a public page short of quotes it has.
+        # Unknown provenance is withheld with them (`publication.withheld`).
+        "  AND (cardinality(%s::text[]) = 0 "
+        "       OR (d.source IS NOT NULL AND NOT d.source = ANY(%s::text[]))) "
         "ORDER BY be.section, COALESCE(be.ruling_target, be.slug), be.created_at DESC "
         "LIMIT %s",
-        (model_version_id, model_version_id, model_version_id, limit),
+        (model_version_id, model_version_id, model_version_id, hidden, hidden, limit),
     ).fetchall()
+    by_source = conn.execute(
+        "SELECT count(*) FROM board_entry be LEFT JOIN document d ON d.id = be.document_id "
+        "LEFT JOIN model_version v "
+        "  ON v.id = be.model_version_id OR v.canonical_id = be.model_version_id "
+        "WHERE (be.model_version_id = %s OR v.id = %s OR v.canonical_id = %s) "
+        "  AND be.ruling IS DISTINCT FROM 'declined' "
+        "  AND cardinality(%s::text[]) > 0 "
+        "  AND (d.source IS NULL OR d.source = ANY(%s::text[]))",
+        (model_version_id, model_version_id, model_version_id, hidden, hidden),
+    ).fetchone()[0]
 
     sections: dict[str, dict[str, dict]] = {s: {} for s in SECTIONS}
     withheld: dict[str, int] = {}
     for (section, slug, name, definition, unit, value, basis,
-         quote, polarity, doc_id, _created, url, author_id) in rows:
+         quote, polarity, doc_id, _created, url, author_id, _source) in rows:
         if section not in sections:
             continue
         # THE SAME FUNCTION, not the same rule written twice. A model page
@@ -2074,4 +2106,5 @@ def evidence_for_model(conn, model_version_id: str, *, limit: int = 200) -> dict
             "quotes": sum(len(i["quotes"]) for v in out.values() for i in v),
         },
         "withheld": withheld,
+        "withheld_sources": publication.notice(by_source),
     }

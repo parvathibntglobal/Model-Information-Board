@@ -138,8 +138,13 @@ class FakeConn:
 
 def row(section="capability", slug="reasoning", *, mv="mv_a", doc="d1",
         author="au_1", polarity="positive", quote=None, value=None,
-        registry="mv_a", label="Model A"):
+        registry="mv_a", label="Model A", source="devto"):
     """One `board_entry` row in the column order `board_sections` selects.
+
+    `source` is `document.source`, last in the select since 2026-10-05: the
+    public view withholds Reddit, arXiv and X (contract/publication.yaml), so a
+    fixture's source decides whether the row is shown. Defaults to a published
+    source so these tests stay about what they test.
 
     ⚠ A METRIC ROW'S DEFAULT QUOTE CONTAINS ITS FIGURE, and that is a fixture
       correction rather than a convenience. The default used to be the literal
@@ -155,7 +160,7 @@ def row(section="capability", slug="reasoning", *, mv="mv_a", doc="d1",
         quote = f"measured {value} on this axis" if value else "q"
     return (section, slug, "Reasoning", "def", None, value, None,
             mv, doc, quote, polarity, "2026-09-18", "https://e.com/1", author,
-            "vendor/model-a", label, registry)
+            "vendor/model-a", label, registry, source)
 
 
 def build(rows, hidden=()):

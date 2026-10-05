@@ -1,0 +1,34 @@
+# What may appear on a PUBLIC surface, by source.
+#
+# ⚠ PROPOSED 2026-10-05 BY anooj, ON BRANCH anooj_001 - NOT RATIFIED.
+#   contract/ gets two eyes: this file reaches main only through a reviewed PR.
+#   The argument, the open questions and what it does to the terms rulings are in
+#   docs/proposals/public-surfaces-withhold-reddit-arxiv-x.md.
+#
+# THE AGREED POSITION (team, 2026-10-05): nothing from Reddit, arXiv or X is
+# published on our public platform. We may still collect from them for
+# internal work; we do not intend to publish from them in any form.
+#
+# WHAT "WITHHELD" MEANS HERE, and it is deliberately the widest reading: no
+# quote, no link, no handle, no derived prose, and no count that includes them.
+# A public page built only from the other sources must SAY that some sources are
+# not shown (rule 4) - an absence we cause must not read as one we found.
+#
+# WHO READS THIS
+#   judge/publication.py        the one loader; every public read goes through it
+#   generate_sample_blogs.py    blog drafts never draw on a withheld source
+#
+# ABSENT IS NOT PERMISSIVE (rule 6, rule 12). A missing file, a missing key or
+# an empty list raises - it never silently publishes everything.
+
+version: "0.1"
+status: proposed
+proposed_on: 2026-10-05
+proposed_by: anooj
+
+withheld_from_public:
+  # `document.source` values, exactly as the collectors write them.
+  sources:
+    - reddit
+    - arxiv
+    - x
