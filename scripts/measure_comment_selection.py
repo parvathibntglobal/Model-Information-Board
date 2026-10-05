@@ -222,12 +222,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--retries", type=int, default=2)
     args = ap.parse_args(argv)
 
-    import os
 
     from judge.extract.budget import cost_of_tokens, pricing_for
-    from judge.extract.client import OpenRouterClient
+    from judge.extract.client import OpenRouterClient, extractor_model
 
-    model = os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash")
+    model = extractor_model()
     pricing = pricing_for(model)
     if pricing is None:
         raise SystemExit(f"no published price for {model}; refusing to run uncosted")

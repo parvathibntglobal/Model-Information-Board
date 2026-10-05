@@ -8,7 +8,6 @@ whose reference found any evidence-bearing comment, and comments counted.
 from __future__ import annotations
 
 import json
-import os
 import statistics
 import sys
 from pathlib import Path
@@ -28,9 +27,10 @@ def _comment_quotes(run: dict | None, root: str) -> int:
 
 def main(argv: list[str]) -> int:
     from judge.extract.budget import cost_of_tokens, pricing_for
+    from judge.extract.client import extractor_model
 
     folder = Path(argv[0])
-    model = os.getenv("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash")
+    model = extractor_model()
     pricing = pricing_for(model)
 
     def usd(r):
