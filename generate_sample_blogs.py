@@ -1659,7 +1659,7 @@ def run_plan(args, dsn, key, base, reader) -> None:
         {"key": p["key"], "format": p["kicker"], "subject": p["plan"]["subject"], "state": "queued"}
         for p, *_ in inputs])
     print(f"planned {len(inputs)} of {args.plan}:", flush=True)
-    for p, docs, skipped, facts in inputs:
+    for p, docs, skipped, _facts in inputs:
         print(f"  - {p['plan']['plan_key']}  ({len(docs)} documents; skipped {len(skipped)})", flush=True)
     if args.dry_run:
         ui_status(state="done", message="dry run - nothing generated")
@@ -1676,7 +1676,7 @@ def run_plan(args, dsn, key, base, reader) -> None:
             continue
     written, failed, total_cost = [], {}, 0.0
     taken = existing_headings()
-    for post, docs, skipped, facts in inputs:
+    for post, docs, _skipped, facts in inputs:
         ui_status(item=post["key"], item_state="writing")
         # THE BATCH AVOIDS ITSELF: each post is checked against every heading
         # already on disk plus the ones written earlier in this run, and the
@@ -1703,7 +1703,7 @@ def run_plan(args, dsn, key, base, reader) -> None:
         taken |= {norm_heading(s.get("heading", "")) for s in essay.get("sections", [])}
         ui_status(item=post["key"], item_state="done", cost_usd=round(total_cost, 4))
         print(f"  [{post['key']}] wrote {out.relative_to(ROOT)} - {len(rec['attempts'])} call(s), "
-              f"cost {'$%.4f' % cost if cost is not None else 'not reported'}", flush=True)
+              f"cost {f'${cost:.4f}' if cost is not None else 'not reported'}", flush=True)
     ui_status(state="done" if not failed else ("failed" if not written else "partial"),
               message=f"{len(written)} written, {len(failed)} failed",
               finished_at=datetime.now(UTC).isoformat(timespec="seconds"))
@@ -1836,7 +1836,7 @@ def main() -> None:
                 continue
             cost, tin, tout = spend(rec)
             print(f"  [{post['key']}] {len(rec['attempts'])} call(s), {tin:,} in / {tout:,} out tokens, "
-                  f"OpenRouter-reported cost {'$%.4f' % cost if cost is not None else 'not reported'}")
+                  f"OpenRouter-reported cost {f'${cost:.4f}' if cost is not None else 'not reported'}")
         built[post["key"]] = (post, rec["essay"], docs, facts, rec)
 
     if args.no_write:
