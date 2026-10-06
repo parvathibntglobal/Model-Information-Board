@@ -115,3 +115,39 @@ example is `head-to-head-deepseek-deepseek-v4-flash-z-ai-glm-5`.
 - **Path to the evidence** - the model card's "read the N reports" opens the
   model's board view; a per-claim drawer (3) needs claims mapped to board
   entries, which the generator does not record yet - Phase 1b.
+
+## Layout rework, 2026-10-06 (after team review of phase 1)
+
+Feedback on phase 1: links and cards were not enough. Every post began the same,
+ended on "which model to pick", carried an unexplained quote box, and read slowly.
+Measured over the 12 drafts that day: 12 of 12 opened on one "The short answer"
+box; 9 of 12 had no layout (written before formats existed); a matrix or tree
+closed 10 of 12; median sentence 19 words, paragraph 82, post 1,915.
+
+**The page (free - all 12 drafts, no regeneration).** `views.js` gives each
+format its own opening, tool placement and ending, built from data the post
+already holds. Older drafts get their layout from `provenance.format` or kicker.
+
+| Format | Opens on | Tools | Ends on |
+|---|---|---|---|
+| Field report | bottom line, observation log, what holds | mid | what is still open |
+| Head-to-head | face-off: both list prices, "pick it when" | top, route filter | the last question card |
+| Cost teardown | receipt: rate card, line items | mid | a lever checklist with a tally |
+| Migration guide | before you start, a clickable tree | top | step ticks with a sticky tally |
+| Architecture | a stepped diagram linking to sections | end, as cards | pattern vs anti-pattern cards |
+| Release analysis | the verdict, a filterable claims wall | top | the last point |
+| Evaluation critique | the thesis, the argument as a chain | mid | the probes, opened one by one |
+
+Also: a **Skim / Full** switch (skim keeps each paragraph's first sentence;
+both reading times are counted from the page), the quote box labelled *"An
+engineer, in their own words - copied exactly…"*, interactive by default, and a
+card for a model the post prices but the board does not track (GLM 5) that says
+so - or, if the model list failed to load, says that instead of guessing.
+
+**The prose (needs regeneration - costs a GPT-6 Luna call per post).**
+`blog_formats.yaml` gains `prose` limits (median sentence ≤ 15 words, none over
+30, lead ≤ 40 words) and a per-format `opening` and `closing`; word ranges drop
+by about a third. `generate_sample_blogs._pace` refuses a draft that misses them,
+and refuses a last heading that is a choice. All 12 current drafts fail the
+sentence and lead checks, which is the point: they are what the checks were
+calibrated against.

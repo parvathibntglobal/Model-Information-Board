@@ -20,6 +20,7 @@ import re
 import subprocess
 import sys
 import threading
+import time
 import uuid
 from contextlib import asynccontextmanager, contextmanager
 from datetime import UTC, datetime
@@ -759,6 +760,14 @@ class _ConnectionPool:
 
     #: Small enough to be a good guest on a shared database. See above.
     MAX = 8
+    #: Seconds idle after which a pooled connection is pinged before reuse.
+    #: ⚠ `rollback()` ALONE IS NOT A LIVENESS CHECK: with no transaction open,
+    #:   psycopg sends nothing, so a connection the server or a NAT dropped while
+    #:   idle passed it, and the request's first query failed with "server
+    #:   closed the connection unexpectedly" - a 500 on /models twice on
+    #:   2026-10-06, and the reason interactive posts loaded without their model
+    #:   cards. A real round trip after idling; none for a connection just used.
+    PING_AFTER_S = 30.0
 
     def __init__(self) -> None:
         self._free: list[object] = []
@@ -782,13 +791,14 @@ class _ConnectionPool:
                 # to the previous one would be a silent read of the wrong data -
                 # far worse than the reconnection it saves.
                 if url != self._url:
-                    stale, self._free, self._url = self._free, [], url
-                    for conn in stale:
+                    old, self._free, self._url = self._free, [], url
+                    for conn, _idle in old:
                         with contextlib.suppress(Exception):
                             conn.close()
-                conn = self._free.pop() if self._free else None
+                conn, idle_since = self._free.pop() if self._free else (None, None)
             if conn is not None:
-                if self._is_usable(conn):
+                stale = time.monotonic() - idle_since > self.PING_AFTER_S
+                if self._is_usable(conn) and (not stale or self._answers(conn)):
                     return conn
                 with contextlib.suppress(Exception):
                     conn.close()
@@ -816,6 +826,16 @@ class _ConnectionPool:
             return False
         return True
 
+    @staticmethod
+    def _answers(conn) -> bool:
+        """A real round trip. Must not raise."""
+        try:
+            conn.execute("SELECT 1")
+            conn.rollback()
+        except Exception:  # noqa: BLE001
+            return False
+        return True
+
     def give_back(self, conn, *, reusable: bool) -> None:
         try:
             if not reusable or not self._is_usable(conn) or len(self._free) >= self.MAX:
@@ -823,7 +843,7 @@ class _ConnectionPool:
                     conn.close()
                 return
             with self._lock:
-                self._free.append(conn)
+                self._free.append((conn, time.monotonic()))
         finally:
             self._slots.release()
 

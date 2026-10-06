@@ -8,6 +8,7 @@ Requires a database. See docs/dev-database.md.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import psycopg
@@ -87,8 +88,12 @@ def test_a_finished_run_is_recorded_with_its_cost_tokens_posts_and_log(conn, fil
 
 
 def test_a_run_still_in_progress_is_left_open(conn, files):
-    _status(files, state="running", updated_at=STARTED)
-    blog_runs.record_start(conn, 3, {"state": "running", "started_at": STARTED})
+    # "Now", not a fixed time: a status older than STALE_AFTER_S is correctly
+    # read as stalled, so a fixed timestamp made this test pass only on the day
+    # it was written.
+    now = datetime.now(UTC).isoformat(timespec="seconds")
+    _status(files, state="running", started_at=now, updated_at=now)
+    blog_runs.record_start(conn, 3, {"state": "running", "started_at": now})
     blog_runs.reconcile(conn)
     [row] = blog_runs.runs(conn)
     assert row["finished_at"] is None and row["posts_written"] == []

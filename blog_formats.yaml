@@ -30,6 +30,20 @@
 # Code also refuses a heading any other post already uses, and a draft whose
 # paragraphs open on the same word too often.
 
+# FAST PROSE AND DIFFERENT ENDS (added 2026-10-06). Was, over the 12 drafts on
+# 2026-10-06: median sentence 19 words (p90 30), median paragraph 82 words,
+# median post 1,915 words; 12 of 12 opened on the same summary box and 11 of 12
+# closed on a section about choosing, routing or adopting. The team read them
+# as slow and samey. So, for every planned post:
+#   prose      sentence and lead limits - CHECKED (generate_sample_blogs._pace)
+#   opening    what the first section opens on, per format
+#   closing    what the last section is, per format; a last heading that is a
+#              choice ("which", "when to use", "should you") is refused
+prose:
+  sentence_median_max: 15
+  sentence_max: 30
+  lead_words_max: 40
+
 planner:
   # A subject is a candidate only with this much evidence on staging
   # (verified, non-declined board entries). Was measured 2026-10-01: 23
@@ -56,14 +70,18 @@ formats:
       Terse and observational, like an incident write-up. Short paragraphs of two to four
       sentences. Lead each paragraph with the observation itself, then the condition it
       held under. No scene-setting and no rhetorical openings.
-    paragraphs: {per_section: [2, 4], words: [35, 80]}
+    paragraphs: {per_section: [2, 4], words: [30, 65]}
     heading_rules: >-
       Each heading states one specific observation about this model in plain words, as a
       short sentence a reader could quote. Headings must not start with "What", "Why" or
       "How", and must not be generic labels such as "Evidence" or "Conclusion".
+    opening: >-
+      the most surprising behaviour practitioners hit with this model, stated as a fact in the first sentence, with the condition it held under
+    closing: >-
+      what is still not established about this model, and what evidence would settle it - never a recommendation
     special: findings
     sections: [4, 6]
-    words: [750, 1900]
+    words: [550, 1300]
     blocks: {matrix: false, tree: false, code: [0, 1], prices: true}
 
   - key: head-to-head
@@ -78,14 +96,18 @@ formats:
       Each section opens with a one-paragraph direct answer to its question, naming which
       model wins that question and under what condition, then gives the reasoning. Medium
       paragraphs; contrast the two models explicitly in every section.
-    paragraphs: {per_section: [2, 4], words: [45, 105]}
+    paragraphs: {per_section: [2, 4], words: [35, 75]}
     heading_rules: >-
       Every heading is a specific question ending with "?", naming a concrete workload,
       failure or cost, never a generic one such as "Which is better?".
     headings_end_with_question: true
+    opening: >-
+      the sharpest difference between the two models, with the figure or the words that show it
+    closing: >-
+      the question the evidence cannot settle yet, and what a team would have to measure to settle it
     special: picks
     sections: [5, 7]
-    words: [1150, 2400]
+    words: [800, 1700]
     blocks: {matrix: true, tree: false, code: [0, 1], prices: true}
     matrix_title: "When to use {a} vs {b}"
 
@@ -103,13 +125,17 @@ formats:
       Mechanism first and numbers-led: every paragraph names one cost mechanism, the figure
       the discussions or fact sheet give for it, and the lever that changes it. Compact
       paragraphs; no narrative throat-clearing.
-    paragraphs: {per_section: [2, 3], words: [40, 90]}
+    paragraphs: {per_section: [2, 3], words: [30, 70]}
     heading_rules: >-
       Each heading names one cost mechanism as a noun phrase (for example the thing that
       grows the bill), never a question and never starting with "What", "Why" or "How".
+    opening: >-
+      the line on the bill that surprises people most, with its figure
+    closing: >-
+      the cost nobody has a figure for yet - a mechanism the discussions name but do not measure
     special: drivers
     sections: [4, 6]
-    words: [700, 1900]
+    words: [500, 1300]
     blocks: {matrix: true, tree: false, code: [0, 1], prices: true}
     matrix_title: "What moves the bill"
 
@@ -124,13 +150,17 @@ formats:
     voice: >-
       Second person and imperative, like a runbook: tell the reader what to do and what to
       check. Short paragraphs; one action per paragraph; put the reason after the action.
-    paragraphs: {per_section: [1, 3], words: [30, 75]}
+    paragraphs: {per_section: [1, 3], words: [25, 60]}
     heading_rules: >-
       Each heading is an instruction starting with a verb (for example "Pin ...",
       "Measure ...", "Roll back ..."), never a question and never starting with "What".
+    opening: >-
+      the first thing that breaks when traffic moves, as an instruction
+    closing: >-
+      how to roll back: the signal that says stop, and how traffic returns
     special: steps
     sections: [5, 7]
-    words: [550, 1800]
+    words: [400, 1300]
     blocks: {matrix: false, tree: true, code: [1, 2], prices: true}
     tree_question: "Should this workload move between {a} and {b}, and in which direction?"
 
@@ -147,13 +177,17 @@ formats:
       Structural and precise, like a design document: describe components, their
       boundaries and the failure each one contains. Medium paragraphs; name the component
       in the first sentence of each.
-    paragraphs: {per_section: [2, 4], words: [45, 100]}
+    paragraphs: {per_section: [2, 4], words: [35, 75]}
     heading_rules: >-
       Each heading names a component or boundary of the architecture as a noun phrase,
       never a question and never starting with "What", "Why" or "How".
+    opening: >-
+      the failure this architecture exists to contain, described as a concrete incident
+    closing: >-
+      the failure this pattern still does not contain
     special: layers
     sections: [5, 7]
-    words: [1100, 2300]
+    words: [800, 1700]
     blocks: {matrix: true, tree: false, code: [1, 2], prices: false}
     matrix_title: "Pattern versus anti-pattern"
 
@@ -168,14 +202,18 @@ formats:
     voice: >-
       A news analyst's voice: lead with the finding, then the evidence, then what it means
       for an adopting team. Punchy, varied sentence length; short paragraphs.
-    paragraphs: {per_section: [2, 3], words: [35, 85]}
+    paragraphs: {per_section: [2, 3], words: [30, 65]}
     heading_rules: >-
       Each heading is a short, specific verdict-style statement about one claim or
       consequence (a reader should know the answer from the heading alone), never a
       question and never starting with "What", "Why" or "How".
+    opening: >-
+      the finding that contradicts a launch claim, or confirms the strongest one
+    closing: >-
+      what to watch next: the claim still open and the evidence that would decide it
     special: claims
     sections: [4, 6]
-    words: [650, 1800]
+    words: [450, 1300]
     blocks: {matrix: false, tree: true, code: [0, 1], prices: true}
     tree_question: "Should your team adopt {a} now?"
 
@@ -189,13 +227,17 @@ formats:
       and claims actually test, what they miss, where practitioner experience diverges
       from the scores, and how to evaluate it for your own workload.
     voice: >-
-      Argumentative and essayistic: build one argument across sections, each paragraph
-      advancing it; longer paragraphs are fine; concede the strongest counter-point once.
-    paragraphs: {per_section: [2, 4], words: [70, 140]}
+      Argumentative: build one argument across sections, each paragraph advancing it by
+      one step; concede the strongest counter-point once.
+    paragraphs: {per_section: [2, 4], words: [45, 90]}
     heading_rules: >-
       Each heading states a claim of the argument as a full sentence (it may be
       contrarian), never a question and never starting with "What", "Why" or "How".
+    opening: >-
+      the claim being challenged, stated plainly, then the counter-claim in one sentence
+    closing: >-
+      the strongest counter-argument, conceded fairly, and what it still does not explain
     special: probes
     sections: [4, 6]
-    words: [1300, 2200]
+    words: [800, 1500]
     blocks: {matrix: false, tree: false, code: [0, 1], prices: false}

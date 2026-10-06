@@ -276,8 +276,10 @@
 .es-bdg{font-family:var(--es-mono);font-size:.68rem;line-height:1.45;padding:.16rem .6rem;border-radius:999px;border:1px solid;
   white-space:nowrap;display:inline-block;max-width:100%;vertical-align:top}
 /* A long route ("Opus 5, bounded by validation and human oversight") wraps
-   inside its card or cell instead of running past the edge. */
-.es-dtree .es-bdg,.es-tbl td.route .es-bdg{white-space:normal;overflow-wrap:anywhere;border-radius:10px}
+   inside its card or cell instead of running past the edge. EVERY badge, not a
+   list of places: the 2026-10-06 cards and clickable tree were not on the list
+   and their routes ran out of the box. A short badge still sits on one line. */
+.es-bdg{white-space:normal;overflow-wrap:anywhere;border-radius:10px}
 .es-bdg.t-g{color:var(--es-good);border-color:rgba(62,207,142,.4)}
 .es-bdg.t-y{color:var(--es-warn);border-color:rgba(227,179,65,.4)}
 .es-bdg.t-b{color:var(--es-accent);border-color:rgba(122,162,255,.4)}
@@ -601,4 +603,218 @@
 /* critique: what is measured vs missed */
 .es-probes td.miss{color:var(--es-text)}
 .layout-critique .es-article h2{font-size:1.5rem;font-style:italic;letter-spacing:-.01em}
-.layout-critique .es-article p:first-of-type::first-letter{font-size:2.4em;float:left;line-height:.9;margin:.08em .1em 0 0;color:var(--es-accent)}
+.layout-critique .es-sec:first-of-type p.es-para:first-of-type::first-letter{font-size:2.4em;float:left;line-height:.9;margin:.08em .1em 0 0;color:var(--es-accent)}
+
+/* ── Blogs: one page per format (views.js vPost, reworked 2026-10-06) ────────
+   Every draft opened on the same box and closed on a "which to pick" block.
+   Each format now has its own opening, its own tools and its own ending, and
+   these rules give each a look a reader can tell apart at a glance. State is
+   CSS-only (radio, checkbox, <details>): nothing a reader clicks leaves the page. */
+
+/* Reading mode: skim folds everything after a paragraph's first sentence. */
+.es-mode{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem;margin:0 0 1.8rem;padding:.7rem .9rem;border:1px solid var(--es-line);border-radius:12px;background:var(--es-panel)}
+.es-mode .seg{display:inline-flex;border:1px solid var(--es-line2);border-radius:999px;overflow:hidden;flex:none}
+.es-mode .seg label{padding:.3rem .85rem;font:500 .78rem var(--es-mono);color:var(--es-muted);cursor:pointer}
+.es-mode .seg input{position:absolute;opacity:0;pointer-events:none}
+.es-mode .seg label:has(input:checked){background:var(--es-accent);color:var(--es-bg)}
+.es-mode .seg label:has(input:focus-visible){outline:2px solid var(--es-accent);outline-offset:-2px}
+.es-mode p{margin:0 !important;font-size:.8rem !important;line-height:1.5;color:var(--es-muted) !important;flex:1 1 260px}
+.es-article .es-para .s1{color:var(--es-text)}
+.essay:has(.m-skim:checked) .es-para .rest{display:none}
+.essay:has(.m-skim:checked) .es-para:has(.rest)::after{content:" \2026";color:var(--es-dim)}
+.essay:has(.m-skim:checked) .es-article p.es-para{margin:.6rem 0}
+
+/* The quote box says whose words it holds. */
+.es-voice{margin:1.6rem 0;padding:1rem 1.25rem 1.05rem;background:var(--es-panel);border:1px solid var(--es-line);border-left:3px solid var(--es-accent2);border-radius:0 12px 12px 0}
+.es-voice .who{font:600 .68rem var(--es-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--es-accent2);margin-bottom:.45rem}
+.es-voice blockquote{margin:0;font-size:1.08rem;line-height:1.55;font-style:italic;color:var(--es-text)}
+.es-voice blockquote::before{content:"\201C"}
+.es-voice blockquote::after{content:"\201D"}
+.es-voice .src{margin-top:.5rem;font-size:.74rem;color:var(--es-dim);line-height:1.45}
+
+/* The lead, styled per format rather than one box for all. */
+.es-open{margin:0 0 1.8rem}
+.es-open .lbl,.es-log .lbl,.es-points .lbl,.es-chain .lbl,.es-fcol .lbl,.es-receipt .lbl,.es-levers .lbl,.es-map .lbl,.es-ctree .lbl,.es-probe .lbl{font:600 .68rem var(--es-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--es-accent);margin-bottom:.5rem}
+.es-open p{margin:0 !important;color:var(--es-text) !important}
+.es-open.strip{font-family:var(--es-mono);padding:.8rem 1rem;border:1px dashed var(--es-accent);border-radius:8px;background:var(--es-panel)}
+.es-open.strip p{font-size:.88rem;line-height:1.6}
+.es-open.split{text-align:center;max-width:62ch;margin:0 auto 2rem}
+.es-open.split p{font-size:1.05rem}
+.es-open.before{padding:1rem 1.2rem;border-radius:12px;background:var(--es-panel2);border:1px solid var(--es-accent)}
+.es-open.verdict{border-top:4px solid var(--es-accent);padding-top:1rem}
+.es-open.verdict p{font-size:clamp(1.25rem,2.6vw,1.6rem);line-height:1.4;font-weight:600;letter-spacing:-.01em}
+.es-open.thesis{padding:0 0 0 1.2rem;border-left:4px solid var(--es-accent)}
+.es-open.thesis p{font-size:clamp(1.2rem,2.4vw,1.5rem);line-height:1.45;font-style:italic}
+
+/* Sections listed as an opening: a log, numbered points, an argument chain. */
+.es-log ol,.es-points ol,.es-chain ol{list-style:none;margin:0;padding:0}
+.es-log,.es-points,.es-chain{margin:0 0 2rem}
+.es-log li a,.es-points li a,.es-chain li a{display:flex;gap:.8rem;align-items:baseline;padding:.5rem .2rem;border-top:1px solid var(--es-line);color:var(--es-body)}
+.es-log li a:hover,.es-points li a:hover,.es-chain li a:hover{text-decoration:none;color:var(--es-text);background:var(--es-panel)}
+.es-log .k{flex:none;font:600 .72rem var(--es-mono);color:var(--es-accent)}
+.es-log li a{font-family:var(--es-mono);font-size:.84rem}
+.es-points .k{flex:none;font:700 1.4rem var(--es-sans);color:var(--es-accent);min-width:2.2rem}
+.es-points li a{font-weight:600}
+.es-chain ol{border-left:2px solid var(--es-line2);margin-left:.9rem}
+.es-chain li a{border-top:0;position:relative;padding-left:1.6rem}
+.es-chain .k{position:absolute;left:-.95rem;top:.45rem;width:1.7rem;height:1.7rem;border-radius:50%;display:grid;place-items:center;font:600 .74rem var(--es-mono);background:var(--es-bg);border:2px solid var(--es-accent);color:var(--es-accent)}
+
+/* report: what holds up front, what is still open at the end. */
+.es-fcol{margin:1.8rem 0;padding:1rem 1.2rem;border-radius:12px;background:var(--es-panel)}
+.es-fcol ul{list-style:none;margin:0;padding:0}
+.es-fcol li{position:relative;padding:.45rem 0 .45rem 1.4rem;border-top:1px solid var(--es-line);font-size:.92rem;line-height:1.5;color:var(--es-body)}
+.es-fcol li::before{content:"";position:absolute;left:0;top:.9rem;width:.6rem;height:.6rem;border-radius:50%}
+.es-fcol.ok{border:1px solid var(--es-good)}
+.es-fcol.ok li::before{background:var(--es-good)}
+.es-fcol.open{border:1px dashed var(--es-dim)}
+.es-fcol.open .lbl{color:var(--es-muted)}
+.es-fcol.open li::before{border:1px solid var(--es-dim)}
+.es-fcol li.none{color:var(--es-dim)}
+.layout-report .es-sec{position:relative;padding-left:1.1rem;border-left:1px dashed var(--es-line2)}
+.layout-report .es-article h2{font-family:var(--es-mono);font-size:1.15rem;letter-spacing:-.01em}
+
+/* versus: a face-off, then one card per question. */
+.es-face{display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:stretch;margin:0 0 1.6rem}
+.es-face .side{padding:1.1rem 1.2rem;border-radius:14px;background:var(--es-panel);border-top:4px solid var(--es-accent)}
+.es-face .side.s1{border-top-color:var(--es-accent2)}
+.es-face .vs{align-self:center;font:700 1.1rem var(--es-mono);color:var(--es-dim)}
+.es-face .nm{font-weight:700;font-size:1.2rem;color:var(--es-text);margin-bottom:.5rem}
+.es-face .px{display:flex;align-items:baseline;gap:.35rem;font:700 1.5rem var(--es-mono);color:var(--es-text)}
+.es-face .px i{font:400 .75rem var(--es-mono);color:var(--es-muted);font-style:normal;margin-right:.5rem}
+.es-face .unit{font:400 .7rem var(--es-mono);color:var(--es-dim);margin-top:.2rem}
+.es-face .when{margin-top:.9rem;font:600 .68rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--es-muted)}
+.es-face ul{list-style:none;margin:.3rem 0 0;padding:0}
+.es-face li{padding:.4rem 0;border-top:1px solid var(--es-line);font-size:.88rem;line-height:1.5;color:var(--es-body)}
+@media(max-width:700px){.es-face{grid-template-columns:1fr}.es-face .vs{justify-self:center}}
+.es-qcard{margin:1.4rem 0;padding:.4rem 1.3rem 1rem;border:1px solid var(--es-line);border-radius:14px;background:var(--es-panel)}
+.es-qcard h2{font-size:1.25rem !important}
+.es-qcard details.why{border-top:1px solid var(--es-line);margin-top:.6rem;padding-top:.5rem}
+.es-qcard details.why summary,.es-ctree summary,.es-probe summary,.es-map summary{cursor:pointer;color:var(--es-accent);font-size:.86rem}
+
+/* Filter pills, shared by the matrix and the claims wall. */
+.es-pills{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:.4rem 0 .8rem;font:500 .76rem var(--es-mono);color:var(--es-dim)}
+.es-pills label{padding:.25rem .7rem;border:1px solid var(--es-line2);border-radius:999px;color:var(--es-muted);cursor:pointer}
+.es-pills input{position:absolute;opacity:0;pointer-events:none}
+.es-pills label:has(input:checked){border-color:var(--es-accent);color:var(--es-text);background:var(--es-panel2)}
+.es-pills label:has(input:focus-visible){outline:2px solid var(--es-accent)}
+.es-mx:has(.f0:checked) tbody tr:not(.g0),.es-mx:has(.f1:checked) tbody tr:not(.g1),.es-mx:has(.f2:checked) tbody tr:not(.g2),
+.es-mx:has(.f3:checked) tbody tr:not(.g3),.es-mx:has(.f4:checked) tbody tr:not(.g4),.es-mx:has(.f5:checked) tbody tr:not(.g5){display:none}
+.es-mx{margin:2rem 0}
+/* On a phone the four-column matrix ran past the screen (by 206px at 390px wide,
+   2026-10-06) and scrolled sideways inside its box. It stacks instead: one card
+   per row, each cell under its column name. */
+@media(max-width:640px){
+  .es-mx .es-tbl{overflow:visible;border:0;border-radius:0}
+  .es-mx table,.es-mx tbody,.es-mx tr,.es-mx td{display:block;width:100%;min-width:0}
+  .es-mx thead{display:none}
+  .es-mx tr{margin:0 0 .7rem;padding:.35rem 0;border:1px solid var(--es-line);border-radius:12px;background:var(--es-panel)}
+  .es-mx td{border:0;padding:.3rem .85rem}
+  .es-mx td[data-l]::before{content:attr(data-l);display:block;font:600 .62rem var(--es-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--es-dim)}
+}
+
+/* A tree you open branch by branch. */
+.es-ctree{margin:2rem 0;padding:1.1rem 1.2rem;border-radius:14px;border:1px solid var(--es-line);background:var(--es-panel)}
+.es-ctree .q{font-weight:700;font-size:1.1rem;color:var(--es-text)}
+.es-ctree .hint{font-size:.8rem !important;color:var(--es-dim) !important;margin:.2rem 0 .7rem !important}
+.es-ctree details.br{border-top:1px solid var(--es-line);padding:.55rem 0}
+.es-ctree details.br summary{color:var(--es-warn);font-family:var(--es-mono);font-size:.82rem;line-height:1.5}
+.es-ctree details.br[open] summary{color:var(--es-text)}
+.es-ctree .out{margin:.45rem 0 .5rem;font-size:.92rem;color:var(--es-body);line-height:1.55}
+
+/* ledger: a receipt to open on, a checklist of levers to close on. */
+.es-receipt{margin:0 0 2rem;padding:1.2rem 1.3rem 1.8rem;border-radius:4px;background:var(--es-panel2);border:1px solid var(--es-line2);font-family:var(--es-mono);
+  -webkit-mask:radial-gradient(circle 6px at 50% 100%,transparent 98%,#000) 0 0/16px 100% repeat-x;mask:radial-gradient(circle 6px at 50% 100%,transparent 98%,#000) 0 0/16px 100% repeat-x}
+.es-receipt .line{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap;font-size:.92rem;color:var(--es-text);padding:.3rem 0}
+.es-receipt .dots{flex:1 1 2rem;border-bottom:1px dotted var(--es-dim);min-width:1rem}
+.es-receipt .dim,.es-receipt .unit{color:var(--es-dim);font-size:.74rem}
+.es-receipt .unit{margin:.2rem 0 1rem;border-bottom:1px dashed var(--es-line2);padding-bottom:.8rem}
+.es-receipt ol.items{list-style:none;margin:0 0 1rem;padding:0}
+.es-receipt ol.items li{display:flex;gap:.7rem;padding:.4rem 0;border-top:1px dotted var(--es-line2);font:400 .84rem var(--es-sans);line-height:1.5;color:var(--es-body)}
+.es-receipt ol.items .k{font-family:var(--es-mono);color:var(--es-accent);flex:none}
+.es-receipt .es-open.in{margin:0;padding-top:.8rem;border-top:2px solid var(--es-text)}
+.es-receipt .es-open.in p{font:500 .95rem var(--es-sans);line-height:1.55}
+.es-levers{margin:2.4rem 0 1rem;padding:1.1rem 1.2rem;border-radius:14px;border:1px solid var(--es-accent);background:var(--es-panel);counter-reset:lv}
+.es-levers .hint{font-size:.8rem !important;color:var(--es-dim) !important;margin:0 0 .5rem !important}
+.es-levers ul{list-style:none;margin:0;padding:0}
+.es-levers li{border-top:1px solid var(--es-line)}
+.es-levers label{display:flex;gap:.7rem;align-items:flex-start;padding:.55rem 0;cursor:pointer;font-size:.9rem;line-height:1.5;color:var(--es-body)}
+.es-levers input{margin-top:.3rem;accent-color:var(--es-accent);flex:none}
+.es-levers input:checked{counter-increment:lv}
+.es-levers label:has(input:checked) span{color:var(--es-dim);text-decoration:line-through}
+.es-levers .tally{margin-top:.6rem;font:600 .78rem var(--es-mono);color:var(--es-accent)}
+.es-levers .tally .ct::after{content:counter(lv)}
+
+/* runbook: each step can be ticked; the tally sticks to the bottom. */
+.es-run{counter-reset:st}
+.es-step{position:relative;padding-left:1.4rem;border-left:2px solid var(--es-line2)}
+.es-step:has(.es-done:checked){border-left-color:var(--es-good)}
+.es-tick{display:inline-flex;gap:.5rem;align-items:center;font:500 .76rem var(--es-mono);color:var(--es-muted);cursor:pointer;margin:-.3rem 0 .4rem}
+.es-tick input{accent-color:var(--es-good)}
+.es-done:checked{counter-increment:st}
+.es-prog{position:sticky;bottom:.6rem;z-index:5;margin:1.6rem 0;padding:.55rem .9rem;border-radius:999px;background:var(--es-panel2);border:1px solid var(--es-accent);font:600 .78rem var(--es-mono);color:var(--es-text);width:max-content;max-width:100%}
+.es-prog .ct::after{content:counter(st)}
+.es-prog .all{display:none;color:var(--es-good)}
+.es-run:not(:has(.es-done:not(:checked))) .es-prog .all{display:inline}
+
+/* blueprint: the architecture as a stepped diagram to open on. */
+.es-map{margin:0 0 2rem}
+.es-map .stack{display:grid;gap:.4rem}
+.es-map .band{display:block;padding:.65rem 1rem;border-radius:10px;border:1px solid var(--es-accent);background:var(--es-panel2);color:var(--es-text);font-weight:600;font-size:.92rem}
+.es-map a.band:hover{text-decoration:none;background:var(--es-panel)}
+.es-map .band p{font-weight:400;font-size:.86rem !important;margin:.4rem 0 !important}
+.es-map .band .fail b{font:600 .66rem var(--es-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--es-accent);margin-right:.4rem}
+.es-map .cap{margin:1rem 0 0 !important;font-size:.95rem !important;color:var(--es-body) !important}
+.es-map .cap b{color:var(--es-accent)}
+@media(max-width:600px){.es-map .band{margin-left:0 !important}}
+.es-mcards{margin:2.4rem 0 1rem}
+.es-mcards .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8rem}
+.es-mcards .mc{padding:1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line)}
+.es-mcards h4{margin:0 0 .5rem;font-size:.98rem;color:var(--es-text)}
+.es-mcards p{font-size:.86rem !important;line-height:1.5;margin:.35rem 0 !important}
+.es-mcards p b{display:block;font:600 .64rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase}
+.es-mcards p.bad b{color:var(--es-warn)}
+.es-mcards p.good b{color:var(--es-good)}
+/* The route box is labelled: an unlabelled coloured box is the same puzzle the
+   quote box was. */
+.es-mcards p.rt b{color:var(--es-muted)}
+
+/* brief: a wall of claims, filterable by verdict. */
+.es-claimw{margin:0 0 2rem}
+.es-claimw .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.8rem}
+.es-claimw .cl{padding:1rem;border-radius:12px;background:var(--es-panel);border:1px solid var(--es-line)}
+.es-claimw .cl h4{margin:.6rem 0 .4rem;font-size:.95rem;color:var(--es-text)}
+.es-claimw .cl p{font-size:.85rem !important;margin:0 !important;line-height:1.5}
+.es-claimw .stamp{display:inline-block;font:700 .66rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;padding:.2rem .5rem;border:2px solid;border-radius:4px;transform:rotate(-2deg)}
+.es-claimw .c-ok .stamp{color:var(--es-good)}
+.es-claimw .c-part .stamp{color:var(--es-warn)}
+.es-claimw .c-none .stamp{color:var(--es-muted)}
+.es-claimw:has(.fo:checked) .cl:not(.c-ok),.es-claimw:has(.fp:checked) .cl:not(.c-part),.es-claimw:has(.fn:checked) .cl:not(.c-none){display:none}
+
+/* critique: what each measure tests, opened one at a time. */
+.es-probe{margin:2.4rem 0 1rem}
+.es-probe details{border-top:1px solid var(--es-line);padding:.6rem 0}
+.es-probe summary{display:flex;flex-direction:column;gap:.15rem}
+.es-probe summary b{color:var(--es-text);font-size:.95rem}
+.es-probe summary span{color:var(--es-muted);font-size:.85rem}
+.es-probe details p{font-size:.88rem !important}
+.es-probe details p b{font:600 .64rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--es-accent);margin-right:.4rem}
+
+/* The sidebar price sheet, moved out of the page's ending. */
+.es-sheet table{width:100%;min-width:0;table-layout:fixed;border-collapse:collapse;margin:.5rem 0;font:400 .76rem var(--es-mono)}
+.es-sheet th{color:var(--es-dim);font-weight:500;text-align:right;padding:.2rem .3rem}
+.es-sheet td{padding:.3rem;border-top:1px solid var(--es-line);color:var(--es-body);text-align:right;white-space:nowrap}
+.es-sheet td:first-child,.es-sheet th:first-child{width:52%;text-align:left;white-space:normal;color:var(--es-text);font-weight:400}
+.es-sheet p{font-size:.72rem;color:var(--es-dim);line-height:1.45;margin:.3rem 0 0}
+
+/* A model the board does not track: dashed, and the card says so. */
+.essay .es-ent.off{position:relative;text-decoration:underline dashed var(--es-dim);text-underline-offset:3px;cursor:help}
+.essay .es-ent.off:hover .es-pop,.essay .es-ent.off:focus .es-pop{display:flex;flex-direction:column;gap:.15rem}
+
+/* The index: each card carries its format's colour. */
+.es-card.lay-report{border-top:3px solid #e3b341}
+.es-card.lay-versus{border-top:3px solid #7aa2ff}
+.es-card.lay-ledger{border-top:3px solid #3ecf8e}
+.es-card.lay-runbook{border-top:3px solid #38bdf8}
+.es-card.lay-blueprint{border-top:3px solid #a78bfa}
+.es-card.lay-brief{border-top:3px solid #fb7185}
+.es-card.lay-critique{border-top:3px solid #f59e0b}
