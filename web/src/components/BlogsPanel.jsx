@@ -178,7 +178,7 @@ export default function BlogsPanel() {
   const [reviewErr, setReviewErr] = useState(null)
   const timer = useRef(null)
 
-  const load = useCallback(() => blogPosts()
+  const load = useCallback(() => blogPosts('all')
     .then((d) => setPosts({ data: d, err: null }))
     .catch((e) => setPosts({ data: null, err: e.message })), [])
 

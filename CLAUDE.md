@@ -45,6 +45,14 @@ These are the rules a helpful refactor will otherwise quietly violate.
 2. **Exactly two stages may call a language model**: `judge/extract/` and
    `judge/ask/` (task understanding only). No model participates in counting,
    weighting, gating, ranking, filtering or phrase assembly.
+
+   **A third caller, recorded 2026-10-06 (#508, Parvathi; to be agreed with
+   Anooj):** the blog generator, `generate_sample_blogs.py`, writes DRAFTS a
+   person must approve in Admin -> Blogs before any reader sees them. It
+   proposes prose only; code checks every quote and figure against its sources
+   and refuses the draft otherwise, and it decides nothing the board computes.
+   It runs outside `spend_ledger` and its daily cap; its cost is recorded per
+   run in `blog_generation_run`.
    The governing rule for anything added later:
    **an LLM may propose, it may never decide.**
 

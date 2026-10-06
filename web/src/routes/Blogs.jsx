@@ -26,7 +26,7 @@ export default function Blogs() {
   const fromAdmin = useLocation().state?.from === 'admin'
   const [state, setState] = useState({ ready: false, err: null })
 
-  const loadPosts = useCallback(() => blogPosts()
+  const loadPosts = useCallback(() => blogPosts(fromAdmin ? 'all' : undefined)
     .then((d) => {
       // A POST A RECORDED RUN WROTE IS SHOWN ONCE APPROVED in Admin -> Blogs
       // (`review` is pending | approved | rejected). Posts with no `review`

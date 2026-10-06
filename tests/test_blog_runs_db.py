@@ -123,3 +123,106 @@ def test_an_unknown_decision_is_refused(conn, files):
     with pytest.raises(blog_runs.ReviewRefused) as e:
         blog_runs.review(conn, "new-post", "published", None)
     assert e.value.status == 422
+
+
+# ── review of #508: run tracking, and the routes ───────────────────────────
+
+def test_a_run_the_status_file_no_longer_describes_is_still_closed(conn, files):
+    """Item 4: a second run overwrote the status file. The first run is closed
+    as stalled with the posts written before the second started - not left
+    open, which would leave its posts unreviewed and public."""
+    blog_runs.record_start(conn, 3, {"state": "running", "started_at": STARTED})
+    _draft(files / "posts", "first-run-post", "2026-10-06T10:05:00+00:00")
+    later = "2026-10-06T11:00:00+00:00"
+    blog_runs.record_start(conn, 3, {"state": "running", "started_at": later})
+    _status(files, state="running", started_at=later,
+            updated_at=datetime.now(UTC).isoformat())
+    blog_runs.reconcile(conn)
+    first = blog_runs.runs(conn)[-1]  # newest first, so the first run is last
+    assert first["state"] == "stalled" and first["finished_at"]
+    assert first["posts_written"] == ["first-run-post"]
+    assert first["log"] is None  # the log on disk is the newer run's
+
+
+def test_a_recent_post_no_run_claims_is_pending_not_public(conn, files):
+    _run(conn, files)
+    stray = {"slug": "stray", "provenance": {"generated_at": "2026-10-06T12:00:00+00:00"}}
+    old = {"slug": "old", "provenance": {"generated_at": "2026-09-01T00:00:00+00:00"}}
+    states = blog_runs.public_state(conn, [stray, old])
+    assert states["stray"] == "pending"
+    assert "old" not in states  # predates run history
+
+
+def test_an_unreported_cost_is_not_recorded_as_zero(conn, files):
+    _status(files, state="starting", updated_at=STARTED)
+    blog_runs.record_start(conn, 3, {"state": "starting", "started_at": STARTED})
+    _status(files, state="done", cost_usd=0.01, cost_incomplete=True,
+            finished_at="2026-10-06T10:09:00+00:00", updated_at="2026-10-06T10:09:00+00:00")
+    blog_runs.reconcile(conn)
+    assert blog_runs.runs(conn)[0]["cost_usd"] is None
+
+
+@pytest.fixture
+def client(conn, files, monkeypatch, test_dsn):
+    from contextlib import contextmanager
+
+    from fastapi.testclient import TestClient
+
+    import judge.app as app_mod
+
+    @contextmanager
+    def _test_conn():
+        with psycopg.connect(test_dsn, connect_timeout=10) as c:
+            yield c
+
+    monkeypatch.delenv("API_TOKEN", raising=False)
+    monkeypatch.setenv("ENVIRONMENT", "development")
+    monkeypatch.setattr(app_mod, "_conn", _test_conn)
+    return TestClient(app_mod.app, raise_server_exceptions=False)
+
+
+def test_the_public_view_withholds_pending_posts_and_admin_sees_all(client, conn, files):
+    _run(conn, files)
+    conn.commit()
+    public = client.get("/blog-posts").json()
+    assert [p["slug"] for p in public["posts"]] == ["old-draft"]
+    every = client.get("/blog-posts?include=all").json()
+    reviews = {p["slug"]: p.get("review") for p in every["posts"]}
+    assert reviews == {"old-draft": None, "new-post": "pending"}
+
+
+def test_approving_through_the_route_publishes_the_post(client, conn, files):
+    _run(conn, files)
+    conn.commit()
+    r = client.post("/blog-posts/review", json={"slug": "new-post", "decision": "approved"})
+    assert r.status_code == 200, r.text
+    assert "new-post" in [p["slug"] for p in client.get("/blog-posts").json()["posts"]]
+    old = client.post("/blog-posts/review", json={"slug": "old-draft", "decision": "approved"})
+    assert old.status_code == 404
+
+
+def test_the_gate_fails_closed_when_review_state_cannot_be_read(client, files, monkeypatch):
+    """Item 2: an unreadable review table must not publish every draft."""
+    import judge.app as app_mod
+
+    _draft(files / "posts", "any-post", "2026-10-06T10:05:00+00:00")
+
+    def boom(_posts):
+        raise RuntimeError("relation blog_post_review does not exist")
+
+    monkeypatch.setattr(app_mod, "_blog_review_states", boom)
+    body = client.get("/blog-posts").json()
+    assert body["posts"] == [] and "withheld" in body["reason"]
+    assert body["review_unreadable"]
+    every = client.get("/blog-posts?include=all").json()["posts"]
+    assert [p["slug"] for p in every] == ["any-post"]
+
+
+def test_the_run_log_route_masks_keys(client, files):
+    blog_posts.LOG_FILE.write_text(
+        "Authorization: Bearer sk-or-v1-abcdef1234567890\napi_key=supersecretvalue\nok line\n",
+        encoding="utf-8")
+    lines = client.get("/blog-posts/generate/log").json()["lines"]
+    text = "\n".join(lines)
+    assert "abcdef1234567890" not in text and "supersecretvalue" not in text
+    assert "ok line" in text

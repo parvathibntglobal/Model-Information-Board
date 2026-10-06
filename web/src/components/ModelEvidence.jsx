@@ -84,6 +84,7 @@ function tally(d) {
   const seen = new Set()
   const polarity = { positive: 0, negative: 0, neutral: 0 }
   const hosts = new Set()
+  let unlinked = 0
   for (const [key] of SECTIONS) {
     for (const it of d?.[key] || []) {
       for (const q of it.quotes || []) {
@@ -91,12 +92,17 @@ function tally(d) {
         if (seen.has(k)) continue
         seen.add(k)
         polarity[q.polarity in polarity ? q.polarity : 'neutral'] += 1
+        // A PLATFORM, NOT A HOSTNAME: every site the board does not name
+        // (personal and company blogs) is one platform, "blogs" - ten blogs are
+        // not ten platforms. A quote with no link is counted, not dropped.
         const href = safeHref(q.url)
-        if (href) hosts.add(sourceName(href))
+        if (!href) { unlinked += 1; continue }
+        const name = sourceName(href)
+        hosts.add(name.includes('.') && !['dev.to'].includes(name) ? 'blogs' : name)
       }
     }
   }
-  return { ...polarity, total: seen.size, platforms: hosts.size }
+  return { ...polarity, total: seen.size, platforms: hosts.size, unlinked }
 }
 
 /**
@@ -217,7 +223,7 @@ export default function ModelEvidence({ modelVersionId }) {
               <span className="ev-n pos"><b className="tnum">{t.positive}</b> positive</span>
               <span className="ev-n neg"><b className="tnum">{t.negative}</b> negative</span>
               <span className="ev-n neu"><b className="tnum">{t.neutral}</b> neutral</span>
-              <span className="ev-of dim">of {t.total} distinct quotes (one quote can sit in several sections) · from {t.platforms} platform{t.platforms === 1 ? '' : 's'} · on the board today</span>
+              <span className="ev-of dim">of {t.total} distinct quotes (one quote can sit in several sections) · from {t.platforms} platform{t.platforms === 1 ? '' : 's'}{t.unlinked ? ` (${t.unlinked} with no link)` : ''} · on the board today</span>
             </div>
           )
         })()}

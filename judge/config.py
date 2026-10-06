@@ -106,7 +106,7 @@ _PLATFORM_LABELS = {
 
 
 @lru_cache(maxsize=1)
-def evidence_platforms() -> tuple[str, ...]:
+def evidence_platforms(exclude_ids: tuple[str, ...] = ()) -> tuple[str, ...]:
     """The platforms the board harvests, read from `contract/sources.yaml`.
 
     THE FAQ MUST NOT COUNT THESE ITSELF. The landing demo's answer said "ten
@@ -123,6 +123,8 @@ def evidence_platforms() -> tuple[str, ...]:
     rows = _read("sources.yaml").get("sources") or []
     seen: list[str] = []
     for row in rows:
+        if row.get("id") in exclude_ids:
+            continue  # withheld from this view (judge/publication.py)
         platform = row.get("platform")
         if platform and platform not in seen:
             seen.append(platform)

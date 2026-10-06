@@ -79,9 +79,13 @@ questions:
     # with a terms ruling, and TikTok, Instagram, Hashnode and WordPress are not
     # among them. A hardcoded ten would be a claim about coverage that the
     # sources file contradicts, so the endpoint substitutes the real platforms
-    # and the real count into `{platforms}` and `{n}`.
+    # and the real count into `{n}`.
+    #
+    # NO PLATFORM NAMES (2026-10-06, Parvathi): public pages withhold some
+    # sources (contract/publication.yaml), and a list of names here could
+    # contradict what the page shows. The count follows the same view.
     a_template: >-
-      {n} public platforms — {platforms}. Every claim carries a verbatim quote,
+      {n} public platforms. Every claim carries a verbatim quote,
       verified in code against its source, with a link back — and where a
       platform was assessed and ruled out, the reason is published rather than
       hidden.

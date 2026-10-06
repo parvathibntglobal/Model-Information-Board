@@ -306,7 +306,9 @@ export const coveragePage = () => request('/coverage')
  * null when it is configured and simply has none: the page must show those
  * differently. `skipped` names any draft file the backend could not read.
  */
-export const blogPosts = () => request('/blog-posts')
+// `include='all'` is Admin -> Blogs: every draft with its review state. The
+// default is what a reader may see, filtered by the server (fails closed).
+export const blogPosts = (include) => request(`/blog-posts${include ? `?include=${include}` : ''}`)
 
 /** Start a background run that plans and writes `count` new drafts (local only). */
 export const startBlogGeneration = (count = 3) =>

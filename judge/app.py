@@ -970,7 +970,13 @@ def faq_page() -> dict:
     from judge.config import evidence_platforms, faq
 
     doc = faq()
-    platforms = evidence_platforms()
+    # THE SAME PLATFORMS THE PAGES SHOW. On a public view the withheld sources
+    # (contract/publication.yaml) are not named here either, so the FAQ and the
+    # footer, which both read this list, cannot claim evidence a reader is not
+    # shown (review of #508, item 6).
+    from judge import publication
+
+    platforms = evidence_platforms(tuple(publication.hidden_here()))
     listed = ", ".join(platforms[:-1]) + f" and {platforms[-1]}" if len(platforms) > 1 \
         else (platforms[0] if platforms else "no platform")
 
@@ -2476,8 +2482,17 @@ def coverage_page() -> dict:
     }
 
 
+def _blog_review_states(posts: list[dict]) -> dict[str, str]:
+    """The review state of each post. Raises when it cannot be read - the
+    caller then withholds rather than publishing on a guess."""
+    from judge import blog_runs
+
+    with _conn() as conn:
+        return blog_runs.public_state(conn, posts)
+
+
 @app.get("/blog-posts")
-def blog_posts_page() -> dict:
+def blog_posts_page(include: str = "public") -> dict:
     """Blog drafts for the Blogs section, read from BLOG_POSTS_DIR.
 
     Read-only and no database: drafts are files until a `blog_post` table is
@@ -2485,23 +2500,34 @@ def blog_posts_page() -> dict:
     `reason` distinguishes "not configured" from "no drafts yet"; `skipped`
     names any file that could not be read rather than dropping it.
     """
-    from judge import blog_posts, blog_runs
+    from judge import blog_posts
 
     out = blog_posts.load()
-    # REVIEW STATE, for posts a recorded generation run wrote: pending until
-    # approved in Admin -> Blogs. A post with no `review` predates the history
-    # and is shown as before. If the history cannot be read, no post carries a
-    # state and `review_unreadable` says why - nothing is hidden on a guess.
+    # ⚠ FILTERED HERE, AND FAILS CLOSED (review of #508, item 2). `include=all`
+    #   is Admin -> Blogs and its preview: every draft, each with its review
+    #   state. The default is what a reader may see: approved posts, and drafts
+    #   from before run history began. If the review state cannot be read, the
+    #   default view withholds EVERY post and says why - a rejected draft must
+    #   never reach a page because a table was unreachable.
     if not out.get("posts"):
         return out  # nothing to annotate, so nothing to read
     try:
-        with _conn() as conn:
-            states = blog_runs.public_state(conn)
-        for p in out.get("posts", []):
-            if p.get("slug") in states:
-                p["review"] = states[p["slug"]]
+        states = _blog_review_states(out["posts"])
     except Exception as e:  # noqa: BLE001
         out["review_unreadable"] = _safe_detail(e)
+        if include != "all":
+            n = len(out["posts"])
+            out["posts"] = []
+            out["reason"] = (
+                f"{n} post(s) withheld: their review state could not be read, and an "
+                "unreviewed post is not shown on a guess. Try again shortly."
+            )
+        return out
+    for p in out["posts"]:
+        if p.get("slug") in states:
+            p["review"] = states[p["slug"]]
+    if include != "all":
+        out["posts"] = [p for p in out["posts"] if p.get("review") in (None, "approved")]
     return out
 
 

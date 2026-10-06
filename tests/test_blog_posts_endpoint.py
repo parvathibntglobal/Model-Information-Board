@@ -22,6 +22,12 @@ def _open_api(monkeypatch):
     # API_TOKEN, and these tests are about the payload, not the gate.
     monkeypatch.delenv("API_TOKEN", raising=False)
     monkeypatch.setenv("ENVIRONMENT", "development")
+    # These tests are about reading the draft FILES. The review gate needs the
+    # run history in a database (and fails closed without it - see
+    # tests/test_blog_runs_db.py), so here it reports "nothing reviewed".
+    import judge.app as app_mod
+
+    monkeypatch.setattr(app_mod, "_blog_review_states", lambda _posts: {})
 
 
 def _post(slug="a-post", **over):

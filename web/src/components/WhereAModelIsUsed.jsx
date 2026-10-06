@@ -43,8 +43,8 @@ export default function WhereAModelIsUsed({ callers }) {
             sentence around it changed. */}
         <p style={{ fontSize: 'var(--fs-sm)', margin: 0, maxWidth: '72ch', lineHeight: 1.65 }}>
           An AI model is used in{' '}
-          <strong>{places === 3 ? 'three places' : places === 2 ? 'two places' : `${places} places`}</strong>{' '}
-          — nothing else in the project calls one.
+          <strong>{places === 2 ? 'two places' : `${places} places`}</strong>{' '}
+          — the uses CLAUDE.md rule 2 records (the Ask box is planned and calls nothing yet).
         </p>
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0, maxWidth: '72ch', lineHeight: 1.65 }}>
           Reading only <strong style={{ color: 'var(--text)' }}>reads and sorts</strong>;

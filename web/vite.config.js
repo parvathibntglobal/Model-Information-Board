@@ -26,22 +26,33 @@ const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url))
  */
 const SITEMAP_PATHS = ['/', '/board', '/board?tab=cap', '/board?tab=met', '/models', '/blogs']
 
-function seoFiles(siteUrl) {
+/**
+ * robots.txt, sitemap.xml and the canonical link.
+ *
+ * CLOSED BY DEFAULT (review of #508, item 3). The site is login-only, so every
+ * build says noindex and `Disallow: /`. Indexing opens only when BOTH
+ * `SITE_URL` is set and `PUBLIC_SITE=1` - an explicit decision that the pages
+ * are public, never a side effect of setting a URL.
+ */
+function seoFiles(siteUrl, publicSite) {
   const site = (siteUrl || '').trim().replace(/\/+$/, '')
+  const open = Boolean(site) && String(publicSite || '').trim() === '1'
   const esc = (u) => u.replace(/&/g, '&amp;')
   return {
     name: 'seo-files',
     transformIndexHtml(html) {
-      if (!site) return html
+      if (!open) return html
+      html = html.replace('content="noindex, nofollow"', 'content="index, follow"')
       return html.replace('</title>', `</title>
     <link rel="canonical" href="${site}/" />
     <meta property="og:url" content="${site}/" />`)
     },
     generateBundle() {
-      const robots = ['User-agent: *', 'Allow: /', 'Disallow: /admin', 'Disallow: /login']
-      if (site) robots.push('', `Sitemap: ${site}/sitemap.xml`)
+      const robots = open
+        ? ['User-agent: *', 'Allow: /', 'Disallow: /admin', 'Disallow: /login', '', `Sitemap: ${site}/sitemap.xml`]
+        : ['User-agent: *', 'Disallow: /']
       this.emitFile({ type: 'asset', fileName: 'robots.txt', source: robots.join('\n') + '\n' })
-      if (!site) return
+      if (!open) return
       const urls = SITEMAP_PATHS.map((p) => `  <url><loc>${esc(site + p)}</loc></url>`).join('\n')
       this.emitFile({
         type: 'asset',
@@ -74,7 +85,7 @@ export default defineConfig(({ mode }) => {
   const token = env.API_TOKEN || process.env.API_TOKEN || ''
 
   return {
-    plugins: [react(), seoFiles(env.SITE_URL || process.env.SITE_URL),
+    plugins: [react(), seoFiles(env.SITE_URL || process.env.SITE_URL, env.PUBLIC_SITE || process.env.PUBLIC_SITE),
       ...(process.env.SINGLE_FILE ? [viteSingleFile()] : [])],
 
     // NOT A SECRET ONCE IT IS HERE. Anything `define` injects is readable by
