@@ -69,12 +69,18 @@ export default function Blogs() {
       // INTERACTIVE POSTS read today's model figures (docs/proposals/
       // interactive-blogs.md). Loaded beside the posts, never ahead of them:
       // a failure here leaves posts readable, just without links and cards.
-      listModels(200)
+      // ONE RETRY after 3 s: a single dropped database connection left the
+      // example post without its cards on 2026-10-06.
+      const loadModels = (left) => listModels(200)
         .then((m) => {
           DB.blogModels = m.models || []
           setState((s) => ({ ...s, n: (s.n || 0) + 1 }))
         })
-        .catch((e) => { console.warn('interactive posts: models not loaded:', e.message) })
+        .catch((e) => {
+          if (left > 0) { setTimeout(() => loadModels(left - 1), 3000); return }
+          console.warn('interactive posts: models not loaded:', e.message)
+        })
+      loadModels(1)
     })
     .catch((e) => {
       DB.posts = []
