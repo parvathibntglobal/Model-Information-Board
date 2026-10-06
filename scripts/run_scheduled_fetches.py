@@ -63,9 +63,11 @@ def due_rows(conn) -> list[dict]:
     from `fetch_log` (an `end` record with status ok). Matching the registry row
     by canonical id OR row id, as the models page does.
     """
-    from judge.config import tracked_models
+    from judge.tracked import all_tracked
 
-    tracked = [m for m in tracked_models() if m.registry]
+    # Hand-written entries plus new arrivals the `auto_track` rule admits, so a
+    # model the poll inserts is due for a first fetch with no PR in between.
+    tracked = [m for m in all_tracked(conn) if m.registry]
     ids = [m.registry for m in tracked]
     reg = {r[0]: r for r in conn.execute(
         "SELECT canonical_id, id, display_name, in_window FROM model_version "

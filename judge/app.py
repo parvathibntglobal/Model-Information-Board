@@ -1519,9 +1519,13 @@ def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0, tracked: bool = Fal
     without evidence.
     """
     from judge.pages.roster import RosterReader
+    from judge.tracked import all_tracked
 
     with _conn() as conn:
         roster = RosterReader(conn).all()
+        # Hand-written entries plus new arrivals `auto_track` admits
+        # (judge/tracked.py), read while the connection is open.
+        listed = all_tracked(conn) if tracked else ()
 
     models = roster.models
     summary = roster.summary
@@ -1537,19 +1541,23 @@ def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0, tracked: bool = Fal
         # WHICH models; it carries no price, no context and no flags, because a
         # price written into a config file has no provenance and cannot go
         # stale visibly.
-        from judge.config import tracked_models
 
         by_id = {}
         for m in roster.models:
             by_id[m["canonical_id"]] = m
             by_id[m["model_version_id"]] = m
         models = []
-        for want in tracked_models():
+        for want in listed:
             found = by_id.get(want.registry) if want.registry else None
             if found is not None:
                 # `tracked_kind` rides along so the page can say WHY a rate is
                 # absent instead of leaving a reader to read "no rate" as free.
-                models.append({**found, "tracked_kind": want.kind})
+                # `auto_tracked` says the row came from the rule, not the list.
+                # Unconsumed (rule 9): intended reader is the models page, to
+                # mark new arrivals. Not in api_fields.yaml because the audit
+                # cannot see keys merged into a row - nor `tracked_kind` beside it.
+                models.append({**found, "tracked_kind": want.kind,
+                               "auto_tracked": want.auto})
                 continue
             # NOT IN THE REGISTRY, AND SHOWN ANYWAY. Dropping it would make the
             # page silently shorter than the list it is built from, and a
@@ -3487,6 +3495,10 @@ def admin_runs(limit: int = 60) -> dict:
             # tracked model are matched. Resolved by query rather than by
             # recomputing the id: the hash lives in `collect/ids.py` and the
             # lane boundary forbids importing it.
+            # Auto-admitted models are tracked too (judge/tracked.py).
+            from judge.tracked import auto_tracked
+
+            wanted = wanted | {t.registry for t in auto_tracked(conn)}
             ids = {
                 row[0] for row in conn.execute(
                     "SELECT id FROM model_version WHERE canonical_id = ANY(%s)",
@@ -4847,6 +4859,10 @@ def admin_discussed_models() -> dict:
 
     try:
         with _conn() as conn:
+            # A model the rule admits is on the page, so it is not "untracked".
+            from judge.tracked import auto_tracked
+
+            tracked |= {t.registry for t in auto_tracked(conn)}
             rows = conn.execute(
                 "SELECT mv.canonical_id, mv.display_name, mv.provider, "
                 "       count(*) AS entries, "

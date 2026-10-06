@@ -350,6 +350,9 @@ class TrackedModel:
     registry: str | None
     kind: str
     absent_because: str | None = None
+    #: True when the row came from `auto_track` (judge/tracked.py) rather than
+    #: from a hand-written entry in `contract/tracked_models.yaml`.
+    auto: bool = False
 
 
 @lru_cache(maxsize=1)
@@ -379,6 +382,52 @@ def tracked_models() -> tuple[TrackedModel, ...]:
 #: Keys a parent map may never carry. A parent that could express a voice count
 #: would eventually publish one, and a count of voices under a heading nobody
 #: wrote is a consensus about a category no writer named (#410, ruling 1).
+@dataclass(frozen=True)
+class AutoTrackRule:
+    """`contract/tracked_models.yaml` `auto_track`. Read strictly (rule 12)."""
+
+    enabled: bool
+    released_within_days: int
+    include_pro_tier: bool
+    exclude_name_terms: tuple[str, ...]
+
+
+class AutoTrackConfigError(RuntimeError):
+    """`auto_track` is missing a key or carries a value of the wrong kind."""
+
+
+@lru_cache(maxsize=1)
+def auto_track_rule() -> AutoTrackRule:
+    """The rule that admits new arrivals to the page. No default in code: a
+    missing block or key raises, so the page never guesses what it admits."""
+    raw = (_read("tracked_models.yaml") or {}).get("auto_track")
+    if not isinstance(raw, dict):
+        raise AutoTrackConfigError("contract/tracked_models.yaml has no `auto_track` block")
+
+    def need(key, kind):
+        v = raw.get(key)
+        if not isinstance(v, kind) or (kind is int and isinstance(v, bool)):
+            raise AutoTrackConfigError(
+                f"contract/tracked_models.yaml `auto_track.{key}` must be "
+                f"{kind.__name__}, not {v!r}")
+        return v
+
+    if raw.get("providers") != "from_tracked":
+        raise AutoTrackConfigError(
+            "`auto_track.providers` must be `from_tracked` - the only source of "
+            f"providers this rule knows; got {raw.get('providers')!r}")
+    days = need("released_within_days", int)
+    if days < 1:
+        raise AutoTrackConfigError("`auto_track.released_within_days` must be at least 1")
+    terms = need("exclude_name_terms", list)
+    return AutoTrackRule(
+        enabled=need("enabled", bool),
+        released_within_days=days,
+        include_pro_tier=need("include_pro_tier", bool),
+        exclude_name_terms=tuple(str(t).strip().lower() for t in terms),
+    )
+
+
 _PARENT_FORBIDDEN_KEYS = ("voices", "n_eff", "weight", "score", "consensus")
 
 
