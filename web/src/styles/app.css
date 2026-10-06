@@ -28,6 +28,14 @@ ul,ol{margin:0;padding:0;list-style:none}
 .shell{width:100%;max-width:var(--maxw);margin:0 auto;padding-inline:var(--s3)}
 .section{padding-block:var(--section-pad)}
 .section-tight{padding-block:var(--s6)}
+/* The landing stacks many short sections; at full padding two neighbours left
+   up to 160px of blank between them. Tighter there, unchanged elsewhere. */
+/* ONE GAP BETWEEN EVERY SECTION (2026-10-06). `.section` and `.section-tight`
+   gave two different gaps, and the blogs section had none below it, so the page
+   breathed unevenly. The hero keeps its own; the counts row belongs to it. */
+.landing .section,.landing .section-tight{padding-block:var(--s6) 0}
+.landing .hero{padding-bottom:var(--s3)}
+.landing > section:last-of-type,.landing #faq{padding-bottom:var(--s6)}
 main{flex:1}
 
 .label{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:600;
@@ -79,6 +87,11 @@ main{flex:1}
 .card-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);
   padding:14px var(--card-pad);border-bottom:1px solid var(--border-soft)}
 .card-body{padding:var(--card-pad)}
+/* A card's intro paragraph, between the head and the body. Same side padding
+   as the body, so the text starts on the body's left edge (the panels used a
+   different inline value, and their intros sat off the content below them). */
+.card-intro{padding:var(--card-pad) var(--card-pad) 0}
+.card-intro + .card-body{padding-top:var(--s3)}
 
 /* ==================================================================== rail */
 /* A SEQUENCE DRAWN AS A SEQUENCE. The evidence stages are a pipeline - E1 then
@@ -90,16 +103,45 @@ main{flex:1}
    border of the content column, so it cannot drift out of alignment with the
    text at any font size, and it joins up between rows on its own because the
    row gap is zero. */
-.rail{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 12px}
+/* A FIXED id column, not `auto`: each phase is its own grid, so `auto` sized it
+   per phase and the stage names started at a different x in each one. */
+.rail{display:grid;grid-template-columns:48px minmax(0,1fr);gap:0 12px}
 .rail-id{font-family:var(--font-mono);font-size:10px;font-weight:600;
   letter-spacing:.04em;color:var(--text-2);background:var(--surface-2);
   border:1px solid var(--border);border-radius:var(--r-pill);
-  padding:2px 8px;justify-self:end;margin-top:1px;white-space:nowrap}
-.rail-body{border-left:2px solid var(--line);padding:0 0 var(--s3) var(--s3)}
+  padding:2px 8px;justify-self:end;align-self:start;margin-top:1px;white-space:nowrap}
+.rail-body{border-left:2px solid var(--border);padding:0 0 var(--s3) var(--s3)}
 .rail > .rail-body:last-child{padding-bottom:2px}
 /* The last stage of a phase stops the line rather than trailing past it. */
 .rail-body.last{border-left-color:transparent;
-  background:linear-gradient(var(--line),var(--line)) left top/2px 10px no-repeat}
+  background:linear-gradient(var(--border),var(--border)) left top/2px 10px no-repeat}
+
+/* Evidence stages: the phase strip, and one folded line per stage. */
+.stg-flow{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.stg-flow-step{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;
+  border:1px solid var(--border);border-radius:var(--r-pill);background:var(--surface-2);
+  color:var(--text-2);font:inherit;font-size:var(--fs-xs);cursor:pointer;
+  transition:border-color .16s var(--ease),color .16s var(--ease)}
+.stg-flow-step:hover{color:var(--text);border-color:var(--text-3)}
+.stg-flow-step .n{font-family:var(--font-mono);font-size:10px;color:var(--text-3)}
+.stg-flow-arrow{color:var(--text-3);font-size:11px}
+.stg-phase{scroll-margin-top:var(--s3)}
+.stg > summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:2px;
+  padding:2px 0 2px 18px;position:relative;border-radius:var(--r2)}
+.stg > summary::-webkit-details-marker{display:none}
+.stg > summary::before{content:"";position:absolute;left:2px;top:9px;width:6px;height:6px;
+  border-right:1.5px solid var(--text-3);border-bottom:1.5px solid var(--text-3);
+  transform:rotate(-45deg);transition:transform .16s var(--ease)}
+.stg[open] > summary::before{transform:rotate(45deg);top:7px}
+.stg > summary:hover strong{text-decoration:underline;text-underline-offset:3px}
+.stg > summary:focus-visible{outline:2px solid var(--text-3);outline-offset:2px}
+.stg-line{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.stg-chip{font-family:var(--font-mono);font-size:10px;letter-spacing:.04em;color:var(--text-3);
+  border:1px solid var(--border);border-radius:var(--r-pill);padding:1px 7px}
+.stg-what{font-size:var(--fs-xs);color:var(--text);line-height:1.6;max-width:76ch}
+/* Padding, not margin: the opened paragraphs set their margin inline, which
+   cancelled a margin indent and pulled them left of the stage name. */
+.stg > :not(summary){padding-left:18px}
 
 /* =============================================================== matchlist */
 /* The registry typeahead. Absolutely positioned so opening it does not push the
@@ -242,6 +284,345 @@ button.chip-on:hover{background:var(--text);color:var(--bg);border-color:var(--t
 .hero-cta{margin-top:var(--s4);display:flex;flex-direction:row;gap:10px;
   justify-content:center;flex-wrap:wrap;position:relative;z-index:5}
 
+/* The split hero (components/Hero.jsx): copy left, engineers' quotes right.
+   The glows are the status tokens at low alpha, so the frame keeps the
+   board's palette rather than bringing its own. */
+.hero-aurora{background:
+  radial-gradient(520px 300px at 12% 20%, color-mix(in srgb,var(--info) 16%,transparent), transparent 70%),
+  radial-gradient(520px 320px at 88% 30%, color-mix(in srgb,var(--pass) 13%,transparent), transparent 70%),
+  radial-gradient(640px 280px at 60% 108%, color-mix(in srgb,var(--fail) 12%,transparent), transparent 70%),
+  var(--bg-elev)}
+/* THE FLUID SCENE IS SCALED BY THE CANVAS HEIGHT (FluidCanvas: p = frag / res.y):
+   ripple amplitude, blob size and the cursor-speed response are all fractions
+   of it. The split hero is far taller than the old stage, so a full-frame
+   canvas made every ripple proportionally bigger - the "more vibration".
+   Pinned to the old .hero-stage height, and over the headline side where the
+   blend used to sit, it moves exactly as it did. */
+.hero-aurora .fluid{inset:auto;left:calc(12.5% - 32px);top:45%;width:100%;height:320px;transform:translateY(-50%)}
+/* ...and sized so it rests in the gutter. The blob's resting point is the
+   canvas centre plus 0.15 x its height (48px), so a full-width canvas 320px
+   tall, shifted by `left`, rests it just right of the gap between the headline
+   column and the quote cards - tucked behind the first card, clear of the
+   headline at every desktop width. The shift follows the columns (1.25fr /
+   .75fr inside 56px padding and a 40px gap): the gap's centre is at 62.5% of
+   the frame less 19px; aiming 35px right of it, at left + 50% + 48px, gives
+   left = 12.5% - 32px.
+   Full width keeps the cursor trail live across the whole frame; the height
+   is a little under the old stage's, so it moves no more than it used to. */
+.hero-split{position:relative;display:grid;grid-template-columns:1.25fr .75fr;gap:var(--s5);align-items:center;
+  padding:var(--s7) var(--s6)}
+.hero-split > *{min-width:0}
+.hero-split .hero-copy{text-align:left;max-width:none}
+.hero-split .hero-copy h1{font-size:clamp(2.1rem,4.4vw,3.3rem);line-height:1.06}
+.hero-split .hero-sub{margin-inline:0;max-width:56ch}
+.hero-split .hero-sub a{color:var(--text);text-decoration:underline;text-decoration-color:var(--border-strong);text-underline-offset:3px}
+.hero-split .hero-cta{justify-content:flex-start}
+.hero-kicker{display:inline-flex;align-items:center;font-family:var(--font-mono);font-size:var(--fs-label);
+  letter-spacing:.16em;text-transform:uppercase;color:var(--text);margin-bottom:var(--s3);
+  border:1px solid var(--border-strong);border-radius:var(--r-pill);padding:7px 16px;
+  background:color-mix(in srgb,var(--bg) 55%,transparent)}
+/* The landing's search box (components/SiteSearch.jsx), between the hero frame
+   and the chips. The suggestion list floats over the page below it. */
+.site-search{position:relative;margin-top:var(--gap);z-index:30}
+.site-search-icon{position:absolute;left:18px;top:50%;width:18px;height:18px;transform:translateY(-50%);color:var(--text-3);pointer-events:none}
+.site-search input{width:100%;height:56px;padding:0 20px 0 50px;font:inherit;font-size:1rem;color:var(--text);
+  background:var(--bg-elev);border:1px solid var(--border-strong);border-radius:var(--r-pill);outline:none;
+  transition:border-color .18s var(--ease),box-shadow .18s var(--ease)}
+.site-search input::placeholder{color:var(--text-3)}
+.site-search input:focus{border-color:color-mix(in srgb,var(--info) 60%,var(--border-strong));
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--info) 18%,transparent)}
+.site-search-list{position:absolute;left:0;right:0;top:calc(100% + 8px);margin:0;padding:6px;list-style:none;
+  background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-card);box-shadow:var(--shadow-lift)}
+.site-search-list li{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:12px;align-items:center;
+  padding:10px 12px;border-radius:var(--r-sm);cursor:pointer;font-size:var(--fs-sm)}
+.site-search-list li.on{background:var(--surface-2)}
+.site-search-kind{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.site-search-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.site-search-n{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-3)}
+.site-search-list li.site-search-none{display:block;cursor:default;color:var(--text-3)}
+@media (max-width:560px){ .site-search-list li{grid-template-columns:1fr auto} .site-search-kind{grid-column:1 / -1} }
+
+/* the popular-search chips, arranged in a wrapping row under the hero frame
+   (they no longer slide) */
+.hero-strip{display:flex;align-items:center;gap:12px;margin-top:var(--gap);min-width:0}
+.hero-strip .chip{text-decoration:none;color:inherit;flex:none}
+.hero-set{display:flex;flex-wrap:wrap;gap:8px}
+.hero-collage{display:flex;flex-direction:column;gap:14px;position:relative;z-index:3}
+.hq{position:relative;margin:0;width:88%;background:var(--surface);
+  border:1px solid var(--border);border-left:3px solid var(--text-3);border-radius:var(--r-card);
+  padding:14px 16px;box-shadow:var(--shadow-lift)}
+.hq[data-polarity="positive"]{border-left-color:var(--pass)}
+.hq[data-polarity="negative"]{border-left-color:var(--fail)}
+.hq blockquote{margin:6px 0 0;font-style:italic;font-size:var(--fs-sm);line-height:1.5}
+.hq figcaption{margin-top:8px;font-size:var(--fs-xs);color:var(--text-3)}
+.hq figcaption b{color:var(--text-2);font-weight:500}
+.hq figcaption a{color:var(--text-3)}
+.hq-pol{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)}
+.hq[data-polarity="positive"] .hq-pol{color:var(--pass)}
+.hq[data-polarity="negative"] .hq-pol{color:var(--fail)}
+.hq0{transform:rotate(-1.2deg)}
+.hq1{align-self:flex-end;transform:rotate(1deg)}
+.hq2{transform:rotate(-.5deg)}
+.hq3{align-self:flex-end;transform:rotate(.8deg)}
+@media (max-width:1080px){
+  .hero-split{grid-template-columns:1fr;padding:var(--s6) var(--s4)}
+  /* stacked: the two quotes share a row, so the open space is to the right of
+     the headline - the blob rests there, at the frame's edge */
+  .hero-aurora .fluid{left:36%;top:34%;bottom:auto;transform:translateY(-50%)}
+  .hero-collage{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .hq{width:auto;transform:none}
+}
+@media (max-width:640px){
+  /* phones: the headline is full width, so the blob peeks from behind the
+     last card at the bottom right instead */
+  .hero-aurora .fluid{left:20%;top:auto;bottom:-60px;transform:none}
+  .hero-split{padding:var(--s5) var(--s3)}
+  .hero-collage{grid-template-columns:1fr}
+  .hq2,.hq3{display:none}
+}
+
+/* BOARD → / MODELS →: a bright badge at a section's top right, opening the
+   board or the model list (routes/Landing.jsx). The colours are the status
+   tokens the sections below already use - blue into green for the board's
+   three cards, green into yellow for the models and comparison boxes,
+   yellow into orange for the blogs. */
+.section-head.section-head-row{flex-direction:row;justify-content:space-between;align-items:flex-end;gap:var(--s3);flex-wrap:wrap;max-width:none}
+.section-head-row > div{display:flex;flex-direction:column;gap:10px;max-width:64ch}
+.explore-row{display:flex;justify-content:flex-end;margin-bottom:var(--s2)}
+.explore-row-center{justify-content:center}
+.go-badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:var(--fs-label);font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--bg);text-decoration:none;white-space:nowrap;
+  border-radius:var(--r-pill);padding:8px 16px;background:linear-gradient(90deg,var(--g1),var(--g2));
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--g2) 40%,transparent),0 6px 22px -8px color-mix(in srgb,var(--g1) 70%,transparent);
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease),filter .18s var(--ease)}
+.go-badge span{transition:transform .18s var(--ease)}
+.go-badge:hover,.go-badge:focus-visible{transform:translateY(-2px);filter:brightness(1.08);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--g2) 60%,transparent),0 10px 28px -8px color-mix(in srgb,var(--g1) 85%,transparent)}
+.go-badge:hover span,.go-badge:focus-visible span{transform:translateX(3px)}
+.go-board{--g1:var(--info);--g2:var(--pass)}
+.go-models{--g1:var(--pass);--g2:var(--warn)}
+.go-blogs{--g1:var(--warn);--g2:var(--fail)}
+
+/* The closing call to action (routes/Landing.jsx: ClosingCta). The line is a
+   stack of three in one grid cell: the current one sits in place, the one
+   before slides up and out, the rest wait below. */
+.closing{position:relative;overflow:hidden;text-align:center;padding:var(--s7) var(--s4);border:1px solid var(--border-strong);
+  border-radius:var(--r-card);display:flex;flex-direction:column;align-items:center;gap:var(--s2);
+  background:radial-gradient(700px 300px at 15% 0%,color-mix(in srgb,var(--info) 16%,transparent),transparent 70%),
+             radial-gradient(700px 300px at 85% 100%,color-mix(in srgb,var(--pass) 14%,transparent),transparent 70%),
+             radial-gradient(500px 260px at 50% 50%,color-mix(in srgb,var(--warn) 7%,transparent),transparent 70%),var(--bg-elev)}
+/* sized so the longest line ("Read real user experiences with AI models.")
+   fits the box on one line at desktop width; it may wrap on narrower screens
+   rather than run past the edge, which clipped its first word */
+.closing-h{font-size:clamp(1.8rem,3.6vw,3rem);line-height:1.15;letter-spacing:-.03em;font-weight:500;margin:6px 0 4px;max-width:100%}
+.closing-swipe{display:inline-grid;overflow:hidden;padding-bottom:.08em;max-width:100%}
+.closing-line{grid-area:1 / 1;opacity:0;transform:translateY(100%);transition:transform .6s var(--ease),opacity .6s var(--ease);
+  background-clip:text;-webkit-background-clip:text;color:transparent;text-wrap:balance}
+.closing-line.on{opacity:1;transform:none}
+.closing-line.out{opacity:0;transform:translateY(-100%)}
+.closing-line.l0{background-image:linear-gradient(90deg,var(--text),var(--info))}
+.closing-line.l1{background-image:linear-gradient(90deg,var(--text),var(--pass))}
+.closing-line.l2{background-image:linear-gradient(90deg,var(--text),var(--warn))}
+.closing > p{font-size:1.0625rem;max-width:52ch}
+.closing-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:var(--s3)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+@media (max-width:640px){
+  .closing{padding:var(--s6) var(--s3)}
+  .closing-h{font-size:clamp(1.6rem,7vw,2.2rem)}
+}
+
+/* The Browse showcase (routes/Landing.jsx: BrowseShowcase). All three cards
+   share one grid cell, so the stage is as tall as the tallest; position is a
+   transform, so a turn is one smooth slide. */
+/* clipped sideways only (`clip` makes no scroll box), so a side card can never
+   widen the page; vertical overflow stays visible for the shadows and lift */
+.showcase{position:relative;overflow-x:clip}
+.showcase-stage{display:grid;place-items:center;padding:8px 0 4px}
+/* side cards sit far enough out that their headings stay readable, faded */
+.showcase-item{grid-area:1 / 1;width:min(380px,34%);transition:transform .7s var(--ease),opacity .7s var(--ease),filter .7s var(--ease)}
+.showcase-item .browse-card{height:auto}
+.showcase-item.at-front{z-index:3;transform:none}
+.showcase-item.at-left{z-index:1;transform:translateX(-88%) scale(.86);opacity:.5;filter:saturate(.7);cursor:pointer}
+.showcase-item.at-right{z-index:1;transform:translateX(88%) scale(.86);opacity:.5;filter:saturate(.7);cursor:pointer}
+.showcase-item.at-left:hover,.showcase-item.at-right:hover{opacity:.75}
+.showcase-item.at-front .browse-card{box-shadow:var(--shadow-lift)}
+.showcase-dots{display:flex;justify-content:center;gap:10px;margin-top:var(--s3)}
+.showcase-dots button{width:28px;height:6px;border-radius:3px;border:0;padding:0;cursor:pointer;
+  background:var(--surface-3);transition:background .3s var(--ease),width .3s var(--ease)}
+.showcase-dots button.on{width:44px;background:var(--tint)}
+@media (max-width:1100px) and (min-width:761px){
+  .showcase-item{width:min(330px,38%)}
+  .showcase-item.at-left{transform:translateX(-82%) scale(.86)}
+  .showcase-item.at-right{transform:translateX(82%) scale(.86)}
+}
+@media (max-width:760px){
+  .showcase-stage{display:flex;flex-direction:column;gap:var(--gap)}
+  .showcase-item,.showcase-item.at-left,.showcase-item.at-right{width:100%;transform:none;opacity:1;filter:none;cursor:auto}
+  .showcase-dots{display:none}
+}
+
+/* The counts row under the hero (routes/Landing.jsx), every figure live */
+.counts-row{margin-top:var(--gap)}
+.counts{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--border);border-radius:var(--r-card);
+  background:var(--bg-elev);overflow:hidden}
+.count{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:18px 22px;border-left:1px solid var(--border-soft)}
+.count:first-child{border-left:0}
+.count b{font-size:1.9rem;font-weight:500;letter-spacing:-.02em;line-height:1.1}
+.count .count-soon{color:var(--text-3)}
+.count span{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.counts-note{display:block;margin-top:8px;text-align:right;font-family:var(--font-mono);font-size:var(--fs-label);color:var(--text-3)}
+@media (max-width:560px){ .counts{grid-template-columns:1fr} .count{border-left:0} .count + .count{border-top:1px solid var(--border-soft)} }
+
+/* The landing's "Browse by job, capability or cost" cards (routes/Landing.jsx).
+   A name and a report count per row, no bars: see the comment on BROWSE. */
+.browse-card{position:relative;height:100%;background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--r-card);
+  padding:var(--card-pad);display:flex;flex-direction:column;gap:10px;overflow:hidden;
+  transition:.18s var(--ease)}
+/* Reacts like the board's section cards (.icard in board.css): stronger edge,
+   lifted surface, 2px rise. :focus-within so a keyboard reaches the same
+   state, and a tap on a touch screen lands on :hover. */
+.browse-card:hover,.browse-card:focus-within{border-color:var(--border-strong);background:var(--surface-2);transform:translateY(-2px)}
+/* DEFAULTS FOR THE PER-ELEMENT PROPERTIES. Each is set inline from the
+   component (a card's tint, a tile's position, a column count); a default here
+   means a rule never falls through to an undefined property if one is missing. */
+.browse-card,.showcase-dots button{--tint:var(--info)}
+.mt,.vs{--i:0}
+.h2h,.faceoff-quotes{--n:2}
+.browse-card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--tint)}
+.browse-card::after{content:"";position:absolute;width:260px;height:200px;right:-110px;top:-110px;border-radius:50%;
+  background:radial-gradient(closest-side,color-mix(in srgb,var(--tint) 20%,transparent),transparent);pointer-events:none}
+.browse-q{font-size:1.15rem;font-weight:500;letter-spacing:-.01em}
+.browse-k{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--tint);font-weight:600}
+.browse-list{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column}
+.browse-list li{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;
+  border-top:1px solid var(--border-soft);font-size:var(--fs-sm)}
+.browse-list a{color:var(--text);text-decoration:none}
+.browse-list a:hover{text-decoration:underline;text-underline-offset:3px}
+.browse-list li{padding:8px 0}
+.browse-pill{flex:none;font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.02em;white-space:nowrap;
+  color:var(--tint);border:1px solid color-mix(in srgb,var(--tint) 40%,transparent);
+  background:color-mix(in srgb,var(--tint) 12%,transparent);border-radius:var(--r-pill);padding:2px 9px}
+.browse-pill.none{color:var(--text-3);border-color:var(--border);background:transparent}
+.browse-more{margin-top:auto;padding-top:6px;font-size:var(--fs-sm);color:var(--text-2);text-decoration:none}
+.browse-more:hover{color:var(--text)}
+
+/* The landing's "LLM leaderboard alternative" (routes/Landing.jsx): one panel
+   (a slim "gives you" list | one real entry) on the left, heading and
+   paragraph on the right, label above. Below 1100px the heading moves on top;
+   below 700px the panel's two parts stack. */
+.trust{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:var(--s4);align-items:start}
+/* one panel, two parts: the list and the entry share a border and a rule */
+.trust-panel{display:grid;grid-template-columns:180px minmax(0,1fr);height:100%;border:1px solid var(--border-strong);
+  border-radius:var(--r-card);overflow:hidden;background:var(--surface);transition:.18s var(--ease)}
+/* the same pointer response as the other landing boxes and the board's .icard */
+.trust-panel:hover,.trust-panel:focus-within{background:var(--surface-2);transform:translateY(-2px)}
+.trust-panel .gives{border:0;border-radius:0;border-right:1px solid var(--border)}
+.trust-panel .entry{border:0;border-radius:0;background:transparent}
+.trust > *{min-width:0}
+.trust > .rv > *{height:100%}
+/* the label row repeats the grid so the label lands over the right column;
+   the heading's first line stays level with the panel's top edge */
+.trust-top{margin-bottom:var(--s2)}
+.trust-top .trust-label{padding-left:var(--s3)}
+.trust-head h2{margin-top:-.2em}
+.trust-head{margin:0;align-self:start;padding-left:var(--s3)}
+
+.gives{border:1px solid var(--border);border-radius:var(--r-card);background:var(--bg-elev);overflow:hidden;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--pass) 7%,transparent),transparent 60%),var(--bg-elev)}
+.gives-h{display:block;padding:9px 10px;font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.08em;
+  text-transform:uppercase;color:var(--pass);border-bottom:1px solid var(--border-soft)}
+.gives ul{list-style:none;margin:0;padding:0}
+.gives li{position:relative;padding:6px 10px 6px 28px;font-size:.78rem;line-height:1.35;border-top:1px solid var(--border-soft)}
+.gives li:first-child{border-top:0}
+.gives li::before{content:"✓";position:absolute;left:10px;top:6px;color:var(--pass);font-weight:600}
+.entry{margin:0;border:1px solid var(--border-strong);border-radius:var(--r-card);background:var(--surface);
+  padding:14px 16px;position:relative;overflow:hidden}
+.entry::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--pass)}
+.entry-cap{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px}
+.entry-fields{display:grid;grid-template-columns:62px 1fr;gap:6px 12px;margin:0;align-items:baseline;max-width:900px}
+.entry-fields dt{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.entry-fields dd{margin:0;font-size:var(--fs-xs);color:var(--text)}
+.entry-fields dd .dim{font-size:var(--fs-xs);margin-left:6px}
+.entry-fields dd a{color:var(--text)}
+.entry-fields blockquote{margin:0 0 2px;font-style:italic;font-size:.9rem;line-height:1.4}
+.entry-fields blockquote + .dim{margin-left:0}
+@media (max-width:1100px){
+  .trust{grid-template-columns:1fr}
+  .trust-top > span:first-child{display:none}
+  .trust-top .trust-label{padding-left:0}
+  .trust-top{margin-bottom:var(--s1)}
+  .trust-head{grid-column:1 / -1;order:-1;padding-left:0;margin-bottom:var(--s2)}
+}
+@media (max-width:700px){
+  .trust-panel{grid-template-columns:1fr}
+  .trust-panel .gives{border-right:0;border-bottom:1px solid var(--border)}
+}
+@media (max-width:520px){
+  .entry-fields{grid-template-columns:1fr;gap:2px 0}
+  .entry-fields dd{margin-bottom:10px}
+}
+
+/* The landing's models + compare boxes (routes/Landing.jsx).
+   MOTION, ALL OF IT DECORATIVE: each box's edge carries a slow travelling
+   light in its own colour; tiles and rows arrive one after another; a tile
+   lifts and glows under the pointer; a comparison row draws its two names
+   together and turns the VS badge. Reduced motion stops all of it (below). */
+@property --mc-a{syntax:'<angle>';inherits:false;initial-value:0deg}
+.mc-pair{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+.mc-pair > *{min-width:0}
+.mc-pair > .rv > *{height:100%}
+.mc-box{--mc-edge:var(--border);position:relative;border-radius:var(--r-card);padding:var(--s4);display:flex;flex-direction:column;gap:12px;
+  background:var(--bg-elev);isolation:isolate;overflow:hidden;transition:.18s var(--ease)}
+/* the same pointer response as the Browse cards and the board's .icard:
+   lifted surface, 2px rise, and here a brighter edge */
+.mc-box:hover,.mc-box:focus-within{--mc-edge:var(--border-strong);background:var(--surface-2);transform:translateY(-2px)}
+.mc-box::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;z-index:-1;
+  background:conic-gradient(from var(--mc-a),var(--mc-edge) 0deg,var(--mc-edge) 250deg,var(--mc-tint) 300deg,var(--mc-edge) 350deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+  animation:mc-spin 9s linear infinite}
+.mc-box::after{content:"";position:absolute;width:420px;height:300px;right:-160px;top:-170px;border-radius:50%;z-index:-1;
+  background:radial-gradient(closest-side,color-mix(in srgb,var(--mc-tint) 14%,transparent),transparent);pointer-events:none}
+.mc-models{--mc-tint:var(--pass)}
+.mc-compare{--mc-tint:var(--warn)}
+.mc-compare::before{animation-delay:-4.5s}
+@keyframes mc-spin{to{--mc-a:360deg}}
+.mc-box h2{font-size:var(--fs-h2);letter-spacing:-.02em;line-height:1.15;font-weight:500}
+.mc-box > p{font-size:var(--fs-sm)}
+.mc-more{margin-top:auto;padding-top:6px;font-size:var(--fs-sm);color:var(--text-2);text-decoration:none}
+.mc-more:hover{color:var(--text)}
+@keyframes mc-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.rv.in .mt,.rv.in .vs{animation:mc-in .5s var(--ease) both;animation-delay:calc(var(--i) * 70ms + 150ms)}
+/* three across, two rows: the box keeps its height at half width */
+.mt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:6px}
+/* the comparison box beside it is taller; the tiles sit centred in the space
+   rather than leaving an empty band above "All tracked models" */
+.mc-models .mt-grid{flex:1;align-content:center}
+.mt{position:relative;display:flex;flex-direction:column;gap:4px;padding:14px;border:1px solid var(--border-soft);border-radius:var(--r-sm);
+  background:var(--bg);color:inherit;text-decoration:none;overflow:hidden;transition:transform .2s var(--ease),border-color .2s var(--ease)}
+.mt::after{content:"";position:absolute;inset:0;opacity:0;transition:opacity .25s var(--ease);pointer-events:none;
+  background:radial-gradient(160px 90px at 50% 0%,color-mix(in srgb,var(--pass) 22%,transparent),transparent)}
+.mt:hover,.mt:focus-visible{transform:translateY(-3px);border-color:color-mix(in srgb,var(--pass) 45%,var(--border))}
+.mt:hover::after,.mt:focus-visible::after{opacity:1}
+.mt-p{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.mt-n{font-size:.98rem;font-weight:500;letter-spacing:-.01em}
+.mt-c{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--pass);margin-top:4px}
+.vs-list{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;border:1px solid var(--border);border-radius:var(--r-pill);
+  background:var(--bg);color:inherit;text-decoration:none;font-size:var(--fs-sm);transition:border-color .2s var(--ease),background .2s var(--ease)}
+.vs-a,.vs-b{padding:10px 14px;transition:transform .25s var(--ease)}
+.vs-a{text-align:right}
+.vs-x{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--bg);
+  background:var(--warn);border-radius:var(--r-pill);padding:4px 9px;transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+.vs:hover,.vs:focus-visible{border-color:color-mix(in srgb,var(--warn) 50%,var(--border));background:color-mix(in srgb,var(--warn) 6%,var(--bg))}
+.vs:hover .vs-a,.vs:focus-visible .vs-a{transform:translateX(5px)}
+.vs:hover .vs-b,.vs:focus-visible .vs-b{transform:translateX(-5px)}
+.vs:hover .vs-x,.vs:focus-visible .vs-x{transform:rotate(-8deg) scale(1.12);box-shadow:0 0 0 4px color-mix(in srgb,var(--warn) 22%,transparent)}
+/* The global rule shortens animations to .01ms, which would make an infinite
+   one flicker rather than stop; the travelling edge light is switched off. */
+@media (prefers-reduced-motion:reduce){ .mc-box::before{animation:none} }
+@media (max-width:1000px){ .mc-pair{grid-template-columns:1fr} }
+@media (max-width:560px){ .mt-grid{grid-template-columns:1fr 1fr} .mc-box{padding:var(--s3)} }
+
 .adv{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
   background:var(--border-soft);border-top:1px solid var(--border);position:relative;z-index:3}
 .adv-cell{background:var(--bg-elev);padding:var(--s3);display:flex;flex-direction:column;gap:10px;
@@ -309,6 +690,12 @@ td{padding:13px 16px;border-bottom:1px solid var(--border-soft);vertical-align:m
 tbody tr:last-child td{border-bottom:0}
 tbody tr{transition:background .15s var(--ease)}
 tbody tr:hover{background:var(--surface-2)}
+/* A row header in the body reads as a cell, not as a second header row, and
+   `.r` right-aligns a number column. A totals row is set off by a rule and
+   weight, so it is not read as one more platform. */
+.tablewrap tbody th{text-align:left;padding:13px 16px;border-bottom:1px solid var(--border-soft);font-weight:500;color:var(--text)}
+th.r,td.r{text-align:right}
+.tablewrap tr.tbl-total th,.tablewrap tr.tbl-total td{border-top:1px solid var(--border);font-weight:600;background:var(--surface-2)}
 
 /* ================================================================ board */
 .board{display:grid;grid-template-columns:248px 1fr;gap:var(--s4);align-items:start}
@@ -338,6 +725,17 @@ tbody tr:hover{background:var(--surface-2)}
 .footer{border-top:1px solid var(--border-soft);margin-top:var(--s7);padding-block:var(--s5)}
 .footer-in{display:flex;justify-content:space-between;gap:var(--s3);flex-wrap:wrap;
   font-size:var(--fs-xs);color:var(--text-3)}
+/* brand and tagline, then the link columns; the bottom line (.footer-in) sits
+   under a rule */
+.footer-grid{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(4,minmax(0,1fr));gap:var(--s4);
+  padding-bottom:var(--s4);margin-bottom:var(--s3);border-bottom:1px solid var(--border-soft)}
+.footer-brand p{margin-top:12px;font-size:var(--fs-sm);color:var(--text-2);line-height:1.55;max-width:36ch}
+.footer-col{display:flex;flex-direction:column;gap:8px;font-size:var(--fs-sm)}
+.footer-col a{color:var(--text-2);text-decoration:none}
+.footer-col a:hover{color:var(--text);text-decoration:underline;text-underline-offset:3px}
+.footer-col > span:not(.footer-h){color:var(--text-3)}
+.footer-h{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:4px}
+@media (max-width:900px){ .footer-grid{grid-template-columns:1fr 1fr} .footer-brand{grid-column:1 / -1} }
 
 /* ================================================================ misc */
 .notice{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--r-sm);
@@ -938,6 +1336,28 @@ tbody tr:hover{background:var(--surface-2)}
   letter-spacing:.03em;
 }
 .disc-body{padding:14px}
+/* Models rows in the Board-sections shape: unboxed rows on a soft rule, the
+   same chevron and the same height, so the two admin lists read alike. */
+.disc.disc-row{border:0;border-radius:0;background:transparent;border-bottom:1px solid var(--border-soft)}
+.disc.disc-row + .disc.disc-row{margin-top:0}
+.disc.disc-row > summary{padding:10px 4px 10px 26px;border-radius:var(--r-sm);align-items:baseline}
+.disc.disc-row > summary::before{left:8px;width:5px;height:5px}
+.disc.disc-row[open] > summary{border-bottom:0}
+/* A right-hand date on a fold's line (Models: last fetched; Runs: started). */
+.disc-when{margin-left:auto;font:400 11px/1 var(--font-mono);color:var(--text-3);white-space:nowrap}
+/* An OK run: a quiet tick, so only problems carry colour. */
+.run-ok{font:500 11px/1 var(--font-mono);color:var(--text-3);letter-spacing:.04em}
+/* Keywords: the variant count as a right-hand number column. */
+/* Prompts: one group per caller, its use and model named once at the top. */
+.prompt-group + .prompt-group{margin-top:var(--s3)}
+.prompt-group-head{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.model-chip{font-family:var(--font-mono);font-size:10px;letter-spacing:.04em;color:var(--info);border:1px solid color-mix(in srgb,var(--info) 40%,transparent);background:var(--info-dim);border-radius:var(--r-pill);padding:1px 8px;white-space:nowrap}
+.kw-chip{display:inline-block;font-size:11px;color:var(--text-2);border:1px solid var(--border);border-radius:var(--r-pill);padding:1px 8px;margin:2px 4px 2px 0}
+.kw-n{margin-left:auto;font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-2);min-width:3ch;text-align:right}
+/* Board sections: a queue with something in it reads stronger than one done. */
+.axis-left.due{color:var(--warn)}
+/* Prompts: its two tabs as chips, like the admin page's other switches. */
+.adm-chiptabs{gap:6px}
 @media (prefers-reduced-motion:reduce){
   .disc > summary,.disc > summary::before{transition:none}
 }
@@ -1003,6 +1423,18 @@ tbody tr:hover{background:var(--surface-2)}
 
 .adm-body{min-width:0}
 
+/* GROUP LABELS AND THE "NOT WIRED" TAG. Thirteen sections no longer read as
+   one list; the labels split them into four runs without reordering any.
+   The tag is text, not a colour, so a layout-only section says so plainly. */
+.adm-nav-group{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text-3);padding:14px 12px 4px}
+.adm-nav-group:first-child{padding-top:2px}
+.adm-nav button .t{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.adm-nav-tag{font-family:var(--font-mono);font-size:9px;font-weight:500;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--text-3);border:1px solid var(--border);
+  border-radius:999px;padding:1px 6px}
+.adm-nav button{padding:8px 12px}
+
 /* THE ADMIN PAGE IS A CONSOLE, NOT A DOCUMENT - and that is what finally
    freezes the nav.
 
@@ -1060,6 +1492,7 @@ tbody tr:hover{background:var(--surface-2)}
   .adm-nav button{width:auto;flex:0 0 auto;border:1px solid var(--border);
                   border-radius:999px;padding:7px 14px}
   .adm-nav button .d{display:none}
+  .adm-nav-group{display:none}
   .adm-nav button[aria-current="page"]{background:var(--text);color:var(--bg);
     border-color:var(--text);box-shadow:none}
 }
@@ -1145,6 +1578,9 @@ tbody tr:hover{background:var(--surface-2)}
 .fold[open] > summary::before{ transform:translateY(-50%) rotate(45deg) }
 .fold[open] > summary{ background:var(--surface-2) }
 .fold > p{ padding:0 12px 12px 30px }
+/* Any other body (a list, a row of keys) gets the same inset; only a <p> did,
+   so a fold holding a div showed its text flush against the border. */
+.fold > :not(summary):not(p){ padding:10px 12px 12px 30px }
 
 /* ── the board review's axis list ────────────────────────────────────────────
  *
@@ -1209,3 +1645,166 @@ tbody tr:hover{background:var(--surface-2)}
   border-radius:var(--r-sm); padding:var(--s3);
   margin:0; max-width:100%;
 }
+/* Capped so a 16,000-character prompt does not run the page; it scrolls in
+   its own box, vertically only, and keeps wrapping. */
+.prompt-text.capped{max-height:420px;overflow-y:auto;scrollbar-width:thin}
+.prompt-box{display:flex;flex-direction:column;gap:6px}
+.prompt-bar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.prompt-btn{padding:4px 10px;font-size:var(--fs-xs)}
+/* Admin → Blogs: the generate button stands out as the panel's one action, and
+   the run log is a terminal-like box that keeps its own scroll. */
+.blog-gen-btn{box-shadow:0 0 0 1px color-mix(in srgb,var(--info) 55%,transparent),0 6px 20px -8px color-mix(in srgb,var(--info) 80%,transparent)}
+.blog-log{max-height:320px;background:var(--bg);color:var(--text-2)}
+.blog-logs-btn{display:inline-flex;align-items:center;gap:8px;color:var(--info);
+  border-color:color-mix(in srgb,var(--info) 55%,transparent);background:var(--info-dim)}
+.blog-logs-btn:hover{color:var(--text);border-color:var(--info)}
+.blog-logs-btn .x{font-family:var(--font-mono);font-size:11px;opacity:.8}
+.fold > pre.blog-log{margin:0 12px 12px 30px;padding:var(--s2) var(--s3)}
+.blog-logs{border:1px solid var(--border);border-radius:var(--r-sm);padding:var(--s3);background:var(--surface)}
+.disc-body > pre.blog-log{margin:0}
+
+
+/* ================================================================ compare showcase
+   routes/Compare.jsx: HowToRead, HeadToHead, StickyNames, FaceOff */
+.cmp-how{max-width:76ch;font-size:var(--fs-xs);color:var(--text-2)}
+.cmp-how summary{cursor:pointer;color:var(--text-2);font-family:var(--font-mono);font-size:var(--fs-label);
+  letter-spacing:.08em;text-transform:uppercase}
+.cmp-how ul{margin:10px 0 0 18px;line-height:1.7}
+.h2h{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:0;align-items:stretch;
+  border:1px solid var(--border-strong);border-radius:var(--r-card);overflow:hidden;
+  background:radial-gradient(600px 220px at 0% 0%,color-mix(in srgb,var(--info) 10%,transparent),transparent 70%),
+             radial-gradient(600px 220px at 100% 100%,color-mix(in srgb,var(--warn) 9%,transparent),transparent 70%),var(--bg-elev)}
+.h2h > *{min-width:0}
+.h2h-card{display:flex;flex-direction:column;gap:6px;padding:var(--s3) var(--s4)}
+.h2h-card + .h2h-vs + .h2h-card,.h2h-vs + .h2h-card{border-left:1px solid var(--border-soft)}
+.h2h-vs{display:none}
+.h2h-name{font-size:1.35rem;font-weight:500;letter-spacing:-.02em;color:var(--text);text-decoration:none}
+.h2h-name:hover{text-decoration:underline;text-underline-offset:3px}
+.h2h-id{font-size:var(--fs-xs)}
+.h2h-n{font-size:var(--fs-sm);color:var(--text-2);margin:4px 0 2px}
+.h2h-n b{color:var(--text);font-weight:600}
+.cmp-sticky{position:sticky;top:65px;z-index:20;display:flex;align-items:center;justify-content:center;gap:12px;
+  padding:8px 14px;border:1px solid var(--border);border-radius:var(--r-pill);font-size:var(--fs-sm);
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(10px)}
+.cmp-sticky-name{font-weight:500}
+.cmp-sticky-vs{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--bg);background:var(--warn);border-radius:var(--r-pill);padding:2px 8px}
+.faceoff-basis{display:flex;gap:10px;align-items:flex-start;margin:0;max-width:80ch;font-size:var(--fs-xs);
+  color:var(--text-2);line-height:1.55;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-sm);
+  background:color-mix(in srgb,var(--info) 6%,var(--bg-elev))}
+.faceoff-i{flex:none;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;
+  background:var(--info);color:var(--bg);font:600 11px/1 var(--font-mono);margin-top:1px}
+.faceoff{display:flex;flex-direction:column;gap:var(--gap)}
+.faceoff-row{display:grid;grid-template-columns:180px minmax(0,1fr);gap:var(--gap);align-items:start;
+  padding-top:var(--gap);border-top:1px solid var(--border-soft)}
+.faceoff-axis{display:flex;flex-direction:column;gap:4px;font-size:var(--fs-sm)}
+.faceoff-k{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.faceoff-quotes{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:var(--gap)}
+.faceoff-q{margin:0;background:var(--bg-elev);border:1px solid var(--border);border-left:3px solid var(--text-3);
+  border-radius:var(--r-sm);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.faceoff-q[data-polarity="positive"]{border-left-color:var(--pass)}
+.faceoff-q[data-polarity="negative"]{border-left-color:var(--fail)}
+.faceoff-model{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.08em;text-transform:uppercase;color:var(--text-2)}
+.faceoff-q blockquote{margin:0;font-style:italic;font-size:var(--fs-sm);line-height:1.45}
+.faceoff-q figcaption{font-size:var(--fs-xs);color:var(--text-3)}
+.faceoff-q figcaption a{color:var(--text-2)}
+.faceoff-q[data-polarity="positive"] .faceoff-pol{color:var(--pass)}
+.faceoff-q[data-polarity="negative"] .faceoff-pol{color:var(--fail)}
+@media (max-width:800px){
+  .h2h{grid-template-columns:1fr}
+  .h2h-vs + .h2h-card{border-left:0;border-top:1px solid var(--border-soft)}
+  .faceoff-row{grid-template-columns:1fr}
+  .faceoff-quotes{grid-template-columns:1fr}
+}
+
+/* ================================================================ admin: planned panels
+   components/CronJobsPanel.jsx and BlogsPanel.jsx - layout only until wired */
+.arm-grid{display:grid;grid-template-columns:auto auto auto minmax(0,1fr);
+  gap:8px 12px;align-items:center}
+.arm-grid > .arm{display:contents}
+@media (max-width:640px){
+  .arm-grid{grid-template-columns:auto minmax(0,1fr)}
+  .arm-grid > .arm > :nth-child(3), .arm-grid > .arm > :nth-child(4){grid-column:2}
+}
+.adm-plan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;
+  background:var(--border-soft);border:1px solid var(--border-soft);border-radius:var(--r-sm);overflow:hidden}
+.adm-plan-cell{display:flex;flex-direction:column;gap:6px;padding:12px 14px;background:var(--bg-elev)}
+.adm-plan-v{font-size:var(--fs-sm);color:var(--text-2)}
+@media (max-width:640px){.adm-plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ================================================================ blog showcase
+   routes/Landing.jsx -> components/BlogShowcase.jsx: a sliding strip of equal
+   cards (not a coverflow - Browse already is one). Covers are drawn from each
+   post's own data; see coverFor(). */
+.bs{position:relative;margin-top:24px}
+.bs-track{display:flex;gap:20px;overflow-x:auto;padding:14px 4px 22px;scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 40px),transparent 100%);
+          mask-image:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 40px),transparent 100%)}
+.bs-track::-webkit-scrollbar{display:none}
+.bs-card{position:relative;flex:0 0 clamp(270px,30vw,340px);display:flex;flex-direction:column;border:1px solid var(--border);
+  border-radius:16px;overflow:hidden;background:var(--surface);color:inherit;text-decoration:none;
+  box-shadow:0 20px 40px -28px rgba(0,0,0,.85);transition:transform .25s var(--ease),border-color .25s,box-shadow .25s}
+.bs-card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;z-index:2;background:linear-gradient(90deg,var(--warn),var(--fail));opacity:0;transition:opacity .25s}
+.bs-card:hover,.bs-card:focus-visible{transform:translateY(-5px);border-color:color-mix(in srgb,var(--warn) 50%,transparent);
+  box-shadow:0 28px 54px -24px rgba(0,0,0,.9)}
+.bs-card:hover::before,.bs-card:focus-visible::before{opacity:1}
+.bs-img{height:170px;padding:10px;border-bottom:1px solid var(--border-soft);
+  background:radial-gradient(120% 90% at 20% 0%,color-mix(in srgb,var(--warn) 12%,var(--bg-elev)) 0%,var(--bg-elev) 62%)}
+.bs-img{position:relative}
+.bs-img svg,.bs-img img{width:100%;height:100%;display:block;object-fit:contain}
+.bs-badge{position:absolute;right:10px;bottom:10px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--warn);background:var(--bg);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);border-radius:999px;padding:2px 9px}
+.bs-body{display:flex;flex-direction:column;gap:9px;padding:16px 18px 18px;flex:1}
+.bs-kick{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--warn)}
+.bs-body h3{margin:0;font-size:1.02rem;line-height:1.32;letter-spacing:-.01em}
+.bs-body p{margin:0;color:var(--text-2);font-size:var(--fs-xs);line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.bs-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10.5px;color:var(--text-3);margin-top:auto}
+.bs-meta .dot{opacity:.6}
+.bs-tags{display:flex;gap:6px;flex-wrap:wrap}
+.bs-tags span{font-size:10.5px;color:var(--text-2);border:1px solid var(--border);border-radius:999px;padding:2px 8px;background:var(--surface-2)}
+.bs-btn{position:absolute;top:50%;z-index:4;transform:translateY(-50%);width:42px;height:42px;border-radius:999px;
+  border:1px solid var(--border-strong);background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(6px);
+  color:var(--text);font-size:20px;line-height:1;cursor:pointer;box-shadow:0 10px 24px -12px rgba(0,0,0,.8);transition:border-color .2s,background .2s}
+.bs-prev{left:-21px}
+.bs-next{right:-21px}
+@media (max-width:900px){.bs-prev{left:-4px}.bs-next{right:-4px}}
+.bs-btn:hover{border-color:var(--warn);background:var(--surface-2)}
+/* covers drawn from each post's data */
+.bs .cv-cap{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.12em;fill:var(--text-3)}
+.bs .cv-lbl{font-family:var(--font-sans);font-size:12px;fill:var(--text-2)}
+.bs .cv-lbl.hl{fill:var(--text);font-weight:600}
+.bs .cv-val{font-family:var(--font-mono);font-size:11px;fill:var(--text-3)}
+.bs .cv-bar{fill:var(--border-strong)}
+.bs .cv-bar-hl{fill:var(--warn)}
+.bs .cv-ok{fill:var(--pass-dim);stroke:var(--pass);stroke-opacity:.5}
+.bs .cv-no{fill:var(--fail-dim);stroke:var(--fail);stroke-opacity:.5}
+.bs .cv-mark{font-size:26px;fill:var(--text)}
+.bs .cv-big{font-family:var(--font-sans);font-size:22px;font-weight:700;fill:var(--pass)}
+.bs .cv-a{fill:color-mix(in srgb,var(--info) 18%,var(--surface));stroke:var(--info);stroke-opacity:.6}
+.bs .cv-b{fill:color-mix(in srgb,var(--fail) 16%,var(--surface));stroke:var(--fail);stroke-opacity:.6}
+.bs .cv-name{font-family:var(--font-sans);font-size:17px;font-weight:700;fill:var(--text)}
+.bs .cv-sub{font-family:var(--font-mono);font-size:10.5px;fill:var(--text-2)}
+.bs .cv-vs{fill:var(--warn)}
+.bs .cv-vst{font-family:var(--font-mono);font-size:12px;font-weight:700;fill:var(--bg)}
+.bs .cv-link{stroke:var(--border-strong);stroke-width:1.5;stroke-dasharray:3 3}
+.bs .cv-route{fill:color-mix(in srgb,var(--warn) 12%,var(--surface));stroke:color-mix(in srgb,var(--warn) 45%,transparent)}
+.bs .cv-rt{font-family:var(--font-sans);font-size:11px;fill:var(--text)}
+.bs .cv-type{font-family:var(--font-sans);font-size:30px;font-weight:700;fill:var(--text)}
+@media (max-width:520px){.bs-card{flex-basis:82vw}.bs-img{height:150px}.bs-prev{left:-2px}.bs-next{right:-2px}}
+
+/* Landing: the leaderboard heading set on four lines. */
+.trust-lines span{display:block}
+
+/* Model page: the evidence at a glance, above the tabs. */
+.ev-sum{display:flex;align-items:baseline;gap:10px 18px;flex-wrap:wrap;padding:12px 16px;border:1px solid var(--border);
+  border-radius:var(--r-sm);background:var(--surface-2)}
+.ev-n{font-size:var(--fs-sm);color:var(--text-2)}
+.ev-n b{font-size:1.15rem;margin-right:4px}
+.ev-n.pos b{color:var(--pass)} .ev-n.neg b{color:var(--fail)} .ev-n.neu b{color:var(--text)}
+.ev-of{font-size:var(--fs-xs)}
+
+/* Model page quotes: the words first, the source on its own small line. */
+.q-wrap{display:flex;flex-direction:column;gap:3px;min-width:0}
+.q-text{font-size:var(--fs-sm);color:var(--text);line-height:1.55}
+.q-src{align-self:flex-start;font-family:var(--font-mono);font-size:11px;color:var(--text-3);text-decoration:none;white-space:nowrap}
+a.q-src:hover{color:var(--info);text-decoration:underline;text-underline-offset:2px}

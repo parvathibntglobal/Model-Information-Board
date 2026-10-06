@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { adminRuns } from '../api'
 import { Badge, Notice } from './ui'
-import { IconAlert, IconGauge } from './Icons'
+import { IconAlert, IconClock } from './Icons'
 
 /**
  * Every fetch run this database has seen, newest first.
@@ -34,8 +34,29 @@ const STATUS_TONE = (status, looksDead) => {
   if (looksDead) return 'fail'
   if (!status) return 'mute'
   if (status === 'ok') return 'pass'
-  if (status === 'abandoned' || status === 'error') return 'fail'
+  // Abandoned is amber, not red: it stopped reporting and why is unknown, which
+  // is a warning. An error is a known failure and keeps the red. (Both were
+  // red, so the two read as one outcome.)
+  if (status === 'error') return 'fail'
+  if (status === 'abandoned') return 'warn'
   return 'warn'
+}
+
+/** 2769.7 -> "46 h 10 m", 29.1 -> "29 m", 0.1 -> "< 1 m". */
+function duration(min) {
+  if (min == null || Number.isNaN(min)) return null
+  if (min < 1) return '< 1 m'
+  const m = Math.round(min)
+  const h = Math.floor(m / 60)
+  return h ? `${h} h ${m % 60} m` : `${m} m`
+}
+
+/** "5 Oct, 14:20" - the run's start, on its line. */
+function shortWhen(iso) {
+  if (!iso) return null
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? null
+    : d.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
 function when(iso) {
@@ -68,7 +89,7 @@ export default function RunsPanel() {
     <section className="card card-flush">
       <div className="card-head">
         <div className="row" style={{ gap: 8 }}>
-          <IconGauge width={14} height={14} style={{ color: 'var(--text-3)' }} />
+          <IconClock width={14} height={14} style={{ color: 'var(--text-3)' }} />
           <span className="label">Runs — every fetch of a tracked model</span>
         </div>
         {data && (
@@ -78,7 +99,7 @@ export default function RunsPanel() {
         )}
       </div>
 
-      <div style={{ padding: '0 var(--s4)' }}>
+      <div className="card-intro">
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           {data?.denominator
             ? <>Read from {data.denominator}</>
@@ -103,11 +124,13 @@ export default function RunsPanel() {
         {data && (
           <div className="row" style={{ gap: 16, flexWrap: 'wrap', alignItems: 'baseline' }}>
             <span className="row" style={{ gap: 6, alignItems: 'baseline' }}>
-              <Badge tone="pass">running</Badge>
+              {/* THE TONE FOLLOWS THE COUNT. A zero in alarm red read as a
+                  problem on a page with none; running is activity, not "OK". */}
+              <Badge tone={data.running_now > 0 ? 'info' : 'mute'}>running</Badge>
               <span className="dim" style={{ fontSize: 11 }}>{data.running_now}</span>
             </span>
             <span className="row" style={{ gap: 6, alignItems: 'baseline' }}>
-              <Badge tone="fail">unfinished and silent</Badge>
+              <Badge tone={data.unfinished_and_silent > 0 ? 'fail' : 'mute'}>unfinished and silent</Badge>
               <span className="dim" style={{ fontSize: 11 }}>{data.unfinished_and_silent}</span>
             </span>
           </div>
@@ -134,11 +157,22 @@ export default function RunsPanel() {
           <details key={r.run_id} className="disc">
             <summary>
               {r.model || r.run_id}
-              <Badge tone={STATUS_TONE(r.status, r.looks_dead)}>
-                {r.looks_dead ? 'silent' : (r.status || 'running')}
-              </Badge>
+              {/* ONLY A PROBLEM IS COLOURED. Sixty rows each wearing a badge
+                  made the page loud and the failures no louder than the
+                  successes; an OK run is a quiet tick, so the red and amber
+                  ones stand out. The word stays, for a reader without colour. */}
+              {r.status === 'ok' && !r.looks_dead
+                ? <span className="run-ok" title="ok">✓ ok</span>
+                : (
+                  <Badge tone={STATUS_TONE(r.status, r.looks_dead)}>
+                    {r.looks_dead ? 'silent' : (r.status || 'running')}
+                  </Badge>
+                )}
               {r.ran_minutes != null && (
-                <span className="n">{r.ran_minutes} min</span>
+                <span className="n" title={`${r.ran_minutes} min`}>{duration(r.ran_minutes)}</span>
+              )}
+              {shortWhen(r.started_at) && (
+                <span className="disc-when" title={when(r.started_at)}>{shortWhen(r.started_at)}</span>
               )}
             </summary>
             <div className="disc-body stack stack-2">

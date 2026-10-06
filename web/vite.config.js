@@ -10,6 +10,63 @@ const BACKEND = process.env.BACKEND_URL || 'http://127.0.0.1:8000'
 /** The repo root, where the ONE .env lives. */
 const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url))
 
+
+/**
+ * robots.txt, sitemap.xml and the canonical link, written at build time.
+ *
+ * THE SITE HAS NO ADDRESS YET, so nothing here guesses one. A canonical link,
+ * an og:url and every sitemap entry must be absolute URLs; with SITE_URL unset
+ * the build writes robots.txt without a Sitemap line, writes no sitemap.xml,
+ * and adds no canonical - better absent than pointing at a made-up domain.
+ * Set SITE_URL (in the repo .env or the environment) once the board has one.
+ *
+ * The sitemap lists the pages that exist for anyone: the landing, the board
+ * and its three tabs, models and blogs. Admin and sign-in are kept out of it
+ * and disallowed in robots.txt.
+ */
+const SITEMAP_PATHS = ['/', '/board', '/board?tab=cap', '/board?tab=met', '/models', '/blogs']
+
+/**
+ * robots.txt, sitemap.xml and the canonical link.
+ *
+ * CLOSED BY DEFAULT (review of #508, item 3). The site is login-only, so every
+ * build says noindex and `Disallow: /`. Indexing opens only when BOTH
+ * `SITE_URL` is set and `PUBLIC_SITE=1` - an explicit decision that the pages
+ * are public, never a side effect of setting a URL.
+ */
+function seoFiles(siteUrl, publicSite) {
+  const site = (siteUrl || '').trim().replace(/\/+$/, '')
+  const open = Boolean(site) && String(publicSite || '').trim() === '1'
+  const esc = (u) => u.replace(/&/g, '&amp;')
+  return {
+    name: 'seo-files',
+    transformIndexHtml(html) {
+      if (!open) return html
+      html = html.replace('content="noindex, nofollow"', 'content="index, follow"')
+      return html.replace('</title>', `</title>
+    <link rel="canonical" href="${site}/" />
+    <meta property="og:url" content="${site}/" />`)
+    },
+    generateBundle() {
+      const robots = open
+        ? ['User-agent: *', 'Allow: /', 'Disallow: /admin', 'Disallow: /login', '', `Sitemap: ${site}/sitemap.xml`]
+        : ['User-agent: *', 'Disallow: /']
+      this.emitFile({ type: 'asset', fileName: 'robots.txt', source: robots.join('\n') + '\n' })
+      if (!open) return
+      const urls = SITEMAP_PATHS.map((p) => `  <url><loc>${esc(site + p)}</loc></url>`).join('\n')
+      this.emitFile({
+        type: 'asset',
+        fileName: 'sitemap.xml',
+        source: `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls}
+</urlset>
+`,
+      })
+    },
+  }
+}
+
 export default defineConfig(({ mode }) => {
   // ONE .env FOR THE WHOLE PROJECT, at the repo root.
   //
@@ -28,7 +85,8 @@ export default defineConfig(({ mode }) => {
   const token = env.API_TOKEN || process.env.API_TOKEN || ''
 
   return {
-    plugins: [react(), ...(process.env.SINGLE_FILE ? [viteSingleFile()] : [])],
+    plugins: [react(), seoFiles(env.SITE_URL || process.env.SITE_URL, env.PUBLIC_SITE || process.env.PUBLIC_SITE),
+      ...(process.env.SINGLE_FILE ? [viteSingleFile()] : [])],
 
     // NOT A SECRET ONCE IT IS HERE. Anything `define` injects is readable by
     // anyone who loads the page — view-source, devtools, the built bundle. This

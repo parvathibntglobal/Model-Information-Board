@@ -1694,3 +1694,37 @@ COMMENT ON COLUMN rapidapi_quota_reading.observed_at IS
   'When this call recorded the reading, microsecond precision. Distinct from '
   'read_at, which is second resolution: two calls in one second that read the '
   'same figures must be two rows, because an unmoved counter is the signal.';
+
+
+-- ============================================================================
+--  BLOG GENERATION HISTORY AND REVIEW
+--  (migration 20261006T1200_blog_generation_history.sql - why it exists and
+--   why review is append-only are written there)
+-- ============================================================================
+
+CREATE TABLE blog_generation_run (
+  id               text PRIMARY KEY,
+  started_at       timestamptz NOT NULL,
+  finished_at      timestamptz,
+  state            text NOT NULL,
+  requested_count  integer NOT NULL,
+  model            text,
+  cost_usd         numeric(12,6),
+  tokens_in        bigint,
+  tokens_out       bigint,
+  posts_written    text[] NOT NULL DEFAULT '{}',
+  posts_failed     text[] NOT NULL DEFAULT '{}',
+  message          text,
+  log              text
+);
+
+CREATE TABLE blog_post_review (
+  id          text PRIMARY KEY,
+  slug        text NOT NULL,
+  run_id      text NOT NULL REFERENCES blog_generation_run(id),
+  decision    text NOT NULL CHECK (decision IN ('approved', 'rejected', 'reopened')),
+  reason      text,
+  decided_at  timestamptz NOT NULL
+);
+
+CREATE INDEX blog_post_review_slug_at ON blog_post_review (slug, decided_at DESC);

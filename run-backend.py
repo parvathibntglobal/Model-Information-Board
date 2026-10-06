@@ -53,7 +53,7 @@ ROOT = pathlib.Path(__file__).parent
 # out of it. Putting the repo on the path has no side effect of its own.
 sys.path.insert(0, str(ROOT))
 
-from judge.writeguard import describe  # noqa: E402
+from judge.writeguard import describe, is_local  # noqa: E402
 
 env = ROOT / ".env"
 if not env.exists():
@@ -97,12 +97,29 @@ for line in env.read_text(encoding="utf-8").splitlines():
 # A mode check under the guard would pass in the parent and be skipped in the
 # worker, which would leave the worker reading the plain DATABASE_URL — the
 # read-only rewrite silently undone in the one process that can write.
-MODES = ("--staging", "--write")
+MODES = ("--staging", "--write", "--local")
 chosen = [flag for flag in MODES if flag in sys.argv]
+
+# ── --local: BRANCH parvathi_01 ONLY, for the Opus 4.6 fetch run ─────────────
+#
+# The database is FIXED HERE rather than read from .env, because on this
+# machine .env's DATABASE_URL names the shared instance and .env is the same
+# file on every branch. A local-only run must not depend on somebody having
+# edited it. The DSN carries no password: the portable cluster on 5433 uses
+# trust auth, as `.env.test`'s TEST_DATABASE_URL does.
+LOCAL_DSN = "postgresql://postgres@localhost:5433/modelboard_parvathi_01"
+# THE TWO LIMITS THIS BRANCH RUNS WITH, IN EVERY MODE (2026-10-06). They were
+# --local only; the branch now runs against the shared database (--write), where
+# the defaults applied instead - FETCH_MAX_THREADS 50 (scripts/fetch_model.py)
+# and the budget from .env. Set in the process, after .env is read, so they win
+# over it and the Fetch button's subprocess inherits them. .env is not edited:
+# it is the same file on every branch.
+LOCAL_FETCH_MAX_THREADS = "500"
+LOCAL_DAILY_BUDGET_USD = "3"
 
 if len(chosen) != 1:
     problem = (
-        "no database mode given" if not chosen else "both --staging and --write given"
+        "no database mode given" if not chosen else f"{' and '.join(chosen)} given together"
     )
     sys.exit(
         f"run-backend.py: {problem}. Name the database you mean:\n"
@@ -111,6 +128,10 @@ if len(chosen) != 1:
         f"              server. Currently {describe(os.environ.get('STAGING_DATABASE_URL'))}\n"
         f"  --write     DATABASE_URL, read-write.\n"
         f"              Currently {describe(os.environ.get('DATABASE_URL'))}\n"
+        f"  --local     {describe(LOCAL_DSN)} only, read-write.\n"
+        f"\n"
+        f"Every mode runs with fetch cap {LOCAL_FETCH_MAX_THREADS} and daily budget "
+        f"${LOCAL_DAILY_BUDGET_USD} on this branch.\n"
         f"\n"
         f"There is no default on purpose. If those two lines name the same host\n"
         f"and database, --write is a read-write session against whatever that is\n"
@@ -127,6 +148,14 @@ if mode == "--staging":
     ro = urllib.parse.quote("-c default_transaction_read_only=on")
     os.environ["DATABASE_URL"] = f"{staging}{sep}options={ro}"
     announcement = f"  reading STAGING at {describe(staging)} - sessions forced READ ONLY"
+elif mode == "--local":
+    if not is_local(LOCAL_DSN):
+        sys.exit(f"--local refuses {describe(LOCAL_DSN)}: it is not this machine.")
+    # BOTH variables, so nothing in this process or its children can reach the
+    # shared instance by reading the other one.
+    os.environ["DATABASE_URL"] = LOCAL_DSN
+    os.environ["STAGING_DATABASE_URL"] = LOCAL_DSN
+    announcement = f"  LOCAL ONLY at {describe(LOCAL_DSN)}"
 else:
     target = os.environ.get("DATABASE_URL", "").strip()
     if not target:
@@ -137,6 +166,13 @@ else:
             "DATABASE_URL is not set in .env, so --write has nothing to write to."
         )
     announcement = f"  READ-WRITE at {describe(target)}"
+
+# The branch's limits, whatever the mode (see LOCAL_FETCH_MAX_THREADS above).
+os.environ["FETCH_MAX_THREADS"] = LOCAL_FETCH_MAX_THREADS
+os.environ["EXTRACTION_DAILY_BUDGET_USD"] = LOCAL_DAILY_BUDGET_USD
+announcement += (
+    f" - fetch cap {LOCAL_FETCH_MAX_THREADS}, daily budget ${LOCAL_DAILY_BUDGET_USD}"
+)
 
 # Only the parent announces it. Under --reload the child re-imports this
 # module, and a line printed twice reads as two servers starting. The worker

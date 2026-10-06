@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { discussedModels, BoardUnreadable } from '../api'
 import { Notice, Unreadable } from '../components/ui'
-import { IconAlert } from './Icons'
+import { IconAlert, IconGrid } from './Icons'
 
 /**
  * Models the board holds evidence about that the models page does not show.
@@ -59,9 +59,12 @@ export default function DiscussedModels() {
   const shown = all ? models : models.slice(0, 12)
 
   return (
-    <div className="stack stack-2">
-      <div className="row" style={{ gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-        <span className="label">Discussed, and not on the models page</span>
+    <section className="card card-flush">
+      <div className="card-head">
+        <div className="row" style={{ gap: 8 }}>
+          <IconGrid width={14} height={14} style={{ color: 'var(--text-3)' }} />
+          <span className="label">Discussed, and not on the models page</span>
+        </div>
         {data && (
           <span className="dim tnum" style={{ fontSize: 11 }}>
             {/* RULE 7: the denominator travels. "66 models" alone says
@@ -73,7 +76,8 @@ export default function DiscussedModels() {
         )}
       </div>
 
-      <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '80ch',
+      <div className="card-body stack stack-3">
+      <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch',
                                   margin: 0, lineHeight: 1.6 }}>
         Engineers wrote about these and the board kept it, but{' '}
         <strong style={{ color: 'var(--text)' }}>they are not on the models page</strong>,
@@ -108,14 +112,14 @@ export default function DiscussedModels() {
 
       {data && models.length > 0 && (
         <>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="cmp-table" style={{ fontSize: 'var(--fs-xs)' }}>
+          <div className="tablewrap">
+            <table>
               <thead>
                 <tr>
                   <th>Model</th>
-                  <th style={{ textAlign: 'right' }}>Entries</th>
-                  <th style={{ textAlign: 'right' }}>Documents</th>
-                  <th style={{ textAlign: 'right' }}>Sections</th>
+                  <th className="r">Entries</th>
+                  <th className="r">Documents</th>
+                  <th className="r">Sections</th>
                 </tr>
               </thead>
               <tbody>
@@ -130,25 +134,26 @@ export default function DiscussedModels() {
                         {m.canonical_id}
                       </span>
                     </th>
-                    <td className="tnum" style={{ textAlign: 'right' }}>{m.entries}</td>
+                    <td className="tnum r">{m.entries}</td>
                     {/* ENTRIES AND DOCUMENTS ARE NOT THE SAME COUNT, and the
                         gap is the point: one document can carry several
                         entries, so 110 entries from 20 documents is a
                         different kind of evidence from 110 from 90. */}
-                    <td className="tnum" style={{ textAlign: 'right' }}>{m.documents}</td>
-                    <td className="tnum" style={{ textAlign: 'right' }}>{m.sections}</td>
+                    <td className="tnum r">{m.documents}</td>
+                    <td className="tnum r">{m.sections}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           {models.length > shown.length && (
-            <button type="button" className="chip" onClick={() => setAll(true)}>
+            <button type="button" className="btn btn-ghost" style={{ alignSelf: 'flex-start' }} onClick={() => setAll(true)}>
               show the other {models.length - shown.length}
             </button>
           )}
         </>
       )}
-    </div>
+      </div>
+    </section>
   )
 }

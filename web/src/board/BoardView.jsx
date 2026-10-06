@@ -33,7 +33,14 @@ export default function BoardView({ html }) {
   const ref = useRef(null)
   const navigate = useNavigate()
 
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [html])
+  // A new view starts at the top - unless the URL names a heading on it
+  // (`#parent-<slug>`), which is how a link opens the board at one group.
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1))
+    const target = id && ref.current?.querySelector(`[id="${CSS.escape(id)}"]`)
+    if (target) target.scrollIntoView({ behavior: 'instant', block: 'start' })
+    else window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [html])
 
   // FIND-IN-PAGE REVEALS THE TAIL WITHOUT THE BUTTON, so the button has to go
   // then too. `hidden="until-found"` fires `beforematch` when the browser is

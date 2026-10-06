@@ -204,8 +204,10 @@ export default function Models() {
     <div className="shell section-tight stack stack-4">
       <div className="row-between" style={{ alignItems: 'flex-start', gap: 'var(--s4)' }}>
         <div className="stack stack-1">
-          <span className="eyebrow">Models</span>
-          <h1 style={{ fontSize: 'var(--fs-display)' }}>The registry</h1>
+          {/* The page's own name as a tag, like Board and Blogs; the H1 names
+              what the page is in the words people search for (2026-10-05). */}
+          <span className="go-badge go-models page-tag" style={{ alignSelf: 'flex-start' }}>Models</span>
+          <h1 style={{ fontSize: 'var(--fs-display)' }}>AI models: Claude, GPT, Gemini, DeepSeek and more</h1>
         </div>
 
         {/* TOP RIGHT, AND ALWAYS PRESENT. The sticky bar at the foot of the

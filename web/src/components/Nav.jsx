@@ -29,9 +29,9 @@ export default function Nav({ session, onSignOut }) {
   return (
     <header className="nav">
       <div className="nav-in">
-        <Link to="/" className="brand" aria-label="ModelBoard home">
+        <Link to="/" className="brand" aria-label="Model Information Board home">
           <span className="brand-mark"><span /></span>
-          ModelBoard
+          Model Information Board
         </Link>
 
         <nav className="nav-links">

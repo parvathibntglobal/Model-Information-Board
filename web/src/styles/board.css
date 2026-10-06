@@ -15,8 +15,16 @@
 .crumb a{cursor:pointer;color:var(--info)}
 .crumb a:hover{text-decoration:underline}
 .crumb i{margin:0 8px;opacity:.7;font-style:normal}
-.phead{padding:34px 0 6px}
+/* Block padding only. `padding:34px 0 6px` zeroed the inline padding `.shell`
+   gives, so every page heading sat 24px left of the content under it and met
+   the screen edge on a phone. */
+.phead{padding-block:34px 6px}
 .phead h1{font-size:clamp(1.85rem,3.3vw,2.6rem);letter-spacing:-.03em;line-height:1.08;margin-bottom:14px;max-width:23ch}
+/* The page's own name above its H1 - the landing badge, but a label, not a
+   link, so it does not lift on hover. */
+.page-tag{pointer-events:none;padding:6px 13px;margin-bottom:14px}
+/* One short heading per board tab, above that tab's intro. */
+.tab-h{font-size:1.3rem;letter-spacing:-.02em;line-height:1.2;margin:4px 0 8px}
 .phead .sub{color:var(--text-2);font-size:1.02rem;line-height:1.62;max-width:66ch}
 .sec{padding:34px 0}
 .sec-h{max-width:64ch;margin-bottom:20px}

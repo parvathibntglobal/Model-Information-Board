@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useLocation } from 'react-router-dom'
 import { modelPage, listModels, fetchAll, BoardUnreadable } from '../api'
-import FetchPanel from '../components/FetchPanel'
 import ModelEvidence from '../components/ModelEvidence'
 import { Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconArrow } from '../components/Icons'
@@ -107,7 +106,12 @@ export default function ModelDetail() {
 
       <div className="stack stack-1">
         <span className="eyebrow">Model</span>
-        <h1 style={{ fontSize: 'var(--fs-display)', wordBreak: 'break-word' }}>{name}</h1>
+        {/* THE NAME WITHOUT THE VENDOR PREFIX ("Anthropic: Claude Fable 5.1" ->
+            "Claude Fable 5.1"): the provider is the line under it, so the
+            prefix said it twice. */}
+        <h1 style={{ fontSize: 'var(--fs-display)', wordBreak: 'break-word' }}>
+          {String(name).includes(': ') ? String(name).split(': ').slice(1).join(': ') : name}
+        </h1>
         {spec?.provider && <span className="dim" style={{ fontSize: 'var(--fs-sm)' }}>{spec.provider}</span>}
       </div>
 
@@ -130,7 +134,8 @@ export default function ModelDetail() {
 
       {page && <LastFetched value={page.last_fetch} />}
 
-      <FetchPanel modelVersionId={id} onDone={() => modelPage(id).then(setPage).catch(() => {})} />
+      {/* NO FETCH BOX HERE (2026-10-06). The Fetch button and its history live
+          on Admin -> Models only; this page is for reading what was said. */}
 
       {/* What was actually said about this model, grouped by the sections the
           classifier discovered. Placed directly under Fetch so the button and

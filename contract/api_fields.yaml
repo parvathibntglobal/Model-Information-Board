@@ -76,6 +76,11 @@ fields:
     routes:
     - /admin/sources
     state: consumed
+  blogs:
+    reviewed: false
+    routes:
+    - /admin/usage
+    state: consumed
   build:
     reviewed: false
     routes:
@@ -253,6 +258,11 @@ fields:
     routes:
     - /admin/runs
     state: consumed
+  exists:
+    reviewed: false
+    routes:
+    - /blog-posts/generate/log
+    state: consumed
   failure_mode:
     reviewed: true
     routes:
@@ -319,6 +329,11 @@ fields:
     routes:
     - /admin/usage
     state: consumed
+  lines:
+    reviewed: false
+    routes:
+    - /blog-posts/generate/log
+    state: consumed
   machine:
     reviewed: false
     routes:
@@ -363,6 +378,11 @@ fields:
     - /capabilities/{capability_key}
     - /compare
     - /models
+    state: consumed
+  models_in_use:
+    reviewed: false
+    routes:
+    - /admin/settings
     state: consumed
   no_evidence:
     reviewed: false
@@ -509,6 +529,16 @@ fields:
     routes:
     - /ask/recommend
     state: no_consumer
+  reviewable:
+    reviewed: false
+    routes:
+    - /blog-posts/runs
+    state: consumed
+  reviews:
+    reviewed: false
+    routes:
+    - /blog-posts/runs
+    state: consumed
   rows_cleared:
     reviewed: false
     routes:
@@ -568,6 +598,7 @@ fields:
     routes:
     - /admin/pipeline
     - /admin/runs
+    - /blog-posts/runs
     - /fetch/runs
     state: consumed
   runs_for_untracked_models:
@@ -773,6 +804,11 @@ fields:
     reviewed: false
     routes:
     - /admin/usage
+    state: consumed
+  unreadable:
+    reviewed: false
+    routes:
+    - /blog-posts/generate/log
     state: consumed
   unsourced:
     reviewed: false

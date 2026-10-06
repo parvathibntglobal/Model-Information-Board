@@ -7,6 +7,7 @@
 // reason. A defect in WHERE a card lands is not visible in the source text
 // (#431), so the render has to be executable.
 import { DB } from './db.js'
+import { sourceName } from '../sourceName.js'
 
 // ── ESCAPING, WHICH THIS FILE DID NOT HAVE ─────────────────────────────────
 // Every builder below returns an HTML STRING and BoardView renders it through
@@ -245,7 +246,9 @@ function quotes(qs){
     // NO LINK IS BETTER THAN A DEAD ONE. A quote whose document row carries no
     // usable URL says so, rather than offering an underline that does nothing.
     const cite = href
-      ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">open the source</a>`
+      // THE PLATFORM'S NAME, read off the link, in place of "open the source"
+      // on every quote; the old words stay as the accessible label.
+      ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer" aria-label="open the source on ${esc(sourceName(href))}">${esc(sourceName(href))} ↗</a>`
       : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>';
     const anyNeg = g.items.some(r=>r[3]);
     // A COUNT, NOT A SUMMARY. "3 figures from this one report" is arithmetic
@@ -349,7 +352,9 @@ function mcard(x){
 //   this emits a heading and `groupedGrid` wraps each RUN of cards in its own
 //   `.igrid`. Nothing here opens an element it does not close.
 function parentHead(g){
-  return `<div class="phead-row"><div class="parent-h">
+  // The id is the parent's slug, so a link can open the board at a group
+  // (`/board?tab=cap#parent-software-engineering`, the landing hero's chip).
+  return `<div class="phead-row" id="parent-${esc(g.parent)}"><div class="parent-h">
     <h3>${esc(g.name)}</h3><span>${g.leaves} ${g.leaves===1?'leaf':'leaves'}</span></div>
     <p>Grouped for reading. Each of these is its own measurement — nothing here is
     merged, and there is no total for the group.</p></div>`;
@@ -498,6 +503,11 @@ function vBoard(tab){
   //   emits its own grids, so a heading can sit BETWEEN two of them instead of
   //   inside one it has to cut open. Anything added here that returns bare
   //   cards must wrap them in `gridBlock` or they will render as a column.
+  // ONE SHORT HEADING PER TAB, in the words people search for (2026-10-05).
+  //   Kept beside the panes rather than inside them, so each pane still opens
+  //   on its intro.
+  const TAB_H = {best:'Best AI model for each job', cap:'What each AI model can do, as reported',
+    met:'AI model performance and API pricing in engineer discussions'};
   const panes = {
     best: {intro:'Jobs engineers named when they said what they were running a model for. Each opens a page listing every model reported on that job. Problem reports are shown, not filtered.',
       // The ordering statement sits BESIDE the cards: one rule for every job
@@ -529,8 +539,12 @@ function vBoard(tab){
   };
   const p = panes[tab];
   const note = p.note || '';
+  // THE H1 NAMES WHAT THE PAGE IS, in the words people search for (2026-10-05);
+  //   the "Board" tag above it keeps the page's own name, styled like the
+  //   landing page's Board badge so the two read as one place.
   return `<div class="shell phead">${crumb([['Board',null]])}
-    <h1>The board</h1>
+    <span class="go-badge go-board page-tag">Board</span>
+    <h1>AI models compared by job, capability and metric</h1>
     <p class="sub">Three ways into the same evidence. <b>Jobs</b> lists what was reported on a job.
     <b>Capabilities</b> defines what a claim means, so a claim on one model page can be compared with a
     claim on another. <b>Metrics</b> are the axes, and what each one refuses to average.</p></div>
@@ -540,6 +554,7 @@ function vBoard(tab){
         <button role="tab" aria-selected="${tab==='cap'}" data-tab="cap">Capabilities</button>
         <button role="tab" aria-selected="${tab==='met'}" data-tab="met">Metrics</button>
       </div>
+      <h2 class="tab-h">${TAB_H[tab]}</h2>
       <p class="muted" style="max-width:70ch;margin-bottom:20px;line-height:1.6">${p.intro}</p>
       ${note}
       ${p.side ? `<div class="jobbody"><div class="joblist">${p.grid}</div>${p.side}</div>` : p.grid}
@@ -808,7 +823,7 @@ function figureRows(groups){
         ? `<span class="qmeta">${esc(s.bases.join(' · '))}</span> `
         : '';
       const link = href
-        ? `<a class="srclink" href="${esc(href)}"${ref} target="_blank" rel="noopener noreferrer">open the source</a>`
+        ? `<a class="srclink" href="${esc(href)}"${ref} target="_blank" rel="noopener noreferrer" aria-label="open the source on ${esc(sourceName(href))}">${esc(sourceName(href))} ↗</a>`
         : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>';
       // THE QUOTE LEADS AND THE LINK FOLLOWS, and that ordering is the finding
       // rather than a preference. The words are what let a reader decide
@@ -953,7 +968,7 @@ function vBlogs(){
       <div class="es-meta"><span>${p.read?`${esc(p.read)} min read`:''}</span><span>${esc((p.meta||[])[0]||'')}</span></div>
     </a>`).join('');
   return `<div class="essay"><div class="es-wrap">
-    <header class="es-hub"><div class="es-kicker">Field notes · Model Information Board</div>
+    <header class="es-hub"><span class="go-badge go-blogs page-tag">Blogs</span>
       <h1>How AI models behave in production</h1>
       <p class="es-dek">Long-form engineering essays on running frontier models in real systems — the failure
       modes, the architecture that contains them, and the economics that decide what is worth building.</p></header>

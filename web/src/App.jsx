@@ -9,6 +9,7 @@ import ModelDetail from './routes/ModelDetail'
 import Models from './routes/Models'
 import Compare from './routes/Compare'
 import Admin from './routes/Admin'
+import BlogLogs from './routes/BlogLogs'
 import Login from './routes/Login'
 import { getSession, signOut } from './auth'
 
@@ -42,11 +43,13 @@ export default function App() {
   }, [])
 
   const onLogin = loc.pathname === '/login'
-  // THE ONE ROUTE THAT IS NOT A DOCUMENT. /admin fills the viewport and scrolls
-  // inside its own panes, so that its side nav cannot move - see `.adm-page`.
-  // A footer under a viewport-locked layout would put the page back into the
-  // scroll it just left, and the nav would ride up with it again.
-  const onAdmin = loc.pathname === '/admin'
+  // The footer is the landing page's: its columns are a site map and a list of
+  // evidence platforms, which belong where a visitor first arrives. The board,
+  // model and compare pages end on their own content. /admin must never have
+  // one: it fills the viewport and scrolls inside its own panes (`.adm-page`),
+  // and a footer under that layout would put the page back into the scroll it
+  // left, taking the side nav up with it.
+  const onHome = loc.pathname === '/'
 
   return (
     <>
@@ -73,12 +76,13 @@ export default function App() {
           <Route path="/compare"    element={<Require session={session}><Compare /></Require>} />
           <Route path="/models/*"   element={<Require session={session}><ModelDetail /></Require>} />
           <Route path="/admin"   element={<Require session={session}><Admin /></Require>} />
+          <Route path="/admin/blog-logs"  element={<Require session={session}><BlogLogs /></Require>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 
-      {!onLogin && !onAdmin && <Footer />}
+      {onHome && <Footer />}
     </>
   )
 }

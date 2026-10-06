@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { adminUsage } from '../api'
 import { prettyModel } from '../modelNames'
 import { Badge, Notice, Stat } from './ui'
-import { IconAlert, IconGauge } from './Icons'
+import { IconAlert, IconHeart } from './Icons'
 
 /**
  * OUR cap, OUR spend. Live.
@@ -129,7 +129,7 @@ export default function UsagePanel() {
   return (
     <section className="card card-flush">
       <div className="card-head">
-        <span className="eyebrow"><IconGauge width={14} height={14} /> API usage — our cap</span>
+        <span className="eyebrow"><IconHeart width={14} height={14} /> API usage — our cap</span>
         {onRapid ? (
           <Badge tone={rapid.instrumented ? 'mute' : 'fail'}>{rapid.instrumented ? 'requests' : 'no reading'}</Badge>
         ) : (
@@ -168,6 +168,7 @@ export default function UsagePanel() {
               basis={data.basis || null}
               ledger={data.ledger || null}
               byStage={data.by_stage || []}
+              blogs={data.blogs}
             />}
       </div>
     </section>
@@ -194,7 +195,7 @@ export default function UsagePanel() {
  *
  * The producer did its half. This is the consumer's.
  */
-function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, ledger, byStage }) {
+function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, ledger, byStage, blogs }) {
   const rows = Object.entries(byModel)
     .map(([model, spent]) => {
       const closed = SPEND_BEFORE_THE_LEDGER[model]
@@ -253,7 +254,9 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
   // ledger started late is a different fact from a stage that has never
   // recorded, and both are different from a call whose tokens never arrived.
   const isFloor = today.is_a_floor_not_a_total === true
-  const unwired = (ledger?.unwired_stages) || []
+  // A stage in NOT_BUILT_YET is not listed at all now (the Ask box was
+  // deprioritised 2026-10-06); any OTHER unwired stage still warns.
+  const unwired = ((ledger?.unwired_stages) || []).filter((s) => !NOT_BUILT_YET.has(s))
   const unmetered = today.unmetered_calls || 0
   // The key total is a provider figure and is whole regardless; only the
   // LEDGER's own figure inherits the floor. So the qualifier attaches to the
@@ -429,7 +432,7 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
       {byStage.length > 0 && (
         <>
           <span className="label">Where today&rsquo;s spend went — one cap, split by stage</span>
-          {byStage.map((s) => (
+          {byStage.filter((s) => !NOT_BUILT_YET.has(s.stage)).map((s) => (
             <div key={s.stage} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
               <span style={{ fontSize: 'var(--fs-sm)' }}>{s.label || s.stage}</span>
               <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
@@ -444,6 +447,63 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
               </span>
             </div>
           ))}
+        </>
+      )}
+
+      {/* BLOG DRAFTS SPEND ON THIS KEY TOO, OUTSIDE THE CAP. The generator
+          calls its model (GPT-6 Luna by default) directly, not through the
+          ledger, so it is in the key total above and in none of the ledger
+          rows. Its own provider-reported cost per run is shown here. */}
+      {blogs && (
+        <>
+          <span className="label">Blog drafts — outside the cap, from blog run history</span>
+          {!blogs.readable ? (
+            <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>Blog run history could not be read.</span>
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+                <span style={{ fontSize: 'var(--fs-sm)' }}>Generate in Admin → Blogs — today</span>
+                <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
+                  <span className="tnum">{usd(blogs.spent_today_usd)}</span>
+                  <span className="dim" style={{ fontSize: 10 }}>
+                    {blogs.runs_today} run{blogs.runs_today === 1 ? '' : 's'} today
+                    {blogs.runs_today_unpriced ? ` · ${blogs.runs_today_unpriced} with no reported cost` : ''}
+                  </span>
+                </span>
+              </div>
+              {/* THE GENERATOR'S MODEL, NAMED EVEN WITH NO RUN YET - it is what
+                  the next Generate will call and pay for. */}
+              {(blogs.models || []).length === 0 ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+                  <span>
+                    <strong style={{ fontSize: 'var(--fs-sm)' }}>{blogs.model ? prettyModel(blogs.model) : 'generator model'}</strong>{' '}
+                    {blogs.model && <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{blogs.model}</span>}
+                    <span className="dim" style={{ display: 'block', fontSize: 11 }}>
+                      No generation run recorded yet. Drafts written before run history began cost money that is
+                      in the key total but not itemised here.
+                    </span>
+                  </span>
+                  <span className="tnum dim">no recorded runs</span>
+                </div>
+              ) : blogs.models.map((m) => (
+                <div key={m.model || 'none'} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
+                  <span>
+                    <strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(m.model)}</strong>{' '}
+                    <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{m.model}</span>
+                  </span>
+                  <span className="stack" style={{ gap: 1, alignItems: 'flex-end' }}>
+                    <span className="tnum">{m.spent_usd != null ? usd(m.spent_usd) : 'not reported'}</span>
+                    <span className="dim" style={{ fontSize: 10 }}>
+                      {m.runs} run{m.runs === 1 ? '' : 's'}
+                      {/* A RUN WITH NO REPORTED COST IS NAMED, not summed as $0. */}
+                      {m.runs_unpriced ? ` · ${m.runs_unpriced} with no reported cost, so the sum is a floor` : ''}
+                      {m.tokens_in != null ? ` · ${m.tokens_in.toLocaleString()} in${m.tokens_out != null ? ` / ${m.tokens_out.toLocaleString()} out` : ''} tokens` : ''}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
         </>
       )}
 
@@ -512,7 +572,12 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
         rows.map(([model, spent, asof]) => (
           <div key={model} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
             <span>
-              <strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(model)}</strong>{' '}
+              {/* A ROW WITH NO PROVIDER NAME stays a row (see prettyModel), but in
+                  the dim ink: in bold it read as a model called "provider named
+                  none" beside the real ones. */}
+              {String(model ?? '').trim() === ''
+                ? <span className="dim" style={{ fontSize: 'var(--fs-sm)', fontStyle: 'italic' }}>{prettyModel(model)}</span>
+                : <strong style={{ fontSize: 'var(--fs-sm)' }}>{prettyModel(model)}</strong>}{' '}
               <span className="mono" style={{ fontSize: 11, color: 'var(--text-3)' }}>{model}</span>
               {/* A CLOSED ROW LOOKS IDENTICAL TO A LIVE ONE, which is the whole
                   problem with a constant on a live panel. This says which it

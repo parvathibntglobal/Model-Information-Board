@@ -87,6 +87,85 @@ columns:
     merged_at:
       reviewed: false
       state: reserved
+  blog_generation_run:
+    cost_usd:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    finished_at:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    id:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    log:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    message:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    model:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    posts_failed:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    posts_written:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    requested_count:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    started_at:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    state:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    tokens_in:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    tokens_out:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+
+  blog_post_review:
+    decided_at:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+    decision:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+    id:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+    reason:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+    run_id:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+    slug:
+      reviewed: false
+      state: read
+      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
   board_entry:
     axis_quoted:
       known_gap: the writer is #368 item 3 (store_entries, beside axis_slug) and the renderer is item 4 (db.js/views.js) - both hers, both held until this column exists
