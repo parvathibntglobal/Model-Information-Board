@@ -1136,8 +1136,12 @@ function matrixTable(m, filter){
   const pills = can ? `<div class="es-pills" role="radiogroup" aria-label="Filter rows by route"><span>Show</span>
       <label><input type="radio" name="${id}" checked>All rows</label>${routes.map((r, k) =>
       `<label><input type="radio" name="${id}" class="f${k}">${esc(r)}</label>`).join('')}</div>` : '';
+  // data-l carries the column name so a phone can show each row as a card,
+  // every cell under its own label (board.css, max-width 640px).
+  const col = k => esc((v.cols || [])[k] || '');
   const body = rows.map(r => `<tr class="g${routes.indexOf(String(r[r.length - 1] || '').trim())}">${r.map((c, k) =>
-    k === r.length - 1 ? `<td class="route">${routeBadge(c)}</td>` : `<td>${k === 0 ? `<b>${essayText(c)}</b>` : essayText(c)}</td>`).join('')}</tr>`).join('');
+    k === r.length - 1 ? `<td class="route" data-l="${col(k)}">${routeBadge(c)}</td>`
+      : `<td${k ? ` data-l="${col(k)}"` : ''}>${k === 0 ? `<b>${essayText(c)}</b>` : essayText(c)}</td>`).join('')}</tr>`).join('');
   return `<section class="es-mx"><h2 id="es-matrix">${essayText(m.head.text)}</h2>${pills}
     <div class="es-tbl"><table><thead><tr>${(v.cols || []).map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
     <tbody>${body}</tbody></table></div></section>`;
@@ -1145,7 +1149,7 @@ function matrixTable(m, filter){
 function matrixCards(m){
   return `<section class="es-mcards"><h2 id="es-matrix">${essayText(m.head.text)}</h2><div class="grid">${(m.table.rows || []).map(r =>
     `<div class="mc"><h4>${essayText(r[0])}</h4><p class="bad"><b>Breaks</b>${essayText(r[1])}</p>
-      <p class="good"><b>Holds</b>${essayText(r[2])}</p>${routeBadge(r[3])}</div>`).join('')}</div></section>`;
+      <p class="good"><b>Holds</b>${essayText(r[2])}</p><p class="rt"><b>Use</b>${routeBadge(r[3])}</p></div>`).join('')}</div></section>`;
 }
 function treeClick(tr, title){
   return `<section class="es-ctree"><div class="lbl">${esc(title)}</div><div class="q">${essayText(tr.question)}</div>

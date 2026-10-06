@@ -268,8 +268,10 @@
 .es-bdg{font-family:var(--es-mono);font-size:.68rem;line-height:1.45;padding:.16rem .6rem;border-radius:999px;border:1px solid;
   white-space:nowrap;display:inline-block;max-width:100%;vertical-align:top}
 /* A long route ("Opus 5, bounded by validation and human oversight") wraps
-   inside its card or cell instead of running past the edge. */
-.es-dtree .es-bdg,.es-tbl td.route .es-bdg{white-space:normal;overflow-wrap:anywhere;border-radius:10px}
+   inside its card or cell instead of running past the edge. EVERY badge, not a
+   list of places: the 2026-10-06 cards and clickable tree were not on the list
+   and their routes ran out of the box. A short badge still sits on one line. */
+.es-bdg{white-space:normal;overflow-wrap:anywhere;border-radius:10px}
 .es-bdg.t-g{color:var(--es-good);border-color:rgba(62,207,142,.4)}
 .es-bdg.t-y{color:var(--es-warn);border-color:rgba(227,179,65,.4)}
 .es-bdg.t-b{color:var(--es-accent);border-color:rgba(122,162,255,.4)}
@@ -690,6 +692,17 @@
 .es-mx:has(.f0:checked) tbody tr:not(.g0),.es-mx:has(.f1:checked) tbody tr:not(.g1),.es-mx:has(.f2:checked) tbody tr:not(.g2),
 .es-mx:has(.f3:checked) tbody tr:not(.g3),.es-mx:has(.f4:checked) tbody tr:not(.g4),.es-mx:has(.f5:checked) tbody tr:not(.g5){display:none}
 .es-mx{margin:2rem 0}
+/* On a phone the four-column matrix ran past the screen (by 206px at 390px wide,
+   2026-10-06) and scrolled sideways inside its box. It stacks instead: one card
+   per row, each cell under its column name. */
+@media(max-width:640px){
+  .es-mx .es-tbl{overflow:visible;border:0;border-radius:0}
+  .es-mx table,.es-mx tbody,.es-mx tr,.es-mx td{display:block;width:100%;min-width:0}
+  .es-mx thead{display:none}
+  .es-mx tr{margin:0 0 .7rem;padding:.35rem 0;border:1px solid var(--es-line);border-radius:12px;background:var(--es-panel)}
+  .es-mx td{border:0;padding:.3rem .85rem}
+  .es-mx td[data-l]::before{content:attr(data-l);display:block;font:600 .62rem var(--es-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--es-dim)}
+}
 
 /* A tree you open branch by branch. */
 .es-ctree{margin:2rem 0;padding:1.1rem 1.2rem;border-radius:14px;border:1px solid var(--es-line);background:var(--es-panel)}
@@ -753,6 +766,9 @@
 .es-mcards p b{display:block;font:600 .64rem var(--es-mono);letter-spacing:.12em;text-transform:uppercase}
 .es-mcards p.bad b{color:var(--es-warn)}
 .es-mcards p.good b{color:var(--es-good)}
+/* The route box is labelled: an unlabelled coloured box is the same puzzle the
+   quote box was. */
+.es-mcards p.rt b{color:var(--es-muted)}
 
 /* brief: a wall of claims, filterable by verdict. */
 .es-claimw{margin:0 0 2rem}
