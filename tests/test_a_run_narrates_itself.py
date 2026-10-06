@@ -243,7 +243,10 @@ class TestTheTotalsAreRecordedNotDerived:
         run without a cap still sent threads and got claims back."""
         src = SCRIPT.read_text(encoding="utf-8")
         assert "} if budget is not None else {}),"  in src
-        block = src[src.index("prog.record_summary("):]
+        # THE TOTALS CALL, found by what it carries rather than by being the
+        # first `record_summary` - since 2026-10-06 an earlier call records
+        # `threads_unreadable_here` before E5 can return early.
+        block = src[src.index("prog.record_summary(" + chr(10) + "        llm="):]
         block = block[:block.index(")" + chr(10))]
         for always in ("sent_threads=", "claims_verified=", "claims_stored="):
             assert always in block, f"{always} must not depend on the budget"

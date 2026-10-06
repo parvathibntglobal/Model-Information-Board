@@ -1980,7 +1980,7 @@ def longer_registry_surfaces(conn, model_version_id: str | None, surfaces) -> li
 
 
 def threads_naming_the_model(
-    conn, store, surfaces, *, longer=()
+    conn, store, surfaces, *, longer=(), counts: dict | None = None
 ) -> tuple[set[str], int]:
     """Unread thread ids whose flattened text literally names one of `surfaces`,
     and how many unread threads were scanned - the denominator for the first.
@@ -2057,13 +2057,21 @@ def threads_naming_the_model(
         (PIPELINE_VERSION,),
     ).fetchall()
     naming = set()
+    unreadable = 0
     for tc_id, ref in rows:
         try:
             text = store.get_text(ref)
         except Exception:
-            continue  # payload not on this machine - not this fetch's to judge
+            # Payload not on this machine (or the shared bucket). COUNTED, since
+            # 2026-10-06: the first scheduled Action could read none of 6,087
+            # and reported "no unread thread anywhere in the corpus names this
+            # model" - an absence it caused, stated as one it found (rule 4).
+            unreadable += 1
+            continue
         if names_the_model(text, own, longer_rx):
             naming.add(tc_id)
+    if counts is not None:
+        counts["unreadable"] = unreadable
     return naming, len(rows)
 
 
@@ -2670,9 +2678,15 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
     prog.stage("E5", "Extract", "running",
                detail="scanning unread threads for this model's surfaces "
                       "(local reads, no network)")
+    scan: dict = {}
     naming, unread_total = threads_naming_the_model(
         conn, store, surfaces,
-        longer=longer_registry_surfaces(conn, model_version_id, surfaces))
+        longer=longer_registry_surfaces(conn, model_version_id, surfaces), counts=scan)
+    scan_unreadable = scan.get("unreadable", 0)
+    # Carried to the end record so the scheduler's summary can show it: a run
+    # that read nothing because nothing was readable must not look like a run
+    # that found nothing to read.
+    prog.record_summary(threads_unreadable_here=scan_unreadable)
     threads, doc_ids, gated_out, oversized, unreadable, (named, own) = build_thread_inputs(
         conn, seen, limit=MAX_FETCH_THREADS, since=prog.started_at, naming=naming,
         include_backlog=FETCH_BACKLOG)
@@ -2730,15 +2744,27 @@ def extract_and_curate(conn, prog: Progress, *, release_date=None,
         # rest (rule 4). The denominator is the unread pool the scan covered.
         prog.stage("E5", "Extract", "running",
                    backlog_read=False, unread_threads=unread_total,
+                   threads_unreadable_here=scan_unreadable,
                    detail=f"backlog NOT read by this fetch: of {unread_total:,} unread "
-                          f"thread(s) scanned, {len(naming)} name this model; the "
-                          f"others are left unread for the nightly batch "
+                          f"thread(s) scanned, {scan_unreadable:,} could not be read on "
+                          f"this machine and {len(naming)} of the rest name this model; "
+                          f"the others are left unread for the nightly batch "
                           f"(FETCH_BACKLOG=on reads them here)")
     if not naming:
-        # Rule 4: an empty scan is a finding, not a fallback to be silent about.
+        # Rule 4: an empty scan is a finding, not a fallback to be silent about -
+        # and it is only a finding about the threads this machine could READ.
+        if unread_total and scan_unreadable >= unread_total:
+            found = (f"none of the {unread_total:,} unread thread(s) could be read on "
+                     f"this machine - their payloads are on other machines, so this "
+                     f"is NOT evidence that none names the model")
+        elif scan_unreadable:
+            found = (f"no readable unread thread names this model's seated surfaces; "
+                     f"{scan_unreadable:,} of {unread_total:,} could not be read here")
+        else:
+            found = "no unread thread anywhere in the corpus names this model's seated surfaces"
         prog.stage("E5", "Extract", "running",
-                   detail="no unread thread anywhere in the corpus names this "
-                          "model's seated surfaces — "
+                   threads_unreadable_here=scan_unreadable,
+                   detail=found + " — "
                           + ("everything below is backlog" if FETCH_BACKLOG else
                              "only this run's own harvest can be read"))
     if gated_out:

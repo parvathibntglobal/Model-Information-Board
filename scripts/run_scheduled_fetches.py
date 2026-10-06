@@ -95,6 +95,27 @@ def due_rows(conn) -> list[dict]:
     return rows
 
 
+IN_PROGRESS = """
+    SELECT DISTINCT r.model_version_id
+      FROM fetch_log r
+     WHERE r.kind = 'run'
+       AND NOT EXISTS (SELECT 1 FROM fetch_log e WHERE e.run_id = r.run_id AND e.kind = 'end')
+       AND (SELECT max(x.at) FROM fetch_log x WHERE x.run_id = r.run_id) > %s
+"""
+
+
+def in_progress(conn, now: datetime) -> set[str]:
+    """Model versions with a fetch still running anywhere, by the shared log.
+
+    "Running" is the reaper's definition (judge/fetch_reaper.py): no end record,
+    and a line within DEFAULT_SILENT_FOR. Reusing it means this and the reaper
+    cannot disagree about whether a run is alive.
+    """
+    from judge.fetch_reaper import DEFAULT_SILENT_FOR
+
+    return {r[0] for r in conn.execute(IN_PROGRESS, (now - DEFAULT_SILENT_FOR,)).fetchall()}
+
+
 def run_one(due, *, sources: str | None, development_write: bool) -> dict:
     """Launch one `fetch_model` and return its host-free end record.
 
@@ -212,6 +233,17 @@ def main(argv: list[str] | None = None) -> int:
     records = []
     started = time.monotonic()
     for i, d in enumerate(due):
+        # ONE FETCH PER MODEL AT A TIME (2026-10-06). A manual run of the same
+        # model and this batch would both select the same unread threads and
+        # pay twice to extract them; nothing prevented it. Checked per model,
+        # just before launch, against the shared log.
+        with psycopg.connect(_read_only_dsn(), connect_timeout=20) as conn:
+            busy = in_progress(conn, datetime.now(UTC))
+        if d.model_version_id in busy:
+            records.append({"model": d.display_name,
+                            "status": "not run: a fetch of this model is already running"})
+            print(f"skipped {d.display_name}: a fetch of it is already running")
+            continue
         # A JOB WITH A HARD TIME LIMIT (GitHub Actions: 6 h) kills a fetch
         # mid-run, and the reaper then records it `abandoned`. So the runner
         # stops LAUNCHING at the deadline and names every model it did not run;
