@@ -14,9 +14,12 @@
 # THREE THINGS AN ACTION CHANGES, stated so nobody is surprised by them:
 #   1. THE 6-HOUR JOB LIMIT. A first fetch at the 100-thread cap measured
 #      ~2-2.5 h on 2026-10-06 (median 28 s, mean 85 s per thread over 26
-#      threads). The runner stops LAUNCHING models at --deadline-minutes, well
-#      short of the limit, and names every model it did not run; the next
-#      night continues from there.
+#      threads). The runner launches models until minute 300
+#      (--deadline-minutes) and stops a fetch still running at minute 345
+#      (--job-limit-minutes 355, minus 10), so the summary always posts. Each
+#      thread commits as it finishes, so a stopped fetch loses one thread at
+#      most and its model stays due; every model not reached is named, and the
+#      next night continues from there.
 #   2. THE RAW STORE IS THE SHARED BUCKET (RAW_STORE_S3_*). A runner starts
 #      empty; without the bucket it can read only what it harvests in the same
 #      job - measured 2026-10-06, the first run read 0 of 2,217 waiting
@@ -134,10 +137,13 @@ jobs:
 
       - name: Fetch the due models
         if: steps.gate.outputs.enabled == 'true'
-        # --deadline-minutes 200: a model launched at minute 199 still has
-        # ~2.5 h before the 355-minute job limit, the measured first-fetch time.
+        # --job-limit-minutes 355 matches timeout-minutes: a fetch still running
+        # at 345 min is stopped by the runner, which then posts the summary.
+        # Each thread commits as it finishes, so that loses one thread at most
+        # and the model stays due. That makes a late launch cheap, so
+        # --deadline-minutes 300 starts models until minute 300.
         run: |
-          args="--deadline-minutes 200"
+          args="--job-limit-minutes 355 --deadline-minutes 300"
           [ -n "$MAX_MODELS" ] && args="$args --max-models $MAX_MODELS"
           [ -n "$SOURCES" ]    && args="$args --sources $SOURCES"
           python -m scripts.run_scheduled_fetches $args

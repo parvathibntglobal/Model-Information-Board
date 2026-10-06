@@ -57,6 +57,28 @@ def _read_only_dsn() -> str:
     return dsn + sep + "options=-c%20default_transaction_read_only%3Don"
 
 
+#: The last SUCCESSFUL fetch per model version - what makes a model not due.
+#:
+#: ⚠ AN `ok` THAT READ NOTHING BECAUSE IT COULD NOT READ IS NOT A SUCCESS
+#:   (2026-10-06). The first scheduled Action ended `ok` having read none of
+#:   6,087 unread threads (their payloads were on a laptop), and that `ok` took
+#:   DeepSeek V4 Pro 0423 off the due list for 7 days. So a run counts only if
+#:   it read at least one thread, or found nothing it could not read. A run
+#:   with no unreadable threads and nothing new is a real "nothing to do", and
+#:   still counts. Runs before `threads_unreadable_here` existed carry no field
+#:   and are judged as before.
+LAST_SUCCESS = """
+    SELECT r.model_version_id, max(e.at)
+      FROM fetch_log r
+      JOIN fetch_log e ON e.run_id = r.run_id AND e.kind = 'end'
+     WHERE r.kind = 'run'
+       AND (e.payload->>'status') = 'ok'
+       AND (coalesce((e.payload->>'threads_read')::int, 0) > 0
+            OR coalesce((e.payload->>'threads_unreadable_here')::int, 0) = 0)
+     GROUP BY r.model_version_id
+"""
+
+
 def due_rows(conn) -> list[dict]:
     """The tracked, in-window models with their last SUCCESSFUL fetch.
 
@@ -74,11 +96,7 @@ def due_rows(conn) -> list[dict]:
         "SELECT canonical_id, id, display_name, in_window FROM model_version "
         "WHERE canonical_id = ANY(%s) OR id = ANY(%s)", (ids, ids)).fetchall()}
     # last successful fetch per model_version_id
-    last = {r[0]: r[1] for r in conn.execute(
-        "SELECT r.model_version_id, max(e.at) "
-        "FROM fetch_log r JOIN fetch_log e ON e.run_id = r.run_id AND e.kind = 'end' "
-        "WHERE r.kind = 'run' AND (e.payload->>'status') = 'ok' "
-        "GROUP BY r.model_version_id").fetchall()}
+    last = {r[0]: r[1] for r in conn.execute(LAST_SUCCESS).fetchall()}
     rows = []
     for m in tracked:
         hit = reg.get(m.registry)
@@ -116,7 +134,8 @@ def in_progress(conn, now: datetime) -> set[str]:
     return {r[0] for r in conn.execute(IN_PROGRESS, (now - DEFAULT_SILENT_FOR,)).fetchall()}
 
 
-def run_one(due, *, sources: str | None, development_write: bool) -> dict:
+def run_one(due, *, sources: str | None, development_write: bool,
+            timeout_s: float | None = None) -> dict:
     """Launch one `fetch_model` and return its host-free end record.
 
     A subprocess, not an import, so one model's crash cannot end the batch and
@@ -140,7 +159,18 @@ def run_one(due, *, sources: str | None, development_write: bool) -> dict:
         cmd += ["--sources", sources]
     if development_write:
         cmd += ["--development-write"]
-    proc = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True)
+    # A TIMEOUT, so a job with a hard limit stops the fetch ITSELF and still
+    # posts its summary. Killed from outside, the runner dies with the fetch and
+    # the night says nothing. Progress is not lost: each thread commits as it
+    # finishes (`after_thread=conn.commit`), the run is reaped as abandoned, and
+    # the model stays due for the next night.
+    try:
+        proc = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True,
+                              timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        return {"model_version_id": due.model_version_id, "display_name": due.display_name,
+                "run_id": run_id, "returncode": None, "timed_out": True,
+                "_end": None, "_scheduler": scheduler}
     return {"model_version_id": due.model_version_id, "display_name": due.display_name,
             "run_id": run_id, "returncode": proc.returncode,
             "_end": _end_record(run_id), "_scheduler": scheduler}
@@ -182,6 +212,10 @@ def main(argv: list[str] | None = None) -> int:
                          "Use `github` for the safe end-to-end test.")
     ap.add_argument("--max-models", type=int, default=None,
                     help="stop after this many models, whatever else is due")
+    ap.add_argument("--job-limit-minutes", type=float, default=None,
+                    help="the hard limit of the job this runs in. A running fetch is "
+                         "stopped 10 minutes before it, so the summary still posts. "
+                         "Unset means no limit.")
     ap.add_argument("--deadline-minutes", type=float, default=None,
                     help="stop LAUNCHING models once this many minutes have passed. "
                          "A model already running finishes. For a CI job with a hard "
@@ -266,9 +300,18 @@ def main(argv: list[str] | None = None) -> int:
             print(f"daily budget spent (${spent:.4f} of ${cap:.2f}); "
                   f"{len(due) - i} model(s) not run")
             break
-        result = run_one(d, sources=args.sources, development_write=args.development_write)
+        timeout_s = None
+        if args.job_limit_minutes is not None:
+            left = args.job_limit_minutes - 10 - (time.monotonic() - started) / 60
+            timeout_s = max(60.0, left * 60)
+        result = run_one(d, sources=args.sources, development_write=args.development_write,
+                         timeout_s=timeout_s)
         end = result["_end"]
-        rec = scheduler.safe_record(end) if end else {"status": "no end record"}
+        if result.get("timed_out"):
+            rec = {"status": "stopped at the job time limit; threads read so far are "
+                             "saved, and the model stays due"}
+        else:
+            rec = scheduler.safe_record(end) if end else {"status": "no end record"}
         rec.setdefault("model", d.display_name)
         records.append(rec)
     post_summary(records)
