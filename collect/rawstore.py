@@ -234,10 +234,21 @@ class RawStore:
     #: which refs and why, and three of those answer the question.
     MISSING_LOG_LIMIT = 3
 
-    def __init__(self, root: Path | str | None = None) -> None:
+    def __init__(self, root: Path | str | None = None, *, remote="env") -> None:
         self.root = Path(root) if root is not None else settings().raw_store_path
         #: Per instance, and instances are per run - see `MISSING_LOG_LIMIT`.
         self._missing_logged = 0
+        # THE SHARED BUCKET BEHIND THIS FOLDER (collect/rawstore_remote.py).
+        # "env" reads the RAW_STORE_S3_* variables - none set means local only,
+        # as before; a partial set raises. Tests pass an object or None.
+        if remote == "env":
+            from collect.rawstore_remote import remote_from_env
+
+            remote = remote_from_env()
+        self._remote = remote
+        #: Uploads that failed. Never silent: each is logged, and
+        #: `scripts/sync_raw_store.py` re-sends what the bucket lacks.
+        self.remote_failures = 0
 
     # ── write ────────────────────────────────────────────────────────────
 
@@ -278,10 +289,30 @@ class RawStore:
                     f"{ref} holds {existing} bytes but the payload hashing to that "
                     f"key is {len(data)} bytes. The stored blob is corrupt."
                 )
+            self._share(ref, data)
             return StoredPayload(ref, hash_hex, len(data), already_present=True)
 
         self._write_atomic(path, data)
+        self._share(ref, data)
         return StoredPayload(ref, hash_hex, len(data), already_present=False)
+
+    def _share(self, ref: str, data: bytes) -> None:
+        """Send a payload to the shared bucket, if one is configured.
+
+        A FAILED UPLOAD DOES NOT FAIL THE WRITE: the local copy is already
+        durable, and a fetch that dies because a bucket blinked loses more than
+        it protects. It is logged loudly and counted, and
+        `scripts/sync_raw_store.py` re-sends whatever the bucket lacks.
+        """
+        if self._remote is None:
+            return
+        try:
+            self._remote.put_if_absent(ref, data)
+        except Exception as error:  # noqa: BLE001 - counted and logged, then reconciled
+            self.remote_failures += 1
+            log.error("raw store: upload of %s to the shared bucket failed (%s: %s); "
+                      "the local copy stands, run scripts/sync_raw_store.py",
+                      ref, type(error).__name__, error)
 
     def _write_atomic(self, path: Path, data: bytes) -> None:
         """Write via a temp file and rename.
@@ -318,6 +349,13 @@ class RawStore:
         marker = self._read_marker(path)
         if marker is not None:
             raise PayloadTombstoned(ref, marker)
+
+        # THE SHARED BUCKET, BEFORE GIVING UP (2026-10-06). A payload written on
+        # another machine is fetched and cached here; see `_from_remote`.
+        if not path.exists() and self._remote is not None:
+            fetched = self._from_remote(ref, path)
+            if fetched is not None:
+                return fetched
 
         if not path.exists():
             # NFR-4's rebuild-from-raw guarantee is void the moment this
@@ -372,13 +410,37 @@ class RawStore:
 
         return path.read_bytes()
 
+    def _from_remote(self, ref: str, path: Path) -> bytes | None:
+        """The bucket's copy, cached locally; None when the bucket lacks it.
+
+        A REMOTE TOMBSTONE WINS. If another machine took the payload down, its
+        marker is in the bucket; it is copied here and the read refuses, so a
+        takedown cannot be undone by downloading.
+        """
+        marker = self._remote.get(ref + ".tombstone")
+        if marker is not None:
+            self._write_atomic(self._marker_path(path), marker)
+            raise PayloadTombstoned(ref, self._read_marker(path))
+        data = self._remote.get(ref)
+        if data is None:
+            return None
+        self._write_atomic(path, data)
+        return data
+
     def get_text(self, ref: str) -> str:
         return self.get(ref).decode("utf-8")
 
     def exists(self, ref: str) -> bool:
         """True only for a payload that is present and not tombstoned."""
         path = self._path(ref)
-        return path.exists() and self._read_marker(path) is None
+        if self._read_marker(path) is not None:
+            return False
+        if path.exists():
+            return True
+        if self._remote is None:
+            return False
+        return (self._remote.exists(ref)
+                and not self._remote.exists(ref + ".tombstone"))
 
     def stat(self, ref: str) -> PayloadStat:
         """Everything known about a ref, without reading the payload."""
@@ -386,6 +448,8 @@ class RawStore:
         path = self._path(ref)
         marker = self._read_marker(path)
         size = path.stat().st_size if path.exists() else None
+        if size is None and marker is None and self._remote is not None:
+            size = self._remote.size(ref)
         return PayloadStat(ref=ref, content_hash=hash_hex, size=size, tombstoned=marker)
 
     def verify(self, ref: str) -> bool:
@@ -459,6 +523,13 @@ class RawStore:
             ).encode("utf-8"),
         )
         path.unlink(missing_ok=True)
+        # THE TAKEDOWN REACHES THE BUCKET, or another machine's next read would
+        # download the bytes back. Raises on failure: a deletion request that
+        # half-happened must be visible, not logged and forgotten.
+        if self._remote is not None:
+            self._remote.upload(ref + ".tombstone",
+                             self._marker_path(path).read_bytes())
+            self._remote.delete(ref)
         return marker
 
     def evict(self, ref: str) -> bool:

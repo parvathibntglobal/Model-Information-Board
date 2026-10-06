@@ -40,11 +40,14 @@ What an Action changes, and the workflow file says the same:
    2-2.5 h on 2026-10-06 (median 28 s, mean 85 s per thread over 26 threads).
    The runner stops *launching* models at `--deadline-minutes 200` and names
    each one it did not run; the next night continues.
-2. **The raw store is not kept.** A runner starts empty and is discarded. Every
-   row reaches the shared database, so the board is unaffected; re-extraction
-   from raw later (NFR-4) is what is lost - the gap that already exists between
-   laptops. A shared object store closes it. **Do not use Actions artifacts for
-   it**: in a public repository they would publish Reddit and X payloads.
+2. **The raw store is a shared bucket** (`RAW_STORE_S3_*`, Cloudflare R2;
+   `collect/rawstore_remote.py`). A runner starts empty; without the bucket it
+   can read only what it harvests in the same job - the first scheduled run,
+   2026-10-06, read 0 of 2,217 waiting documents and 0 of 6,087 unread threads.
+   Every machine that has fetched runs `python scripts/sync_raw_store.py
+   --apply` once; after that every write is shared as it happens. **Do not use
+   Actions artifacts for this**: in a public repository they would publish
+   Reddit and X payloads.
 3. **The logs are public.** The runner prints model names, counts and its
    decisions; `fetch_model`'s output is captured, not printed.
 
@@ -82,7 +85,9 @@ promotion report (#492) is how a person decides which untracked models earn that
 
 ## Turning it on, once the basis is honest
 
-1. Add the secrets `OPENROUTER_API_KEY`, `RAPIDAPI_KEY` and `X_RAPIDAPI_KEY`, and the
+1. Add the secrets `OPENROUTER_API_KEY`, `RAPIDAPI_KEY`, `X_RAPIDAPI_KEY`,
+   `RAW_STORE_S3_ACCESS_KEY_ID` and `RAW_STORE_S3_SECRET_ACCESS_KEY`, the variables
+   `RAW_STORE_S3_ENDPOINT` and `RAW_STORE_S3_BUCKET`, and the
    variables `REDDIT_PROVIDER=reddit34` and `SCRAPER_PROVIDER=twitter241`
    (repository settings -> Secrets and variables -> Actions). Only the
    repository owner can, on a personal-account repository.
