@@ -239,3 +239,18 @@ class TestThePolicyIsContract:
                 scheduler.policy()
         finally:
             scheduler.policy.cache_clear()
+
+
+class TestTheDeadlineStopsLaunching:
+    """A CI job has a hard time limit; past --deadline-minutes the runner
+    launches no further model and names each one it did not run."""
+
+    def test_models_after_the_deadline_are_named_not_launched(self, monkeypatch):
+        launched, posted = TestTheBudgetStopsTheBatch()._setup(monkeypatch, [0.0, 0.0, 0.0])
+        clock = iter([0.0, 0.0, 61 * 60.0, 62 * 60.0])     # start, A, B, C
+        monkeypatch.setattr(runner.time, "monotonic", lambda: next(clock))
+        assert runner.main(["--deadline-minutes", "60"]) == 0
+        assert launched == ["A"]
+        skipped = [r["model"] for r in posted
+                   if r["status"] == "not run: this job's time budget is spent"]
+        assert skipped == ["B", "C"]

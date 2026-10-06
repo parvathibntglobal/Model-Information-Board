@@ -86,6 +86,15 @@ jobs:
           --only poll-registry --only recompute-window
           --journal poll-journal.jsonl
 
+      # NEW MODELS FROM PROVIDERS ALREADY ON THE PAGE (contract/tracked_models.yaml
+      # `auto_track`, 2026-10-06). The page and the scheduler admit them by rule;
+      # this gives each one the search aliases a fetch needs - generated,
+      # versioned surfaces only, collision-checked against every live alias.
+      # The report on the diff issue is the staging-write announcement.
+      - name: Seat aliases for new models the auto_track rule admits
+        run: |
+          python scripts/auto_seat.py --apply --out auto_seat.md
+          gh issue comment "$DIFF_ISSUE" --body-file auto_seat.md
       - name: Post the promotion report where a person sees it
         run: |
           if [ -z "$PROMOTION_ISSUE" ]; then
