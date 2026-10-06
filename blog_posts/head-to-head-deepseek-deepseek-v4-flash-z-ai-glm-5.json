@@ -364,5 +364,6 @@
   "plan_key": "head-to-head:deepseek/deepseek-v4-flash+z-ai/glm-5",
   "format": "head-to-head",
   "reviewed_by": null
- }
+ },
+ "interactive": true
 }
