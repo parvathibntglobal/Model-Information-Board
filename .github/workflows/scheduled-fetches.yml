@@ -14,16 +14,19 @@
 # THREE THINGS AN ACTION CHANGES, stated so nobody is surprised by them:
 #   1. THE 6-HOUR JOB LIMIT. A first fetch at the 100-thread cap measured
 #      ~2-2.5 h on 2026-10-06 (median 28 s, mean 85 s per thread over 26
-#      threads). The runner stops LAUNCHING models at --deadline-minutes, well
-#      short of the limit, and names every model it did not run; the next
-#      night continues from there.
-#   2. THE RAW STORE IS NOT KEPT. A runner starts empty and is discarded, so the
-#      payloads a run fetches exist only for that job. Every row reaches the
-#      shared database - documents, threads, board entries, spend, fetch log -
-#      so the board is unaffected; what is lost is re-extraction from raw later
-#      (NFR-4). The same gap exists today between laptops. A shared object
-#      store closes it; Actions artifacts must NOT be used for it, because in a
-#      public repository they would publish Reddit and X payloads.
+#      threads). The runner launches models until minute 300
+#      (--deadline-minutes) and stops a fetch still running at minute 345
+#      (--job-limit-minutes 355, minus 10), so the summary always posts. Each
+#      thread commits as it finishes, so a stopped fetch loses one thread at
+#      most and its model stays due; every model not reached is named, and the
+#      next night continues from there.
+#   2. THE RAW STORE IS THE SHARED BUCKET (RAW_STORE_S3_*). A runner starts
+#      empty; without the bucket it can read only what it harvests in the same
+#      job - measured 2026-10-06, the first run read 0 of 2,217 waiting
+#      documents and 0 of 6,087 unread threads. Every machine that has fetched
+#      runs scripts/sync_raw_store.py --apply once. Actions artifacts must NOT
+#      be used instead: in a public repository they would publish Reddit and X
+#      payloads.
 #   3. THE LOGS ARE PUBLIC. The runner prints model names, counts and its
 #      decisions; fetch_model's own output is captured, not printed, and the
 #      summary is host-free by construction (judge/scheduler.summarise_runs).
@@ -31,6 +34,8 @@
 # SET BEFORE TURNING IT ON (repository settings - names only here):
 #   secrets    STAGING_DATABASE_URL (exists), OPENROUTER_API_KEY,
 #              RAPIDAPI_KEY (Reddit), X_RAPIDAPI_KEY (X) - two keys, two providers
+#   secrets    RAW_STORE_S3_ACCESS_KEY_ID, RAW_STORE_S3_SECRET_ACCESS_KEY
+#   variables  RAW_STORE_S3_ENDPOINT, RAW_STORE_S3_BUCKET
 #   variables  USER_AGENT (exists), EXTRACTION_DAILY_BUDGET_USD,
 #              REDDIT_PROVIDER (reddit34), SCRAPER_PROVIDER (twitter241),
 #              SCHEDULER_ISSUE (an issue for the nightly summary),
@@ -84,6 +89,13 @@ jobs:
       SCHEDULER_ENABLED: ${{ vars.SCHEDULER_ENABLED }}
       SCHEDULER_ISSUE: ${{ vars.SCHEDULER_ISSUE }}
       RAW_STORE_PATH: raw_store
+      # THE SHARED RAW STORE (collect/rawstore_remote.py). Without it a runner
+      # starts empty and can read only what it harvests itself - the first
+      # scheduled run read 0 of 2,217 waiting documents. All four or none.
+      RAW_STORE_S3_ENDPOINT: ${{ vars.RAW_STORE_S3_ENDPOINT }}
+      RAW_STORE_S3_BUCKET: ${{ vars.RAW_STORE_S3_BUCKET }}
+      RAW_STORE_S3_ACCESS_KEY_ID: ${{ secrets.RAW_STORE_S3_ACCESS_KEY_ID }}
+      RAW_STORE_S3_SECRET_ACCESS_KEY: ${{ secrets.RAW_STORE_S3_SECRET_ACCESS_KEY }}
       MAX_MODELS: ${{ inputs.max_models }}
       SOURCES: ${{ inputs.sources }}
     steps:
@@ -101,6 +113,7 @@ jobs:
           [ -n "$USER_AGENT" ]                  || missing="$missing USER_AGENT"
           [ -n "$EXTRACTION_DAILY_BUDGET_USD" ] || missing="$missing EXTRACTION_DAILY_BUDGET_USD"
           [ -n "$SCHEDULER_ISSUE" ]             || missing="$missing SCHEDULER_ISSUE"
+          [ -n "$RAW_STORE_S3_BUCKET" ]         || missing="$missing RAW_STORE_S3_BUCKET"
           if [ -n "$missing" ]; then
             echo "::error::scheduler switched on but not configured:$missing"
             exit 1
@@ -124,10 +137,13 @@ jobs:
 
       - name: Fetch the due models
         if: steps.gate.outputs.enabled == 'true'
-        # --deadline-minutes 200: a model launched at minute 199 still has
-        # ~2.5 h before the 355-minute job limit, the measured first-fetch time.
+        # --job-limit-minutes 355 matches timeout-minutes: a fetch still running
+        # at 345 min is stopped by the runner, which then posts the summary.
+        # Each thread commits as it finishes, so that loses one thread at most
+        # and the model stays due. That makes a late launch cheap, so
+        # --deadline-minutes 300 starts models until minute 300.
         run: |
-          args="--deadline-minutes 200"
+          args="--job-limit-minutes 355 --deadline-minutes 300"
           [ -n "$MAX_MODELS" ] && args="$args --max-models $MAX_MODELS"
           [ -n "$SOURCES" ]    && args="$args --sources $SOURCES"
           python -m scripts.run_scheduled_fetches $args

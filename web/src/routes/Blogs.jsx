@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { blogPosts, startBlogGeneration, blogGenerationStatus } from '../api'
+import { blogPosts, startBlogGeneration, blogGenerationStatus, listModels } from '../api'
 import { DB } from '../board/db'
 import { vBlogs, vPost } from '../board/views'
 import BoardView from '../board/BoardView'
@@ -66,6 +66,15 @@ export default function Blogs() {
       DB.posts = d.posts || []
       DB.postsMeta = { reason: d.reason || null, skipped: d.skipped || [] }
       setState((s) => ({ ready: true, err: null, n: (s.n || 0) + 1 }))
+      // INTERACTIVE POSTS read today's model figures (docs/proposals/
+      // interactive-blogs.md). Loaded beside the posts, never ahead of them:
+      // a failure here leaves posts readable, just without links and cards.
+      listModels(200)
+        .then((m) => {
+          DB.blogModels = m.models || []
+          setState((s) => ({ ...s, n: (s.n || 0) + 1 }))
+        })
+        .catch((e) => { console.warn('interactive posts: models not loaded:', e.message) })
     })
     .catch((e) => {
       DB.posts = []

@@ -560,6 +560,18 @@
 .es-steps .dot{width:2rem;height:2rem;border-radius:50%;display:grid;place-items:center;font:600 .82rem var(--es-mono);color:var(--es-bg);background:var(--es-accent)}
 .es-steps .check{display:flex;gap:.5rem;align-items:flex-start;color:var(--es-muted) !important;font-size:.86rem !important}
 .es-steps .body{min-width:0}
+
+/* Interactive posts, phase 1 (docs/proposals/interactive-blogs.md). */
+.essay .es-ihint{font-size:.82rem;color:var(--es-muted);border-left:2px solid var(--es-accent);padding:.35rem .7rem;margin:0 0 1.2rem}
+.essay a.es-ent{position:relative;color:inherit;text-decoration:underline dotted var(--es-accent);text-underline-offset:3px;cursor:pointer}
+.essay a.es-ent:hover,.essay a.es-ent:focus{text-decoration-style:solid;outline:none}
+.essay .es-pop{display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:30;min-width:15rem;max-width:20rem;padding:.6rem .75rem;border:1px solid var(--es-line);border-radius:8px;background:var(--es-bg);box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:.8rem;font-style:normal;line-height:1.45;text-align:left;white-space:normal}
+.essay a.es-ent:hover .es-pop,.essay a.es-ent:focus .es-pop{display:flex;flex-direction:column;gap:.15rem}
+.essay .es-pop b{color:var(--es-text);font-size:.86rem}
+.essay .es-pop span{color:var(--es-muted)}
+.essay .es-pop .go{color:var(--es-accent);margin-top:.25rem}
+.essay .es-num{text-decoration:underline dotted var(--es-muted);text-underline-offset:3px;cursor:help}
+.essay q.es-iq[title]{cursor:help}
 .es-steps .box{flex:0 0 .8rem;height:.8rem;margin-top:.3rem;border:1px solid var(--es-accent);border-radius:3px}
 .layout-runbook .es-pre{border-left:3px solid var(--es-accent)}
 .layout-runbook .es-article h2{font-size:1.35rem}
