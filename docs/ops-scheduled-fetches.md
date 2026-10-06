@@ -21,16 +21,35 @@ Two independent guards, so neither alone is load-bearing:
   void, every non-GitHub arm skips itself with its reason, whatever the switch
   says.
 
-## What is code, and what is the service's (yours)
+## Where it runs: a GitHub Action (since 2026-10-06)
+
+`.github/workflows/scheduled-fetches.yml`, daily at **20:30 UTC (02:00 IST)**,
+and by hand from the Actions tab (`workflow_dispatch`, with optional
+`max_models` and `sources`). #494 planned a Railway service; the repository is
+staying public and standard GitHub-hosted runners are free for public
+repositories, so the team chose Actions.
 
 | | |
 |---|---|
-| **code (built here)** | the selector (`judge/scheduler.rank_due`), the runner (`scripts/run_scheduled_fetches.py`), the per-source scope (`fetch_model --sources`), the host-free summary (`judge/scheduler.summarise_runs`) |
-| **yours, on Railway** | a second **service** from this image whose start command is the runner; a **cron** schedule; a mounted **volume** for the raw store (`RAW_STORE_PATH`); a **token** that may only comment on issues, and `SCHEDULER_ISSUE` naming the one it posts to; the **plan** that pays for the container time; and finally `SCHEDULER_ENABLED` |
+| **code** | the selector (`judge/scheduler.rank_due`, policy in `contract/scheduler.yaml`), the runner (`scripts/run_scheduled_fetches.py`), the per-source scope (`fetch_model --sources`), the host-free summary (`judge/scheduler.summarise_runs`), the workflow |
+| **repository settings (yours)** | secrets `STAGING_DATABASE_URL` (exists), `OPENROUTER_API_KEY`, `RAPIDAPI_KEY`; variables `USER_AGENT` (exists), `EXTRACTION_DAILY_BUDGET_USD`, `SCHEDULER_ISSUE`, and last `SCHEDULER_ENABLED=1` |
 
-The admin page's settings section shows `SCHEDULER_ENABLED` and `SCHEDULER_ISSUE`
-as set / not set, so their state is visible from the board without opening
-Railway.
+What an Action changes, and the workflow file says the same:
+
+1. **The 6-hour job limit.** A first fetch at the 100-thread cap measured about
+   2-2.5 h on 2026-10-06 (median 28 s, mean 85 s per thread over 26 threads).
+   The runner stops *launching* models at `--deadline-minutes 200` and names
+   each one it did not run; the next night continues.
+2. **The raw store is not kept.** A runner starts empty and is discarded. Every
+   row reaches the shared database, so the board is unaffected; re-extraction
+   from raw later (NFR-4) is what is lost - the gap that already exists between
+   laptops. A shared object store closes it. **Do not use Actions artifacts for
+   it**: in a public repository they would publish Reddit and X payloads.
+3. **The logs are public.** The runner prints model names, counts and its
+   decisions; `fetch_model`'s output is captured, not printed.
+
+`/admin/settings` shows `SCHEDULER_ENABLED` and `SCHEDULER_ISSUE` for the
+backend that serves it, not for the Action - check the repository variables.
 
 ## The selection rule
 
@@ -63,17 +82,17 @@ promotion report (#492) is how a person decides which untracked models earn that
 
 ## Turning it on, once the basis is honest
 
-1. Provision the volume and point `RAW_STORE_PATH` into it. Without a volume,
-   every deploy wipes the payloads NFR-4 requires kept.
-2. Set the service's variables: a write-capable `DATABASE_URL`,
-   `OPENROUTER_API_KEY`, `EXTRACTION_DAILY_BUDGET_USD`, `ENVIRONMENT=production`,
-   the GitHub and RapidAPI credentials, `USER_AGENT`.
-3. Create an issue for the summaries and set `SCHEDULER_ISSUE` to its number, and
-   give the token issue-comment scope. The issue is public; the summary carries
-   model names and counts only — no quotes, authors or hosts.
-4. Add the cron (UTC).
-5. **Last: set `SCHEDULER_ENABLED=1`.** Before this, every scheduled run exits
-   having harvested nothing.
+1. Add the secrets `OPENROUTER_API_KEY` and `RAPIDAPI_KEY` (repository
+   settings -> Secrets and variables -> Actions).
+2. Add the variables `EXTRACTION_DAILY_BUDGET_USD` and `SCHEDULER_ISSUE` (an
+   issue for the nightly summary; it is public, and the summary carries model
+   names and counts only - no quotes, authors or hosts).
+3. **Set the variable `SCHEDULER_ENABLED=1`**, then straight away run it once by
+   hand - Actions -> Scheduled fetches -> Run workflow, `max_models` 1,
+   `sources` github - and read its summary on `SCHEDULER_ISSUE` before the
+   first nightly run at 02:00 IST.
+4. To pause it, set `SCHEDULER_ENABLED` to anything but `1`; the job then ends
+   green having done nothing.
 
 ## Testing it end to end today, without harvesting on a false basis
 
