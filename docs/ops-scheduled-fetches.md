@@ -32,7 +32,7 @@ repositories, so the team chose Actions.
 | | |
 |---|---|
 | **code** | the selector (`judge/scheduler.rank_due`, policy in `contract/scheduler.yaml`), the runner (`scripts/run_scheduled_fetches.py`), the per-source scope (`fetch_model --sources`), the host-free summary (`judge/scheduler.summarise_runs`), the workflow |
-| **repository settings (yours)** | secrets `STAGING_DATABASE_URL` (exists), `OPENROUTER_API_KEY`, `RAPIDAPI_KEY`; variables `USER_AGENT` (exists), `EXTRACTION_DAILY_BUDGET_USD`, `SCHEDULER_ISSUE`, and last `SCHEDULER_ENABLED=1` |
+| **repository settings (yours)** | secrets `STAGING_DATABASE_URL` (exists), `OPENROUTER_API_KEY`, `RAPIDAPI_KEY` (Reddit), `X_RAPIDAPI_KEY` (X - a separate key for a separate provider); variables `USER_AGENT` (exists), `REDDIT_PROVIDER` (`reddit34`), `SCRAPER_PROVIDER` (`twitter241`), `EXTRACTION_DAILY_BUDGET_USD`, `SCHEDULER_ISSUE`, and last `SCHEDULER_ENABLED=1` |
 
 What an Action changes, and the workflow file says the same:
 
@@ -82,8 +82,10 @@ promotion report (#492) is how a person decides which untracked models earn that
 
 ## Turning it on, once the basis is honest
 
-1. Add the secrets `OPENROUTER_API_KEY` and `RAPIDAPI_KEY` (repository
-   settings -> Secrets and variables -> Actions).
+1. Add the secrets `OPENROUTER_API_KEY`, `RAPIDAPI_KEY` and `X_RAPIDAPI_KEY`, and the
+   variables `REDDIT_PROVIDER=reddit34` and `SCRAPER_PROVIDER=twitter241`
+   (repository settings -> Secrets and variables -> Actions). Only the
+   repository owner can, on a personal-account repository.
 2. Add the variables `EXTRACTION_DAILY_BUDGET_USD` and `SCHEDULER_ISSUE` (an
    issue for the nightly summary; it is public, and the summary carries model
    names and counts only - no quotes, authors or hosts).

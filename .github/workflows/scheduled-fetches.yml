@@ -29,8 +29,10 @@
 #      summary is host-free by construction (judge/scheduler.summarise_runs).
 #
 # SET BEFORE TURNING IT ON (repository settings - names only here):
-#   secrets    STAGING_DATABASE_URL (exists), OPENROUTER_API_KEY, RAPIDAPI_KEY
+#   secrets    STAGING_DATABASE_URL (exists), OPENROUTER_API_KEY,
+#              RAPIDAPI_KEY (Reddit), X_RAPIDAPI_KEY (X) - two keys, two providers
 #   variables  USER_AGENT (exists), EXTRACTION_DAILY_BUDGET_USD,
+#              REDDIT_PROVIDER (reddit34), SCRAPER_PROVIDER (twitter241),
 #              SCHEDULER_ISSUE (an issue for the nightly summary),
 #              SCHEDULER_ENABLED=1 - last.
 
@@ -68,7 +70,13 @@ jobs:
       ENVIRONMENT: staging
       DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      # REDDIT AND X ARE TWO RAPIDAPI PROVIDERS WITH TWO KEYS. Measured
+      # 2026-09-10: the Reddit key is refused by the X provider and vice versa
+      # (collect/config.py). Each arm also needs its provider's name.
       RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+      X_RAPIDAPI_KEY: ${{ secrets.X_RAPIDAPI_KEY }}
+      REDDIT_PROVIDER: ${{ vars.REDDIT_PROVIDER }}
+      SCRAPER_PROVIDER: ${{ vars.SCRAPER_PROVIDER }}
       GITHUB_TOKEN: ${{ github.token }}
       GH_TOKEN: ${{ github.token }}
       USER_AGENT: ${{ vars.USER_AGENT }}
@@ -97,8 +105,9 @@ jobs:
             echo "::error::scheduler switched on but not configured:$missing"
             exit 1
           fi
-          # RAPIDAPI_KEY is not required: without it the Reddit and X arms skip
-          # themselves with a reason (#491), and the rest still run.
+          # The RapidAPI keys and providers are not required: without them the
+          # Reddit and X arms skip themselves with a reason (#491), and the
+          # GitHub, dev.to, HN and Hugging Face arms still run.
           echo "enabled=true" >> "$GITHUB_OUTPUT"
 
       - if: steps.gate.outputs.enabled == 'true'
