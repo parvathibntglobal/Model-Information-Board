@@ -792,8 +792,30 @@ class Progress:
             # Every id is sha256(run_id|seq|payload), so re-sending lines that
             # did arrive inserts nothing; only the gaps fill. Best-effort like
             # the mirror itself - the file remains the survivor.
-            _replay_fetch_file(self.path, run_id=self.run_id,
-                               model_version_id=self.model_version_id)
+            #
+            # ⚠ AND IT CLEARS `usage`'s OWN BACKOFF FIRST. A failed connection
+            #   makes `telemetry_connection()` return None for
+            #   TELEMETRY_RETRY_AFTER_SECONDS (30 s), so a replay started inside
+            #   that window "sends" nothing and the end record is lost again.
+            #   Found 2026-10-06 repairing a reaped run: three replays in a row
+            #   stopped at the same 44 of 193 lines. Up to three attempts, 10 s
+            #   apart, stopping once every line has gone - at most ~20 s added,
+            #   and only to a run that already lost lines.
+            #
+            #   A replay that sends NOTHING stops at once: the database is
+            #   unreachable (or the test guard refuses it), and waiting on a
+            #   database that is not answering is the per-line timeout storm
+            #   the backoff exists to prevent. Partial progress is what earns a
+            #   retry.
+            total = sum(1 for _ in self.path.open(encoding="utf-8"))
+            for attempt in range(3):
+                usage.reset_telemetry_backoff()
+                sent = _replay_fetch_file(self.path, run_id=self.run_id,
+                                          model_version_id=self.model_version_id)
+                if sent >= total or sent == 0:
+                    break
+                if attempt < 2:
+                    time.sleep(MIRROR_REPLAY_PAUSE_S)
         if self._console:
             self._say([""] + fetch_console.render(
                 record, model_version_id=self.model_version_id))
@@ -806,6 +828,8 @@ def _now() -> str:
 
 #: Seconds the mirror waits after a failed write before trying again.
 MIRROR_BACKOFF_S = 60.0
+#: Pause between end-of-run replay attempts (see `Progress.done`).
+MIRROR_REPLAY_PAUSE_S = 10.0
 
 
 def _replay_fetch_file(path, *, run_id: str, model_version_id: str) -> int:

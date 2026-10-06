@@ -21,6 +21,7 @@ def sent(monkeypatch, tmp_path):
     monkeypatch.setattr(fm, "FETCH_DIR", tmp_path)
     monkeypatch.setenv("FETCH_QUIET", "1")
     monkeypatch.setattr(fm, "MIRROR_BACKOFF_S", 0.0)
+    monkeypatch.setattr(fm, "MIRROR_REPLAY_PAUSE_S", 0.0)
     calls = {"n": 0, "rows": {}}
 
     def fake(*, run_id, seq, rec, model_version_id):
@@ -53,3 +54,50 @@ def test_the_switch_still_turns_mirroring_off(sent):
     prog.stage("E1", "Registry", "ok", detail="x")
     prog.done("ok", "fetch complete")
     assert sent["n"] == before, "a switched-off mirror still wrote, or replayed"
+
+
+def test_the_end_replay_retries_through_a_failing_first_attempt(monkeypatch, tmp_path):
+    """The replay at `done` clears the telemetry backoff and tries again: a
+    replay that only partly gets through must still deliver the end record."""
+    monkeypatch.setattr(fm, "FETCH_DIR", tmp_path)
+    monkeypatch.setenv("FETCH_QUIET", "1")
+    monkeypatch.setattr(fm, "MIRROR_BACKOFF_S", 0.0)
+    monkeypatch.setattr(fm, "MIRROR_REPLAY_PAUSE_S", 0.0)
+    state = {"down": True, "rows": {}}
+
+    def fake(*, run_id, seq, rec, model_version_id):
+        if state["down"] and seq > 0:      # the opening line gets through
+            return False
+        state["rows"][seq] = rec.get("kind")
+        return True
+
+    resets = []
+    monkeypatch.setattr(fm, "_mirror_fetch_line", fake)
+    monkeypatch.setattr(fm.usage, "reset_telemetry_backoff", lambda: resets.append(1))
+    real_replay = fm._replay_fetch_file
+
+    def replay(*a, **k):
+        sent = real_replay(*a, **k)
+        state["down"] = False          # the database comes back after one try
+        return sent
+
+    monkeypatch.setattr(fm, "_replay_fetch_file", replay)
+    prog = fm.Progress("run-retry", "mv_1")
+    prog.stage("E1", "Registry", "ok", detail="x")
+    prog.done("ok", "fetch complete")
+
+    assert "end" in state["rows"].values()
+    assert len(resets) >= 2, "the usage backoff was not cleared before each attempt"
+
+
+def test_a_replay_that_sends_nothing_does_not_wait(monkeypatch, tmp_path):
+    """Nothing sent means nothing is answering: no retry, no pause."""
+    monkeypatch.setattr(fm, "FETCH_DIR", tmp_path)
+    monkeypatch.setenv("FETCH_QUIET", "1")
+    monkeypatch.setattr(fm, "MIRROR_BACKOFF_S", 0.0)
+    monkeypatch.setattr(fm, "_mirror_fetch_line", lambda **k: False)
+    slept = []
+    monkeypatch.setattr(fm.time, "sleep", lambda s: slept.append(s))
+    prog = fm.Progress("run-dark", "mv_1")
+    prog.done("ok", "fetch complete")
+    assert slept == []
