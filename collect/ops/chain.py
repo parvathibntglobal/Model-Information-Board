@@ -448,8 +448,17 @@ def _poll_registry_stage(context) -> StageResult:
 
     result, tombstoned = apply_tombstones(result, load_tombstones())
     counts = write_model_versions(conn, result)
-    return StageResult(OK, counts={"models": len(result.models),
-                                   "tombstoned_skipped": len(tombstoned), **counts})
+    # A `:batch` sibling priced ABOVE its base is not a discount, so
+    # `batch_discount` stays NULL for it (collect/registry/openrouter.py). Said
+    # on the stage line - a NULL there must not read as "no batch tier".
+    refused = result.batch_ratios_refused
+    return StageResult(
+        OK,
+        detail=("batch_discount left NULL (batch priced above base): "
+                + ", ".join(f"{mid} x{ratio}" for mid, ratio in refused)) if refused else "",
+        counts={"models": len(result.models), "tombstoned_skipped": len(tombstoned),
+                "batch_ratio_refused": len(refused), **counts},
+    )
 
 
 def _recompute_window_stage(context) -> StageResult:

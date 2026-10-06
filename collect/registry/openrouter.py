@@ -175,6 +175,10 @@ class PolledModel:
     supports_caching: bool | None
     supports_batch: bool | None
     sources: dict[str, dict[str, str]] = field(default_factory=dict)
+    #: The `:batch`/base prompt-price ratio when it was NOT a discount (> 1).
+    #: Not a column: it says why `batch_discount` is None for a model that does
+    #: have a `:batch` sibling. Read by `PollResult.batch_ratios_refused`.
+    batch_ratio_refused: float | None = None
 
     #: Never set from the feed. `family`, `lifecycle` and `regions` are not in it,
     #: and `slot` is neither in the feed nor in the schema.
@@ -251,10 +255,24 @@ def map_model(entry: dict[str, Any], *, retrieved_at: datetime,
     cached = _per_million(pricing.get("input_cache_read"))
 
     batch_discount = None
+    batch_ratio_refused = None
     if batch_sibling:
         batch_price = _per_million((batch_sibling.get("pricing") or {}).get("prompt"))
         if batch_price is not None and price_in:
-            batch_discount = round(batch_price / price_in, 3)
+            ratio = round(batch_price / price_in, 3)
+            # A DISCOUNT IS A RATIO AT MOST 1. The feed has `:batch` siblings
+            # that cost MORE than the base: on 2026-10-06 four of 73 pairs -
+            # deepseek-v4.1-flash 37.333 (base $0.003 vs batch $0.112 per 1M),
+            # glm-5.3 6.429, kimi-k3 2.4, gpt-oss-20b 1.333. Stored, the first
+            # overflowed `batch_discount numeric(4,3)` and failed the WHOLE
+            # poll from 2026-10-04, so no model arrived after 10-01; the other
+            # three would have been recorded as "discounts" that raise the price
+            # (rule 12: a plausible wrong value). The surcharge is not a
+            # discount, so the column stays NULL and the ratio is kept beside it.
+            if 0 < ratio <= 1:
+                batch_discount = ratio
+            else:
+                batch_ratio_refused = ratio
 
     values: dict[str, Any] = {
         "display_name": entry.get("name") or None,
@@ -299,7 +317,8 @@ def map_model(entry: dict[str, Any], *, retrieved_at: datetime,
             sources[name] = _source(name, retrieved_at)
 
     return PolledModel(
-        canonical_id=model_id, provider=provider, sources=sources, **values
+        canonical_id=model_id, provider=provider, sources=sources,
+        batch_ratio_refused=batch_ratio_refused, **values
     )
 
 
@@ -315,6 +334,12 @@ class PollResult:
     ref: str | None = None
     #: `~vendor/family-latest` pointer entries skipped (they carry `alias_target`).
     alias_entries: int = 0
+
+    @property
+    def batch_ratios_refused(self) -> tuple[tuple[str, float], ...]:
+        """(canonical_id, ratio) for every `:batch` sibling priced above its base."""
+        return tuple((m.canonical_id, m.batch_ratio_refused) for m in self.models
+                     if m.batch_ratio_refused is not None)
 
     @property
     def distinct_models(self) -> int:
