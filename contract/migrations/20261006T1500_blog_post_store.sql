@@ -1,5 +1,5 @@
 -- Blog posts in the shared database: drafts pending, approved posts shown,
--- rejected posts reduced to a tombstone. Builds on 20261006T1200, which
+-- rejected posts kept but never shown. Builds on 20261006T1200, which
 -- recorded runs and review decisions but left the posts themselves as files.
 --
 -- WHY. A draft as a file lives on the machine that generated it. The team
@@ -12,14 +12,12 @@
 -- THE STATES
 --   pending    stored, awaiting review; never on the public Blogs page
 --   approved   on the public Blogs page
---   rejected   CONTENT DELETED (`doc` NULL). The row stays as a tombstone so
---              the planner does not write the same (format, subject) again and
---              pay for it twice; the decision and its reason stay in
---              `blog_post_review`. Decided by anooj, 2026-10-06: a rejected
---              draft is not kept. So rejection is the one decision that cannot
---              be moved back - there is nothing left to move.
--- The CHECK makes "rejected" and "no content" the same fact, so a rejected post
--- cannot keep its body and a live post cannot lose it.
+--   rejected   never on the Blogs page, CONTENT KEPT. Decided by anooj,
+--              2026-10-06 (a first draft deleted it): a rejected post and its
+--              reason are what a later change can feed back to the generator
+--              so it avoids similar posts. Its `plan_key` already stops the
+--              planner writing the same (format, subject) again and paying for
+--              it twice. It can be moved back to drafts like an approved one.
 --
 -- WHO WRITES
 --   judge/blog_store.py   store_drafts (a finished run's drafts, or a
@@ -35,12 +33,11 @@
 CREATE TABLE blog_post (
   slug          text PRIMARY KEY,
   state         text NOT NULL CHECK (state IN ('pending', 'approved', 'rejected')),
-  doc           jsonb,          -- the post as views.js vPost renders it; NULL once rejected
-  plan_key      text,           -- the planner's (format, subject) key; kept on rejection
+  doc           jsonb NOT NULL, -- the post as views.js vPost renders it, in every state
+  plan_key      text,           -- the planner's (format, subject) key
   run_id        text REFERENCES blog_generation_run(id),  -- NULL: stored from files
   generated_at  timestamptz,    -- the post's provenance.generated_at; NULL when absent
-  stored_at     timestamptz NOT NULL,
-  CONSTRAINT blog_post_rejected_has_no_content CHECK ((state = 'rejected') = (doc IS NULL))
+  stored_at     timestamptz NOT NULL
 );
 
 CREATE INDEX blog_post_state ON blog_post (state);

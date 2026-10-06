@@ -1,13 +1,14 @@
-"""Blog posts in the shared database: pending, approved, or a rejected tombstone.
+"""Blog posts in the shared database: pending, approved, or rejected.
 
 Migration `20261006T1500_blog_post_store.sql` says why posts moved here from
-files, and why rejecting a post deletes its content. In short:
+files, and why a rejected post is kept. In short:
 
   pending    stored, awaiting review in Admin -> Blogs; never on the Blogs page
   approved   on the Blogs page
-  rejected   content deleted; the row stays so the planner never writes the
-             same (format, subject) again, and the decision stays in
-             `blog_post_review` with its reason
+  rejected   never on the Blogs page, CONTENT KEPT with its reason in
+             `blog_post_review` - so a later change can show the generator what
+             was rejected and why. Its `plan_key` already stops the planner
+             writing the same (format, subject) again.
 
 WHO PUTS POSTS HERE. The generator still writes draft FILES on the machine that
 runs it (it calls a paid model and is local only). `store_drafts` copies drafts
@@ -35,16 +36,18 @@ from judge import blog_posts
 STATES = ("pending", "approved", "rejected")
 DECISIONS = ("approved", "rejected", "reopened")
 
-#: What each decision does to a post in each state. Absent = refused, with the
-#: reason in `_REFUSAL`. Rejected has no way out: its content is gone.
+#: What each decision does to a post in each state. Absent = refused: the
+#: decision would change nothing ("approve" an approved post, "move back" a
+#: pending one), and a no-op row would read as a decision somebody made.
 _TRANSITIONS = {
     ("pending", "approved"): "approved",
     ("pending", "rejected"): "rejected",
     ("approved", "rejected"): "rejected",
     ("approved", "reopened"): "pending",
+    ("rejected", "reopened"): "pending",
 }
 _REFUSAL = {
-    "rejected": "this post was rejected and its content deleted, so there is nothing to move back",
+    "rejected": "this post is already rejected; move it back to drafts first",
     "pending": "this post is already awaiting review",
     "approved": "this post is already approved",
 }
@@ -117,27 +120,19 @@ def published(conn) -> list[dict]:
 
 
 def for_review(conn) -> list[dict]:
-    """Every stored post for Admin -> Blogs and its preview: pending and approved
-    with their content and `review` state, rejected as a tombstone with none."""
+    """Every stored post, whatever its state, for Admin -> Blogs and its preview:
+    the post itself plus its `review` state and the latest decision's reason."""
     rows = _read(
         conn,
-        "SELECT p.slug, p.state, p.doc, p.plan_key, p.run_id, p.generated_at, p.stored_at, "
-        "       r.reason, r.decided_at "
+        "SELECT p.doc, p.state, p.run_id, p.stored_at, r.reason, r.decided_at "
         "FROM blog_post p "
         "LEFT JOIN LATERAL (SELECT reason, decided_at FROM blog_post_review "
         "                   WHERE slug = p.slug ORDER BY decided_at DESC LIMIT 1) r ON true",
     )
-    live, tombstones = [], []
-    for slug, state, doc, plan_key, run_id, gen_at, stored_at, reason, decided_at in rows:
-        meta = {"review": state, "run_id": run_id, "stored_at": stored_at.isoformat(),
-                "review_reason": reason,
-                "decided_at": decided_at.isoformat() if decided_at else None}
-        if doc is None:
-            tombstones.append({"slug": slug, "plan_key": plan_key,
-                               "generated_at": gen_at.isoformat() if gen_at else None, **meta})
-        else:
-            live.append({**doc, **meta})
-    return _order(live) + sorted(tombstones, key=lambda t: t["decided_at"] or "", reverse=True)
+    return _order([
+        {**doc, "review": state, "run_id": run_id, "stored_at": stored_at.isoformat(),
+         "review_reason": reason, "decided_at": decided_at.isoformat() if decided_at else None}
+        for doc, state, run_id, stored_at, reason, decided_at in rows])
 
 
 def stored_slugs(conn) -> set[str]:
@@ -146,7 +141,7 @@ def stored_slugs(conn) -> set[str]:
 
 def planned_keys(conn) -> set[str]:
     """Every (format, subject) key a stored post was written for - rejected ones
-    included, which is why a tombstone keeps its `plan_key`."""
+    included, so a rejected post is never written (and paid for) again."""
     return {r[0] for r in _read(conn, "SELECT plan_key FROM blog_post WHERE plan_key IS NOT NULL")}
 
 
@@ -155,7 +150,7 @@ def planned_keys(conn) -> set[str]:
 def decide(conn, slug: str, decision: str, reason: str | None) -> dict:
     """Approve, reject or move back one post. The state change and its
     `blog_post_review` row are one transaction (the route's connection).
-    Rejecting deletes the content: `doc` becomes NULL."""
+    Nothing is deleted: rejecting only takes the post off the Blogs page."""
     if decision not in DECISIONS:
         raise DecisionRefused(422, f"decision must be one of {list(DECISIONS)}")
     row = _read(conn, "SELECT state, run_id FROM blog_post WHERE slug = %s FOR UPDATE", (slug,))
@@ -165,10 +160,7 @@ def decide(conn, slug: str, decision: str, reason: str | None) -> dict:
     new = _TRANSITIONS.get((state, decision))
     if new is None:
         raise DecisionRefused(409, _REFUSAL[state])
-    if new == "rejected":
-        conn.execute("UPDATE blog_post SET state = 'rejected', doc = NULL WHERE slug = %s", (slug,))
-    else:
-        conn.execute("UPDATE blog_post SET state = %s WHERE slug = %s", (new, slug))
+    conn.execute("UPDATE blog_post SET state = %s WHERE slug = %s", (new, slug))
     rid = f"bpr_{uuid.uuid4().hex[:16]}"
     # STRICTLY AFTER the slug's previous decision (blog_runs.review's reason):
     # two clicks inside one coarse clock tick must not tie.

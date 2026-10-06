@@ -145,19 +145,19 @@ columns:
     doc:
       reviewed: false
       state: read
-      why: 'The post as views.js vPost renders it. Written by judge/blog_store.py store_drafts, set NULL by decide on rejection, read by published() and for_review(). Migration 20261006T1500.'
+      why: 'The post as views.js vPost renders it, kept in every state. Written by judge/blog_store.py store_drafts, read by published() (approved only) and for_review(). Migration 20261006T1500.'
     generated_at:
       reviewed: false
-      state: read
-      why: 'The post''s provenance.generated_at. Written by judge/blog_store.py store_drafts, read by for_review() for a rejected tombstone (Admin -> Blogs). Migration 20261006T1500.'
+      state: write_only
+      why: 'The post''s provenance.generated_at. Written by judge/blog_store.py store_drafts. Not read by a query: the same value is in doc.provenance, which Admin -> Blogs renders. Migration 20261006T1500.'
     plan_key:
       reviewed: false
       state: read
-      why: 'The planner''s (format, subject) key, kept on rejection. Written by judge/blog_store.py store_drafts, read by planned_keys()/for_review() and by generate_sample_blogs.py stored_plan_keys so a rejected post is not written again. Migration 20261006T1500.'
+      why: 'The planner''s (format, subject) key. Written by judge/blog_store.py store_drafts, read by generate_sample_blogs.py stored_plan_keys (rejected posts included) so a post is never written again. Migration 20261006T1500.'
     run_id:
       reviewed: false
       state: read
-      why: 'The generation run that wrote the post; NULL when stored from files. Written by judge/blog_store.py store_drafts, read by reviewable() and decide() (copied to blog_post_review). Migration 20261006T1500.'
+      why: 'The generation run that wrote the post; NULL when stored from files. Written by judge/blog_store.py store_drafts, read by for_review() and decide() (copied to blog_post_review). Migration 20261006T1500.'
     slug:
       reviewed: false
       state: read

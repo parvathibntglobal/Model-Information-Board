@@ -27,8 +27,10 @@ import { IconAlert, IconGrid } from './Icons'
  *     pending    a run's drafts are stored when it finishes; anything else on
  *                this machine is stored with "Store them as drafts"
  *     approved   shown on the Blogs page (filtered on the server)
- *     rejected   CONTENT DELETED - only the slug, plan key and decision stay, so
- *                the planner never writes it again. Cannot be moved back.
+ *     rejected   never shown, but KEPT with its reason - the record a later
+ *                change can feed to the generator so it avoids similar posts.
+ *                Its plan key already stops the same post being written again.
+ *                Can be moved back to drafts.
  *
  * ⚠ GENERATING SPENDS MONEY, so the button asks first.
  */
@@ -234,9 +236,7 @@ export default function BlogsPanel() {
     let reason = null
     if (decision === 'rejected') {
       // eslint-disable-next-line no-alert
-      if (!window.confirm('Reject this post? Its content is DELETED. Only the decision and its reason are kept, and it cannot be moved back.')) return
-      // eslint-disable-next-line no-alert
-      reason = window.prompt('Why is it rejected? (optional, kept with the decision)', '')
+      reason = window.prompt('Why is it rejected? It comes off the Blogs page and is kept with this reason, so the same post is not written again. (optional)', '')
       if (reason === null) return
     }
     setBusy(slug)
@@ -264,13 +264,12 @@ export default function BlogsPanel() {
 
   const data = posts.data
   const live = data?.posts || []
-  const tombstones = data?.rejected || []
   const unstored = data?.unstored || []
-  const stateOf = (p) => (p.review === 'approved' ? 'approved' : 'drafts')
+  // The server's `review` is pending | approved | rejected; pending is the Drafts tab.
+  const stateOf = (p) => (p.review === 'pending' ? 'drafts' : p.review)
   // Built from TABS, so the tab keys and their counts cannot drift apart.
   const counts = Object.fromEntries(TABS.map(([k]) => [k, 0]))
-  for (const p of live) counts[stateOf(p)] += 1
-  counts[TABS[2][0]] = tombstones.length
+  for (const p of live) if (stateOf(p) in counts) counts[stateOf(p)] += 1
   const list = live.filter((p) => stateOf(p) === tab)
   const ok = data && !data.reason
 
@@ -352,7 +351,7 @@ export default function BlogsPanel() {
           </p>
         )}
 
-        {ok && tab !== 'rejected' && (
+        {ok && (
           <div className="tablewrap"><table>
             <thead>
               <tr><th>Title</th><th>Format</th><th>Written</th><th>Status</th><th>Actions</th></tr>
@@ -360,7 +359,7 @@ export default function BlogsPanel() {
             <tbody>
               {list.length === 0 ? (
                 <tr><td colSpan={5} className="dim">
-                  {tab === 'drafts' ? 'No drafts awaiting review. Generate some above.' : 'Nothing approved yet.'}
+                  {tab === 'drafts' ? 'No drafts awaiting review. Generate some above.' : `Nothing ${tab} yet.`}
                 </td></tr>
               ) : list.map((p) => {
                 const st = stateOf(p)
@@ -379,7 +378,9 @@ export default function BlogsPanel() {
                       )}
                     </td>
                     <td>
-                      <Badge tone={st === 'approved' ? 'pass' : 'mute'}>{st === 'approved' ? 'approved' : 'awaiting review'}</Badge>
+                      <Badge tone={st === 'approved' ? 'pass' : st === 'rejected' ? 'fail' : 'mute'}>
+                        {st === 'drafts' ? 'awaiting review' : st}
+                      </Badge>
                     </td>
                     <td>
                       <span className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
@@ -392,33 +393,15 @@ export default function BlogsPanel() {
                           <button type="button" className="btn btn-quiet prompt-btn" disabled={busy === p.slug}
                                   onClick={() => decide(p.slug, 'reopened')}>Move back to drafts</button>
                         )}
-                        <button type="button" className="btn btn-quiet prompt-btn" disabled={busy === p.slug}
-                                onClick={() => decide(p.slug, 'rejected')}>Reject</button>
+                        {st !== 'rejected' && (
+                          <button type="button" className="btn btn-quiet prompt-btn" disabled={busy === p.slug}
+                                  onClick={() => decide(p.slug, 'rejected')}>Reject</button>
+                        )}
                       </span>
                     </td>
                   </tr>
                 )
               })}
-            </tbody>
-          </table></div>
-        )}
-
-        {/* REJECTED POSTS ARE TOMBSTONES: the content is gone, so there is no
-            title, no preview and no way back - only what was decided and why. */}
-        {ok && tab === 'rejected' && (
-          <div className="tablewrap"><table>
-            <thead><tr><th>Post</th><th>Rejected</th><th>Reason</th></tr></thead>
-            <tbody>
-              {tombstones.length === 0 ? (
-                <tr><td colSpan={3} className="dim">Nothing rejected.</td></tr>
-              ) : tombstones.map((t) => (
-                <tr key={t.slug}>
-                  <td><span className="mono" style={{ fontSize: 11 }}>{t.slug}</span>
-                    {t.plan_key && <span className="dim" style={{ display: 'block', fontSize: 10 }}>{t.plan_key}</span>}</td>
-                  <td className="dim" style={{ whiteSpace: 'nowrap' }}>{day(t.decided_at) || '—'}</td>
-                  <td className="dim">{t.review_reason || 'No reason given'}</td>
-                </tr>
-              ))}
             </tbody>
           </table></div>
         )}
@@ -432,8 +415,8 @@ export default function BlogsPanel() {
 
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0, maxWidth: '78ch', lineHeight: 1.6 }}>
           Approval rule: a post reaches the Blogs page only after it is approved here, and Move back to drafts
-          takes it off again. Rejecting deletes the post&apos;s content and keeps only the decision and its
-          reason, so a rejected post cannot come back and the planner will not write it again.
+          takes it off again. A rejected post is never shown but is kept with its reason, so the planner does
+          not write it again; it can be moved back to drafts.
         </p>
       </div>
     </section>

@@ -2481,9 +2481,9 @@ def blog_posts_page(review: bool = False) -> dict:
     """Blog posts, from the `blog_post` table (judge/blog_store.py).
 
     PUBLIC (the default): the APPROVED posts only - the Blogs page.
-    `?review=1` (Admin -> Blogs and its preview): pending and approved posts with
-    their `review` state, rejected posts as tombstones under `rejected`, and the
-    draft files on THIS machine not yet stored, under `unstored`.
+    `?review=1` (Admin -> Blogs and its preview): every stored post - pending,
+    approved and rejected - with its `review` state, and the draft files on THIS
+    machine not yet stored, under `unstored`.
 
     FAILS CLOSED. If the store cannot be read, `posts` is empty and `reason` says
     why. It never falls back to the draft files: a page that cannot tell what
@@ -2506,8 +2506,7 @@ def blog_posts_page(review: bool = False) -> dict:
             f"No posts are shown: the blog store could not be reached. {_safe_detail(e)}")}
     files = blog_posts.load()
     return {
-        "posts": [p for p in stored if p.get("review") != "rejected"],
-        "rejected": [p for p in stored if p.get("review") == "rejected"],
+        "posts": stored,
         # Draft files on this machine the store does not have yet. Their
         # `reason` (BLOG_POSTS_DIR unset or missing) is passed on, not dropped.
         "unstored": [{"slug": p["slug"], "title": p.get("title"),
@@ -2563,9 +2562,8 @@ def blog_posts_runs(limit: int = 20) -> dict:
 @app.post("/blog-posts/review")
 def blog_posts_review(req: BlogReviewRequest) -> dict:
     """Approve, reject or move back a stored post (judge/blog_store.decide).
-    Every decision is a new `blog_post_review` row. REJECTING DELETES THE POST'S
-    CONTENT - only its slug, plan key and the decision stay - so it cannot be
-    moved back (migration 20261006T1500)."""
+    Every decision is a new `blog_post_review` row. Rejecting takes a post off
+    the Blogs page and keeps it, with its reason (migration 20261006T1500)."""
     from judge import blog_store
 
     try:

@@ -1732,20 +1732,19 @@ CREATE TABLE blog_post_review (
 CREATE INDEX blog_post_review_slug_at ON blog_post_review (slug, decided_at DESC);
 
 -- ============================================================================
---  BLOG POSTS: pending, approved, or a rejected tombstone
---  (migration 20261006T1500_blog_post_store.sql - the states, why rejection
---   deletes the content, and who writes are written there)
+--  BLOG POSTS: pending, approved, or rejected (kept, never shown)
+--  (migration 20261006T1500_blog_post_store.sql - the states, why a rejected
+--   post is kept, and who writes are written there)
 -- ============================================================================
 
 CREATE TABLE blog_post (
   slug          text PRIMARY KEY,
   state         text NOT NULL CHECK (state IN ('pending', 'approved', 'rejected')),
-  doc           jsonb,
+  doc           jsonb NOT NULL,
   plan_key      text,
   run_id        text REFERENCES blog_generation_run(id),
   generated_at  timestamptz,
-  stored_at     timestamptz NOT NULL,
-  CONSTRAINT blog_post_rejected_has_no_content CHECK ((state = 'rejected') = (doc IS NULL))
+  stored_at     timestamptz NOT NULL
 );
 
 CREATE INDEX blog_post_state ON blog_post (state);

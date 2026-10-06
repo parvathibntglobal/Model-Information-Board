@@ -528,8 +528,7 @@ fields:
     reviewed: false
     routes:
     - /ask/recommend
-    - /blog-posts
-    state: consumed
+    state: no_consumer
   report_counts_are_a_floor:
     reviewed: false
     routes:

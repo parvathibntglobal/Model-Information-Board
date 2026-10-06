@@ -303,10 +303,9 @@ export const coveragePage = () => request('/coverage')
  * Blog posts, from the shared `blog_post` table — `{posts, skipped, reason}`.
  *
  * Public (the Blogs page): APPROVED posts only, filtered on the server.
- * `{ review: true }` (Admin → Blogs and its preview): pending and approved posts
- * with their `review` state, plus `rejected` (tombstones — the content was
- * deleted), `unstored` (draft files on that backend's machine not yet stored)
- * and `files_reason`.
+ * `{ review: true }` (Admin → Blogs and its preview): every stored post —
+ * pending, approved and rejected — with its `review` state, plus `unstored`
+ * (draft files on that backend's machine not yet stored) and `files_reason`.
  *
  * `reason` is set when the store could not be read, and then `posts` is empty:
  * the page shows nothing rather than everything. An empty list with no reason
@@ -330,7 +329,7 @@ export const blogGenerationLog = (lines = 400) => request(`/blog-posts/generate/
 // Recorded generation runs, newest first (each post's review state travels with the post).
 export const blogRuns = (limit = 20) => request(`/blog-posts/runs?limit=${limit}`)
 
-// Approve, reject or move back a stored post. Rejecting DELETES its content.
+// Approve, reject or move back a stored post. A rejected post is kept, never shown.
 export const reviewBlogPost = (slug, decision, reason) =>
   request('/blog-posts/review', { method: 'POST', body: { slug, decision, reason: reason || null } })
 

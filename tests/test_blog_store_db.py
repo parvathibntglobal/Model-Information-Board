@@ -1,11 +1,11 @@
-"""The blog store: pending, approved, or a rejected tombstone - against a real
-(disposable) database.
+"""The blog store: pending, approved or rejected - against a real (disposable)
+database.
 
 `judge/blog_store.py` and migration 20261006T1500. What these pin down:
   * the Blogs page reads APPROVED posts only;
-  * rejecting DELETES the content and keeps the slug, plan key and decision -
-    and the database refuses a rejected post that keeps its body;
-  * a rejected post cannot be moved back, and the planner still sees its key;
+  * rejecting takes a post off the page and KEEPS it, with its reason;
+  * the planner still sees a rejected post's key, so it is not written again;
+  * a decision that changes nothing is refused;
   * storing never overwrites a stored post, whatever its state.
 Requires a database. See docs/dev-database.md.
 """
@@ -53,30 +53,27 @@ def test_only_approved_posts_are_published(conn):
     assert [p["slug"] for p in blog_store.published(conn)] == ["a"]
 
 
-def test_rejecting_deletes_the_content_and_keeps_the_tombstone(conn):
+def test_a_rejected_post_is_kept_with_its_reason_and_never_shown(conn):
     blog_store.store_drafts(conn, [_post("a", plan_key="field-report:anthropic/x")])
+    blog_store.decide(conn, "a", "approved", None)
     blog_store.decide(conn, "a", "rejected", "too thin")
-    doc, state, plan_key = conn.execute(
-        "SELECT doc, state, plan_key FROM blog_post WHERE slug = 'a'").fetchone()
-    assert (doc, state) == (None, "rejected")
-    assert plan_key == "field-report:anthropic/x"
-    [t] = blog_store.for_review(conn)
-    assert t["review"] == "rejected" and t["review_reason"] == "too thin"
-    assert "title" not in t and "body" not in t  # nothing of the post is left to read
+    assert blog_store.published(conn) == []
+    [p] = blog_store.for_review(conn)
+    assert p["review"] == "rejected" and p["review_reason"] == "too thin"
+    assert p["title"] == "A" and p["body"] == [["p", "x"]]  # the content is all still there
     # The planner still sees it, so it is never written (and paid for) again.
     assert blog_store.planned_keys(conn) == {"field-report:anthropic/x"}
 
 
-def test_an_approved_post_can_be_rejected_and_then_its_content_is_gone(conn):
+def test_a_rejected_post_can_be_moved_back_to_drafts(conn):
     blog_store.store_drafts(conn, [_post("a")])
-    blog_store.decide(conn, "a", "approved", None)
     blog_store.decide(conn, "a", "rejected", None)
-    assert blog_store.published(conn) == []
-    assert conn.execute("SELECT doc FROM blog_post WHERE slug = 'a'").fetchone()[0] is None
+    blog_store.decide(conn, "a", "reopened", None)
+    assert [p["review"] for p in blog_store.for_review(conn)] == ["pending"]
 
 
-@pytest.mark.parametrize("decision", ["reopened", "approved", "rejected"])
-def test_a_rejected_post_takes_no_further_decision(conn, decision):
+@pytest.mark.parametrize("decision", ["approved", "rejected"])
+def test_a_rejected_post_takes_only_a_move_back(conn, decision):
     blog_store.store_drafts(conn, [_post("a")])
     blog_store.decide(conn, "a", "rejected", None)
     with pytest.raises(blog_store.DecisionRefused) as e:
@@ -108,8 +105,8 @@ def test_storing_does_not_bring_a_rejected_post_back(conn):
     blog_store.decide(conn, "a", "rejected", None)
     out = blog_store.store_drafts(conn, [_post("a")])  # the file is still on someone's disk
     assert out["already"] == ["a"]
-    row = conn.execute("SELECT state, doc FROM blog_post WHERE slug = 'a'").fetchone()
-    assert row == ("rejected", None)
+    row = conn.execute("SELECT state FROM blog_post WHERE slug = 'a'").fetchone()
+    assert row == ("rejected",)
 
 
 def test_a_malformed_draft_is_refused_by_name(conn):
@@ -119,15 +116,11 @@ def test_a_malformed_draft_is_refused_by_name(conn):
     assert out["refused"] == [{"slug": "short", "why": why}]
 
 
-def test_the_database_refuses_a_rejected_post_that_keeps_its_body(conn):
-    """The CHECK, not only the code: "rejected" and "no content" are one fact."""
-    with pytest.raises(psycopg.errors.CheckViolation):
+def test_the_database_refuses_a_post_without_content(conn):
+    """`doc` is NOT NULL: no state may lose the post itself."""
+    with pytest.raises(psycopg.errors.NotNullViolation):
         conn.execute("INSERT INTO blog_post (slug, state, doc, stored_at) "
-                     "VALUES ('x', 'rejected', '{}'::jsonb, now())")
-    conn.rollback()
-    with pytest.raises(psycopg.errors.CheckViolation):
-        conn.execute("INSERT INTO blog_post (slug, state, doc, stored_at) "
-                     "VALUES ('y', 'approved', NULL, now())")
+                     "VALUES ('x', 'rejected', NULL, now())")
 
 
 def test_a_database_without_the_table_is_unreadable_not_empty(conn):
@@ -188,9 +181,11 @@ def test_store_approve_and_publish_through_the_routes(conn, test_dsn, monkeypatc
     assert admin["unstored"] == []
 
     assert review("two", "rejected", "off topic") == 200
-    assert review("two", "reopened") == 409
+    assert review("two", "rejected") == 409  # already rejected
     admin = client.get("/blog-posts?review=1").json()
-    assert [t["slug"] for t in admin["rejected"]] == ["two"]
+    states = {p["slug"]: (p["review"], p["review_reason"]) for p in admin["posts"]}
+    assert states == {"one": ("approved", None), "two": ("rejected", "off topic")}
+    assert [p["slug"] for p in client.get("/blog-posts").json()["posts"]] == ["one"]
 
 
 def test_the_planner_remembers_a_rejected_post(conn):
