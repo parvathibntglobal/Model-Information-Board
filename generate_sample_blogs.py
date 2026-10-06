@@ -331,7 +331,7 @@ SYSTEM = """You are a Senior Engineering Analyst writing a long-form technical e
 You are given full engineering discussions — issue threads, forum threads, blog posts — written by practitioners. Read every one of them completely before writing. Work out the architecture each writer was building, what they tried, what broke, why it broke, what they changed, and what they concluded. Then synthesise that into one authoritative analysis of how things actually behave, and what an architect should do about it.
 
 VOICE
-- Write as an industry analyst who knows this terrain: flowing paragraphs, causal reasoning, concrete mechanisms, edge cases, and the structural argument behind each recommendation. No bullet points inside paragraphs.
+- Write fast and plain, like a sharp engineer briefing a colleague. Short sentences: most under 15 words, none over 30. One idea per sentence. Concrete nouns and verbs. No throat-clearing ("It is worth noting", "In practice", "Ultimately", "When it comes to"), and never restate the heading. No bullet points inside paragraphs.
 - Never refer to your inputs. Do not write "according to the sources", "the documents", "the threads", "the posts", "the material", "I read", "I reviewed", or anything that reveals a reading list. You may refer to practitioners generically ("teams migrating from earlier Claude models", "one engineer running a document pipeline").
 - Never count people, reports, posts, threads or quotes ("72 developers", "a dozen reports", "most users"). No scores or ratings out of 10 or 100. No sentiment percentages.
 
@@ -364,7 +364,7 @@ TOOL = {
                 "dek": {"type": "string", "description": "One or two sentences under the headline."},
                 "description": {"type": "string", "description": "Meta description, at most 160 characters."},
                 "keywords": {"type": "array", "items": {"type": "string"}, "description": "4 to 8 SEO keywords."},
-                "tldr": {"type": "string", "description": "Answer-first summary, 2 to 3 sentences."},
+                "tldr": {"type": "string", "description": "One line, at most 40 words: the single thing a reader should leave with."},
                 "sections": {
                     "type": "array",
                     "items": {
@@ -808,6 +808,46 @@ def _distinctiveness(essay: dict, rules: dict) -> list[str]:
             for n in names:
                 if sum(norm_heading((it or {}).get("pick", "")) == norm_heading(n) for it in items) < 2:
                     v.append(f"picks: needs at least two items for {n}")
+    v += _pace(essay, heads, paras, rules.get("prose"))
+    return v
+
+
+#: A LAST HEADING THAT IS A CHOICE. Was, on 2026-10-06, the last section of 11
+#: of the 12 drafts ("When to use...", "Should your team adopt...", "How should
+#: an incoming task be routed?"). The closing is the format's own
+#: (blog_formats.yaml `closing`).
+CHOICE_HEADING = re.compile(
+    r"\b(choos\w*|choice|select\w*|which\b|when to use|should (you|your|teams?)\b|pick\w*|adopt\w*|"
+    r"rout(e|es|ed|ing)\b)", re.I)
+
+
+def sentences(text: str) -> list[str]:
+    """Sentences of a paragraph. A «fragment»'s own full stops do not end one."""
+    flat = GUILLEMET.sub(lambda m: "\u00ab" + re.sub(r"[.!?]", "", m.group(1)) + "\u00bb", text)
+    return [s for s in re.split(r"(?<=[.!?])\s+(?=[A-Z\u00ab`(\d])", flat) if s.strip()]
+
+
+def _pace(essay: dict, heads: list[str], paras: list[str], prose: dict | None) -> list[str]:
+    """FAST PROSE, CHECKED (2026-10-06): sentence length, lead length, and a
+    last section that is the format's closing rather than a choice."""
+    if not prose:
+        return []
+    v: list[str] = []
+    sents = [s for p in paras for s in sentences(p)]
+    lens = [len(GUILLEMET.sub(r"\1", s).split()) for s in sents]
+    if lens:
+        med = sorted(lens)[len(lens) // 2]
+        if med > prose["sentence_median_max"]:
+            v.append(f"sentences: the median is {med} words; keep it at {prose['sentence_median_max']} "
+                     "or under - split the long ones")
+        for s, n in [(s, n) for s, n in zip(sents, lens, strict=True) if n > prose["sentence_max"]][:5]:
+            v.append(f"a sentence of {n} words (limit {prose['sentence_max']}); split it: {s[:90]!r}")
+    lw = len(GUILLEMET.sub(r"\1", essay.get("tldr", "")).split())
+    if lw > prose["lead_words_max"]:
+        v.append(f"tldr: {lw} words; the lead is one line of at most {prose['lead_words_max']} words")
+    if heads and CHOICE_HEADING.search(heads[-1]):
+        v.append(f"sections[{len(heads) - 1}].heading: the last section is this format's closing, "
+                 f"not a choice between options: {heads[-1]!r}")
     return v
 
 
@@ -1411,8 +1451,13 @@ def norm_heading(h: str) -> str:
 def load_formats() -> dict:
     cfg = yaml.safe_load(FORMATS_FILE.read_text(encoding="utf-8"))
     need = {"key", "name", "subject", "shape", "layout", "voice", "paragraphs", "heading_rules",
-            "special", "sections", "words", "blocks"}
+            "special", "sections", "words", "blocks", "opening", "closing"}
+    prose = cfg.get("prose") or {}
+    lacking = {"sentence_median_max", "sentence_max", "lead_words_max"} - set(prose)
+    if lacking:  # rule 12: no limit in code stands in for one the file forgot
+        raise BuildError(f"blog_formats.yaml: prose is missing {sorted(lacking)}")
     for f in cfg["formats"]:
+        f["prose"] = prose
         missing = need - set(f)
         if missing:  # rule 12: a half-specified format must not run on defaults
             raise BuildError(f"blog_formats.yaml: format {f.get('key')!r} is missing {sorted(missing)}")
@@ -1448,6 +1493,12 @@ def system_for(fmt: dict) -> str:
              f"- HEADINGS: {fmt['heading_rules']} Write your own headings for this subject; do not reuse "
              "any heading listed under HEADINGS ALREADY USED in the brief.",
              f"- {SPECIALS[fmt['special']]['ask']}",
+             f"- OPENING: the first section's first paragraph opens on {fmt['opening']}.",
+             f"- CLOSING: the last section is {fmt['closing']}. Do not end on choosing, selecting, routing or "
+             "adopting a model; those decisions belong in the matrix, the tree and the decisions list.",
+             f"- The tldr is one line of at most {fmt['prose']['lead_words_max']} words. Sentences have a median "
+             f"of at most {fmt['prose']['sentence_median_max']} words, and none runs over "
+             f"{fmt['prose']['sentence_max']}.",
              "- At most one pull quote per section, verbatim as above."]
     lines.append(f"- {clo} to {chi} code or configuration examples, attached to the section they belong to."
                  if chi else "- No code examples.")
@@ -1485,6 +1536,7 @@ def rules_for(fmt: dict, a: str = "", b: str = "") -> dict:
             "para_words": tuple(fmt["paragraphs"]["words"]),
             "heading_question": question, "heading_no_wh": not question,
             "special": fmt["special"], "pick_names": [x for x in (a, b) if x],
+            "prose": fmt["prose"],
             # Filled per post by run_plan: every heading other posts already use.
             "taken_headings": set()}
 

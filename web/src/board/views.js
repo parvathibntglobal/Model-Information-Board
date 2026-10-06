@@ -945,7 +945,7 @@ function vBlogs(){
   const skipped = (meta.skipped || []).length
     ? `<p class="es-empty">Could not be read: ${
         meta.skipped.map(x=>`${esc(x.file)} (${esc(x.why)})`).join('; ')}</p>` : '';
-  const cards = DB.posts.map(p=>`<a class="es-card" data-go="post:${esc(p.slug)}">
+  const cards = DB.posts.map(p=>`<a class="es-card${layoutOf(p)?` lay-${layoutOf(p)}`:''}" data-go="post:${esc(p.slug)}">
       <div class="es-kicker">${esc(p.kicker||p.tag)}${p.status==='draft'?' · draft':''}</div>
       <h3>${esc(p.title)}</h3><p>${esc(p.dek)}</p>
       <div class="es-tags">${(p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('')}</div>
@@ -1002,8 +1002,11 @@ function essayBlock([t,v]){
   }
   if(t==='h3') return `<h3>${esc(v)}</h3>`;
   if(t==='ul') return '<ul>'+v.map(li=>`<li>${essayText(li)}</li>`).join('')+'</ul>';
-  if(t==='quote') return `<figure class="es-pq"><blockquote>${essayText(v)}</blockquote>
-    <figcaption>Engineer report</figcaption></figure>`;
+  // THE QUOTE BOX SAID ONLY "Engineer report", and a reader could not tell
+  // whose words they were or why they were boxed (2026-10-06). It now says.
+  if(t==='quote') return `<figure class="es-voice"><figcaption class="who">An engineer, in their own words</figcaption>
+    <blockquote>${essayText(v)}</blockquote>
+    <div class="src">Copied exactly from a public engineering discussion this post was written from. Not the writer's words.</div></figure>`;
   // The tag already says "Illustrative"; a label that opens with it would read twice.
   if(t==='code') return `<div class="es-codehead"><span class="es-illus">Illustrative</span>${esc(String(v.label||'').replace(/^\s*illustrative[\s:·-]*/i,'').replace(/^./,c=>c.toUpperCase()))}</div>
     <pre class="es-pre">${essayCode(v.source)}</pre>`;
@@ -1021,71 +1024,207 @@ function essayBlock([t,v]){
   if(t==='tree') return `<div class="es-dtree"><div class="q">${essayText(v.question)}</div>
     <div class="br">${(v.branches||[]).map(b=>`<div class="b"><div class="cond">${essayText(b.condition)}</div>
       <div class="out">${essayText(b.outcome)}</div>${routeBadge(b.route)}</div>`).join('')}</div></div>`;
-  return '<p>'+essayText(v)+'</p>';
+  // Skim mode folds everything after a paragraph's first sentence (vPost).
+  const [first, rest] = splitFirst(v);
+  return rest ? `<p class="es-para"><span class="s1">${essayText(first)}</span><span class="rest">${essayText(rest)}</span></p>`
+    : `<p class="es-para">${essayText(first)}</p>`;
 }
 
-// ── per-format layouts (2026-10-05) ───────────────────────────────────────
+// ── per-format layouts (reworked 2026-10-06) ──────────────────────────────
 //
-// One renderer gave every post the same page, whatever its format. Each
-// format now names a layout (blog_formats.yaml): its own section label, accent,
-// where its signature block sits, and whether the rate card leads. Posts with
-// no layout (the first three) keep the original essay page.
+// THE 2026-10-05 LAYOUTS CHANGED AN ACCENT AND A LABEL, AND THE PAGE STAYED ONE
+// PAGE. Was, over the 12 drafts on 2026-10-06: 12 of 12 opened on the same
+// "The short answer" box, 9 of 12 carried no layout at all (written before
+// formats existed), and a "which one to pick" block - the matrix or the
+// decision tree - closed 10 of them. Each layout now owns three things, built
+// from data the post already holds and never from new prose:
+//   open   what the reader meets first   (a log, a face-off, a receipt, a map)
+//   tools  where the matrix and tree go  (top, mid or end - per format)
+//   end    what the page closes on       (open questions, a checklist, cards)
 const LAYOUTS = {
-  report:    { label: 'Observation', lead: 'special' },
-  versus:    { label: 'Question',    lead: 'special' },
-  ledger:    { label: 'Cost line',   lead: 'prices+special' },
-  runbook:   { label: 'Step notes',  lead: 'special' },
-  blueprint: { label: 'Component',   lead: 'special' },
-  brief:     { label: 'Point',       lead: 'special' },
-  critique:  { label: 'Argument',    lead: 'special' },
+  report:    { label: 'Observation', lead: 'Bottom line',             tools: 'mid' },
+  versus:    { label: 'Question',    lead: 'The split',               tools: 'top' },
+  ledger:    { label: 'Cost line',   lead: 'Where the money goes',    tools: 'mid' },
+  runbook:   { label: 'Step',        lead: 'Before you start',        tools: 'top' },
+  blueprint: { label: 'Component',   lead: 'The pattern in one line', tools: 'end' },
+  brief:     { label: 'Point',       lead: 'The verdict',             tools: 'top' },
+  critique:  { label: 'Argument',    lead: 'The argument',            tools: 'mid' },
 };
+// Posts written before `layout` was exported carry their format in
+// provenance; the first three carry only a kicker. A post matching none renders
+// the plain page - visibly unstyled, never silently given some other format's.
+const FORMAT_LAYOUT = { 'field-report': 'report', 'head-to-head': 'versus', 'cost-teardown': 'ledger',
+  'migration-guide': 'runbook', 'architecture-pattern': 'blueprint', 'release-analysis': 'brief',
+  'evaluation-critique': 'critique' };
+const KICKER_LAYOUT = { 'Model deep dive': 'report', 'Routing guide': 'versus', 'Capability analysis': 'brief' };
+function layoutOf(p){
+  if(LAYOUTS[p.layout]) return p.layout;
+  return FORMAT_LAYOUT[(p.provenance || {}).format] || KICKER_LAYOUT[p.kicker] || null;
+}
 
-function specialBlock(sp){
-  if(!sp || !sp.items || !sp.items.length) return '';
-  const it = sp.items, T = esc(sp.title);
-  if(sp.type==='findings'){
-    const col = (st, cls) => it.filter(x=>x.status===st)
-      .map(x=>`<li class="${cls}">${essayText(x.finding)}</li>`).join('') || '<li class="none">None recorded.</li>';
-    return `<section class="es-sp es-findings"><div class="lbl">${T}</div><div class="cols">
-      <div><h4>Established</h4><ul>${col('established','ok')}</ul></div>
-      <div><h4>Not established</h4><ul>${col('not established','open')}</ul></div></div></section>`;
+// The body as parts: sections, and the matrix, tree and price sheet lifted out
+// so each layout can place them. Every post's body has this shape (2026-10-06).
+function splitPost(body){
+  const out = { pre: [], sections: [], matrix: null, tree: null, prices: null };
+  let cur = null;
+  for(let i = 0; i < body.length; i++){
+    const [t, v] = body[i], nx = body[i + 1];
+    if(t === 'h2' && v && v.num === 'Matrix' && nx && nx[0] === 'table'){ out.matrix = { head: v, table: nx[1] }; i++; cur = null; continue; }
+    if(t === 'h2' && v && v.num === 'Decision tree' && nx && nx[0] === 'tree'){ out.tree = nx[1]; i++; cur = null; continue; }
+    if(t === 'h3' && nx && nx[0] === 'table' && nx[1] && nx[1].kind === 'prices') continue;
+    if(t === 'table' && v && v.kind === 'prices'){ out.prices = v; continue; }
+    if(t === 'h2'){ cur = { head: typeof v === 'string' ? { text: v } : v, blocks: [] }; out.sections.push(cur); continue; }
+    (cur ? cur.blocks : out.pre).push(body[i]);
   }
-  if(sp.type==='picks'){
-    const names = [...new Set(it.map(x=>x.pick))];
-    return `<section class="es-sp es-picks"><div class="lbl">${T}</div><div class="cols">${names.map((n,k)=>
-      `<div class="pick p${k}"><h4>Pick ${esc(n)} when…</h4><ul>${it.filter(x=>x.pick===n)
-        .map(x=>`<li>${essayText(x.when)}</li>`).join('')}</ul></div>`).join('')}</div></section>`;
+  return out;
+}
+
+// A paragraph's first sentence, for skim mode. Never splits inside a «quote»,
+// a `code` span or a **bold** run, or after an abbreviation.
+function splitFirst(raw){
+  const s = String(raw || '');
+  let q = 0, c = 0, bold = 0;
+  for(let i = 0; i < s.length; i++){
+    const ch = s[i];
+    if(ch === '«') q++;
+    else if(ch === '»') q = Math.max(0, q - 1);
+    else if(ch === '`') c ^= 1;
+    else if(ch === '*' && s[i + 1] === '*'){ bold ^= 1; i++; }
+    else if(!q && !c && !bold && '.!?'.includes(ch) && s[i + 1] === ' ' && /[A-Z0-9«`*(]/.test(s[i + 2] || '')){
+      if(/\b(e\.g|i\.e|vs|etc|approx|cf)\.$/i.test(s.slice(Math.max(0, i - 6), i + 1))) continue;
+      return [s.slice(0, i + 1), s.slice(i + 1)];
+    }
   }
-  if(sp.type==='drivers'){
-    return `<section class="es-sp es-drivers"><div class="lbl">${T}</div><div class="grid">${it.map((x,k)=>
-      `<div class="drv"><div class="n">${String(k+1).padStart(2,'0')}</div><h4>${essayText(x.driver)}</h4>
-        <p>${essayText(x.mechanism)}</p><p class="lever"><b>Lever</b> ${essayText(x.lever)}</p></div>`).join('')}</div></section>`;
-  }
-  if(sp.type==='steps'){
-    return `<section class="es-sp es-steps"><div class="lbl">${T}</div><ol>${it.map((x,k)=>
-      `<li><div class="dot">${k+1}</div><div class="body"><h4>${essayText(x.step)}</h4><p>${essayText(x.action)}</p>
-        <p class="check"><span class="box"></span>${essayText(x.check)}</p></div></li>`).join('')}</ol></section>`;
-  }
-  if(sp.type==='layers'){
-    return `<section class="es-sp es-layers"><div class="lbl">${T}</div><div class="stack">${it.map((x,k)=>
-      `<div class="band" style="margin-inline:${k*14}px"><div class="name">${essayText(x.layer)}</div>
-        <div class="role">${essayText(x.role)}</div><div class="fail"><b>Contains</b> ${essayText(x.failure_contained)}</div></div>`).join('')}
-      </div></section>`;
-  }
-  if(sp.type==='claims'){
-    const chip = st => `<span class="chip ${st==='holds'?'ok':st==='partly holds'?'part':'none'}">${esc(st)}</span>`;
-    return `<section class="es-sp es-claims"><div class="lbl">${T}</div><div class="es-tbl"><table><thead><tr>
-      <th>Claim</th><th>What practitioners found</th><th>Status</th></tr></thead><tbody>${it.map(x=>
-      `<tr><td><b>${essayText(x.claim)}</b></td><td>${essayText(x.finding)}</td><td>${chip(x.status)}</td></tr>`).join('')}
-      </tbody></table></div></section>`;
-  }
-  if(sp.type==='probes'){
-    return `<section class="es-sp es-probes"><div class="lbl">${T}</div><div class="es-tbl"><table><thead><tr>
-      <th>Reported</th><th>Actually tests</th><th>Misses</th></tr></thead><tbody>${it.map(x=>
-      `<tr><td><b>${essayText(x.measure)}</b></td><td>${essayText(x.tests)}</td><td class="miss">${essayText(x.misses)}</td></tr>`).join('')}
-      </tbody></table></div></section>`;
-  }
-  return '';
+  return [s, ''];
+}
+const wordsIn = s => (String(s || '').replace(/<[^>]+>/g, ' ').match(/\S+/g) || []).length;
+const pad2 = n => String(n).padStart(2, '0');
+
+// THE POST'S OWN PRICE SHEET: registry list prices at generation, as the post
+// printed them. A missing price stays "not published" (rule 6).
+function sheetRows(prices){
+  return prices ? (prices.rows || []).map(r => ({ name: String(r[0] || ''), pin: r[1], pout: r[2], cached: r[3] })) : [];
+}
+const nameRx = n => new RegExp(`(?<![\\w.\\-])${rxEsc(n)}(?![\\w\\-]|\\.\\d)`, 'i');
+const rowFor = (rows, name) => rows.find(r => r.name.toLowerCase() === String(name || '').toLowerCase().trim()) || null;
+const rowsIn = (rows, text) => rows.filter(r => r.name && nameRx(r.name).test(String(text || '')));
+const perM = (v, side) => String(v || '').startsWith('$') ? `${esc(v)} ${side}` : `${side}put not published`;
+function vsNames(p){
+  const sp = p.special;
+  if(sp && sp.type === 'picks') return [...new Set((sp.items || []).map(x => x.pick))];
+  const m = String(p.title || '').split(':')[0].split(/\s+vs\.?\s+/i).map(s => s.trim()).filter(Boolean);
+  return m.length === 2 ? m : [];
+}
+
+function sectionHtml(s, label, n, after = ''){
+  const h = { ...s.head };
+  if(label && /^\d+$/.test(h.num || '')) h.num = `${label} ${n}`;
+  return essayBlock(['h2', h]) + after + s.blocks.map(essayBlock).join('');
+}
+
+// ── the tools: clickable versions of the matrix and the tree ──────────────
+// CSS-only state (radio, checkbox, <details>), so BoardView needs no handler
+// and nothing a reader clicks is sent anywhere.
+let _mx = 0;
+function matrixTable(m, filter){
+  const v = m.table, rows = v.rows || [];
+  const routes = [...new Set(rows.map(r => String(r[r.length - 1] || '').trim()))];
+  // A pill per route only when routes are names; a route written as a sentence
+  // made a wall of pills nobody could scan (2026-10-06).
+  const can = filter && routes.length >= 2 && routes.length <= 4 && routes.every(r => r.length <= 32);
+  const id = `es-mx${++_mx}`;
+  const pills = can ? `<div class="es-pills" role="radiogroup" aria-label="Filter rows by route"><span>Show</span>
+      <label><input type="radio" name="${id}" checked>All rows</label>${routes.map((r, k) =>
+      `<label><input type="radio" name="${id}" class="f${k}">${esc(r)}</label>`).join('')}</div>` : '';
+  const body = rows.map(r => `<tr class="g${routes.indexOf(String(r[r.length - 1] || '').trim())}">${r.map((c, k) =>
+    k === r.length - 1 ? `<td class="route">${routeBadge(c)}</td>` : `<td>${k === 0 ? `<b>${essayText(c)}</b>` : essayText(c)}</td>`).join('')}</tr>`).join('');
+  return `<section class="es-mx"><h2 id="es-matrix">${essayText(m.head.text)}</h2>${pills}
+    <div class="es-tbl"><table><thead><tr>${(v.cols || []).map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+    <tbody>${body}</tbody></table></div></section>`;
+}
+function matrixCards(m){
+  return `<section class="es-mcards"><h2 id="es-matrix">${essayText(m.head.text)}</h2><div class="grid">${(m.table.rows || []).map(r =>
+    `<div class="mc"><h4>${essayText(r[0])}</h4><p class="bad"><b>Breaks</b>${essayText(r[1])}</p>
+      <p class="good"><b>Holds</b>${essayText(r[2])}</p>${routeBadge(r[3])}</div>`).join('')}</div></section>`;
+}
+function treeClick(tr, title){
+  return `<section class="es-ctree"><div class="lbl">${esc(title)}</div><div class="q">${essayText(tr.question)}</div>
+    <p class="hint">Open the branch that matches your situation.</p>${(tr.branches || []).map(b =>
+    `<details class="br"><summary>${essayText(b.condition)}</summary><div class="out">${essayText(b.outcome)}</div>${routeBadge(b.route)}</details>`).join('')}</section>`;
+}
+
+// ── openings and endings, one pair per layout ─────────────────────────────
+function leadBox(conf, p, cls = ''){
+  return `<div class="es-open ${cls}"><div class="lbl">${esc(conf.lead)}</div><p>${essayText(p.lead)}</p></div>`;
+}
+function tocList(secs, cls, tag){
+  return `<ol class="${cls}">${secs.map((s, i) => {
+    const t = essayText(s.head.text);
+    const k = `<span class="k">${tag(i + 1)}</span>`;
+    return `<li>${s.head.id ? `<a data-toc="es-${esc(s.head.id)}">${k}<span>${t}</span></a>` : `${k}<span>${t}</span>`}</li>`;
+  }).join('')}</ol>`;
+}
+function findingsCol(sp, status, title, cls){
+  if(!sp || sp.type !== 'findings') return '';
+  const it = (sp.items || []).filter(x => x.status === status);
+  return `<section class="es-fcol ${cls}"><div class="lbl">${esc(title)}</div><ul>${it.length
+    ? it.map(x => `<li>${essayText(x.finding)}</li>`).join('') : '<li class="none">None recorded.</li>'}</ul></section>`;
+}
+function faceoff(p, rows, asOf){
+  const names = vsNames(p);
+  if(names.length !== 2) return '';
+  const sp = p.special && p.special.type === 'picks' ? p.special : null;
+  const side = (n, k) => {
+    const r = rowFor(rows, n);
+    const picks = sp ? sp.items.filter(x => x.pick === n) : [];
+    return `<div class="side s${k}"><div class="nm">${esc(n)}</div>${r
+      ? `<div class="px"><span>${esc(r.pin)}</span><i>in</i><span>${esc(r.pout)}</span><i>out</i></div>
+         <div class="unit">list price per 1M tokens${asOf ? ` · ${esc(asOf)}` : ''}</div>`
+      : '<div class="unit">Not in this post\'s price sheet</div>'}${picks.length
+      ? `<div class="when">Pick it when</div><ul>${picks.map(x => `<li>${essayText(x.when)}</li>`).join('')}</ul>` : ''}</div>`;
+  };
+  return `<section class="es-face">${side(names[0], 0)}<div class="vs">vs</div>${side(names[1], 1)}</section>`;
+}
+function receipt(p, rows, conf, asOf){
+  const subj = rowsIn(rows, p.title);
+  const show = subj.length ? subj : rows.slice(0, 1);
+  const sp = p.special && p.special.type === 'drivers' ? p.special : null;
+  return `<section class="es-receipt"><div class="lbl">The rate card</div>${show.length ? show.map(r =>
+    `<div class="line"><b>${esc(r.name)}</b><span class="dots"></span><span>${perM(r.pin, 'in')}</span><span>${perM(r.pout, 'out')}</span>${
+      String(r.cached || '').startsWith('$') ? `<span class="dim">${esc(r.cached)} cached</span>` : ''}</div>`).join('')
+    : '<div class="line"><span class="dim">No list price in this post.</span></div>'}
+    <div class="unit">Registry list prices per 1M tokens${asOf ? `, ${esc(asOf)}` : ''}.</div>${sp ? `<div class="lbl">On the bill</div><ol class="items">${sp.items.map((x, k) =>
+    `<li><span class="k">${pad2(k + 1)}</span><span><b>${essayText(x.driver)}</b> ${essayText(x.mechanism)}</span></li>`).join('')}</ol>` : ''}
+    <div class="es-open in"><div class="lbl">${esc(conf.lead)}</div><p>${essayText(p.lead)}</p></div></section>`;
+}
+function leverList(items){
+  return `<section class="es-levers"><div class="lbl">Your levers</div><p class="hint">Tick each lever your system already pulls.</p>
+    <ul>${items.map(x => `<li><label><input type="checkbox"><span><b>${essayText(x.name)}</b> ${essayText(x.lever)}</span></label></li>`).join('')}</ul>
+    <div class="tally">Ticked <span class="ct"></span> of ${items.length}</div></section>`;
+}
+function layerMap(p, secs, conf){
+  const sp = p.special && p.special.type === 'layers' ? p.special : null;
+  const bands = sp
+    ? sp.items.map((x, k) => `<details class="band" style="margin-left:${k * 12}px"><summary>${essayText(x.layer)}</summary>
+        <p>${essayText(x.role)}</p><p class="fail"><b>Contains</b>${essayText(x.failure_contained)}</p></details>`).join('')
+    : secs.map((s, k) => `<a class="band" style="margin-left:${k * 12}px" ${s.head.id ? `data-toc="es-${esc(s.head.id)}"` : ''}>${essayText(s.head.text)}</a>`).join('');
+  return `<section class="es-map"><div class="lbl">The architecture${sp ? ' · open a layer' : ' · jump to a component'}</div>
+    <div class="stack">${bands}</div><p class="cap"><b>${esc(conf.lead)}</b> ${essayText(p.lead)}</p></section>`;
+}
+function claimWall(sp){
+  const cls = st => st === 'holds' ? 'ok' : st === 'partly holds' ? 'part' : 'none';
+  return `<section class="es-claimw"><div class="es-pills" role="radiogroup" aria-label="Filter claims"><span>Show</span>
+      <label><input type="radio" name="es-cl" checked>All claims</label>
+      <label><input type="radio" name="es-cl" class="fo">Holds</label>
+      <label><input type="radio" name="es-cl" class="fp">Partly holds</label>
+      <label><input type="radio" name="es-cl" class="fn">Does not hold</label></div>
+    <div class="grid">${sp.items.map(x => `<div class="cl c-${cls(x.status)}"><span class="stamp">${esc(x.status)}</span>
+      <h4>${essayText(x.claim)}</h4><p>${essayText(x.finding)}</p></div>`).join('')}</div></section>`;
+}
+function probeList(sp){
+  return `<section class="es-probe"><div class="lbl">${esc(sp.title || 'What the measures test')}</div>${sp.items.map(x =>
+    `<details><summary><b>${essayText(x.measure)}</b><span>${essayText(x.tests)}</span></summary>
+      <p><b>Misses</b>${essayText(x.misses)}</p></details>`).join('')}</section>`;
 }
 
 /* ---------- interactive posts, phase 1 (docs/proposals/interactive-blogs.md) ----------
@@ -1117,14 +1256,13 @@ function entityIndex(){
     const n = shortName(m);
     if(n.length >= 4 && !byName.has(n.toLowerCase())) byName.set(n.toLowerCase(), m);
   }
-  const names = [...byName.keys()].sort((a,b)=>b.length-a.length);
-  // A boundary at both ends, and a name must not run on into a version:
-  // "GPT-6" never matches inside "GPT-6.1".
-  const rx = names.length
-    ? new RegExp(`(?<![\\w.\\-])(${names.map(rxEsc).join('|')})(?![\\w\\-]|\\.\\d)`, 'gi')
-    : null;
-  return (_ents = { src: ms, byName, rx });
+  return (_ents = { src: ms, byName });
 }
+// A boundary at both ends, and a name must not run on into a version: "GPT-6"
+// never matches inside "GPT-6.1". Longest first, so "GPT-6.1 Sol Pro" is never
+// split into "GPT-6.1 Sol".
+const namesRx = names => names.length ? new RegExp(`(?<![\\w.\\-])(${[...names]
+  .sort((a, b) => b.length - a.length).map(rxEsc).join('|')})(?![\\w\\-]|\\.\\d)`, 'gi') : null;
 const usd = v => v == null ? null : `$${Number(v) < 1 ? String(+Number(v).toFixed(4)) : Number(v).toFixed(2)}`;
 function modelCard(m, text){
   // Rule 6: an absent figure says it is absent - never $0, never blank.
@@ -1139,12 +1277,30 @@ function modelCard(m, text){
     + `<span>${esc(ctx)}</span><span>${esc(rep)}</span><span class="go">Open the model page →</span></span></a>`;
 }
 const QUOTE_TIP = 'Quoted verbatim from a practitioner report this post was written from';
-function interactivize(html, p){
-  const { byName, rx } = entityIndex();
+// A MODEL THE POST PRICES BUT THE BOARD DOES NOT TRACK - GLM 5 in the
+// DeepSeek post - had no card and nothing said why (rule 4). Its card says it
+// is untracked, from the post's own price sheet. If the board's model list did
+// not load, "untracked" would be a guess, so the card says the list is missing.
+function sheetCard(r, text, asOf){
+  const loaded = Array.isArray(DB.blogModels);
+  const price = String(r.pin).startsWith('$') && String(r.pout).startsWith('$')
+    ? `${r.pin} in · ${r.pout} out per 1M tokens${asOf ? ` (list price, ${asOf})` : ''}` : 'No list price published';
+  return `<span class="es-ent off" tabindex="0">${text}<span class="es-pop" role="tooltip"><b>${esc(r.name)}</b>`
+    + `<span>${esc(loaded ? 'Not tracked on the board: no reports are collected for it here yet.'
+      : 'The board model list did not load, so whether it is tracked is unknown.')}</span>`
+    + `<span>${esc(price)}</span></span></span>`;
+}
+function interactivize(html, p, rows = []){
+  const { byName } = entityIndex();
   const asOf = String((p.provenance && p.provenance.generated_at) || '').slice(0, 10);
+  const extra = new Map(rows.filter(r => r.name.length >= 4 && !byName.has(r.name.toLowerCase()))
+    .map(r => [r.name.toLowerCase(), r]));
+  const rx = namesRx([...byName.keys(), ...extra.keys()]);
   const priceTip = esc(`List price from the model registry when this post was generated`
     + `${asOf ? ` (${asOf})` : ''}. Hover the model name for today's price.`);
-  let inCode = 0, inLink = 0, inQ = 0, inHead = 0, seen = new Set();
+  // A <label> is skipped like a heading: a link inside a filter pill or a
+  // checkbox would navigate instead of toggling.
+  let inCode = 0, inLink = 0, inQ = 0, inHead = 0, inLabel = 0, seen = new Set();
   return html.split(/(<[^>]+>)/).map(seg=>{
     if(seg.startsWith('<')){
       const t = seg.toLowerCase();
@@ -1155,6 +1311,8 @@ function interactivize(html, p){
       else if(t.startsWith('</a')) inLink = Math.max(0, inLink - 1);
       else if(/^<h[1-4][\s>]/.test(t)) inHead++;
       else if(/^<\/h[1-4]>/.test(t)) inHead = Math.max(0, inHead - 1);
+      else if(/^<label[\s>]/.test(t)) inLabel++;
+      else if(t.startsWith('</label')) inLabel = Math.max(0, inLabel - 1);
       else if(/^<q[\s>]/.test(t)){
         inQ++;
         if(t.includes('es-iq')) return seg.replace('<q class="es-iq"', `<q class="es-iq" title="${QUOTE_TIP}"`);
@@ -1162,14 +1320,14 @@ function interactivize(html, p){
       else if(t.startsWith('</q')) inQ = Math.max(0, inQ - 1);
       return seg;
     }
-    if(!seg || inCode || inLink || inHead) return seg;
+    if(!seg || inCode || inLink || inHead || inLabel) return seg;
     let out = inQ ? seg : seg.replace(/\$\d[\d,]*(?:\.\d+)?/g,
       m=>`<span class="es-num" tabindex="0" title="${priceTip}">${m}</span>`);
     if(rx) out = out.replace(rx, m0=>{
       const k = m0.toLowerCase();
-      if(seen.has(k) || !byName.has(k)) return m0;
+      if(seen.has(k) || !(byName.has(k) || extra.has(k))) return m0;
       seen.add(k);
-      return modelCard(byName.get(k), m0);
+      return byName.has(k) ? modelCard(byName.get(k), m0) : sheetCard(extra.get(k), m0, asOf);
     });
     return out;
   }).join('');
@@ -1177,57 +1335,111 @@ function interactivize(html, p){
 
 function vPost(slug){
   const p = byS(DB.posts,slug); if(!p) return vBlogs();
-  const L = LAYOUTS[p.layout] ? p.layout : null;
-  const conf = L ? LAYOUTS[L] : null;
-  // The rate card leads on a ledger: lift the List-prices heading and table out
-  // of the body and put them first.
-  let body = p.body.slice(), rate = '';
-  if(conf && conf.lead.startsWith('prices')){
-    const k = body.findIndex(([t,v])=>t==='table' && v && v.kind==='prices');
-    if(k >= 0){
-      const prevH3 = k > 0 && body[k-1][0]==='h3' ? 1 : 0;
-      rate = `<section class="es-sp es-rate"><div class="lbl">The rate card</div>${essayBlock(body[k])}</section>`;
-      body.splice(k - prevH3, 1 + prevH3);
-    }
-  }
-  // Section labels name what a section IS in this format ("Question 2").
-  let n = 0;
-  const rendered = body.map(b=>{
-    if(conf && b[0]==='h2' && b[1] && typeof b[1]==='object' && /^\d+$/.test(b[1].num||'')){
-      n += 1; return essayBlock(['h2', {...b[1], num: `${conf.label} ${n}`}]);
-    }
-    return essayBlock(b);
-  }).join('');
-  const special = conf ? specialBlock(p.special) : '';
-  const toc = p.body.filter(([t,v])=>t==='h2' && v && v.id)
-    .map(([,v])=>`<li><a data-toc="es-${esc(v.id)}">${essayText(v.num==='Decision tree'?'Decision tree':v.text)}</a></li>`).join('');
+  const L = layoutOf(p);
+  const conf = L ? LAYOUTS[L] : { label: null, lead: 'In brief', tools: 'end' };
+  const parts = splitPost(p.body || []), secs = parts.sections, sp = p.special;
+  const rows = sheetRows(parts.prices);
   const pv = p.provenance || {};
+  const asOf = String(pv.generated_at || '').slice(0, 10);
+  _mx = 0;
+
+  // THE TOOLS - the matrix and the tree - go where the format puts them, and
+  // never close the page: "which one to pick" ended 10 of 12 drafts.
+  const tools = [];
+  if(parts.matrix) tools.push(L === 'blueprint' ? matrixCards(parts.matrix) : matrixTable(parts.matrix, true));
+  if(parts.tree) tools.push(`<div id="es-decision">${treeClick(parts.tree,
+    L === 'runbook' ? 'Does this move apply to you?' : L === 'brief' ? 'Adopt it now?' : 'Find your case')}</div>`);
+
+  let secHtml;
+  if(L === 'versus'){
+    // A question card: the answer paragraph shows, the reasoning folds.
+    secHtml = secs.map((s, i) => {
+      const k = s.blocks.findIndex(b => b[0] === 'p');
+      const head = k < 0 ? s.blocks : s.blocks.slice(0, k + 1), rest = k < 0 ? [] : s.blocks.slice(k + 1);
+      const more = rest.filter(b => b[0] === 'p').length;
+      return `<section class="es-qcard">${sectionHtml({ head: s.head, blocks: head }, conf.label, i + 1)}${rest.length
+        ? `<details class="why"><summary>The reasoning${more ? ` · ${more} more paragraph${more === 1 ? '' : 's'}` : ''}</summary>${
+          rest.map(essayBlock).join('')}</details>` : ''}</section>`;
+    });
+  } else if(L === 'runbook'){
+    secHtml = secs.map((s, i) => `<section class="es-step">${sectionHtml(s, conf.label, i + 1,
+      '<label class="es-tick"><input type="checkbox" class="es-done">Mark this step done</label>')}</section>`);
+  } else {
+    secHtml = secs.map((s, i) => `<section class="es-sec">${sectionHtml(s, conf.label, i + 1)}</section>`);
+  }
+  const toolHtml = tools.join(''), half = Math.ceil(secHtml.length / 2);
+  let middle = conf.tools === 'top' ? toolHtml + secHtml.join('')
+    : conf.tools === 'mid' ? secHtml.slice(0, half).join('') + toolHtml + secHtml.slice(half).join('')
+    : secHtml.join('') + toolHtml;
+  middle = parts.pre.map(essayBlock).join('') + middle;
+  if(L === 'runbook') middle = `<div class="es-run">${middle}<div class="es-prog">Steps done: <span class="ct"></span> of ${secs.length}<span class="all"> · every step ticked</span></div></div>`;
+
+  // OPENINGS AND ENDINGS. One pair per format; none of them is the old box.
+  let open, end = '';
+  if(L === 'report'){
+    open = leadBox(conf, p, 'strip')
+      + `<nav class="es-log"><div class="lbl">Observations</div>${tocList(secs, '', n => `OBS-${pad2(n)}`)}</nav>`
+      + findingsCol(sp, 'established', 'What holds', 'ok');
+    end = findingsCol(sp, 'not established', 'Still open', 'open');
+  } else if(L === 'versus'){
+    open = faceoff(p, rows, asOf) + leadBox(conf, p, 'split');
+  } else if(L === 'ledger'){
+    open = receipt(p, rows, conf, asOf);
+    const lv = sp && sp.type === 'drivers' ? sp.items.map(x => ({ name: x.driver, lever: x.lever }))
+      : parts.matrix ? (parts.matrix.table.rows || []).map(r => ({ name: r[0], lever: r[2] })) : [];
+    end = lv.length ? leverList(lv) : '';
+  } else if(L === 'runbook'){
+    open = leadBox(conf, p, 'before');
+    const st = sp && sp.type === 'steps' ? sp.items : null;
+    end = st ? `<section class="es-levers"><div class="lbl">${esc(sp.title || 'Checks')}</div><ul>${st.map(x =>
+      `<li><label><input type="checkbox"><span><b>${essayText(x.step)}</b> ${essayText(x.check)}</span></label></li>`).join('')}</ul>
+      <div class="tally">Checked <span class="ct"></span> of ${st.length}</div></section>` : '';
+  } else if(L === 'blueprint'){
+    open = layerMap(p, secs, conf);
+  } else if(L === 'brief'){
+    open = leadBox(conf, p, 'verdict') + (sp && sp.type === 'claims' ? claimWall(sp)
+      : `<nav class="es-points"><div class="lbl">In ${secs.length} points</div>${tocList(secs, '', pad2)}</nav>`);
+  } else if(L === 'critique'){
+    open = leadBox(conf, p, 'thesis')
+      + `<nav class="es-chain"><div class="lbl">The argument in ${secs.length} steps</div>${tocList(secs, '', String)}</nav>`;
+    if(sp && sp.type === 'probes' && sp.items && sp.items.length) end = probeList(sp);
+  } else {
+    open = leadBox(conf, p);
+  }
+  let main = open + middle + end;
+
+  // READING TIME, COUNTED: words on the page, and the same less every
+  // paragraph after its first sentence - the part skim mode folds.
+  const full = wordsIn(main);
+  const folded = (p.body || []).reduce((n, [t, v]) => n + (t === 'p' ? wordsIn(splitFirst(v)[1]) : 0), 0);
+  const mins = w => Math.max(1, Math.round(w / 230));
+  // INTERACTIVE BY DEFAULT since 2026-10-06; a post can still opt out.
+  if(p.interactive !== false) main = interactivize(main, p, rows);
+  const mode = `<div class="es-mode"><div class="seg" role="radiogroup" aria-label="Reading mode">
+      <label><input type="radio" name="es-mode" class="m-skim" checked>Skim · ${mins(full - folded)} min</label>
+      <label><input type="radio" name="es-mode">Full · ${mins(full)} min</label></div>
+    <p>Skim shows the first sentence of each paragraph, plus every card, table and quote.
+      Dotted names open a model card. <q class="es-iq">Quoted</q> words are an engineer's, copied exactly.</p></div>`;
+
+  const toc = [...secs.filter(s => s.head.id).map(s => [`es-${s.head.id}`, s.head.text]),
+    ...(parts.matrix ? [['es-matrix', parts.matrix.head.text]] : []), ...(parts.tree ? [['es-decision', 'Decision tree']] : [])]
+    .map(([id, t]) => `<li><a data-toc="${esc(id)}">${essayText(t)}</a></li>`).join('');
   const tags = (p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('');
   const dec = (p.decisions||[]).map(d=>`<li>${essayText(d)}</li>`).join('');
   const rel = (p.rel||[]).map(([h,t])=>`<a class="es-rel" data-go="${esc(h)}">${esc(t)}</a>`).join('');
-  // A head-to-head's hero names both sides as nameplates.
-  const names = L==='versus' && p.special ? [...new Set((p.special.items||[]).map(x=>x.pick))] : [];
-  const plate = names.length===2 ? `<div class="es-vs"><span>${esc(names[0])}</span><i>vs</i><span>${esc(names[1])}</span></div>` : '';
-  // INTERACTIVE POSTS (phase 1): the article body only - never the hero, the
-  // sidebar or the footer - and only when the post opts in.
-  let main = `<div class="es-tldr"><div class="lbl">The short answer</div><p>${essayText(p.lead)}</p></div>
-        ${rate}${special}
-        ${rendered}`;
-  let hint = '';
-  if(p.interactive){
-    main = interactivize(main, p);
-    hint = `<p class="es-ihint">Interactive: model names open their page — hover one for today's price,
-      context window and board entries. Hover a figure or a «quoted» phrase to see where it came from.</p>`;
-  }
+  const sheet = rows.length ? `<div class="es-scard es-sheet"><div class="lbl">Price sheet${asOf ? ` · ${esc(asOf)}` : ''}</div>
+    <table><thead><tr><th></th><th>In</th><th>Out</th></tr></thead><tbody>${rows.map(r =>
+    `<tr><td>${esc(r.name)}</td><td>${esc(r.pin)}</td><td>${esc(r.pout)}</td></tr>`).join('')}</tbody></table>
+    <p>Registry list prices per 1M tokens when the post was written. A price the provider does not publish says so; it is never zero.</p></div>` : '';
   return `<div class="essay${L?' layout-'+L:''}"><div class="es-wrap">
     <div class="es-crumb"><a data-go="blogs">All essays</a></div>
-    <header class="es-hero"><div class="es-kicker">${esc(p.kicker||p.tag)}</div>${plate}<h1>${esc(p.title)}</h1>
+    <header class="es-hero"><div class="es-kicker">${esc(p.kicker||p.tag)}</div><h1>${esc(p.title)}</h1>
       <p class="es-dek">${esc(p.dek)}</p>
       <div class="es-byline">${(p.meta||[]).map(m=>`<span>${esc(m)}</span>`).join('')}</div>
       ${tags?`<div class="es-tags">${tags}</div>`:''}</header>
     <div class="es-layout">
       <article class="es-article">
-        ${hint}${main}
+        ${mode}${main}
         <footer class="es-foot">
           <p>Written by <code>${esc(pv.model)}</code>${pv.generated_at?` on ${esc(String(pv.generated_at).slice(0,10))}`:''}
           from engineers' public discussions, then checked in code: ${esc(pv.checks||'not recorded')}.
@@ -1237,7 +1449,8 @@ function vPost(slug){
         </footer>
       </article>
       <aside class="es-side">
-        ${toc?`<div class="es-scard"><div class="lbl">In this essay</div><ol>${toc}</ol></div>`:''}
+        ${toc?`<div class="es-scard"><div class="lbl">On this page</div><ol>${toc}</ol></div>`:''}
+        ${sheet}
         ${dec?`<div class="es-scard"><div class="lbl">Decisions it supports</div><ul class="dec">${dec}</ul></div>`:''}
         ${rel?`<div class="es-scard"><div class="lbl">Continue reading</div>${rel}</div>`:''}
       </aside>
