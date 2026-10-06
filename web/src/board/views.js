@@ -1103,6 +1103,93 @@ function specialBlock(sp){
   return '';
 }
 
+/* ---------- interactive posts, phase 1 (docs/proposals/interactive-blogs.md) ----------
+ * OPT-IN PER POST: `"interactive": true`. Three things, none of them typed by the
+ * model that wrote the post:
+ *   entity links  a tracked model's name links to its page; first mention per
+ *                 paragraph, longest name first, so "GPT-6.1 Sol Pro" is never
+ *                 split into "GPT-6.1 Sol" (rule 10: the whole identifier)
+ *   model cards   on hover or focus: list price, context, board entries - read
+ *                 from /models?tracked=1 when the page loads (DB.blogModels), so
+ *                 they are today's figures, not the post's
+ *   provenance    a verbatim «» fragment says it is quoted; a $ figure outside a
+ *                 quote says it is the list price at generation (the generator
+ *                 refuses any number found in neither the sources nor the price
+ *                 sheet, which is what makes that sentence true)
+ */
+const rxEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function shortName(m){
+  const d = String(m.display_name || m.canonical_id || '');
+  const i = d.indexOf(': ');
+  return (i >= 0 ? d.slice(i + 2) : d).trim();
+}
+let _ents = null;
+function entityIndex(){
+  const ms = DB.blogModels || [];
+  if(_ents && _ents.src === ms) return _ents;
+  const byName = new Map();
+  for(const m of ms){
+    const n = shortName(m);
+    if(n.length >= 4 && !byName.has(n.toLowerCase())) byName.set(n.toLowerCase(), m);
+  }
+  const names = [...byName.keys()].sort((a,b)=>b.length-a.length);
+  // A boundary at both ends, and a name must not run on into a version:
+  // "GPT-6" never matches inside "GPT-6.1".
+  const rx = names.length
+    ? new RegExp(`(?<![\\w.\\-])(${names.map(rxEsc).join('|')})(?![\\w\\-]|\\.\\d)`, 'gi')
+    : null;
+  return (_ents = { src: ms, byName, rx });
+}
+const usd = v => v == null ? null : `$${Number(v) < 1 ? String(+Number(v).toFixed(4)) : Number(v).toFixed(2)}`;
+function modelCard(m, text){
+  // Rule 6: an absent figure says it is absent - never $0, never blank.
+  const pin = usd(m.price_in), pout = usd(m.price_out);
+  const price = pin && pout ? `${pin} in · ${pout} out per 1M tokens` : 'No list price published';
+  const ctx = m.advertised_context
+    ? `${Number(m.advertised_context).toLocaleString('en-US')}-token context` : 'Context window not published';
+  const n = m.board && m.board.entries != null ? m.board.entries : null;
+  const rep = n == null ? 'Board entries not counted' : `${n} board ${n === 1 ? 'entry' : 'entries'}`;
+  return `<a class="es-ent" tabindex="0" data-go="model:${esc(m.model_version_id)}">${text}`
+    + `<span class="es-pop" role="tooltip"><b>${esc(shortName(m))}</b><span>${esc(price)}</span>`
+    + `<span>${esc(ctx)}</span><span>${esc(rep)}</span><span class="go">Open the model page →</span></span></a>`;
+}
+const QUOTE_TIP = 'Quoted verbatim from a practitioner report this post was written from';
+function interactivize(html, p){
+  const { byName, rx } = entityIndex();
+  const asOf = String((p.provenance && p.provenance.generated_at) || '').slice(0, 10);
+  const priceTip = esc(`List price from the model registry when this post was generated`
+    + `${asOf ? ` (${asOf})` : ''}. Hover the model name for today's price.`);
+  let inCode = 0, inLink = 0, inQ = 0, inHead = 0, seen = new Set();
+  return html.split(/(<[^>]+>)/).map(seg=>{
+    if(seg.startsWith('<')){
+      const t = seg.toLowerCase();
+      if(/^<(p|li|td|th)[\s>]/.test(t)) seen = new Set();
+      if(/^<(code|pre)[\s>]/.test(t)) inCode++;
+      else if(/^<\/(code|pre)>/.test(t)) inCode = Math.max(0, inCode - 1);
+      else if(/^<a[\s>]/.test(t)) inLink++;
+      else if(t.startsWith('</a')) inLink = Math.max(0, inLink - 1);
+      else if(/^<h[1-4][\s>]/.test(t)) inHead++;
+      else if(/^<\/h[1-4]>/.test(t)) inHead = Math.max(0, inHead - 1);
+      else if(/^<q[\s>]/.test(t)){
+        inQ++;
+        if(t.includes('es-iq')) return seg.replace('<q class="es-iq"', `<q class="es-iq" title="${QUOTE_TIP}"`);
+      }
+      else if(t.startsWith('</q')) inQ = Math.max(0, inQ - 1);
+      return seg;
+    }
+    if(!seg || inCode || inLink || inHead) return seg;
+    let out = inQ ? seg : seg.replace(/\$\d[\d,]*(?:\.\d+)?/g,
+      m=>`<span class="es-num" tabindex="0" title="${priceTip}">${m}</span>`);
+    if(rx) out = out.replace(rx, m0=>{
+      const k = m0.toLowerCase();
+      if(seen.has(k) || !byName.has(k)) return m0;
+      seen.add(k);
+      return modelCard(byName.get(k), m0);
+    });
+    return out;
+  }).join('');
+}
+
 function vPost(slug){
   const p = byS(DB.posts,slug); if(!p) return vBlogs();
   const L = LAYOUTS[p.layout] ? p.layout : null;
@@ -1136,6 +1223,17 @@ function vPost(slug){
   // A head-to-head's hero names both sides as nameplates.
   const names = L==='versus' && p.special ? [...new Set((p.special.items||[]).map(x=>x.pick))] : [];
   const plate = names.length===2 ? `<div class="es-vs"><span>${esc(names[0])}</span><i>vs</i><span>${esc(names[1])}</span></div>` : '';
+  // INTERACTIVE POSTS (phase 1): the article body only - never the hero, the
+  // sidebar or the footer - and only when the post opts in.
+  let main = `<div class="es-tldr"><div class="lbl">The short answer</div><p>${essayText(p.lead)}</p></div>
+        ${rate}${special}
+        ${rendered}`;
+  let hint = '';
+  if(p.interactive){
+    main = interactivize(main, p);
+    hint = `<p class="es-ihint">Interactive: model names open their page — hover one for today's price,
+      context window and board entries. Hover a figure or a «quoted» phrase to see where it came from.</p>`;
+  }
   return `<div class="essay${L?' layout-'+L:''}"><div class="es-wrap">
     <div class="es-crumb"><a data-go="blogs">All essays</a></div>
     <header class="es-hero"><div class="es-kicker">${esc(p.kicker||p.tag)}</div>${plate}<h1>${esc(p.title)}</h1>
@@ -1144,9 +1242,7 @@ function vPost(slug){
       ${tags?`<div class="es-tags">${tags}</div>`:''}</header>
     <div class="es-layout">
       <article class="es-article">
-        <div class="es-tldr"><div class="lbl">The short answer</div><p>${essayText(p.lead)}</p></div>
-        ${rate}${special}
-        ${rendered}
+        ${hint}${main}
         <footer class="es-foot">
           <p>Written by <code>${esc(pv.model)}</code>${pv.generated_at?` on ${esc(String(pv.generated_at).slice(0,10))}`:''}
           from engineers' public discussions, then checked in code: ${esc(pv.checks||'not recorded')}.

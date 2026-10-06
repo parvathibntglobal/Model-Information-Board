@@ -202,7 +202,18 @@ class TestTheBudgetStopsTheBatch:
         monkeypatch.setattr(runner, "run_one", lambda d, **k: launched.append(d.display_name)
                             or {"_end": {"kind": "end", "status": "ok"}})
         monkeypatch.setattr(runner, "post_summary", lambda recs: posted.extend(recs))
+        monkeypatch.setattr(runner, "in_progress", lambda conn, now: set())
         return launched, posted
+
+    def test_a_model_already_being_fetched_is_named_not_launched(self, monkeypatch):
+        """One fetch per model at a time: a second would pay to extract the
+        same unread threads again."""
+        launched, posted = self._setup(monkeypatch, [0.0, 0.0, 0.0])
+        monkeypatch.setattr(runner, "in_progress", lambda conn, now: {"b"})
+        assert runner.main([]) == 0
+        assert launched == ["A", "C"]
+        assert [r["model"] for r in posted
+                if r["status"] == "not run: a fetch of this model is already running"] == ["B"]
 
     def test_models_after_the_budget_is_spent_are_named_not_launched(self, monkeypatch):
         launched, posted = self._setup(monkeypatch, [0.10, 2.05, 9.99])
@@ -254,3 +265,40 @@ class TestTheDeadlineStopsLaunching:
         skipped = [r["model"] for r in posted
                    if r["status"] == "not run: this job's time budget is spent"]
         assert skipped == ["B", "C"]
+
+
+def test_the_summary_shows_threads_a_run_could_not_read():
+    rec = {"model": "A", "status": "ok", "documents_appended": 0,
+           "threads_unreadable_here": 6087}
+    summary = scheduler.summarise_runs([scheduler.safe_record(rec)])
+    assert "Unreadable here" in summary and "| 6087 |" in summary
+
+
+class TestTheJobLimitStopsAFetchNotTheRunner:
+    """A fetch still running near the job's hard limit is stopped by the
+    runner, which records it and still posts the summary."""
+
+    def test_a_timed_out_fetch_is_recorded_and_the_summary_posts(self, monkeypatch):
+        launched, posted = TestTheBudgetStopsTheBatch()._setup(monkeypatch, [0.0, 0.0, 0.0])
+        timeouts = []
+
+        def run_one(d, **kw):
+            timeouts.append(kw.get("timeout_s"))
+            if d.display_name == "A":
+                return {"_end": None, "timed_out": True}
+            return {"_end": {"kind": "end", "status": "ok"}}
+
+        monkeypatch.setattr(runner, "run_one", run_one)
+        assert runner.main(["--job-limit-minutes", "355"]) == 0
+        assert posted, "the summary was not posted"
+        a = next(r for r in posted if r["model"] == "A")
+        assert a["status"].startswith("stopped at the job time limit")
+        assert all(t is not None and t <= 345 * 60 for t in timeouts)
+
+    def test_without_a_limit_there_is_no_timeout(self, monkeypatch):
+        TestTheBudgetStopsTheBatch()._setup(monkeypatch, [0.0, 0.0, 0.0])
+        timeouts = []
+        monkeypatch.setattr(runner, "run_one", lambda d, **kw: timeouts.append(
+            kw.get("timeout_s")) or {"_end": {"kind": "end", "status": "ok"}})
+        runner.main([])
+        assert timeouts == [None, None, None]

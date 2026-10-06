@@ -110,7 +110,7 @@ def rank_due(
 #: the database host, so the summary is built from structured fields only.
 _SAFE_FIELDS = (
     "status", "documents_appended", "harvest_arms_errored", "harvest_http_errors",
-    "threads_read", "claims_verified", "claims_stored",
+    "threads_read", "claims_verified", "claims_stored", "threads_unreadable_here",
 )
 
 
@@ -126,8 +126,8 @@ def summarise_runs(records: list[dict]) -> str:
     lines = [f"**Scheduled fetch: {len(records)} model(s).** "
              "Counts only; no quotes, authors or hosts.", "",
              "| Model | Outcome | Docs appended | Threads read "
-             "| Quotes verified (count) | Harvest errors |",
-             "|---|---|---|---|---|---|"]
+             "| Quotes verified (count) | Unreadable here | Harvest errors |",
+             "|---|---|---|---|---|---|---|"]
 
     def cell(rec, key):
         v = rec.get(key)
@@ -145,6 +145,9 @@ def summarise_runs(records: list[dict]) -> str:
             # so this column read 0 for every model while each produced
             # hundreds of verified quotes.
             f"| {cell(rec, 'claims_verified')} "
+            # Threads this run could not read because their payloads are on
+            # another machine: a reason for a low count, not a count of zero.
+            f"| {cell(rec, 'threads_unreadable_here')} "
             f"| {', '.join(errored) if errored else '-'} |"
         )
     ok = sum(1 for r in records if r.get("status") == "ok")

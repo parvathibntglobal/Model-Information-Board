@@ -497,3 +497,28 @@ class TestARetirementDateSeventyTwoYearsAwayIsNotAClosedWindow:
         searching it attributes one model's discussion to a whole family.
         """
         assert "specificity IN ('version', 'snapshot')" in self._sql()
+
+
+def test_the_naming_scan_counts_what_it_could_not_read():
+    """An unreadable thread is counted, not silently treated as not naming the
+    model - the first scheduled Action read 0 of 6,087 and said none named it."""
+    class _Rows:
+        def fetchall(self):
+            return [("tc_a", "flattened/a"), ("tc_b", "flattened/b"), ("tc_c", "flattened/c")]
+
+    class _Conn:
+        def execute(self, *a, **k):
+            return _Rows()
+
+    class _Store:
+        def get_text(self, ref):
+            if ref == "flattened/a":
+                return "We moved the agent to Acme Model 7 last week."
+            raise FileNotFoundError(ref)
+
+    counts = {}
+    naming, total = fetch_model.threads_naming_the_model(
+        _Conn(), _Store(), ["acme model 7"], counts=counts)
+    assert total == 3
+    assert counts["unreadable"] == 2
+    assert naming == {"tc_a"}
