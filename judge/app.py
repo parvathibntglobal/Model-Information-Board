@@ -2477,32 +2477,65 @@ def coverage_page() -> dict:
 
 
 @app.get("/blog-posts")
-def blog_posts_page() -> dict:
-    """Blog drafts for the Blogs section, read from BLOG_POSTS_DIR.
+def blog_posts_page(review: bool = False) -> dict:
+    """Blog posts, from the `blog_post` table (judge/blog_store.py).
 
-    Read-only and no database: drafts are files until a `blog_post` table is
-    agreed (see `judge/blog_posts.py` for why). Token-gated like every route.
-    `reason` distinguishes "not configured" from "no drafts yet"; `skipped`
-    names any file that could not be read rather than dropping it.
+    PUBLIC (the default): the APPROVED posts only - the Blogs page.
+    `?review=1` (Admin -> Blogs and its preview): pending and approved posts with
+    their `review` state, rejected posts as tombstones under `rejected`, and the
+    draft files on THIS machine not yet stored, under `unstored`.
+
+    FAILS CLOSED. If the store cannot be read, `posts` is empty and `reason` says
+    why. It never falls back to the draft files: a page that cannot tell what
+    was approved shows nothing rather than everything (#508 review, rule 12).
+    `reason` stays distinct from "nothing approved yet" (rule 4), which is an
+    empty list with no reason.
     """
-    from judge import blog_posts, blog_runs
+    from judge import blog_posts, blog_store
 
-    out = blog_posts.load()
-    # REVIEW STATE, for posts a recorded generation run wrote: pending until
-    # approved in Admin -> Blogs. A post with no `review` predates the history
-    # and is shown as before. If the history cannot be read, no post carries a
-    # state and `review_unreadable` says why - nothing is hidden on a guess.
-    if not out.get("posts"):
-        return out  # nothing to annotate, so nothing to read
     try:
         with _conn() as conn:
-            states = blog_runs.public_state(conn)
-        for p in out.get("posts", []):
-            if p.get("slug") in states:
-                p["review"] = states[p["slug"]]
-    except Exception as e:  # noqa: BLE001
-        out["review_unreadable"] = _safe_detail(e)
-    return out
+            if not review:
+                return {"posts": blog_store.published(conn), "skipped": [], "reason": None}
+            stored = blog_store.for_review(conn)
+            have = blog_store.stored_slugs(conn)
+    except blog_store.StoreUnreadable as e:
+        return {"posts": [], "skipped": [], "reason": f"No posts are shown: {e}."}
+    except Exception as e:  # noqa: BLE001 - a dead pool or database must not publish anything
+        return {"posts": [], "skipped": [], "reason": (
+            f"No posts are shown: the blog store could not be reached. {_safe_detail(e)}")}
+    files = blog_posts.load()
+    return {
+        "posts": [p for p in stored if p.get("review") != "rejected"],
+        "rejected": [p for p in stored if p.get("review") == "rejected"],
+        # Draft files on this machine the store does not have yet. Their
+        # `reason` (BLOG_POSTS_DIR unset or missing) is passed on, not dropped.
+        "unstored": [{"slug": p["slug"], "title": p.get("title"),
+                      "generated_at": (p.get("provenance") or {}).get("generated_at")}
+                     for p in files.get("posts", []) if p["slug"] not in have],
+        "files_reason": files.get("reason"),
+        "skipped": files.get("skipped", []),
+        "reason": None,
+    }
+
+
+@app.post("/blog-posts/store")
+def blog_posts_store() -> dict:
+    """Store this machine's draft files that the `blog_post` table does not have
+    yet, as pending. Writes the shared database; never overwrites a stored post
+    (ON CONFLICT DO NOTHING), so a slug already approved or rejected is left as
+    it is. How the drafts that predate the store, and a run started from a
+    terminal, reach review."""
+    from judge import blog_posts, blog_store
+
+    files = blog_posts.load()
+    if files.get("reason"):
+        raise HTTPException(status_code=409, detail=files["reason"])
+    try:
+        with _conn() as conn:
+            return blog_store.store_drafts(conn, files.get("posts", []))
+    except blog_store.StoreUnreadable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
 
 
 class BlogReviewRequest(BaseModel):
@@ -2513,18 +2546,14 @@ class BlogReviewRequest(BaseModel):
 
 @app.get("/blog-posts/runs")
 def blog_posts_runs(limit: int = 20) -> dict:
-    """Admin -> Blogs: recorded generation runs (newest first), every post's
-    latest review decision, and which posts are reviewable (written by a run)."""
+    """Admin -> Blogs: recorded generation runs, newest first. Each post's review
+    state travels with the post itself (`GET /blog-posts?review=1`)."""
     from judge import blog_runs
 
     try:
         with _conn() as conn:
             blog_runs.reconcile(conn)
-            return {
-                "runs": blog_runs.runs(conn, max(1, min(int(limit), 100))),
-                "reviews": blog_runs.latest_reviews(conn),
-                "reviewable": blog_runs.reviewable(conn),
-            }
+            return {"runs": blog_runs.runs(conn, max(1, min(int(limit), 100)))}
     except Exception as e:  # noqa: BLE001
         raise HTTPException(
             status_code=503, detail=f"the blog history could not be read. {_safe_detail(e)}"
@@ -2533,15 +2562,19 @@ def blog_posts_runs(limit: int = 20) -> dict:
 
 @app.post("/blog-posts/review")
 def blog_posts_review(req: BlogReviewRequest) -> dict:
-    """Approve, reject or reopen a post a recorded run wrote. Append-only: a new
-    row per decision, the latest one is the post's state."""
-    from judge import blog_runs
+    """Approve, reject or move back a stored post (judge/blog_store.decide).
+    Every decision is a new `blog_post_review` row. REJECTING DELETES THE POST'S
+    CONTENT - only its slug, plan key and the decision stay - so it cannot be
+    moved back (migration 20261006T1500)."""
+    from judge import blog_store
 
     try:
         with _conn() as conn:
-            return blog_runs.review(conn, req.slug, req.decision, req.reason)
-    except blog_runs.ReviewRefused as e:
+            return blog_store.decide(conn, req.slug, req.decision, req.reason)
+    except blog_store.DecisionRefused as e:
         raise HTTPException(status_code=e.status, detail=e.detail) from None
+    except blog_store.StoreUnreadable as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
 
 
 class BlogGenerateRequest(BaseModel):

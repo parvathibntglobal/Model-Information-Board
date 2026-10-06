@@ -1,15 +1,14 @@
-"""Blog drafts for the UI's Blogs section, read from a directory of JSON files.
+"""Blog draft FILES on this machine, and the generation run that writes them.
 
-WHY FILES AND NOT A TABLE, FOR NOW
-
-The posts are drafts for the team to examine on a local build. A table needs a
-migration, and a migration on the shared staging database is a coordinated
-event (CLAUDE.md, Conventions). Files let the team read drafts today without
-writing to shared state; the shape here is the one a `blog_post` table would
-serve later, so the UI does not change when storage does.
-
-`generate_sample_blogs.py` writes the files (`export_post`). This module only
-reads them. Nothing here calls a model.
+THE PAGES DO NOT READ THESE FILES (since 2026-10-06). Posts live in the shared
+`blog_post` table (`judge/blog_store.py`, migration 20261006T1500): the Blogs
+page shows the approved ones and Admin -> Blogs reviews the rest. The files are
+the generator's output on the machine that ran it - `generate_sample_blogs.py`
+calls a paid model and runs locally - and they reach the table two ways: a run
+started from Admin -> Blogs stores its drafts when it finishes
+(`judge/blog_runs._finish`), and anything else is stored from Admin -> Blogs'
+"Store them as drafts" (`POST /blog-posts/store`). This module validates and
+lists the files for both. Nothing here calls a model.
 
 THREE STATES, NOT TWO (rule 4, rule 6)
 

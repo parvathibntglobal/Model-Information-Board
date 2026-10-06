@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { blogPosts, startBlogGeneration, blogGenerationStatus, blogGenerationLog, blogRuns, reviewBlogPost } from '../api'
+import { blogPosts, startBlogGeneration, blogGenerationStatus, blogGenerationLog, blogRuns, reviewBlogPost, storeBlogDrafts } from '../api'
 import { Badge, Notice } from './ui'
 import { IconAlert, IconGrid } from './Icons'
 
@@ -20,9 +20,15 @@ import { IconAlert, IconGrid } from './Icons'
  *
  * RUN HISTORY AND REVIEW LIVE IN THE SHARED DATABASE (`judge/blog_runs.py`,
  *   migration 20261006T1200): every generation run is a row with its cost,
- *   tokens and log, and Approve / Reject / Move back are append-only rows. Only
- *   posts a recorded run wrote are reviewable; drafts that predate the history
- *   stay as they were. The Blogs page shows a run's post once it is approved.
+ *   tokens and log, and every decision is a row.
+ *
+ * THE POSTS LIVE THERE TOO (`judge/blog_store.py`, migration 20261006T1500),
+ *   so every machine and the hosted platform review the same posts:
+ *     pending    a run's drafts are stored when it finishes; anything else on
+ *                this machine is stored with "Store them as drafts"
+ *     approved   shown on the Blogs page (filtered on the server)
+ *     rejected   CONTENT DELETED - only the slug, plan key and decision stay, so
+ *                the planner never writes it again. Cannot be moved back.
  *
  * ⚠ GENERATING SPENDS MONEY, so the button asks first.
  */
@@ -176,9 +182,10 @@ export default function BlogsPanel() {
   const [tab, setTab] = useState('drafts')
   const [busy, setBusy] = useState(null)
   const [reviewErr, setReviewErr] = useState(null)
+  const [storeMsg, setStoreMsg] = useState(null)
   const timer = useRef(null)
 
-  const load = useCallback(() => blogPosts()
+  const load = useCallback(() => blogPosts({ review: true })
     .then((d) => setPosts({ data: d, err: null }))
     .catch((e) => setPosts({ data: null, err: e.message })), [])
 
@@ -210,7 +217,7 @@ export default function BlogsPanel() {
   const running = gen && RUNNING.has(gen.state)
   const onGenerate = () => {
     // eslint-disable-next-line no-alert
-    if (!window.confirm(`Generate ${COUNT} more posts? This calls a paid model and writes ${COUNT} draft files.`)) return
+    if (!window.confirm(`Generate ${COUNT} more posts? This calls a paid model; the drafts are stored for review when the run finishes.`)) return
     setStartErr(null)
     setGen({ state: 'starting', items: [] })
     startBlogGeneration(COUNT)
@@ -227,6 +234,8 @@ export default function BlogsPanel() {
     let reason = null
     if (decision === 'rejected') {
       // eslint-disable-next-line no-alert
+      if (!window.confirm('Reject this post? Its content is DELETED. Only the decision and its reason are kept, and it cannot be moved back.')) return
+      // eslint-disable-next-line no-alert
       reason = window.prompt('Why is it rejected? (optional, kept with the decision)', '')
       if (reason === null) return
     }
@@ -238,19 +247,32 @@ export default function BlogsPanel() {
       .finally(() => setBusy(null))
   }
 
-  const data = posts.data
-  const all = data?.posts || []
-  const reviews = hist.data?.reviews || {}
-  const reviewable = hist.data?.reviewable || {}
-  const stateOf = (slug) => {
-    const d = reviews[slug]?.decision
-    return d === 'approved' || d === 'rejected' ? d : 'drafts'
+  const onStore = () => {
+    setStoreMsg(null)
+    setBusy('store')
+    storeBlogDrafts()
+      .then((r) => {
+        const parts = [`${r.stored.length} stored`]
+        if (r.already.length) parts.push(`${r.already.length} already stored, left as they were`)
+        if (r.refused.length) parts.push(`${r.refused.length} refused: ${r.refused.map((x) => `${x.slug} (${x.why})`).join('; ')}`)
+        setStoreMsg(parts.join(' · '))
+        load()
+      })
+      .catch((e) => setStoreMsg(`Could not store the drafts: ${e.message}`))
+      .finally(() => setBusy(null))
   }
-  // Built from TABS, not written out: a literal `rejected:` key reads to the
-  // API-field audit as a reader of the unrelated `rejected` field.
+
+  const data = posts.data
+  const live = data?.posts || []
+  const tombstones = data?.rejected || []
+  const unstored = data?.unstored || []
+  const stateOf = (p) => (p.review === 'approved' ? 'approved' : 'drafts')
+  // Built from TABS, so the tab keys and their counts cannot drift apart.
   const counts = Object.fromEntries(TABS.map(([k]) => [k, 0]))
-  for (const p of all) counts[stateOf(p.slug)] += 1
-  const list = all.filter((p) => stateOf(p.slug) === tab)
+  for (const p of live) counts[stateOf(p)] += 1
+  counts[TABS[2][0]] = tombstones.length
+  const list = live.filter((p) => stateOf(p) === tab)
+  const ok = data && !data.reason
 
   return (
     <section className="card card-flush">
@@ -259,16 +281,16 @@ export default function BlogsPanel() {
           <IconGrid width={14} height={14} style={{ color: 'var(--text-3)' }} />
           <span className="label">Blogs — drafts from the evidence, for approval</span>
         </div>
-        {data && <span className="label">{all.length} post{all.length === 1 ? '' : 's'}</span>}
+        {ok && <span className="label">{live.length} post{live.length === 1 ? '' : 's'}</span>}
       </div>
 
       <div className="card-intro">
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
-          Written by a language model from engineers' public reports and checked in code. Generating plans
-          the next posts from the board's evidence and writes them as drafts;{' '}
+          Written by a language model from engineers&apos; public reports and checked in code. Generating plans
+          the next posts from the board&apos;s evidence;{' '}
           <strong style={{ color: 'var(--text)' }}>it calls a paid model</strong> and runs only on a local
-          development backend, one run at a time. Every run is recorded with its cost, tokens and log, and
-          a post it writes reaches the Blogs page only once approved here.
+          development backend, one run at a time. Posts are kept in the shared database, so everyone reviews
+          the same ones, and a post reaches the Blogs page only once approved here.
         </p>
       </div>
 
@@ -300,14 +322,37 @@ export default function BlogsPanel() {
         {startErr && <Notice icon={<IconAlert />}>{startErr}</Notice>}
         <RunStatus gen={gen} />
 
-        {posts.err && <Notice icon={<IconAlert />}>The drafts could not be read: {posts.err}</Notice>}
+        {posts.err && <Notice icon={<IconAlert />}>The posts could not be read: {posts.err}</Notice>}
         {reviewErr && <Notice icon={<IconAlert />}>Could not record the decision for {reviewErr}</Notice>}
         {!data && !posts.err && <div className="skel" style={{ height: 160 }} />}
 
-        {/* RULE 4: "not configured" and "no drafts yet" are different facts. */}
+        {/* RULE 4: "the store could not be read" and "nothing stored yet" are different facts. */}
         {data?.reason && <Notice icon={<IconAlert />}>{data.reason}</Notice>}
 
-        {data && !data.reason && (
+        {/* DRAFT FILES THIS BACKEND'S MACHINE HAS AND THE STORE DOES NOT: older
+            drafts, and runs started from a terminal. Named, never dropped. */}
+        {ok && unstored.length > 0 && (
+          <Notice icon={<IconAlert />}>
+            <span>
+              {unstored.length} draft{unstored.length === 1 ? '' : 's'} on this machine {unstored.length === 1 ? 'is' : 'are'} not
+              stored yet, so nobody else can review {unstored.length === 1 ? 'it' : 'them'}: {unstored.map((u) => u.title || u.slug).join(' · ')}.{' '}
+              <button type="button" className="btn btn-ghost prompt-btn" disabled={busy === 'store'} onClick={onStore}>
+                {busy === 'store' ? 'Storing…' : 'Store them as drafts'}
+              </button>
+            </span>
+          </Notice>
+        )}
+        {storeMsg && <p className="dim" style={{ fontSize: 11, margin: 0 }}>{storeMsg}</p>}
+        {/* WHY THIS BACKEND HAS NO DRAFT FILES TO OFFER (BLOG_POSTS_DIR unset or
+            missing) - the hosted platform, typically. Said, not left as an
+            empty list that reads as "everything is stored". */}
+        {ok && data.files_reason && (
+          <p className="dim" style={{ fontSize: 11, margin: 0 }}>
+            No draft files are read on this backend, so nothing can be stored from here: {data.files_reason}
+          </p>
+        )}
+
+        {ok && tab !== 'rejected' && (
           <div className="tablewrap"><table>
             <thead>
               <tr><th>Title</th><th>Format</th><th>Written</th><th>Status</th><th>Actions</th></tr>
@@ -315,18 +360,16 @@ export default function BlogsPanel() {
             <tbody>
               {list.length === 0 ? (
                 <tr><td colSpan={5} className="dim">
-                  {tab === 'drafts' ? 'No drafts. Generate some above.' : `Nothing ${tab} yet.`}
+                  {tab === 'drafts' ? 'No drafts awaiting review. Generate some above.' : 'Nothing approved yet.'}
                 </td></tr>
               ) : list.map((p) => {
-                const canReview = Boolean(reviewable[p.slug])
-                const st = stateOf(p.slug)
-                const why = reviews[p.slug]?.reason
+                const st = stateOf(p)
                 return (
                   <tr key={p.slug}>
                     <td>
                       <strong style={{ fontSize: 'var(--fs-sm)' }}>{p.title}</strong>
                       {p.feat && <> <Badge tone="mute">featured</Badge></>}
-                      {why && <span className="dim" style={{ display: 'block', fontSize: 11 }}>Reason: {why}</span>}
+                      {p.review_reason && <span className="dim" style={{ display: 'block', fontSize: 11 }}>Reason: {p.review_reason}</span>}
                     </td>
                     <td className="dim">{p.kicker || p.tag}</td>
                     <td className="dim" style={{ whiteSpace: 'nowrap' }}>
@@ -336,35 +379,46 @@ export default function BlogsPanel() {
                       )}
                     </td>
                     <td>
-                      <Badge tone={st === 'approved' ? 'pass' : st === 'rejected' ? 'fail' : 'mute'}>
-                        {st === 'drafts' ? (canReview ? 'awaiting review' : 'draft') : st}
-                      </Badge>
+                      <Badge tone={st === 'approved' ? 'pass' : 'mute'}>{st === 'approved' ? 'approved' : 'awaiting review'}</Badge>
                     </td>
                     <td>
                       <span className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
                         <Link to={`/blogs/${encodeURIComponent(p.slug)}`} state={{ from: 'admin' }}
                               className="btn btn-ghost prompt-btn">Preview</Link>
-                        {!canReview ? (
-                          <span className="dim" style={{ fontSize: 11 }}
-                                title="Written before run history began; only posts a recorded run wrote are reviewed here">
-                            not reviewable
-                          </span>
-                        ) : st === 'drafts' ? (
-                          <>
-                            <button type="button" className="btn btn-ghost prompt-btn" disabled={busy === p.slug}
-                                    onClick={() => decide(p.slug, 'approved')}>Approve</button>
-                            <button type="button" className="btn btn-quiet prompt-btn" disabled={busy === p.slug}
-                                    onClick={() => decide(p.slug, 'rejected')}>Reject</button>
-                          </>
+                        {st === 'drafts' ? (
+                          <button type="button" className="btn btn-ghost prompt-btn" disabled={busy === p.slug}
+                                  onClick={() => decide(p.slug, 'approved')}>Approve</button>
                         ) : (
                           <button type="button" className="btn btn-quiet prompt-btn" disabled={busy === p.slug}
                                   onClick={() => decide(p.slug, 'reopened')}>Move back to drafts</button>
                         )}
+                        <button type="button" className="btn btn-quiet prompt-btn" disabled={busy === p.slug}
+                                onClick={() => decide(p.slug, 'rejected')}>Reject</button>
                       </span>
                     </td>
                   </tr>
                 )
               })}
+            </tbody>
+          </table></div>
+        )}
+
+        {/* REJECTED POSTS ARE TOMBSTONES: the content is gone, so there is no
+            title, no preview and no way back - only what was decided and why. */}
+        {ok && tab === 'rejected' && (
+          <div className="tablewrap"><table>
+            <thead><tr><th>Post</th><th>Rejected</th><th>Reason</th></tr></thead>
+            <tbody>
+              {tombstones.length === 0 ? (
+                <tr><td colSpan={3} className="dim">Nothing rejected.</td></tr>
+              ) : tombstones.map((t) => (
+                <tr key={t.slug}>
+                  <td><span className="mono" style={{ fontSize: 11 }}>{t.slug}</span>
+                    {t.plan_key && <span className="dim" style={{ display: 'block', fontSize: 10 }}>{t.plan_key}</span>}</td>
+                  <td className="dim" style={{ whiteSpace: 'nowrap' }}>{day(t.decided_at) || '—'}</td>
+                  <td className="dim">{t.review_reason || 'No reason given'}</td>
+                </tr>
+              ))}
             </tbody>
           </table></div>
         )}
@@ -377,9 +431,9 @@ export default function BlogsPanel() {
         )}
 
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', margin: 0, maxWidth: '78ch', lineHeight: 1.6 }}>
-          Approval rule: a post a run writes reaches the Blogs page only after it is approved here. Every
-          decision is kept, and one can be undone with Move back to drafts. Drafts written before run history
-          began are left as they were.
+          Approval rule: a post reaches the Blogs page only after it is approved here, and Move back to drafts
+          takes it off again. Rejecting deletes the post&apos;s content and keeps only the decision and its
+          reason, so a rejected post cannot come back and the planner will not write it again.
         </p>
       </div>
     </section>

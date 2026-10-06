@@ -1570,8 +1570,22 @@ def existing_headings() -> set[str]:
     return out
 
 
-def existing_plan_keys() -> set[str]:
-    keys = set()
+def stored_plan_keys(cur) -> set[str]:
+    """(format, subject) keys of posts in the shared `blog_post` table - REJECTED
+    ONES INCLUDED. Rejecting deletes a post's content but keeps its key, so the
+    planner never writes it again and pays for it twice (migration
+    20261006T1500). A database without the table has no rejections to remember,
+    so that one case reads as none; any other error stops the run."""
+    try:
+        with cur.connection.transaction():  # a savepoint: the plan's transaction survives
+            cur.execute("SELECT plan_key FROM blog_post WHERE plan_key IS NOT NULL")
+            return {r["plan_key"] for r in cur.fetchall()}
+    except psycopg.errors.UndefinedTable:
+        return set()
+
+
+def existing_plan_keys(cur=None) -> set[str]:
+    keys = stored_plan_keys(cur) if cur is not None else set()
     for f in POSTS_OUT.glob("*.json"):
         try:
             k = (json.loads(f.read_text(encoding="utf-8")).get("provenance") or {}).get("plan_key")
@@ -1644,7 +1658,7 @@ def plan_posts(cur, reader, n: int) -> list[tuple]:
     never a (format, subject) already written, never one subject twice in a
     batch. Each pick must have its documents on this machine."""
     cfg = load_formats()
-    done = existing_plan_keys()
+    done = existing_plan_keys(cur)
     order = sorted(cfg["formats"], key=lambda f: (sum(k.startswith(f["key"] + ":") for k in done),
                                                  cfg["formats"].index(f)))
     pools: dict[str, list] = {}

@@ -247,7 +247,9 @@ export default function Landing() {
     let alive = true
     boardPage().then((b) => alive && setBoard(b)).catch(() => {})
     blogPosts()
-      .then((d) => alive && setBlogCount((d.posts || []).filter((p) => !p.review || p.review === 'approved').length))
+      // Approved posts, counted on the server's list. A store that could not be
+      // read sends a `reason` and no posts: that count is unknown, not 0 (rule 6).
+      .then((d) => alive && setBlogCount(d.reason ? null : (d.posts || []).length))
       .catch(() => {})
     return () => { alive = false }
   }, [])

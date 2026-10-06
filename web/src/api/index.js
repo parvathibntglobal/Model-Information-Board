@@ -300,13 +300,22 @@ export const boardPage = () => cached('board', () => request('/board'), { ttl: B
 export const coveragePage = () => request('/coverage')
 
 /**
- * Blog drafts for the Blogs section — `{posts, skipped, reason}`.
+ * Blog posts, from the shared `blog_post` table — `{posts, skipped, reason}`.
  *
- * `reason` is set when the backend is not configured to serve drafts, and is
- * null when it is configured and simply has none: the page must show those
- * differently. `skipped` names any draft file the backend could not read.
+ * Public (the Blogs page): APPROVED posts only, filtered on the server.
+ * `{ review: true }` (Admin → Blogs and its preview): pending and approved posts
+ * with their `review` state, plus `rejected` (tombstones — the content was
+ * deleted), `unstored` (draft files on that backend's machine not yet stored)
+ * and `files_reason`.
+ *
+ * `reason` is set when the store could not be read, and then `posts` is empty:
+ * the page shows nothing rather than everything. An empty list with no reason
+ * means nothing is approved yet — the page must show those differently.
  */
-export const blogPosts = () => request('/blog-posts')
+export const blogPosts = ({ review = false } = {}) => request(review ? '/blog-posts?review=1' : '/blog-posts')
+
+/** Store this machine's draft files the database does not have yet, as pending. */
+export const storeBlogDrafts = () => request('/blog-posts/store', { method: 'POST' })
 
 /** Start a background run that plans and writes `count` new drafts (local only). */
 export const startBlogGeneration = (count = 3) =>
@@ -318,10 +327,10 @@ export const blogGenerationStatus = () => request('/blog-posts/generate')
 // The latest generation run's console log (Admin → Blogs). Read-only; keys masked.
 export const blogGenerationLog = (lines = 400) => request(`/blog-posts/generate/log?lines=${lines}`)
 
-// Recorded generation runs, each post's latest review, and which posts are reviewable.
+// Recorded generation runs, newest first (each post's review state travels with the post).
 export const blogRuns = (limit = 20) => request(`/blog-posts/runs?limit=${limit}`)
 
-// Approve, reject or reopen a post a recorded run wrote (append-only on the server).
+// Approve, reject or move back a stored post. Rejecting DELETES its content.
 export const reviewBlogPost = (slug, decision, reason) =>
   request('/blog-posts/review', { method: 'POST', body: { slug, decision, reason: reason || null } })
 

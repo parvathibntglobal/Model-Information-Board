@@ -1,8 +1,9 @@
 """Blog generation history and post review, against a real (disposable) database.
 
-`judge/blog_runs.py` records each Admin -> Blogs generation run and each review
-decision. Nothing here calls a model: a run is simulated by writing the status
-and log files the generator would, and one draft file with its timestamp.
+`judge/blog_runs.py` records each Admin -> Blogs generation run, and stores the
+drafts it wrote in `blog_post` (judge/blog_store.py) for review. Nothing here
+calls a model: a run is simulated by writing the status and log files the
+generator would, and one draft file with its timestamp.
 Requires a database. See docs/dev-database.md.
 """
 from __future__ import annotations
@@ -14,7 +15,7 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from judge import blog_posts, blog_runs
+from judge import blog_posts, blog_runs, blog_store
 
 SCHEMA = Path(__file__).resolve().parents[1] / "contract" / "tables.sql"
 STARTED = "2026-10-06T10:00:00+00:00"
@@ -99,27 +100,35 @@ def test_a_run_still_in_progress_is_left_open(conn, files):
     assert row["finished_at"] is None and row["posts_written"] == []
 
 
-def test_review_is_append_only_and_the_latest_decision_wins(conn, files):
+def test_a_finished_run_stores_its_drafts_as_pending(conn, files):
+    """The run's own draft goes to the store, tied to the run; a draft from
+    before the run's window does not (it is stored from Admin -> Blogs)."""
+    run_id = _run(conn, files)
+    posts = {p["slug"]: p for p in blog_store.for_review(conn)}
+    assert set(posts) == {"new-post"}
+    assert posts["new-post"]["review"] == "pending" and posts["new-post"]["run_id"] == run_id
+    assert blog_store.published(conn) == []  # pending is never on the Blogs page
+
+
+def test_review_keeps_every_decision_and_the_latest_one_is_the_state(conn, files):
     _run(conn, files)
-    assert blog_runs.public_state(conn) == {"new-post": "pending"}
-    blog_runs.review(conn, "new-post", "rejected", "too thin")
-    blog_runs.review(conn, "new-post", "approved", None)
-    assert blog_runs.public_state(conn) == {"new-post": "approved"}
-    blog_runs.review(conn, "new-post", "reopened", None)
-    assert blog_runs.public_state(conn) == {"new-post": "pending"}
+    blog_store.decide(conn, "new-post", "approved", None)
+    assert [p["slug"] for p in blog_store.published(conn)] == ["new-post"]
+    blog_store.decide(conn, "new-post", "reopened", None)
+    assert blog_store.published(conn) == []
     n = conn.execute("SELECT count(*) FROM blog_post_review").fetchone()[0]
-    assert n == 3  # every decision kept
+    assert n == 2  # every decision kept
 
 
-def test_a_draft_no_run_wrote_cannot_be_reviewed(conn, files):
+def test_a_draft_not_stored_cannot_be_reviewed(conn, files):
     _run(conn, files)
-    with pytest.raises(blog_runs.ReviewRefused) as e:
-        blog_runs.review(conn, "old-draft", "approved", None)
+    with pytest.raises(blog_store.DecisionRefused) as e:
+        blog_store.decide(conn, "old-draft", "approved", None)
     assert e.value.status == 404
 
 
 def test_an_unknown_decision_is_refused(conn, files):
     _run(conn, files)
-    with pytest.raises(blog_runs.ReviewRefused) as e:
-        blog_runs.review(conn, "new-post", "published", None)
+    with pytest.raises(blog_store.DecisionRefused) as e:
+        blog_store.decide(conn, "new-post", "published", None)
     assert e.value.status == 422

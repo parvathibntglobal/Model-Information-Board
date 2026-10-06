@@ -26,12 +26,12 @@ export default function Blogs() {
   const fromAdmin = useLocation().state?.from === 'admin'
   const [state, setState] = useState({ ready: false, err: null })
 
-  const loadPosts = useCallback(() => blogPosts()
+  // THE SERVER DECIDES WHAT IS SHOWN (judge/blog_store.py): the public list is
+  // approved posts only, and a store that cannot be read returns none with a
+  // reason - never every draft. Admin's preview asks for pending posts too.
+  const loadPosts = useCallback(() => blogPosts({ review: fromAdmin })
     .then((d) => {
-      // A POST A RECORDED RUN WROTE IS SHOWN ONCE APPROVED in Admin -> Blogs
-      // (`review` is pending | approved | rejected). Posts with no `review`
-      // predate the run history and show as they always did.
-      DB.posts = fromAdmin ? (d.posts || []) : (d.posts || []).filter((p) => !p.review || p.review === 'approved')
+      DB.posts = d.posts || []
       DB.postsMeta = { reason: d.reason || null, skipped: d.skipped || [] }
       setState((s) => ({ ready: true, err: null, n: (s.n || 0) + 1 }))
       // INTERACTIVE POSTS read today's model figures (docs/proposals/

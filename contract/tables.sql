@@ -1718,13 +1718,34 @@ CREATE TABLE blog_generation_run (
   log              text
 );
 
+-- run_id is NULL for a post stored from files, which no recorded run wrote
+-- (made nullable by 20261006T1500_blog_post_store.sql).
 CREATE TABLE blog_post_review (
   id          text PRIMARY KEY,
   slug        text NOT NULL,
-  run_id      text NOT NULL REFERENCES blog_generation_run(id),
+  run_id      text REFERENCES blog_generation_run(id),
   decision    text NOT NULL CHECK (decision IN ('approved', 'rejected', 'reopened')),
   reason      text,
   decided_at  timestamptz NOT NULL
 );
 
 CREATE INDEX blog_post_review_slug_at ON blog_post_review (slug, decided_at DESC);
+
+-- ============================================================================
+--  BLOG POSTS: pending, approved, or a rejected tombstone
+--  (migration 20261006T1500_blog_post_store.sql - the states, why rejection
+--   deletes the content, and who writes are written there)
+-- ============================================================================
+
+CREATE TABLE blog_post (
+  slug          text PRIMARY KEY,
+  state         text NOT NULL CHECK (state IN ('pending', 'approved', 'rejected')),
+  doc           jsonb,
+  plan_key      text,
+  run_id        text REFERENCES blog_generation_run(id),
+  generated_at  timestamptz,
+  stored_at     timestamptz NOT NULL,
+  CONSTRAINT blog_post_rejected_has_no_content CHECK ((state = 'rejected') = (doc IS NULL))
+);
+
+CREATE INDEX blog_post_state ON blog_post (state);
