@@ -875,7 +875,7 @@ def synthesise(post, docs, facts, key, base) -> dict:
             {"role": "user", "content": user_message(post, docs, facts)}]
     messages = seed[:]
     best = None
-    record = {"post": post["key"], "requested_model": GEN_MODEL,
+    record = post["_record"] = {"post": post["key"], "requested_model": GEN_MODEL,
               "started": datetime.now(UTC).isoformat(timespec="seconds"),
               "documents": [{k: d[k] for k in ("thread_context_id", "source", "chars", "truncated")}
                             for d in docs],
@@ -1740,7 +1740,10 @@ def run_plan(args, dsn, key, base, reader) -> None:
             existing.append((d["slug"], d["title"]))
         except (OSError, json.JSONDecodeError, KeyError):
             continue
-    written, failed, total_cost = [], {}, 0.0
+    # COST IS INCOMPLETE, NOT $0, when any call did not report one - and a
+    # failed post's calls were paid for too, so they are counted (review of
+    # #508, item 5).
+    written, failed, total_cost, cost_incomplete = [], {}, 0.0, False
     taken = existing_headings()
     for post, docs, _skipped, facts in inputs:
         ui_status(item=post["key"], item_state="writing")
@@ -1755,11 +1758,21 @@ def run_plan(args, dsn, key, base, reader) -> None:
             rec = synthesise(post, docs, facts, key, base)
         except BuildError as e:
             failed[post["key"]] = str(e)
-            ui_status(item=post["key"], item_state="failed")
+            if post.get("_record"):
+                f_cost, _tin, _tout = spend(post["_record"])
+                if f_cost is None:
+                    cost_incomplete = True
+                else:
+                    total_cost += f_cost
+            ui_status(item=post["key"], item_state="failed", cost_usd=round(total_cost, 4),
+                      cost_incomplete=cost_incomplete)
             print(f"  [{post['key']}] FAILED: {e}", flush=True)
             continue
         cost, tin, tout = spend(rec)
-        total_cost += cost or 0.0
+        if cost is None:
+            cost_incomplete = True
+        else:
+            total_cost += cost
         essay = rec["essay"]
         mins = max(1, math.ceil(words_in(essay) / 230))
         rel = existing[-3:]  # the most recent other drafts, for "Continue reading"
@@ -1767,7 +1780,8 @@ def run_plan(args, dsn, key, base, reader) -> None:
         written.append(post["key"])
         existing.append((post["key"], essay["title"]))
         taken |= {norm_heading(s.get("heading", "")) for s in essay.get("sections", [])}
-        ui_status(item=post["key"], item_state="done", cost_usd=round(total_cost, 4))
+        ui_status(item=post["key"], item_state="done", cost_usd=round(total_cost, 4),
+                  cost_incomplete=cost_incomplete)
         print(f"  [{post['key']}] wrote {out.relative_to(ROOT)} - {len(rec['attempts'])} call(s), "
               f"cost {f'${cost:.4f}' if cost is not None else 'not reported'}, "
               f"tokens {tin:,} in / {tout:,} out", flush=True)

@@ -165,7 +165,7 @@ def test_store_approve_and_publish_through_the_routes(conn, test_dsn, monkeypatc
     monkeypatch.setattr(app_module, "_conn", real_conn)
     client = TestClient(app_module.app, raise_server_exceptions=False)
 
-    admin = client.get("/blog-posts?review=1").json()
+    admin = client.get("/blog-posts?include=all").json()
     assert {u["slug"] for u in admin["unstored"]} == {"one", "two"}
     assert client.post("/blog-posts/store").json()["stored"] == ["one", "two"]
     def review(slug, decision, reason=None):
@@ -176,13 +176,13 @@ def test_store_approve_and_publish_through_the_routes(conn, test_dsn, monkeypatc
 
     public = client.get("/blog-posts").json()
     assert [p["slug"] for p in public["posts"]] == ["one"] and public["reason"] is None
-    admin = client.get("/blog-posts?review=1").json()
+    admin = client.get("/blog-posts?include=all").json()
     assert {p["slug"]: p["review"] for p in admin["posts"]} == {"one": "approved", "two": "pending"}
     assert admin["unstored"] == []
 
     assert review("two", "rejected", "off topic") == 200
     assert review("two", "rejected") == 409  # already rejected
-    admin = client.get("/blog-posts?review=1").json()
+    admin = client.get("/blog-posts?include=all").json()
     states = {p["slug"]: (p["review"], p["review_reason"]) for p in admin["posts"]}
     assert states == {"one": ("approved", None), "two": ("rejected", "off topic")}
     assert [p["slug"] for p in client.get("/blog-posts").json()["posts"]] == ["one"]

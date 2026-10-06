@@ -12,7 +12,10 @@
          reports by job, capability and metric, it does not take a brief. -->
     <title>Best AI model for the job — AI model comparison from engineer reports | Model Information Board</title>
     <meta name="description" content="Compare AI models on what engineers report in production — by job, capability and metric, in their exact words. Find the best LLM for coding agents, RAG or code review, open source included." />
-    <meta name="robots" content="index, follow" />
+    <!-- NOINDEX BY DEFAULT: the site is login-only, so a crawler would index only
+         redirects to /login. The build flips this to "index, follow" when
+         PUBLIC_SITE=1 and SITE_URL are both set (vite.config.js seoFiles). -->
+    <meta name="robots" content="noindex, nofollow" />
     <!-- The canonical link and og:url need the site's real address, so the
          build adds them only when SITE_URL is set (vite.config.js). -->
 

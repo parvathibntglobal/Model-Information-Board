@@ -132,3 +132,111 @@ def test_an_unknown_decision_is_refused(conn, files):
     with pytest.raises(blog_store.DecisionRefused) as e:
         blog_store.decide(conn, "new-post", "published", None)
     assert e.value.status == 422
+
+
+# ── review of #508: run tracking, and the routes ───────────────────────────
+
+def test_a_run_the_status_file_no_longer_describes_is_still_closed(conn, files):
+    """Item 4: a second run overwrote the status file. The first run is closed
+    as stalled with the posts written before the second started - not left
+    open, which would leave its posts unreviewed and public."""
+    blog_runs.record_start(conn, 3, {"state": "running", "started_at": STARTED})
+    _draft(files / "posts", "first-run-post", "2026-10-06T10:05:00+00:00")
+    later = "2026-10-06T11:00:00+00:00"
+    blog_runs.record_start(conn, 3, {"state": "running", "started_at": later})
+    _status(files, state="running", started_at=later,
+            updated_at=datetime.now(UTC).isoformat())
+    blog_runs.reconcile(conn)
+    first = blog_runs.runs(conn)[-1]  # newest first, so the first run is last
+    assert first["state"] == "stalled" and first["finished_at"]
+    assert first["posts_written"] == ["first-run-post"]
+    assert first["log"] is None  # the log on disk is the newer run's
+
+
+def test_a_draft_no_run_stored_is_not_public(client, conn, files):
+    """Was: a recent draft no run claims is pending, not public. Under the store
+    the guarantee is wider - ANY draft file the store does not hold is off the
+    Blogs page, and Admin lists it as unstored rather than dropping it."""
+    _run(conn, files)
+    conn.commit()
+    _draft(files / "posts", "stray", "2026-10-06T12:00:00+00:00")
+    assert client.get("/blog-posts").json()["posts"] == []
+    every = client.get("/blog-posts?include=all").json()
+    assert {u["slug"] for u in every["unstored"]} == {"old-draft", "stray"}
+
+
+def test_an_unreported_cost_is_not_recorded_as_zero(conn, files):
+    _status(files, state="starting", updated_at=STARTED)
+    blog_runs.record_start(conn, 3, {"state": "starting", "started_at": STARTED})
+    _status(files, state="done", cost_usd=0.01, cost_incomplete=True,
+            finished_at="2026-10-06T10:09:00+00:00", updated_at="2026-10-06T10:09:00+00:00")
+    blog_runs.reconcile(conn)
+    assert blog_runs.runs(conn)[0]["cost_usd"] is None
+
+
+@pytest.fixture
+def client(conn, files, monkeypatch, test_dsn):
+    from contextlib import contextmanager
+
+    from fastapi.testclient import TestClient
+
+    import judge.app as app_mod
+
+    @contextmanager
+    def _test_conn():
+        with psycopg.connect(test_dsn, connect_timeout=10) as c:
+            yield c
+
+    monkeypatch.delenv("API_TOKEN", raising=False)
+    monkeypatch.setenv("ENVIRONMENT", "development")
+    monkeypatch.setattr(app_mod, "_conn", _test_conn)
+    return TestClient(app_mod.app, raise_server_exceptions=False)
+
+
+def test_the_public_view_withholds_pending_posts_and_admin_sees_all(client, conn, files):
+    _run(conn, files)
+    conn.commit()
+    # Nothing is approved: the public page is empty - the old draft too, which
+    # the file gate used to publish because it predated run history.
+    assert client.get("/blog-posts").json()["posts"] == []
+    every = client.get("/blog-posts?include=all").json()
+    assert {p["slug"]: p["review"] for p in every["posts"]} == {"new-post": "pending"}
+    assert [u["slug"] for u in every["unstored"]] == ["old-draft"]
+
+
+def test_approving_through_the_route_publishes_the_post(client, conn, files):
+    _run(conn, files)
+    conn.commit()
+    r = client.post("/blog-posts/review", json={"slug": "new-post", "decision": "approved"})
+    assert r.status_code == 200, r.text
+    assert [p["slug"] for p in client.get("/blog-posts").json()["posts"]] == ["new-post"]
+    # A draft the store does not hold cannot be decided on until it is stored.
+    old = client.post("/blog-posts/review", json={"slug": "old-draft", "decision": "approved"})
+    assert old.status_code == 404
+
+
+def test_the_gate_fails_closed_when_review_state_cannot_be_read(client, files, monkeypatch):
+    """Item 2: an unreadable store must not publish every draft - nor, under the
+    store, let Admin act on a list it cannot read."""
+    from judge import blog_store
+
+    _draft(files / "posts", "any-post", "2026-10-06T10:05:00+00:00")
+
+    def boom(_conn):
+        raise blog_store.StoreUnreadable("this database has no blog_post table yet")
+
+    monkeypatch.setattr(blog_store, "published", boom)
+    monkeypatch.setattr(blog_store, "for_review", boom)
+    for path in ("/blog-posts", "/blog-posts?include=all"):
+        body = client.get(path).json()
+        assert body["posts"] == [] and body["reason"].startswith("No posts are shown"), path
+
+
+def test_the_run_log_route_masks_keys(client, files):
+    blog_posts.LOG_FILE.write_text(
+        "Authorization: Bearer sk-or-v1-abcdef1234567890\napi_key=supersecretvalue\nok line\n",
+        encoding="utf-8")
+    lines = client.get("/blog-posts/generate/log").json()["lines"]
+    text = "\n".join(lines)
+    assert "abcdef1234567890" not in text and "supersecretvalue" not in text
+    assert "ok line" in text

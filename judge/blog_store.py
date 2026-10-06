@@ -162,8 +162,9 @@ def decide(conn, slug: str, decision: str, reason: str | None) -> dict:
         raise DecisionRefused(409, _REFUSAL[state])
     conn.execute("UPDATE blog_post SET state = %s WHERE slug = %s", (new, slug))
     rid = f"bpr_{uuid.uuid4().hex[:16]}"
-    # STRICTLY AFTER the slug's previous decision (blog_runs.review's reason):
-    # two clicks inside one coarse clock tick must not tie.
+    # STRICTLY AFTER the slug's previous decision: two clicks inside one
+    # coarse clock tick (Windows) must not tie, or "the latest decision" is
+    # whichever row the index returns first.
     conn.execute(
         "INSERT INTO blog_post_review (id, slug, run_id, decision, reason, decided_at) "
         "VALUES (%s, %s, %s, %s, %s, GREATEST(clock_timestamp(), "

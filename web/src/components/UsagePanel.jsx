@@ -495,7 +495,9 @@ function OpenRouterTab({ everyone, today, byModel, byTokens, unpriced, basis, le
                     <span className="tnum">{m.spent_usd != null ? usd(m.spent_usd) : 'not reported'}</span>
                     <span className="dim" style={{ fontSize: 10 }}>
                       {m.runs} run{m.runs === 1 ? '' : 's'}
-                      {m.tokens_in != null ? ` · ${m.tokens_in.toLocaleString()} in / ${(m.tokens_out || 0).toLocaleString()} out tokens` : ''}
+                      {/* A RUN WITH NO REPORTED COST IS NAMED, not summed as $0. */}
+                      {m.runs_unpriced ? ` · ${m.runs_unpriced} with no reported cost, so the sum is a floor` : ''}
+                      {m.tokens_in != null ? ` · ${m.tokens_in.toLocaleString()} in${m.tokens_out != null ? ` / ${m.tokens_out.toLocaleString()} out` : ''} tokens` : ''}
                     </span>
                   </span>
                 </div>

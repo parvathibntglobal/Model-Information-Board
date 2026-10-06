@@ -89,55 +89,55 @@ columns:
       state: reserved
   blog_generation_run:
     cost_usd:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
     finished_at:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
     id:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
     log:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
     message:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
     model:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
     posts_failed:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
     posts_written:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
     requested_count:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
     started_at:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
     state:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
     tokens_in:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
     tokens_out:
-      reviewed: true
+      reviewed: false
       state: read
       why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
 
@@ -172,29 +172,29 @@ columns:
       why: 'When the row was stored. Written by judge/blog_store.py store_drafts, read by for_review() into the Admin -> Blogs payload (not yet rendered there). Migration 20261006T1500.'
   blog_post_review:
     decided_at:
-      reviewed: true
+      reviewed: false
       state: read
-      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+      why: 'Written by judge/blog_store.py decide() (append-only, one row per decision) and read by for_review() (the latest reason and time) and decide() (strictly-after ordering). Migrations 20261006T1200, 20261006T1500.'
     decision:
-      reviewed: true
+      reviewed: false
       state: read
-      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+      why: 'Written by judge/blog_store.py decide() (append-only, one row per decision) and read by for_review() (the latest reason and time) and decide() (strictly-after ordering). Migrations 20261006T1200, 20261006T1500.'
     id:
-      reviewed: true
+      reviewed: false
       state: read
-      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+      why: 'Written by judge/blog_store.py decide() (append-only, one row per decision) and read by for_review() (the latest reason and time) and decide() (strictly-after ordering). Migrations 20261006T1200, 20261006T1500.'
     reason:
-      reviewed: true
+      reviewed: false
       state: read
-      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+      why: 'Written by judge/blog_store.py decide() (append-only, one row per decision) and read by for_review() (the latest reason and time) and decide() (strictly-after ordering). Migrations 20261006T1200, 20261006T1500.'
     run_id:
-      reviewed: true
+      reviewed: false
       state: read
-      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+      why: 'Written by judge/blog_store.py decide() (append-only, one row per decision) and read by for_review() (the latest reason and time) and decide() (strictly-after ordering). Migrations 20261006T1200, 20261006T1500.'
     slug:
-      reviewed: true
+      reviewed: false
       state: read
-      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+      why: 'Written by judge/blog_store.py decide() (append-only, one row per decision) and read by for_review() (the latest reason and time) and decide() (strictly-after ordering). Migrations 20261006T1200, 20261006T1500.'
   board_entry:
     axis_quoted:
       known_gap: the writer is #368 item 3 (store_entries, beside axis_slug) and the renderer is item 4 (db.js/views.js) - both hers, both held until this column exists

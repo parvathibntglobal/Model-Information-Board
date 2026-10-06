@@ -77,7 +77,7 @@ fields:
     - /admin/sources
     state: consumed
   blogs:
-    reviewed: true
+    reviewed: false
     routes:
     - /admin/usage
     state: consumed
@@ -259,7 +259,7 @@ fields:
     - /admin/runs
     state: consumed
   exists:
-    reviewed: true
+    reviewed: false
     routes:
     - /blog-posts/generate/log
     state: consumed
@@ -335,7 +335,7 @@ fields:
     - /admin/usage
     state: consumed
   lines:
-    reviewed: true
+    reviewed: false
     routes:
     - /blog-posts/generate/log
     state: consumed
@@ -385,7 +385,7 @@ fields:
     - /models
     state: consumed
   models_in_use:
-    reviewed: true
+    reviewed: false
     routes:
     - /admin/settings
     state: consumed
@@ -811,7 +811,7 @@ fields:
     - /admin/usage
     state: consumed
   unreadable:
-    reviewed: true
+    reviewed: false
     routes:
     - /blog-posts/generate/log
     state: consumed

@@ -94,8 +94,10 @@ def record_start(conn, count: int, status: dict) -> str:
     return run_id
 
 
-def _finish(conn, run_id: str, started: datetime, status: dict) -> None:
-    log = read_log()
+def _finish(conn, run_id: str, started: datetime, status: dict, keep_log: bool = True) -> None:
+    # keep_log False for a run closed after another started: the log file on
+    # disk belongs to the newer run, so storing it here would misattribute it.
+    log = read_log() if keep_log else None
     finished = _parse(status.get("finished_at")) or datetime.now(UTC)
     tin, tout = _tokens(log)
     failed = [i.get("key") for i in status.get("items", []) if i.get("state") == "failed"]
@@ -110,28 +112,44 @@ def _finish(conn, run_id: str, started: datetime, status: dict) -> None:
         "UPDATE blog_generation_run SET finished_at = %s, state = %s, model = %s, "
         "cost_usd = %s, tokens_in = %s, tokens_out = %s, posts_written = %s, "
         "posts_failed = %s, message = %s, log = %s WHERE id = %s",
-        (finished, status.get("state"), status.get("model"), status.get("cost_usd"),
+        (finished, status.get("state"), status.get("model"),
+         None if status.get("cost_incomplete") else status.get("cost_usd"),
          tin, tout, written, failed,
          status.get("message"), mask(log) if log is not None else None, run_id),
     )
 
 
 def reconcile(conn) -> None:
-    """Close any open run whose status file now says it finished. Called when
-    the status is polled, so a run is recorded even if the watcher thread died
-    with a backend restart."""
+    """Close every open run that is no longer running.
+
+    The status file describes ONE run - the latest. A run it no longer
+    describes (a second run overwrote the file, or a backend reload lost the
+    process handle) is still closed: as `stalled`, with the posts written
+    between its start and the next run's start. Without this its posts would
+    belong to no run and read as "predates history" - public (review item 4).
+    """
     status = blog_posts.generation_status()
-    if status.get("state") not in FINISHED:
-        return
-    started = _parse(status.get("started_at"))
-    if started is None:
-        return
+    current = _parse(status.get("started_at"))
     rows = conn.execute(
-        "SELECT id, started_at FROM blog_generation_run WHERE finished_at IS NULL"
+        "SELECT id, started_at FROM blog_generation_run WHERE finished_at IS NULL "
+        "ORDER BY started_at"
     ).fetchall()
-    for run_id, row_started in rows:
-        if row_started == started:
-            _finish(conn, run_id, row_started, status)
+    starts = [r[0] for r in conn.execute(
+        "SELECT started_at FROM blog_generation_run ORDER BY started_at").fetchall()]
+    for run_id, started in rows:
+        if current is not None and started == current:
+            if status.get("state") in FINISHED:
+                _finish(conn, run_id, started, status)
+            continue
+        later = [t for t in starts if t > started]
+        if not later and status.get("state") not in FINISHED and current is None:
+            continue  # nothing newer and no status to judge by: leave it open
+        end = later[0] if later else datetime.now(UTC)
+        _finish(conn, run_id, started, {
+            "state": "stalled", "finished_at": end.isoformat(),
+            "message": "closed by reconcile: no longer the run the status file describes",
+            "items": [],
+        }, keep_log=False)
 
 
 def watch(conn_factory, run_id: str) -> None:

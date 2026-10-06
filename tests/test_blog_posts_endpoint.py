@@ -126,7 +126,7 @@ def test_a_store_it_cannot_read_shows_nothing_and_says_why(monkeypatch, tmp_path
         def unmigrated(conn):
             raise blog_store.StoreUnreadable("this database has no blog_post table yet")
         monkeypatch.setattr(blog_store, "published", unmigrated)
-    for path in ("/blog-posts", "/blog-posts?review=1"):
+    for path in ("/blog-posts", "/blog-posts?include=all"):
         body = client.get(path).json()
         assert body["posts"] == [], path
         assert body["reason"] and body["reason"].startswith("No posts are shown"), path

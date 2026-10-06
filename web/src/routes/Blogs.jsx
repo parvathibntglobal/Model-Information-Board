@@ -29,7 +29,7 @@ export default function Blogs() {
   // THE SERVER DECIDES WHAT IS SHOWN (judge/blog_store.py): the public list is
   // approved posts only, and a store that cannot be read returns none with a
   // reason - never every draft. Admin's preview asks for pending posts too.
-  const loadPosts = useCallback(() => blogPosts({ review: fromAdmin })
+  const loadPosts = useCallback(() => blogPosts(fromAdmin ? 'all' : undefined)
     .then((d) => {
       DB.posts = d.posts || []
       DB.postsMeta = { reason: d.reason || null, skipped: d.skipped || [] }

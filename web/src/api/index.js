@@ -303,7 +303,7 @@ export const coveragePage = () => request('/coverage')
  * Blog posts, from the shared `blog_post` table — `{posts, skipped, reason}`.
  *
  * Public (the Blogs page): APPROVED posts only, filtered on the server.
- * `{ review: true }` (Admin → Blogs and its preview): every stored post —
+ * `blogPosts('all')` (Admin → Blogs and its preview): every stored post —
  * pending, approved and rejected — with its `review` state, plus `unstored`
  * (draft files on that backend's machine not yet stored) and `files_reason`.
  *
@@ -311,7 +311,9 @@ export const coveragePage = () => request('/coverage')
  * the page shows nothing rather than everything. An empty list with no reason
  * means nothing is approved yet — the page must show those differently.
  */
-export const blogPosts = ({ review = false } = {}) => request(review ? '/blog-posts?review=1' : '/blog-posts')
+// `include='all'` is Admin -> Blogs: every draft with its review state. The
+// default is what a reader may see, filtered by the server (fails closed).
+export const blogPosts = (include) => request(`/blog-posts${include ? `?include=${include}` : ''}`)
 
 /** Store this machine's draft files the database does not have yet, as pending. */
 export const storeBlogDrafts = () => request('/blog-posts/store', { method: 'POST' })

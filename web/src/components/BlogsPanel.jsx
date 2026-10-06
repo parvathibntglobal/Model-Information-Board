@@ -187,7 +187,7 @@ export default function BlogsPanel() {
   const [storeMsg, setStoreMsg] = useState(null)
   const timer = useRef(null)
 
-  const load = useCallback(() => blogPosts({ review: true })
+  const load = useCallback(() => blogPosts('all')
     .then((d) => setPosts({ data: d, err: null }))
     .catch((e) => setPosts({ data: null, err: e.message })), [])
 

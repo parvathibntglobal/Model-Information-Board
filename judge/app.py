@@ -970,7 +970,13 @@ def faq_page() -> dict:
     from judge.config import evidence_platforms, faq
 
     doc = faq()
-    platforms = evidence_platforms()
+    # THE SAME PLATFORMS THE PAGES SHOW. On a public view the withheld sources
+    # (contract/publication.yaml) are not named here either, so the FAQ and the
+    # footer, which both read this list, cannot claim evidence a reader is not
+    # shown (review of #508, item 6).
+    from judge import publication
+
+    platforms = evidence_platforms(tuple(publication.hidden_here()))
     listed = ", ".join(platforms[:-1]) + f" and {platforms[-1]}" if len(platforms) > 1 \
         else (platforms[0] if platforms else "no platform")
 
@@ -2477,11 +2483,11 @@ def coverage_page() -> dict:
 
 
 @app.get("/blog-posts")
-def blog_posts_page(review: bool = False) -> dict:
+def blog_posts_page(include: str = "public") -> dict:
     """Blog posts, from the `blog_post` table (judge/blog_store.py).
 
     PUBLIC (the default): the APPROVED posts only - the Blogs page.
-    `?review=1` (Admin -> Blogs and its preview): every stored post - pending,
+    `?include=all` (Admin -> Blogs and its preview): every stored post - pending,
     approved and rejected - with its `review` state, and the draft files on THIS
     machine not yet stored, under `unstored`.
 
@@ -2495,7 +2501,7 @@ def blog_posts_page(review: bool = False) -> dict:
 
     try:
         with _conn() as conn:
-            if not review:
+            if include != "all":
                 return {"posts": blog_store.published(conn), "skipped": [], "reason": None}
             stored = blog_store.for_review(conn)
             have = blog_store.stored_slugs(conn)
@@ -2546,7 +2552,7 @@ class BlogReviewRequest(BaseModel):
 @app.get("/blog-posts/runs")
 def blog_posts_runs(limit: int = 20) -> dict:
     """Admin -> Blogs: recorded generation runs, newest first. Each post's review
-    state travels with the post itself (`GET /blog-posts?review=1`)."""
+    state travels with the post itself (`GET /blog-posts?include=all`)."""
     from judge import blog_runs
 
     try:
