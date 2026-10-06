@@ -1,0 +1,368 @@
+{
+ "slug": "head-to-head-deepseek-deepseek-v4-flash-z-ai-glm-5",
+ "status": "draft",
+ "tag": "Head-to-head",
+ "feat": false,
+ "title": "DeepSeek V4 Flash 0423 vs GLM 5: Route by Workload",
+ "dek": "DeepSeek V4 Flash 0423 is the economical default for cache-heavy, high-volume work; GLM 5 merits evaluation on difficult coding and reasoning tasks where quality may justify its higher price.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "DeepSeek V4 Flash 0423 is the stronger default when requests are input-heavy, repeated context is cacheable, or marginal task cost matters. GLM 5 is a candidate to test for difficult coding and agent work, but available practitioner evidence is anecdotal rather than a controlled head-to-head; validate it on your repository, tool loop, and acceptance criteria before paying its higher list price.",
+ "kicker": "Head-to-head",
+ "tags": [
+  "DeepSeek V4 Flash 0423",
+  "GLM 5",
+  "Head-to-head"
+ ],
+ "read": 6,
+ "decisions": [
+  "Use DeepSeek V4 Flash 0423 as the low-cost default for cacheable, repetitive workloads.",
+  "Treat GLM 5 as a measured escalation candidate, not a presumed coding winner.",
+  "Verify provider-specific context limits, cache behavior, and data policy before rollout.",
+  "Track cost per accepted result, including retries and human review."
+ ],
+ "layout": "versus",
+ "special": {
+  "type": "picks",
+  "title": "Pick it when",
+  "items": [
+   {
+    "pick": "DeepSeek V4 Flash 0423",
+    "when": "A document-processing pipeline repeatedly sends stable context and can validate outputs at low cost."
+   },
+   {
+    "pick": "DeepSeek V4 Flash 0423",
+    "when": "A high-volume routine extraction workload is input-heavy and the selected provider meets data policy."
+   },
+   {
+    "pick": "GLM 5",
+    "when": "A fixed evaluation on your production repository shows fewer failed patches than Flash and the savings in rework justify the premium."
+   },
+   {
+    "pick": "GLM 5",
+    "when": "A high-impact task has a measured failure pattern that GLM 5 corrects under the same tool and verification setup."
+   }
+  ]
+ },
+ "meta": [
+  "05 October 2026",
+  "~6 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Where does repeated agent context stay affordable?",
+    "num": "01",
+    "id": "where-does-repeated-agent-context-stay-affordable"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Flash 0423 wins when an agent repeatedly sends a stable system prompt, repository context, or document prefix and the serving route actually delivers cache hits. GLM 5 may still be justified when a task needs capabilities established by your own evaluation, but its registry list price is much higher: $0.60 input and $1.92 output per million tokens, against Flash at $0.04 and $0.08. Cached input is $0.12 for GLM 5 and $0.01 for Flash."
+  ],
+  [
+   "p",
+   "The mechanism matters more than the nominal input rate in a long-running conversation. Calls reprocess accumulated input, while prompt caching can reduce the charge for repeated portions; a provider switch can also make a cache miss more likely. A practitioner noted that «all of the tokens in the current conversation thread are reprocessed». Their analysis also found provider variation in cache-read prices, including an especially low DeepSeek-hosted Flash rate. The registry figures do not promise that every route realizes that advantage, so pin the provider and measure cache-hit behavior rather than assuming a router’s cheapest route retains cache continuity."
+  ],
+  [
+   "quote",
+   "all of the tokens in the current conversation thread are reprocessed"
+  ],
+  [
+   "p",
+   "GLM 5 remains a plausible choice when a higher-cost response prevents expensive downstream review or repeated failed tool calls. But no controlled Flash-versus-GLM task-cost benchmark is available here. The correct comparison is therefore cost per accepted result, including retries and verification, not output-token price alone. For a fixed-context pipeline, start with Flash and escalate only when evaluation identifies a quality failure that GLM 5 corrects."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative routing policy",
+    "language": "python",
+    "source": "def choose_model(task, cache_hit, eval_requires_glm=False):\n    if eval_requires_glm and task.is_high_consequence:\n        return \"GLM 5\"\n    if cache_hit or task.is_input_heavy:\n        return \"DeepSeek V4 Flash 0423\"\n    return \"DeepSeek V4 Flash 0423\""
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Which model should handle difficult coding and agent loops?",
+    "num": "02",
+    "id": "which-model-should-handle-difficult-coding-and-agent-loops"
+   }
+  ],
+  [
+   "p",
+   "GLM 5 is the candidate to prefer when your own repository tests show it completes difficult coding work more reliably; DeepSeek V4 Flash 0423 is the economical first pass when the work is bounded and easy to verify. One practitioner comparing Claude and GLM 5 described the change as «a flat upgrade for my work». That is useful evidence of an individual workflow fit, not a measured comparison against Flash, and it does not establish that GLM 5 wins across coding tasks."
+  ],
+  [
+   "p",
+   "The broad recommendation to use GLM-5.3 for code and agents appears in practitioner commentary, but GLM-5.3 is not GLM 5. It cannot be silently treated as a benchmark for this exact model. Likewise, reports of model-name changes affecting reasoning mode show that configuration can matter operationally, not that either model here will fail in the same way. Keep exact model identifiers, settings, and provider routes in evaluation records so later changes can be diagnosed rather than attributed vaguely to model quality."
+  ],
+  [
+   "quote",
+   "a flat upgrade for my work"
+  ],
+  [
+   "p",
+   "An agent’s total cost depends on its call count, prompt growth, tool errors, and whether a patch passes tests. A cheaper model can lose its advantage if it causes repeated tool cycles; a stronger model can also waste money if it produces excessive analysis on routine edits. Run both against representative tasks with the same tools, repository snapshot, time budget, and acceptance tests. Route hard failures or high-impact changes to GLM 5 only if the measured improvement is worth the extra spend."
+  ],
+  [
+   "h2",
+   {
+    "text": "Does advertised context settle long-document work?",
+    "num": "03",
+    "id": "does-advertised-context-settle-long-document-work"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Flash 0423 wins when the workload genuinely needs a very large prompt, because its advertised context is 1,048,576 tokens; GLM 5 is listed at 204,800. That is a meaningful architectural difference for large-document ingestion or broad repository context, but advertised capacity is not proof that a particular endpoint serves the full window or that answer quality remains consistent across it."
+  ],
+  [
+   "p",
+   "The operational warning is that advertised context and served context can diverge between providers. Even when a route accepts a long request, retrieval quality, relevant evidence placement, and cache reuse remain separate concerns. A model’s nominal window does not ensure that it locates the right passage or preserves important distinctions in a long input. Treat context size as a capacity constraint, not a guarantee of reliable use of every token."
+  ],
+  [
+   "p",
+   "For a long document that can be segmented and retrieved, avoid treating the context ceiling as the design target. Test exact endpoint limits and compare answers with supplied source passages and with your production retrieval path. GLM 5 can still win on a shorter, tightly scoped task if your rubric shows better answers; Flash’s larger advertised window is a capacity advantage, not evidence of superior reasoning."
+  ],
+  [
+   "h2",
+   {
+    "text": "How much does each model cost after caching and retries?",
+    "num": "04",
+    "id": "how-much-does-each-model-cost-after-caching-and-retries"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Flash 0423 wins decisively on registry list price, especially for high-volume traffic: $0.04 input and $0.08 output per million tokens, with cached input at $0.01. GLM 5 lists $0.60 input, $1.92 output, and $0.12 cached input. Those prices make Flash the sensible default for bulk extraction, routine classification, and first-pass generation when the output can be checked cheaply."
+  ],
+  [
+   "p",
+   "Effective cost still depends on the provider, actual cache hits, output volume, and retries. Practitioner analysis of OpenRouter traffic noted that aggregate requests could be heavily input-weighted and that cache-read prices vary by provider. That supports measuring effective billing rather than multiplying every input token by the uncached price. It does not provide a GLM 5 versus Flash cost-per-accepted-task comparison, so do not infer one from list prices or from another model’s traffic profile."
+  ],
+  [
+   "quote",
+   "the “stated” prices of LLMs are now misleading"
+  ],
+  [
+   "p",
+   "Use GLM 5 when the failure cost is high enough that evaluation demonstrates fewer rejected answers, human corrections, or tool retries. For other traffic, begin with Flash, instrument per-request provider, cached and uncached token counts, output tokens, retries, and acceptance. A low unit price is valuable only if your completed workload remains reliable; a premium is justified only by observed improvement, not model reputation."
+  ],
+  [
+   "h2",
+   {
+    "text": "Which deployment route satisfies privacy and data policy?",
+    "num": "05",
+    "id": "which-deployment-route-satisfies-privacy-and-data-policy"
+   }
+  ],
+  [
+   "p",
+   "Neither model should win this question by brand or origin alone; the winner is the route whose data handling satisfies your contract and policy. A practitioner raised concern about DeepSeek payment information and input data, citing a setting that allowed prompt training. That is a concrete deployment concern for Flash, but it does not establish the policy or legal status of every provider, nor provide equivalent GLM 5 terms."
+  ],
+  [
+   "p",
+   "A model switch does not itself settle where inference runs, whether prompts are retained, or who can access them. Check the endpoint’s current data policy, provider, geography, retention terms, and training settings before sending sensitive material. Comparative privacy guarantees for these two models are not established, so architecture decisions must rest on the specific service configuration and organizational requirements."
+  ],
+  [
+   "p",
+   "Where policy forbids a route, exclude it regardless of its economics or benchmark performance. If one provider is acceptable and another is not, choose the permitted endpoint, or keep sensitive preprocessing inside the approved boundary and send only the allowed representation. Keep provider selection explicit when data policy or caching behavior is part of the design."
+  ],
+  [
+   "h2",
+   {
+    "text": "What evaluation proves the winner on your own workload?",
+    "num": "06",
+    "id": "what-evaluation-proves-the-winner-on-your-own-workload"
+   }
+  ],
+  [
+   "p",
+   "DeepSeek V4 Flash 0423 wins the default trial because it offers much lower listed cost and larger advertised context; GLM 5 wins only where a task-specific evaluation demonstrates that its answers are more useful. The available GLM 5 endorsement is an individual report, while a terminology evaluation illustrates why benchmark labels need careful interpretation: a term-coverage score can miss acceptable synonyms and reward incorrect context. One evaluator cautioned that «The model calls are the cheap part.»"
+  ],
+  [
+   "p",
+   "Build a frozen set from actual production tasks, with expected evidence, accepted alternatives, failure conditions, and separate correctness and terminology criteria. Run both models under the same prompts and tool permissions, recording provider, version, cache state, latency, output size, retries, and human correction. Repeated runs are important where outputs vary, and reviewers should inspect hits as well as misses rather than treating a single metric as truth."
+  ],
+  [
+   "quote",
+   "The model calls are the cheap part."
+  ],
+  [
+   "p",
+   "The resulting policy should be selective, not ideological. Keep Flash on repetitive low-risk work; send tasks with known failure patterns to GLM 5 only if it reduces total accepted-work cost. Re-evaluate after provider or model changes, because an API route, cache path, or model version can alter the result even when the model name stays familiar. A stable evaluation set plus a rotating set of fresh tasks helps detect regressions without letting optimization to a fixed rubric define the whole product."
+  ],
+  [
+   "p",
+   "The cost comparison should use the same task boundary for both systems. A model response that needs expert repair is not an accepted result, even if it is short and cheap. Conversely, extra reasoning or a longer answer is not intrinsically valuable when a deterministic test already rejects an incorrect patch. Record whether a request ended in acceptance, retry, escalation, or abandonment, then compare the full bill and operational effort across those outcomes."
+  ],
+  [
+   "h2",
+   {
+    "text": "When to use DeepSeek V4 Flash 0423 vs GLM 5",
+    "num": "Matrix",
+    "id": "matrix"
+   }
+  ],
+  [
+   "table",
+   {
+    "kind": "matrix",
+    "cols": [
+     "Production scenario",
+     "Behavioral trade-off",
+     "Recommended mitigation",
+     "Route"
+    ],
+    "rows": [
+     [
+      "Repeated system prompt or repository context in an agent",
+      "Flash has much lower listed and cached-input prices; cache continuity depends on provider routing.",
+      "Pin an approved provider and log cache-hit rates and effective input cost.",
+      "DeepSeek V4 Flash 0423"
+     ],
+     [
+      "Bulk extraction or routine classification",
+      "Flash minimizes per-token spend; an unchecked error can still create downstream cost.",
+      "Validate against a labelled sample and route uncertain outputs for review.",
+      "DeepSeek V4 Flash 0423"
+     ],
+     [
+      "Difficult coding task with meaningful regression risk",
+      "GLM 5 costs more; a quality advantage over Flash is not established by a controlled comparison.",
+      "A/B test on fixed repositories, tools, tests, and acceptance criteria.",
+      "GLM 5 only if evaluation demonstrates better accepted outcomes"
+     ],
+     [
+      "Very large document or repository context",
+      "Flash advertises 1,048,576 tokens versus GLM 5 at 204,800; endpoint availability may differ.",
+      "Verify served limits and test retrieval and answer quality at actual prompt sizes.",
+      "DeepSeek V4 Flash 0423, subject to endpoint validation"
+     ],
+     [
+      "Sensitive or regulated information",
+      "Provider data policies and deployment terms require direct verification; there is no established comparative guarantee here.",
+      "Review exact provider retention, training, geography, and contractual terms; exclude noncompliant endpoints.",
+      "Whichever approved provider satisfies policy; otherwise neither"
+     ],
+     [
+      "Routine task with costly failures or human correction",
+      "Flash is cheaper per token, but GLM 5 may be cheaper per accepted result if it materially reduces failure.",
+      "Measure retries, corrections, and acceptance, not just token charges.",
+      "GLM 5 if workload evaluation supports the premium; otherwise Flash"
+     ]
+    ]
+   }
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "DeepSeek V4 Flash 0423",
+      "$0.04",
+      "$0.08",
+      "$0.01"
+     ],
+     [
+      "GLM 5",
+      "$0.60",
+      "$1.92",
+      "$0.12"
+     ],
+     [
+      "Kimi K3",
+      "$0.71",
+      "$10.00",
+      "$0.71"
+     ],
+     [
+      "Qwen3.8 27B",
+      "$0.42",
+      "$3.00",
+      "$0.09"
+     ],
+     [
+      "Qwen3.8 Max",
+      "$2.00",
+      "$6.00",
+      "$0.25"
+     ],
+     [
+      "Inkling",
+      "$1.00",
+      "$4.05",
+      "$0.17"
+     ],
+     [
+      "GLM 5.3",
+      "$0.22",
+      "$3.39",
+      "$0.18"
+     ],
+     [
+      "Claude Sonnet 5",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "DeepSeek V4 Pro 0423",
+      "$0.21",
+      "$0.42",
+      "$0.02"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "rel": [
+  [
+   "post:migration-guide-deepseek-deepseek-v4-flash-moonshotai-kimi-k2-5",
+   "DeepSeek V4 Flash 0423 and Kimi K2.5: A Safe Migration Guide"
+  ],
+  [
+   "post:release-analysis-openai-gpt-6-astra",
+   "GPT-6 Astra in Production: The Agent Is Better, the System Still Decides"
+  ],
+  [
+   "post:field-report-anthropic-claude-opus-4-8",
+   "Claude Opus 4.8 Is Strongest Inside a Governed Workflow"
+  ]
+ ],
+ "provenance": {
+  "model": "openai/gpt-6-luna",
+  "served_as": [
+   "openai/gpt-6-luna"
+  ],
+  "generated_at": "2026-10-05T05:06:54+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_5d71adaa9a1865e0",
+   "thread_context_d3076bab8e533499",
+   "thread_context_dda97c7b28623040",
+   "thread_context_45594771c616eefd",
+   "thread_context_62c54a1a0b362593",
+   "thread_context_6bad65b157254468",
+   "thread_context_a0bb5e4fa68d4261",
+   "thread_context_a2897612101cbdc2"
+  ],
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "plan_key": "head-to-head:deepseek/deepseek-v4-flash+z-ai/glm-5",
+  "format": "head-to-head",
+  "reviewed_by": null
+ }
+}

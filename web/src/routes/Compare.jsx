@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
-  comparePage, listModels, fetchAll, fmtPrice, fmtTokens, BoardUnreadable,
+  comparePage, listModels, fetchAll, fmtPrice, fmtTokens, BoardUnreadable, modelPath,
 } from '../api'
 import { Badge, Notice, Unreadable } from '../components/ui'
 import { IconAlert, IconSearch } from '../components/Icons'
@@ -119,7 +119,7 @@ export default function Compare() {
 
   // `unsourced` is deliberately not destructured — the payload still carries
   // it and nothing on this page reads it. See the note further down.
-  const { models, missing, summary } = state.data
+  const { models, missing } = state.data
   // ⚠ NOT `reported.reports`, AND GATING ON IT BLANKED THE PAGE. That counter
   //   comes from the legacy `cell` table and is **0 on all 348 models in the
   //   registry** (#194: `cell.status` is `insufficient` on 311 of 311), while
@@ -145,28 +145,19 @@ export default function Compare() {
       <div className="stack stack-2">
         <Link to="/models" className="mb-link" style={{ fontSize: 'var(--fs-xs)' }}>← All models</Link>
         <span className="eyebrow">AI model comparison</span>
-        <h1>{models.map((m) => m.display_name).join('  vs  ')}</h1>
-        <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '76ch' }}>{summary}</p>
-        {/* ⚠ MOVED HERE FROM THE MODELS PAGE, 2026-09-28. It described this
-            page to a reader still on the list, where it could not be checked
-            against anything. Here it sits above the two tables it describes.
-
-            "Every row links back to the board" is only true because this
-            branch adds the links - which is why the text arrived with them
-            rather than before. */}
-        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch',
-                                    margin: 0, lineHeight: 1.6 }}>
-          The comparison shows what was said about each model, counted, and then the
-          jobs, capabilities and metrics they were <em>all</em> discussed on, side by
-          side — with how each report was phrased. Every row links back to the board,
-          where the models are ranked.
+        {/* THE NAMES WITHOUT THE VENDOR PREFIX ("Anthropic: Claude Opus 5" ->
+            "Claude Opus 5"): shorter, and the form people search ("claude vs
+            gpt"). The full name is still on each card below. */}
+        <h1>{models.map((m) => shortName(m.display_name)).join('  vs  ')}</h1>
+        {/* ONE LINE, 2026-10-01. The page opened with four blocks of method -
+            the backend's summary and three paragraphs - before a single figure.
+            What they said is kept, once: counted, never scored, no winner, and
+            the rows lead back to the board. */}
+        <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '76ch' }}>
+          What engineers reported about each model, side by side, with every row linked back to the
+          board. Counted, never scored — no winner is picked.
         </p>
-        <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch',
-                                    margin: 0, lineHeight: 1.6 }}>
-          Nothing here is scored and no winner is picked: a bigger number is more
-          people writing, not a better model. A model nobody has written about yet is
-          an absence we found, not a verdict.
-        </p>
+        <HowToRead />
       </div>
 
       <ChangeModels
@@ -191,6 +182,14 @@ export default function Compare() {
         </Notice>
       )}
 
+      {anyReports && (
+        <>
+          <HeadToHead models={models} />
+          <StickyNames models={models} />
+          <FaceOff models={models} />
+        </>
+      )}
+
       {/* ── WHAT ENGINEERS SAID. The whole page. ───────────────────────── */}
 
       {/* ⚠ NOBODY HAS WRITTEN ABOUT THESE: SAY IT ONCE AND STOP. This used to
@@ -212,9 +211,8 @@ export default function Compare() {
       <div className="stack stack-2">
         <span className="label">What engineers said, counted</span>
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch' }}>
-          Every number below is counted, never scored. How a report was PHRASED is counted
-          separately from how many there were, because twelve complaints and twelve
-          recommendations are both "12 reports" and are not the same finding.
+          How each report was phrased is shown beside how many there were: twelve complaints and
+          twelve recommendations are both "12 reports".
         </p>
         <Table
           models={models}
@@ -996,4 +994,160 @@ function Table({ models, rows }) {
       </table>
     </div>
   )
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE SHOWCASE PARTS, added 2026-10-01: the method text collapsed, a
+   head-to-head header, a names bar that stays on screen, and one quote per
+   model on the sections they share, with how each was chosen.
+   None of them scores or ranks: every number is a count already on this
+   page, and no cell is compared against another model's.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/** The page's method, kept but folded away: the short line above says it. */
+function HowToRead() {
+  return (
+    <details className="cmp-how">
+      <summary>How to read this comparison</summary>
+      <ul>
+        <li>Every number is a count of what engineers wrote. Nothing is scored and no winner is picked.</li>
+        <li>A bigger number is more people writing, not a better model.</li>
+        <li>Positive, negative and neutral say how each report was phrased, not whether it was right.</li>
+        <li>A model nobody has written about is an absence we found, not a verdict.</li>
+        <li>Every row links back to the board, where each section lists all its models.</li>
+      </ul>
+    </details>
+  )
+}
+
+const modelLink = (m) => `/models/${modelPath(m.canonical_id || m.model_version_id)}`
+
+/** One card per model: who it is and what was written about it, counted. */
+function HeadToHead({ models }) {
+  return (
+    <div className="h2h" style={{ '--n': models.length }}>
+      {models.map((m, i) => {
+        const pol = m.reported?.polarity || {}
+        const platforms = (pol.platforms || []).length
+        const split = { positive: pol.positive || 0, negative: pol.negative || 0, neutral: pol.neutral || 0,
+                        other: 0, total: pol.entries || 0 }
+        return (
+          <Fragment key={m.model_version_id}>
+            {i > 0 && <span className="h2h-vs" aria-hidden="true">vs</span>}
+            <div className="h2h-card">
+              <span className="label">{m.provider}</span>
+              <Link to={modelLink(m)} className="h2h-name">{m.display_name}</Link>
+              {m.canonical_id && <span className="mono dim h2h-id">{m.canonical_id}</span>}
+              {split.total ? (
+                <>
+                  <span className="tnum h2h-n">
+                    <b>{split.total}</b> {split.total === 1 ? 'entry' : 'entries'}
+                    {pol.documents != null && <> · <b>{pol.documents}</b> {pol.documents === 1 ? 'post' : 'posts'}</>}
+                    {platforms > 0 && <> · <b>{platforms}</b> {platforms === 1 ? 'platform' : 'platforms'}</>}
+                  </span>
+                  <Polarity split={split} />
+                </>
+              ) : (
+                <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>Nobody has written about it yet.</span>
+              )}
+            </div>
+          </Fragment>
+        )
+      })}
+    </div>
+  )
+}
+
+/** The model names, kept on screen under the nav while the tables scroll. */
+function StickyNames({ models }) {
+  return (
+    <div className="cmp-sticky" aria-hidden="true">
+      {models.map((m, i) => (
+        <Fragment key={m.model_version_id}>
+          {i > 0 && <span className="cmp-sticky-vs">vs</span>}
+          <span className="cmp-sticky-name">{m.display_name}</span>
+        </Fragment>
+      ))}
+    </div>
+  )
+}
+
+/* A quote that reads on its own: says something either way if it can, and is
+   short enough for a card. Chosen for length and phrasing only - never for
+   which model it favours. */
+function quoteFor(item) {
+  const qs = item?.quotes || []
+  const fits = (q) => q.quote && q.quote.length >= 40 && q.quote.length <= 220
+  return qs.find((q) => q.polarity !== 'neutral' && fits(q)) || qs.find(fits) || qs[0] || null
+}
+
+const hostName = (url) => {
+  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return '' }
+}
+
+const FACEOFF_ROWS = 4
+
+/** On the sections every model shares, one quote from each, side by side. */
+function FaceOff({ models }) {
+  const rows = [['best_for', 'Jobs'], ['capabilities', 'Capabilities']]
+    .flatMap(([section, heading]) => sharedAxes(models, section).every.map((a) => ({ ...a, heading })))
+    .slice(0, FACEOFF_ROWS)
+  if (!rows.length) return null
+  return (
+    <div className="stack stack-2">
+      <span className="label">In their words</span>
+      {/* HOW THE QUOTES WERE CHOSEN, said on the page: without it a reader
+          cannot tell a picked quote from a fair one. The rule is quoteFor's. */}
+      <p className="faceoff-basis">
+        <span className="faceoff-i" aria-hidden="true">i</span>
+        <span>
+          The {rows.length === 1 ? 'section' : `${rows.length} sections`} both models were discussed on most.
+          For each, the first report on the board that says something clearly either way and fits on a
+          card — chosen by wording and length, never by which model it favours. Open a section to read
+          every report.
+        </span>
+      </p>
+      <div className="faceoff">
+        {rows.map((a) => {
+          const axisPath = Object.values(a.per).find((it) => it.board_path)?.board_path
+          return (
+            <div key={a.slug} className="faceoff-row">
+              <div className="faceoff-axis">
+                <span className="faceoff-k">{a.heading}</span>
+                {axisPath
+                  ? <Link to={`/board/${axisPath}`} className="mb-link">{a.name}</Link>
+                  : <span>{a.name}</span>}
+              </div>
+              <div className="faceoff-quotes" style={{ '--n': models.length }}>
+                {models.map((m) => {
+                  const q = quoteFor(a.per[m.model_version_id])
+                  return (
+                    <figure key={m.model_version_id} className="faceoff-q" data-polarity={q?.polarity || 'none'}>
+                      <span className="faceoff-model">{m.display_name}</span>
+                      {q ? (
+                        <>
+                          <blockquote>“{q.quote}”</blockquote>
+                          <figcaption>
+                            <span className="faceoff-pol">{q.polarity}</span>
+                            {q.url && <> · <a href={q.url} target="_blank" rel="nofollow noopener noreferrer">{hostName(q.url)}</a></>}
+                          </figcaption>
+                        </>
+                      ) : <span className="dim" style={{ fontSize: 'var(--fs-xs)' }}>no quote recorded</span>}
+                    </figure>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/** "Anthropic: Claude Opus 5" -> "Claude Opus 5". A name with no prefix is kept. */
+function shortName(name) {
+  const n = String(name || '')
+  return n.includes(': ') ? n.split(': ').slice(1).join(': ') : n
 }

@@ -161,6 +161,37 @@
 
 version: 1
 
+# ── AUTO-TRACKING: new models from providers already on the page ──────────────
+# Added 2026-10-06 at anooj's request: a new arrival from a provider the page
+# already lists appears on the models page, and is fetched by the scheduler,
+# WITHOUT a per-model PR. The RULE is the reviewed thing; each model it admits
+# is an instance of it. judge/tracked.py applies it at read time against
+# `model_version`, so a model is on the page from the first load after the
+# registry poll inserts it.
+#
+#   providers                 `from_tracked`: every provider that has at least
+#                             one hand-listed `registry:` entry below. Derived,
+#                             so adding a provider is adding one model by hand.
+#   released_within_days      only arrivals: `release_date` within this many days.
+#                             A NULL release date is NOT recent (rule 6) - such a
+#                             model stays off and is counted as skipped.
+#   include_pro_tier          `-pro` ids are distinct models with their own price
+#                             and their own name in discussion (GPT-6.1 Sol Pro
+#                             was seated that way on 2026-10-05). true.
+#   exclude_name_terms        whole words in the id or display name that mark a
+#                             non-text model; those stay manual, because the page
+#                             renders `kind` and a guessed kind is a wrong row.
+#
+# Every key is required; anything missing or malformed raises (rule 12). Turning
+# it off is `enabled: false`, not deleting the block.
+auto_track:
+  enabled: true
+  providers: from_tracked
+  released_within_days: 30
+  include_pro_tier: true
+  exclude_name_terms: [image, audio, tts, speech, voice, music, video, embed, embedding,
+                       transcribe, realtime, moderation]
+
 models:
   # ── the four the board already holds evidence for ────────────────────────
   # These lead the page because a fetch has actually run against them. The
@@ -318,6 +349,26 @@ models:
   # 53 claims from 28 distinct authors on that date.
   - name: Claude Opus 4.6
     registry: anthropic/claude-opus-4.6
+    kind: text
+
+  # ── added 2026-10-05: Anthropic and OpenAI arrivals from the registry poll ──
+  # Listed as arrivals on #450 (polls of 2026-09-24 and 2026-10-01). `registry`
+  # values READ FROM `model_version.canonical_id` on staging on 2026-10-05; all
+  # four are `polled` and were seated the same day (alias rows written and read
+  # back live). anooj's request on branch anooj_001; a contract/ change, so it
+  # needs review before main. GPT-6.1 Sol Pro is a `-pro` arrival tracked as its
+  # own model, not folded into GPT-6.1 Sol.
+  - name: GPT-6 Luna
+    registry: openai/gpt-6-luna
+    kind: text
+  - name: Claude Sonnet 5.5
+    registry: anthropic/claude-sonnet-5.5
+    kind: text
+  - name: GPT-6.1 Sol
+    registry: openai/gpt-6.1-sol
+    kind: text
+  - name: GPT-6.1 Sol Pro
+    registry: openai/gpt-6.1-sol-pro
     kind: text
 
   # ── image ────────────────────────────────────────────────────────────────

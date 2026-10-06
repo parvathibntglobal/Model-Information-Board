@@ -1,0 +1,54 @@
+# What may appear on a PUBLIC surface, by source.
+#
+# ⚠ PROPOSED 2026-10-05 BY anooj, ON BRANCH anooj_001 - NOT RATIFIED.
+#   contract/ gets two eyes: this file reaches main only through a reviewed PR.
+#   The argument, the open questions and what it does to the terms rulings are in
+#   docs/proposals/public-surfaces-withhold-reddit-arxiv-x.md.
+#
+# THE AGREED POSITION (team, 2026-10-05): nothing from Reddit, arXiv or X is
+# shown on our public platform's board. We may still collect from them for
+# internal work. Derived blog posts are the one exception, below.
+#
+# WHAT "WITHHELD" MEANS ON THE BOARD: no quote, no link, no handle, and no
+# count that includes them. A public page built only from the other sources must
+# SAY that some sources are not shown (rule 4) - an absence we cause must not
+# read as one we found.
+#
+# DERIVED POSTS ARE THE EXCEPTION (decided by anooj, 2026-10-05) - see
+# `derived_posts` below.
+#
+# WHO READS THIS
+#   judge/publication.py        the one loader; every public read goes through it
+#   generate_sample_blogs.py    reads `derived_posts` to decide whether a blog
+#                               draft may draw on a withheld source
+#
+# ABSENT IS NOT PERMISSIVE (rule 6, rule 12). A missing file, a missing key or
+# an empty list raises - it never silently publishes everything.
+
+version: "0.1"
+status: proposed
+proposed_on: 2026-10-05
+proposed_by: anooj
+
+withheld_from_public:
+  # `document.source` values, exactly as the collectors write them.
+  sources:
+    - reddit
+    - arxiv
+    - x
+
+derived_posts:
+  # BLOG DRAFTS MAY BE WRITTEN FROM WITHHELD SOURCES. Decided by anooj on
+  # 2026-10-05: we cannot write useful posts while avoiding Reddit, X and arXiv,
+  # and a post that discusses what practitioners report is not a republication
+  # of their posts. Narrowed the 2026-10-05 first draft of this file, which
+  # withheld derived prose too.
+  #
+  # WHAT A DRAFT CARRIES FROM THEM, stated so a reviewer rules on the real
+  # thing: prose written from the threads, PLUS the short verbatim fragments
+  # (marked «») the generator requires, copied exactly from the source. No
+  # link, no handle, no platform name - those stay refused by the generator's
+  # export and banned-phrase checks.
+  #
+  # Must be true or false. Absent raises (rule 6): the generator never guesses.
+  may_draw_on_withheld: true

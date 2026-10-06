@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { adminSources } from '../api'
 import { Badge, Notice } from './ui'
-import { IconAlert, IconCaret, IconLayers } from './Icons'
+import { IconAlert, IconCaret, IconFilter } from './Icons'
 
 /**
  * Every platform the harvest reaches, and how it reaches it.
@@ -22,12 +22,20 @@ import { IconAlert, IconCaret, IconLayers } from './Icons'
 // A method is a claim about money or about somebody's terms, so each gets a
 // tone rather than all rendering alike: paid access and a robots-gated fetch
 // are the two a reader should look at twice.
-const METHOD_TONE = (m) => {
-  if (!m) return 'fail'
-  if (m.startsWith('paid')) return 'warn'
-  if (m.startsWith('free')) return 'pass'
-  return 'mute'
+// ⚠ NEUTRAL NOW, NOT GREEN AND AMBER. Green and amber mean "fine" and "look
+//   twice" everywhere else on this page, and free versus paid is neither. Paid
+//   access is marked with "$" instead, which says what it is. A missing method
+//   stays red: that one IS a gap.
+const METHOD_TONE = (m) => (m ? 'mute' : 'fail')
+const methodLabel = (m) => (m && m.startsWith('paid') ? `$ ${m}` : m)
+
+// The platforms' own names, as Keywords writes them. Display only: the id
+// stays the key everywhere else.
+const PLATFORM_NAME = {
+  github: 'GitHub', blogs: 'Blogs', blog: 'Blogs', reddit: 'Reddit', arxiv: 'arXiv',
+  x: 'X', devto: 'dev.to', hackernews: 'Hacker News', huggingface: 'Hugging Face',
 }
+const platformName = (id) => PLATFORM_NAME[id] || id
 
 export default function SourcesPanel() {
   const [state, setState] = useState({ data: null, err: null })
@@ -52,13 +60,14 @@ export default function SourcesPanel() {
     <section className="card card-flush">
       <div className="card-head">
         <div className="row" style={{ gap: 8 }}>
-          <IconLayers width={14} height={14} style={{ color: 'var(--text-3)' }} />
+          <IconFilter width={14} height={14} style={{ color: 'var(--text-3)' }} />
           <span className="label">Sources — where the evidence comes from</span>
         </div>
         {data && <span className="label">{data.count} platform(s)</span>}
       </div>
 
-      <div style={{ padding: '0 var(--s4)' }}>
+
+      <div className="card-body stack stack-3">
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           Read from <span className="mono">contract/sources.yaml</span>, the same file
           the harvest reads — so this is what actually runs, not a description of it.
@@ -66,9 +75,6 @@ export default function SourcesPanel() {
           <strong style={{ color: 'var(--text)' }}>No key is shown anywhere</strong>,
           and none is in the payload behind this page.
         </p>
-      </div>
-
-      <div className="card-body stack stack-3">
         {err && <Notice icon={<IconAlert />}>{err}</Notice>}
         {!data && !err && <div className="skel" style={{ height: 180 }} />}
 
@@ -76,7 +82,7 @@ export default function SourcesPanel() {
           <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
             {Object.entries(data.by_method).map(([method, ids]) => (
               <span key={method} className="row" style={{ gap: 6, alignItems: 'baseline' }}>
-                <Badge tone={METHOD_TONE(method)}>{method}</Badge>
+                <Badge tone={METHOD_TONE(method)}>{methodLabel(method)}</Badge>
                 <span className="dim" style={{ fontSize: 11 }}>{ids.length}</span>
               </span>
             ))}
@@ -103,6 +109,7 @@ export default function SourcesPanel() {
                   <th>Key</th>
                   <th>Quota</th>
                   <th>Terms</th>
+                  <th>Public pages</th>
                 </tr>
               </thead>
               <tbody>
@@ -115,12 +122,12 @@ export default function SourcesPanel() {
                                 onClick={() => setOpen(open === s.id ? null : s.id)}>
                           <IconCaret width={13} height={13}
                                      className={`caret${open === s.id ? ' on' : ''}`} />
-                          <strong>{s.id}</strong>
+                          <strong>{platformName(s.id)}</strong>
                         </button>
                       </td>
                       <td>
                         {s.method
-                          ? <Badge tone={METHOD_TONE(s.method)}>{s.method}</Badge>
+                          ? <Badge tone={METHOD_TONE(s.method)}>{methodLabel(s.method)}</Badge>
                           : <Badge tone="fail">not described</Badge>}
                       </td>
                       {/* THE WHOLE OF WHAT IS SAID ABOUT CREDENTIALS. Not the
@@ -147,11 +154,20 @@ export default function SourcesPanel() {
                               </span>
                             : <span className="dim">—</span>}
                       </td>
+                      {/* Withheld platforms are still harvested and read; only
+                          their quotes are kept off public pages. */}
+                      <td>
+                        {s.on_public_pages === false
+                          ? <Badge tone="warn">withheld</Badge>
+                          : s.on_public_pages
+                            ? <span className="dim">shown</span>
+                            : <span className="dim">—</span>}
+                      </td>
                     </tr>
 
                     {open === s.id && (
                       <tr>
-                        <td colSpan={5} style={{ background: 'var(--surface-2)' }}>
+                        <td colSpan={6} style={{ background: 'var(--surface-2)' }}>
                           <div className="stack stack-1">
                             {s.detail && (
                               <p className="muted" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0, lineHeight: 1.6 }}>
@@ -294,8 +310,8 @@ function Corpus({ data }) {
             ? `${n(data.threads)} threads` : 'threads not counted'}
         </span>
       </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table className="cmp-table" style={{ fontSize: 'var(--fs-xs)' }}>
+      <div className="tablewrap">
+        <table>
           <thead>
             <tr>
               <th>Platform</th>
@@ -308,7 +324,7 @@ function Corpus({ data }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r.platform}>
-                <th scope="row" style={{ fontWeight: 500 }}>{r.platform}</th>
+                <th scope="row" style={{ fontWeight: 500 }}>{platformName(r.platform)}</th>
                 <td className="tnum" style={{ textAlign: 'right' }}>{n(r.documents)}</td>
                 <td className="tnum" style={{ textAlign: 'right' }}>{n(r.posts)}</td>
                 <td className="tnum" style={{ textAlign: 'right' }}>
@@ -329,8 +345,8 @@ function Corpus({ data }) {
                 </td>
               </tr>
             ))}
-            <tr>
-              <th scope="row" className="dim">all</th>
+            <tr className="tbl-total">
+              <th scope="row">All platforms</th>
               <td className="tnum" style={{ textAlign: 'right' }}>{n(total.documents)}</td>
               <td className="tnum" style={{ textAlign: 'right' }}>{n(total.posts)}</td>
               <td className="tnum" style={{ textAlign: 'right' }}>{n(total.comments)}</td>
@@ -394,7 +410,7 @@ function BlogFeeds({ data, feeds }) {
               </Notice>
             )}
 
-            <div className="tblwrap">
+            <div className="tablewrap">
               <table>
                 <thead>
                   <tr>

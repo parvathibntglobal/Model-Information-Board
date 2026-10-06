@@ -28,6 +28,15 @@ import { Badge } from './ui'
  * ONLY from the answers actually served. Giving an answer engine the demo's
  * figures while showing the reader a caveat is cloaking.
  */
+// `contract/faq.yaml` marks emphasis the markdown way, `*like this*`. Printed
+// raw it showed the asterisks on the page ("ranks fit for *your* task"), so
+// the page renders it as <em> and the structured data gets plain text.
+const EMPHASIS = /\*([^*]+)\*/g
+const plainText = (text) => String(text || '').replace(EMPHASIS, '$1')
+function withEmphasis(text) {
+  return String(text || '').split(EMPHASIS).map((part, i) => (i % 2 ? <em key={i}>{part}</em> : part))
+}
+
 export default function Faq() {
   const [data, setData] = useState(null)
   const [err, setErr] = useState(null)
@@ -52,7 +61,7 @@ export default function Faq() {
       mainEntity: data.questions.map((q) => ({
         '@type': 'Question',
         name: q.question,
-        acceptedAnswer: { '@type': 'Answer', text: q.answer },
+        acceptedAnswer: { '@type': 'Answer', text: plainText(q.answer) },
       })),
     })
     document.head.appendChild(el)
@@ -112,7 +121,7 @@ export default function Faq() {
               )}
             </summary>
             <p className="muted" style={{ fontSize: 'var(--fs-sm)', maxWidth: '74ch' }}>
-              {q.answer}
+              {withEmphasis(q.answer)}
             </p>
           </details>
         ))}

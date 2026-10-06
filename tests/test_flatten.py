@@ -295,7 +295,7 @@ def test_assembly_over_the_real_thread_selects_and_maps():
         version_aliases=(),
     )
 
-    # The contract's cap (`child_ranking.max_children`, 25 since 2026-09-24),
+    # The contract's cap (`child_ranking.max_children`; 40 since 2026-10-05),
     # reached because 195 comments were observed.
     from collect.assemble.thread import MAX_CHILDREN
 

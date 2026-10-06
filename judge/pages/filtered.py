@@ -200,22 +200,33 @@ class FilteredPage:
         self._conn = conn
 
     def report(self, *, limit: int = 200) -> FilteredReport:
+        # WITHHELD SOURCES ARE NEITHER LISTED NOR COUNTED on a public view
+        # (contract/publication.yaml). This page lists document URLs, so a
+        # withheld row here would publish its permalink; and both totals are
+        # counts of documents, so they are taken over the same public set or
+        # the ratio they form would describe rows the page does not show.
+        from judge import publication
+
+        pub_sql, pub_args = publication.sql_public_document("document.id")
         rows = self._conn.execute(
             """
             SELECT id, url, source, status, filter_reasons, fetched_at
             FROM document
             WHERE status = ANY(%s)
+            """ + pub_sql + """
             ORDER BY fetched_at DESC
             LIMIT %s
             """,
-            (list(DISPLAYABLE), limit),
+            (list(DISPLAYABLE), *pub_args, limit),
         ).fetchall()
 
         total_row = self._conn.execute(
-            "SELECT count(*) FROM document WHERE status <> %s", (NEVER_DISPLAYED,)
+            "SELECT count(*) FROM document WHERE status <> %s" + pub_sql,
+            (NEVER_DISPLAYED, *pub_args),
         ).fetchone()
         filtered_row = self._conn.execute(
-            "SELECT count(*) FROM document WHERE status = ANY(%s)", (list(DISPLAYABLE),)
+            "SELECT count(*) FROM document WHERE status = ANY(%s)" + pub_sql,
+            (list(DISPLAYABLE), *pub_args),
         ).fetchone()
 
         return FilteredReport(

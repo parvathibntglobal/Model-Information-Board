@@ -207,7 +207,9 @@ class TestQuotesAreGroupedBySource:
         # fragments look like three findings.
         js = self._js()
         block = js[js.index("function quotes(qs){"):js.index("function reportsHeading")]
-        assert block.count("open the source</a>") == 1
+        # The link now reads as the platform's name; its accessible label
+        # still says "open the source on <platform>", once per source.
+        assert block.count('aria-label="open the source on') == 1
 
     def test_a_multi_figure_group_says_how_many(self):
         js = self._js()

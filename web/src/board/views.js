@@ -7,6 +7,7 @@
 // reason. A defect in WHERE a card lands is not visible in the source text
 // (#431), so the render has to be executable.
 import { DB } from './db.js'
+import { sourceName } from '../sourceName.js'
 
 // ── ESCAPING, WHICH THIS FILE DID NOT HAVE ─────────────────────────────────
 // Every builder below returns an HTML STRING and BoardView renders it through
@@ -245,7 +246,9 @@ function quotes(qs){
     // NO LINK IS BETTER THAN A DEAD ONE. A quote whose document row carries no
     // usable URL says so, rather than offering an underline that does nothing.
     const cite = href
-      ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">open the source</a>`
+      // THE PLATFORM'S NAME, read off the link, in place of "open the source"
+      // on every quote; the old words stay as the accessible label.
+      ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer" aria-label="open the source on ${esc(sourceName(href))}">${esc(sourceName(href))} ↗</a>`
       : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>';
     const anyNeg = g.items.some(r=>r[3]);
     // A COUNT, NOT A SUMMARY. "3 figures from this one report" is arithmetic
@@ -349,7 +352,9 @@ function mcard(x){
 //   this emits a heading and `groupedGrid` wraps each RUN of cards in its own
 //   `.igrid`. Nothing here opens an element it does not close.
 function parentHead(g){
-  return `<div class="phead-row"><div class="parent-h">
+  // The id is the parent's slug, so a link can open the board at a group
+  // (`/board?tab=cap#parent-software-engineering`, the landing hero's chip).
+  return `<div class="phead-row" id="parent-${esc(g.parent)}"><div class="parent-h">
     <h3>${esc(g.name)}</h3><span>${g.leaves} ${g.leaves===1?'leaf':'leaves'}</span></div>
     <p>Grouped for reading. Each of these is its own measurement — nothing here is
     merged, and there is no total for the group.</p></div>`;
@@ -498,6 +503,11 @@ function vBoard(tab){
   //   emits its own grids, so a heading can sit BETWEEN two of them instead of
   //   inside one it has to cut open. Anything added here that returns bare
   //   cards must wrap them in `gridBlock` or they will render as a column.
+  // ONE SHORT HEADING PER TAB, in the words people search for (2026-10-05).
+  //   Kept beside the panes rather than inside them, so each pane still opens
+  //   on its intro.
+  const TAB_H = {best:'Best AI model for each job', cap:'What each AI model can do, as reported',
+    met:'AI model performance and API pricing in engineer discussions'};
   const panes = {
     best: {intro:'Jobs engineers named when they said what they were running a model for. Each opens a page listing every model reported on that job. Problem reports are shown, not filtered.',
       // The ordering statement sits BESIDE the cards: one rule for every job
@@ -529,8 +539,12 @@ function vBoard(tab){
   };
   const p = panes[tab];
   const note = p.note || '';
+  // THE H1 NAMES WHAT THE PAGE IS, in the words people search for (2026-10-05);
+  //   the "Board" tag above it keeps the page's own name, styled like the
+  //   landing page's Board badge so the two read as one place.
   return `<div class="shell phead">${crumb([['Board',null]])}
-    <h1>The board</h1>
+    <span class="go-badge go-board page-tag">Board</span>
+    <h1>AI models compared by job, capability and metric</h1>
     <p class="sub">Three ways into the same evidence. <b>Jobs</b> lists what was reported on a job.
     <b>Capabilities</b> defines what a claim means, so a claim on one model page can be compared with a
     claim on another. <b>Metrics</b> are the axes, and what each one refuses to average.</p></div>
@@ -540,6 +554,7 @@ function vBoard(tab){
         <button role="tab" aria-selected="${tab==='cap'}" data-tab="cap">Capabilities</button>
         <button role="tab" aria-selected="${tab==='met'}" data-tab="met">Metrics</button>
       </div>
+      <h2 class="tab-h">${TAB_H[tab]}</h2>
       <p class="muted" style="max-width:70ch;margin-bottom:20px;line-height:1.6">${p.intro}</p>
       ${note}
       ${p.side ? `<div class="jobbody"><div class="joblist">${p.grid}</div>${p.side}</div>` : p.grid}
@@ -808,7 +823,7 @@ function figureRows(groups){
         ? `<span class="qmeta">${esc(s.bases.join(' · '))}</span> `
         : '';
       const link = href
-        ? `<a class="srclink" href="${esc(href)}"${ref} target="_blank" rel="noopener noreferrer">open the source</a>`
+        ? `<a class="srclink" href="${esc(href)}"${ref} target="_blank" rel="noopener noreferrer" aria-label="open the source on ${esc(sourceName(href))}">${esc(sourceName(href))} ↗</a>`
         : '<span class="nosrc" title="This document has no usable link.">no link recorded</span>';
       // THE QUOTE LEADS AND THE LINK FOLLOWS, and that ordering is the finding
       // rather than a preference. The words are what let a reader decide
@@ -928,40 +943,224 @@ function vMetModel(slug, key){
     ${sec('Related','','',related(m.rel))}`;
 }
 
+// ── Blogs: the essay layout from the standalone HTML drafts ─────────────────
+//
+// Everything sits under `.essay` with its own `--es-*` palette (board.css), so
+// the drafts look like the HTML pages the team reviewed without the essay CSS
+// leaking into the rest of the app — the HTML used `--bg`/`--text`/`--accent`,
+// which are app tokens here.
+
 function vBlogs(){
-  return `<div class="shell phead">${crumb([['Blogs',null]])}
-    <h1>What we found while building the board</h1>
-    <p class="sub">Not model reviews. Working notes from the engineers who built the pipeline — what broke,
-    what the measurements said, and where our own assumptions turned out to be wrong. Every figure carries
-    the population it was measured on, and every claim links to the evidence behind it.</p></div>
-    <div class="shell sec"><div class="postlist">${DB.posts.length ? DB.posts.map(p=>
-      `<div class="pcard${p.feat?' feat':''}" data-go="post:${esc(p.slug)}"><span class="tag">${esc(p.tag)}</span>
-        <h3>${esc(p.title)}</h3><p>${esc(p.dek)}</p><p class="by">${esc(p.by)}</p></div>`).join('') : '<p class="muted" style="padding:8px 0">No posts yet.</p>'}</div>
-      <p class="muted" style="margin-top:24px;max-width:70ch;line-height:1.6;font-size:.94rem">Posts are
-      written against the board's own corpus. A post may cover one model, several, a job, a capability, or a
-      change somebody noticed before a vendor announced it — and every figure in one is a bookmark into the
-      evidence it came from.</p></div>`;
+  const meta = DB.postsMeta || { reason: null, skipped: [] };
+  // THREE STATES (rule 4): drafts, a configured backend with none, and a
+  // backend that is not set up to serve them. The last two must not read alike.
+  const empty = meta.reason
+    ? `<p class="es-empty">${esc(meta.reason)}</p>`
+    : '<p class="es-empty">No posts yet.</p>';
+  const skipped = (meta.skipped || []).length
+    ? `<p class="es-empty">Could not be read: ${
+        meta.skipped.map(x=>`${esc(x.file)} (${esc(x.why)})`).join('; ')}</p>` : '';
+  const cards = DB.posts.map(p=>`<a class="es-card" data-go="post:${esc(p.slug)}">
+      <div class="es-kicker">${esc(p.kicker||p.tag)}${p.status==='draft'?' · draft':''}</div>
+      <h3>${esc(p.title)}</h3><p>${esc(p.dek)}</p>
+      <div class="es-tags">${(p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('')}</div>
+      <div class="es-sum">${essayText(p.lead)}</div>
+      <div class="es-meta"><span>${p.read?`${esc(p.read)} min read`:''}</span><span>${esc((p.meta||[])[0]||'')}</span></div>
+    </a>`).join('');
+  return `<div class="essay"><div class="es-wrap">
+    <header class="es-hub"><span class="go-badge go-blogs page-tag">Blogs</span>
+      <h1>How AI models behave in production</h1>
+      <p class="es-dek">Long-form engineering essays on running frontier models in real systems — the failure
+      modes, the architecture that contains them, and the economics that decide what is worth building.</p></header>
+    ${DB.posts.length ? `<div class="es-draft"><b>Drafts for team review.</b> Written by a language model from
+      engineers' public reports and checked in code — every quote is matched against its source text and every
+      figure against the source or the price registry. None has been reviewed by a person yet.</div>
+      <div class="es-cards">${cards}</div>` : empty}
+    ${skipped}
+  </div></div>`;
+}
+
+// Inline text: escaped first, then the generator's marks — `code`, **bold**
+// and «verbatim fragment». Nothing else is markup. Posts show NO evidence
+// bookmarks (team decision, 2026-10-01); an {En} left in an older draft file is
+// dropped rather than printed.
+function essayText(v){
+  return esc(v)
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
+    .replace(/«([^»]+)»/g,'<q class="es-iq">$1</q>')
+    .replace(/\{E\d+\}/g,'');
+}
+
+function routeBadge(r){
+  const x = String(r||'').toLowerCase();
+  const tone = x.includes('opus') ? 'p' : x.includes('sonnet') ? 'b'
+    : (x.includes('haiku') || /\blow\b/.test(x)) ? 'g' : 'y';
+  // `t-` prefix: a bare `b` collided with the decision tree's `.b` branch card.
+  return `<span class="es-bdg t-${tone}">${esc(r)}</span>`;
+}
+
+function essayCode(src){
+  // Comments dimmed, as in the HTML drafts. Escaped before the span is added.
+  return esc(String(src||'').replace(/\s+$/,'')).split('\n').map(l=>{
+    const k = l.indexOf('#'); return k >= 0 ? l.slice(0,k)+`<span class="c">${l.slice(k)}</span>` : l;
+  }).join('\n');
+}
+
+function essayBlock([t,v]){
+  if(t==='h2'){
+    const h = typeof v === 'string' ? { text: v } : v;
+    // The tree's question already sits in its root box, so its heading names
+    // the block instead of printing the question twice.
+    if (h.num === 'Decision tree') return `<h2${h.id?` id="es-${esc(h.id)}"`:''}>Decision tree</h2>`;
+    return `<h2${h.id?` id="es-${esc(h.id)}"`:''}>${h.num?`<span class="num">${esc(h.num)}</span>`:''}${essayText(h.text)}</h2>`;
+  }
+  if(t==='h3') return `<h3>${esc(v)}</h3>`;
+  if(t==='ul') return '<ul>'+v.map(li=>`<li>${essayText(li)}</li>`).join('')+'</ul>';
+  if(t==='quote') return `<figure class="es-pq"><blockquote>${essayText(v)}</blockquote>
+    <figcaption>Engineer report</figcaption></figure>`;
+  // The tag already says "Illustrative"; a label that opens with it would read twice.
+  if(t==='code') return `<div class="es-codehead"><span class="es-illus">Illustrative</span>${esc(String(v.label||'').replace(/^\s*illustrative[\s:·-]*/i,'').replace(/^./,c=>c.toUpperCase()))}</div>
+    <pre class="es-pre">${essayCode(v.source)}</pre>`;
+  if(t==='table'){
+    const matrix = v.kind === 'matrix', prices = v.kind === 'prices';
+    const cell = (c,k,r) => {
+      if(matrix && k===r.length-1) return `<td class="route">${routeBadge(c)}</td>`;
+      if(prices && k>0) return `<td class="n">${esc(c)}</td>`;
+      return `<td>${k===0?`<b>${essayText(c)}</b>`:essayText(c)}</td>`;
+    };
+    return `<div class="es-tbl"><table><thead><tr>${(v.cols||[]).map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>
+      <tbody>${(v.rows||[]).map(r=>`<tr>${r.map((c,k)=>cell(c,k,r)).join('')}</tr>`).join('')}</tbody></table></div>
+      ${v.note?`<p class="es-note">${esc(v.note)}</p>`:''}`;
+  }
+  if(t==='tree') return `<div class="es-dtree"><div class="q">${essayText(v.question)}</div>
+    <div class="br">${(v.branches||[]).map(b=>`<div class="b"><div class="cond">${essayText(b.condition)}</div>
+      <div class="out">${essayText(b.outcome)}</div>${routeBadge(b.route)}</div>`).join('')}</div></div>`;
+  return '<p>'+essayText(v)+'</p>';
+}
+
+// ── per-format layouts (2026-10-05) ───────────────────────────────────────
+//
+// One renderer gave every post the same page, whatever its format. Each
+// format now names a layout (blog_formats.yaml): its own section label, accent,
+// where its signature block sits, and whether the rate card leads. Posts with
+// no layout (the first three) keep the original essay page.
+const LAYOUTS = {
+  report:    { label: 'Observation', lead: 'special' },
+  versus:    { label: 'Question',    lead: 'special' },
+  ledger:    { label: 'Cost line',   lead: 'prices+special' },
+  runbook:   { label: 'Step notes',  lead: 'special' },
+  blueprint: { label: 'Component',   lead: 'special' },
+  brief:     { label: 'Point',       lead: 'special' },
+  critique:  { label: 'Argument',    lead: 'special' },
+};
+
+function specialBlock(sp){
+  if(!sp || !sp.items || !sp.items.length) return '';
+  const it = sp.items, T = esc(sp.title);
+  if(sp.type==='findings'){
+    const col = (st, cls) => it.filter(x=>x.status===st)
+      .map(x=>`<li class="${cls}">${essayText(x.finding)}</li>`).join('') || '<li class="none">None recorded.</li>';
+    return `<section class="es-sp es-findings"><div class="lbl">${T}</div><div class="cols">
+      <div><h4>Established</h4><ul>${col('established','ok')}</ul></div>
+      <div><h4>Not established</h4><ul>${col('not established','open')}</ul></div></div></section>`;
+  }
+  if(sp.type==='picks'){
+    const names = [...new Set(it.map(x=>x.pick))];
+    return `<section class="es-sp es-picks"><div class="lbl">${T}</div><div class="cols">${names.map((n,k)=>
+      `<div class="pick p${k}"><h4>Pick ${esc(n)} when…</h4><ul>${it.filter(x=>x.pick===n)
+        .map(x=>`<li>${essayText(x.when)}</li>`).join('')}</ul></div>`).join('')}</div></section>`;
+  }
+  if(sp.type==='drivers'){
+    return `<section class="es-sp es-drivers"><div class="lbl">${T}</div><div class="grid">${it.map((x,k)=>
+      `<div class="drv"><div class="n">${String(k+1).padStart(2,'0')}</div><h4>${essayText(x.driver)}</h4>
+        <p>${essayText(x.mechanism)}</p><p class="lever"><b>Lever</b> ${essayText(x.lever)}</p></div>`).join('')}</div></section>`;
+  }
+  if(sp.type==='steps'){
+    return `<section class="es-sp es-steps"><div class="lbl">${T}</div><ol>${it.map((x,k)=>
+      `<li><div class="dot">${k+1}</div><div class="body"><h4>${essayText(x.step)}</h4><p>${essayText(x.action)}</p>
+        <p class="check"><span class="box"></span>${essayText(x.check)}</p></div></li>`).join('')}</ol></section>`;
+  }
+  if(sp.type==='layers'){
+    return `<section class="es-sp es-layers"><div class="lbl">${T}</div><div class="stack">${it.map((x,k)=>
+      `<div class="band" style="margin-inline:${k*14}px"><div class="name">${essayText(x.layer)}</div>
+        <div class="role">${essayText(x.role)}</div><div class="fail"><b>Contains</b> ${essayText(x.failure_contained)}</div></div>`).join('')}
+      </div></section>`;
+  }
+  if(sp.type==='claims'){
+    const chip = st => `<span class="chip ${st==='holds'?'ok':st==='partly holds'?'part':'none'}">${esc(st)}</span>`;
+    return `<section class="es-sp es-claims"><div class="lbl">${T}</div><div class="es-tbl"><table><thead><tr>
+      <th>Claim</th><th>What practitioners found</th><th>Status</th></tr></thead><tbody>${it.map(x=>
+      `<tr><td><b>${essayText(x.claim)}</b></td><td>${essayText(x.finding)}</td><td>${chip(x.status)}</td></tr>`).join('')}
+      </tbody></table></div></section>`;
+  }
+  if(sp.type==='probes'){
+    return `<section class="es-sp es-probes"><div class="lbl">${T}</div><div class="es-tbl"><table><thead><tr>
+      <th>Reported</th><th>Actually tests</th><th>Misses</th></tr></thead><tbody>${it.map(x=>
+      `<tr><td><b>${essayText(x.measure)}</b></td><td>${essayText(x.tests)}</td><td class="miss">${essayText(x.misses)}</td></tr>`).join('')}
+      </tbody></table></div></section>`;
+  }
+  return '';
 }
 
 function vPost(slug){
   const p = byS(DB.posts,slug); if(!p) return vBlogs();
-  const body = p.body.map(([t,v])=>{
-    if(t==='h2') return `<h2>${esc(v)}</h2>`;
-    if(t==='ul') return '<ul>'+v.map(li=>`<li>${esc(li)}</li>`).join('')+'</ul>';
-    if(t==='quote') return `<blockquote>${esc(v)}</blockquote>`;
-    return '<p>'+esc(v).replace(/\{E(\d+)\}/g,(m,n)=>`<span class="bm" data-ev="${n}">E${n}</span>`)+'</p>';
+  const L = LAYOUTS[p.layout] ? p.layout : null;
+  const conf = L ? LAYOUTS[L] : null;
+  // The rate card leads on a ledger: lift the List-prices heading and table out
+  // of the body and put them first.
+  let body = p.body.slice(), rate = '';
+  if(conf && conf.lead.startsWith('prices')){
+    const k = body.findIndex(([t,v])=>t==='table' && v && v.kind==='prices');
+    if(k >= 0){
+      const prevH3 = k > 0 && body[k-1][0]==='h3' ? 1 : 0;
+      rate = `<section class="es-sp es-rate"><div class="lbl">The rate card</div>${essayBlock(body[k])}</section>`;
+      body.splice(k - prevH3, 1 + prevH3);
+    }
+  }
+  // Section labels name what a section IS in this format ("Question 2").
+  let n = 0;
+  const rendered = body.map(b=>{
+    if(conf && b[0]==='h2' && b[1] && typeof b[1]==='object' && /^\d+$/.test(b[1].num||'')){
+      n += 1; return essayBlock(['h2', {...b[1], num: `${conf.label} ${n}`}]);
+    }
+    return essayBlock(b);
   }).join('');
-  const ev = p.ev.map(([n,q,src])=>`<div class="evrow" id="ev${n}"><span class="id">E${n}</span>
-    <div><q>${esc(q)}</q><span class="src">${esc(src)}</span></div><u>open evidence →</u></div>`).join('');
-  return `<div class="shell phead">${crumb([['Blogs','blogs'],[p.title.slice(0,42)+'…',null]])}
-    <h1>${esc(p.title)}</h1></div>
-    <div class="shell"><div class="artmeta">${p.meta.map(m=>`<span>${m}</span>`).join('')}</div>
-      <article class="article"><p class="lead">${p.lead}</p>${body}</article>
-      <div class="evpanel" id="evidence"><h3>Evidence behind this post</h3>
-        <p class="n">Every figure above is a bookmark into one of these. Demo data in this build — in
-        production each row opens the stored quote with its verified offset and a link to the source.</p>
-        ${ev}</div>
-      ${related(p.rel)}
-    </div>`;
+  const special = conf ? specialBlock(p.special) : '';
+  const toc = p.body.filter(([t,v])=>t==='h2' && v && v.id)
+    .map(([,v])=>`<li><a data-toc="es-${esc(v.id)}">${essayText(v.num==='Decision tree'?'Decision tree':v.text)}</a></li>`).join('');
+  const pv = p.provenance || {};
+  const tags = (p.tags||[]).map(t=>`<span class="es-tag">${esc(t)}</span>`).join('');
+  const dec = (p.decisions||[]).map(d=>`<li>${essayText(d)}</li>`).join('');
+  const rel = (p.rel||[]).map(([h,t])=>`<a class="es-rel" data-go="${esc(h)}">${esc(t)}</a>`).join('');
+  // A head-to-head's hero names both sides as nameplates.
+  const names = L==='versus' && p.special ? [...new Set((p.special.items||[]).map(x=>x.pick))] : [];
+  const plate = names.length===2 ? `<div class="es-vs"><span>${esc(names[0])}</span><i>vs</i><span>${esc(names[1])}</span></div>` : '';
+  return `<div class="essay${L?' layout-'+L:''}"><div class="es-wrap">
+    <div class="es-crumb"><a data-go="blogs">All essays</a></div>
+    <header class="es-hero"><div class="es-kicker">${esc(p.kicker||p.tag)}</div>${plate}<h1>${esc(p.title)}</h1>
+      <p class="es-dek">${esc(p.dek)}</p>
+      <div class="es-byline">${(p.meta||[]).map(m=>`<span>${esc(m)}</span>`).join('')}</div>
+      ${tags?`<div class="es-tags">${tags}</div>`:''}</header>
+    <div class="es-layout">
+      <article class="es-article">
+        <div class="es-tldr"><div class="lbl">The short answer</div><p>${essayText(p.lead)}</p></div>
+        ${rate}${special}
+        ${rendered}
+        <footer class="es-foot">
+          <p>Written by <code>${esc(pv.model)}</code>${pv.generated_at?` on ${esc(String(pv.generated_at).slice(0,10))}`:''}
+          from engineers' public discussions, then checked in code: ${esc(pv.checks||'not recorded')}.
+          ${pv.reviewed_by?`Reviewed by ${esc(pv.reviewed_by)}.`:'<b>Not yet reviewed by a person.</b>'}
+          Code samples are illustrative patterns. Prices are published list prices. No model is scored or ranked.</p>
+          <p>Draft — not for external publication.</p>
+        </footer>
+      </article>
+      <aside class="es-side">
+        ${toc?`<div class="es-scard"><div class="lbl">In this essay</div><ol>${toc}</ol></div>`:''}
+        ${dec?`<div class="es-scard"><div class="lbl">Decisions it supports</div><ul class="dec">${dec}</ul></div>`:''}
+        ${rel?`<div class="es-scard"><div class="lbl">Continue reading</div>${rel}</div>`:''}
+      </aside>
+    </div>
+  </div></div>`;
 }
 export { vBoard, vJob, vCap, vMet, vJobModel, vCapModel, vMetModel, vBlogs, vPost }

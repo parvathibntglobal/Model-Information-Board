@@ -39,10 +39,12 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
-from judge import fetch_console
-from judge.extract.client import extractor_model
-from judge.pipeline import EXTRACT_ATTEMPTS
-
+# ⚠ REPO ROOT ON THE PATH BEFORE ANY FIRST-PARTY IMPORT. When this file is run
+# as a subprocess (`python scripts/fetch_model.py`, how /fetch/start spawns it),
+# sys.path[0] is scripts/, not the repo root, and there is no editable install —
+# so `import judge` / `import collect` fail unless ROOT is inserted FIRST. The
+# judge.* imports used to sit above this and crashed the subprocess at launch
+# (No module named 'judge') before E1 (#502 regression).
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -50,6 +52,9 @@ from collect import usage  # noqa: E402
 from collect.adapters.github import GitHubHarvester  # noqa: E402
 from collect.adapters.queries import load_queries, plan_searches  # noqa: E402
 from collect.assemble import prose  # noqa: E402
+from judge import fetch_console  # noqa: E402
+from judge.extract.client import extractor_model  # noqa: E402
+from judge.pipeline import EXTRACT_ATTEMPTS  # noqa: E402
 
 log = logging.getLogger(__name__)
 from collect.config import settings  # noqa: E402
@@ -183,6 +188,19 @@ MAX_GITHUB_SEARCHES = int(os.getenv("FETCH_MAX_GITHUB_SEARCHES", "60"))
 #: X 100,000/month ceiling, which is a TENTH of Reddit and the reason this is
 #: bounded at all.
 X_PAGES_PER_MODEL = int(os.getenv("FETCH_X_PAGES", "3"))
+
+#: Reddit threads per fetch whose COMMENT TREE is fetched and stored. Was the
+#: literal 5 at the call site, sized for "Reddit 429s at ~32 rapid calls" -
+#: written before the adapter paced itself (25 requests/minute, with a backoff
+#: on 429). The cost of one more thread is one more paced request (~2.4 s) and
+#: one unit of a 1,000,000-request quota (window 23.9 days, read 2026-08-18).
+#:
+#: It is the lever on how many threads a run can extract, and it is small for
+#: a non-obvious reason: one Reddit thread is one post plus all its comments,
+#: so 5 threads arrive as ~680 documents and leave as 5 threads. Measured on
+#: 2026-10-05 (GPT-6.1 Sol Pro): 679 of 747 documents appended came from the 5.
+#: The default stays 5 so nothing changes until a deployment raises it.
+REDDIT_THREADS_PER_FETCH = int(os.getenv("FETCH_REDDIT_THREADS", "5"))
 
 
 # ── THE TERMINAL ACCOUNT OF A RUN ───────────────────────────────────────────
@@ -464,10 +482,20 @@ class Progress:
         #: `harvest_run_id=None`, so there is no id to join on.
         self.started_at = datetime.now(UTC)
         self._seq = 0
-        #: Stop trying after the first failure. A database that is down stays
-        #: down for the length of a run, and re-attempting a connection on
-        #: every stage line turns a quiet mirror into a per-line timeout.
+        #: BACK OFF AFTER A FAILURE, DO NOT STOP (2026-10-05). This used to stop
+        #: mirroring for the rest of the run after one failed write, on the
+        #: premise that "a database that is down stays down for the length of a
+        #: run". Staging drops and comes back: two button runs on 2026-10-05
+        #: mirrored 7 of 205 and 17 of 193 lines, never sent their `ok` end, and
+        #: the reaper recorded both as `abandoned` 45 minutes later - so the
+        #: scheduler still listed GPT-6 Luna as never fetched. A failure now
+        #: pauses the mirror for MIRROR_BACKOFF_S (still no per-line timeout
+        #: storm), and `done` re-sends the whole file if anything was missed.
+        #: `_mirror` stays the on/off switch (tests set it False); the backoff
+        #: and the missed flag sit beside it.
         self._mirror = True
+        self._mirror_after = 0.0
+        self._mirror_missed = False
         #: EVERY STAGE THAT REPORTED `error`, IN ORDER, DEDUPED. The end record
         #: is derived from this rather than from what the caller believes.
         #:
@@ -578,16 +606,19 @@ class Progress:
             self._seq += 1
             with self.path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(rec) + "\n")
-            mirror = self._mirror
-        if mirror:
-            # OUTSIDE THE LOCK. The mirror opens a connection and can wait on the
-            # network; holding the lock across it would let a slow database stall
-            # the main thread behind a heartbeat, which is the opposite of what
-            # this is for.
-            self._mirror = _mirror_fetch_line(
-                run_id=self.run_id, seq=seq, rec=rec,
-                model_version_id=self.model_version_id,
-            )
+            mirror = self._mirror and time.monotonic() >= self._mirror_after
+            if self._mirror and not mirror:
+                self._mirror_missed = True
+        # OUTSIDE THE LOCK. The mirror opens a connection and can wait on the
+        # network; holding the lock across it would let a slow database stall
+        # the main thread behind a heartbeat, which is the opposite of what
+        # this is for.
+        if mirror and not _mirror_fetch_line(
+            run_id=self.run_id, seq=seq, rec=rec,
+            model_version_id=self.model_version_id,
+        ):
+            self._mirror_missed = True
+            self._mirror_after = time.monotonic() + MIRROR_BACKOFF_S
 
     def thread(self, **fields) -> None:
         """One finished thread: what came back, and what the call cost.
@@ -757,6 +788,43 @@ class Progress:
         record = {"kind": "end", "status": status, "detail": detail,
                   "at": _now(), **self.harvest_summary(), **self._summary}
         self._write(record)
+        if self._mirror and self._mirror_missed:
+            # Every id is sha256(run_id|seq|payload), so re-sending lines that
+            # did arrive inserts nothing; only the gaps fill. Best-effort like
+            # the mirror itself - the file remains the survivor.
+            #
+            # ⚠ AND IT CLEARS `usage`'s OWN BACKOFF FIRST. A failed connection
+            #   makes `telemetry_connection()` return None for
+            #   TELEMETRY_RETRY_AFTER_SECONDS (30 s), so a replay started inside
+            #   that window "sends" nothing and the end record is lost again.
+            #   Found 2026-10-06 repairing a reaped run: three replays in a row
+            #   stopped at the same 44 of 193 lines. Up to three attempts, 10 s
+            #   apart, stopping once every line has gone - at most ~20 s added,
+            #   and only to a run that already lost lines.
+            #
+            #   A replay that sends NOTHING stops at once: the database is
+            #   unreachable (or the test guard refuses it), and waiting on a
+            #   database that is not answering is the per-line timeout storm
+            #   the backoff exists to prevent. Partial progress is what earns a
+            #   retry.
+            total = sum(1 for _ in self.path.open(encoding="utf-8"))
+            for attempt in range(3):
+                usage.reset_telemetry_backoff()
+                sent = _replay_fetch_file(self.path, run_id=self.run_id,
+                                          model_version_id=self.model_version_id)
+                if sent >= total or sent == 0:
+                    break
+                if attempt < 2:
+                    time.sleep(MIRROR_REPLAY_PAUSE_S)
+            if sent < total:
+                # SAID, NOT SILENT (review of #503): the reaper will record this
+                # run `abandoned` in 45 minutes, and this line is what tells a
+                # reader the run finished and the shared log is what fell short.
+                log.warning(
+                    "fetch_log replay incomplete for %s: %d of %d lines; the local "
+                    "file %s holds the whole run - replay it when the database answers",
+                    self.run_id, sent, total, self.path,
+                )
         if self._console:
             self._say([""] + fetch_console.render(
                 record, model_version_id=self.model_version_id))
@@ -765,6 +833,35 @@ class Progress:
 
 def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+#: Seconds the mirror waits after a failed write before trying again.
+MIRROR_BACKOFF_S = 60.0
+#: Pause between end-of-run replay attempts (see `Progress.done`).
+MIRROR_REPLAY_PAUSE_S = 10.0
+
+
+def _replay_fetch_file(path, *, run_id: str, model_version_id: str) -> int:
+    """Re-send every line of a run's file to `fetch_log`. NEVER RAISES.
+
+    `seq` is the line's position in the file, which is what `_write` assigned:
+    it increments once per line appended. Returns how many lines were sent
+    without error (inserted or already present - the ids make that the same).
+    """
+    sent = 0
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return 0
+    for seq, raw in enumerate(lines):
+        try:
+            rec = json.loads(raw)
+        except ValueError:
+            continue
+        if _mirror_fetch_line(run_id=run_id, seq=seq, rec=rec,
+                              model_version_id=model_version_id):
+            sent += 1
+    return sent
 
 
 def _mirror_fetch_line(
@@ -3332,9 +3429,14 @@ def main(argv: list[str] | None = None) -> int:
     #
     # A bare `print(run_id)` stood here under "the backend reads this to know
     # which log to poll". `start_fetch` GENERATES the run id and passes it in
-    # with `--run-id`; it never reads a byte of this process's stdout, and
-    # nothing else in the repo invokes this script either. The line was a
-    # leftover from a design where the child chose the id.
+    # with `--run-id`; it never reads a byte of this process's stdout. The line
+    # was a leftover from a design where the child chose the id.
+    #
+    # ⚠ "NOTHING ELSE INVOKES THIS SCRIPT" STOOD HERE AND WAS WRONG:
+    #   `scripts/run_scheduled_fetches.py` did, and read the id from the first
+    #   stdout line - so removing the print broke every scheduled summary.
+    #   It now passes `--run-id` like the button (2026-10-05). Every caller
+    #   names the run; none parses this process's output.
     #
     # It goes rather than moves because `Progress.__init__` has just printed the
     # id in the header - and while it was harmless when both streams went to
@@ -3483,7 +3585,8 @@ def main(argv: list[str] | None = None) -> int:
 
         if "reddit" in sources:
             try:
-                harvest_reddit(db.live(prog), prog, variants, max_searches=3, max_threads=5)
+                harvest_reddit(db.live(prog), prog, variants, max_searches=3,
+                               max_threads=REDDIT_THREADS_PER_FETCH)
             except Exception as exc:
                 prog.stage("E2R", "Harvest · Reddit", "error",
                            detail=str(exc).splitlines()[0][:200])

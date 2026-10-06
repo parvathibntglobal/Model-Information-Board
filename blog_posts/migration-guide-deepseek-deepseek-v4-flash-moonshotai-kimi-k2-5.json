@@ -1,0 +1,293 @@
+{
+ "slug": "migration-guide-deepseek-deepseek-v4-flash-moonshotai-kimi-k2-5",
+ "status": "draft",
+ "tag": "Migration guide",
+ "feat": false,
+ "title": "DeepSeek V4 Flash 0423 and Kimi K2.5: A Safe Migration Guide",
+ "dek": "A practical framework for moving production traffic between the two models without confusing advertised context, list price, cache economics, or evidence from other model variants.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "The available evidence does not establish a quality winner between DeepSeek V4 Flash 0423 and Kimi K2.5: operational observations about DeepSeek V4 Flash and Kimi K3 do not prove how these exact variants compare. The supplied pricing figures establish a substantial list-price and advertised-context difference favoring DeepSeek, while caching, workload fit, data policy, and measured task quality can change the decision. Start with offline evaluation and shadow traffic, then canary by workload; do not make a global switch on price or model-family reputation alone.",
+ "kicker": "Migration guide",
+ "tags": [
+  "DeepSeek V4 Flash 0423",
+  "Kimi K2.5",
+  "Migration guide"
+ ],
+ "read": 7,
+ "decisions": [
+  "Compare the exact model variants, not family-level claims.",
+  "Test real context lengths and cache-hit behavior before forecasting spend.",
+  "Choose by accepted-task cost and risk, not token price alone.",
+  "Canary by workload class and preserve an exercised rollback.",
+  "Pause migration when provider governance or evaluation is unresolved."
+ ],
+ "meta": [
+  "01 October 2026",
+  "~7 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "Before you switch: establish what is actually being compared",
+    "num": "01",
+    "id": "before-you-switch-establish-what-is-actually-being-compared"
+   }
+  ],
+  [
+   "p",
+   "Treat the migration as a comparison of the exact endpoints, not as a contest between two model families. The available pricing and context facts identify DeepSeek V4 Flash 0423 and Kimi K2.5, while the engineering observations concern DeepSeek V4 Flash more generally and, separately, Kimi K3. K3 is not K2.5. Its always-on reasoning behavior, output-token economics, and reported task results cannot safely be assigned to K2.5. Likewise, observations about V4-era caching do not prove the precise cache behavior of every Flash 0423 route."
+  ],
+  [
+   "p",
+   "The registry list prices provide a clear initial hypothesis: DeepSeek is cheaper on input, output, and cached input, and its advertised context is larger. Flash 0423 is listed at $0.14 per million input tokens, $0.28 per million output tokens, and $0.03 per million cached input tokens, with a 1,048,576-token advertised context. Kimi K2.5 is listed at $0.45, $2.25, and $0.07 respectively, with a 262,144-token advertised context. These are list prices and advertised limits, not a measured production bill or a promise that a complete application request will fit."
+  ],
+  [
+   "p",
+   "First pin down serving path and request shape. Record provider, model identifier, system instructions, tool definitions, output limits, retry behavior, and whether conversation history is resent. Stateless calls can make input grow across successive agent turns; one practitioner notes «all of the tokens in the current conversation thread are reprocessed» with each turn. A migration that changes routing or truncates history can change both cache reuse and task behavior. Preserve the existing request semantics where possible so evaluation isolates model differences rather than an accidental application rewrite."
+  ],
+  [
+   "code",
+   {
+    "label": "Keep routing choices explicit",
+    "language": "yaml",
+    "source": "# Application-owned routing policy; not a vendor API configuration.\nworkloads:\n  long_context_review:\n    primary: deepseek-v4-flash-0423\n    fallback: kimi-k2.5\n    max_input_tokens: <validated_by_your_application>\n  high_accuracy_extraction:\n    primary: kimi-k2.5\n    fallback: deepseek-v4-flash-0423\n    require_schema_validation: true"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "What breaks: cost, context, cache, and assumptions",
+    "num": "02",
+    "id": "what-breaks-cost-context-cache-and-assumptions"
+   }
+  ],
+  [
+   "p",
+   "The most predictable break is billing. The output list price for Kimi K2.5 is $2.25 per million tokens, compared with $0.28 for Flash 0423, so a workload that produces long answers or reasoning-heavy output deserves especially careful cost measurement. Input volume matters too, particularly when an agent resends growing history. But price alone does not establish cost per completed task: different answer lengths, retries, cache hits, refusals, and human correction can dominate the realized result. Measure spend per accepted outcome, not just tokens per request."
+  ],
+  [
+   "p",
+   "The context ceilings also differ materially: the advertised K2.5 window is 262,144 tokens, versus 1,048,576 for Flash 0423. A prompt valid on the larger advertised window may fail, be truncated, or require restructuring when routed to the smaller one; the exact endpoint's behavior must be tested rather than presumed. Even if a request is below both limits, large context does not mean all of it is useful. Evaluate retrieval quality and answer correctness at realistic prompt sizes, and define an application-side guard that can reject, summarize, or route oversized requests before the provider does something unexpected."
+  ],
+  [
+   "p",
+   "Caching can invert simple price comparisons for repeated-prefix workloads, but treat it as a measured property. A practitioner describes Flash providers having different cache-read prices and hit rates, with DeepSeek's own service offering a particularly low cache-read price; the same practitioner warns «the cache may not always be hit, especially if OpenRouter switches providers mid-thread». That is evidence to inspect routing and cache behavior, not proof that Flash 0423 will realize a given effective rate in your deployment. K2.5's listed cached-input rate is $0.07, but no hit rate or cache semantics are supplied. Benchmark cold and warm requests separately, and avoid assuming a cached prefix remains reusable after a routing change."
+  ],
+  [
+   "p",
+   "The safety and governance question is not reducible to model quality. A practitioner flags DeepSeek's data-policy setting as a concern for some organizations, while another reports that a particular distillation experiment did not transfer a measured political-response pattern to a different base model. Neither establishes the policy or behavior of the two exact endpoints in your account. Verify provider retention, training, residency, contractual terms, and internal approval independently. Where data cannot go to a particular provider, route or redact it before model selection rather than relying on prompt wording to change the risk."
+  ],
+  [
+   "h2",
+   {
+    "text": "Build an evaluation that can choose either direction",
+    "num": "03",
+    "id": "build-an-evaluation-that-can-choose-either-direction"
+   }
+  ],
+  [
+   "p",
+   "Construct a representative set from production tasks, including ordinary requests and the cases that cause expensive failures: long documents, multi-turn histories, strict extraction, tool-oriented work, ambiguous instructions, and requests near context limits. Score task-specific outcomes such as factual correctness, completeness, schema validity, groundedness, and whether a human accepts the result. Keep the prompts and scoring rules fixed across both models. Where judgment is subjective, blind the evaluator to model identity and use human review on a sample; a single aggregate preference score can conceal a critical failure class."
+  ],
+  [
+   "p",
+   "Run the exact production integration, including tool wrappers and retry policy. Capture task acceptance, input and output tokens, cached input where exposed, latency, errors, truncation, refusal, and downstream repair. Compare cost per successful task and tail latency, not just average completion price. The Kimi K3 discussion is a useful warning about variant confusion: it says K3 has no non-thinking variant and that its reasoning is billed as output, but those claims concern K3 specifically. Do not use that report to predict K2.5's thinking mode or token profile; measure K2.5 directly."
+  ],
+  [
+   "p",
+   "Include paired tests at different context sizes and with repeated prefixes. A request may pass a benchmark at short context yet fail when real history accumulates, while cache-heavy traffic can make nominal input rates a poor predictor of bills. Estimate your own traffic distribution from logs, then replay a privacy-approved, representative sample under both endpoints. Treat advertised context as a ceiling to test, not a target to fill. Establish acceptance thresholds before seeing results so a slight quality gain cannot silently justify a large cost or reliability regression."
+  ],
+  [
+   "code",
+   {
+    "label": "Compare outcomes, not just token rates",
+    "language": "python",
+    "source": "# Pseudocode for an application-side evaluation harness.\nfor case in evaluation_cases:\n    for model in (\"deepseek-v4-flash-0423\", \"kimi-k2.5\"):\n        result = invoke_through_your_adapter(model, case.request)\n        record(model=model, case_id=case.id,\n               accepted=task_specific_check(result, case),\n               input_tokens=result.input_tokens,\n               output_tokens=result.output_tokens,\n               cached_input_tokens=result.cached_input_tokens,\n               latency_ms=result.latency_ms,\n               error=result.error)"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Run the migration as a controlled rollout",
+    "num": "04",
+    "id": "run-the-migration-as-a-controlled-rollout"
+   }
+  ],
+  [
+   "p",
+   "Begin with offline replay, then shadow production traffic where policy permits. Shadowing should compare outputs and operational measurements without allowing the candidate response to trigger side effects. For tool-using workloads, compare proposed actions before execution, and retain the incumbent as the live decision-maker until the candidate clears the task-specific bar. Keep model identity and provider route in logs; otherwise a change in provider, cache hit rate, or fallback can look like a model-quality shift."
+  ],
+  [
+   "p",
+   "Canary by workload class rather than sending a fixed random fraction of all traffic if the classes have very different context and risk profiles. Move a low-risk, bounded task first, with explicit spend and error limits. Expand only when quality, completion, and latency remain within the predeclared guardrails. Maintain a fast rollback switch and verify it under load. A gradual rollout is not safe if the old endpoint has already been removed from configuration or if the fallback has never been exercised."
+  ],
+  [
+   "p",
+   "Reconcile bills against token and cache measurements. For each route, review the observed share of cached input, output volume, retries, and accepted completions. A practitioner emphasizes that effective prices vary across providers because cache rates and hit rates vary; therefore a change in route can alter economics even when the model name remains unchanged. Confirm your own invoice and provider-level behavior. If a fallback changes the endpoint mid-conversation, consider whether the changed cache opportunity or output style affects the remainder of that task, and make that behavior visible in monitoring."
+  ],
+  [
+   "h2",
+   {
+    "text": "Choose the direction—and know when not to migrate",
+    "num": "05",
+    "id": "choose-the-direction-and-know-when-not-to-migrate"
+   }
+  ],
+  [
+   "p",
+   "Move traffic from Kimi K2.5 to DeepSeek V4 Flash 0423 when your own evaluation shows acceptable quality and the workload benefits from lower listed token prices or the larger advertised context. That case is strongest for high-volume input, long-document processing, and cost-sensitive tasks where output is controlled and quality checks catch errors. It is not established merely because a related DeepSeek model has been described as inexpensive, or because a different model ranked well on a task benchmark."
+  ],
+  [
+   "p",
+   "Move from Flash 0423 to Kimi K2.5 when measured task performance, reliability, or organizational constraints justify the higher listed cost and smaller advertised context. The available evidence does not provide a direct K2.5-versus-Flash 0423 quality benchmark, so the justification must come from your own workload evaluation. This direction may make sense for a narrow set of high-value tasks even if it is uneconomic as a blanket default. Route by task class when the evidence supports a split; a single global default is not an architectural virtue."
+  ],
+  [
+   "p",
+   "Do not migrate yet if the relevant data cannot be sent to the candidate provider, if exact endpoint behavior is unverified, or if evaluation lacks representative long-context and failure cases. Also hold back if you cannot observe provider routing, cache behavior, spend, and rollback status. A broad endpoint limit does not compensate for an untested application, and a lower token rate does not compensate for a lower accepted-task rate. The operationally sound choice can be to retain the incumbent while you instrument and test."
+  ],
+  [
+   "h2",
+   {
+    "text": "Should this workload move between DeepSeek V4 Flash 0423 and Kimi K2.5, and in which direction?",
+    "num": "Decision tree",
+    "id": "decision"
+   }
+  ],
+  [
+   "tree",
+   {
+    "question": "Should this workload move between DeepSeek V4 Flash 0423 and Kimi K2.5, and in which direction?",
+    "branches": [
+     {
+      "condition": "Representative evaluation shows Flash 0423 meets quality and safety requirements, and lower listed cost or larger advertised context matters.",
+      "outcome": "Move the eligible workload from Kimi K2.5 to Flash 0423.",
+      "route": "Canary by task class; monitor accepted-task cost, quality, and context failures."
+     },
+     {
+      "condition": "Evaluation shows Kimi K2.5 materially improves the required task outcome enough to justify its higher listed rates, and the prompt fits its advertised context.",
+      "outcome": "Move only that workload from Flash 0423 to Kimi K2.5.",
+      "route": "Keep a measured, bounded K2.5 route with spend limits and rollback."
+     },
+     {
+      "condition": "Different workload classes favor different models on quality, cost, or context.",
+      "outcome": "Use workload-based routing rather than a global migration.",
+      "route": "Apply explicit application-owned rules and retain route-level measurements."
+     },
+     {
+      "condition": "Provider governance, endpoint behavior, context handling, or evaluation evidence is unresolved.",
+      "outcome": "Do not migrate yet.",
+      "route": "Instrument, validate policy, and run offline or shadow tests before changing live traffic."
+     }
+    ]
+   }
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "DeepSeek V4 Flash 0423",
+      "$0.14",
+      "$0.28",
+      "$0.03"
+     ],
+     [
+      "Kimi K2.5",
+      "$0.45",
+      "$2.25",
+      "$0.07"
+     ],
+     [
+      "Kimi K3",
+      "$3.00",
+      "$15.00",
+      "$0.30"
+     ],
+     [
+      "Inkling",
+      "$1.00",
+      "$4.05",
+      "$0.17"
+     ],
+     [
+      "MiMo-V2.5-Pro",
+      "$0.43",
+      "$0.87",
+      "$0.00"
+     ],
+     [
+      "Hy3 preview",
+      "$0.18",
+      "$0.60",
+      "$0.06"
+     ],
+     [
+      "Claude Fable 5",
+      "$10.00",
+      "$50.00",
+      "$1.00"
+     ],
+     [
+      "Claude Opus 4.8",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Sonnet 5",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "rel": [
+  [
+   "post:capability-reasoning",
+   "Reasoning Effort Is a Production Policy, Not a Model Setting"
+  ],
+  [
+   "post:cost-teardown-openai-gpt-5-6-sol",
+   "GPT-5.6 Sol Cost Teardown: The Token Rate Is Only the Start"
+  ],
+  [
+   "post:field-report-anthropic-claude-sonnet-5",
+   "Claude Sonnet 5 in Production: Behavior Is an Integration Property"
+  ]
+ ],
+ "provenance": {
+  "model": "openai/gpt-6-luna",
+  "served_as": [
+   "openai/gpt-6-luna"
+  ],
+  "generated_at": "2026-10-01T09:24:39+00:00",
+  "rechecked_from": "2026-10-01T092136+0000.json",
+  "documents": [
+   "thread_context_d3076bab8e533499",
+   "thread_context_45594771c616eefd",
+   "thread_context_62c54a1a0b362593",
+   "thread_context_6bad65b157254468",
+   "thread_context_a0bb5e4fa68d4261"
+  ],
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "plan_key": "migration-guide:deepseek/deepseek-v4-flash+moonshotai/kimi-k2.5",
+  "format": "migration-guide",
+  "reviewed_by": null
+ }
+}

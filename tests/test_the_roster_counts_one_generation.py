@@ -98,7 +98,11 @@ class TestTheQueryIsScopedToOneGeneration:
         assert "%(pipeline_version)s" in SQL
         conn = _Conn([_row("a", cells=0)])
         RosterReader(conn).all()
-        assert conn.params[0] == {"pipeline_version": PIPELINE_VERSION}
+        # `hidden` arrives the same way: the withheld sources on a public view
+        # (contract/publication.yaml), a list, never formatted into the SQL.
+        assert conn.params[0] == {"pipeline_version": PIPELINE_VERSION,
+                                  "hidden": ["reddit", "arxiv", "x"]}
+        assert "%(hidden)s" in SQL
 
     def test_it_defaults_to_the_current_generation(self):
         conn = _Conn([_row("a", cells=0)])

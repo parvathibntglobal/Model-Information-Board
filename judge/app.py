@@ -1187,19 +1187,28 @@ def compare_page(ids: str = "") -> dict:
         #   the board and counting them would put them back in through an
         #   arithmetic side door.
         polarity = {}
+        # WITHHELD SOURCES ARE NOT COUNTED on a public view
+        # (contract/publication.yaml): a count that includes them is data from
+        # them, and the platform split below would name them outright.
+        from judge import publication
+
+        pub_sql, pub_args = publication.sql_public_document("board_entry.document_id")
+        pub_sql_b, pub_args_b = publication.sql_public_document("b.document_id")
         for m in found:
             rows = conn.execute(
                 "SELECT polarity, count(*), count(DISTINCT document_id) "
                 "FROM board_entry "
                 "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined' "
+                + pub_sql +
                 "GROUP BY polarity",
-                (m["model_version_id"],),
+                (m["model_version_id"], *pub_args),
             ).fetchall()
             counts = {p: n for p, n, _ in rows if p}
             docs = conn.execute(
                 "SELECT count(DISTINCT document_id) FROM board_entry "
-                "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined'",
-                (m["model_version_id"],),
+                "WHERE model_version_id = %s AND ruling IS DISTINCT FROM 'declined'"
+                + pub_sql,
+                (m["model_version_id"], *pub_args),
             ).fetchone()[0]
             # ⚠ WHERE IT WAS SAID, AND WHAT KIND OF THING IT WAS. A
             #   "document" here is a Reddit post, a Hacker News COMMENT, a
@@ -1217,16 +1226,18 @@ def compare_page(ids: str = "") -> dict:
                 "JOIN document d ON d.id = b.document_id "
                 "WHERE b.model_version_id = %s "
                 "  AND b.ruling IS DISTINCT FROM 'declined' "
+                + pub_sql_b +
                 "GROUP BY d.source ORDER BY 2 DESC",
-                (m["model_version_id"],),
+                (m["model_version_id"], *pub_args_b),
             ).fetchall()
             replies = conn.execute(
                 "SELECT count(DISTINCT d.id) FROM board_entry b "
                 "JOIN document d ON d.id = b.document_id "
                 "WHERE b.model_version_id = %s "
                 "  AND b.ruling IS DISTINCT FROM 'declined' "
-                "  AND d.parent_id IS NOT NULL",
-                (m["model_version_id"],),
+                "  AND d.parent_id IS NOT NULL"
+                + pub_sql_b,
+                (m["model_version_id"], *pub_args_b),
             ).fetchone()[0]
             # ⚠ THE PER-AXIS POLARITY QUERY IS GONE WITH ITS ONLY READER.
             #   It grouped `board_entry` by (section, slug, polarity) so the
@@ -1437,6 +1448,21 @@ def document_source(document_id: str) -> dict:
         )
     source, url, text_ref = ref_row
 
+    # A WITHHELD SOURCE IS NOT SERVED HERE AT ALL on a public view
+    # (contract/publication.yaml): this route returns the full passage and the
+    # permalink, which is the most a page can publish from one document. The
+    # refusal names no platform, for the same reason `publication.notice` does.
+    from judge import publication
+
+    if publication.withheld(source):
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"{document_id!r} comes from a source this deployment does not "
+                f"publish, so its text and link are not served here."
+            ),
+        )
+
     base = {"document_id": document_id, "source": source, "url": url}
     if not text_ref:
         return {**base, "state": "not_local", "text": None,
@@ -1493,9 +1519,13 @@ def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0, tracked: bool = Fal
     without evidence.
     """
     from judge.pages.roster import RosterReader
+    from judge.tracked import all_tracked
 
     with _conn() as conn:
         roster = RosterReader(conn).all()
+        # Hand-written entries plus new arrivals `auto_track` admits
+        # (judge/tracked.py), read while the connection is open.
+        listed = all_tracked(conn) if tracked else ()
 
     models = roster.models
     summary = roster.summary
@@ -1511,19 +1541,23 @@ def model_roster(limit: int = DEFAULT_PAGE, offset: int = 0, tracked: bool = Fal
         # WHICH models; it carries no price, no context and no flags, because a
         # price written into a config file has no provenance and cannot go
         # stale visibly.
-        from judge.config import tracked_models
 
         by_id = {}
         for m in roster.models:
             by_id[m["canonical_id"]] = m
             by_id[m["model_version_id"]] = m
         models = []
-        for want in tracked_models():
+        for want in listed:
             found = by_id.get(want.registry) if want.registry else None
             if found is not None:
                 # `tracked_kind` rides along so the page can say WHY a rate is
                 # absent instead of leaving a reader to read "no rate" as free.
-                models.append({**found, "tracked_kind": want.kind})
+                # `auto_tracked` says the row came from the rule, not the list.
+                # Unconsumed (rule 9): intended reader is the models page, to
+                # mark new arrivals. Not in api_fields.yaml because the audit
+                # cannot see keys merged into a row - nor `tracked_kind` beside it.
+                models.append({**found, "tracked_kind": want.kind,
+                               "auto_tracked": want.auto})
                 continue
             # NOT IN THE REGISTRY, AND SHOWN ANYWAY. Dropping it would make the
             # page silently shorter than the list it is built from, and a
@@ -1822,8 +1856,26 @@ def start_fetch(req: FetchRequest) -> dict:
     #   it was given, which is the right answer there too: the same place its
     #   own logs go. `FETCH_QUIET=1` turns the rendering off without changing
     #   how the process is spawned.
+    # THE NAMED WRITE ROUTE, ONLY WHERE IT IS NEEDED.
+    #
+    # Against a SHARED/remote target, ENVIRONMENT=development would make the
+    # writeguard refuse the write, so `--development-write` is the honest way past
+    # it: it replaces the ENVIRONMENT proxy with the real seeded-model fixture
+    # check, which still fires and refuses if THIS model_version is
+    # provenance='seed' (scripts/fetch_model.py:3442). ⚠ #328 SCOPE: that check is
+    # MODEL-SCOPED, not per-thread — a backlog thread read in E5 that names
+    # ANOTHER seeded model is NOT checked here.
+    #
+    # ⚠ AGAINST A LOCAL TARGET THE FLAG IS OMITTED, DELIBERATELY. is_local() means
+    # the writeguard already permits with no flag, and local is where build
+    # fixtures legitimately live — forcing the flag there turns the seeded-model
+    # gate on and would wrongly REFUSE a local seed model (e.g. a load-seed'd
+    # deepseek/deepseek-v4-flash on modelboard_local). So the route is added only
+    # for a non-local target. The Fetch button cannot type a flag, so it lives here.
+    from judge.writeguard import is_local as _is_local
+    write_route = [] if _is_local(os.environ.get("DATABASE_URL")) else ["--development-write"]
     subprocess.Popen(
-        [sys.executable, str(script), mv, "--run-id", run_id],
+        [sys.executable, str(script), mv, "--run-id", run_id, *write_route],
         cwd=str(_REPO_ROOT),
         env=os.environ.copy(),
     )
@@ -2352,6 +2404,10 @@ def board_page() -> dict:
         # these models. Counted by reason so a reader can tell a prompt
         # problem from a labelling one.
         "metrics_withheld": sections.get("_withheld", {}),
+        # WITHHELD BY SOURCE (contract/publication.yaml), every section, on a
+        # public view. Declared unconsumed until the page renders it (rule 9):
+        # intended reader web/src/board/views.js, beside withheldNote().
+        "sources_withheld": sections.get("_withheld_sources", {}),
         "report_counts_are_a_floor": True,
         # The same sections under their headings. `best_for` is deliberately
         # unmapped (#412), so its rows come back as leaves and render as now.
@@ -2398,6 +2454,157 @@ def coverage_page() -> dict:
             for k in report.kinds
         ],
     }
+
+
+@app.get("/blog-posts")
+def blog_posts_page() -> dict:
+    """Blog drafts for the Blogs section, read from BLOG_POSTS_DIR.
+
+    Read-only and no database: drafts are files until a `blog_post` table is
+    agreed (see `judge/blog_posts.py` for why). Token-gated like every route.
+    `reason` distinguishes "not configured" from "no drafts yet"; `skipped`
+    names any file that could not be read rather than dropping it.
+    """
+    from judge import blog_posts, blog_runs
+
+    out = blog_posts.load()
+    # REVIEW STATE, for posts a recorded generation run wrote: pending until
+    # approved in Admin -> Blogs. A post with no `review` predates the history
+    # and is shown as before. If the history cannot be read, no post carries a
+    # state and `review_unreadable` says why - nothing is hidden on a guess.
+    if not out.get("posts"):
+        return out  # nothing to annotate, so nothing to read
+    try:
+        with _conn() as conn:
+            states = blog_runs.public_state(conn)
+        for p in out.get("posts", []):
+            if p.get("slug") in states:
+                p["review"] = states[p["slug"]]
+    except Exception as e:  # noqa: BLE001
+        out["review_unreadable"] = _safe_detail(e)
+    return out
+
+
+class BlogReviewRequest(BaseModel):
+    slug: str
+    decision: str
+    reason: str | None = None
+
+
+@app.get("/blog-posts/runs")
+def blog_posts_runs(limit: int = 20) -> dict:
+    """Admin -> Blogs: recorded generation runs (newest first), every post's
+    latest review decision, and which posts are reviewable (written by a run)."""
+    from judge import blog_runs
+
+    try:
+        with _conn() as conn:
+            blog_runs.reconcile(conn)
+            return {
+                "runs": blog_runs.runs(conn, max(1, min(int(limit), 100))),
+                "reviews": blog_runs.latest_reviews(conn),
+                "reviewable": blog_runs.reviewable(conn),
+            }
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(
+            status_code=503, detail=f"the blog history could not be read. {_safe_detail(e)}"
+        ) from e
+
+
+@app.post("/blog-posts/review")
+def blog_posts_review(req: BlogReviewRequest) -> dict:
+    """Approve, reject or reopen a post a recorded run wrote. Append-only: a new
+    row per decision, the latest one is the post's state."""
+    from judge import blog_runs
+
+    try:
+        with _conn() as conn:
+            return blog_runs.review(conn, req.slug, req.decision, req.reason)
+    except blog_runs.ReviewRefused as e:
+        raise HTTPException(status_code=e.status, detail=e.detail) from None
+
+
+class BlogGenerateRequest(BaseModel):
+    count: int = 3
+
+
+@app.post("/blog-posts/generate")
+def blog_posts_generate(req: BlogGenerateRequest) -> dict:
+    """Start a background run that plans and writes `count` NEW drafts.
+
+    Local development only (it calls a paid model and writes files), one run
+    at a time. Returns at once; poll GET /blog-posts/generate for progress.
+    The run is `generate_sample_blogs.py --plan N --status` - see
+    `judge/blog_posts.py` for why it is a subprocess.
+    """
+    from judge import blog_posts, blog_runs
+
+    try:
+        status = blog_posts.start_generation(req.count)
+    except blog_posts.GenerationRefused as e:
+        raise HTTPException(status_code=e.status, detail=e.detail) from None
+    # THE RUN BECOMES A ROW. If the history cannot be written the run still
+    # goes ahead - it is already started - and the response says it was not
+    # recorded rather than failing a run that is spending money.
+    try:
+        with _conn() as conn:
+            run_id = blog_runs.record_start(conn, req.count, status)
+        blog_runs.watch(_conn, run_id)
+        status = {**status, "run_id": run_id}
+    except Exception as e:  # noqa: BLE001
+        status = {**status, "history_unrecorded": _safe_detail(e)}
+    return status
+
+
+@app.get("/blog-posts/generate")
+def blog_posts_generate_status() -> dict:
+    """Progress of the latest generation run: state, the planned posts and
+    their states, and the OpenRouter-reported cost so far."""
+    from judge import blog_posts, blog_runs
+
+    status = blog_posts.generation_status()
+    try:  # a finished run is recorded even if its watcher thread was lost
+        with _conn() as conn:
+            blog_runs.reconcile(conn)
+    except Exception:  # noqa: BLE001, S110 - the status itself must still answer
+        pass
+    return status
+
+
+@app.get("/blog-posts/generate/log")
+def blog_posts_generate_log(lines: int = 400) -> dict:
+    """The latest generation run's console log, for Admin → Blogs.
+
+    Read-only: the file `start_generation` already writes
+    (`_blog_synthesis/_ui_run.log`). Each planned post, each post written with
+    its calls, cost and tokens, and every failure is a line in it. Anything
+    shaped like a key or a bearer token is masked before it leaves - the log is
+    the generator's own output and is not otherwise vetted for the page.
+    """
+    from judge import blog_posts, blog_runs
+
+    n = max(1, min(int(lines), 2000))
+    try:
+        text = blog_posts.LOG_FILE.read_text(encoding="utf-8", errors="replace")
+    except FileNotFoundError:
+        return {"lines": [], "exists": False}
+    except OSError as e:
+        return {"lines": [], "exists": True, "unreadable": type(e).__name__}
+    tail = blog_runs.mask(text).splitlines()[-n:]
+    return {"lines": tail, "exists": True}
+
+
+@app.get("/admin/scheduler")
+def admin_scheduler() -> dict:
+    """Admin -> Scheduler: how the scheduled fetches are set up (the workflow
+    file and contract/scheduler.yaml), who is due next (the runner's own
+    selection, against this database), whether the switch is on, and the
+    workflow's recent runs from GitHub. Read-only; secret and variable NAMES
+    only. See judge/scheduler_status.py."""
+    from judge import scheduler_status
+
+    with _conn() as conn:
+        return scheduler_status.overview(conn)
 
 
 @app.get("/changelog")
@@ -2608,6 +2815,52 @@ def admin_usage(hours: int = 24, days: int = 14) -> dict:
         "rapidapi": _rapidapi_quota("reddit"),
         "rapidapi_x": _rapidapi_quota("x"),
         "everyone": _whole_key_spend(),
+        "blogs": _blog_spend(),
+    }
+
+
+def _blog_spend() -> dict:
+    """Blog generation's spend today (UTC), from `blog_generation_run`.
+
+    ⚠ OUTSIDE THE CAP ABOVE. The generator calls the model directly, not through
+      `spend_ledger`, so this money is in the key total and NOT in the ledger or
+      its daily cap. Provider-reported per run; a run whose cost was not
+      reported is counted in `runs_unpriced`, never as $0 (rule 6).
+    """
+    try:
+        with _conn() as conn:
+            rows = conn.execute(
+                "SELECT cost_usd FROM blog_generation_run "
+                "WHERE started_at >= date_trunc('day', now() AT TIME ZONE 'UTC') "
+                "AT TIME ZONE 'UTC'"
+            ).fetchall()
+            # BY MODEL, every recorded run: the generator's model (GPT-6 Luna by
+            # default) appears nowhere in the ledger's per-model rows, because
+            # blog calls do not pass through the ledger.
+            models = conn.execute(
+                "SELECT model, count(*), sum(cost_usd), count(cost_usd), "
+                "sum(tokens_in), sum(tokens_out) FROM blog_generation_run "
+                "WHERE finished_at IS NOT NULL GROUP BY model "
+                "ORDER BY sum(cost_usd) DESC NULLS LAST"
+            ).fetchall()
+    except Exception as exc:  # noqa: BLE001
+        return {"readable": False, "why": _safe_detail(exc)}
+    priced = [float(r[0]) for r in rows if r[0] is not None]
+    current = _blog_gen_model()
+    return {
+        "readable": True,
+        "model": current,
+        "runs_today": len(rows),
+        "spent_today_usd": round(sum(priced), 6),
+        "runs_today_unpriced": len(rows) - len(priced),
+        "models": [
+            {"model": m, "runs": n,
+             "spent_usd": round(float(c), 6) if c is not None else None,
+             "runs_unpriced": n - priced_n,
+             "tokens_in": int(ti) if ti is not None else None,
+             "tokens_out": int(to) if to is not None else None}
+            for m, n, c, priced_n, ti, to in models
+        ],
     }
 
 
@@ -3395,6 +3648,10 @@ def admin_runs(limit: int = 60) -> dict:
             # tracked model are matched. Resolved by query rather than by
             # recomputing the id: the hash lives in `collect/ids.py` and the
             # lane boundary forbids importing it.
+            # Auto-admitted models are tracked too (judge/tracked.py).
+            from judge.tracked import auto_tracked
+
+            wanted = wanted | {t.registry for t in auto_tracked(conn)}
             ids = {
                 row[0] for row in conn.execute(
                     "SELECT id FROM model_version WHERE canonical_id = ANY(%s)",
@@ -3606,15 +3863,23 @@ def admin_database() -> dict:
     }
 
     # 2 · ROW COUNTS. The counts matter less than their RATIOS: thread_context
-    # against thread_extraction is the unread backlog, and claim against
-    # board_entry is how much of what was read reached a page.
+    # against thread_extraction is the unread backlog, and document against
+    # `documents_on_board` is how much of what was harvested reached a page.
     tables = (
         "model_version", "model_alias", "source",
         "document", "thread_context", "thread_extraction", "dedup_cluster",
         "claim", "board_entry", "cell", "capability_candidate",
         "harvest_run", "job_run", "fetch_log", "spend_ledger", "rapidapi_quota",
+        "blog_generation_run", "blog_post_review",
     )
     counts: dict[str, object] = dict.fromkeys(tables)
+    # DOCUMENTS THAT REACHED THE BOARD, beside the table counts rather than in
+    # them (it is not a table). A board entry points at a DOCUMENT, not a claim:
+    # the board is built from `board_entry` with legacy claim cells off, so
+    # "board entries of claims" compared two unrelated counts and read 185%.
+    # Documents harvested against distinct documents on the board is the funnel.
+    # None when `board_entry` is absent (rule 6), never 0.
+    documents_on_board: int | None = None
     applied: dict[str, str] = {}
     ledger_error = None
     try:
@@ -3641,12 +3906,21 @@ def admin_database() -> dict:
                 ).fetchall()
             ]
             if present:
+                # Same single query: the distinct-document count rides along
+                # as one more column, so it costs no extra round trip.
+                extra = (
+                    ["(SELECT count(DISTINCT document_id) FROM board_entry)"]
+                    if "board_entry" in present else []
+                )
                 counted = conn.execute(
                     "SELECT " + ", ".join(
-                        f'(SELECT count(*) FROM "{t}")' for t in present  # noqa: S608
+                        [f'(SELECT count(*) FROM "{t}")' for t in present]  # noqa: S608
+                        + extra
                     )
                 ).fetchone()
-                counts.update(dict(zip(present, counted, strict=True)))
+                counts.update(dict(zip(present, counted[: len(present)], strict=True)))
+                if extra:
+                    documents_on_board = counted[len(present)]
             # 4 · MIGRATIONS.
             try:
                 applied = dict(
@@ -3665,6 +3939,7 @@ def admin_database() -> dict:
         ) from exc
 
     out["counts"] = counts
+    out["documents_on_board"] = documents_on_board
     out["counts_absent_note"] = (
         "A null is a table this database does not have. It is not zero."
     )
@@ -3770,6 +4045,21 @@ def _migration_state(
     }
 
 
+def _sent_extract_schema(keys: list[str]) -> dict:
+    """The tool schema the extraction runner ACTUALLY sends, built the way
+    `judge/extract/runner.py` builds it. With `LEGACY_CELLS` off (the default)
+    the ratified-twelve fields are stripped, so the model is never asked for
+    `legacy_score_key` or `proposed_capabilities`. This page used to inspect
+    the unstripped schema and warned about fields no live call carries."""
+    from judge.extract.client import strip_legacy_fields, tool_schema_for
+    from judge.extract.schema import ExtractionResult
+    from judge.legacy import legacy_cells_enabled
+
+    if legacy_cells_enabled():
+        return tool_schema_for(ExtractionResult, capability_keys=keys)
+    return strip_legacy_fields(tool_schema_for(ExtractionResult))
+
+
 def _what_the_extractor_is_asked() -> list[dict]:
     """Every field the extraction schema asks a model for, and the words it
     asks in — READ FROM THE SCHEMA AT REQUEST TIME, never transcribed.
@@ -3789,12 +4079,22 @@ def _what_the_extractor_is_asked() -> list[dict]:
     provider is sent as the tool-call schema. So this is the instruction
     itself rather than a summary of it.
     """
+    import json as _json
+
     from judge.extract.schema import BoardEntry, ExtractedClaim
 
+    # ONLY WHAT IS SENT. A field stripped from the live schema (the legacy
+    # ratified-twelve slot) is not an instruction the model reads.
+    try:
+        sent = _json.dumps(_sent_extract_schema(sorted(capabilities().keys())))
+    except Exception:  # noqa: BLE001
+        sent = None
     out: list[dict] = []
     for model, where in ((ExtractedClaim, "claim"), (BoardEntry, "board entry")):
         for name, field in model.model_fields.items():
             if not field.description:
+                continue
+            if sent is not None and f'"{name}"' not in sent:
                 continue
             out.append({
                 "object": where,
@@ -3895,15 +4195,30 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
          "a runaway guard, not a budget — the GitHub API is free"),
         ("FETCH_X_PAGES", "3",
          "X pages per model; its quota is a tenth of Reddit's"),
+        ("FETCH_REDDIT_THREADS", "5",
+         "Reddit threads per fetch whose comments are fetched — one thread "
+         "arrives as hundreds of documents and is read as one"),
         ("EXTRACTOR_MODEL", "deepseek/deepseek-v4-flash",
          "which model reads the evidence"),
+        # THE SPEND CAP, which this list was missing: what stops extraction for
+        # the day. Unset means NO cap is configured - judge/extract/budget.py
+        # refuses to treat that as "uncapped by choice".
+        ("EXTRACTION_DAILY_BUDGET_USD", "not set",
+         "the daily extraction spend cap in US dollars; extraction stops for the "
+         "day when it is reached. Blog drafts are not under it"),
         ("ENVIRONMENT", "development",
-         "development turns the build-fixture guard off and opens this API"),
-        ("SCHEDULER_ENABLED", "not set",
-         "the scheduled fetch runner harvests only when this is truthy; unset = "
-         "nothing runs on a schedule (scripts/run_scheduled_fetches.py)"),
-        ("SCHEDULER_ISSUE", "not set",
-         "the issue the scheduled runner posts its host-free summary to"),
+         "development turns the build-fixture guard off, opens this API, and is "
+         "the only setting in which Admin -> Blogs can generate drafts"),
+        # THE SCHEDULER'S SETTINGS ARE NOT HERE ANY MORE (2026-10-06). It runs
+        # as a GitHub Action and reads GitHub's repository variables, not this
+        # process's environment, so a value read here described nothing that
+        # runs. Admin -> Scheduler shows its setup.
+        ("PUBLICATION_VIEW", "public",
+         "public withholds the platforms named in contract/publication.yaml from "
+         "every public page (see Sources); internal shows everything"),
+        ("BLOG_POSTS_DIR", "not set",
+         "where blog drafts are read from and written to; unset = the Blogs "
+         "page and Admin -> Blogs say the backend is not configured for drafts"),
     )
     caps = []
     for spec in cap_specs:
@@ -3924,12 +4239,31 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
             }
         )
 
+    # THE LANGUAGE MODELS THIS DEPLOYMENT CALLS, named in one place. Each is
+    # read where it is decided - the extractor from `extractor_model()`, the
+    # blog generator from its own source line - never typed here.
+    try:
+        from judge.extract.client import extractor_model
+
+        _ext = extractor_model()
+    except Exception:  # noqa: BLE001
+        _ext = None
+    models_in_use = [
+        {"use": "Reading what engineers wrote (extraction)", "model": _ext,
+         "set_by": "EXTRACTOR_MODEL, or the default in judge/extract/client.py",
+         "spend": "under the daily cap above"},
+        {"use": "Writing blog drafts (Admin -> Blogs)", "model": _blog_gen_model(),
+         "set_by": "GEN_MODEL in generate_sample_blogs.py",
+         "spend": "outside the cap; recorded per run in blog run history"},
+    ]
+
     # CREDENTIALS: PRESENCE ONLY. Never a value, never a prefix, never a length.
     credentials = [
         {"name": name, "set": bool((os.getenv(name) or "").strip())}
         for name in (
-            "DATABASE_URL", "API_TOKEN", "SESSION_SECRET", "AUTH_PASSWORD_HASH",
-            "OPENROUTER_API_KEY", "RAPIDAPI_KEY", "GITHUB_TOKEN",
+            "DATABASE_URL", "STAGING_DATABASE_URL", "API_TOKEN", "SESSION_SECRET",
+            "AUTH_PASSWORD_HASH", "OPENROUTER_API_KEY", "RAPIDAPI_KEY", "X_RAPIDAPI_KEY",
+            "GITHUB_TOKEN",
         )
     ]
 
@@ -4033,12 +4367,22 @@ def admin_settings(authorization: str | None = Header(default=None)) -> dict:
             "askable — not that there is no commit."
         ),
         "caps": caps,
+        "models_in_use": models_in_use,
         "credentials": credentials,
         "credentials_note": (
             "Presence only. No value, prefix, length or hash of any credential "
             "is returned by this endpoint or rendered by this page."
         ),
     }
+
+
+def _public_shown(source_id: str) -> bool | None:
+    try:
+        from judge import publication
+
+        return not publication.withheld(source_id)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 @app.get("/admin/sources")
@@ -4115,6 +4459,11 @@ def admin_sources() -> dict:
             # has not been taught about, which is different from one that uses
             # no key.
             "undescribed": access is None,
+            # ON PUBLIC PAGES OR NOT, from contract/publication.yaml - the same
+            # list the public surfaces filter by (judge/publication.py). A
+            # withheld platform is still harvested and read; only its quotes
+            # stay off public pages. None if the policy cannot be read.
+            "on_public_pages": _public_shown(sid),
         })
 
     # HOW MANY DOCUMENTS EACH FEED HAS ACTUALLY PRODUCED.
@@ -4425,6 +4774,84 @@ def _points(spec, text: str) -> list[dict]:
     ]
 
 
+#: What the blog generator's system prompt tells the model, in plain words.
+#: Each anchor is a phrase looked for in the LIVE prompt (`system_for`), so a
+#: point that stops being true is marked as drifted rather than going stale.
+_BLOG_POINTS = (
+    ("It reads whole discussions first",
+     "It is given complete engineering discussions and reads every one before writing.",
+     "Read every one of them completely before writing"),
+    ("It never names what it read",
+     "It must not mention sources, threads or posts, or reveal a reading list.",
+     "Never refer to your inputs"),
+    ("It counts nobody",
+     "No counting people, reports or posts, and no scores or percentages.",
+     "Never count people, reports, posts"),
+    ("Quotes are exact - and checked",
+     "Anything it quotes is copied word for word from a discussion; "
+     "code rejects the essay otherwise.",
+     "must be copied character for character"),
+    ("It adds no numbers",
+     "Every figure comes from a discussion or the price sheet - "
+     "nothing computed, estimated or rounded.",
+     "Do not compute, estimate or round new figures"),
+    ("Credit needs a quote",
+     "A sentence crediting engineers must carry their exact words, or it is not written.",
+     "If you cannot quote it, do not attribute it"),
+    ("It invents nothing",
+     "No invented behaviour, API parameters, benchmarks, anecdotes or prices.",
+     "Do not invent behaviour"),
+)
+
+
+_BLOG_DUMP: dict = {}
+
+
+def _blog_gen_model() -> str | None:
+    """The model the blog generator is set to call, read from its source line
+    `GEN_MODEL = "..."` - no import (the lane boundary) and no subprocess, so
+    it cannot fail the way a process can. None only if the line is gone."""
+    import re as _re
+
+    try:
+        src = (Path(__file__).resolve().parents[1] / "generate_sample_blogs.py").read_text(
+            encoding="utf-8")
+    except OSError:
+        return None
+    m = _re.search(r'^GEN_MODEL\s*=\s*"([^"]+)"', src, _re.MULTILINE)
+    return m.group(1) if m else None
+
+
+def _blog_prompt_parts() -> dict:
+    """The blog generator's prompts and model, from `scripts/blog_prompts_dump.py`.
+
+    ⚠ A SUBPROCESS, NOT AN IMPORT. `generate_sample_blogs` imports `collect/`,
+      and `judge/` may not reach `collect/` even indirectly
+      (tests/test_lane_boundary.py) - the same reason `judge/blog_posts.py` runs
+      the generator as a subprocess. Cached until the generator or its formats
+      file changes, so the page does not start a process per request.
+    """
+    import subprocess
+    import sys as _sys
+
+    root = Path(__file__).resolve().parents[1]
+    files = [root / "generate_sample_blogs.py", root / "blog_formats.yaml"]
+    key = tuple(f.stat().st_mtime if f.exists() else 0 for f in files)
+    if _BLOG_DUMP.get("key") == key:
+        return _BLOG_DUMP["value"]
+    run = subprocess.run(
+        [_sys.executable, str(root / "scripts" / "blog_prompts_dump.py")],
+        capture_output=True, text=True, timeout=60, cwd=str(root), encoding="utf-8",
+        errors="replace", env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+    )
+    if run.returncode != 0:
+        tail = (run.stderr or "").strip().splitlines()[-1:] or ["no output"]
+        raise RuntimeError(f"blog_prompts_dump.py failed: {tail[0][:200]}")
+    value = __import__("json").loads(run.stdout)
+    _BLOG_DUMP.update(key=key, value=value)
+    return value
+
+
 def _where_a_model_is_used() -> dict:
     """Where a model is called, and what it is told there, in plain words.
 
@@ -4455,15 +4882,18 @@ def _where_a_model_is_used() -> dict:
     out: dict = {"stages": list(spend_ledger.STAGES)}
 
     try:
-        from judge.extract.client import tool_schema_for
         from judge.extract.prompt import build_system_prompt
-        from judge.extract.schema import ExtractionResult
 
         keys = sorted(capabilities().keys())
         text = build_system_prompt(keys)
-        sent = _json.dumps(tool_schema_for(ExtractionResult, capability_keys=keys))
+        sent = _json.dumps(_sent_extract_schema(keys))
+        from judge.extract.client import extractor_model
+
         out["extract"] = {
             "stage": spend_ledger.STAGE_EXTRACT,
+            # THE MODEL, NAMED: the one `extractor_model()` resolves on this
+            # request (EXTRACTOR_MODEL, or the agreed default).
+            "model": extractor_model(),
             "prompt_chars": len(text),
             "points": _points(_EXTRACT_POINTS, text),
             "closed_twelve_fields": [
@@ -4475,15 +4905,35 @@ def _where_a_model_is_used() -> dict:
 
     try:
         from judge.ask.understand import SYSTEM_PROMPT
+        from judge.extract.client import extractor_model
 
         out["ask"] = {
             "stage": spend_ledger.STAGE_ASK,
+            # The Ask step calls through the same client as extraction.
+            "model": extractor_model(),
             "prompt_chars": len(SYSTEM_PROMPT),
             "points": _points(_ASK_POINTS, SYSTEM_PROMPT),
             "route": "/ask/understand",
         }
     except Exception as exc:  # noqa: BLE001
         out["ask"] = {"unreadable": type(exc).__name__}
+
+    # THE THIRD CALLER, AND IT IS OUTSIDE THE LEDGER. Blog drafts are written by
+    # generate_sample_blogs.py from Admin -> Blogs. It calls the model directly,
+    # not through `spend_ledger`, so its cost is not under the daily cap: it is
+    # recorded per run in `blog_generation_run` instead.
+    try:
+        d = _blog_prompt_parts()
+        text = d["system"]
+        out["blogs"] = {
+            "prompt_chars": len(text),
+            "points": _points(_BLOG_POINTS, text),
+            "model": d["model"],
+            "formats": len(d["formats"]),
+            "cost_recorded_in": "blog_generation_run",
+        }
+    except Exception as exc:  # noqa: BLE001
+        out["blogs"] = {"unreadable": type(exc).__name__}
 
     return out
 
@@ -4650,6 +5100,92 @@ def admin_prompts() -> dict:
             "built_by": "judge/extract/prompt.py",
         })
 
+    # ── BLOG DRAFTS: THE THIRD CALLER'S PROMPTS, COMPOSED ───────────────────
+    #
+    # Built by generate_sample_blogs.py's own functions, for the first format in
+    # blog_formats.yaml. Every format shares the system prompt above STRUCTURE;
+    # the STRUCTURE section, the brief and the tool schema change per format,
+    # and the page says which one it rendered.
+    try:
+        import json as _json
+
+        d = _blog_prompt_parts()
+        formats, fmt_name = d["formats"], d["format"]
+        names = ", ".join(formats)
+        prompts.append({
+            "id": "blog-system",
+            "title": "Blogs \u00b7 Write a draft \u2014 system prompt",
+            "role": "system",
+            "used_for": (
+                "Every blog draft Admin -> Blogs generates. The model reads whole "
+                "discussions and writes one essay; code then checks every quote "
+                "and figure against the discussions and rejects the draft if any "
+                "fails."
+            ),
+            "built_by": "generate_sample_blogs.py:system_for",
+            "called_from": "generate_sample_blogs.py:synthesise",
+            "text": d["system"],
+            "example_input": (
+                f"Rendered for the format \u201c{fmt_name}\u201d. Everything above "
+                f"STRUCTURE is the same for all {len(formats)} formats ({names}); "
+                "the STRUCTURE section is rebuilt for each."
+            ),
+        })
+        prompts.append({
+            "id": "blog-user",
+            "title": "Blogs \u00b7 Write a draft \u2014 the brief and discussions",
+            "role": "user",
+            "used_for": (
+                "What the model is given to write from: the planned subject and "
+                "format, the price sheet from the registry, and every selected "
+                "discussion in full, each between delimiters."
+            ),
+            "built_by": "generate_sample_blogs.py:brief_for + user_message",
+            "called_from": "generate_sample_blogs.py:synthesise",
+            "text": d["user"],
+            "example_input": (
+                "Shown with placeholders where the subject, the models and the "
+                "discussion text go; a real run fills them from the planner and "
+                "the board's evidence."
+            ),
+        })
+        prompts.append({
+            "id": "blog-tool",
+            "title": "Blogs \u00b7 Write a draft \u2014 the essay schema",
+            "role": "tool",
+            "used_for": (
+                "The structured answer the model must return: title, summary, "
+                "sections, pull quotes and the format's own block. It is part "
+                "of what the model reads, like the extractor's tool schema."
+            ),
+            "built_by": "generate_sample_blogs.py:tool_for",
+            "called_from": "generate_sample_blogs.py:synthesise",
+            "text": _json.dumps(d["tool"], indent=2, ensure_ascii=False),
+            "example_input": (f"For the format \u201c{fmt_name}\u201d; blocks a "
+                              "format does not use are removed."),
+        })
+    except Exception as exc:  # noqa: BLE001
+        prompts.append({
+            "id": "blog-system", "title": "Blogs \u00b7 Write a draft",
+            "unreadable": str(exc), "built_by": "generate_sample_blogs.py",
+        })
+
+    # EVERY PROMPT NAMES THE MODEL THAT READS IT. The blog prompts go to the
+    # generator's model; the extraction prompts and retries go to whatever
+    # `extractor_model()` resolves on this request.
+    try:
+        from judge.extract.client import extractor_model
+
+        _ex = extractor_model()
+    except Exception:  # noqa: BLE001
+        _ex = None
+    try:
+        _gen_model = _blog_prompt_parts()["model"]
+    except Exception:  # noqa: BLE001
+        _gen_model = None
+    for _p in prompts:
+        _p.setdefault("model", _gen_model if _p["id"].startswith("blog") else _ex)
+
     # Read once per request on purpose (rule 11 - a cached copy is the
     # stale copy), but not twice in one response.
     rules = _the_rules()
@@ -4683,22 +5219,6 @@ def admin_prompts() -> dict:
         # LIST. Both groups are named so their absence is a statement.
         "not_shown": [
             {
-                "what": "The Ask box — three prompts, one per input shape",
-                "where": "judge/ask/understand.py:system_prompt",
-                # ⚠ "NOT BUILT YET", NOT "RETIRED". This said "retired in use
-                #   rather than deleted", and the Ask box is a plan rather than
-                #   a surface that was taken down - the usage panel already says
-                #   `ask (not built yet)`. Two pages must not describe one
-                #   feature as both. Its prompt is summarised in
-                #   `model_callers` above.
-                "why": (
-                    "No page calls it yet. The backend route is wired and "
-                    "charges the ledger, and the client function exists in "
-                    "web/src/api/index.js, but no component imports it - the "
-                    "Ask box is not built."
-                ),
-            },
-            {
                 "what": "Three measurement scripts",
                 "where": (
                     "scripts/classify_capability_reports.py, "
@@ -4709,6 +5229,18 @@ def admin_prompts() -> dict:
                     "Run by hand to measure the pipeline, not paths a board "
                     "reader can trigger. Putting experiments beside production "
                     "under one heading would misread."
+                ),
+            },
+            # LAST, AND LOWEST PRIORITY (2026-10-06): the Ask box is not under
+            # consideration now. Kept as one line so the list does not read as
+            # exhaustive while a prompt for it exists in the code.
+            {
+                "what": "The Ask box — planned, not built",
+                "where": "judge/ask/understand.py:system_prompt",
+                "why": (
+                    "Not built yet and not being worked on now. No page calls it "
+                    "and the web client no longer carries a function for it, so "
+                    "it makes no model call."
                 ),
             },
         ],
@@ -4752,6 +5284,10 @@ def admin_discussed_models() -> dict:
 
     try:
         with _conn() as conn:
+            # A model the rule admits is on the page, so it is not "untracked".
+            from judge.tracked import auto_tracked
+
+            tracked |= {t.registry for t in auto_tracked(conn)}
             rows = conn.execute(
                 "SELECT mv.canonical_id, mv.display_name, mv.provider, "
                 "       count(*) AS entries, "

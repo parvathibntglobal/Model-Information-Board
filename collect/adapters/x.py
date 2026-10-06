@@ -33,8 +33,9 @@ nobody has read the terms for. That is the exact sequence that produced a
 THE ROUTE IS A RAPIDAPI SCRAPER PROVIDER, NOT X'S OWN API
 ----------------------------------------------------------
 `twitter241` on RapidAPI, which is the provider this project's own X sweep
-already used - `articles/deepseek-v4-pro/REPORT.md` records it, driven through
-the brand-visibility agent's provider with the same credentials.
+already used - `articles/deepseek-v4-pro/REPORT.md` records it (deleted
+2026-10-05; in history at 4eab55a), driven through the brand-visibility
+agent's provider with the same credentials.
 
 So this is the SAME SHAPE AS REDDIT and it inherits Reddit's unresolved terms
 condition rather than avoiding it. `contract/sources.yaml` records, for

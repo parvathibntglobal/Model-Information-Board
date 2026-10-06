@@ -80,6 +80,14 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+# THE BLOG GENERATOR'S PROMPTS ARE LONG PROSE STRINGS (system prompts, banned-
+# phrase patterns, format instructions). 187 of its lines exceed 100 characters,
+# nearly all inside those strings; rewrapping them changes nothing a reader of
+# the code needs and makes every prompt edit a diff of line breaks. E501 only,
+# and only this file - every other rule still applies to it. 2026-10-05, #503.
+"generate_sample_blogs.py" = ["E501"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 

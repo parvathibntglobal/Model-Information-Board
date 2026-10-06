@@ -1,8 +1,46 @@
 import { useEffect, useState } from 'react'
 import { adminPrompts } from '../api'
 import { Badge, Notice } from './ui'
-import { IconAlert, IconLayers } from './Icons'
+import { IconAlert, IconGrid } from './Icons'
 import WhereAModelIsUsed from './WhereAModelIsUsed'
+import { prettyModel } from '../modelNames'
+
+/**
+ * The full text of one prompt, capped to a box that scrolls inside itself.
+ *
+ * The system prompt is about 16,000 characters; uncapped it ran many screens
+ * and pushed every other prompt off the page. Capped, the panel stays a list.
+ * "Show all" lifts the cap; "Copy" takes the exact text, so a reader checking
+ * it against a log does not have to select a screen-long block by hand.
+ */
+function PromptText({ text }) {
+  const [full, setFull] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    try {
+      navigator.clipboard?.writeText(text).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+      }).catch(() => {})
+    } catch { /* no clipboard here: the text is still selectable */ }
+  }
+  return (
+    <div className="prompt-box">
+      <div className="prompt-bar">
+        <span className="label">Full text</span>
+        <span className="row" style={{ gap: 6 }}>
+          <button type="button" className="btn btn-quiet prompt-btn" onClick={() => setFull((f) => !f)}>
+            {full ? 'Collapse' : 'Show all'}
+          </button>
+          <button type="button" className="btn btn-ghost prompt-btn" onClick={copy}>
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </span>
+      </div>
+      <pre className={`mono prompt-text${full ? '' : ' capped'}`} tabIndex={0}>{text}</pre>
+    </div>
+  )
+}
 
 /**
  * Every prompt the LIVE PIPELINE sends a language model.
@@ -48,12 +86,163 @@ export default function PromptsPanel() {
   const { data, err } = state
   const prompts = data?.prompts || []
   const fields = data?.schema_fields || []
+  // ONE PROMPT ROW: one line, opened on click (see the comment above the groups).
+  const renderPrompt = (p) => {
+    const open = openId === p.id
+    return (
+      <div key={p.id} className="axis">
+        <button type="button" className="axis-row" aria-expanded={open}
+                onClick={() => setOpenId(open ? null : p.id)}>
+          <span className="axis-name">{p.title}</span>
+          {p.role && <Badge tone="mute">{p.role}</Badge>}
+          <span className="axis-counts">
+            {p.unreadable
+              ? 'could not be composed'
+              : p.text
+                ? `${p.text.length.toLocaleString()} chars`
+                : 'no text'}
+          </span>
+        </button>
+
+        {open && (
+          <div className="axis-body stack stack-2">
+            {p.used_for && (
+              <p className="muted" style={{ fontSize: 'var(--fs-xs)', maxWidth: '74ch', margin: 0 }}>
+                {p.used_for}
+              </p>
+            )}
+
+            {p.model && (
+              <span style={{ fontSize: 'var(--fs-xs)' }}>
+                <span className="label" style={{ marginRight: 6 }}>Sent to</span>
+                <strong>{prettyModel(p.model)}</strong>{' '}
+                <span className="dim mono" style={{ fontSize: 11 }}>{p.model}</span>
+              </span>
+            )}
+            <span className="dim mono" style={{ fontSize: 11 }}>
+              {p.built_by}{p.called_from ? ` · called from ${p.called_from}` : ''}
+            </span>
+
+            {/* WHICH PART OF THIS TEXT VARIES, said plainly. The two
+                retries are built per failure, so what is shown is the
+                real wording with illustrative values in it — and a
+                reader comparing this against a log needs to know which
+                numbers move. */}
+            {p.example_input && (
+              <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '74ch', margin: 0 }}>
+                <strong style={{ color: 'var(--text)' }}>Shown with example values.</strong>{' '}
+                {p.example_input}
+              </p>
+            )}
+
+            {/* RULE 4 AT THE PANEL LEVEL. A prompt that could not be
+                composed renders as a NAMED failure, not as a missing
+                row — "we could not build it" and "there is no such
+                prompt" are opposite claims. */}
+            {p.unreadable && (
+              <Notice icon={<IconAlert />}>
+                This prompt could not be composed: {p.unreadable}
+              </Notice>
+            )}
+
+            {p.closed_vocabulary && (
+              <details className="fold">
+                <summary>
+                  <span className="mono" style={{ fontSize: 11 }}>closed vocabulary</span>
+                  <span className="dim" style={{ fontSize: 11 }}>
+                    {p.closed_vocabulary.length} keys
+                  </span>
+                </summary>
+                <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
+                  One closed list, three open sections — the prompt&rsquo;s own
+                  asymmetry. These keys feed the legacy cell score; the
+                  board&rsquo;s sections are discovered and bounded by nothing.
+                </p>
+                <div className="row" style={{ gap: 6, flexWrap: 'wrap', padding: '0 12px 12px 30px' }}>
+                  {p.closed_vocabulary.map((k) => (
+                    <span key={k} className="mono dim" style={{ fontSize: 11 }}>{k}</span>
+                  ))}
+                </div>
+              </details>
+            )}
+
+            {p.text && (
+              // `pre` with wrapping, not a scrolling box: the whitespace
+              // in these prompts is load-bearing — the delimiters, the
+              // indented examples — so it is preserved, and it wraps
+              // rather than scrolling sideways on a phone.
+              <PromptText text={p.text} />
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  /* The extractor's tool-call schema, shown as the last row of its group.
+     ── THE TOOL-CALL SCHEMA, WHICH IS ALSO THE PROMPT ─────────────
+     THE MISSING HALF OF THIS PAGE. The four texts above are the
+     system message, the user message and two retry corrections; these
+     seventeen field descriptions go in the same call and are what the
+     model is asked to FILL IN. A page listing four strings and
+     omitting these was describing a fraction of what the model reads.
+     
+     One row, opening to a list of folds, rather than seventeen rows:
+     they are one object and a reader wants the field they came for. */
+  const schemaRow = fields.length > 0 && (
+          <div className="axis">
+            <button type="button" className="axis-row" aria-expanded={openId === '_schema'}
+                    onClick={() => setOpenId(openId === '_schema' ? null : '_schema')}>
+              <span className="axis-name">The tool-call schema</span>
+              <Badge tone="mute">tool</Badge>
+              <span className="axis-counts">{fields.length} fields</span>
+            </button>
+            {openId === '_schema' && (
+              <div className="axis-body stack stack-2">
+                <p className="muted" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0 }}>
+                  These descriptions <em>are</em> instructions — they are sent as the
+                  tool-call schema, so this is the wording itself and not a summary.
+                  Read from <span className="mono">judge/extract/schema.py</span> when
+                  this page loaded.
+                </p>
+                {fields.map((f) => (
+                  <details key={`${f.object}:${f.field}`} className="fold">
+                    <summary>
+                      <span className="mono" style={{ fontSize: 11 }}>{f.field}</span>
+                      <Badge tone={f.required ? 'warn' : 'mute'}>
+                        {f.required ? 'required' : 'optional'}
+                      </Badge>
+                      <span className="dim" style={{ fontSize: 11 }}>{f.object}</span>
+                    </summary>
+                    <p style={{
+                      fontSize: 'var(--fs-xs)', lineHeight: 1.65, maxWidth: '82ch',
+                      margin: 0, color: 'var(--text-2)', whiteSpace: 'pre-wrap',
+                    }}>
+                      {f.asks}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+
+  // WHO SENDS WHICH PROMPT. Blog prompts carry ids starting `blog`; the rest
+  // are the extractor's. The model comes from the prompts themselves.
+  const groupOf = (p) => (p.id.startsWith('blog') ? 'blogs' : 'extract')
+  const groups = [
+    { key: 'extract', title: 'Reading what engineers wrote', note: 'every fetch, once per post' },
+    { key: 'blogs', title: 'Writing blog drafts', note: 'only when Generate is pressed in Admin → Blogs' },
+  ].map((g) => {
+    const items = prompts.filter((p) => groupOf(p) === g.key)
+    return { ...g, items, model: items.find((p) => p.model)?.model }
+  }).filter((g) => g.items.length > 0)
 
   return (
     <section className="card card-flush">
       <div className="card-head">
         <div className="row" style={{ gap: 8 }}>
-          <IconLayers width={14} height={14} style={{ color: 'var(--text-3)' }} />
+          <IconGrid width={14} height={14} style={{ color: 'var(--text-3)' }} />
           <span className="label">The AI model — where it is used, and what it is sent</span>
         </div>
       </div>
@@ -73,15 +262,17 @@ export default function PromptsPanel() {
             Metrics, and the count is on each tab so what is behind it is
             visible before a click. */}
         {data && (
-          <div className="tabstrip" role="tablist" aria-label="Model uses and prompts">
+          <div className="row adm-chiptabs" role="tablist" aria-label="Model uses and prompts">
             {[
               ['prompts', 'Prompts', data.count],
-              ['uses', 'Model uses', (data.model_callers?.stages || []).length],
+              // The ledger's stages less the unbuilt Ask box, plus the blog generator.
+              ['uses', 'Model uses', (data.model_callers?.stages || []).length - 1 + (data.model_callers?.blogs ? 1 : 0)],
             ].map(([key, label, n]) => (
               <button
                 key={key}
                 type="button"
                 role="tab"
+                className={`chip${tab === key ? ' chip-on' : ''}`}
                 id={`prompts-tab-${key}`}
                 aria-selected={tab === key}
                 aria-controls="prompts-panel"
@@ -120,140 +311,21 @@ export default function PromptsPanel() {
 
             The row carries what decides which one: what it is, when it is
             sent, and how big. */}
-        {data && <span className="label">Sent to the model</span>}
-
-        {prompts.map((p) => {
-          const open = openId === p.id
-          return (
-            <div key={p.id} className="axis">
-              <button type="button" className="axis-row" aria-expanded={open}
-                      onClick={() => setOpenId(open ? null : p.id)}>
-                <span className="axis-name">{p.title}</span>
-                {p.role && <Badge tone="mute">{p.role}</Badge>}
-                <span className="axis-counts">
-                  {p.unreadable
-                    ? 'could not be composed'
-                    : p.text
-                      ? `${p.text.length.toLocaleString()} chars`
-                      : 'no text'}
-                </span>
-              </button>
-
-              {open && (
-                <div className="axis-body stack stack-2">
-                  {p.used_for && (
-                    <p className="muted" style={{ fontSize: 'var(--fs-xs)', maxWidth: '74ch', margin: 0 }}>
-                      {p.used_for}
-                    </p>
-                  )}
-
-                  <span className="dim mono" style={{ fontSize: 11 }}>
-                    {p.built_by}{p.called_from ? ` · called from ${p.called_from}` : ''}
-                  </span>
-
-                  {/* WHICH PART OF THIS TEXT VARIES, said plainly. The two
-                      retries are built per failure, so what is shown is the
-                      real wording with illustrative values in it — and a
-                      reader comparing this against a log needs to know which
-                      numbers move. */}
-                  {p.example_input && (
-                    <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '74ch', margin: 0 }}>
-                      <strong style={{ color: 'var(--text)' }}>Shown with example values.</strong>{' '}
-                      {p.example_input}
-                    </p>
-                  )}
-
-                  {/* RULE 4 AT THE PANEL LEVEL. A prompt that could not be
-                      composed renders as a NAMED failure, not as a missing
-                      row — "we could not build it" and "there is no such
-                      prompt" are opposite claims. */}
-                  {p.unreadable && (
-                    <Notice icon={<IconAlert />}>
-                      This prompt could not be composed: {p.unreadable}
-                    </Notice>
-                  )}
-
-                  {p.closed_vocabulary && (
-                    <details className="fold">
-                      <summary>
-                        <span className="mono" style={{ fontSize: 11 }}>closed vocabulary</span>
-                        <span className="dim" style={{ fontSize: 11 }}>
-                          {p.closed_vocabulary.length} keys
-                        </span>
-                      </summary>
-                      <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '72ch' }}>
-                        One closed list, three open sections — the prompt&rsquo;s own
-                        asymmetry. These keys feed the legacy cell score; the
-                        board&rsquo;s sections are discovered and bounded by nothing.
-                      </p>
-                      <div className="row" style={{ gap: 6, flexWrap: 'wrap', padding: '0 12px 12px 30px' }}>
-                        {p.closed_vocabulary.map((k) => (
-                          <span key={k} className="mono dim" style={{ fontSize: 11 }}>{k}</span>
-                        ))}
-                      </div>
-                    </details>
-                  )}
-
-                  {p.text && (
-                    // `pre` with wrapping, not a scrolling box: the whitespace
-                    // in these prompts is load-bearing — the delimiters, the
-                    // indented examples — so it is preserved, and it wraps
-                    // rather than scrolling sideways on a phone.
-                    <pre className="mono prompt-text">{p.text}</pre>
-                  )}
-                </div>
-              )}
+        {/* ── SENT TO THE MODEL, GROUPED BY WHO SENDS IT ──────────────────
+            Two callers send prompts to two different models, and one flat list
+            made seven rows read as one pipeline. Each group names its use and
+            its model once, at the top; the rows under it are what it sends. */}
+        {groups.map((g) => (
+          <div key={g.key} className="prompt-group stack stack-1">
+            <div className="prompt-group-head">
+              <span className="label">Sent to the model · {g.title}</span>
+              {g.model && <span className="model-chip" title={g.model}>{prettyModel(g.model)}</span>}
+              <span className="dim" style={{ fontSize: 11 }}>{g.note}</span>
             </div>
-          )
-        })}
-
-        {/* ── THE TOOL-CALL SCHEMA, WHICH IS ALSO THE PROMPT ─────────────
-            THE MISSING HALF OF THIS PAGE. The four texts above are the
-            system message, the user message and two retry corrections; these
-            seventeen field descriptions go in the same call and are what the
-            model is asked to FILL IN. A page listing four strings and
-            omitting these was describing a fraction of what the model reads.
-
-            One row, opening to a list of folds, rather than seventeen rows:
-            they are one object and a reader wants the field they came for. */}
-        {fields.length > 0 && (
-          <div className="axis">
-            <button type="button" className="axis-row" aria-expanded={openId === '_schema'}
-                    onClick={() => setOpenId(openId === '_schema' ? null : '_schema')}>
-              <span className="axis-name">The tool-call schema</span>
-              <Badge tone="mute">tool</Badge>
-              <span className="axis-counts">{fields.length} fields</span>
-            </button>
-            {openId === '_schema' && (
-              <div className="axis-body stack stack-2">
-                <p className="muted" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: 0 }}>
-                  These descriptions <em>are</em> instructions — they are sent as the
-                  tool-call schema, so this is the wording itself and not a summary.
-                  Read from <span className="mono">judge/extract/schema.py</span> when
-                  this page loaded.
-                </p>
-                {fields.map((f) => (
-                  <details key={`${f.object}:${f.field}`} className="fold">
-                    <summary>
-                      <span className="mono" style={{ fontSize: 11 }}>{f.field}</span>
-                      <Badge tone={f.required ? 'warn' : 'mute'}>
-                        {f.required ? 'required' : 'optional'}
-                      </Badge>
-                      <span className="dim" style={{ fontSize: 11 }}>{f.object}</span>
-                    </summary>
-                    <p style={{
-                      fontSize: 'var(--fs-xs)', lineHeight: 1.65, maxWidth: '82ch',
-                      margin: 0, color: 'var(--text-2)', whiteSpace: 'pre-wrap',
-                    }}>
-                      {f.asks}
-                    </p>
-                  </details>
-                ))}
-              </div>
-            )}
+            {g.items.map(renderPrompt)}
+            {g.key === 'extract' && schemaRow}
           </div>
-        )}
-
+        ))}
         {/* ── NOT SENT TO A MODEL ────────────────────────────────────────
             ⚠ THE HEADING IS THE POINT. These are the constraints the
             pipeline is built under, not instructions the extractor reads.
@@ -312,16 +384,24 @@ export default function PromptsPanel() {
         {data?.not_shown?.length > 0 && (
           <div className="stack stack-2" style={{ marginTop: 8 }}>
             <span className="label">Built, but not sent by anything on this board</span>
-            {data.not_shown.map((x) => (
-              <div key={x.what} className="stack stack-1"
-                   style={{ borderLeft: '2px solid var(--border)', paddingLeft: 12 }}>
-                <strong style={{ fontSize: 'var(--fs-xs)' }}>{x.what}</strong>
-                <span className="dim mono" style={{ fontSize: 11 }}>{x.where}</span>
-                <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '74ch', margin: 0 }}>
-                  {x.why}
-                </p>
-              </div>
-            ))}
+            {/* FOLDS, LIKE THE ROWS ABOVE. They were a left-bordered list, a
+                second component for the same kind of item on one panel. */}
+            <div>
+              {data.not_shown.map((x) => (
+                <details key={x.what} className="fold">
+                  <summary>
+                    <strong style={{ fontSize: 'var(--fs-xs)' }}>{x.what}</strong>
+                    <Badge tone="mute">not sent</Badge>
+                  </summary>
+                  <div className="stack stack-1">
+                    <span className="dim mono" style={{ fontSize: 11 }}>{x.where}</span>
+                    <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '74ch', margin: 0 }}>
+                      {x.why}
+                    </p>
+                  </div>
+                </details>
+              ))}
+            </div>
           </div>
         )}
           </div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { adminSettings } from '../api'
 import { prettyModel } from '../modelNames'
 import { Badge, Notice, Stat } from './ui'
-import { IconAlert, IconFilter } from './Icons'
+import { IconAlert, IconClock } from './Icons'
 
 /**
  * Who is signed in, what this board is built on, which commit is running, and
@@ -44,13 +44,13 @@ export default function SettingsPanel() {
     <section className="card card-flush">
       <div className="card-head">
         <div className="row" style={{ gap: 8 }}>
-          <IconFilter width={14} height={14} style={{ color: 'var(--text-3)' }} />
+          <IconClock width={14} height={14} style={{ color: 'var(--text-3)' }} />
           <span className="label">Settings</span>
         </div>
         {acct?.signed_in_as && <span className="label">{acct.signed_in_as}</span>}
       </div>
 
-      <div style={{ padding: '0 var(--s4)' }}>
+      <div className="card-intro">
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           Read from the running process — the values this backend is actually
           using, not the ones a config file declares.{' '}
@@ -165,6 +165,30 @@ export default function SettingsPanel() {
                 {data.build_note}
               </p>
             )}
+          </div>
+        )}
+
+        {/* ── the language models in use ─────────────────────────────── */}
+        {data?.models_in_use && (
+          <div className="stack stack-2">
+            <span className="label">AI models in use</span>
+            <div className="tablewrap"><table>
+              <thead><tr><th>Used for</th><th>Model</th><th>Set by</th><th>Spend</th></tr></thead>
+              <tbody>
+                {data.models_in_use.map((m) => (
+                  <tr key={m.use}>
+                    <td>{m.use}</td>
+                    <td>
+                      {m.model
+                        ? <><strong>{prettyModel(m.model)}</strong> <span className="dim mono" style={{ fontSize: 11 }}>{m.model}</span></>
+                        : <span className="dim">not readable here</span>}
+                    </td>
+                    <td className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{m.set_by}</td>
+                    <td className="dim" style={{ fontSize: 'var(--fs-xs)' }}>{m.spend}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
           </div>
         )}
 

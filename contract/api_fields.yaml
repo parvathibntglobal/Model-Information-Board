@@ -76,6 +76,11 @@ fields:
     routes:
     - /admin/sources
     state: consumed
+  blogs:
+    reviewed: true
+    routes:
+    - /admin/usage
+    state: consumed
   build:
     reviewed: false
     routes:
@@ -253,6 +258,11 @@ fields:
     routes:
     - /admin/runs
     state: consumed
+  exists:
+    reviewed: true
+    routes:
+    - /blog-posts/generate/log
+    state: consumed
   failure_mode:
     reviewed: true
     routes:
@@ -319,6 +329,11 @@ fields:
     routes:
     - /admin/usage
     state: consumed
+  lines:
+    reviewed: true
+    routes:
+    - /blog-posts/generate/log
+    state: consumed
   machine:
     reviewed: false
     routes:
@@ -363,6 +378,11 @@ fields:
     - /capabilities/{capability_key}
     - /compare
     - /models
+    state: consumed
+  models_in_use:
+    reviewed: true
+    routes:
+    - /admin/settings
     state: consumed
   no_evidence:
     reviewed: false
@@ -509,6 +529,16 @@ fields:
     routes:
     - /ask/recommend
     state: no_consumer
+  reviewable:
+    reviewed: true
+    routes:
+    - /blog-posts/runs
+    state: consumed
+  reviews:
+    reviewed: true
+    routes:
+    - /blog-posts/runs
+    state: consumed
   rows_cleared:
     reviewed: false
     routes:
@@ -568,6 +598,7 @@ fields:
     routes:
     - /admin/pipeline
     - /admin/runs
+    - /blog-posts/runs
     - /fetch/runs
     state: consumed
   runs_for_untracked_models:
@@ -637,6 +668,15 @@ fields:
     routes:
     - /admin/sources
     state: consumed
+  # Added 2026-10-05 with contract/publication.yaml (proposed). Produced by
+  # board_sections; intended reader web/src/board/views.js beside
+  # withheldNote(), not yet built - the page must say some sources are not
+  # shown before the board is public (rule 4, rule 9).
+  sources_withheld:
+    reviewed: false
+    routes:
+    - /board
+    state: no_consumer
   stages:
     reviewed: false
     routes:
@@ -764,6 +804,11 @@ fields:
     reviewed: false
     routes:
     - /admin/usage
+    state: consumed
+  unreadable:
+    reviewed: true
+    routes:
+    - /blog-posts/generate/log
     state: consumed
   unsourced:
     reviewed: false

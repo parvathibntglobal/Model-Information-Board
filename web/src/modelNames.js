@@ -25,6 +25,7 @@ export const MODEL_NAMES = {
   'deepseek/deepseek-v4-flash': 'DeepSeek V4 Flash 0423',        // current extractor
   'deepseek/deepseek-v4-flash:free': 'DeepSeek V4 Flash 0423 (free)',
   'deepseek/deepseek-v4-flash-0731': 'DeepSeek V4 Flash 0731',
+  'openai/gpt-6-luna': 'GPT-6 Luna',                          // blog drafts (generate_sample_blogs.py)
 }
 
 export function prettyModel(id) {

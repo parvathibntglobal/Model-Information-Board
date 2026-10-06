@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { adminDatabase } from '../api'
 import { Badge, Notice, Stat } from './ui'
-import { IconAlert, IconLayers } from './Icons'
+import { IconAlert, IconClock } from './Icons'
 
 /**
  * Which database this board is talking to, what is in it, and whether its
@@ -33,11 +33,16 @@ const RATIOS = [
     per: 'thread_context',
     why: 'Harvested context that a model has actually read. The gap is backlog.',
   },
+  // ⚠ WAS board_entry OF claim, AND READ 185%. A board entry points at a
+  //   DOCUMENT, not a claim - the board is built from `board_entry`, with the
+  //   legacy claim cells off - so the two counts were unrelated and their
+  //   "ratio" passed 100%. Distinct documents on the board, of documents
+  //   harvested, is the same question asked of things that nest.
   {
     label: 'reached the board',
-    of: 'board_entry',
-    per: 'claim',
-    why: 'Claims that became a board entry. The gap is claims still unruled.',
+    ofKey: 'documents_on_board',
+    per: 'document',
+    why: 'Harvested documents that at least one board entry quotes. The gap is documents that carried nothing the board files - not a backlog.',
   },
 ]
 
@@ -60,7 +65,7 @@ export default function DatabasePanel() {
     <section className="card card-flush">
       <div className="card-head">
         <div className="row" style={{ gap: 8 }}>
-          <IconLayers width={14} height={14} style={{ color: 'var(--text-3)' }} />
+          <IconClock width={14} height={14} style={{ color: 'var(--text-3)' }} />
           <span className="label">Database</span>
         </div>
         {data && <Badge tone={data.read_only_dsn ? 'warn' : 'pass'}>
@@ -68,7 +73,7 @@ export default function DatabasePanel() {
         </Badge>}
       </div>
 
-      <div style={{ padding: '0 var(--s4)' }}>
+      <div className="card-intro">
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           The database name, which is what tells you this is the one you meant.{' '}
           <strong style={{ color: 'var(--text)' }}>
@@ -198,7 +203,7 @@ export default function DatabasePanel() {
           <div className="stack stack-2">
             <span className="label">Rows</span>
             {RATIOS.map((r) => {
-              const of = counts[r.of]
+              const of = r.ofKey ? data[r.ofKey] : counts[r.of]
               const per = counts[r.per]
               if (of == null || !per) return null
               return (

@@ -87,6 +87,85 @@ columns:
     merged_at:
       reviewed: false
       state: reserved
+  blog_generation_run:
+    cost_usd:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    finished_at:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    id:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    log:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    message:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    model:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    posts_failed:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    posts_written:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    requested_count:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    started_at:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    state:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    tokens_in:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+    tokens_out:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py (record_start / _finish) and read by its runs() for Admin -> Blogs run history. Migration 20261006T1200.'
+
+  blog_post_review:
+    decided_at:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+    decision:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+    id:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+    reason:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+    run_id:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
+    slug:
+      reviewed: true
+      state: read
+      why: 'Written by judge/blog_runs.py review() (append-only) and read by latest_reviews() / public_state(). Migration 20261006T1200.'
   board_entry:
     axis_quoted:
       known_gap: the writer is #368 item 3 (store_entries, beside axis_slug) and the renderer is item 4 (db.js/views.js) - both hers, both held until this column exists
@@ -958,8 +1037,9 @@ columns:
       reviewed: false
       state: reserved
     family:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: read by collect/assemble/ranking.py load_lexicon (the relevance tier of child ranking); was write_only before that reader landed. Reviewed 2026-10-05, #503
     id:
       reviewed: false
       state: read
@@ -1527,8 +1607,9 @@ columns:
         than one I had mislabelled. Promoted to reviewed because a snapshot that flips does not record
         why it flipped, and that reason is the whole point of this file.'
     child_count:
-      reviewed: false
-      state: write_only
+      reviewed: true
+      state: read
+      why: read by scripts/show_thread.py show_selected, which prints a thread's selected children; reviewed 2026-10-05, #503
     coverage_ratio:
       reviewed: true
       state: generated

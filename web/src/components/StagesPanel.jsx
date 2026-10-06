@@ -1,7 +1,7 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { adminStages } from '../api'
 import { Badge, Notice } from './ui'
-import { IconAlert, IconLayers } from './Icons'
+import { IconAlert, IconFilter } from './Icons'
 
 /**
  * What happens at each stage of a fetch, in words.
@@ -100,6 +100,19 @@ function Gates({ rows, note, source, sameAs }) {
   )
 }
 
+/** "6 gates · 2 record only", for the folded line. A count of gates a stage
+ *  RUNS, read off the rows - not a count of anything they refused. */
+function gateChip(s) {
+  if (s.gates_same_as) return `same gates as ${s.gates_same_as}`
+  const rows = s.gates || []
+  if (!rows.length) return null
+  const g = rows.filter((r) => r.kind === 'gate').length
+  const f = rows.filter((r) => r.kind === 'flag').length
+  return `${g} gate${g === 1 ? '' : 's'}${f ? ` · ${f} record only` : ''}`
+}
+
+const shortPhase = (name) => name.split(' — ')[0]
+
 export default function StagesPanel() {
   const [state, setState] = useState({ data: null, err: null })
 
@@ -113,6 +126,18 @@ export default function StagesPanel() {
 
   const { data, err } = state
   const stages = data?.stages || []
+  // Which stages are open. Folded by default: the page was every stage's full
+  // argument and every gate list at once, several screens of it, when the
+  // usual question is one stage. Opening is per stage, or all at once.
+  const [open, setOpen] = useState(() => new Set())
+  const body = useRef(null)
+  const toggle = (id, isOpen) => setOpen((prev) => {
+    if (prev.has(id) === isOpen) return prev
+    const next = new Set(prev)
+    if (isOpen) next.add(id); else next.delete(id)
+    return next
+  })
+  const allOpen = stages.length > 0 && open.size === stages.length
 
   // Grouped in the order the backend returned, which is the order they run.
   // Not sorted: `E3d` runs before `E3b` and `E5c` before `E5b`, so any sort on
@@ -129,13 +154,13 @@ export default function StagesPanel() {
     <section className="card card-flush">
       <div className="card-head">
         <div className="row" style={{ gap: 8 }}>
-          <IconLayers width={14} height={14} style={{ color: 'var(--text-3)' }} />
+          <IconFilter width={14} height={14} style={{ color: 'var(--text-3)' }} />
           <span className="label">Evidence stages — what each one does</span>
         </div>
         {data && <span className="label">{data.count} stage(s)</span>}
       </div>
 
-      <div style={{ padding: '0 var(--s4)' }}>
+      <div className="card-intro">
         <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '78ch', margin: 0, lineHeight: 1.6 }}>
           Every stage a fetch emits, in the order it runs them.{' '}
           <strong style={{ color: 'var(--text)' }}>No counts here on purpose</strong> —
@@ -147,9 +172,38 @@ export default function StagesPanel() {
         </p>
       </div>
 
-      <div className="card-body stack stack-4">
+      <div className="card-body stack stack-4" ref={body}>
         {err && <Notice icon={<IconAlert />}>{err}</Notice>}
         {!data && !err && <div className="skel" style={{ height: 220 }} />}
+
+        {/* THE WHOLE RUN AT A GLANCE, before any detail: each phase in the
+            order it runs, with how many stages it holds. A step jumps to its
+            phase. Counts of STAGES, not of anything a stage processed. */}
+        {phases.length > 0 && (
+          <div className="row-between" style={{ gap: 'var(--s3)', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <nav className="stg-flow" aria-label="Phases of a fetch">
+              {phases.map((phase, i) => (
+                <Fragment key={phase.name}>
+                  {i > 0 && <span className="stg-flow-arrow" aria-hidden="true">→</span>}
+                  <button type="button" className="stg-flow-step"
+                          onClick={() => body.current?.querySelector(`#stage-phase-${i}`)
+                            ?.scrollIntoView({ block: 'start' })}>
+                    {/* A PHASE CAN COME ROUND AGAIN (STOP runs after Publish, E5d
+                        after STOP), so a second visit names its stage instead of
+                        repeating a bare label that reads like a duplicate. */}
+                    {phases.slice(0, i).some((q) => q.name === phase.name)
+                      ? <>{shortPhase(phase.name)} · <span className="mono">{phase.items.map((x) => x.id).join(', ')}</span></>
+                      : <>{shortPhase(phase.name)}<span className="n tnum">{phase.items.length}</span></>}
+                  </button>
+                </Fragment>
+              ))}
+            </nav>
+            <button type="button" className="btn btn-ghost"
+                    onClick={() => setOpen(allOpen ? new Set() : new Set(stages.map((x) => x.id)))}>
+              {allOpen ? 'Close all' : 'Open all'}
+            </button>
+          </div>
+        )}
 
         {data?.contract_unreadable && (
           <Notice icon={<IconAlert />}>
@@ -164,11 +218,11 @@ export default function StagesPanel() {
             what these are not. E2R runs after E2 and before E2A; the order is
             the content, so the page draws it.
 
-            `what` reads at full strength and `why` beneath it dimmed: one is
-            the stage and the other is the argument for it, and flattening them
-            into two identical paragraphs is what made this hard to skim. */}
-        {phases.map((phase) => (
-          <div key={phase.name} className="stack stack-2">
+            `what` reads at full strength on the folded line and `why` opens
+            beneath it dimmed: one is the stage and the other is the argument
+            for it. */}
+        {phases.map((phase, pi) => (
+          <div key={phase.name} id={`stage-phase-${pi}`} className="stack stack-2 stg-phase">
             <div className="row" style={{ gap: 8, alignItems: 'baseline' }}>
               <span className="label">{phase.name}</span>
               <span className="dim" style={{ fontSize: 11 }}>
@@ -180,17 +234,20 @@ export default function StagesPanel() {
                 <Fragment key={s.id}>
                   <span className="rail-id">{s.id}</span>
                   <div className={`rail-body${i === phase.items.length - 1 ? ' last' : ''}`}>
-                    <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'baseline' }}>
-                      <strong style={{ fontSize: 'var(--fs-sm)' }}>{s.name}</strong>
-                      {s.undescribed && <Badge tone="fail">not described</Badge>}
-                    </div>
-
-                    {s.what && (
-                      <p style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch', margin: '4px 0 0',
-                                  color: 'var(--text)', lineHeight: 1.6 }}>
-                        {s.what}
-                      </p>
-                    )}
+                    {/* ONE LINE FOLDED: the name and what the stage does, which
+                        is the answer to the usual question. The argument for it
+                        and its gates open underneath. An undescribed stage says
+                        so on the folded line, so the gap is never hidden. */}
+                    <details className="stg" open={open.has(s.id)}
+                             onToggle={(e) => toggle(s.id, e.currentTarget.open)}>
+                      <summary>
+                        <span className="stg-line">
+                          <strong style={{ fontSize: 'var(--fs-sm)' }}>{s.name}</strong>
+                          {s.undescribed && <Badge tone="fail">not described</Badge>}
+                          {gateChip(s) && <span className="stg-chip">{gateChip(s)}</span>}
+                        </span>
+                        {s.what && <span className="stg-what">{s.what}</span>}
+                      </summary>
                     {s.why && (
                       <p className="dim" style={{ fontSize: 'var(--fs-xs)', maxWidth: '76ch',
                                                   margin: '4px 0 0', lineHeight: 1.6 }}>
@@ -215,6 +272,7 @@ export default function StagesPanel() {
                       source={s.gates_source}
                       sameAs={s.gates_same_as}
                     />
+                    </details>
                   </div>
                 </Fragment>
               ))}

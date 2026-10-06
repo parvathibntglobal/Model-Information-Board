@@ -322,13 +322,20 @@ def _score_of(engagement) -> int | None:
     return None
 
 
-def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> RedditAssemblyReport:
+def assemble_reddit_documents(
+    conn, *, store, limit: int | None = None, roots: list[str] | None = None,
+) -> RedditAssemblyReport:
     """Assemble every stored Reddit thread that has no `thread_context` yet.
 
     A thread is a post (`thread_root_id IS NULL`) plus every comment whose
     `thread_root_id` is that post's document `id` (`reddit:t3_…`). Selected by the ABSENCE of a
     context on the ROOT, so a re-run is a no-op and `write_thread_context`'s
     `ON CONFLICT DO NOTHING` makes it safe rather than merely tidy.
+
+    `roots` NARROWS, it never widens: a listed root that already has a context
+    is still skipped. `scripts/backfill_reddit_comments.py` deletes one
+    body-only context and reassembles that root inside one transaction, and
+    must not sweep up every other unassembled root while it does.
     """
     from collect.assemble.thread import write_thread_context
     from collect.rawstore_reader import RawStoreReader
@@ -336,6 +343,10 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
     reader = RawStoreReader(store)
     report = RedditAssemblyReport()
 
+    if roots is not None and not roots:
+        return report
+    root_filter = "  AND d.id = ANY(%s) " if roots is not None else ""
+    params = (REDDIT_SOURCE, list(roots)) if roots is not None else (REDDIT_SOURCE,)
     roots = conn.execute(
         "SELECT d.id, d.external_id, d.text_ref, d.engagement "
         "FROM document d "
@@ -347,9 +358,10 @@ def assemble_reddit_documents(conn, *, store, limit: int | None = None) -> Reddi
         "  AND d.status = 'kept' "
         "  AND d.thread_root_id IS NULL "
         "  AND NOT EXISTS (SELECT 1 FROM thread_context tc WHERE tc.thread_root_id = d.id) "
-        "ORDER BY d.id"
+        + root_filter
+        + "ORDER BY d.id"
         + (f" LIMIT {int(limit)}" if limit else ""),
-        (REDDIT_SOURCE,),
+        params,
     ).fetchall()
     report.threads = len(roots)
 

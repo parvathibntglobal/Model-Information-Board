@@ -1,0 +1,23 @@
+# How often the scheduler fetches each tracked model, and how much a fetch reads.
+#
+# ⚠ PROPOSED 2026-10-05 ON BRANCH anooj_001 - contract/ gets two eyes; this
+#   reaches main only through a reviewed PR. The values are the ones
+#   judge/scheduler.py carried as code constants since #494 (merged
+#   2026-09-28), moved here unchanged so rule 5 holds. Changing them is a
+#   separate decision.
+#
+# READ BY judge/scheduler.py `policy()`. Every key is required and must be a
+# positive integer; absent or anything else raises (rule 6, rule 12) - there is
+# no default in code.
+
+version: "0.1"
+status: proposed
+
+#: Days after a model's last SUCCESSFUL fetch before it is due again.
+cadence_days: 7
+
+#: FETCH_MAX_THREADS for a model's first-ever fetch: its whole backlog is unread.
+first_fetch_thread_cap: 100
+
+#: FETCH_MAX_THREADS for a refresh: most of the backlog is already extracted.
+refresh_thread_cap: 25

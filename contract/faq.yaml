@@ -32,7 +32,7 @@
 # sentence reads like every other sentence on the page.
 
 version: 1
-updated: 2026-09-09
+updated: 2026-10-01
 source: model-board-landing-demo.html (FAQ section, 11 questions — 8 served, 3 withheld)
 
 # Rendered into schema.org FAQPage JSON-LD as well as onto the page. Only
@@ -45,20 +45,32 @@ questions:
     basis: policy
     open: true                    # the demo had this one expanded
     q: Is the Model Information Board an LLM leaderboard?
+    # REWRITTEN 2026-10-01. It said the board "ranks fit for your task by cost"
+    # and "backs every recommendation" - the Ask flow, which is gone. The board
+    # files reports and counts them; it recommends nothing.
+    # KEYWORDS 2026-10-01: "LLM leaderboard", "AI leaderboard", "Chatbot
+    # Arena", "LLM rankings" (Keyword Planner, 10K-100K each).
     a: >-
-      No, and that is the point. An AI leaderboard ranks models by an invented
-      score on curated tasks. The board ranks fit for *your* task by cost, and
-      backs every recommendation with verbatim reports from engineers who ran
-      the model in production.
+      No — it is an LLM leaderboard alternative. An AI leaderboard, a Chatbot
+      Arena vote or a table of LLM rankings gives each model one score on
+      curated tasks. The board keeps what engineers actually wrote about each
+      AI model, word for word, files every report under the job, capability or
+      metric it describes, and links it to the post it came from. It counts
+      people rather than posts, and shows those counts rather than a score.
 
   - id: how-ranked
     basis: policy
-    q: How is the ranking decided?
+    q: How are AI models ranked on the board?
+    # REWRITTEN 2026-10-01 to say what the board does: the three groups of
+    # `board_sections` (judge/store/board_entries.py), ordered without a shown
+    # score. The old answer weighed cost into position, which nothing does.
     a: >-
-      By counted evidence for one capability, never a score we invent. A model's
-      position reflects how many independent engineers report it doing that job,
-      and at what cost. Where reports disagree the board says contested rather
-      than averaging them into a number that describes nobody's experience.
+      There is no score. On each job or capability page, AI models with at
+      least one report of it working come first, ordered by how consistently
+      the reports that took a side say it worked; then models whose reports are
+      only neutral; then models reported only as failing. Every row shows its
+      own counts, so the order can be checked, and where reports disagree the
+      page shows both rather than averaging them into one number.
 
   - id: where-evidence
     basis: policy
@@ -86,13 +98,15 @@ questions:
     # The demo's version named a licence beside every model. The registry has no
     # licence column, so that sentence is dropped rather than softened - see
     # `docs` note in the endpoint. Everything else here is policy and stands.
-    q: Is there a good free or open source LLM?
+    q: Is there a good free, open-source or local LLM?
     a: >-
-      Several open-weight models hold up on specific tasks. The best open source
-      LLM for coding is not the one for long context, and open weights versus
-      open source are different licences with different commercial terms. The
-      board says where a local LLM is reported to be enough — and where a
-      licence has not been recorded, it says that rather than guessing at one.
+      Several open-weight models hold up on specific tasks, and engineers report
+      running some of them as a local LLM on their own hardware. The best open
+      source LLM for coding is not the one for long context, and open weights
+      versus open source are different licences with different commercial
+      terms. The board shows where a free or local model was reported to be
+      enough — and where a licence has not been recorded, it says that rather
+      than guessing at one.
     demo_answer: >-
       Several open-weight models hold up on specific tasks. The best open source
       LLM for coding is not the one for long context, and open weights vs open
@@ -111,7 +125,7 @@ questions:
 
   - id: how-current
     basis: policy
-    q: How current is it, and who maintains it?
+    q: How current is the board, and who maintains it?
     a: >-
       Models change faster than any review cycle, so the board re-reads the
       public record and dates every claim it keeps. A report from March sits
@@ -122,17 +136,19 @@ questions:
     basis: policy
     q: What does “not discussed” mean on the board?
     a: >-
-      That nobody has publicly reported using that model for that capability
-      yet. It is not a low score and not a criticism. A model with three reports
-      is a model nobody has checked, not a model that failed.
+      That nobody has publicly reported using that AI model for that job or
+      capability yet. It is not a low score and not a criticism: a model with no
+      reports is a model nobody has checked, not a model that failed.
 
   - id: is-it-free
     basis: policy
-    q: Is it free to use?
+    q: Is the Model Information Board free to use?
+    # "WITHOUT AN ACCOUNT" REMOVED 2026-10-01: every page sits behind a sign-in
+    # today, so the sentence was false. Put it back when the board is public.
     a: >-
-      Yes. The board publishes what it finds and links to the source, so
-      anything on it can be checked without an account. It sells no model and
-      takes no placement, which is why it can say a cheaper option holds up.
+      Yes. The board publishes what engineers found and links every report to
+      its source, so anything on it can be checked. It sells no model and takes
+      no placement, which is why it can say when a cheaper option holds up.
 
 # ── WITHHELD FROM THE PAGE ──────────────────────────────────────────────────
 #

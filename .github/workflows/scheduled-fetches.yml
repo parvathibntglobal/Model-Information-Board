@@ -1,0 +1,133 @@
+# Scheduled per-model fetches, as a GitHub Action (2026-10-06).
+#
+# #494 built the scheduler to run as a Railway service. The repository is staying
+# public, and standard GitHub-hosted runners are free for public repositories
+# (GitHub's billing docs, read 2026-10-06), so the team chose Actions instead.
+# The runner is unchanged: `scripts/run_scheduled_fetches.py` picks the due
+# models (judge/scheduler.py, contract/scheduler.yaml) and runs fetch_model for
+# each, exactly as the Fetch button does.
+#
+# OFF UNTIL A PERSON TURNS IT ON. Nothing harvests unless the repository
+# variable SCHEDULER_ENABLED is `1`. Unset, the job ends green having done
+# nothing - a switch that is off is not a failure.
+#
+# THREE THINGS AN ACTION CHANGES, stated so nobody is surprised by them:
+#   1. THE 6-HOUR JOB LIMIT. A first fetch at the 100-thread cap measured
+#      ~2-2.5 h on 2026-10-06 (median 28 s, mean 85 s per thread over 26
+#      threads). The runner stops LAUNCHING models at --deadline-minutes, well
+#      short of the limit, and names every model it did not run; the next
+#      night continues from there.
+#   2. THE RAW STORE IS NOT KEPT. A runner starts empty and is discarded, so the
+#      payloads a run fetches exist only for that job. Every row reaches the
+#      shared database - documents, threads, board entries, spend, fetch log -
+#      so the board is unaffected; what is lost is re-extraction from raw later
+#      (NFR-4). The same gap exists today between laptops. A shared object
+#      store closes it; Actions artifacts must NOT be used for it, because in a
+#      public repository they would publish Reddit and X payloads.
+#   3. THE LOGS ARE PUBLIC. The runner prints model names, counts and its
+#      decisions; fetch_model's own output is captured, not printed, and the
+#      summary is host-free by construction (judge/scheduler.summarise_runs).
+#
+# SET BEFORE TURNING IT ON (repository settings - names only here):
+#   secrets    STAGING_DATABASE_URL (exists), OPENROUTER_API_KEY,
+#              RAPIDAPI_KEY (Reddit), X_RAPIDAPI_KEY (X) - two keys, two providers
+#   variables  USER_AGENT (exists), EXTRACTION_DAILY_BUDGET_USD,
+#              REDDIT_PROVIDER (reddit34), SCRAPER_PROVIDER (twitter241),
+#              SCHEDULER_ISSUE (an issue for the nightly summary),
+#              SCHEDULER_ENABLED=1 - last.
+
+name: Scheduled fetches
+
+on:
+  schedule:
+    # 20:30 UTC = 02:00 IST, daily. GitHub may start a scheduled run late under
+    # load; nothing here depends on the minute.
+    - cron: "30 20 * * *"
+  workflow_dispatch:
+    inputs:
+      max_models:
+        description: "Run at most this many due models (empty = all that fit)"
+        required: false
+        default: ""
+      sources:
+        description: "Comma-separated harvest sources (empty = all), e.g. github"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: scheduled-fetches
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      ENVIRONMENT: staging
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      # REDDIT AND X ARE TWO RAPIDAPI PROVIDERS WITH TWO KEYS. Measured
+      # 2026-09-10: the Reddit key is refused by the X provider and vice versa
+      # (collect/config.py). Each arm also needs its provider's name.
+      RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+      X_RAPIDAPI_KEY: ${{ secrets.X_RAPIDAPI_KEY }}
+      REDDIT_PROVIDER: ${{ vars.REDDIT_PROVIDER }}
+      SCRAPER_PROVIDER: ${{ vars.SCRAPER_PROVIDER }}
+      GITHUB_TOKEN: ${{ github.token }}
+      GH_TOKEN: ${{ github.token }}
+      USER_AGENT: ${{ vars.USER_AGENT }}
+      EXTRACTION_DAILY_BUDGET_USD: ${{ vars.EXTRACTION_DAILY_BUDGET_USD }}
+      SCHEDULER_ENABLED: ${{ vars.SCHEDULER_ENABLED }}
+      SCHEDULER_ISSUE: ${{ vars.SCHEDULER_ISSUE }}
+      RAW_STORE_PATH: raw_store
+      MAX_MODELS: ${{ inputs.max_models }}
+      SOURCES: ${{ inputs.sources }}
+    steps:
+      - name: Is the scheduler switched on?
+        id: gate
+        run: |
+          if [ "$SCHEDULER_ENABLED" != "1" ]; then
+            echo "::notice::SCHEDULER_ENABLED is not 1 - nothing harvested. This is the switch, not a failure."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          missing=""
+          [ -n "$DATABASE_URL" ]                || missing="$missing STAGING_DATABASE_URL"
+          [ -n "$OPENROUTER_API_KEY" ]          || missing="$missing OPENROUTER_API_KEY"
+          [ -n "$USER_AGENT" ]                  || missing="$missing USER_AGENT"
+          [ -n "$EXTRACTION_DAILY_BUDGET_USD" ] || missing="$missing EXTRACTION_DAILY_BUDGET_USD"
+          [ -n "$SCHEDULER_ISSUE" ]             || missing="$missing SCHEDULER_ISSUE"
+          if [ -n "$missing" ]; then
+            echo "::error::scheduler switched on but not configured:$missing"
+            exit 1
+          fi
+          # The RapidAPI keys and providers are not required: without them the
+          # Reddit and X arms skip themselves with a reason (#491), and the
+          # GitHub, dev.to, HN and Hugging Face arms still run.
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v5
+
+      - if: steps.gate.outputs.enabled == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - if: steps.gate.outputs.enabled == 'true'
+        run: pip install -e .
+
+      - name: Fetch the due models
+        if: steps.gate.outputs.enabled == 'true'
+        # --deadline-minutes 200: a model launched at minute 199 still has
+        # ~2.5 h before the 355-minute job limit, the measured first-fetch time.
+        run: |
+          args="--deadline-minutes 200"
+          [ -n "$MAX_MODELS" ] && args="$args --max-models $MAX_MODELS"
+          [ -n "$SOURCES" ]    && args="$args --sources $SOURCES"
+          python -m scripts.run_scheduled_fetches $args

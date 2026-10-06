@@ -1,0 +1,316 @@
+{
+ "slug": "cost-teardown-openai-gpt-5-6-sol",
+ "status": "draft",
+ "tag": "Cost teardown",
+ "feat": false,
+ "title": "GPT-5.6 Sol Cost Teardown: The Token Rate Is Only the Start",
+ "dek": "Sol’s list price is only one part of production cost. Long agent loops, uncached context, retries, verbose output, and weak orchestration can dominate the bill—and change which model is economical for each role.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "GPT-5.6 Sol is listed at $2.00 per million input tokens, $10.00 per million output tokens, and $0.20 per million cached input tokens; its advertised context is 1,050,000 tokens. But a production bill also reflects how many times an agent revisits context, how much it emits, whether work is retried, and whether the harness preserves state or delegates effectively. Treat model choice as a workload decision: keep Sol in tightly bounded worker roles where it performs well, and use stronger or better-governed lead configurations when the avoided rework justifies their higher rate.",
+ "kicker": "Cost teardown",
+ "tags": [
+  "GPT-5.6 Sol",
+  "Cost teardown"
+ ],
+ "read": 8,
+ "decisions": [
+  "Price completed, accepted tasks—not just per-token rates.",
+  "Measure cached input, ordinary input, output, retries, and tool work separately.",
+  "Keep long-lived project truth in verified artifacts and checkpoints.",
+  "Use Sol for controlled worker roles and validate the full pipeline before broad routing."
+ ],
+ "meta": [
+  "01 October 2026",
+  "~8 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "The per-token rate is the floor, not the workload",
+    "num": "01",
+    "id": "the-per-token-rate-is-the-floor-not-the-workload"
+   }
+  ],
+  [
+   "p",
+   "The registry list price places GPT-5.6 Sol at $2.00 per million input tokens and $10.00 per million output tokens. Cached input is listed at $0.20 per million tokens, and the advertised context is 1,050,000 tokens. These are rates and a capacity ceiling, not a forecast of what an agent task will cost. A task’s bill depends on the traffic pattern the application creates: how much context is supplied, how often it is supplied again, how much the model writes, and how much work the system repeats."
+  ],
+  [
+   "p",
+   "This distinction matters particularly in agentic systems. A model that reads a ticket, inspects files, calls tools, sees their results, and continues is not paying only for the final answer. Each model turn can carry prompt material and tool history, while the tool itself may run computation outside token billing. An interface that drives a desktop application likewise pays for model interaction separately from the application’s own CPU work. Better reasoning may improve the operator’s decisions, but it does not make a domain tool’s routing or search computation disappear."
+  ],
+  [
+   "quote",
+   "the more agentic the system is, and the more iterations it does, the more work it gets done for you."
+  ],
+  [
+   "p",
+   "The advertised context can tempt architects to treat large prompts as free capacity. It is not free: uncached input remains priced, and long context can be presented repeatedly across a multi-turn workflow. A long-running task illustrates the more useful distinction: its value came from versioned artifacts, verified checkpoints, deterministic checks, and recovery after restarts, not from keeping every decision alive only in the conversational history. Context capacity supports a design; it does not replace one."
+  ],
+  [
+   "p",
+   "The relevant unit for cost control is therefore the completed, accepted task. A cheap attempt that drifts, misses a defect, or must be restarted can be worse economics than a more expensive attempt that passes checks. But that is a workload-specific comparison, not a basis for inventing a universal cost per task. Track actual input, cached input, output, retries, and accepted outcomes for each route before changing model assignment."
+  ],
+  [
+   "h2",
+   {
+    "text": "Caching changes repeated context, not the shape of the workflow",
+    "num": "02",
+    "id": "caching-changes-repeated-context-not-the-shape-of-the-workfl"
+   }
+  ],
+  [
+   "p",
+   "The listed cached-input price is lower than Sol’s ordinary input rate, so stable repeated material is an obvious place to look for savings. In a governed coding setup, that material might include project rules, agent profiles, decision history, or shared instructions. The mechanism is straightforward: when repeated prompt content qualifies for cached treatment, the registry price for that input category is lower. But cache eligibility, retention, or hit behavior is not specified, so a system should measure its actual cache usage rather than budget as if every repeated prefix will be billed at the cached rate."
+  ],
+  [
+   "p",
+   "A prompt assembled anew on every turn can undermine the opportunity. If the harness varies the order or content of stable instructions, or continually appends history to an otherwise static prefix, the share of repeated material may be smaller than the design suggests. Keep durable guidance in stable, versioned files and separate it from turn-specific task data. This improves auditability even where cache behavior is unknown, and gives instrumentation a clear way to distinguish stable prompt material from changing input."
+  ],
+  [
+   "p",
+   "There is a deeper architectural gain in moving durable state out of the conversation. A long task that relies on an accumulated transcript repeatedly carries history forward and risks losing identity when context is compressed or a session restarts. A task built around checked artifacts, manifests, and checkpoints can resume from the project state instead. That is not a claim that artifacts automatically cost less in every implementation; it is a way to reduce dependence on repeated narrative context and make recovery verifiable."
+  ],
+  [
+   "p",
+   "Measure cached and uncached input separately by route and workload. If cached input is negligible, examine prompt construction and state management. If it is substantial, preserve that stable structure while avoiding the temptation to stuff every possible reference into the prompt. A large context window is not a requirement to send a large context window."
+  ],
+  [
+   "h2",
+   {
+    "text": "Output, retries, and verification determine whether cheap work stays cheap",
+    "num": "03",
+    "id": "output-retries-and-verification-determine-whether-cheap-work"
+   }
+  ],
+  [
+   "p",
+   "Sol’s output rate is listed at $10.00 per million tokens, higher than its input rate. That makes verbosity a direct cost lever. Agent responses often include plans, explanations, tool-call arguments, summaries, and final results; if every turn produces expansive narration, the output bill accumulates even when the final artifact is short. Output budgets and concise intermediate formats can limit that exposure, provided the system still asks for enough information to diagnose failures and verify the work."
+  ],
+  [
+   "p",
+   "Retries are more subtle. A retry may duplicate a substantial prompt, consume additional output, and still fail to correct the underlying problem. A game-building run produced a visible defect despite screenshot review; the fix required a direct follow-up prompt. In production, this argues for targeted validation at the artifact boundary rather than assuming that visible progress means correctness. A check that catches the defect early can prevent downstream work from being built on a bad result, though the check itself also has a cost that must be measured."
+  ],
+  [
+   "quote",
+   "The weakest product-level component was"
+  ],
+  [
+   "p",
+   "The most effective control is usually to make acceptance criteria executable. Tests, schema validation, deterministic generators, and independent cross-checks turn vague requests into conditions the workflow can verify. This reduces blind retries because the agent receives a specific failure signal and the system can stop when acceptance is met. It also prevents a low-cost first pass from being mistaken for a low-cost completion when human review or rework remains hidden outside token accounting."
+  ],
+  [
+   "p",
+   "Logging must expose the whole loop. Record model route, input and cached input, output, tool calls, validation results, and retry reason. A model incident in which the selected interface behaved like a different, much weaker model shows why route identity and quality checks belong in production instrumentation: a misrouted response can waste tokens and, more importantly, cause bad work to pass through an expected model label. When the cause of a failure is not established, treat it as an observability problem to investigate rather than assuming a price or reasoning setting caused it."
+  ],
+  [
+   "h2",
+   {
+    "text": "Effort and orchestration buy quality only when they reduce total work",
+    "num": "04",
+    "id": "effort-and-orchestration-buy-quality-only-when-they-reduce-t"
+   }
+  ],
+  [
+   "p",
+   "Effort settings can alter the amount of reasoning or activity used, but no universal token-cost relationship for Sol’s effort levels is established here. Do not infer that a higher setting always spends a fixed amount more, or that a lower setting is automatically cheaper per accepted task. Evaluate each setting on representative work using measured tokens, completion quality, elapsed time, and the number of corrections needed. A bounded task with clear tests may not need the same configuration as a task coordinating several tools and uncertain requirements."
+  ],
+  [
+   "p",
+   "The evidence of long agent sessions is a reminder that duration alone is not a cost metric. A parent task ran for more than 31 hours and produced a versioned, auditable package, but the account does not give token usage or a dollar total. It would be wrong to translate its duration into a bill. The operational lesson is instead to make long work resumable and inspectable: persisted artifacts and checkpoints prevent a restart from becoming a costly reconstruction from memory."
+  ],
+  [
+   "quote",
+   "Must be tightly controlled to be effective."
+  ],
+  [
+   "p",
+   "Orchestration can also change the amount of model work required. A practitioner described using Sol as a worker while a different model served as lead, saying «Sol performs well under Claudes guidance». That is a useful routing hypothesis, not a universal benchmark. A lead can decompose tickets, provide context, and review results, while workers perform bounded implementation tasks. The extra lead calls and review tokens are worthwhile only if they prevent enough drift or rework; measure the entire pipeline, not the worker’s isolated rate."
+  ],
+  [
+   "p",
+   "Tool schemas are part of that pipeline’s prompt surface. Their token cost is not quantified, so no fixed savings can be claimed. Still, an agent exposed to a sprawling collection of tools and descriptions carries more material into decisions than one given a narrow, task-relevant interface. Keep schemas concise, avoid presenting irrelevant tools to every turn, and enforce tool results at the application boundary. Do not confuse tool execution cost with model-token cost: a CPU-heavy router or database operation may consume real resources without appearing in the token invoice."
+  ],
+  [
+   "h2",
+   {
+    "text": "Route by role and price the whole accepted outcome",
+    "num": "05",
+    "id": "route-by-role-and-price-the-whole-accepted-outcome"
+   }
+  ],
+  [
+   "p",
+   "Sol’s list price is lower than the listed prices for GPT-6 Astra, Claude Opus 5, Claude Opus 4.8, and Claude Fable 5. The comparison is explicit: Astra is listed at $10.00 input and $50.00 output per million tokens, with $1.00 cached input; both Opus models are $5.00 input and $25.00 output, with $0.50 cached input; Fable 5 is $10.00 input and $50.00 output, with $1.00 cached input. Their advertised contexts are also listed, but context size alone says nothing about the cost or quality of a particular completed task."
+  ],
+  [
+   "p",
+   "A cheaper worker can be the sound choice when tasks are well scoped, checked, and recoverable. A stronger lead or specialist can be justified where planning errors propagate across many workers or where the cost of a bad result is high. One swarm setup removed a model from lead roles after serious early incidents and later assigned it worker work under a more tightly managed lead. The report’s practical implication is about role separation and validation, not a claim that one model always wins on price or capability."
+  ],
+  [
+   "quote",
+   "The intelligence and the computation are separate costs, and only one of them is billed per token."
+  ],
+  [
+   "p",
+   "Benchmark and interface results should not be mistaken for direct cost-per-task evidence. A benchmark discussion showed that preserving opaque reasoning state in a provider-specific harness changed both score and run cost compared with a stateless, provider-neutral harness. That demonstrates that scaffolding can affect observed performance and spend; it does not establish what Sol will cost in a production application. The harness is part of the system being priced, and its state handling, retries, and tool use belong in the evaluation."
+  ],
+  [
+   "p",
+   "Use a route table based on task class and observed completion economics. Keep Sol on bounded implementation or tool-use work where tests constrain the result; reserve higher-priced routes for cases where measured quality or avoided rework warrants them. For long jobs, persist project state outside chat. For repeated instructions, measure cache realization. For expensive failures, add validation and route-specific monitoring. The goal is not the lowest token rate; it is the lowest reliable cost for an accepted outcome, with the model, harness, tools, and recovery path treated as one production system."
+  ],
+  [
+   "h2",
+   {
+    "text": "What moves the bill",
+    "num": "Matrix",
+    "id": "matrix"
+   }
+  ],
+  [
+   "table",
+   {
+    "kind": "matrix",
+    "cols": [
+     "Production scenario",
+     "Behavioral trade-off",
+     "Recommended mitigation",
+     "Route"
+    ],
+    "rows": [
+     [
+      "Repeated project rules and agent profiles across many turns",
+      "Stable repeated context may qualify for the lower cached-input rate, but cache behavior is not specified by the registry listing.",
+      "Keep reusable prompt prefixes stable; measure cached and uncached input separately; store durable state in versioned artifacts.",
+      "Sol for bounded work with a governed prompt; compare actual cache use before choosing another model."
+     ],
+     [
+      "Long-running task that must survive restarts",
+      "Accumulated conversation and repeated reconstruction can increase input and create continuity failures; duration alone does not reveal token spend.",
+      "Checkpoint verified artifacts, manifests, and acceptance state; resume from project state rather than a narrative recap.",
+      "Sol can serve as the worker when the harness persists and verifies state."
+     ],
+     [
+      "Verbose multi-turn tool agent",
+      "Plans, intermediate explanations, and tool-call text add output, while broad tool descriptions add prompt material.",
+      "Constrain intermediate response formats, expose only relevant tools, and log output by turn and task.",
+      "Use Sol for bounded tool tasks; route complex coordination to a lead only when measured rework savings justify it."
+     ],
+     [
+      "Code or document generation with hidden defects",
+      "A cheap first pass can become expensive through repeated prompting or downstream rework.",
+      "Run tests, schema checks, and independent artifact validation; feed specific failures back into correction steps.",
+      "Sol for implementation under executable checks; escalate when the task repeatedly fails validation."
+     ],
+     [
+      "Work with costly lead-level planning errors",
+      "A lower-priced worker may drift without strong decomposition or review; adding a lead incurs its own model calls.",
+      "Separate lead and worker responsibilities, provide guardrails, and measure accepted output across the full pipeline.",
+      "Use Sol as a controlled worker beneath a proven lead configuration; do not assume a universal winner."
+     ],
+     [
+      "Desktop control or domain software operation",
+      "Model tokens pay for decisions and tool interaction, while the desktop application may perform separate computation.",
+      "Keep the model’s role explicit and measure application runtime separately from token usage.",
+      "Sol where its operator performance is adequate; choose a higher-priced route only when task-level results support it."
+     ],
+     [
+      "Model or route behaves unexpectedly",
+      "A mislabeled or degraded route can spend tokens while producing unusable output, and the cause may not be established.",
+      "Log actual route identity where available, validate output quality, and fail closed on critical acceptance checks.",
+      "Pause or reroute the affected workload until the configuration and output are verified."
+     ]
+    ]
+   }
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "GPT-5.6 Sol",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "GPT-6 Astra",
+      "$10.00",
+      "$50.00",
+      "$1.00"
+     ],
+     [
+      "Claude Opus 5",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Opus 4.8",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Fable 5",
+      "$10.00",
+      "$50.00",
+      "$1.00"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "rel": [
+  [
+   "post:anthropic-claude-sonnet-5-vs-anthropic-claude-opus-5",
+   "Claude Sonnet 5 vs Opus 5: A Production Routing Guide"
+  ],
+  [
+   "post:capability-reasoning",
+   "Reasoning Effort Is a Production Policy, Not a Model Setting"
+  ],
+  [
+   "post:field-report-anthropic-claude-sonnet-5",
+   "Claude Sonnet 5 in Production: Behavior Is an Integration Property"
+  ]
+ ],
+ "provenance": {
+  "model": "openai/gpt-6-luna",
+  "served_as": [
+   "openai/gpt-6-luna"
+  ],
+  "generated_at": "2026-10-01T09:20:45+00:00",
+  "rechecked_from": null,
+  "documents": [
+   "thread_context_bbcef3ec44ce5ffe",
+   "thread_context_44fa985999d8cf54",
+   "thread_context_4e4844147af688c9",
+   "thread_context_17278ba69f08cc8a",
+   "thread_context_70f75b058953aea0",
+   "thread_context_73b8759a48d275ee",
+   "thread_context_f0c75bdb2098e7f6",
+   "thread_context_0d87ef35a78e7b25",
+   "thread_context_24c5653ab81e77b8",
+   "thread_context_2b304accdd43231d"
+  ],
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "plan_key": "cost-teardown:openai/gpt-5.6-sol",
+  "format": "cost-teardown",
+  "reviewed_by": null
+ }
+}

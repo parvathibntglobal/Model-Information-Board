@@ -1,0 +1,419 @@
+{
+ "slug": "anthropic-claude-sonnet-5-vs-anthropic-claude-opus-5",
+ "status": "draft",
+ "tag": "Routing guide",
+ "feat": false,
+ "title": "Claude Sonnet 5 vs Opus 5: A Production Routing Guide",
+ "dek": "Sonnet 5 is the economical default when task boundaries are clear; Opus 5 earns its higher price on consequential judgment and long, coupled work. A reliable router needs escalation, shared-contract safeguards, and evaluation—not model-name heuristics alone.",
+ "by": "Draft for team review · written by a language model from engineers' public reports · checked in code",
+ "lead": "Use Sonnet 5 for bounded implementation, summarization, and routine synthesis when outputs can be checked cheaply. Route architecture, ambiguous specifications, difficult code review, and high-cost-to-reverse decisions to Opus 5, then escalate Sonnet outputs when validation exposes uncertainty or failure. Both models share important integration constraints, including rejected sampling settings and the same advertised context size; changing tiers does not repair those problems.",
+ "kicker": "Routing guide",
+ "tags": [
+  "Claude Sonnet 5",
+  "Claude Opus 5",
+  "Routing",
+  "Cost"
+ ],
+ "read": 14,
+ "decisions": [
+  "Choose Sonnet 5 for bounded work with cheap, reliable validation.",
+  "Reserve Opus 5 for uncertainty, consequential judgment, and coupled reasoning.",
+  "Escalate on observable failures rather than model self-confidence.",
+  "Keep shared request configuration and provider compatibility outside model-specific assumptions.",
+  "Protect production systems with least privilege, evaluation, and explicit fallback behavior."
+ ],
+ "meta": [
+  "01 October 2026",
+  "~14 min read",
+  "Draft — not reviewed"
+ ],
+ "body": [
+  [
+   "h2",
+   {
+    "text": "The price difference changes the default, not the architecture",
+    "num": "01",
+    "id": "the-price-difference-changes-the-default-not-the-architectur"
+   }
+  ],
+  [
+   "p",
+   "At registry list prices, Sonnet 5 is $2.00 per million input tokens and $10.00 per million output tokens; Opus 5 is $5.00 and $25.00. Cached input is listed at $0.20 for Sonnet 5 and $0.50 for Opus 5. Both advertise a 1,000,000-token context. Those figures make Sonnet the rational starting point for work that is bounded, repeatable, and straightforward to verify, but they do not establish that it is interchangeable with Opus on every task."
+  ],
+  [
+   "p",
+   "The right comparison is total expected production cost, not the input rate in isolation. A lower-priced answer that misses a requirement can trigger retries, human investigation, or downstream correction; a more expensive answer can be wasteful if the work is merely formatting known data. A business-software build illustrates a possible division of labor: Opus planned the work, Sonnet executed it, and the initial result still missed specified features before later prompts addressed issues. That is a useful pattern to test, not proof that every planning task belongs to Opus or every implementation task to Sonnet."
+  ],
+  [
+   "quote",
+   "Plan with a strong model, execute with a cheaper one."
+  ],
+  [
+   "p",
+   "The practitioner’s rule was «Plan with a strong model, execute with a cheaper one.» The useful architectural interpretation is to allocate capability to uncertainty and consequence, while keeping mechanical work on the cheaper route. Treat model selection as a policy attached to task classes, and validate that policy against actual traffic. The available evidence is illustrative rather than a controlled head-to-head benchmark, so avoid turning a handful of anecdotes into a universal quality ranking."
+  ],
+  [
+   "p",
+   "A second cost effect is often hidden in the routing design. If a request begins on Sonnet and then moves to Opus, the second call adds inference and may not reuse the first model’s cache. That does not make escalation a mistake: it means the router should reserve escalation for evidence of failure or a task class known to require deeper judgment. Measure first-pass success, retry frequency, human correction, and the price of delayed resolution together instead of optimizing just the nominal model rate."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative routing policy",
+    "language": "python",
+    "source": "def route(task):\n    if task.has_ambiguous_requirements or task.high_cost_to_reverse:\n        return \"claude-opus-5\"\n    if task.is_bounded and task.has_automated_validation:\n        return \"claude-sonnet-5\"\n    return \"claude-sonnet-5\"  # escalate if validation or confidence checks fail\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Where Sonnet is the right engineering choice",
+    "num": "02",
+    "id": "where-sonnet-is-the-right-engineering-choice"
+   }
+  ],
+  [
+   "p",
+   "Sonnet 5 fits tasks where the specification is explicit, the context is curated, and correctness can be tested outside the model. Examples include turning an agreed plan into routine code changes, summarizing a known set of records, drafting a call brief from a small number of sources, and transforming structured content into a fixed output shape. In these cases, the engineering system—not the model’s confidence—should determine whether the work is acceptable."
+  ],
+  [
+   "p",
+   "The strongest reason to route routine volume to Sonnet is economic, but the cost advantage should be measured at the whole-request level. Reused prompts may qualify for the listed cached-input price, while retries and long generated outputs still affect spend. A cascade also has a cache trade-off: caching is scoped per model in the described production comparison, so switching models can forfeit reuse. A router that sends a request to Opus after every minor uncertainty may therefore lose both price efficiency and some cache benefit."
+  ],
+  [
+   "p",
+   "Sonnet is not a synonym for simple in the sense of inconsequential. A bounded patch can still affect production, and a compact extraction can still feed a consequential workflow. Make acceptance criteria external: compile or test code, validate structured data, check required fields, and hold writes behind authorization. When those controls are absent, a task that appears routine may not be safe to classify as cheap work. The cheaper model is appropriate when the surrounding system makes its failure detectable and recoverable."
+  ],
+  [
+   "p",
+   "A useful Sonnet workload has three properties: scope can be described without material ambiguity, the necessary evidence is supplied or accessible through a small and tested tool surface, and a failed result can be caught before it changes a durable system. A sales brief assembled from a calendar, customer record, and current research is a good candidate if it remains a draft. The same workflow changes character when it can alter deal stages or send messages without review. The model tier should not be used as a substitute for a write boundary."
+  ],
+  [
+   "p",
+   "The same logic applies to software generation. A model can produce a polished screen while leaving a required function absent, or misunderstand how a framework’s existing models interact. A human-readable preview is not an adequate acceptance test for billing actions, certificate generation, or data persistence. Route implementation to Sonnet when the task is decomposed and its tests are meaningful; route the unresolved design question to Opus rather than making the cheaper model improvise architecture and implementation at once."
+  ],
+  [
+   "h2",
+   {
+    "text": "Where Opus earns escalation—and where it does not",
+    "num": "03",
+    "id": "where-opus-earns-escalation-and-where-it-does-not"
+   }
+  ],
+  [
+   "p",
+   "An application builder described using Opus to plan a business application and Sonnet to execute the plan, noting «Claude correctly identified that it needed four custom apps». In a separate account of model selection, the rule was «Opus, high effort, where a wrong decision is expensive to undo». Together, these examples support routing by judgment burden, not a blanket instruction to use Opus for all code."
+  ],
+  [
+   "p",
+   "Escalate for decisions such as choosing boundaries between components, diagnosing failures spanning multiple layers, reviewing a diff whose consequences are difficult to infer locally, or resolving requirements that admit materially different interpretations. That does not mean Opus guarantees completeness. The business-software example still encountered broken invoice and project actions, an incorrect interaction with an existing app, and certificate-generation trouble. Some failures had uncertain causes. Greater reasoning capacity cannot substitute for tests, framework knowledge, environment parity, or a human decision about acceptable behavior."
+  ],
+  [
+   "p",
+   "There are also user-facing behavior costs. In one account of interaction style, the writer said «5 for sure is unbearable»; another described «a constant stream of complaints» while discussing model demeanor. Those statements are subjective, but they matter in interactive systems: friction can increase user corrections and reduce trust. If the model is acting as a colleague-facing assistant, evaluate tone and compliance alongside task accuracy rather than assuming the premium tier is always the better experience."
+  ],
+  [
+   "p",
+   "Opus should not become the default simply because a task sounds important. A high-stakes task with a narrow, deterministic procedure may be better served by a smaller model plus strict validation and human authorization. Conversely, a seemingly ordinary task can merit Opus when the request hides a consequential ambiguity, such as whether an existing data model should be reused or replaced. Classify the reasoning requirement and the cost of an undetected error, not the domain label alone."
+  ],
+  [
+   "p",
+   "There is a further nuance in long chains: a stronger model may handle coupled dependencies better, but length also creates more opportunities for tool errors and unverified assumptions. Split work into inspectable stages, preserve intermediate artifacts, and have tests or domain checks gate each transition. Opus is most valuable at the parts where judgment changes the plan; it need not own every mechanical action that follows from a settled decision."
+  ],
+  [
+   "h2",
+   {
+    "text": "Shared constraints: a model switch will not fix the contract",
+    "num": "04",
+    "id": "shared-constraints-a-model-switch-will-not-fix-the-contract"
+   }
+  ],
+  [
+   "p",
+   "The advertised context size is the same for Sonnet 5 and Opus 5: 1,000,000 tokens. That removes context capacity as a simple reason to choose one over the other, but it does not establish equivalent performance on every long-context workload. A large window is a ceiling, not a guarantee that the right evidence will be retrieved, attended to, or used correctly. Control prompt size, tool schemas, and the placement of evidence, then evaluate long-input cases on your own workload."
+  ],
+  [
+   "p",
+   "Both models share a request-configuration trap: the documented integration failures report that non-default temperature, top_p, and top_k settings can be rejected by Claude 5 models. One reported direct API behavior was «`temperature` is deprecated for this model.» Integration layers may forward shared settings that the selected model rejects; changing between Sonnet 5 and Opus 5 therefore does not repair stale configuration. The exact behavior can depend on provider and adapter, as demonstrated by a Bedrock path that forwarded settings despite carrying a profile flag."
+  ],
+  [
+   "p",
+   "The safe response is to make configuration capability-aware, not to scatter model-specific assumptions throughout application code. Keep sampling settings absent unless the chosen route supports them, inspect warnings and provider errors, and test every provider adapter that serializes requests. Avoid a global temperature setting inherited by all models. Similarly, parse structured tool arguments as JSON rather than comparing serialized strings: the integration discussion notes representation changes such as escaped Unicode and slashes. These are interface concerns shared across model choice, and the remedy belongs in the adapter and tests."
+  ],
+  [
+   "p",
+   "A shared configuration layer is especially risky during a migration because the change that appears to be a model-name substitution can cross a different provider path. A direct Anthropic adapter and a Bedrock Converse adapter were reported to behave differently for the same settings: one warned and dropped them while the other forwarded them and received an error. That is not a reason to avoid routing; it is a reason to test the exact route, adapter, and model combination used in production. Detect unsupported configuration before a live request where possible, and keep compatibility tests in the release suite."
+  ],
+  [
+   "p",
+   "The same separation of concerns applies to structured output. A model’s ability to reason does not guarantee that a downstream consumer receives a valid object. Use enforced output contracts where the selected integration provides them, parse rather than string-match serialized content, and handle invalid output as a validation result—not as proof that the other tier will necessarily produce a valid answer. Escalation can improve the chance of solving a hard task, but deterministic validation remains the contract boundary."
+  ],
+  [
+   "code",
+   {
+    "label": "Illustrative capability-aware request assembly",
+    "language": "python",
+    "source": "def build_request(model, task, profile):\n    request = {\"model\": model, \"messages\": task.messages}\n    if profile.supports_sampling_settings:\n        request.update(task.approved_sampling_settings)\n    # Parse and validate returned tool arguments against the application schema.\n    return request\n"
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "Build escalation around observable failure",
+    "num": "05",
+    "id": "build-escalation-around-observable-failure"
+   }
+  ],
+  [
+   "p",
+   "A production router should start from task metadata and downstream checks, not ask the model to judge its own tier. Route known high-ambiguity or high-consequence work directly to Opus. Send bounded work to Sonnet when the expected output can be validated. Escalate when a deterministic check fails, required evidence is missing, a tool call is invalid, or the result does not satisfy a schema. Keep the original task and validated context intact across escalation so the second model can address the failure rather than repeat the same underspecified prompt."
+  ],
+  [
+   "p",
+   "Set an escalation budget and record why it was used. Otherwise, repeated retries can erase the expected savings and obscure the source of failure. The production comparison warns that malformed outputs and retries add cost and latency, while cache reuse is model-scoped. Log model, prompt or task class, validation outcome, retry count, and human override. Compare the route against a fixed baseline on representative examples before increasing its scope; a few dozen real records with known answers were offered as a practical starting point in that comparison."
+  ],
+  [
+   "quote",
+   "propose writes, never execute them, until I say go"
+  ],
+  [
+   "p",
+   "Use operational safeguards independently of model tier. Tool access should follow least privilege; agents that read tickets or repositories should not receive write capability merely because they use Opus. Require approval for irreversible actions, and test tool availability and real responses before relying on an integration. A practitioner’s instruction was «propose writes, never execute them, until I say go»; the underlying principle applies equally to a two-model cascade. Escalation increases reasoning capacity, not authorization."
+  ],
+  [
+   "p",
+   "A robust escalation call should include the failed output only when it is useful, the exact validation error, the original constraints, and relevant evidence. Do not simply append an unbounded conversation history and hope that the higher tier notices the important failure. Preserve provenance for retrieved facts, mark user-supplied text as untrusted when tools are involved, and keep credentials and write tools outside the model’s control unless a separately approved action requires them. This makes escalation a controlled repair step rather than a second opaque attempt."
+  ],
+  [
+   "p",
+   "Measure the false-escalation and missed-escalation cases as well as average spend. A router that escalates every slight deviation can be expensive and slow; one that waits for a failure that causes an irreversible side effect is unsafe. Start with shadow evaluation on recorded or replayed tasks, compare both routes on the same examples, and introduce automated routing only for classes whose acceptance tests are reliable. Human review remains appropriate where the consequence cannot be represented by a simple validator."
+  ],
+  [
+   "h2",
+   {
+    "text": "A routing policy for real workloads",
+    "num": "06",
+    "id": "a-routing-policy-for-real-workloads"
+   }
+  ],
+  [
+   "p",
+   "The practical default is conditional: Sonnet 5 for well-specified execution and routine synthesis; Opus 5 for ambiguous planning, consequential judgment, and difficult multi-step diagnosis; then Sonnet-to-Opus escalation when validation demonstrates a need. Use direct Opus routing when a Sonnet attempt would create expensive delay or risk. Use Sonnet first when failures are cheap to detect and recovery is controlled. This makes the decision about system economics rather than a vague label such as easy or hard."
+  ],
+  [
+   "p",
+   "Do not confuse model-specific outages with model capability. A report recorded intermittent 503 responses for Opus through one gateway while Sonnet succeeded under the same route conditions, but it did not establish an intrinsic model cause. Build provider health checks, bounded retries, and a fallback route where service continuity matters. Keep fallback behavior explicit: switching to Sonnet may preserve availability while changing expected task quality, so the application should validate the result and expose uncertainty rather than silently treating the routes as equivalent."
+  ],
+  [
+   "p",
+   "Finally, maintain a compact evaluation set that includes routine successes, ambiguous cases, long-context inputs, invalid tool arguments, configuration compatibility, and user-facing tone. Track outcome quality and operational cost together. Update routing only when the measured behavior supports it. Sonnet 5 is the right engineering choice when the task is controlled and the system can catch mistakes; Opus 5 is worth its premium when judgment is the bottleneck. Neither model removes the need to design for failure."
+  ],
+  [
+   "p",
+   "The prices should be treated as the registry list values provided here, not a promise about every provider, account, or later billing revision. The supplied facts also list other Claude tiers and generations, but this routing guide is intentionally confined to Sonnet 5 and Opus 5. If an organization is considering a broader cascade, it should benchmark those additional choices on its own workload rather than infer their relative behavior from their names or rates alone."
+  ],
+  [
+   "p",
+   "A final production rule is to version routing policy alongside prompts and schemas. When a model or adapter changes, rerun the compatibility and quality suite, inspect any warning about ignored settings, and compare the new path against the previous one. This prevents a seemingly harmless model alias update from silently changing request semantics. The router is part of the application’s behavior; it deserves the same review discipline as a database migration or a public API change."
+  ],
+  [
+   "h2",
+   {
+    "text": "When to use Sonnet 5 vs Opus 5",
+    "num": "Matrix",
+    "id": "matrix"
+   }
+  ],
+  [
+   "table",
+   {
+    "kind": "matrix",
+    "cols": [
+     "Production scenario",
+     "Behavioral trade-off",
+     "Recommended mitigation",
+     "Route"
+    ],
+    "rows": [
+     [
+      "Routine code implementation from a reviewed plan",
+      "Sonnet 5 is the lower-priced execution route; Opus 5 may be unnecessary when requirements and boundaries are settled.",
+      "Run tests, review diffs, and escalate on failed checks or unresolved design choices.",
+      "Sonnet 5"
+     ],
+     [
+      "Architecture selection or ambiguous requirements",
+      "Opus 5 is better suited to weighing coupled constraints; it still can miss requirements or make incorrect assumptions.",
+      "Require explicit assumptions, design review, and tests before implementation.",
+      "Opus 5"
+     ],
+     [
+      "Support-ticket triage and structured extraction",
+      "Sonnet 5 is economical for bounded, repeatable classification; either tier can produce invalid or incomplete outputs.",
+      "Enforce a schema, validate records, keep actions read-only, and escalate low-confidence or invalid cases.",
+      "Conditional: Sonnet 5 first; Opus 5 on validation failure"
+     ],
+     [
+      "Difficult code review or incident diagnosis",
+      "Opus 5 is the stronger candidate for multi-step reasoning across interacting evidence, at a higher list price.",
+      "Supply curated context, verify findings against logs and tests, and require human approval for consequential changes.",
+      "Opus 5"
+     ],
+     [
+      "High-volume summarization with fixed output requirements",
+      "Sonnet 5 lowers listed input and output prices; Opus 5 may not improve sufficiently to justify its cost on routine cases.",
+      "Measure quality on representative examples, exploit eligible caching, and monitor retry rates.",
+      "Sonnet 5"
+     ],
+     [
+      "Long-context document synthesis",
+      "Both advertise a 1,000,000-token context, so the advertised limit alone does not distinguish them; task-level reasoning may still differ.",
+      "Evaluate retrieval and evidence coverage on real long inputs; route difficult interpretation to Opus 5.",
+      "Conditional: Sonnet 5 for extraction; Opus 5 for judgment"
+     ],
+     [
+      "Interactive assistant where tone and user friction matter",
+      "Opus 5 may deliver stronger reasoning, while an individual user described it as «5 for sure is unbearable»; evaluate whether that subjective behavior applies to your product.",
+      "Evaluate user corrections and satisfaction on the actual interaction, and provide a Sonnet route when it better fits the product experience.",
+      "Conditional: evaluate both; route by task and user experience"
+     ]
+    ]
+   }
+  ],
+  [
+   "h2",
+   {
+    "text": "How should an incoming task be routed?",
+    "num": "Decision tree",
+    "id": "decision"
+   }
+  ],
+  [
+   "tree",
+   {
+    "question": "How should an incoming task be routed?",
+    "branches": [
+     {
+      "condition": "The task involves ambiguous requirements, architecture, high-cost-to-reverse decisions, or difficult multi-step diagnosis.",
+      "outcome": "Use Opus 5, with verification and any required human approval.",
+      "route": "Opus 5"
+     },
+     {
+      "condition": "The task is bounded, repeatable, and has automated or inexpensive validation.",
+      "outcome": "Start with Sonnet 5; escalate if validation fails or required evidence is missing.",
+      "route": "Sonnet 5"
+     },
+     {
+      "condition": "The request is mostly extraction or summarization but includes a judgment call that affects the result.",
+      "outcome": "Use Sonnet 5 for extraction and escalate the judgment step or failed cases to Opus 5.",
+      "route": "Conditional: Sonnet 5 → Opus 5"
+     },
+     {
+      "condition": "The provider returns a compatibility error, unsupported-setting error, or outage response.",
+      "outcome": "Correct the adapter/configuration or use an explicitly tested healthy route; do not assume changing tiers fixes a shared integration defect.",
+      "route": "Conditional: repair configuration; fallback only after validation"
+     }
+    ]
+   }
+  ],
+  [
+   "h3",
+   "List prices"
+  ],
+  [
+   "table",
+   {
+    "kind": "prices",
+    "cols": [
+     "Model",
+     "Input $/M",
+     "Output $/M",
+     "Cached input $/M"
+    ],
+    "rows": [
+     [
+      "Claude Sonnet 5",
+      "$2.00",
+      "$10.00",
+      "$0.20"
+     ],
+     [
+      "Claude Opus 5",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Haiku 4.5",
+      "$1.00",
+      "$5.00",
+      "$0.10"
+     ],
+     [
+      "Claude Opus 4.8",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Opus 4.6",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ],
+     [
+      "Claude Sonnet 4.6",
+      "$3.00",
+      "$15.00",
+      "$0.30"
+     ],
+     [
+      "Claude Fable 5",
+      "$10.00",
+      "$50.00",
+      "$1.00"
+     ],
+     [
+      "Claude Opus 4.7",
+      "$5.00",
+      "$25.00",
+      "$0.50"
+     ]
+    ],
+    "note": "OpenRouter list prices as last polled into the registry. A price the provider does not publish is shown as not published, never as zero."
+   }
+  ]
+ ],
+ "rel": [
+  [
+   "post:anthropic-claude-opus-5-report",
+   "Claude Opus 5 in Production: Buy Judgment, Not a Default"
+  ],
+  [
+   "post:capability-reasoning",
+   "Reasoning Effort Is a Production Policy, Not a Model Setting"
+  ]
+ ],
+ "provenance": {
+  "model": "openai/gpt-6-luna",
+  "served_as": [
+   "openai/gpt-6-luna"
+  ],
+  "generated_at": "2026-10-01T06:39:45+00:00",
+  "rechecked_from": "2026-10-01T063434+0000.json",
+  "documents": [
+   "thread_context_e2b31946ae0e0ff6",
+   "thread_context_5b76134b1c757861",
+   "thread_context_8408cf1bdeda25f7",
+   "thread_context_a759cfe278dc6e60",
+   "thread_context_35a9b6071dfc039b",
+   "thread_context_db4c685f5b5b2c2b",
+   "thread_context_cf3323d1b682bc5e",
+   "thread_context_46da791557ee6e0a",
+   "thread_context_61b2a99a9057ab2f",
+   "thread_context_acdf9fb4e3c8af7a"
+  ],
+  "checks": "verbatim quotes, figures, attributions and banned phrasing - passed",
+  "reviewed_by": null
+ }
+}

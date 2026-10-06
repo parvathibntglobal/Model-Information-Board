@@ -29,14 +29,16 @@ def _row(mv, name, *, tracked=True, in_window=True, last=None):
 class TestWhatIsDue:
     def test_a_never_fetched_model_is_a_first_fetch_at_the_larger_cap(self):
         (d,) = scheduler.rank_due([_row("a", "A")], NOW)
-        assert d.reason == "first fetch" and d.thread_cap == scheduler.FIRST_FETCH_THREAD_CAP
+        assert d.reason == "first fetch"
+        assert d.thread_cap == scheduler.policy().first_fetch_thread_cap
 
     def test_a_recent_success_is_not_due(self):
         assert scheduler.rank_due([_row("a", "A", last=NOW - timedelta(days=3))], NOW) == []
 
     def test_a_stale_success_is_a_refresh_at_the_smaller_cap(self):
         (d,) = scheduler.rank_due([_row("a", "A", last=NOW - timedelta(days=9))], NOW)
-        assert d.reason.startswith("refresh") and d.thread_cap == scheduler.REFRESH_THREAD_CAP
+        assert d.reason.startswith("refresh")
+        assert d.thread_cap == scheduler.policy().refresh_thread_cap
 
     def test_out_of_window_and_untracked_are_left_out(self):
         rows = [_row("a", "A", in_window=False), _row("b", "B", tracked=False)]
@@ -69,9 +71,11 @@ class TestTheSummaryIsHostFree:
 
     def test_counts_that_exist_are_shown(self):
         rec = {"model": "A", "status": "ok", "documents_appended": 12,
-               "threads_read": 20, "claims_stored": 7, "harvest_arms_errored": ["E2R"]}
+               "threads_read": 20, "claims_verified": 7, "claims_stored": 0,
+               "harvest_arms_errored": ["E2R"]}
         summary = scheduler.summarise_runs([scheduler.safe_record(rec)])
         assert "| 12 |" in summary and "| 20 |" in summary and "| 7 |" in summary
+        assert "| 0 |" not in summary, "claims_stored (0 since #502) reached the table"
         assert "E2R" in summary
 
     def test_safe_record_keeps_no_field_outside_the_allowlist(self):
@@ -134,3 +138,119 @@ class TestOffByDefault:
         monkeypatch.setattr(runner, "run_one", lambda *a, **k: launched.append(1))
         assert runner.main(["--dry-run"]) == 0
         assert launched == [], "dry-run launched a fetch"
+
+
+class TestTheRunnerNamesTheRun:
+    """The runner passes `--run-id` and reads the end record under that id.
+
+    It used to read the id back from the child's first stdout line. `fetch_model`
+    stopped printing it, so every scheduled model reported "no end record" while
+    its fetch ran - a summary that was wrong in exactly the direction nobody
+    reads (rule 4: an absence we caused, rendered as one we found).
+    """
+
+    def test_the_id_on_the_command_line_is_the_id_whose_log_is_read(self, monkeypatch):
+        seen = {}
+
+        class _Proc:
+            returncode = 0
+            stdout = "something else entirely\n"
+
+        def fake_run(cmd, **kw):
+            seen["cmd"] = cmd
+            return _Proc()
+
+        monkeypatch.setattr(runner.subprocess, "run", fake_run)
+        monkeypatch.setattr(runner, "_end_record",
+                            lambda rid: {"kind": "end", "status": "ok", "rid": rid})
+        due = scheduler.rank_due([_row("mv_a", "A")], datetime.now(UTC))[0]
+
+        result = runner.run_one(due, sources=None, development_write=False)
+
+        cmd = seen["cmd"]
+        assert "--run-id" in cmd
+        named = cmd[cmd.index("--run-id") + 1]
+        assert named.startswith("mv_a-")
+        assert result["run_id"] == named
+        assert result["_end"]["rid"] == named, "the log read is not the run launched"
+
+
+class TestTheBudgetStopsTheBatch:
+    """Once the shared daily budget is spent, no further model is launched -
+    a launched model would harvest (spending quota) and extract nothing - and
+    every model not run is named with the reason."""
+
+    def _setup(self, monkeypatch, spent_seq, *, cap="2.00"):
+        import judge.spend_ledger as ledger
+
+        monkeypatch.setenv("SCHEDULER_ENABLED", "1")
+        if cap is None:
+            monkeypatch.delenv("EXTRACTION_DAILY_BUDGET_USD", raising=False)
+        else:
+            monkeypatch.setenv("EXTRACTION_DAILY_BUDGET_USD", cap)
+        monkeypatch.setattr(runner, "_read_only_dsn", lambda: "postgresql://x@h/db")
+
+        class _Conn:
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+        monkeypatch.setattr("psycopg.connect", lambda *a, **k: _Conn())
+        monkeypatch.setattr(runner, "due_rows",
+                            lambda conn: [_row("a", "A"), _row("b", "B"), _row("c", "C")])
+        spent = iter(spent_seq)
+        monkeypatch.setattr(ledger, "spent_today", lambda *a, **k: next(spent))
+        launched, posted = [], []
+        monkeypatch.setattr(runner, "run_one", lambda d, **k: launched.append(d.display_name)
+                            or {"_end": {"kind": "end", "status": "ok"}})
+        monkeypatch.setattr(runner, "post_summary", lambda recs: posted.extend(recs))
+        return launched, posted
+
+    def test_models_after_the_budget_is_spent_are_named_not_launched(self, monkeypatch):
+        launched, posted = self._setup(monkeypatch, [0.10, 2.05, 9.99])
+        assert runner.main([]) == 0
+        assert launched == ["A"]
+        skipped = [r for r in posted if r["status"] == "not run: daily budget spent"]
+        assert [r["model"] for r in skipped] == ["B", "C"]
+
+    def test_an_unset_budget_refuses_the_batch(self, monkeypatch):
+        launched, _ = self._setup(monkeypatch, [0.0], cap=None)
+        with pytest.raises(SystemExit):
+            runner.main([])
+        assert launched == []
+
+
+class TestThePolicyIsContract:
+    """Cadence and caps come from contract/scheduler.yaml (rule 5); a missing
+    or bad value refuses (rule 12)."""
+
+    def test_the_values_moved_unchanged(self):
+        scheduler.policy.cache_clear()
+        p = scheduler.policy()
+        assert (p.cadence_days, p.first_fetch_thread_cap, p.refresh_thread_cap) == (7, 100, 25)
+
+    @pytest.mark.parametrize("bad", [None, 0, -3, "7", True])
+    def test_a_missing_or_bad_value_refuses(self, monkeypatch, bad):
+        import judge.config as config
+
+        doc = {"cadence_days": bad, "first_fetch_thread_cap": 100, "refresh_thread_cap": 25}
+        monkeypatch.setattr(config, "_read", lambda name: doc)
+        scheduler.policy.cache_clear()
+        try:
+            with pytest.raises(scheduler.SchedulerPolicyError):
+                scheduler.policy()
+        finally:
+            scheduler.policy.cache_clear()
+
+
+class TestTheDeadlineStopsLaunching:
+    """A CI job has a hard time limit; past --deadline-minutes the runner
+    launches no further model and names each one it did not run."""
+
+    def test_models_after_the_deadline_are_named_not_launched(self, monkeypatch):
+        launched, posted = TestTheBudgetStopsTheBatch()._setup(monkeypatch, [0.0, 0.0, 0.0])
+        clock = iter([0.0, 0.0, 61 * 60.0, 62 * 60.0])     # start, A, B, C
+        monkeypatch.setattr(runner.time, "monotonic", lambda: next(clock))
+        assert runner.main(["--deadline-minutes", "60"]) == 0
+        assert launched == ["A"]
+        skipped = [r["model"] for r in posted
+                   if r["status"] == "not run: this job's time budget is spent"]
+        assert skipped == ["B", "C"]

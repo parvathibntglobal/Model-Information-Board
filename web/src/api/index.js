@@ -8,9 +8,6 @@
  *
  *   GET  /health                     no database needed
  *   GET  /capabilities               no database needed
- *   POST /ask/requirements           no database needed — deterministic Q3
- *   POST /ask/revise                 no database needed — Q3 after an edit
- *   POST /ask/understand             needs OPENROUTER_API_KEY — the one LLM call
  *   GET  /models/{id}                needs the database
  *   GET  /capabilities/{key}         needs the database
  *   GET  /filtered  /coverage  /changelog    need the database
@@ -21,7 +18,7 @@
  */
 
 import { sessionToken } from '../auth'
-import { cached } from './cache'
+import { bust, cached } from './cache'
 
 const BASE = import.meta.env.VITE_API_URL || '/api'
 
@@ -293,9 +290,40 @@ export const filteredPage = (limit = 200) => request(`/filtered?limit=${limit}`)
  * is open, so one section can arrive under two names until the duplicates are
  * merged. Rendering it as an exact total would overstate what was counted.
  */
-export const boardPage = () => request('/board')
+// CACHED FOR TWO MINUTES. Building the board is the slowest read the site makes
+// (about 1.6s on the shared database, measured 2026-10-01), and the landing,
+// the board and its section pages all ask for it - every page view used to pay
+// it again. A ruling clears the copy (below), so a decision still shows at once.
+const BOARD_TTL_MS = 2 * 60 * 1000
+export const boardPage = () => cached('board', () => request('/board'), { ttl: BOARD_TTL_MS })
 
 export const coveragePage = () => request('/coverage')
+
+/**
+ * Blog drafts for the Blogs section — `{posts, skipped, reason}`.
+ *
+ * `reason` is set when the backend is not configured to serve drafts, and is
+ * null when it is configured and simply has none: the page must show those
+ * differently. `skipped` names any draft file the backend could not read.
+ */
+export const blogPosts = () => request('/blog-posts')
+
+/** Start a background run that plans and writes `count` new drafts (local only). */
+export const startBlogGeneration = (count = 3) =>
+  request('/blog-posts/generate', { method: 'POST', body: { count } })
+
+/** `{state, items:[{key, format, subject, state, attempt}], message, cost_usd, alive}` */
+export const blogGenerationStatus = () => request('/blog-posts/generate')
+
+// The latest generation run's console log (Admin → Blogs). Read-only; keys masked.
+export const blogGenerationLog = (lines = 400) => request(`/blog-posts/generate/log?lines=${lines}`)
+
+// Recorded generation runs, each post's latest review, and which posts are reviewable.
+export const blogRuns = (limit = 20) => request(`/blog-posts/runs?limit=${limit}`)
+
+// Approve, reject or reopen a post a recorded run wrote (append-only on the server).
+export const reviewBlogPost = (slug, decision, reason) =>
+  request('/blog-posts/review', { method: 'POST', body: { slug, decision, reason: reason || null } })
 
 /**
  * The landing page's FAQ, from `contract/faq.yaml`.
@@ -309,7 +337,8 @@ export const coveragePage = () => request('/coverage')
  * `established: false` with an answer that says what the board cannot yet
  * support, and the page must render that answer rather than the demo's.
  */
-export const faqPage = () => request('/faq')
+// Cached: the landing's FAQ and the footer both read it on every visit.
+export const faqPage = () => cached('faq', () => request('/faq'))
 
 /**
  * Two or three models side by side. `ids` is an array of model_version_ids.
@@ -325,33 +354,6 @@ export const comparePage = (ids) =>
   request(`/compare?ids=${encodeURIComponent((ids || []).join(','))}`)
 
 /* ------------------------------------------------------------------ ask */
-
-/**
- * Q3. Deterministic — the same task always produces the same requirements.
- * Needs no API key and no database, which is why it is the page that works
- * end to end today.
- */
-export const askRequirements = (payload) =>
-  request('/ask/requirements', { method: 'POST', body: payload })
-
-/** Q3 again, over a profile the user has corrected. No model runs. */
-export const askRevise = (profile, acceptedAssumptions = []) =>
-  request('/ask/revise', {
-    method: 'POST',
-    body: { profile, accepted_assumptions: acceptedAssumptions },
-  })
-
-/** Q1 — the LLM call. 429 when the extraction budget is spent, 422 on refusal. */
-export const askUnderstand = (text, shape = 'task') =>
-  request('/ask/understand', { method: 'POST', body: { text, shape } })
-
-/**
- * Q4–Q7. The requirement, ranked against real cells. No model runs; the
- * justification is bound to quote ids. Abstains — and names the missing
- * capability — when no model has evidence clearing the bar.
- */
-export const askRecommend = (payload) =>
-  request('/ask/recommend', { method: 'POST', body: payload })
 
 /**
  * OUR spend against OUR shared daily cap — not OpenRouter's ceilings, which are
@@ -458,6 +460,9 @@ export const proposeModel = ({ action, registry = '', name = '', kind = 'text' }
 // beside it are the evidence for that reading.
 export const adminRuns = (limit) => request(`/admin/runs${limit ? `?limit=${limit}` : ''}`)
 
+// Admin -> Scheduler: workflow setup, policy, due queue, switch and GitHub runs. Read-only.
+export const adminScheduler = () => request('/admin/scheduler')
+
 // Which database this is, what is in it, and whether the schema matches the
 // migration files. The target is `host:port/dbname` from `writeguard.describe`
 // - there is no credential in this payload and none can be derived from it.
@@ -481,13 +486,13 @@ export const ruleBoardEntry = (section, slug, ruling, ruling_target = null, entr
   request('/admin/board-entries/rule', {
     method: 'POST',
     body: { section, slug, ruling, ruling_target, entry_ids: entry_ids?.length ? entry_ids : null },
-  })
+  }).finally(() => bust('board'))
 
 export const unruleBoardEntry = (section, slug, entry_ids = null) =>
   request('/admin/board-entries/unrule', {
     method: 'POST',
     body: { section, slug, ruling: 'adopted', entry_ids: entry_ids?.length ? entry_ids : null },
-  })
+  }).finally(() => bust('board'))
 
 // ⚠ NOTHING HERE REACHES `/admin/capability-candidates`, ON PURPOSE. Four
 //   functions did — list, rule, edit, delete — and no component ever called

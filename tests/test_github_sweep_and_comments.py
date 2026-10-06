@@ -476,7 +476,7 @@ class TestTheThirdAssemblyShape:
         from collect.assemble.issue import MAX_ISSUE_COMMENTS, assemble_issue_thread
 
         # Four MORE than the cap, whatever the cap is. This said 9 when the cap
-        # was 5; the cap is now `child_ranking.max_children` (25) and 9 comments
+        # was 5; the cap is now `child_ranking.max_children` (40 on 2026-10-05) and 9 comments
         # no longer reach it, so the test could not see a cap at all.
         held = MAX_ISSUE_COMMENTS + 4
         assembled = assemble_issue_thread(
