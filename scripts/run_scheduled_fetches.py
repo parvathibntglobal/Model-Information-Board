@@ -165,8 +165,11 @@ def run_one(due, *, sources: str | None, development_write: bool,
     # finishes (`after_thread=conn.commit`), the run is reaped as abandoned, and
     # the model stays due for the next night.
     try:
+        # UTF-8 EXPLICITLY. On Windows `text=True` decodes as cp1252 and the
+        # reader thread crashed on a model's output (2026-10-06, byte 0x9d);
+        # harmless - the end record is read from the log file - but noisy.
         proc = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True,
-                              timeout=timeout_s)
+                              encoding="utf-8", errors="replace", timeout=timeout_s)
     except subprocess.TimeoutExpired:
         return {"model_version_id": due.model_version_id, "display_name": due.display_name,
                 "run_id": run_id, "returncode": None, "timed_out": True,
